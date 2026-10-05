@@ -1022,8 +1022,10 @@ public static class ActionCatalog
                 Number("y", "Y", 0, "Region origin row."),
                 Number("width", "Width", 100, "Region width in pixels.", min: 1),
                 Number("height", "Height", 100, "Region height in pixels.", min: 1),
-                Text("saveTo", "Save to variable", hint: "Variable that receives the captured image.",
-                    defaultValue: "shot"),
+                Variable("saveTo", "Save to variable", "shot",
+                    "Variable that receives the captured image. $name.x, $name.y, $name.width and "
+                    + "$name.height hold the rectangle it covered, so a later step can search it.",
+                    namesVariable: true, defaultValue: "shot"),
             ],
         },
         new()
@@ -1034,12 +1036,16 @@ public static class ActionCatalog
             Description = "Look for a reference image on screen.",
             Parameters =
             [
-                Text("image", "Image file", @"C:\images\ok.png", "Reference image to look for."),
+                Text("image", "Image file", @"C:\images\ok.png",
+                    "Reference image: a file path, or the variable a Capture step saved ($shot)."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100),
                 Text("region", "Search region", required: false,
-                    hint: "Optional x,y,width,height limit. Leave empty to search the whole screen."),
-                Text("resultVariable", "Result variable", hint: "Variable that receives the match.",
-                    defaultValue: "match"),
+                    hint: "Optional x,y,width,height limit, written out or held in a variable. "
+                          + "Leave empty to search the whole screen."),
+                Variable("resultVariable", "Result variable", "match",
+                    "Variable that receives the match centre, empty when nothing was found. "
+                    + "$name.x, $name.y, $name.width, $name.height and $name.score hold the parts.",
+                    namesVariable: true, defaultValue: "match"),
             ],
         },
         new()
@@ -1050,11 +1056,14 @@ public static class ActionCatalog
             Description = "Wait until a reference image appears on screen.",
             Parameters =
             [
-                Text("image", "Image file", @"C:\images\ok.png", "Reference image to wait for."),
+                Text("image", "Image file", @"C:\images\ok.png",
+                    "Reference image to wait for: a file path, or the variable a Capture saved."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100),
                 Number("timeoutMs", "Timeout ms", 5000, "Give up after this long."),
                 Number("intervalMs", "Interval ms", 200, "Delay between checks."),
-                Text("resultVariable", "Result variable", defaultValue: "match"),
+                Variable("resultVariable", "Result variable", "match",
+                    "Variable that receives the match centre. $name.x, $name.y and $name.score "
+                    + "hold the parts.", namesVariable: true, defaultValue: "match"),
             ],
         },
         new()
@@ -1083,8 +1092,8 @@ public static class ActionCatalog
             [
                 Number("x", "X", 0, "Screen column to sample."),
                 Number("y", "Y", 0, "Screen row to sample."),
-                Text("resultVariable", "Result variable", hint: "Variable that receives the colour.",
-                    defaultValue: "color"),
+                Variable("resultVariable", "Result variable", "color",
+                    "Variable that receives the colour.", namesVariable: true, defaultValue: "color"),
                 Toggle("asHex", "Store as hex", true, "Store #RRGGBB instead of raw colour channels."),
             ],
         },
@@ -1118,8 +1127,9 @@ public static class ActionCatalog
                 Number("width", "Width", 400, "Region width in pixels.", min: 1),
                 Number("height", "Height", 120, "Region height in pixels.", min: 1),
                 Choice("language", "Language", ["auto", "en", "zh"], "auto"),
-                Text("resultVariable", "Result variable", hint: "Variable that receives the recognised text.",
-                    defaultValue: "text"),
+                Variable("resultVariable", "Result variable", "text",
+                    "Variable that receives the recognised text.",
+                    namesVariable: true, defaultValue: "text"),
             ],
         },
         new()
@@ -1132,10 +1142,13 @@ public static class ActionCatalog
             [
                 Text("text", "Text to find", "Save", "Text to look for."),
                 Text("region", "Search region", required: false,
-                    hint: "Optional x,y,width,height limit. Leave empty to search the whole screen."),
+                    hint: "Optional x,y,width,height limit, written out or held in a variable. "
+                          + "Leave empty to search the whole screen."),
                 TextMatch(),
-                Text("resultVariable", "Result variable", hint: "Variable that receives the match.",
-                    defaultValue: "match"),
+                Variable("resultVariable", "Result variable", "match",
+                    "Variable that receives the match centre, empty when the text was not found. "
+                    + "$name.x, $name.y, $name.text and $name.score hold the parts.",
+                    namesVariable: true, defaultValue: "match"),
             ],
         },
         new()
@@ -1167,8 +1180,9 @@ public static class ActionCatalog
                 Window(),
                 Selector(),
                 Number("timeoutMs", "Timeout ms", 0, "0 checks once and returns immediately."),
-                Text("resultVariable", "Result variable", hint: "Variable that receives true or false.",
-                    defaultValue: "exists"),
+                Variable("resultVariable", "Result variable", "exists",
+                    "Variable that receives true or false.",
+                    namesVariable: true, defaultValue: "exists"),
             ],
         },
         new()
@@ -1223,8 +1237,9 @@ public static class ActionCatalog
             [
                 Window(),
                 Selector(),
-                Text("resultVariable", "Result variable", hint: "Variable that receives the text.",
-                    defaultValue: "text"),
+                Variable("resultVariable", "Result variable", "text",
+                    "Variable that receives the text.",
+                    namesVariable: true, defaultValue: "text"),
             ],
         },
         new()
@@ -1251,7 +1266,8 @@ public static class ActionCatalog
                 Text("image", "Image file", @"C:\images\ok.png"),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100),
                 Text("region", "Search region", required: false,
-                    hint: "Optional x,y,width,height limit. Leave empty to search the whole screen."),
+                    hint: "Optional x,y,width,height limit, written out or held in a variable. "
+                          + "Leave empty to search the whole screen."),
             ],
         },
         new()
@@ -1264,7 +1280,8 @@ public static class ActionCatalog
             [
                 Text("text", "Text", "Ready"),
                 Text("region", "Search region", required: false,
-                    hint: "Optional x,y,width,height limit. Leave empty to search the whole screen."),
+                    hint: "Optional x,y,width,height limit, written out or held in a variable. "
+                          + "Leave empty to search the whole screen."),
                 TextMatch(),
             ],
         },
@@ -1466,7 +1483,7 @@ public static class ActionCatalog
 
     /// <summary>Name of a variable, edited with a suggestion list.</summary>
     private static ActionParameter Variable(string name, string label, string placeholder, string hint,
-        bool required = true, bool namesVariable = false)
+        bool required = true, bool namesVariable = false, string defaultValue = "")
         => new()
         {
             Name = name,
@@ -1476,6 +1493,7 @@ public static class ActionCatalog
             Hint = hint,
             Required = required,
             NamesVariable = namesVariable,
+            DefaultValue = defaultValue,
         };
 
     private static ActionParameter Number(string name, string label, decimal defaultValue,

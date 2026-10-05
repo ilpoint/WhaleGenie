@@ -146,6 +146,15 @@ public partial class AddActionWindow : Window
         }
     }
 
+    /// <summary>Switches a number between the spinner and an expression such as $match.x.</summary>
+    private void OnToggleNumberFormula(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepParameterViewModel parameter })
+        {
+            parameter.ToggleFormula();
+        }
+    }
+
     /// <summary>Opens the screen magnifier for a colour parameter and keeps what it reads.</summary>
     private async void OnPickParameterColor(object? sender, RoutedEventArgs e)
     {

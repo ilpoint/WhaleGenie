@@ -8,8 +8,8 @@ using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Viktor.Core.Execution;
-using Viktor.Models;
 using Viktor.Localization;
+using Viktor.Models;
 
 namespace Viktor.ViewModels;
 
@@ -329,7 +329,7 @@ public partial class AddActionViewModel : ViewModelBase
                 continue;
             }
 
-            parameter.NumberValue = parameter.Definition.Name == "x" ? x : y;
+            parameter.SetNumber(parameter.Definition.Name == "x" ? x : y);
             filled = true;
         }
 

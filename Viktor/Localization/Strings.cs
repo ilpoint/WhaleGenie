@@ -72,7 +72,7 @@ public sealed class Strings : INotifyPropertyChanged
     public static string Format(string key, params object[] arguments)
         => string.Format(Get(key), arguments);
 
-    private static readonly Dictionary<string, string> English = new()
+    internal static readonly Dictionary<string, string> English = new()
     {
         // ------------------------------------------------------------- main window
         ["Main.Title"] = "Viktor (Admin)",
@@ -244,6 +244,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.NestedDown"] = "Down",
         ["Add.ExpressionValid"] = "Expression is valid",
         ["Add.ExpressionResult"] = "= {0}",
+        ["Add.FormulaUse"] = "Write this as an expression, for example $match.x",
+        ["Add.FormulaBack"] = "Go back to a plain number",
+        ["Add.FormulaLocked"] = "The expression reads a variable, so it cannot become a plain number",
+        ["Add.FormulaPlaceholder"] = "$match.x or $count + 1",
         ["Add.StepSettings"] = "Step settings",
         ["Add.StepComment"] = "Comment",
         ["Add.StepCommentHint"] = "A note shown under the step in the list",
@@ -472,7 +476,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.GlobalMustExist"] = "Global variable \"{0}\" does not exist. Create it in the Variable Center first.",
     };
 
-    private static readonly Dictionary<string, string> Chinese = new()
+    internal static readonly Dictionary<string, string> Chinese = new()
     {
         // ------------------------------------------------------------- main window
         ["Main.Title"] = "Viktor（管理员）",
@@ -639,6 +643,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.NestedDown"] = "下移",
         ["Add.ExpressionValid"] = "表达式有效",
         ["Add.ExpressionResult"] = "= {0}",
+        ["Add.FormulaUse"] = "改写为表达式，例如 $match.x",
+        ["Add.FormulaBack"] = "改回普通数字",
+        ["Add.FormulaLocked"] = "表达式使用了变量，无法改回普通数字",
+        ["Add.FormulaPlaceholder"] = "$match.x 或 $count + 1",
         ["Add.StepSettings"] = "步骤设置",
         ["Add.StepComment"] = "备注",
         ["Add.StepCommentHint"] = "显示在步骤下方的备注",

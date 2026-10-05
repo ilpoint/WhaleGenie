@@ -1162,6 +1162,152 @@ public class DeviceActionTests
         var titles = store.Local.Values["titles"];
         Assert.Equal(["Notepad", "Calculator"], titles.Items.Select(item => item.AsText()));
     }
+
+    [Fact]
+    public async Task A_found_image_reports_its_parts_by_name()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Match = new ImageMatch(0.98, new ScreenPoint(3, 4), new ScreenSize(10, 10)),
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Param("image", "a.png"), Param("confidence", "90"),
+                Param("region", ""), Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("8,9", store.Local.Values["where"].AsText());
+        Assert.Equal(8, store.Local.Values["where.x"].AsNumber());
+        Assert.Equal(9, store.Local.Values["where.y"].AsNumber());
+        Assert.Equal(10, store.Local.Values["where.width"].AsNumber());
+        Assert.Equal(10, store.Local.Values["where.height"].AsNumber());
+        Assert.Equal(0.98, store.Local.Values["where.score"].AsNumber(), 3);
+    }
+
+    [Fact]
+    public async Task An_image_that_is_not_there_clears_the_parts()
+    {
+        var devices = new FakeDeviceLayer { Match = null, Loaded = new ImageFrame(2, 2, new byte[16]) };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("control.setVariable", Param("name", "where.x"), Param("value", "999")),
+            Step("vision.findImage", Param("image", "a.png"), Param("confidence", "90"),
+                Param("region", ""), Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(string.Empty, store.Local.Values["where"].AsText());
+        Assert.Equal(string.Empty, store.Local.Values["where.x"].AsText());
+    }
+
+    [Fact]
+    public async Task A_captured_image_is_found_through_its_variable()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Match = new ImageMatch(0.95, new ScreenPoint(0, 0), new ScreenSize(10, 10)),
+        };
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.capture", Param("x", "0"), Param("y", "0"), Param("width", "10"),
+                Param("height", "10"), Param("saveTo", "shot")),
+            Step("vision.findImage", Param("image", "$shot"), Param("confidence", "90"),
+                Param("region", ""), Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("find 10x10 90", devices.Calls);
+    }
+
+    [Fact]
+    public async Task Text_keeps_its_commas_instead_of_becoming_a_number()
+    {
+        var (result, devices, _) = await RunAsync(
+            [Step("input.typeText", Param("text", "1,000"), Param("intervalMs", "0"))]);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Contains("type 1,000 0", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_search_region_can_come_from_a_variable()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Loaded = new ImageFrame(2, 2, new byte[16]),
+            Match = new ImageMatch(0.99, new ScreenPoint(0, 0), new ScreenSize(2, 2)),
+        };
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("control.setVariable", Param("name", "box"), Param("value", "10,20,30,40")),
+            Step("vision.findImage", Param("image", "a.png"), Param("confidence", "90"),
+                Param("region", "$box"), Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Contains("capture 10 20 30 40", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_found_text_reports_its_parts_by_name()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans = [new TextSpan("Save", new ScreenPoint(10, 20), new ScreenSize(40, 12), 0.9)],
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("ocr.findText", Param("text", "Save"), Param("region", ""),
+                Param("matchMode", "contains"), Param("resultVariable", "found")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("30,26", store.Local.Values["found"].AsText());
+        Assert.Equal("Save", store.Local.Values["found.text"].AsText());
+        Assert.Equal(30, store.Local.Values["found.x"].AsNumber());
+        Assert.Equal(0.9, store.Local.Values["found.score"].AsNumber(), 3);
+    }
+
+    [Fact]
+    public async Task A_number_may_be_written_as_an_expression()
+    {
+        var (result, devices, store) = await RunAsync(
+        [
+            Step("control.setVariable", Param("name", "spot"), Param("value", "5")),
+            Step("input.mouseMove", Param("x", "$spot + 1"), Param("y", "$spot * 2"),
+                Param("durationMs", "0")),
+        ]);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("move 6 10 0", devices.Calls);
+        Assert.Equal(5, store.Local.Values["spot"].AsNumber());
+    }
+
+    [Fact]
+    public async Task A_step_moves_to_the_match_a_find_reported()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Match = new ImageMatch(0.97, new ScreenPoint(100, 200), new ScreenSize(20, 20)),
+        };
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findImage", Param("image", "a.png"), Param("confidence", "90"),
+                Param("region", ""), Param("resultVariable", "where")),
+            Step("input.mouseMove", Param("x", "$where.x + 3"), Param("y", "$where.y"),
+                Param("durationMs", "0")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("move 113 210 0", devices.Calls);
+    }
 }
 
 /// <summary>

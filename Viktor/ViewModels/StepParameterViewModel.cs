@@ -4,8 +4,8 @@ using System.Globalization;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Viktor.Core.Expressions;
-using Viktor.Models;
 using Viktor.Localization;
+using Viktor.Models;
 
 namespace Viktor.ViewModels;
 
@@ -21,7 +21,8 @@ public partial class StepParameterViewModel : ViewModelBase
         Definition = definition;
         Variables = variables ?? [];
         Macros = macros ?? [];
-        ExpressionSuggestions = definition.Kind is ActionParameterKind.Expression
+        ExpressionSuggestions = definition.Kind
+            is ActionParameterKind.Expression or ActionParameterKind.Number
             ? [.. Variables.Select(name => "$" + name),
                .. Expression.Functions.Select(function => function.Name + "(")]
             : [];
@@ -39,6 +40,11 @@ public partial class StepParameterViewModel : ViewModelBase
                 out var number))
         {
             NumberValue = number;
+        }
+        else if (definition.Kind is ActionParameterKind.Number)
+        {
+            // A number that was written as an expression opens in the expression editor.
+            UseFormula = true;
         }
 
         if (definition.Kind is ActionParameterKind.Steps or ActionParameterKind.Condition)
@@ -85,6 +91,17 @@ public partial class StepParameterViewModel : ViewModelBase
     [ObservableProperty]
     public partial decimal? NumberValue { get; set; }
 
+    /// <summary>
+    /// True while a number is being written as an expression (<c>$match.x</c>, <c>$count + 1</c>)
+    /// instead of being dialled in with the spinner. The engine reads both the same way.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNumberValue))]
+    [NotifyPropertyChangedFor(nameof(IsNumberFormula))]
+    [NotifyPropertyChangedFor(nameof(CanToggleFormula))]
+    [NotifyPropertyChangedFor(nameof(FormulaTip))]
+    public partial bool UseFormula { get; set; }
+
     [ObservableProperty]
     public partial bool Flag { get; set; }
 
@@ -125,6 +142,31 @@ public partial class StepParameterViewModel : ViewModelBase
 
     public bool IsNumber => Definition.Kind is ActionParameterKind.Number;
 
+    /// <summary>True when the number is dialled in with the spinner.</summary>
+    public bool IsNumberValue => IsNumber && !UseFormula;
+
+    /// <summary>True when the number is written as an expression.</summary>
+    public bool IsNumberFormula => IsNumber && UseFormula;
+
+    /// <summary>
+    /// Whether the field can go back to the spinner. An expression that reads a variable has no
+    /// plain number to fall back on, so the switch stays off until the text is a number again.
+    /// </summary>
+    public bool CanToggleFormula => IsNumber && (!UseFormula || TextIsNumber);
+
+    /// <summary>
+    /// What the expression toggle offers right now, so the button never looks stuck or does
+    /// something the field cannot do.
+    /// </summary>
+    public string FormulaTip => UseFormula
+        ? Strings.Get(TextIsNumber ? "Add.FormulaBack" : "Add.FormulaLocked")
+        : Strings.Get("Add.FormulaUse");
+
+    /// <summary>True when what the field holds is a plain number rather than an expression.</summary>
+    private bool TextIsNumber
+        => decimal.TryParse((Text ?? string.Empty).Trim(), NumberStyles.Number,
+            CultureInfo.InvariantCulture, out _);
+
     public bool IsBool => Definition.Kind is ActionParameterKind.Bool;
 
     public bool IsChoice => Definition.Kind is ActionParameterKind.Choice;
@@ -159,6 +201,9 @@ public partial class StepParameterViewModel : ViewModelBase
     public bool HasHint => !string.IsNullOrWhiteSpace(Definition.Hint);
 
     public string Placeholder => Definition.Placeholder;
+
+    /// <summary>What the expression editor of a number field hints at.</summary>
+    public string FormulaPlaceholder => Strings.Get("Add.FormulaPlaceholder");
 
     /// <summary>True when a required parameter is still empty, which blocks saving.</summary>
     public bool IsMissing => IsEnabled && Definition.Required && Definition.Kind switch
@@ -202,9 +247,52 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Re-checks an expression as it is typed, so the editor can show the outcome.</summary>
     partial void OnTextChanged(string value)
     {
-        if (IsExpression)
+        if (IsNumberFormula)
+        {
+            OnPropertyChanged(nameof(CanToggleFormula));
+            OnPropertyChanged(nameof(FormulaTip));
+        }
+
+        if (IsExpression || IsNumberFormula)
         {
             UpdateExpression(value);
+        }
+    }
+
+    /// <summary>Switches a number field between the spinner and an expression.</summary>
+    public void ToggleFormula()
+    {
+        if (!CanToggleFormula)
+        {
+            return;
+        }
+
+        UseFormula = !UseFormula;
+    }
+
+    /// <summary>
+    /// Puts a plain number in the field, dropping an expression that was there. This is what the
+    /// screen picker writes when it takes the pointer's place.
+    /// </summary>
+    public void SetNumber(int value)
+    {
+        UseFormula = false;
+        NumberValue = value;
+    }
+
+    partial void OnUseFormulaChanged(bool value)
+    {
+        if (value)
+        {
+            // Start from the number that was showing, so the field is never left blank.
+            Text = (NumberValue ?? 0m).ToString(CultureInfo.InvariantCulture);
+            return;
+        }
+
+        if (decimal.TryParse((Text ?? string.Empty).Trim(), NumberStyles.Number,
+                CultureInfo.InvariantCulture, out var number))
+        {
+            NumberValue = number;
         }
     }
 
@@ -254,7 +342,9 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>The value as text, taken from whichever editor this parameter uses.</summary>
     public string CurrentText => Definition.Kind switch
     {
-        ActionParameterKind.Number => (NumberValue ?? 0m).ToString(CultureInfo.InvariantCulture),
+        ActionParameterKind.Number => UseFormula
+            ? Text ?? string.Empty
+            : (NumberValue ?? 0m).ToString(CultureInfo.InvariantCulture),
         ActionParameterKind.Bool => Flag ? "true" : "false",
         ActionParameterKind.Choice => Option?.Value ?? string.Empty,
         _ => Text ?? string.Empty,
@@ -299,7 +389,15 @@ public partial class StepParameterViewModel : ViewModelBase
             case ActionParameterKind.Number:
                 if (decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var number))
                 {
+                    UseFormula = false;
                     NumberValue = number;
+                }
+                else
+                {
+                    // Anything that is not a plain number is an expression the engine can still
+                    // evaluate, so the text has to survive opening and saving the step.
+                    UseFormula = true;
+                    Text = raw;
                 }
                 break;
             case ActionParameterKind.Bool:

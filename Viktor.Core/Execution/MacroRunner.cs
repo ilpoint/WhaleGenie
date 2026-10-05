@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using Viktor.Core.Devices;
 using Viktor.Core.Expressions;
 using Viktor.Core.Variables;
@@ -540,15 +540,15 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "window.move":
-            {
-                var x = Number(step, "x");
-                var y = Number(step, "y");
-                var width = Math.Max(1, Number(step, "width"));
-                var height = Math.Max(1, Number(step, "height"));
-                Act(step, depth, "Run.MovedWindow",
-                    window => _devices.Windows.Move(window.Handle, x, y, width, height));
-                return Signal.Normal;
-            }
+                {
+                    var x = Number(step, "x");
+                    var y = Number(step, "y");
+                    var width = Math.Max(1, Number(step, "width"));
+                    var height = Math.Max(1, Number(step, "height"));
+                    Act(step, depth, "Run.MovedWindow",
+                        window => _devices.Windows.Move(window.Handle, x, y, width, height));
+                    return Signal.Normal;
+                }
 
             case "window.close":
                 Act(step, depth, "Run.ClosedWindow", window => _devices.Windows.Close(window.Handle));
@@ -590,41 +590,41 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "input.mouseClick":
-            {
-                var point = Point(step, "x", "y");
-                _devices.Input.Click(Button(step), point.X, point.Y,
-                    Math.Max(1, Number(step, "clicks")), Pace(Number(step, "intervalMs")));
-                return Signal.Normal;
-            }
+                {
+                    var point = Point(step, "x", "y");
+                    _devices.Input.Click(Button(step), point.X, point.Y,
+                        Math.Max(1, Number(step, "clicks")), Pace(Number(step, "intervalMs")));
+                    return Signal.Normal;
+                }
 
             case "input.mouseDoubleClick":
-            {
-                var point = Point(step, "x", "y");
-                _devices.Input.Click(Button(step), point.X, point.Y, 2, 0);
-                return Signal.Normal;
-            }
+                {
+                    var point = Point(step, "x", "y");
+                    _devices.Input.Click(Button(step), point.X, point.Y, 2, 0);
+                    return Signal.Normal;
+                }
 
             case "input.mouseDown":
-            {
-                var point = Point(step, "x", "y");
-                _devices.Input.MouseDown(Button(step), point.X, point.Y);
-                return Signal.Normal;
-            }
+                {
+                    var point = Point(step, "x", "y");
+                    _devices.Input.MouseDown(Button(step), point.X, point.Y);
+                    return Signal.Normal;
+                }
 
             case "input.mouseUp":
-            {
-                var point = Point(step, "x", "y");
-                _devices.Input.MouseUp(Button(step), point.X, point.Y);
-                return Signal.Normal;
-            }
+                {
+                    var point = Point(step, "x", "y");
+                    _devices.Input.MouseUp(Button(step), point.X, point.Y);
+                    return Signal.Normal;
+                }
 
             case "input.mouseScroll":
-            {
-                var point = Point(step, "x", "y");
-                _devices.Input.Scroll(step.Text("direction"), Math.Max(1, Number(step, "amount")),
-                    point.X, point.Y);
-                return Signal.Normal;
-            }
+                {
+                    var point = Point(step, "x", "y");
+                    _devices.Input.Scroll(step.Text("direction"), Math.Max(1, Number(step, "amount")),
+                        point.X, point.Y);
+                    return Signal.Normal;
+                }
 
             case "input.mouseDrag":
                 _devices.Input.Drag(Button(step), Number(step, "startX"), Number(step, "startY"),
@@ -877,21 +877,21 @@ public sealed class MacroRunner
             case "condition.imageExists":
                 return Search(condition) is not null;
             case "condition.textExists":
-            {
-                var wanted = Read(condition.Text("text")).AsText();
-                var mode = condition.Text("matchMode");
-                return ReadSpans(condition).Any(span => Matches(span.Text, wanted, mode));
-            }
+                {
+                    var wanted = Read(condition.Text("text")).AsText();
+                    var mode = condition.Text("matchMode");
+                    return ReadSpans(condition).Any(span => Matches(span.Text, wanted, mode));
+                }
 
             case "condition.uiaExists":
                 return _devices.Ui.Exists(Query(condition), 0);
 
             case "condition.colorEquals":
-            {
-                var target = PixelColor.Parse(condition.Text("color"));
-                var pixel = _devices.Screen.PixelAt(Number(condition, "x"), Number(condition, "y"));
-                return pixel.Matches(target, Read(condition.Text("tolerance")).AsNumber());
-            }
+                {
+                    var target = PixelColor.Parse(condition.Text("color"));
+                    var pixel = _devices.Screen.PixelAt(Number(condition, "x"), Number(condition, "y"));
+                    return pixel.Matches(target, Read(condition.Text("tolerance")).AsNumber());
+                }
 
             default:
                 Log(LogLevel.Warn, depth, condition.Type, "Run.UnknownCondition", condition.Type);
@@ -1080,11 +1080,20 @@ public sealed class MacroRunner
             throw new StepFailure("Run.MissingVariable");
         }
 
-        var frame = _devices.Screen.Capture(Number(step, "x"), Number(step, "y"),
-            Math.Max(1, Number(step, "width")), Math.Max(1, Number(step, "height")));
+        var x = Number(step, "x");
+        var y = Number(step, "y");
+        var width = Math.Max(1, Number(step, "width"));
+        var height = Math.Max(1, Number(step, "height"));
+        var frame = _devices.Screen.Capture(x, y, width, height);
 
         _images[name] = frame;
         Variables.Set(name, Value.FromText($"<image {frame.Width}x{frame.Height}>"));
+
+        // The rectangle the picture covers, so it can be searched or compared by name.
+        Variables.Set(name + ".x", Value.FromNumber(x));
+        Variables.Set(name + ".y", Value.FromNumber(y));
+        Variables.Set(name + ".width", Value.FromNumber(width));
+        Variables.Set(name + ".height", Value.FromNumber(height));
         Log(LogLevel.Info, depth, step.Type, "Run.Capture", name, $"{frame.Width}x{frame.Height}");
     }
 
@@ -1137,9 +1146,14 @@ public sealed class MacroRunner
             name = "match";
         }
 
-        Variables.Set(name, match is null
-            ? Value.FromText(string.Empty)
-            : Value.FromText($"{match.Center.X},{match.Center.Y}"));
+        if (match is null)
+        {
+            StoreMiss(name);
+        }
+        else
+        {
+            StoreMatch(name, match.Center, match.Size, match.Score);
+        }
 
         Log(LogLevel.Info, depth, step.Type, match is null ? "Run.ImageMissing" : "Run.ImageFound",
             name, match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
@@ -1156,7 +1170,7 @@ public sealed class MacroRunner
             name = "match";
         }
 
-        Variables.Set(name, Value.FromText($"{match.Center.X},{match.Center.Y}"));
+        StoreMatch(name, match.Center, match.Size, match.Score);
         Log(LogLevel.Info, depth, step.Type, "Run.ImageFound", name, $"{match.Center.X},{match.Center.Y}");
     }
 
@@ -1226,18 +1240,24 @@ public sealed class MacroRunner
             throw new StepFailure("Run.MissingImage", string.Empty);
         }
 
-        if (_images.TryGetValue(text, out var captured))
+        // A picture an earlier Capture saved, named with or without the dollar sign so it reads
+        // the same as every other field a variable can go in.
+        var named = text.StartsWith('$') ? text[1..].Trim() : text;
+        if (_images.TryGetValue(named, out var captured))
         {
             return captured;
         }
 
+        // Otherwise it is a file, either written out or held in a variable.
         return _devices.Vision.Load(Read(text).AsText()) ?? throw new StepFailure("Run.MissingImage", text);
     }
 
     /// <summary>The area to search: the whole screen unless the step names a rectangle.</summary>
     private (ImageFrame Frame, ScreenPoint Origin) SearchArea(ExecutableStep step)
     {
-        var text = step.Text("region").Trim();
+        // The rectangle may be written out, held in a variable, or built from several of them.
+        // It is only interpolated: the commas would stop an expression at the first number.
+        var text = Interpolate(step.Text("region")).Trim();
         if (text.Length == 0)
         {
             var size = _devices.Screen.PrimarySize;
@@ -1552,15 +1572,15 @@ public sealed class MacroRunner
             case ValueKind.Bool:
                 return JsonValue.Create(value.Flag);
             case ValueKind.List:
-            {
-                var array = new JsonArray();
-                foreach (var item in value.Items)
                 {
-                    array.Add(ToJson(item));
-                }
+                    var array = new JsonArray();
+                    foreach (var item in value.Items)
+                    {
+                        array.Add(ToJson(item));
+                    }
 
-                return array;
-            }
+                    return array;
+                }
             default:
                 return JsonValue.Create(value.Text);
         }
@@ -1912,6 +1932,44 @@ public sealed class MacroRunner
         Variables.Set(name.Length == 0 ? fallback : name, value);
     }
 
+    /// <summary>
+    /// Writes a match so a macro can read its parts: the centre as <c>name</c> ("x,y", the way
+    /// every coordinate field is written) and each part again as <c>name.x</c>, <c>name.y</c>,
+    /// <c>name.width</c>, <c>name.height</c> and <c>name.score</c>.
+    /// </summary>
+    private void StoreMatch(string name, ScreenPoint centre, ScreenSize size, double score,
+        string text = "")
+    {
+        Variables.Set(name, Value.FromText($"{centre.X},{centre.Y}"));
+        Variables.Set(name + ".x", Value.FromNumber(centre.X));
+        Variables.Set(name + ".y", Value.FromNumber(centre.Y));
+        Variables.Set(name + ".width", Value.FromNumber(size.Width));
+        Variables.Set(name + ".height", Value.FromNumber(size.Height));
+        Variables.Set(name + ".score", Value.FromNumber(score));
+
+        if (text.Length > 0)
+        {
+            Variables.Set(name + ".text", Value.FromText(text));
+        }
+    }
+
+    /// <summary>
+    /// Empties a match that was not found, parts included, so a step inside a loop never reads
+    /// the position the previous pass left behind.
+    /// </summary>
+    private void StoreMiss(string name)
+    {
+        Variables.Set(name, Value.FromText(string.Empty));
+        foreach (var part in MatchParts)
+        {
+            Variables.Set(name + part, Value.FromText(string.Empty));
+        }
+    }
+
+    /// <summary>The parts a match is broken into, named after the dot in <c>match.x</c>.</summary>
+    private static readonly string[] MatchParts =
+        [".x", ".y", ".width", ".height", ".score", ".text"];
+
     /// <summary>The process id a step names, which is usually a variable.</summary>
     private int ProcessId(ExecutableStep step)
     {
@@ -2042,9 +2100,14 @@ public sealed class MacroRunner
             name = "match";
         }
 
-        Variables.Set(name, span is null
-            ? Value.FromText(string.Empty)
-            : Value.FromText($"{span.Center.X},{span.Center.Y}"));
+        if (span is null)
+        {
+            StoreMiss(name);
+        }
+        else
+        {
+            StoreMatch(name, span.Center, span.Size, span.Confidence, span.Text);
+        }
 
         Log(LogLevel.Info, depth, step.Type, span is null ? "Run.TextMissing" : "Run.TextFound",
             name, span is null ? string.Empty : $"{span.Center.X},{span.Center.Y}");
@@ -2279,7 +2342,9 @@ public sealed class MacroRunner
             throw error!;
         }
 
-        if (double.TryParse(trimmed, NumberStyles.Any, CultureInfo.InvariantCulture, out var number))
+        // Numbers are read without a thousands separator: text like "10,20,30,40" or "1,000"
+        // is text, not a number, and a comma means a separator rather than a digit group.
+        if (double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
         {
             return Value.FromNumber(number);
         }
