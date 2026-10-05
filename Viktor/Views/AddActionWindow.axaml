@@ -395,11 +395,20 @@
                                                             Content="{Binding Second}"
                                                             ContentTemplate="{StaticResource ParameterEditor}"
                                                             IsVisible="{Binding HasSecond}" />
-                                            <!-- A position is taken from the pointer with Alt + X -->
-                                            <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Classes="Muted"
-                                                       Margin="2,6,0,0" TextWrapping="Wrap"
-                                                       IsVisible="{Binding HasSecond}"
-                                                       Text="{Binding [Add.SharedPositionHint], Source={x:Static loc:Strings.Current}}" />
+                                            <!-- A position is taken from the pointer with Alt + X,
+                                                 and a whole rectangle with the region picker. -->
+                                            <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="2,6,0,0"
+                                                        Spacing="6">
+                                                <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                                           IsVisible="{Binding ShowsPositionHint}"
+                                                           Text="{Binding [Add.SharedPositionHint], Source={x:Static loc:Strings.Current}}" />
+                                                <Button Classes="FlatButton" Height="30" Padding="10,0"
+                                                        HorizontalAlignment="Left"
+                                                        IsVisible="{Binding IsRegionAnchor}"
+                                                        ToolTip.Tip="{Binding [Add.PickRegionHint], Source={x:Static loc:Strings.Current}}"
+                                                        Content="{Binding [Add.PickRegion], Source={x:Static loc:Strings.Current}}"
+                                                        Click="OnPickRegion" />
+                                            </StackPanel>
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

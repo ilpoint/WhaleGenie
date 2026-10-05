@@ -25,6 +25,9 @@ public class ActionDialogTests
         return viewModel;
     }
 
+    private static string Value(AddActionViewModel viewModel, string name)
+        => viewModel.Parameters.First(parameter => parameter.Definition.Name == name).CurrentText;
+
     [Fact]
     public void A_number_can_be_written_as_an_expression()
     {
@@ -102,6 +105,76 @@ public class ActionDialogTests
             Assert.True(result.IsVariable);
             Assert.Equal("match", result.Text);
             Assert.Contains("match.x", result.Variables);
+        });
+    }
+
+    [Theory]
+    [InlineData("vision.capture", "x")]
+    [InlineData("ocr.recognize", "x")]
+    [InlineData("input.mouseDrag", "startX")]
+    [InlineData("ocr.findText", "region")]
+    [InlineData("vision.findImage", "region")]
+    [InlineData("condition.imageExists", "region")]
+    public void The_region_picker_sits_on_the_row_that_names_a_rectangle(string key, string anchor)
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open(key);
+
+            Assert.True(viewModel.HasRegion);
+            Assert.True(viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == anchor).IsRegionAnchor);
+        });
+    }
+
+    [Theory]
+    [InlineData("input.mouseClick")]
+    [InlineData("vision.getPixel")]
+    [InlineData("input.keyPress")]
+    public void An_action_that_only_needs_a_point_has_no_region_picker(string key)
+    {
+        Ui.Run(() => Assert.False(Open(key).HasRegion));
+    }
+
+    [Fact]
+    public void A_rectangle_fills_x_y_width_and_height()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("vision.capture");
+
+            Assert.True(viewModel.ApplyRegion(10, 20, 30, 40));
+            Assert.Equal("10", Value(viewModel, "x"));
+            Assert.Equal("20", Value(viewModel, "y"));
+            Assert.Equal("30", Value(viewModel, "width"));
+            Assert.Equal("40", Value(viewModel, "height"));
+        });
+    }
+
+    [Fact]
+    public void A_rectangle_fills_a_single_region_field()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("ocr.findText");
+
+            Assert.True(viewModel.ApplyRegion(10, 20, 30, 40));
+            Assert.Equal("10,20,30,40", Value(viewModel, "region"));
+        });
+    }
+
+    [Fact]
+    public void A_rectangle_fills_both_corners_of_a_drag()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.mouseDrag");
+
+            Assert.True(viewModel.ApplyRegion(10, 20, 30, 40));
+            Assert.Equal("10", Value(viewModel, "startX"));
+            Assert.Equal("20", Value(viewModel, "startY"));
+            Assert.Equal("40", Value(viewModel, "endX"));
+            Assert.Equal("60", Value(viewModel, "endY"));
         });
     }
 }

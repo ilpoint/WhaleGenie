@@ -146,6 +146,21 @@ public partial class AddActionWindow : Window
         }
     }
 
+    /// <summary>Opens the region picker and writes the rectangle it returns into the action.</summary>
+    private async void OnPickRegion(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        var region = await RegionPickerWindow.PickAsync(this);
+        if (region is { } picked)
+        {
+            viewModel.ApplyRegion(picked.X, picked.Y, picked.Width, picked.Height);
+        }
+    }
+
     /// <summary>Switches a number between the spinner and an expression such as $match.x.</summary>
     private void OnToggleNumberFormula(object? sender, RoutedEventArgs e)
     {

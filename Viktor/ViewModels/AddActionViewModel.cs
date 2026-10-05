@@ -268,6 +268,7 @@ public partial class AddActionViewModel : ViewModelBase
             }
 
             MarkCoordinates();
+            MarkRegion();
         }
 
         BuildRows();
@@ -287,7 +288,8 @@ public partial class AddActionViewModel : ViewModelBase
             var current = Parameters[index];
             var next = index + 1 < Parameters.Count ? Parameters[index + 1] : null;
 
-            if (current.IsCoordinate && next?.IsCoordinate == true)
+            if (current.IsRowPair && next?.IsRowPair == true
+                || current.IsCoordinate && next?.IsCoordinate == true)
             {
                 Rows.Add(new ParameterRowViewModel(current, next));
                 index++;
@@ -316,6 +318,52 @@ public partial class AddActionViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Notes the parameters that name a rectangle, so one button can take all of them from a drag
+    /// on the screen: x, y, width and height; the two corners of a drag; or a single
+    /// "x,y,width,height" field.
+    /// </summary>
+    private void MarkRegion()
+    {
+        var anchor =
+            Pair("x", "y") is { } corner &&
+            Parameters.Any(parameter => parameter.Definition.Name == "width") &&
+            Parameters.Any(parameter => parameter.Definition.Name == "height")
+                ? corner
+                : Pair("startX", "startY") is { } drag &&
+                  Parameters.Any(parameter => parameter.Definition.Name == "endX") &&
+                  Parameters.Any(parameter => parameter.Definition.Name == "endY")
+                    ? drag
+                    : Parameter("region");
+
+        if (anchor is not null)
+        {
+            anchor.IsRegionAnchor = true;
+        }
+
+        // The two corners of a drag read better side by side, the way x and y already do.
+        PairRow("startX", "startY");
+        PairRow("endX", "endY");
+
+        StepParameterViewModel? Pair(string first, string second)
+            => Parameter(first) is not null && Parameter(second) is not null ? Parameter(first) : null;
+
+        void PairRow(string first, string second)
+        {
+            if (Parameter(first) is { } left && Parameter(second) is { } right)
+            {
+                left.IsRowPair = true;
+                right.IsRowPair = true;
+            }
+        }
+    }
+
+    private StepParameterViewModel? Parameter(string name)
+        => Parameters.FirstOrDefault(parameter => parameter.Definition.Name == name);
+
+    /// <summary>True when this action works on a rectangle the region picker can fill in.</summary>
+    public bool HasRegion => Parameters.Any(parameter => parameter.IsRegionAnchor);
+
+    /// <summary>
     /// Writes a screen position into the action's x and y, which is what Alt + X does while
     /// the dialog is open. Returns false when the action has no position to fill.
     /// </summary>
@@ -340,6 +388,37 @@ public partial class AddActionViewModel : ViewModelBase
     /// Lets a parameter react to the sibling list it waits on, such as the logic of a
     /// condition group, which only applies once there are two or more conditions.
     /// </summary>
+    /// <summary>
+    /// Writes a rectangle that was dragged on the screen into whichever shape this action uses:
+    /// x/y/width/height, the two corners of a drag, or one "x,y,width,height" field coming from
+    /// the region picker. Returns false when the action has nowhere to put it.
+    /// </summary>
+    public bool ApplyRegion(int x, int y, int width, int height)
+    {
+        var filled = false;
+
+        foreach (var (name, value) in new (string Name, int Value)[]
+                 {
+                     ("x", x), ("y", y), ("width", width), ("height", height),
+                     ("startX", x), ("startY", y), ("endX", x + width), ("endY", y + height),
+                 })
+        {
+            if (Parameter(name) is { IsNumber: true } parameter)
+            {
+                parameter.SetNumber(value);
+                filled = true;
+            }
+        }
+
+        if (!filled && Parameter("region") is { } region)
+        {
+            region.Text = $"{x},{y},{width},{height}";
+            filled = true;
+        }
+
+        return filled;
+    }
+
     private void RefreshGates()
     {
         foreach (var editor in Parameters)

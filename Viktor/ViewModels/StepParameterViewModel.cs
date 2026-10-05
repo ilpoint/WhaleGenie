@@ -138,6 +138,19 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </summary>
     public bool IsCoordinate { get; set; }
 
+    /// <summary>
+    /// True when this parameter shares its line with the next one. The two halves of a screen
+    /// position always do; the corners of a drag do too, even though the pointer shortcut does
+    /// not fill them.
+    /// </summary>
+    public bool IsRowPair { get; set; }
+
+    /// <summary>
+    /// True on the parameter whose line carries the region picker. Set by the dialog when the
+    /// action works on a rectangle of the screen, so one button fills the whole group.
+    /// </summary>
+    public bool IsRegionAnchor { get; set; }
+
     public bool IsMultiline => Definition.Kind is ActionParameterKind.MultilineText;
 
     public bool IsNumber => Definition.Kind is ActionParameterKind.Number;
