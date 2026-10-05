@@ -1,0 +1,47 @@
+namespace Viktor.Models;
+
+/// <summary>What makes a macro start running.</summary>
+public enum MacroTrigger
+{
+    /// <summary>Keyboard or mouse button activity.</summary>
+    KeystrokesButtonInputs,
+
+    /// <summary>A change of colour at a watched screen position.</summary>
+    ColorPixelChanges,
+}
+
+/// <summary>How a macro repeats once it has been triggered.</summary>
+public enum MacroLoop
+{
+    /// <summary>Until Key Pressed Again.</summary>
+    Toggle,
+
+    /// <summary>While Holding Key.</summary>
+    Hold,
+
+    /// <summary>Once, When Key Pressed.</summary>
+    Press,
+
+    /// <summary>Once, When Key Released.</summary>
+    Release,
+}
+
+/// <summary>How the watched colour is compared to the pixel under the trigger position.</summary>
+public enum ColorMatchCondition
+{
+    /// <summary>Trigger when the pixel shows the chosen colour.</summary>
+    ColorMatches,
+
+    /// <summary>Trigger when the pixel does not show the chosen colour.</summary>
+    ColorNotMatches,
+}
+
+/// <summary>What is stored for the pointer while a macro records.</summary>
+public enum MousePositionMode
+{
+    /// <summary>Store the absolute pointer position.</summary>
+    SaveCurrentPosition,
+
+    /// <summary>Store the movement between pointer positions.</summary>
+    SavePositionDifferences,
+}

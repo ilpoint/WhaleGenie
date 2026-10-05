@@ -1,0 +1,297 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Viktor.ViewModels"
+        xmlns:models="using:Viktor.Models"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="680"
+        x:Class="Viktor.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="Viktor"
+        Width="480" Height="680"
+        MinWidth="360" MinHeight="480"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        WindowDecorations="BorderOnly"
+        Background="#191919">
+
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainViewModel />
+    </Design.DataContext>
+
+    <Window.Styles>
+        <!-- Custom title bar buttons -->
+        <Style Selector="Button.TitleBarButton">
+            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4A4A4A" />
+        </Style>
+        <Style Selector="Button.TitleBarButton:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#5A5A5A" />
+        </Style>
+
+        <!-- Top-right round tool buttons -->
+        <Style Selector="Button.ToolButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#DADADA" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Width" Value="24" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.ToolButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3A3A3A" />
+        </Style>
+
+        <!-- Bottom buttons -->
+        <Style Selector="Button.BottomButton">
+            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="14,10" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style Selector="Button.BottomButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3D3D3D" />
+        </Style>
+
+        <!-- Macro card action buttons -->
+        <Style Selector="Button.CardButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#DADADA" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.CardButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3A3A3A" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="36,30,*,Auto">
+
+        <!-- ============ Custom title bar ============ -->
+        <Grid Grid.Row="0" Background="#202020" ColumnDefinitions="Auto,*,Auto">
+            <Border Background="#C8401C" CornerRadius="4" Margin="8,5" Padding="4,1"
+                    VerticalAlignment="Center" HorizontalAlignment="Left" Width="30">
+                <TextBlock Text="VIK" Foreground="White" FontWeight="Bold" FontSize="9"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+
+            <TextBlock Grid.Column="1" Text="Viktor (Admin)" Foreground="#E8E8E8" FontSize="13"
+                       VerticalAlignment="Center" Margin="4,0" />
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0" VerticalAlignment="Center">
+                <Button Classes="TitleBarButton" Content="?" FontWeight="Bold" FontSize="13" />
+                <Button Classes="TitleBarButton" Name="MinimizeButton">
+                    <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6" Data="M 0,5 H 8" />
+                </Button>
+                <Button Classes="TitleBarButton" Name="CloseButton">
+                    <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6" Data="M 1,1 L 7,7 M 1,7 L 7,1" />
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- ============ Menu bar ============ -->
+        <Grid Grid.Row="1" Background="#1E1E1E" ColumnDefinitions="Auto,*,Auto">
+            <Menu Background="Transparent" VerticalAlignment="Center" Margin="4,0">
+                <MenuItem Header="_File" FontSize="13" Foreground="#E8E8E8" Padding="10,4">
+                    <MenuItem Header="Open Macro Project">
+                        <MenuItem.Icon>
+                            <Path Width="15" Height="15" Stroke="#DADADA" StrokeThickness="1.4"
+                                  Data="M 1.5,3.5 H 6 L 7.5,5.5 H 14.5 V 13.5 H 1.5 Z" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Save Macro Project">
+                        <MenuItem.Icon>
+                            <Path Width="15" Height="15" Stroke="#DADADA" StrokeThickness="1.4"
+                                  Data="M 2.5,1.5 H 11 L 14,4.5 V 14.5 H 2.5 Z M 5,1.5 V 5.5 H 10.5 V 1.5 M 4.5,14.5 V 9 H 11.5 V 14.5" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Save Macro Project As">
+                        <MenuItem.Icon>
+                            <Path Width="15" Height="15" Stroke="#DADADA" StrokeThickness="1.4"
+                                  Data="M 2,1.5 H 9.5 L 12,4 V 8 M 12,13.5 V 14.5 H 2 V 1.5 M 4.5,1.5 V 5 H 8.5 V 1.5 M 12.5,9 V 15 M 9.5,12 H 15.5" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Import Macro Project">
+                        <MenuItem.Icon>
+                            <Path Width="15" Height="15" Stroke="#DADADA" StrokeThickness="1.4"
+                                  Data="M 8,1 V 9.5 M 5,6.5 L 8,9.5 L 11,6.5 M 2,11 V 14.5 H 14 V 11" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Open Current Macro Location">
+                        <MenuItem.Icon>
+                            <Path Width="15" Height="15" Stroke="#DADADA" StrokeThickness="1.4"
+                                  Data="M 7,1.5 A 5,5 0 1 0 7,11.5 A 5,5 0 0 0 7,1.5 M 10.8,10.8 L 15,15" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Reload Current Macro">
+                        <MenuItem.Icon>
+                            <Path Width="15" Height="15" Stroke="#DADADA" StrokeThickness="1.4"
+                                  Data="M 13.2,8 A 5.2,5.2 0 1 1 11.8,4.2 M 12.6,1.3 L 11.8,4.3 L 9,3" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Open Macro Directory">
+                        <MenuItem.Icon>
+                            <Path Width="15" Height="15" Stroke="#DADADA" StrokeThickness="1.4"
+                                  Data="M 1.5,3.5 H 6 L 7.5,5.5 H 14.5 V 13.5 H 1.5 Z M 1.5,7 H 14.5" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Close All">
+                        <MenuItem.Icon>
+                            <Path Width="15" Height="15" Stroke="#DADADA" StrokeThickness="1.4"
+                                  Data="M 2.5,3 H 13.5 M 6,3 V 1.3 H 10 V 3 M 4,3 L 4.8,14.5 H 11.2 L 12,3 M 6.8,5.5 V 12 M 9.2,5.5 V 12" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                </MenuItem>
+
+                <MenuItem Header="_Help" FontSize="13" Foreground="#E8E8E8" Padding="10,4">
+                    <MenuItem Header="Settings">
+                        <MenuItem.Icon>
+                            <Path Width="15" Height="15" Fill="#DADADA"
+                                  Data="M 12.6,6.3 L 14.3,6.3 A 6.9,6.9 0 0 1 14.3,8.7 L 12.6,8.7 A 5.2,5.2 0 0 1 11.9,10.2 L 13.2,11.5 A 6.9,6.9 0 0 1 11.5,13.2 L 10.2,11.9 A 5.2,5.2 0 0 1 8.7,12.6 L 8.7,14.3 A 6.9,6.9 0 0 1 6.3,14.3 L 6.3,12.6 A 5.2,5.2 0 0 1 4.8,11.9 L 3.5,13.2 A 6.9,6.9 0 0 1 1.8,11.5 L 3.1,10.2 A 5.2,5.2 0 0 1 2.4,8.7 L 0.7,8.7 A 6.9,6.9 0 0 1 0.7,6.3 L 2.4,6.3 A 5.2,5.2 0 0 1 3.1,4.8 L 1.8,3.5 A 6.9,6.9 0 0 1 3.5,1.8 L 4.8,3.1 A 5.2,5.2 0 0 1 6.3,2.4 L 6.3,0.7 A 6.9,6.9 0 0 1 8.7,0.7 L 8.7,2.4 A 5.2,5.2 0 0 1 10.2,3.1 L 11.5,1.8 A 6.9,6.9 0 0 1 13.2,3.5 L 11.9,4.8 A 5.2,5.2 0 0 1 12.6,6.3 Z M 10.5,7.5 A 3.0,3.0 0 1 1 4.5,7.5 A 3.0,3.0 0 1 1 10.5,7.5 Z" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="What's New">
+                        <MenuItem.Icon>
+                            <Path Width="15" Height="15" Fill="#DADADA"
+                                  Data="M 8,1 L 9.8,6.2 L 15,8 L 9.8,9.8 L 8,15 L 6.2,9.8 L 1,8 L 6.2,6.2 Z" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Updates">
+                        <MenuItem.Icon>
+                            <Path Width="15" Height="15" Stroke="#DADADA" StrokeThickness="1.4"
+                                  Data="M 13.2,8 A 5.2,5.2 0 1 1 11.8,4.2 M 12.6,1.3 L 11.8,4.3 L 9,3" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Feedback">
+                        <MenuItem.Icon>
+                            <Path Width="15" Height="15" Stroke="#DADADA" StrokeThickness="1.4"
+                                  Data="M 2,2 H 14 V 10.5 H 8.5 L 5.5,13.5 V 10.5 H 2 Z M 6,5 V 6.3 M 10,5 V 6.3 M 5.3,7.8 A 3.4,2.8 0 0 1 10.7,7.8" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Get Started">
+                        <MenuItem.Icon>
+                            <Path Width="15" Height="15" Stroke="#DADADA" StrokeThickness="1.4"
+                                  Data="M 8,1.5 A 6.5,6.5 0 1 0 8,14.5 A 6.5,6.5 0 0 0 8,1.5 M 6.2,6 A 1.9,1.9 0 1 1 8,7.9 V 9.2 M 8,11 V 12" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="About">
+                        <MenuItem.Icon>
+                            <Path Width="15" Height="15" Stroke="#DADADA" StrokeThickness="1.4"
+                                  Data="M 8,1.5 A 6.5,6.5 0 1 0 8,14.5 A 6.5,6.5 0 0 0 8,1.5 M 8,7 V 11.5 M 8,4.4 V 5.2" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                </MenuItem>
+            </Menu>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" Margin="12,0" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Version}" Foreground="#E8E8E8" FontSize="12" VerticalAlignment="Center" />
+                <Button Classes="ToolButton" ToolTip.Tip="Settings">
+                    <PathIcon Width="14" Height="14" Foreground="#DADADA"
+                              Data="M 12.6,6.3 L 14.3,6.3 A 6.9,6.9 0 0 1 14.3,8.7 L 12.6,8.7 A 5.2,5.2 0 0 1 11.9,10.2 L 13.2,11.5 A 6.9,6.9 0 0 1 11.5,13.2 L 10.2,11.9 A 5.2,5.2 0 0 1 8.7,12.6 L 8.7,14.3 A 6.9,6.9 0 0 1 6.3,14.3 L 6.3,12.6 A 5.2,5.2 0 0 1 4.8,11.9 L 3.5,13.2 A 6.9,6.9 0 0 1 1.8,11.5 L 3.1,10.2 A 5.2,5.2 0 0 1 2.4,8.7 L 0.7,8.7 A 6.9,6.9 0 0 1 0.7,6.3 L 2.4,6.3 A 5.2,5.2 0 0 1 3.1,4.8 L 1.8,3.5 A 6.9,6.9 0 0 1 3.5,1.8 L 4.8,3.1 A 5.2,5.2 0 0 1 6.3,2.4 L 6.3,0.7 A 6.9,6.9 0 0 1 8.7,0.7 L 8.7,2.4 A 5.2,5.2 0 0 1 10.2,3.1 L 11.5,1.8 A 6.9,6.9 0 0 1 13.2,3.5 L 11.9,4.8 A 5.2,5.2 0 0 1 12.6,6.3 Z M 10.5,7.5 A 3.0,3.0 0 1 1 4.5,7.5 A 3.0,3.0 0 1 1 10.5,7.5 Z" />
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- ============ Main content ============ -->
+        <Grid Grid.Row="2" RowDefinitions="Auto,*" Margin="14,10">
+            <!-- Search box -->
+            <TextBox Grid.Row="0" Text="{Binding SearchText}"
+                     PlaceholderText="Type to search.."
+                     Background="#2A2A2A" BorderBrush="#2A2A2A"
+                     Foreground="#E8E8E8" FontSize="13"
+                     CornerRadius="4" Padding="10,7" />
+
+            <!-- Macro list -->
+            <ItemsControl Grid.Row="1" ItemsSource="{Binding Macros}" Margin="0,10,0,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:MacroItem">
+                        <Border Background="#2A2A2A" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                            <Grid RowDefinitions="Auto,Auto">
+                                <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="{Binding Name}" Foreground="#E8E8E8" FontSize="13" />
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                        <Button Classes="CardButton" ToolTip.Tip="Edit">
+                                            <PathIcon Width="13" Height="13" Foreground="#DADADA"
+                                                      Data="M 11.5,0.5 L 13.5,2.5 L 4.5,11.5 L 1,13 L 2.5,9.5 Z M 10.5,1.5 L 12.5,3.5 L 11.5,4.5 L 9.5,2.5 Z" />
+                                        </Button>
+                                        <Button Classes="CardButton" ToolTip.Tip="Delete">
+                                            <Path Width="13" Height="13" Stroke="#DADADA" StrokeThickness="1.2"
+                                                  Data="M 2,2.6 H 11 M 5,2.6 V 1 H 8 V 2.6 M 3.2,2.6 L 3.9,12.5 H 9.1 L 9.8,2.6 M 5.6,4.8 V 10.6 M 7.4,4.8 V 10.6" />
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+
+                                <Border Grid.Row="1" Background="#333333" CornerRadius="4" Margin="0,8,0,0" Padding="12,10">
+                                    <StackPanel Orientation="Horizontal" Spacing="12">
+                                        <Border Background="#4A4A4A" CornerRadius="4" Width="26" Height="26">
+                                            <Path Width="14" Height="14" Stroke="#C0C0C0" StrokeThickness="1.5"
+                                                  Data="M 6.5,9.5 L 4,12 A 2.1,2.1 0 0 1 1,9 L 3.5,6.5 M 9.5,6.5 L 12,4 A 2.1,2.1 0 0 1 15,7 L 12.5,9.5 M 5.5,10.5 L 10.5,5.5" />
+                                        </Border>
+                                        <TextBlock VerticalAlignment="Center" FontSize="13">
+                                            <Run Text="{Binding Trigger}" Foreground="#E8E8E8" />
+                                            <Run Text="  " />
+                                            <Run Text="{Binding Action}" Foreground="#9A9A9A" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Grid>
+
+        <!-- ============ Bottom buttons ============ -->
+        <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="12" Margin="24,0,24,18">
+            <Button Grid.Column="0" Classes="BottomButton" Height="52"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Command="{Binding ToggleRunCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding SystemLabel}" FontSize="12" Foreground="White" />
+                        <TextBlock Text="[Home]" FontSize="12" Foreground="#B0B0B0" />
+                    </StackPanel>
+                    <Border BorderBrush="White" BorderThickness="2" CornerRadius="6" Padding="5,3" VerticalAlignment="Center">
+                        <Panel Width="14" Height="14">
+                            <PathIcon Width="14" Height="14" Foreground="White"
+                                      IsVisible="{Binding !IsRunning}"
+                                      Data="M 3,2 L 12,7.5 L 3,13 Z" />
+                            <PathIcon Width="14" Height="14" Foreground="White"
+                                      IsVisible="{Binding IsRunning}"
+                                      Data="M 3.3,2 H 6.7 V 13 H 3.3 Z M 8.3,2 H 11.7 V 13 H 8.3 Z" />
+                        </Panel>
+                    </Border>
+                </StackPanel>
+            </Button>
+
+            <Button Grid.Column="1" Classes="BottomButton" Height="52" Name="AddMacroButton"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="Add New Macro" FontSize="13" Foreground="White" VerticalAlignment="Center" />
+                    <Border Background="White" CornerRadius="6" Padding="5,3" VerticalAlignment="Center">
+                        <TextBlock Text="+" Foreground="#2C2C2C" FontWeight="Bold" FontSize="14" />
+                    </Border>
+                </StackPanel>
+            </Button>
+        </Grid>
+    </Grid>
+</Window>
