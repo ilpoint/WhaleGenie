@@ -411,12 +411,12 @@ public partial class VariableCenterViewModel : ViewModelBase
     private static string Describe(Usage usage,
         IReadOnlyDictionary<string, VariableDefinition> system,
         IReadOnlyDictionary<string, VariableDefinition> globals) => usage.Scope switch
-    {
-        VariableScope.System when system.TryGetValue(usage.Name, out var builtIn) => builtIn.LocalDescription,
-        VariableScope.Global when globals.TryGetValue(usage.Name, out var shared) => shared.Description,
-        VariableScope.Local => Strings.Get("Variable.LocalDescription"),
-        _ => Strings.Get("Variable.UnknownHint"),
-    };
+        {
+            VariableScope.System when system.TryGetValue(usage.Name, out var builtIn) => builtIn.LocalDescription,
+            VariableScope.Global when globals.TryGetValue(usage.Name, out var shared) => shared.Description,
+            VariableScope.Local => Strings.Get("Variable.LocalDescription"),
+            _ => Strings.Get("Variable.UnknownHint"),
+        };
 
     private static string Type(Usage usage,
         IReadOnlyDictionary<string, VariableDefinition> system,

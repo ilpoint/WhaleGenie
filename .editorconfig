@@ -1,0 +1,55 @@
+# The rules every editor and CI follow. Only what the codebase already agrees on is
+# written down here, so `dotnet format --verify-no-changes` stays a fair check.
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.cs]
+indent_size = 4
+
+# Usings
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+csharp_using_directive_placement = outside_namespace:suggestion
+
+# Braces and new lines, as the code already reads.
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_new_line_before_members_in_object_initializers = true
+
+# One namespace per file, written the short way.
+csharp_style_namespace_declarations = file_scoped:suggestion
+
+# Modifiers in the order the compiler wants them.
+csharp_preferred_modifier_order = public,private,protected,internal,file,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,required,volatile,async:suggestion
+
+# Modern syntax the code already uses.
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_expression_bodied_constructors = when_on_single_line:suggestion
+csharp_style_prefer_pattern_matching = true:suggestion
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = false:suggestion
+
+# Braces on every block.
+csharp_prefer_braces = true:suggestion
+
+[*.{axaml,xaml}]
+indent_size = 4
+
+[*.{csproj,props,targets,slnx}]
+indent_size = 2
+
+[*.{yml,yaml,json}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

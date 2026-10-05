@@ -1,5 +1,5 @@
-using System.Linq;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Viktor.Core.Devices;

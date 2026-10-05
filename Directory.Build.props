@@ -1,0 +1,18 @@
+<Project>
+
+  <!--
+    What every project in the solution shares. Anything only one project needs stays in its
+    own csproj, so this file stays short enough to read.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+
+    <!-- A warning is a defect that has not been fixed yet, so the build stops on one. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+</Project>

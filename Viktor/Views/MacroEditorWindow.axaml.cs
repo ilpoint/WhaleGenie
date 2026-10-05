@@ -1,23 +1,23 @@
-﻿using Avalonia.Controls;
-using Avalonia.Input;
-using Avalonia.Input.Platform;
-using Avalonia.Interactivity;
-using Avalonia;
-using Avalonia.Threading;
-using Avalonia.VisualTree;
-using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Input.Platform;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Viktor.Core.Devices;
+using Viktor.Core.Devices.Platform;
+using Viktor.Core.Execution;
+using Viktor.Core.Recording;
+using Viktor.Execution;
 using Viktor.Localization;
 using Viktor.Models;
 using Viktor.ViewModels;
-using Viktor.Execution;
-using Viktor.Core.Devices;
-using Viktor.Core.Execution;
-using Viktor.Core.Recording;
-using Viktor.Core.Devices.Platform;
 
 namespace Viktor.Views;
 

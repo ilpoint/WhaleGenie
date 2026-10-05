@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 using System.Text.Json.Nodes;
 using CommunityToolkit.Mvvm.ComponentModel;

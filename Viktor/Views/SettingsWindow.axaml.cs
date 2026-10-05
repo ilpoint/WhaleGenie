@@ -1,9 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Viktor.Execution;
 using Viktor.Localization;
 using Viktor.ViewModels;
-using Viktor.Execution;
 
 namespace Viktor.Views;
 

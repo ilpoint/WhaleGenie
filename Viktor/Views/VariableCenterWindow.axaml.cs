@@ -5,10 +5,10 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
+using Viktor.Execution;
 using Viktor.Localization;
 using Viktor.Models;
 using Viktor.ViewModels;
-using Viktor.Execution;
 
 namespace Viktor.Views;
 

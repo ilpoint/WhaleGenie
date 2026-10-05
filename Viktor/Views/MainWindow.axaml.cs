@@ -1,4 +1,7 @@
-﻿using System.Threading.Tasks;
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -6,17 +9,14 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using System;
-using System.Diagnostics;
-using System.IO;
 using SharpHook;
 using SharpHook.Data;
 using Viktor.Core.Devices.Platform;
+using Viktor.Execution;
 using Viktor.Localization;
 using Viktor.Models;
 using Viktor.Storage;
 using Viktor.ViewModels;
-using Viktor.Execution;
 
 namespace Viktor.Views;
 
