@@ -2,4 +2,5 @@
   <Project Path="Viktor.Core.Tests/Viktor.Core.Tests.csproj" Id="8302107e-15b8-4668-b07f-99e8cd751013" />
   <Project Path="Viktor.Core/Viktor.Core.csproj" />
   <Project Path="Viktor/Viktor.csproj" />
+  <Project Path="Viktor.Tests/Viktor.Tests.csproj" />
 </Solution>

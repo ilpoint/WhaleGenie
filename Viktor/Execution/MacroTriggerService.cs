@@ -380,20 +380,30 @@ public sealed class MacroTriggerService : IDisposable
     /// </summary>
     private bool Binds(string binding, string key)
     {
+        lock (_keys)
+        {
+            return Binds(binding, key, _heldKeys);
+        }
+    }
+
+    /// <summary>
+    /// Whether a binding answers to a key that was just pressed, with the named modifiers down.
+    /// The words the binding is asked about are plain names, so this is where the two sides of a
+    /// modifier and the older side-agnostic spelling are sorted out.
+    /// </summary>
+    internal static bool Binds(string binding, string key, IEnumerable<string> held)
+    {
         var parts = binding.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (parts.Length == 0 || !Same(parts[^1], key))
         {
             return false;
         }
 
-        lock (_keys)
+        for (var index = 0; index < parts.Length - 1; index++)
         {
-            for (var index = 0; index < parts.Length - 1; index++)
+            if (!held.Any(heldKey => Same(parts[index], heldKey)))
             {
-                if (!_heldKeys.Any(held => Same(parts[index], held)))
-                {
-                    return false;
-                }
+                return false;
             }
         }
 
@@ -405,7 +415,7 @@ public sealed class MacroTriggerService : IDisposable
     /// does (<c>D7</c>) while the hook calls the same key <c>7</c>, and a binding says which
     /// shift it means (<c>右Shift</c>) unless it was written before the sides were told apart.
     /// </summary>
-    private static bool Same(string? first, string? second)
+    internal static bool Same(string? first, string? second)
     {
         var left = Alias(first);
         var right = Alias(second);

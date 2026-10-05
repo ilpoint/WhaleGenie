@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    # Viktor drives the real Windows desktop: SharpHook for input, UI Automation for
+    # elements, OpenCV and PaddleOCR for the screen. It only builds on Windows.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore Viktor.slnx
+
+      - name: Check formatting
+        run: dotnet format Viktor.slnx --verify-no-changes --no-restore
+
+      - name: Build
+        run: dotnet build Viktor.slnx -c Release --no-restore
+
+      - name: Test
+        run: dotnet test Viktor.slnx -c Release --no-build --no-restore --logger "trx;LogFileName=results.trx"
+
+      - name: Keep the test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: "**/TestResults/*.trx"
+          if-no-files-found: ignore
