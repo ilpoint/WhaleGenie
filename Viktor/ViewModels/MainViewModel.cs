@@ -7,27 +7,55 @@ namespace Viktor.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
+    public MainViewModel()
+    {
+        Macros.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasMacros));
+        Localization.Strings.Current.LanguageChanged += () => OnPropertyChanged(nameof(WindowTitle));
+    }
+
     [ObservableProperty]
     public partial string SearchText { get; set; } = string.Empty;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SystemLabel))]
+    [NotifyPropertyChangedFor(nameof(SystemHint))]
     public partial bool IsRunning { get; set; }
 
-    /// <summary>System toggle label while the macro is running.</summary>
-    public string SystemLabel => IsRunning ? "Enable System" : "Disable System";
+    /// <summary>
+    /// Label of the system button, which names the state rather than the action: it reads
+    /// "已启用" while the system is on, and pressing it turns the system off.
+    /// </summary>
+    public string SystemLabel => Localization.Strings.Get(IsRunning ? "Main.SystemEnabled" : "Main.SystemDisabled");
+
+    /// <summary>
+    /// Hint under the button. Which macros are running is already plain on their cards, so this
+    /// only has to point at the key that switches the system.
+    /// </summary>
+    public string SystemHint => Localization.Strings.Get(
+        IsRunning ? "Main.SystemDisableHint" : "Main.SystemEnableHint");
 
     public string Version { get; } = "v0.0.1";
 
-    public ObservableCollection<MacroItem> Macros { get; } =
-    [
-        new MacroItem
-        {
-            Name = "Macro 1",
-            Trigger = "As long as Enter Button",
-            Action = "pressed and hold"
-        }
-    ];
+    /// <summary>Package file the macros are saved to, or <c>null</c> before the first save.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(WindowTitle))]
+    [NotifyPropertyChangedFor(nameof(CurrentFolder))]
+    public partial string? CurrentPath { get; set; }
+
+    /// <summary>Title bar text, which names the open package once there is one.</summary>
+    public string WindowTitle => CurrentPath is null
+        ? Localization.Strings.Get("Main.Title")
+        : $"{Localization.Strings.Get("Main.Title")} — {System.IO.Path.GetFileName(CurrentPath)}";
+
+    /// <summary>Folder holding the open package, used by "open location".</summary>
+    public string? CurrentFolder => CurrentPath is null
+        ? null
+        : System.IO.Path.GetDirectoryName(CurrentPath);
+
+    /// <summary>Macros shown in the list. Empty until the user adds one.</summary>
+    public ObservableCollection<MacroItem> Macros { get; } = [];
+
+    public bool HasMacros => Macros.Count > 0;
 
     /// <summary>Adds a macro created in the macro editor and assigns it a display name.</summary>
     public void AddMacro(MacroItem macro)
@@ -38,6 +66,74 @@ public partial class MainViewModel : ViewModelBase
         }
 
         Macros.Add(macro);
+    }
+
+    /// <summary>Swaps an edited macro back into the list, keeping its on/off state.</summary>
+    public void ReplaceMacro(MacroItem original, MacroItem edited)
+    {
+        var index = Macros.IndexOf(original);
+        if (index < 0)
+        {
+            return;
+        }
+
+        edited.IsEnabled = original.IsEnabled;
+        Macros[index] = edited;
+    }
+
+    /// <summary>Removes a macro from the list.</summary>
+    public void RemoveMacro(MacroItem macro) => Macros.Remove(macro);
+
+    /// <summary>Removes every macro, used by "close all".</summary>
+    public void ClearMacros() => Macros.Clear();
+
+    /// <summary>Arms or disarms a macro; the macro list shows the state as a coloured dot.</summary>
+    public void ToggleMacro(MacroItem macro) => macro.IsEnabled = !macro.IsEnabled;
+
+    /// <summary>Writes the macro list and the shared variables to a package file.</summary>
+    public void SavePackage(string path)
+    {
+        Storage.MacroPackage.Save(path, [.. Macros], [.. VariableCatalog.Globals], Version);
+        CurrentPath = path;
+    }
+
+    /// <summary>Replaces everything with the contents of a package file.</summary>
+    public void OpenPackage(string path)
+    {
+        var contents = Storage.MacroPackage.Load(path);
+
+        Macros.Clear();
+        foreach (var macro in contents.Macros)
+        {
+            Macros.Add(macro);
+        }
+
+        VariableCatalog.Globals.Clear();
+        foreach (var global in contents.Globals)
+        {
+            VariableCatalog.Globals.Add(global);
+        }
+
+        CurrentPath = path;
+    }
+
+    /// <summary>Adds the macros of a package file to the list without replacing what is there.</summary>
+    public void ImportPackage(string path)
+    {
+        var contents = Storage.MacroPackage.Load(path);
+
+        foreach (var macro in contents.Macros)
+        {
+            AddMacro(macro);
+        }
+
+        foreach (var global in contents.Globals)
+        {
+            if (!VariableCatalog.IsGlobal(global.Name))
+            {
+                VariableCatalog.Globals.Add(global);
+            }
+        }
     }
 
     [RelayCommand]

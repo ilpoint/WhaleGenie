@@ -1,0 +1,138 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Viktor.ViewModels"
+        xmlns:loc="using:Viktor.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="470" d:DesignHeight="330"
+        x:Class="Viktor.Views.DelayScaleWindow"
+        x:DataType="vm:DelayScaleViewModel"
+        Title="Viktor"
+        Width="470" Height="330"
+        WindowStartupLocation="CenterOwner"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        WindowDecorations="BorderOnly"
+        Background="#232323">
+
+    <Design.DataContext>
+        <vm:DelayScaleViewModel />
+    </Design.DataContext>
+
+    <Window.Styles>
+        <Style Selector="Button.FlatButton">
+            <Setter Property="Background" Value="#404040" />
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4C4C4C" />
+        </Style>
+
+        <Style Selector="Button.PresetButton">
+            <Setter Property="Background" Value="#333333" />
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.PresetButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#454545" />
+        </Style>
+
+        <Style Selector="Button.PrimaryButton">
+            <Setter Property="Background" Value="#C8401C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Padding" Value="18,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#D9502A" />
+        </Style>
+
+        <Style Selector="Button.TitleBarButton">
+            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4A4A4A" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="38,Auto,Auto,Auto,*,Auto">
+        <Grid Grid.Row="0" Background="#202020" ColumnDefinitions="Auto,*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
+                <Border Background="#C8401C" CornerRadius="4" Padding="4,1" Width="30">
+                    <TextBlock Text="VIK" Foreground="White" FontWeight="Bold" FontSize="9"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock Text="{Binding Header}" Foreground="#E8E8E8" FontSize="13"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+
+            <Button Grid.Column="2" Classes="TitleBarButton" Name="CloseButton"
+                    Margin="8,0" VerticalAlignment="Center">
+                <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6"
+                      Data="M 1,1 L 7,7 M 1,7 L 7,1" />
+            </Button>
+        </Grid>
+
+        <TextBlock Grid.Row="1" Margin="20,16,20,0" TextWrapping="Wrap"
+                   Foreground="#DADADA" FontSize="13" Text="{Binding Explanation}" />
+
+        <ItemsControl Grid.Row="2" Margin="20,14,20,0" ItemsSource="{Binding Presets}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="8" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ScalePresetChoice">
+                    <Button Classes="PresetButton" Content="{Binding Label}" Command="{Binding Command}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Grid Grid.Row="3" Margin="20,16,20,0" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+            <TextBlock Grid.Column="0" Foreground="#9A9A9A" FontSize="12.5"
+                       VerticalAlignment="Center" Text="×" />
+            <NumericUpDown Grid.Column="1" Value="{Binding Factor}" Minimum="0.1" Maximum="10"
+                           Increment="0.1" FormatString="0.##" Width="130" />
+            <TextBlock Grid.Column="2" Foreground="#E8E8E8" FontSize="15" FontWeight="SemiBold"
+                       VerticalAlignment="Center" Text="{Binding Display}" />
+        </Grid>
+
+        <StackPanel Grid.Row="4" Margin="20,16,20,0" Spacing="6">
+            <TextBlock Foreground="#C9C9C9" FontSize="12.5" TextWrapping="Wrap"
+                       Text="{Binding Summary}" />
+            <TextBlock Foreground="#7F7F7F" FontSize="12" TextWrapping="Wrap"
+                       Text="{Binding Detail}" IsVisible="{Binding HasDetail}" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="5" Orientation="Horizontal" Spacing="8"
+                    HorizontalAlignment="Right" Margin="20,0,20,20">
+            <Button Classes="PrimaryButton" Height="36" MinWidth="92"
+                    Content="{Binding [Common.Ok], Source={x:Static loc:Strings.Current}}"
+                    Command="{Binding ConfirmCommand}" />
+            <Button Classes="FlatButton" Height="36" MinWidth="92"
+                    Content="{Binding [Confirm.Cancel], Source={x:Static loc:Strings.Current}}"
+                    Command="{Binding CancelCommand}" />
+        </StackPanel>
+    </Grid>
+</Window>

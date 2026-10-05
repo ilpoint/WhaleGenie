@@ -1,0 +1,746 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using SharpHook;
+using Viktor.Core.Devices;
+using Viktor.Core.Devices.Platform;
+using Viktor.Core.Execution;
+using Viktor.Models;
+
+namespace Viktor.Execution;
+
+/// <summary>
+/// Watches the keyboard and the watched pixels for what the macros in the list are waiting for,
+/// and runs them the way their trigger settings ask. The main window's system switch turns the
+/// whole thing on and off.
+/// </summary>
+public sealed class MacroTriggerService : IDisposable
+{
+    /// <summary>How often a watched pixel is looked at.</summary>
+    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(60);
+
+    /// <summary>A breather between the passes of a macro that repeats, so it cannot spin.</summary>
+    private const int RepeatGapMs = 10;
+
+    private readonly Func<IReadOnlyList<MacroItem>> _macros;
+    private readonly IDeviceLayer _devices;
+    private readonly bool _ownsDevices;
+    private readonly object _gate = new();
+    private readonly object _keys = new();
+    private readonly Dictionary<MacroItem, CancellationTokenSource> _running = [];
+    private readonly HashSet<MacroItem> _colourTriggered = [];
+    private readonly HashSet<MacroItem> _colourHeld = [];
+    private readonly HashSet<MacroItem> _colourStopping = [];
+    private readonly HashSet<MacroItem> _spent = [];
+    private readonly HashSet<string> _heldKeys = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Timer _poll;
+
+    private IGlobalHook? _hook;
+    private bool _enabled;
+    private bool _disposed;
+
+    /// <summary>
+    /// Raised when a macro starts or stops, so the window can show which ones are running. It is
+    /// raised on whatever thread noticed, which is never the interface thread.
+    /// </summary>
+    public event Action? StatusChanged;
+
+    public MacroTriggerService(Func<IReadOnlyList<MacroItem>> macros, IDeviceLayer? devices = null)
+    {
+        _macros = macros;
+        _ownsDevices = devices is null;
+        _devices = devices ?? new WindowsDeviceLayer();
+        _poll = new Timer(_ => Poll(), null, Timeout.Infinite, Timeout.Infinite);
+    }
+
+    /// <summary>The system switch on the main window.</summary>
+    public bool IsEnabled
+    {
+        get => _enabled;
+        set
+        {
+            if (_enabled == value || _disposed)
+            {
+                return;
+            }
+
+            _enabled = value;
+            if (value)
+            {
+                Attach();
+            }
+            else
+            {
+                Detach();
+            }
+        }
+    }
+
+    /// <summary>The macros whose bodies are running right now.</summary>
+    public IReadOnlyList<MacroItem> Running
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return [.. _running.Keys];
+            }
+        }
+    }
+
+    public bool IsRunning(MacroItem macro)
+    {
+        lock (_gate)
+        {
+            return _running.ContainsKey(macro);
+        }
+    }
+
+    /// <summary>Stops a macro the trigger started.</summary>
+    public void Stop(MacroItem macro)
+    {
+        CancellationTokenSource? cancellation;
+        lock (_gate)
+        {
+            _colourHeld.Remove(macro);
+            if (!_running.Remove(macro, out cancellation))
+            {
+                _colourStopping.Remove(macro);
+                return;
+            }
+
+            _colourStopping.Remove(macro);
+        }
+
+        try
+        {
+            cancellation.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The run finished on its own between the two lines; there is nothing to stop.
+        }
+
+        StatusChanged?.Invoke();
+    }
+
+    /// <summary>Stops everything the trigger started, which is what switching the system off does.</summary>
+    public void StopAll()
+    {
+        List<CancellationTokenSource> cancellations;
+        lock (_gate)
+        {
+            cancellations = [.. _running.Values];
+            _running.Clear();
+            _spent.Clear();
+            _colourTriggered.Clear();
+            _colourHeld.Clear();
+            _colourStopping.Clear();
+        }
+
+        foreach (var cancellation in cancellations)
+        {
+            try
+            {
+                cancellation.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Already finished.
+            }
+        }
+
+        StatusChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Arms a macro again after it was disarmed and re-armed, so a "trigger once" macro can be
+    /// used a second time without reloading the project.
+    /// </summary>
+    public void Rearm(MacroItem macro)
+    {
+        lock (_gate)
+        {
+            _spent.Remove(macro);
+            _colourTriggered.Remove(macro);
+            _colourHeld.Remove(macro);
+            _colourStopping.Remove(macro);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        Detach();
+        _poll.Dispose();
+
+        if (_ownsDevices && _devices is IDisposable owned)
+        {
+            owned.Dispose();
+        }
+    }
+
+    // ---------------------------------------------------------------- hooking
+
+    private void Attach()
+    {
+        try
+        {
+            var hook = GlobalInputHook.Shared.Hook;
+            hook.KeyPressed += OnKeyPressed;
+            hook.KeyReleased += OnKeyReleased;
+            hook.MousePressed += OnMousePressed;
+            hook.MouseReleased += OnMouseReleased;
+            hook.MouseWheel += OnMouseWheel;
+            _hook = hook;
+        }
+        catch (Exception)
+        {
+            // Without a hook there is nothing to answer to; the switch simply does nothing.
+            _hook = null;
+            _enabled = false;
+            return;
+        }
+
+        lock (_gate)
+        {
+            _spent.Clear();
+            _colourTriggered.Clear();
+            _colourHeld.Clear();
+            _colourStopping.Clear();
+        }
+
+        _poll.Change(PollInterval, PollInterval);
+    }
+
+    private void Detach()
+    {
+        if (_hook is { } hook)
+        {
+            hook.KeyPressed -= OnKeyPressed;
+            hook.KeyReleased -= OnKeyReleased;
+            hook.MousePressed -= OnMousePressed;
+            hook.MouseReleased -= OnMouseReleased;
+            hook.MouseWheel -= OnMouseWheel;
+            _hook = null;
+        }
+
+        _poll.Change(Timeout.Infinite, Timeout.Infinite);
+        StopAll();
+    }
+
+    private void OnKeyPressed(object? sender, KeyboardHookEventArgs e)
+    {
+        if (!Listening)
+        {
+            return;
+        }
+
+        // Bound keys carry their side, so the right Shift and the left one are told apart.
+        var key = KeyNames.Name(e.Data.KeyCode, sided: true);
+        if (key.Length == 0)
+        {
+            return;
+        }
+
+        lock (_keys)
+        {
+            _heldKeys.Add(key);
+        }
+
+        Fire(key, pressed: true);
+    }
+
+    private void OnKeyReleased(object? sender, KeyboardHookEventArgs e)
+    {
+        if (!Listening)
+        {
+            return;
+        }
+
+        var key = KeyNames.Name(e.Data.KeyCode, sided: true);
+        if (key.Length == 0)
+        {
+            return;
+        }
+
+        lock (_keys)
+        {
+            _heldKeys.Remove(key);
+        }
+
+        Fire(key, pressed: false);
+    }
+
+    /// <summary>True while a key press should be looked at.</summary>
+    private bool Listening => _enabled && !_disposed && !MacroTriggerGate.IsOpen;
+
+    /// <summary>A mouse button answers a macro the same way a key does.</summary>
+    private void OnMousePressed(object? sender, MouseHookEventArgs e)
+    {
+        if (!Listening)
+        {
+            return;
+        }
+
+        var button = KeyNames.MouseName(e.Data.Button);
+        if (button.Length == 0)
+        {
+            return;
+        }
+
+        lock (_keys)
+        {
+            _heldKeys.Add(button);
+        }
+
+        Fire(button, pressed: true);
+    }
+
+    private void OnMouseReleased(object? sender, MouseHookEventArgs e)
+    {
+        if (!Listening)
+        {
+            return;
+        }
+
+        var button = KeyNames.MouseName(e.Data.Button);
+        if (button.Length == 0)
+        {
+            return;
+        }
+
+        lock (_keys)
+        {
+            _heldKeys.Remove(button);
+        }
+
+        Fire(button, pressed: false);
+    }
+
+    /// <summary>
+    /// A wheel notch has no "down" state, so it counts as a press that is let go again straight
+    /// away. A trigger bound to a wheel fires once per notch, the way a key press does.
+    /// </summary>
+    private void OnMouseWheel(object? sender, MouseWheelHookEventArgs e)
+    {
+        if (!Listening)
+        {
+            return;
+        }
+
+        var notch = KeyNames.WheelName(e.Data.Direction, e.Data.Rotation);
+        Fire(notch, pressed: true);
+        Fire(notch, pressed: false);
+    }
+
+    private void Fire(string key, bool pressed)
+    {
+        // A key Viktor is sending itself is its own output, not the user asking for something.
+        if (ViktorInputGate.RecentlySent(key))
+        {
+            return;
+        }
+
+        foreach (var macro in Snapshot())
+        {
+            if (!macro.IsEnabled || macro.TriggerMode != MacroTrigger.KeystrokesButtonInputs)
+            {
+                continue;
+            }
+
+            if (!Binds(macro.BindKey, key))
+            {
+                continue;
+            }
+
+            if (pressed)
+            {
+                Pressed(macro);
+            }
+            else
+            {
+                Released(macro);
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- triggers
+
+    /// <summary>
+    /// Whether a macro's binding answers to a key. A binding may name a combination, in which
+    /// case the modifiers have to be down for it to count.
+    /// </summary>
+    private bool Binds(string binding, string key)
+    {
+        var parts = binding.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 0 || !Same(parts[^1], key))
+        {
+            return false;
+        }
+
+        lock (_keys)
+        {
+            for (var index = 0; index < parts.Length - 1; index++)
+            {
+                if (!_heldKeys.Any(held => Same(parts[index], held)))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Compares two key names. The key picker spells the top row the way the interface library
+    /// does (<c>D7</c>) while the hook calls the same key <c>7</c>, and a binding says which
+    /// shift it means (<c>右Shift</c>) unless it was written before the sides were told apart.
+    /// </summary>
+    private static bool Same(string? first, string? second)
+    {
+        var left = Alias(first);
+        var right = Alias(second);
+
+        if (string.Equals(left, right, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // A binding of just "Shift" is the older, side-agnostic spelling: it answers to whichever
+        // shift is pressed, so the macros written before the sides existed keep working.
+        return StandsFor(left, right) || StandsFor(right, left);
+    }
+
+    /// <summary>Whether a bare modifier name means the side the other name spells out.</summary>
+    private static bool StandsFor(string bare, string sided)
+        => Sides.TryGetValue(bare, out var sides)
+           && sides.Contains(sided, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The halves a bare modifier name stands for.</summary>
+    private static readonly Dictionary<string, string[]> Sides = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["ctrl"] = ["左ctrl", "右ctrl"],
+        ["control"] = ["左ctrl", "右ctrl"],
+        ["shift"] = ["左shift", "右shift"],
+        ["alt"] = ["左alt", "右alt"],
+        ["win"] = ["左win", "右win"],
+        ["windows"] = ["左win", "右win"],
+        ["meta"] = ["左win", "右win"],
+        ["super"] = ["左win", "右win"],
+    };
+
+    /// <summary>Trims a name to the spelling the comparisons use.</summary>
+    private static string Alias(string? name)
+    {
+        var text = (name ?? string.Empty).Trim();
+
+        // The key picker spells the top row the way the interface library does (D7), while the
+        // hook calls the same key 7.
+        if (text.Length == 2 && (text[0] is 'D' or 'd') && char.IsAsciiDigit(text[1]))
+        {
+            return text[1..];
+        }
+
+        // The sided names are written with Chinese words in the interface and with English words
+        // in hand-written macros; both have to compare as the same key.
+        return text.ToLowerInvariant() switch
+        {
+            "leftctrl" or "leftcontrol" or "lctrl" => "左ctrl",
+            "rightctrl" or "rightcontrol" or "rctrl" => "右ctrl",
+            "leftshift" or "lshift" => "左shift",
+            "rightshift" or "rshift" => "右shift",
+            "leftalt" or "lalt" => "左alt",
+            "rightalt" or "ralt" => "右alt",
+            "leftwin" or "leftmeta" or "lwin" => "左win",
+            "rightwin" or "rightmeta" or "rwin" => "右win",
+            _ => text.ToLowerInvariant(),
+        };
+    }
+
+    private void Pressed(MacroItem macro)
+    {
+        switch (macro.LoopMode)
+        {
+            case MacroLoop.Press:
+                Start(macro, repeating: false);
+                break;
+
+            case MacroLoop.Hold:
+                Start(macro, repeating: true);
+                break;
+
+            case MacroLoop.Toggle:
+                if (IsRunning(macro))
+                {
+                    Stop(macro);
+                }
+                else
+                {
+                    Start(macro, repeating: true);
+                }
+
+                break;
+        }
+    }
+
+    private void Released(MacroItem macro)
+    {
+        switch (macro.LoopMode)
+        {
+            case MacroLoop.Hold:
+                Stop(macro);
+                break;
+
+            case MacroLoop.Release:
+                Start(macro, repeating: false);
+                break;
+        }
+    }
+
+    /// <summary>Looks at every watched pixel and treats a change of state as a press or a release.</summary>
+    private void Poll()
+    {
+        if (!Listening)
+        {
+            return;
+        }
+
+        var macros = Snapshot();
+        foreach (var macro in macros)
+        {
+            if (!macro.IsEnabled || macro.TriggerMode != MacroTrigger.ColorPixelChanges)
+            {
+                continue;
+            }
+
+            bool observed;
+            try
+            {
+                observed = ColourMatches(macro);
+            }
+            catch (Exception)
+            {
+                continue;   // reading the screen can fail outside a session
+            }
+
+            bool matched;
+            lock (_gate)
+            {
+                matched = observed;
+                if (matched == _colourTriggered.Contains(macro))
+                {
+                    continue;
+                }
+
+                if (matched)
+                {
+                    _colourTriggered.Add(macro);
+                }
+                else
+                {
+                    _colourTriggered.Remove(macro);
+                }
+            }
+
+            if (matched)
+            {
+                // The macro's own mouse moves change the pixel under the cursor; they must not
+                // look like the colour coming back and restart the macro over and over.
+                if (IsRunning(macro))
+                {
+                    continue;
+                }
+
+                Pressed(macro);
+
+                lock (_gate)
+                {
+                    if (_running.ContainsKey(macro)
+                        && macro.LoopMode is MacroLoop.Toggle or MacroLoop.Hold)
+                    {
+                        _colourHeld.Add(macro);
+                    }
+                }
+            }
+            else
+            {
+                bool held;
+                lock (_gate)
+                {
+                    held = _colourHeld.Remove(macro);
+                    if (held)
+                    {
+                        // Let the pass that is running finish before the macro stops, rather
+                        // than cutting it off in the middle of its steps.
+                        _colourStopping.Add(macro);
+                    }
+                }
+
+                // A colour that stops matching stops the macro it started; anything else keeps
+                // the loop mode's own release behaviour (a "once on release" macro, say).
+                if (held)
+                {
+                    continue;
+                }
+
+                Released(macro);
+            }
+        }
+
+        PruneColourWatches(macros);
+    }
+
+    /// <summary>True when a running macro has been asked to stop once its current pass ends.</summary>
+    private bool StoppingAfterPass(MacroItem macro)
+    {
+        lock (_gate)
+        {
+            return _colourStopping.Contains(macro);
+        }
+    }
+
+    /// <summary>Forgets the pixels watched for macros that are no longer in the list.</summary>
+    private void PruneColourWatches(IReadOnlyList<MacroItem> macros)
+    {
+        lock (_gate)
+        {
+            if (_colourTriggered.Count == 0 && _colourHeld.Count == 0 && _colourStopping.Count == 0)
+            {
+                return;
+            }
+
+            var tracked = new HashSet<MacroItem>(_colourTriggered);
+            tracked.UnionWith(_colourHeld);
+            tracked.UnionWith(_colourStopping);
+
+            foreach (var item in tracked)
+            {
+                if (!macros.Contains(item))
+                {
+                    _colourTriggered.Remove(item);
+                    _colourHeld.Remove(item);
+                    _colourStopping.Remove(item);
+                }
+            }
+        }
+    }
+
+    private bool ColourMatches(MacroItem macro)
+    {
+        var x = macro.ColorPositionX;
+        var y = macro.ColorPositionY;
+
+        if (macro.UseCursorPosition)
+        {
+            var cursor = _devices.Input.Cursor;
+            x = cursor.X;
+            y = cursor.Y;
+        }
+
+        var pixel = _devices.Screen.PixelAt(x, y);
+        var wanted = PixelColor.Parse(macro.HexColor);
+        var close = pixel.Matches(wanted, macro.ColorTolerance);
+
+        return macro.ColorMatch == ColorMatchCondition.ColorMatches ? close : !close;
+    }
+
+    // ---------------------------------------------------------------- running
+
+    private void Start(MacroItem macro, bool repeating)
+    {
+        CancellationTokenSource cancellation;
+        lock (_gate)
+        {
+            if (!_enabled || _disposed || macro.Steps.Count == 0 || _running.ContainsKey(macro))
+            {
+                return;
+            }
+
+            if (macro.TriggerOnce && _spent.Contains(macro))
+            {
+                return;
+            }
+
+            if (macro.TriggerOnce)
+            {
+                _spent.Add(macro);
+            }
+
+            cancellation = new CancellationTokenSource();
+            _running[macro] = cancellation;
+        }
+
+        StatusChanged?.Invoke();
+        _ = Task.Run(() => RunAsync(macro, repeating, cancellation));
+    }
+
+    private async Task RunAsync(MacroItem macro, bool repeating, CancellationTokenSource cancellation)
+    {
+        var token = cancellation.Token;
+        try
+        {
+            var steps = macro.Steps.ToExecutable();
+            var library = Library();
+
+            while (!token.IsCancellationRequested)
+            {
+                var runner = new MacroRunner(MacroVariables.Seed(), null, _devices, macro.DelayScale, library);
+                var result = await runner.RunAsync(steps, token);
+                if (result.Status != RunStatus.Completed || !repeating || StoppingAfterPass(macro))
+                {
+                    break;
+                }
+
+                await Task.Delay(RepeatGapMs, token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Stopping is the normal way for one of these to end.
+        }
+        catch (Exception)
+        {
+            // A macro that goes wrong must not take the application down with it.
+        }
+        finally
+        {
+            lock (_gate)
+            {
+                _running.Remove(macro);
+                _colourHeld.Remove(macro);
+                _colourStopping.Remove(macro);
+            }
+
+            cancellation.Dispose();
+            StatusChanged?.Invoke();
+        }
+    }
+
+    /// <summary>The project's macros, in the shape a "run another macro" step calls them by.</summary>
+    private IMacroLibrary Library()
+        => new ProjectMacroLibrary(Snapshot()
+            .Where(macro => macro.Name.Trim().Length > 0)
+            .Select(macro => (macro.Name.Trim(), macro.Steps.ToExecutable())));
+
+    private IReadOnlyList<MacroItem> Snapshot()
+    {
+        try
+        {
+            // A copy, because the list is the interface's and it is read from other threads.
+            return [.. _macros()];
+        }
+        catch (Exception)
+        {
+            return [];
+        }
+    }
+}

@@ -1,0 +1,396 @@
+using System;
+using System.Collections.Generic;
+
+namespace Viktor.Core.Devices;
+
+/// <summary>The keyboard and the mouse.</summary>
+public interface IInputDevice
+{
+    /// <summary>Where the pointer is right now.</summary>
+    ScreenPoint Cursor { get; }
+
+    void KeyPress(string key, int holdMs);
+
+    void KeyDown(string key);
+
+    void KeyUp(string key);
+
+    /// <summary>Presses every key in the chord, holds them together, then releases them.</summary>
+    void Hotkey(IReadOnlyList<string> keys, int holdMs);
+
+    void TypeText(string text, int intervalMs);
+
+    void MoveMouse(int x, int y, int durationMs);
+
+    void MoveMouseRelative(int dx, int dy, int durationMs);
+
+    void MouseDown(string button, int x, int y);
+
+    void MouseUp(string button, int x, int y);
+
+    void Click(string button, int x, int y, int clicks, int intervalMs);
+
+    /// <summary>Scrolls the wheel; the direction is <c>up</c>, <c>down</c>, <c>left</c> or <c>right</c>.</summary>
+    void Scroll(string direction, int amount, int x, int y);
+
+    void Drag(string button, int startX, int startY, int endX, int endY, int durationMs, int steps);
+}
+
+/// <summary>The screen: its size, its pixels, and pictures of it.</summary>
+public interface IScreenDevice
+{
+    /// <summary>Size of the primary screen, in pixels.</summary>
+    ScreenSize PrimarySize { get; }
+
+    /// <summary>The colour of one pixel.</summary>
+    PixelColor PixelAt(int x, int y);
+
+    /// <summary>Copies a region of the desktop.</summary>
+    ImageFrame Capture(int x, int y, int width, int height);
+}
+
+/// <summary>Looking for a picture on screen.</summary>
+public interface IVisionDevice
+{
+    /// <summary>Reads a reference image from disk, or null when the file cannot be read.</summary>
+    ImageFrame? Load(string path);
+
+    /// <summary>The best place <paramref name="needle"/> appears in <paramref name="haystack"/>.</summary>
+    ImageMatch? Find(ImageFrame haystack, ImageFrame needle, double confidencePercent);
+}
+
+/// <summary>Reading text off the screen.</summary>
+public interface IOcrDevice
+{
+    /// <summary>Every piece of text in the frame, in reading order.</summary>
+    IReadOnlyList<TextSpan> Recognize(ImageFrame frame, string language);
+}
+
+/// <summary>Finding and driving windows through UI Automation.</summary>
+public interface IUiDevice
+{
+    bool Exists(UiQuery query, int timeoutMs);
+
+    /// <summary>Clicks an element with one of the mouse buttons.</summary>
+    bool Click(UiQuery query, string button);
+
+    bool FocusWindow(string title);
+
+    string? GetText(UiQuery query);
+
+    /// <summary>Writes into an element, optionally clearing what was there first.</summary>
+    bool SetText(UiQuery query, string text, bool clearFirst);
+}
+
+/// <summary>Files on disk.</summary>
+public interface IFileDevice
+{
+    /// <summary>Where a relative path is read from and written to.</summary>
+    string BaseFolder { get; }
+
+    /// <summary>Whether a file or a folder is there.</summary>
+    bool Exists(string path);
+
+    /// <summary>Reads a text file whole.</summary>
+    string ReadText(string path);
+
+    /// <summary>Writes a text file, making the folders on the way when they are missing.</summary>
+    void WriteText(string path, string text, bool append);
+
+    /// <summary>Removes a file.</summary>
+    void Delete(string path);
+
+    /// <summary>Copies a file.</summary>
+    void Copy(string from, string to, bool overwrite);
+
+    /// <summary>The files in a folder, as full paths.</summary>
+    IReadOnlyList<string> List(string folder, string pattern, bool recurse);
+}
+
+/// <summary>The clipboard: the text something last copied, and a way to put text there.</summary>
+public interface IClipboardDevice
+{
+    /// <summary>
+    /// A number that goes up whenever the clipboard changes. A macro waits for the next
+    /// copy by remembering this and watching for it to move.
+    /// </summary>
+    int ChangeCount { get; }
+
+    /// <summary>Whether there is text on the clipboard.</summary>
+    bool HasText { get; }
+
+    /// <summary>The text on the clipboard, or an empty string when there is none.</summary>
+    string ReadText();
+
+    /// <summary>Replaces whatever is on the clipboard with this text.</summary>
+    void WriteText(string text);
+
+    /// <summary>Empties the clipboard.</summary>
+    void Clear();
+}
+
+/// <summary>Other programs: starting them, watching them, and stopping them.</summary>
+public interface IProcessDevice
+{
+    /// <summary>Starts a program and hands back its process id.</summary>
+    int Start(string fileName, string arguments, string workingDirectory, bool hidden);
+
+    /// <summary>The ids of the running processes with this name.</summary>
+    IReadOnlyList<int> Find(string name);
+
+    /// <summary>Every running process, by name, without repeats.</summary>
+    IReadOnlyList<string> List();
+
+    /// <summary>Whether the process with this id has finished.</summary>
+    bool HasExited(int id);
+
+    /// <summary>What a process returned, or null while it is still running.</summary>
+    int? ExitCode(int id);
+
+    /// <summary>Stops every process with this name; the answer is how many were stopped.</summary>
+    int StopByName(string name, bool force);
+
+    /// <summary>Stops one process by id.</summary>
+    bool StopById(int id, bool force);
+
+    /// <summary>Runs a program to the end and collects what it printed.</summary>
+    CommandResult Run(string fileName, string arguments, string workingDirectory, int timeoutMs);
+}
+
+/// <summary>Facts about this machine that are not a file or a device.</summary>
+public interface ISystemDevice
+{
+    /// <summary>One named fact about the machine, such as <c>userName</c> or <c>tempFolder</c>.</summary>
+    string Info(string field);
+
+    /// <summary>An environment variable, or an empty string when it is not set.</summary>
+    string Environment(string name);
+}
+
+/// <summary>Open windows: finding them, moving them, and closing them.</summary>
+public interface IWindowDevice
+{
+    /// <summary>Every top-level window that has a title, in the order Windows lists them.</summary>
+    IReadOnlyList<WindowInfo> List();
+
+    /// <summary>
+    /// The first window whose title contains <paramref name="title"/>, ignoring case, or
+    /// null when nothing matches. An empty title matches the frontmost window.
+    /// </summary>
+    WindowInfo? Find(string title);
+
+    /// <summary>Brings a window to the front, restoring it first if it was shrunk.</summary>
+    bool Activate(long handle);
+
+    bool Minimize(long handle);
+
+    bool Maximize(long handle);
+
+    /// <summary>Puts a shrunk or full-screen window back to its normal size.</summary>
+    bool Restore(long handle);
+
+    /// <summary>Asks a window to close, the same as clicking its close button.</summary>
+    bool Close(long handle);
+
+    /// <summary>Moves and resizes a window, in screen pixels.</summary>
+    bool Move(long handle, int x, int y, int width, int height);
+}
+
+/// <summary>Everything a macro can do to the machine, in one place.</summary>
+public interface IDeviceLayer
+{
+    IInputDevice Input { get; }
+
+    IScreenDevice Screen { get; }
+
+    IVisionDevice Vision { get; }
+
+    IOcrDevice Ocr { get; }
+
+    IUiDevice Ui { get; }
+
+    IFileDevice Files { get; }
+
+    IClipboardDevice Clipboard { get; }
+
+    IProcessDevice Processes { get; }
+
+    ISystemDevice System { get; }
+
+    IWindowDevice Windows { get; }
+}
+
+/// <summary>Thrown when an action needs something this machine cannot give it.</summary>
+public sealed class DeviceUnavailableException(string capability)
+    : Exception($"The device layer does not provide {capability}.")
+{
+    /// <summary>What was missing, for example <c>screen</c> or <c>ocr</c>.</summary>
+    public string Capability { get; } = capability;
+}
+
+/// <summary>
+/// Thrown when the device is there but the request makes no sense. The key is translated by
+/// the interface, the way every other run failure is.
+/// </summary>
+public sealed class DeviceActionException(string key, string detail = "")
+    : Exception(key)
+{
+    public string Key { get; } = key;
+
+    public string Detail { get; } = detail;
+}
+
+/// <summary>
+/// A device layer with nothing behind it. Every call is refused, which is what lets the
+/// engine be tested, and lets a macro run on a machine with no devices attached.
+/// </summary>
+public sealed class NullDeviceLayer : IDeviceLayer
+{
+    /// <summary>The shared instance, which holds no state.</summary>
+    public static NullDeviceLayer Instance { get; } = new();
+
+    private readonly Refusal _refusal = new();
+
+    public IInputDevice Input => _refusal;
+
+    public IScreenDevice Screen => _refusal;
+
+    public IVisionDevice Vision => _refusal;
+
+    public IOcrDevice Ocr => _refusal;
+
+    public IUiDevice Ui => _refusal;
+
+    public IFileDevice Files => _refusal;
+
+    public IClipboardDevice Clipboard => _refusal;
+
+    public IProcessDevice Processes => _refusal;
+
+    public ISystemDevice System => _refusal;
+
+    public IWindowDevice Windows => _refusal;
+
+    /// <summary>Answers every request with "not available", naming what was asked for.</summary>
+    private sealed class Refusal
+        : IInputDevice, IScreenDevice, IVisionDevice, IOcrDevice, IUiDevice, IFileDevice,
+          IClipboardDevice, IProcessDevice, ISystemDevice, IWindowDevice
+    {
+        public string BaseFolder => throw Missing("files");
+
+        public bool Exists(string path) => throw Missing("files");
+
+        public string ReadText(string path) => throw Missing("files");
+
+        public void WriteText(string path, string text, bool append) => throw Missing("files");
+
+        public void Delete(string path) => throw Missing("files");
+
+        public void Copy(string from, string to, bool overwrite) => throw Missing("files");
+
+        public IReadOnlyList<string> List(string folder, string pattern, bool recurse) => throw Missing("files");
+
+        public int ChangeCount => throw Missing("the clipboard");
+
+        public bool HasText => throw Missing("the clipboard");
+
+        public string ReadText() => throw Missing("the clipboard");
+
+        public void WriteText(string text) => throw Missing("the clipboard");
+
+        public void Clear() => throw Missing("the clipboard");
+
+        public int Start(string fileName, string arguments, string workingDirectory, bool hidden)
+            => throw Missing("other programs");
+
+        public IReadOnlyList<int> Find(string name) => throw Missing("other programs");
+
+        public IReadOnlyList<string> List() => throw Missing("other programs");
+
+        public bool HasExited(int id) => throw Missing("other programs");
+
+        public int? ExitCode(int id) => throw Missing("other programs");
+
+        public int StopByName(string name, bool force) => throw Missing("other programs");
+
+        public bool StopById(int id, bool force) => throw Missing("other programs");
+
+        public CommandResult Run(string fileName, string arguments, string workingDirectory, int timeoutMs)
+            => throw Missing("command lines");
+
+        public string Info(string field) => throw Missing("system information");
+
+        public string Environment(string name) => throw Missing("environment variables");
+
+        // Named through the interface because the process device already has a List and a Find
+        // that take no such argument.
+        IReadOnlyList<WindowInfo> IWindowDevice.List() => throw Missing("windows");
+
+        WindowInfo? IWindowDevice.Find(string title) => throw Missing("windows");
+
+        bool IWindowDevice.Activate(long handle) => throw Missing("windows");
+
+        bool IWindowDevice.Minimize(long handle) => throw Missing("windows");
+
+        bool IWindowDevice.Maximize(long handle) => throw Missing("windows");
+
+        bool IWindowDevice.Restore(long handle) => throw Missing("windows");
+
+        bool IWindowDevice.Close(long handle) => throw Missing("windows");
+
+        bool IWindowDevice.Move(long handle, int x, int y, int width, int height)
+            => throw Missing("windows");
+
+        public ScreenPoint Cursor => throw Missing("the pointer position");
+
+        public ScreenSize PrimarySize => throw Missing("the screen");
+
+        public void KeyPress(string key, int holdMs) => throw Missing("the keyboard");
+
+        public void KeyDown(string key) => throw Missing("the keyboard");
+
+        public void KeyUp(string key) => throw Missing("the keyboard");
+
+        public void Hotkey(IReadOnlyList<string> keys, int holdMs) => throw Missing("the keyboard");
+
+        public void TypeText(string text, int intervalMs) => throw Missing("the keyboard");
+
+        public void MoveMouse(int x, int y, int durationMs) => throw Missing("the mouse");
+
+        public void MoveMouseRelative(int dx, int dy, int durationMs) => throw Missing("the mouse");
+
+        public void MouseDown(string button, int x, int y) => throw Missing("the mouse");
+
+        public void MouseUp(string button, int x, int y) => throw Missing("the mouse");
+
+        public void Click(string button, int x, int y, int clicks, int intervalMs) => throw Missing("the mouse");
+
+        public void Scroll(string direction, int amount, int x, int y) => throw Missing("the mouse");
+
+        public void Drag(string button, int startX, int startY, int endX, int endY, int durationMs, int steps)
+            => throw Missing("the mouse");
+
+        public PixelColor PixelAt(int x, int y) => throw Missing("the screen");
+
+        public ImageFrame Capture(int x, int y, int width, int height) => throw Missing("the screen");
+
+        public ImageFrame? Load(string path) => throw Missing("image matching");
+
+        public ImageMatch? Find(ImageFrame haystack, ImageFrame needle, double confidencePercent)
+            => throw Missing("image matching");
+
+        public IReadOnlyList<TextSpan> Recognize(ImageFrame frame, string language) => throw Missing("text recognition");
+
+        public bool Exists(UiQuery query, int timeoutMs) => throw Missing("UI Automation");
+
+        public bool Click(UiQuery query, string button) => throw Missing("UI Automation");
+
+        public bool FocusWindow(string title) => throw Missing("UI Automation");
+
+        public string? GetText(UiQuery query) => throw Missing("UI Automation");
+
+        public bool SetText(UiQuery query, string text, bool clearFirst) => throw Missing("UI Automation");
+
+        private static DeviceUnavailableException Missing(string capability) => new(capability);
+    }
+}
