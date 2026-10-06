@@ -491,6 +491,19 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "file.move",
+            Category = ActionCategory.File,
+            DisplayName = "Move File",
+            Description = "Move a file to another place, or rename it in the same folder.",
+            Parameters =
+            [
+                FilePath("from", "From", "report.csv", "File to move."),
+                FilePath("to", "To", @"archive\report.csv", "Where it goes, name and all."),
+                Toggle("overwrite", "Overwrite", true, "Replace the file when it is already there."),
+            ],
+        },
+        new()
+        {
             Key = "file.listFiles",
             Category = ActionCategory.File,
             DisplayName = "List Files",

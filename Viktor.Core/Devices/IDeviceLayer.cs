@@ -161,6 +161,12 @@ public interface IFileDevice
     /// <summary>Copies a file.</summary>
     void Copy(string from, string to, bool overwrite);
 
+    /// <summary>
+    /// Moves a file to another place, renaming it when the new name is in the same folder. A
+    /// move across drives is a copy and a delete underneath, which is why it can take a while.
+    /// </summary>
+    void Move(string from, string to, bool overwrite);
+
     /// <summary>The files in a folder, as full paths.</summary>
     IReadOnlyList<string> List(string folder, string pattern, bool recurse);
 }
@@ -373,6 +379,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public void Delete(string path) => throw Missing("files");
 
         public void Copy(string from, string to, bool overwrite) => throw Missing("files");
+
+        public void Move(string from, string to, bool overwrite) => throw Missing("files");
 
         public IReadOnlyList<string> List(string folder, string pattern, bool recurse) => throw Missing("files");
 

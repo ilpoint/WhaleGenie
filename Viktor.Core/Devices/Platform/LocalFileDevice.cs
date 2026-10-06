@@ -108,6 +108,33 @@ public sealed class LocalFileDevice : IFileDevice
         });
     }
 
+    public void Move(string from, string to, bool overwrite)
+    {
+        var source = Full(from);
+        if (!File.Exists(source))
+        {
+            throw new DeviceActionException("Run.FileNotFound", from);
+        }
+
+        var target = Full(to);
+        if (!overwrite && File.Exists(target))
+        {
+            throw new DeviceActionException("Run.FileExists", to);
+        }
+
+        Attempt(from, () =>
+        {
+            var folder = Path.GetDirectoryName(target);
+            if (!string.IsNullOrEmpty(folder))
+            {
+                Directory.CreateDirectory(folder);
+            }
+
+            File.Move(source, target, overwrite);
+            return true;
+        });
+    }
+
     public IReadOnlyList<string> List(string folder, string pattern, bool recurse)
     {
         var full = Full(folder);

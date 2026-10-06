@@ -333,6 +333,15 @@ internal static class ActionStrings
         ["file.copy.overwrite.label"] = "覆盖",
         ["file.copy.overwrite.hint"] = "目标已存在时是否替换。",
 
+        ["file.move.name"] = "移动 / 重命名文件",
+        ["file.move.desc"] = "把文件移到别处，同名目录里换个名字就是重命名。",
+        ["file.move.from.label"] = "源文件",
+        ["file.move.from.hint"] = "要移动的文件。只写文件名时会相对宏文件夹解析。",
+        ["file.move.to.label"] = "目标",
+        ["file.move.to.hint"] = "移到哪里，连文件名一起写。只写文件名时会相对宏文件夹解析。",
+        ["file.move.overwrite.label"] = "覆盖",
+        ["file.move.overwrite.hint"] = "目标已存在时是否替换。",
+
         ["file.listFiles.name"] = "列出文件",
         ["file.listFiles.desc"] = "把文件夹里的文件收集成列表。",
         ["file.listFiles.folder.label"] = "文件夹",

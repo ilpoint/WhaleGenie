@@ -446,6 +446,10 @@ public sealed class MacroRunner
                 CopyFile(step, depth);
                 return Signal.Normal;
 
+            case "file.move":
+                MoveFile(step, depth);
+                return Signal.Normal;
+
             case "file.listFiles":
                 ListFiles(step, depth);
                 return Signal.Normal;
@@ -2099,6 +2103,16 @@ public sealed class MacroRunner
 
         _devices.Files.Copy(from, to, overwrite);
         Log(LogLevel.Info, depth, step.Type, "Run.CopiedFile", from, to);
+    }
+
+    private void MoveFile(ExecutableStep step, int depth)
+    {
+        var from = PathOf(step, "from");
+        var to = PathOf(step, "to");
+        var overwrite = !string.Equals(step.Text("overwrite").Trim(), "false", StringComparison.OrdinalIgnoreCase);
+
+        _devices.Files.Move(from, to, overwrite);
+        Log(LogLevel.Info, depth, step.Type, "Run.MovedFile", from, to);
     }
 
     private void ListFiles(ExecutableStep step, int depth)

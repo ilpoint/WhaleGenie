@@ -1387,6 +1387,40 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Moving_a_file_takes_it_away_from_where_it_was()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["report.csv"] = "rows";
+        var (result, _, _) = await RunAsync(
+        [
+            Step("file.move", Param("from", "report.csv"), Param("to", @"archive\old.csv"),
+                Param("overwrite", "true")),
+        ], devices);
+
+        // A move is a rename as much as it is a change of folder: the old name is gone.
+        Assert.True(result.Succeeded);
+        Assert.Equal("rows", devices.Files[@"archive\old.csv"]);
+        Assert.False(devices.Files.ContainsKey("report.csv"));
+        Assert.Contains(@"moveFile report.csv archive\old.csv True", devices.Calls);
+    }
+
+    [Fact]
+    public async Task Moving_onto_a_file_can_be_refused()
+    {
+        var devices = new FakeDeviceLayer { TargetExists = true };
+        devices.Files["report.csv"] = "rows";
+        var (result, _, _) = await RunAsync(
+        [
+            Step("file.move", Param("from", "report.csv"), Param("to", "taken.csv"),
+                Param("overwrite", "false")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.FileExists", result.Key);
+        Assert.Equal("rows", devices.Files["report.csv"]);
+    }
+
+    [Fact]
     public async Task Listing_a_folder_gives_a_list_of_full_paths()
     {
         var devices = new FakeDeviceLayer();
@@ -2923,6 +2957,21 @@ internal sealed class FakeDeviceLayer
 
         if (Files.TryGetValue(from, out var text))
         {
+            Files[to] = text;
+        }
+    }
+
+    void IFileDevice.Move(string from, string to, bool overwrite)
+    {
+        Note($"moveFile {from} {to} {overwrite}");
+        if (TargetExists && !overwrite)
+        {
+            throw new DeviceActionException("Run.FileExists", to);
+        }
+
+        if (Files.TryGetValue(from, out var text))
+        {
+            Files.Remove(from);
             Files[to] = text;
         }
     }
