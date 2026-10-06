@@ -106,6 +106,17 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
     /// <summary>UTF-8 that leaves the byte-order mark off, for text handed to another program.</summary>
     private static readonly Encoding NoMark = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
+    /// <summary>
+    /// The code page a program's output is read in. A macro that names one gets it; one that says
+    /// nothing is read in this machine's own, which is what cmd.exe, Windows PowerShell and Python
+    /// all write in when their output goes into a pipe. Reading those as UTF-8 is what used to turn
+    /// every Chinese word they printed into question marks.
+    /// </summary>
+    private static Encoding OutputEncoding(CommandRequest request)
+        => TextEncoding.Resolve(string.IsNullOrWhiteSpace(request.OutputEncoding)
+            ? TextEncoding.System
+            : request.OutputEncoding);
+
     public IReadOnlyList<int> Find(string name)
     {
         Require();
@@ -211,8 +222,8 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
             CreateNoWindow = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8,
+            StandardOutputEncoding = OutputEncoding(request),
+            StandardErrorEncoding = OutputEncoding(request),
         };
 
         if (!string.IsNullOrWhiteSpace(request.WorkingDirectory))

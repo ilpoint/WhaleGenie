@@ -1937,7 +1937,7 @@ public class DeviceActionTests
 
         // The last line wins when the same name is written twice, so a macro can override a
         // setting further up without editing that line.
-        Assert.Contains(devices.Calls, call => call.EndsWith("|env TOKEN=def"));
+        Assert.Contains(devices.Calls, call => call.Contains("|env TOKEN=def"));
         Assert.DoesNotContain(devices.Calls, call => call.Contains("TOKEN=abc"));
     }
 
@@ -1966,7 +1966,7 @@ public class DeviceActionTests
 
         // The line ending the macro wrote is kept, and a value can be written into the input the
         // same way it can be written into any other field.
-        Assert.Contains(devices.Calls, call => call.EndsWith("|in hello\\nAnn"));
+        Assert.Contains(devices.Calls, call => call.Contains("|in hello\\nAnn"));
     }
 
     [Fact]
@@ -2026,6 +2026,41 @@ public class DeviceActionTests
 
         Assert.DoesNotContain(host.Entries, entry => entry.Key == "Run.CommandOutput");
         Assert.DoesNotContain(host.Entries, entry => entry.Key == "Run.CommandStarted");
+    }
+
+    [Fact]
+    public async Task A_command_is_read_in_this_machines_own_code_page_unless_it_says_otherwise()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("command.run", Param("file", "cmd.exe")),
+            Step("command.run", Param("file", "node"), Param("outputEncoding", "utf8")),
+        ], devices);
+
+        // Left alone, the output is read in this machine's own code page — the one cmd.exe and
+        // Windows PowerShell print Chinese in — because getting that wrong turns every Chinese word
+        // into question marks, and a program that prints UTF-8 wherever it runs can say so.
+        Assert.Contains(devices.Calls, call => call.StartsWith("run cmd.exe|") && call.EndsWith("|out default"));
+        Assert.Contains(devices.Calls, call => call.StartsWith("run node|") && call.EndsWith("|out utf8"));
+    }
+
+    [Fact]
+    public async Task A_script_is_read_the_way_its_interpreter_prints()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("script.run", Param("language", "powershell"), Param("script", "echo hi")),
+            Step("script.run", Param("language", "node"), Param("script", "console.log('hi')")),
+        ], devices);
+
+        // Node prints UTF-8 on every machine; Windows PowerShell and the command prompt print in the
+        // machine's own code page. Nobody should have to spell that out for each script.
+        Assert.Contains(devices.Calls, call =>
+            call.StartsWith("run powershell.exe") && call.EndsWith("|out system"));
+        Assert.Contains(devices.Calls, call =>
+            call.StartsWith("run node|") && call.EndsWith("|out utf8"));
     }
 
     [Fact]
@@ -2171,7 +2206,7 @@ public class DeviceActionTests
         Assert.Equal("hello", store.Local.Values["out"].AsText());
         Assert.Equal("watch out", store.Local.Values["err"].AsText());
         Assert.Equal(3d, store.Local.Values["code"].Number);
-        Assert.Contains(@"run cmd.exe|/c echo hello||5000", devices.Calls);
+        Assert.Contains(@"run cmd.exe|/c echo hello||5000|out default", devices.Calls);
     }
 
     [Fact]
@@ -2220,7 +2255,7 @@ public class DeviceActionTests
         await RunAsync([Step("script.run", Param("script", "echo hi"))], devices);
 
         Assert.Contains(devices.Calls,
-            call => call.StartsWith("run powershell.exe") && call.EndsWith("||60000"));
+            call => call.StartsWith("run powershell.exe") && call.EndsWith("||60000|out system"));
     }
 
     [Fact]
@@ -2234,7 +2269,8 @@ public class DeviceActionTests
         ], devices);
 
         Assert.Contains(devices.Calls,
-            call => call.StartsWith("run powershell.exe") && call.EndsWith("--quiet|C:\\work|5000"));
+            call => call.StartsWith("run powershell.exe")
+                && call.EndsWith("--quiet|C:\\work|5000|out system"));
     }
 
     [Fact]
@@ -3561,7 +3597,8 @@ internal sealed class FakeDeviceLayer
     {
         Note($"run {request.FileName}|{request.Arguments}|{request.WorkingDirectory}"
              + $"|{request.TimeoutMs}{EnvironmentNote(request.Environment)}"
-             + InputNote(request.StandardInput));
+             + InputNote(request.StandardInput)
+             + $"|out {request.OutputEncoding ?? "default"}");
 
         // A real device hands each line over while the program is still running; the fake has all
         // of them already and hands them over the same way, blank lines included.

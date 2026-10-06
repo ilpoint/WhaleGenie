@@ -2789,6 +2789,16 @@ public sealed class MacroRunner
         return text.Trim().Length == 0 ? null : Interpolate(text);
     }
 
+    /// <summary>
+    /// The code page a step says the command prints in, or nothing at all to take this machine's
+    /// own, which is what a command line on this machine writes in unless it was told otherwise.
+    /// </summary>
+    private static string? OutputEncodingOf(ExecutableStep step)
+    {
+        var chosen = step.Text("outputEncoding").Trim();
+        return chosen.Length == 0 ? null : chosen;
+    }
+
     /// <summary>Waits until a program with the given name shows up in the process list.</summary>
     private async Task WaitForProgram(ExecutableStep step, int depth, CancellationToken token)
     {
@@ -2883,7 +2893,8 @@ public sealed class MacroRunner
         var result = _devices.Processes.Run(new CommandRequest(program, arguments, folder, timeout,
             EnvironmentOf(step), StandardInputOf(step),
             watching ? line => Log(LogLevel.Info, depth, step.Type, "Run.CommandOutput", line) : null,
-            watching ? line => Log(LogLevel.Info, depth, step.Type, "Run.CommandError", line) : null));
+            watching ? line => Log(LogLevel.Info, depth, step.Type, "Run.CommandError", line) : null,
+            OutputEncodingOf(step)));
 
         Store(step, "resultVariable", "output", Value.FromText(result.StandardOutput));
         Store(step, "errorVariable", string.Empty, Value.FromText(result.StandardError));
@@ -3460,7 +3471,8 @@ public sealed class MacroRunner
         CommandResult result;
         try
         {
-            result = _devices.Processes.Run(new CommandRequest(program, arguments, folder, timeout));
+            result = _devices.Processes.Run(new CommandRequest(program, arguments, folder, timeout,
+                OutputEncoding: ScriptOutput(language)));
         }
         finally
         {
@@ -3589,6 +3601,16 @@ public sealed class MacroRunner
             ? extension == ".ps1" ? "utf8bom" : TextEncoding.Default
             : chosen;
     }
+
+    /// <summary>
+    /// The code page an interpreter prints in. Node writes UTF-8 wherever it runs; the others —
+    /// Windows PowerShell, the command prompt and Python alike — write in this machine's own code
+    /// page, which is GBK on a Chinese Windows. Read with the wrong one and every Chinese word the
+    /// script printed comes back as question marks, so the engine works it out rather than leaving
+    /// the user to.
+    /// </summary>
+    private static string ScriptOutput(string language)
+        => language is "node" ? TextEncoding.Default : TextEncoding.System;
 
     /// <summary>How long a script may run when the step does not say.</summary>
     private const int DefaultScriptMs = 60000;

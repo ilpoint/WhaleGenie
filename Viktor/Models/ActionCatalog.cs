@@ -930,6 +930,13 @@ public static class ActionCatalog
                     "Put every line the command prints into the run log while it is still running, "
                     + "which is how a long build or script can be watched. The result variable still "
                     + "holds the whole output."),
+                Choice("outputEncoding", "Output encoding", ["system", "utf8", "utf16"], "system",
+                    "The code page the command prints in. Left as it is, its output is read in this "
+                    + "machine's own, which is what the programs Windows ships with — cmd.exe, "
+                    + "Windows PowerShell, Python — write in when they are not talking to a screen. "
+                    + "A program that prints UTF-8 whichever machine it is on, Node.js for one, "
+                    + "needs to be read that way instead.",
+                    labels: ["This machine's", "UTF-8", "UTF-16"]),
                 Variable("resultVariable", "Result variable", "output",
                     "Variable that receives what the command printed.",
                     required: false, namesVariable: true),

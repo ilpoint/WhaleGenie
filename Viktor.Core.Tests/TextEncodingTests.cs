@@ -45,4 +45,16 @@ public class TextEncodingTests
         Assert.Empty(TextEncoding.Resolve("klingon").GetPreamble());
         Assert.Equal(TextEncoding.Default, TextEncoding.Names[0]);
     }
+
+    [Fact]
+    public void The_machines_own_code_page_can_be_asked_for_by_name()
+    {
+        // This is the one a macro needs when it reads what cmd.exe printed: on the machine this runs
+        // on it is GBK, and on an English one it is 1252, so the name is asked for rather than the
+        // number being written into every macro.
+        var system = TextEncoding.Resolve(TextEncoding.System);
+        var current = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ANSICodePage;
+
+        Assert.Equal(current, system.CodePage);
+    }
 }

@@ -268,6 +268,9 @@ public sealed record StartRequest(
 /// handed before it starts. <see cref="OnOutput"/> and <see cref="OnError"/> are for a caller
 /// that wants each line while the program is still running; they are called on the thread that
 /// asked for the run, and the whole of what was printed still comes back in the result.
+/// <see cref="OutputEncoding"/> names the code page the program writes in, or is left alone for
+/// this machine's own; reading a Chinese Windows program's output as UTF-8 turns it into question
+/// marks, so the two ends have to agree on which it is.
 /// </summary>
 public sealed record CommandRequest(
     string FileName,
@@ -277,7 +280,8 @@ public sealed record CommandRequest(
     IReadOnlyDictionary<string, string>? Environment = null,
     string? StandardInput = null,
     Action<string>? OnOutput = null,
-    Action<string>? OnError = null);
+    Action<string>? OnError = null,
+    string? OutputEncoding = null);
 
 /// <summary>
 /// How a window is picked out of the ones that are open. A title is what a person sees, but it
