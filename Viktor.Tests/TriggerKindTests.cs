@@ -31,6 +31,7 @@ public class TriggerKindTests
                 Assert.Equal(kind == MacroTrigger.FileChanges, editor.IsFileTrigger);
                 Assert.Equal(kind == MacroTrigger.Process, editor.IsProcessTrigger);
                 Assert.Equal(kind == MacroTrigger.Window, editor.IsWindowTrigger);
+                Assert.Equal(kind == MacroTrigger.Idle, editor.IsIdleTrigger);
             }
         });
     }
@@ -109,6 +110,7 @@ public class TriggerKindTests
                 WindowValue = " Setup ",
                 WindowLookup = WindowMatch.ClassName,
                 WindowChange = WindowChangeKind.Disappeared,
+                IdleSeconds = 90,
             };
 
             var editor = new MacroEditorViewModel();
@@ -134,6 +136,7 @@ public class TriggerKindTests
             Assert.Equal("Setup", saved.WindowValue);
             Assert.Equal(WindowMatch.ClassName, saved.WindowLookup);
             Assert.Equal(WindowChangeKind.Disappeared, saved.WindowChange);
+            Assert.Equal(90, saved.IdleSeconds);
         });
     }
 
@@ -153,6 +156,7 @@ public class TriggerKindTests
             Assert.NotNull(saved);
             Assert.Equal("*", saved.WatchFilter);
             Assert.Equal(5, saved.ScheduleInterval);
+            Assert.Equal(60, saved.IdleSeconds);
             Assert.Equal(ScheduleMode.Interval, saved.ScheduleMode);
             Assert.Equal(ScheduleUnit.Seconds, saved.ScheduleUnit);
         });
@@ -215,5 +219,28 @@ public class TriggerKindTests
 
         Assert.Equal(string.Empty, macro.ProcessName);
         Assert.Equal(ProcessChangeKind.Started, macro.ProcessChange);
+    }
+
+    [Fact]
+    public void An_idle_trigger_is_previewed_with_its_wait_and_survives_being_saved()
+    {
+        var macro = new MacroItem
+        {
+            TriggerMode = MacroTrigger.Idle,
+            IdleSeconds = 120,
+        };
+
+        Assert.True(macro.IsIdleTrigger);
+        Assert.Contains("120", macro.TriggerPreview);
+
+        Assert.Equal(120, MacroItem.FromJson(macro.ToJson()).IdleSeconds);
+    }
+
+    [Fact]
+    public void A_macro_written_before_the_idle_trigger_existed_waits_a_minute()
+    {
+        var macro = MacroItem.FromJson(new System.Text.Json.Nodes.JsonObject { ["name"] = "Old" });
+
+        Assert.Equal(60, macro.IdleSeconds);
     }
 }

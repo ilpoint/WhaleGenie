@@ -20,6 +20,9 @@ public enum MacroTrigger
 
     /// <summary>A window that matches a description appearing or going away.</summary>
     Window,
+
+    /// <summary>The machine going untouched for a while.</summary>
+    Idle,
 }
 
 /// <summary>How a macro repeats once it has been triggered.</summary>

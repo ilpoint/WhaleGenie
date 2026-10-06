@@ -153,6 +153,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.WindowNote"] = "The open windows are looked at twice a second, so a window is "
             + "noticed about half a second after it arrives. A window open when the system is "
             + "switched on has not just appeared.",
+        ["Editor.IdleSeconds"] = "Left alone for :",
+        ["Editor.IdleNote"] = "The macro runs once when the machine has gone this long without a "
+            + "key press, a mouse move or a click, and again after the next quiet spell. What a "
+            + "macro does itself counts as using the machine.",
 
         // ----------------------------------------------------------- colour picker
         ["Picker.Title"] = "Color Picker",
@@ -265,6 +269,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Trigger.File"] = "File / Folder Changes",
         ["Trigger.Process"] = "Program Started / Stopped",
         ["Trigger.Window"] = "Window Appears / Goes Away",
+        ["Trigger.Idle"] = "Machine Idle",
+        ["Idle.Summary"] = "After {0} s of no input",
         ["Schedule.Interval"] = "At an Interval",
         ["Schedule.Daily"] = "Every Day at a Time",
         ["Schedule.Unit.Seconds"] = "seconds",
@@ -736,6 +742,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.WindowWhen"] = "时机：",
         ["Editor.WindowNote"] = "每秒检查两次窗口列表，窗口出现后约半秒会被注意到；"
             + "打开系统时就已经开着的窗口不算刚出现。",
+        ["Editor.IdleSeconds"] = "空闲时间：",
+        ["Editor.IdleNote"] = "机器这么久没有按键、移动鼠标或点击时执行一遍，之后每段安静的"
+            + "时间各执行一遍；宏自己的动作也算使用机器。",
 
         // ----------------------------------------------------------- colour picker
         ["Picker.Title"] = "屏幕取色",
@@ -841,6 +850,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Trigger.File"] = "文件 / 文件夹变化",
         ["Trigger.Process"] = "程序启动 / 退出",
         ["Trigger.Window"] = "窗口出现 / 消失",
+        ["Trigger.Idle"] = "机器空闲",
+        ["Idle.Summary"] = "空闲 {0} 秒后",
         ["Schedule.Interval"] = "按间隔重复",
         ["Schedule.Daily"] = "每天固定时间",
         ["Schedule.Unit.Seconds"] = "秒",

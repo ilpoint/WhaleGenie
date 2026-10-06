@@ -45,6 +45,7 @@ public sealed class MacroTriggerService : IDisposable
     private readonly Dictionary<MacroItem, FileWatch> _watches = [];
     private readonly Dictionary<MacroItem, HashSet<int>> _programsRunning = [];
     private readonly Dictionary<MacroItem, bool> _windowsThere = [];
+    private readonly HashSet<MacroItem> _idleDone = [];
     private readonly HashSet<string> _heldKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly Timer _poll;
 
@@ -153,6 +154,7 @@ public sealed class MacroTriggerService : IDisposable
             _scheduleDue.Clear();
             _programsRunning.Clear();
             _windowsThere.Clear();
+            _idleDone.Clear();
         }
 
         foreach (var cancellation in cancellations)
@@ -185,6 +187,7 @@ public sealed class MacroTriggerService : IDisposable
             _scheduleDue.Remove(macro);
             _programsRunning.Remove(macro);
             _windowsThere.Remove(macro);
+            _idleDone.Remove(macro);
         }
     }
 
@@ -628,6 +631,7 @@ public sealed class MacroTriggerService : IDisposable
         PollFiles(macros);
         PollProcesses(macros);
         PollWindows(macros);
+        PollIdle(macros);
         PruneWatches(macros);
     }
 
@@ -928,6 +932,49 @@ public sealed class MacroTriggerService : IDisposable
         }
     }
 
+    /// <summary>
+    /// Runs the macros waiting for the machine to be left alone. One run per quiet spell: once it
+    /// has run, the macro waits for input to arrive and the machine to fall quiet again, so a
+    /// machine left alone overnight does not set the same macro off all night.
+    /// </summary>
+    /// <remarks>
+    /// Input anywhere counts, including what a macro sends itself: a macro that moves the mouse
+    /// counts as having used the machine.
+    /// </remarks>
+    private void PollIdle(IReadOnlyList<MacroItem> macros)
+    {
+        var idle = IdleWatch.Since();
+
+        foreach (var macro in macros)
+        {
+            if (!macro.IsEnabled || macro.TriggerMode != MacroTrigger.Idle)
+            {
+                continue;
+            }
+
+            if (idle < TimeSpan.FromSeconds(Math.Max(1, macro.IdleSeconds)))
+            {
+                lock (_gate)
+                {
+                    _idleDone.Remove(macro);
+                }
+
+                continue;
+            }
+
+            bool first;
+            lock (_gate)
+            {
+                first = _idleDone.Add(macro);
+            }
+
+            if (first && !(macro.TriggerOnce && IsSpent(macro)))
+            {
+                Start(macro, repeating: false);
+            }
+        }
+    }
+
     /// <summary>True when a "trigger once" macro has already had its turn.</summary>
     private bool IsSpent(MacroItem macro)
     {
@@ -944,7 +991,7 @@ public sealed class MacroTriggerService : IDisposable
         {
             if (_colourTriggered.Count == 0 && _colourHeld.Count == 0 && _colourStopping.Count == 0
                 && _scheduleDue.Count == 0 && _watches.Count == 0 && _programsRunning.Count == 0
-                && _windowsThere.Count == 0)
+                && _windowsThere.Count == 0 && _idleDone.Count == 0)
             {
                 return;
             }
@@ -955,6 +1002,7 @@ public sealed class MacroTriggerService : IDisposable
             tracked.UnionWith(_scheduleDue.Keys);
             tracked.UnionWith(_programsRunning.Keys);
             tracked.UnionWith(_windowsThere.Keys);
+            tracked.UnionWith(_idleDone);
 
             foreach (var item in tracked)
             {
@@ -966,6 +1014,7 @@ public sealed class MacroTriggerService : IDisposable
                     _scheduleDue.Remove(item);
                     _programsRunning.Remove(item);
                     _windowsThere.Remove(item);
+                    _idleDone.Remove(item);
                     continue;
                 }
 
@@ -991,6 +1040,11 @@ public sealed class MacroTriggerService : IDisposable
                 if (item.TriggerMode != MacroTrigger.Window)
                 {
                     _windowsThere.Remove(item);
+                }
+
+                if (item.TriggerMode != MacroTrigger.Idle)
+                {
+                    _idleDone.Remove(item);
                 }
             }
 

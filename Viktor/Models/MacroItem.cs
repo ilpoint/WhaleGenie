@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 
 using System.Text.Json.Nodes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Viktor.Core.Devices;
+using Viktor.Localization;
 
 namespace Viktor.Models;
 
@@ -93,6 +95,12 @@ public partial class MacroItem : ObservableObject
     /// <summary>Whether the window appearing or going away starts the macro.</summary>
     public WindowChangeKind WindowChange { get; set; } = WindowChangeKind.Appeared;
 
+    /// <summary>
+    /// How long the machine has to go without a key press, a mouse move or a click before an idle
+    /// trigger runs the macro.
+    /// </summary>
+    public int IdleSeconds { get; set; } = 60;
+
     /// <summary>Colour watched for the trigger, as a hex string (for example <c>#000000</c>).</summary>
     [ObservableProperty]
     public partial string HexColor { get; set; } = "#000000";
@@ -114,6 +122,9 @@ public partial class MacroItem : ObservableObject
 
     /// <summary>True when the macro is started by a window appearing or going away.</summary>
     public bool IsWindowTrigger => TriggerMode == MacroTrigger.Window;
+
+    /// <summary>True when the macro is started by the machine going untouched.</summary>
+    public bool IsIdleTrigger => TriggerMode == MacroTrigger.Idle;
 
     /// <summary>True when the macro is started by input and the binding is a mouse button.</summary>
     public bool IsMouseTrigger => IsKeyTrigger && LooksLikeMouseButton(BindKey);
@@ -137,6 +148,7 @@ public partial class MacroItem : ObservableObject
             string.IsNullOrWhiteSpace(ProcessName) ? NoPreview : ProcessName,
         MacroTrigger.Window =>
             string.IsNullOrWhiteSpace(WindowValue) ? NoPreview : WindowValue,
+        MacroTrigger.Idle => Strings.Format("Idle.Summary", Math.Max(1, IdleSeconds)),
         _ => string.IsNullOrWhiteSpace(BindKey) ? NoPreview : BindKey,
     };
 
@@ -170,6 +182,7 @@ public partial class MacroItem : ObservableObject
         OnPropertyChanged(nameof(IsFileTrigger));
         OnPropertyChanged(nameof(IsProcessTrigger));
         OnPropertyChanged(nameof(IsWindowTrigger));
+        OnPropertyChanged(nameof(IsIdleTrigger));
         OnPropertyChanged(nameof(IsMouseTrigger));
         OnPropertyChanged(nameof(IsKeyboardTrigger));
         OnPropertyChanged(nameof(TriggerPreview));
@@ -258,6 +271,7 @@ public partial class MacroItem : ObservableObject
                 ["lookup"] = WindowLookup.ToString(),
                 ["change"] = WindowChange.ToString(),
             },
+            ["idleSeconds"] = IdleSeconds,
             ["positionCapture"] = PositionCapture.ToString(),
             ["colorMatch"] = ColorMatch.ToString(),
             ["colorPosition"] = new JsonObject
@@ -314,6 +328,7 @@ public partial class MacroItem : ObservableObject
             WindowValue = window?["value"]?.GetValue<string>() ?? string.Empty,
             WindowLookup = ReadEnum(window, "lookup", WindowMatch.Title),
             WindowChange = ReadEnum(window, "change", WindowChangeKind.Appeared),
+            IdleSeconds = ReadInt(node["idleSeconds"], 60),
             PositionCapture = ReadEnum(node, "positionCapture", MousePositionMode.SaveCurrentPosition),
             ColorMatch = ReadEnum(node, "colorMatch", ColorMatchCondition.ColorMatches),
             ColorPositionX = ReadInt(position?["x"]),

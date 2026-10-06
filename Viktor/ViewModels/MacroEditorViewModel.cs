@@ -171,6 +171,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsFileTrigger))]
     [NotifyPropertyChangedFor(nameof(IsProcessTrigger))]
     [NotifyPropertyChangedFor(nameof(IsWindowTrigger))]
+    [NotifyPropertyChangedFor(nameof(IsIdleTrigger))]
     public partial MacroTrigger TriggerMode { get; set; } = MacroTrigger.KeystrokesButtonInputs;
 
     [ObservableProperty]
@@ -185,6 +186,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         Strings.Get("Trigger.File"),
         Strings.Get("Trigger.Process"),
         Strings.Get("Trigger.Window"),
+        Strings.Get("Trigger.Idle"),
     ];
 
     public IReadOnlyList<string> LoopOptions { get; } =
@@ -224,6 +226,13 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     /// <summary>True when the macro is started by a window appearing or going away.</summary>
     public bool IsWindowTrigger => TriggerMode == MacroTrigger.Window;
+
+    /// <summary>True when the macro is started by the machine going untouched.</summary>
+    public bool IsIdleTrigger => TriggerMode == MacroTrigger.Idle;
+
+    /// <summary>How long the machine has to be left alone before an idle trigger runs the macro.</summary>
+    [ObservableProperty]
+    public partial int? IdleSeconds { get; set; } = 60;
 
     /// <summary>What a window trigger compares against the open windows.</summary>
     [ObservableProperty]
@@ -912,6 +921,7 @@ public partial class MacroEditorViewModel : ViewModelBase
             WindowValue = macro.WindowValue;
             WindowLookup = macro.WindowLookup;
             WindowChange = macro.WindowChange;
+            IdleSeconds = macro.IdleSeconds;
             PositionCapture = macro.PositionCapture;
             ColorMatch = macro.ColorMatch;
             ColorPositionX = macro.ColorPositionX.ToString(CultureInfo.InvariantCulture);
@@ -1266,6 +1276,7 @@ public partial class MacroEditorViewModel : ViewModelBase
                 MacroTrigger.FileChanges => Strings.Get("Trigger.File"),
                 MacroTrigger.Process => Strings.Get("Trigger.Process"),
                 MacroTrigger.Window => Strings.Get("Trigger.Window"),
+                MacroTrigger.Idle => Strings.Get("Trigger.Idle"),
                 _ => Strings.Get("Trigger.Keys"),
             },
             Action = action,
@@ -1285,6 +1296,7 @@ public partial class MacroEditorViewModel : ViewModelBase
             WindowValue = WindowValue.Trim(),
             WindowLookup = WindowLookup,
             WindowChange = WindowChange,
+            IdleSeconds = Math.Max(1, IdleSeconds ?? 60),
             PositionCapture = PositionCapture,
             ColorMatch = ColorMatch,
             ColorPositionX = ParseCoordinate(ColorPositionX),

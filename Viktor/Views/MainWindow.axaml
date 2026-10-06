@@ -359,6 +359,10 @@
                                                       Stroke="#CDCDCD" StrokeThickness="1.5"
                                                       IsVisible="{Binding IsWindowTrigger}"
                                                       Data="M 3,6 H 21 V 19 H 3 Z M 3,9 H 21 M 5.4,7.5 H 6.6 M 8,7.5 H 9.2" />
+                                                <Path Width="15" Height="15" Stretch="Uniform"
+                                                      Stroke="#CDCDCD" StrokeThickness="1.5"
+                                                      IsVisible="{Binding IsIdleTrigger}"
+                                                      Data="M 14.8,2.6 A 9.4,9.4 0 1 0 21.4,14.8 A 7.4,7.4 0 1 1 14.8,2.6 Z" />
                                             </Panel>
                                         </Border>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
