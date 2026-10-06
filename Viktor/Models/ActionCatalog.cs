@@ -1184,6 +1184,21 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "vision.captureWindow",
+            Category = ActionCategory.Vision,
+            DisplayName = "Capture Window",
+            Description = "Capture a whole window, title bar and all, into an image variable.",
+            Parameters =
+            [
+                ..WindowTarget(),
+                Variable("saveTo", "Save to variable", "shot",
+                    "Variable that receives the captured image. $name.x, $name.y, $name.width and "
+                    + "$name.height hold the rectangle it covered, so a later step can search it.",
+                    namesVariable: true, defaultValue: "shot"),
+            ],
+        },
+        new()
+        {
             Key = "vision.findImage",
             Category = ActionCategory.Vision,
             DisplayName = "Find Image",

@@ -2026,6 +2026,32 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Capturing_a_window_copies_its_whole_rectangle()
+    {
+        var devices = WithAWindow();
+        var (result, _, store) = await RunAsync(
+            [Step("vision.captureWindow", Param("title", "Notepad"), Param("saveTo", "shot"))], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("capture 1000 500 800 600", devices.Calls);
+        Assert.Equal(1000, store.Local.Values["shot.x"].AsNumber());
+        Assert.Equal(500, store.Local.Values["shot.y"].AsNumber());
+        Assert.Equal(800, store.Local.Values["shot.width"].AsNumber());
+        Assert.Equal(600, store.Local.Values["shot.height"].AsNumber());
+    }
+
+    [Fact]
+    public async Task Capturing_a_window_that_is_not_open_fails()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("vision.captureWindow", Param("title", "ghost"), Param("saveTo", "shot"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.WindowNotFound", result.Key);
+    }
+
+    [Fact]
     public async Task Waiting_for_a_window_gives_up_after_the_timeout()
     {
         var devices = new FakeDeviceLayer();

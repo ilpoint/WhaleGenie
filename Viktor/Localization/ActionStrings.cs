@@ -1126,6 +1126,18 @@ internal static class ActionStrings
         ["vision.capture.saveTo.label"] = "保存到变量",
         ["vision.capture.saveTo.hint"] = "接收截图的变量。$变量名.x、.y、.width、.height 记录这次截图覆盖的矩形。",
 
+        ["vision.captureWindow.name"] = "截取窗口",
+        ["vision.captureWindow.desc"] = "把整个窗口连着标题栏一起截取到图像变量里。",
+        ["vision.captureWindow.title.label"] = "窗口",
+        ["vision.captureWindow.title.hint"] = WindowTitleHint,
+        ["vision.captureWindow.matchBy.label"] = "匹配方式",
+        ["vision.captureWindow.matchBy.hint"] = WindowMatchByHint,
+        ["vision.captureWindow.matchBy.option.title"] = WindowMatchByTitle,
+        ["vision.captureWindow.matchBy.option.process"] = WindowMatchByProcess,
+        ["vision.captureWindow.matchBy.option.class"] = WindowMatchByClass,
+        ["vision.captureWindow.saveTo.label"] = "保存到变量",
+        ["vision.captureWindow.saveTo.hint"] = "接收截图的变量。$变量名.x、.y、.width、.height 记录窗口外框覆盖的矩形。",
+
         ["vision.findImage.name"] = "查找图片",
         ["vision.findImage.desc"] = "在屏幕上寻找一张参考图片。",
         ["vision.findImage.image.label"] = "图片文件",

@@ -653,6 +653,10 @@ public sealed class MacroRunner
                 Capture(step, depth);
                 return Signal.Normal;
 
+            case "vision.captureWindow":
+                CaptureWindow(step, depth);
+                return Signal.Normal;
+
             case "vision.getPixel":
                 GetPixel(step, depth);
                 return Signal.Normal;
@@ -1639,27 +1643,49 @@ public sealed class MacroRunner
     /// <summary>Copies a region of the screen into a variable the macro can look at again.</summary>
     private void Capture(ExecutableStep step, int depth)
     {
+        // The corner is worked out first so that the rectangle written into the variables is the
+        // one on screen, which is what a later "region" that names this picture has to parse.
+        var corner = Place(step, Number(step, "x"), Number(step, "y"));
+        var width = Math.Max(1, Number(step, "width"));
+        var height = Math.Max(1, Number(step, "height"));
+
+        Keep(step, depth, _devices.Screen.Capture(corner.X, corner.Y, width, height),
+            new ScreenPoint(corner.X, corner.Y));
+    }
+
+    /// <summary>
+    /// Copies a whole window into a variable. The window's own rectangle is what is copied, so the
+    /// title bar and the border come with it, and a window that is not in front can be read too.
+    /// </summary>
+    private void CaptureWindow(ExecutableStep step, int depth)
+    {
+        var window = Locate(step);
+        Keep(step, depth, _devices.Screen.Capture(
+            window.Location.X, window.Location.Y, window.Size.Width, window.Size.Height),
+            window.Location);
+    }
+
+    /// <summary>
+    /// Keeps a picture under the name a step gave it, with the rectangle it covers beside it, so a
+    /// later step can search inside it or hand the region to something else. The size written down
+    /// is the picture's own rather than the size that was asked for: a capture that ran off the
+    /// edge of the screen comes back smaller, and a search region that is bigger than the picture
+    /// would look at pixels that are not there.
+    /// </summary>
+    private void Keep(ExecutableStep step, int depth, ImageFrame frame, ScreenPoint corner)
+    {
         var name = step.Text("saveTo").Trim();
         if (name.Length == 0)
         {
             throw new StepFailure("Run.MissingVariable");
         }
 
-        // The corner is worked out first so that the rectangle written into the variables is the
-        // one on screen, which is what a later "region" that names this picture has to parse.
-        var corner = Place(step, Number(step, "x"), Number(step, "y"));
-        var width = Math.Max(1, Number(step, "width"));
-        var height = Math.Max(1, Number(step, "height"));
-        var frame = _devices.Screen.Capture(corner.X, corner.Y, width, height);
-
         _images[name] = frame;
         Variables.Set(name, Value.FromText($"<image {frame.Width}x{frame.Height}>"));
-
-        // The rectangle the picture covers, so it can be searched or compared by name.
         Variables.Set(name + ".x", Value.FromNumber(corner.X));
         Variables.Set(name + ".y", Value.FromNumber(corner.Y));
-        Variables.Set(name + ".width", Value.FromNumber(width));
-        Variables.Set(name + ".height", Value.FromNumber(height));
+        Variables.Set(name + ".width", Value.FromNumber(frame.Width));
+        Variables.Set(name + ".height", Value.FromNumber(frame.Height));
         Log(LogLevel.Info, depth, step.Type, "Run.Capture", name, $"{frame.Width}x{frame.Height}");
     }
 
