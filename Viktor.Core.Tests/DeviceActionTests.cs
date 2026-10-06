@@ -1955,6 +1955,35 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Running_a_command_can_tell_it_what_to_read()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("control.setVariable", Param("name", "who"), Param("value", "Ann")),
+            Step("command.run", Param("file", "python"), Param("standardInput", "hello\n$who")),
+        ], devices);
+
+        // The line ending the macro wrote is kept, and a value can be written into the input the
+        // same way it can be written into any other field.
+        Assert.Contains(devices.Calls, call => call.EndsWith("|in hello\\nAnn"));
+    }
+
+    [Fact]
+    public async Task A_command_that_is_not_given_anything_to_read_is_given_nothing()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("command.run", Param("file", "cmd.exe"), Param("standardInput", "  \n ")),
+        ], devices);
+
+        // A field that holds nothing but spaces is an untouched field, not a program that is meant
+        // to be fed a blank line.
+        Assert.Contains(devices.Calls, call => call.StartsWith("run cmd.exe|") && !call.Contains("|in "));
+    }
+
+    [Fact]
     public async Task Waiting_for_a_program_keeps_the_id_once_it_appears()
     {
         var devices = new FakeDeviceLayer
@@ -3371,6 +3400,10 @@ internal sealed class FakeDeviceLayer
                 values.OrderBy(pair => pair.Key, StringComparer.Ordinal)
                     .Select(pair => $"{pair.Key}={pair.Value}"));
 
+    /// <summary>What a call fed the program, with the line endings spelled out.</summary>
+    private static string InputNote(string? text)
+        => text is null ? string.Empty : "|in " + text.Replace("\r\n", "\n").Replace("\n", "\\n");
+
     IReadOnlyList<int> IProcessDevice.Find(string name)
     {
         Note($"find {name}");
@@ -3417,7 +3450,8 @@ internal sealed class FakeDeviceLayer
     CommandResult IProcessDevice.Run(CommandRequest request)
     {
         Note($"run {request.FileName}|{request.Arguments}|{request.WorkingDirectory}"
-             + $"|{request.TimeoutMs}{EnvironmentNote(request.Environment)}");
+             + $"|{request.TimeoutMs}{EnvironmentNote(request.Environment)}"
+             + InputNote(request.StandardInput));
         return Command;
     }
 

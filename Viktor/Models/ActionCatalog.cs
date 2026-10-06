@@ -920,6 +920,11 @@ public static class ActionCatalog
                     "One NAME=value per line for the command to run with. Leave it empty to run "
                     + "it with Viktor's own environment. Lines starting with # are skipped.",
                     "LANG=zh_CN.UTF-8", required: false),
+                Multiline("standardInput", "Standard input",
+                    "What the command reads on its standard input. Leave it empty to give the "
+                    + "command nothing to read. Sent as UTF-8, and $name is replaced by what that "
+                    + "variable holds.",
+                    "first line\nsecond line", required: false),
                 Number("timeoutMs", "Timeout ms", 30000, "How long the command may run."),
                 Variable("resultVariable", "Result variable", "output",
                     "Variable that receives what the command printed.",

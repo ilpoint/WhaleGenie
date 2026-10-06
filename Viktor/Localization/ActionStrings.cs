@@ -586,6 +586,8 @@ internal static class ActionStrings
         ["command.run.workingDirectory.hint"] = "命令在哪个目录下运行。",
         ["command.run.environment.label"] = "环境变量",
         ["command.run.environment.hint"] = "这条命令运行时使用的环境变量，一行一个 NAME=value。留空表示沿用维克多自己的环境变量。以 # 开头的行会被忽略。",
+        ["command.run.standardInput.label"] = "标准输入",
+        ["command.run.standardInput.hint"] = "这条命令从标准输入读到的东西。留空表示不给它任何输入。按 UTF-8 发送，里面的 $变量 会替换成那个变量的值。",
         ["command.run.timeoutMs.label"] = "超时毫秒",
         ["command.run.timeoutMs.hint"] = "命令最多可以运行多久。",
         ["command.run.resultVariable.label"] = "结果变量",

@@ -103,6 +103,9 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
     /// <summary>What Windows calls it when the person says no to the approval prompt.</summary>
     private const int Refused = 1223;
 
+    /// <summary>UTF-8 that leaves the byte-order mark off, for text handed to another program.</summary>
+    private static readonly Encoding NoMark = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
     public IReadOnlyList<int> Find(string name)
     {
         Require();
@@ -225,10 +228,23 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
             }
         }
 
+        if (request.StandardInput is not null)
+        {
+            info.RedirectStandardInput = true;
+
+            // UTF-8 without a byte-order mark: the mark-carrying encoding that .NET starts from
+            // puts three extra bytes in front of the first line, and tools that read a stream by
+            // its first bytes (findstr is one) then see a file that does not start with what the
+            // macro wrote. Python and Node read their own source off standard input as UTF-8 too.
+            info.StandardInputEncoding = NoMark;
+        }
+
         try
         {
             using var process = Process.Start(info)
                 ?? throw new DeviceActionException("Run.ProgramFailed", request.FileName);
+
+            var feeding = Feed(process, request.StandardInput);
 
             // Both pipes are drained at once, so a program that talks a lot on one of them
             // cannot fill it up and stop while this side waits on the other.
@@ -240,6 +256,8 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
                 Kill(process);
                 throw new DeviceActionException("Run.CommandTimeout", request.FileName);
             }
+
+            feeding?.GetAwaiter().GetResult();
 
             return new CommandResult(
                 process.ExitCode,
@@ -262,6 +280,35 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
         }
 
         _started.Clear();
+    }
+
+    /// <summary>
+    /// Hands the text to the program's standard input and closes it, which is how a program finds
+    /// out there is nothing more to read. Written on a thread of its own: a program that has not
+    /// started reading yet would otherwise leave this side blocked with a full pipe while the
+    /// program itself is blocked with a full pipe of its own.
+    /// </summary>
+    private static Task? Feed(Process process, string? text)
+    {
+        if (text is null)
+        {
+            return null;
+        }
+
+        return Task.Run(() =>
+        {
+            try
+            {
+                process.StandardInput.Write(text);
+                process.StandardInput.Close();
+            }
+            catch (Exception error) when (error is IOException or InvalidOperationException
+                or ObjectDisposedException)
+            {
+                // The program stopped reading and went away. What the step wants to know is what it
+                // printed and what it returned, not that nobody was left to take the last line.
+            }
+        });
     }
 
     /// <summary>Stops a process, asking it to close first unless told to be firm.</summary>

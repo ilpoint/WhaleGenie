@@ -272,7 +272,8 @@ public sealed record CommandRequest(
     string Arguments = "",
     string WorkingDirectory = "",
     int TimeoutMs = 30000,
-    IReadOnlyDictionary<string, string>? Environment = null);
+    IReadOnlyDictionary<string, string>? Environment = null,
+    string? StandardInput = null);
 
 /// <summary>
 /// How a window is picked out of the ones that are open. A title is what a person sees, but it

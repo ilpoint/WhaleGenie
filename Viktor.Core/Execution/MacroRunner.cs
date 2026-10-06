@@ -2778,6 +2778,17 @@ public sealed class MacroRunner
         return wanted.Count == 0 ? null : wanted;
     }
 
+    /// <summary>
+    /// What a step feeds the program on its standard input, or nothing at all when the field was
+    /// left empty. The text is not trimmed: a program that reads lines wants the line ending the
+    /// macro wrote. It goes out as UTF-8, the same encoding this side reads the answer back in.
+    /// </summary>
+    private string? StandardInputOf(ExecutableStep step)
+    {
+        var text = step.Text("standardInput");
+        return text.Trim().Length == 0 ? null : Interpolate(text);
+    }
+
     /// <summary>Waits until a program with the given name shows up in the process list.</summary>
     private async Task WaitForProgram(ExecutableStep step, int depth, CancellationToken token)
     {
@@ -2860,8 +2871,8 @@ public sealed class MacroRunner
         var folder = Read(step.Text("workingDirectory")).AsText();
         var timeout = OptionalNumber(step, "timeoutMs", 30000);
 
-        var result = _devices.Processes.Run(
-            new CommandRequest(program, arguments, folder, timeout, EnvironmentOf(step)));
+        var result = _devices.Processes.Run(new CommandRequest(program, arguments, folder, timeout,
+            EnvironmentOf(step), StandardInputOf(step)));
 
         Store(step, "resultVariable", "output", Value.FromText(result.StandardOutput));
         Store(step, "errorVariable", string.Empty, Value.FromText(result.StandardError));
