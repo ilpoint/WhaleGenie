@@ -232,10 +232,11 @@ public interface IWindowDevice
     IReadOnlyList<WindowInfo> List();
 
     /// <summary>
-    /// The first window whose title contains <paramref name="title"/>, ignoring case, or
-    /// null when nothing matches. An empty title matches the frontmost window.
+    /// The first window that matches <paramref name="value"/> the way <paramref name="match"/>
+    /// says, ignoring case, or null when nothing does. An empty value matches the frontmost
+    /// window, whichever of the three it is asked to look at.
     /// </summary>
-    WindowInfo? Find(string title);
+    WindowInfo? Find(string value, WindowMatch match);
 
     /// <summary>Brings a window to the front, restoring it first if it was shrunk.</summary>
     bool Activate(long handle);
@@ -400,7 +401,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
         // that take no such argument.
         IReadOnlyList<WindowInfo> IWindowDevice.List() => throw Missing("windows");
 
-        WindowInfo? IWindowDevice.Find(string title) => throw Missing("windows");
+        WindowInfo? IWindowDevice.Find(string value, WindowMatch match) => throw Missing("windows");
 
         bool IWindowDevice.Activate(long handle) => throw Missing("windows");
 

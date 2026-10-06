@@ -523,7 +523,7 @@ public partial class AddActionViewModel : ViewModelBase
         }
 
         var title = Parameter("anchorWindow")?.Text?.Trim() ?? string.Empty;
-        if (title.Length == 0 || Windows.Find(title) is not { } window)
+        if (title.Length == 0 || Windows.Find(title, WindowMatch.Title) is not { } window)
         {
             return null;
         }

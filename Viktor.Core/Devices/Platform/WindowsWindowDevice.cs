@@ -24,14 +24,14 @@ public sealed class WindowsWindowDevice : IWindowDevice
         return EveryWindow();
     }
 
-    public WindowInfo? Find(string title)
+    public WindowInfo? Find(string value, WindowMatch match)
     {
         Require();
 
-        var wanted = (title ?? string.Empty).Trim();
+        var wanted = (value ?? string.Empty).Trim();
         var windows = EveryWindow();
 
-        // An empty title means "whatever is in front", which is what a macro usually means
+        // An empty value means "whatever is in front", which is what a macro usually means
         // when it says "the active window".
         if (wanted.Length == 0)
         {
@@ -40,13 +40,43 @@ public sealed class WindowsWindowDevice : IWindowDevice
 
         foreach (var window in windows)
         {
-            if (window.Title.Contains(wanted, StringComparison.OrdinalIgnoreCase))
+            if (Matches(window, wanted, match))
             {
                 return window;
             }
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Whether one window answers to the value a step wrote. Title is the cheap one, since the
+    /// listing already holds it; a process name costs a lookup per window, so it is only paid for
+    /// when a step actually asks to match that way.
+    /// </summary>
+    private static bool Matches(WindowInfo window, string wanted, WindowMatch match)
+    {
+        if (match is WindowMatch.Title)
+        {
+            return window.Title.Contains(wanted, StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (match is WindowMatch.Process)
+        {
+            return ProcessName(window.Handle).Contains(wanted, StringComparison.OrdinalIgnoreCase);
+        }
+
+        return ClassOf(new IntPtr(window.Handle)).Contains(wanted, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// The class a window was registered under, which is the kind of window rather than the
+    /// document in it: every Notepad window is "Notepad", however it was renamed.
+    /// </summary>
+    private static string ClassOf(IntPtr handle)
+    {
+        var name = new StringBuilder(256);
+        return GetClassName(handle, name, name.Capacity) > 0 ? name.ToString() : string.Empty;
     }
 
     public bool Activate(long handle)
@@ -249,6 +279,9 @@ public sealed class WindowsWindowDevice : IWindowDevice
 
     [DllImport("user32.dll")]
     private static extern bool GetWindowRect(IntPtr handle, out NativeRect bounds);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetClassName(IntPtr handle, StringBuilder name, int count);
 
     [DllImport("user32.dll")]
     private static extern bool ClientToScreen(IntPtr handle, ref NativePoint point);

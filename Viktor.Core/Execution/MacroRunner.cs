@@ -582,6 +582,10 @@ public sealed class MacroRunner
                 ListWindows(step, depth);
                 return Signal.Normal;
 
+            case "window.info":
+                WindowBox(step, depth);
+                return Signal.Normal;
+
             // ------------------------------------------------------------------ input
             case "input.keyPress":
                 await PressKey(step, token);
@@ -1370,7 +1374,7 @@ public sealed class MacroRunner
             throw new StepFailure("Run.MissingTargetWindow");
         }
 
-        var window = _devices.Windows.Find(title)
+        var window = _devices.Windows.Find(title, WindowMatch.Title)
                      ?? throw new StepFailure("Run.WindowNotFound", title);
 
         return new InputRoute(InputDelivery.Background, window.Handle);
@@ -1402,7 +1406,7 @@ public sealed class MacroRunner
 
         // No title means the window in front, the same way every other window field reads.
         var title = Read(step.Text("anchorWindow")).AsText().Trim();
-        var window = _devices.Windows.Find(title)
+        var window = _devices.Windows.Find(title, WindowMatch.Title)
                      ?? throw new StepFailure("Run.WindowNotFound", title);
 
         return mode == "client" ? _devices.Windows.ClientOrigin(window.Handle) : window.Location;
@@ -2692,24 +2696,22 @@ public sealed class MacroRunner
     /// <summary>Leaves true or false behind, depending on whether the window is open.</summary>
     private void WindowExists(ExecutableStep step, int depth)
     {
-        var title = Read(step.Text("title")).AsText();
-        var found = _devices.Windows.Find(title) is not null;
+        var found = Lookup(step) is not null;
         var name = VariableName(step, "resultVariable", "found");
 
         Variables.Set(name, Value.FromBool(found));
         Log(LogLevel.Info, depth, step.Type, "Run.Set", name, found ? "true" : "false");
     }
 
-    /// <summary>Waits until a window with the given title appears.</summary>
+    /// <summary>Waits until a window the step names appears.</summary>
     private async Task WaitForWindow(ExecutableStep step, int depth, CancellationToken token)
     {
-        var title = Read(step.Text("title")).AsText();
         var timeout = OptionalNumber(step, "timeoutMs", 10000);
 
-        var window = await WaitForValueAsync(() => _devices.Windows.Find(title), timeout, 100, token);
+        var window = await WaitForValueAsync(() => Lookup(step), timeout, 100, token);
         if (window is null)
         {
-            throw new StepFailure("Run.WindowTimeout", title);
+            throw new StepFailure("Run.WindowTimeout", WindowText(step));
         }
 
         var name = VariableName(step, "resultVariable", string.Empty);
@@ -2738,9 +2740,7 @@ public sealed class MacroRunner
     /// <summary>Does something to the window a step names, or fails the step when it is not open.</summary>
     private void Act(ExecutableStep step, int depth, string message, Func<WindowInfo, bool> action)
     {
-        var title = Read(step.Text("title")).AsText();
-        var window = _devices.Windows.Find(title)
-                     ?? throw new StepFailure("Run.WindowNotFound", title);
+        var window = Locate(step);
 
         if (!action(window))
         {
@@ -2748,6 +2748,52 @@ public sealed class MacroRunner
         }
 
         Log(LogLevel.Info, depth, step.Type, message, window.Title);
+    }
+
+    /// <summary>
+    /// The window a step names, or a failure saying which one could not be found. "Match by" says
+    /// whether the text is part of the title, the name of the program that owns the window, or the
+    /// class that program registered; an empty text means whatever window is in front.
+    /// </summary>
+    private WindowInfo Locate(ExecutableStep step)
+        => Lookup(step) ?? throw new StepFailure("Run.WindowNotFound", WindowText(step));
+
+    /// <summary>The same, for the steps that report rather than fail when no window matches.</summary>
+    private WindowInfo? Lookup(ExecutableStep step)
+        => _devices.Windows.Find(WindowText(step), WindowMatchOf(step.Text("matchBy")));
+
+    /// <summary>What a step wrote into its window field, with the variables in it resolved.</summary>
+    private string WindowText(ExecutableStep step) => Read(step.Text("title")).AsText().Trim();
+
+    private static WindowMatch WindowMatchOf(string text) => text.Trim().ToLowerInvariant() switch
+    {
+        "process" => WindowMatch.Process,
+        "class" => WindowMatch.ClassName,
+        _ => WindowMatch.Title,
+    };
+
+    /// <summary>
+    /// Reads where a window is and how big it is. The rectangle is written the way a search region
+    /// is spelled, so it can be handed straight to the vision actions, and each part gets a name of
+    /// its own for the arithmetic a macro wants to do with it.
+    /// </summary>
+    private void WindowBox(ExecutableStep step, int depth)
+    {
+        var window = Locate(step);
+        var name = VariableName(step, "resultVariable", "box");
+        var left = window.Location.X;
+        var top = window.Location.Y;
+        var width = window.Size.Width;
+        var height = window.Size.Height;
+
+        Variables.Set(name, Value.FromText($"{left},{top},{width},{height}"));
+        Variables.Set(name + ".x", Value.FromNumber(left));
+        Variables.Set(name + ".y", Value.FromNumber(top));
+        Variables.Set(name + ".width", Value.FromNumber(width));
+        Variables.Set(name + ".height", Value.FromNumber(height));
+        Variables.Set(name + ".title", Value.FromText(window.Title));
+
+        Log(LogLevel.Info, depth, step.Type, "Run.WindowBox", window.Title, $"{left},{top},{width},{height}");
     }
 
     // ---------------------------------------------------------------------- ocr

@@ -362,9 +362,8 @@ public class ActionDialogTests
 
         public IReadOnlyList<WindowInfo> List() => [Notepad];
 
-        public WindowInfo? Find(string title) => Notepad.Title.Contains(title, StringComparison.OrdinalIgnoreCase)
-            ? Notepad
-            : null;
+        public WindowInfo? Find(string value, WindowMatch match)
+            => Notepad.Title.Contains(value, StringComparison.OrdinalIgnoreCase) ? Notepad : null;
 
         public bool Activate(long handle) => true;
 

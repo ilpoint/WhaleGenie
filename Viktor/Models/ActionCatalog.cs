@@ -826,10 +826,10 @@ public static class ActionCatalog
             Key = "window.exists",
             Category = ActionCategory.Window,
             DisplayName = "Window Exists",
-            Description = "Check whether a window with this title is open.",
+            Description = "Check whether a matching window is open.",
             Parameters =
             [
-                WindowTitle(),
+                ..WindowTarget(),
                 Variable("resultVariable", "Result variable", "found",
                     "Variable that receives true or false.", required: false, namesVariable: true),
             ],
@@ -839,10 +839,10 @@ public static class ActionCatalog
             Key = "window.waitFor",
             Category = ActionCategory.Window,
             DisplayName = "Wait for Window",
-            Description = "Wait until a window with this title appears.",
+            Description = "Wait until a matching window appears.",
             Parameters =
             [
-                WindowTitle(),
+                ..WindowTarget(),
                 Number("timeoutMs", "Timeout ms", 10000, "How long to wait before giving up."),
                 Variable("resultVariable", "Result variable", "window",
                     "Variable that receives the window title.", required: false, namesVariable: true),
@@ -856,7 +856,7 @@ public static class ActionCatalog
             Description = "Bring a window to the front, restoring it first if it was shrunk.",
             Parameters =
             [
-                WindowTitle(),
+                ..WindowTarget(),
             ],
         },
         new()
@@ -867,7 +867,7 @@ public static class ActionCatalog
             Description = "Shrink a window down to the taskbar.",
             Parameters =
             [
-                WindowTitle(),
+                ..WindowTarget(),
             ],
         },
         new()
@@ -878,7 +878,7 @@ public static class ActionCatalog
             Description = "Make a window fill the screen.",
             Parameters =
             [
-                WindowTitle(),
+                ..WindowTarget(),
             ],
         },
         new()
@@ -889,7 +889,7 @@ public static class ActionCatalog
             Description = "Put a shrunk or full-screen window back to its normal size.",
             Parameters =
             [
-                WindowTitle(),
+                ..WindowTarget(),
             ],
         },
         new()
@@ -900,7 +900,7 @@ public static class ActionCatalog
             Description = "Move a window and give it a new size.",
             Parameters =
             [
-                WindowTitle(),
+                ..WindowTarget(),
                 Number("x", "X", 0, "Left edge, in screen pixels.", min: -100_000m, max: 100_000m),
                 Number("y", "Y", 0, "Top edge, in screen pixels.", min: -100_000m, max: 100_000m),
                 Number("width", "Width", 800, "New width in pixels.", min: 1m, max: 100_000m),
@@ -915,7 +915,7 @@ public static class ActionCatalog
             Description = "Ask a window to close, the same as clicking its close button.",
             Parameters =
             [
-                WindowTitle(),
+                ..WindowTarget(),
             ],
         },
         new()
@@ -928,6 +928,22 @@ public static class ActionCatalog
             [
                 Variable("resultVariable", "Result variable", "windows",
                     "Variable that receives the list of titles.", required: false, namesVariable: true),
+            ],
+        },
+        new()
+        {
+            Key = "window.info",
+            Category = ActionCategory.Window,
+            DisplayName = "Window Info",
+            Description = "Read where a window sits and how big it is into variables.",
+            Parameters =
+            [
+                ..WindowTarget(),
+                Variable("resultVariable", "Result variable", "box",
+                    "Variable that receives the window's rectangle, written as x,y,width,height "
+                    + "so it can be used as a search region. .x, .y, .width and .height hold the "
+                    + "parts on their own, and .title holds what the title bar says.",
+                    namesVariable: true, defaultValue: "box"),
             ],
         },
 
@@ -2147,18 +2163,28 @@ public static class ActionCatalog
             Required = required,
         };
 
-    /// <summary>The window a window-management action works on, matched by part of its title.</summary>
-    private static ActionParameter WindowTitle()
-        => new()
+    /// <summary>
+    /// The window a window-management action works on, together with how to recognise it. A title
+    /// is what a person reads off the title bar, but it changes with the document and the language;
+    /// the program that owns the window and the class it registered hold still, which is what a
+    /// macro wants when the same window keeps coming back under a different name.
+    /// </summary>
+    private static ActionParameter[] WindowTarget() =>
+    [
+        new()
         {
             Name = "title",
             Label = "Window",
             Kind = ActionParameterKind.Window,
             Placeholder = "Notepad",
-            Hint = "Part of the window title, matched without regard to case. "
+            Hint = "What to recognise the window by, matched without regard to case. "
                    + "Leave empty for the window in front.",
             Required = false,
-        };
+        },
+        Choice("matchBy", "Match by", ["title", "process", "class"], "title",
+            "Which part of a window the text above is compared with: its title, the name of the "
+            + "program that owns it, or the window class that program registered."),
+    ];
 
     /// <summary>Name of another macro in the project, chosen from a list while staying editable.</summary>
     private static ActionParameter MacroName(string name, string label, string hint)

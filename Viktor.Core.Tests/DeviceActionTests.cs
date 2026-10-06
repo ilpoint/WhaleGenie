@@ -1961,6 +1961,71 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_window_can_be_found_by_process_or_class()
+    {
+        var devices = WithAWindow();
+        // The title is "Notepad - notes.txt", so neither of the other two names appears in it:
+        // a match can only have come from the way the step asked for.
+        devices.WindowFacts[1] = ("notes-app", "ViktorNotes");
+        var (_, _, store) = await RunAsync(
+        [
+            Step("window.exists", Param("title", "notes-app"), Param("matchBy", "process"),
+                Param("resultVariable", "byProcess")),
+            Step("window.exists", Param("title", "viktor"), Param("matchBy", "class"),
+                Param("resultVariable", "byClass")),
+            Step("window.exists", Param("title", "notes"), Param("matchBy", "title"),
+                Param("resultVariable", "byTitle")),
+        ], devices);
+
+        Assert.True(store.Local.Values["byProcess"].Flag);
+        Assert.True(store.Local.Values["byClass"].Flag);
+        Assert.True(store.Local.Values["byTitle"].Flag);
+    }
+
+    [Fact]
+    public async Task A_window_that_matches_by_nothing_is_not_found()
+    {
+        var devices = WithAWindow();
+        devices.WindowFacts[1] = ("notepad", "Notepad");
+        var (_, _, store) = await RunAsync(
+        [
+            Step("window.exists", Param("title", "explorer"), Param("matchBy", "process"),
+                Param("resultVariable", "found")),
+        ], devices);
+
+        Assert.False(store.Local.Values["found"].Flag);
+    }
+
+    [Fact]
+    public async Task Window_info_reports_where_a_window_sits_and_how_big_it_is()
+    {
+        var devices = WithAWindow();
+        var (result, _, store) = await RunAsync(
+            [Step("window.info", Param("title", "Notepad"), Param("resultVariable", "box"))], devices);
+
+        Assert.True(result.Succeeded);
+
+        // The rectangle is written the way a search region is spelled, so it can be used as one.
+        Assert.Equal("1000,500,800,600", store.Local.Values["box"].AsText());
+        Assert.Equal(1000, store.Local.Values["box.x"].AsNumber());
+        Assert.Equal(500, store.Local.Values["box.y"].AsNumber());
+        Assert.Equal(800, store.Local.Values["box.width"].AsNumber());
+        Assert.Equal(600, store.Local.Values["box.height"].AsNumber());
+        Assert.Equal("Notepad - notes.txt", store.Local.Values["box.title"].AsText());
+    }
+
+    [Fact]
+    public async Task Window_info_fails_when_the_window_is_not_open()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("window.info", Param("title", "ghost"), Param("resultVariable", "box"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.WindowNotFound", result.Key);
+    }
+
+    [Fact]
     public async Task Waiting_for_a_window_gives_up_after_the_timeout()
     {
         var devices = new FakeDeviceLayer();
@@ -2544,6 +2609,12 @@ internal sealed class FakeDeviceLayer
     /// <summary>The windows the fake reports as open.</summary>
     public List<WindowInfo> Windows { get; } = [];
 
+    /// <summary>
+    /// The process and class names the fake windows answer to. A real device looks these up from
+    /// the machine, so a test that matches that way has to say what should come back.
+    /// </summary>
+    public Dictionary<long, (string Process, string ClassName)> WindowFacts { get; } = [];
+
     /// <summary>Whether the next window operation reports that it worked.</summary>
     public bool WindowActionWorks { get; set; } = true;
 
@@ -2900,9 +2971,9 @@ internal sealed class FakeDeviceLayer
         return [.. Windows];
     }
 
-    WindowInfo? IWindowDevice.Find(string title)
+    WindowInfo? IWindowDevice.Find(string value, WindowMatch match)
     {
-        Note($"findWindow {title}");
+        Note($"findWindow {value}");
         _windowReads++;
         if (WindowAppearsLater is not null
             && _windowReads > WindowAppearsAfter
@@ -2912,15 +2983,36 @@ internal sealed class FakeDeviceLayer
                 new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
         }
 
-        var wanted = (title ?? string.Empty).Trim();
+        var wanted = (value ?? string.Empty).Trim();
         if (wanted.Length == 0)
         {
             return Windows.Count > 0 ? Windows[0] : null;
         }
 
-        return Windows.FirstOrDefault(
-            window => window.Title.Contains(wanted, StringComparison.OrdinalIgnoreCase));
+        return Windows.FirstOrDefault(window => Answers(window, wanted, match));
     }
+
+    /// <summary>
+    /// Whether a fake window answers to a value. A title is always there; the process name and the
+    /// class name have to be handed in through <see cref="WindowFacts"/>, the way the real device
+    /// has to look them up.
+    /// </summary>
+    private bool Answers(WindowInfo window, string wanted, WindowMatch match)
+    {
+        var text = match switch
+        {
+            WindowMatch.Process => Facts(window).Process,
+            WindowMatch.ClassName => Facts(window).ClassName,
+            _ => window.Title,
+        };
+
+        return text.Contains(wanted, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private (string Process, string ClassName) Facts(WindowInfo window)
+        => WindowFacts.TryGetValue(window.Handle, out var facts)
+            ? facts
+            : (string.Empty, string.Empty);
 
     bool IWindowDevice.Activate(long handle)
     {

@@ -37,6 +37,19 @@ internal static class ActionStrings
         "坐标从哪个窗口量起，填标题的一部分即可。留空表示运行时最前面那个窗口；"
         + "选“屏幕像素”时用不到它。";
 
+    /// <summary>The hint every window action shares for the text it recognises a window by.</summary>
+    private const string WindowTitleHint =
+        "靠什么认出这个窗口，不区分大小写。留空表示最前面那个窗口。";
+
+    /// <summary>The matching hint for the part of a window that text is compared with.</summary>
+    private const string WindowMatchByHint =
+        "上面的文字和窗口的哪一部分比较。标题是标题栏上看到的字；进程名是拥有这个窗口的程序名"
+        + "（不含 .exe），标题换了它也不变；窗口类名是程序注册的那一类窗口，比如记事本都是 Notepad。";
+
+    private const string WindowMatchByTitle = "标题";
+    private const string WindowMatchByProcess = "进程名";
+    private const string WindowMatchByClass = "窗口类名";
+
     /// <summary>
     /// The hint the actions that can measure from a control share for the control they measure from,
     /// written once for the same reason the coordinate-origin hint is.
@@ -505,14 +518,24 @@ internal static class ActionStrings
         ["window.exists.name"] = "窗口是否存在",
         ["window.exists.desc"] = "检查某个标题的窗口是否已经打开。",
         ["window.exists.title.label"] = "窗口",
-        ["window.exists.title.hint"] = "窗口标题的一部分，不区分大小写。留空表示最前面的窗口。",
+        ["window.exists.title.hint"] = WindowTitleHint,
+        ["window.exists.matchBy.label"] = "匹配方式",
+        ["window.exists.matchBy.hint"] = WindowMatchByHint,
+        ["window.exists.matchBy.option.title"] = WindowMatchByTitle,
+        ["window.exists.matchBy.option.process"] = WindowMatchByProcess,
+        ["window.exists.matchBy.option.class"] = WindowMatchByClass,
         ["window.exists.resultVariable.label"] = "结果变量",
         ["window.exists.resultVariable.hint"] = "接收 true 或 false 的变量。",
 
         ["window.waitFor.name"] = "等待窗口",
         ["window.waitFor.desc"] = "等待某个标题的窗口出现。",
         ["window.waitFor.title.label"] = "窗口",
-        ["window.waitFor.title.hint"] = "窗口标题的一部分，不区分大小写。留空表示最前面的窗口。",
+        ["window.waitFor.title.hint"] = WindowTitleHint,
+        ["window.waitFor.matchBy.label"] = "匹配方式",
+        ["window.waitFor.matchBy.hint"] = WindowMatchByHint,
+        ["window.waitFor.matchBy.option.title"] = WindowMatchByTitle,
+        ["window.waitFor.matchBy.option.process"] = WindowMatchByProcess,
+        ["window.waitFor.matchBy.option.class"] = WindowMatchByClass,
         ["window.waitFor.timeoutMs.label"] = "超时毫秒",
         ["window.waitFor.timeoutMs.hint"] = "最多等待多久，超时即失败。",
         ["window.waitFor.resultVariable.label"] = "结果变量",
@@ -521,27 +544,52 @@ internal static class ActionStrings
         ["window.activate.name"] = "激活窗口",
         ["window.activate.desc"] = "把窗口调到最前，若已最小化则先恢复。",
         ["window.activate.title.label"] = "窗口",
-        ["window.activate.title.hint"] = "窗口标题的一部分，不区分大小写。留空表示最前面的窗口。",
+        ["window.activate.title.hint"] = WindowTitleHint,
+        ["window.activate.matchBy.label"] = "匹配方式",
+        ["window.activate.matchBy.hint"] = WindowMatchByHint,
+        ["window.activate.matchBy.option.title"] = WindowMatchByTitle,
+        ["window.activate.matchBy.option.process"] = WindowMatchByProcess,
+        ["window.activate.matchBy.option.class"] = WindowMatchByClass,
 
         ["window.minimize.name"] = "最小化窗口",
         ["window.minimize.desc"] = "把窗口最小化到任务栏。",
         ["window.minimize.title.label"] = "窗口",
-        ["window.minimize.title.hint"] = "窗口标题的一部分，不区分大小写。留空表示最前面的窗口。",
+        ["window.minimize.title.hint"] = WindowTitleHint,
+        ["window.minimize.matchBy.label"] = "匹配方式",
+        ["window.minimize.matchBy.hint"] = WindowMatchByHint,
+        ["window.minimize.matchBy.option.title"] = WindowMatchByTitle,
+        ["window.minimize.matchBy.option.process"] = WindowMatchByProcess,
+        ["window.minimize.matchBy.option.class"] = WindowMatchByClass,
 
         ["window.maximize.name"] = "最大化窗口",
         ["window.maximize.desc"] = "让窗口铺满整个屏幕。",
         ["window.maximize.title.label"] = "窗口",
-        ["window.maximize.title.hint"] = "窗口标题的一部分，不区分大小写。留空表示最前面的窗口。",
+        ["window.maximize.title.hint"] = WindowTitleHint,
+        ["window.maximize.matchBy.label"] = "匹配方式",
+        ["window.maximize.matchBy.hint"] = WindowMatchByHint,
+        ["window.maximize.matchBy.option.title"] = WindowMatchByTitle,
+        ["window.maximize.matchBy.option.process"] = WindowMatchByProcess,
+        ["window.maximize.matchBy.option.class"] = WindowMatchByClass,
 
         ["window.restore.name"] = "还原窗口",
         ["window.restore.desc"] = "把最小化或最大化的窗口恢复成正常大小。",
         ["window.restore.title.label"] = "窗口",
-        ["window.restore.title.hint"] = "窗口标题的一部分，不区分大小写。留空表示最前面的窗口。",
+        ["window.restore.title.hint"] = WindowTitleHint,
+        ["window.restore.matchBy.label"] = "匹配方式",
+        ["window.restore.matchBy.hint"] = WindowMatchByHint,
+        ["window.restore.matchBy.option.title"] = WindowMatchByTitle,
+        ["window.restore.matchBy.option.process"] = WindowMatchByProcess,
+        ["window.restore.matchBy.option.class"] = WindowMatchByClass,
 
         ["window.move.name"] = "移动窗口",
         ["window.move.desc"] = "移动窗口并给它一个新的大小。",
         ["window.move.title.label"] = "窗口",
-        ["window.move.title.hint"] = "窗口标题的一部分，不区分大小写。留空表示最前面的窗口。",
+        ["window.move.title.hint"] = WindowTitleHint,
+        ["window.move.matchBy.label"] = "匹配方式",
+        ["window.move.matchBy.hint"] = WindowMatchByHint,
+        ["window.move.matchBy.option.title"] = WindowMatchByTitle,
+        ["window.move.matchBy.option.process"] = WindowMatchByProcess,
+        ["window.move.matchBy.option.class"] = WindowMatchByClass,
         ["window.move.x.label"] = "X",
         ["window.move.x.hint"] = "左边缘的屏幕横坐标。",
         ["window.move.y.label"] = "Y",
@@ -554,12 +602,29 @@ internal static class ActionStrings
         ["window.close.name"] = "关闭窗口",
         ["window.close.desc"] = "请求关闭窗口，相当于点击关闭按钮。",
         ["window.close.title.label"] = "窗口",
-        ["window.close.title.hint"] = "窗口标题的一部分，不区分大小写。留空表示最前面的窗口。",
+        ["window.close.title.hint"] = WindowTitleHint,
+        ["window.close.matchBy.label"] = "匹配方式",
+        ["window.close.matchBy.hint"] = WindowMatchByHint,
+        ["window.close.matchBy.option.title"] = WindowMatchByTitle,
+        ["window.close.matchBy.option.process"] = WindowMatchByProcess,
+        ["window.close.matchBy.option.class"] = WindowMatchByClass,
 
         ["window.list.name"] = "列出窗口",
         ["window.list.desc"] = "把打开的窗口标题收集成列表。",
         ["window.list.resultVariable.label"] = "结果变量",
         ["window.list.resultVariable.hint"] = "接收标题列表的变量。",
+
+        ["window.info.name"] = "窗口信息",
+        ["window.info.desc"] = "把窗口的位置和大小读进变量。",
+        ["window.info.title.label"] = "窗口",
+        ["window.info.title.hint"] = WindowTitleHint,
+        ["window.info.matchBy.label"] = "匹配方式",
+        ["window.info.matchBy.hint"] = WindowMatchByHint,
+        ["window.info.matchBy.option.title"] = WindowMatchByTitle,
+        ["window.info.matchBy.option.process"] = WindowMatchByProcess,
+        ["window.info.matchBy.option.class"] = WindowMatchByClass,
+        ["window.info.resultVariable.label"] = "结果变量",
+        ["window.info.resultVariable.hint"] = "接收窗口矩形的变量，写法是 x,y,宽,高，可以直接当搜索区域用；.x、.y、.width、.height 是各个部分，.title 是标题栏上的字。",
 
         // -------------------------------------------------------------------- input
         ["input.keyPress.name"] = "按键",
