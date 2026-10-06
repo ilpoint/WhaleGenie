@@ -34,6 +34,9 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
     private const int VkAlt = 0x12;
     private const int VkMenu = 0xA5;
 
+    /// <summary>Wheel units in one notch, the amount a wheel normally turns in.</summary>
+    private const int WheelNotch = 120;
+
     /// <summary>Keys held down right now, so a chord can be released in the order it was pressed.</summary>
     private readonly List<int> _held = [];
 
@@ -113,19 +116,24 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
         }
     }
 
-    public void Scroll(string direction, int amount, int x, int y)
+    public void Scroll(string direction, int delta, int x, int y)
     {
-        var notches = Math.Max(1, amount);
         var horizontal = direction is "left" or "right";
-        var step = direction is "up" or "right" ? 120 : -120;
-        var wheel = (step * notches) & 0xFFFF;
+        var sign = direction is "up" or "right" ? 1 : -1;
 
         // The wheel is the odd one out among the mouse messages: it carries screen
         // coordinates, not client-area ones.
         var at = (y << 16) | (x & 0xFFFF);
-        for (var count = 0; count < notches; count++)
+
+        // One notch per message, so a part of a notch is sent as a part rather than being
+        // rounded up into a whole turn.
+        var left = Math.Abs(delta);
+        while (left > 0)
         {
-            Post(horizontal ? WmMouseHWheel : WmMouseWheel, wheel << 16, at);
+            var step = Math.Min(left, WheelNotch);
+            left -= step;
+            var wheel = ((sign * step) & 0xFFFF) << 16;
+            Post(horizontal ? WmMouseHWheel : WmMouseWheel, wheel, at);
         }
     }
 

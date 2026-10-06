@@ -1104,7 +1104,15 @@ public static class ActionCatalog
             Parameters =
             [
                 Choice("direction", "Direction", ["up", "down", "left", "right"], "down"),
-                Number("amount", "Amount", 3, "Number of wheel notches.", min: 1),
+                Choice("unit", "Unit", ["notches", "pixels"], "notches",
+                    "Notches are the steps a wheel normally turns in. Pixels measure the same " +
+                    "turn more finely, with 120 pixels to a notch; an application that only " +
+                    "looks at whole notches may ignore the smaller amounts."),
+                Number("amount", "Amount", 3, "How far to scroll, counted in the unit above.", min: 1),
+                Number("smoothMs", "Smooth ms", 0,
+                    "Spread the scroll over this many milliseconds instead of sending it in one " +
+                    "jump, so an application that animates its scrolling can follow. 0 sends it " +
+                    "all at once."),
                 Number("x", "X", 0, "Screen column to scroll at."),
                 Number("y", "Y", 0, "Screen row to scroll at."),
                 ..Anchor(withElement: true),

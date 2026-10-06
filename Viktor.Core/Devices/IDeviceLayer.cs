@@ -37,8 +37,13 @@ public interface IInputDevice
 
     void Click(string button, int x, int y, int clicks, int intervalMs);
 
-    /// <summary>Scrolls the wheel; the direction is <c>up</c>, <c>down</c>, <c>left</c> or <c>right</c>.</summary>
-    void Scroll(string direction, int amount, int x, int y);
+    /// <summary>
+    /// Scrolls the wheel; the direction is <c>up</c>, <c>down</c>, <c>left</c> or <c>right</c>,
+    /// and <paramref name="delta"/> is measured in wheel units, where 120 units make one notch.
+    /// A whole number of notches is what a wheel normally moves in; the finer units are there so
+    /// a step can ask for a part of one.
+    /// </summary>
+    void Scroll(string direction, int delta, int x, int y);
 
     void Drag(string button, int startX, int startY, int endX, int endY, int durationMs, int steps);
 
@@ -439,7 +444,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public void Click(string button, int x, int y, int clicks, int intervalMs) => throw Missing("the mouse");
 
-        public void Scroll(string direction, int amount, int x, int y) => throw Missing("the mouse");
+        public void Scroll(string direction, int delta, int x, int y) => throw Missing("the mouse");
 
         public void Drag(string button, int startX, int startY, int endX, int endY, int durationMs, int steps)
             => throw Missing("the mouse");

@@ -205,8 +205,34 @@ public class DeviceActionTests
             "move 11 22 30",
             "moveBy 3 -4 0",
             "drag left 1 2 3 4 200 10",
-            "scroll up 3 5 6",
+            // Three notches reach the device as wheel units, 120 to a notch.
+            "scroll up 360 5 6",
         ], devices.Calls);
+    }
+
+    [Fact]
+    public async Task Scrolling_can_be_measured_in_pixels()
+    {
+        var (_, devices, _) = await RunAsync(
+        [
+            Step("input.mouseScroll", Param("direction", "down"), Param("unit", "pixels"),
+                Param("amount", "200"), Param("x", "1"), Param("y", "2")),
+        ]);
+
+        Assert.Equal(["scroll down 200 1 2"], devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_smooth_scroll_goes_out_in_even_events()
+    {
+        var (_, devices, _) = await RunAsync(
+        [
+            Step("input.mouseScroll", Param("direction", "down"), Param("unit", "pixels"),
+                Param("amount", "300"), Param("smoothMs", "30"), Param("x", "0"), Param("y", "0")),
+        ]);
+
+        // 30 ms is two 15 ms pauses, so the same 300 units leave as 150 at a time.
+        Assert.Equal(["scroll down 150 0 0", "scroll down 150 0 0"], devices.Calls);
     }
 
     /// <summary>A device layer with one window open at 1000,500, the place the anchoring tests move.</summary>
@@ -2576,7 +2602,7 @@ internal sealed class FakeDeviceLayer
     public void Click(string button, int x, int y, int clicks, int intervalMs)
         => Note($"click {button} {x} {y} {clicks} {intervalMs}");
 
-    public void Scroll(string direction, int amount, int x, int y) => Note($"scroll {direction} {amount} {x} {y}");
+    public void Scroll(string direction, int delta, int x, int y) => Note($"scroll {direction} {delta} {x} {y}");
 
     public void Drag(string button, int startX, int startY, int endX, int endY, int durationMs, int steps)
         => Note($"drag {button} {startX} {startY} {endX} {endY} {durationMs} {steps}");

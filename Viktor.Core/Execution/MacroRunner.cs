@@ -637,12 +637,8 @@ public sealed class MacroRunner
                 }
 
             case "input.mouseScroll":
-                {
-                    var point = Point(step, "x", "y");
-                    Input(step).Scroll(step.Text("direction"), Math.Max(1, Number(step, "amount")),
-                        point.X, point.Y);
-                    return Signal.Normal;
-                }
+                await ScrollMouse(step, token);
+                return Signal.Normal;
 
             case "input.mouseDrag":
                 DragPointer(step);
@@ -1566,6 +1562,48 @@ public sealed class MacroRunner
     /// presses, waits and releases by itself; without one the device does the whole thing, which
     /// also covers a click aimed at a background window.
     /// </summary>
+    /// <summary>Wheel units in one notch, the amount a wheel turns in.</summary>
+    private const int WheelNotch = 120;
+
+    /// <summary>
+    /// Turns the wheel. "Notches" is the step a wheel normally moves in; "pixels" measures the
+    /// same turn finer, with 120 units to a notch, which is what an exact amount needs. A smooth
+    /// duration splits the whole turn over several smaller wheel events with a pause between, so
+    /// an application that animates its scrolling has the time to follow.
+    /// </summary>
+    private async Task ScrollMouse(ExecutableStep step, CancellationToken token)
+    {
+        var point = Point(step, "x", "y");
+        var direction = step.Text("direction");
+        var pixels = string.Equals(step.Text("unit").Trim(), "pixels", StringComparison.OrdinalIgnoreCase);
+        var amount = Math.Max(1, Number(step, "amount"));
+        var total = pixels ? amount : amount * WheelNotch;
+        var smooth = Pace(Number(step, "smoothMs"));
+
+        if (smooth <= 0)
+        {
+            Input(step).Scroll(direction, total, point.X, point.Y);
+            return;
+        }
+
+        // One event per 15 ms is about 66 a second: roughly the fastest an application would
+        // draw its scrolling at, and never more events than there are units to send.
+        var events = Math.Clamp(smooth / 15, 1, total);
+        var share = total / events;
+        var extra = total % events;
+
+        for (var index = 0; index < events; index++)
+        {
+            token.ThrowIfCancellationRequested();
+            if (index > 0)
+            {
+                await Pause(smooth / events, token);
+            }
+
+            Input(step).Scroll(direction, share + (index < extra ? 1 : 0), point.X, point.Y);
+        }
+    }
+
     private async Task ClickMouse(ExecutableStep step, CancellationToken token)
     {
         var point = Point(step, "x", "y");

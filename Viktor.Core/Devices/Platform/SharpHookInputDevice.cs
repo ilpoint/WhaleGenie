@@ -172,24 +172,28 @@ public sealed class SharpHookInputDevice : IInputDevice
         }
     }
 
-    public void Scroll(string direction, int amount, int x, int y)
+    public void Scroll(string direction, int delta, int x, int y)
     {
         MoveMouse(x, y, 0);
 
-        var notches = Math.Max(1, amount);
-        var (rotation, axis) = direction.Trim().ToLowerInvariant() switch
+        var (sign, axis) = direction.Trim().ToLowerInvariant() switch
         {
-            "up" => (Notch, MouseWheelScrollDirection.Vertical),
-            "left" => (Notch, MouseWheelScrollDirection.Horizontal),
-            "right" => (-Notch, MouseWheelScrollDirection.Horizontal),
-            _ => (-Notch, MouseWheelScrollDirection.Vertical),
+            "up" => (1, MouseWheelScrollDirection.Vertical),
+            "left" => (1, MouseWheelScrollDirection.Horizontal),
+            "right" => (-1, MouseWheelScrollDirection.Horizontal),
+            _ => (-1, MouseWheelScrollDirection.Vertical),
         };
 
-        var notch = KeyNames.WheelName(axis, (short)rotation);
-        for (var index = 0; index < notches; index++)
+        // One notch per event: a single large jump is ignored by some applications, and the
+        // leftover under a notch is what lets a step ask for a part of one.
+        var left = Math.Abs(delta);
+        while (left > 0)
         {
-            ViktorInputGate.Note(notch);
-            _simulator.SimulateMouseWheel((short)rotation, axis, Scrolling);
+            var step = Math.Min(left, Notch);
+            left -= step;
+            var rotation = (short)(sign * step);
+            ViktorInputGate.Note(KeyNames.WheelName(axis, rotation));
+            _simulator.SimulateMouseWheel(rotation, axis, Scrolling);
             Thread.Sleep(10);
         }
     }
