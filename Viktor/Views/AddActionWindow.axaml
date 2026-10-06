@@ -521,6 +521,16 @@
 
                             <StackPanel Margin="0,12,0,0">
                                 <TextBlock Classes="FieldLabel"
+                                           Text="{Binding [Add.StepErrorJumps], Source={x:Static loc:Strings.Current}}" />
+                                <TextBox Classes="ParamInput" Text="{Binding MetaErrorJumps}"
+                                         AcceptsReturn="True" TextWrapping="NoWrap" Height="62"
+                                         PlaceholderText="Run.ImageNotFound => 修一下" />
+                                <TextBlock Classes="Muted" Margin="0,5,0,0" TextWrapping="Wrap"
+                                           Text="{Binding [Add.StepErrorJumpsHint], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+
+                            <StackPanel Margin="0,12,0,0">
+                                <TextBlock Classes="FieldLabel"
                                            Text="{Binding [Add.StepBackoff], Source={x:Static loc:Strings.Current}}" />
                                 <ComboBox Classes="ActionSelect" ItemsSource="{Binding BackoffChoices}"
                                           SelectedItem="{Binding MetaRetryBackoff}"

@@ -41,6 +41,18 @@ public sealed class MacroRunner
     /// <summary>The anchor a step asked to carry on at, while the jump travels outward to it.</summary>
     private string _jumpTarget = string.Empty;
 
+    /// <summary>True when the pending jump is one a Jump Back is meant to return from.</summary>
+    private bool _jumpReturns;
+
+    /// <summary>
+    /// Where the jumps that asked to be returned from came from, innermost last. A jump pushes
+    /// the step after it; a Jump Back takes that place and carries on from there.
+    /// </summary>
+    private Stack<(IReadOnlyList<ExecutableStep> Steps, int At)> _returns = new();
+
+    /// <summary>Where the Jump Back that is in flight wants to carry on.</summary>
+    private (IReadOnlyList<ExecutableStep> Steps, int At)? _backTo;
+
     public MacroRunner(VariableStore variables, IRunHost? host = null, IDeviceLayer? devices = null,
         double delayScale = 1, IMacroLibrary? macros = null)
     {
@@ -104,6 +116,10 @@ public sealed class MacroRunner
                 // A jump nobody answered means the anchor it names is not in the macro at all.
                 Signal.Jump => new RunResult(RunStatus.Failed, "Run.AnchorNotFound", _jumpTarget,
                     _executed),
+                // A Jump Back nobody answered means the place it came from is not running any
+                // more — a handler that outlived the loop or the branch it was called from.
+                Signal.JumpBack => new RunResult(RunStatus.Failed, "Run.JumpBackLost", string.Empty,
+                    _executed),
                 _ => new RunResult(RunStatus.Completed, "Run.Finished", string.Empty, _executed),
             };
 
@@ -136,6 +152,9 @@ public sealed class MacroRunner
 
         /// <summary>Carry on at the anchor named by <c>_jumpTarget</c>.</summary>
         Jump,
+
+        /// <summary>Carry on at the place a jump left, which is what Jump Back asks for.</summary>
+        JumpBack,
     }
 
     /// <summary>What the failure rule decided for one step.</summary>
@@ -162,6 +181,16 @@ public sealed class MacroRunner
             // it instead of being cut short by the block it was written in.
             if (signal is Signal.Jump)
             {
+                // The place to come back to belongs to the run the jump was made from, which is
+                // this one: the runs it passes on the way out leave it alone. A jump that is to be
+                // returned from remembers the step after this one, so the handler can hand control
+                // back the way a call would.
+                if (_jumpReturns)
+                {
+                    _returns.Push((steps, at + 1));
+                    _jumpReturns = false;
+                }
+
                 var target = IndexOfAnchor(steps, _jumpTarget);
                 if (target < 0)
                 {
@@ -171,6 +200,20 @@ public sealed class MacroRunner
                 Log(LogLevel.Info, depth, string.Empty, "Run.Jumped", _jumpTarget);
                 _jumpTarget = string.Empty;
                 at = target;
+                continue;
+            }
+
+            // A Jump Back is answered by the run the jump left from; the runs in between hand it
+            // outward, the same way a jump is handed outward.
+            if (signal is Signal.JumpBack)
+            {
+                if (_backTo is not { } place || !ReferenceEquals(place.Steps, steps))
+                {
+                    return signal;
+                }
+
+                _backTo = null;
+                at = place.At;
                 continue;
             }
 
@@ -244,6 +287,8 @@ public sealed class MacroRunner
         }
 
         var caller = Variables.SwapLocal(called);
+        var returns = _returns;
+        _returns = new();
         _callDepth++;
         try
         {
@@ -260,9 +305,12 @@ public sealed class MacroRunner
 
             // A jump that leaves the called macro has nowhere to land: an anchor belongs to the
             // macro its jump was written in, and a call is meant to come back on its own terms.
-            if (signal is Signal.Jump)
+            // The same goes for a Jump Back with nothing of its own to return to.
+            if (signal is Signal.Jump or Signal.JumpBack)
             {
-                throw new StepFailure("Run.AnchorNotFound", _jumpTarget);
+                throw signal is Signal.Jump
+                    ? new StepFailure("Run.AnchorNotFound", _jumpTarget)
+                    : new StepFailure("Run.JumpBackLost");
             }
 
             return signal;
@@ -270,6 +318,7 @@ public sealed class MacroRunner
         finally
         {
             _callDepth--;
+            _returns = returns;
             Take(step, Variables.SwapLocal(caller));
         }
     }
@@ -378,6 +427,17 @@ public sealed class MacroRunner
             {
                 Log(LogLevel.Error, depth, step.Type, failure.Key, failure.Detail);
                 _failure = failure;
+
+                // The step's own rules come first: a rule is the macro saying "this failure is
+                // not the end of the story, carry on over there". Only when none of them is about
+                // this failure does the plain failure setting get a say.
+                if (step.Meta.Jumps.FirstOrDefault(rule => rule.Matches(failure.Key)) is { } rule)
+                {
+                    Log(LogLevel.Warn, depth, step.Type, "Run.ErrorJump", failure.Key, rule.Jump);
+                    _jumpTarget = rule.Jump;
+                    _jumpReturns = rule.Back;
+                    return Signal.Jump;
+                }
 
                 var decision = step.Meta.OnError switch
                 {
@@ -514,6 +574,15 @@ public sealed class MacroRunner
 
                 _jumpTarget = wanted;
                 return Signal.Jump;
+
+            case "control.jumpBack":
+                if (_returns.Count == 0)
+                {
+                    throw new StepFailure("Run.NoJumpBack");
+                }
+
+                _backTo = _returns.Pop();
+                return Signal.JumpBack;
 
             case "control.stop":
                 Log(LogLevel.Warn, depth, step.Type, "Run.StopRequested", step.Text("reason"));
@@ -972,7 +1041,7 @@ public sealed class MacroRunner
             token.ThrowIfCancellationRequested();
             Variables.Local.Set("sys.loopIndex", Value.FromNumber(round));
             var signal = await RunSteps(step.Children("body"), depth + 1, token);
-            if (signal is Signal.Stop or Signal.Failed or Signal.Jump)
+            if (signal is Signal.Stop or Signal.Failed or Signal.Jump or Signal.JumpBack)
             {
                 return signal;
             }
@@ -1003,7 +1072,7 @@ public sealed class MacroRunner
             }
 
             var signal = await RunSteps(step.Children("body"), depth + 1, token);
-            if (signal is Signal.Stop or Signal.Failed or Signal.Jump)
+            if (signal is Signal.Stop or Signal.Failed or Signal.Jump or Signal.JumpBack)
             {
                 return signal;
             }
@@ -1049,7 +1118,7 @@ public sealed class MacroRunner
             }
 
             var signal = await RunSteps(step.Children("body"), depth + 1, token);
-            if (signal is Signal.Stop or Signal.Failed or Signal.Jump)
+            if (signal is Signal.Stop or Signal.Failed or Signal.Jump or Signal.JumpBack)
             {
                 return signal;
             }
@@ -1093,7 +1162,7 @@ public sealed class MacroRunner
             Variables.Set(counter, Value.FromNumber(value));
 
             var signal = await RunSteps(step.Children("body"), depth + 1, token);
-            if (signal is Signal.Stop or Signal.Failed or Signal.Jump)
+            if (signal is Signal.Stop or Signal.Failed or Signal.Jump or Signal.JumpBack)
             {
                 return signal;
             }
@@ -1214,9 +1283,9 @@ public sealed class MacroRunner
             Log(LogLevel.Debug, depth, step.Type, "Run.Finally");
             var closingSignal = await RunSteps(closing, depth + 1, token);
 
-            // Stopping, failing or jumping while tidying up beats whatever the attempt did: a
+            // Stopping, failing or moving on while tidying up beats whatever the attempt did: a
             // cleanup that ends the run, or heads off somewhere else, is the last word.
-            if (closingSignal is Signal.Stop or Signal.Failed or Signal.Jump)
+            if (closingSignal is Signal.Stop or Signal.Failed or Signal.Jump or Signal.JumpBack)
             {
                 return closingSignal;
             }

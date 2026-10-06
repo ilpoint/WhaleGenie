@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Nodes;
 
 namespace Viktor.Core.Execution;
@@ -33,6 +35,67 @@ public enum RetryBackoff
 
     /// <summary>A pause somewhere around the one asked for, so retries do not march in step.</summary>
     Jitter,
+}
+
+/// <summary>
+/// One line of a step's error rules: when a failure reports a key this matches, carry on at the
+/// named anchor instead of doing whatever the step's plain failure setting says.
+/// </summary>
+/// <param name="When">
+/// The failure keys this answers to, separated by <c>;</c>. <c>*</c> stands for any run of
+/// characters and <c>?</c> for one, so <c>Run.*NotFound</c> covers the whole family. Empty, or
+/// <c>*</c> on its own, answers to every failure.
+/// </param>
+/// <param name="Jump">The anchor to carry on at.</param>
+/// <param name="Back">
+/// True to come back to the step after the one that failed once the handler reaches a Jump Back,
+/// which is how a tidy-up or a retry written by hand returns to where it was called from.
+/// </param>
+public sealed record ErrorJump(string When, string Jump, bool Back)
+{
+    /// <summary>True when this rule is about a failure that reported this key.</summary>
+    public bool Matches(string key)
+        => When.Trim().Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(part => part.Length == 0 ? "*" : part)
+            .DefaultIfEmpty("*")
+            .Any(part => Like(part, key));
+
+    /// <summary>
+    /// A key pattern matched the way a person expects: <c>*</c> for any run of characters and
+    /// <c>?</c> for exactly one, with nothing special about case.
+    /// </summary>
+    private static bool Like(string pattern, string key) => Wildcard(pattern, 0, key, 0);
+
+    /// <summary>The plain walk: <c>*</c> takes any run, <c>?</c> exactly one character.</summary>
+    private static bool Wildcard(string pattern, int p, string key, int k)
+    {
+        while (p < pattern.Length)
+        {
+            if (pattern[p] == '*')
+            {
+                for (var skip = 0; k + skip <= key.Length; skip++)
+                {
+                    if (Wildcard(pattern, p + 1, key, k + skip))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            if (k >= key.Length
+                || (pattern[p] != '?' && char.ToLowerInvariant(pattern[p]) != char.ToLowerInvariant(key[k])))
+            {
+                return false;
+            }
+
+            p++;
+            k++;
+        }
+
+        return k == key.Length;
+    }
 }
 
 /// <summary>
@@ -78,6 +141,13 @@ public class StepMeta
     /// <summary>What the macro does when the step fails.</summary>
     public StepErrorAction OnError { get; init; } = StepErrorAction.Stop;
 
+    /// <summary>
+    /// The step's error rules, looked at before <see cref="OnError"/> and in the order they were
+    /// written: the first one about the failure that happened decides where the run carries on.
+    /// A step with no rules of its own behaves exactly as it did before they existed.
+    /// </summary>
+    public IReadOnlyList<ErrorJump> Jumps { get; init; } = [];
+
     /// <summary>True when nothing has been changed, so no <c>meta</c> node needs writing.</summary>
     public bool IsEmpty => Comment.Length == 0
         && IsEnabled
@@ -85,7 +155,8 @@ public class StepMeta
         && RetryCount <= 0
         && DelayBeforeMs <= 0
         && DelayAfterMs <= 0
-        && OnError is StepErrorAction.Stop;
+        && OnError is StepErrorAction.Stop
+        && Jumps.Count == 0;
 
     /// <summary>The same settings with the enabled flag changed, used by the skip toggle.</summary>
     public StepMeta WithEnabled(bool enabled) => new()
@@ -99,6 +170,7 @@ public class StepMeta
         DelayBeforeMs = DelayBeforeMs,
         DelayAfterMs = DelayAfterMs,
         OnError = OnError,
+        Jumps = Jumps,
     };
 
     /// <summary>
@@ -163,6 +235,22 @@ public class StepMeta
             node["onError"] = Name(OnError);
         }
 
+        if (Jumps.Count > 0)
+        {
+            node["onErrorJumps"] = new JsonArray([.. Jumps.Select(Written)]);
+        }
+
+        return node;
+    }
+
+    private static JsonNode Written(ErrorJump rule)
+    {
+        var node = new JsonObject { ["when"] = rule.When, ["jump"] = rule.Jump };
+        if (rule.Back)
+        {
+            node["back"] = true;
+        }
+
         return node;
     }
 
@@ -186,7 +274,86 @@ public class StepMeta
             DelayBeforeMs = Number(node, "delayBeforeMs"),
             DelayAfterMs = Number(node, "delayAfterMs"),
             OnError = Action(Text(node, "onError")),
+            Jumps = Rules(node["onErrorJumps"] as JsonArray),
         };
+    }
+
+    private static IReadOnlyList<ErrorJump> Rules(JsonArray? node)
+    {
+        var rules = new List<ErrorJump>();
+        foreach (var entry in node ?? [])
+        {
+            if (entry is not JsonObject rule)
+            {
+                continue;
+            }
+
+            var jump = Text(rule, "jump").Trim();
+            if (jump.Length == 0)
+            {
+                continue;
+            }
+
+            rules.Add(new ErrorJump(Text(rule, "when"), jump, rule["back"]?.GetValue<bool>() ?? false));
+        }
+
+        return rules;
+    }
+
+    /// <summary>
+    /// An error rule written the way a person types it, one to a line: the failure key, then
+    /// <c>-&gt;</c> and the anchor to carry on at, or <c>=&gt;</c> when the handler is to come
+    /// back to the step after the one that failed. Blank lines and <c>#</c> lines are skipped so
+    /// a rule can be parked next to the ones in use.
+    /// </summary>
+    public static string Text(IEnumerable<ErrorJump> rules)
+        => string.Join(Environment.NewLine, rules.Select(rule =>
+            $"{rule.When.Trim()} {(rule.Back ? "=>" : "->")} {rule.Jump}"));
+
+    /// <summary>
+    /// Reads the rules back. A line that says nothing about where to carry on is a mistake worth
+    /// reporting rather than skipping: a rule that quietly did nothing would look, from the
+    /// outside, exactly like a step that had no rule at all.
+    /// </summary>
+    public static bool TryRead(string? text, out IReadOnlyList<ErrorJump> rules, out string badLine)
+    {
+        var read = new List<ErrorJump>();
+        rules = read;
+        badLine = string.Empty;
+
+        foreach (var line in (text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'))
+        {
+            var entry = line.Trim();
+            if (entry.Length == 0 || entry.StartsWith('#'))
+            {
+                continue;
+            }
+
+            var arrow = entry.IndexOf("=>", StringComparison.Ordinal);
+            var back = arrow >= 0;
+            if (!back)
+            {
+                arrow = entry.IndexOf("->", StringComparison.Ordinal);
+            }
+
+            if (arrow < 0)
+            {
+                badLine = entry;
+                return false;
+            }
+
+            var when = entry[..arrow].Trim();
+            var jump = entry[(arrow + 2)..].Trim();
+            if (jump.Length == 0)
+            {
+                badLine = entry;
+                return false;
+            }
+
+            read.Add(new ErrorJump(when, jump, back));
+        }
+
+        return true;
     }
 
     /// <summary>The word written to the macro file for a failure rule.</summary>

@@ -1239,6 +1239,128 @@ public class MacroRunnerTests
         Assert.Equal("Run.AnchorNotFound", result.Key);
     }
 
+    /// <summary>A step that always fails, carrying whatever error rules a test wants it to have.</summary>
+    private static ExecutableStep FailsWith(params ErrorJump[] rules)
+        => new()
+        {
+            Type = "something.unknown",
+            Meta = new StepMeta { Jumps = rules, RetryDelayMs = 0 },
+        };
+
+    [Fact]
+    public async Task A_failure_can_be_sent_to_an_anchor_by_a_rule()
+    {
+        var store = Store();
+
+        var (result, _) = await RunAsync(
+        [
+            FailsWith(new ErrorJump("*", "处理", false)),
+            Set("走过", "1"),
+            Step("control.anchor", Param("name", "处理")),
+            Set("处理过", "1"),
+        ], variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("1", store.Local.Values["处理过"].AsText());
+        Assert.False(store.TryGet("走过", out _));
+    }
+
+    [Fact]
+    public async Task A_rule_only_answers_to_the_failures_it_names()
+    {
+        var store = Store();
+
+        // The rule is about a failure that is not the one that happened, so the step's own
+        // setting still has the last word and the run stops where it always would have.
+        var (result, _) = await RunAsync(
+        [
+            FailsWith(new ErrorJump("*TextNotFound", "处理", false)),
+            Set("走过", "1"),
+            Step("control.anchor", Param("name", "处理")),
+            Set("处理过", "1"),
+        ], variables: store);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.Unsupported", result.Key);
+        Assert.False(store.TryGet("处理过", out _));
+    }
+
+    [Fact]
+    public async Task The_first_rule_that_answers_to_the_failure_wins()
+    {
+        var store = Store();
+
+        var (result, _) = await RunAsync(
+        [
+            FailsWith(
+                new ErrorJump("Run.Unsupported", "甲", false),
+                new ErrorJump("*", "乙", false)),
+            Step("control.anchor", Param("name", "甲")),
+            Set("到了", "甲"),
+            Step("control.jump", Param("name", "收工")),
+            Step("control.anchor", Param("name", "乙")),
+            Set("到了", "乙"),
+            Step("control.anchor", Param("name", "收工")),
+        ], variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("甲", store.Local.Values["到了"].AsText());
+    }
+
+    [Fact]
+    public async Task A_rule_written_to_come_back_returns_to_where_the_failure_was()
+    {
+        // The shape a handler is meant to have: the normal steps jump over it, it ends with a
+        // Jump Back, and the run carries on at the step after the one that failed.
+        var store = Store();
+
+        var (result, _) = await RunAsync(
+        [
+            FailsWith(new ErrorJump("*", "修一下", true)),
+            Set("走过", "1"),
+            Step("control.jump", Param("name", "收工")),
+            Step("control.anchor", Param("name", "修一下")),
+            Set("修过", "1"),
+            Step("control.jumpBack"),
+            Step("control.anchor", Param("name", "收工")),
+            Set("到了", "1"),
+        ], variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("1", store.Local.Values["修过"].AsText());
+        Assert.Equal("1", store.Local.Values["走过"].AsText());
+        Assert.Equal("1", store.Local.Values["到了"].AsText());
+    }
+
+    [Fact]
+    public async Task A_jump_back_with_nothing_to_return_to_is_reported()
+    {
+        var (result, _) = await RunAsync([Step("control.jumpBack")]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.NoJumpBack", result.Key);
+    }
+
+    [Fact]
+    public async Task A_jump_back_to_a_place_that_is_not_running_any_more_is_reported()
+    {
+        // The rule is on a step inside the loop, so the place to come back to is that round of
+        // the loop. By the time the handler runs, the round is over and the loop has moved on,
+        // which is exactly the mistake worth saying out loud rather than acting on.
+        var store = Store();
+
+        var (result, _) = await RunAsync(
+        [
+            Step("control.repeat", Param("times", "1"), Body("body",
+                FailsWith(new ErrorJump("*", "处理", true)))),
+            Step("control.anchor", Param("name", "处理")),
+            Step("control.jumpBack"),
+        ], variables: store);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.JumpBackLost", result.Key);
+    }
+
     [Fact]
     public async Task Calling_a_macro_that_is_not_there_fails_the_step()
     {

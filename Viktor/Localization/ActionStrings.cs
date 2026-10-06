@@ -244,6 +244,10 @@ internal static class ActionStrings
         ["control.jump.name.hint"] = "要继续执行的锚点名字。找不到这个名字，整个宏会以"
             + "“锚点不存在”结束。",
 
+        ["control.jumpBack.name"] = "跳回",
+        ["control.jumpBack.desc"] = "回到当初跳过来的那一步之后继续，错误规则里选“回来”"
+            + "那种写法的处理段就用它收尾。",
+
         ["control.setVariable.name"] = "设置变量",
         ["control.setVariable.desc"] = "保存一个值，供后面的步骤使用。",
         ["control.setVariable.name.label"] = "变量名",

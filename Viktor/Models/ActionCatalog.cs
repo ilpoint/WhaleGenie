@@ -338,6 +338,15 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "control.jumpBack",
+            Category = ActionCategory.Control,
+            DisplayName = "Jump Back",
+            Description = "Carry on at the step after the one that jumped here, which is how a "
+                + "handler written for an error rule of the \"come back\" kind ends.",
+            Parameters = [],
+        },
+        new()
+        {
             Key = "control.setVariable",
             Category = ActionCategory.Control,
             DisplayName = "Set Variable",
