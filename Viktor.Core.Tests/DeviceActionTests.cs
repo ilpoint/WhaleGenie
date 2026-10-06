@@ -2259,6 +2259,71 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_script_can_be_run_by_a_program_the_macro_names_itself()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("script.run", Param("language", "custom"), Param("interpreter", "dotnet-script"),
+                Param("extension", "csx"), Param("script", "Console.WriteLine(1);")),
+        ], devices);
+
+        // The program is the macro's to name, the script's path goes after it, and an ending
+        // written without a full stop gets one.
+        Assert.Contains(devices.Calls, call =>
+            call.StartsWith("run dotnet-script|") && call.Contains(".csx\"||60000"));
+        Assert.Contains(devices.Calls, call =>
+            call.StartsWith("writeFile") && call.EndsWith(".csx Console.WriteLine(1); False utf8"));
+    }
+
+    [Fact]
+    public async Task A_script_for_another_program_keeps_the_flags_and_the_encoding_it_was_given()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("script.run", Param("language", "custom"), Param("interpreter", "cscript //nologo"),
+                Param("extension", ".vbs"), Param("encoding", "gbk"),
+                Param("script", "WScript.Echo \"中文\"")),
+        ], devices);
+
+        // cscript reads a script through the system code page, so a Chinese script has to be
+        // written in GBK rather than the UTF-8 everything else gets.
+        Assert.Contains(devices.Calls, call =>
+            call.StartsWith(@"run cscript|//nologo """) && call.Contains(".vbs\"||60000"));
+        Assert.Contains(devices.Calls, call =>
+            call.StartsWith("writeFile") && call.EndsWith("gbk"));
+    }
+
+    [Fact]
+    public async Task A_script_for_another_program_says_so_when_it_names_no_program()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("script.run", Param("language", "custom"), Param("extension", "csx"),
+                Param("script", "echo hi")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.MissingInterpreter", result.Key);
+    }
+
+    [Fact]
+    public async Task A_script_for_another_program_says_so_when_it_names_no_ending()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("script.run", Param("language", "custom"), Param("interpreter", "dotnet-script"),
+                Param("script", "echo hi")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.MissingScriptExtension", result.Key);
+    }
+
+    [Fact]
     public async Task A_script_that_stops_with_an_error_fails_the_step()
     {
         var devices = new FakeDeviceLayer

@@ -1746,10 +1746,26 @@ public static class ActionCatalog
             Parameters =
             [
                 Choice("language", "Interpreter",
-                    ["powershell", "cmd", "node", "python"], "powershell",
+                    ["powershell", "cmd", "node", "python", "custom"], "powershell",
                     "Which interpreter runs the script. PowerShell and Command Prompt are on every "
-                    + "Windows machine; Node and Python have to be installed first.",
-                    labels: ["PowerShell", "Command Prompt", "Node.js", "Python"]),
+                    + "Windows machine; Node and Python have to be installed first; another "
+                    + "program is for anything else the machine has, such as dotnet-script.",
+                    labels: ["PowerShell", "Command Prompt", "Node.js", "Python", "Another program"]),
+                Text("interpreter", "Interpreter command", "dotnet-script", required: false,
+                    hint: "The program that runs the script, with any flags of its own in front, "
+                          + "used with \"another program\" above. The script's path goes after it, "
+                          + "the way it would be typed on a command line. A path with spaces in it "
+                          + "goes in quotes."),
+                Text("extension", "Script file ending", ".csx", required: false,
+                    hint: "The file name ending that program reads, such as .csx for dotnet-script "
+                          + "or .vbs for cscript. Only used with \"another program\" above."),
+                Choice("encoding", "Script file encoding", ["auto", .. TextEncoding.Names], "auto",
+                    "How the interpreter's copy of the script is written. Left to decide for "
+                    + "itself, PowerShell gets a byte-order mark and the rest do not, which is what "
+                    + "each of them reads correctly; a program that reads the system code page "
+                    + "instead, cscript for one, needs GBK to read Chinese text.",
+                    labels: ["As the interpreter expects", "UTF-8", "UTF-8 with BOM",
+                        "GBK (Chinese)", "UTF-16"]),
                 Multiline("script", "Script",
                     "The script itself. {{name}} is replaced by what the variable name holds "
                     + "before the script runs, which is how a macro value gets in; everything the "

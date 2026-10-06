@@ -3429,8 +3429,9 @@ public sealed class MacroRunner
     private void RunScript(ExecutableStep step, int depth)
     {
         var language = step.Text("language").Trim().ToLowerInvariant();
+        var extension = ScriptExtension(step, language);
         var temp = Path.Combine(Path.GetTempPath(), "Viktor");
-        var path = Path.Combine(temp, $"script-{Guid.NewGuid():N}{ScriptExtension(language)}");
+        var path = Path.Combine(temp, $"script-{Guid.NewGuid():N}{extension}");
         var script = Template(step.Text("script"));
         if (script.Trim().Length == 0)
         {
@@ -3448,17 +3449,13 @@ public sealed class MacroRunner
         }
 
         var extra = Template(step.Text("arguments")).Trim();
-        var (program, arguments) = ScriptCommand(language, path, extra);
+        var (program, arguments) = ScriptCommand(step, language, path, extra);
 
         // A step that says nothing about time still gets one, the same way running a command does:
         // a timeout of nothing would end the script the moment it started.
         var timeout = Math.Max(1, OptionalNumber(step, "timeoutMs", DefaultScriptMs));
 
-        // Windows PowerShell reads a script as the system code page unless the file starts with a
-        // byte-order mark, so a script with Chinese text in it needs one. The other interpreters
-        // read UTF-8 and would rather not have a mark, and a batch file with one does not start.
-        _devices.Files.WriteText(path, script, false,
-            ScriptExtension(language) == ".ps1" ? "utf8bom" : TextEncoding.Default);
+        _devices.Files.WriteText(path, script, false, ScriptEncoding(step, extension));
 
         CommandResult result;
         try
@@ -3493,13 +3490,28 @@ public sealed class MacroRunner
     /// <summary>
     /// The command line that runs a script of this kind. PowerShell is given the flags that stop it
     /// from loading a profile or asking anything, so a script that runs inside a macro behaves the
-    /// same way every time it runs.
+    /// same way every time it runs. A program of the macro's own choosing gets the script's path
+    /// after whatever the macro wrote, which is where an interpreter expects to find it and where
+    /// a person typing the same command line would put it.
     /// </summary>
-    private static (string Program, string Arguments) ScriptCommand(string language, string path,
-        string extra)
+    private static (string Program, string Arguments) ScriptCommand(ExecutableStep step,
+        string language, string path, string extra)
     {
         var quoted = $"\"{path}\"";
         var tail = extra.Length == 0 ? string.Empty : $" {extra}";
+
+        if (language is "custom")
+        {
+            var named = step.Text("interpreter").Trim();
+            if (named.Length == 0)
+            {
+                throw new StepFailure("Run.MissingInterpreter");
+            }
+
+            var (program, flags) = SplitCommand(named);
+            var start = flags.Length == 0 ? string.Empty : $"{flags} ";
+            return (program, $"{start}{quoted}{tail}");
+        }
 
         return language switch
         {
@@ -3512,14 +3524,71 @@ public sealed class MacroRunner
         };
     }
 
-    /// <summary>The extension the interpreter expects, which is how it knows what it is reading.</summary>
-    private static string ScriptExtension(string language) => language switch
+    /// <summary>
+    /// Splits what a macro wrote into the program and the flags in front of the script's path. A
+    /// program whose path has spaces in it is written in quotes, which is how it would be typed on
+    /// a command line anyway, so a quote at the front takes everything up to the closing one.
+    /// </summary>
+    private static (string Program, string Flags) SplitCommand(string text)
     {
-        "cmd" => ".cmd",
-        "node" => ".js",
-        "python" => ".py",
-        _ => ".ps1",
-    };
+        var trimmed = text.Trim();
+        if (trimmed.StartsWith('"'))
+        {
+            var end = trimmed.IndexOf('"', 1);
+            if (end > 0)
+            {
+                return (trimmed[1..end], trimmed[(end + 1)..].Trim());
+            }
+        }
+
+        var space = trimmed.IndexOf(' ');
+        return space < 0
+            ? (trimmed, string.Empty)
+            : (trimmed[..space], trimmed[(space + 1)..].Trim());
+    }
+
+    /// <summary>
+    /// The file name ending the interpreter recognises, which is how it knows what it is reading.
+    /// The four built-in ones have theirs; a program of the macro's own choosing has to be told.
+    /// </summary>
+    private static string ScriptExtension(ExecutableStep step, string language)
+    {
+        if (language is not "custom")
+        {
+            return language switch
+            {
+                "cmd" => ".cmd",
+                "node" => ".js",
+                "python" => ".py",
+                _ => ".ps1",
+            };
+        }
+
+        var wanted = step.Text("extension").Trim();
+        if (wanted.Length == 0)
+        {
+            throw new StepFailure("Run.MissingScriptExtension");
+        }
+
+        return wanted.StartsWith('.') ? wanted : $".{wanted}";
+    }
+
+    /// <summary>
+    /// How the interpreter's copy of the script is written. Windows PowerShell reads a script as
+    /// the system code page unless the file starts with a byte-order mark, so a script with Chinese
+    /// text in it needs one; the other interpreters read UTF-8 and would rather not have a mark,
+    /// and a batch file with one does not start. A macro that knows better can say so, and the
+    /// reason it can is cscript: that one reads the system code page by design, so Chinese text in
+    /// a .vbs has to be GBK.
+    /// </summary>
+    private static string ScriptEncoding(ExecutableStep step, string extension)
+    {
+        var chosen = step.Text("encoding").Trim();
+        return chosen.Length == 0
+               || string.Equals(chosen, "auto", StringComparison.OrdinalIgnoreCase)
+            ? extension == ".ps1" ? "utf8bom" : TextEncoding.Default
+            : chosen;
+    }
 
     /// <summary>How long a script may run when the step does not say.</summary>
     private const int DefaultScriptMs = 60000;
