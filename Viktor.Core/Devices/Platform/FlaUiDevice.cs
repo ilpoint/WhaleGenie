@@ -17,6 +17,13 @@ namespace Viktor.Core.Devices.Platform;
 /// </summary>
 public sealed class FlaUiDevice : IUiDevice, IDisposable
 {
+    /// <summary>
+    /// How far up the tree the picker looks for the window an element sits in. Deep visual trees
+    /// are real — a browser or an editor can nest forty panels under one window — so the walk is
+    /// bounded generously and simply gives up when a provider never produces a window.
+    /// </summary>
+    private const int WindowHops = 40;
+
     private readonly Lazy<UIA3Automation> _automation = new(() => new UIA3Automation());
 
     /// <summary>
@@ -163,6 +170,100 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         catch (Exception error) when (Recoverable(error))
         {
             return false;
+        }
+    }
+
+    /// <summary>
+    /// What UI Automation sees under a screen point, for the picker that writes selectors out of
+    /// what is on screen. Null when there is nothing there, or when nothing useful can be read
+    /// about it.
+    /// </summary>
+    public UiElementInfo? ElementAt(int x, int y)
+    {
+        Require();
+
+        try
+        {
+            var element = _automation.Value.FromPoint(new System.Drawing.Point(x, y));
+            if (element is null)
+            {
+                return null;
+            }
+
+            // UI Automation reports the rectangle in screen pixels, which is the unit a selector
+            // taken here has to come back in.
+            var bounds = element.BoundingRectangle;
+            var info = new UiElementInfo(
+                Read(() => element.Name),
+                Read(() => element.AutomationId),
+                Read(() => element.ControlType.ToString()),
+                Read(() => element.ClassName),
+                new ScreenPoint(bounds.X, bounds.Y),
+                new ScreenSize(bounds.Width, bounds.Height),
+                WindowTitleOf(element));
+
+            // An element nobody can name is one a macro could never look up again, so the picker
+            // is better off saying it found nothing.
+            return info.ControlType.Length == 0 && info.Name.Length == 0 && info.AutomationId.Length == 0
+                ? null
+                : info;
+        }
+        catch (Exception error) when (Recoverable(error))
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// The title of the window an element sits in, which is the filter a macro writes next to its
+    /// selector. Walking up stops at the first window, so a dialog is named rather than the
+    /// program behind it.
+    /// </summary>
+    private static string WindowTitleOf(AutomationElement element)
+    {
+        for (var hop = 0; hop < WindowHops; hop++)
+        {
+            if (Read(() => element.ControlType.ToString()) == nameof(ControlType.Window))
+            {
+                return Read(() => element.Name);
+            }
+
+            if (ParentOf(element) is not { } parent)
+            {
+                break;
+            }
+
+            element = parent;
+        }
+
+        return string.Empty;
+    }
+
+    private static AutomationElement? ParentOf(AutomationElement element)
+    {
+        try
+        {
+            return element.Parent;
+        }
+        catch (Exception error) when (Recoverable(error))
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Reads one property. A provider is allowed to refuse a property it does not support, and
+    /// that is worth an empty string rather than losing the whole element.
+    /// </summary>
+    private static string Read(Func<string?> value)
+    {
+        try
+        {
+            return value() ?? string.Empty;
+        }
+        catch (Exception error) when (Recoverable(error))
+        {
+            return string.Empty;
         }
     }
 

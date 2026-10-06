@@ -272,6 +272,34 @@ public partial class AddActionWindow : Window
         }
     }
 
+    /// <summary>
+    /// Takes the control the pointer is put on through UI Automation and writes the selector it
+    /// reads. The window that control sits in fills the action's window filter when that is still
+    /// empty, which is what stops the selector from matching the same kind of control somewhere
+    /// else.
+    /// </summary>
+    private async void OnPickElement(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel parameter }
+            || DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        if (await ElementPickerWindow.PickAsync(this) is not { } picked)
+        {
+            return;
+        }
+
+        parameter.Text = picked.Selector;
+
+        if (viewModel.Parameters.FirstOrDefault(item => item.Definition.Name == "window") is { } filter
+            && string.IsNullOrWhiteSpace(filter.Text))
+        {
+            filter.Text = picked.Window;
+        }
+    }
+
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);

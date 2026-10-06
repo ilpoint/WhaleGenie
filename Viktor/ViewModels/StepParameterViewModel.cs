@@ -133,6 +133,19 @@ public partial class StepParameterViewModel : ViewModelBase
     public bool IsText => Definition.Kind
         is ActionParameterKind.Text or ActionParameterKind.Key;
 
+    /// <summary>
+    /// True when the parameter is written in a plain one-line field with nothing beside it. A
+    /// selector is left out of that group because it carries the element picker's button.
+    /// </summary>
+    public bool IsPlainText => IsText && !IsSelector;
+
+    /// <summary>
+    /// True when this parameter is a UI Automation selector, which the element picker can take
+    /// off the screen instead of it being written out by hand.
+    /// </summary>
+    public bool IsSelector => Definition.Kind is ActionParameterKind.Text
+                              && Definition.Name == "selector";
+
     /// <summary>True when this parameter is a picture the action looks for on screen.</summary>
     public bool IsImage => Definition.Kind is ActionParameterKind.Image;
 

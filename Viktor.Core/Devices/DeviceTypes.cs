@@ -101,6 +101,83 @@ public sealed record UiQuery(
            && string.IsNullOrWhiteSpace(ControlType)
            && string.IsNullOrWhiteSpace(ClassName)
            && string.IsNullOrWhiteSpace(WindowTitle);
+
+    /// <summary>
+    /// The selector text this query reads back as: the control type, then the parts that pin it
+    /// down, in the order the engine reads them. Only a value the reader can give back unchanged
+    /// is written, so a name holding a quote or a comma is left out rather than turning into a
+    /// selector that quietly matches something else.
+    /// </summary>
+    public string ToSelector()
+    {
+        var parts = new List<string>();
+
+        if (Readable(AutomationId))
+        {
+            parts.Add($"automationId='{AutomationId!.Trim()}'");
+        }
+
+        if (Readable(Name))
+        {
+            parts.Add($"name='{Name!.Trim()}'");
+        }
+
+        if (Readable(ClassName))
+        {
+            parts.Add($"className='{ClassName!.Trim()}'");
+        }
+
+        var type = ControlType?.Trim() ?? string.Empty;
+        return parts.Count == 0 ? type : $"{type}[{string.Join(", ", parts)}]";
+    }
+
+    /// <summary>
+    /// True when a value survives the trip: the reader splits a selector on commas and strips the
+    /// quotes around a value, so anything carrying those would come back as a different string.
+    /// </summary>
+    private static bool Readable(string? value)
+        => !string.IsNullOrWhiteSpace(value)
+           && !value.Contains(',')
+           && !value.Contains('\'')
+           && !value.Contains('"')
+           && !value.Contains('[')
+           && !value.Contains(']');
+}
+
+/// <summary>
+/// One element of the desktop's UI Automation tree, read where the pointer was. This is what the
+/// element picker needs to write a selector a macro can use again.
+/// </summary>
+public sealed record UiElementInfo(
+    string Name,
+    string AutomationId,
+    string ControlType,
+    string ClassName,
+    ScreenPoint Location,
+    ScreenSize Size,
+    string WindowTitle)
+{
+    /// <summary>
+    /// The selector a macro can use again: what kind of control it is, then the stablest thing
+    /// the element offers — its automation id when it has one, and otherwise the name a person
+    /// reads. A name follows the interface language, so it is the second choice.
+    /// </summary>
+    public string Selector
+    {
+        get
+        {
+            var identified = !string.IsNullOrWhiteSpace(AutomationId);
+            var query = new UiQuery(
+                Name: identified ? null : Trimmed(Name),
+                AutomationId: identified ? AutomationId.Trim() : null,
+                ControlType: Trimmed(ControlType));
+
+            return query.ToSelector();
+        }
+    }
+
+    private static string? Trimmed(string value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
 /// <summary>What a command line gave back once it finished.</summary>
