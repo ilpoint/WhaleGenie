@@ -1,4 +1,6 @@
 using Avalonia.Threading;
+using Viktor.Core.Execution;
+using Viktor.Localization;
 using Viktor.Models;
 using Viktor.ViewModels;
 using Viktor.Views;
@@ -214,6 +216,64 @@ public class ActionDialogTests
             Assert.True(style.IsChoice);
             Assert.Equal("direct", Value(viewModel, "style"));
             Assert.Equal(["direct", "smooth", "human"], style.Choices.Select(choice => choice.Value));
+        });
+    }
+
+    [Fact]
+    public void A_step_settings_section_offers_a_backoff_and_says_what_it_waits()
+    {
+        Ui.Run(() =>
+        {
+            // A step that was already told to back off opens on that choice, and the line under
+            // it spells out the waits, so the setting is never a guess about what will happen.
+            var step = new MacroStep
+            {
+                Type = "input.keyPress",
+                Parameters =
+                [
+                    new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Value = "F5" },
+                ],
+                Meta = new StepMeta
+                {
+                    RetryCount = 2,
+                    RetryDelayMs = 500,
+                    RetryBackoff = RetryBackoff.Doubling,
+                },
+            };
+
+            var window = new AddActionWindow(step, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            Assert.Equal("doubling", viewModel.MetaRetryBackoff.Value);
+            Assert.Contains("500", viewModel.RetryPlan);
+            Assert.Contains("→", viewModel.RetryPlan);
+
+            // Picking another one changes both the plan and what is written back to the step.
+            var plan = viewModel.RetryPlan;
+            viewModel.MetaRetryBackoff = viewModel.BackoffChoices.First(choice => choice.Value == "jitter");
+            Assert.NotEqual(plan, viewModel.RetryPlan);
+
+            MacroStep? saved = null;
+            viewModel.CloseRequested += result => saved = result;
+            viewModel.SaveCommand.Execute(null);
+
+            Assert.NotNull(saved);
+            Assert.Equal(RetryBackoff.Jitter, saved!.Meta.RetryBackoff);
+            Assert.Equal(2, saved.Meta.RetryCount);
+        });
+    }
+
+    [Fact]
+    public void A_step_without_retries_says_it_is_not_retried()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.keyPress");
+
+            Assert.Equal("fixed", viewModel.MetaRetryBackoff.Value);
+            Assert.Equal(Strings.Get("Add.StepRetryPlanNone"), viewModel.RetryPlan);
         });
     }
 }

@@ -86,7 +86,6 @@ public partial class MacroEditorWindow : Window
         };
         _viewModel.AddStepRequested += OnAddStepRequested;
         _viewModel.EditStepRequested += OnEditStepRequested;
-        _viewModel.StepSettingsRequested += OnStepSettingsRequested;
         _viewModel.ClearRequested += OnClearRequested;
         _viewModel.CopyRequested += () => _ = CopySelectionAsync();
         _viewModel.CutRequested += () => _ = CutSelectionAsync();
@@ -319,9 +318,6 @@ public partial class MacroEditorWindow : Window
                 break;
             case Key.F2:
                 viewModel.EditSelectedCommand.Execute(null);
-                break;
-            case Key.F3:
-                viewModel.StepSettingsSelectedCommand.Execute(null);
                 break;
             case Key.Delete when !control:
                 viewModel.DeleteSelectedCommand.Execute(null);
@@ -621,18 +617,6 @@ public partial class MacroEditorWindow : Window
         if (edited is not null)
         {
             _viewModel.ReplaceStep(step, edited);
-        }
-    }
-
-    /// <summary>
-    /// Opens the step-settings dialog for one step and keeps whatever it returns, so a step can
-    /// be retried, given longer or made to carry on when it fails without leaving the editor.
-    /// </summary>
-    private async void OnStepSettingsRequested(MacroStep step)
-    {
-        if (await StepSettingsWindow.ShowFor(this, step.Meta) is { } settings)
-        {
-            _viewModel.ApplyStepSettings(step, settings);
         }
     }
 

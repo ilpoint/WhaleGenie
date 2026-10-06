@@ -45,6 +45,7 @@ public partial class AddActionViewModel : ViewModelBase
         _variables = variables ?? [];
         _macros = macros ?? [];
         MetaOnError = ErrorChoices[0];
+        MetaRetryBackoff = BackoffChoices[0];
     }
 
     /// <summary>Everything the "Select Action" dropdown offers.</summary>
@@ -120,11 +121,13 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>How many extra attempts a failing step gets.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(JsonPreview))]
+    [NotifyPropertyChangedFor(nameof(RetryPlan))]
     public partial decimal? MetaRetryCount { get; set; }
 
     /// <summary>Pause between two attempts.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(JsonPreview))]
+    [NotifyPropertyChangedFor(nameof(RetryPlan))]
     public partial decimal? MetaRetryDelayMs { get; set; } = 500;
 
     /// <summary>Pause before the step runs.</summary>
@@ -150,6 +153,72 @@ public partial class AddActionViewModel : ViewModelBase
         new("nextIteration", Strings.Get("Add.OnError.NextIteration")),
         new("ask", Strings.Get("Add.OnError.AskUser")),
     ];
+
+    /// <summary>How long to wait before each retry, read from the backoff dropdown.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(JsonPreview))]
+    [NotifyPropertyChangedFor(nameof(RetryPlan))]
+    public partial ActionParameterOption MetaRetryBackoff { get; set; }
+
+    /// <summary>Choices offered by the backoff dropdown.</summary>
+    public IReadOnlyList<ActionParameterOption> BackoffChoices { get; } =
+    [
+        new("fixed", Strings.Get("Add.Backoff.Fixed")),
+        new("doubling", Strings.Get("Add.Backoff.Doubling")),
+        new("jitter", Strings.Get("Add.Backoff.Jitter")),
+    ];
+
+    /// <summary>
+    /// What the retry settings add up to, written out with the real numbers, so "double each
+    /// attempt" is never a mystery about what the macro will actually do between two attempts.
+    /// </summary>
+    public string RetryPlan
+    {
+        get
+        {
+            var count = Whole(MetaRetryCount);
+            if (count <= 0)
+            {
+                return Strings.Get("Add.StepRetryPlanNone");
+            }
+
+            var waits = new StepMeta
+            {
+                RetryCount = count,
+                RetryDelayMs = Whole(MetaRetryDelayMs),
+                RetryBackoff = StepMeta.Backoff(MetaRetryBackoff?.Value ?? "fixed"),
+            };
+
+            return waits.RetryBackoff switch
+            {
+                RetryBackoff.Fixed => Strings.Format("Add.StepRetryPlanFixed", count,
+                    FormatDuration(waits.RetryDelayFor(1))),
+                RetryBackoff.Doubling => Strings.Format("Add.StepRetryPlanGrowing", count,
+                    string.Join(" → ", RetryWaits(waits, count))),
+                _ => Strings.Format("Add.StepRetryPlanRandom", count,
+                    FormatDuration(waits.RetryDelayFor(1) / 2.0),
+                    FormatDuration(waits.RetryDelayFor(1) * 1.5)),
+            };
+        }
+    }
+
+    /// <summary>The waits the first few retries would use, for the growing backoff.</summary>
+    private static IEnumerable<string> RetryWaits(StepMeta settings, int count)
+    {
+        var shown = Math.Min(count, 6);
+        for (var attempt = 1; attempt <= shown; attempt++)
+        {
+            yield return FormatDuration(settings.RetryDelayFor(attempt));
+        }
+
+        if (count > shown)
+        {
+            yield return "…";
+        }
+    }
+
+    /// <summary>A length of time written the way a person reads it, as the run-speed dialog does.</summary>
+    private static string FormatDuration(double milliseconds) => DelayScaleViewModel.Duration(milliseconds);
 
     /// <summary>Fully qualified name of the selected action, e.g. <c>control.delay</c>.</summary>
     public string SelectedKey => SelectedDefinition?.Key ?? Strings.Get("Add.NoSelection");
@@ -256,6 +325,8 @@ public partial class AddActionViewModel : ViewModelBase
         MetaDelayAfterMs = step.Meta.DelayAfterMs;
         MetaOnError = ErrorChoices.FirstOrDefault(choice =>
             choice.Value == StepMeta.Name(step.Meta.OnError)) ?? ErrorChoices[0];
+        MetaRetryBackoff = BackoffChoices.FirstOrDefault(choice =>
+            choice.Value == StepMeta.Name(step.Meta.RetryBackoff)) ?? BackoffChoices[0];
     }
 
     private void BuildParameters(ActionDefinition? definition)
@@ -527,6 +598,7 @@ public partial class AddActionViewModel : ViewModelBase
             TimeoutMs = Whole(MetaTimeoutMs),
             RetryCount = Whole(MetaRetryCount),
             RetryDelayMs = Whole(MetaRetryDelayMs),
+            RetryBackoff = StepMeta.Backoff(MetaRetryBackoff?.Value ?? "fixed"),
             DelayBeforeMs = Whole(MetaDelayBeforeMs),
             DelayAfterMs = Whole(MetaDelayAfterMs),
             OnError = StepMeta.Action(MetaOnError.Value),
