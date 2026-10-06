@@ -64,6 +64,23 @@ public class MacroRunnerTests
         return watch.Elapsed.TotalMilliseconds;
     }
 
+    /// <summary>
+    /// The shortest of several runs at the given speed. A busy machine can only ever add time to
+    /// a wait, so the shortest run is the one that shows what the macro really asked for: a run
+    /// that happened to be scheduled late would otherwise fail an honest pause.
+    /// </summary>
+    private static async Task<double> QuickestAsync(ExecutableStep[] steps, double delayScale,
+        int rounds = 5)
+    {
+        var shortest = double.MaxValue;
+        for (var round = 0; round < rounds; round++)
+        {
+            shortest = Math.Min(shortest, await TimeAsync(steps, delayScale));
+        }
+
+        return shortest;
+    }
+
     [Fact]
     public async Task Steps_run_from_top_to_bottom()
     {
@@ -728,7 +745,7 @@ public class MacroRunnerTests
         var wait = Step("control.delay", Param("ms", "250"));
 
         var asWritten = await TimeAsync([wait], 1);
-        var quicker = await TimeAsync([wait], 0.1);
+        var quicker = await QuickestAsync([wait], 0.1);
         var slower = await TimeAsync([wait], 2);
 
         Assert.True(asWritten >= 230, $"×1 should wait about 250ms, took {asWritten:0}ms");
@@ -750,7 +767,7 @@ public class MacroRunnerTests
         };
 
         var plain = await TimeAsync([paused], 1);
-        var quicker = await TimeAsync([paused], 0.1);
+        var quicker = await QuickestAsync([paused], 0.1);
 
         Assert.True(plain >= 230, $"the pause should have happened, took {plain:0}ms");
         Assert.True(quicker < 200, $"the pause should have shrunk, took {quicker:0}ms");
