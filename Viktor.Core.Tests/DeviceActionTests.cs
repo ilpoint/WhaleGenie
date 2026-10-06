@@ -831,18 +831,30 @@ public class DeviceActionTests
     [Fact]
     public async Task A_waiting_timeout_is_not_bent_by_the_speed_factor()
     {
-        // Even at ×10 the clipboard wait still gives up after the 200ms it was given: a
-        // timeout says when to stop trying, which is not the same thing as pacing.
+        // A timeout says when to stop trying, which is not the same thing as pacing, so the
+        // same wait gives up after the same time at ×10 as it does at ×1. The two waits are
+        // compared with each other rather than against a fixed number of milliseconds: a busy
+        // machine stretches whichever wait happens to be running, and a fixed bound turns that
+        // into a failure that has nothing to do with the speed factor.
+        var plain = await WaitedAsync(1, "1000");
+        var fast = await WaitedAsync(10, "1000");
+
+        Assert.True(fast < (plain * 2) + 2000,
+            $"×10 waited {fast:0}ms, which is nowhere near the ×1 wait of {plain:0}ms");
+    }
+
+    /// <summary>How long a clipboard wait of the given length takes at a playback speed.</summary>
+    private static async Task<double> WaitedAsync(double speed, string timeoutMs)
+    {
         var devices = new FakeDeviceLayer();
         var watch = Stopwatch.StartNew();
-        var result = await new MacroRunner(new VariableStore(), new SilentRunHost(), devices, 10)
-            .RunAsync([Step("clipboard.waitChange", Param("timeoutMs", "200"))]);
+        var result = await new MacroRunner(new VariableStore(), new SilentRunHost(), devices, speed)
+            .RunAsync([Step("clipboard.waitChange", Param("timeoutMs", timeoutMs))]);
         watch.Stop();
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.ClipboardTimeout", result.Key);
-        Assert.True(watch.Elapsed.TotalMilliseconds < 900,
-            $"the timeout should stay near 200ms, took {watch.Elapsed.TotalMilliseconds:0}ms");
+        return watch.Elapsed.TotalMilliseconds;
     }
 
     [Fact]

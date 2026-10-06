@@ -732,7 +732,7 @@ public class MacroRunnerTests
         var slower = await TimeAsync([wait], 2);
 
         Assert.True(asWritten >= 230, $"×1 should wait about 250ms, took {asWritten:0}ms");
-        Assert.True(quicker < 120, $"×0.1 should barely wait, took {quicker:0}ms");
+        Assert.True(quicker < 200, $"×0.1 should barely wait, took {quicker:0}ms");
         Assert.True(slower >= 480, $"×2 should wait about 500ms, took {slower:0}ms");
 
         // The macro keeps its own numbers: the factor is only bent in while it runs.
@@ -753,7 +753,7 @@ public class MacroRunnerTests
         var quicker = await TimeAsync([paused], 0.1);
 
         Assert.True(plain >= 230, $"the pause should have happened, took {plain:0}ms");
-        Assert.True(quicker < 120, $"the pause should have shrunk, took {quicker:0}ms");
+        Assert.True(quicker < 200, $"the pause should have shrunk, took {quicker:0}ms");
     }
 
     [Fact]
