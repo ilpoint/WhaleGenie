@@ -19,11 +19,14 @@ public static class TextEncoding
     private const int CodePageGbk = 936;
 
     /// <summary>
-    /// Registering the code pages is a one-off, so it happens when this class is first used. A
-    /// type initializer is used rather than a flag because the runtime already guarantees it runs
-    /// exactly once, however many macros ask for it at the same time.
+    /// Registers the code pages a machine's own files may be written in. This is a static
+    /// constructor rather than a field initializer on purpose: the runtime is allowed to leave a
+    /// field initializer alone until something reads a field, so a macro whose first call on this
+    /// class was <see cref="Resolve"/> — writing a GBK file before the action editor had ever been
+    /// opened — would find the code pages missing. A static constructor runs before the first use
+    /// of the type, and exactly once however many threads arrive at the same moment.
     /// </summary>
-    private static readonly bool CodePages = Register();
+    static TextEncoding() => Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
     /// <summary>The names the action editor offers, in the order they are shown.</summary>
     public static IReadOnlyList<string> Names { get; } = ["utf8", "utf8bom", "gbk", "utf16"];
@@ -67,10 +70,4 @@ public static class TextEncoding
         "utf16" or "utf-16" or "unicode" or "utf16le" => "utf16",
         _ => "utf8",
     };
-
-    private static bool Register()
-    {
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        return true;
-    }
 }
