@@ -162,6 +162,43 @@ public class ElementPickerTests
     }
 
     [Fact]
+    public void The_frame_is_answered_from_where_it_was_drawn()
+    {
+        Ui.Run(() =>
+        {
+            var found = true;
+            var window = new ElementPickerWindow((x, y) => found ? At(x, y) : null);
+
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            window.ProbeAt(300, 200);
+
+            // The control sits at 300,200 and the frame is drawn three pixels outside it, so the
+            // border is the picker's own and the hole in the middle belongs to the control.
+            Assert.True(FromTheHookThread(window, 320, 198));
+            Assert.False(FromTheHookThread(window, 340, 210));
+
+            // With nothing under the pointer the frame comes off the screen, and a click anywhere
+            // is then somebody else's business.
+            found = false;
+            window.ProbeAt(300, 200);
+            Assert.False(FromTheHookThread(window, 320, 198));
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// Asks the picker from a thread that owns nothing, the way the mouse hook does. A checked
+    /// build is where this bites: Avalonia then refuses to have a window read from a thread that
+    /// did not make it, and an exception out of a hook has nowhere to go but out of the native
+    /// callback, which ends the process instead of raising anything a caller could catch.
+    /// </summary>
+    private static bool FromTheHookThread(ElementPickerWindow window, int x, int y)
+        => Task.Run(() => window.Handles(new ScreenPoint(x, y))).GetAwaiter().GetResult();
+
+    [Fact]
     public void Every_action_that_looks_for_an_element_offers_a_selector()
     {
         var keys = Ui.Run(() => ActionCatalog.Definitions

@@ -45,6 +45,12 @@ public sealed class ElementPickerWindow : Window
     private IGlobalHook? _hook;
     private bool _done;
 
+    /// <summary>Where the frame is, written while drawing and read by the hook's own thread.</summary>
+    private volatile Box? _frameBox;
+
+    /// <summary>Where the readout is, kept the same way and for the same reason.</summary>
+    private volatile Box? _readoutBox;
+
     public ElementPickerWindow()
         : this(null)
     {
@@ -139,6 +145,7 @@ public sealed class ElementPickerWindow : Window
         DetachHook();
         _readout?.Close();
         _readout = null;
+        _readoutBox = null;
         _device?.Dispose();
     }
 
@@ -196,15 +203,21 @@ public sealed class ElementPickerWindow : Window
     /// or the readout. The hole left in the middle is not ours, which is what lets the pointer
     /// reach the control that is being picked.
     /// </summary>
+    /// <remarks>
+    /// The click arrives on the hook's own thread, and a window may only be read from the thread
+    /// that made it. So this answers from the rectangles kept while drawing rather than from the
+    /// windows themselves. Reading a window here threw, and an exception out of a hook has
+    /// nowhere to go but out of the native callback, which ended the whole process.
+    /// </remarks>
     internal bool Handles(ScreenPoint point)
     {
-        if (IsVisible
-            && OnFrame(point.X, point.Y, Position.X, Position.Y, PixelWidth, PixelHeight, Frame))
+        if (_frameBox is { } frame
+            && OnFrame(point.X, point.Y, frame.Left, frame.Top, frame.Width, frame.Height, Frame))
         {
             return true;
         }
 
-        return _readout is { IsVisible: true } readout && Covers(readout, point);
+        return _readoutBox is { } readout && readout.Holds(point.X, point.Y);
     }
 
     /// <summary>
@@ -219,17 +232,16 @@ public sealed class ElementPickerWindow : Window
            && (x < left + frame || x >= left + width - frame
                                  || y < top + frame || y >= top + height - frame);
 
-    /// <summary>The picker's own width in screen pixels.</summary>
-    private int PixelWidth => Pixels(Bounds.Width);
-
-    /// <summary>The picker's own height in screen pixels.</summary>
-    private int PixelHeight => Pixels(Bounds.Height);
-
-    /// <summary>One of the window's own measurements, counted in screen pixels.</summary>
-    private int Pixels(double size)
+    /// <summary>
+    /// A rectangle on the screen kept as plain numbers, so the hook's thread can ask where the
+    /// picker is without touching a window, which only the interface thread may read.
+    /// </summary>
+    private sealed record Box(int Left, int Top, int Width, int Height)
     {
-        var scaling = RenderScaling <= 0 ? 1 : RenderScaling;
-        return (int)Math.Ceiling(size * scaling);
+        public bool Holds(int x, int y)
+            => Width > 0 && Height > 0
+               && x >= Left && x < Left + Width
+               && y >= Top && y < Top + Height;
     }
 
     /// <summary>Draws the outline around a control, or takes it off the screen when there is none.</summary>
@@ -237,6 +249,7 @@ public sealed class ElementPickerWindow : Window
     {
         if (info is null || info.Size.Width <= 0 || info.Size.Height <= 0)
         {
+            _frameBox = null;
             IsVisible = false;
             return;
         }
@@ -244,10 +257,16 @@ public sealed class ElementPickerWindow : Window
         var scaling = RenderScaling <= 0 ? 1 : RenderScaling;
         var width = info.Size.Width + (Frame * 2);
         var height = info.Size.Height + (Frame * 2);
+        var left = info.Location.X - Frame;
+        var top = info.Location.Y - Frame;
 
-        Position = new PixelPoint(info.Location.X - Frame, info.Location.Y - Frame);
+        Position = new PixelPoint(left, top);
         Width = width / scaling;
         Height = height / scaling;
+
+        // Recorded as the frame is drawn, so the region that is cut and the rectangle a click is
+        // measured against are always the same numbers.
+        _frameBox = new Box(left, top, width, height);
 
         IsVisible = true;
         Hollow(width, height);
@@ -279,17 +298,6 @@ public sealed class ElementPickerWindow : Window
 
         // The window takes the region over, so it must not be freed here.
         SetWindowRgn(platform.Handle, frame, true);
-    }
-
-    /// <summary>True when a place on the screen falls inside a window's rectangle.</summary>
-    private static bool Covers(Window window, ScreenPoint point)
-    {
-        var scaling = window.RenderScaling <= 0 ? 1 : window.RenderScaling;
-        var width = (int)Math.Ceiling(window.Bounds.Width * scaling);
-        var height = (int)Math.Ceiling(window.Bounds.Height * scaling);
-
-        return point.X >= window.Position.X && point.X < window.Position.X + width
-            && point.Y >= window.Position.Y && point.Y < window.Position.Y + height;
     }
 
     /// <summary>
@@ -331,6 +339,7 @@ public sealed class ElementPickerWindow : Window
     {
         if (_readout is not { IsVisible: true } readout)
         {
+            _readoutBox = null;
             return;
         }
 
@@ -352,9 +361,11 @@ public sealed class ElementPickerWindow : Window
             y = point.Y - height - ReadoutGap;
         }
 
-        readout.Position = new PixelPoint(
-            Math.Clamp(x, screen.X, Math.Max(screen.X, screen.X + screen.Width - width)),
-            Math.Clamp(y, screen.Y, Math.Max(screen.Y, screen.Y + screen.Height - height)));
+        x = Math.Clamp(x, screen.X, Math.Max(screen.X, screen.X + screen.Width - width));
+        y = Math.Clamp(y, screen.Y, Math.Max(screen.Y, screen.Y + screen.Height - height));
+
+        readout.Position = new PixelPoint(x, y);
+        _readoutBox = new Box(x, y, width, height);
     }
 
     /// <summary>Where the main screen is, which is the screen the picker works on.</summary>
@@ -467,6 +478,13 @@ public sealed class ElementPickerWindow : Window
         e.SuppressEvent = true;
         Dispatcher.UIThread.Post(() =>
         {
+            if (_done)
+            {
+                // Something else finished the picker between the click and this running, and a
+                // window that is on its way out is not worth looking at again.
+                return;
+            }
+
             // The pointer has stopped moving, so looking again here is what keeps the answer
             // exact rather than a step behind.
             ProbeAt(x, y);
