@@ -1450,6 +1450,41 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_path_can_be_taken_apart_and_put_back_together()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, store) = await RunAsync(
+        [
+            Step("file.path", Param("operation", "combine"), Param("path", @"reports\"),
+                Param("name", "day.csv"), Param("resultVariable", "joined")),
+            Step("file.path", Param("operation", "folder"), Param("path", @"reports\day.csv"),
+                Param("resultVariable", "where")),
+            Step("file.path", Param("operation", "name"), Param("path", @"reports\day.csv"),
+                Param("resultVariable", "what")),
+            Step("file.path", Param("operation", "baseName"), Param("path", @"reports\day.csv"),
+                Param("resultVariable", "stem")),
+            Step("file.path", Param("operation", "extension"), Param("path", @"reports\day.csv"),
+                Param("resultVariable", "tail")),
+            Step("file.path", Param("operation", "full"), Param("path", @"reports\day.csv"),
+                Param("resultVariable", "whole")),
+            Step("file.path", Param("operation", "macros"), Param("resultVariable", "home")),
+            Step("file.path", Param("operation", "temp"), Param("resultVariable", "scratch")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(@"reports\day.csv", store.Local.Values["joined"].AsText());
+        Assert.Equal("reports", store.Local.Values["where"].AsText());
+        Assert.Equal("day.csv", store.Local.Values["what"].AsText());
+        Assert.Equal("day", store.Local.Values["stem"].AsText());
+        Assert.Equal(".csv", store.Local.Values["tail"].AsText());
+
+        // A relative path points inside the macros folder, which is where the file actions look too.
+        Assert.Equal(Path.Combine(@"G:\fake", @"reports\day.csv"), store.Local.Values["whole"].AsText());
+        Assert.Equal(@"G:\fake", store.Local.Values["home"].AsText());
+        Assert.True(Path.IsPathRooted(store.Local.Values["scratch"].AsText()));
+    }
+
+    [Fact]
     public async Task Listing_a_folder_gives_a_list_of_full_paths()
     {
         var devices = new FakeDeviceLayer();
@@ -2684,6 +2719,10 @@ internal sealed class FakeDeviceLayer
 
     /// <summary>The pretend folder relative paths resolve under.</summary>
     public string BaseFolder { get; set; } = "G:\\fake";
+
+    /// <summary>The full path a relative one stands for: the fake reads them from its base folder.</summary>
+    public string Resolve(string path)
+        => Path.IsPathRooted(path) ? path : Path.Combine(BaseFolder, path);
 
     /// <summary>The pretend files on disk, keyed by full path, for reading and copying.</summary>
     public Dictionary<string, string> Files { get; } = [];

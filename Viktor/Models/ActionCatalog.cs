@@ -515,6 +515,34 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "file.path",
+            Category = ActionCategory.File,
+            DisplayName = "Path",
+            Description = "Work out part of a path: join, split, or find where it points.",
+            Parameters =
+            [
+                Choice("operation", "Operation",
+                    ["combine", "folder", "name", "baseName", "extension", "full", "temp", "macros"],
+                    "combine",
+                    "What to work out. Combine joins the path and the name beside it; the others "
+                    + "read one part off the path, or hand back a folder that is always in the "
+                    + "same place.",
+                    labels:
+                    [
+                        "Join folder and name", "The folder it is in", "The file name",
+                        "The file name without its extension", "The extension", "The full path",
+                        "The temporary folder", "The macros folder",
+                    ]),
+                FilePath("path", "Path", @"reports\day.csv",
+                    "The path to work on. The two folder answers ignore it."),
+                Text("name", "Name", "report.csv", required: false,
+                    hint: "The second half of a join. Only \"join folder and name\" uses it."),
+                Variable("resultVariable", "Result variable", "path",
+                    "Variable that receives the answer.", namesVariable: true, defaultValue: "path"),
+            ],
+        },
+        new()
+        {
             Key = "file.deleteFolder",
             Category = ActionCategory.File,
             DisplayName = "Delete Folder",

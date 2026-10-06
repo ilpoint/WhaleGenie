@@ -146,6 +146,12 @@ public interface IFileDevice
     /// <summary>Where a relative path is read from and written to.</summary>
     string BaseFolder { get; }
 
+    /// <summary>
+    /// The full path a macro's path stands for: a relative one is read from
+    /// <see cref="BaseFolder"/>, which is where every other file action reads and writes too.
+    /// </summary>
+    string Resolve(string path);
+
     /// <summary>Whether a file or a folder is there.</summary>
     bool Exists(string path);
 
@@ -377,6 +383,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
           IClipboardDevice, IProcessDevice, ISystemDevice, IWindowDevice
     {
         public string BaseFolder => throw Missing("files");
+
+        public string Resolve(string path) => throw Missing("files");
 
         public bool Exists(string path) => throw Missing("files");
 

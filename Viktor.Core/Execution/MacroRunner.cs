@@ -458,6 +458,10 @@ public sealed class MacroRunner
                 DeleteFolder(step, depth);
                 return Signal.Normal;
 
+            case "file.path":
+                PathPart(step, depth);
+                return Signal.Normal;
+
             case "file.listFiles":
                 ListFiles(step, depth);
                 return Signal.Normal;
@@ -2137,6 +2141,33 @@ public sealed class MacroRunner
 
         _devices.Files.DeleteFolder(path, recurse);
         Log(LogLevel.Info, depth, step.Type, "Run.RemovedFolder", path);
+    }
+
+    /// <summary>
+    /// Works out one piece of a path. A macro that has to say "the file next to this one" or "the
+    /// same name with .bak on the end" should not have to spell the whole path out again, and the
+    /// two folder answers are the ones that are always in the same place on any machine.
+    /// </summary>
+    private void PathPart(ExecutableStep step, int depth)
+    {
+        var path = PathOf(step);
+        var other = Read(step.Text("name")).AsText().Trim();
+
+        var answer = step.Text("operation").Trim().ToLowerInvariant() switch
+        {
+            "folder" => Path.GetDirectoryName(path) ?? string.Empty,
+            "name" => Path.GetFileName(path),
+            "basename" => Path.GetFileNameWithoutExtension(path),
+            "extension" => Path.GetExtension(path),
+            "full" => _devices.Files.Resolve(path),
+            "temp" => Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar),
+            "macros" => _devices.Files.BaseFolder,
+            _ => other.Length == 0 ? path : Path.Combine(path, other),
+        };
+
+        var name = VariableName(step, "resultVariable", "path");
+        Variables.Set(name, Value.FromText(answer));
+        Log(LogLevel.Info, depth, step.Type, "Run.Set", name, answer);
     }
 
     private void ListFiles(ExecutableStep step, int depth)

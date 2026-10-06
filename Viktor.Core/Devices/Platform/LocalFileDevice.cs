@@ -21,6 +21,8 @@ public sealed class LocalFileDevice : IFileDevice
 
     public string BaseFolder { get; }
 
+    public string Resolve(string path) => Full(path);
+
     public bool Exists(string path)
     {
         var full = Full(path);
