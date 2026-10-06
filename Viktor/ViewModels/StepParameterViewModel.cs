@@ -142,16 +142,15 @@ public partial class StepParameterViewModel : ViewModelBase
     private decimal Milliseconds => (NumberValue ?? 0m) * _unit.Factor;
 
     /// <summary>
-    /// Shows a length of time that is stored in milliseconds in the largest unit it divides into,
-    /// so a step saved as 300000 opens reading "5 minutes".
+    /// Shows a length of time that is stored in milliseconds as milliseconds. The unit box starts
+    /// on milliseconds whatever the number is, so every time field in a step reads the same way;
+    /// writing "5 分" is something the user asks for by picking the unit, not something the dialog
+    /// decides for them.
     /// </summary>
     private void ShowMilliseconds(decimal milliseconds)
     {
+        Unit = DurationUnits[0];
         NumberValue = milliseconds;
-        if (IsDuration)
-        {
-            Unit = DurationUnit.Best(milliseconds);
-        }
     }
 
     /// <summary>

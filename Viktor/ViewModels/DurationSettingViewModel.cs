@@ -71,12 +71,12 @@ public partial class DurationSettingViewModel : ViewModelBase
         : (int)Math.Clamp(decimal.Round(Value.Value * _unit.Factor), 0m, _maximum);
 
     /// <summary>
-    /// Shows a stored number in the largest unit it divides into; zero leaves the box empty, so a
-    /// step that says nothing about this pause still opens with nothing written in it.
+    /// Shows a stored number as milliseconds, the unit every time field starts on; zero leaves the
+    /// box empty, so a step that says nothing about this pause still opens with nothing in it.
     /// </summary>
     public void Load(decimal milliseconds)
     {
+        Unit = Units[0];
         Value = milliseconds == 0m ? null : milliseconds;
-        Unit = DurationUnit.Best(milliseconds);
     }
 }

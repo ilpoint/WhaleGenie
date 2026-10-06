@@ -11,18 +11,6 @@ namespace Viktor.Tests;
 /// </summary>
 public class DurationUnitTests
 {
-    [Theory]
-    [InlineData(0, "ms")]
-    [InlineData(500, "ms")]
-    [InlineData(1500, "ms")]
-    [InlineData(1000, "s")]
-    [InlineData(90_000, "s")]
-    [InlineData(300_000, "min")]
-    [InlineData(165_600_000, "h")]
-    public void The_biggest_unit_a_number_divides_into_is_the_one_it_opens_in(
-        int milliseconds, string expected)
-        => Assert.Equal(expected, DurationUnit.Best(milliseconds).Key);
-
     [Fact]
     public void Every_unit_is_named_in_both_languages()
     {

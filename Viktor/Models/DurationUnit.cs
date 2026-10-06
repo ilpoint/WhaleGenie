@@ -28,13 +28,8 @@ public sealed record DurationUnit(string Key, decimal Factor, string Label)
     public string LabelKey => "Add.Unit." + Key;
 
     /// <summary>
-    /// The largest unit the number divides into exactly, so a step saved as 300000 milliseconds
-    /// opens reading "5 minutes" while 1500 stays on milliseconds. Zero stays on milliseconds,
-    /// because "0 means no limit" reads worst as "0 hours".
+    /// A length of time written the way a person reads it, for example "5 分" or "1.5 s".
     /// </summary>
-    public static DurationUnit Best(decimal milliseconds) => Biggest(Catalog, milliseconds);
-
-    /// <summary>A length of time written the way a person reads it, for example "5 分" or "1.5 s".</summary>
     public static string Written(decimal milliseconds)
     {
         var unit = Biggest(Localized(), milliseconds);

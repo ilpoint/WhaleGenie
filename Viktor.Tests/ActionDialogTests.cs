@@ -681,22 +681,23 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_wait_that_divides_evenly_opens_in_the_big_unit()
+    public void A_time_opens_in_milliseconds_whatever_the_number_is()
     {
         Ui.Run(() =>
         {
             var viewModel = Open("control.waitUntil");
             var timeout = viewModel.Parameters.First(parameter => parameter.Definition.Name == "timeoutMs");
 
-            // 10000 milliseconds reads better as 10 whole seconds.
-            Assert.Equal("s", timeout.Unit.Key);
-            Assert.Equal(10m, timeout.NumberValue);
+            // 10000 is 10 whole seconds, and it still opens as 10000: every time field in a step
+            // reads in milliseconds, and converting is the user's own job.
+            Assert.Equal("ms", timeout.Unit.Key);
+            Assert.Equal(10_000m, timeout.NumberValue);
             Assert.Equal("10000", Value(viewModel, "timeoutMs"));
         });
     }
 
     [Fact]
-    public void A_time_already_written_into_a_step_opens_in_the_unit_it_fits()
+    public void A_time_already_written_into_a_step_opens_in_milliseconds()
     {
         Ui.Run(() =>
         {
@@ -710,18 +711,17 @@ public class ActionDialogTests
                     {
                         Name = "ms",
                         Kind = ActionParameterKind.Number,
-                        Value = "1500",
+                        Value = "300000",
                     },
                 ],
             });
 
             var ms = viewModel.Parameters.First(parameter => parameter.Definition.Name == "ms");
 
-            // 1500 is not a whole number of seconds, so it stays on milliseconds, and saving it
-            // again writes back the number it came in as.
+            // Five minutes, and it still opens as the 300000 the step carries.
             Assert.Equal("ms", ms.Unit.Key);
-            Assert.Equal(1500m, ms.NumberValue);
-            Assert.Equal("1500", Value(viewModel, "ms"));
+            Assert.Equal(300_000m, ms.NumberValue);
+            Assert.Equal("300000", Value(viewModel, "ms"));
         });
     }
 
@@ -742,10 +742,12 @@ public class ActionDialogTests
             Assert.True(ms.IsDurationFormula);
             Assert.Equal("120000", Value(viewModel, "ms"));
 
-            // Coming back to a plain number picks the unit up again.
             ms.ToggleFormula();
-            Assert.Equal("min", ms.Unit.Key);
-            Assert.Equal(2m, ms.NumberValue);
+            // Coming back to a plain number reads in milliseconds, the same as every other time
+            // field: what is shown is the number the step holds, so nothing is quietly converted.
+            Assert.Equal("ms", ms.Unit.Key);
+            Assert.Equal(120_000m, ms.NumberValue);
+            Assert.Equal("120000", Value(viewModel, "ms"));
         });
     }
 
@@ -781,18 +783,26 @@ public class ActionDialogTests
                 .First(box => box.DataContext is StepParameterViewModel { IsDuration: true });
 
             Assert.True(unitBox.IsVisible);
-            Assert.Same(((StepParameterViewModel)unitBox.DataContext!).DurationUnits, unitBox.ItemsSource);
+            var editor = (StepParameterViewModel)unitBox.DataContext!;
+            Assert.Same(editor.DurationUnits, unitBox.ItemsSource);
+
+            // The box shows the unit it is on. A unit the list does not hold would leave the box
+            // looking empty, which is what a time field must never do.
+            Assert.Equal(0, unitBox.SelectedIndex);
 
             // The step settings carry the same choice, so a long timeout is written the same way.
             var settingBox = window.GetVisualDescendants().OfType<ComboBox>()
                 .First(box => ReferenceEquals(box.DataContext, viewModel.MetaTimeout));
             Assert.Same(viewModel.MetaTimeout.Units, settingBox.ItemsSource);
+            Assert.Equal(0, settingBox.SelectedIndex);
 
-            // A plain number carries no unit, so its box steps out of the way.
-            viewModel.SelectAction("input.mouseClick");
+            // A plain number carries no unit, so its box steps out of the way. It is the one that
+            // is leaving the screen that matters: a hidden box still sits in the tree.
+            viewModel.SelectAction("uia.getText");
             Dispatcher.UIThread.RunJobs();
 
-            Assert.DoesNotContain(window.GetVisualDescendants().OfType<ComboBox>(),
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<ComboBox>()
+                    .Where(box => box.IsEffectivelyVisible),
                 box => box.DataContext is StepParameterViewModel { IsDuration: true });
         });
     }
@@ -817,7 +827,7 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_step_settings_pause_that_divides_evenly_opens_in_the_big_unit()
+    public void A_step_settings_pause_opens_in_milliseconds()
     {
         Ui.Run(() =>
         {
@@ -828,8 +838,9 @@ public class ActionDialogTests
                 Meta = new StepMeta { TimeoutMs = 3_600_000 },
             });
 
-            Assert.Equal("h", viewModel.MetaTimeout.Unit.Key);
-            Assert.Equal(1m, viewModel.MetaTimeout.Value);
+            // An hour, and it opens as the 3600000 the step carries.
+            Assert.Equal("ms", viewModel.MetaTimeout.Unit.Key);
+            Assert.Equal(3_600_000m, viewModel.MetaTimeout.Value);
             Assert.Equal(3_600_000, viewModel.MetaTimeout.Milliseconds);
         });
     }
