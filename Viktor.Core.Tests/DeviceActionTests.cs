@@ -1885,6 +1885,31 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Starting_a_program_as_administrator_asks_for_the_elevation_prompt()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("process.start", Param("file", "cmd.exe"), Param("arguments", "/c whoami"),
+                Param("runAsAdmin", "true")),
+        ], devices);
+
+        // The device is the one that decides how to raise the prompt; the step only says it wants
+        // elevation, and the flag is on the request rather than left out of it.
+        Assert.Contains(devices.Calls, call =>
+            call.StartsWith("start cmd.exe|/c whoami|") && call.EndsWith("|admin"));
+    }
+
+    [Fact]
+    public async Task Starting_a_program_normally_does_not_ask_for_elevation()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync([Step("process.start", Param("file", "calc.exe"))], devices);
+
+        Assert.DoesNotContain(devices.Calls, call => call.EndsWith("|admin"));
+    }
+
+    [Fact]
     public async Task Waiting_for_a_program_keeps_the_id_once_it_appears()
     {
         var devices = new FakeDeviceLayer
@@ -3285,9 +3310,10 @@ internal sealed class FakeDeviceLayer
         ClipboardChanges++;
     }
 
-    int IProcessDevice.Start(string fileName, string arguments, string workingDirectory, bool hidden)
+    int IProcessDevice.Start(StartRequest request)
     {
-        Note($"start {fileName}|{arguments}|{workingDirectory}|{hidden}");
+        Note($"start {request.FileName}|{request.Arguments}|{request.WorkingDirectory}"
+             + $"|{request.Hidden}{(request.RunAsAdmin ? "|admin" : string.Empty)}");
         return NextProcessId++;
     }
 

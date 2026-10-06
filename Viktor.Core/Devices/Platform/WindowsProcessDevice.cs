@@ -24,41 +24,55 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
     /// </summary>
     private readonly ConcurrentDictionary<int, Process> _started = new();
 
-    public int Start(string fileName, string arguments, string workingDirectory, bool hidden)
+    public int Start(StartRequest request)
     {
         Require();
 
-        if (string.IsNullOrWhiteSpace(fileName))
+        if (string.IsNullOrWhiteSpace(request.FileName))
         {
             throw new DeviceActionException("Run.MissingProgram");
         }
 
         var info = new ProcessStartInfo
         {
-            FileName = fileName,
-            Arguments = arguments,
+            FileName = request.FileName,
+            Arguments = request.Arguments,
             UseShellExecute = true,
-            WindowStyle = hidden ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Normal,
+            WindowStyle = request.Hidden ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Normal,
         };
 
-        if (!string.IsNullOrWhiteSpace(workingDirectory))
+        if (request.RunAsAdmin)
         {
-            info.WorkingDirectory = workingDirectory;
+            // Only the shell can raise the approval prompt, so this route has to go through it.
+            info.Verb = "runas";
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.WorkingDirectory))
+        {
+            info.WorkingDirectory = request.WorkingDirectory;
         }
 
         try
         {
             var process = Process.Start(info)
-                ?? throw new DeviceActionException("Run.ProgramFailed", fileName);
+                ?? throw new DeviceActionException("Run.ProgramFailed", request.FileName);
 
             _started[process.Id] = process;
             return process.Id;
         }
+        catch (System.ComponentModel.Win32Exception error) when (error.NativeErrorCode == Refused)
+        {
+            throw new DeviceActionException("Run.ElevationRefused", request.FileName);
+        }
         catch (Exception error) when (Recoverable(error))
         {
-            throw new DeviceActionException("Run.ProgramFailed", $"{fileName}: {error.Message}");
+            throw new DeviceActionException("Run.ProgramFailed",
+                $"{request.FileName}: {error.Message}");
         }
     }
+
+    /// <summary>What Windows calls it when the person says no to the approval prompt.</summary>
+    private const int Refused = 1223;
 
     public IReadOnlyList<int> Find(string name)
     {

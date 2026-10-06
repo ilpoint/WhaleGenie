@@ -2733,8 +2733,9 @@ public sealed class MacroRunner
         var arguments = Read(step.Text("arguments")).AsText();
         var folder = Read(step.Text("workingDirectory")).AsText();
         var hidden = Flag(step, "hidden", true);
+        var runAsAdmin = Flag(step, "runAsAdmin", false);
 
-        var id = _devices.Processes.Start(program, arguments, folder, hidden);
+        var id = _devices.Processes.Start(new StartRequest(program, arguments, folder, hidden, runAsAdmin));
         var name = VariableName(step, "resultVariable", "processId");
         Variables.Set(name, Value.FromNumber(id));
         Log(LogLevel.Info, depth, step.Type, "Run.StartedProgram", program, id);

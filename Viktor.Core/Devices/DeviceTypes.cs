@@ -251,6 +251,18 @@ public sealed record UiElementInfo(
 public sealed record CommandResult(int ExitCode, string StandardOutput, string StandardError);
 
 /// <summary>
+/// How a program is to be started: what to run, where, and how it should come up. Gathered into
+/// one thing rather than a row of loose arguments, because a call site should not have to be read
+/// twice to tell one switch from another.
+/// </summary>
+public sealed record StartRequest(
+    string FileName,
+    string Arguments = "",
+    string WorkingDirectory = "",
+    bool Hidden = false,
+    bool RunAsAdmin = false);
+
+/// <summary>
 /// How a window is picked out of the ones that are open. A title is what a person sees, but it
 /// changes with the document and the language, so the program that owns the window and the class
 /// it registered are the sturdier things to name.

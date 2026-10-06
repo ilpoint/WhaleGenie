@@ -236,7 +236,7 @@ public interface IClipboardDevice
 public interface IProcessDevice
 {
     /// <summary>Starts a program and hands back its process id.</summary>
-    int Start(string fileName, string arguments, string workingDirectory, bool hidden);
+    int Start(StartRequest request);
 
     /// <summary>The ids of the running processes with this name.</summary>
     IReadOnlyList<int> Find(string name);
@@ -449,8 +449,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public void Clear() => throw Missing("the clipboard");
 
-        public int Start(string fileName, string arguments, string workingDirectory, bool hidden)
-            => throw Missing("other programs");
+        public int Start(StartRequest request) => throw Missing("other programs");
 
         public IReadOnlyList<int> Find(string name) => throw Missing("other programs");
 

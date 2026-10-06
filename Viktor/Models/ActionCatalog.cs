@@ -820,6 +820,10 @@ public static class ActionCatalog
                     "Folder to start the program in.", required: false),
                 Toggle("hidden", "Hidden window", true,
                     "Start the program without showing its window."),
+                Toggle("runAsAdmin", "Run as administrator", false,
+                    "Ask Windows to start the program with administrator rights. Windows shows "
+                    + "its own approval prompt, and refusing it fails the step. A program started "
+                    + "elevated cannot be kept off the screen."),
                 Variable("resultVariable", "Result variable", "processId",
                     "Variable that receives the process id.", required: false, namesVariable: true),
             ],

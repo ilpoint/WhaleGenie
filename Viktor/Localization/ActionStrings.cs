@@ -530,6 +530,8 @@ internal static class ActionStrings
         ["process.start.workingDirectory.hint"] = "程序在哪个目录下启动。",
         ["process.start.hidden.label"] = "隐藏窗口",
         ["process.start.hidden.hint"] = "启动时不显示程序窗口。",
+        ["process.start.runAsAdmin.label"] = "以管理员身份运行",
+        ["process.start.runAsAdmin.hint"] = "请 Windows 用管理员权限启动这个程序。系统会弹出自己的确认框，拒绝就让这一步失败。以管理员身份启动的程序无法隐藏窗口。",
         ["process.start.resultVariable.label"] = "结果变量",
         ["process.start.resultVariable.hint"] = "接收进程 id 的变量。",
 
