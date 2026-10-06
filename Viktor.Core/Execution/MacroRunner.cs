@@ -2735,10 +2735,47 @@ public sealed class MacroRunner
         var hidden = Flag(step, "hidden", true);
         var runAsAdmin = Flag(step, "runAsAdmin", false);
 
-        var id = _devices.Processes.Start(new StartRequest(program, arguments, folder, hidden, runAsAdmin));
+        var id = _devices.Processes.Start(
+            new StartRequest(program, arguments, folder, hidden, runAsAdmin, EnvironmentOf(step)));
         var name = VariableName(step, "resultVariable", "processId");
         Variables.Set(name, Value.FromNumber(id));
         Log(LogLevel.Info, depth, step.Type, "Run.StartedProgram", program, id);
+    }
+
+    /// <summary>
+    /// The environment variables a step hands a program, written one <c>NAME=value</c> per line.
+    /// Blank lines and lines starting with <c>#</c> are skipped, so a macro can keep a setting it
+    /// has switched off next to the one it uses. A line that is not a pair at all is reported
+    /// rather than ignored: a program started with half the environment the macro meant to give it
+    /// would be harder to explain than a step that says it could not read the list.
+    /// </summary>
+    private Dictionary<string, string>? EnvironmentOf(ExecutableStep step)
+    {
+        var text = step.Text("environment");
+        if (text.Trim().Length == 0)
+        {
+            return null;
+        }
+
+        var wanted = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var line in text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'))
+        {
+            var pair = line.Trim();
+            if (pair.Length == 0 || pair.StartsWith('#'))
+            {
+                continue;
+            }
+
+            var cut = pair.IndexOf('=');
+            if (cut <= 0)
+            {
+                throw new StepFailure("Run.BadEnvironment", pair);
+            }
+
+            wanted[pair[..cut].Trim()] = Interpolate(pair[(cut + 1)..].Trim());
+        }
+
+        return wanted.Count == 0 ? null : wanted;
     }
 
     /// <summary>Waits until a program with the given name shows up in the process list.</summary>
@@ -2823,7 +2860,8 @@ public sealed class MacroRunner
         var folder = Read(step.Text("workingDirectory")).AsText();
         var timeout = OptionalNumber(step, "timeoutMs", 30000);
 
-        var result = _devices.Processes.Run(program, arguments, folder, timeout);
+        var result = _devices.Processes.Run(
+            new CommandRequest(program, arguments, folder, timeout, EnvironmentOf(step)));
 
         Store(step, "resultVariable", "output", Value.FromText(result.StandardOutput));
         Store(step, "errorVariable", string.Empty, Value.FromText(result.StandardError));
@@ -3403,7 +3441,7 @@ public sealed class MacroRunner
         CommandResult result;
         try
         {
-            result = _devices.Processes.Run(program, arguments, folder, timeout);
+            result = _devices.Processes.Run(new CommandRequest(program, arguments, folder, timeout));
         }
         finally
         {

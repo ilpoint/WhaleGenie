@@ -532,6 +532,8 @@ internal static class ActionStrings
         ["process.start.hidden.hint"] = "启动时不显示程序窗口。",
         ["process.start.runAsAdmin.label"] = "以管理员身份运行",
         ["process.start.runAsAdmin.hint"] = "请 Windows 用管理员权限启动这个程序。系统会弹出自己的确认框，拒绝就让这一步失败。以管理员身份启动的程序无法隐藏窗口。",
+        ["process.start.environment.label"] = "环境变量",
+        ["process.start.environment.hint"] = "这个程序启动时使用的环境变量，一行一个 NAME=value。留空表示沿用维克多自己的环境变量。以 # 开头的行会被忽略。自己带环境变量启动时，这里要写程序本身，不能写文档或快捷方式。",
         ["process.start.resultVariable.label"] = "结果变量",
         ["process.start.resultVariable.hint"] = "接收进程 id 的变量。",
 
@@ -582,6 +584,8 @@ internal static class ActionStrings
         ["command.run.arguments.hint"] = "传给命令的参数。",
         ["command.run.workingDirectory.label"] = "工作目录",
         ["command.run.workingDirectory.hint"] = "命令在哪个目录下运行。",
+        ["command.run.environment.label"] = "环境变量",
+        ["command.run.environment.hint"] = "这条命令运行时使用的环境变量，一行一个 NAME=value。留空表示沿用维克多自己的环境变量。以 # 开头的行会被忽略。",
         ["command.run.timeoutMs.label"] = "超时毫秒",
         ["command.run.timeoutMs.hint"] = "命令最多可以运行多久。",
         ["command.run.resultVariable.label"] = "结果变量",

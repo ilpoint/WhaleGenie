@@ -33,13 +33,34 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
             throw new DeviceActionException("Run.MissingProgram");
         }
 
+        var environment = request.Environment is { Count: > 0 } ? request.Environment : null;
+        if (request.RunAsAdmin && environment is not null)
+        {
+            // The approval prompt only exists on the route through the shell, and that route builds
+            // the environment itself. Saying so beats starting the program with settings the macro
+            // did not ask for.
+            throw new DeviceActionException("Run.ElevationNoEnvironment", request.FileName);
+        }
+
+        // A program given its own environment variables has to be started directly, because only
+        // that route can carry them; everything else keeps going through the shell, which is what
+        // lets a document or a shortcut be started the way double-clicking it would.
+        var throughShell = environment is null;
         var info = new ProcessStartInfo
         {
             FileName = request.FileName,
             Arguments = request.Arguments,
-            UseShellExecute = true,
-            WindowStyle = request.Hidden ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Normal,
+            UseShellExecute = throughShell,
         };
+
+        if (throughShell)
+        {
+            info.WindowStyle = request.Hidden ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Normal;
+        }
+        else
+        {
+            info.CreateNoWindow = request.Hidden;
+        }
 
         if (request.RunAsAdmin)
         {
@@ -50,6 +71,14 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
         if (!string.IsNullOrWhiteSpace(request.WorkingDirectory))
         {
             info.WorkingDirectory = request.WorkingDirectory;
+        }
+
+        if (environment is not null)
+        {
+            foreach (var (name, value) in environment)
+            {
+                info.Environment[name] = value;
+            }
         }
 
         try
@@ -162,19 +191,19 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
         return Stop(id, force);
     }
 
-    public CommandResult Run(string fileName, string arguments, string workingDirectory, int timeoutMs)
+    public CommandResult Run(CommandRequest request)
     {
         Require();
 
-        if (string.IsNullOrWhiteSpace(fileName))
+        if (string.IsNullOrWhiteSpace(request.FileName))
         {
             throw new DeviceActionException("Run.MissingProgram");
         }
 
         var info = new ProcessStartInfo
         {
-            FileName = fileName,
-            Arguments = arguments,
+            FileName = request.FileName,
+            Arguments = request.Arguments,
             UseShellExecute = false,
             CreateNoWindow = true,
             RedirectStandardOutput = true,
@@ -183,25 +212,33 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
             StandardErrorEncoding = Encoding.UTF8,
         };
 
-        if (!string.IsNullOrWhiteSpace(workingDirectory))
+        if (!string.IsNullOrWhiteSpace(request.WorkingDirectory))
         {
-            info.WorkingDirectory = workingDirectory;
+            info.WorkingDirectory = request.WorkingDirectory;
+        }
+
+        if (request.Environment is { Count: > 0 } environment)
+        {
+            foreach (var (name, value) in environment)
+            {
+                info.Environment[name] = value;
+            }
         }
 
         try
         {
             using var process = Process.Start(info)
-                ?? throw new DeviceActionException("Run.ProgramFailed", fileName);
+                ?? throw new DeviceActionException("Run.ProgramFailed", request.FileName);
 
             // Both pipes are drained at once, so a program that talks a lot on one of them
             // cannot fill it up and stop while this side waits on the other.
             var output = process.StandardOutput.ReadToEndAsync();
             var error = process.StandardError.ReadToEndAsync();
 
-            if (!process.WaitForExit(Math.Max(0, timeoutMs)))
+            if (!process.WaitForExit(Math.Max(0, request.TimeoutMs)))
             {
                 Kill(process);
-                throw new DeviceActionException("Run.CommandTimeout", fileName);
+                throw new DeviceActionException("Run.CommandTimeout", request.FileName);
             }
 
             return new CommandResult(
@@ -211,7 +248,8 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
         }
         catch (Exception error) when (Recoverable(error))
         {
-            throw new DeviceActionException("Run.ProgramFailed", $"{fileName}: {error.Message}");
+            throw new DeviceActionException("Run.ProgramFailed",
+                $"{request.FileName}: {error.Message}");
         }
     }
 

@@ -1910,6 +1910,51 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Starting_a_program_can_hand_it_its_own_environment()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("control.setVariable", Param("name", "who"), Param("value", "Ann")),
+            Step("process.start", Param("file", "tool.exe"),
+                Param("environment", "LANG=zh_CN.UTF-8\n#TOKEN=off\n\nUSER=$who")),
+        ], devices);
+
+        // Only the lines that name something are passed on, and a value can be built out of a
+        // variable the same way every other text field can.
+        Assert.Contains(devices.Calls, call => call.EndsWith("|env LANG=zh_CN.UTF-8;USER=Ann"));
+    }
+
+    [Fact]
+    public async Task Running_a_command_can_give_it_its_own_environment()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("command.run", Param("file", "cmd.exe"), Param("arguments", "/c set TOKEN"),
+                Param("environment", "TOKEN=abc\nTOKEN=def")),
+        ], devices);
+
+        // The last line wins when the same name is written twice, so a macro can override a
+        // setting further up without editing that line.
+        Assert.Contains(devices.Calls, call => call.EndsWith("|env TOKEN=def"));
+        Assert.DoesNotContain(devices.Calls, call => call.Contains("TOKEN=abc"));
+    }
+
+    [Fact]
+    public async Task A_line_that_is_not_a_name_and_a_value_stops_the_step()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("command.run", Param("file", "cmd.exe"), Param("environment", "TOKEN")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.BadEnvironment", result.Key);
+    }
+
+    [Fact]
     public async Task Waiting_for_a_program_keeps_the_id_once_it_appears()
     {
         var devices = new FakeDeviceLayer
@@ -3313,9 +3358,18 @@ internal sealed class FakeDeviceLayer
     int IProcessDevice.Start(StartRequest request)
     {
         Note($"start {request.FileName}|{request.Arguments}|{request.WorkingDirectory}"
-             + $"|{request.Hidden}{(request.RunAsAdmin ? "|admin" : string.Empty)}");
+             + $"|{request.Hidden}{(request.RunAsAdmin ? "|admin" : string.Empty)}"
+             + EnvironmentNote(request.Environment));
         return NextProcessId++;
     }
+
+    /// <summary>The environment a call carried, spelled out so a test can read it back.</summary>
+    private static string EnvironmentNote(IReadOnlyDictionary<string, string>? values)
+        => values is null or { Count: 0 }
+            ? string.Empty
+            : "|env " + string.Join(";",
+                values.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                    .Select(pair => $"{pair.Key}={pair.Value}"));
 
     IReadOnlyList<int> IProcessDevice.Find(string name)
     {
@@ -3360,9 +3414,10 @@ internal sealed class FakeDeviceLayer
         return true;
     }
 
-    CommandResult IProcessDevice.Run(string fileName, string arguments, string workingDirectory, int timeoutMs)
+    CommandResult IProcessDevice.Run(CommandRequest request)
     {
-        Note($"run {fileName}|{arguments}|{workingDirectory}|{timeoutMs}");
+        Note($"run {request.FileName}|{request.Arguments}|{request.WorkingDirectory}"
+             + $"|{request.TimeoutMs}{EnvironmentNote(request.Environment)}");
         return Command;
     }
 

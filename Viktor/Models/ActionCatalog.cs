@@ -824,6 +824,12 @@ public static class ActionCatalog
                     "Ask Windows to start the program with administrator rights. Windows shows "
                     + "its own approval prompt, and refusing it fails the step. A program started "
                     + "elevated cannot be kept off the screen."),
+                Multiline("environment", "Environment variables",
+                    "One NAME=value per line for the program to start with. Leave it empty to "
+                    + "start the program with Viktor's own environment. Lines starting with # are "
+                    + "skipped. Giving a program its own environment means naming the program "
+                    + "itself, not a document or a shortcut.",
+                    "LANG=zh_CN.UTF-8", required: false),
                 Variable("resultVariable", "Result variable", "processId",
                     "Variable that receives the process id.", required: false, namesVariable: true),
             ],
@@ -910,6 +916,10 @@ public static class ActionCatalog
                     "What to pass to the command.", required: false),
                 Text("workingDirectory", "Working folder", "",
                     "Folder to run the command in.", required: false),
+                Multiline("environment", "Environment variables",
+                    "One NAME=value per line for the command to run with. Leave it empty to run "
+                    + "it with Viktor's own environment. Lines starting with # are skipped.",
+                    "LANG=zh_CN.UTF-8", required: false),
                 Number("timeoutMs", "Timeout ms", 30000, "How long the command may run."),
                 Variable("resultVariable", "Result variable", "output",
                     "Variable that receives what the command printed.",

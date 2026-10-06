@@ -555,6 +555,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.MissingProgram"] = "No program was named.",
         ["Run.ProgramFailed"] = "The program would not start or run: {0}",
         ["Run.ElevationRefused"] = "Windows was asked to start {0} as administrator and refused.",
+        ["Run.ElevationNoEnvironment"] = "{0} cannot be started as administrator and with its own "
+            + "environment variables at the same time.",
+        ["Run.BadEnvironment"] = "This is not a NAME=value line: {0}",
         ["Run.CommandTimeout"] = "The command did not finish in time: {0}",
         ["Run.ActivatedWindow"] = "Brought \"{0}\" to the front.",
         ["Run.MinimizedWindow"] = "Minimized \"{0}\".",
@@ -1047,6 +1050,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.MissingProgram"] = "没有填写程序名。",
         ["Run.ProgramFailed"] = "这个程序无法启动或运行：{0}",
         ["Run.ElevationRefused"] = "已请求以管理员身份启动 {0}，但这个请求被拒绝了。",
+        ["Run.ElevationNoEnvironment"] = "{0} 不能同时以管理员身份启动又自带环境变量。",
+        ["Run.BadEnvironment"] = "这一行不是 NAME=value 的写法：{0}",
         ["Run.CommandTimeout"] = "命令没有在限定时间内结束：{0}",
         ["Run.ActivatedWindow"] = "已把窗口调到最前：{0}",
         ["Run.MinimizedWindow"] = "已最小化窗口：{0}",

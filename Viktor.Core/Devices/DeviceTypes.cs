@@ -260,7 +260,19 @@ public sealed record StartRequest(
     string Arguments = "",
     string WorkingDirectory = "",
     bool Hidden = false,
-    bool RunAsAdmin = false);
+    bool RunAsAdmin = false,
+    IReadOnlyDictionary<string, string>? Environment = null);
+
+/// <summary>
+/// How a command line is to be run: what to run, where, how long it may take, and what it is
+/// handed before it starts.
+/// </summary>
+public sealed record CommandRequest(
+    string FileName,
+    string Arguments = "",
+    string WorkingDirectory = "",
+    int TimeoutMs = 30000,
+    IReadOnlyDictionary<string, string>? Environment = null);
 
 /// <summary>
 /// How a window is picked out of the ones that are open. A title is what a person sees, but it

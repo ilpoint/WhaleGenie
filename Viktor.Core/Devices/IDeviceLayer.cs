@@ -257,7 +257,7 @@ public interface IProcessDevice
     bool StopById(int id, bool force);
 
     /// <summary>Runs a program to the end and collects what it printed.</summary>
-    CommandResult Run(string fileName, string arguments, string workingDirectory, int timeoutMs);
+    CommandResult Run(CommandRequest request);
 }
 
 /// <summary>Facts about this machine that are not a file or a device.</summary>
@@ -463,8 +463,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public bool StopById(int id, bool force) => throw Missing("other programs");
 
-        public CommandResult Run(string fileName, string arguments, string workingDirectory, int timeoutMs)
-            => throw Missing("command lines");
+        public CommandResult Run(CommandRequest request) => throw Missing("command lines");
 
         public string Info(string field) => throw Missing("system information");
 
