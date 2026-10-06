@@ -970,6 +970,30 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Cleaning_the_picture_up_before_reading_it_keeps_the_positions_on_screen()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans = [new TextSpan("Go", new ScreenPoint(20, 10), new ScreenSize(40, 8), 0.9)],
+        };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("ocr.findText", Param("text", "Go"), Param("preprocess", "upscale"),
+                Param("resultVariable", "spot")),
+        ], devices);
+
+        // The picture the OCR was handed was the searched region at twice its size...
+        Assert.Equal([(200, 100)], devices.OcrFrames);
+
+        // ...so what it read comes back halved, and the place still means screen pixels: the
+        // writing sat at 20,10 and was 40 by 8, so its centre is 40,14 and comes back as 20,7.
+        Assert.Equal("20,7", store.Local.Values["spot"].AsText());
+        Assert.Equal(20, store.Local.Values["spot.width"].AsNumber());
+        Assert.Equal(4, store.Local.Values["spot.height"].AsNumber());
+    }
+
+    [Fact]
     public async Task A_text_search_can_be_exact_or_a_pattern()
     {
         var devices = new FakeDeviceLayer
@@ -3557,8 +3581,12 @@ internal sealed class FakeDeviceLayer
     public IReadOnlyList<TextSpan> Recognize(ImageFrame frame, string language)
     {
         Note($"ocr {language}");
+        OcrFrames.Add((frame.Width, frame.Height));
         return Spans;
     }
+
+    /// <summary>The sizes of the pictures the OCR was handed, so a test can see what was read.</summary>
+    public List<(int Width, int Height)> OcrFrames { get; } = [];
 
     public bool Exists(UiQuery query, int timeoutMs)
     {

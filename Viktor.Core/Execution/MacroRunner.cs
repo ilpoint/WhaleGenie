@@ -3304,11 +3304,10 @@ public sealed class MacroRunner
     /// </summary>
     private IReadOnlyList<TextSpan> ReadSpans(ExecutableStep step)
     {
-        var language = Language(step);
         var spans = new List<TextSpan>();
         foreach (var (area, origin) in SearchAreas(step))
         {
-            spans.AddRange(Wanted(step, _devices.Ocr.Recognize(area, language)).Select(span => span with
+            spans.AddRange(ReadFrame(step, area).Select(span => span with
             {
                 Location = new ScreenPoint(span.Location.X + origin.X, span.Location.Y + origin.Y),
             }));
@@ -3316,6 +3315,31 @@ public sealed class MacroRunner
 
         return spans;
     }
+
+    /// <summary>
+    /// Reads one picture, with whatever tidying up the step asked for, and hands the writing back
+    /// in the coordinates of the picture that was given: one that was made bigger to be read has
+    /// its positions made smaller again, so they still mean screen pixels.
+    /// </summary>
+    private IReadOnlyList<TextSpan> ReadFrame(ExecutableStep step, ImageFrame frame)
+    {
+        var (prepared, scale) = OcrPreprocess.Apply(frame, step.Text("preprocess"));
+        var spans = Wanted(step, _devices.Ocr.Recognize(prepared, Language(step)));
+
+        if (scale == 1)
+        {
+            return spans;
+        }
+
+        return [.. spans.Select(span => span with
+        {
+            Location = new ScreenPoint(Smaller(span.Location.X, scale), Smaller(span.Location.Y, scale)),
+            Size = new ScreenSize(Smaller(span.Size.Width, scale), Smaller(span.Size.Height, scale)),
+        })];
+    }
+
+    /// <summary>A measurement taken from a picture that was made bigger, put back to screen pixels.</summary>
+    private static int Smaller(int value, double scale) => (int)Math.Round(value / scale);
 
     /// <summary>
     /// What a step wants read: everything, or only the numbers. Asking for numbers keeps the
@@ -3333,7 +3357,7 @@ public sealed class MacroRunner
         var area = _devices.Screen.Capture(corner.X, corner.Y,
             Math.Max(1, Number(step, "width")), Math.Max(1, Number(step, "height")));
 
-        var spans = Wanted(step, _devices.Ocr.Recognize(area, Language(step)));
+        var spans = ReadFrame(step, area);
         var text = string.Join(' ', spans.Select(span => span.Text));
 
         var name = step.Text("resultVariable").Trim();

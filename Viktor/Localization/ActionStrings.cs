@@ -1402,6 +1402,11 @@ internal static class ActionStrings
         ["ocr.recognize.table.hint"] = "按屏幕上的位置分行分列：$变量是表格（每行一项、每项"
             + "一行单元格，和读表格同一种形状），$变量.text 是同样的内容按行拼成的文本"
             + "（行与行之间换行、单元格之间制表符）。没有表格线也能用，靠的是文字的位置。",
+        ["ocr.recognize.preprocess.label"] = "清理画面",
+        ["ocr.recognize.preprocess.hint"] = "读之前先把画面收拾一下：灰度去掉颜色；黑白是灰度"
+            + "再把明暗拉开（分界取整张图自己的平均亮度，所以深色主题和浅色主题一样能用）；"
+            + "放大两倍对付小字；最后一项两样都做。"
+            + "字清楚又不小的时候这项没什么用，只是白花一点时间。",
         ["ocr.recognize.resultVariable.label"] = "结果变量",
         ["ocr.recognize.resultVariable.hint"] = "接收识别结果的变量，可沿用已有变量名或新建一个。",
 
@@ -1422,6 +1427,10 @@ internal static class ActionStrings
         ["ocr.findText.content.hint"] = "把屏幕按全部文字比，还是按数字比：按数字比时，含数字"
             + "的片段只留下数字本身（货币符号、千位分隔符和旁边的文字都去掉），一个数字也没有"
             + "的片段直接不要，所以“找 1234.50”不会撞上旁边的文字。",
+        ["ocr.findText.preprocess.label"] = "清理画面",
+        ["ocr.findText.preprocess.hint"] = "读之前先把画面收拾一下：灰度 / 黑白 / 放大两倍 / "
+            + "放大并黑白。黑白的分界取整张图自己的平均亮度；放大读到的位置会按比例换算回"
+            + "屏幕像素，所以找到的位置仍然能直接点。",
 
         ["ocr.clickText.name"] = "点击文字",
         ["ocr.clickText.desc"] = "在屏幕上找到文字并点击它。",
@@ -1437,6 +1446,9 @@ internal static class ActionStrings
         ["ocr.clickText.content.hint"] = "把屏幕按全部文字找，还是按数字找：按数字找时，含数字的"
             + "片段只留下数字本身（货币符号、千位分隔符和旁边的文字都去掉），一个数字也没有的"
             + "片段直接不要。",
+        ["ocr.clickText.preprocess.label"] = "清理画面",
+        ["ocr.clickText.preprocess.hint"] = "找之前先把画面收拾一下：灰度 / 黑白 / 放大两倍 / "
+            + "放大并黑白。黑白的分界取整张图自己的平均亮度。",
         ["ocr.clickText.button.label"] = "按键",
 
         // ---------------------------------------------------------------------- uia
@@ -1797,6 +1809,21 @@ internal static class ActionStrings
         ["ocr.findText.content.option.digits"] = "只读数字",
         ["ocr.clickText.content.option.text"] = "全部文字",
         ["ocr.clickText.content.option.digits"] = "只读数字",
+        ["ocr.recognize.preprocess.option.none"] = "原样",
+        ["ocr.recognize.preprocess.option.greyscale"] = "灰度",
+        ["ocr.recognize.preprocess.option.binarize"] = "黑白",
+        ["ocr.recognize.preprocess.option.upscale"] = "放大两倍",
+        ["ocr.recognize.preprocess.option.upscaleBinarize"] = "放大两倍并黑白",
+        ["ocr.findText.preprocess.option.none"] = "原样",
+        ["ocr.findText.preprocess.option.greyscale"] = "灰度",
+        ["ocr.findText.preprocess.option.binarize"] = "黑白",
+        ["ocr.findText.preprocess.option.upscale"] = "放大两倍",
+        ["ocr.findText.preprocess.option.upscaleBinarize"] = "放大两倍并黑白",
+        ["ocr.clickText.preprocess.option.none"] = "原样",
+        ["ocr.clickText.preprocess.option.greyscale"] = "灰度",
+        ["ocr.clickText.preprocess.option.binarize"] = "黑白",
+        ["ocr.clickText.preprocess.option.upscale"] = "放大两倍",
+        ["ocr.clickText.preprocess.option.upscaleBinarize"] = "放大两倍并黑白",
 
         ["ocr.findText.matchMode.option.contains"] = "包含",
         ["ocr.findText.matchMode.option.exact"] = "完全匹配",

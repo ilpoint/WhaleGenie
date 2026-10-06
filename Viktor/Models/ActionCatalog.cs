@@ -1628,6 +1628,7 @@ public static class ActionCatalog
                     "Keep the lines and columns the writing was read in: the variable holds rows of "
                     + "cells — the same shape as reading a table through UI Automation — and "
                     + "$name.text holds the whole lot as text, one line per row."),
+                Preprocess(),
                 Variable("resultVariable", "Result variable", "text",
                     "Variable that receives the recognised text, or the rows of cells when the step "
                     + "reads a table. $name.text is the writing either way.",
@@ -1647,6 +1648,7 @@ public static class ActionCatalog
                 ..Anchor(),
                 TextMatch(),
                 Content(),
+                Preprocess(),
                 AllMatches(),
                 Variable("resultVariable", "Result variable", "match",
                     "Variable that receives the match centre, empty when the text was not found. "
@@ -1667,6 +1669,7 @@ public static class ActionCatalog
                 Text("text", "Text to find", "Save"),
                 TextMatch(),
                 Content(),
+                Preprocess(),
                 Number("offsetX", "Offset X", 0, "Pixels added to the match centre.", min: -100000m),
                 Number("offsetY", "Offset Y", 0, min: -100000m),
                 Number("timeoutMs", "Timeout ms", 5000, "Wait this long for the text before giving up."),
@@ -2507,6 +2510,19 @@ public static class ActionCatalog
             "All of the text, or only the numbers: a piece that holds a number keeps the number "
             + "itself, and the money sign, the thousands separators and the label around it are "
             + "dropped. A piece with no digit in it is not a number and is left out.");
+
+    /// <summary>
+    /// Whether a step wants the picture tidied up before it is read. Small, low-contrast writing on
+    /// a busy background is where this pays off; on clean writing of a decent size it does nothing
+    /// but cost a moment.
+    /// </summary>
+    private static ActionParameter Preprocess()
+        => Choice("preprocess", "Clean the picture up", [.. Viktor.Core.Devices.OcrPreprocess.Recipes],
+            "none",
+            "Tidy the picture up before reading it: grey takes the colour out, black and white is "
+            + "grey with light and dark pushed apart — the cut is the picture's own average, so a "
+            + "dark screen works as well as a light one — and twice as big helps with small writing. "
+            + "The last one does both.");
 
     /// <summary>A window title, filled in from the windows that are open by the window picker.</summary>
     private static ActionParameter Window(string name = "window",
