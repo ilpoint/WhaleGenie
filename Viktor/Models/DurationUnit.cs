@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Viktor.Localization;
 
@@ -11,15 +12,16 @@ namespace Viktor.Models;
 public sealed record DurationUnit(string Key, decimal Factor, string Label)
 {
     /// <summary>
-    /// The units the dropdown offers, smallest first. The labels here are the English fallbacks;
-    /// <see cref="Localized"/> swaps in the ones for the interface language in use.
+    /// The units the dropdown offers, smallest first. The labels here are the English fallbacks
+    /// (short forms, because they also end up inside a sentence); <see cref="Localized"/> swaps in
+    /// the ones for the interface language in use.
     /// </summary>
     public static IReadOnlyList<DurationUnit> Catalog { get; } =
     [
-        new("ms", 1m, "Milliseconds"),
-        new("s", 1000m, "Seconds"),
-        new("min", 60_000m, "Minutes"),
-        new("h", 3_600_000m, "Hours"),
+        new("ms", 1m, "ms"),
+        new("s", 1000m, "s"),
+        new("min", 60_000m, "min"),
+        new("h", 3_600_000m, "h"),
     ];
 
     /// <summary>Resource key of this unit's label.</summary>
@@ -30,22 +32,32 @@ public sealed record DurationUnit(string Key, decimal Factor, string Label)
     /// opens reading "5 minutes" while 1500 stays on milliseconds. Zero stays on milliseconds,
     /// because "0 means no limit" reads worst as "0 hours".
     /// </summary>
-    public static DurationUnit Best(decimal milliseconds)
+    public static DurationUnit Best(decimal milliseconds) => Biggest(Catalog, milliseconds);
+
+    /// <summary>A length of time written the way a person reads it, for example "5 分" or "1.5 s".</summary>
+    public static string Written(decimal milliseconds)
+    {
+        var unit = Biggest(Localized(), milliseconds);
+        var number = (milliseconds / unit.Factor).ToString("0.####", CultureInfo.InvariantCulture);
+        return number + " " + unit.Label;
+    }
+
+    private static DurationUnit Biggest(IReadOnlyList<DurationUnit> units, decimal milliseconds)
     {
         if (milliseconds == 0m)
         {
-            return Catalog[0];
+            return units[0];
         }
 
-        for (var index = Catalog.Count - 1; index > 0; index--)
+        for (var index = units.Count - 1; index > 0; index--)
         {
-            if (milliseconds % Catalog[index].Factor == 0m)
+            if (milliseconds % units[index].Factor == 0m)
             {
-                return Catalog[index];
+                return units[index];
             }
         }
 
-        return Catalog[0];
+        return units[0];
     }
 
     /// <summary>The units as the dialog shows them, labelled in the interface language in use.</summary>

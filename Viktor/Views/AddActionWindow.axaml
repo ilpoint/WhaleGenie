@@ -26,6 +26,28 @@
         <!-- Paints the swatch beside a colour parameter. -->
         <conv:HexColorToBrushConverter x:Key="HexBrush" />
 
+        <!-- One length of time in the step settings: the number plus the unit it is written in. -->
+        <DataTemplate x:Key="DurationSetting" x:DataType="vm:DurationSettingViewModel">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                <NumericUpDown Value="{Binding Value}"
+                               Minimum="{Binding Minimum}"
+                               Maximum="{Binding Maximum}"
+                               Increment="1" FormatString="0.###"
+                               HorizontalAlignment="Stretch" />
+                <ComboBox Grid.Column="1" Classes="ActionSelect"
+                          ItemsSource="{Binding Units}"
+                          SelectedItem="{Binding Unit}"
+                          Width="118" HorizontalAlignment="Left">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:DurationUnit">
+                            <TextBlock Text="{Binding Label}"
+                                       FontSize="12.5" Foreground="#E8E8E8" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </Grid>
+        </DataTemplate>
+
         <!-- One parameter's editor, shared by every line of the parameter list. -->
         <DataTemplate x:Key="ParameterEditor" x:DataType="vm:StepParameterViewModel">
             <StackPanel>
@@ -499,9 +521,8 @@
                                 <StackPanel>
                                     <TextBlock Classes="FieldLabel"
                                                Text="{Binding [Add.StepTimeout], Source={x:Static loc:Strings.Current}}" />
-                                    <NumericUpDown Value="{Binding MetaTimeoutMs}" Minimum="0" Maximum="{Binding LongestPauseMs}"
-                                                   Increment="100" FormatString="0"
-                                                   Width="150" HorizontalAlignment="Left" />
+                                    <ContentControl Content="{Binding MetaTimeout}"
+                                                    ContentTemplate="{StaticResource DurationSetting}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock Classes="FieldLabel"
@@ -516,9 +537,8 @@
                                 <StackPanel>
                                     <TextBlock Classes="FieldLabel"
                                                Text="{Binding [Add.StepRetryDelay], Source={x:Static loc:Strings.Current}}" />
-                                    <NumericUpDown Value="{Binding MetaRetryDelayMs}" Minimum="0" Maximum="{Binding LongestPauseMs}"
-                                                   Increment="50" FormatString="0"
-                                                   Width="150" HorizontalAlignment="Left" />
+                                    <ContentControl Content="{Binding MetaRetryDelay}"
+                                                    ContentTemplate="{StaticResource DurationSetting}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock Classes="FieldLabel"
@@ -569,16 +589,14 @@
                                 <StackPanel>
                                     <TextBlock Classes="FieldLabel"
                                                Text="{Binding [Add.StepDelayBefore], Source={x:Static loc:Strings.Current}}" />
-                                    <NumericUpDown Value="{Binding MetaDelayBeforeMs}" Minimum="0" Maximum="{Binding LongestPauseMs}"
-                                                   Increment="50" FormatString="0"
-                                                   Width="150" HorizontalAlignment="Left" />
+                                    <ContentControl Content="{Binding MetaDelayBefore}"
+                                                    ContentTemplate="{StaticResource DurationSetting}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock Classes="FieldLabel"
                                                Text="{Binding [Add.StepDelayAfter], Source={x:Static loc:Strings.Current}}" />
-                                    <NumericUpDown Value="{Binding MetaDelayAfterMs}" Minimum="0" Maximum="{Binding LongestPauseMs}"
-                                                   Increment="50" FormatString="0"
-                                                   Width="150" HorizontalAlignment="Left" />
+                                    <ContentControl Content="{Binding MetaDelayAfter}"
+                                                    ContentTemplate="{StaticResource DurationSetting}" />
                                 </StackPanel>
                             </Grid>
 

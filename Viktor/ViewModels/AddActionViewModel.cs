@@ -49,13 +49,21 @@ public partial class AddActionViewModel : ViewModelBase
         _macros = macros ?? [];
         MetaOnError = ErrorChoices[0];
         MetaRetryBackoff = BackoffChoices[0];
+        MetaTimeout = new DurationSettingViewModel();
+        MetaRetryDelay = new DurationSettingViewModel(500);
+        MetaDelayBefore = new DurationSettingViewModel();
+        MetaDelayAfter = new DurationSettingViewModel();
+
+        // A length of time is held as a number plus the unit it reads in, so a change to either has
+        // to refresh the preview the same way a change to an action parameter does.
+        foreach (var setting in new[] { MetaTimeout, MetaRetryDelay, MetaDelayBefore, MetaDelayAfter })
+        {
+            setting.PropertyChanged += OnSettingChanged;
+        }
     }
 
     /// <summary>Everything the "Select Action" dropdown offers.</summary>
     public IReadOnlyList<ActionDefinition> AvailableActions { get; }
-
-    /// <summary>The top of the step-settings number boxes, which is the step's own ceiling.</summary>
-    public decimal LongestPauseMs => StepMeta.LongestPauseMs;
 
     /// <summary>
     /// Where a picture taken from the screen is saved while this dialog is open, and where a
@@ -133,10 +141,8 @@ public partial class AddActionViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(JsonPreview))]
     public partial bool MetaEnabled { get; set; } = true;
 
-    /// <summary>How long the step may run before it counts as failed. 0 means no limit.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(JsonPreview))]
-    public partial decimal? MetaTimeoutMs { get; set; }
+    /// <summary>How long the step may run before it counts as failed. Empty means no limit.</summary>
+    public DurationSettingViewModel MetaTimeout { get; }
 
     /// <summary>How many extra attempts a failing step gets.</summary>
     [ObservableProperty]
@@ -145,20 +151,13 @@ public partial class AddActionViewModel : ViewModelBase
     public partial decimal? MetaRetryCount { get; set; }
 
     /// <summary>Pause between two attempts.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(JsonPreview))]
-    [NotifyPropertyChangedFor(nameof(RetryPlan))]
-    public partial decimal? MetaRetryDelayMs { get; set; } = 500;
+    public DurationSettingViewModel MetaRetryDelay { get; }
 
     /// <summary>Pause before the step runs.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(JsonPreview))]
-    public partial decimal? MetaDelayBeforeMs { get; set; }
+    public DurationSettingViewModel MetaDelayBefore { get; }
 
     /// <summary>Pause after the step has run.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(JsonPreview))]
-    public partial decimal? MetaDelayAfterMs { get; set; }
+    public DurationSettingViewModel MetaDelayAfter { get; }
 
     /// <summary>What the macro does when this step fails.</summary>
     [ObservableProperty]
@@ -213,7 +212,7 @@ public partial class AddActionViewModel : ViewModelBase
             var waits = new StepMeta
             {
                 RetryCount = count,
-                RetryDelayMs = Whole(MetaRetryDelayMs),
+                RetryDelayMs = MetaRetryDelay.Milliseconds,
                 RetryBackoff = StepMeta.Backoff(MetaRetryBackoff?.Value ?? "fixed"),
             };
 
@@ -245,8 +244,8 @@ public partial class AddActionViewModel : ViewModelBase
         }
     }
 
-    /// <summary>A length of time written the way a person reads it, as the run-speed dialog does.</summary>
-    private static string FormatDuration(double milliseconds) => DelayScaleViewModel.Duration(milliseconds);
+    /// <summary>A length of time written with its unit, so "5 分" never turns back into 300000.</summary>
+    private static string FormatDuration(double milliseconds) => DurationUnit.Written((decimal)milliseconds);
 
     /// <summary>Fully qualified name of the selected action, e.g. <c>control.delay</c>.</summary>
     public string SelectedKey => SelectedDefinition?.Key ?? Strings.Get("Add.NoSelection");
@@ -363,11 +362,11 @@ public partial class AddActionViewModel : ViewModelBase
 
         MetaComment = step.Meta.Comment;
         MetaEnabled = step.Meta.IsEnabled;
-        MetaTimeoutMs = step.Meta.TimeoutMs;
+        MetaTimeout.Load(step.Meta.TimeoutMs);
         MetaRetryCount = step.Meta.RetryCount;
-        MetaRetryDelayMs = step.Meta.RetryDelayMs;
-        MetaDelayBeforeMs = step.Meta.DelayBeforeMs;
-        MetaDelayAfterMs = step.Meta.DelayAfterMs;
+        MetaRetryDelay.Load(step.Meta.RetryDelayMs);
+        MetaDelayBefore.Load(step.Meta.DelayBeforeMs);
+        MetaDelayAfter.Load(step.Meta.DelayAfterMs);
         MetaOnError = ErrorChoices.FirstOrDefault(choice =>
             choice.Value == StepMeta.Name(step.Meta.OnError)) ?? ErrorChoices[0];
         MetaErrorJumps = StepMeta.Text(step.Meta.Jumps);
@@ -657,6 +656,13 @@ public partial class AddActionViewModel : ViewModelBase
         SaveCommand.NotifyCanExecuteChanged();
     }
 
+    /// <summary>Refreshes what a change to a step-settings length of time affects.</summary>
+    private void OnSettingChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(JsonPreview));
+        OnPropertyChanged(nameof(RetryPlan));
+    }
+
     private List<string> MissingParameters()
         => Parameters.Where(parameter => parameter.IsMissing)
             .Select(parameter => parameter.Definition.LocalLabel)
@@ -705,12 +711,12 @@ public partial class AddActionViewModel : ViewModelBase
         {
             Comment = MetaComment.Trim(),
             IsEnabled = MetaEnabled,
-            TimeoutMs = Whole(MetaTimeoutMs),
+            TimeoutMs = MetaTimeout.Milliseconds,
             RetryCount = Whole(MetaRetryCount),
-            RetryDelayMs = Whole(MetaRetryDelayMs),
+            RetryDelayMs = MetaRetryDelay.Milliseconds,
             RetryBackoff = StepMeta.Backoff(MetaRetryBackoff?.Value ?? "fixed"),
-            DelayBeforeMs = Whole(MetaDelayBeforeMs),
-            DelayAfterMs = Whole(MetaDelayAfterMs),
+            DelayBeforeMs = MetaDelayBefore.Milliseconds,
+            DelayAfterMs = MetaDelayAfter.Milliseconds,
             OnError = StepMeta.Action(MetaOnError.Value),
             Jumps = StepMeta.TryRead(MetaErrorJumps, out var jumps, out _) ? jumps : [],
         },

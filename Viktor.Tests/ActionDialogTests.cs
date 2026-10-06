@@ -783,12 +783,54 @@ public class ActionDialogTests
             Assert.True(unitBox.IsVisible);
             Assert.Same(((StepParameterViewModel)unitBox.DataContext!).DurationUnits, unitBox.ItemsSource);
 
+            // The step settings carry the same choice, so a long timeout is written the same way.
+            var settingBox = window.GetVisualDescendants().OfType<ComboBox>()
+                .First(box => ReferenceEquals(box.DataContext, viewModel.MetaTimeout));
+            Assert.Same(viewModel.MetaTimeout.Units, settingBox.ItemsSource);
+
             // A plain number carries no unit, so its box steps out of the way.
             viewModel.SelectAction("input.mouseClick");
             Dispatcher.UIThread.RunJobs();
 
             Assert.DoesNotContain(window.GetVisualDescendants().OfType<ComboBox>(),
                 box => box.DataContext is StepParameterViewModel { IsDuration: true });
+        });
+    }
+
+    [Fact]
+    public void A_step_settings_pause_can_be_written_in_minutes_and_still_saves_milliseconds()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("control.delay");
+            var timeout = viewModel.MetaTimeout;
+            timeout.Unit = timeout.Units.First(unit => unit.Key == "min");
+            timeout.Value = 5;
+
+            MacroStep? saved = null;
+            viewModel.CloseRequested += result => saved = result;
+            viewModel.SaveCommand.Execute(null);
+
+            Assert.NotNull(saved);
+            Assert.Equal(300_000, saved!.Meta.TimeoutMs);
+        });
+    }
+
+    [Fact]
+    public void A_step_settings_pause_that_divides_evenly_opens_in_the_big_unit()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.keyPress");
+            viewModel.LoadFrom(new MacroStep
+            {
+                Type = "input.keyPress",
+                Meta = new StepMeta { TimeoutMs = 3_600_000 },
+            });
+
+            Assert.Equal("h", viewModel.MetaTimeout.Unit.Key);
+            Assert.Equal(1m, viewModel.MetaTimeout.Value);
+            Assert.Equal(3_600_000, viewModel.MetaTimeout.Milliseconds);
         });
     }
 }

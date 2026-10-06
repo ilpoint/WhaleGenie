@@ -150,12 +150,14 @@ public class MacroStep : INotifyPropertyChanged
 
             if (meta.TimeoutMs > 0)
             {
-                parts.Add(Strings.Format("Editor.Meta.Timeout", meta.TimeoutMs));
+                parts.Add(Strings.Format("Editor.Meta.Timeout", DurationUnit.Written(meta.TimeoutMs)));
             }
 
             if (meta.DelayBeforeMs > 0 || meta.DelayAfterMs > 0)
             {
-                parts.Add(Strings.Format("Editor.Meta.Pauses", meta.DelayBeforeMs, meta.DelayAfterMs));
+                parts.Add(Strings.Format("Editor.Meta.Pauses",
+                    DurationUnit.Written(meta.DelayBeforeMs),
+                    DurationUnit.Written(meta.DelayAfterMs)));
             }
 
             switch (meta.OnError)

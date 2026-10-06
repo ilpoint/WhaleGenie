@@ -122,10 +122,16 @@ public partial class StepParameterViewModel : ViewModelBase
                 return;
             }
 
+            // The number on screen is written in the unit, so it moves across rather than changing
+            // what it means. An empty box stays empty.
             var milliseconds = Milliseconds;
             _unit = value;
             OnPropertyChanged();
-            NumberValue = milliseconds / value.Factor;
+            if (NumberValue is not null)
+            {
+                NumberValue = milliseconds / value.Factor;
+            }
+
             OnPropertyChanged(nameof(Minimum));
             OnPropertyChanged(nameof(Maximum));
             OnPropertyChanged(nameof(CurrentText));
