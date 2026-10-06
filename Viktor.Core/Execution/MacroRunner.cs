@@ -712,6 +712,22 @@ public sealed class MacroRunner
                 GetElementText(step, depth);
                 return Signal.Normal;
 
+            case "uia.select":
+                SelectItem(step, depth);
+                return Signal.Normal;
+
+            case "uia.check":
+                SetElementChecked(step, depth);
+                return Signal.Normal;
+
+            case "uia.expand":
+                SetElementExpanded(step, depth);
+                return Signal.Normal;
+
+            case "uia.scrollIntoView":
+                ScrollElementIntoView(step, depth);
+                return Signal.Normal;
+
             case "uia.focusWindow":
                 FocusWindow(step, depth);
                 return Signal.Normal;
@@ -2700,6 +2716,74 @@ public sealed class MacroRunner
 
         Log(LogLevel.Info, depth, step.Type, "Run.FocusedWindow", title);
     }
+
+    /// <summary>
+    /// Picks one entry of a list, a drop-down or a set of tabs. The entry is named either by the
+    /// text it shows — which a variable may hold, so a value read somewhere else can be chosen
+    /// straight away — or by its number, counted from one.
+    /// </summary>
+    private void SelectItem(ExecutableStep step, int depth)
+    {
+        var item = Read(step.Text("item")).AsText().Trim();
+        var index = Number(step, "itemIndex");
+        var which = item.Length > 0 ? item : index.ToString(CultureInfo.InvariantCulture);
+        if (item.Length == 0 && index <= 0)
+        {
+            throw new StepFailure("Run.MissingItem");
+        }
+
+        if (!_devices.Ui.Select(Query(step), item, index))
+        {
+            throw new StepFailure("Run.ItemNotFound", which);
+        }
+
+        Log(LogLevel.Info, depth, step.Type, "Run.SelectedItem", step.Text("selector"), which);
+    }
+
+    /// <summary>Turns a check box on, off, or the other way round.</summary>
+    private void SetElementChecked(ExecutableStep step, int depth)
+    {
+        if (!_devices.Ui.SetChecked(Query(step), Switch(step.Text("state"))))
+        {
+            throw new StepFailure("Run.ElementNotCheckable", step.Text("selector"));
+        }
+
+        Log(LogLevel.Info, depth, step.Type, "Run.ElementChecked", step.Text("selector"));
+    }
+
+    /// <summary>Opens or closes a node: a tree branch, an accordion, a collapsed panel.</summary>
+    private void SetElementExpanded(ExecutableStep step, int depth)
+    {
+        var action = step.Text("state").Trim();
+        if (!_devices.Ui.SetExpanded(Query(step), action.Length == 0 ? "expand" : action))
+        {
+            throw new StepFailure("Run.ElementNotExpandable", step.Text("selector"));
+        }
+
+        Log(LogLevel.Info, depth, step.Type, "Run.ElementExpanded", step.Text("selector"));
+    }
+
+    /// <summary>Scrolls an element into view inside whatever list or panel holds it.</summary>
+    private void ScrollElementIntoView(ExecutableStep step, int depth)
+    {
+        if (!_devices.Ui.ScrollIntoView(Query(step)))
+        {
+            throw new StepFailure("Run.ElementNotScrollable", step.Text("selector"));
+        }
+
+        Log(LogLevel.Info, depth, step.Type, "Run.ScrolledElement", step.Text("selector"));
+    }
+
+    /// <summary>
+    /// What a three-way setting means for something that can be on, off, or left to decide itself:
+    /// true, false, or nothing at all for "the other way round".
+    /// </summary>
+    private static bool? Switch(string text) => text.Trim().ToLowerInvariant() switch
+    {
+        "on" or "true" or "yes" => true,
+        "off" or "false" or "no" => false,
+        _ => null,
+    };
 
     /// <summary>
     /// Reads a selector such as <c>Button[name='Save']</c> or <c>Edit[automationId='input']</c>,

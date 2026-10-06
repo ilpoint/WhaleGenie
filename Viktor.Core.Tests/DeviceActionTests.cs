@@ -988,6 +988,101 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Picking_an_entry_says_which_one_and_how()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("uia.select", Param("selector", "ComboBox[automationId='rate']"),
+                Param("item", "Fast"), Param("itemIndex", "0")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("selectItem ComboBox//rate#1 \"Fast\" 0", devices.Calls);
+    }
+
+    [Fact]
+    public async Task Picking_an_entry_by_number_counts_from_one()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("control.setVariable", Param("name", "wanted"), Param("value", "Fast")),
+            Step("uia.select", Param("selector", "ComboBox[automationId='rate']"),
+                Param("item", "$wanted"), Param("itemIndex", "3")),
+        ], devices);
+
+        // The text field is kept as written even when the number is what decides, so a step can
+        // be switched from one to the other without losing what was typed; a variable in it is
+        // filled in the way every other field reads one.
+        Assert.Contains("selectItem ComboBox//rate#1 \"Fast\" 3", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_pick_with_nothing_to_pick_fails_the_step()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [Step("uia.select", Param("selector", "ComboBox[automationId='rate']"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.MissingItem", result.Key);
+    }
+
+    [Fact]
+    public async Task A_pick_that_finds_no_such_entry_fails_the_step()
+    {
+        var devices = new FakeDeviceLayer { ItemSelectable = false };
+        var (result, _, _) = await RunAsync(
+        [
+            Step("uia.select", Param("selector", "ComboBox[automationId='rate']"),
+                Param("item", "Missing")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.ItemNotFound", result.Key);
+    }
+
+    [Fact]
+    public async Task A_check_box_can_be_switched_by_name_or_flipped()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("uia.check", Param("selector", "CheckBox[name='Remember']"), Param("state", "off")),
+            Step("uia.check", Param("selector", "CheckBox[name='Remember']"), Param("state", "toggle")),
+        ], devices);
+
+        Assert.Contains("setChecked Remember False", devices.Calls);
+        Assert.Contains("setChecked Remember flip", devices.Calls);
+    }
+
+    [Fact]
+    public async Task Opening_and_closing_a_node_says_which_way()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("uia.expand", Param("selector", "TreeItem[name='Tools']"),
+                Param("state", "collapse")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("setExpanded Tools collapse", devices.Calls);
+    }
+
+    [Fact]
+    public async Task Scrolling_into_view_a_step_of_a_list_that_will_not_scroll_fails()
+    {
+        var devices = new FakeDeviceLayer { Scrollable = false };
+        var (result, _, _) = await RunAsync(
+        [Step("uia.scrollIntoView", Param("selector", "ListItem[name='Row 9']"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.ElementNotScrollable", result.Key);
+    }
+
+    [Fact]
     public async Task Writing_into_an_element_carries_the_text_and_the_clear_flag()
     {
         var devices = new FakeDeviceLayer { ElementWritable = true };
@@ -2343,6 +2438,42 @@ internal sealed class FakeDeviceLayer
     {
         Note($"findElements {query.ControlType}/{query.Name} #{query.Index} take {limit}");
         return [.. Elements.Take(Math.Max(1, limit))];
+    }
+
+    /// <summary>What picking an entry of a drop-down or a list answers.</summary>
+    public bool ItemSelectable { get; set; } = true;
+
+    /// <summary>What turning a check box on, off or over answers.</summary>
+    public bool Checkable { get; set; } = true;
+
+    /// <summary>What opening or closing a node answers.</summary>
+    public bool Expandable { get; set; } = true;
+
+    /// <summary>What scrolling an element into view answers.</summary>
+    public bool Scrollable { get; set; } = true;
+
+    public bool Select(UiQuery query, string text, int itemIndex)
+    {
+        Note($"selectItem {query.ControlType}/{query.Name}/{query.AutomationId}#{query.Index} \"{text}\" {itemIndex}");
+        return ItemSelectable;
+    }
+
+    public bool SetChecked(UiQuery query, bool? state)
+    {
+        Note($"setChecked {query.Name} {state?.ToString() ?? "flip"}");
+        return Checkable;
+    }
+
+    public bool SetExpanded(UiQuery query, string action)
+    {
+        Note($"setExpanded {query.Name} {action}");
+        return Expandable;
+    }
+
+    public bool ScrollIntoView(UiQuery query)
+    {
+        Note($"scrollIntoView {query.Name}");
+        return Scrollable;
     }
 
     bool IFileDevice.Exists(string path)

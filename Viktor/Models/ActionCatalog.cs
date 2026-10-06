@@ -1352,6 +1352,71 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "uia.select",
+            Category = ActionCategory.Uia,
+            DisplayName = "Select Item",
+            Description = "Pick an entry of a drop-down, a list or a set of tabs.",
+            Parameters =
+            [
+                Window(),
+                Selector(),
+                MatchIndex(),
+                Text("item", "Entry", "Ready", required: false,
+                    hint: "The entry to pick, by the text it shows; a $variable holding the text "
+                          + "works too. Leave it empty and fill in the number below instead."),
+                Number("itemIndex", "Entry number", 0,
+                    "Which entry to pick, counted from 1. 0 means pick the one named above.",
+                    max: 10000),
+            ],
+        },
+        new()
+        {
+            Key = "uia.check",
+            Category = ActionCategory.Uia,
+            DisplayName = "Check Box",
+            Description = "Turn a check box, a switch or a radio button on or off.",
+            Parameters =
+            [
+                Window(),
+                Selector(),
+                MatchIndex(),
+                Choice("state", "State", ["on", "off", "toggle"], "on",
+                    "What to do with it. \"The other way round\" flips whatever it is now, which is "
+                    + "what a macro wants when it does not know the state it starts from.",
+                    labels: ["Turn on", "Turn off", "The other way round"]),
+            ],
+        },
+        new()
+        {
+            Key = "uia.expand",
+            Category = ActionCategory.Uia,
+            DisplayName = "Expand or Collapse",
+            Description = "Open or close a tree branch, a menu or a collapsed panel.",
+            Parameters =
+            [
+                Window(),
+                Selector(),
+                MatchIndex(),
+                Choice("state", "State", ["expand", "collapse", "toggle"], "expand",
+                    "Whether to open it, close it, or do whichever it is not right now.",
+                    labels: ["Open", "Close", "The other way round"]),
+            ],
+        },
+        new()
+        {
+            Key = "uia.scrollIntoView",
+            Category = ActionCategory.Uia,
+            DisplayName = "Scroll Into View",
+            Description = "Scroll an element into view inside the list or panel holding it.",
+            Parameters =
+            [
+                Window(),
+                Selector(),
+                MatchIndex(),
+            ],
+        },
+        new()
+        {
             Key = "uia.focusWindow",
             Category = ActionCategory.Uia,
             DisplayName = "Focus Window",

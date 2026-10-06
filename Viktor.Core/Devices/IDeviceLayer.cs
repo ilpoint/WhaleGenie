@@ -108,6 +108,25 @@ public interface IUiDevice
     /// a step that reads where something is, or that measures from it, needs.
     /// </summary>
     IReadOnlyList<UiElementInfo> FindAll(UiQuery query, int limit);
+
+    /// <summary>
+    /// Picks one entry of a list, a drop-down, a set of tabs or a menu: the one showing
+    /// <paramref name="text"/>, or the one at <paramref name="itemIndex"/> counted from one when
+    /// that is above zero. A drop-down that has not been opened yet is opened on the way.
+    /// </summary>
+    bool Select(UiQuery query, string text, int itemIndex);
+
+    /// <summary>
+    /// Turns a check box, a switch or a radio button on or off, or flips it when
+    /// <paramref name="state"/> is null.
+    /// </summary>
+    bool SetChecked(UiQuery query, bool? state);
+
+    /// <summary>Expands or collapses a node, or flips it: <c>expand</c>, <c>collapse</c>, <c>toggle</c>.</summary>
+    bool SetExpanded(UiQuery query, string action);
+
+    /// <summary>Scrolls an element inside its own container until it can be seen.</summary>
+    bool ScrollIntoView(UiQuery query);
 }
 
 /// <summary>Files on disk.</summary>
@@ -448,6 +467,14 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public IReadOnlyList<UiElementInfo> FindAll(UiQuery query, int limit)
             => throw Missing("UI Automation");
+
+        public bool Select(UiQuery query, string text, int itemIndex) => throw Missing("UI Automation");
+
+        public bool SetChecked(UiQuery query, bool? state) => throw Missing("UI Automation");
+
+        public bool SetExpanded(UiQuery query, string action) => throw Missing("UI Automation");
+
+        public bool ScrollIntoView(UiQuery query) => throw Missing("UI Automation");
 
         private static DeviceUnavailableException Missing(string capability) => new(capability);
     }

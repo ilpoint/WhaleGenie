@@ -208,8 +208,9 @@ public class ElementPickerTests
             .ToList());
 
         Assert.Equal(
-            ["condition.uiaExists", "condition.uiaNotExists", "uia.click", "uia.exists",
-             "uia.find", "uia.getText", "uia.setText", "uia.waitElement"],
+            ["condition.uiaExists", "condition.uiaNotExists", "uia.check", "uia.click", "uia.exists",
+             "uia.expand", "uia.find", "uia.getText", "uia.scrollIntoView", "uia.select",
+             "uia.setText", "uia.waitElement"],
             keys);
     }
 
