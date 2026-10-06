@@ -942,6 +942,8 @@ public static class ActionCatalog
             [
                 KeyBind("key", "Key", "Key to press, for example F5 or Enter."),
                 Number("holdMs", "Hold ms", 50, "How long the key stays down."),
+                Number("repeat", "Repeat", 1, "How many times to press the key.", min: 1),
+                Number("intervalMs", "Interval ms", 0, "Pause between repeated presses."),
                 ..Delivery(),
             ],
         },
@@ -979,6 +981,8 @@ public static class ActionCatalog
             [
                 Text("keys", "Keys", "Ctrl+Shift+S", "Keys joined with + and pressed together."),
                 Number("holdMs", "Hold ms", 50, "How long the combination stays down."),
+                Number("repeat", "Repeat", 1, "How many times to send the combination.", min: 1),
+                Number("intervalMs", "Interval ms", 0, "Pause between repeated presses."),
                 ..Delivery(),
             ],
         },

@@ -76,6 +76,27 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_key_press_can_be_repeated()
+    {
+        var (result, devices, _) = await RunAsync(
+            [Step("input.keyPress", Param("key", "F5"), Param("holdMs", "20"),
+                Param("repeat", "3"), Param("intervalMs", "0"))]);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(["keyPress F5 20", "keyPress F5 20", "keyPress F5 20"], devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_hotkey_can_be_repeated()
+    {
+        var (_, devices, _) = await RunAsync(
+            [Step("input.hotkey", Param("keys", "Ctrl+S"), Param("holdMs", "10"),
+                Param("repeat", "2"), Param("intervalMs", "0"))]);
+
+        Assert.Equal(["hotkey Ctrl|S 10", "hotkey Ctrl|S 10"], devices.Calls);
+    }
+
+    [Fact]
     public async Task Input_with_no_mode_goes_to_the_front_window()
     {
         var (_, devices, _) = await RunAsync(

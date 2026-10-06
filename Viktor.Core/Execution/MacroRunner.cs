@@ -584,7 +584,7 @@ public sealed class MacroRunner
 
             // ------------------------------------------------------------------ input
             case "input.keyPress":
-                Input(step).KeyPress(step.Text("key"), Pace(Number(step, "holdMs")));
+                await PressKey(step, token);
                 return Signal.Normal;
 
             case "input.keyDown":
@@ -596,7 +596,7 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "input.hotkey":
-                Input(step).Hotkey(Keys(step), Pace(Number(step, "holdMs")));
+                await SendHotkey(step, token);
                 return Signal.Normal;
 
             case "input.typeText":
@@ -1521,6 +1521,49 @@ public sealed class MacroRunner
 
     private static IReadOnlyList<string> Keys(ExecutableStep step)
         => [.. step.Text("keys").Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
+
+    /// <summary>
+    /// Presses a key, over again when the step asks for more than one. The pause goes between the
+    /// presses and never after the last, so a step that presses once waits for nothing.
+    /// </summary>
+    private async Task PressKey(ExecutableStep step, CancellationToken token)
+    {
+        var key = step.Text("key");
+        var hold = Pace(Number(step, "holdMs"));
+        var repeats = Math.Max(1, Number(step, "repeat"));
+        var interval = Pace(Number(step, "intervalMs"));
+
+        for (var count = 0; count < repeats; count++)
+        {
+            token.ThrowIfCancellationRequested();
+            if (count > 0)
+            {
+                await Pause(interval, token);
+            }
+
+            Input(step).KeyPress(key, hold);
+        }
+    }
+
+    /// <summary>The same for a combination: it can be sent more than once with a pause between.</summary>
+    private async Task SendHotkey(ExecutableStep step, CancellationToken token)
+    {
+        var keys = Keys(step);
+        var hold = Pace(Number(step, "holdMs"));
+        var repeats = Math.Max(1, Number(step, "repeat"));
+        var interval = Pace(Number(step, "intervalMs"));
+
+        for (var count = 0; count < repeats; count++)
+        {
+            token.ThrowIfCancellationRequested();
+            if (count > 0)
+            {
+                await Pause(interval, token);
+            }
+
+            Input(step).Hotkey(keys, hold);
+        }
+    }
 
     /// <summary>Copies a region of the screen into a variable the macro can look at again.</summary>
     private void Capture(ExecutableStep step, int depth)

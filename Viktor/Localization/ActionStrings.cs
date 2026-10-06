@@ -568,6 +568,10 @@ internal static class ActionStrings
         ["input.keyPress.key.hint"] = "要按下的键，例如 F5 或 Enter。",
         ["input.keyPress.holdMs.label"] = "按住毫秒",
         ["input.keyPress.holdMs.hint"] = "按键保持按下的时长。",
+        ["input.keyPress.repeat.label"] = "重复次数",
+        ["input.keyPress.repeat.hint"] = "这个键连续按几下。",
+        ["input.keyPress.intervalMs.label"] = "重复间隔毫秒",
+        ["input.keyPress.intervalMs.hint"] = "每两下之间的等待时间；只按一下就填 0。",
 
         ["input.keyDown.name"] = "按下按键",
         ["input.keyDown.desc"] = "保持按下某个键，直到对应的“松开按键”步骤。",
@@ -583,6 +587,10 @@ internal static class ActionStrings
         ["input.hotkey.keys.hint"] = "用 + 连接，同时按下。",
         ["input.hotkey.holdMs.label"] = "按住毫秒",
         ["input.hotkey.holdMs.hint"] = "组合键保持按下的时长。",
+        ["input.hotkey.repeat.label"] = "重复次数",
+        ["input.hotkey.repeat.hint"] = "这组组合键连续发几次。",
+        ["input.hotkey.intervalMs.label"] = "重复间隔毫秒",
+        ["input.hotkey.intervalMs.hint"] = "每两次之间的等待时间；只发一次就填 0。",
 
         ["input.typeText.name"] = "输入文本",
         ["input.typeText.desc"] = "输入一段文字。",
