@@ -638,6 +638,8 @@ internal static class ActionStrings
         ["input.mouseClick.clicks.hint"] = "一共发送几次点击。",
         ["input.mouseClick.intervalMs.label"] = "间隔毫秒",
         ["input.mouseClick.intervalMs.hint"] = "连续点击之间的间隔。",
+        ["input.mouseClick.holdMs.label"] = "按住毫秒",
+        ["input.mouseClick.holdMs.hint"] = "按下后保持多久才松开。填 0 就是普通的一下快点击；需要长按才响应的按钮，把这里调大。",
 
         ["input.mouseDoubleClick.name"] = "鼠标双击",
         ["input.mouseDoubleClick.desc"] = "在屏幕指定位置双击鼠标按键。",

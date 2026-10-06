@@ -161,6 +161,20 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_click_can_hold_the_button_down()
+    {
+        var (result, devices, _) = await RunAsync(
+        [
+            Step("input.mouseClick", Param("button", "left"), Param("x", "4"), Param("y", "5"),
+                Param("clicks", "2"), Param("intervalMs", "0"), Param("holdMs", "1")),
+        ]);
+
+        // A hold has to be a press and a release of its own, because the device's click is a tap.
+        Assert.True(result.Succeeded);
+        Assert.Equal(["down left 4 5", "up left 4 5", "down left 4 5", "up left 4 5"], devices.Calls);
+    }
+
+    [Fact]
     public async Task A_double_click_clicks_twice()
     {
         var (_, devices, _) = await RunAsync(

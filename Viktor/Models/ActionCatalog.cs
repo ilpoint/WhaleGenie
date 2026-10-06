@@ -1044,6 +1044,9 @@ public static class ActionCatalog
                 ..Anchor(withElement: true),
                 Number("clicks", "Clicks", 1, "How many clicks to send.", min: 1),
                 Number("intervalMs", "Interval ms", 0, "Pause between repeated clicks."),
+                Number("holdMs", "Hold ms", 0,
+                    "How long the button stays down before it is released. 0 sends a normal "
+                    + "quick click; a longer hold is for buttons that only answer a press-and-hold."),
                 ..Delivery(),
             ],
         },

@@ -612,12 +612,8 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "input.mouseClick":
-                {
-                    var point = Point(step, "x", "y");
-                    Input(step).Click(Button(step), point.X, point.Y,
-                        Math.Max(1, Number(step, "clicks")), Pace(Number(step, "intervalMs")));
-                    return Signal.Normal;
-                }
+                await ClickMouse(step, token);
+                return Signal.Normal;
 
             case "input.mouseDoubleClick":
                 {
@@ -1562,6 +1558,39 @@ public sealed class MacroRunner
             }
 
             Input(step).Hotkey(keys, hold);
+        }
+    }
+
+    /// <summary>
+    /// Clicks the mouse. The device's own click is a quick tap, so a step that asks for a hold
+    /// presses, waits and releases by itself; without one the device does the whole thing, which
+    /// also covers a click aimed at a background window.
+    /// </summary>
+    private async Task ClickMouse(ExecutableStep step, CancellationToken token)
+    {
+        var point = Point(step, "x", "y");
+        var button = Button(step);
+        var clicks = Math.Max(1, Number(step, "clicks"));
+        var interval = Pace(Number(step, "intervalMs"));
+        var hold = Pace(Number(step, "holdMs"));
+
+        if (hold <= 0)
+        {
+            Input(step).Click(button, point.X, point.Y, clicks, interval);
+            return;
+        }
+
+        for (var count = 0; count < clicks; count++)
+        {
+            token.ThrowIfCancellationRequested();
+            if (count > 0)
+            {
+                await Pause(interval, token);
+            }
+
+            Input(step).MouseDown(button, point.X, point.Y);
+            await Pause(hold, token);
+            Input(step).MouseUp(button, point.X, point.Y);
         }
     }
 
