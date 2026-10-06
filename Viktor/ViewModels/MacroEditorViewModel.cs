@@ -168,6 +168,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsKeyTrigger))]
     [NotifyPropertyChangedFor(nameof(IsTimerTrigger))]
     [NotifyPropertyChangedFor(nameof(IsFileTrigger))]
+    [NotifyPropertyChangedFor(nameof(IsProcessTrigger))]
     public partial MacroTrigger TriggerMode { get; set; } = MacroTrigger.KeystrokesButtonInputs;
 
     [ObservableProperty]
@@ -180,6 +181,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         Strings.Get("Trigger.Color"),
         Strings.Get("Trigger.Timer"),
         Strings.Get("Trigger.File"),
+        Strings.Get("Trigger.Process"),
     ];
 
     public IReadOnlyList<string> LoopOptions { get; } =
@@ -213,6 +215,36 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     /// <summary>True when the macro is started by a file or a folder changing.</summary>
     public bool IsFileTrigger => TriggerMode == MacroTrigger.FileChanges;
+
+    /// <summary>True when the macro is started by a program starting or finishing.</summary>
+    public bool IsProcessTrigger => TriggerMode == MacroTrigger.Process;
+
+    /// <summary>The program a process trigger waits for, without the ".exe".</summary>
+    [ObservableProperty]
+    public partial string ProcessName { get; set; } = string.Empty;
+
+    public IReadOnlyList<string> ProcessChangeOptions { get; } =
+    [
+        Strings.Get("ProcessChange.Started"),
+        Strings.Get("ProcessChange.Stopped"),
+        Strings.Get("ProcessChange.Any"),
+    ];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ProcessChangeIndex))]
+    public partial ProcessChangeKind ProcessChange { get; set; } = ProcessChangeKind.Started;
+
+    public int ProcessChangeIndex
+    {
+        get => (int)ProcessChange;
+        set
+        {
+            if (value >= 0 && value < ProcessChangeOptions.Count)
+            {
+                ProcessChange = (ProcessChangeKind)value;
+            }
+        }
+    }
 
     /// <summary>The file or folder a file trigger watches.</summary>
     [ObservableProperty]
@@ -819,6 +851,8 @@ public partial class MacroEditorViewModel : ViewModelBase
             WatchChange = macro.WatchChange;
             WatchFilter = macro.WatchFilter;
             WatchSubfolders = macro.WatchSubfolders;
+            ProcessName = macro.ProcessName;
+            ProcessChange = macro.ProcessChange;
             PositionCapture = macro.PositionCapture;
             ColorMatch = macro.ColorMatch;
             ColorPositionX = macro.ColorPositionX.ToString(CultureInfo.InvariantCulture);
@@ -1171,6 +1205,7 @@ public partial class MacroEditorViewModel : ViewModelBase
                 MacroTrigger.ColorPixelChanges => Strings.Get("Trigger.Color"),
                 MacroTrigger.Timer => Strings.Get("Trigger.Timer"),
                 MacroTrigger.FileChanges => Strings.Get("Trigger.File"),
+                MacroTrigger.Process => Strings.Get("Trigger.Process"),
                 _ => Strings.Get("Trigger.Keys"),
             },
             Action = action,
@@ -1185,6 +1220,8 @@ public partial class MacroEditorViewModel : ViewModelBase
             WatchChange = WatchChange,
             WatchFilter = WatchFilter.Trim().Length == 0 ? "*" : WatchFilter.Trim(),
             WatchSubfolders = WatchSubfolders,
+            ProcessName = ProcessName.Trim(),
+            ProcessChange = ProcessChange,
             PositionCapture = PositionCapture,
             ColorMatch = ColorMatch,
             ColorPositionX = ParseCoordinate(ColorPositionX),

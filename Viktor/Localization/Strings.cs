@@ -141,6 +141,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.WatchSubfolders"] = "Include the folders inside it",
         ["Editor.WatchNote"] = "The macro runs once for each change. The events of one save "
             + "arrive together and count as one.",
+        ["Editor.ProcessName"] = "Program :",
+        ["Editor.ProcessNameHint"] = "notepad, or chrome — the .exe is not needed",
+        ["Editor.ProcessWhen"] = "When :",
+        ["Editor.ProcessNote"] = "The macro runs once each time the program starts or stops. "
+            + "A program that is already open when the system is switched on is not a start.",
 
         // ----------------------------------------------------------- colour picker
         ["Picker.Title"] = "Color Picker",
@@ -251,6 +256,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Trigger.Color"] = "Color / Pixel Changes",
         ["Trigger.Timer"] = "Timer / Schedule",
         ["Trigger.File"] = "File / Folder Changes",
+        ["Trigger.Process"] = "Program Started / Stopped",
         ["Schedule.Interval"] = "At an Interval",
         ["Schedule.Daily"] = "Every Day at a Time",
         ["Schedule.Unit.Seconds"] = "seconds",
@@ -263,6 +269,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["FileChange.Created"] = "Created",
         ["FileChange.Changed"] = "Changed",
         ["FileChange.Deleted"] = "Deleted or renamed",
+        ["ProcessChange.Started"] = "Started",
+        ["ProcessChange.Stopped"] = "Stopped",
+        ["ProcessChange.Any"] = "Started or stopped",
         ["Loop.Toggle"] = "Until Key Pressed Again (Toggle)",
         ["Loop.Hold"] = "While Holding Key (Hold)",
         ["Loop.Press"] = "Once, When Key Pressed (Press)",
@@ -703,6 +712,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.WatchFilter"] = "文件夹里匹配的名字：",
         ["Editor.WatchSubfolders"] = "包含里面的子文件夹",
         ["Editor.WatchNote"] = "每次变化执行一遍；同一次保存产生的多个事件会合并成一次。",
+        ["Editor.ProcessName"] = "程序：",
+        ["Editor.ProcessNameHint"] = "notepad、chrome，不用写 .exe",
+        ["Editor.ProcessWhen"] = "时机：",
+        ["Editor.ProcessNote"] = "程序每次启动或退出执行一遍；打开系统时就已经在运行的程序不算启动。",
 
         // ----------------------------------------------------------- colour picker
         ["Picker.Title"] = "屏幕取色",
@@ -806,6 +819,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Trigger.Color"] = "颜色 / 像素变化",
         ["Trigger.Timer"] = "定时",
         ["Trigger.File"] = "文件 / 文件夹变化",
+        ["Trigger.Process"] = "程序启动 / 退出",
         ["Schedule.Interval"] = "按间隔重复",
         ["Schedule.Daily"] = "每天固定时间",
         ["Schedule.Unit.Seconds"] = "秒",
@@ -818,6 +832,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["FileChange.Created"] = "新建",
         ["FileChange.Changed"] = "内容变化",
         ["FileChange.Deleted"] = "删除或改名",
+        ["ProcessChange.Started"] = "启动时",
+        ["ProcessChange.Stopped"] = "退出时",
+        ["ProcessChange.Any"] = "启动或退出",
         ["Loop.Toggle"] = "再次按键时停止（切换）",
         ["Loop.Hold"] = "按住期间循环（长按）",
         ["Loop.Press"] = "按下时执行一次（按下）",

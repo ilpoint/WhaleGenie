@@ -14,6 +14,9 @@ public enum MacroTrigger
 
     /// <summary>A file or a folder being written to, added, removed or renamed.</summary>
     FileChanges,
+
+    /// <summary>A program starting or finishing.</summary>
+    Process,
 }
 
 /// <summary>How a macro repeats once it has been triggered.</summary>
@@ -64,6 +67,19 @@ public enum FileChangeKind
 
     /// <summary>A file or folder that went away, by being deleted or renamed.</summary>
     Deleted,
+}
+
+/// <summary>Whether a program starting or a program finishing starts the macro.</summary>
+public enum ProcessChangeKind
+{
+    /// <summary>The program appears among the running ones.</summary>
+    Started,
+
+    /// <summary>The program is no longer among the running ones.</summary>
+    Stopped,
+
+    /// <summary>Either of the other two.</summary>
+    Any,
 }
 
 /// <summary>How the watched colour is compared to the pixel under the trigger position.</summary>

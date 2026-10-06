@@ -36,6 +36,7 @@ public sealed class MacroTriggerService : IDisposable
     private readonly HashSet<MacroItem> _spent = [];
     private readonly Dictionary<MacroItem, DateTime> _scheduleDue = [];
     private readonly Dictionary<MacroItem, FileWatch> _watches = [];
+    private readonly Dictionary<MacroItem, HashSet<int>> _programsRunning = [];
     private readonly HashSet<string> _heldKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly Timer _poll;
 
@@ -141,6 +142,7 @@ public sealed class MacroTriggerService : IDisposable
             _colourHeld.Clear();
             _colourStopping.Clear();
             _scheduleDue.Clear();
+            _programsRunning.Clear();
         }
 
         foreach (var cancellation in cancellations)
@@ -171,6 +173,7 @@ public sealed class MacroTriggerService : IDisposable
             _colourHeld.Remove(macro);
             _colourStopping.Remove(macro);
             _scheduleDue.Remove(macro);
+            _programsRunning.Remove(macro);
         }
     }
 
@@ -612,6 +615,7 @@ public sealed class MacroTriggerService : IDisposable
 
         PollTimers(macros);
         PollFiles(macros);
+        PollProcesses(macros);
         PruneWatches(macros);
     }
 
@@ -767,6 +771,73 @@ public sealed class MacroTriggerService : IDisposable
         }
     }
 
+    /// <summary>
+    /// Runs the macros waiting for a program to start or to finish. The processes with the wanted
+    /// name are counted afresh on every poll, so a difference from the count before is what
+    /// happened since — a program that was already running is not something that has just started.
+    /// </summary>
+    private void PollProcesses(IReadOnlyList<MacroItem> macros)
+    {
+        foreach (var macro in macros)
+        {
+            if (!macro.IsEnabled || macro.TriggerMode != MacroTrigger.Process)
+            {
+                continue;
+            }
+
+            var name = macro.ProcessName.Trim();
+            if (name.Length == 0)
+            {
+                continue;
+            }
+
+            HashSet<int> running;
+            try
+            {
+                running = [.. _devices.Processes.Find(name)];
+            }
+            catch (Exception)
+            {
+                continue;   // another program's process list can be refused; the trigger waits
+            }
+
+            bool started;
+            bool stopped;
+            lock (_gate)
+            {
+                if (!_programsRunning.TryGetValue(macro, out var before))
+                {
+                    // Counting starts when the system is switched on, so switching it on does not
+                    // set off every macro whose program happens to be open already.
+                    _programsRunning[macro] = running;
+                    continue;
+                }
+
+                started = running.Except(before).Any();
+                stopped = before.Except(running).Any();
+                _programsRunning[macro] = running;
+            }
+
+            // A "once" macro waits to be re-armed rather than watching for ever.
+            if (macro.TriggerOnce && IsSpent(macro))
+            {
+                continue;
+            }
+
+            var wanted = macro.ProcessChange switch
+            {
+                ProcessChangeKind.Started => started,
+                ProcessChangeKind.Stopped => stopped,
+                _ => started || stopped,
+            };
+
+            if (wanted)
+            {
+                Start(macro, repeating: false);
+            }
+        }
+    }
+
     /// <summary>True when a "trigger once" macro has already had its turn.</summary>
     private bool IsSpent(MacroItem macro)
     {
@@ -782,7 +853,7 @@ public sealed class MacroTriggerService : IDisposable
         lock (_gate)
         {
             if (_colourTriggered.Count == 0 && _colourHeld.Count == 0 && _colourStopping.Count == 0
-                && _scheduleDue.Count == 0 && _watches.Count == 0)
+                && _scheduleDue.Count == 0 && _watches.Count == 0 && _programsRunning.Count == 0)
             {
                 return;
             }
@@ -791,6 +862,7 @@ public sealed class MacroTriggerService : IDisposable
             tracked.UnionWith(_colourHeld);
             tracked.UnionWith(_colourStopping);
             tracked.UnionWith(_scheduleDue.Keys);
+            tracked.UnionWith(_programsRunning.Keys);
 
             foreach (var item in tracked)
             {
@@ -800,6 +872,7 @@ public sealed class MacroTriggerService : IDisposable
                     _colourHeld.Remove(item);
                     _colourStopping.Remove(item);
                     _scheduleDue.Remove(item);
+                    _programsRunning.Remove(item);
                     continue;
                 }
 
@@ -815,6 +888,11 @@ public sealed class MacroTriggerService : IDisposable
                 if (item.TriggerMode != MacroTrigger.Timer)
                 {
                     _scheduleDue.Remove(item);
+                }
+
+                if (item.TriggerMode != MacroTrigger.Process)
+                {
+                    _programsRunning.Remove(item);
                 }
             }
 

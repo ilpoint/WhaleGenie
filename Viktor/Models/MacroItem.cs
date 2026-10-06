@@ -77,6 +77,12 @@ public partial class MacroItem : ObservableObject
     /// <summary>Whether a watched folder also reports what happens in the folders inside it.</summary>
     public bool WatchSubfolders { get; set; }
 
+    /// <summary>The program a process trigger waits for, without the ".exe".</summary>
+    public string ProcessName { get; set; } = string.Empty;
+
+    /// <summary>Whether the program starting or the program finishing starts the macro.</summary>
+    public ProcessChangeKind ProcessChange { get; set; } = ProcessChangeKind.Started;
+
     /// <summary>Colour watched for the trigger, as a hex string (for example <c>#000000</c>).</summary>
     [ObservableProperty]
     public partial string HexColor { get; set; } = "#000000";
@@ -93,6 +99,9 @@ public partial class MacroItem : ObservableObject
     /// <summary>True when the macro is started by a file or a folder changing.</summary>
     public bool IsFileTrigger => TriggerMode == MacroTrigger.FileChanges;
 
+    /// <summary>True when the macro is started by a program starting or finishing.</summary>
+    public bool IsProcessTrigger => TriggerMode == MacroTrigger.Process;
+
     /// <summary>True when the macro is started by input and the binding is a mouse button.</summary>
     public bool IsMouseTrigger => IsKeyTrigger && LooksLikeMouseButton(BindKey);
 
@@ -101,8 +110,8 @@ public partial class MacroItem : ObservableObject
 
     /// <summary>
     /// What the macro card previews next to the trigger icon: the bound key (for example
-    /// <c>NumPad7</c>), the watched colour, the schedule or the watched path, so the list says
-    /// what starts each macro.
+    /// <c>NumPad7</c>), the watched colour, the schedule, the watched path or the program, so the
+    /// list says what starts each macro.
     /// </summary>
     public string TriggerPreview => TriggerMode switch
     {
@@ -111,6 +120,8 @@ public partial class MacroItem : ObservableObject
         MacroTrigger.Timer => MacroSchedule.Describe(this),
         MacroTrigger.FileChanges =>
             string.IsNullOrWhiteSpace(WatchPath) ? NoPreview : WatchPath,
+        MacroTrigger.Process =>
+            string.IsNullOrWhiteSpace(ProcessName) ? NoPreview : ProcessName,
         _ => string.IsNullOrWhiteSpace(BindKey) ? NoPreview : BindKey,
     };
 
@@ -142,6 +153,7 @@ public partial class MacroItem : ObservableObject
         OnPropertyChanged(nameof(IsColorTrigger));
         OnPropertyChanged(nameof(IsTimerTrigger));
         OnPropertyChanged(nameof(IsFileTrigger));
+        OnPropertyChanged(nameof(IsProcessTrigger));
         OnPropertyChanged(nameof(IsMouseTrigger));
         OnPropertyChanged(nameof(IsKeyboardTrigger));
         OnPropertyChanged(nameof(TriggerPreview));
@@ -219,6 +231,11 @@ public partial class MacroItem : ObservableObject
                 ["filter"] = WatchFilter,
                 ["subfolders"] = WatchSubfolders,
             },
+            ["program"] = new JsonObject
+            {
+                ["name"] = ProcessName,
+                ["change"] = ProcessChange.ToString(),
+            },
             ["positionCapture"] = PositionCapture.ToString(),
             ["colorMatch"] = ColorMatch.ToString(),
             ["colorPosition"] = new JsonObject
@@ -251,6 +268,7 @@ public partial class MacroItem : ObservableObject
         var record = node["record"] as JsonObject;
         var schedule = node["schedule"] as JsonObject;
         var watch = node["watch"] as JsonObject;
+        var program = node["program"] as JsonObject;
 
         var macro = new MacroItem
         {
@@ -268,6 +286,8 @@ public partial class MacroItem : ObservableObject
             WatchChange = ReadEnum(watch, "change", FileChangeKind.Any),
             WatchFilter = watch?["filter"]?.GetValue<string>() ?? "*",
             WatchSubfolders = ReadBool(watch?["subfolders"]),
+            ProcessName = program?["name"]?.GetValue<string>() ?? string.Empty,
+            ProcessChange = ReadEnum(program, "change", ProcessChangeKind.Started),
             PositionCapture = ReadEnum(node, "positionCapture", MousePositionMode.SaveCurrentPosition),
             ColorMatch = ReadEnum(node, "colorMatch", ColorMatchCondition.ColorMatches),
             ColorPositionX = ReadInt(position?["x"]),

@@ -351,6 +351,10 @@
                                                       Stroke="#CDCDCD" StrokeThickness="1.5"
                                                       IsVisible="{Binding IsFileTrigger}"
                                                       Data="M 3,4.5 H 9.5 L 11.5,7 H 21 V 19.5 H 3 Z" />
+                                                <Path Width="15" Height="15" Stretch="Uniform"
+                                                      Stroke="#CDCDCD" StrokeThickness="1.5"
+                                                      IsVisible="{Binding IsProcessTrigger}"
+                                                      Data="M 3.5,4.5 H 20.5 V 19.5 H 3.5 Z M 10,8.6 L 15.2,12 L 10,15.4 Z" />
                                             </Panel>
                                         </Border>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
