@@ -181,6 +181,12 @@ internal static class FunctionLibrary
         Fn("jsonSet", "jsonSet(json, path, value)",
             "A copy of JSON text with the path set to a value, making the fields on the way.",
             3, 3, args => Value.FromText(JsonSet(args))),
+        Fn("jsonOf", "jsonOf(name, value, ...)",
+            "Names and values in turn, put together into one JSON object: jsonOf(\"a\", 1, "
+            + "\"b\", 2) is {\"a\":1,\"b\":2}. This is how a macro keeps several things in one "
+            + "variable and reads the fields back with jsonGet. A field holding another object "
+            + "or a list is made with jsonSet and a path, because a value that is text stays "
+            + "text.", 2, Any, args => Value.FromText(JsonOf(args))),
         Fn("toJson", "toJson(value)",
             "A value written as JSON text, so a list becomes an array.", 1, 1,
             args => Value.FromText(Node(V(args, 0))?.ToJsonString() ?? "null")),
@@ -683,6 +689,34 @@ internal static class FunctionLibrary
         return value.TryGetValue<string>(out var text)
             ? Value.FromText(text)
             : Value.FromText(value.ToJsonString());
+    }
+
+    /// <summary>
+    /// Names and values in turn, made into one object and kept in the order they were written.
+    /// A name with no value after it is a mistake worth saying out loud, because joining the two
+    /// halves up wrongly would otherwise quietly produce a document with the wrong fields in it.
+    /// </summary>
+    private static string JsonOf(IReadOnlyList<Func<Value>> args)
+    {
+        if (args.Count % 2 != 0)
+        {
+            throw ExpressionException.ArgumentCount(
+                $"jsonOf({args.Count} arguments) - names and values have to come in pairs");
+        }
+
+        var made = new JsonObject();
+        for (var index = 0; index < args.Count; index += 2)
+        {
+            var name = S(args, index).Trim();
+            if (name.Length == 0)
+            {
+                throw ExpressionException.TypeMismatch("a field of an object has to be named");
+            }
+
+            made[name] = Node(args[index + 1]());
+        }
+
+        return made.ToJsonString();
     }
 
     private static string JsonSet(IReadOnlyList<Func<Value>> args)

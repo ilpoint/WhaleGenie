@@ -332,6 +332,26 @@ public class ExpressionTests
     public void A_value_is_written_as_json()
         => Assert.Equal("[1,\"a\",true]", Text("toJson(list(1, \"a\", true))"));
 
+    [Theory]
+    [InlineData("jsonOf(\"a\", 1, \"b\", 2)", "{\"a\":1,\"b\":2}")]
+    [InlineData("jsonOf(\"name\", \"ada\")", "{\"name\":\"ada\"}")]
+    [InlineData("jsonOf(\"ok\", true)", "{\"ok\":true}")]
+    [InlineData("jsonOf(\"xs\", list(1, 2))", "{\"xs\":[1,2]}")]
+    [InlineData("jsonGet(jsonOf(\"name\", \"ada\", \"age\", 36), \"age\")", "36")]
+    [InlineData("jsonKeys(jsonOf(\"a\", 1, \"b\", 2))", "a, b")]
+    public void An_object_is_put_together_from_names_and_values(string source, string expected)
+        => Assert.Equal(expected, Text(source));
+
+    [Fact]
+    public void An_odd_number_of_arguments_cannot_make_an_object()
+        => Assert.Equal(ExpressionErrorCode.ArgumentCount,
+            Failure("jsonOf(\"a\", 1, \"b\")").Code);
+
+    [Fact]
+    public void A_field_of_an_object_has_to_be_named()
+        => Assert.Equal(ExpressionErrorCode.TypeMismatch,
+            Failure("jsonOf(\"  \", 1)").Code);
+
     [Fact]
     public void Text_that_is_not_json_is_refused()
         => Assert.Equal(ExpressionErrorCode.TypeMismatch, Failure("jsonGet('{oops}', 'a')").Code);
