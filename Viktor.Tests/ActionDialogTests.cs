@@ -119,7 +119,13 @@ public class ActionDialogTests
                 .First(parameter => parameter.Definition.Name == "anchorMode");
             Assert.True(mode.IsChoice);
             Assert.Equal("screen", mode.CurrentText);
-            Assert.Equal(["screen", "window", "client"],
+
+            // A step that puts the pointer somewhere can be measured from a control as well,
+            // which is the fourth basis and only makes sense for the ones that move the pointer.
+            Assert.Equal(
+                viewModel.Parameters.Any(parameter => parameter.Definition.Name == "anchorSelector")
+                    ? ["screen", "window", "client", "element"]
+                    : ["screen", "window", "client"],
                 mode.Choices.Select(choice => choice.Value));
 
             var window = viewModel.Parameters
@@ -608,6 +614,9 @@ public class ActionDialogTests
         Ui.Run(() =>
         {
             var viewModel = Open("input.keyPress");
+            // A key press without its key is not a step yet, so the key is filled in first and
+            // what is left deciding whether it can be saved is the rule being edited here.
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "key").Text = "F5";
             Assert.True(viewModel.CanSave);
 
             viewModel.MetaErrorJumps = "*NotFound => 修一下";
@@ -633,6 +642,7 @@ public class ActionDialogTests
         Ui.Run(() =>
         {
             var viewModel = Open("input.keyPress");
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "key").Text = "F5";
 
             viewModel.MetaErrorJumps = "Run.ImageNotFound";
 
@@ -990,12 +1000,12 @@ public class ActionDialogTests
             var visible = viewModel.Rows.SelectMany(Names).ToList();
             var folded = viewModel.AdvancedRows.SelectMany(Names).ToList();
 
-            // How sure a match has to be, which hit to take and where a click lands on it are
-            // worth having and not worth showing on every step.
+            // How sure a match has to be, which hit to take and what the search is measured from
+            // are worth having and not worth showing on every step.
             Assert.DoesNotContain("confidence", visible);
             Assert.Contains("confidence", folded);
             Assert.Contains("matchIndex", folded);
-            Assert.Contains("offsetX", folded);
+            Assert.Contains("anchorMode", folded);
 
             // What the step is about stays in front.
             Assert.Contains("image", visible);

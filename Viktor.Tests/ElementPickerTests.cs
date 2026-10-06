@@ -252,13 +252,13 @@ public class ElementPickerTests
     {
         Ui.Run(() =>
         {
-            var definition = ActionCatalog.Find("uia.click")
-                ?? throw new InvalidOperationException("uia.click is missing from the catalogue.");
+            var definition = ActionCatalog.Find("uia.setText")
+                ?? throw new InvalidOperationException("uia.setText is missing from the catalogue.");
 
             var selector = new StepParameterViewModel(
                 definition.Parameters.First(parameter => parameter.Name == "selector"));
-            var window = new StepParameterViewModel(
-                definition.Parameters.First(parameter => parameter.Name == "window"));
+            var text = new StepParameterViewModel(
+                definition.Parameters.First(parameter => parameter.Name == "text"));
 
             Assert.True(selector.IsText);
             Assert.True(selector.IsSelector);
@@ -266,8 +266,8 @@ public class ElementPickerTests
             // The bare one-line field belongs to every other text parameter, so the selector is
             // never drawn twice on top of itself.
             Assert.False(selector.IsPlainText);
-            Assert.True(window.IsPlainText);
-            Assert.False(window.IsSelector);
+            Assert.True(text.IsPlainText);
+            Assert.False(text.IsSelector);
         });
     }
 

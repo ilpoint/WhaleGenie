@@ -12,7 +12,17 @@ internal static class Ui
     private static readonly HeadlessUnitTestSession Session =
         HeadlessUnitTestSession.GetOrStartForAssembly(typeof(Ui).Assembly);
 
-    public static void Run(Action body) => Session.Dispatch(body, CancellationToken.None);
+    /// <summary>
+    /// Runs <paramref name="body"/> on the user-interface thread. It goes through the overload
+    /// that carries an exception back out rather than the one that drops it, so a failed
+    /// assertion inside still fails the test — a case that cannot fail is worse than no case.
+    /// </summary>
+    public static void Run(Action body)
+        => Run(() =>
+        {
+            body();
+            return true;
+        });
 
     public static T Run<T>(Func<T> body)
         => Session.Dispatch(() => Task.FromResult(body()), CancellationToken.None)

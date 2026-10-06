@@ -125,20 +125,22 @@ public class MacroEditorTests
         {
             var (_, viewModel) = Open();
             var first = new MacroStep { Type = "control.delay" };
-            var second = new MacroStep { Type = "control.delay" };
+            var second = new MacroStep { Type = "control.log" };
             viewModel.AddStep(first);
             viewModel.AddStep(second);
 
             viewModel.SetSelection([second]);
             viewModel.MoveSelectionTo(1);
 
-            Assert.Same(first, viewModel.Steps[0]);
-            Assert.Same(second, viewModel.Steps[1]);
+            Assert.Equal(["control.delay", "control.log"],
+                viewModel.Steps.Select(step => step.Type));
 
             // A drag that lands where it started must not fill the undo history. One undo
-            // therefore reaches past it, to the step that was added before the drag.
+            // therefore reaches past it, to the step that was added before the drag. What is
+            // read back is the kind of step rather than the object itself: the history keeps
+            // its own copies, so undoing hands the list a fresh step with the same contents.
             viewModel.UndoCommand.Execute(null);
-            Assert.Same(first, Assert.Single(viewModel.Steps));
+            Assert.Equal("control.delay", Assert.Single(viewModel.Steps).Type);
         });
     }
 
@@ -162,8 +164,10 @@ public class MacroEditorTests
             var from = Waypoint(window, rows[0], 0.5, 0.5);
             var to = Waypoint(window, rows[1], 0.5, 0.9);
 
-            window.MouseDown(from, MouseButton.Left);
-            window.MouseMove(to);
+            // The pressed button has to travel with the move: a drag is only a drag while the
+            // pointer reports the button still down.
+            window.MouseDown(from, MouseButton.Left, RawInputModifiers.LeftMouseButton);
+            window.MouseMove(to, RawInputModifiers.LeftMouseButton);
             window.MouseUp(to, MouseButton.Left);
             Dispatcher.UIThread.RunJobs();
 
