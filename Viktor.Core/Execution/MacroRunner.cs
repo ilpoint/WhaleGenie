@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -734,6 +735,11 @@ public sealed class MacroRunner
 
             case "uia.focusWindow":
                 FocusWindow(step, depth);
+                return Signal.Normal;
+
+            // ------------------------------------------------------------------ script
+            case "script.run":
+                RunScript(step, depth);
                 return Signal.Normal;
 
             default:
@@ -2822,6 +2828,129 @@ public sealed class MacroRunner
         "off" or "false" or "no" => false,
         _ => null,
     };
+
+    // --------------------------------------------------------------------- script
+
+    /// <summary>
+    /// Runs a short script through an interpreter the machine already has. This is the block that
+    /// covers whatever the catalogue does not: anything with a command line of its own can be
+    /// scripted, and the script talks to the macro both ways — values go in as <c>{{name}}</c> in
+    /// the text, and whatever the script prints comes back in the result variable.
+    /// </summary>
+    private void RunScript(ExecutableStep step, int depth)
+    {
+        var language = step.Text("language").Trim().ToLowerInvariant();
+        var temp = Path.Combine(Path.GetTempPath(), "Viktor");
+        var path = Path.Combine(temp, $"script-{Guid.NewGuid():N}{ScriptExtension(language)}");
+        var script = Template(step.Text("script"));
+        if (script.Trim().Length == 0)
+        {
+            throw new StepFailure("Run.MissingScript");
+        }
+
+        // A script that reads or writes files next to the macro should not have to be told where
+        // that is, so the macros folder is what an empty working folder means — but only when that
+        // folder is really there: a program cannot be started in a folder that does not exist, and
+        // an empty folder field is better than a script that never runs.
+        var folder = Read(step.Text("folder")).AsText().Trim();
+        if (folder.Length == 0 && _devices.Files.Exists(_devices.Files.BaseFolder))
+        {
+            folder = _devices.Files.BaseFolder;
+        }
+
+        var extra = Template(step.Text("arguments")).Trim();
+        var (program, arguments) = ScriptCommand(language, path, extra);
+
+        // A step that says nothing about time still gets one, the same way running a command does:
+        // a timeout of nothing would end the script the moment it started.
+        var timeout = Math.Max(1, OptionalNumber(step, "timeoutMs", DefaultScriptMs));
+
+        _devices.Files.WriteText(path, script, false);
+
+        CommandResult result;
+        try
+        {
+            result = _devices.Processes.Run(program, arguments, folder, timeout);
+        }
+        finally
+        {
+            // The script itself lives in the macro, so the copy on disk is only there for as long
+            // as the interpreter needs it. A tidy-up that fails is not worth failing the step over.
+            try
+            {
+                _devices.Files.Delete(path);
+            }
+            catch (Exception)
+            {
+                Log(LogLevel.Debug, depth, step.Type, "Run.ScriptNotTidied", path);
+            }
+        }
+
+        if (result.ExitCode != 0)
+        {
+            throw new StepFailure("Run.ScriptFailed",
+                $"{result.ExitCode}: {Careful(result.StandardError)}");
+        }
+
+        var said = result.StandardOutput.Trim('\r', '\n');
+        Variables.Set(VariableName(step, "resultVariable", "output"), Value.FromText(said));
+        Log(LogLevel.Info, depth, step.Type, "Run.RanScript", language, said.Length);
+    }
+
+    /// <summary>
+    /// The command line that runs a script of this kind. PowerShell is given the flags that stop it
+    /// from loading a profile or asking anything, so a script that runs inside a macro behaves the
+    /// same way every time it runs.
+    /// </summary>
+    private static (string Program, string Arguments) ScriptCommand(string language, string path,
+        string extra)
+    {
+        var quoted = $"\"{path}\"";
+        var tail = extra.Length == 0 ? string.Empty : $" {extra}";
+
+        return language switch
+        {
+            "" or "powershell" => ("powershell.exe",
+                $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -File {quoted}{tail}"),
+            "cmd" => ("cmd.exe", $"/c {quoted}{tail}"),
+            "node" => ("node", $"{quoted}{tail}"),
+            "python" => ("python", $"{quoted}{tail}"),
+            _ => throw new StepFailure("Run.UnknownInterpreter", language),
+        };
+    }
+
+    /// <summary>The extension the interpreter expects, which is how it knows what it is reading.</summary>
+    private static string ScriptExtension(string language) => language switch
+    {
+        "cmd" => ".cmd",
+        "node" => ".js",
+        "python" => ".py",
+        _ => ".ps1",
+    };
+
+    /// <summary>How long a script may run when the step does not say.</summary>
+    private const int DefaultScriptMs = 60000;
+
+    /// <summary>
+    /// Fills the <c>{{name}}</c> placeholders with what those variables hold. A script is written in
+    /// a language of its own — PowerShell, JavaScript, a batch file — and every one of them gives
+    /// its own meaning to <c>$</c> and <c>%</c>, so a macro value is spelled differently in here on
+    /// purpose. A name the macro does not know is left as it was written, where it is easy to see
+    /// rather than quietly replaced by nothing.
+    /// </summary>
+    private string Template(string text)
+        => Regex.Replace(text, @"\{\{(.+?)\}\}", match =>
+        {
+            var name = match.Groups[1].Value.Trim();
+            return Variables.TryGet(name, out var value) ? value.AsText() : match.Value;
+        });
+
+    /// <summary>What a script said on its error output, kept short enough to read in a message.</summary>
+    private static string Careful(string text)
+    {
+        var trimmed = text.Trim();
+        return trimmed.Length <= 400 ? trimmed : trimmed[..400] + "…";
+    }
 
     /// <summary>
     /// Reads a selector such as <c>Button[name='Save']</c> or <c>Edit[automationId='input']</c>,

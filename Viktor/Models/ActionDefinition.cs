@@ -16,6 +16,7 @@ public enum ActionCategory
     Vision,
     Ocr,
     Uia,
+    Script,
     Condition,
 }
 

@@ -1729,6 +1729,127 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Running_a_script_keeps_what_it_printed_and_cleans_up_after_itself()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Command = new CommandResult(0, "\n  hello from a script  \n\n", string.Empty),
+            PathExists = true,
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("script.run", Param("language", "powershell"),
+                Param("script", "Write-Host 'hello from a script'"),
+                Param("resultVariable", "said")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("  hello from a script  ", store.Local.Values["said"].AsText());
+
+        // The script lives in the macro, so the copy handed to the interpreter is removed again.
+        Assert.Contains(devices.Calls, call => call.StartsWith("writeFile") && call.Contains(".ps1"));
+        Assert.Contains(devices.Calls, call => call.StartsWith("deleteFile") && call.Contains(".ps1"));
+        Assert.Empty(devices.Files);
+        Assert.Contains(devices.Calls,
+            call => call.StartsWith("run powershell.exe|-NoProfile") && call.Contains("|G:\\fake|"));
+    }
+
+    [Fact]
+    public async Task A_script_runs_where_the_macros_are_when_that_folder_is_there()
+    {
+        var devices = new FakeDeviceLayer { PathExists = true };
+        await RunAsync([Step("script.run", Param("script", "echo hi"))], devices);
+
+        Assert.Contains(devices.Calls,
+            call => call.StartsWith("run powershell.exe") && call.Contains("|G:\\fake|60000"));
+    }
+
+    [Fact]
+    public async Task A_script_still_runs_when_the_macros_folder_is_not_there_yet()
+    {
+        // A program cannot be started in a folder that does not exist, so a folder that is not
+        // there yet is left to whoever started Viktor rather than failing the step.
+        var devices = new FakeDeviceLayer();
+        await RunAsync([Step("script.run", Param("script", "echo hi"))], devices);
+
+        Assert.Contains(devices.Calls,
+            call => call.StartsWith("run powershell.exe") && call.EndsWith("||60000"));
+    }
+
+    [Fact]
+    public async Task A_script_can_be_given_arguments_and_a_folder_of_its_own()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("script.run", Param("script", "echo hi"), Param("arguments", "--quiet"),
+                Param("folder", @"C:\work"), Param("timeoutMs", "5000")),
+        ], devices);
+
+        Assert.Contains(devices.Calls,
+            call => call.StartsWith("run powershell.exe") && call.EndsWith("--quiet|C:\\work|5000"));
+    }
+
+    [Fact]
+    public async Task A_script_can_have_a_macro_value_written_into_it()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("control.setVariable", Param("name", "who"), Param("value", "Ann")),
+            Step("script.run", Param("script", "Write-Host {{who}}"),
+                Param("arguments", "--to {{who}} --x {{nope}}"), Param("resultVariable", "out")),
+        ], devices);
+
+        // The value goes in where it was asked for, in the script and on the command line alike,
+        // and a name the macro does not know is left where it can be seen rather than quietly
+        // turning into nothing.
+        Assert.Contains(devices.Calls,
+            call => call.StartsWith("writeFile") && call.EndsWith("Write-Host Ann False"));
+        Assert.Contains(devices.Calls, call =>
+            call.StartsWith(@"run powershell.exe|-NoProfile")
+            && call.Contains("--to Ann --x {{nope}}"));
+    }
+
+    [Fact]
+    public async Task A_script_that_stops_with_an_error_fails_the_step()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Command = new CommandResult(1, string.Empty, "cannot open the file"),
+        };
+
+        var (result, _, _) = await RunAsync(
+        [Step("script.run", Param("script", "throw 'no'"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.ScriptFailed", result.Key);
+        Assert.Contains("cannot open the file", result.Detail);
+    }
+
+    [Fact]
+    public async Task A_script_step_with_nothing_in_it_fails()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync([Step("script.run", Param("script", "   "))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.MissingScript", result.Key);
+    }
+
+    [Fact]
+    public async Task A_script_for_an_interpreter_viktor_does_not_know_fails()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [Step("script.run", Param("language", "brainfuck"), Param("script", "+++"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.UnknownInterpreter", result.Key);
+    }
+
+    [Fact]
     public async Task System_info_and_environment_variables_reach_variables()
     {
         var devices = new FakeDeviceLayer();

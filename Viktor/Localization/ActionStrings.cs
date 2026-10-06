@@ -1248,6 +1248,26 @@ internal static class ActionStrings
         ["uia.focusWindow.window.label"] = "窗口",
         ["uia.focusWindow.window.hint"] = "窗口标题，或保存标题的 $变量。可以用“拾取窗口”从当前打开的窗口里选一个。",
 
+        // ------------------------------------------------------------------ script
+        ["script.run.name"] = "运行脚本",
+        ["script.run.desc"] = "用选定的解释器运行一小段脚本，兜住动作目录里没有的情况。",
+        ["script.run.language.label"] = "解释器",
+        ["script.run.language.hint"] = "用哪个解释器运行这段脚本。PowerShell 和命令提示符每台 Windows 上都有；Node.js 和 Python 需要先自己装好。",
+        ["script.run.language.option.powershell"] = "PowerShell",
+        ["script.run.language.option.cmd"] = "命令提示符",
+        ["script.run.language.option.node"] = "Node.js",
+        ["script.run.language.option.python"] = "Python",
+        ["script.run.script.label"] = "脚本",
+        ["script.run.script.hint"] = "脚本本身。写 {{变量名}} 的地方会在运行前换成那个变量的值，这就是宏的值传进脚本的方式；脚本打印出来的内容会回到下面的结果变量里。",
+        ["script.run.arguments.label"] = "参数",
+        ["script.run.arguments.hint"] = "附加在脚本命令行后面的参数。这里也会替换 {{变量名}}。",
+        ["script.run.folder.label"] = "工作目录",
+        ["script.run.folder.hint"] = "脚本在哪个目录里运行。留空表示在宏所在目录；那个目录还不存在时，就在维克多自己的工作目录。",
+        ["script.run.timeoutMs.label"] = "超时毫秒",
+        ["script.run.timeoutMs.hint"] = "超过这个时长就结束脚本并让这一步失败。",
+        ["script.run.resultVariable.label"] = "结果变量",
+        ["script.run.resultVariable.hint"] = "用来接收脚本打印内容的变量，首尾的空行会去掉。",
+
         // ---------------------------------------------------------------- condition
         ["condition.imageExists.name"] = "图片存在",
         ["condition.imageExists.desc"] = "当参考图片出现在屏幕上时为真。",

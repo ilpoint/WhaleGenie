@@ -40,6 +40,9 @@ public static class ActionCatalog
     private static readonly Geometry UiaIcon =
         Geometry.Parse("M3,5 H21 V19 H3 Z M3,9 H21 M6,7 H6.01");
 
+    private static readonly Geometry ScriptIcon =
+        Geometry.Parse("M3,5 H21 V19 H3 Z M3,8.5 H21 M6,12 L8.5,14.5 L6,17 M11,17 H15");
+
     private static readonly Geometry FileIcon =
         Geometry.Parse("M6,3 H14 L18,7 V21 H6 Z M14,3 V7 H18 M9,12 H15 M9,16 H15");
 
@@ -1451,6 +1454,40 @@ public static class ActionCatalog
             ],
         },
 
+        // ----------------------------------------------------------------- script
+        new()
+        {
+            Key = "script.run",
+            Category = ActionCategory.Script,
+            DisplayName = "Run Script",
+            Description = "Run a short script with an interpreter of your choice.",
+            Parameters =
+            [
+                Choice("language", "Interpreter",
+                    ["powershell", "cmd", "node", "python"], "powershell",
+                    "Which interpreter runs the script. PowerShell and Command Prompt are on every "
+                    + "Windows machine; Node and Python have to be installed first.",
+                    labels: ["PowerShell", "Command Prompt", "Node.js", "Python"]),
+                Multiline("script", "Script",
+                    "The script itself. {{name}} is replaced by what the variable name holds "
+                    + "before the script runs, which is how a macro value gets in; everything the "
+                    + "script prints comes back in the result variable below.",
+                    "Write-Host \"Hello\""),
+                Text("arguments", "Arguments", "first second", required: false,
+                    hint: "Extra arguments for the script's command line. {{name}} is filled in "
+                          + "here as well."),
+                Text("folder", "Working folder", required: false,
+                    hint: "The folder the script runs in. Leave it empty to run it in the macros "
+                          + "folder, or wherever Viktor is when that folder is not there yet."),
+                Number("timeoutMs", "Timeout ms", 60000,
+                    "Stop the script and fail the step after this long."),
+                Variable("resultVariable", "Result variable", "output",
+                    "Variable that receives what the script printed, without the blank lines "
+                    + "around it.",
+                    namesVariable: true, defaultValue: "output"),
+            ],
+        },
+
         // -------------------------------------------------------------- condition
         new()
         {
@@ -1676,6 +1713,7 @@ public static class ActionCatalog
         ActionCategory.Vision => VisionIcon,
         ActionCategory.Ocr => OcrIcon,
         ActionCategory.Uia => UiaIcon,
+        ActionCategory.Script => ScriptIcon,
         ActionCategory.Condition => ConditionIcon,
         _ => null,
     };
