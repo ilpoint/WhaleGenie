@@ -310,6 +310,34 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "control.anchor",
+            Category = ActionCategory.Control,
+            DisplayName = "Anchor",
+            Description = "Mark a place a jump can land on. Running onto an anchor does nothing, "
+                + "so it can sit right where the steps it guards already are.",
+            Parameters =
+            [
+                Text("name", "Anchor name", "cleanup",
+                    "The name a jump looks for. Not an expression — a jump matches it as written, "
+                    + "ignoring case and spacing."),
+            ],
+        },
+        new()
+        {
+            Key = "control.jump",
+            Category = ActionCategory.Control,
+            DisplayName = "Jump",
+            Description = "Carry on at an anchor instead of the next step, which is how a macro "
+                + "skips ahead to a branch or a tidy-up. The anchor has to be in the same run of "
+                + "steps or in one that encloses it: a jump can leave a loop, a group or a branch, "
+                + "but it cannot be aimed into one.",
+            Parameters =
+            [
+                Text("name", "Anchor name", "cleanup", "Name of the anchor to carry on at."),
+            ],
+        },
+        new()
+        {
             Key = "control.setVariable",
             Category = ActionCategory.Control,
             DisplayName = "Set Variable",

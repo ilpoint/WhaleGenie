@@ -229,6 +229,21 @@ internal static class ActionStrings
         ["control.stop.reason.label"] = "原因",
         ["control.stop.reason.hint"] = "可选，会写入日志。",
 
+        ["control.anchor.name"] = "锚点",
+        ["control.anchor.desc"] = "打一个跳转可以落下来的点。步骤顺序执行到锚点时什么都不做，"
+            + "所以它可以放在被它“看着”的步骤正好该在的位置上。",
+        ["control.anchor.name.label"] = "锚点名称",
+        ["control.anchor.name.hint"] = "跳转要找的名字。这里不写表达式：跳转是按写下的名字"
+            + "去比对的，忽略大小写和首尾空格。",
+
+        ["control.jump.name"] = "跳转",
+        ["control.jump.desc"] = "不执行下一步，改从某个锚点继续，用它跳过一段、直接去分支"
+            + "或者收尾。锚点必须在同一层步骤里，或者在包着它的外层：跳转可以离开循环、"
+            + "分组和分支，但不能跳进去。",
+        ["control.jump.name.label"] = "锚点名称",
+        ["control.jump.name.hint"] = "要继续执行的锚点名字。找不到这个名字，整个宏会以"
+            + "“锚点不存在”结束。",
+
         ["control.setVariable.name"] = "设置变量",
         ["control.setVariable.desc"] = "保存一个值，供后面的步骤使用。",
         ["control.setVariable.name.label"] = "变量名",

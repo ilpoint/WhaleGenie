@@ -1102,6 +1102,144 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task A_jump_carries_on_at_the_anchor_it_names()
+    {
+        var store = Store(("走过", 0));
+
+        var (result, _) = await RunAsync(
+        [
+            Step("control.jump", Param("name", "后面")),
+            Set("走过", "$走过 + 100"),
+            Step("control.anchor", Param("name", "后面")),
+            Set("走过", "$走过 + 1"),
+        ], variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, N(store, "走过"));
+    }
+
+    [Fact]
+    public async Task A_jump_can_go_backwards_and_a_branch_can_end_the_round()
+    {
+        // A loop written by hand: the way back is a jump, and the branch that does not jump is
+        // what ends it. The jump sits inside the branch body, so it has to be able to leave that
+        // block to reach the anchor above it.
+        var store = Store(("轮", 0));
+
+        var (result, _) = await RunAsync(
+        [
+            Step("control.anchor", Param("name", "再来")),
+            Set("轮", "$轮 + 1"),
+            Step("control.if",
+                When("condition", Step("condition.compare",
+                    Param("variable", "轮"), Param("operator", "greaterOrEqual"), Param("value", "3"))),
+                Body("then", Set("收工", "是")),
+                Body("else", Step("control.jump", Param("name", "再来")))),
+        ], variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(3, N(store, "轮"));
+        Assert.Equal("是", store.Local.Values["收工"].AsText());
+    }
+
+    [Fact]
+    public async Task A_jump_leaves_the_loop_it_was_written_in()
+    {
+        var store = Store(("轮", 0));
+
+        var (result, _) = await RunAsync(
+        [
+            Step("control.repeat", Param("times", "5"), Body("body",
+                Set("轮", "$轮 + 1"),
+                Step("control.jump", Param("name", "收工")))),
+            Step("control.anchor", Param("name", "收工")),
+            Set("收工了", "1"),
+        ], variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, N(store, "轮"));
+        Assert.Equal("1", store.Local.Values["收工了"].AsText());
+    }
+
+    [Fact]
+    public async Task A_jump_leaves_a_try_but_the_tidy_up_still_runs()
+    {
+        var store = Store();
+
+        var (result, _) = await RunAsync(
+        [
+            Try(Body("body", Step("control.jump", Param("name", "收工"))),
+                Body("finally", Set("收了", "1"))),
+            Step("control.anchor", Param("name", "收工")),
+            Set("到了", "1"),
+        ], variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("1", store.Local.Values["收了"].AsText());
+        Assert.Equal("1", store.Local.Values["到了"].AsText());
+    }
+
+    [Fact]
+    public async Task A_jump_to_an_anchor_that_is_not_there_fails_the_run()
+    {
+        var store = Store();
+
+        var (result, _) = await RunAsync(
+            [Step("control.jump", Param("name", "哪儿")), Set("到了", "1")], variables: store);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.AnchorNotFound", result.Key);
+        Assert.Equal("哪儿", result.Detail);
+        Assert.False(store.TryGet("到了", out _));
+    }
+
+    [Fact]
+    public async Task A_jump_with_no_anchor_named_fails_the_step()
+    {
+        var (result, _) = await RunAsync([Step("control.jump", Param("name", ""))]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.MissingAnchor", result.Key);
+    }
+
+    [Fact]
+    public async Task A_called_macro_can_jump_to_its_own_anchor()
+    {
+        var store = Store(("走过", 0));
+        var library = new Library(("跳自己",
+        [
+            Step("control.jump", Param("name", "自家的点")),
+            Set("走过", "$走过 + 100"),
+            Step("control.anchor", Param("name", "自家的点")),
+            Set("走过", "$走过 + 1"),
+        ]));
+
+        var (result, _) = await RunAsync(
+        [
+            Step("control.runMacro", Param("macro", "跳自己"), Param("arguments", "走过=$走过"),
+                Param("returns", "走过")),
+        ], variables: store, macros: library);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, N(store, "走过"));
+    }
+
+    [Fact]
+    public async Task A_jump_that_leaves_a_called_macro_has_nowhere_to_land()
+    {
+        var library = new Library(("乱跳", [Step("control.jump", Param("name", "外面的点"))]));
+
+        var (result, _) = await RunAsync(
+        [
+            Step("control.runMacro", Param("macro", "乱跳")),
+            Step("control.anchor", Param("name", "外面的点")),
+        ], macros: library);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.AnchorNotFound", result.Key);
+    }
+
+    [Fact]
     public async Task Calling_a_macro_that_is_not_there_fails_the_step()
     {
         var (result, _) = await RunAsync(

@@ -38,6 +38,9 @@ public sealed class MacroRunner
     private int _callDepth;
     private StepFailure? _failure;
 
+    /// <summary>The anchor a step asked to carry on at, while the jump travels outward to it.</summary>
+    private string _jumpTarget = string.Empty;
+
     public MacroRunner(VariableStore variables, IRunHost? host = null, IDeviceLayer? devices = null,
         double delayScale = 1, IMacroLibrary? macros = null)
     {
@@ -98,6 +101,9 @@ public sealed class MacroRunner
                 Signal.Stop => new RunResult(RunStatus.Stopped, "Run.Stopped", string.Empty, _executed),
                 Signal.Failed => new RunResult(RunStatus.Failed, _failure?.Key ?? "Run.Failed",
                     _failure?.Detail ?? string.Empty, _executed),
+                // A jump nobody answered means the anchor it names is not in the macro at all.
+                Signal.Jump => new RunResult(RunStatus.Failed, "Run.AnchorNotFound", _jumpTarget,
+                    _executed),
                 _ => new RunResult(RunStatus.Completed, "Run.Finished", string.Empty, _executed),
             };
 
@@ -127,6 +133,9 @@ public sealed class MacroRunner
         Continue,
         Stop,
         Failed,
+
+        /// <summary>Carry on at the anchor named by <c>_jumpTarget</c>.</summary>
+        Jump,
     }
 
     /// <summary>What the failure rule decided for one step.</summary>
@@ -141,26 +150,73 @@ public sealed class MacroRunner
     private async Task<Signal> RunSteps(IReadOnlyList<ExecutableStep> steps, int depth,
         CancellationToken token)
     {
-        foreach (var step in steps)
+        // A position rather than a walk through the list, because a jump is a step that says
+        // "carry on over there" and the run has to be able to move backwards as well as forwards.
+        for (var at = 0; at < steps.Count;)
         {
             token.ThrowIfCancellationRequested();
-            var signal = await RunStep(step, depth, token);
+            var signal = await RunStep(steps[at], depth, token);
+
+            // The run that holds the anchor answers the jump; one that does not hands it outward,
+            // so a jump made inside a loop, a group or a branch lands on the anchor that follows
+            // it instead of being cut short by the block it was written in.
+            if (signal is Signal.Jump)
+            {
+                var target = IndexOfAnchor(steps, _jumpTarget);
+                if (target < 0)
+                {
+                    return signal;
+                }
+
+                Log(LogLevel.Info, depth, string.Empty, "Run.Jumped", _jumpTarget);
+                _jumpTarget = string.Empty;
+                at = target;
+                continue;
+            }
+
             if (signal is not Signal.Normal)
             {
                 return signal;
             }
+
+            at++;
         }
 
         return Signal.Normal;
+    }
+
+    /// <summary>
+    /// Where the anchor with this name sits in a run of steps, or -1 when this run does not hold
+    /// one. Anchors are looked for in the run that is executing, which is why a jump can leave a
+    /// loop or a group but cannot be aimed *into* one: there would be no telling which round of a
+    /// loop, or which branch, it was meant to land in.
+    /// </summary>
+    private static int IndexOfAnchor(IReadOnlyList<ExecutableStep> steps, string name)
+    {
+        if (name.Length == 0)
+        {
+            return -1;
+        }
+
+        for (var index = 0; index < steps.Count; index++)
+        {
+            if (steps[index].Type.Equals("control.anchor", StringComparison.Ordinal)
+                && steps[index].Text("name").Trim().Equals(name, StringComparison.OrdinalIgnoreCase))
+            {
+                return index;
+            }
+        }
+
+        return -1;
     }
 
     /// <summary>How many macros deep a run may go before it is called a mistake.</summary>
     private const int CallDepthLimit = 16;
 
     /// <summary>
-    /// Runs another macro's steps as though they had been written here. The called macro shares
-    /// this run's variables, which is what makes a sub-macro worth having: it can read what the
-    /// caller set up and leave its answer where the caller will look for it.
+    /// Runs another macro's steps as though they had been written here, on values of its own:
+    /// what the caller passes is what it can read, and what it leaves behind comes back through
+    /// the names the call asked for.
     /// </summary>
     private async Task<Signal> RunOtherMacro(ExecutableStep step, int depth, CancellationToken token)
     {
@@ -200,6 +256,13 @@ public sealed class MacroRunner
             {
                 Log(LogLevel.Warn, depth, step.Type, "Run.MacroBreak", name);
                 return Signal.Normal;
+            }
+
+            // A jump that leaves the called macro has nowhere to land: an anchor belongs to the
+            // macro its jump was written in, and a call is meant to come back on its own terms.
+            if (signal is Signal.Jump)
+            {
+                throw new StepFailure("Run.AnchorNotFound", _jumpTarget);
             }
 
             return signal;
@@ -436,6 +499,21 @@ public sealed class MacroRunner
 
             case "control.continue":
                 return Signal.Continue;
+
+            // An anchor is a place to jump to rather than something the run does, so stepping
+            // onto one costs nothing; the jump that comes here is what skips the steps between.
+            case "control.anchor":
+                return Signal.Normal;
+
+            case "control.jump":
+                var wanted = step.Text("name").Trim();
+                if (wanted.Length == 0)
+                {
+                    throw new StepFailure("Run.MissingAnchor");
+                }
+
+                _jumpTarget = wanted;
+                return Signal.Jump;
 
             case "control.stop":
                 Log(LogLevel.Warn, depth, step.Type, "Run.StopRequested", step.Text("reason"));
@@ -894,7 +972,7 @@ public sealed class MacroRunner
             token.ThrowIfCancellationRequested();
             Variables.Local.Set("sys.loopIndex", Value.FromNumber(round));
             var signal = await RunSteps(step.Children("body"), depth + 1, token);
-            if (signal is Signal.Stop or Signal.Failed)
+            if (signal is Signal.Stop or Signal.Failed or Signal.Jump)
             {
                 return signal;
             }
@@ -925,7 +1003,7 @@ public sealed class MacroRunner
             }
 
             var signal = await RunSteps(step.Children("body"), depth + 1, token);
-            if (signal is Signal.Stop or Signal.Failed)
+            if (signal is Signal.Stop or Signal.Failed or Signal.Jump)
             {
                 return signal;
             }
@@ -971,7 +1049,7 @@ public sealed class MacroRunner
             }
 
             var signal = await RunSteps(step.Children("body"), depth + 1, token);
-            if (signal is Signal.Stop or Signal.Failed)
+            if (signal is Signal.Stop or Signal.Failed or Signal.Jump)
             {
                 return signal;
             }
@@ -1015,7 +1093,7 @@ public sealed class MacroRunner
             Variables.Set(counter, Value.FromNumber(value));
 
             var signal = await RunSteps(step.Children("body"), depth + 1, token);
-            if (signal is Signal.Stop or Signal.Failed)
+            if (signal is Signal.Stop or Signal.Failed or Signal.Jump)
             {
                 return signal;
             }
@@ -1136,8 +1214,9 @@ public sealed class MacroRunner
             Log(LogLevel.Debug, depth, step.Type, "Run.Finally");
             var closingSignal = await RunSteps(closing, depth + 1, token);
 
-            // Stopping or failing while tidying up beats whatever the attempt did.
-            if (closingSignal is Signal.Stop or Signal.Failed)
+            // Stopping, failing or jumping while tidying up beats whatever the attempt did: a
+            // cleanup that ends the run, or heads off somewhere else, is the last word.
+            if (closingSignal is Signal.Stop or Signal.Failed or Signal.Jump)
             {
                 return closingSignal;
             }
