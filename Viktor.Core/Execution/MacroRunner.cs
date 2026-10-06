@@ -503,6 +503,14 @@ public sealed class MacroRunner
                 ClipboardRead(step, depth);
                 return Signal.Normal;
 
+            case "clipboard.readImage":
+                ClipboardImageRead(step, depth);
+                return Signal.Normal;
+
+            case "clipboard.writeImage":
+                ClipboardImageWrite(step, depth);
+                return Signal.Normal;
+
             case "clipboard.clear":
                 _devices.Clipboard.Clear();
                 Log(LogLevel.Info, depth, step.Type, "Run.ClearedClipboard");
@@ -2553,6 +2561,48 @@ public sealed class MacroRunner
         var name = ClipboardName(step);
         Variables.Set(name, Value.FromText(text));
         Log(LogLevel.Info, depth, step.Type, "Run.ReadClipboard", name, text.Length);
+    }
+
+    /// <summary>
+    /// Takes the picture on the clipboard into an image variable, so a later step can look for it
+    /// on screen. There is no rectangle to write down with it: a picture on the clipboard came from
+    /// somewhere else, and nothing says where on this screen it might be.
+    /// </summary>
+    private void ClipboardImageRead(ExecutableStep step, int depth)
+    {
+        var name = ClipboardName(step);
+        var picture = _devices.Clipboard.ReadImage();
+
+        if (picture is null || picture.IsEmpty)
+        {
+            // A miss clears the variable outright, the same habit the find-image steps have: a
+            // step inside a loop must never read the picture the previous pass left behind.
+            _images.Remove(name);
+            StoreMiss(name);
+            Log(LogLevel.Warn, depth, step.Type, "Run.NoClipboardImage", name);
+            return;
+        }
+
+        _images[name] = picture;
+        Variables.Set(name, Value.FromText($"<image {picture.Width}x{picture.Height}>"));
+        Variables.Set(name + ".width", Value.FromNumber(picture.Width));
+        Variables.Set(name + ".height", Value.FromNumber(picture.Height));
+        Log(LogLevel.Info, depth, step.Type, "Run.ReadClipboardImage", name,
+            $"{picture.Width}x{picture.Height}");
+    }
+
+    /// <summary>Puts a picture on the clipboard, from a file or from an image variable.</summary>
+    private void ClipboardImageWrite(ExecutableStep step, int depth)
+    {
+        var picture = Reference(step);
+        if (picture.IsEmpty)
+        {
+            throw new StepFailure("Run.MissingImage", step.Text("image"));
+        }
+
+        _devices.Clipboard.WriteImage(picture);
+        Log(LogLevel.Info, depth, step.Type, "Run.CopiedImageToClipboard",
+            $"{picture.Width}x{picture.Height}");
     }
 
     /// <summary>Waits for the clipboard to change, then keeps whatever landed on it.</summary>

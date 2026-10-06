@@ -1658,6 +1658,50 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task The_picture_on_the_clipboard_can_be_read_into_a_variable()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            ClipboardCopy = new ImageFrame(4, 3, new byte[4 * 3 * 4]),
+        };
+        var (result, _, store) = await RunAsync(
+            [Step("clipboard.readImage", Param("resultVariable", "shot"))], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("<image 4x3>", store.Local.Values["shot"].AsText());
+        Assert.Equal(4, store.Local.Values["shot.width"].AsNumber());
+        Assert.Equal(3, store.Local.Values["shot.height"].AsNumber());
+    }
+
+    [Fact]
+    public async Task A_clipboard_with_no_picture_empties_the_variable()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, store) = await RunAsync(
+            [Step("clipboard.readImage", Param("resultVariable", "shot"))], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(string.Empty, store.Local.Values["shot"].AsText());
+        Assert.Contains("clipboardReadImage", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_picture_can_be_put_on_the_clipboard_and_taken_off_again()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, store) = await RunAsync(
+        [
+            Step("clipboard.writeImage", Param("image", "ok.png")),
+            Step("clipboard.readImage", Param("resultVariable", "back")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("clipboardWriteImage 2x2", devices.Calls);
+        Assert.Equal(2, store.Local.Values["back.width"].AsNumber());
+        Assert.Equal(2, store.Local.Values["back.height"].AsNumber());
+    }
+
+    [Fact]
     public async Task Clearing_the_clipboard_empties_it()
     {
         var devices = new FakeDeviceLayer { ClipboardText = "gone" };
@@ -3146,6 +3190,22 @@ internal sealed class FakeDeviceLayer
         ClipboardText = text;
         ClipboardChanges++;
     }
+
+    ImageFrame? IClipboardDevice.ReadImage()
+    {
+        Note("clipboardReadImage");
+        return ClipboardCopy;
+    }
+
+    void IClipboardDevice.WriteImage(ImageFrame image)
+    {
+        Note($"clipboardWriteImage {image.Width}x{image.Height}");
+        ClipboardCopy = image;
+        ClipboardChanges++;
+    }
+
+    /// <summary>The picture the fake clipboard is holding, if any.</summary>
+    public ImageFrame? ClipboardCopy { get; set; }
 
     void IClipboardDevice.Clear()
     {

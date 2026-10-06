@@ -207,8 +207,17 @@ public interface IClipboardDevice
     /// <summary>The text on the clipboard, or an empty string when there is none.</summary>
     string ReadText();
 
+    /// <summary>
+    /// The picture on the clipboard, or null when there is not one. A picture copied from the
+    /// screen comes back the size it was copied at.
+    /// </summary>
+    ImageFrame? ReadImage();
+
     /// <summary>Replaces whatever is on the clipboard with this text.</summary>
     void WriteText(string text);
+
+    /// <summary>Puts a picture on the clipboard, the same as copying one.</summary>
+    void WriteImage(ImageFrame image);
 
     /// <summary>Empties the clipboard.</summary>
     void Clear();
@@ -417,9 +426,13 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public bool HasText => throw Missing("the clipboard");
 
+        public ImageFrame? ReadImage() => throw Missing("the clipboard");
+
         public string ReadText() => throw Missing("the clipboard");
 
         public void WriteText(string text) => throw Missing("the clipboard");
+
+        public void WriteImage(ImageFrame image) => throw Missing("the clipboard");
 
         public void Clear() => throw Missing("the clipboard");
 

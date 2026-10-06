@@ -699,6 +699,33 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "clipboard.readImage",
+            Category = ActionCategory.Clipboard,
+            DisplayName = "Read Clipboard Picture",
+            Description = "Take the picture on the clipboard into an image variable.",
+            Parameters =
+            [
+                Variable("resultVariable", "Result variable", "picture",
+                    "Variable that receives the picture, ready for a find-image step to look for "
+                    + "on screen. $name.width and $name.height hold its size; a picture on the "
+                    + "clipboard has no place on screen, so there is no $name.x.",
+                    required: false, namesVariable: true),
+            ],
+        },
+        new()
+        {
+            Key = "clipboard.writeImage",
+            Category = ActionCategory.Clipboard,
+            DisplayName = "Copy Picture to Clipboard",
+            Description = "Put a picture on the clipboard, the same as copying one.",
+            Parameters =
+            [
+                Image("image", "Picture", @"C:\images\ok.png",
+                    "A picture file, or an image variable an earlier step filled in."),
+            ],
+        },
+        new()
+        {
             Key = "clipboard.clear",
             Category = ActionCategory.Clipboard,
             DisplayName = "Clear Clipboard",

@@ -473,6 +473,16 @@ internal static class ActionStrings
         ["clipboard.readText.resultVariable.label"] = "结果变量",
         ["clipboard.readText.resultVariable.hint"] = "接收剪贴板文本的变量。",
 
+        ["clipboard.readImage.name"] = "读取剪贴板图片",
+        ["clipboard.readImage.desc"] = "把剪贴板上的图片读进图像变量。",
+        ["clipboard.readImage.resultVariable.label"] = "结果变量",
+        ["clipboard.readImage.resultVariable.hint"] = "接收图片的变量，可以交给找图步骤在屏幕上找。$变量名.width、.height 是它的尺寸；剪贴板上的图片没有屏幕位置，所以没有 .x。",
+
+        ["clipboard.writeImage.name"] = "复制图片到剪贴板",
+        ["clipboard.writeImage.desc"] = "把一张图片放到剪贴板上，等同于复制它。",
+        ["clipboard.writeImage.image.label"] = "图片",
+        ["clipboard.writeImage.image.hint"] = "可以是图片文件，也可以是前面步骤填好的图像变量。",
+
         ["clipboard.clear.name"] = "清空剪贴板",
         ["clipboard.clear.desc"] = "清空剪贴板内容。",
 
