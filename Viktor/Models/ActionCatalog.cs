@@ -1640,9 +1640,12 @@ public static class ActionCatalog
                 Text("region", "Search region", required: false, hint: RegionHint),
                 ..Anchor(),
                 TextMatch(),
+                AllMatches(),
                 Variable("resultVariable", "Result variable", "match",
                     "Variable that receives the match centre, empty when the text was not found. "
-                    + "$name.x, $name.y, $name.text and $name.score hold the parts.",
+                    + "$name.x, $name.y, $name.width, $name.height, $name.text and $name.score hold "
+                    + "the parts, and $name.count and $name.list the whole set when the step records "
+                    + "it.",
                     namesVariable: true, defaultValue: "match"),
             ],
         },

@@ -885,6 +885,37 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_text_search_can_record_every_place_the_text_was_read()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans =
+            [
+                new TextSpan("Total 12", new ScreenPoint(0, 0), new ScreenSize(40, 8), 0.9),
+                new TextSpan("Other", new ScreenPoint(0, 20), new ScreenSize(20, 8), 0.9),
+                new TextSpan("Total 99", new ScreenPoint(0, 40), new ScreenSize(40, 8), 0.9),
+            ],
+        };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("ocr.findText", Param("text", "Total"), Param("matchMode", "contains"),
+                Param("allMatches", "true"), Param("resultVariable", "totals")),
+            Step("ocr.findText", Param("text", "Other"), Param("matchMode", "contains"),
+                Param("resultVariable", "one")),
+        ], devices);
+
+        Assert.Equal("20,4", store.Local.Values["totals"].AsText());
+        Assert.Equal(2, store.Local.Values["totals.count"].AsNumber());
+        Assert.Equal("20,4", store.Local.Values["totals.list"].AsList()[0].AsText());
+        Assert.Equal("20,44", store.Local.Values["totals.list"].AsList()[1].AsText());
+
+        // A step that did not ask for the whole set leaves no list behind for an older macro to
+        // trip over.
+        Assert.False(store.Local.Values.ContainsKey("one.count"));
+    }
+
+    [Fact]
     public async Task A_text_search_can_be_exact_or_a_pattern()
     {
         var devices = new FakeDeviceLayer

@@ -1407,6 +1407,9 @@ internal static class ActionStrings
         ["ocr.findText.matchMode.hint"] = "识别结果与搜索文字的比较方式。",
         ["ocr.findText.resultVariable.label"] = "结果变量",
         ["ocr.findText.resultVariable.hint"] = "接收匹配中心点，未找到时为空；$变量名.x、.y、.text、.score 是各个部分。",
+        ["ocr.findText.allMatches.label"] = "记录全部命中",
+        ["ocr.findText.allMatches.hint"] = "除了挑中的那一处，还把匹配到几处、分别在哪里记下来："
+            + "$变量名.count 是处数，$变量名.list 每处一个“x,y”，可以直接交给 count()、get() 和 forEach。",
 
         ["ocr.clickText.name"] = "点击文字",
         ["ocr.clickText.desc"] = "在屏幕上找到文字并点击它。",

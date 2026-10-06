@@ -3340,7 +3340,8 @@ public sealed class MacroRunner
     {
         var wanted = Read(step.Text("text")).AsText();
         var mode = step.Text("matchMode");
-        var span = ReadSpans(step).FirstOrDefault(candidate => Matches(candidate.Text, wanted, mode));
+        var hits = TextHits(step, wanted, mode);
+        var span = hits.Count > 0 ? hits[0] : null;
 
         var name = step.Text("resultVariable").Trim();
         if (name.Length == 0)
@@ -3357,9 +3358,17 @@ public sealed class MacroRunner
             StoreMatch(name, span.Center, span.Size, span.Confidence, span.Text);
         }
 
+        // Where every hit was, not only the one the step picked, so a macro can walk a list of
+        // hits or click through a column of them.
+        Remember(name, [.. hits.Select(hit => hit.Center)], Flag(step, "allMatches", false));
+
         Log(LogLevel.Info, depth, step.Type, span is null ? "Run.TextMissing" : "Run.TextFound",
             name, span is null ? string.Empty : $"{span.Center.X},{span.Center.Y}");
     }
+
+    /// <summary>Every place the wanted text was read, in the order the screen was read.</summary>
+    private List<TextSpan> TextHits(ExecutableStep step, string wanted, string mode)
+        => [.. ReadSpans(step).Where(candidate => Matches(candidate.Text, wanted, mode))];
 
     private async Task ClickText(ExecutableStep step, int depth, CancellationToken token)
     {
