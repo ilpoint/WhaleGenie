@@ -1394,6 +1394,10 @@ internal static class ActionStrings
         ["ocr.recognize.height.label"] = "高度",
         ["ocr.recognize.height.hint"] = "区域高度（像素）。",
         ["ocr.recognize.language.label"] = "语言",
+        ["ocr.recognize.content.label"] = "内容",
+        ["ocr.recognize.content.hint"] = "读全部文字，还是只读数字：只读数字时，含数字的片段"
+            + "只留下数字本身（货币符号、千位分隔符和旁边的文字都去掉），一个数字也没有的片段"
+            + "直接不要。全角数字按普通数字读。",
         ["ocr.recognize.resultVariable.label"] = "结果变量",
         ["ocr.recognize.resultVariable.hint"] = "接收识别结果的变量，可沿用已有变量名或新建一个。",
 
@@ -1410,6 +1414,10 @@ internal static class ActionStrings
         ["ocr.findText.allMatches.label"] = "记录全部命中",
         ["ocr.findText.allMatches.hint"] = "除了挑中的那一处，还把匹配到几处、分别在哪里记下来："
             + "$变量名.count 是处数，$变量名.list 每处一个“x,y”，可以直接交给 count()、get() 和 forEach。",
+        ["ocr.findText.content.label"] = "内容",
+        ["ocr.findText.content.hint"] = "把屏幕按全部文字比，还是按数字比：按数字比时，含数字"
+            + "的片段只留下数字本身（货币符号、千位分隔符和旁边的文字都去掉），一个数字也没有"
+            + "的片段直接不要，所以“找 1234.50”不会撞上旁边的文字。",
 
         ["ocr.clickText.name"] = "点击文字",
         ["ocr.clickText.desc"] = "在屏幕上找到文字并点击它。",
@@ -1421,6 +1429,10 @@ internal static class ActionStrings
         ["ocr.clickText.offsetY.label"] = "纵向偏移",
         ["ocr.clickText.timeoutMs.label"] = "超时毫秒",
         ["ocr.clickText.timeoutMs.hint"] = "等待文字出现的时长，超时即放弃。",
+        ["ocr.clickText.content.label"] = "内容",
+        ["ocr.clickText.content.hint"] = "把屏幕按全部文字找，还是按数字找：按数字找时，含数字的"
+            + "片段只留下数字本身（货币符号、千位分隔符和旁边的文字都去掉），一个数字也没有的"
+            + "片段直接不要。",
         ["ocr.clickText.button.label"] = "按键",
 
         // ---------------------------------------------------------------------- uia
@@ -1775,6 +1787,12 @@ internal static class ActionStrings
         ["ocr.recognize.language.option.auto"] = "自动",
         ["ocr.recognize.language.option.en"] = "英文",
         ["ocr.recognize.language.option.zh"] = "中文",
+        ["ocr.recognize.content.option.text"] = "全部文字",
+        ["ocr.recognize.content.option.digits"] = "只读数字",
+        ["ocr.findText.content.option.text"] = "全部文字",
+        ["ocr.findText.content.option.digits"] = "只读数字",
+        ["ocr.clickText.content.option.text"] = "全部文字",
+        ["ocr.clickText.content.option.digits"] = "只读数字",
 
         ["ocr.findText.matchMode.option.contains"] = "包含",
         ["ocr.findText.matchMode.option.exact"] = "完全匹配",

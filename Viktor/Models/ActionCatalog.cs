@@ -1623,6 +1623,7 @@ public static class ActionCatalog
                 Number("height", "Height", 120, "Region height in pixels.", min: 1),
                 ..Anchor(),
                 Choice("language", "Language", ["auto", "en", "zh"], "auto"),
+                Content(),
                 Variable("resultVariable", "Result variable", "text",
                     "Variable that receives the recognised text.",
                     namesVariable: true, defaultValue: "text"),
@@ -1640,6 +1641,7 @@ public static class ActionCatalog
                 Text("region", "Search region", required: false, hint: RegionHint),
                 ..Anchor(),
                 TextMatch(),
+                Content(),
                 AllMatches(),
                 Variable("resultVariable", "Result variable", "match",
                     "Variable that receives the match centre, empty when the text was not found. "
@@ -1659,6 +1661,7 @@ public static class ActionCatalog
             [
                 Text("text", "Text to find", "Save"),
                 TextMatch(),
+                Content(),
                 Number("offsetX", "Offset X", 0, "Pixels added to the match centre.", min: -100000m),
                 Number("offsetY", "Offset Y", 0, min: -100000m),
                 Number("timeoutMs", "Timeout ms", 5000, "Wait this long for the text before giving up."),
@@ -2489,6 +2492,16 @@ public static class ActionCatalog
     private static ActionParameter TextMatch()
         => Choice("matchMode", "Match mode", ["contains", "exact", "regex"], "contains",
             "How the found text is compared against the search text.");
+
+    /// <summary>
+    /// Whether a step wants everything that can be read, or only the numbers. Shared by the three
+    /// actions that read the screen with OCR, so one screen is read the same way by all of them.
+    /// </summary>
+    private static ActionParameter Content()
+        => Choice("content", "Content", ["text", "digits"], "text",
+            "All of the text, or only the numbers: a piece that holds a number keeps the number "
+            + "itself, and the money sign, the thousands separators and the label around it are "
+            + "dropped. A piece with no digit in it is not a number and is left out.");
 
     /// <summary>A window title, filled in from the windows that are open by the window picker.</summary>
     private static ActionParameter Window(string name = "window",

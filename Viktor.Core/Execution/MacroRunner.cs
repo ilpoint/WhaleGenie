@@ -3308,7 +3308,7 @@ public sealed class MacroRunner
         var spans = new List<TextSpan>();
         foreach (var (area, origin) in SearchAreas(step))
         {
-            spans.AddRange(_devices.Ocr.Recognize(area, language).Select(span => span with
+            spans.AddRange(Wanted(step, _devices.Ocr.Recognize(area, language)).Select(span => span with
             {
                 Location = new ScreenPoint(span.Location.X + origin.X, span.Location.Y + origin.Y),
             }));
@@ -3317,6 +3317,16 @@ public sealed class MacroRunner
         return spans;
     }
 
+    /// <summary>
+    /// What a step wants read: everything, or only the numbers. Asking for numbers keeps the
+    /// pieces that hold one and cuts each down to the number itself, which is how a screen full of
+    /// labels and a screen full of amounts can be handled by the same kind of step.
+    /// </summary>
+    private static IReadOnlyList<TextSpan> Wanted(ExecutableStep step, IReadOnlyList<TextSpan> spans)
+        => step.Text("content").Trim().Equals("digits", StringComparison.OrdinalIgnoreCase)
+            ? OcrReading.Numbers(spans)
+            : spans;
+
     private void Recognize(ExecutableStep step, int depth)
     {
         var corner = Place(step, Number(step, "x"), Number(step, "y"));
@@ -3324,7 +3334,7 @@ public sealed class MacroRunner
             Math.Max(1, Number(step, "width")), Math.Max(1, Number(step, "height")));
 
         var spans = _devices.Ocr.Recognize(area, Language(step));
-        var text = string.Join(' ', spans.Select(span => span.Text));
+        var text = string.Join(' ', Wanted(step, spans).Select(span => span.Text));
 
         var name = step.Text("resultVariable").Trim();
         if (name.Length == 0)

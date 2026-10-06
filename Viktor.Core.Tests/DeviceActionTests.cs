@@ -916,6 +916,30 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Reading_and_finding_can_ask_for_the_numbers_only()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans =
+            [
+                new TextSpan("合计 ¥1,234.50", new ScreenPoint(0, 0), new ScreenSize(80, 12), 0.9),
+                new TextSpan("已完成", new ScreenPoint(0, 20), new ScreenSize(30, 12), 0.9),
+            ],
+        };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("ocr.recognize", Param("x", "0"), Param("y", "0"), Param("width", "100"),
+                Param("height", "40"), Param("content", "digits"), Param("resultVariable", "amounts")),
+            Step("ocr.findText", Param("text", "1234.50"), Param("content", "digits"),
+                Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.Equal("1234.50", store.Local.Values["amounts"].AsText());
+        Assert.Equal("40,6", store.Local.Values["where"].AsText());
+    }
+
+    [Fact]
     public async Task A_text_search_can_be_exact_or_a_pattern()
     {
         var devices = new FakeDeviceLayer
