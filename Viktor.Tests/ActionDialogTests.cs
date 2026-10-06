@@ -833,4 +833,99 @@ public class ActionDialogTests
             Assert.Equal(3_600_000, viewModel.MetaTimeout.Milliseconds);
         });
     }
+
+    [Fact]
+    public void A_step_with_nothing_unusual_keeps_its_folded_settings_shut()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("input.mouseMove");
+            Dispatcher.UIThread.RunJobs();
+
+            // x and y share a line, so four fields read as three lines while the fold holds the
+            // rest: what the coordinates are measured from, and where the input is sent.
+            Assert.Equal(3, viewModel.Rows.Count);
+            Assert.Equal(5, viewModel.AdvancedRows.Count);
+            Assert.False(viewModel.ShowAdvanced);
+
+            var fold = window.GetVisualDescendants().OfType<Button>()
+                .First(button => Equals(button.Content, viewModel.AdvancedLabel));
+            Assert.True(fold.IsVisible);
+
+            fold.Command?.Execute(fold.CommandParameter);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(viewModel.ShowAdvanced);
+        });
+    }
+
+    [Fact]
+    public void A_step_that_uses_a_folded_setting_opens_with_it_showing()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.keyPress");
+            viewModel.LoadFrom(new MacroStep
+            {
+                Type = "input.keyPress",
+                Parameters =
+                [
+                    new StepParameter { Name = "key", Kind = ActionParameterKind.Key, Value = "F5" },
+                    new StepParameter
+                    {
+                        Name = "inputMode",
+                        Kind = ActionParameterKind.Choice,
+                        Value = "background",
+                    },
+                ],
+            });
+
+            // A step that posts its input somewhere is doing something unusual, so the reason is
+            // put in front of the user rather than left under the fold.
+            Assert.True(viewModel.ShowAdvanced);
+        });
+    }
+
+    [Fact]
+    public void A_step_that_says_nothing_about_the_folded_settings_opens_with_them_shut()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.keyPress");
+            viewModel.LoadFrom(new MacroStep
+            {
+                Type = "input.keyPress",
+                Parameters =
+                [
+                    new StepParameter { Name = "key", Kind = ActionParameterKind.Key, Value = "F5" },
+                ],
+            });
+
+            Assert.False(viewModel.ShowAdvanced);
+        });
+    }
+
+    [Fact]
+    public void A_folded_setting_is_still_saved_onto_the_step()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.keyPress");
+            var mode = viewModel.Parameters.First(parameter => parameter.Definition.Name == "inputMode");
+            mode.Option = mode.Choices.First(choice => choice.Value == "background");
+
+            MacroStep? saved = null;
+            viewModel.CloseRequested += result => saved = result;
+            viewModel.SaveCommand.Execute(null);
+
+            Assert.NotNull(saved);
+            Assert.Contains(saved!.Parameters,
+                parameter => parameter.Name == "inputMode" && parameter.Value == "background");
+        });
+    }
 }

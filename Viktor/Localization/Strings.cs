@@ -361,6 +361,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.Unit.s"] = "s",
         ["Add.Unit.min"] = "min",
         ["Add.Unit.h"] = "h",
+        ["Add.AdvancedShow"] = "Advanced options ({0})",
+        ["Add.AdvancedHide"] = "Hide advanced options",
         ["Add.StepErrorJumps"] = "Send a failure to an anchor",
         ["Add.StepErrorJumpsHint"] = "One rule per line: the failure it is about, then \"->\" and "
             + "the anchor to carry on at, or \"=>\" when the handler is to come back to the step "
@@ -961,6 +963,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.Unit.s"] = "秒",
         ["Add.Unit.min"] = "分",
         ["Add.Unit.h"] = "时",
+        ["Add.AdvancedShow"] = "高级选项（{0}）",
+        ["Add.AdvancedHide"] = "收起高级选项",
         ["Add.StepErrorJumps"] = "失败时跳到锚点",
         ["Add.StepErrorJumpsHint"] = "一行一条规则：先是它管哪个失败，然后 “->” 和要继续执行的"
             + "锚点名；写 “=>” 表示处理段办完要回到失败那一步之后。失败名支持通配，"

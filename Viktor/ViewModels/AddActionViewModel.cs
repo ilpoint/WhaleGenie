@@ -127,6 +127,24 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>The parameters as the dialog shows them, with a position's x and y on one line.</summary>
     public ObservableCollection<ParameterRowViewModel> Rows { get; } = [];
 
+    /// <summary>The settings the dialog keeps folded away until they are asked for.</summary>
+    public ObservableCollection<ParameterRowViewModel> AdvancedRows { get; } = [];
+
+    /// <summary>True when this action has settings behind the fold.</summary>
+    public bool HasAdvanced => AdvancedRows.Count > 0;
+
+    /// <summary>
+    /// True while the folded settings are on screen. A step that already uses one opens with them
+    /// showing, so the reason it behaves unusually is never hidden from the person editing it.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AdvancedLabel))]
+    public partial bool ShowAdvanced { get; set; }
+
+    /// <summary>Text of the fold's button, which says how many settings are behind it.</summary>
+    public string AdvancedLabel => Strings.Format(
+        ShowAdvanced ? "Add.AdvancedHide" : "Add.AdvancedShow", AdvancedRows.Count);
+
     public bool HasSelection => SelectedDefinition is not null;
 
     public bool HasParameters => Parameters.Count > 0;
@@ -372,6 +390,10 @@ public partial class AddActionViewModel : ViewModelBase
         MetaErrorJumps = StepMeta.Text(step.Meta.Jumps);
         MetaRetryBackoff = BackoffChoices.FirstOrDefault(choice =>
             choice.Value == StepMeta.Name(step.Meta.RetryBackoff)) ?? BackoffChoices[0];
+
+        // A step that already uses one of the folded settings opens with them in view, so the
+        // reason it behaves unusually is not hidden under a fold the user has to know about.
+        ShowAdvanced = Parameters.Any(parameter => parameter.IsAdvanced && !parameter.IsDefault);
     }
 
     private void BuildParameters(ActionDefinition? definition)
@@ -414,6 +436,9 @@ public partial class AddActionViewModel : ViewModelBase
             MarkRegion();
         }
 
+        // A different action starts folded, whatever the one before it had open.
+        ShowAdvanced = false;
+
         BuildRows();
         OnParameterChanged(this, new PropertyChangedEventArgs(nameof(Parameters)));
     }
@@ -425,21 +450,33 @@ public partial class AddActionViewModel : ViewModelBase
     private void BuildRows()
     {
         Rows.Clear();
+        AdvancedRows.Clear();
 
-        for (var index = 0; index < Parameters.Count; index++)
+        FillRows(Parameters.Where(parameter => !parameter.IsAdvanced), Rows);
+        FillRows(Parameters.Where(parameter => parameter.IsAdvanced), AdvancedRows);
+
+        OnPropertyChanged(nameof(HasAdvanced));
+        OnPropertyChanged(nameof(AdvancedLabel));
+    }
+
+    private static void FillRows(IEnumerable<StepParameterViewModel> parameters,
+        ObservableCollection<ParameterRowViewModel> rows)
+    {
+        var laid = parameters.ToList();
+        for (var index = 0; index < laid.Count; index++)
         {
-            var current = Parameters[index];
-            var next = index + 1 < Parameters.Count ? Parameters[index + 1] : null;
+            var current = laid[index];
+            var next = index + 1 < laid.Count ? laid[index + 1] : null;
 
             if (current.IsRowPair && next?.IsRowPair == true
                 || current.IsCoordinate && next?.IsCoordinate == true)
             {
-                Rows.Add(new ParameterRowViewModel(current, next));
+                rows.Add(new ParameterRowViewModel(current, next));
                 index++;
                 continue;
             }
 
-            Rows.Add(new ParameterRowViewModel(current));
+            rows.Add(new ParameterRowViewModel(current));
         }
     }
 
@@ -722,8 +759,12 @@ public partial class AddActionViewModel : ViewModelBase
         },
     };
 
-    /// <summary>Reads one of the millisecond boxes, treating an empty box as zero.</summary>
+    /// <summary>Reads a whole-number box that may be left empty, counting an empty one as zero.</summary>
     private static int Whole(decimal? value) => value is null ? 0 : Math.Max(0, (int)value.Value);
+
+    /// <summary>Opens and closes the settings the dialog keeps folded away.</summary>
+    [RelayCommand]
+    private void ToggleAdvanced() => ShowAdvanced = !ShowAdvanced;
 
     [RelayCommand(CanExecute = nameof(CanSave))]
     private void Save() => CloseRequested?.Invoke(BuildStep());

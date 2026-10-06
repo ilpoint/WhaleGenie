@@ -2217,7 +2217,7 @@ public static class ActionCatalog
     // ------------------------------------------------------------------ builders
 
     private static ActionParameter Text(string name, string label, string placeholder = "",
-        string hint = "", bool required = true, string defaultValue = "")
+        string hint = "", bool required = true, string defaultValue = "", bool advanced = false)
         => new()
         {
             Name = name,
@@ -2227,6 +2227,7 @@ public static class ActionCatalog
             Hint = hint,
             Required = required,
             DefaultValue = defaultValue,
+            Advanced = advanced,
         };
 
     private static ActionParameter Multiline(string name, string label, string hint = "",
@@ -2350,7 +2351,7 @@ public static class ActionCatalog
 
     private static ActionParameter Choice(string name, string label, string[] options,
         string defaultValue, string hint = "", string[]? labels = null,
-        string enabledBySibling = "")
+        string enabledBySibling = "", bool advanced = false)
         => new()
         {
             Name = name,
@@ -2361,6 +2362,7 @@ public static class ActionCatalog
             DefaultValue = defaultValue,
             Hint = hint,
             EnabledBySibling = enabledBySibling,
+            Advanced = advanced,
         };
 
     private static ActionParameter KeyBind(string name, string label, string hint = "",
@@ -2446,7 +2448,8 @@ public static class ActionCatalog
             + "Background posts the messages at the target window instead, which needs no focus "
             + "and leaves the on-screen pointer where it is. Driver sends it through a virtual "
             + "USB device, which needs the VIIPER server running.",
-            labels: ["In front", "Background (posted)", "Driver (virtual device)"]),
+            labels: ["In front", "Background (posted)", "Driver (virtual device)"],
+            advanced: true),
         new()
         {
             Name = "targetWindow",
@@ -2456,6 +2459,7 @@ public static class ActionCatalog
             Hint = "The window background input posts its messages at; part of the title is "
                    + "enough. The other input modes do not use it.",
             Required = false,
+            Advanced = true,
         },
     ];
 
@@ -2481,7 +2485,8 @@ public static class ActionCatalog
             + "screen and through a list that scrolls.",
             labels: withElement
                 ? ["Screen pixels", "Window top-left", "Window client area", "UI element top-left"]
-                : ["Screen pixels", "Window top-left", "Window client area"]),
+                : ["Screen pixels", "Window top-left", "Window client area"],
+            advanced: true),
         new()
         {
             Name = "anchorWindow",
@@ -2491,6 +2496,7 @@ public static class ActionCatalog
             Hint = "The window the coordinates are measured from; part of the title is enough. "
                    + "Leave it empty for the window in front. The screen mode does not use it.",
             Required = false,
+            Advanced = true,
         },
         ..(withElement ? AnchorElement() : Array.Empty<ActionParameter>()),
     ];
@@ -2505,7 +2511,8 @@ public static class ActionCatalog
             hint: "The control the coordinates are measured from, for example Button[name='Save']; "
                   + "the element picker can take it off the screen. It is looked up again on every "
                   + "run, so the numbers stay on the control after it has moved. The other "
-                  + "coordinate origins do not use it."),
+                  + "coordinate origins do not use it.",
+            advanced: true),
     ];
 
     /// <summary>

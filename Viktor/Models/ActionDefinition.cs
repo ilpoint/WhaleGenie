@@ -169,6 +169,13 @@ public class ActionParameter
     /// while the step keeps storing milliseconds, so a unit never reaches the engine or the file.
     /// </summary>
     public bool IsDuration { get; init; }
+
+    /// <summary>
+    /// True for a setting that is worth having but not worth showing on every step, such as where
+    /// the input is sent or how a search is tuned. The dialog keeps these folded away until they
+    /// are asked for, which is what stops an action with a dozen parameters from being a wall.
+    /// </summary>
+    public bool Advanced { get; init; }
 }
 
 /// <summary>A single entry of the action catalogue, for example <c>control.delay</c>.</summary>

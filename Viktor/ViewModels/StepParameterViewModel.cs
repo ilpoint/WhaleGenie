@@ -344,6 +344,23 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>True when this parameter names another macro and offers the project's macros.</summary>
     public bool IsMacro => Definition.Kind is ActionParameterKind.Macro;
 
+    /// <summary>True when the parameter belongs behind the dialog's "advanced" fold.</summary>
+    public bool IsAdvanced => Definition.Advanced;
+
+    /// <summary>
+    /// True while the parameter still holds what it started with. A folded setting that has been
+    /// changed is then worth putting back in front of the user when the step is opened again.
+    /// </summary>
+    public bool IsDefault => Definition.Kind switch
+    {
+        ActionParameterKind.Bool => Flag == string.Equals(Definition.DefaultValue, "true",
+            StringComparison.OrdinalIgnoreCase),
+        ActionParameterKind.Choice => string.Equals(Option?.Value ?? string.Empty,
+            Definition.DefaultValue, StringComparison.Ordinal),
+        ActionParameterKind.Steps or ActionParameterKind.Condition => List?.Steps.Count is null or 0,
+        _ => string.Equals(CurrentText.Trim(), Definition.DefaultValue, StringComparison.Ordinal),
+    };
+
     /// <summary>Choices offered by a <see cref="ActionParameterKind.Choice"/> editor.</summary>
     public IReadOnlyList<ActionParameterOption> Choices { get; }
 

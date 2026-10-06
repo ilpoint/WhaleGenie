@@ -282,6 +282,35 @@
                            TextWrapping="Wrap" Margin="2,5,0,0" />
             </StackPanel>
         </DataTemplate>
+
+        <!-- One line of the parameter list. The two halves of a position share a line, and both
+             the ordinary parameters and the folded-away ones are laid out with it. -->
+        <DataTemplate x:Key="ParameterRowEditor" x:DataType="vm:ParameterRowViewModel">
+            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*"
+                  ColumnSpacing="16" Margin="0,0,0,14">
+                <ContentControl Grid.Row="0" Grid.Column="0"
+                                Grid.ColumnSpan="{Binding FirstSpan}"
+                                Content="{Binding First}"
+                                ContentTemplate="{StaticResource ParameterEditor}" />
+                <ContentControl Grid.Row="0" Grid.Column="1"
+                                Content="{Binding Second}"
+                                ContentTemplate="{StaticResource ParameterEditor}"
+                                IsVisible="{Binding HasSecond}" />
+                <!-- A position is taken from the pointer with Alt + X, and a whole rectangle with
+                     the region picker. -->
+                <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="2,6,0,0" Spacing="6">
+                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                               IsVisible="{Binding ShowsPositionHint}"
+                               Text="{Binding [Add.SharedPositionHint], Source={x:Static loc:Strings.Current}}" />
+                    <Button Classes="FlatButton" Height="30" Padding="10,0"
+                            HorizontalAlignment="Left"
+                            IsVisible="{Binding IsRegionAnchor}"
+                            ToolTip.Tip="{Binding [Add.PickRegionHint], Source={x:Static loc:Strings.Current}}"
+                            Content="{Binding [Add.PickRegion], Source={x:Static loc:Strings.Current}}"
+                            Click="OnPickRegion" />
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
     </Window.Resources>
 
     <Window.Styles>
@@ -470,37 +499,21 @@
                             <TextBlock Classes="GroupHeader" Margin="0,12,0,10"
                                        Text="{Binding [Add.Parameters], Source={x:Static loc:Strings.Current}}" />
 
-                            <ItemsControl ItemsSource="{Binding Rows}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:ParameterRowViewModel">
-                                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*"
-                                              ColumnSpacing="16" Margin="0,0,0,14">
-                                            <ContentControl Grid.Row="0" Grid.Column="0"
-                                                            Grid.ColumnSpan="{Binding FirstSpan}"
-                                                            Content="{Binding First}"
-                                                            ContentTemplate="{StaticResource ParameterEditor}" />
-                                            <ContentControl Grid.Row="0" Grid.Column="1"
-                                                            Content="{Binding Second}"
-                                                            ContentTemplate="{StaticResource ParameterEditor}"
-                                                            IsVisible="{Binding HasSecond}" />
-                                            <!-- A position is taken from the pointer with Alt + X,
-                                                 and a whole rectangle with the region picker. -->
-                                            <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="2,6,0,0"
-                                                        Spacing="6">
-                                                <TextBlock Classes="Muted" TextWrapping="Wrap"
-                                                           IsVisible="{Binding ShowsPositionHint}"
-                                                           Text="{Binding [Add.SharedPositionHint], Source={x:Static loc:Strings.Current}}" />
-                                                <Button Classes="FlatButton" Height="30" Padding="10,0"
-                                                        HorizontalAlignment="Left"
-                                                        IsVisible="{Binding IsRegionAnchor}"
-                                                        ToolTip.Tip="{Binding [Add.PickRegionHint], Source={x:Static loc:Strings.Current}}"
-                                                        Content="{Binding [Add.PickRegion], Source={x:Static loc:Strings.Current}}"
-                                                        Click="OnPickRegion" />
-                                            </StackPanel>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                            <ItemsControl ItemsSource="{Binding Rows}"
+                                          ItemTemplate="{StaticResource ParameterRowEditor}" />
+
+                            <!-- Settings worth having but not worth showing on every step: where the
+                                 input is sent, what a position is measured from. They stay folded
+                                 so an action with a dozen parameters is not a wall of fields. -->
+                            <Button Classes="FlatButton" Height="30" Padding="10,0" Margin="0,0,0,12"
+                                    HorizontalAlignment="Left"
+                                    IsVisible="{Binding HasAdvanced}"
+                                    Content="{Binding AdvancedLabel}"
+                                    Command="{Binding ToggleAdvancedCommand}" />
+
+                            <ItemsControl ItemsSource="{Binding AdvancedRows}"
+                                          IsVisible="{Binding ShowAdvanced}"
+                                          ItemTemplate="{StaticResource ParameterRowEditor}" />
 
                             <TextBlock Classes="Muted" IsVisible="{Binding !HasParameters}"
                                        Text="{Binding [Add.NoParameters], Source={x:Static loc:Strings.Current}}" />
