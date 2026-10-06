@@ -56,4 +56,74 @@ public class OcrReadingTests
         Assert.Equal(spans[0].Confidence, numbers[0].Confidence);
         Assert.Equal(spans[0].Size, numbers[0].Size);
     }
+
+    [Fact]
+    public void Reading_a_table_puts_the_pieces_on_the_lines_and_in_the_columns_they_sit_in()
+    {
+        // Rows and columns as an OCR engine hands them back for a table without printed lines: one
+        // piece per cell, sitting where the cell is.
+        var spans = new List<TextSpan>
+        {
+            new("名称", new ScreenPoint(10, 10), new ScreenSize(30, 14), 0.9),
+            new("数量", new ScreenPoint(120, 11), new ScreenSize(30, 14), 0.9),
+            new("金额", new ScreenPoint(220, 10), new ScreenSize(30, 14), 0.9),
+            new("苹果", new ScreenPoint(10, 40), new ScreenSize(30, 14), 0.9),
+            new("3", new ScreenPoint(120, 41), new ScreenSize(8, 14), 0.9),
+            new("12.50", new ScreenPoint(220, 40), new ScreenSize(40, 14), 0.9),
+        };
+
+        var rows = OcrReading.Rows(spans);
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(["名称", "数量", "金额"], rows[0]);
+        Assert.Equal(["苹果", "3", "12.50"], rows[1]);
+    }
+
+    [Fact]
+    public void A_line_the_engine_handed_back_whole_is_cut_at_the_wide_gaps()
+    {
+        // A detector that keeps a whole line in one box still leaves the columns as wide gaps in
+        // the text.
+        var spans = new List<TextSpan>
+        {
+            new("苹果    3    12.50", new ScreenPoint(10, 10), new ScreenSize(200, 14), 0.9),
+            new("香蕉   10   8.00", new ScreenPoint(10, 40), new ScreenSize(200, 14), 0.9),
+        };
+
+        var rows = OcrReading.Rows(spans);
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(["苹果", "3", "12.50"], rows[0]);
+        Assert.Equal(["香蕉", "10", "8.00"], rows[1]);
+    }
+
+    [Fact]
+    public void Words_of_one_column_stay_in_one_cell()
+    {
+        // Two boxes of one cell, near each other, are one cell with the words in it; a single
+        // space is the gap between words, not a column.
+        var spans = new List<TextSpan>
+        {
+            new("Total", new ScreenPoint(10, 10), new ScreenSize(40, 14), 0.9),
+            new("amount", new ScreenPoint(52, 10), new ScreenSize(50, 14), 0.9),
+            new("99", new ScreenPoint(150, 10), new ScreenSize(20, 14), 0.9),
+        };
+
+        var rows = OcrReading.Rows(spans);
+
+        Assert.Single(rows);
+        Assert.Equal(["Total amount", "99"], rows[0]);
+    }
+
+    [Fact]
+    public void A_page_of_writing_with_no_columns_comes_back_one_cell_per_line()
+    {
+        var spans = new List<TextSpan>
+        {
+            new("第一行", new ScreenPoint(10, 10), new ScreenSize(60, 14), 0.9),
+            new("第二行", new ScreenPoint(10, 40), new ScreenSize(60, 14), 0.9),
+        };
+
+        Assert.Equal([["第一行"], ["第二行"]], OcrReading.Rows(spans));
+    }
 }

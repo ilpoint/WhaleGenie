@@ -1398,6 +1398,10 @@ internal static class ActionStrings
         ["ocr.recognize.content.hint"] = "读全部文字，还是只读数字：只读数字时，含数字的片段"
             + "只留下数字本身（货币符号、千位分隔符和旁边的文字都去掉），一个数字也没有的片段"
             + "直接不要。全角数字按普通数字读。",
+        ["ocr.recognize.table.label"] = "按表格读",
+        ["ocr.recognize.table.hint"] = "按屏幕上的位置分行分列：$变量是表格（每行一项、每项"
+            + "一行单元格，和读表格同一种形状），$变量.text 是同样的内容按行拼成的文本"
+            + "（行与行之间换行、单元格之间制表符）。没有表格线也能用，靠的是文字的位置。",
         ["ocr.recognize.resultVariable.label"] = "结果变量",
         ["ocr.recognize.resultVariable.hint"] = "接收识别结果的变量，可沿用已有变量名或新建一个。",
 

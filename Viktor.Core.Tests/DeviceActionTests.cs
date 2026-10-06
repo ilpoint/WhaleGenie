@@ -940,6 +940,36 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Recognising_text_can_keep_the_lines_and_columns_it_was_read_in()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans =
+            [
+                new TextSpan("名称", new ScreenPoint(0, 0), new ScreenSize(30, 14), 0.9),
+                new TextSpan("数量", new ScreenPoint(120, 0), new ScreenSize(30, 14), 0.9),
+                new TextSpan("苹果", new ScreenPoint(0, 30), new ScreenSize(30, 14), 0.9),
+                new TextSpan("3", new ScreenPoint(120, 30), new ScreenSize(8, 14), 0.9),
+            ],
+        };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("ocr.recognize", Param("x", "0"), Param("y", "0"), Param("width", "200"),
+                Param("height", "60"), Param("table", "true"), Param("resultVariable", "sheet")),
+        ], devices);
+
+        var rows = store.Local.Values["sheet"].AsList();
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(["名称", "数量"], rows[0].AsList().Select(cell => cell.AsText()));
+        Assert.Equal(["苹果", "3"], rows[1].AsList().Select(cell => cell.AsText()));
+
+        // The writing is still there as text, one line per row, which is what a macro shows or
+        // writes to a file.
+        Assert.Equal("名称\t数量\n苹果\t3", store.Local.Values["sheet.text"].AsText());
+    }
+
+    [Fact]
     public async Task A_text_search_can_be_exact_or_a_pattern()
     {
         var devices = new FakeDeviceLayer

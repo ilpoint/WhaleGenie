@@ -1624,8 +1624,13 @@ public static class ActionCatalog
                 ..Anchor(),
                 Choice("language", "Language", ["auto", "en", "zh"], "auto"),
                 Content(),
+                Toggle("table", "Read as a table", false,
+                    "Keep the lines and columns the writing was read in: the variable holds rows of "
+                    + "cells — the same shape as reading a table through UI Automation — and "
+                    + "$name.text holds the whole lot as text, one line per row."),
                 Variable("resultVariable", "Result variable", "text",
-                    "Variable that receives the recognised text.",
+                    "Variable that receives the recognised text, or the rows of cells when the step "
+                    + "reads a table. $name.text is the writing either way.",
                     namesVariable: true, defaultValue: "text"),
             ],
         },

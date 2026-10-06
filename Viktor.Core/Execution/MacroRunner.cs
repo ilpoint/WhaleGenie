@@ -3333,8 +3333,8 @@ public sealed class MacroRunner
         var area = _devices.Screen.Capture(corner.X, corner.Y,
             Math.Max(1, Number(step, "width")), Math.Max(1, Number(step, "height")));
 
-        var spans = _devices.Ocr.Recognize(area, Language(step));
-        var text = string.Join(' ', Wanted(step, spans).Select(span => span.Text));
+        var spans = Wanted(step, _devices.Ocr.Recognize(area, Language(step)));
+        var text = string.Join(' ', spans.Select(span => span.Text));
 
         var name = step.Text("resultVariable").Trim();
         if (name.Length == 0)
@@ -3342,8 +3342,24 @@ public sealed class MacroRunner
             name = "text";
         }
 
-        Variables.Set(name, Value.FromText(text));
-        Log(LogLevel.Info, depth, step.Type, "Run.Set", name, text);
+        // Read as a table, the variable holds rows of cells — the shape reading a table through UI
+        // Automation gives. Read as text it holds the writing. The writing is always in .text, so a
+        // macro can take it either way round.
+        if (Flag(step, "table", false))
+        {
+            var rows = OcrReading.Rows(spans);
+            Variables.Set(name, Value.FromList(rows.Select(row =>
+                Value.FromList(row.Select(Value.FromText)))));
+            text = string.Join('\n', rows.Select(row => string.Join('\t', row)));
+            Log(LogLevel.Info, depth, step.Type, "Run.ReadTable", name, rows.Count);
+        }
+        else
+        {
+            Variables.Set(name, Value.FromText(text));
+            Log(LogLevel.Info, depth, step.Type, "Run.Set", name, text);
+        }
+
+        Variables.Set(name + ".text", Value.FromText(text));
     }
 
     private void FindText(ExecutableStep step, int depth)
