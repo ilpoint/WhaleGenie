@@ -27,7 +27,7 @@ public sealed class LocalFileDevice : IFileDevice
         return File.Exists(full) || Directory.Exists(full);
     }
 
-    public string ReadText(string path)
+    public string ReadText(string path, string encoding)
     {
         var full = Full(path);
         if (!File.Exists(full))
@@ -35,12 +35,16 @@ public sealed class LocalFileDevice : IFileDevice
             throw new DeviceActionException("Run.FileNotFound", path);
         }
 
-        return Attempt(path, () => File.ReadAllText(full));
+        // The encoding named is the one used to read, but a file that starts with a byte-order
+        // mark still wins: a mark says what the file is, whatever the step guessed.
+        var text = TextEncoding.Resolve(encoding);
+        return Attempt(path, () => File.ReadAllText(full, text));
     }
 
-    public void WriteText(string path, string text, bool append)
+    public void WriteText(string path, string text, bool append, string encoding)
     {
         var full = Full(path);
+        var written = TextEncoding.Resolve(encoding);
         Attempt(path, () =>
         {
             var folder = Path.GetDirectoryName(full);
@@ -51,11 +55,11 @@ public sealed class LocalFileDevice : IFileDevice
 
             if (append)
             {
-                File.AppendAllText(full, text);
+                File.AppendAllText(full, text, written);
             }
             else
             {
-                File.WriteAllText(full, text);
+                File.WriteAllText(full, text, written);
             }
 
             return true;

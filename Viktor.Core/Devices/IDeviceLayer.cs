@@ -149,11 +149,11 @@ public interface IFileDevice
     /// <summary>Whether a file or a folder is there.</summary>
     bool Exists(string path);
 
-    /// <summary>Reads a text file whole.</summary>
-    string ReadText(string path);
+    /// <summary>Reads a text file whole, in the encoding the caller names.</summary>
+    string ReadText(string path, string encoding);
 
     /// <summary>Writes a text file, making the folders on the way when they are missing.</summary>
-    void WriteText(string path, string text, bool append);
+    void WriteText(string path, string text, bool append, string encoding);
 
     /// <summary>Removes a file.</summary>
     void Delete(string path);
@@ -365,9 +365,10 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public bool Exists(string path) => throw Missing("files");
 
-        public string ReadText(string path) => throw Missing("files");
+        public string ReadText(string path, string encoding) => throw Missing("files");
 
-        public void WriteText(string path, string text, bool append) => throw Missing("files");
+        public void WriteText(string path, string text, bool append, string encoding)
+            => throw Missing("files");
 
         public void Delete(string path) => throw Missing("files");
 

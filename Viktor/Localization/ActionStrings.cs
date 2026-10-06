@@ -50,6 +50,17 @@ internal static class ActionStrings
     private const string WindowMatchByProcess = "进程名";
     private const string WindowMatchByClass = "窗口类名";
 
+    /// <summary>The hint the four text-file actions share for their encoding picker.</summary>
+    private const string EncodingHintText =
+        "文件里的文字按什么编码变成字节。UTF-8 是现在通用的写法；带 BOM 的是记事本默认保存的样子；"
+        + "GBK 是中文 Windows 自己写文本文件用的编码；UTF-16 是一些老 Windows 程序认的。"
+        + "读取时如果文件开头有 BOM，会以 BOM 为准。";
+
+    private const string EncodingUtf8 = "UTF-8";
+    private const string EncodingUtf8Bom = "UTF-8（带 BOM）";
+    private const string EncodingGbk = "GBK（中文）";
+    private const string EncodingUtf16 = "UTF-16";
+
     /// <summary>
     /// The hint the actions that can measure from a control share for the control they measure from,
     /// written once for the same reason the coordinate-origin hint is.
@@ -277,6 +288,12 @@ internal static class ActionStrings
         ["file.readText.path.hint"] = "要读取的文件。只写文件名时会相对宏文件夹解析。",
         ["file.readText.resultVariable.label"] = "结果变量",
         ["file.readText.resultVariable.hint"] = "接收文件内容的变量。",
+        ["file.readText.encoding.label"] = "编码",
+        ["file.readText.encoding.hint"] = EncodingHintText,
+        ["file.readText.encoding.option.utf8"] = EncodingUtf8,
+        ["file.readText.encoding.option.utf8bom"] = EncodingUtf8Bom,
+        ["file.readText.encoding.option.gbk"] = EncodingGbk,
+        ["file.readText.encoding.option.utf16"] = EncodingUtf16,
 
         ["file.writeText.name"] = "写入文本",
         ["file.writeText.desc"] = "把文本写入文件，可以替换原内容或追加到末尾。",
@@ -288,6 +305,12 @@ internal static class ActionStrings
         ["file.writeText.mode.hint"] = "替换原文件，或追加到已有内容后面。",
         ["file.writeText.mode.option.overwrite"] = "替换原内容",
         ["file.writeText.mode.option.append"] = "追加到末尾",
+        ["file.writeText.encoding.label"] = "编码",
+        ["file.writeText.encoding.hint"] = EncodingHintText,
+        ["file.writeText.encoding.option.utf8"] = EncodingUtf8,
+        ["file.writeText.encoding.option.utf8bom"] = EncodingUtf8Bom,
+        ["file.writeText.encoding.option.gbk"] = EncodingGbk,
+        ["file.writeText.encoding.option.utf16"] = EncodingUtf16,
 
         ["file.exists.name"] = "文件是否存在",
         ["file.exists.desc"] = "检查文件或文件夹是否存在。",
@@ -352,6 +375,12 @@ internal static class ActionStrings
         ["file.readCsv.hasHeader.hint"] = "结果中不包含第一行。",
         ["file.readCsv.resultVariable.label"] = "结果变量",
         ["file.readCsv.resultVariable.hint"] = "接收行列表的变量，每行是一个单元格列表。",
+        ["file.readCsv.encoding.label"] = "编码",
+        ["file.readCsv.encoding.hint"] = EncodingHintText,
+        ["file.readCsv.encoding.option.utf8"] = EncodingUtf8,
+        ["file.readCsv.encoding.option.utf8bom"] = EncodingUtf8Bom,
+        ["file.readCsv.encoding.option.gbk"] = EncodingGbk,
+        ["file.readCsv.encoding.option.utf16"] = EncodingUtf16,
 
         ["file.writeCsv.name"] = "写入 CSV",
         ["file.writeCsv.desc"] = "把行列表写入 CSV 文件。",
@@ -365,6 +394,12 @@ internal static class ActionStrings
         ["file.writeCsv.separator.option.semicolon"] = "分号 ;",
         ["file.writeCsv.separator.option.tab"] = "制表符",
         ["file.writeCsv.separator.option.pipe"] = "竖线 |",
+        ["file.writeCsv.encoding.label"] = "编码",
+        ["file.writeCsv.encoding.hint"] = EncodingHintText,
+        ["file.writeCsv.encoding.option.utf8"] = EncodingUtf8,
+        ["file.writeCsv.encoding.option.utf8bom"] = EncodingUtf8Bom,
+        ["file.writeCsv.encoding.option.gbk"] = EncodingGbk,
+        ["file.writeCsv.encoding.option.utf16"] = EncodingUtf16,
 
         ["file.saveVariables.name"] = "保存变量",
         ["file.saveVariables.desc"] = "把变量写入 JSON 文件，方便下次运行读取。",

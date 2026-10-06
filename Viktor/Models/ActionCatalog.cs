@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Avalonia.Media;
+using Viktor.Core.Devices;
 
 namespace Viktor.Models;
 
@@ -430,6 +431,7 @@ public static class ActionCatalog
             Parameters =
             [
                 FilePath("path", "File", "notes.txt", "File to read."),
+                Encoding(),
                 Variable("resultVariable", "Result variable", "text",
                     "Variable that receives the contents.", required: false, namesVariable: true),
             ],
@@ -447,6 +449,7 @@ public static class ActionCatalog
                 Choice("mode", "Mode", ["overwrite", "append"], "overwrite",
                     "Replace the file, or add to what is already there.",
                     labels: ["Replace it", "Add to the end"]),
+                Encoding(),
             ],
         },
         new()
@@ -541,6 +544,7 @@ public static class ActionCatalog
             Parameters =
             [
                 FilePath("path", "File", "rows.csv", "CSV file to read."),
+                Encoding(),
                 Separator("separator", "Separator", "comma"),
                 Toggle("hasHeader", "First row is a header", true,
                     "Leave the first row out of the result."),
@@ -561,6 +565,7 @@ public static class ActionCatalog
                 Variable("rows", "Rows", "$rows",
                     "A list of rows. Each row may itself be a list of cells.", namesVariable: false),
                 Separator("separator", "Separator", "comma"),
+                Encoding(),
             ],
         },
         new()
@@ -2164,6 +2169,18 @@ public static class ActionCatalog
         => Choice(name, label, ["comma", "semicolon", "tab", "pipe"], defaultValue,
             "The character between two cells.",
             labels: ["Comma ,", "Semicolon ;", "Tab", "Vertical bar |"]);
+
+    /// <summary>
+    /// How the text of a file is turned into bytes, shared by the actions that read or write text.
+    /// UTF-8 without a mark is what everything new uses; the other three are what a machine that
+    /// already has files on it, or a person who has to open them in an older program, needs.
+    /// </summary>
+    private static ActionParameter Encoding()
+        => Choice("encoding", "Encoding", [.. TextEncoding.Names], TextEncoding.Default,
+            "How the file's text is turned into bytes. UTF-8 is what everything new uses; UTF-8 "
+            + "with a mark is what Notepad writes; GBK is what a Chinese Windows writes its own "
+            + "text files in; UTF-16 is what some older Windows programs expect.",
+            labels: ["UTF-8", "UTF-8 with BOM", "GBK (Chinese)", "UTF-16"]);
 
     /// <summary>How OCR text searches compare their match.</summary>
     private static ActionParameter TextMatch()

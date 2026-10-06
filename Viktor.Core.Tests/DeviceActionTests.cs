@@ -1295,7 +1295,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Equal("hello world", store.Local.Values["text"].AsText());
-        Assert.Contains("readFile notes.txt", devices.Calls);
+        Assert.Contains("readFile notes.txt utf8", devices.Calls);
     }
 
     [Fact]
@@ -1307,6 +1307,25 @@ public class DeviceActionTests
             [Step("file.readText", Param("path", "notes.txt"))], devices);
 
         Assert.Equal("kept", store.Local.Values["text"].AsText());
+    }
+
+    [Fact]
+    public async Task Text_files_can_name_the_encoding_they_are_written_in()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["old.csv"] = "a,b";
+        var (result, _, _) = await RunAsync(
+        [
+            Step("file.writeText", Param("path", "notes.txt"), Param("text", "你好"),
+                Param("encoding", "gbk")),
+            Step("file.readText", Param("path", "notes.txt"), Param("encoding", "gbk")),
+            Step("file.readCsv", Param("path", "old.csv"), Param("encoding", "gbk")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("writeFile notes.txt 你好 False gbk", devices.Calls);
+        Assert.Contains("readFile notes.txt gbk", devices.Calls);
+        Assert.Contains("readFile old.csv gbk", devices.Calls);
     }
 
     [Fact]
@@ -1867,7 +1886,7 @@ public class DeviceActionTests
         // and a name the macro does not know is left where it can be seen rather than quietly
         // turning into nothing.
         Assert.Contains(devices.Calls,
-            call => call.StartsWith("writeFile") && call.EndsWith("Write-Host Ann False"));
+            call => call.StartsWith("writeFile") && call.EndsWith("Write-Host Ann False utf8bom"));
         Assert.Contains(devices.Calls, call =>
             call.StartsWith(@"run powershell.exe|-NoProfile")
             && call.Contains("--to Ann --x {{nope}}"));
@@ -2869,15 +2888,15 @@ internal sealed class FakeDeviceLayer
         return PathExists || Files.ContainsKey(path);
     }
 
-    string IFileDevice.ReadText(string path)
+    string IFileDevice.ReadText(string path, string encoding)
     {
-        Note($"readFile {path}");
+        Note($"readFile {path} {encoding}");
         return Files.TryGetValue(path, out var text) ? text : string.Empty;
     }
 
-    void IFileDevice.WriteText(string path, string text, bool append)
+    void IFileDevice.WriteText(string path, string text, bool append, string encoding)
     {
-        Note($"writeFile {path} {text} {append}");
+        Note($"writeFile {path} {text} {append} {encoding}");
         if (append && Files.TryGetValue(path, out var old))
         {
             Files[path] = old + text;

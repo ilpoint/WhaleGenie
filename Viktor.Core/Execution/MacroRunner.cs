@@ -2040,6 +2040,16 @@ public sealed class MacroRunner
     private string PathOf(ExecutableStep step, string parameter = "path")
         => Read(step.Text(parameter)).AsText();
 
+    /// <summary>
+    /// The encoding a step named, or UTF-8 when it says nothing. Older macros have no such field,
+    /// and UTF-8 without a mark is what they were written with.
+    /// </summary>
+    private static string EncodingOf(ExecutableStep step)
+    {
+        var name = step.Text("encoding").Trim();
+        return name.Length == 0 ? TextEncoding.Default : name;
+    }
+
     private static string VariableName(ExecutableStep step, string parameter, string fallback)
     {
         var text = step.Text(parameter).Trim();
@@ -2051,7 +2061,7 @@ public sealed class MacroRunner
     private void ReadTextFile(ExecutableStep step, int depth)
     {
         var path = PathOf(step);
-        var text = _devices.Files.ReadText(path);
+        var text = _devices.Files.ReadText(path, EncodingOf(step));
         Variables.Set(VariableName(step, "resultVariable", "text"), Value.FromText(text));
         Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, text.Length);
     }
@@ -2062,7 +2072,7 @@ public sealed class MacroRunner
         var text = Read(step.Text("text")).AsText();
         var append = string.Equals(step.Text("mode").Trim(), "append", StringComparison.OrdinalIgnoreCase);
 
-        _devices.Files.WriteText(path, text, append);
+        _devices.Files.WriteText(path, text, append, EncodingOf(step));
         Log(LogLevel.Info, depth, step.Type, append ? "Run.AppendedFile" : "Run.WroteFile", path, text.Length);
     }
 
@@ -2105,7 +2115,7 @@ public sealed class MacroRunner
     private void ReadJson(ExecutableStep step, int depth)
     {
         var path = PathOf(step);
-        var document = Json(path, _devices.Files.ReadText(path));
+        var document = Json(path, _devices.Files.ReadText(path, EncodingOf(step)));
         var query = step.Text("query").Trim();
         var node = query.Length == 0
             ? document
@@ -2127,20 +2137,21 @@ public sealed class MacroRunner
         }
 
         var document = _devices.Files.Exists(path)
-            ? Json(path, _devices.Files.ReadText(path))
+            ? Json(path, _devices.Files.ReadText(path, EncodingOf(step)))
             : new JsonObject();
 
         Assign(document, query, ToJson(Read(step.Text("value"))));
 
         var text = document.ToJsonString(Writable);
-        _devices.Files.WriteText(path, text, false);
+        _devices.Files.WriteText(path, text, false, EncodingOf(step));
         Log(LogLevel.Info, depth, step.Type, "Run.WroteFile", path, text.Length);
     }
 
     private void ReadCsv(ExecutableStep step, int depth)
     {
         var path = PathOf(step);
-        var rows = SplitCsv(_devices.Files.ReadText(path), Separator(step.Text("separator")));
+        var rows = SplitCsv(
+            _devices.Files.ReadText(path, EncodingOf(step)), Separator(step.Text("separator")));
         var skip = !string.Equals(step.Text("hasHeader").Trim(), "false", StringComparison.OrdinalIgnoreCase);
         var body = skip && rows.Count > 0 ? rows.Skip(1) : rows;
 
@@ -2160,7 +2171,7 @@ public sealed class MacroRunner
         }
 
         var text = string.Join(Environment.NewLine, rows.Items.Select(row => CsvRow(row, separator)));
-        _devices.Files.WriteText(path, text, false);
+        _devices.Files.WriteText(path, text, false, EncodingOf(step));
         Log(LogLevel.Info, depth, step.Type, "Run.WroteFile", path, text.Length);
     }
 
@@ -2184,14 +2195,14 @@ public sealed class MacroRunner
         }
 
         var text = document.ToJsonString(Writable);
-        _devices.Files.WriteText(path, text, false);
+        _devices.Files.WriteText(path, text, false, EncodingOf(step));
         Log(LogLevel.Info, depth, step.Type, "Run.SavedVariables", path, document.Count);
     }
 
     private void LoadVariables(ExecutableStep step, int depth)
     {
         var path = PathOf(step);
-        var document = Json(path, _devices.Files.ReadText(path));
+        var document = Json(path, _devices.Files.ReadText(path, EncodingOf(step)));
         if (document is not JsonObject saved)
         {
             throw new StepFailure("Run.BadJson", path);
@@ -3196,7 +3207,11 @@ public sealed class MacroRunner
         // a timeout of nothing would end the script the moment it started.
         var timeout = Math.Max(1, OptionalNumber(step, "timeoutMs", DefaultScriptMs));
 
-        _devices.Files.WriteText(path, script, false);
+        // Windows PowerShell reads a script as the system code page unless the file starts with a
+        // byte-order mark, so a script with Chinese text in it needs one. The other interpreters
+        // read UTF-8 and would rather not have a mark, and a batch file with one does not start.
+        _devices.Files.WriteText(path, script, false,
+            ScriptExtension(language) == ".ps1" ? "utf8bom" : TextEncoding.Default);
 
         CommandResult result;
         try
