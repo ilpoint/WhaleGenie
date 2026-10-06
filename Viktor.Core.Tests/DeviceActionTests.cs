@@ -174,6 +174,143 @@ public class DeviceActionTests
         ], devices.Calls);
     }
 
+    /// <summary>A device layer with one window open at 1000,500, the place the anchoring tests move.</summary>
+    private static FakeDeviceLayer WithAWindow()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(1, "Notepad - notes.txt",
+            new ScreenPoint(1000, 500), new ScreenSize(800, 600), false, false));
+        return devices;
+    }
+
+    [Fact]
+    public async Task A_point_is_measured_from_the_screen_unless_the_step_says_otherwise()
+    {
+        var devices = WithAWindow();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.mouseMove", Param("x", "10"), Param("y", "20"),
+                Param("anchorMode", "screen"), Param("anchorWindow", "Notepad")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(["move 10 20 0"], devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_point_can_be_measured_from_a_window_corner()
+    {
+        var devices = WithAWindow();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.mouseClick", Param("button", "left"), Param("x", "10"), Param("y", "20"),
+                Param("anchorMode", "window"), Param("anchorWindow", "Notepad")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(["findWindow Notepad", "click left 1010 520 1 0"], devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_point_can_be_measured_from_inside_the_window_border()
+    {
+        var devices = WithAWindow();
+        devices.ClientOrigins[1] = new ScreenPoint(1008, 531);
+
+        var (_, _, _) = await RunAsync(
+        [
+            Step("input.mouseDown", Param("button", "left"), Param("x", "5"), Param("y", "6"),
+                Param("anchorMode", "client"), Param("anchorWindow", "Notepad")),
+        ], devices);
+
+        Assert.Equal(["findWindow Notepad", "clientOrigin 1", "down left 1013 537"], devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_drag_measures_both_ends_from_the_same_window_corner()
+    {
+        var devices = WithAWindow();
+        var (_, _, _) = await RunAsync(
+        [
+            Step("input.mouseDrag",
+                Param("startX", "10"), Param("startY", "20"),
+                Param("endX", "30"), Param("endY", "40"),
+                Param("button", "left"), Param("durationMs", "0"), Param("steps", "2"),
+                Param("anchorMode", "window"), Param("anchorWindow", "Notepad")),
+        ], devices);
+
+        Assert.Equal(["findWindow Notepad", "drag left 1010 520 1030 540 0 2"], devices.Calls);
+    }
+
+    /// <summary>
+    /// The whole point of anchoring: the window is dragged somewhere else between two runs and
+    /// the same macro still aims at the same place inside it.
+    /// </summary>
+    [Fact]
+    public async Task An_anchored_point_follows_a_window_that_has_been_moved()
+    {
+        var devices = WithAWindow();
+        var step = Step("input.mouseMove", Param("x", "10"), Param("y", "20"),
+            Param("anchorMode", "window"), Param("anchorWindow", "Notepad"));
+
+        await RunAsync([step], devices);
+        devices.Windows[0] = devices.Windows[0] with { Location = new ScreenPoint(300, 400) };
+        await RunAsync([step], devices);
+
+        Assert.Equal(
+            ["findWindow Notepad", "move 1010 520 0", "findWindow Notepad", "move 310 420 0"],
+            devices.Calls);
+    }
+
+    [Fact]
+    public async Task Anchoring_to_a_window_that_is_not_open_fails_the_step()
+    {
+        var (result, devices, _) = await RunAsync(
+            [Step("input.mouseMove", Param("x", "1"), Param("y", "2"),
+                Param("anchorMode", "window"), Param("anchorWindow", "Gone"))]);
+
+        Assert.False(result.Succeeded);
+
+        // The window was looked for and nothing else was touched.
+        Assert.Equal(["findWindow Gone"], devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_pixel_can_be_read_from_a_window_corner()
+    {
+        var devices = WithAWindow();
+        devices.ClientOrigins[1] = new ScreenPoint(1000, 520);
+
+        var (_, _, _) = await RunAsync(
+        [
+            Step("vision.getPixel", Param("x", "7"), Param("y", "8"),
+                Param("anchorMode", "client"), Param("anchorWindow", "Notepad"),
+                Param("resultVariable", "tone")),
+        ], devices);
+
+        Assert.Equal(["findWindow Notepad", "clientOrigin 1", "pixel 1007 528"], devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_search_region_can_be_measured_from_a_window_corner()
+    {
+        var devices = WithAWindow();
+        devices.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(4, 4));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Param("image", "ok.png"), Param("region", "10,20,30,40"),
+                Param("anchorMode", "window"), Param("anchorWindow", "Notepad"),
+                Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.Contains("capture 1010 520 30 40", devices.Calls);
+
+        // The match is reported in screen pixels, so the step that clicks it needs no arithmetic.
+        Assert.Equal("1017", store.Local.Values["where.x"].AsText());
+        Assert.Equal("528", store.Local.Values["where.y"].AsText());
+    }
+
     [Fact]
     public async Task Reading_a_pixel_stores_its_colour()
     {
@@ -2040,6 +2177,20 @@ internal sealed class FakeDeviceLayer
     {
         Note($"moveWindow {handle} {x} {y} {width} {height}");
         return WindowActionWorks;
+    }
+
+    /// <summary>
+    /// Where each window's client area starts, by handle. A handle that was not set up answers
+    /// the window's own corner, which is what a window with no border looks like.
+    /// </summary>
+    public Dictionary<long, ScreenPoint> ClientOrigins { get; } = [];
+
+    ScreenPoint IWindowDevice.ClientOrigin(long handle)
+    {
+        Note($"clientOrigin {handle}");
+        return ClientOrigins.TryGetValue(handle, out var origin)
+            ? origin
+            : Windows.FirstOrDefault(window => window.Handle == handle)?.Location ?? default;
     }
 
     /// <summary>

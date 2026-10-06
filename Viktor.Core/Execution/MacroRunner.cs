@@ -597,7 +597,7 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "input.mouseMove":
-                MovePointer(step, new ScreenPoint(Number(step, "x"), Number(step, "y")));
+                MovePointer(step, Place(step, Number(step, "x"), Number(step, "y")));
                 return Signal.Normal;
 
             case "input.mouseMoveRelative":
@@ -951,8 +951,7 @@ public sealed class MacroRunner
             case "condition.colorEquals":
                 {
                     var target = PixelColor.Parse(condition.Text("color"));
-                    var pixel = _devices.Screen.PixelAt(Number(condition, "x"), Number(condition, "y"));
-                    return pixel.Matches(target, Read(condition.Text("tolerance")).AsNumber());
+                    return PixelAt(condition).Matches(target, Read(condition.Text("tolerance")).AsNumber());
                 }
 
             default:
@@ -1145,6 +1144,40 @@ public sealed class MacroRunner
     }
 
     /// <summary>
+    /// The corner a step's numbers are measured from, or <c>null</c> when they are screen pixels
+    /// already. It is looked up afresh every time the step runs, which is what keeps a macro that
+    /// names a window pointing at the same place after the window has been dragged elsewhere.
+    /// </summary>
+    private ScreenPoint? Anchor(ExecutableStep step)
+    {
+        var mode = step.Text("anchorMode").Trim().ToLowerInvariant();
+        if (mode is not ("window" or "client"))
+        {
+            return null;
+        }
+
+        // No title means the window in front, the same way every other window field reads.
+        var title = Read(step.Text("anchorWindow")).AsText().Trim();
+        var window = _devices.Windows.Find(title)
+                     ?? throw new StepFailure("Run.WindowNotFound", title);
+
+        return mode == "client" ? _devices.Windows.ClientOrigin(window.Handle) : window.Location;
+    }
+
+    /// <summary>One written position, in the screen pixels the devices ask for.</summary>
+    private ScreenPoint Place(ExecutableStep step, int x, int y) => Placed(Anchor(step), x, y);
+
+    private static ScreenPoint Placed(ScreenPoint? origin, int x, int y)
+        => origin is { } corner ? new ScreenPoint(corner.X + x, corner.Y + y) : new ScreenPoint(x, y);
+
+    /// <summary>The colour of the pixel a step points at, counted from wherever it anchors.</summary>
+    private PixelColor PixelAt(ExecutableStep step)
+    {
+        var corner = Place(step, Number(step, "x"), Number(step, "y"));
+        return _devices.Screen.PixelAt(corner.X, corner.Y);
+    }
+
+    /// <summary>
     /// Where a mouse action lands. An empty position means "wherever the pointer already is",
     /// which is what a click or a press with no coordinates written down means.
     /// </summary>
@@ -1154,7 +1187,7 @@ public sealed class MacroRunner
         var y = step.Text(yName).Trim();
         return x.Length == 0 && y.Length == 0
             ? Input(step).Cursor
-            : new ScreenPoint(Number(step, xName), Number(step, yName));
+            : Place(step, Number(step, xName), Number(step, yName));
     }
 
     private static string Button(ExecutableStep step)
@@ -1213,8 +1246,10 @@ public sealed class MacroRunner
     /// <summary>Presses, travels, and lets go: the same shape of path as a plain move.</summary>
     private void DragPointer(ExecutableStep step)
     {
-        var from = new ScreenPoint(Number(step, "startX"), Number(step, "startY"));
-        var to = new ScreenPoint(Number(step, "endX"), Number(step, "endY"));
+        // Both ends are measured from the same corner, so a drag across a window stays inside it.
+        var origin = Anchor(step);
+        var from = Placed(origin, Number(step, "startX"), Number(step, "startY"));
+        var to = Placed(origin, Number(step, "endX"), Number(step, "endY"));
         var duration = Pace(Number(step, "durationMs"));
         var steps = Math.Clamp(Number(step, "steps"), 1, 200);
         var route = MousePath.Route(step.Text("style"));
@@ -1244,18 +1279,19 @@ public sealed class MacroRunner
             throw new StepFailure("Run.MissingVariable");
         }
 
-        var x = Number(step, "x");
-        var y = Number(step, "y");
+        // The corner is worked out first so that the rectangle written into the variables is the
+        // one on screen, which is what a later "region" that names this picture has to parse.
+        var corner = Place(step, Number(step, "x"), Number(step, "y"));
         var width = Math.Max(1, Number(step, "width"));
         var height = Math.Max(1, Number(step, "height"));
-        var frame = _devices.Screen.Capture(x, y, width, height);
+        var frame = _devices.Screen.Capture(corner.X, corner.Y, width, height);
 
         _images[name] = frame;
         Variables.Set(name, Value.FromText($"<image {frame.Width}x{frame.Height}>"));
 
         // The rectangle the picture covers, so it can be searched or compared by name.
-        Variables.Set(name + ".x", Value.FromNumber(x));
-        Variables.Set(name + ".y", Value.FromNumber(y));
+        Variables.Set(name + ".x", Value.FromNumber(corner.X));
+        Variables.Set(name + ".y", Value.FromNumber(corner.Y));
         Variables.Set(name + ".width", Value.FromNumber(width));
         Variables.Set(name + ".height", Value.FromNumber(height));
         Log(LogLevel.Info, depth, step.Type, "Run.Capture", name, $"{frame.Width}x{frame.Height}");
@@ -1269,7 +1305,7 @@ public sealed class MacroRunner
             name = "color";
         }
 
-        var colour = _devices.Screen.PixelAt(Number(step, "x"), Number(step, "y"));
+        var colour = PixelAt(step);
         var asHex = !string.Equals(step.Text("asHex").Trim(), "false", StringComparison.OrdinalIgnoreCase);
         Variables.Set(name, asHex
             ? Value.FromText(colour.ToHex())
@@ -1282,12 +1318,12 @@ public sealed class MacroRunner
     {
         var target = PixelColor.Parse(step.Text("color"));
         var tolerance = Read(step.Text("tolerance")).AsNumber();
-        var x = Number(step, "x");
-        var y = Number(step, "y");
         var timeout = Math.Max(0, Number(step, "timeoutMs"));
 
+        // The corner is looked up again on every check, so a wait that watches a window keeps
+        // watching the same spot inside it even if the window is moved while the macro waits.
         var seen = await WaitForFlagAsync(
-            () => _devices.Screen.PixelAt(x, y).Matches(target, tolerance), timeout, 50, token);
+            () => PixelAt(step).Matches(target, tolerance), timeout, 50, token);
         if (!seen)
         {
             throw new StepFailure("Run.WaitColorTimeout", target.ToHex());
@@ -1397,7 +1433,10 @@ public sealed class MacroRunner
         return _devices.Vision.Load(Read(text).AsText()) ?? throw new StepFailure("Run.MissingImage", text);
     }
 
-    /// <summary>The area to search: the whole screen unless the step names a rectangle.</summary>
+    /// <summary>
+    /// The area to search: the whole screen unless the step names a rectangle, which may be
+    /// counted from a window's corner when the step says so.
+    /// </summary>
     private (ImageFrame Frame, ScreenPoint Origin) SearchArea(ExecutableStep step)
     {
         // The rectangle may be written out, held in a variable, or built from several of them.
@@ -1421,7 +1460,11 @@ public sealed class MacroRunner
             throw new StepFailure("Run.BadRegion", text);
         }
 
-        return (_devices.Screen.Capture(x, y, width, height), new ScreenPoint(x, y));
+        // A window-anchored rectangle is counted from that window's corner, and the origin handed
+        // back is the one on screen, so the positions read out of the picture are pixels the rest
+        // of the macro can click on.
+        var corner = Place(step, x, y);
+        return (_devices.Screen.Capture(corner.X, corner.Y, width, height), corner);
     }
 
     // --------------------------------------------------------------------- files
@@ -2187,7 +2230,8 @@ public sealed class MacroRunner
 
     private void Recognize(ExecutableStep step, int depth)
     {
-        var area = _devices.Screen.Capture(Number(step, "x"), Number(step, "y"),
+        var corner = Place(step, Number(step, "x"), Number(step, "y"));
+        var area = _devices.Screen.Capture(corner.X, corner.Y,
             Math.Max(1, Number(step, "width")), Math.Max(1, Number(step, "height")));
 
         var spans = _devices.Ocr.Recognize(area, Language(step));

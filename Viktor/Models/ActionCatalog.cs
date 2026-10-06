@@ -934,6 +934,7 @@ public static class ActionCatalog
             [
                 Number("x", "X", 0, "Target screen column."),
                 Number("y", "Y", 0, "Target screen row."),
+                ..Anchor(),
                 Number("durationMs", "Duration ms", 0, "0 jumps straight to the target."),
                 Movement(),
                 ..Delivery(),
@@ -965,6 +966,7 @@ public static class ActionCatalog
                 Button(),
                 Number("x", "X", 0, "Screen column to click."),
                 Number("y", "Y", 0, "Screen row to click."),
+                ..Anchor(),
                 Number("clicks", "Clicks", 1, "How many clicks to send.", min: 1),
                 Number("intervalMs", "Interval ms", 0, "Pause between repeated clicks."),
                 ..Delivery(),
@@ -981,6 +983,7 @@ public static class ActionCatalog
                 Button(),
                 Number("x", "X", 0, "Screen column to click."),
                 Number("y", "Y", 0, "Screen row to click."),
+                ..Anchor(),
                 ..Delivery(),
             ],
         },
@@ -995,6 +998,7 @@ public static class ActionCatalog
                 Button(),
                 Number("x", "X", 0, "Screen column to press."),
                 Number("y", "Y", 0, "Screen row to press."),
+                ..Anchor(),
                 ..Delivery(),
             ],
         },
@@ -1009,6 +1013,7 @@ public static class ActionCatalog
                 Button(),
                 Number("x", "X", 0, "Screen column to release at."),
                 Number("y", "Y", 0, "Screen row to release at."),
+                ..Anchor(),
                 ..Delivery(),
             ],
         },
@@ -1024,6 +1029,7 @@ public static class ActionCatalog
                 Number("amount", "Amount", 3, "Number of wheel notches.", min: 1),
                 Number("x", "X", 0, "Screen column to scroll at."),
                 Number("y", "Y", 0, "Screen row to scroll at."),
+                ..Anchor(),
                 ..Delivery(),
             ],
         },
@@ -1039,6 +1045,7 @@ public static class ActionCatalog
                 Number("startY", "Start Y", 0),
                 Number("endX", "End X", 0, "Where the drag ends."),
                 Number("endY", "End Y", 0),
+                ..Anchor(),
                 Button(),
                 Number("durationMs", "Duration ms", 300, "How long the drag takes."),
                 Number("steps", "Move steps", 20, "Intermediate move events sent while dragging.", min: 1),
@@ -1060,6 +1067,7 @@ public static class ActionCatalog
                 Number("y", "Y", 0, "Region origin row."),
                 Number("width", "Width", 100, "Region width in pixels.", min: 1),
                 Number("height", "Height", 100, "Region height in pixels.", min: 1),
+                ..Anchor(),
                 Variable("saveTo", "Save to variable", "shot",
                     "Variable that receives the captured image. $name.x, $name.y, $name.width and "
                     + "$name.height hold the rectangle it covered, so a later step can search it.",
@@ -1080,6 +1088,7 @@ public static class ActionCatalog
                 Text("region", "Search region", required: false,
                     hint: "Optional x,y,width,height limit, written out or held in a variable. "
                           + "Leave empty to search the whole screen."),
+                ..Anchor(),
                 Variable("resultVariable", "Result variable", "match",
                     "Variable that receives the match centre, empty when nothing was found. "
                     + "$name.x, $name.y, $name.width, $name.height and $name.score hold the parts.",
@@ -1130,6 +1139,7 @@ public static class ActionCatalog
             [
                 Number("x", "X", 0, "Screen column to sample."),
                 Number("y", "Y", 0, "Screen row to sample."),
+                ..Anchor(),
                 Variable("resultVariable", "Result variable", "color",
                     "Variable that receives the colour.", namesVariable: true, defaultValue: "color"),
                 Toggle("asHex", "Store as hex", true, "Store #RRGGBB instead of raw colour channels."),
@@ -1145,6 +1155,7 @@ public static class ActionCatalog
             [
                 Number("x", "X", 0, "Screen column to watch."),
                 Number("y", "Y", 0, "Screen row to watch."),
+                ..Anchor(),
                 ColorPick("color", "Colour", "#000000", "Colour the pixel has to show."),
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100),
                 Number("timeoutMs", "Timeout ms", 5000, "Give up after this long."),
@@ -1164,6 +1175,7 @@ public static class ActionCatalog
                 Number("y", "Y", 0, "Region origin row."),
                 Number("width", "Width", 400, "Region width in pixels.", min: 1),
                 Number("height", "Height", 120, "Region height in pixels.", min: 1),
+                ..Anchor(),
                 Choice("language", "Language", ["auto", "en", "zh"], "auto"),
                 Variable("resultVariable", "Result variable", "text",
                     "Variable that receives the recognised text.",
@@ -1182,6 +1194,7 @@ public static class ActionCatalog
                 Text("region", "Search region", required: false,
                     hint: "Optional x,y,width,height limit, written out or held in a variable. "
                           + "Leave empty to search the whole screen."),
+                ..Anchor(),
                 TextMatch(),
                 Variable("resultVariable", "Result variable", "match",
                     "Variable that receives the match centre, empty when the text was not found. "
@@ -1307,6 +1320,7 @@ public static class ActionCatalog
                 Text("region", "Search region", required: false,
                     hint: "Optional x,y,width,height limit, written out or held in a variable. "
                           + "Leave empty to search the whole screen."),
+                ..Anchor(),
             ],
         },
         new()
@@ -1321,6 +1335,7 @@ public static class ActionCatalog
                 Text("region", "Search region", required: false,
                     hint: "Optional x,y,width,height limit, written out or held in a variable. "
                           + "Leave empty to search the whole screen."),
+                ..Anchor(),
                 TextMatch(),
             ],
         },
@@ -1346,6 +1361,7 @@ public static class ActionCatalog
             [
                 Number("x", "X", 0, "Screen column to compare."),
                 Number("y", "Y", 0, "Screen row to compare."),
+                ..Anchor(),
                 ColorPick("color", "Colour", "#000000"),
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100),
             ],
@@ -1638,6 +1654,32 @@ public static class ActionCatalog
             Placeholder = "Notepad",
             Hint = "The window background input posts its messages at; part of the title is "
                    + "enough. The other input modes do not use it.",
+            Required = false,
+        },
+    ];
+
+    /// <summary>
+    /// What an action's coordinates are measured from, shared by every action that names a
+    /// position or a rectangle. Screen pixels are what every macro written before this setting
+    /// used; the other two make the numbers follow a window, which is what stops a macro from
+    /// aiming at the wrong place the moment the window is dragged somewhere else.
+    /// </summary>
+    private static ActionParameter[] Anchor() =>
+    [
+        Choice("anchorMode", "Coordinates from", ["screen", "window", "client"], "screen",
+            "What this step's coordinates are measured from. Screen is a pixel position on the "
+            + "desktop, which is how macros were written before this setting existed. Window and "
+            + "client measure from the window named below instead, so the step lands in the same "
+            + "place inside that window after it has been moved or resized.",
+            labels: ["Screen pixels", "Window top-left", "Window client area"]),
+        new()
+        {
+            Name = "anchorWindow",
+            Label = "Anchor window",
+            Kind = ActionParameterKind.Window,
+            Placeholder = "Notepad",
+            Hint = "The window the coordinates are measured from; part of the title is enough. "
+                   + "Leave it empty for the window in front. The screen mode does not use it.",
             Required = false,
         },
     ];

@@ -35,6 +35,10 @@ public partial class AddActionWindow : Window
         var viewModel = new AddActionViewModel(actions, variables, macros);
         viewModel.AssetFolder = assetFolder ?? string.Empty;
 
+        // Picking a position has to know where the window a step is anchored to sits right now,
+        // so what the pointer is over is stored the way the engine will read it back.
+        viewModel.Windows = new WindowsWindowDevice();
+
         if (existing is not null)
         {
             viewModel.LoadFrom(existing);

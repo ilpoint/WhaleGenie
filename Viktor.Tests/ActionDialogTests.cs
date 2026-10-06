@@ -1,4 +1,5 @@
 using Avalonia.Threading;
+using Viktor.Core.Devices;
 using Viktor.Core.Execution;
 using Viktor.Localization;
 using Viktor.Models;
@@ -95,6 +96,101 @@ public class ActionDialogTests
         });
     }
 
+    [Fact]
+    public void An_action_that_names_a_position_offers_something_to_measure_it_from()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.mouseClick");
+
+            var mode = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "anchorMode");
+            Assert.True(mode.IsChoice);
+            Assert.Equal("screen", mode.CurrentText);
+            Assert.Equal(["screen", "window", "client"],
+                mode.Choices.Select(choice => choice.Value));
+
+            var window = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "anchorWindow");
+            Assert.True(window.IsWindow);
+            Assert.False(window.Definition.Required);
+        });
+    }
+
+    [Fact]
+    public void A_position_picked_on_screen_is_stored_relative_to_the_windows_corner()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.mouseClick");
+            viewModel.Windows = new OneOpenWindow();
+            Anchor(viewModel, "window");
+
+            Assert.True(viewModel.ApplyCursorPosition(1010, 520));
+
+            Assert.Equal("10", Value(viewModel, "x"));
+            Assert.Equal("20", Value(viewModel, "y"));
+        });
+    }
+
+    [Fact]
+    public void A_position_picked_on_screen_is_stored_relative_to_the_inside_of_the_border()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("vision.capture");
+            viewModel.Windows = new OneOpenWindow();
+            Anchor(viewModel, "client");
+
+            Assert.True(viewModel.ApplyRegion(1008, 530, 30, 40));
+
+            Assert.Equal("8", Value(viewModel, "x"));
+            Assert.Equal("10", Value(viewModel, "y"));
+            Assert.Equal("30", Value(viewModel, "width"));
+            Assert.Equal("40", Value(viewModel, "height"));
+        });
+    }
+
+    /// <summary>Turns the coordinate picker of a dialog onto a named window.</summary>
+    private static void Anchor(AddActionViewModel viewModel, string mode)
+    {
+        var choice = viewModel.Parameters
+            .First(parameter => parameter.Definition.Name == "anchorMode");
+
+        choice.Option = choice.Choices.First(option => option.Value == mode);
+        viewModel.Parameters
+            .First(parameter => parameter.Definition.Name == "anchorWindow").Text = "Notepad";
+    }
+
+    /// <summary>
+    /// One window open at 1000,500 with its client area 20 pixels further down, which is what the
+    /// picture of a step's numbers is taken against.
+    /// </summary>
+    private sealed class OneOpenWindow : IWindowDevice
+    {
+        private static readonly WindowInfo Notepad = new(1, "Notepad - notes.txt",
+            new ScreenPoint(1000, 500), new ScreenSize(800, 600), false, false);
+
+        public IReadOnlyList<WindowInfo> List() => [Notepad];
+
+        public WindowInfo? Find(string title) => Notepad.Title.Contains(title, StringComparison.OrdinalIgnoreCase)
+            ? Notepad
+            : null;
+
+        public bool Activate(long handle) => true;
+
+        public bool Minimize(long handle) => true;
+
+        public bool Maximize(long handle) => true;
+
+        public bool Restore(long handle) => true;
+
+        public bool Close(long handle) => true;
+
+        public bool Move(long handle, int x, int y, int width, int height) => true;
+
+        public ScreenPoint ClientOrigin(long handle) => new(1000, 520);
+    }
     [Fact]
     public void A_vision_result_is_a_variable_the_macro_already_knows()
     {

@@ -207,6 +207,13 @@ public interface IWindowDevice
 
     /// <summary>Moves and resizes a window, in screen pixels.</summary>
     bool Move(long handle, int x, int y, int width, int height);
+
+    /// <summary>
+    /// Where a window's client area starts, in screen pixels: the point inside its border that
+    /// the window itself counts from. A macro that means "100 pixels into the window" needs this
+    /// rather than the window's outer corner, which the border and the title bar push around.
+    /// </summary>
+    ScreenPoint ClientOrigin(long handle);
 }
 
 /// <summary>Everything a macro can do to the machine, in one place.</summary>
@@ -362,6 +369,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         bool IWindowDevice.Move(long handle, int x, int y, int width, int height)
             => throw Missing("windows");
+
+        ScreenPoint IWindowDevice.ClientOrigin(long handle) => throw Missing("windows");
 
         public ScreenPoint Cursor => throw Missing("the pointer position");
 

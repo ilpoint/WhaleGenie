@@ -23,6 +23,20 @@ internal static class ActionStrings
     private const string TargetWindowHint =
         "后台输入把消息投给哪个窗口，填标题的一部分即可。其他输入方式用不到。";
 
+    /// <summary>
+    /// The hint every action that takes a position or a rectangle shares for its coordinate-origin
+    /// picker, written once for the same reason the input-mode hint is.
+    /// </summary>
+    private const string AnchorModeHint =
+        "这一步的坐标从哪里量起。屏幕＝桌面上的像素位置，也是以前所有宏的写法；"
+        + "窗口左上角＝从目标窗口外框的左上角算起；窗口客户区＝从窗口边框里面算起。"
+        + "后两种会让这一步跟着窗口走，窗口移动或缩放之后仍然落在窗口里的同一个位置。";
+
+    /// <summary>The matching hint for the window those coordinates are measured from.</summary>
+    private const string AnchorWindowHint =
+        "坐标从哪个窗口量起，填标题的一部分即可。留空表示运行时最前面那个窗口；"
+        + "选“屏幕像素”时用不到它。";
+
     internal static readonly Dictionary<string, string> Chinese = new()
     {
         // ------------------------------------------------------------------ control
@@ -717,6 +731,135 @@ internal static class ActionStrings
         ["input.mouseDrag.inputMode.option.driver"] = "驱动级",
         ["input.mouseDrag.targetWindow.label"] = "目标窗口",
         ["input.mouseDrag.targetWindow.hint"] = TargetWindowHint,
+
+        // 坐标基准：所有带坐标或矩形的动作共用一组文案。
+        ["input.mouseMove.anchorMode.label"] = "坐标基准",
+        ["input.mouseMove.anchorMode.hint"] = AnchorModeHint,
+        ["input.mouseMove.anchorMode.option.screen"] = "屏幕像素",
+        ["input.mouseMove.anchorMode.option.window"] = "窗口左上角",
+        ["input.mouseMove.anchorMode.option.client"] = "窗口客户区",
+        ["input.mouseMove.anchorWindow.label"] = "基准窗口",
+        ["input.mouseMove.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["input.mouseClick.anchorMode.label"] = "坐标基准",
+        ["input.mouseClick.anchorMode.hint"] = AnchorModeHint,
+        ["input.mouseClick.anchorMode.option.screen"] = "屏幕像素",
+        ["input.mouseClick.anchorMode.option.window"] = "窗口左上角",
+        ["input.mouseClick.anchorMode.option.client"] = "窗口客户区",
+        ["input.mouseClick.anchorWindow.label"] = "基准窗口",
+        ["input.mouseClick.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["input.mouseDoubleClick.anchorMode.label"] = "坐标基准",
+        ["input.mouseDoubleClick.anchorMode.hint"] = AnchorModeHint,
+        ["input.mouseDoubleClick.anchorMode.option.screen"] = "屏幕像素",
+        ["input.mouseDoubleClick.anchorMode.option.window"] = "窗口左上角",
+        ["input.mouseDoubleClick.anchorMode.option.client"] = "窗口客户区",
+        ["input.mouseDoubleClick.anchorWindow.label"] = "基准窗口",
+        ["input.mouseDoubleClick.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["input.mouseDown.anchorMode.label"] = "坐标基准",
+        ["input.mouseDown.anchorMode.hint"] = AnchorModeHint,
+        ["input.mouseDown.anchorMode.option.screen"] = "屏幕像素",
+        ["input.mouseDown.anchorMode.option.window"] = "窗口左上角",
+        ["input.mouseDown.anchorMode.option.client"] = "窗口客户区",
+        ["input.mouseDown.anchorWindow.label"] = "基准窗口",
+        ["input.mouseDown.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["input.mouseUp.anchorMode.label"] = "坐标基准",
+        ["input.mouseUp.anchorMode.hint"] = AnchorModeHint,
+        ["input.mouseUp.anchorMode.option.screen"] = "屏幕像素",
+        ["input.mouseUp.anchorMode.option.window"] = "窗口左上角",
+        ["input.mouseUp.anchorMode.option.client"] = "窗口客户区",
+        ["input.mouseUp.anchorWindow.label"] = "基准窗口",
+        ["input.mouseUp.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["input.mouseScroll.anchorMode.label"] = "坐标基准",
+        ["input.mouseScroll.anchorMode.hint"] = AnchorModeHint,
+        ["input.mouseScroll.anchorMode.option.screen"] = "屏幕像素",
+        ["input.mouseScroll.anchorMode.option.window"] = "窗口左上角",
+        ["input.mouseScroll.anchorMode.option.client"] = "窗口客户区",
+        ["input.mouseScroll.anchorWindow.label"] = "基准窗口",
+        ["input.mouseScroll.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["input.mouseDrag.anchorMode.label"] = "坐标基准",
+        ["input.mouseDrag.anchorMode.hint"] = AnchorModeHint,
+        ["input.mouseDrag.anchorMode.option.screen"] = "屏幕像素",
+        ["input.mouseDrag.anchorMode.option.window"] = "窗口左上角",
+        ["input.mouseDrag.anchorMode.option.client"] = "窗口客户区",
+        ["input.mouseDrag.anchorWindow.label"] = "基准窗口",
+        ["input.mouseDrag.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["vision.capture.anchorMode.label"] = "坐标基准",
+        ["vision.capture.anchorMode.hint"] = AnchorModeHint,
+        ["vision.capture.anchorMode.option.screen"] = "屏幕像素",
+        ["vision.capture.anchorMode.option.window"] = "窗口左上角",
+        ["vision.capture.anchorMode.option.client"] = "窗口客户区",
+        ["vision.capture.anchorWindow.label"] = "基准窗口",
+        ["vision.capture.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["vision.findImage.anchorMode.label"] = "坐标基准",
+        ["vision.findImage.anchorMode.hint"] = AnchorModeHint,
+        ["vision.findImage.anchorMode.option.screen"] = "屏幕像素",
+        ["vision.findImage.anchorMode.option.window"] = "窗口左上角",
+        ["vision.findImage.anchorMode.option.client"] = "窗口客户区",
+        ["vision.findImage.anchorWindow.label"] = "基准窗口",
+        ["vision.findImage.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["vision.getPixel.anchorMode.label"] = "坐标基准",
+        ["vision.getPixel.anchorMode.hint"] = AnchorModeHint,
+        ["vision.getPixel.anchorMode.option.screen"] = "屏幕像素",
+        ["vision.getPixel.anchorMode.option.window"] = "窗口左上角",
+        ["vision.getPixel.anchorMode.option.client"] = "窗口客户区",
+        ["vision.getPixel.anchorWindow.label"] = "基准窗口",
+        ["vision.getPixel.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["vision.waitColor.anchorMode.label"] = "坐标基准",
+        ["vision.waitColor.anchorMode.hint"] = AnchorModeHint,
+        ["vision.waitColor.anchorMode.option.screen"] = "屏幕像素",
+        ["vision.waitColor.anchorMode.option.window"] = "窗口左上角",
+        ["vision.waitColor.anchorMode.option.client"] = "窗口客户区",
+        ["vision.waitColor.anchorWindow.label"] = "基准窗口",
+        ["vision.waitColor.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["ocr.recognize.anchorMode.label"] = "坐标基准",
+        ["ocr.recognize.anchorMode.hint"] = AnchorModeHint,
+        ["ocr.recognize.anchorMode.option.screen"] = "屏幕像素",
+        ["ocr.recognize.anchorMode.option.window"] = "窗口左上角",
+        ["ocr.recognize.anchorMode.option.client"] = "窗口客户区",
+        ["ocr.recognize.anchorWindow.label"] = "基准窗口",
+        ["ocr.recognize.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["ocr.findText.anchorMode.label"] = "坐标基准",
+        ["ocr.findText.anchorMode.hint"] = AnchorModeHint,
+        ["ocr.findText.anchorMode.option.screen"] = "屏幕像素",
+        ["ocr.findText.anchorMode.option.window"] = "窗口左上角",
+        ["ocr.findText.anchorMode.option.client"] = "窗口客户区",
+        ["ocr.findText.anchorWindow.label"] = "基准窗口",
+        ["ocr.findText.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["condition.imageExists.anchorMode.label"] = "坐标基准",
+        ["condition.imageExists.anchorMode.hint"] = AnchorModeHint,
+        ["condition.imageExists.anchorMode.option.screen"] = "屏幕像素",
+        ["condition.imageExists.anchorMode.option.window"] = "窗口左上角",
+        ["condition.imageExists.anchorMode.option.client"] = "窗口客户区",
+        ["condition.imageExists.anchorWindow.label"] = "基准窗口",
+        ["condition.imageExists.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["condition.textExists.anchorMode.label"] = "坐标基准",
+        ["condition.textExists.anchorMode.hint"] = AnchorModeHint,
+        ["condition.textExists.anchorMode.option.screen"] = "屏幕像素",
+        ["condition.textExists.anchorMode.option.window"] = "窗口左上角",
+        ["condition.textExists.anchorMode.option.client"] = "窗口客户区",
+        ["condition.textExists.anchorWindow.label"] = "基准窗口",
+        ["condition.textExists.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["condition.colorEquals.anchorMode.label"] = "坐标基准",
+        ["condition.colorEquals.anchorMode.hint"] = AnchorModeHint,
+        ["condition.colorEquals.anchorMode.option.screen"] = "屏幕像素",
+        ["condition.colorEquals.anchorMode.option.window"] = "窗口左上角",
+        ["condition.colorEquals.anchorMode.option.client"] = "窗口客户区",
+        ["condition.colorEquals.anchorWindow.label"] = "基准窗口",
+        ["condition.colorEquals.anchorWindow.hint"] = AnchorWindowHint,
 
         // ------------------------------------------------------------------- vision
         ["vision.capture.name"] = "截屏",

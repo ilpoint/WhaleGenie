@@ -7,6 +7,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Viktor.Core.Devices;
 using Viktor.Core.Execution;
 using Viktor.Localization;
 using Viktor.Models;
@@ -80,6 +81,13 @@ public partial class AddActionViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(Header))]
     [NotifyPropertyChangedFor(nameof(CommitLabel))]
     public partial bool IsEditing { get; set; }
+
+    /// <summary>
+    /// The windows on the desktop, so a position picked off the screen can be stored the way a
+    /// window-anchored step reads it back. The dialog fills this in; without it a picked position
+    /// is written down as screen pixels, which is what every unanchored step holds anyway.
+    /// </summary>
+    public IWindowDevice? Windows { get; set; }
 
     /// <summary>Title-bar text, which changes when an existing step is being edited.</summary>
     public string Header => Strings.Get(IsEditing ? "Add.EditTitle" : "Add.Title");
@@ -462,11 +470,13 @@ public partial class AddActionViewModel : ViewModelBase
     public bool HasRegion => Parameters.Any(parameter => parameter.IsRegionAnchor);
 
     /// <summary>
-    /// Writes a screen position into the action's x and y, which is what Alt + X does while
-    /// the dialog is open. Returns false when the action has no position to fill.
+    /// Writes a position into the action's x and y, counted from the window the step is anchored
+    /// to when it names one, which is what Alt + X does while the dialog is open. Returns false
+    /// when the action has no position to fill.
     /// </summary>
     public bool ApplyCursorPosition(int x, int y)
     {
+        var origin = AnchorOrigin();
         var filled = false;
         foreach (var parameter in Parameters)
         {
@@ -475,7 +485,9 @@ public partial class AddActionViewModel : ViewModelBase
                 continue;
             }
 
-            parameter.SetNumber(parameter.Definition.Name == "x" ? x : y);
+            parameter.SetNumber(parameter.Definition.Name == "x"
+                ? x - (origin?.X ?? 0)
+                : y - (origin?.Y ?? 0));
             filled = true;
         }
 
@@ -483,22 +495,46 @@ public partial class AddActionViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Lets a parameter react to the sibling list it waits on, such as the logic of a
-    /// condition group, which only applies once there are two or more conditions.
+    /// The corner the numbers of this action are counted from, so that a position read off the
+    /// screen is stored the way the engine will read it back. Null when the action counts in
+    /// screen pixels, and also when it names a window that is not open right now: there is
+    /// nothing to subtract then, and the plain numbers are the best that can be done.
     /// </summary>
+    private ScreenPoint? AnchorOrigin()
+    {
+        var mode = Parameter("anchorMode")?.CurrentText.Trim().ToLowerInvariant();
+        if (Windows is null || mode is not ("window" or "client"))
+        {
+            return null;
+        }
+
+        var title = Parameter("anchorWindow")?.Text?.Trim() ?? string.Empty;
+        if (title.Length == 0 || Windows.Find(title) is not { } window)
+        {
+            return null;
+        }
+
+        return mode == "client" ? Windows.ClientOrigin(window.Handle) : window.Location;
+    }
+
     /// <summary>
     /// Writes a rectangle that was dragged on the screen into whichever shape this action uses:
     /// x/y/width/height, the two corners of a drag, or one "x,y,width,height" field coming from
-    /// the region picker. Returns false when the action has nowhere to put it.
+    /// the region picker. A window-anchored action has the window's corner taken off first, the
+    /// same way the position shortcut does. Returns false when the action has nowhere to put it.
     /// </summary>
     public bool ApplyRegion(int x, int y, int width, int height)
     {
+        var origin = AnchorOrigin();
+        var left = x - (origin?.X ?? 0);
+        var top = y - (origin?.Y ?? 0);
         var filled = false;
 
         foreach (var (name, value) in new (string Name, int Value)[]
                  {
-                     ("x", x), ("y", y), ("width", width), ("height", height),
-                     ("startX", x), ("startY", y), ("endX", x + width), ("endY", y + height),
+                     ("x", left), ("y", top), ("width", width), ("height", height),
+                     ("startX", left), ("startY", top),
+                     ("endX", left + width), ("endY", top + height),
                  })
         {
             if (Parameter(name) is { IsNumber: true } parameter)
@@ -510,13 +546,17 @@ public partial class AddActionViewModel : ViewModelBase
 
         if (!filled && Parameter("region") is { } region)
         {
-            region.Text = $"{x},{y},{width},{height}";
+            region.Text = $"{left},{top},{width},{height}";
             filled = true;
         }
 
         return filled;
     }
 
+    /// <summary>
+    /// Lets a parameter react to the sibling list it waits on, such as the logic of a
+    /// condition group, which only applies once there are two or more conditions.
+    /// </summary>
     private void RefreshGates()
     {
         foreach (var editor in Parameters)

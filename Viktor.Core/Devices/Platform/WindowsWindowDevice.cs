@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -91,6 +92,26 @@ public sealed class WindowsWindowDevice : IWindowDevice
         var window = new IntPtr(handle);
         return IsWindow(window)
                && MoveWindow(window, x, y, Math.Max(0, width), Math.Max(0, height), true);
+    }
+
+    /// <summary>
+    /// Where the client area starts in screen pixels, through <c>ClientToScreen</c> so the border
+    /// and the title bar are left out. A window that closed since it was looked up is reported the
+    /// same way as one that was never there, which is what the engine turns into a step failure.
+    /// </summary>
+    public ScreenPoint ClientOrigin(long handle)
+    {
+        Require();
+
+        var window = new IntPtr(handle);
+        var corner = new NativePoint();
+        if (!IsWindow(window) || !ClientToScreen(window, ref corner))
+        {
+            throw new DeviceActionException("Run.WindowNotFound",
+                handle.ToString(CultureInfo.InvariantCulture));
+        }
+
+        return new ScreenPoint(corner.X, corner.Y);
     }
 
     /// <summary>
@@ -193,6 +214,13 @@ public sealed class WindowsWindowDevice : IWindowDevice
         public int Bottom;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        public int X;
+        public int Y;
+    }
+
     private delegate bool EnumWindowsProc(IntPtr handle, IntPtr parameter);
 
     [DllImport("user32.dll")]
@@ -221,6 +249,9 @@ public sealed class WindowsWindowDevice : IWindowDevice
 
     [DllImport("user32.dll")]
     private static extern bool GetWindowRect(IntPtr handle, out NativeRect bounds);
+
+    [DllImport("user32.dll")]
+    private static extern bool ClientToScreen(IntPtr handle, ref NativePoint point);
 
     [DllImport("user32.dll")]
     private static extern uint GetWindowThreadProcessId(IntPtr handle, out uint processId);
