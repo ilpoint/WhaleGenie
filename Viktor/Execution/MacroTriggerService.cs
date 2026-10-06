@@ -7,6 +7,7 @@ using SharpHook;
 using Viktor.Core.Devices;
 using Viktor.Core.Devices.Platform;
 using Viktor.Core.Execution;
+using Viktor.Localization;
 using Viktor.Models;
 
 namespace Viktor.Execution;
@@ -1119,9 +1120,16 @@ public sealed class MacroTriggerService : IDisposable
             var steps = macro.Steps.ToExecutable();
             var library = Library();
 
+            // Read once for the whole stay: a macro that repeats for an hour has no reason to
+            // keep asking the settings file, and a change made while it runs can wait.
+            var failureScreenshot = LocalSettings.LoadFailureScreenshot();
+
             while (!token.IsCancellationRequested)
             {
-                var runner = new MacroRunner(MacroVariables.Seed(), null, _devices, macro.DelayScale, library);
+                var runner = new MacroRunner(MacroVariables.Seed(), null, _devices, macro.DelayScale, library)
+                {
+                    FailureScreenshot = failureScreenshot,
+                };
                 var result = await runner.RunAsync(steps, token);
                 if (result.Status != RunStatus.Completed || !repeating || StoppingAfterPass(macro))
                 {

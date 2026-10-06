@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
@@ -32,6 +33,63 @@ public class DeviceActionTests
         var store = new VariableStore();
         var result = await new MacroRunner(store, new SilentRunHost(), layer).RunAsync(steps);
         return (result, layer, store);
+    }
+
+    [Fact]
+    public async Task A_run_that_stops_on_a_failure_leaves_a_picture_of_the_screen()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#00FF00") };
+        var host = new SilentRunHost();
+
+        var result = await new MacroRunner(new VariableStore(), host, devices)
+        {
+            FailureScreenshot = true,
+        }.RunAsync([Step("nope.unknown")]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+
+        // The picture is the whole primary screen, written as a PNG inside the log folder.
+        var picture = Assert.Single(devices.Blobs);
+        Assert.StartsWith("logs", picture.Key);
+        Assert.Contains("failure", picture.Key);
+        Assert.EndsWith(".png", picture.Key);
+        Assert.Equal(100, BinaryPrimitives.ReadInt32BigEndian(picture.Value.AsSpan(16)));
+        Assert.Equal(50, BinaryPrimitives.ReadInt32BigEndian(picture.Value.AsSpan(20)));
+
+        // The log says where it went, which is how the user finds it.
+        Assert.Contains(host.Entries, entry => entry.Key == "Run.FailurePicture");
+    }
+
+    [Fact]
+    public async Task A_run_that_finishes_leaves_no_picture()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#FF0000") };
+
+        var result = await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
+        {
+            FailureScreenshot = true,
+        }.RunAsync([Step("control.delay", Param("ms", "0"))]);
+
+        Assert.True(result.Succeeded);
+        Assert.Empty(devices.Blobs);
+    }
+
+    [Fact]
+    public async Task A_picture_that_cannot_be_taken_does_not_bring_the_run_down()
+    {
+        // Everything the fake is asked for is refused, so taking the picture fails too. The run
+        // has already failed, and recording that must not be able to make it worse.
+        var devices = new FakeDeviceLayer { Unavailable = true };
+        var host = new SilentRunHost();
+
+        var result = await new MacroRunner(new VariableStore(), host, devices)
+        {
+            FailureScreenshot = true,
+        }.RunAsync([Step("nope.unknown")]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Empty(devices.Blobs);
+        Assert.Contains(host.Entries, entry => entry.Key == "Run.FailurePictureFailed");
     }
 
     [Fact]
@@ -3432,6 +3490,9 @@ internal sealed class FakeDeviceLayer
     /// <summary>The pretend files on disk, keyed by full path, for reading and copying.</summary>
     public Dictionary<string, string> Files { get; } = [];
 
+    /// <summary>The pretend files of raw bytes on disk, keyed by the path they were written to.</summary>
+    public Dictionary<string, byte[]> Blobs { get; } = [];
+
     /// <summary>When set, every copy reports the target already there and refuses to overwrite.</summary>
     public bool TargetExists { get; set; }
 
@@ -3722,6 +3783,12 @@ internal sealed class FakeDeviceLayer
         {
             Files[path] = text;
         }
+    }
+
+    void IFileDevice.WriteBytes(string path, byte[] bytes)
+    {
+        Note($"writeBytes {path} {bytes.Length}");
+        Blobs[path] = bytes;
     }
 
     void IFileDevice.Delete(string path)

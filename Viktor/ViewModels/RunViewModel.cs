@@ -239,7 +239,9 @@ public partial class RunViewModel : ViewModelBase, IRunHost
         try
         {
             await new MacroRunner(_variables, this, _devices, _delayScale, _macros)
-                .RunAsync(_steps, cancellation.Token);
+            {
+                FailureScreenshot = LocalSettings.LoadFailureScreenshot(),
+            }.RunAsync(_steps, cancellation.Token);
         }
         finally
         {

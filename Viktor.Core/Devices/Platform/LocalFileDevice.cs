@@ -69,6 +69,22 @@ public sealed class LocalFileDevice : IFileDevice
         });
     }
 
+    public void WriteBytes(string path, byte[] bytes)
+    {
+        var full = Full(path);
+        Attempt(path, () =>
+        {
+            var folder = Path.GetDirectoryName(full);
+            if (!string.IsNullOrEmpty(folder))
+            {
+                Directory.CreateDirectory(folder);
+            }
+
+            File.WriteAllBytes(full, bytes);
+            return true;
+        });
+    }
+
     public void Delete(string path)
     {
         var full = Full(path);

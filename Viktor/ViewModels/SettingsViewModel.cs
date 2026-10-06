@@ -17,6 +17,7 @@ public partial class SettingsViewModel : ViewModelBase
     public SettingsViewModel()
     {
         SelectedLanguage = Languages.First(option => option.Language == Strings.Current.Language);
+        FailureScreenshot = LocalSettings.LoadFailureScreenshot();
     }
 
     public IReadOnlyList<LanguageOption> Languages { get; } =
@@ -28,6 +29,24 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     public partial LanguageOption SelectedLanguage { get; set; }
 
+    /// <summary>
+    /// Whether a run that stops on a failure leaves a picture of the screen in the log folder.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool FailureScreenshot { get; set; }
+
     partial void OnSelectedLanguageChanged(LanguageOption value)
         => Strings.Current.Language = value.Language;
+
+    /// <summary>
+    /// Writes the choice down, but only when it really changed: opening the window reads the
+    /// stored value into this property, and that must not count as the user asking for something.
+    /// </summary>
+    partial void OnFailureScreenshotChanged(bool value)
+    {
+        if (value != LocalSettings.LoadFailureScreenshot())
+        {
+            LocalSettings.StoreFailureScreenshot(value);
+        }
+    }
 }

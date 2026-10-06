@@ -409,6 +409,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.Title"] = "Settings",
         ["Settings.Language"] = "Language",
         ["Settings.LanguageHint"] = "Applies immediately to every window.",
+        ["Settings.FailureScreenshot"] = "Save a picture of the screen when a run fails",
+        ["Settings.FailureScreenshotHint"] =
+            "Kept in the logs folder inside the macros folder. Nothing is written while a macro runs well.",
         ["Settings.Note"] = "Action names and parameter text use the selected language when a window is opened.",
         ["Settings.Close"] = "Close",
 
@@ -500,6 +503,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.Finished"] = "Finished. {0} step(s) ran.",
         ["Run.Stopped"] = "Stopped. {0} step(s) ran.",
         ["Run.Aborted"] = "Aborted. {0} step(s) ran.",
+        ["Run.FailurePicture"] = "Saved a picture of the screen to {0}",
+        ["Run.FailurePictureFailed"] = "Could not save a picture of the screen: {0}",
         ["Run.Skipped"] = "Skipped: the step is turned off",
         ["Run.Retry"] = "Retry {0}",
         ["Run.StopRequested"] = "The macro asked to stop. {0}",
@@ -1008,6 +1013,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.Title"] = "设置",
         ["Settings.Language"] = "语言",
         ["Settings.LanguageHint"] = "立即应用到所有窗口。",
+        ["Settings.FailureScreenshot"] = "运行失败时保存屏幕截图",
+        ["Settings.FailureScreenshotHint"] = "存进宏文件夹下的 logs 文件夹。宏运行顺利时不会写任何东西。",
         ["Settings.Note"] = "动作名称和参数文本会在窗口打开时按所选语言显示。",
         ["Settings.Close"] = "关闭",
 
@@ -1096,6 +1103,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.Finished"] = "运行结束，共执行 {0} 个步骤。",
         ["Run.Stopped"] = "已停止，共执行 {0} 个步骤。",
         ["Run.Aborted"] = "运行中断，共执行 {0} 个步骤。",
+        ["Run.FailurePicture"] = "已把屏幕截图存到 {0}",
+        ["Run.FailurePictureFailed"] = "屏幕截图没能保存：{0}",
         ["Run.Skipped"] = "已跳过：这一步处于停用状态",
         ["Run.Retry"] = "第 {0} 次重试",
         ["Run.StopRequested"] = "宏主动要求停止。{0}",

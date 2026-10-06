@@ -78,6 +78,15 @@ public sealed class MacroRunner
     private const double SmallestScale = 0.1;
     private const double LargestScale = 10;
 
+    /// <summary>Where inside the macros folder the pictures of failed runs are written.</summary>
+    private const string FailureFolder = "logs";
+
+    /// <summary>
+    /// True when a run that stops on a failure should leave a picture of the screen behind, so the
+    /// user can see what was on it at the time. Nothing is written while a macro is running well.
+    /// </summary>
+    public bool FailureScreenshot { get; init; }
+
     /// <summary>
     /// How long a move borrows when it was written as an instant jump but asked to travel along a
     /// bent or hand-like path: there is no path to travel without a duration, and quietly going
@@ -123,6 +132,11 @@ public sealed class MacroRunner
                 _ => new RunResult(RunStatus.Completed, "Run.Finished", string.Empty, _executed),
             };
 
+            if (outcome.Status is RunStatus.Failed)
+            {
+                LeaveFailurePicture();
+            }
+
             Log(LogLevel.Info, 0, string.Empty, SummaryKey(outcome.Status), _executed);
             return outcome;
         }
@@ -140,6 +154,48 @@ public sealed class MacroRunner
         RunStatus.Failed => "Run.Aborted",
         _ => "Run.Finished",
     };
+
+    /// <summary>
+    /// Leaves a picture of the screen behind when a run stops on a failure.
+    /// </summary>
+    /// <remarks>
+    /// The primary screen is what is taken: it is where a macro that fails is nearly always
+    /// working, and covering every monitor costs more to take and more to look at. The picture is
+    /// written whether or not anything went wrong while taking it — a run that has already failed
+    /// must not be brought down by the act of recording it, so a failure here is only logged.
+    /// </remarks>
+    private void LeaveFailurePicture()
+    {
+        if (!FailureScreenshot)
+        {
+            return;
+        }
+
+        try
+        {
+            var size = _devices.Screen.PrimarySize;
+            var frame = _devices.Screen.Capture(0, 0, size.Width, size.Height);
+            if (frame.IsEmpty)
+            {
+                return;
+            }
+
+            var name = "failure-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+            var relative = Path.Combine(FailureFolder, name + ".png");
+            for (var counter = 1; _devices.Files.Exists(_devices.Files.Resolve(relative)); counter++)
+            {
+                relative = Path.Combine(FailureFolder,
+                    string.Create(CultureInfo.InvariantCulture, $"{name}-{counter}.png"));
+            }
+
+            _devices.Files.WriteBytes(relative, PngWriter.Encode(frame));
+            Log(LogLevel.Info, 0, string.Empty, "Run.FailurePicture", _devices.Files.Resolve(relative));
+        }
+        catch (Exception failure)
+        {
+            Log(LogLevel.Warn, 0, string.Empty, "Run.FailurePictureFailed", failure.Message);
+        }
+    }
 
     /// <summary>What a step tells the runner to do next.</summary>
     private enum Signal

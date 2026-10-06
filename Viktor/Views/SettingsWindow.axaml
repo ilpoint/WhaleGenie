@@ -4,11 +4,11 @@
         xmlns:loc="using:Viktor.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="440" d:DesignHeight="270"
+        mc:Ignorable="d" d:DesignWidth="440" d:DesignHeight="360"
         x:Class="Viktor.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
         Title="Settings"
-        Width="440" Height="270"
+        Width="440" Height="360"
         WindowStartupLocation="CenterOwner"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
@@ -93,6 +93,13 @@
                       SelectedItem="{Binding SelectedLanguage}" />
             <TextBlock Classes="Muted" Margin="2,7,0,0"
                        Text="{Binding [Settings.LanguageHint], Source={x:Static loc:Strings.Current}}" />
+
+            <CheckBox Margin="2,18,0,0" Foreground="#C8C8C8" FontSize="12.5"
+                      IsChecked="{Binding FailureScreenshot}"
+                      Content="{Binding [Settings.FailureScreenshot], Source={x:Static loc:Strings.Current}}" />
+            <TextBlock Classes="Muted" Margin="2,7,0,0" TextWrapping="Wrap"
+                       Text="{Binding [Settings.FailureScreenshotHint], Source={x:Static loc:Strings.Current}}" />
+
             <TextBlock Classes="Muted" Margin="2,16,0,0" TextWrapping="Wrap"
                        Text="{Binding [Settings.Note], Source={x:Static loc:Strings.Current}}" />
         </StackPanel>
