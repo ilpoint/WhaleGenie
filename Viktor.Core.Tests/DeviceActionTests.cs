@@ -1083,6 +1083,46 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Reading_a_table_puts_the_rows_in_a_variable()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Table.Add(["Name", "Age"]);
+        devices.Table.Add(["Ann", "31"]);
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("uia.readTable", Param("selector", "Table[automationId='people']"),
+                Param("resultVariable", "people")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+
+        // The shape is the same as the CSV reader's: a row per entry, a cell per entry inside it.
+        var table = store.Local.Values["people"];
+        Assert.True(table.IsList);
+        Assert.Equal(2, table.Items.Count);
+        Assert.Equal("Name", table.Items[0].Items[0].AsText());
+        Assert.Equal("31", table.Items[1].Items[1].AsText());
+    }
+
+    [Fact]
+    public async Task Reading_a_table_stops_at_the_row_count_it_was_given()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Table.Add(["one"]);
+        devices.Table.Add(["two"]);
+        devices.Table.Add(["three"]);
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("uia.readTable", Param("selector", "Table[automationId='people']"),
+                Param("maxRows", "2"), Param("resultVariable", "people")),
+        ], devices);
+
+        Assert.Equal(2, store.Local.Values["people"].Items.Count);
+    }
+
+    [Fact]
     public async Task Writing_into_an_element_carries_the_text_and_the_clear_flag()
     {
         var devices = new FakeDeviceLayer { ElementWritable = true };
@@ -2474,6 +2514,15 @@ internal sealed class FakeDeviceLayer
     {
         Note($"scrollIntoView {query.Name}");
         return Scrollable;
+    }
+
+    /// <summary>What reading a table answers: one array of cells per row.</summary>
+    public List<string[]> Table { get; } = [];
+
+    public IReadOnlyList<IReadOnlyList<string>> ReadTable(UiQuery query, int limit)
+    {
+        Note($"readTable {query.Name}#{query.Index} take {limit}");
+        return [.. Table.Take(Math.Max(1, limit)).Select(row => (IReadOnlyList<string>)row)];
     }
 
     bool IFileDevice.Exists(string path)

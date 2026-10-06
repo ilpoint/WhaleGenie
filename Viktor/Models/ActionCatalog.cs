@@ -1417,6 +1417,28 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "uia.readTable",
+            Category = ActionCategory.Uia,
+            DisplayName = "Read Table",
+            Description = "Read a table or a grid into a list of rows.",
+            Parameters =
+            [
+                Window(),
+                Selector(),
+                MatchIndex(),
+                Number("maxRows", "Rows to read", 100,
+                    "Stop after this many rows of data, counted from the top. Rows that hold "
+                    + "nothing at all — the strip the column titles live in, and the empty row "
+                    + "some grids keep at the bottom for typing a new one in — are left out.",
+                    min: 1, max: 10000),
+                Variable("resultVariable", "Result variable", "table",
+                    "Variable that receives the rows. $name holds a list of rows, and every row is "
+                    + "a list of cells, the same shape the CSV reader gives back.",
+                    namesVariable: true, defaultValue: "table"),
+            ],
+        },
+        new()
+        {
             Key = "uia.focusWindow",
             Category = ActionCategory.Uia,
             DisplayName = "Focus Window",

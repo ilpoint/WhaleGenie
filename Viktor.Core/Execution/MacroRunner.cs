@@ -728,6 +728,10 @@ public sealed class MacroRunner
                 ScrollElementIntoView(step, depth);
                 return Signal.Normal;
 
+            case "uia.readTable":
+                ReadElementTable(step, depth);
+                return Signal.Normal;
+
             case "uia.focusWindow":
                 FocusWindow(step, depth);
                 return Signal.Normal;
@@ -2773,6 +2777,29 @@ public sealed class MacroRunner
 
         Log(LogLevel.Info, depth, step.Type, "Run.ScrolledElement", step.Text("selector"));
     }
+
+    /// <summary>
+    /// Reads a table into a variable as a list of rows, each row a list of cells, which is the
+    /// same shape the CSV reader hands back so the same steps can walk either one.
+    /// </summary>
+    private void ReadElementTable(ExecutableStep step, int depth)
+    {
+        // A step with no row limit at all still gets one, the same default the editor shows, so a
+        // table nobody bounded cannot be read forever.
+        var limit = Math.Clamp(OptionalNumber(step, "maxRows", DefaultRows), 1, MaxRows);
+        var rows = _devices.Ui.ReadTable(Query(step), limit);
+
+        var name = VariableName(step, "resultVariable", "table");
+        Variables.Set(name, Value.FromList(
+            rows.Select(row => Value.FromList(row.Select(Value.FromText)))));
+        Log(LogLevel.Info, depth, step.Type, "Run.ReadTable", name, rows.Count);
+    }
+
+    /// <summary>The most rows one step reads, so a grid that keeps growing cannot fill memory.</summary>
+    private const int MaxRows = 10000;
+
+    /// <summary>How many rows a step reads when it does not say.</summary>
+    private const int DefaultRows = 100;
 
     /// <summary>
     /// What a three-way setting means for something that can be on, off, or left to decide itself:

@@ -1193,6 +1193,23 @@ internal static class ActionStrings
         ["uia.scrollIntoView.matchIndex.label"] = "第几个命中",
         ["uia.scrollIntoView.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
 
+        ["uia.readTable.name"] = "读取表格",
+        ["uia.readTable.desc"] = "把表格或网格读成一个按行存放的列表。",
+        ["uia.readTable.window.label"] = "窗口",
+        ["uia.readTable.window.hint"] = "可选的窗口标题过滤；留空表示在所有窗口中查找。",
+        ["uia.readTable.selector.label"] = "选择器",
+        ["uia.readTable.selector.hint"] = "表格或网格的选择器。也可以点“拾取元素”，直接瞄准屏幕上的控件抓取。",
+        ["uia.readTable.matchIndex.label"] = "第几个命中",
+        ["uia.readTable.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要读取的是第几个。" + MatchIndexHint,
+        ["uia.readTable.maxRows.label"] = "读取行数",
+        ["uia.readTable.maxRows.hint"] =
+            "最多读取前多少行数据。整行都是空的会被跳过——放列标题的那一行、有些表格底部留着"
+            + "用来输入新记录的空白行，都不是数据。",
+        ["uia.readTable.resultVariable.label"] = "结果变量",
+        ["uia.readTable.resultVariable.hint"] =
+            "用来接收表格内容的变量：$变量 是一个“每行一项”的列表，每一项又是一行单元格的列表，"
+            + "和读取 CSV 返回的形状一样。",
+
         ["uia.focusWindow.name"] = "窗口置前",
         ["uia.focusWindow.desc"] = "把某个窗口切换到最前面。",
         ["uia.focusWindow.window.label"] = "窗口",

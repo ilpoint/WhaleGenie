@@ -133,13 +133,103 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
 
         try
         {
-            var value = element.Patterns.Value;
-            return value.IsSupported ? value.Pattern.Value.Value : element.Name;
+            return TextOf(element);
         }
         catch (Exception error) when (Recoverable(error))
         {
             return element.Name;
         }
+    }
+
+    /// <summary>What an element reads as: the value it holds when it has one, and its name otherwise.</summary>
+    private static string TextOf(AutomationElement element)
+    {
+        try
+        {
+            var value = element.Patterns.Value;
+            if (value.IsSupported)
+            {
+                return value.Pattern.Value.Value ?? string.Empty;
+            }
+        }
+        catch (Exception error) when (Recoverable(error))
+        {
+            // An element that will not give up its value still has a name worth reading.
+        }
+
+        return element.Name ?? string.Empty;
+    }
+
+    public IReadOnlyList<IReadOnlyList<string>> ReadTable(UiQuery query, int limit)
+    {
+        Require();
+        var element = Find(query) ?? throw new DeviceActionException("Run.ElementNotFound", Describe(query));
+        var rows = Math.Max(1, limit);
+
+        try
+        {
+            // A grid is the usual way a table says it is one, and it is the only way that knows
+            // its own rows and columns rather than leaving them to be guessed at.
+            if (element.ControlType == ControlType.DataGrid)
+            {
+                return [.. Rows(element.AsDataGridView().Rows.Select(RowText), rows)];
+            }
+
+            if (element.Patterns.Grid.IsSupported)
+            {
+                return [.. Rows(element.AsGrid().Rows.Select(RowText), rows)];
+            }
+
+            // Nothing that calls itself a table: the rows are then whatever looks like one, and
+            // each cell is read off the controls inside that row.
+            var condition = element.ConditionFactory.ByControlType(ControlType.DataItem);
+            return
+            [
+                .. Rows(
+                    element.FindAllDescendants(condition)
+                        .Select(row => (IReadOnlyList<string>)
+                            [.. row.FindAllChildren().Select(TextOf)]),
+                    rows),
+            ];
+        }
+        catch (Exception error) when (Recoverable(error))
+        {
+            throw new DeviceActionException("Run.ElementNotATable", Describe(query));
+        }
+    }
+
+    /// <summary>The text of one row of a grid, one entry per cell.</summary>
+    private static IReadOnlyList<string> RowText(DataGridViewRow row)
+        => [.. row.Cells.Select(cell => TextOf(cell))];
+
+    /// <summary>The text of one row of a grid, one entry per cell.</summary>
+    private static IReadOnlyList<string> RowText(GridRow row)
+        => [.. row.Cells.Select(cell => TextOf(cell))];
+
+    /// <summary>
+    /// The rows worth reading, at most <paramref name="limit"/> of them. A grid reports rows that
+    /// hold nothing at all — the one the column titles live in, and the empty row the bottom of a
+    /// WinForms grid keeps for typing a new one in — and neither is a row of data, so they are
+    /// left out rather than handed to the macro as a blank line.
+    /// </summary>
+    private static IReadOnlyList<IReadOnlyList<string>> Rows(IEnumerable<IReadOnlyList<string>> rows,
+        int limit)
+    {
+        var kept = new List<IReadOnlyList<string>>();
+        foreach (var row in rows)
+        {
+            if (row.Any(cell => cell.Length > 0))
+            {
+                kept.Add(row);
+            }
+
+            if (kept.Count >= limit)
+            {
+                break;
+            }
+        }
+
+        return kept;
     }
 
     public bool SetText(UiQuery query, string text, bool clearFirst)

@@ -127,6 +127,12 @@ public interface IUiDevice
 
     /// <summary>Scrolls an element inside its own container until it can be seen.</summary>
     bool ScrollIntoView(UiQuery query);
+
+    /// <summary>
+    /// Reads a table or a grid into rows of cell text, at most <paramref name="limit"/> rows.
+    /// A list whose rows are rows rather than a real table reads the same way, one entry per row.
+    /// </summary>
+    IReadOnlyList<IReadOnlyList<string>> ReadTable(UiQuery query, int limit);
 }
 
 /// <summary>Files on disk.</summary>
@@ -475,6 +481,9 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public bool SetExpanded(UiQuery query, string action) => throw Missing("UI Automation");
 
         public bool ScrollIntoView(UiQuery query) => throw Missing("UI Automation");
+
+        public IReadOnlyList<IReadOnlyList<string>> ReadTable(UiQuery query, int limit)
+            => throw Missing("UI Automation");
 
         private static DeviceUnavailableException Missing(string capability) => new(capability);
     }
