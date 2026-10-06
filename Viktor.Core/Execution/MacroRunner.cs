@@ -577,23 +577,23 @@ public sealed class MacroRunner
 
             // ------------------------------------------------------------------ input
             case "input.keyPress":
-                _devices.Input.KeyPress(step.Text("key"), Pace(Number(step, "holdMs")));
+                Input(step).KeyPress(step.Text("key"), Pace(Number(step, "holdMs")));
                 return Signal.Normal;
 
             case "input.keyDown":
-                _devices.Input.KeyDown(step.Text("key"));
+                Input(step).KeyDown(step.Text("key"));
                 return Signal.Normal;
 
             case "input.keyUp":
-                _devices.Input.KeyUp(step.Text("key"));
+                Input(step).KeyUp(step.Text("key"));
                 return Signal.Normal;
 
             case "input.hotkey":
-                _devices.Input.Hotkey(Keys(step), Pace(Number(step, "holdMs")));
+                Input(step).Hotkey(Keys(step), Pace(Number(step, "holdMs")));
                 return Signal.Normal;
 
             case "input.typeText":
-                _devices.Input.TypeText(Read(step.Text("text")).AsText(), Pace(Number(step, "intervalMs")));
+                Input(step).TypeText(Read(step.Text("text")).AsText(), Pace(Number(step, "intervalMs")));
                 return Signal.Normal;
 
             case "input.mouseMove":
@@ -607,7 +607,7 @@ public sealed class MacroRunner
             case "input.mouseClick":
                 {
                     var point = Point(step, "x", "y");
-                    _devices.Input.Click(Button(step), point.X, point.Y,
+                    Input(step).Click(Button(step), point.X, point.Y,
                         Math.Max(1, Number(step, "clicks")), Pace(Number(step, "intervalMs")));
                     return Signal.Normal;
                 }
@@ -615,28 +615,28 @@ public sealed class MacroRunner
             case "input.mouseDoubleClick":
                 {
                     var point = Point(step, "x", "y");
-                    _devices.Input.Click(Button(step), point.X, point.Y, 2, 0);
+                    Input(step).Click(Button(step), point.X, point.Y, 2, 0);
                     return Signal.Normal;
                 }
 
             case "input.mouseDown":
                 {
                     var point = Point(step, "x", "y");
-                    _devices.Input.MouseDown(Button(step), point.X, point.Y);
+                    Input(step).MouseDown(Button(step), point.X, point.Y);
                     return Signal.Normal;
                 }
 
             case "input.mouseUp":
                 {
                     var point = Point(step, "x", "y");
-                    _devices.Input.MouseUp(Button(step), point.X, point.Y);
+                    Input(step).MouseUp(Button(step), point.X, point.Y);
                     return Signal.Normal;
                 }
 
             case "input.mouseScroll":
                 {
                     var point = Point(step, "x", "y");
-                    _devices.Input.Scroll(step.Text("direction"), Math.Max(1, Number(step, "amount")),
+                    Input(step).Scroll(step.Text("direction"), Math.Max(1, Number(step, "amount")),
                         point.X, point.Y);
                     return Signal.Normal;
                 }
@@ -1112,6 +1112,39 @@ public sealed class MacroRunner
     // ------------------------------------------------------------------- devices
 
     /// <summary>
+    /// The input device that delivers this step's input, chosen by the step's own settings: in
+    /// front by default, posted at one window when the step names one, or through a driver.
+    /// </summary>
+    private IInputDevice Input(ExecutableStep step) => _devices.Inputs.For(Route(step));
+
+    /// <summary>Where a step wants its input to go. Anything unset means the front window.</summary>
+    private InputRoute Route(ExecutableStep step)
+    {
+        var mode = step.Text("inputMode").Trim().ToLowerInvariant();
+        if (mode == "driver")
+        {
+            return new InputRoute(InputDelivery.Driver, 0);
+        }
+
+        if (mode != "background")
+        {
+            return InputRoute.Front;
+        }
+
+        // Posting messages needs a window to post them at, and the step names it by title.
+        var title = Read(step.Text("targetWindow")).AsText().Trim();
+        if (title.Length == 0)
+        {
+            throw new StepFailure("Run.MissingTargetWindow");
+        }
+
+        var window = _devices.Windows.Find(title)
+                     ?? throw new StepFailure("Run.WindowNotFound", title);
+
+        return new InputRoute(InputDelivery.Background, window.Handle);
+    }
+
+    /// <summary>
     /// Where a mouse action lands. An empty position means "wherever the pointer already is",
     /// which is what a click or a press with no coordinates written down means.
     /// </summary>
@@ -1120,7 +1153,7 @@ public sealed class MacroRunner
         var x = step.Text(xName).Trim();
         var y = step.Text(yName).Trim();
         return x.Length == 0 && y.Length == 0
-            ? _devices.Input.Cursor
+            ? Input(step).Cursor
             : new ScreenPoint(Number(step, xName), Number(step, yName));
     }
 
@@ -1141,11 +1174,11 @@ public sealed class MacroRunner
         var duration = Pace(Number(step, "durationMs"));
         if (route is MouseRoute.Direct)
         {
-            _devices.Input.MoveMouse(to.X, to.Y, duration);
+            Input(step).MoveMouse(to.X, to.Y, duration);
             return;
         }
 
-        WalkPointer(route, _devices.Input.Cursor, to, duration);
+        WalkPointer(Input(step), route, Input(step).Cursor, to, duration);
     }
 
     /// <summary>The same, for a move written as an offset from wherever the pointer is.</summary>
@@ -1157,22 +1190,23 @@ public sealed class MacroRunner
         var duration = Pace(Number(step, "durationMs"));
         if (route is MouseRoute.Direct)
         {
-            _devices.Input.MoveMouseRelative(dx, dy, duration);
+            Input(step).MoveMouseRelative(dx, dy, duration);
             return;
         }
 
-        var from = _devices.Input.Cursor;
-        WalkPointer(route, from, new ScreenPoint(from.X + dx, from.Y + dy), duration);
+        var from = Input(step).Cursor;
+        WalkPointer(Input(step), route, from, new ScreenPoint(from.X + dx, from.Y + dy), duration);
     }
 
-    private void WalkPointer(MouseRoute route, ScreenPoint from, ScreenPoint to, int duration)
+    private void WalkPointer(IInputDevice input, MouseRoute route, ScreenPoint from,
+        ScreenPoint to, int duration)
     {
         if (duration <= 0)
         {
             duration = Pace(BorrowedMoveMs);
         }
 
-        _devices.Input.MoveMouseAlong(
+        input.MoveMouseAlong(
             MousePath.Plan(route, from, to, MousePath.StepsFor(route, duration)), duration);
     }
 
@@ -1186,7 +1220,7 @@ public sealed class MacroRunner
         var route = MousePath.Route(step.Text("style"));
         if (route is MouseRoute.Direct)
         {
-            _devices.Input.Drag(Button(step), from.X, from.Y, to.X, to.Y, duration, steps);
+            Input(step).Drag(Button(step), from.X, from.Y, to.X, to.Y, duration, steps);
             return;
         }
 
@@ -1195,7 +1229,7 @@ public sealed class MacroRunner
             duration = Pace(BorrowedMoveMs);
         }
 
-        _devices.Input.DragAlong(Button(step), MousePath.Plan(route, from, to, steps), duration);
+        Input(step).DragAlong(Button(step), MousePath.Plan(route, from, to, steps), duration);
     }
 
     private static IReadOnlyList<string> Keys(ExecutableStep step)
@@ -1307,7 +1341,7 @@ public sealed class MacroRunner
 
         var x = match.Center.X + Number(step, "offsetX");
         var y = match.Center.Y + Number(step, "offsetY");
-        _devices.Input.Click(Button(step), x, y, 1, 0);
+        Input(step).Click(Button(step), x, y, 1, 0);
         Log(LogLevel.Info, depth, step.Type, "Run.ClickedImage", x, y);
     }
 
@@ -1836,7 +1870,7 @@ public sealed class MacroRunner
     private async Task ClipboardCopy(ExecutableStep step, int depth, CancellationToken token)
     {
         var before = _devices.Clipboard.ChangeCount;
-        _devices.Input.Hotkey(Keys(step), 50);
+        Input(step).Hotkey(Keys(step), 50);
         await AwaitClipboard(step, before, token);
 
         var text = _devices.Clipboard.ReadText();
@@ -1859,7 +1893,7 @@ public sealed class MacroRunner
             await Pause(40, token);
         }
 
-        _devices.Input.Hotkey(Keys(step), 50);
+        Input(step).Hotkey(Keys(step), 50);
         Log(LogLevel.Info, depth, step.Type, given ? "Run.PastedText" : "Run.Pasted");
     }
 
@@ -2210,7 +2244,7 @@ public sealed class MacroRunner
 
         var x = span.Center.X + Number(step, "offsetX");
         var y = span.Center.Y + Number(step, "offsetY");
-        _devices.Input.Click(Button(step), x, y, 1, 0);
+        Input(step).Click(Button(step), x, y, 1, 0);
         Log(LogLevel.Info, depth, step.Type, "Run.ClickedText", wanted, $"{x},{y}");
     }
 

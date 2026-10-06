@@ -76,6 +76,46 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Input_with_no_mode_goes_to_the_front_window()
+    {
+        var (_, devices, _) = await RunAsync(
+            [Step("input.keyPress", Param("key", "F5"), Param("holdMs", "10"))]);
+
+        Assert.Equal([InputRoute.Front], devices.Routes);
+    }
+
+    [Fact]
+    public async Task Background_input_is_posted_at_the_window_it_names()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(4242, "Notepad - notes.txt",
+            new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.keyPress",
+                Param("key", "F5"), Param("holdMs", "10"),
+                Param("inputMode", "background"), Param("targetWindow", "Notepad")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+
+        var route = Assert.Single(devices.Routes);
+        Assert.Equal(InputDelivery.Background, route.Delivery);
+        Assert.Equal(4242, route.WindowHandle);
+    }
+
+    [Fact]
+    public async Task Background_input_without_a_window_fails_instead_of_typing_into_the_wrong_one()
+    {
+        var (result, devices, _) = await RunAsync(
+            [Step("input.keyPress", Param("key", "F5"), Param("inputMode", "background"))]);
+
+        Assert.False(result.Succeeded);
+        Assert.Empty(devices.Calls);
+    }
+
+    [Fact]
     public async Task A_click_goes_to_the_point_it_names()
     {
         var (_, devices, _) = await RunAsync(
@@ -1544,6 +1584,15 @@ internal sealed class FakeDeviceLayer
 {
     public List<string> Calls { get; } = [];
 
+    /// <summary>The routes the engine asked input to take, in the order it asked.</summary>
+    public List<InputRoute> Routes { get; } = [];
+
+    private readonly RecordingRouter _router;
+
+    public FakeDeviceLayer() => _router = new RecordingRouter(this);
+
+    IInputRouter IDeviceLayer.Inputs => _router;
+
     /// <summary>The paths the pointer was asked to travel, in the order they were asked for.</summary>
     public List<IReadOnlyList<ScreenPoint>> Paths { get; } = [];
 
@@ -1991,6 +2040,19 @@ internal sealed class FakeDeviceLayer
     {
         Note($"moveWindow {handle} {x} {y} {width} {height}");
         return WindowActionWorks;
+    }
+
+    /// <summary>
+    /// Notes which route input was asked to take, then hands back the fake itself so the call
+    /// still lands in <see cref="Calls"/> whatever way it was routed.
+    /// </summary>
+    private sealed class RecordingRouter(FakeDeviceLayer owner) : IInputRouter
+    {
+        public IInputDevice For(InputRoute route)
+        {
+            owner.Routes.Add(route);
+            return owner;
+        }
     }
 
     private void Note(string call)

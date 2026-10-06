@@ -871,6 +871,7 @@ public static class ActionCatalog
             [
                 KeyBind("key", "Key", "Key to press, for example F5 or Enter."),
                 Number("holdMs", "Hold ms", 50, "How long the key stays down."),
+                ..Delivery(),
             ],
         },
         new()
@@ -882,6 +883,7 @@ public static class ActionCatalog
             Parameters =
             [
                 KeyBind("key", "Key"),
+                ..Delivery(),
             ],
         },
         new()
@@ -893,6 +895,7 @@ public static class ActionCatalog
             Parameters =
             [
                 KeyBind("key", "Key"),
+                ..Delivery(),
             ],
         },
         new()
@@ -905,6 +908,7 @@ public static class ActionCatalog
             [
                 Text("keys", "Keys", "Ctrl+Shift+S", "Keys joined with + and pressed together."),
                 Number("holdMs", "Hold ms", 50, "How long the combination stays down."),
+                ..Delivery(),
             ],
         },
         new()
@@ -917,6 +921,7 @@ public static class ActionCatalog
             [
                 Multiline("text", "Text", "Text to type.", "Hello world"),
                 Number("intervalMs", "Interval ms", 30, "Delay between characters."),
+                ..Delivery(),
             ],
         },
         new()
@@ -931,6 +936,7 @@ public static class ActionCatalog
                 Number("y", "Y", 0, "Target screen row."),
                 Number("durationMs", "Duration ms", 0, "0 jumps straight to the target."),
                 Movement(),
+                ..Delivery(),
             ],
         },
         new()
@@ -945,6 +951,7 @@ public static class ActionCatalog
                 Number("dy", "Offset Y", 0, "Pixels to move vertically.", min: -100000m),
                 Number("durationMs", "Duration ms", 0, "0 jumps straight to the target."),
                 Movement(),
+                ..Delivery(),
             ],
         },
         new()
@@ -960,6 +967,7 @@ public static class ActionCatalog
                 Number("y", "Y", 0, "Screen row to click."),
                 Number("clicks", "Clicks", 1, "How many clicks to send.", min: 1),
                 Number("intervalMs", "Interval ms", 0, "Pause between repeated clicks."),
+                ..Delivery(),
             ],
         },
         new()
@@ -973,6 +981,7 @@ public static class ActionCatalog
                 Button(),
                 Number("x", "X", 0, "Screen column to click."),
                 Number("y", "Y", 0, "Screen row to click."),
+                ..Delivery(),
             ],
         },
         new()
@@ -986,6 +995,7 @@ public static class ActionCatalog
                 Button(),
                 Number("x", "X", 0, "Screen column to press."),
                 Number("y", "Y", 0, "Screen row to press."),
+                ..Delivery(),
             ],
         },
         new()
@@ -999,6 +1009,7 @@ public static class ActionCatalog
                 Button(),
                 Number("x", "X", 0, "Screen column to release at."),
                 Number("y", "Y", 0, "Screen row to release at."),
+                ..Delivery(),
             ],
         },
         new()
@@ -1013,6 +1024,7 @@ public static class ActionCatalog
                 Number("amount", "Amount", 3, "Number of wheel notches.", min: 1),
                 Number("x", "X", 0, "Screen column to scroll at."),
                 Number("y", "Y", 0, "Screen row to scroll at."),
+                ..Delivery(),
             ],
         },
         new()
@@ -1031,6 +1043,7 @@ public static class ActionCatalog
                 Number("durationMs", "Duration ms", 300, "How long the drag takes."),
                 Number("steps", "Move steps", 20, "Intermediate move events sent while dragging.", min: 1),
                 Movement(),
+                ..Delivery(),
             ],
         },
 
@@ -1603,6 +1616,31 @@ public static class ActionCatalog
     /// <summary>Mouse button picker shared by every input action that clicks.</summary>
     private static ActionParameter Button()
         => Choice("button", "Button", ["left", "right", "middle", "back", "forward"], "left");
+
+    /// <summary>
+    /// How a step's input is sent, shared by every action that presses a key or a mouse button.
+    /// In front is how input has always been sent; the other two are what let a macro work on a
+    /// window it does not have the focus of, or look like real hardware.
+    /// </summary>
+    private static ActionParameter[] Delivery() =>
+    [
+        Choice("inputMode", "Input mode", ["foreground", "background", "driver"], "foreground",
+            "How this step's input is sent. In front goes to whatever window has the focus. "
+            + "Background posts the messages at the target window instead, which needs no focus "
+            + "and leaves the on-screen pointer where it is. Driver sends it through a virtual "
+            + "USB device, which needs the VIIPER server running.",
+            labels: ["In front", "Background (posted)", "Driver (virtual device)"]),
+        new()
+        {
+            Name = "targetWindow",
+            Label = "Target window",
+            Kind = ActionParameterKind.Window,
+            Placeholder = "Notepad",
+            Hint = "The window background input posts its messages at; part of the title is "
+                   + "enough. The other input modes do not use it.",
+            Required = false,
+        },
+    ];
 
     /// <summary>
     /// How the pointer travels, shared by the moves that can bend their path. The straight line

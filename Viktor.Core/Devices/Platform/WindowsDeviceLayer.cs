@@ -7,6 +7,8 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
 {
     private readonly Lazy<IInputDevice> _input = new(() => new SharpHookInputDevice());
 
+    private readonly Lazy<IInputRouter> _inputs;
+
     private readonly Lazy<IScreenDevice> _screen = new(() => new WindowsScreenDevice());
 
     private readonly Lazy<IVisionDevice> _vision = new(() => new OpenCvVisionDevice());
@@ -27,11 +29,16 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
 
     public WindowsDeviceLayer()
     {
+        _inputs = new Lazy<IInputRouter>(() => new WindowsInputRouter(_input.Value));
+
         // UI Automation borrows the mouse for the buttons it has no click of its own for.
         _ui = new Lazy<FlaUiDevice>(() => new FlaUiDevice(_input.Value));
     }
 
     public IInputDevice Input => _input.Value;
+
+    /// <summary>Input sent the way each step asks: in front, to one window, or through a driver.</summary>
+    public IInputRouter Inputs => _inputs.Value;
 
     public IScreenDevice Screen => _screen.Value;
 

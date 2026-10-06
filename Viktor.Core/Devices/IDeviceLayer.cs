@@ -214,6 +214,12 @@ public interface IDeviceLayer
 {
     IInputDevice Input { get; }
 
+    /// <summary>
+    /// The input devices a step can choose between. A layer with only one way in answers with
+    /// that one whatever the step asks for.
+    /// </summary>
+    IInputRouter Inputs { get; }
+
     IScreenDevice Screen { get; }
 
     IVisionDevice Vision { get; }
@@ -265,6 +271,9 @@ public sealed class NullDeviceLayer : IDeviceLayer
     private readonly Refusal _refusal = new();
 
     public IInputDevice Input => _refusal;
+
+    /// <summary>This layer has no second way to send input, so every route is refused alike.</summary>
+    public IInputRouter Inputs { get; } = new SingleInputRouter(new Refusal());
 
     public IScreenDevice Screen => _refusal;
 

@@ -10,6 +10,19 @@ namespace Viktor.Localization;
 /// </summary>
 internal static class ActionStrings
 {
+    /// <summary>
+    /// The hint the thirteen input actions share for their input-mode picker. They were written
+    /// once rather than thirteen times, so a change to how input is described stays in one place.
+    /// </summary>
+    private const string InputModeHint =
+        "这一步的输入怎么送出去。前台发给当前有焦点的窗口；后台把消息投给下面的目标窗口，"
+        + "不用抢焦点，屏幕上的鼠标也不会真的移动；驱动级通过虚拟 USB 设备发送，"
+        + "需要先启动 VIIPER 服务端。";
+
+    /// <summary>The matching hint for the window background input posts its messages at.</summary>
+    private const string TargetWindowHint =
+        "后台输入把消息投给哪个窗口，填标题的一部分即可。其他输入方式用不到。";
+
     internal static readonly Dictionary<string, string> Chinese = new()
     {
         // ------------------------------------------------------------------ control
@@ -597,6 +610,113 @@ internal static class ActionStrings
         ["input.mouseDrag.style.option.direct"] = "直线",
         ["input.mouseDrag.style.option.smooth"] = "弧线",
         ["input.mouseDrag.style.option.human"] = "模拟人手",
+
+        // 输入方式，13 个输入动作共用一组文案。
+        ["input.keyPress.inputMode.label"] = "输入方式",
+        ["input.keyPress.inputMode.hint"] = InputModeHint,
+        ["input.keyPress.inputMode.option.foreground"] = "前台",
+        ["input.keyPress.inputMode.option.background"] = "后台消息",
+        ["input.keyPress.inputMode.option.driver"] = "驱动级",
+        ["input.keyPress.targetWindow.label"] = "目标窗口",
+        ["input.keyPress.targetWindow.hint"] = TargetWindowHint,
+
+        ["input.keyDown.inputMode.label"] = "输入方式",
+        ["input.keyDown.inputMode.hint"] = InputModeHint,
+        ["input.keyDown.inputMode.option.foreground"] = "前台",
+        ["input.keyDown.inputMode.option.background"] = "后台消息",
+        ["input.keyDown.inputMode.option.driver"] = "驱动级",
+        ["input.keyDown.targetWindow.label"] = "目标窗口",
+        ["input.keyDown.targetWindow.hint"] = TargetWindowHint,
+
+        ["input.keyUp.inputMode.label"] = "输入方式",
+        ["input.keyUp.inputMode.hint"] = InputModeHint,
+        ["input.keyUp.inputMode.option.foreground"] = "前台",
+        ["input.keyUp.inputMode.option.background"] = "后台消息",
+        ["input.keyUp.inputMode.option.driver"] = "驱动级",
+        ["input.keyUp.targetWindow.label"] = "目标窗口",
+        ["input.keyUp.targetWindow.hint"] = TargetWindowHint,
+
+        ["input.hotkey.inputMode.label"] = "输入方式",
+        ["input.hotkey.inputMode.hint"] = InputModeHint,
+        ["input.hotkey.inputMode.option.foreground"] = "前台",
+        ["input.hotkey.inputMode.option.background"] = "后台消息",
+        ["input.hotkey.inputMode.option.driver"] = "驱动级",
+        ["input.hotkey.targetWindow.label"] = "目标窗口",
+        ["input.hotkey.targetWindow.hint"] = TargetWindowHint,
+
+        ["input.typeText.inputMode.label"] = "输入方式",
+        ["input.typeText.inputMode.hint"] = InputModeHint,
+        ["input.typeText.inputMode.option.foreground"] = "前台",
+        ["input.typeText.inputMode.option.background"] = "后台消息",
+        ["input.typeText.inputMode.option.driver"] = "驱动级",
+        ["input.typeText.targetWindow.label"] = "目标窗口",
+        ["input.typeText.targetWindow.hint"] = TargetWindowHint,
+
+        ["input.mouseMove.inputMode.label"] = "输入方式",
+        ["input.mouseMove.inputMode.hint"] = InputModeHint
+            + "后台方式下屏幕上的鼠标不会移动，只是让窗口以为鼠标到了那里。",
+        ["input.mouseMove.inputMode.option.foreground"] = "前台",
+        ["input.mouseMove.inputMode.option.background"] = "后台消息",
+        ["input.mouseMove.inputMode.option.driver"] = "驱动级",
+        ["input.mouseMove.targetWindow.label"] = "目标窗口",
+        ["input.mouseMove.targetWindow.hint"] = TargetWindowHint,
+
+        ["input.mouseMoveRelative.inputMode.label"] = "输入方式",
+        ["input.mouseMoveRelative.inputMode.hint"] = InputModeHint
+            + "后台方式下屏幕上的鼠标不会移动，只是让窗口以为鼠标到了那里。",
+        ["input.mouseMoveRelative.inputMode.option.foreground"] = "前台",
+        ["input.mouseMoveRelative.inputMode.option.background"] = "后台消息",
+        ["input.mouseMoveRelative.inputMode.option.driver"] = "驱动级",
+        ["input.mouseMoveRelative.targetWindow.label"] = "目标窗口",
+        ["input.mouseMoveRelative.targetWindow.hint"] = TargetWindowHint,
+
+        ["input.mouseClick.inputMode.label"] = "输入方式",
+        ["input.mouseClick.inputMode.hint"] = InputModeHint,
+        ["input.mouseClick.inputMode.option.foreground"] = "前台",
+        ["input.mouseClick.inputMode.option.background"] = "后台消息",
+        ["input.mouseClick.inputMode.option.driver"] = "驱动级",
+        ["input.mouseClick.targetWindow.label"] = "目标窗口",
+        ["input.mouseClick.targetWindow.hint"] = TargetWindowHint,
+
+        ["input.mouseDoubleClick.inputMode.label"] = "输入方式",
+        ["input.mouseDoubleClick.inputMode.hint"] = InputModeHint,
+        ["input.mouseDoubleClick.inputMode.option.foreground"] = "前台",
+        ["input.mouseDoubleClick.inputMode.option.background"] = "后台消息",
+        ["input.mouseDoubleClick.inputMode.option.driver"] = "驱动级",
+        ["input.mouseDoubleClick.targetWindow.label"] = "目标窗口",
+        ["input.mouseDoubleClick.targetWindow.hint"] = TargetWindowHint,
+
+        ["input.mouseDown.inputMode.label"] = "输入方式",
+        ["input.mouseDown.inputMode.hint"] = InputModeHint,
+        ["input.mouseDown.inputMode.option.foreground"] = "前台",
+        ["input.mouseDown.inputMode.option.background"] = "后台消息",
+        ["input.mouseDown.inputMode.option.driver"] = "驱动级",
+        ["input.mouseDown.targetWindow.label"] = "目标窗口",
+        ["input.mouseDown.targetWindow.hint"] = TargetWindowHint,
+
+        ["input.mouseUp.inputMode.label"] = "输入方式",
+        ["input.mouseUp.inputMode.hint"] = InputModeHint,
+        ["input.mouseUp.inputMode.option.foreground"] = "前台",
+        ["input.mouseUp.inputMode.option.background"] = "后台消息",
+        ["input.mouseUp.inputMode.option.driver"] = "驱动级",
+        ["input.mouseUp.targetWindow.label"] = "目标窗口",
+        ["input.mouseUp.targetWindow.hint"] = TargetWindowHint,
+
+        ["input.mouseScroll.inputMode.label"] = "输入方式",
+        ["input.mouseScroll.inputMode.hint"] = InputModeHint,
+        ["input.mouseScroll.inputMode.option.foreground"] = "前台",
+        ["input.mouseScroll.inputMode.option.background"] = "后台消息",
+        ["input.mouseScroll.inputMode.option.driver"] = "驱动级",
+        ["input.mouseScroll.targetWindow.label"] = "目标窗口",
+        ["input.mouseScroll.targetWindow.hint"] = TargetWindowHint,
+
+        ["input.mouseDrag.inputMode.label"] = "输入方式",
+        ["input.mouseDrag.inputMode.hint"] = InputModeHint,
+        ["input.mouseDrag.inputMode.option.foreground"] = "前台",
+        ["input.mouseDrag.inputMode.option.background"] = "后台消息",
+        ["input.mouseDrag.inputMode.option.driver"] = "驱动级",
+        ["input.mouseDrag.targetWindow.label"] = "目标窗口",
+        ["input.mouseDrag.targetWindow.hint"] = TargetWindowHint,
 
         // ------------------------------------------------------------------- vision
         ["vision.capture.name"] = "截屏",
