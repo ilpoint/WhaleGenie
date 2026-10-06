@@ -658,6 +658,10 @@ public sealed class MacroRunner
                 await WaitColor(step, depth, token);
                 return Signal.Normal;
 
+            case "vision.findColor":
+                await FindColor(step, depth, token);
+                return Signal.Normal;
+
             case "vision.findImage":
                 LookFor(step, depth);
                 return Signal.Normal;
@@ -954,10 +958,71 @@ public sealed class MacroRunner
                     return PixelAt(condition).Matches(target, Read(condition.Text("tolerance")).AsNumber());
                 }
 
+            case "condition.colorsMatch":
+                return ColoursMatch(condition);
+
             default:
                 Log(LogLevel.Warn, depth, condition.Type, "Run.UnknownCondition", condition.Type);
                 return false;
         }
+    }
+
+    /// <summary>
+    /// Answers whether the points a condition names show the colours it names. Each entry is one
+    /// "x,y,#RRGGBB", separated by a semicolon or a line break, and the mode decides whether every
+    /// point has to match or one is enough.
+    /// </summary>
+    private bool ColoursMatch(ExecutableStep condition)
+    {
+        var tolerance = Read(condition.Text("tolerance")).AsNumber();
+        var every = !string.Equals(condition.Text("mode").Trim(), "any", StringComparison.OrdinalIgnoreCase);
+
+        var matched = Points(condition)
+            .Select(point => _devices.Screen.PixelAt(point.Where.X, point.Where.Y)
+                .Matches(point.Colour, tolerance));
+
+        return every ? matched.All(match => match) : matched.Any(match => match);
+    }
+
+    /// <summary>One point of a colour comparison: where it is, and the colour it has to show.</summary>
+    private sealed record ColourPoint(ScreenPoint Where, PixelColor Colour);
+
+    /// <summary>
+    /// Reads a list of "x,y,#RRGGBB" points, separated by a semicolon or a line break. Each one is
+    /// resolved where it is read, so the whole list can be counted from a window's corner.
+    /// </summary>
+    private IReadOnlyList<ColourPoint> Points(ExecutableStep step)
+    {
+        var text = Interpolate(step.Text("points")).Trim();
+        var points = new List<ColourPoint>();
+        foreach (var entry in text.Split([';', '\n', '\r'],
+                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var parts = entry.Split(',', StringSplitOptions.TrimEntries);
+            if (parts.Length != 3
+                || !int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var x)
+                || !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var y)
+                || !IsColour(parts[2]))
+            {
+                throw new StepFailure("Run.BadPoints", entry);
+            }
+
+            points.Add(new ColourPoint(Place(step, x, y), PixelColor.Parse(parts[2])));
+        }
+
+        if (points.Count == 0)
+        {
+            throw new StepFailure("Run.BadPoints", text);
+        }
+
+        return points;
+    }
+
+    /// <summary>True when the text reads as a #RRGGBB or #RGB colour.</summary>
+    private static bool IsColour(string text)
+    {
+        var value = text.Trim().TrimStart('#');
+        return value.Length is 3 or 6 && value.All(char.IsAsciiHexDigit);
     }
 
     private bool Compare(ExecutableStep step)
@@ -1332,15 +1397,92 @@ public sealed class MacroRunner
         Log(LogLevel.Info, depth, step.Type, "Run.SawColor", target.ToHex());
     }
 
+    /// <summary>
+    /// Looks for a colour in the search areas and writes where it was found. A step with a timeout
+    /// waits for the colour to turn up and fails when it never does, the way waiting for a picture
+    /// does; one without looks once and empties the result instead, the way finding a picture does.
+    /// </summary>
+    private async Task FindColor(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var target = PixelColor.Parse(step.Text("color"));
+        var tolerance = Read(step.Text("tolerance")).AsNumber();
+        var timeout = Math.Max(0, Number(step, "timeoutMs"));
+        var name = VariableName(step, "resultVariable", "match");
+
+        var hits = await ColourHits(step, target, tolerance, timeout, token);
+        if (hits.Count == 0 && timeout > 0)
+        {
+            throw new StepFailure("Run.WaitColorTimeout", target.ToHex());
+        }
+
+        var match = Chosen(hits, step);
+        if (match is null)
+        {
+            StoreMiss(name);
+        }
+        else
+        {
+            StoreMatch(name, match.Center, match.Size, match.Score);
+        }
+
+        Remember(name, hits, Flag(step, "allMatches", false));
+        Log(LogLevel.Info, depth, step.Type, match is null ? "Run.ImageMissing" : "Run.ImageFound",
+            name, match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
+    }
+
+    /// <summary>
+    /// The pixels of the search areas that show the colour, in reading order, waited for when the
+    /// step asked for one. Each hit is a single pixel: its centre is the pixel itself, and its score
+    /// says how close the colour was, one being exact.
+    /// </summary>
+    private async Task<List<ImageMatch>> ColourHits(ExecutableStep step, PixelColor target,
+        double tolerance, int timeout, CancellationToken token)
+    {
+        var hits = Scan(step, target, tolerance);
+        if (hits.Count > 0 || timeout <= 0)
+        {
+            return hits;
+        }
+
+        var interval = Number(step, "intervalMs");
+        if (interval <= 0)
+        {
+            interval = 200;
+        }
+
+        // The areas are captured again on every pass, so a wait keeps watching a window that is
+        // moving rather than the place it used to be.
+        List<ImageMatch>? Look() => Scan(step, target, tolerance) is { Count: > 0 } found ? found : null;
+
+        return await WaitForValueAsync(Look, timeout, interval, token) ?? hits;
+    }
+
+    /// <summary>One pass over the search areas, in reading order.</summary>
+    private List<ImageMatch> Scan(ExecutableStep step, PixelColor target, double tolerance)
+    {
+        var wanted = Wanted(step);
+        var hits = new List<ImageMatch>();
+        foreach (var (area, origin) in SearchAreas(step))
+        {
+            foreach (var point in PixelSearch.Find(area, target, tolerance, wanted))
+            {
+                hits.Add(new ImageMatch(
+                    1 - area[point.X, point.Y].DistanceTo(target),
+                    new ScreenPoint(origin.X + point.X, origin.Y + point.Y),
+                    new ScreenSize(1, 1)));
+            }
+        }
+
+        hits.Sort(Reading);
+        return hits;
+    }
+
     /// <summary>Looks once and writes where the picture was, or an empty value when it was not.</summary>
     private void LookFor(ExecutableStep step, int depth)
     {
-        var match = Search(step);
-        var name = step.Text("resultVariable").Trim();
-        if (name.Length == 0)
-        {
-            name = "match";
-        }
+        var hits = Hits(step);
+        var match = Chosen(hits, step);
+        var name = VariableName(step, "resultVariable", "match");
 
         if (match is null)
         {
@@ -1351,38 +1493,43 @@ public sealed class MacroRunner
             StoreMatch(name, match.Center, match.Size, match.Score);
         }
 
+        Remember(name, hits, Flag(step, "allMatches", false));
         Log(LogLevel.Info, depth, step.Type, match is null ? "Run.ImageMissing" : "Run.ImageFound",
             name, match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
     }
 
     private async Task WaitForImage(ExecutableStep step, int depth, CancellationToken token)
     {
-        var match = await SearchUntil(step, token)
+        var found = await HitsUntil(step, token)
                     ?? throw new StepFailure("Run.ImageNotFound", step.Text("image"));
 
-        var name = step.Text("resultVariable").Trim();
-        if (name.Length == 0)
-        {
-            name = "match";
-        }
-
-        StoreMatch(name, match.Center, match.Size, match.Score);
-        Log(LogLevel.Info, depth, step.Type, "Run.ImageFound", name, $"{match.Center.X},{match.Center.Y}");
+        var name = VariableName(step, "resultVariable", "match");
+        StoreMatch(name, found.Match.Center, found.Match.Size, found.Match.Score);
+        Remember(name, found.Hits, Flag(step, "allMatches", false));
+        Log(LogLevel.Info, depth, step.Type, "Run.ImageFound", name,
+            $"{found.Match.Center.X},{found.Match.Center.Y}");
     }
 
     private async Task ClickImage(ExecutableStep step, int depth, CancellationToken token)
     {
-        var match = await SearchUntil(step, token)
+        var found = await HitsUntil(step, token)
                     ?? throw new StepFailure("Run.ImageNotFound", step.Text("image"));
 
-        var x = match.Center.X + Number(step, "offsetX");
-        var y = match.Center.Y + Number(step, "offsetY");
+        var x = found.Match.Center.X + Number(step, "offsetX");
+        var y = found.Match.Center.Y + Number(step, "offsetY");
         Input(step).Click(Button(step), x, y, 1, 0);
         Log(LogLevel.Info, depth, step.Type, "Run.ClickedImage", x, y);
     }
 
-    /// <summary>One attempt at finding a reference picture, in screen coordinates.</summary>
-    private ImageMatch? Search(ExecutableStep step)
+    /// <summary>One attempt at finding a reference picture: the hit the step asked for.</summary>
+    private ImageMatch? Search(ExecutableStep step) => Chosen(Hits(step), step);
+
+    /// <summary>
+    /// Every place the reference picture appears in the search areas, in screen coordinates and in
+    /// reading order: down the screen first, then across. That is the order a person counts them in
+    /// when looking at a screenshot, which is what "the third one" has to mean to be useful.
+    /// </summary>
+    private List<ImageMatch> Hits(ExecutableStep step)
     {
         var needle = Reference(step);
         var confidence = Number(step, "confidence");
@@ -1391,14 +1538,28 @@ public sealed class MacroRunner
             confidence = 90;
         }
 
-        var (area, origin) = SearchArea(step);
-        var found = _devices.Vision.Find(area, needle, confidence);
-        return found is null
-            ? null
-            : found with { Location = new ScreenPoint(found.Location.X + origin.X, found.Location.Y + origin.Y) };
+        var wanted = Wanted(step);
+        var hits = new List<ImageMatch>();
+        foreach (var (area, origin) in SearchAreas(step))
+        {
+            foreach (var found in _devices.Vision.FindAll(area, needle, confidence, wanted))
+            {
+                hits.Add(found with
+                {
+                    Location = new ScreenPoint(found.Location.X + origin.X, found.Location.Y + origin.Y),
+                });
+            }
+        }
+
+        hits.Sort(Reading);
+        return hits;
     }
 
-    private async Task<ImageMatch?> SearchUntil(ExecutableStep step, CancellationToken token)
+    /// <summary>The hits a wait ended on: the whole set and the one the step asked for.</summary>
+    private sealed record Found(List<ImageMatch> Hits, ImageMatch Match);
+
+    /// <summary>The hits, once there are enough of them, or null when the wait ran out.</summary>
+    private async Task<Found?> HitsUntil(ExecutableStep step, CancellationToken token)
     {
         var timeout = Math.Max(0, Number(step, "timeoutMs"));
         var interval = Number(step, "intervalMs");
@@ -1407,7 +1568,62 @@ public sealed class MacroRunner
             interval = 200;
         }
 
-        return await WaitForValueAsync(() => Search(step), timeout, interval, token);
+        Found? Enough()
+        {
+            var hits = Hits(step);
+            return Chosen(hits, step) is { } match ? new Found(hits, match) : null;
+        }
+
+        return await WaitForValueAsync(Enough, timeout, interval, token);
+    }
+
+    /// <summary>How many hits to look for: the one the step asked for, or the whole list.</summary>
+    private int Wanted(ExecutableStep step) => Flag(step, "allMatches", false)
+        ? MatchLimit
+        : Index(step, "matchIndex", 1);
+
+    /// <summary>The hit a step wants, counted from the top left, or null when there are not that many.</summary>
+    private ImageMatch? Chosen(IReadOnlyList<ImageMatch> hits, ExecutableStep step)
+    {
+        var index = Index(step, "matchIndex", 1);
+        return index <= hits.Count ? hits[index - 1] : null;
+    }
+
+    /// <summary>
+    /// Which hit a step means, counted from one. Anything that does not read as a number from one
+    /// onwards falls back to the first, so a half-written step aims at something rather than at
+    /// nothing.
+    /// </summary>
+    private int Index(ExecutableStep step, string name, int fallback)
+    {
+        var text = step.Text(name).Trim();
+        return text.Length == 0 ? fallback : Math.Clamp(Number(step, name), 1, MatchLimit);
+    }
+
+    /// <summary>Reading order, the order the hits are counted in.</summary>
+    private static int Reading(ImageMatch left, ImageMatch right)
+        => left.Location.Y != right.Location.Y
+            ? left.Location.Y.CompareTo(right.Location.Y)
+            : left.Location.X.CompareTo(right.Location.X);
+
+    /// <summary>The most hits one step collects, so a flat colour cannot fill memory.</summary>
+    private const int MatchLimit = 200;
+
+    /// <summary>
+    /// Notes how many places matched and where they all are, for the steps that asked for the whole
+    /// list. Each entry is one "x,y" centre, so the list can be counted, taken apart and looped over
+    /// with the list functions.
+    /// </summary>
+    private void Remember(string name, IReadOnlyList<ImageMatch> hits, bool every)
+    {
+        if (!every)
+        {
+            return;
+        }
+
+        Variables.Set(name + ".count", Value.FromNumber(hits.Count));
+        Variables.Set(name + ".list", Value.FromList(
+            hits.Select(hit => Value.FromText($"{hit.Center.X},{hit.Center.Y}"))));
     }
 
     /// <summary>
@@ -1434,21 +1650,41 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// The area to search: the whole screen unless the step names a rectangle, which may be
+    /// The places to search: the whole screen unless the step names rectangles, each of which may be
     /// counted from a window's corner when the step says so.
     /// </summary>
-    private (ImageFrame Frame, ScreenPoint Origin) SearchArea(ExecutableStep step)
+    private IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> SearchAreas(ExecutableStep step)
     {
-        // The rectangle may be written out, held in a variable, or built from several of them.
-        // It is only interpolated: the commas would stop an expression at the first number.
+        // The rectangles may be written out, held in a variable, or built from several of them.
+        // They are only interpolated: the commas would stop an expression at the first number.
         var text = Interpolate(step.Text("region")).Trim();
         if (text.Length == 0)
         {
             var size = _devices.Screen.PrimarySize;
-            return (_devices.Screen.Capture(0, 0, size.Width, size.Height), new ScreenPoint(0, 0));
+            return [(_devices.Screen.Capture(0, 0, size.Width, size.Height), new ScreenPoint(0, 0))];
         }
 
-        var parts = text.Split(',', StringSplitOptions.TrimEntries);
+        // Several rectangles are separated by a semicolon or a line break, so one step can look at
+        // two windows, or at two halves of one, without the macro having to become two steps.
+        var areas = new List<(ImageFrame, ScreenPoint)>();
+        foreach (var rectangle in text.Split([';', '\n', '\r'],
+                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            areas.Add(Area(step, rectangle));
+        }
+
+        if (areas.Count == 0)
+        {
+            throw new StepFailure("Run.BadRegion", text);
+        }
+
+        return areas;
+    }
+
+    /// <summary>One written rectangle, captured where on the screen it says.</summary>
+    private (ImageFrame Frame, ScreenPoint Origin) Area(ExecutableStep step, string rectangle)
+    {
+        var parts = rectangle.Split(',', StringSplitOptions.TrimEntries);
         if (parts.Length != 4
             || !int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var x)
             || !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var y)
@@ -1457,7 +1693,7 @@ public sealed class MacroRunner
             || width <= 0
             || height <= 0)
         {
-            throw new StepFailure("Run.BadRegion", text);
+            throw new StepFailure("Run.BadRegion", rectangle);
         }
 
         // A window-anchored rectangle is counted from that window's corner, and the origin handed
@@ -2136,7 +2372,7 @@ public sealed class MacroRunner
 
     /// <summary>The parts a match is broken into, named after the dot in <c>match.x</c>.</summary>
     private static readonly string[] MatchParts =
-        [".x", ".y", ".width", ".height", ".score", ".text"];
+        [".x", ".y", ".width", ".height", ".score", ".text", ".count", ".list"];
 
     /// <summary>The process id a step names, which is usually a variable.</summary>
     private int ProcessId(ExecutableStep step)
@@ -2215,17 +2451,23 @@ public sealed class MacroRunner
 
     // ---------------------------------------------------------------------- ocr
 
-    /// <summary>Reads the text in a step's region, with the positions in screen coordinates.</summary>
+    /// <summary>
+    /// Reads the text in a step's search areas, with the positions in screen coordinates. Several
+    /// areas are read one after another and what they hold is handed back together.
+    /// </summary>
     private IReadOnlyList<TextSpan> ReadSpans(ExecutableStep step)
     {
-        var (area, origin) = SearchArea(step);
-        var spans = _devices.Ocr.Recognize(area, step.Text("language").Trim().Length == 0
-            ? "auto"
-            : step.Text("language").Trim());
+        var language = Language(step);
+        var spans = new List<TextSpan>();
+        foreach (var (area, origin) in SearchAreas(step))
+        {
+            spans.AddRange(_devices.Ocr.Recognize(area, language).Select(span => span with
+            {
+                Location = new ScreenPoint(span.Location.X + origin.X, span.Location.Y + origin.Y),
+            }));
+        }
 
-        return origin == default
-            ? spans
-            : [.. spans.Select(span => span with { Location = new ScreenPoint(span.Location.X + origin.X, span.Location.Y + origin.Y) })];
+        return spans;
     }
 
     private void Recognize(ExecutableStep step, int depth)

@@ -70,6 +70,14 @@ public interface IVisionDevice
 
     /// <summary>The best place <paramref name="needle"/> appears in <paramref name="haystack"/>.</summary>
     ImageMatch? Find(ImageFrame haystack, ImageFrame needle, double confidencePercent);
+
+    /// <summary>
+    /// Every place <paramref name="needle"/> appears in <paramref name="haystack"/>, best first and
+    /// at most <paramref name="limit"/> of them. Two hits closer together than the reference picture
+    /// count as one, because they are the same thing seen twice.
+    /// </summary>
+    IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle,
+        double confidencePercent, int limit);
 }
 
 /// <summary>Reading text off the screen.</summary>
@@ -415,6 +423,9 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public ImageMatch? Find(ImageFrame haystack, ImageFrame needle, double confidencePercent)
             => throw Missing("image matching");
+
+        public IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle,
+            double confidencePercent, int limit) => throw Missing("image matching");
 
         public IReadOnlyList<TextSpan> Recognize(ImageFrame frame, string language) => throw Missing("text recognition");
 

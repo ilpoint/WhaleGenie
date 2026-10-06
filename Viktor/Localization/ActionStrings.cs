@@ -37,6 +37,19 @@ internal static class ActionStrings
         "坐标从哪个窗口量起，填标题的一部分即可。留空表示运行时最前面那个窗口；"
         + "选“屏幕像素”时用不到它。";
 
+    /// <summary>The hint every search-region field shares, in the wording the English one uses.</summary>
+    private const string RegionHintText =
+        "可选，格式 x,y,width,height，也可写成 $变量；一次要看几块区域就用分号隔开，每块都会搜；"
+        + "留空表示全屏搜索。";
+
+    /// <summary>The hint the "which hit" fields share.</summary>
+    private const string MatchIndexHint = "从左到右、从上往下数第几个命中，1 是第一个。";
+
+    /// <summary>The hint the "record every match" switches share.</summary>
+    private const string AllMatchesHint =
+        "勾上以后把命中的数量和位置都记下来：$变量名.count 是数量，$变量名.list 是每次命中的 “x,y”，"
+        + "可以配合 count()、get()、forEach 使用。";
+
     internal static readonly Dictionary<string, string> Chinese = new()
     {
         // ------------------------------------------------------------------ control
@@ -861,6 +874,84 @@ internal static class ActionStrings
         ["condition.colorEquals.anchorWindow.label"] = "基准窗口",
         ["condition.colorEquals.anchorWindow.hint"] = AnchorWindowHint,
 
+        // ------------------------------------- 找图 / 找色做厚：多命中、多区域、多点比色
+        ["vision.findImage.matchIndex.label"] = "第几个命中",
+        ["vision.findImage.matchIndex.hint"] = MatchIndexHint,
+        ["vision.findImage.allMatches.label"] = "记录全部命中",
+        ["vision.findImage.allMatches.hint"] = AllMatchesHint,
+
+        ["vision.waitImage.region.label"] = "搜索区域",
+        ["vision.waitImage.region.hint"] = RegionHintText,
+        ["vision.waitImage.matchIndex.label"] = "第几个命中",
+        ["vision.waitImage.matchIndex.hint"] = MatchIndexHint,
+        ["vision.waitImage.anchorMode.label"] = "坐标基准",
+        ["vision.waitImage.anchorMode.hint"] = AnchorModeHint,
+        ["vision.waitImage.anchorMode.option.screen"] = "屏幕像素",
+        ["vision.waitImage.anchorMode.option.window"] = "窗口左上角",
+        ["vision.waitImage.anchorMode.option.client"] = "窗口客户区",
+        ["vision.waitImage.anchorWindow.label"] = "基准窗口",
+        ["vision.waitImage.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["vision.clickImage.region.label"] = "搜索区域",
+        ["vision.clickImage.region.hint"] = RegionHintText,
+        ["vision.clickImage.matchIndex.label"] = "第几个命中",
+        ["vision.clickImage.matchIndex.hint"] = MatchIndexHint,
+        ["vision.clickImage.anchorMode.label"] = "坐标基准",
+        ["vision.clickImage.anchorMode.hint"] = AnchorModeHint,
+        ["vision.clickImage.anchorMode.option.screen"] = "屏幕像素",
+        ["vision.clickImage.anchorMode.option.window"] = "窗口左上角",
+        ["vision.clickImage.anchorMode.option.client"] = "窗口客户区",
+        ["vision.clickImage.anchorWindow.label"] = "基准窗口",
+        ["vision.clickImage.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["vision.findColor.name"] = "查找颜色",
+        ["vision.findColor.desc"] = "在屏幕的一块区域里找某个颜色。",
+        ["vision.findColor.color.label"] = "颜色",
+        ["vision.findColor.color.hint"] = "要找的颜色。",
+        ["vision.findColor.tolerance.label"] = "容差 %",
+        ["vision.findColor.tolerance.hint"] = "允许的颜色偏差。",
+        ["vision.findColor.matchIndex.label"] = "第几个命中",
+        ["vision.findColor.matchIndex.hint"] = MatchIndexHint,
+        ["vision.findColor.allMatches.label"] = "记录全部命中",
+        ["vision.findColor.allMatches.hint"] = AllMatchesHint,
+        ["vision.findColor.region.label"] = "搜索区域",
+        ["vision.findColor.region.hint"] = RegionHintText,
+        ["vision.findColor.timeoutMs.label"] = "超时毫秒",
+        ["vision.findColor.timeoutMs.hint"] =
+            "0 表示只找一次，找不到就把结果留空；填了数字就等它出现，一直不出现算失败。",
+        ["vision.findColor.intervalMs.label"] = "间隔毫秒",
+        ["vision.findColor.intervalMs.hint"] = "等待时两次查找之间的间隔。",
+        ["vision.findColor.resultVariable.label"] = "结果变量",
+        ["vision.findColor.resultVariable.hint"] =
+            "接收找到的位置，没找到时为空；$变量名.x、.y、.score 是各个部分，"
+            + "勾了“记录全部命中”后还有 .count 和 .list。",
+        ["vision.findColor.anchorMode.label"] = "坐标基准",
+        ["vision.findColor.anchorMode.hint"] = AnchorModeHint,
+        ["vision.findColor.anchorMode.option.screen"] = "屏幕像素",
+        ["vision.findColor.anchorMode.option.window"] = "窗口左上角",
+        ["vision.findColor.anchorMode.option.client"] = "窗口客户区",
+        ["vision.findColor.anchorWindow.label"] = "基准窗口",
+        ["vision.findColor.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["condition.colorsMatch.name"] = "多点比色",
+        ["condition.colorsMatch.desc"] = "当若干个点都显示指定的颜色时为真。",
+        ["condition.colorsMatch.points.label"] = "比色点",
+        ["condition.colorsMatch.points.hint"] =
+            "每个点写成 x,y,#RRGGBB，用分号或换行分开。",
+        ["condition.colorsMatch.tolerance.label"] = "容差 %",
+        ["condition.colorsMatch.tolerance.hint"] = "允许的颜色偏差。",
+        ["condition.colorsMatch.mode.label"] = "满足方式",
+        ["condition.colorsMatch.mode.hint"] = "每个点都要匹配，还是有一个匹配就算满足。",
+        ["condition.colorsMatch.mode.option.all"] = "全部匹配",
+        ["condition.colorsMatch.mode.option.any"] = "任意一个匹配",
+        ["condition.colorsMatch.anchorMode.label"] = "坐标基准",
+        ["condition.colorsMatch.anchorMode.hint"] = AnchorModeHint,
+        ["condition.colorsMatch.anchorMode.option.screen"] = "屏幕像素",
+        ["condition.colorsMatch.anchorMode.option.window"] = "窗口左上角",
+        ["condition.colorsMatch.anchorMode.option.client"] = "窗口客户区",
+        ["condition.colorsMatch.anchorWindow.label"] = "基准窗口",
+        ["condition.colorsMatch.anchorWindow.hint"] = AnchorWindowHint,
+
         // ------------------------------------------------------------------- vision
         ["vision.capture.name"] = "截屏",
         ["vision.capture.desc"] = "把屏幕的一块区域截取到图像变量里。",
@@ -882,7 +973,7 @@ internal static class ActionStrings
         ["vision.findImage.confidence.label"] = "相似度 %",
         ["vision.findImage.confidence.hint"] = "要求的最低匹配度。",
         ["vision.findImage.region.label"] = "搜索区域",
-        ["vision.findImage.region.hint"] = "可选，格式 x,y,width,height，也可写成 $变量；留空表示全屏搜索。",
+        ["vision.findImage.region.hint"] = RegionHintText,
         ["vision.findImage.resultVariable.label"] = "结果变量",
         ["vision.findImage.resultVariable.hint"] = "接收匹配中心点，未找到时为空；$变量名.x、.y、.width、.height、.score 是各个部分。",
 
@@ -954,7 +1045,7 @@ internal static class ActionStrings
         ["ocr.findText.text.label"] = "要查找的文字",
         ["ocr.findText.text.hint"] = "要搜索的文字。",
         ["ocr.findText.region.label"] = "搜索区域",
-        ["ocr.findText.region.hint"] = "可选，格式 x,y,width,height，也可写成 $变量；留空表示全屏搜索。",
+        ["ocr.findText.region.hint"] = RegionHintText,
         ["ocr.findText.matchMode.label"] = "匹配方式",
         ["ocr.findText.matchMode.hint"] = "识别结果与搜索文字的比较方式。",
         ["ocr.findText.resultVariable.label"] = "结果变量",
@@ -1037,13 +1128,13 @@ internal static class ActionStrings
         ["condition.imageExists.confidence.label"] = "相似度 %",
         ["condition.imageExists.confidence.hint"] = "要求的最低匹配度。",
         ["condition.imageExists.region.label"] = "搜索区域",
-        ["condition.imageExists.region.hint"] = "可选，格式 x,y,width,height，也可写成 $变量；留空表示全屏搜索。",
+        ["condition.imageExists.region.hint"] = RegionHintText,
 
         ["condition.textExists.name"] = "文字存在",
         ["condition.textExists.desc"] = "当屏幕上出现指定文字时为真。",
         ["condition.textExists.text.label"] = "文字",
         ["condition.textExists.region.label"] = "搜索区域",
-        ["condition.textExists.region.hint"] = "可选，格式 x,y,width,height，也可写成 $变量；留空表示全屏搜索。",
+        ["condition.textExists.region.hint"] = RegionHintText,
         ["condition.textExists.matchMode.label"] = "匹配方式",
         ["condition.textExists.matchMode.hint"] = "识别结果与搜索文字的比较方式。",
 

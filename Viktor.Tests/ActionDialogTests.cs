@@ -96,12 +96,20 @@ public class ActionDialogTests
         });
     }
 
-    [Fact]
-    public void An_action_that_names_a_position_offers_something_to_measure_it_from()
+    [Theory]
+    [InlineData("input.mouseClick")]
+    [InlineData("input.mouseDrag")]
+    [InlineData("vision.capture")]
+    [InlineData("vision.clickImage")]
+    [InlineData("vision.findColor")]
+    [InlineData("ocr.recognize")]
+    [InlineData("condition.colorEquals")]
+    [InlineData("condition.colorsMatch")]
+    public void An_action_that_names_a_position_offers_something_to_measure_it_from(string key)
     {
         Ui.Run(() =>
         {
-            var viewModel = Open("input.mouseClick");
+            var viewModel = Open(key);
 
             var mode = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "anchorMode");
@@ -114,6 +122,53 @@ public class ActionDialogTests
                 .First(parameter => parameter.Definition.Name == "anchorWindow");
             Assert.True(window.IsWindow);
             Assert.False(window.Definition.Required);
+        });
+    }
+
+    [Fact]
+    public void A_colour_search_offers_the_colour_the_place_and_which_hit()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("vision.findColor");
+
+            Assert.True(viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "color").IsColor);
+            Assert.Equal("5", Value(viewModel, "tolerance"));
+            Assert.Equal("1", Value(viewModel, "matchIndex"));
+            Assert.Equal("0", Value(viewModel, "timeoutMs"));
+            Assert.True(viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "resultVariable").IsVariable);
+        });
+    }
+
+    [Fact]
+    public void Finding_an_image_offers_which_hit_and_whether_to_record_them_all()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("vision.findImage");
+
+            Assert.Equal("1", Value(viewModel, "matchIndex"));
+            Assert.Equal("false", Value(viewModel, "allMatches"));
+        });
+    }
+
+    [Fact]
+    public void A_multi_point_colour_condition_asks_for_points_and_how_they_are_met()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("condition.colorsMatch");
+
+            Assert.True(viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "points").IsMultiline);
+
+            var mode = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "mode");
+            Assert.True(mode.IsChoice);
+            Assert.Equal(["all", "any"], mode.Choices.Select(choice => choice.Value));
+            Assert.Equal("all", mode.CurrentText);
         });
     }
 

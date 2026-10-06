@@ -324,6 +324,208 @@ public class DeviceActionTests
         Assert.Equal("#ABCDEF", store.Local.Values["tone"].AsText());
     }
 
+    /// <summary>A picture from rows of #RRGGBB colours, one string per row.</summary>
+    private static ImageFrame Picture(params string[] rows)
+    {
+        var width = rows[0].Split(',').Length;
+        var bytes = new byte[width * rows.Length * 4];
+        for (var y = 0; y < rows.Length; y++)
+        {
+            var cells = rows[y].Split(',');
+            for (var x = 0; x < width; x++)
+            {
+                var colour = PixelColor.Parse(cells[x]);
+                var at = ((y * width) + x) * 4;
+                bytes[at] = colour.B;
+                bytes[at + 1] = colour.G;
+                bytes[at + 2] = colour.R;
+                bytes[at + 3] = 255;
+            }
+        }
+
+        return new ImageFrame(width, rows.Length, bytes);
+    }
+
+    [Fact]
+    public async Task A_colour_is_found_where_the_region_shows_it()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#000000,#FF0000", "#000000,#000000") };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findColor", Param("color", "#FF0000"), Param("tolerance", "1"),
+                Param("region", "0,0,2,2"), Param("resultVariable", "spot")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("1,0", store.Local.Values["spot"].AsText());
+        Assert.Equal(1, store.Local.Values["spot.x"].AsNumber());
+    }
+
+    [Fact]
+    public async Task A_colour_that_is_not_there_leaves_the_result_empty()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#000000") };
+
+        var (result, _, store) = await RunAsync(
+            [Step("vision.findColor", Param("color", "#FF0000"), Param("resultVariable", "spot"))],
+            devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(string.Empty, store.Local.Values["spot"].AsText());
+        Assert.Equal(string.Empty, store.Local.Values["spot.count"].AsText());
+    }
+
+    [Fact]
+    public async Task Waiting_for_a_colour_that_never_shows_fails_the_step()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#000000") };
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findColor", Param("color", "#FF0000"),
+                Param("timeoutMs", "20"), Param("intervalMs", "5")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task The_second_place_a_colour_shows_is_the_one_a_step_can_take()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#000000,#FF0000") };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("vision.findColor", Param("color", "#FF0000"), Param("tolerance", "1"),
+                Param("matchIndex", "2"), Param("region", "0,0,3,1"),
+                Param("resultVariable", "spot")),
+        ], devices);
+
+        Assert.Equal("2,0", store.Local.Values["spot"].AsText());
+    }
+
+    [Fact]
+    public async Task Every_place_a_colour_shows_can_be_recorded()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#000000,#FF0000") };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("vision.findColor", Param("color", "#FF0000"), Param("tolerance", "1"),
+                Param("allMatches", "true"), Param("region", "0,0,3,1"),
+                Param("resultVariable", "spot")),
+        ], devices);
+
+        Assert.Equal(2, store.Local.Values["spot.count"].AsNumber());
+        Assert.Equal("0,0, 2,0", store.Local.Values["spot.list"].AsText());
+    }
+
+    /// <summary>Hits are counted the way a person counts them on screen, not the order they came back in.</summary>
+    [Fact]
+    public async Task A_picture_can_be_taken_by_its_place_on_the_screen()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(1, 1)));
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(10, 10), new ScreenSize(1, 1)));
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(50, 5), new ScreenSize(1, 1)));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Param("image", "ok.png"), Param("matchIndex", "2"),
+                Param("allMatches", "true"), Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.Equal("10,10", store.Local.Values["where"].AsText());
+        Assert.Equal(3, store.Local.Values["where.count"].AsNumber());
+        Assert.Equal("50,5, 10,10, 30,40", store.Local.Values["where.list"].AsText());
+    }
+
+    [Fact]
+    public async Task A_search_can_watch_two_regions_at_once()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Param("image", "ok.png"),
+                Param("region", "0,0,10,10; 100,100,10,10"),
+                Param("matchIndex", "2"), Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.Contains("capture 0 0 10 10", devices.Calls);
+        Assert.Contains("capture 100 100 10 10", devices.Calls);
+        Assert.Equal("102,103", store.Local.Values["where"].AsText());
+    }
+
+    [Fact]
+    public async Task Every_point_of_a_colour_comparison_has_to_match()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#00FF00", "#0000FF,#FFFFFF") };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("control.if",
+                When("condition", Step("condition.colorsMatch",
+                    Param("points", "0,0,#FF0000; 1,0,#00FF00"), Param("tolerance", "1"))),
+                Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes"))),
+                Body("else", Step("control.setVariable", Param("name", "hit"), Param("value", "no")))),
+        ], devices);
+
+        Assert.Equal("yes", store.Local.Values["hit"].AsText());
+    }
+
+    [Fact]
+    public async Task One_point_that_does_not_match_makes_the_comparison_false()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#00FF00") };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("control.if",
+                When("condition", Step("condition.colorsMatch",
+                    Param("points", "0,0,#FF0000; 1,0,#123456"), Param("tolerance", "1"))),
+                Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes"))),
+                Body("else", Step("control.setVariable", Param("name", "hit"), Param("value", "no")))),
+        ], devices);
+
+        Assert.Equal("no", store.Local.Values["hit"].AsText());
+    }
+
+    [Fact]
+    public async Task A_comparison_can_settle_for_one_point_matching()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#00FF00") };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("control.if",
+                When("condition", Step("condition.colorsMatch",
+                    Param("points", "0,0,#FF0000; 1,0,#123456"),
+                    Param("tolerance", "1"), Param("mode", "any"))),
+                Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes"))),
+                Body("else", Step("control.setVariable", Param("name", "hit"), Param("value", "no")))),
+        ], devices);
+
+        Assert.Equal("yes", store.Local.Values["hit"].AsText());
+    }
+
+    [Fact]
+    public async Task A_point_a_colour_comparison_cannot_read_fails_the_step()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#FF0000") };
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("control.if",
+                When("condition", Step("condition.colorsMatch", Param("points", "0,0"))),
+                Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes")))),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+    }
+
     [Fact]
     public async Task A_colour_condition_compares_the_pixel_to_the_colour()
     {
@@ -378,7 +580,7 @@ public class DeviceActionTests
         Assert.Equal("<image 10x10>", store.Local.Values["shot"].AsText());
         Assert.Equal("8,9", store.Local.Values["where"].AsText());
         Assert.Contains("capture 0 0 10 10", devices.Calls);
-        Assert.Contains("find 10x10 90", devices.Calls);
+        Assert.Contains("findAll 10x10 90", devices.Calls);
     }
 
     [Fact]
@@ -1409,7 +1611,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Contains("find 10x10 90", devices.Calls);
+        Assert.Contains("findAll 10x10 90", devices.Calls);
     }
 
     [Fact]
@@ -1741,6 +1943,12 @@ internal sealed class FakeDeviceLayer
 
     public ImageMatch? Match { get; set; }
 
+    /// <summary>
+    /// The places the fake reports the reference picture at. Normally the one <see cref="Match"/>
+    /// sets up; a check that wants several fills this in instead.
+    /// </summary>
+    public List<ImageMatch> Matches { get; } = [];
+
     public ImageFrame? Loaded { get; set; } = new(2, 2, new byte[16]);
 
     /// <summary>How many searches happen before a match starts being returned.</summary>
@@ -1903,14 +2111,19 @@ internal sealed class FakeDeviceLayer
     public PixelColor PixelAt(int x, int y)
     {
         Note($"pixel {x} {y}");
-        return Pixel;
+        return Display is { } display ? display[x, y] : Pixel;
     }
 
     public ImageFrame Capture(int x, int y, int width, int height)
     {
         Note($"capture {x} {y} {width} {height}");
-        return new ImageFrame(width, height, new byte[width * height * 4]);
+        return Display is { } display
+            ? ScreenCut(display, x, y, width, height)
+            : new ImageFrame(width, height, new byte[width * height * 4]);
     }
+
+    /// <summary>What the pretend screen shows: a capture cuts the rectangle asked for out of it.</summary>
+    public ImageFrame? Display { get; set; }
 
     public ImageFrame? Load(string path)
     {
@@ -1923,6 +2136,16 @@ internal sealed class FakeDeviceLayer
         Searches++;
         Note($"find {needle.Width}x{needle.Height} {confidencePercent:0}");
         return Searches >= MatchAfter ? Match : null;
+    }
+
+    public IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle,
+        double confidencePercent, int limit)
+    {
+        Searches++;
+        Note($"findAll {needle.Width}x{needle.Height} {confidencePercent:0}");
+
+        IEnumerable<ImageMatch> hits = Matches.Count > 0 ? Matches : Match is null ? [] : [Match];
+        return Searches >= MatchAfter ? [.. hits.Take(limit)] : [];
     }
 
     public IReadOnlyList<TextSpan> Recognize(ImageFrame frame, string language)
@@ -2219,5 +2442,29 @@ internal sealed class FakeDeviceLayer
         }
 
         Calls.Add(call);
+    }
+
+    /// <summary>
+    /// The rectangle of the pretend screen a step asked for, with anything running off the edge
+    /// left black the way a real capture leaves it.
+    /// </summary>
+    private static ImageFrame ScreenCut(ImageFrame display, int x, int y, int width, int height)
+    {
+        var bytes = new byte[width * height * 4];
+        for (var row = 0; row < height; row++)
+        {
+            for (var column = 0; column < width; column++)
+            {
+                var from = ((y + row) * display.Width + (x + column)) * 4;
+                if (from < 0 || from + 4 > display.Bgra.Length)
+                {
+                    continue;
+                }
+
+                Array.Copy(display.Bgra, from, bytes, (row * width + column) * 4, 4);
+            }
+        }
+
+        return new ImageFrame(width, height, bytes);
     }
 }

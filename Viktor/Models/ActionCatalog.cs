@@ -1083,15 +1083,16 @@ public static class ActionCatalog
             Parameters =
             [
                 Image("image", "Image file", @"C:\images\ok.png",
-                    "Reference image: a file path, or the variable a Capture step saved ($shot)."),
+                   "Reference image: a file path, or the variable a Capture step saved ($shot)."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100),
-                Text("region", "Search region", required: false,
-                    hint: "Optional x,y,width,height limit, written out or held in a variable. "
-                          + "Leave empty to search the whole screen."),
+                Text("region", "Search region", required: false, hint: RegionHint),
                 ..Anchor(),
+                MatchIndex(),
+                AllMatches(),
                 Variable("resultVariable", "Result variable", "match",
                     "Variable that receives the match centre, empty when nothing was found. "
-                    + "$name.x, $name.y, $name.width, $name.height and $name.score hold the parts.",
+                    + "$name.x, $name.y, $name.width, $name.height and $name.score hold the parts, "
+                    + "and $name.count and $name.list the whole set when the step records it.",
                     namesVariable: true, defaultValue: "match"),
             ],
         },
@@ -1106,6 +1107,9 @@ public static class ActionCatalog
                 Image("image", "Image file", @"C:\images\ok.png",
                     "Reference image to wait for: a file path, or the variable a Capture saved."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100),
+                Text("region", "Search region", required: false, hint: RegionHint),
+                ..Anchor(),
+                MatchIndex(),
                 Number("timeoutMs", "Timeout ms", 5000, "Give up after this long."),
                 Number("intervalMs", "Interval ms", 200, "Delay between checks."),
                 Variable("resultVariable", "Result variable", "match",
@@ -1123,6 +1127,9 @@ public static class ActionCatalog
             [
                 Image("image", "Image file", @"C:\images\ok.png"),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100),
+                Text("region", "Search region", required: false, hint: RegionHint),
+                ..Anchor(),
+                MatchIndex(),
                 Number("offsetX", "Offset X", 0, "Pixels added to the match centre.", min: -100000m),
                 Number("offsetY", "Offset Y", 0, min: -100000m),
                 Number("timeoutMs", "Timeout ms", 5000, "Wait this long for the image before giving up."),
@@ -1161,6 +1168,33 @@ public static class ActionCatalog
                 Number("timeoutMs", "Timeout ms", 5000, "Give up after this long."),
             ],
         },
+        new()
+        {
+            Key = "vision.findColor",
+            Category = ActionCategory.Vision,
+            DisplayName = "Find Color",
+            Description = "Look for a colour inside a screen region.",
+            Parameters =
+            [
+                ColorPick("color", "Colour", "#000000", "Colour to look for."),
+                Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100),
+                Number("matchIndex", "Match number", 1,
+                    "Which hit to use, counted from the top left: down the screen first, then "
+                    + "across. 1 is the first one.", min: 1, max: 200),
+                AllMatches(),
+                Text("region", "Search region", required: false, hint: RegionHint),
+                ..Anchor(),
+                Number("timeoutMs", "Timeout ms", 0,
+                    "0 looks once and leaves the result empty when the colour is not there. "
+                    + "A number waits that long for it and fails when it never turns up."),
+                Number("intervalMs", "Interval ms", 200, "Delay between checks while waiting."),
+                Variable("resultVariable", "Result variable", "match",
+                    "Variable that receives where the colour was found, empty when it was not. "
+                    + "$name.x, $name.y and $name.score hold the parts, and $name.count and "
+                    + "$name.list the whole set when the step records it.",
+                    namesVariable: true, defaultValue: "match"),
+            ],
+        },
 
         // -------------------------------------------------------------------- ocr
         new()
@@ -1191,9 +1225,7 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("text", "Text to find", "Save", "Text to look for."),
-                Text("region", "Search region", required: false,
-                    hint: "Optional x,y,width,height limit, written out or held in a variable. "
-                          + "Leave empty to search the whole screen."),
+                Text("region", "Search region", required: false, hint: RegionHint),
                 ..Anchor(),
                 TextMatch(),
                 Variable("resultVariable", "Result variable", "match",
@@ -1317,9 +1349,7 @@ public static class ActionCatalog
             [
                 Image("image", "Image file", @"C:\images\ok.png"),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100),
-                Text("region", "Search region", required: false,
-                    hint: "Optional x,y,width,height limit, written out or held in a variable. "
-                          + "Leave empty to search the whole screen."),
+                Text("region", "Search region", required: false, hint: RegionHint),
                 ..Anchor(),
             ],
         },
@@ -1332,9 +1362,7 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("text", "Text", "Ready"),
-                Text("region", "Search region", required: false,
-                    hint: "Optional x,y,width,height limit, written out or held in a variable. "
-                          + "Leave empty to search the whole screen."),
+                Text("region", "Search region", required: false, hint: RegionHint),
                 ..Anchor(),
                 TextMatch(),
             ],
@@ -1364,6 +1392,24 @@ public static class ActionCatalog
                 ..Anchor(),
                 ColorPick("color", "Colour", "#000000"),
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100),
+            ],
+        },
+        new()
+        {
+            Key = "condition.colorsMatch",
+            Category = ActionCategory.Condition,
+            DisplayName = "Colors Match",
+            Description = "True when several points show the colours they are meant to.",
+            Parameters =
+            [
+                Multiline("points", "Points",
+                    "One x,y,#RRGGBB per point, separated by a semicolon or a new line.",
+                    "100,200,#FF0000; 300,400,#00FF00"),
+                Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100),
+                Choice("mode", "Mode", ["all", "any"], "all",
+                    "Whether every point has to match or one is enough.",
+                    labels: ["Every point", "Any point"]),
+                ..Anchor(),
             ],
         },
         new()
@@ -1632,6 +1678,34 @@ public static class ActionCatalog
     /// <summary>Mouse button picker shared by every input action that clicks.</summary>
     private static ActionParameter Button()
         => Choice("button", "Button", ["left", "right", "middle", "back", "forward"], "left");
+
+    /// <summary>
+    /// The hint every search-region field shares, so the shape of a region is written once. A
+    /// region may hold several rectangles, which is how one step looks in two windows at once.
+    /// </summary>
+    private const string RegionHint =
+        "Optional x,y,width,height limit, written out or held in a variable. Several rectangles may "
+        + "be listed, separated by a semicolon, and every one of them is searched. Leave empty to "
+        + "search the whole screen.";
+
+    /// <summary>
+    /// Which of several hits a step means, shared by the actions that can find more than one. Hits
+    /// are counted from the top left, the order a person counts them in on a screenshot.
+    /// </summary>
+    private static ActionParameter MatchIndex()
+        => Number("matchIndex", "Match number", 1,
+            "Which hit to use, counted from the top left: down the screen first, then across. "
+            + "1 is the first one.", min: 1, max: 200);
+
+    /// <summary>
+    /// Whether a step records the whole set of hits as well as the one it picked, shared by the
+    /// finders that can report more than one. The list is what lets a macro walk every place
+    /// something turned up.
+    /// </summary>
+    private static ActionParameter AllMatches()
+        => Toggle("allMatches", "Record every match", false,
+            "Also record how many places matched and where they all are: $name.count is the number "
+            + "and $name.list holds one \"x,y\" per hit, ready for count(), get() and forEach.");
 
     /// <summary>
     /// How a step's input is sent, shared by every action that presses a key or a mouse button.
