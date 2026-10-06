@@ -543,6 +543,20 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "file.unzip",
+            Category = ActionCategory.File,
+            DisplayName = "Unzip",
+            Description = "Unpack a zip file into a folder.",
+            Parameters =
+            [
+                FilePath("from", "Zip file", "download.zip", "Zip file to unpack."),
+                FilePath("folder", "Into folder", @"unpacked", "Folder the contents come out in."),
+                Toggle("overwrite", "Overwrite", true,
+                    "Replace files that are already there."),
+            ],
+        },
+        new()
+        {
             Key = "file.deleteFolder",
             Category = ActionCategory.File,
             DisplayName = "Delete Folder",

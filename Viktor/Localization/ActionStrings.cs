@@ -366,6 +366,15 @@ internal static class ActionStrings
         ["file.path.resultVariable.label"] = "结果变量",
         ["file.path.resultVariable.hint"] = "接收算出来的结果的变量。",
 
+        ["file.unzip.name"] = "解压",
+        ["file.unzip.desc"] = "把 zip 压缩包解压到文件夹。",
+        ["file.unzip.from.label"] = "压缩包",
+        ["file.unzip.from.hint"] = "要解压的 zip 文件。只写文件名时会相对宏文件夹解析。",
+        ["file.unzip.folder.label"] = "解压到",
+        ["file.unzip.folder.hint"] = "内容解压到哪个文件夹，不存在时会建出来。",
+        ["file.unzip.overwrite.label"] = "覆盖",
+        ["file.unzip.overwrite.hint"] = "目标已存在同名文件时是否替换。",
+
         ["file.deleteFolder.name"] = "删除文件夹",
         ["file.deleteFolder.desc"] = "删除文件夹，需要时连里面的东西一起删。",
         ["file.deleteFolder.path.label"] = "文件夹",

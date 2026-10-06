@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 
 namespace Viktor.Core.Devices.Platform;
 
@@ -108,6 +109,32 @@ public sealed class LocalFileDevice : IFileDevice
             File.Copy(source, target, overwrite);
             return true;
         });
+    }
+
+    public void Unzip(string from, string folder, bool overwrite)
+    {
+        var source = Full(from);
+        if (!File.Exists(source))
+        {
+            throw new DeviceActionException("Run.FileNotFound", from);
+        }
+
+        var target = Full(folder);
+        try
+        {
+            Attempt(from, () =>
+            {
+                Directory.CreateDirectory(target);
+                ZipFile.ExtractToDirectory(source, target, overwrite);
+                return true;
+            });
+        }
+        catch (InvalidDataException)
+        {
+            // A file that is not an archive at all, or one that was cut off halfway through:
+            // what the archive reader says about it is nothing a macro author can act on.
+            throw new DeviceActionException("Run.BadZip", from);
+        }
     }
 
     public void CreateFolder(string path)

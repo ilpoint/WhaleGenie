@@ -462,6 +462,10 @@ public sealed class MacroRunner
                 PathPart(step, depth);
                 return Signal.Normal;
 
+            case "file.unzip":
+                UnzipFile(step, depth);
+                return Signal.Normal;
+
             case "file.listFiles":
                 ListFiles(step, depth);
                 return Signal.Normal;
@@ -2168,6 +2172,16 @@ public sealed class MacroRunner
         var name = VariableName(step, "resultVariable", "path");
         Variables.Set(name, Value.FromText(answer));
         Log(LogLevel.Info, depth, step.Type, "Run.Set", name, answer);
+    }
+
+    private void UnzipFile(ExecutableStep step, int depth)
+    {
+        var from = PathOf(step, "from");
+        var folder = PathOf(step, "folder");
+        var overwrite = Flag(step, "overwrite", true);
+
+        _devices.Files.Unzip(from, folder, overwrite);
+        Log(LogLevel.Info, depth, step.Type, "Run.Unzipped", from, folder);
     }
 
     private void ListFiles(ExecutableStep step, int depth)

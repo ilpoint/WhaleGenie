@@ -1485,6 +1485,32 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_zip_file_can_be_unpacked()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("file.unzip", Param("from", "download.zip"), Param("folder", "unpacked"),
+                Param("overwrite", "true")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(@"unzip download.zip unpacked True", devices.Calls);
+        Assert.Equal("unpacked", devices.Files[Path.Combine("unpacked", "readme.txt")]);
+    }
+
+    [Fact]
+    public async Task A_zip_file_that_is_not_one_reports_what_the_device_said()
+    {
+        var devices = new FakeDeviceLayer { UnzipWorks = false };
+        var (result, _, _) = await RunAsync(
+            [Step("file.unzip", Param("from", "notes.txt"), Param("folder", "unpacked"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.FileFailed", result.Key);
+    }
+
+    [Fact]
     public async Task Listing_a_folder_gives_a_list_of_full_paths()
     {
         var devices = new FakeDeviceLayer();
@@ -3061,6 +3087,22 @@ internal sealed class FakeDeviceLayer
         Note($"createFolder {path}");
         Folders.Add(path);
     }
+
+    void IFileDevice.Unzip(string from, string folder, bool overwrite)
+    {
+        Note($"unzip {from} {folder} {overwrite}");
+        if (UnzipWorks)
+        {
+            Files[Path.Combine(folder, "readme.txt")] = "unpacked";
+        }
+        else
+        {
+            throw new DeviceActionException("Run.FileFailed", $"{from}: not a zip file");
+        }
+    }
+
+    /// <summary>Whether the fake's zip file unpacks, or turns out to be something else.</summary>
+    public bool UnzipWorks { get; set; } = true;
 
     void IFileDevice.DeleteFolder(string path, bool recurse)
     {

@@ -177,6 +177,12 @@ public interface IFileDevice
     void DeleteFolder(string path, bool recurse);
 
     /// <summary>
+    /// Unpacks a zip file into a folder, making the folder when it is not there yet. Every entry
+    /// keeps the place inside the zip it was stored in, so the shape of the archive comes out.
+    /// </summary>
+    void Unzip(string from, string folder, bool overwrite);
+
+    /// <summary>
     /// Moves a file to another place, renaming it when the new name is in the same folder. A
     /// move across drives is a copy and a delete underneath, which is why it can take a while.
     /// </summary>
@@ -402,6 +408,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public void CreateFolder(string path) => throw Missing("files");
 
         public void DeleteFolder(string path, bool recurse) => throw Missing("files");
+
+        public void Unzip(string from, string folder, bool overwrite) => throw Missing("files");
 
         public IReadOnlyList<string> List(string folder, string pattern, bool recurse) => throw Missing("files");
 
