@@ -82,3 +82,30 @@ dotnet format Viktor.slnx           # 按 .editorconfig 整理格式
 
 `master` 是主线，`.github/workflows/ci.yml` 在推送与 PR 上跑格式检查、构建和全部测试，
 失败即红。测试报告作为构建产物保留。
+
+## 发布版本
+
+发布走 `.github/workflows/release.yml`：**打一个 `v` 开头的标签就是发版**。
+
+```powershell
+git tag v0.01
+git push origin v0.01
+```
+
+标签推上去之后，工作流会给 `win-x64` 和 `win-x86` 各打一个便携包
+（`Viktor-v0.01-win-x64.zip`、`Viktor-v0.01-win-x86.zip`），自动建好 Release 并把两个包挂上去。
+标签名同时决定了压缩包的名字和 exe 里的版本号，所以只有一处要改；想在网页上发也行：
+Actions → Release → Run workflow，填一个版本号。
+
+建 Release 需要写权限。仓库若把 Actions 的默认权限设成了只读，要在
+Settings → Actions → General → Workflow permissions 里放开一次。
+
+包是**框架依赖的便携包**，不自带 .NET 运行环境，所以体积小：
+
+| 包 | 运行要求 |
+| --- | --- |
+| `win-x64` | 64 位 Windows + .NET 10 桌面运行时，功能完整 |
+| `win-x86` | 32 位的 .NET 10 桌面运行时；找图/等图/点图依赖的 OpenCV 只有 64 位原生库，这几个动作在 32 位包里不可用 |
+
+没装运行环境时，双击 `Viktor.exe` 会由 apphost 自己弹窗提示并给出下载地址，
+不需要另外写检查代码。面向用户的说明写在 `.github/release-notes.md`，发版时原样作为 Release 说明贴出去。

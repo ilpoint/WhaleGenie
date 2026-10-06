@@ -1,0 +1,105 @@
+name: Release
+
+# 打一个 v 开头的标签（例如 v0.01）就会走这里：压缩包名字、exe 里的版本号和 Release
+# 的标题都从标签来，只有一个地方要改。也可以在 Actions 页面手动运行，填一个版本号。
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 版本号，例如 0.01
+        required: true
+        default: "0.01"
+        type: string
+
+# 建 Release 要写权限；仓库若把 Actions 的默认权限设成只读，需要在
+# Settings → Actions → General → Workflow permissions 里放开，否则这一步会被拒。
+permissions:
+  contents: write
+
+jobs:
+  package:
+    # Viktor 要在真实 Windows 桌面上跑，包只能在 Windows 上打。
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rid: [win-x64, win-x86]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: 算出版本号
+        id: version
+        run: |
+          $tag = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME } else { "v${{ inputs.version }}" }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "version=$($tag -replace '^v','')" >> $env:GITHUB_OUTPUT
+
+      - name: 打包成便携版
+        # 有意做成框架依赖：包小得多，少了运行环境时 apphost 会自己弹窗告诉用户装什么，
+        # 而不是让程序起不来还没人知道为什么。
+        run: >
+          dotnet publish Viktor/Viktor.csproj
+          -c Release
+          -r ${{ matrix.rid }}
+          --self-contained false
+          -p:Version=${{ steps.version.outputs.version }}
+          -o dist
+
+      - name: 压成 zip
+        id: zip
+        run: |
+          $name = "Viktor-${{ steps.version.outputs.tag }}-${{ matrix.rid }}.zip"
+          Get-ChildItem dist -Filter *.pdb | Remove-Item   # 调试符号，用户不需要
+          Compress-Archive -Path dist/* -DestinationPath $name
+          "file=$name" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Viktor-${{ matrix.rid }}
+          path: ${{ steps.zip.outputs.file }}
+          if-no-files-found: error
+
+  release:
+    needs: package
+    runs-on: ubuntu-latest
+
+    steps:
+      # 发布说明是仓库里的一份文件，所以这里也要先取下来。
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: packages
+          merge-multiple: true
+
+      - name: 算出版本号
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            tag="${{ github.ref_name }}"
+          else
+            tag="v${{ inputs.version }}"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: 把两个包放进 Release
+        # 已经发过的话补传一次即可，重跑不会因为"Release 已存在"而失败。
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" packages/*.zip --clobber
+          else
+            gh release create "$TAG" packages/*.zip \
+              --title "Viktor $TAG" \
+              --notes-file .github/release-notes.md
+          fi
