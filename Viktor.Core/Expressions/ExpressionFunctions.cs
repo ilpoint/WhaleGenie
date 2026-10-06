@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace Viktor.Core.Expressions;
@@ -123,6 +126,54 @@ internal static class FunctionLibrary
             args => Value.FromBool(V(args, 0).AsBool())),
         Fn("if", "if(condition, whenTrue, whenFalse)", "Pick one of two values.", 3, 3,
             args => V(args, 0).AsBool() ? V(args, 1) : V(args, 2)),
+
+        // -------------------------------------------------------------------- dates
+        Fn("now", "now()", "The current date and time, as yyyy-MM-dd HH:mm:ss.", 0, 0,
+            args => Value.FromText(Stamp(DateTimeOffset.Now))),
+        Fn("today", "today()", "Today's date, as yyyy-MM-dd.", 0, 0,
+            args => Value.FromText(DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))),
+        Fn("year", "year(date)", "The year of a date.", 1, 1,
+            args => Value.FromNumber(Moment(S(args, 0)).Year)),
+        Fn("month", "month(date)", "The month of a date, 1 to 12.", 1, 1,
+            args => Value.FromNumber(Moment(S(args, 0)).Month)),
+        Fn("day", "day(date)", "The day of the month, 1 to 31.", 1, 1,
+            args => Value.FromNumber(Moment(S(args, 0)).Day)),
+        Fn("hour", "hour(date)", "The hour of a date, 0 to 23.", 1, 1,
+            args => Value.FromNumber(Moment(S(args, 0)).Hour)),
+        Fn("minute", "minute(date)", "The minute of a date, 0 to 59.", 1, 1,
+            args => Value.FromNumber(Moment(S(args, 0)).Minute)),
+        Fn("second", "second(date)", "The second of a date, 0 to 59.", 1, 1,
+            args => Value.FromNumber(Moment(S(args, 0)).Second)),
+        Fn("weekday", "weekday(date)",
+            "The day of the week, counted the ISO way: 1 is Monday and 7 is Sunday.", 1, 1,
+            args => Value.FromNumber(Weekday(Moment(S(args, 0))))),
+        Fn("dateAdd", "dateAdd(date, amount, unit)",
+            "A date moved forward or back; the unit is seconds, minutes, hours, days, weeks, "
+            + "months or years.", 3, 3,
+            args => Value.FromText(Stamp(Shifted(args)))),
+        Fn("dateDiff", "dateDiff(from, to, unit)",
+            "How far apart two dates are, counted in the unit.", 3, 3,
+            args => Value.FromNumber(Distance(args))),
+        Fn("formatDate", "formatDate(date, pattern)",
+            "A date written out in a pattern such as yyyy/MM/dd.", 2, 2,
+            args => Value.FromText(Formatted(args))),
+
+        // -------------------------------------------------------------------- json
+        Fn("jsonGet", "jsonGet(json, path)",
+            "A value inside JSON text, found by a path such as a.b[0].c. A field holding an "
+            + "object or a list comes back as its own JSON text.", 2, 2,
+            args => JsonGet(args)),
+        Fn("jsonKeys", "jsonKeys(json)",
+            "The names of the fields of a JSON object, in the order they are written.", 1, 1,
+            args => Value.FromList(JsonKeys(S(args, 0)))),
+        Fn("jsonHas", "jsonHas(json, path)", "True when the path is present in JSON text.", 2, 2,
+            args => Value.FromBool(Located(args).Found)),
+        Fn("jsonSet", "jsonSet(json, path, value)",
+            "A copy of JSON text with the path set to a value, making the fields on the way.",
+            3, 3, args => Value.FromText(JsonSet(args))),
+        Fn("toJson", "toJson(value)",
+            "A value written as JSON text, so a list becomes an array.", 1, 1,
+            args => Value.FromText(Node(V(args, 0))?.ToJsonString() ?? "null")),
     ];
 
     private static readonly Dictionary<string, FunctionEntry> ByName =
@@ -361,5 +412,425 @@ internal static class FunctionLibrary
             : Math.Clamp((int)N(args, 2), 0, items.Count - start);
 
         return Value.FromList(items.Skip(start).Take(length));
+    }
+
+    // ------------------------------------------------------------------- dates
+
+    /// <summary>
+    /// The shapes a date is read in. Everything a date function writes back is in the first
+    /// one, so the answer of one function can be the argument of the next.
+    /// </summary>
+    private static readonly string[] MomentFormats =
+    [
+        "yyyy-MM-dd HH:mm:ss",
+        "yyyy-MM-dd HH:mm",
+        "yyyy-MM-dd",
+        "yyyy/MM/dd HH:mm:ss",
+        "yyyy/MM/dd HH:mm",
+        "yyyy/MM/dd",
+        "HH:mm:ss",
+        "HH:mm",
+    ];
+
+    /// <summary>
+    /// Reads a date. A time of day on its own counts as today, which is what "wait until
+    /// 09:30" means, and an empty argument is now, so a date function that is handed
+    /// nothing still does something sensible instead of refusing to run.
+    /// </summary>
+    private static DateTimeOffset Moment(string text)
+    {
+        var trimmed = text.Trim();
+        if (trimmed.Length == 0)
+        {
+            return DateTimeOffset.Now;
+        }
+
+        if (DateTimeOffset.TryParseExact(trimmed, MomentFormats, CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces, out var exact))
+        {
+            return exact.Year == 1
+                ? new DateTimeOffset(DateTime.Today.Add(exact.TimeOfDay), DateTimeOffset.Now.Offset)
+                : exact;
+        }
+
+        if (DateTimeOffset.TryParse(trimmed, CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces, out var loose))
+        {
+            return loose;
+        }
+
+        throw ExpressionException.TypeMismatch($"\"{text}\" is not a date");
+    }
+
+    /// <summary>A date written back in the one shape every date function reads.</summary>
+    private static string Stamp(DateTimeOffset moment)
+        => moment.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+
+    /// <summary>The day of the week counted the ISO way, so Monday is 1 and Sunday is 7.</summary>
+    private static int Weekday(DateTimeOffset moment)
+        => moment.DayOfWeek == DayOfWeek.Sunday ? 7 : (int)moment.DayOfWeek;
+
+    private static DateTimeOffset Shifted(IReadOnlyList<Func<Value>> args)
+    {
+        var moment = Moment(S(args, 0));
+        var amount = N(args, 1);
+
+        return S(args, 2).Trim().ToLowerInvariant() switch
+        {
+            "second" or "seconds" or "s" => moment.AddSeconds(amount),
+            "minute" or "minutes" => moment.AddMinutes(amount),
+            "hour" or "hours" or "h" => moment.AddHours(amount),
+            "day" or "days" or "d" => moment.AddDays(amount),
+            "week" or "weeks" or "w" => moment.AddDays(amount * 7),
+            "month" or "months" => moment.AddMonths((int)Math.Round(amount)),
+            "year" or "years" or "y" => moment.AddYears((int)Math.Round(amount)),
+            _ => throw ExpressionException.TypeMismatch($"\"{S(args, 2)}\" is not a unit of time"),
+        };
+    }
+
+    private static double Distance(IReadOnlyList<Func<Value>> args)
+    {
+        var from = Moment(S(args, 0));
+        var to = Moment(S(args, 1));
+        var span = to - from;
+
+        return S(args, 2).Trim().ToLowerInvariant() switch
+        {
+            "second" or "seconds" or "s" => span.TotalSeconds,
+            "minute" or "minutes" => span.TotalMinutes,
+            "hour" or "hours" or "h" => span.TotalHours,
+            "day" or "days" or "d" => span.TotalDays,
+            "week" or "weeks" or "w" => span.TotalDays / 7,
+            "month" or "months" => WholeMonths(from, to),
+            "year" or "years" or "y" => WholeMonths(from, to) / 12.0,
+            _ => throw ExpressionException.TypeMismatch($"\"{S(args, 2)}\" is not a unit of time"),
+        };
+    }
+
+    /// <summary>Whole months between two dates, counting a part month as nothing.</summary>
+    private static int WholeMonths(DateTimeOffset from, DateTimeOffset to)
+    {
+        var months = ((to.Year - from.Year) * 12) + to.Month - from.Month;
+        if (months > 0 && to.Day < from.Day)
+        {
+            months--;
+        }
+        else if (months < 0 && to.Day > from.Day)
+        {
+            months++;
+        }
+
+        return months;
+    }
+
+    private static string Formatted(IReadOnlyList<Func<Value>> args)
+    {
+        var pattern = S(args, 1);
+        try
+        {
+            return Moment(S(args, 0)).ToString(pattern, CultureInfo.InvariantCulture);
+        }
+        catch (FormatException)
+        {
+            throw ExpressionException.TypeMismatch($"\"{pattern}\" is not a date pattern");
+        }
+    }
+
+    // -------------------------------------------------------------------- json
+
+    /// <summary>Reads JSON text, refusing text that is not JSON so a typo shows up as a failure.</summary>
+    private static JsonNode? ParseJson(string text)
+    {
+        if (text.Trim().Length == 0)
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonNode.Parse(text);
+        }
+        catch (JsonException)
+        {
+            throw ExpressionException.TypeMismatch($"\"{text}\" is not JSON");
+        }
+    }
+
+    /// <summary>The same read for the writer, which treats text that is not JSON as a fresh document.</summary>
+    private static JsonNode? LooseJson(string text)
+    {
+        try
+        {
+            return ParseJson(text);
+        }
+        catch (ExpressionException)
+        {
+            return null;
+        }
+    }
+
+    private static Value JsonGet(IReadOnlyList<Func<Value>> args)
+    {
+        var (found, node) = Located(args);
+        return found ? AsValue(node) : Value.Null;
+    }
+
+    private static (bool Found, JsonNode? Node) Located(IReadOnlyList<Func<Value>> args)
+    {
+        var current = ParseJson(S(args, 0));
+        if (current is null)
+        {
+            return (false, null);
+        }
+
+        foreach (var step in Path(S(args, 1)))
+        {
+            switch (step)
+            {
+                case int position when current is JsonArray array && position >= 0 && position < array.Count:
+                    current = array[position];
+                    break;
+                case string name when current is JsonObject obj && obj.TryGetPropertyValue(name, out var child):
+                    current = child;
+                    break;
+                default:
+                    return (false, null);
+            }
+        }
+
+        return (true, current);
+    }
+
+    private static IEnumerable<Value> JsonKeys(string text)
+    {
+        if (ParseJson(text) is not JsonObject obj)
+        {
+            return [];
+        }
+
+        return obj.Select(pair => Value.FromText(pair.Key));
+    }
+
+    /// <summary>
+    /// A JSON node as one of the engine's values. An object cannot be one of them, so it
+    /// comes back as the text the reader can hand straight to another JSON function.
+    /// </summary>
+    private static Value AsValue(JsonNode? node)
+    {
+        switch (node)
+        {
+            case null:
+                return Value.Null;
+            case JsonArray array:
+                return Value.FromList(array.Select(item => AsValue(item)));
+            case JsonObject obj:
+                return Value.FromText(obj.ToJsonString());
+            case JsonValue scalar:
+                return Scalar(scalar);
+            default:
+                return Value.Null;
+        }
+    }
+
+    private static Value Scalar(JsonValue value)
+    {
+        if (value.TryGetValue<bool>(out var flag))
+        {
+            return Value.FromBool(flag);
+        }
+
+        if (value.TryGetValue<double>(out var number))
+        {
+            return Value.FromNumber(number);
+        }
+
+        return value.TryGetValue<string>(out var text)
+            ? Value.FromText(text)
+            : Value.FromText(value.ToJsonString());
+    }
+
+    private static string JsonSet(IReadOnlyList<Func<Value>> args)
+    {
+        var steps = Path(S(args, 1));
+        var value = Node(V(args, 2));
+        if (steps.Count == 0)
+        {
+            // Setting the document itself replaces it, so a macro can start from nothing.
+            return value?.ToJsonString() ?? "null";
+        }
+
+        JsonNode root = LooseJson(S(args, 0)) ?? Empty(steps[0]);
+        if (root is not JsonObject && root is not JsonArray)
+        {
+            root = Empty(steps[0]);
+        }
+
+        var current = root;
+        for (var index = 0; index < steps.Count - 1; index++)
+        {
+            current = Step(current, steps[index], steps[index + 1]);
+        }
+
+        Put(current, steps[^1], value);
+        return root.ToJsonString();
+    }
+
+    /// <summary>A fresh container: a list when the path steps into a position, an object otherwise.</summary>
+    private static JsonNode Empty(object step) => step is int ? new JsonArray() : new JsonObject();
+
+    /// <summary>
+    /// The part of the document at a path step, made on the way when the path names a field
+    /// that is not there yet.
+    /// </summary>
+    private static JsonNode Step(JsonNode current, object step, object next)
+    {
+        if (step is int position)
+        {
+            var array = AsArray(current, position);
+            while (array.Count <= position)
+            {
+                array.Add(null);
+            }
+
+            if (array[position] is { } made)
+            {
+                return made;
+            }
+
+            var created = Empty(next);
+            array[position] = created;
+            return created;
+        }
+
+        if (current is not JsonObject obj)
+        {
+            throw ExpressionException.TypeMismatch(
+                $"the path names \"{step}\" but that part is not an object");
+        }
+
+        var name = (string)step;
+        if (obj.TryGetPropertyValue(name, out var child) && child is not null)
+        {
+            return child;
+        }
+
+        var container = Empty(next);
+        obj[name] = container;
+        return container;
+    }
+
+    private static void Put(JsonNode current, object step, JsonNode? value)
+    {
+        if (step is int position)
+        {
+            var array = AsArray(current, position);
+            while (array.Count <= position)
+            {
+                array.Add(null);
+            }
+
+            array[position] = value;
+            return;
+        }
+
+        if (current is not JsonObject obj)
+        {
+            throw ExpressionException.TypeMismatch(
+                $"the path names \"{step}\" but that part is not an object");
+        }
+
+        obj[(string)step] = value;
+    }
+
+    private static JsonArray AsArray(JsonNode current, int position)
+        => current as JsonArray
+           ?? throw ExpressionException.TypeMismatch(
+               $"the path steps into [{position}] but that part is not a list");
+
+    /// <summary>A value written as JSON, so it can be put into a document or sent on.</summary>
+    private static JsonNode? Node(Value value)
+    {
+        switch (value.Kind)
+        {
+            case ValueKind.Null:
+                return null;
+            case ValueKind.Number:
+                return JsonValue.Create(value.Number);
+            case ValueKind.Bool:
+                return JsonValue.Create(value.Flag);
+            case ValueKind.Text:
+                return JsonValue.Create(value.Text);
+            default:
+                var array = new JsonArray();
+                foreach (var item in value.Items)
+                {
+                    array.Add(Node(item));
+                }
+
+                return array;
+        }
+    }
+
+    /// <summary>
+    /// Reads a path such as <c>a.b[0].c</c> or <c>$.a.b</c> into the field names and the
+    /// positions it walks through, in the order they are walked.
+    /// </summary>
+    private static List<object> Path(string text)
+    {
+        var parts = new List<object>();
+        var trimmed = text.Trim();
+        if (trimmed.StartsWith("$.", StringComparison.Ordinal))
+        {
+            trimmed = trimmed[2..];
+        }
+        else if (trimmed.StartsWith('$'))
+        {
+            trimmed = trimmed[1..];
+        }
+
+        var name = new StringBuilder();
+        for (var index = 0; index < trimmed.Length; index++)
+        {
+            var character = trimmed[index];
+            if (character == '.')
+            {
+                TakeName();
+                continue;
+            }
+
+            if (character != '[')
+            {
+                name.Append(character);
+                continue;
+            }
+
+            TakeName();
+            var close = trimmed.IndexOf(']', index);
+            if (close < 0)
+            {
+                throw ExpressionException.TypeMismatch($"the path \"{text}\" has an unclosed [");
+            }
+
+            var inside = trimmed[(index + 1)..close].Trim().Trim('\'', '"');
+            if (inside.Length > 0)
+            {
+                parts.Add(int.TryParse(inside, NumberStyles.Integer, CultureInfo.InvariantCulture,
+                    out var position) ? position : inside);
+            }
+
+            index = close;
+        }
+
+        TakeName();
+        return parts;
+
+        void TakeName()
+        {
+            if (name.Length > 0)
+            {
+                parts.Add(name.ToString());
+                name.Clear();
+            }
+        }
     }
 }

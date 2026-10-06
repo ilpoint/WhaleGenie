@@ -229,6 +229,86 @@ public class ExpressionTests
         });
     }
 
+    [Theory]
+    [InlineData("year(\"2024-03-01\")", "2024")]
+    [InlineData("month(\"2024-03-01\")", "3")]
+    [InlineData("day(\"2024-03-01\")", "1")]
+    [InlineData("hour(\"2024-03-01 09:30:15\")", "9")]
+    [InlineData("minute(\"2024-03-01 09:30:15\")", "30")]
+    [InlineData("second(\"2024-03-01 09:30:15\")", "15")]
+    [InlineData("weekday(\"2024-03-01\")", "5")]
+    [InlineData("weekday(\"2024-03-03\")", "7")]
+    public void A_date_is_read_apart_piece_by_piece(string source, string expected)
+        => Assert.Equal(expected, Text(source));
+
+    [Theory]
+    [InlineData("dateAdd(\"2024-03-01\", 45, \"days\")", "2024-04-15 00:00:00")]
+    [InlineData("dateAdd(\"2024-01-31\", 1, \"months\")", "2024-02-29 00:00:00")]
+    [InlineData("dateAdd(\"2024-03-01 09:00:00\", -90, \"minutes\")", "2024-03-01 07:30:00")]
+    [InlineData("dateAdd(\"2024-03-01\", 2, \"weeks\")", "2024-03-15 00:00:00")]
+    public void A_date_can_be_moved_forward_or_back(string source, string expected)
+        => Assert.Equal(expected, Text(source));
+
+    [Theory]
+    [InlineData("dateDiff(\"2024-01-01\", \"2024-03-01\", \"days\")", "60")]
+    [InlineData("dateDiff(\"2024-01-01\", \"2025-01-01\", \"years\")", "1")]
+    [InlineData("dateDiff(\"2024-03-01\", \"2024-01-01\", \"days\")", "-60")]
+    [InlineData("dateDiff(\"2024-01-06\", \"2024-01-01\", \"weeks\")", "-0.714286")]
+    public void The_gap_between_two_dates_is_counted_in_the_unit(string source, string expected)
+        => Assert.Equal(expected, Text(source));
+
+    [Fact]
+    public void A_date_is_written_out_in_a_pattern()
+        => Assert.Equal("2024/03/01 09:30",
+            Text("formatDate(\"2024-03-01 09:30:00\", \"yyyy/MM/dd HH:mm\")"));
+
+    [Fact]
+    public void A_time_on_its_own_counts_as_today()
+    {
+        var bag = new VariableBag();
+        bag.SetText("clock", "09:30:00");
+
+        var today = Expression.Evaluate("today()").AsText();
+        Assert.Equal(today + " 09:30:00",
+            Expression.Evaluate("formatDate($clock, \"yyyy-MM-dd HH:mm:ss\")", bag).AsText());
+    }
+
+    [Fact]
+    public void Text_that_is_not_a_date_is_refused()
+        => Assert.Equal(ExpressionErrorCode.TypeMismatch, Failure("year(\"half past nine\")").Code);
+
+    [Theory]
+    [InlineData("jsonGet('{\"a\":{\"b\":[1,2,3]}}', 'a.b[1]')", "2")]
+    [InlineData("jsonGet('{\"a\":{\"b\":[1,2,3]}}', '$.a.b[0]')", "1")]
+    [InlineData("jsonGet('{\"a\":{\"b\":[1,2,3]}}', 'a.b')", "1, 2, 3")]
+    [InlineData("jsonGet('{\"a\":{\"b\":1}}', 'a')", "{\"b\":1}")]
+    [InlineData("jsonGet('{\"name\":\"ada\",\"ok\":true}', 'name')", "ada")]
+    [InlineData("jsonGet('{\"name\":\"ada\",\"ok\":true}', 'ok')", "true")]
+    [InlineData("jsonGet('{\"a\":1}', 'missing')", "")]
+    [InlineData("jsonGet('', 'a')", "")]
+    [InlineData("jsonKeys('{\"a\":1,\"b\":2}')", "a, b")]
+    [InlineData("jsonHas('{\"a\":1}', 'a')", "true")]
+    [InlineData("jsonHas('{\"a\":1}', 'b')", "false")]
+    public void Json_is_read_by_path(string source, string expected)
+        => Assert.Equal(expected, Text(source));
+
+    [Theory]
+    [InlineData("jsonSet('', 'a.b', 1)", "{\"a\":{\"b\":1}}")]
+    [InlineData("jsonSet('{}', 'name', \"ada\")", "{\"name\":\"ada\"}")]
+    [InlineData("jsonSet('{}', 'a', list(1, 2))", "{\"a\":[1,2]}")]
+    [InlineData("jsonSet('{}', 'tags[0]', 1)", "{\"tags\":[1]}")]
+    [InlineData("jsonSet(jsonSet('{}', 'tags[0]', 1), 'tags[1]', 2)", "{\"tags\":[1,2]}")]
+    public void Json_can_be_grown_by_a_path(string source, string expected)
+        => Assert.Equal(expected, Text(source));
+
+    [Fact]
+    public void A_value_is_written_as_json()
+        => Assert.Equal("[1,\"a\",true]", Text("toJson(list(1, \"a\", true))"));
+
+    [Fact]
+    public void Text_that_is_not_json_is_refused()
+        => Assert.Equal(ExpressionErrorCode.TypeMismatch, Failure("jsonGet('{oops}', 'a')").Code);
+
     [Fact]
     public void Numbers_are_written_without_a_trailing_zero()
     {
