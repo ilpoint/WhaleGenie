@@ -574,6 +574,10 @@ public sealed class MacroRunner
                 EnvironmentVariable(step, depth);
                 return Signal.Normal;
 
+            case "system.power":
+                Power(step, depth);
+                return Signal.Normal;
+
             // ----------------------------------------------------------------- window
             case "window.exists":
                 WindowExists(step, depth);
@@ -2922,6 +2926,34 @@ public sealed class MacroRunner
         var variable = VariableName(step, "resultVariable", "value");
         Variables.Set(variable, Value.FromText(value));
         Log(LogLevel.Info, depth, step.Type, "Run.Set", variable, value);
+    }
+
+    /// <summary>
+    /// Asks the machine to do one of the things the Start menu's power button does. The name is
+    /// read strictly rather than falling back to something: a macro that mistyped "shutdown" should
+    /// not have its screen locked instead, and one that mistyped "lock" should certainly not be
+    /// turning the machine off.
+    /// </summary>
+    private void Power(ExecutableStep step, int depth)
+    {
+        var wanted = step.Text("what").Trim().ToLowerInvariant();
+        var action = wanted switch
+        {
+            "" or "lock" => PowerAction.Lock,
+            "monitoroff" or "monitor" => PowerAction.MonitorOff,
+            "signout" or "logoff" => PowerAction.SignOut,
+            "sleep" => PowerAction.Sleep,
+            "hibernate" => PowerAction.Hibernate,
+            "restart" or "reboot" => PowerAction.Restart,
+            "shutdown" => PowerAction.ShutDown,
+            "abortshutdown" or "abort" => PowerAction.AbortShutdown,
+            _ => throw new StepFailure("Run.UnknownPowerAction", wanted),
+        };
+
+        var grace = OptionalNumber(step, "graceSeconds", 0);
+        _devices.System.Power(action, grace);
+        Log(LogLevel.Info, depth, step.Type, "Run.Power", wanted.Length == 0 ? "lock" : wanted,
+            grace);
     }
 
     /// <summary>Stores a value under a variable a step named, unless it named none.</summary>

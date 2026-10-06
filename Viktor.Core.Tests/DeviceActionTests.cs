@@ -2413,6 +2413,44 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task The_power_action_asks_for_the_thing_the_macro_picked()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("system.power", Param("what", "shutDown"), Param("graceSeconds", "30")),
+            Step("system.power", Param("what", "monitorOff")),
+        ], devices);
+
+        Assert.Equal(["power ShutDown 30", "power MonitorOff 0"], devices.Calls);
+    }
+
+    [Fact]
+    public async Task The_power_action_locks_the_screen_when_it_is_not_told_what_to_do()
+    {
+        // The gentlest of the lot, because a step that was added and left alone should not be able
+        // to close anything down.
+        var devices = new FakeDeviceLayer();
+        await RunAsync([Step("system.power")], devices);
+
+        Assert.Equal(["power Lock 0"], devices.Calls);
+    }
+
+    [Fact]
+    public async Task The_power_action_refuses_a_name_it_does_not_know()
+    {
+        // Locking the screen would be a strange thing to do on the way to shutting a machine down,
+        // so a mistyped name stops the step instead of quietly turning into a different action.
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("system.power", Param("what", "shutdownnow"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.UnknownPowerAction", result.Key);
+        Assert.Empty(devices.Calls);
+    }
+
+    [Fact]
     public async Task Checking_for_a_window_leaves_true_or_false()
     {
         var devices = new FakeDeviceLayer();
@@ -3631,6 +3669,11 @@ internal sealed class FakeDeviceLayer
     {
         Note($"env {name}");
         return EnvironmentValues.TryGetValue(name, out var value) ? value : string.Empty;
+    }
+
+    void ISystemDevice.Power(PowerAction action, int graceSeconds)
+    {
+        Note($"power {action} {graceSeconds}");
     }
 
     IReadOnlyList<WindowInfo> IWindowDevice.List()

@@ -251,6 +251,37 @@ public sealed record UiElementInfo(
 public sealed record CommandResult(int ExitCode, string StandardOutput, string StandardError);
 
 /// <summary>
+/// The things a person can do to a machine from the Start menu's power button, which are also the
+/// things a macro that runs overnight needs to be able to do to it.
+/// </summary>
+public enum PowerAction
+{
+    /// <summary>Locks the screen, leaving everything running behind it.</summary>
+    Lock,
+
+    /// <summary>Turns the screen off. Any key or movement of the mouse turns it back on.</summary>
+    MonitorOff,
+
+    /// <summary>Signs the current user out, closing what is open.</summary>
+    SignOut,
+
+    /// <summary>Suspends the machine, keeping what is open in memory.</summary>
+    Sleep,
+
+    /// <summary>Writes what is open to disk and turns the machine off.</summary>
+    Hibernate,
+
+    /// <summary>Closes what is open and starts the machine again.</summary>
+    Restart,
+
+    /// <summary>Closes what is open and turns the machine off.</summary>
+    ShutDown,
+
+    /// <summary>Cancels a restart or shutdown that is still counting down.</summary>
+    AbortShutdown,
+}
+
+/// <summary>
 /// How a program is to be started: what to run, where, and how it should come up. Gathered into
 /// one thing rather than a row of loose arguments, because a call site should not have to be read
 /// twice to tell one switch from another.

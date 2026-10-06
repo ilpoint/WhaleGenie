@@ -989,6 +989,33 @@ public static class ActionCatalog
                     "Variable that receives the value.", required: false, namesVariable: true),
             ],
         },
+        new()
+        {
+            Key = "system.power",
+            Category = ActionCategory.System,
+            DisplayName = "Power",
+            Description = "Lock the screen, sleep, sign out, restart, or shut the machine down.",
+            Parameters =
+            [
+                Choice("what", "Do what",
+                    ["lock", "monitorOff", "signOut", "sleep", "hibernate", "restart", "shutDown",
+                        "abortShutdown"],
+                    "lock",
+                    "Which of the things the Start menu's power button does. Locking the screen and "
+                    + "turning the monitor off cost nothing. Signing out, restarting and shutting "
+                    + "down close what is open, so anything unsaved goes with it.",
+                    labels:
+                    [
+                        "Lock the screen", "Turn the monitor off", "Sign out", "Sleep", "Hibernate",
+                        "Restart", "Shut down", "Cancel a countdown",
+                    ]),
+                Number("graceSeconds", "Warning seconds", 0,
+                    "How much warning Windows gives before restarting or shutting down: a countdown "
+                    + "appears on screen and the shutdown can still be called off with \"Cancel a "
+                    + "countdown\" or shutdown /a. Zero means at once. Ignored by the rest.",
+                    max: 600),
+            ],
+        },
 
         // ------------------------------------------------------------------ window
         new()

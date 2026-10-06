@@ -268,6 +268,13 @@ public interface ISystemDevice
 
     /// <summary>An environment variable, or an empty string when it is not set.</summary>
     string Environment(string name);
+
+    /// <summary>
+    /// Asks the machine to do one of the things the Start menu's power button does.
+    /// <paramref name="graceSeconds"/> is how long Windows warns before restarting or shutting
+    /// down, and is ignored by the rest.
+    /// </summary>
+    void Power(PowerAction action, int graceSeconds);
 }
 
 /// <summary>Open windows: finding them, moving them, and closing them.</summary>
@@ -468,6 +475,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public string Info(string field) => throw Missing("system information");
 
         public string Environment(string name) => throw Missing("environment variables");
+
+        public void Power(PowerAction action, int graceSeconds) => throw Missing("power");
 
         // Named through the interface because the process device already has a List and a Find
         // that take no such argument.
