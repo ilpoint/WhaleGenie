@@ -108,6 +108,31 @@ public sealed class LocalFileDevice : IFileDevice
         });
     }
 
+    public void CreateFolder(string path)
+    {
+        var full = Full(path);
+        Attempt(path, () =>
+        {
+            Directory.CreateDirectory(full);
+            return true;
+        });
+    }
+
+    public void DeleteFolder(string path, bool recurse)
+    {
+        var full = Full(path);
+        if (!Directory.Exists(full))
+        {
+            throw new DeviceActionException("Run.FolderNotFound", path);
+        }
+
+        Attempt(path, () =>
+        {
+            Directory.Delete(full, recurse);
+            return true;
+        });
+    }
+
     public void Move(string from, string to, bool overwrite)
     {
         var source = Full(from);

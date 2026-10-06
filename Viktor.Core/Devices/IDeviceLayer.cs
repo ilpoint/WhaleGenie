@@ -161,6 +161,15 @@ public interface IFileDevice
     /// <summary>Copies a file.</summary>
     void Copy(string from, string to, bool overwrite);
 
+    /// <summary>Makes a folder, along with any folders above it that are not there yet.</summary>
+    void CreateFolder(string path);
+
+    /// <summary>
+    /// Removes a folder. A folder that still holds something is only removed when
+    /// <paramref name="recurse"/> says so, so a macro cannot empty a tree by accident.
+    /// </summary>
+    void DeleteFolder(string path, bool recurse);
+
     /// <summary>
     /// Moves a file to another place, renaming it when the new name is in the same folder. A
     /// move across drives is a copy and a delete underneath, which is why it can take a while.
@@ -381,6 +390,10 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public void Copy(string from, string to, bool overwrite) => throw Missing("files");
 
         public void Move(string from, string to, bool overwrite) => throw Missing("files");
+
+        public void CreateFolder(string path) => throw Missing("files");
+
+        public void DeleteFolder(string path, bool recurse) => throw Missing("files");
 
         public IReadOnlyList<string> List(string folder, string pattern, bool recurse) => throw Missing("files");
 

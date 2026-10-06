@@ -342,6 +342,18 @@ internal static class ActionStrings
         ["file.move.overwrite.label"] = "覆盖",
         ["file.move.overwrite.hint"] = "目标已存在时是否替换。",
 
+        ["file.createFolder.name"] = "新建文件夹",
+        ["file.createFolder.desc"] = "创建文件夹，上面缺的目录会一起建出来。",
+        ["file.createFolder.path.label"] = "文件夹",
+        ["file.createFolder.path.hint"] = "要创建的文件夹。只写名字时会相对宏文件夹解析。",
+
+        ["file.deleteFolder.name"] = "删除文件夹",
+        ["file.deleteFolder.desc"] = "删除文件夹，需要时连里面的东西一起删。",
+        ["file.deleteFolder.path.label"] = "文件夹",
+        ["file.deleteFolder.path.hint"] = "要删除的文件夹。只写名字时会相对宏文件夹解析。",
+        ["file.deleteFolder.recurse.label"] = "连里面的内容一起删",
+        ["file.deleteFolder.recurse.hint"] = "不勾选时，文件夹里还有东西就原样留着，不会误删。",
+
         ["file.listFiles.name"] = "列出文件",
         ["file.listFiles.desc"] = "把文件夹里的文件收集成列表。",
         ["file.listFiles.folder.label"] = "文件夹",

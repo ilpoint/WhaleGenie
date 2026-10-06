@@ -450,6 +450,14 @@ public sealed class MacroRunner
                 MoveFile(step, depth);
                 return Signal.Normal;
 
+            case "file.createFolder":
+                CreateFolder(step, depth);
+                return Signal.Normal;
+
+            case "file.deleteFolder":
+                DeleteFolder(step, depth);
+                return Signal.Normal;
+
             case "file.listFiles":
                 ListFiles(step, depth);
                 return Signal.Normal;
@@ -2113,6 +2121,22 @@ public sealed class MacroRunner
 
         _devices.Files.Move(from, to, overwrite);
         Log(LogLevel.Info, depth, step.Type, "Run.MovedFile", from, to);
+    }
+
+    private void CreateFolder(ExecutableStep step, int depth)
+    {
+        var path = PathOf(step);
+        _devices.Files.CreateFolder(path);
+        Log(LogLevel.Info, depth, step.Type, "Run.MadeFolder", path);
+    }
+
+    private void DeleteFolder(ExecutableStep step, int depth)
+    {
+        var path = PathOf(step);
+        var recurse = Flag(step, "recurse", false);
+
+        _devices.Files.DeleteFolder(path, recurse);
+        Log(LogLevel.Info, depth, step.Type, "Run.RemovedFolder", path);
     }
 
     private void ListFiles(ExecutableStep step, int depth)

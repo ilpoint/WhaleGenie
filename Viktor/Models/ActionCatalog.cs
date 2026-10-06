@@ -504,6 +504,30 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "file.createFolder",
+            Category = ActionCategory.File,
+            DisplayName = "Create Folder",
+            Description = "Make a folder, along with any folders above it that are missing.",
+            Parameters =
+            [
+                FilePath("path", "Folder", @"output\reports", "Folder to make."),
+            ],
+        },
+        new()
+        {
+            Key = "file.deleteFolder",
+            Category = ActionCategory.File,
+            DisplayName = "Delete Folder",
+            Description = "Remove a folder, and everything inside it when it is asked to.",
+            Parameters =
+            [
+                FilePath("path", "Folder", @"output\old", "Folder to remove."),
+                Toggle("recurse", "Delete what is inside", false,
+                    "A folder that still holds something is left alone unless this is on."),
+            ],
+        },
+        new()
+        {
             Key = "file.listFiles",
             Category = ActionCategory.File,
             DisplayName = "List Files",

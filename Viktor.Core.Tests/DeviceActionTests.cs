@@ -1421,6 +1421,35 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_folder_can_be_made()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("file.createFolder", Param("path", @"output\reports"))], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(@"createFolder output\reports", devices.Calls);
+        Assert.Contains(@"output\reports", devices.Folders);
+    }
+
+    [Fact]
+    public async Task A_folder_that_still_holds_something_is_left_alone_unless_told_otherwise()
+    {
+        var devices = new FakeDeviceLayer { FolderHasFiles = true };
+        var (refused, _, _) = await RunAsync(
+            [Step("file.deleteFolder", Param("path", "old"))], devices);
+
+        Assert.False(refused.Succeeded);
+        Assert.Equal("Run.FileFailed", refused.Key);
+
+        var (agreed, _, _) = await RunAsync(
+            [Step("file.deleteFolder", Param("path", "old"), Param("recurse", "true"))], devices);
+
+        Assert.True(agreed.Succeeded);
+        Assert.Contains("deleteFolder old True", devices.Calls);
+    }
+
+    [Fact]
     public async Task Listing_a_folder_gives_a_list_of_full_paths()
     {
         var devices = new FakeDeviceLayer();
@@ -2662,6 +2691,12 @@ internal sealed class FakeDeviceLayer
     /// <summary>When set, every copy reports the target already there and refuses to overwrite.</summary>
     public bool TargetExists { get; set; }
 
+    /// <summary>The folders the fake has been told about, by name.</summary>
+    public List<string> Folders { get; } = [];
+
+    /// <summary>True when a folder should refuse to go away on its own, like a real non-empty one.</summary>
+    public bool FolderHasFiles { get; set; }
+
     /// <summary>What listing a folder gives back.</summary>
     public List<string> FolderEntries { get; } = [];
 
@@ -2980,6 +3015,26 @@ internal sealed class FakeDeviceLayer
     {
         Note($"listFiles {folder} {pattern} {recurse}");
         return FolderEntries;
+    }
+
+    void IFileDevice.CreateFolder(string path)
+    {
+        Note($"createFolder {path}");
+        Folders.Add(path);
+    }
+
+    void IFileDevice.DeleteFolder(string path, bool recurse)
+    {
+        Note($"deleteFolder {path} {recurse}");
+
+        // A folder with something still in it is what the real one refuses to remove on its own,
+        // and the fake has to answer the same way for the check to mean anything.
+        if (FolderHasFiles && !recurse)
+        {
+            throw new DeviceActionException("Run.FileFailed", $"{path}: the folder is not empty");
+        }
+
+        Folders.Remove(path);
     }
 
     int IClipboardDevice.ChangeCount
