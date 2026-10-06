@@ -11,6 +11,9 @@ public enum MacroTrigger
 
     /// <summary>A time, either every so often or at a set time of day.</summary>
     Timer,
+
+    /// <summary>A file or a folder being written to, added, removed or renamed.</summary>
+    FileChanges,
 }
 
 /// <summary>How a macro repeats once it has been triggered.</summary>
@@ -45,6 +48,22 @@ public enum ScheduleUnit
     Seconds,
     Minutes,
     Hours,
+}
+
+/// <summary>Which change of a watched file or folder starts the macro.</summary>
+public enum FileChangeKind
+{
+    /// <summary>Any of the other three.</summary>
+    Any,
+
+    /// <summary>A file or folder that appeared.</summary>
+    Created,
+
+    /// <summary>A file that was written to.</summary>
+    Changed,
+
+    /// <summary>A file or folder that went away, by being deleted or renamed.</summary>
+    Deleted,
 }
 
 /// <summary>How the watched colour is compared to the pixel under the trigger position.</summary>

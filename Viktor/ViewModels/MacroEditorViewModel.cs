@@ -167,6 +167,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsColorTrigger))]
     [NotifyPropertyChangedFor(nameof(IsKeyTrigger))]
     [NotifyPropertyChangedFor(nameof(IsTimerTrigger))]
+    [NotifyPropertyChangedFor(nameof(IsFileTrigger))]
     public partial MacroTrigger TriggerMode { get; set; } = MacroTrigger.KeystrokesButtonInputs;
 
     [ObservableProperty]
@@ -178,6 +179,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         Strings.Get("Trigger.Keys"),
         Strings.Get("Trigger.Color"),
         Strings.Get("Trigger.Timer"),
+        Strings.Get("Trigger.File"),
     ];
 
     public IReadOnlyList<string> LoopOptions { get; } =
@@ -208,6 +210,45 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     /// <summary>True when the macro is started by the clock.</summary>
     public bool IsTimerTrigger => TriggerMode == MacroTrigger.Timer;
+
+    /// <summary>True when the macro is started by a file or a folder changing.</summary>
+    public bool IsFileTrigger => TriggerMode == MacroTrigger.FileChanges;
+
+    /// <summary>The file or folder a file trigger watches.</summary>
+    [ObservableProperty]
+    public partial string WatchPath { get; set; } = string.Empty;
+
+    public IReadOnlyList<string> WatchChangeOptions { get; } =
+    [
+        Strings.Get("FileChange.Any"),
+        Strings.Get("FileChange.Created"),
+        Strings.Get("FileChange.Changed"),
+        Strings.Get("FileChange.Deleted"),
+    ];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(WatchChangeIndex))]
+    public partial FileChangeKind WatchChange { get; set; } = FileChangeKind.Any;
+
+    public int WatchChangeIndex
+    {
+        get => (int)WatchChange;
+        set
+        {
+            if (value >= 0 && value < WatchChangeOptions.Count)
+            {
+                WatchChange = (FileChangeKind)value;
+            }
+        }
+    }
+
+    /// <summary>The names watched inside a watched folder, such as <c>*.txt</c>.</summary>
+    [ObservableProperty]
+    public partial string WatchFilter { get; set; } = "*";
+
+    /// <summary>Whether a watched folder also reports what happens in the folders inside it.</summary>
+    [ObservableProperty]
+    public partial bool WatchSubfolders { get; set; }
 
     public IReadOnlyList<string> ScheduleOptions { get; } =
     [
@@ -774,6 +815,10 @@ public partial class MacroEditorViewModel : ViewModelBase
             ScheduleInterval = macro.ScheduleInterval;
             ScheduleUnit = macro.ScheduleUnit;
             ScheduleTime = macro.ScheduleTime;
+            WatchPath = macro.WatchPath;
+            WatchChange = macro.WatchChange;
+            WatchFilter = macro.WatchFilter;
+            WatchSubfolders = macro.WatchSubfolders;
             PositionCapture = macro.PositionCapture;
             ColorMatch = macro.ColorMatch;
             ColorPositionX = macro.ColorPositionX.ToString(CultureInfo.InvariantCulture);
@@ -1125,6 +1170,7 @@ public partial class MacroEditorViewModel : ViewModelBase
             {
                 MacroTrigger.ColorPixelChanges => Strings.Get("Trigger.Color"),
                 MacroTrigger.Timer => Strings.Get("Trigger.Timer"),
+                MacroTrigger.FileChanges => Strings.Get("Trigger.File"),
                 _ => Strings.Get("Trigger.Keys"),
             },
             Action = action,
@@ -1135,6 +1181,10 @@ public partial class MacroEditorViewModel : ViewModelBase
             ScheduleInterval = Math.Max(1, ScheduleInterval ?? 5),
             ScheduleUnit = ScheduleUnit,
             ScheduleTime = ScheduleTime.Trim(),
+            WatchPath = WatchPath.Trim(),
+            WatchChange = WatchChange,
+            WatchFilter = WatchFilter.Trim().Length == 0 ? "*" : WatchFilter.Trim(),
+            WatchSubfolders = WatchSubfolders,
             PositionCapture = PositionCapture,
             ColorMatch = ColorMatch,
             ColorPositionX = ParseCoordinate(ColorPositionX),

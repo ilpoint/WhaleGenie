@@ -65,6 +65,18 @@ public partial class MacroItem : ObservableObject
     /// <summary>The time of day a daily schedule runs at, written <c>08:30</c>.</summary>
     public string ScheduleTime { get; set; } = "08:00";
 
+    /// <summary>The file or folder a file trigger watches, as the author wrote it.</summary>
+    public string WatchPath { get; set; } = string.Empty;
+
+    /// <summary>Which change of the watched path starts the macro.</summary>
+    public FileChangeKind WatchChange { get; set; } = FileChangeKind.Any;
+
+    /// <summary>The names watched inside a watched folder, such as <c>*.txt</c>.</summary>
+    public string WatchFilter { get; set; } = "*";
+
+    /// <summary>Whether a watched folder also reports what happens in the folders inside it.</summary>
+    public bool WatchSubfolders { get; set; }
+
     /// <summary>Colour watched for the trigger, as a hex string (for example <c>#000000</c>).</summary>
     [ObservableProperty]
     public partial string HexColor { get; set; } = "#000000";
@@ -78,6 +90,9 @@ public partial class MacroItem : ObservableObject
     /// <summary>True when the macro is started by the clock.</summary>
     public bool IsTimerTrigger => TriggerMode == MacroTrigger.Timer;
 
+    /// <summary>True when the macro is started by a file or a folder changing.</summary>
+    public bool IsFileTrigger => TriggerMode == MacroTrigger.FileChanges;
+
     /// <summary>True when the macro is started by input and the binding is a mouse button.</summary>
     public bool IsMouseTrigger => IsKeyTrigger && LooksLikeMouseButton(BindKey);
 
@@ -86,13 +101,16 @@ public partial class MacroItem : ObservableObject
 
     /// <summary>
     /// What the macro card previews next to the trigger icon: the bound key (for example
-    /// <c>NumPad7</c>), the watched colour or the schedule, so the list says what starts each macro.
+    /// <c>NumPad7</c>), the watched colour, the schedule or the watched path, so the list says
+    /// what starts each macro.
     /// </summary>
     public string TriggerPreview => TriggerMode switch
     {
         MacroTrigger.ColorPixelChanges =>
             string.IsNullOrWhiteSpace(HexColor) ? NoPreview : HexColor.ToUpperInvariant(),
         MacroTrigger.Timer => MacroSchedule.Describe(this),
+        MacroTrigger.FileChanges =>
+            string.IsNullOrWhiteSpace(WatchPath) ? NoPreview : WatchPath,
         _ => string.IsNullOrWhiteSpace(BindKey) ? NoPreview : BindKey,
     };
 
@@ -123,6 +141,7 @@ public partial class MacroItem : ObservableObject
     {
         OnPropertyChanged(nameof(IsColorTrigger));
         OnPropertyChanged(nameof(IsTimerTrigger));
+        OnPropertyChanged(nameof(IsFileTrigger));
         OnPropertyChanged(nameof(IsMouseTrigger));
         OnPropertyChanged(nameof(IsKeyboardTrigger));
         OnPropertyChanged(nameof(TriggerPreview));
@@ -193,6 +212,13 @@ public partial class MacroItem : ObservableObject
                 ["unit"] = ScheduleUnit.ToString(),
                 ["time"] = ScheduleTime,
             },
+            ["watch"] = new JsonObject
+            {
+                ["path"] = WatchPath,
+                ["change"] = WatchChange.ToString(),
+                ["filter"] = WatchFilter,
+                ["subfolders"] = WatchSubfolders,
+            },
             ["positionCapture"] = PositionCapture.ToString(),
             ["colorMatch"] = ColorMatch.ToString(),
             ["colorPosition"] = new JsonObject
@@ -224,6 +250,7 @@ public partial class MacroItem : ObservableObject
         var position = node["colorPosition"] as JsonObject;
         var record = node["record"] as JsonObject;
         var schedule = node["schedule"] as JsonObject;
+        var watch = node["watch"] as JsonObject;
 
         var macro = new MacroItem
         {
@@ -237,6 +264,10 @@ public partial class MacroItem : ObservableObject
             ScheduleInterval = ReadInt(schedule?["interval"], 5),
             ScheduleUnit = ReadEnum(schedule, "unit", ScheduleUnit.Seconds),
             ScheduleTime = schedule?["time"]?.GetValue<string>() ?? "08:00",
+            WatchPath = watch?["path"]?.GetValue<string>() ?? string.Empty,
+            WatchChange = ReadEnum(watch, "change", FileChangeKind.Any),
+            WatchFilter = watch?["filter"]?.GetValue<string>() ?? "*",
+            WatchSubfolders = ReadBool(watch?["subfolders"]),
             PositionCapture = ReadEnum(node, "positionCapture", MousePositionMode.SaveCurrentPosition),
             ColorMatch = ReadEnum(node, "colorMatch", ColorMatchCondition.ColorMatches),
             ColorPositionX = ReadInt(position?["x"]),

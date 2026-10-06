@@ -35,6 +35,7 @@ public sealed class MacroTriggerService : IDisposable
     private readonly HashSet<MacroItem> _colourStopping = [];
     private readonly HashSet<MacroItem> _spent = [];
     private readonly Dictionary<MacroItem, DateTime> _scheduleDue = [];
+    private readonly Dictionary<MacroItem, FileWatch> _watches = [];
     private readonly HashSet<string> _heldKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly Timer _poll;
 
@@ -610,6 +611,7 @@ public sealed class MacroTriggerService : IDisposable
         }
 
         PollTimers(macros);
+        PollFiles(macros);
         PruneWatches(macros);
     }
 
@@ -690,6 +692,81 @@ public sealed class MacroTriggerService : IDisposable
     private static DateTime? NextDue(MacroItem macro, DateTime from)
         => MacroSchedule.TryNextDue(macro, from, out var due) ? due : null;
 
+    /// <summary>Runs the macros whose watched file or folder has changed.</summary>
+    private void PollFiles(IReadOnlyList<MacroItem> macros)
+    {
+        var now = DateTime.Now;
+
+        foreach (var macro in macros)
+        {
+            if (!macro.IsEnabled || macro.TriggerMode != MacroTrigger.FileChanges)
+            {
+                continue;
+            }
+
+            if (Watch(macro) is not { } watch)
+            {
+                continue;
+            }
+
+            watch.Ensure(now);
+
+            // A watch that has had its one turn waits until the macro is re-armed.
+            if (macro.TriggerOnce && IsSpent(macro))
+            {
+                continue;
+            }
+
+            if (watch.Take(now))
+            {
+                // One pass for each change, the way a timer does it: there is nothing to hold on
+                // to, so a macro that wants to keep going writes its own loop.
+                Start(macro, repeating: false);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The watch belonging to a macro: built the first time the macro is seen, and built again
+    /// when its path or its settings change.
+    /// </summary>
+    private FileWatch? Watch(MacroItem macro)
+    {
+        string path;
+        try
+        {
+            path = _devices.Files.Resolve(macro.WatchPath.Trim());
+        }
+        catch (Exception)
+        {
+            return null;    // no files on this machine, so there is nothing to watch
+        }
+
+        if (path.Length == 0)
+        {
+            return null;
+        }
+
+        var signature = FileWatch.SignatureOf(macro, path);
+        lock (_gate)
+        {
+            if (_watches.TryGetValue(macro, out var existing))
+            {
+                if (existing.Signature == signature)
+                {
+                    return existing;
+                }
+
+                existing.Dispose();
+                _watches.Remove(macro);
+            }
+
+            var watch = FileWatch.Create(macro, path);
+            _watches[macro] = watch;
+            return watch;
+        }
+    }
+
     /// <summary>True when a "trigger once" macro has already had its turn.</summary>
     private bool IsSpent(MacroItem macro)
     {
@@ -705,7 +782,7 @@ public sealed class MacroTriggerService : IDisposable
         lock (_gate)
         {
             if (_colourTriggered.Count == 0 && _colourHeld.Count == 0 && _colourStopping.Count == 0
-                && _scheduleDue.Count == 0)
+                && _scheduleDue.Count == 0 && _watches.Count == 0)
             {
                 return;
             }
@@ -738,6 +815,18 @@ public sealed class MacroTriggerService : IDisposable
                 if (item.TriggerMode != MacroTrigger.Timer)
                 {
                     _scheduleDue.Remove(item);
+                }
+            }
+
+            // A watch holds a listener of its own, so one that is no longer wanted has to be let
+            // go of rather than only forgotten.
+            foreach (var (item, watch) in _watches.ToList())
+            {
+                if (!macros.Contains(item) || !item.IsEnabled
+                    || item.TriggerMode != MacroTrigger.FileChanges)
+                {
+                    watch.Dispose();
+                    _watches.Remove(item);
                 }
             }
         }

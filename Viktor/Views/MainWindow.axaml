@@ -347,6 +347,10 @@
                                                       Stroke="#CDCDCD" StrokeThickness="1.6"
                                                       IsVisible="{Binding IsTimerTrigger}"
                                                       Data="M 12,2.6 A 9.4,9.4 0 1 1 2.6,12 A 9.4,9.4 0 1 1 12,2.6 Z M 12,6.6 V 12.4 L 16.2,14.8" />
+                                                <Path Width="15" Height="15" Stretch="Uniform"
+                                                      Stroke="#CDCDCD" StrokeThickness="1.5"
+                                                      IsVisible="{Binding IsFileTrigger}"
+                                                      Data="M 3,4.5 H 9.5 L 11.5,7 H 21 V 19.5 H 3 Z" />
                                             </Panel>
                                         </Border>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
@@ -363,6 +367,8 @@
                                                         IsVisible="{Binding IsColorTrigger}"
                                                         Background="{Binding HexColor, Converter={StaticResource HexBrush}}" />
                                                 <TextBlock FontSize="12" Foreground="#8FC7F0"
+                                                           MaxWidth="260" TextTrimming="CharacterEllipsis"
+                                                           ToolTip.Tip="{Binding TriggerPreview}"
                                                            Text="{Binding TriggerPreview}" />
                                             </StackPanel>
                                         </StackPanel>
