@@ -273,7 +273,7 @@ public sealed class MacroRunner
             catch (StepFailure) when (attempt < step.Meta.RetryCount)
             {
                 Log(LogLevel.Warn, depth, step.Type, "Run.Retry", attempt + 1);
-                await Pause(Pace(step.Meta.RetryDelayMs), token);
+                await Pause(RetryPause(step, attempt + 1), token);
             }
             catch (StepFailure failure)
             {
@@ -290,7 +290,7 @@ public sealed class MacroRunner
 
                 if (decision is Decision.Retry)
                 {
-                    await Pause(Pace(step.Meta.RetryDelayMs), token);
+                    await Pause(RetryPause(step, attempt + 1), token);
                     continue;
                 }
 
@@ -314,6 +314,13 @@ public sealed class MacroRunner
             _ => Decision.Stop,
         };
     }
+
+    /// <summary>
+    /// How long to wait before a retry, at this run's speed. The step's settings decide the
+    /// pause, so a step can back off further with every attempt instead of hammering away.
+    /// </summary>
+    private int RetryPause(ExecutableStep step, int attempt)
+        => Pace(step.Meta.RetryDelayFor(attempt));
 
     /// <summary>
     /// Runs one step, turning a broken expression into a failure the step can report and

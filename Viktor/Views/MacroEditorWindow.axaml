@@ -661,6 +661,9 @@
                                           <TextBlock Text="{Binding Comment}" FontSize="11"
                                                      Foreground="#C8A165" TextWrapping="Wrap"
                                                      IsVisible="{Binding HasComment}" />
+                                          <TextBlock Text="{Binding MetaSummary}" FontSize="10.5"
+                                                     Foreground="#8FB3D9" TextWrapping="Wrap"
+                                                     IsVisible="{Binding HasMetaSummary}" />
                                       </StackPanel>
                                   </StackPanel>
                               </Border>

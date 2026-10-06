@@ -121,8 +121,62 @@ public class MacroStep : INotifyPropertyChanged
             Raise(nameof(IsSkipped));
             Raise(nameof(SkipLabel));
             Raise(nameof(RowOpacity));
+            Raise(nameof(MetaSummary));
+            Raise(nameof(HasMetaSummary));
         }
     }
+
+    /// <summary>
+    /// The step settings worth seeing without opening the dialog: the retries it gets, the timeout
+    /// it is held to, the pauses around it, and what a failure does instead of stopping the macro.
+    /// Empty for an ordinary step, so the list stays quiet.
+    /// </summary>
+    public string MetaSummary
+    {
+        get
+        {
+            var meta = Meta;
+            var parts = new List<string>();
+
+            if (meta.RetryCount > 0)
+            {
+                parts.Add(Strings.Format(meta.RetryBackoff switch
+                {
+                    RetryBackoff.Doubling => "Editor.Meta.RetryDoubling",
+                    RetryBackoff.Jitter => "Editor.Meta.RetryJitter",
+                    _ => "Editor.Meta.Retry",
+                }, meta.RetryCount));
+            }
+
+            if (meta.TimeoutMs > 0)
+            {
+                parts.Add(Strings.Format("Editor.Meta.Timeout", meta.TimeoutMs));
+            }
+
+            if (meta.DelayBeforeMs > 0 || meta.DelayAfterMs > 0)
+            {
+                parts.Add(Strings.Format("Editor.Meta.Pauses", meta.DelayBeforeMs, meta.DelayAfterMs));
+            }
+
+            switch (meta.OnError)
+            {
+                case StepErrorAction.Continue:
+                    parts.Add(Strings.Get("Editor.Meta.OnErrorContinue"));
+                    break;
+                case StepErrorAction.NextIteration:
+                    parts.Add(Strings.Get("Editor.Meta.OnErrorNextIteration"));
+                    break;
+                case StepErrorAction.AskUser:
+                    parts.Add(Strings.Get("Editor.Meta.OnErrorAsk"));
+                    break;
+            }
+
+            return string.Join(" · ", parts);
+        }
+    }
+
+    /// <summary>True when there is something about this step worth showing.</summary>
+    public bool HasMetaSummary => MetaSummary.Length > 0;
 
     /// <summary>Note the user wrote about this step, shown under its name.</summary>
     public string Comment => Meta.Comment;

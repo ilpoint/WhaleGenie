@@ -381,6 +381,34 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task Retrying_waits_longer_before_each_attempt_when_the_step_backs_off()
+    {
+        var broken = new ExecutableStep
+        {
+            Type = "something.unknown",
+            Meta = new StepMeta
+            {
+                RetryCount = 2,
+                RetryDelayMs = 30,
+                RetryBackoff = RetryBackoff.Doubling,
+                OnError = StepErrorAction.Continue,
+            },
+        };
+
+        var watch = Stopwatch.StartNew();
+        var (result, host) = await RunAsync([broken]);
+        watch.Stop();
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(2, host.Entries.Count(entry => entry.Key == "Run.Retry"));
+
+        // 30 ms before the first retry and 60 before the second. A run can only ever take longer
+        // than it asked for, so this is a floor rather than an exact figure.
+        Assert.True(watch.Elapsed.TotalMilliseconds >= 85,
+            $"the pauses should grow, took {watch.Elapsed.TotalMilliseconds:0} ms");
+    }
+
+    [Fact]
     public async Task A_failure_can_be_handed_to_the_user()
     {
         var store = Store();

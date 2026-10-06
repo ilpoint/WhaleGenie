@@ -9,6 +9,7 @@ using System.Text.Json.Nodes;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Viktor.Core.Execution;
 using Viktor.Localization;
 using Viktor.Models;
 
@@ -36,6 +37,10 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         new() { Icon = G("M4,20 L4,16 L16,4 L20,8 L8,20 Z M14,6 L18,10"),
                 LabelKey = "Palette.Edit", Key = "edit", NeedsSingleSelection = true },
+
+        // Sliders, because this is where a step is made to back off, wait longer or give up.
+        new() { Icon = G("M4,7 H20 M4,12 H20 M4,17 H20 M8,5 V9 M15,10 V14 M11,15 V19"),
+                LabelKey = "Palette.StepSettings", Key = "stepSettings", NeedsSingleSelection = true },
 
         new() { Icon = G("M12,3 L12,11 M7.2,6.2 A7,7 0 1 0 16.8,6.2"),
                 LabelKey = "Palette.ToggleEnabled", Key = "toggleEnabled", NeedsSelection = true },
@@ -110,6 +115,9 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     /// <summary>Raised when the editor should open the edit dialog for an existing step.</summary>
     public event Action<MacroStep>? EditStepRequested;
+
+    /// <summary>Raised when the editor should open the settings dialog for one step.</summary>
+    public event Action<MacroStep>? StepSettingsRequested;
 
     /// <summary>Raised when the palette asks to clear the list, so the window can confirm it.</summary>
     public event Action? ClearRequested;
@@ -390,6 +398,9 @@ public partial class MacroEditorViewModel : ViewModelBase
             case "edit":
                 EditSelectedCommand.Execute(null);
                 break;
+            case "stepSettings":
+                StepSettingsSelectedCommand.Execute(null);
+                break;
             case "toggleEnabled":
                 ToggleStepEnabledCommand.Execute(null);
                 break;
@@ -454,6 +465,27 @@ public partial class MacroEditorViewModel : ViewModelBase
         {
             EditStepRequested?.Invoke(_selection[0]);
         }
+    }
+
+    /// <summary>Asks the window for the settings of the one selected step.</summary>
+    [RelayCommand]
+    private void StepSettingsSelected()
+    {
+        if (_selection.Count == 1)
+        {
+            StepSettingsRequested?.Invoke(_selection[0]);
+        }
+    }
+
+    /// <summary>
+    /// Puts settings chosen in the step-settings dialog onto a step. Like every other change to
+    /// the list it can be undone, so a mistaken retry count is one Ctrl + Z away.
+    /// </summary>
+    public void ApplyStepSettings(MacroStep step, StepMeta meta)
+    {
+        PushUndo();
+        step.Meta = meta;
+        NotifyStepsChanged();
     }
 
     /// <summary>
