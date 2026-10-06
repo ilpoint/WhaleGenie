@@ -1002,28 +1002,103 @@ public class MacroRunnerTests
 
         var (result, _) = await RunAsync(
         [
-            Step("control.runMacro", Param("macro", "双击")),
-            Step("control.runMacro", Param("macro", "清空")),
+            Step("control.runMacro", Param("macro", "双击"), Param("arguments", "n=$n"),
+                Param("returns", "n")),
+            Set("中间", "$n"),
+            Step("control.runMacro", Param("macro", "清空"), Param("arguments", "n=$n"),
+                Param("returns", "n")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
+        Assert.Equal(2, N(store, "中间"));
         Assert.Equal(0, N(store, "n"));
     }
 
     [Fact]
-    public async Task A_called_macro_shares_the_caller_variables()
+    public async Task A_called_macro_reads_what_it_is_passed_and_gives_back_what_is_asked_for()
     {
-        var store = Store();
+        var store = Store(("我的数", 41));
         var library = new Library(("加一", [Set("结果", "$输入 + 1")]));
 
         var (result, _) = await RunAsync(
         [
-            Set("输入", "41"),
-            Step("control.runMacro", Param("macro", "加一")),
+            Step("control.runMacro", Param("macro", "加一"), Param("arguments", "输入=$我的数"),
+                Param("returns", "结果")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
         Assert.Equal(42, N(store, "结果"));
+    }
+
+    [Fact]
+    public async Task A_called_macro_cannot_read_the_callers_own_values()
+    {
+        var library = new Library(("读", [Set("结果", "$只有调用者有 + 1")]));
+
+        var (result, _) = await RunAsync(
+        [
+            Set("只有调用者有", "7"),
+            Step("control.runMacro", Param("macro", "读"), Param("returns", "结果")),
+        ], macros: library);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BadExpression", result.Key);
+    }
+
+    [Fact]
+    public async Task What_a_called_macro_leaves_behind_stays_inside_it()
+    {
+        var store = Store();
+        var library = new Library(("留一手", [Set("临时", "9")]));
+
+        var (result, _) = await RunAsync(
+            [Step("control.runMacro", Param("macro", "留一手"))], variables: store, macros: library);
+
+        Assert.True(result.Succeeded);
+        Assert.False(store.TryGet("临时", out _));
+    }
+
+    [Fact]
+    public async Task A_result_the_called_macro_never_set_comes_back_empty()
+    {
+        var store = Store();
+        var library = new Library(("空手", [Set("别的", "1")]));
+
+        var (result, _) = await RunAsync(
+            [Step("control.runMacro", Param("macro", "空手"), Param("returns", "答案"))],
+            variables: store, macros: library);
+
+        Assert.True(result.Succeeded);
+        Assert.True(store.TryGet("答案", out var answer));
+        Assert.Equal(string.Empty, answer.AsText());
+    }
+
+    [Fact]
+    public async Task An_argument_keeps_the_kind_of_value_it_was_given()
+    {
+        var store = Store();
+        var library = new Library(("数个数", [Set("个数", "count($项目)")]));
+
+        var (result, _) = await RunAsync(
+        [
+            Set("项目", "list(1, 2, 3)"),
+            Step("control.runMacro", Param("macro", "数个数"), Param("arguments", "项目=$项目"),
+                Param("returns", "个数")),
+        ], variables: store, macros: library);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(3, N(store, "个数"));
+    }
+
+    [Fact]
+    public async Task An_argument_line_that_is_not_a_pair_fails_the_step()
+    {
+        var (result, _) = await RunAsync(
+            [Step("control.runMacro", Param("macro", "甲"), Param("arguments", "这一行没有等号"))],
+            macros: new Library(("甲", [])));
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BadMacroArgument", result.Key);
     }
 
     [Fact]

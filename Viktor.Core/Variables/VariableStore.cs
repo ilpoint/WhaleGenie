@@ -28,7 +28,21 @@ public sealed class VariableStore : IVariableResolver
     public VariableBag Global { get; } = new();
 
     /// <summary>Values only the running macro sees.</summary>
-    public VariableBag Local { get; } = new();
+    public VariableBag Local { get; private set; } = new();
+
+    /// <summary>
+    /// Hands the running macro's values over to <paramref name="next"/> and gives back the table
+    /// that was in use, so the caller can have its own back when the call is over. A macro called
+    /// by another one runs on a table of its own — that is what "only the running macro sees"
+    /// means — so what it works with is what it was handed, and what it leaves behind is whatever
+    /// the call asked to have back.
+    /// </summary>
+    public VariableBag SwapLocal(VariableBag next)
+    {
+        var previous = Local;
+        Local = next;
+        return previous;
+    }
 
     /// <summary>Reads a value, with local beating global and global beating system.</summary>
     public bool TryGet(string name, out Value value)

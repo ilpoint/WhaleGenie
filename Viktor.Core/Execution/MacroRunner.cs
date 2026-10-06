@@ -176,9 +176,18 @@ public sealed class MacroRunner
             throw new StepFailure("Run.MacroTooDeep", name);
         }
 
-        // The loop counters belong to whoever is doing the looping, so the called macro gets
-        // its own and the caller's are put back exactly as they were.
-        var saved = RememberFrame();
+        // Read the arguments while the caller's values are still the ones in force, then hand the
+        // called macro a table of its own holding just those. A macro's own values are its own —
+        // that is why one macro cannot read another's — so a call says what goes in and what
+        // comes back rather than leaning on whatever happened to be left lying around.
+        var arguments = ArgumentsOf(step);
+        var called = new VariableBag();
+        foreach (var (argument, value) in arguments)
+        {
+            called.Set(argument, value);
+        }
+
+        var caller = Variables.SwapLocal(called);
         _callDepth++;
         try
         {
@@ -198,49 +207,75 @@ public sealed class MacroRunner
         finally
         {
             _callDepth--;
-            RestoreFrame(saved);
+            Take(step, Variables.SwapLocal(caller));
         }
     }
 
     /// <summary>
-    /// The bookkeeping a called macro must not carry away: the counter of the loop it was
-    /// called from, and which of those there were to begin with.
+    /// What a step hands the macro it calls, written one <c>NAME=value</c> per line. The name is
+    /// the one the called macro reads, and the value is read the way every other value field is,
+    /// so <c>count=$n + 1</c> passes a number and <c>xs=$list</c> passes the list itself rather
+    /// than its text. Blank lines and lines starting with <c>#</c> are skipped, so a line a macro
+    /// has switched off can sit next to the ones in use.
     /// </summary>
-    private (Dictionary<string, Value> Values, HashSet<string> Names) RememberFrame()
+    private List<(string Name, Value Value)> ArgumentsOf(ExecutableStep step)
     {
-        var values = new Dictionary<string, Value>(StringComparer.OrdinalIgnoreCase);
-        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var (local, value) in Variables.Local.Values)
+        var text = step.Text("arguments");
+        var passed = new List<(string Name, Value Value)>();
+        if (text.Trim().Length == 0)
         {
-            if (local.StartsWith("sys.", StringComparison.OrdinalIgnoreCase))
+            return passed;
+        }
+
+        foreach (var line in Lines(text))
+        {
+            var pair = line.Trim();
+            if (pair.Length == 0 || pair.StartsWith('#'))
             {
-                names.Add(local);
-                values[local] = value;
+                continue;
             }
+
+            var cut = pair.IndexOf('=');
+            if (cut <= 0)
+            {
+                throw new StepFailure("Run.BadMacroArgument", pair);
+            }
+
+            passed.Add((pair[..cut].Trim(), Read(pair[(cut + 1)..].Trim())));
         }
 
-        return (values, names);
+        return passed;
     }
 
-    /// <summary>Puts the caller's own bookkeeping back and drops anything the call left behind.</summary>
-    private void RestoreFrame((Dictionary<string, Value> Values, HashSet<string> Names) frame)
+    /// <summary>
+    /// Copies the values a call asked to get back into the caller's own table. A name the called
+    /// macro never set comes back empty rather than missing, so the step after the call reads this
+    /// call's answer and not whatever an earlier pass left behind.
+    /// </summary>
+    private void Take(ExecutableStep step, VariableBag produced)
     {
-        var extra = Variables.Local.Values.Keys
-            .Where(local => local.StartsWith("sys.", StringComparison.OrdinalIgnoreCase)
-                            && !frame.Names.Contains(local))
-            .ToList();
-
-        foreach (var local in extra)
+        var wanted = step.Text("returns").Trim();
+        if (wanted.Length == 0)
         {
-            Variables.Local.Remove(local);
+            return;
         }
 
-        foreach (var (local, value) in frame.Values)
+        foreach (var name in wanted.Split(',',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
-            Variables.Local.Set(local, value);
+            if (produced.TryGet(name, out var value) && value is not null)
+            {
+                Variables.Local.Set(name, value);
+                continue;
+            }
+
+            Variables.Local.Set(name, Value.Null);
         }
     }
+
+    /// <summary>The entries of a field written one to a line, whichever line ending was used.</summary>
+    private static string[] Lines(string text)
+        => text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
 
     private async Task<Signal> RunStep(ExecutableStep step, int depth, CancellationToken token)
     {
@@ -2774,7 +2809,7 @@ public sealed class MacroRunner
         }
 
         var wanted = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var line in text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'))
+        foreach (var line in Lines(text))
         {
             var pair = line.Trim();
             if (pair.Length == 0 || pair.StartsWith('#'))

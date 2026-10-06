@@ -413,11 +413,19 @@ public static class ActionCatalog
             Category = ActionCategory.Control,
             DisplayName = "Run Another Macro",
             Description = "Run another macro in this project, as though its steps had been written "
-                + "here. The called macro shares this macro's variables, so it can read what you "
-                + "set up and leave its answer behind.",
+                + "here. The called macro works on values of its own: it reads what the arguments "
+                + "hand it, and what it leaves behind comes back through the results list.",
             Parameters =
             [
                 MacroName("macro", "Macro", "Another macro in this project."),
+                Multiline("arguments", "Arguments",
+                    "One NAME=value per line, handed to the called macro as its own values. The "
+                    + "value is read the way other fields are, so count=$n + 1 passes a number "
+                    + "and xs=$list passes the list itself. Lines starting with # are skipped.",
+                    "count=$n + 1\nlabel=$name", required: false),
+                Text("returns", "Results", "answer, status",
+                    "Names of the called macro's values to bring back into this macro, separated "
+                    + "by commas. A name the called macro never set comes back empty.", required: false),
             ],
         },
 

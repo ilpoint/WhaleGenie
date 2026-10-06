@@ -287,9 +287,17 @@ internal static class ActionStrings
 
         ["control.runMacro.name"] = "执行其他宏",
         ["control.runMacro.desc"] = "运行本项目里的另一个宏，就像把它的步骤写在这里一样。"
-            + "被调用的宏与调用它的宏共用变量，所以它能读取调用者准备的数据，也能把结果留在变量里。",
+            + "被调用的宏用自己的一套变量：它读到的就是下面“参数”里传进去的东西，"
+            + "它留下的东西靠“返回”挑回来。",
         ["control.runMacro.macro.label"] = "宏",
         ["control.runMacro.macro.hint"] = "本项目里的另一个宏。改名或删除后这里需要跟着改。",
+        ["control.runMacro.arguments.label"] = "参数",
+        ["control.runMacro.arguments.hint"] = "一行一个 NAME=value，作为被调用宏自己的变量传进去。"
+            + "值按其它字段一样的规则读取：count=$n + 1 传的是数字，xs=$list 传的是列表本身，"
+            + "写不出 NAME=value 的行会让这一步失败。# 开头的行会跳过。",
+        ["control.runMacro.returns.label"] = "返回",
+        ["control.runMacro.returns.hint"] = "要带回本宏的变量名，用逗号隔开。被调用宏没有设置的"
+            + "名字会带回空值，这样后面读到的永远是这一次的结果，而不是上一次残留的。",
 
         // --------------------------------------------------------------------- file
         ["file.readText.name"] = "读取文本",
