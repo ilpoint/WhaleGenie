@@ -638,7 +638,8 @@
 
                    <ListBox Grid.Row="2" Name="StepList" Classes="StepList"
                             ItemsSource="{Binding Steps}" SelectionMode="Multiple"
-                            IsVisible="{Binding HasSteps}">
+                            IsVisible="{Binding HasSteps}"
+                            DoubleTapped="OnStepDoubleTapped">
                        <ListBox.ItemTemplate>
                            <DataTemplate x:DataType="models:MacroStep">
                               <Border Classes="StepRow" Opacity="{Binding RowOpacity}">
@@ -670,6 +671,13 @@
                            </DataTemplate>
                        </ListBox.ItemTemplate>
                    </ListBox>
+
+                   <!-- The seam a dragged block drops on. Sits in the same cell as the list and
+                        is not hit-testable, so it never swallows the drag that draws it. -->
+                   <Canvas Grid.Row="2" Name="DropLayer" IsHitTestVisible="False">
+                       <Border Name="DropMarker" Height="2" CornerRadius="1"
+                               Background="#FF6A35" IsVisible="False" />
+                   </Canvas>
 
                </Grid>
             </Border>

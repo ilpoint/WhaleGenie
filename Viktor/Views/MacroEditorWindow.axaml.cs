@@ -52,6 +52,26 @@ public partial class MacroEditorWindow : Window
     /// <summary>Clears the "what the last pick caught" line a moment after it is shown.</summary>
     private DispatcherTimer? _pickTimer;
 
+    /// <summary>The step list, kept because the drag handlers need it after construction.</summary>
+    private ListBox? _stepList;
+
+    /// <summary>Layer the drag marker is drawn on, over the step list.</summary>
+    private Canvas? _dropLayer;
+    private Border? _dropMarker;
+
+    /// <summary>Where the pointer went down, so a click can be told apart from a drag.</summary>
+    private Point _dragOrigin;
+
+    /// <summary>The row under the pointer when it went down; null when the press missed the rows.</summary>
+    private MacroStep? _pressedStep;
+
+    private bool _draggingSteps;
+
+    /// <summary>Row the dragged block would land at, or -1 while there is no drop target.</summary>
+    private int _dropSlot = -1;
+
+    private double _dropMarkerY;
+
     public MacroEditorWindow()
         : this(null, null, null)
     {
@@ -124,6 +144,8 @@ public partial class MacroEditorWindow : Window
         var stepList = this.FindControl<ListBox>("StepList");
         if (stepList is not null)
         {
+            _stepList = stepList;
+
             stepList.SelectionChanged += (_, _) =>
             {
                 if (_syncingSelection)
@@ -156,7 +178,17 @@ public partial class MacroEditorWindow : Window
                     _syncingSelection = false;
                 }
             };
+
+            // Tunnelled: a row handles the press itself, so a drag has to be seen on the way
+            // down to the row rather than after it.
+            stepList.AddHandler(PointerPressedEvent, OnStepPointerPressed, RoutingStrategies.Tunnel);
+            stepList.AddHandler(PointerMovedEvent, OnStepPointerMoved, RoutingStrategies.Tunnel);
+            stepList.AddHandler(PointerReleasedEvent, OnStepPointerReleased, RoutingStrategies.Tunnel);
+            stepList.AddHandler(PointerCaptureLostEvent, OnStepPointerCaptureLost, RoutingStrategies.Tunnel);
         }
+
+        _dropLayer = this.FindControl<Canvas>("DropLayer");
+        _dropMarker = this.FindControl<Border>("DropMarker");
 
         // Tunnelling so the key reaches us before the focused control consumes it.
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
@@ -321,9 +353,6 @@ public partial class MacroEditorWindow : Window
                 break;
             case Key.Delete when !control:
                 viewModel.DeleteSelectedCommand.Execute(null);
-                break;
-            case Key.D when control:
-                viewModel.DuplicateSelectedCommand.Execute(null);
                 break;
             case Key.G when control:
                 viewModel.GroupSelectedCommand.Execute(null);
@@ -835,4 +864,159 @@ public partial class MacroEditorWindow : Window
             BeginMoveDrag(e);
         }
     }
+
+    /// <summary>Double-clicking a row opens it, which is what a list is expected to do.</summary>
+    private void OnStepDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (RowUnder(e.Source) is not { } step)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        OnEditStepRequested(step);
+    }
+
+    /// <summary>Remembers where a press landed, so a plain click never turns into a drag.</summary>
+    private void OnStepPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        _pressedStep = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+            ? RowUnder(e.Source)
+            : null;
+        _dragOrigin = e.GetPosition(this);
+        _draggingSteps = false;
+        _dropSlot = -1;
+    }
+
+    /// <summary>Starts the drag once the pointer has moved far enough, then tracks the drop row.</summary>
+    private void OnStepPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_pressedStep is null)
+        {
+            return;
+        }
+
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            EndStepDrag();
+            return;
+        }
+
+        if (!_draggingSteps)
+        {
+            var moved = e.GetPosition(this);
+
+            // A few pixels of slack, so a shaky click is still a click.
+            if (Math.Abs(moved.X - _dragOrigin.X) < 4 && Math.Abs(moved.Y - _dragOrigin.Y) < 4)
+            {
+                return;
+            }
+
+            // Dragging a row that is already part of a multiple selection moves them all.
+            if (_stepList is { } list && !_viewModel.SelectedSteps.Contains(_pressedStep))
+            {
+                list.SelectedItem = _pressedStep;
+            }
+
+            _draggingSteps = true;
+            e.Pointer.Capture(_stepList);
+        }
+
+        UpdateDropSlot(e);
+    }
+
+    /// <summary>Drops the block where the marker points.</summary>
+    private void OnStepPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        // The state is read and cleared before the capture goes back, because losing the
+        // capture asks for the drag to end and would wipe the drop row out from under us.
+        var dropping = _draggingSteps;
+        var slot = _dropSlot;
+        EndStepDrag();
+        e.Pointer.Capture(null);
+
+        if (dropping && slot >= 0)
+        {
+            _viewModel.MoveSelectionTo(slot);
+        }
+    }
+
+    private void OnStepPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+        => EndStepDrag();
+
+    private void EndStepDrag()
+    {
+        _pressedStep = null;
+        _draggingSteps = false;
+        _dropSlot = -1;
+
+        if (_dropMarker is not null)
+        {
+            _dropMarker.IsVisible = false;
+        }
+    }
+
+    /// <summary>Works out which row the block would land at, and moves the marker onto that seam.</summary>
+    private void UpdateDropSlot(PointerEventArgs e)
+    {
+        if (_stepList is null)
+        {
+            return;
+        }
+
+        var point = e.GetPosition(_stepList);
+        var slot = _viewModel.Steps.Count;
+        var markerY = _stepList.Bounds.Height;
+
+        foreach (var item in _stepList.GetVisualDescendants().OfType<ListBoxItem>())
+        {
+            if (item.DataContext is not MacroStep step)
+            {
+                continue;
+            }
+
+            var index = _viewModel.Steps.IndexOf(step);
+            if (index < 0)
+            {
+                continue;
+            }
+
+            var top = item.TranslatePoint(new Point(0, 0), _stepList)?.Y ?? 0;
+            var bottom = top + item.Bounds.Height;
+
+            // Past the middle of a row means the block goes after it, not before.
+            if (point.Y < top + ((bottom - top) / 2))
+            {
+                slot = index;
+                markerY = top;
+                break;
+            }
+
+            slot = index + 1;
+            markerY = bottom;
+        }
+
+        _dropSlot = slot;
+        _dropMarkerY = markerY;
+        ShowDropMarker();
+    }
+
+    private void ShowDropMarker()
+    {
+        if (_dropLayer is null || _dropMarker is null)
+        {
+            return;
+        }
+
+        var highest = Math.Max(0, _dropLayer.Bounds.Height - 2);
+        _dropMarker.Width = _dropLayer.Bounds.Width;
+        Canvas.SetTop(_dropMarker, Math.Clamp(_dropMarkerY, 0, highest));
+        _dropMarker.IsVisible = true;
+    }
+
+    /// <summary>The step row a pointer event happened on, or <c>null</c> when it missed them all.</summary>
+    private static MacroStep? RowUnder(object? source)
+        => source is Visual visual
+            ? visual.FindAncestorOfType<ListBoxItem>(true)?.DataContext as MacroStep
+            : null;
 }

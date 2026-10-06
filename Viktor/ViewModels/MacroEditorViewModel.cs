@@ -40,16 +40,17 @@ public partial class MacroEditorViewModel : ViewModelBase
         new() { Icon = G("M12,3 L12,11 M7.2,6.2 A7,7 0 1 0 16.8,6.2"),
                 LabelKey = "Palette.ToggleEnabled", Key = "toggleEnabled", NeedsSelection = true },
 
+        // Copy borrows the two-sheets glyph: with the duplicate entry gone there is one copy
+        // button, and this reads as "a copy of the steps" more plainly than a single sheet.
         new() { Icon = G("M8,8 L20,8 L20,20 L8,20 Z M4,16 L4,4 L16,4 L16,6"),
-                LabelKey = "Palette.Duplicate", Key = "duplicate", NeedsSelection = true },
-
-        new() { Icon = G("M8,3 H14 L19,8 V21 H8 Z M14,3 V8 H19 M11,13 H16"),
                 LabelKey = "Palette.Copy", Key = "copy", NeedsSelection = true },
 
         new() { Icon = G("M6.5,4 L16,15 M17.5,4 L8,15 M3.5,18.5 A2.5,2.5 0 1 1 8.5,18.5 A2.5,2.5 0 1 1 3.5,18.5 M15.5,18.5 A2.5,2.5 0 1 1 20.5,18.5 A2.5,2.5 0 1 1 15.5,18.5"),
                 LabelKey = "Palette.Cut", Key = "cut", NeedsSelection = true },
 
-        new() { Icon = G("M9,3 L15,3 L15,5 L9,5 Z M6,5 L18,5 L18,21 L6,21 Z M12,9 L12,16 M9,13 L12,16 L15,13"),
+        // A plain clipboard, the usual "paste" glyph. The old one was a clipboard with a
+        // downward arrow, which reads as "download" and had nothing to do with the step list.
+        new() { Icon = G("M9,3 L15,3 L15,5 L9,5 Z M5,5 L19,5 L19,21 L5,21 Z"),
                 LabelKey = "Palette.Paste", Key = "paste" },
 
         new() { Icon = G("M4,7 L20,7 M10,11 L10,17 M14,11 L14,17 M6,7 L7,21 L17,21 L18,7 M9,7 L9,4 L15,4 L15,7"),
@@ -399,9 +400,6 @@ public partial class MacroEditorViewModel : ViewModelBase
             case "redo":
                 RedoCommand.Execute(null);
                 break;
-            case "duplicate":
-                DuplicateSelectedCommand.Execute(null);
-                break;
             case "copy":
                 CopyRequested?.Invoke();
                 break;
@@ -477,32 +475,6 @@ public partial class MacroEditorViewModel : ViewModelBase
             step.Meta = step.Meta.WithEnabled(enable);
         }
 
-        NotifyStepsChanged();
-    }
-
-    /// <summary>Copies the selected steps and leaves the originals where they were.</summary>
-    [RelayCommand]
-    private void DuplicateSelected()
-    {
-        if (_selection.Count == 0)
-        {
-            return;
-        }
-
-        PushUndo();
-
-        var copies = new List<MacroStep>();
-        var offset = 1;
-        foreach (var step in Ordered(_selection))
-        {
-            var copy = Clone(step);
-            Steps.Insert(Steps.IndexOf(step) + offset, copy);
-            copies.Add(copy);
-            offset++;
-        }
-
-        // Leave the copies highlighted so they can be moved or edited straight away.
-        RestoreSelection(copies);
         NotifyStepsChanged();
     }
 
@@ -830,6 +802,54 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
 
         RestoreSelection(moved);
+        NotifyStepsChanged();
+    }
+
+    /// <summary>
+    /// Puts the selected steps where a drag dropped them. <paramref name="slot"/> is the row
+    /// index the block should start at, counted against the list as it stands now.
+    /// </summary>
+    public void MoveSelectionTo(int slot)
+    {
+        var selected = Ordered(_selection);
+        if (selected.Count == 0)
+        {
+            return;
+        }
+
+        var moving = new HashSet<MacroStep>(selected);
+
+        // The row the block lands in front of. A row being dragged cannot be that anchor, or
+        // the block would be measured against itself and could never move past it.
+        MacroStep? anchor = null;
+        for (var index = Math.Clamp(slot, 0, Steps.Count); index < Steps.Count; index++)
+        {
+            if (!moving.Contains(Steps[index]))
+            {
+                anchor = Steps[index];
+                break;
+            }
+        }
+
+        var reordered = Steps.Where(step => !moving.Contains(step)).ToList();
+        var insertAt = anchor is null ? reordered.Count : reordered.IndexOf(anchor);
+        reordered.InsertRange(insertAt, selected);
+
+        // A drag that ends where it started is not a change, so it leaves no undo entry.
+        if (reordered.SequenceEqual(Steps))
+        {
+            return;
+        }
+
+        PushUndo();
+
+        Steps.Clear();
+        foreach (var step in reordered)
+        {
+            Steps.Add(step);
+        }
+
+        RestoreSelection(selected);
         NotifyStepsChanged();
     }
 

@@ -75,7 +75,8 @@ public sealed class Strings : INotifyPropertyChanged
     internal static readonly Dictionary<string, string> English = new()
     {
         // ------------------------------------------------------------- main window
-        ["Main.Title"] = "Viktor (Admin)",
+        ["Main.Title"] = "Viktor",
+        ["Main.AdminBadge"] = " (Admin)",
         ["Main.File"] = "_File",
         ["Main.Help"] = "_Help",
         ["Main.OpenProject"] = "Open Macro Project",
@@ -247,9 +248,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Palette.Add"] = "Add new action (Insert)",
         ["Palette.Undo"] = "Undo the last change (Ctrl + Z)",
         ["Palette.Redo"] = "Redo the change that was undone (Ctrl + Y)",
-        ["Palette.Edit"] = "Edit the selected step (F2)",
+        ["Palette.Edit"] = "Edit the selected step (F2 or double-click)",
         ["Palette.ToggleEnabled"] = "Turn the selected steps on or off (Ctrl + E)",
-        ["Palette.Duplicate"] = "Duplicate the selected steps (Ctrl + D)",
         ["Palette.Copy"] = "Copy the selected steps (Ctrl + C)",
         ["Palette.Cut"] = "Cut the selected steps (Ctrl + X)",
         ["Palette.Paste"] = "Paste below the selected step (Ctrl + V)",
@@ -548,7 +548,8 @@ public sealed class Strings : INotifyPropertyChanged
     internal static readonly Dictionary<string, string> Chinese = new()
     {
         // ------------------------------------------------------------- main window
-        ["Main.Title"] = "Viktor（管理员）",
+        ["Main.Title"] = "Viktor",
+        ["Main.AdminBadge"] = "（管理员）",
         ["Main.File"] = "_文件",
         ["Main.Help"] = "_帮助",
         ["Main.OpenProject"] = "打开宏项目",
@@ -713,9 +714,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Palette.Add"] = "添加新动作 (Insert)",
         ["Palette.Undo"] = "撤销上一步操作 (Ctrl + Z)",
         ["Palette.Redo"] = "恢复被撤销的操作 (Ctrl + Y)",
-        ["Palette.Edit"] = "编辑选中的步骤 (F2)",
+        ["Palette.Edit"] = "编辑选中的步骤（F2 或双击）",
         ["Palette.ToggleEnabled"] = "启用 / 停用选中的步骤 (Ctrl + E)",
-        ["Palette.Duplicate"] = "复制选中的步骤 (Ctrl + D)",
         ["Palette.Copy"] = "复制选中的步骤 (Ctrl + C)",
         ["Palette.Cut"] = "剪切选中的步骤 (Ctrl + X)",
         ["Palette.Paste"] = "粘贴到选中步骤的下方 (Ctrl + V)",
