@@ -1649,12 +1649,14 @@ public static class ActionCatalog
                 TextMatch(),
                 Content(),
                 Preprocess(),
+                MinScore(),
                 AllMatches(),
                 Variable("resultVariable", "Result variable", "match",
                     "Variable that receives the match centre, empty when the text was not found. "
                     + "$name.x, $name.y, $name.width, $name.height, $name.text and $name.score hold "
                     + "the parts, and $name.count and $name.list the whole set when the step records "
-                    + "it.",
+                    + "it. The score is what the reading model made of it, not a percentage: bigger "
+                    + "means surer.",
                     namesVariable: true, defaultValue: "match"),
             ],
         },
@@ -1670,6 +1672,7 @@ public static class ActionCatalog
                 TextMatch(),
                 Content(),
                 Preprocess(),
+                MinScore(),
                 Number("offsetX", "Offset X", 0, "Pixels added to the match centre.", min: -100000m),
                 Number("offsetY", "Offset Y", 0, min: -100000m),
                 Number("timeoutMs", "Timeout ms", 5000, "Wait this long for the text before giving up."),
@@ -2523,6 +2526,19 @@ public static class ActionCatalog
             + "grey with light and dark pushed apart — the cut is the picture's own average, so a "
             + "dark screen works as well as a light one — and twice as big helps with small writing. "
             + "The last one does both.");
+
+    /// <summary>
+    /// The score below which a step will not act on a reading, shared by the two OCR actions that
+    /// look for text. The score is the reading model's own — the average, over the characters it
+    /// read, of how far ahead its best guess was — so it is not a percentage and has no fixed
+    /// range; the hint carries what was measured on a real screen so the number can be picked
+    /// with something to go on. Zero, the default, keeps every reading.
+    /// </summary>
+    private static ActionParameter MinScore()
+        => Number("minScore", "Lowest score", 0,
+            "Leave a reading out when the model was less sure of it than this. Measured on a "
+            + "real screen: clean writing scores around 40, writing too blurred to read around "
+            + "24, and rubbish read off a busy background around 16. 0 keeps everything.");
 
     /// <summary>A window title, filled in from the windows that are open by the window picker.</summary>
     private static ActionParameter Window(string name = "window",

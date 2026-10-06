@@ -83,6 +83,16 @@ internal static class ActionStrings
         "勾上以后把命中的数量和位置都记下来：$变量名.count 是数量，$变量名.list 是每次命中的 “x,y”，"
         + "可以配合 count()、get()、forEach 使用。";
 
+    /// <summary>
+    /// The hint the two text-searching actions share for their lowest-score field. The numbers
+    /// are what the reading model actually gave on a real screen, because the score is the
+    /// model's own and has no range a user could otherwise guess.
+    /// </summary>
+    private const string MinScoreHint =
+        "识别分低于这个数就不要这次读取。识别分是识别模型自己的打分，不是百分比，也没有固定"
+        + "上下限。实机参考：清楚的文字大约 40 分，糊到快认不出的字大约 24 分，"
+        + "花花背景上的乱码大约 16 分。填 0 表示全都接受（默认）。";
+
     internal static readonly Dictionary<string, string> Chinese = new()
     {
         // ------------------------------------------------------------------ control
@@ -1419,10 +1429,13 @@ internal static class ActionStrings
         ["ocr.findText.matchMode.label"] = "匹配方式",
         ["ocr.findText.matchMode.hint"] = "识别结果与搜索文字的比较方式。",
         ["ocr.findText.resultVariable.label"] = "结果变量",
-        ["ocr.findText.resultVariable.hint"] = "接收匹配中心点，未找到时为空；$变量名.x、.y、.text、.score 是各个部分。",
+        ["ocr.findText.resultVariable.hint"] = "接收匹配中心点，未找到时为空；$变量名.x、.y、"
+            + ".text、.score 是各个部分。score 是识别模型自己的打分，不是百分比，越大越可信。",
         ["ocr.findText.allMatches.label"] = "记录全部命中",
         ["ocr.findText.allMatches.hint"] = "除了挑中的那一处，还把匹配到几处、分别在哪里记下来："
             + "$变量名.count 是处数，$变量名.list 每处一个“x,y”，可以直接交给 count()、get() 和 forEach。",
+        ["ocr.findText.minScore.label"] = "最低识别分",
+        ["ocr.findText.minScore.hint"] = MinScoreHint,
         ["ocr.findText.content.label"] = "内容",
         ["ocr.findText.content.hint"] = "把屏幕按全部文字比，还是按数字比：按数字比时，含数字"
             + "的片段只留下数字本身（货币符号、千位分隔符和旁边的文字都去掉），一个数字也没有"
@@ -1442,6 +1455,8 @@ internal static class ActionStrings
         ["ocr.clickText.offsetY.label"] = "纵向偏移",
         ["ocr.clickText.timeoutMs.label"] = "超时毫秒",
         ["ocr.clickText.timeoutMs.hint"] = "等待文字出现的时长，超时即放弃。",
+        ["ocr.clickText.minScore.label"] = "最低识别分",
+        ["ocr.clickText.minScore.hint"] = MinScoreHint,
         ["ocr.clickText.content.label"] = "内容",
         ["ocr.clickText.content.hint"] = "把屏幕按全部文字找，还是按数字找：按数字找时，含数字的"
             + "片段只留下数字本身（货币符号、千位分隔符和旁边的文字都去掉），一个数字也没有的"

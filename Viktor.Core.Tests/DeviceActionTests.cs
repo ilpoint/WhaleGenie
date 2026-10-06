@@ -885,6 +885,36 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_text_search_can_leave_out_a_reading_the_model_was_unsure_of()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans =
+            [
+                new TextSpan("Save as", new ScreenPoint(10, 10), new ScreenSize(20, 8), 12),
+                new TextSpan("Save now", new ScreenPoint(10, 40), new ScreenSize(20, 8), 38),
+            ],
+        };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("ocr.findText", Param("text", "Save"), Param("matchMode", "contains"),
+                Param("minScore", "30"), Param("allMatches", "true"), Param("resultVariable", "sure")),
+            Step("ocr.findText", Param("text", "Save"), Param("matchMode", "contains"),
+                Param("resultVariable", "any")),
+        ], devices);
+
+        // The shaky reading is dropped, so the only one left is the one the model was sure of —
+        // including in the list of every hit.
+        Assert.Equal("20,44", store.Local.Values["sure"].AsText());
+        Assert.Equal(1, store.Local.Values["sure.count"].AsNumber());
+
+        // Left alone, the field takes everything, shaky reading first, which is what macros that
+        // never set it have always seen.
+        Assert.Equal("20,14", store.Local.Values["any"].AsText());
+    }
+
+    [Fact]
     public async Task A_text_search_can_record_every_place_the_text_was_read()
     {
         var devices = new FakeDeviceLayer

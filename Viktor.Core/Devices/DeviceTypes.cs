@@ -80,7 +80,11 @@ public sealed record ImageMatch(double Score, ScreenPoint Location, ScreenSize S
     public ScreenPoint Center => new(Location.X + (Size.Width / 2), Location.Y + (Size.Height / 2));
 }
 
-/// <summary>One piece of text found on screen.</summary>
+/// <summary>
+/// One piece of text found on screen. The confidence is the reading model's own score rather than
+/// a percentage: it is the average, over the characters it read, of how far ahead the model's best
+/// guess was, so a bigger number means a surer reading but there is no range it has to sit in.
+/// </summary>
 public sealed record TextSpan(string Text, ScreenPoint Location, ScreenSize Size, double Confidence)
 {
     public ScreenPoint Center => new(Location.X + (Size.Width / 2), Location.Y + (Size.Height / 2));

@@ -3416,9 +3416,22 @@ public sealed class MacroRunner
             name, span is null ? string.Empty : $"{span.Center.X},{span.Center.Y}");
     }
 
-    /// <summary>Every place the wanted text was read, in the order the screen was read.</summary>
+    /// <summary>
+    /// Every place the wanted text was read, in the order the screen was read, without the
+    /// readings the step said it would not trust. The score compared here is the reading model's
+    /// own and has no fixed range, so a step that leaves the lowest score at zero takes whatever
+    /// was read.
+    /// </summary>
     private List<TextSpan> TextHits(ExecutableStep step, string wanted, string mode)
-        => [.. ReadSpans(step).Where(candidate => Matches(candidate.Text, wanted, mode))];
+        => [.. ReadSpans(step).Where(candidate => Sure(step, candidate) && Matches(candidate.Text, wanted, mode))];
+
+    /// <summary>The first place the wanted text was read that the step is willing to act on.</summary>
+    private TextSpan? TextHit(ExecutableStep step, string wanted, string mode)
+        => ReadSpans(step).FirstOrDefault(candidate =>
+            Sure(step, candidate) && Matches(candidate.Text, wanted, mode));
+
+    private bool Sure(ExecutableStep step, TextSpan candidate)
+        => candidate.Confidence >= Number(step, "minScore");
 
     private async Task ClickText(ExecutableStep step, int depth, CancellationToken token)
     {
@@ -3427,7 +3440,7 @@ public sealed class MacroRunner
         var timeout = Math.Max(0, Number(step, "timeoutMs"));
 
         var span = await WaitForValueAsync(
-            () => ReadSpans(step).FirstOrDefault(candidate => Matches(candidate.Text, wanted, mode)),
+            () => TextHit(step, wanted, mode),
             timeout, 200, token);
         if (span is null)
         {

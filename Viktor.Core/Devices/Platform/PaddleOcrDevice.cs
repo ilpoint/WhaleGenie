@@ -46,6 +46,11 @@ public sealed class PaddleOcrDevice : IOcrDevice, IDisposable
                     new ScreenSize(
                         Math.Max(1, (int)Math.Round(line.Box.Width)),
                         Math.Max(1, (int)Math.Round(line.Box.Height))),
+                    // The model's own line score. PaddleOCR proper averages the softmax
+                    // probability of each character; this port averages the winning logit
+                    // instead, so the number runs from roughly ten for rubbish to roughly forty
+                    // for clean writing instead of sitting between zero and one. It still ranks
+                    // readings against each other, which is all a macro needs it for.
                     line.RecognitionScore))
         ];
     }
