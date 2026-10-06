@@ -1,0 +1,156 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Viktor.ViewModels"
+        xmlns:loc="using:Viktor.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="520"
+        x:Class="Viktor.Views.WindowPickerWindow"
+        x:DataType="vm:WindowPickerViewModel"
+        Title="Viktor"
+        Width="560" Height="520"
+        MinWidth="420" MinHeight="320"
+        WindowStartupLocation="CenterOwner"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        WindowDecorations="BorderOnly"
+        Background="#232323">
+
+    <Window.Styles>
+        <Style Selector="Button.FlatButton">
+            <Setter Property="Background" Value="#404040" />
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4C4C4C" />
+        </Style>
+
+        <Style Selector="Button.PrimaryButton">
+            <Setter Property="Background" Value="#C8401C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Padding" Value="18,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#D9502A" />
+        </Style>
+        <Style Selector="Button.PrimaryButton:disabled /template/ ContentPresenter">
+            <Setter Property="Background" Value="#5A3226" />
+        </Style>
+
+        <Style Selector="Button.TitleBarButton">
+            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4A4A4A" />
+        </Style>
+
+        <Style Selector="TextBox.FilterInput">
+            <Setter Property="Background" Value="#2E2E2E" />
+            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="9,7" />
+        </Style>
+
+        <Style Selector="ListBox.WindowList">
+            <Setter Property="Background" Value="#1C1C1C" />
+            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="4" />
+        </Style>
+        <Style Selector="ListBox.WindowList ListBoxItem">
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style Selector="ListBox.WindowList ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#C8401C" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="38,Auto,*,Auto">
+
+        <!-- Title bar -->
+        <Grid Grid.Row="0" Background="#202020" ColumnDefinitions="Auto,*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
+                <Border Background="#C8401C" CornerRadius="4" Padding="4,1" Width="30">
+                    <TextBlock Text="VIK" Foreground="White" FontWeight="Bold" FontSize="9"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock Text="{Binding Header}" Foreground="#E8E8E8" FontSize="13"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+
+            <Button Grid.Column="2" Classes="TitleBarButton" Name="CloseButton"
+                    Margin="8,0" VerticalAlignment="Center">
+                <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6"
+                      Data="M 1,1 L 7,7 M 1,7 L 7,1" />
+            </Button>
+        </Grid>
+
+        <!-- What the list is narrowed down to -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="16,14,16,0">
+            <TextBox Classes="FilterInput" Name="FilterBox"
+                     Text="{Binding Filter}"
+                     PlaceholderText="{Binding [WindowPicker.Filter], Source={x:Static loc:Strings.Current}}" />
+            <Button Grid.Column="1" Classes="FlatButton" Height="34" MinWidth="76"
+                    Content="{Binding [WindowPicker.Refresh], Source={x:Static loc:Strings.Current}}"
+                    ToolTip.Tip="{Binding [WindowPicker.RefreshHint], Source={x:Static loc:Strings.Current}}"
+                    Command="{Binding ReloadCommand}" />
+        </Grid>
+
+        <!-- The windows that are open -->
+        <Grid Grid.Row="2" Margin="16,10,16,0">
+            <ListBox Classes="WindowList" Name="WindowList"
+                     ItemsSource="{Binding Windows}"
+                     SelectedItem="{Binding Selected}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:WindowEntry">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Title}" FontSize="12.5" Foreground="#E8E8E8"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding Summary}" FontSize="11" Foreground="#9A9A9A"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <TextBlock Text="{Binding EmptyMessage}" FontSize="12.5" Foreground="#9A9A9A"
+                       TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Center"
+                       IsVisible="{Binding !HasWindows}" />
+        </Grid>
+
+        <!-- What the choice means, then the buttons -->
+        <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" Margin="16,12,16,16" ColumnSpacing="8">
+            <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" FontSize="11.5"
+                       Foreground="#9A9A9A" MaxWidth="280"
+                       Text="{Binding [WindowPicker.Hint], Source={x:Static loc:Strings.Current}}" />
+            <Button Grid.Column="1" Classes="FlatButton" Height="36" MinWidth="92"
+                    Content="{Binding [Add.Cancel], Source={x:Static loc:Strings.Current}}"
+                    Command="{Binding CancelCommand}" />
+            <Button Grid.Column="2" Classes="PrimaryButton" Height="36" MinWidth="120"
+                    Content="{Binding [WindowPicker.Choose], Source={x:Static loc:Strings.Current}}"
+                    Command="{Binding ChooseCommand}" />
+        </Grid>
+    </Grid>
+</Window>

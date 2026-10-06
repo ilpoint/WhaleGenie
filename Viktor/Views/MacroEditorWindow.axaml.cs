@@ -17,6 +17,7 @@ using Viktor.Core.Recording;
 using Viktor.Execution;
 using Viktor.Localization;
 using Viktor.Models;
+using Viktor.Storage;
 using Viktor.ViewModels;
 
 namespace Viktor.Views;
@@ -25,6 +26,10 @@ public partial class MacroEditorWindow : Window
 {
     private readonly MacroEditorViewModel _viewModel;
     private readonly IReadOnlyList<MacroItem> _project;
+
+    /// <summary>Where a picture taken from the screen is put, so it travels with the package.</summary>
+    private readonly string _assetFolder;
+
     private bool _allowClose;
     private bool _prompting;
     private bool _syncingSelection;
@@ -48,20 +53,22 @@ public partial class MacroEditorWindow : Window
     private DispatcherTimer? _pickTimer;
 
     public MacroEditorWindow()
-        : this(null, null)
+        : this(null, null, null)
     {
     }
 
     /// <summary>
     /// Opens the editor, optionally preloaded with an existing macro to edit. The rest of the
     /// project comes along too, so a step can be pointed at another macro by name and a run
-    /// here can call it.
+    /// here can call it. The package path is where pictures taken from the screen are stored.
     /// </summary>
-    public MacroEditorWindow(MacroItem? existing, IReadOnlyList<MacroItem>? project = null)
+    public MacroEditorWindow(MacroItem? existing, IReadOnlyList<MacroItem>? project = null,
+        string? packagePath = null)
     {
         InitializeComponent();
 
         _project = project ?? (existing is null ? [] : [existing]);
+        _assetFolder = ImageAssets.FolderFor(packagePath);
         _viewModel = new MacroEditorViewModel();
         if (existing is not null)
         {
@@ -508,7 +515,8 @@ public partial class MacroEditorWindow : Window
     /// <summary>Opens the add-action dialog and appends the step it returns.</summary>
     private async void OnAddStepRequested()
     {
-        var dialog = new AddActionWindow(null, null, _viewModel.CollectVariables(), MacroNames());
+        var dialog = new AddActionWindow(null, null, _viewModel.CollectVariables(), MacroNames(),
+            null, _assetFolder);
         var step = await dialog.ShowDialog<MacroStep?>(this);
 
         if (step is not null)
@@ -521,7 +529,7 @@ public partial class MacroEditorWindow : Window
     private async void OnRunMacroRequested()
     {
         var dialog = new AddActionWindow(null, null, _viewModel.CollectVariables(), MacroNames(),
-            "control.runMacro");
+            "control.runMacro", _assetFolder);
         var step = await dialog.ShowDialog<MacroStep?>(this);
 
         if (step is not null)
@@ -602,7 +610,8 @@ public partial class MacroEditorWindow : Window
     /// <summary>Opens the same dialog for an existing step and swaps in the result.</summary>
     private async void OnEditStepRequested(MacroStep step)
     {
-        var dialog = new AddActionWindow(step, null, _viewModel.CollectVariables(), MacroNames());
+        var dialog = new AddActionWindow(step, null, _viewModel.CollectVariables(), MacroNames(),
+            null, _assetFolder);
         var edited = await dialog.ShowDialog<MacroStep?>(this);
 
         if (edited is not null)

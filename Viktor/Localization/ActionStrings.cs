@@ -735,7 +735,7 @@ internal static class ActionStrings
         ["uia.focusWindow.name"] = "窗口置前",
         ["uia.focusWindow.desc"] = "把某个窗口切换到最前面。",
         ["uia.focusWindow.window.label"] = "窗口",
-        ["uia.focusWindow.window.hint"] = "窗口标题，或保存标题的 $变量。",
+        ["uia.focusWindow.window.hint"] = "窗口标题，或保存标题的 $变量。可以用“拾取窗口”从当前打开的窗口里选一个。",
 
         // ---------------------------------------------------------------- condition
         ["condition.imageExists.name"] = "图片存在",

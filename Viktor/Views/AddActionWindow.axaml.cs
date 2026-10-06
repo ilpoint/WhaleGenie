@@ -1,12 +1,16 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
 using Viktor.Core.Devices.Platform;
+using Viktor.Localization;
 using Viktor.Models;
+using Viktor.Storage;
 using Viktor.ViewModels;
 
 namespace Viktor.Views;
@@ -14,7 +18,7 @@ namespace Viktor.Views;
 public partial class AddActionWindow : Window
 {
     public AddActionWindow()
-        : this(null, null, null, null, null)
+        : this(null, null, null, null, null, null)
     {
     }
 
@@ -24,11 +28,13 @@ public partial class AddActionWindow : Window
     /// </summary>
     public AddActionWindow(MacroStep? existing, IReadOnlyList<ActionDefinition>? actions = null,
         IReadOnlyList<string>? variables = null, IReadOnlyList<string>? macros = null,
-        string? presetKey = null)
+        string? presetKey = null, string? assetFolder = null)
     {
         InitializeComponent();
 
         var viewModel = new AddActionViewModel(actions, variables, macros);
+        viewModel.AssetFolder = assetFolder ?? string.Empty;
+
         if (existing is not null)
         {
             viewModel.LoadFrom(existing);
@@ -87,7 +93,8 @@ public partial class AddActionWindow : Window
     private async void OnNestedAddRequested(StepListEditorViewModel list)
     {
         var variables = (DataContext as AddActionViewModel)?.CollectVariables();
-        var dialog = new AddActionWindow(null, list.Catalog, variables);
+        var assets = (DataContext as AddActionViewModel)?.AssetFolder;
+        var dialog = new AddActionWindow(null, list.Catalog, variables, null, null, assets);
         var step = await dialog.ShowDialog<MacroStep?>(this);
 
         if (step is not null)
@@ -100,7 +107,8 @@ public partial class AddActionWindow : Window
     private async void OnNestedEditRequested(MacroStep step)
     {
         var variables = (DataContext as AddActionViewModel)?.CollectVariables();
-        var dialog = new AddActionWindow(step, null, variables);
+        var assets = (DataContext as AddActionViewModel)?.AssetFolder;
+        var dialog = new AddActionWindow(step, null, variables, null, null, assets);
         var edited = await dialog.ShowDialog<MacroStep?>(this);
 
         if (edited is null || DataContext is not AddActionViewModel viewModel)
@@ -182,6 +190,85 @@ public partial class AddActionWindow : Window
         if (colour is { } picked)
         {
             parameter.Text = picked.ToHex();
+        }
+    }
+
+    /// <summary>Chooses a picture file for an image parameter.</summary>
+    private async void OnBrowseImage(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel parameter })
+        {
+            return;
+        }
+
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = Strings.Get("Add.BrowseImageTitle"),
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType(Strings.Get("Add.ImageFilter"))
+                {
+                    Patterns = ["*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif"],
+                },
+            ],
+        });
+
+        if (files.Count > 0 && files[0].TryGetLocalPath() is { Length: > 0 } path)
+        {
+            parameter.Text = path;
+        }
+    }
+
+    /// <summary>
+    /// Drags a rectangle on the screen and keeps it as a picture inside the macro project, which
+    /// is how a reference image is normally made.
+    /// </summary>
+    private async void OnCaptureImage(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel parameter }
+            || DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        if (await RegionPickerWindow.PickAsync(this) is not { } region)
+        {
+            return;
+        }
+
+        try
+        {
+            parameter.Text = ImageAssets.Capture(new WindowsScreenDevice(),
+                region.X, region.Y, region.Width, region.Height, viewModel.AssetFolder);
+        }
+        catch (Exception)
+        {
+            await ConfirmDialog.ShowAsync(this, Strings.Get("Add.CaptureImage"),
+                Strings.Get("Add.ImageFailed"), Strings.Get("Common.Ok"), showCancel: false);
+        }
+    }
+
+    /// <summary>Forgets the picture an image parameter points at.</summary>
+    private void OnClearImage(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepParameterViewModel parameter })
+        {
+            parameter.Text = string.Empty;
+        }
+    }
+
+    /// <summary>Picks one of the windows that are open and writes its title into the field.</summary>
+    private async void OnPickWindow(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel parameter })
+        {
+            return;
+        }
+
+        if (await WindowPickerWindow.PickAsync(this) is { Length: > 0 } title)
+        {
+            parameter.Text = title;
         }
     }
 

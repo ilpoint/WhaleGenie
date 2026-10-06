@@ -62,6 +62,21 @@ dotnet format Viktor.slnx           # 按 .editorconfig 整理格式
 读写都在 `Viktor/Storage/MacroPackage.cs`：打开时把 `assets/` 解到磁盘并在步骤里改写成绝对路径，
 保存时再把用到的图片收进包里。
 
+## 拾取器
+
+编辑动作时，需要"屏幕上的某个东西"的参数都有对应的拾取按钮，不用手写坐标、路径或标题：
+
+| 参数 | 按钮 | 做什么 |
+| --- | --- | --- |
+| 图片文件（`vision.*`、`condition.imageExists`） | 浏览… / 截屏… / 清除 | 选磁盘上已有的图片，或在屏幕上拖一个矩形当场存成 PNG；字段下面显示缩略图 |
+| 窗口（`uia.*`、`window.*`） | 拾取窗口… | 列出当前打开的窗口（标题、程序、大小、是否最小化/最大化），可按标题或程序筛选，回车或双击选中 |
+| 颜色 | 放大镜 | 跟随鼠标的取色器，方向键可逐像素微调 |
+| 屏幕区域（x/y/width/height、起点终点、region） | 框选区域 | 在屏幕上拖一个矩形，一次填满整组参数 |
+
+截屏存下来的图片放在宏包旁边的 `<宏名>.assets` 文件夹里，保存宏包时自动收进 `assets/`；
+项目还没保存过时先放在 `%LOCALAPPDATA%\Viktor\images`。路径的解析与截图落盘都在
+`Viktor/Storage/ImageAssets.cs`。
+
 ## 提交与 CI
 
 `master` 是主线，`.github/workflows/ci.yml` 在推送与 PR 上跑格式检查、构建和全部测试，

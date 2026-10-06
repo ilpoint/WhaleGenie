@@ -1036,7 +1036,7 @@ public static class ActionCatalog
             Description = "Look for a reference image on screen.",
             Parameters =
             [
-                Text("image", "Image file", @"C:\images\ok.png",
+                Image("image", "Image file", @"C:\images\ok.png",
                     "Reference image: a file path, or the variable a Capture step saved ($shot)."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100),
                 Text("region", "Search region", required: false,
@@ -1056,7 +1056,7 @@ public static class ActionCatalog
             Description = "Wait until a reference image appears on screen.",
             Parameters =
             [
-                Text("image", "Image file", @"C:\images\ok.png",
+                Image("image", "Image file", @"C:\images\ok.png",
                     "Reference image to wait for: a file path, or the variable a Capture saved."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100),
                 Number("timeoutMs", "Timeout ms", 5000, "Give up after this long."),
@@ -1074,7 +1074,7 @@ public static class ActionCatalog
             Description = "Find a reference image on screen and click it.",
             Parameters =
             [
-                Text("image", "Image file", @"C:\images\ok.png"),
+                Image("image", "Image file", @"C:\images\ok.png"),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100),
                 Number("offsetX", "Offset X", 0, "Pixels added to the match centre.", min: -100000m),
                 Number("offsetY", "Offset Y", 0, min: -100000m),
@@ -1250,7 +1250,8 @@ public static class ActionCatalog
             Description = "Bring a window to the front.",
             Parameters =
             [
-                Text("window", "Window", "Notepad", "Window title, or a $variable holding it."),
+                Window(hint: "Window title, or a $variable holding it. The picker fills in one of "
+                             + "the windows that are open.", required: true),
             ],
         },
 
@@ -1263,7 +1264,7 @@ public static class ActionCatalog
             Description = "True when a reference image is on screen.",
             Parameters =
             [
-                Text("image", "Image file", @"C:\images\ok.png"),
+                Image("image", "Image file", @"C:\images\ok.png"),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100),
                 Text("region", "Search region", required: false,
                     hint: "Optional x,y,width,height limit, written out or held in a variable. "
@@ -1558,6 +1559,22 @@ public static class ActionCatalog
             Hint = hint,
         };
 
+    /// <summary>
+    /// A picture the action looks for on screen. It is picked from the file system or taken
+    /// straight off the screen, and the editor shows what it points at.
+    /// </summary>
+    private static ActionParameter Image(string name, string label, string placeholder = "",
+        string hint = "")
+        => new()
+        {
+            Name = name,
+            Label = label,
+            Kind = ActionParameterKind.Image,
+            Placeholder = placeholder,
+            Hint = hint,
+            Required = true,
+        };
+
     /// <summary>Mouse button picker shared by every input action that clicks.</summary>
     private static ActionParameter Button()
         => Choice("button", "Button", ["left", "right", "middle", "back", "forward"], "left");
@@ -1584,16 +1601,32 @@ public static class ActionCatalog
         => Choice("matchMode", "Match mode", ["contains", "exact", "regex"], "contains",
             "How the found text is compared against the search text.");
 
-    /// <summary>Optional window title filter used by the UI Automation actions.</summary>
-    private static ActionParameter Window()
-        => Text("window", "Window", "Notepad",
-            "Optional window title filter. Leave empty to search every window.", required: false);
+    /// <summary>A window title, filled in from the windows that are open by the window picker.</summary>
+    private static ActionParameter Window(string name = "window",
+        string hint = "Optional window title filter. Leave empty to search every window.",
+        bool required = false)
+        => new()
+        {
+            Name = name,
+            Label = "Window",
+            Kind = ActionParameterKind.Window,
+            Placeholder = "Notepad",
+            Hint = hint,
+            Required = required,
+        };
 
     /// <summary>The window a window-management action works on, matched by part of its title.</summary>
     private static ActionParameter WindowTitle()
-        => Text("title", "Window", "Notepad",
-            "Part of the window title, matched without regard to case. "
-            + "Leave empty for the window in front.", required: false);
+        => new()
+        {
+            Name = "title",
+            Label = "Window",
+            Kind = ActionParameterKind.Window,
+            Placeholder = "Notepad",
+            Hint = "Part of the window title, matched without regard to case. "
+                   + "Leave empty for the window in front.",
+            Required = false,
+        };
 
     /// <summary>Name of another macro in the project, chosen from a list while staying editable.</summary>
     private static ActionParameter MacroName(string name, string label, string hint)

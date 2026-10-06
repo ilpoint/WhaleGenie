@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Viktor.Core.Expressions;
 using Viktor.Localization;
 using Viktor.Models;
+using Viktor.Storage;
 
 namespace Viktor.ViewModels;
 
@@ -15,6 +17,8 @@ namespace Viktor.ViewModels;
 /// </summary>
 public partial class StepParameterViewModel : ViewModelBase
 {
+    private string _assetFolder = string.Empty;
+
     public StepParameterViewModel(ActionParameter definition, IReadOnlyList<string>? variables = null,
         IReadOnlyList<string>? macros = null)
     {
@@ -128,6 +132,66 @@ public partial class StepParameterViewModel : ViewModelBase
 
     public bool IsText => Definition.Kind
         is ActionParameterKind.Text or ActionParameterKind.Key;
+
+    /// <summary>True when this parameter is a picture the action looks for on screen.</summary>
+    public bool IsImage => Definition.Kind is ActionParameterKind.Image;
+
+    /// <summary>True when this parameter names a window, which the window picker can fill in.</summary>
+    public bool IsWindow => Definition.Kind is ActionParameterKind.Window;
+
+    /// <summary>
+    /// Where pictures live while this dialog is open: beside the macro package when it has a
+    /// path, and Viktor's own folder otherwise. A relative picture value is looked up here.
+    /// </summary>
+    public string AssetFolder
+    {
+        get => _assetFolder;
+        set
+        {
+            if (string.Equals(_assetFolder, value, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _assetFolder = value;
+            RefreshThumbnail();
+        }
+    }
+
+    /// <summary>The picture this parameter names, shown underneath its field, or null.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasThumbnail))]
+    public partial Bitmap? Thumbnail { get; set; }
+
+    /// <summary>True when there is a picture to show.</summary>
+    public bool HasThumbnail => Thumbnail is not null;
+
+    /// <summary>Re-reads the picture the field names, so the preview always matches the text.</summary>
+    public void RefreshThumbnail()
+    {
+        var previous = Thumbnail;
+        Thumbnail = IsImage ? LoadThumbnail() : null;
+        previous?.Dispose();
+    }
+
+    private Bitmap? LoadThumbnail()
+    {
+        if (ImageAssets.Resolve(Text, _assetFolder) is not { } path)
+        {
+            return null;
+        }
+
+        try
+        {
+            return new Bitmap(path);
+        }
+        catch (Exception)
+        {
+            // A file that turns out not to be a picture is not worth a crash: the field
+            // still shows the path, and the run reports it if the macro is used.
+            return null;
+        }
+    }
 
     /// <summary>True when this parameter is a colour, edited with the screen picker.</summary>
     public bool IsColor => Definition.Kind is ActionParameterKind.Color;
@@ -260,6 +324,11 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Re-checks an expression as it is typed, so the editor can show the outcome.</summary>
     partial void OnTextChanged(string value)
     {
+        if (IsImage)
+        {
+            RefreshThumbnail();
+        }
+
         if (IsNumberFormula)
         {
             OnPropertyChanged(nameof(CanToggleFormula));

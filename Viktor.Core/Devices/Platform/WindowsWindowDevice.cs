@@ -93,6 +93,36 @@ public sealed class WindowsWindowDevice : IWindowDevice
                && MoveWindow(window, x, y, Math.Max(0, width), Math.Max(0, height), true);
     }
 
+    /// <summary>
+    /// The program behind a window handle, for the picker that lists what is open. It answers
+    /// with an empty string rather than failing: a window can outlive the process lookup, and
+    /// the picker only needs it as a label.
+    /// </summary>
+    public static string ProcessName(long handle)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            GetWindowThreadProcessId(new IntPtr(handle), out var processId);
+            if (processId == 0)
+            {
+                return string.Empty;
+            }
+
+            using var process = System.Diagnostics.Process.GetProcessById((int)processId);
+            return process.ProcessName;
+        }
+        catch (Exception error) when (error is ArgumentException or InvalidOperationException
+            or System.ComponentModel.Win32Exception or NotSupportedException)
+        {
+            return string.Empty;
+        }
+    }
+
     private static bool Show(long handle, int command)
     {
         Require();
@@ -191,6 +221,9 @@ public sealed class WindowsWindowDevice : IWindowDevice
 
     [DllImport("user32.dll")]
     private static extern bool GetWindowRect(IntPtr handle, out NativeRect bounds);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr handle, out uint processId);
 
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(IntPtr handle, int command);

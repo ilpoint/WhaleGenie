@@ -432,7 +432,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        var editor = new MacroEditorWindow(existing, [.. viewModel.Macros]);
+        // The package path is what a picture taken from the screen is stored beside.
+        var editor = new MacroEditorWindow(existing, [.. viewModel.Macros], viewModel.CurrentPath);
         var macro = await editor.ShowDialog<MacroItem?>(this);
 
         if (macro is null)

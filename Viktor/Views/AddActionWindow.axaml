@@ -97,6 +97,44 @@
                     </Button>
                 </Grid>
 
+                <!-- A picture the action looks for: taken from a file, or straight off the
+                     screen, and shown underneath so it is clear which one is meant. -->
+                <StackPanel IsVisible="{Binding IsImage}">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                        <TextBox Classes="ParamInput" Text="{Binding Text}"
+                                 PlaceholderText="{Binding Placeholder}" />
+                        <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                                Content="{Binding [Add.BrowseImage], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.BrowseImageHint], Source={x:Static loc:Strings.Current}}"
+                                Click="OnBrowseImage" />
+                        <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                                Content="{Binding [Add.CaptureImage], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.CaptureImageHint], Source={x:Static loc:Strings.Current}}"
+                                Click="OnCaptureImage" />
+                        <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
+                                Content="{Binding [Add.ClearImage], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.ClearImageHint], Source={x:Static loc:Strings.Current}}"
+                                Click="OnClearImage" />
+                    </Grid>
+
+                    <Border IsVisible="{Binding HasThumbnail}" Margin="0,8,0,0"
+                            Background="#1A1A1A" BorderBrush="#3A3A3A" BorderThickness="1"
+                            CornerRadius="5" Padding="4" HorizontalAlignment="Left">
+                        <Image Source="{Binding Thumbnail}" MaxWidth="240" MaxHeight="110"
+                               Stretch="Uniform" />
+                    </Border>
+                </StackPanel>
+
+                <!-- A window, which the picker fills in from what is open right now. -->
+                <Grid IsVisible="{Binding IsWindow}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                    <TextBox Classes="ParamInput" Text="{Binding Text}"
+                             PlaceholderText="{Binding Placeholder}" />
+                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                            Content="{Binding [Add.PickWindow], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.PickWindowHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnPickWindow" />
+                </Grid>
+
                 <ToggleSwitch IsVisible="{Binding IsBool}"
                               IsChecked="{Binding Flag}"
                               OnContent="" OffContent="" />

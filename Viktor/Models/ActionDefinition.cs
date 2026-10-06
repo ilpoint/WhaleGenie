@@ -30,6 +30,16 @@ public enum ActionParameterKind
     Key,
     Color,
 
+    /// <summary>
+    /// A picture the action looks for on screen, edited with the picture picker and a preview.
+    /// </summary>
+    Image,
+
+    /// <summary>
+    /// The title of a window, edited with free text and the window picker.
+    /// </summary>
+    Window,
+
     /// <summary>A list of child steps, rendered as a nested step editor.</summary>
     Steps,
 

@@ -21,6 +21,7 @@ public partial class AddActionViewModel : ViewModelBase
 {
     private readonly IReadOnlyList<string> _variables;
     private readonly IReadOnlyList<string> _macros;
+    private string _assetFolder = string.Empty;
 
     /// <summary>Raised with the step to add, or <c>null</c> when the dialog is cancelled.</summary>
     public event Action<MacroStep?>? CloseRequested;
@@ -48,6 +49,31 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>Everything the "Select Action" dropdown offers.</summary>
     public IReadOnlyList<ActionDefinition> AvailableActions { get; }
+
+    /// <summary>
+    /// Where a picture taken from the screen is saved while this dialog is open, and where a
+    /// relative picture value is looked up. The dialog that opened this one sets it, so a
+    /// picture lands beside the macro package it belongs to.
+    /// </summary>
+    public string AssetFolder
+    {
+        get => _assetFolder;
+        set
+        {
+            if (string.Equals(_assetFolder, value, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _assetFolder = value;
+            OnPropertyChanged();
+
+            foreach (var parameter in Parameters)
+            {
+                parameter.AssetFolder = value;
+            }
+        }
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Header))]
@@ -255,6 +281,7 @@ public partial class AddActionViewModel : ViewModelBase
             foreach (var parameter in definition.Parameters)
             {
                 var editor = new StepParameterViewModel(parameter, variables, _macros);
+                editor.AssetFolder = _assetFolder;
                 editor.PropertyChanged += OnParameterChanged;
 
                 if (editor.List is not null)
