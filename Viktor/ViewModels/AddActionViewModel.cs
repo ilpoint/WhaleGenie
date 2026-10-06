@@ -54,6 +54,9 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>Everything the "Select Action" dropdown offers.</summary>
     public IReadOnlyList<ActionDefinition> AvailableActions { get; }
 
+    /// <summary>The top of the step-settings number boxes, which is the step's own ceiling.</summary>
+    public decimal LongestPauseMs => StepMeta.LongestPauseMs;
+
     /// <summary>
     /// Where a picture taken from the screen is saved while this dialog is open, and where a
     /// relative picture value is looked up. The dialog that opened this one sets it, so a

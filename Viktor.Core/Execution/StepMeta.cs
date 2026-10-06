@@ -109,10 +109,13 @@ public class StepMeta
     public static StepMeta Empty { get; } = new();
 
     /// <summary>
-    /// The longest a retry pause may grow to. A doubling pause that is left to run would
-    /// otherwise put a macro to sleep for hours without ever saying so.
+    /// The longest pause a step may ask for, and the ceiling the editor's number boxes offer:
+    /// a day and the best part of another. Milliseconds leave room for about 24 days, but past
+    /// this nobody is reading the number any more, and a macro really waiting that long is
+    /// waiting out a working day, the night, and most of the day after. A doubling pause stops
+    /// growing here too, so a backoff can never run off into a pause nobody asked for.
     /// </summary>
-    public const int MostRetryDelayMs = 30_000;
+    public const int LongestPauseMs = 46 * 60 * 60 * 1000;
 
     /// <summary>Note the user wrote about this step.</summary>
     public string Comment { get; init; } = string.Empty;
@@ -183,12 +186,12 @@ public class StepMeta
         var number = Math.Max(1, attempt);
         var delay = RetryBackoff switch
         {
-            RetryBackoff.Doubling => Math.Min(MostRetryDelayMs, (long)RetryDelayMs << Math.Min(number - 1, 20)),
+            RetryBackoff.Doubling => Math.Min(LongestPauseMs, (long)RetryDelayMs << Math.Min(number - 1, 20)),
             RetryBackoff.Jitter => (long)Math.Round(RetryDelayMs * (0.5 + (random ?? Random.Shared).NextDouble())),
             _ => RetryDelayMs,
         };
 
-        return (int)Math.Clamp(delay, 0, MostRetryDelayMs);
+        return (int)Math.Clamp(delay, 0, LongestPauseMs);
     }
 
     /// <summary>Writes only the settings that differ from the defaults.</summary>

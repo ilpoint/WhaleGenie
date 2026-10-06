@@ -38,7 +38,22 @@ public class StepMetaTests
         // A pause left to double on its own would put a macro to sleep for hours without saying so.
         var meta = Retrying(40, 1000, RetryBackoff.Doubling);
 
-        Assert.Equal(StepMeta.MostRetryDelayMs, meta.RetryDelayFor(20));
+        Assert.Equal(StepMeta.LongestPauseMs, meta.RetryDelayFor(20));
+    }
+
+    [Fact]
+    public void The_cap_is_a_day_and_the_best_part_of_another()
+        => Assert.Equal(46 * 60 * 60 * 1000, StepMeta.LongestPauseMs);
+
+    [Fact]
+    public void A_pause_the_user_wrote_is_waited_out_in_full()
+    {
+        // A long pause used to be cut down to half a minute on the way to the clock, so a macro
+        // that asked to wait two hours waited thirty seconds instead and said nothing.
+        var meta = Retrying(2, 2 * 60 * 60 * 1000);
+
+        Assert.Equal(2 * 60 * 60 * 1000, meta.RetryDelayFor(1));
+        Assert.Equal(2 * 60 * 60 * 1000, meta.RetryDelayFor(2));
     }
 
     [Fact]

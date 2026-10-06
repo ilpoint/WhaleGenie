@@ -155,7 +155,12 @@ public class ActionParameter
 
     public decimal Minimum { get; init; }
 
-    public decimal Maximum { get; init; } = 3_600_000m;
+    /// <summary>
+    /// The top of the number box. A number with a real limit of its own says so; everything else
+    /// stops at the longest pause a step may ask for, which is the largest number a macro has a
+    /// reason to write.
+    /// </summary>
+    public decimal Maximum { get; init; } = Viktor.Core.Execution.StepMeta.LongestPauseMs;
 
     public decimal Increment { get; init; } = 1m;
 }

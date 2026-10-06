@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using Avalonia.Media;
 using Viktor.Core.Devices;
+using Viktor.Core.Execution;
 
 namespace Viktor.Models;
 
@@ -2320,7 +2321,7 @@ public static class ActionCatalog
         };
 
     private static ActionParameter Number(string name, string label, decimal defaultValue,
-        string hint = "", decimal min = 0m, decimal max = 3_600_000m)
+        string hint = "", decimal min = 0m, decimal max = StepMeta.LongestPauseMs)
         => new()
         {
             Name = name,

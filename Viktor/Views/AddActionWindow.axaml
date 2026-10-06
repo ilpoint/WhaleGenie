@@ -482,7 +482,7 @@
                                 <StackPanel>
                                     <TextBlock Classes="FieldLabel"
                                                Text="{Binding [Add.StepTimeout], Source={x:Static loc:Strings.Current}}" />
-                                    <NumericUpDown Value="{Binding MetaTimeoutMs}" Minimum="0" Maximum="3600000"
+                                    <NumericUpDown Value="{Binding MetaTimeoutMs}" Minimum="0" Maximum="{Binding LongestPauseMs}"
                                                    Increment="100" FormatString="0"
                                                    Width="150" HorizontalAlignment="Left" />
                                 </StackPanel>
@@ -499,7 +499,7 @@
                                 <StackPanel>
                                     <TextBlock Classes="FieldLabel"
                                                Text="{Binding [Add.StepRetryDelay], Source={x:Static loc:Strings.Current}}" />
-                                    <NumericUpDown Value="{Binding MetaRetryDelayMs}" Minimum="0" Maximum="60000"
+                                    <NumericUpDown Value="{Binding MetaRetryDelayMs}" Minimum="0" Maximum="{Binding LongestPauseMs}"
                                                    Increment="50" FormatString="0"
                                                    Width="150" HorizontalAlignment="Left" />
                                 </StackPanel>
@@ -552,14 +552,14 @@
                                 <StackPanel>
                                     <TextBlock Classes="FieldLabel"
                                                Text="{Binding [Add.StepDelayBefore], Source={x:Static loc:Strings.Current}}" />
-                                    <NumericUpDown Value="{Binding MetaDelayBeforeMs}" Minimum="0" Maximum="600000"
+                                    <NumericUpDown Value="{Binding MetaDelayBeforeMs}" Minimum="0" Maximum="{Binding LongestPauseMs}"
                                                    Increment="50" FormatString="0"
                                                    Width="150" HorizontalAlignment="Left" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock Classes="FieldLabel"
                                                Text="{Binding [Add.StepDelayAfter], Source={x:Static loc:Strings.Current}}" />
-                                    <NumericUpDown Value="{Binding MetaDelayAfterMs}" Minimum="0" Maximum="600000"
+                                    <NumericUpDown Value="{Binding MetaDelayAfterMs}" Minimum="0" Maximum="{Binding LongestPauseMs}"
                                                    Increment="50" FormatString="0"
                                                    Width="150" HorizontalAlignment="Left" />
                                 </StackPanel>

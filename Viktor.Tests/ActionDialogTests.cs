@@ -641,4 +641,24 @@ public class ActionDialogTests
             Assert.True(viewModel.CanSave);
         });
     }
+
+    [Fact]
+    public void A_pause_typed_into_a_step_settings_box_can_run_on_for_days()
+    {
+        Ui.Run(() =>
+        {
+            // A wait of a few hours is normal for "release this key for a while" macro work,
+            // so the ceiling has to sit well past the old one hour.
+            var delay = Open("control.delay");
+            Assert.Equal(StepMeta.LongestPauseMs, StoredMaximum(delay, "ms"));
+
+            // Timeouts on the waiting actions share the same ceiling.
+            var wait = Open("control.waitUntil");
+            Assert.Equal(StepMeta.LongestPauseMs, StoredMaximum(wait, "timeoutMs"));
+        });
+    }
+
+    private static decimal StoredMaximum(AddActionViewModel viewModel, string name)
+        => viewModel.Parameters.First(parameter => parameter.Definition.Name == name)
+            .Definition.Maximum;
 }
