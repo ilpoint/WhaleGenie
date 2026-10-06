@@ -941,16 +941,22 @@ public sealed class MacroRunner
             case "condition.randomChance":
                 return System.Random.Shared.NextDouble() * 100 < Number(condition, "percent");
             case "condition.imageExists":
-                return Search(condition) is not null;
+                return ImageThere(condition);
+            case "condition.imageNotExists":
+                return !ImageThere(condition);
             case "condition.textExists":
-                {
-                    var wanted = Read(condition.Text("text")).AsText();
-                    var mode = condition.Text("matchMode");
-                    return ReadSpans(condition).Any(span => Matches(span.Text, wanted, mode));
-                }
+                return TextThere(condition);
+            case "condition.textNotExists":
+                return !TextThere(condition);
 
             case "condition.uiaExists":
                 return _devices.Ui.Exists(Query(condition), 0);
+
+            case "condition.uiaNotExists":
+                return !_devices.Ui.Exists(Query(condition), 0);
+
+            case "condition.expression":
+                return Read(condition.Text("expression")).AsBool();
 
             case "condition.colorEquals":
                 {
@@ -965,6 +971,21 @@ public sealed class MacroRunner
                 Log(LogLevel.Warn, depth, condition.Type, "Run.UnknownCondition", condition.Type);
                 return false;
         }
+    }
+
+    /// <summary>True when a reference picture is somewhere in a condition's search areas.</summary>
+    private bool ImageThere(ExecutableStep condition) => Search(condition) is not null;
+
+    /// <summary>
+    /// True when the text a condition names is somewhere in its search areas. The negative wording
+    /// is a condition of its own rather than a switch on this one, so what a step means is written
+    /// in its name instead of hidden in a checkbox.
+    /// </summary>
+    private bool TextThere(ExecutableStep condition)
+    {
+        var wanted = Read(condition.Text("text")).AsText();
+        var mode = condition.Text("matchMode");
+        return ReadSpans(condition).Any(span => Matches(span.Text, wanted, mode));
     }
 
     /// <summary>

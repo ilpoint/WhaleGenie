@@ -1355,6 +1355,20 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "condition.imageNotExists",
+            Category = ActionCategory.Condition,
+            DisplayName = "Image Missing",
+            Description = "True when a reference image is not on screen.",
+            Parameters =
+            [
+                Image("image", "Image file", @"C:\images\ok.png"),
+                Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100),
+                Text("region", "Search region", required: false, hint: RegionHint),
+                ..Anchor(),
+            ],
+        },
+        new()
+        {
             Key = "condition.textExists",
             Category = ActionCategory.Condition,
             DisplayName = "Text Exists",
@@ -1369,10 +1383,36 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "condition.textNotExists",
+            Category = ActionCategory.Condition,
+            DisplayName = "Text Missing",
+            Description = "True when the screen does not show a piece of text.",
+            Parameters =
+            [
+                Text("text", "Text", "Ready"),
+                Text("region", "Search region", required: false, hint: RegionHint),
+                ..Anchor(),
+                TextMatch(),
+            ],
+        },
+        new()
+        {
             Key = "condition.uiaExists",
             Category = ActionCategory.Condition,
             DisplayName = "UI Element Exists",
             Description = "True when a UI Automation element is present.",
+            Parameters =
+            [
+                Window(),
+                Selector(),
+            ],
+        },
+        new()
+        {
+            Key = "condition.uiaNotExists",
+            Category = ActionCategory.Condition,
+            DisplayName = "UI Element Missing",
+            Description = "True when a UI Automation element is not present.",
             Parameters =
             [
                 Window(),
@@ -1410,6 +1450,21 @@ public static class ActionCatalog
                     "Whether every point has to match or one is enough.",
                     labels: ["Every point", "Any point"]),
                 ..Anchor(),
+            ],
+        },
+        new()
+        {
+            Key = "condition.expression",
+            Category = ActionCategory.Condition,
+            DisplayName = "Boolean Expression",
+            Description = "True when what you write reads as true.",
+            Parameters =
+            [
+                Expression("expression", "Expression", "$count > 3 and $name != \"\"",
+                    "A boolean expression built from $variables, the usual operators and the "
+                    + "built-in functions, for example "
+                    + "\"$count > 3 and contains($name, \\\"ok\\\")\". It is read every time the "
+                    + "condition is asked, so a wait follows it as the variables change."),
             ],
         },
         new()
@@ -1473,6 +1528,14 @@ public static class ActionCatalog
     /// <summary>Catalogue subset used by the condition pickers.</summary>
     public static IReadOnlyList<ActionDefinition> Conditions { get; } =
         [.. Definitions.Where(definition => definition.Category == ActionCategory.Condition)];
+
+    /// <summary>
+    /// Everything that can be a step of its own. The conditions are left out on purpose: they say
+    /// what has to be true rather than doing something, so they are only ever offered inside an if,
+    /// a while or a wait, where the engine knows how to ask them.
+    /// </summary>
+    public static IReadOnlyList<ActionDefinition> RunnableActions { get; } =
+        [.. Definitions.Where(definition => definition.Category != ActionCategory.Condition)];
 
     /// <summary>Finds a definition by its fully qualified key.</summary>
     public static ActionDefinition? Find(string key)

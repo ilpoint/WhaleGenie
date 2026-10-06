@@ -155,6 +155,51 @@ public class ActionDialogTests
     }
 
     [Fact]
+    public void A_condition_can_be_written_as_an_expression()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("condition.expression");
+            var expression = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "expression");
+
+            // The field is the one with live checking and suggestions, not a plain text box.
+            Assert.True(expression.IsExpression);
+            Assert.Contains("$count", expression.Placeholder);
+            Assert.Contains("$spot", expression.ExpressionSuggestions);
+            Assert.Contains("contains(", expression.ExpressionSuggestions);
+        });
+    }
+
+    [Fact]
+    public void Conditions_are_offered_inside_a_step_and_not_as_one()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(null, null, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+
+            // A condition says what has to be true rather than doing something, and the engine
+            // only ever asks one inside an if, a while or a wait, so it is not on the step list.
+            Assert.DoesNotContain(viewModel.AvailableActions,
+                action => action.Category == ActionCategory.Condition);
+            Assert.Contains(viewModel.AvailableActions, action => action.Key == "input.mouseClick");
+
+            Assert.Contains(ActionCatalog.Conditions,
+                condition => condition.Key == "condition.imageNotExists");
+            Assert.Contains(ActionCatalog.Conditions,
+                condition => condition.Key == "condition.textNotExists");
+            Assert.Contains(ActionCatalog.Conditions,
+                condition => condition.Key == "condition.uiaNotExists");
+            Assert.Contains(ActionCatalog.Conditions,
+                condition => condition.Key == "condition.expression");
+        });
+    }
+
+    [Fact]
     public void A_multi_point_colour_condition_asks_for_points_and_how_they_are_met()
     {
         Ui.Run(() =>

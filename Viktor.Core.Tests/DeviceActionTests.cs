@@ -459,6 +459,89 @@ public class DeviceActionTests
         Assert.Equal("102,103", store.Local.Values["where"].AsText());
     }
 
+    /// <summary>The negative conditions are their own actions, so "wait until it is gone" can be written.</summary>
+    [Fact]
+    public async Task The_negative_conditions_say_the_opposite_of_the_plain_ones()
+    {
+        var gone = new FakeDeviceLayer { Match = null, ElementExists = false, Spans = [] };
+        var there = new FakeDeviceLayer
+        {
+            Match = new ImageMatch(0.99, new ScreenPoint(1, 1), new ScreenSize(1, 1)),
+            ElementExists = true,
+            Spans = [new TextSpan("Ready", new ScreenPoint(1, 1), new ScreenSize(1, 1), 0.9)],
+        };
+
+        Assert.True(await Holds(gone, Step("condition.imageNotExists", Param("image", "ok.png"))));
+        Assert.False(await Holds(there, Step("condition.imageNotExists", Param("image", "ok.png"))));
+        Assert.True(await Holds(gone, Step("condition.textNotExists", Param("text", "Ready"))));
+        Assert.False(await Holds(there, Step("condition.textNotExists", Param("text", "Ready"))));
+        Assert.True(await Holds(gone, Step("condition.uiaNotExists", Param("selector", "Button"))));
+        Assert.False(await Holds(there, Step("condition.uiaNotExists", Param("selector", "Button"))));
+    }
+
+    /// <summary>A condition, asked the way the engine asks one inside an if.</summary>
+    private static async Task<bool> Holds(FakeDeviceLayer devices, ExecutableStep condition)
+    {
+        var (_, _, store) = await RunAsync(
+        [
+            Step("control.if", When("condition", condition),
+                Body("then", Step("control.setVariable", Param("name", "held"), Param("value", "yes"))),
+                Body("else", Step("control.setVariable", Param("name", "held"), Param("value", "no")))),
+        ], devices);
+
+        return store.Local.Values["held"].AsText() == "yes";
+    }
+
+    [Fact]
+    public async Task A_condition_can_be_written_as_an_expression()
+    {
+        var devices = new FakeDeviceLayer();
+        var (_, _, store) = await RunAsync(
+        [
+            Step("control.setVariable", Param("name", "count"), Param("value", "5")),
+            Step("control.setVariable", Param("name", "name"), Param("value", "ok")),
+            Step("control.if",
+                When("condition", Step("condition.expression",
+                    Param("expression", "$count > 3 and contains($name, \"o\")"))),
+                Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes"))),
+                Body("else", Step("control.setVariable", Param("name", "hit"), Param("value", "no")))),
+        ], devices);
+
+        Assert.Equal("yes", store.Local.Values["hit"].AsText());
+    }
+
+    [Fact]
+    public async Task An_expression_condition_is_false_when_it_does_not_hold()
+    {
+        var devices = new FakeDeviceLayer();
+        var (_, _, store) = await RunAsync(
+        [
+            Step("control.setVariable", Param("name", "count"), Param("value", "1")),
+            Step("control.if",
+                When("condition", Step("condition.expression",
+                    Param("expression", "$count > 3 or $count == 0"))),
+                Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes"))),
+                Body("else", Step("control.setVariable", Param("name", "hit"), Param("value", "no")))),
+        ], devices);
+
+        Assert.Equal("no", store.Local.Values["hit"].AsText());
+    }
+
+    [Fact]
+    public async Task An_expression_condition_that_cannot_be_read_fails_the_step()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("control.if",
+                When("condition", Step("condition.expression", Param("expression", "$count +"))),
+                Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes")))),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.BadExpression", result.Key);
+    }
+
     [Fact]
     public async Task Every_point_of_a_colour_comparison_has_to_match()
     {

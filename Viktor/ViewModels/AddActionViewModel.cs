@@ -42,7 +42,9 @@ public partial class AddActionViewModel : ViewModelBase
     public AddActionViewModel(IReadOnlyList<ActionDefinition>? actions,
         IReadOnlyList<string>? variables = null, IReadOnlyList<string>? macros = null)
     {
-        AvailableActions = actions ?? ActionCatalog.Definitions;
+        // Steps, not the whole catalogue: a condition says what has to be true and only means
+        // something inside an if, a while or a wait, so it is not something to add as a step.
+        AvailableActions = actions ?? ActionCatalog.RunnableActions;
         _variables = variables ?? [];
         _macros = macros ?? [];
         MetaOnError = ErrorChoices[0];
