@@ -356,6 +356,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.FormulaUse"] = "Write this as an expression, for example $match.x",
         ["Add.FormulaBack"] = "Go back to a plain number",
         ["Add.FormulaLocked"] = "The expression reads a variable, so it cannot become a plain number",
+        ["Add.FormulaMilliseconds"] = "An expression is counted in milliseconds.",
+        ["Add.Unit.ms"] = "Milliseconds",
+        ["Add.Unit.s"] = "Seconds",
+        ["Add.Unit.min"] = "Minutes",
+        ["Add.Unit.h"] = "Hours",
         ["Add.StepErrorJumps"] = "Send a failure to an anchor",
         ["Add.StepErrorJumpsHint"] = "One rule per line: the failure it is about, then \"->\" and "
             + "the anchor to carry on at, or \"=>\" when the handler is to come back to the step "
@@ -951,6 +956,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.FormulaUse"] = "改写为表达式，例如 $match.x",
         ["Add.FormulaBack"] = "改回普通数字",
         ["Add.FormulaLocked"] = "表达式使用了变量，无法改回普通数字",
+        ["Add.FormulaMilliseconds"] = "表达式按毫秒计算。",
+        ["Add.Unit.ms"] = "毫秒",
+        ["Add.Unit.s"] = "秒",
+        ["Add.Unit.min"] = "分",
+        ["Add.Unit.h"] = "时",
         ["Add.StepErrorJumps"] = "失败时跳到锚点",
         ["Add.StepErrorJumpsHint"] = "一行一条规则：先是它管哪个失败，然后 “->” 和要继续执行的"
             + "锚点名；写 “=>” 表示处理段办完要回到失败那一步之后。失败名支持通配，"

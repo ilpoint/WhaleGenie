@@ -113,7 +113,7 @@ public static class ActionCatalog
             Description = "Wait a fixed amount of time before the next step runs.",
             Parameters =
             [
-                Number("ms", "Milliseconds", 1000, "How long to wait, in milliseconds."),
+                Number("ms", "Wait", 1000, "How long to wait."),
             ],
         },
         new()
@@ -124,8 +124,8 @@ public static class ActionCatalog
             Description = "Wait a random amount of time so the macro looks less mechanical.",
             Parameters =
             [
-                Number("minMs", "Minimum ms", 400, "Shortest wait, in milliseconds."),
-                Number("maxMs", "Maximum ms", 1200, "Longest wait, in milliseconds."),
+                Number("minMs", "Shortest wait", 400, "Shortest wait."),
+                Number("maxMs", "Longest wait", 1200, "Longest wait."),
             ],
         },
         new()
@@ -139,8 +139,8 @@ public static class ActionCatalog
                 Condition("condition", "Condition", "Asked again and again until it holds. "
                     + "Any condition can be waited on: a colour, a picture, a piece of text, an "
                     + "element on screen, or a comparison between variables."),
-                Number("timeoutMs", "Timeout ms", 10000, "Give up after this long."),
-                Number("pollMs", "Check every ms", 200, "How long to wait between two checks.",
+                Number("timeoutMs", "Timeout", 10000, "Give up after this long."),
+                Number("pollMs", "Check every", 200, "How long to wait between two checks.",
                     min: 10m, max: 60000m),
                 Choice("onTimeout", "If it never holds", ["stop", "continue"], "stop",
                     "What the macro does when the time runs out.",
@@ -159,7 +159,7 @@ public static class ActionCatalog
             Parameters =
             [
                 Number("times", "Times", 10, "How many iterations to run.", min: 1),
-                Number("intervalMs", "Interval ms", 0, "Pause between iterations."),
+                Number("intervalMs", "Interval", 0, "Pause between iterations."),
                 Steps("body", "Body steps", "Steps that run once per iteration."),
             ],
         },
@@ -212,7 +212,7 @@ public static class ActionCatalog
                 Number("step", "Step", 1,
                     "What the counter is increased by each round. A negative step counts down; "
                     + "0 means \"count upwards, or downwards when From is above To\".", min: -1000000),
-                Number("intervalMs", "Interval ms", 0, "Pause between rounds."),
+                Number("intervalMs", "Interval", 0, "Pause between rounds."),
                 Variable("variable", "Counter variable", "i",
                     "Variable that receives the value of this round.",
                     namesVariable: true, defaultValue: "i"),
@@ -815,7 +815,7 @@ public static class ActionCatalog
             Description = "Wait until something new is copied to the clipboard.",
             Parameters =
             [
-                Number("timeoutMs", "Timeout ms", 5000, "How long to wait before giving up."),
+                Number("timeoutMs", "Timeout", 5000, "How long to wait before giving up."),
                 Variable("resultVariable", "Result variable", "clipboard",
                     "Variable that receives the new text. Leave empty to only wait.",
                     required: false, namesVariable: true),
@@ -831,7 +831,7 @@ public static class ActionCatalog
             [
                 Text("keys", "Shortcut", "Ctrl+C", "Keys joined with + that copy the selection.",
                     required: true, defaultValue: "Ctrl+C"),
-                Number("timeoutMs", "Timeout ms", 1500, "How long to wait for the clipboard."),
+                Number("timeoutMs", "Timeout", 1500, "How long to wait for the clipboard."),
                 Variable("resultVariable", "Result variable", "clipboard",
                     "Variable that receives the copied text.", required: false, namesVariable: true),
             ],
@@ -889,7 +889,7 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("name", "Program", "notepad", "Name of the program to watch for."),
-                Number("timeoutMs", "Timeout ms", 10000, "How long to wait before giving up."),
+                Number("timeoutMs", "Timeout", 10000, "How long to wait before giving up."),
                 Variable("resultVariable", "Result variable", "processId",
                     "Variable that receives the process id.", required: false, namesVariable: true),
             ],
@@ -904,7 +904,7 @@ public static class ActionCatalog
             [
                 Text("id", "Process id", "$processId",
                     "The process to watch, usually the one Start Program gave back."),
-                Number("timeoutMs", "Timeout ms", 60000, "How long to wait before giving up."),
+                Number("timeoutMs", "Timeout", 60000, "How long to wait before giving up."),
                 Variable("resultVariable", "Result variable", "exitCode",
                     "Variable that receives the exit code.", required: false, namesVariable: true),
             ],
@@ -971,7 +971,7 @@ public static class ActionCatalog
                     + "command nothing to read. Sent as UTF-8, and $name is replaced by what that "
                     + "variable holds.",
                     "first line\nsecond line", required: false),
-                Number("timeoutMs", "Timeout ms", 30000, "How long the command may run."),
+                Number("timeoutMs", "Timeout", 30000, "How long the command may run."),
                 Toggle("streamOutput", "Write output to the log as it arrives", false,
                     "Put every line the command prints into the run log while it is still running, "
                     + "which is how a long build or script can be watched. The result variable still "
@@ -1178,7 +1178,7 @@ public static class ActionCatalog
             Parameters =
             [
                 ..WindowTarget(),
-                Number("timeoutMs", "Timeout ms", 10000, "How long to wait before giving up."),
+                Number("timeoutMs", "Timeout", 10000, "How long to wait before giving up."),
                 Variable("resultVariable", "Result variable", "window",
                     "Variable that receives the window title.", required: false, namesVariable: true),
             ],
@@ -1298,9 +1298,9 @@ public static class ActionCatalog
             Parameters =
             [
                 KeyBind("key", "Key", "Key to press, for example F5 or Enter."),
-                Number("holdMs", "Hold ms", 50, "How long the key stays down."),
+                Number("holdMs", "Hold", 50, "How long the key stays down."),
                 Number("repeat", "Repeat", 1, "How many times to press the key.", min: 1),
-                Number("intervalMs", "Interval ms", 0, "Pause between repeated presses."),
+                Number("intervalMs", "Interval", 0, "Pause between repeated presses."),
                 ..Delivery(),
             ],
         },
@@ -1337,9 +1337,9 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("keys", "Keys", "Ctrl+Shift+S", "Keys joined with + and pressed together."),
-                Number("holdMs", "Hold ms", 50, "How long the combination stays down."),
+                Number("holdMs", "Hold", 50, "How long the combination stays down."),
                 Number("repeat", "Repeat", 1, "How many times to send the combination.", min: 1),
-                Number("intervalMs", "Interval ms", 0, "Pause between repeated presses."),
+                Number("intervalMs", "Interval", 0, "Pause between repeated presses."),
                 ..Delivery(),
             ],
         },
@@ -1352,7 +1352,7 @@ public static class ActionCatalog
             Parameters =
             [
                 Multiline("text", "Text", "Text to type.", "Hello world"),
-                Number("intervalMs", "Interval ms", 30, "Delay between characters."),
+                Number("intervalMs", "Interval", 30, "Delay between characters."),
                 ..Delivery(),
             ],
         },
@@ -1367,7 +1367,7 @@ public static class ActionCatalog
                 Number("x", "X", 0, "Target screen column."),
                 Number("y", "Y", 0, "Target screen row."),
                 ..Anchor(withElement: true),
-                Number("durationMs", "Duration ms", 0, "0 jumps straight to the target."),
+                Number("durationMs", "Duration", 0, "0 jumps straight to the target."),
                 Movement(),
                 ..Delivery(),
             ],
@@ -1382,7 +1382,7 @@ public static class ActionCatalog
             [
                 Number("dx", "Offset X", 0, "Pixels to move horizontally.", min: -100000m),
                 Number("dy", "Offset Y", 0, "Pixels to move vertically.", min: -100000m),
-                Number("durationMs", "Duration ms", 0, "0 jumps straight to the target."),
+                Number("durationMs", "Duration", 0, "0 jumps straight to the target."),
                 Movement(),
                 ..Delivery(),
             ],
@@ -1400,8 +1400,8 @@ public static class ActionCatalog
                 Number("y", "Y", 0, "Screen row to click."),
                 ..Anchor(withElement: true),
                 Number("clicks", "Clicks", 1, "How many clicks to send.", min: 1),
-                Number("intervalMs", "Interval ms", 0, "Pause between repeated clicks."),
-                Number("holdMs", "Hold ms", 0,
+                Number("intervalMs", "Interval", 0, "Pause between repeated clicks."),
+                Number("holdMs", "Hold", 0,
                     "How long the button stays down before it is released. 0 sends a normal "
                     + "quick click; a longer hold is for buttons that only answer a press-and-hold."),
                 ..Delivery(),
@@ -1466,7 +1466,7 @@ public static class ActionCatalog
                     "turn more finely, with 120 pixels to a notch; an application that only " +
                     "looks at whole notches may ignore the smaller amounts."),
                 Number("amount", "Amount", 3, "How far to scroll, counted in the unit above.", min: 1),
-                Number("smoothMs", "Smooth ms", 0,
+                Number("smoothMs", "Smooth", 0,
                     "Spread the scroll over this many milliseconds instead of sending it in one " +
                     "jump, so an application that animates its scrolling can follow. 0 sends it " +
                     "all at once."),
@@ -1490,7 +1490,7 @@ public static class ActionCatalog
                 Number("endY", "End Y", 0),
                 ..Anchor(withElement: true),
                 Button(),
-                Number("durationMs", "Duration ms", 300, "How long the drag takes."),
+                Number("durationMs", "Duration", 300, "How long the drag takes."),
                 Number("steps", "Move steps", 20, "Intermediate move events sent while dragging.", min: 1),
                 Movement(),
                 ..Delivery(),
@@ -1568,8 +1568,8 @@ public static class ActionCatalog
                 Text("region", "Search region", required: false, hint: RegionHint),
                 ..Anchor(),
                 MatchIndex(),
-                Number("timeoutMs", "Timeout ms", 5000, "Give up after this long."),
-                Number("intervalMs", "Interval ms", 200, "Delay between checks."),
+                Number("timeoutMs", "Timeout", 5000, "Give up after this long."),
+                Number("intervalMs", "Interval", 200, "Delay between checks."),
                 Variable("resultVariable", "Result variable", "match",
                     "Variable that receives the match centre. $name.x, $name.y and $name.score "
                     + "hold the parts.", namesVariable: true, defaultValue: "match"),
@@ -1590,7 +1590,7 @@ public static class ActionCatalog
                 MatchIndex(),
                 Number("offsetX", "Offset X", 0, "Pixels added to the match centre.", min: -100000m),
                 Number("offsetY", "Offset Y", 0, min: -100000m),
-                Number("timeoutMs", "Timeout ms", 5000, "Wait this long for the image before giving up."),
+                Number("timeoutMs", "Timeout", 5000, "Wait this long for the image before giving up."),
                 Button(),
             ],
         },
@@ -1623,7 +1623,7 @@ public static class ActionCatalog
                 ..Anchor(),
                 ColorPick("color", "Colour", "#000000", "Colour the pixel has to show."),
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100),
-                Number("timeoutMs", "Timeout ms", 5000, "Give up after this long."),
+                Number("timeoutMs", "Timeout", 5000, "Give up after this long."),
             ],
         },
         new()
@@ -1642,10 +1642,10 @@ public static class ActionCatalog
                 AllMatches(),
                 Text("region", "Search region", required: false, hint: RegionHint),
                 ..Anchor(),
-                Number("timeoutMs", "Timeout ms", 0,
+                Number("timeoutMs", "Timeout", 0,
                     "0 looks once and leaves the result empty when the colour is not there. "
                     + "A number waits that long for it and fails when it never turns up."),
-                Number("intervalMs", "Interval ms", 200, "Delay between checks while waiting."),
+                Number("intervalMs", "Interval", 200, "Delay between checks while waiting."),
                 Variable("resultVariable", "Result variable", "match",
                     "Variable that receives where the colour was found, empty when it was not. "
                     + "$name.x, $name.y and $name.score hold the parts, and $name.count and "
@@ -1721,7 +1721,7 @@ public static class ActionCatalog
                 MinScore(),
                 Number("offsetX", "Offset X", 0, "Pixels added to the match centre.", min: -100000m),
                 Number("offsetY", "Offset Y", 0, min: -100000m),
-                Number("timeoutMs", "Timeout ms", 5000, "Wait this long for the text before giving up."),
+                Number("timeoutMs", "Timeout", 5000, "Wait this long for the text before giving up."),
                 Button(),
             ],
         },
@@ -1738,7 +1738,7 @@ public static class ActionCatalog
                 Window(),
                 Selector(),
                 MatchIndex(),
-                Number("timeoutMs", "Timeout ms", 0, "0 checks once and returns immediately."),
+                Number("timeoutMs", "Timeout", 0, "0 checks once and returns immediately."),
                 Variable("resultVariable", "Result variable", "exists",
                     "Variable that receives true or false.",
                     namesVariable: true, defaultValue: "exists"),
@@ -1775,8 +1775,8 @@ public static class ActionCatalog
                 Window(),
                 Selector(),
                 MatchIndex(),
-                Number("timeoutMs", "Timeout ms", 10000, "Give up after this long."),
-                Number("pollMs", "Poll ms", 200, "Delay between checks."),
+                Number("timeoutMs", "Timeout", 10000, "Give up after this long."),
+                Number("pollMs", "Check every", 200, "Delay between checks."),
             ],
         },
         new()
@@ -1790,7 +1790,7 @@ public static class ActionCatalog
                 Window(),
                 Selector(),
                 MatchIndex(),
-                Number("timeoutMs", "Timeout ms", 5000, "Wait this long for the element before clicking."),
+                Number("timeoutMs", "Timeout", 5000, "Wait this long for the element before clicking."),
                 Button(),
             ],
         },
@@ -1966,7 +1966,7 @@ public static class ActionCatalog
                 Text("folder", "Working folder", required: false,
                     hint: "The folder the script runs in. Leave it empty to run it in the macros "
                           + "folder, or wherever Viktor is when that folder is not there yet."),
-                Number("timeoutMs", "Timeout ms", 60000,
+                Number("timeoutMs", "Timeout", 60000,
                     "Stop the script and fail the step after this long."),
                 Variable("resultVariable", "Result variable", "output",
                     "Variable that receives what the script printed, without the blank lines "
@@ -2331,6 +2331,10 @@ public static class ActionCatalog
             DefaultValue = defaultValue.ToString(CultureInfo.InvariantCulture),
             Minimum = min,
             Maximum = max,
+            // Every pause in the catalogue ends its name in "Ms", so the editor can offer the
+            // unit dropdown without each call site having to ask for it. A number that is not a
+            // length of time is simply never named that way.
+            IsDuration = name == "ms" || name.EndsWith("Ms", StringComparison.Ordinal),
         };
 
     private static ActionParameter Toggle(string name, string label, bool defaultValue = false,

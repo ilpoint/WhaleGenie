@@ -18,6 +18,7 @@ namespace Viktor.ViewModels;
 public partial class StepParameterViewModel : ViewModelBase
 {
     private string _assetFolder = string.Empty;
+    private DurationUnit _unit = DurationUnit.Catalog[0];
 
     public StepParameterViewModel(ActionParameter definition, IReadOnlyList<string>? variables = null,
         IReadOnlyList<string>? macros = null)
@@ -25,6 +26,8 @@ public partial class StepParameterViewModel : ViewModelBase
         Definition = definition;
         Variables = variables ?? [];
         Macros = macros ?? [];
+        DurationUnits = DurationUnit.Localized();
+        _unit = DurationUnits[0];
         ExpressionSuggestions = definition.Kind
             is ActionParameterKind.Expression or ActionParameterKind.Number
             ? [.. Variables.Select(name => "$" + name),
@@ -43,7 +46,7 @@ public partial class StepParameterViewModel : ViewModelBase
         if (decimal.TryParse(definition.DefaultValue, NumberStyles.Number, CultureInfo.InvariantCulture,
                 out var number))
         {
-            NumberValue = number;
+            ShowMilliseconds(number);
         }
         else if (definition.Kind is ActionParameterKind.Number)
         {
@@ -83,6 +86,9 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Macro names offered while editing an <see cref="ActionParameterKind.Macro"/>.</summary>
     public IReadOnlyList<string> Macros { get; }
 
+    /// <summary>Units offered beside a length-of-time box, labelled in the interface language.</summary>
+    public IReadOnlyList<DurationUnit> DurationUnits { get; }
+
     /// <summary>
     /// Tokens an expression field offers while the user types: the variables the macro
     /// knows, then the built-in function names with their opening bracket.
@@ -102,12 +108,55 @@ public partial class StepParameterViewModel : ViewModelBase
     public partial decimal? NumberValue { get; set; }
 
     /// <summary>
+    /// The unit the box is showing a length of time in. Switching it keeps the moment the same
+    /// and changes only how it reads: 1000 milliseconds becomes 1 second, and the step still
+    /// stores 1000.
+    /// </summary>
+    public DurationUnit Unit
+    {
+        get => _unit;
+        set
+        {
+            if (value is null || value == _unit)
+            {
+                return;
+            }
+
+            var milliseconds = Milliseconds;
+            _unit = value;
+            OnPropertyChanged();
+            NumberValue = milliseconds / value.Factor;
+            OnPropertyChanged(nameof(Minimum));
+            OnPropertyChanged(nameof(Maximum));
+            OnPropertyChanged(nameof(CurrentText));
+        }
+    }
+
+    /// <summary>The value in milliseconds, whichever unit the box is showing it in.</summary>
+    private decimal Milliseconds => (NumberValue ?? 0m) * _unit.Factor;
+
+    /// <summary>
+    /// Shows a length of time that is stored in milliseconds in the largest unit it divides into,
+    /// so a step saved as 300000 opens reading "5 minutes".
+    /// </summary>
+    private void ShowMilliseconds(decimal milliseconds)
+    {
+        NumberValue = milliseconds;
+        if (IsDuration)
+        {
+            Unit = DurationUnit.Best(milliseconds);
+        }
+    }
+
+    /// <summary>
     /// True while a number is being written as an expression (<c>$match.x</c>, <c>$count + 1</c>)
     /// instead of being dialled in with the spinner. The engine reads both the same way.
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsNumberValue))]
     [NotifyPropertyChangedFor(nameof(IsNumberFormula))]
+    [NotifyPropertyChangedFor(nameof(IsDurationEditor))]
+    [NotifyPropertyChangedFor(nameof(IsDurationFormula))]
     [NotifyPropertyChangedFor(nameof(CanToggleFormula))]
     [NotifyPropertyChangedFor(nameof(FormulaTip))]
     public partial bool UseFormula { get; set; }
@@ -245,6 +294,15 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>True when the number is written as an expression.</summary>
     public bool IsNumberFormula => IsNumber && UseFormula;
 
+    /// <summary>True when the number is a length of time rather than a count or a pixel.</summary>
+    public bool IsDuration => IsNumber && Definition.IsDuration;
+
+    /// <summary>True while the unit dropdown belongs on screen beside a dialled-in time.</summary>
+    public bool IsDurationEditor => IsDuration && !UseFormula;
+
+    /// <summary>True while a length of time is written as an expression, which counts milliseconds.</summary>
+    public bool IsDurationFormula => IsDuration && UseFormula;
+
     /// <summary>
     /// Whether the field can go back to the spinner. An expression that reads a variable has no
     /// plain number to fall back on, so the switch stays off until the text is a number again.
@@ -283,9 +341,11 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Choices offered by a <see cref="ActionParameterKind.Choice"/> editor.</summary>
     public IReadOnlyList<ActionParameterOption> Choices { get; }
 
-    public decimal Minimum => Definition.Minimum;
+    /// <summary>The bottom of the number box, in whichever unit the box is showing.</summary>
+    public decimal Minimum => Definition.Minimum / _unit.Factor;
 
-    public decimal Maximum => Definition.Maximum;
+    /// <summary>The top of the number box, in whichever unit the box is showing.</summary>
+    public decimal Maximum => Definition.Maximum / _unit.Factor;
 
     public decimal Increment => Definition.Increment;
 
@@ -386,15 +446,17 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         if (value)
         {
-            // Start from the number that was showing, so the field is never left blank.
-            Text = (NumberValue ?? 0m).ToString(CultureInfo.InvariantCulture);
+            // Start from the number that was showing, so the field is never left blank. The engine
+            // reads an expression in milliseconds, so a time is written down in the stored unit
+            // rather than the one the box happened to be showing.
+            Text = Milliseconds.ToString(CultureInfo.InvariantCulture);
             return;
         }
 
         if (decimal.TryParse((Text ?? string.Empty).Trim(), NumberStyles.Number,
                 CultureInfo.InvariantCulture, out var number))
         {
-            NumberValue = number;
+            ShowMilliseconds(number);
         }
     }
 
@@ -446,7 +508,9 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         ActionParameterKind.Number => UseFormula
             ? Text ?? string.Empty
-            : (NumberValue ?? 0m).ToString(CultureInfo.InvariantCulture),
+            : IsDuration
+                ? Milliseconds.ToString("0.####", CultureInfo.InvariantCulture)
+                : (NumberValue ?? 0m).ToString(CultureInfo.InvariantCulture),
         ActionParameterKind.Bool => Flag ? "true" : "false",
         ActionParameterKind.Choice => Option?.Value ?? string.Empty,
         _ => Text ?? string.Empty,
@@ -492,7 +556,7 @@ public partial class StepParameterViewModel : ViewModelBase
                 if (decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var number))
                 {
                     UseFormula = false;
-                    NumberValue = number;
+                    ShowMilliseconds(number);
                 }
                 else
                 {

@@ -52,13 +52,13 @@
                          PlaceholderText="{Binding Placeholder}" />
 
                 <!-- A number is dialled in with the spinner or written as an expression. -->
-                <Grid IsVisible="{Binding IsNumber}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                <Grid IsVisible="{Binding IsNumber}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                     <NumericUpDown IsVisible="{Binding IsNumberValue}"
                                    Value="{Binding NumberValue}"
                                    Minimum="{Binding Minimum}"
                                    Maximum="{Binding Maximum}"
                                    Increment="{Binding Increment}"
-                                   FormatString="0"
+                                   FormatString="0.###"
                                    HorizontalAlignment="Stretch" />
 
                     <AutoCompleteBox Grid.Column="0" Classes="VarInput"
@@ -69,7 +69,21 @@
                                      MinimumPrefixLength="1"
                                      FilterMode="Contains" />
 
-                    <Button Grid.Column="1" Classes="FlatButton" Width="38" Height="33" Padding="0"
+                    <!-- A length of time also says which unit the number is written in. -->
+                    <ComboBox Grid.Column="1" Classes="ActionSelect"
+                              ItemsSource="{Binding DurationUnits}"
+                              SelectedItem="{Binding Unit}"
+                              IsVisible="{Binding IsDurationEditor}"
+                              Width="118" HorizontalAlignment="Left">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:DurationUnit">
+                                <TextBlock Text="{Binding Label}"
+                                           FontSize="12.5" Foreground="#E8E8E8" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <Button Grid.Column="2" Classes="FlatButton" Width="38" Height="33" Padding="0"
                             IsEnabled="{Binding CanToggleFormula}"
                             ToolTip.Tip="{Binding FormulaTip}"
                             Click="OnToggleNumberFormula">
@@ -78,6 +92,9 @@
                 </Grid>
 
                 <StackPanel IsVisible="{Binding IsNumberFormula}">
+                    <TextBlock Classes="Muted" Margin="2,5,0,0" TextWrapping="Wrap"
+                               Text="{Binding [Add.FormulaMilliseconds], Source={x:Static loc:Strings.Current}}"
+                               IsVisible="{Binding IsDurationFormula}" />
                     <TextBlock Classes="Muted" Margin="2,5,0,0"
                                TextWrapping="Wrap"
                                Foreground="#E06C75"

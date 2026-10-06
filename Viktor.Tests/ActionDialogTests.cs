@@ -1,4 +1,6 @@
+using Avalonia.Controls;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Viktor.Core.Devices;
 using Viktor.Core.Execution;
 using Viktor.Localization;
@@ -661,4 +663,132 @@ public class ActionDialogTests
     private static decimal StoredMaximum(AddActionViewModel viewModel, string name)
         => viewModel.Parameters.First(parameter => parameter.Definition.Name == name)
             .Definition.Maximum;
+
+    [Fact]
+    public void A_length_of_time_can_be_written_in_minutes_and_still_saves_milliseconds()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("control.delay");
+            var ms = viewModel.Parameters.First(parameter => parameter.Definition.Name == "ms");
+
+            ms.Unit = ms.DurationUnits.First(unit => unit.Key == "min");
+            ms.NumberValue = 5;
+
+            // The unit is a way of writing the number down; the macro still holds milliseconds.
+            Assert.Equal("300000", Value(viewModel, "ms"));
+        });
+    }
+
+    [Fact]
+    public void A_wait_that_divides_evenly_opens_in_the_big_unit()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("control.waitUntil");
+            var timeout = viewModel.Parameters.First(parameter => parameter.Definition.Name == "timeoutMs");
+
+            // 10000 milliseconds reads better as 10 whole seconds.
+            Assert.Equal("s", timeout.Unit.Key);
+            Assert.Equal(10m, timeout.NumberValue);
+            Assert.Equal("10000", Value(viewModel, "timeoutMs"));
+        });
+    }
+
+    [Fact]
+    public void A_time_already_written_into_a_step_opens_in_the_unit_it_fits()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("control.delay");
+            viewModel.LoadFrom(new MacroStep
+            {
+                Type = "control.delay",
+                Parameters =
+                [
+                    new StepParameter
+                    {
+                        Name = "ms",
+                        Kind = ActionParameterKind.Number,
+                        Value = "1500",
+                    },
+                ],
+            });
+
+            var ms = viewModel.Parameters.First(parameter => parameter.Definition.Name == "ms");
+
+            // 1500 is not a whole number of seconds, so it stays on milliseconds, and saving it
+            // again writes back the number it came in as.
+            Assert.Equal("ms", ms.Unit.Key);
+            Assert.Equal(1500m, ms.NumberValue);
+            Assert.Equal("1500", Value(viewModel, "ms"));
+        });
+    }
+
+    [Fact]
+    public void A_time_written_as_an_expression_is_counted_in_milliseconds()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("control.delay");
+            var ms = viewModel.Parameters.First(parameter => parameter.Definition.Name == "ms");
+
+            ms.Unit = ms.DurationUnits.First(unit => unit.Key == "min");
+            ms.NumberValue = 2;
+            ms.ToggleFormula();
+
+            // The unit dropdown steps aside because the engine reads the expression in milliseconds.
+            Assert.False(ms.IsDurationEditor);
+            Assert.True(ms.IsDurationFormula);
+            Assert.Equal("120000", Value(viewModel, "ms"));
+
+            // Coming back to a plain number picks the unit up again.
+            ms.ToggleFormula();
+            Assert.Equal("min", ms.Unit.Key);
+            Assert.Equal(2m, ms.NumberValue);
+        });
+    }
+
+    [Fact]
+    public void Only_lengths_of_time_get_the_unit_dropdown()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.mouseClick");
+            var x = viewModel.Parameters.First(parameter => parameter.Definition.Name == "x");
+            var hold = viewModel.Parameters.First(parameter => parameter.Definition.Name == "holdMs");
+
+            Assert.False(x.IsDuration);
+            Assert.False(x.IsDurationEditor);
+            Assert.True(hold.IsDurationEditor);
+        });
+    }
+
+    [Fact]
+    public void The_unit_dropdown_is_really_on_screen_for_a_length_of_time()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("control.delay");
+            Dispatcher.UIThread.RunJobs();
+
+            var unitBox = window.GetVisualDescendants().OfType<ComboBox>()
+                .First(box => box.DataContext is StepParameterViewModel { IsDuration: true });
+
+            Assert.True(unitBox.IsVisible);
+            Assert.Same(((StepParameterViewModel)unitBox.DataContext!).DurationUnits, unitBox.ItemsSource);
+
+            // A plain number carries no unit, so its box steps out of the way.
+            viewModel.SelectAction("input.mouseClick");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<ComboBox>(),
+                box => box.DataContext is StepParameterViewModel { IsDuration: true });
+        });
+    }
 }

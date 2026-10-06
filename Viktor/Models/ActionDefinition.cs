@@ -163,6 +163,12 @@ public class ActionParameter
     public decimal Maximum { get; init; } = Viktor.Core.Execution.StepMeta.LongestPauseMs;
 
     public decimal Increment { get; init; } = 1m;
+
+    /// <summary>
+    /// True when the number is a length of time. The editor then offers the units beside the box,
+    /// while the step keeps storing milliseconds, so a unit never reaches the engine or the file.
+    /// </summary>
+    public bool IsDuration { get; init; }
 }
 
 /// <summary>A single entry of the action catalogue, for example <c>control.delay</c>.</summary>
