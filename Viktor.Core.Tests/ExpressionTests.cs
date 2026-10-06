@@ -81,6 +81,9 @@ public class ExpressionTests
     [InlineData("substring(\"abcdef\", 1, 3)", "bcd")]
     [InlineData("substring(\"abcdef\", -2)", "ef")]
     [InlineData("replace(\"a-b-c\", \"-\", \"+\")", "a+b+c")]
+    [InlineData("replaceRegex(\"a1 b22\", \"[0-9]+\", \"#\")", "a# b#")]
+    [InlineData("replaceRegex(\"2024-03-01\", \"([0-9]+)-([0-9]+)-([0-9]+)\", \"$3/$2/$1\")", "01/03/2024")]
+    [InlineData("replaceRegex(\"AbC\", \"(?i)b\", \"x\")", "AxC")]
     [InlineData("join(split(\"a,b\", \",\"), \"-\")", "a-b")]
     [InlineData("concat(\"a\", 1, true)", "a1true")]
     [InlineData("repeat(\"ab\", 3)", "ababab")]
@@ -272,6 +275,30 @@ public class ExpressionTests
         Assert.Equal(today + " 09:30:00",
             Expression.Evaluate("formatDate($clock, \"yyyy-MM-dd HH:mm:ss\")", bag).AsText());
     }
+
+    [Theory]
+    [InlineData("parseDate(\"01/03/2024\", \"dd/MM/yyyy\")", "2024-03-01 00:00:00")]
+    [InlineData("parseDate(\"2024.03.01 09:30\", \"yyyy.MM.dd HH:mm\")", "2024-03-01 09:30:00")]
+    [InlineData("parseDate(\" 2024-03-01 \", \"yyyy-MM-dd\")", "2024-03-01 00:00:00")]
+    public void A_date_written_in_a_pattern_is_read_back(string source, string expected)
+        => Assert.Equal(expected, Text(source));
+
+    [Fact]
+    public void A_date_is_read_and_written_round_the_same_pattern()
+        => Assert.Equal("2024-03-01",
+            Text("formatDate(parseDate(\"01/03/2024\", \"dd/MM/yyyy\"), \"yyyy-MM-dd\")"));
+
+    [Fact]
+    public void A_pattern_that_only_names_a_time_counts_as_today()
+    {
+        var today = Expression.Evaluate("today()").AsText();
+        Assert.Equal(today + " 09:30:00", Text("parseDate(\"09:30\", \"HH:mm\")"));
+    }
+
+    [Fact]
+    public void Text_that_does_not_match_the_pattern_is_refused()
+        => Assert.Equal(ExpressionErrorCode.TypeMismatch,
+            Failure("parseDate(\"half past nine\", \"yyyy-MM-dd\")").Code);
 
     [Fact]
     public void Text_that_is_not_a_date_is_refused()

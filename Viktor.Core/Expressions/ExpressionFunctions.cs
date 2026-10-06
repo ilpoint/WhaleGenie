@@ -44,6 +44,11 @@ internal static class FunctionLibrary
             args => Value.FromText(Substring(args))),
         Fn("replace", "replace(text, old, new)", "Swap every occurrence of one piece of text for another.", 3, 3,
             args => Value.FromText(S(args, 0).Replace(S(args, 1), S(args, 2), StringComparison.OrdinalIgnoreCase))),
+        Fn("replaceRegex", "replaceRegex(text, pattern, replacement)",
+            "Swap everything the regular expression matches for the replacement, which can name the "
+            + "pieces it captured as $1, $2 and so on. Write (?i) at the front of the pattern to "
+            + "ignore case.", 3, 3,
+            args => Value.FromText(Regex.Replace(S(args, 0), S(args, 1), S(args, 2)))),
         Fn("split", "split(text, separator)", "Break text into a list.", 2, 2,
             args => Value.FromList(Split(args))),
         Fn("join", "join(list, separator)", "Glue the items of a list into one text.", 2, 2,
@@ -157,6 +162,11 @@ internal static class FunctionLibrary
         Fn("formatDate", "formatDate(date, pattern)",
             "A date written out in a pattern such as yyyy/MM/dd.", 2, 2,
             args => Value.FromText(Formatted(args))),
+        Fn("parseDate", "parseDate(text, pattern)",
+            "Read a date out of text written in a pattern such as yyyy/MM/dd. The answer is a date "
+            + "like every other date function reads and writes, so it can go straight into "
+            + "dateAdd, dateDiff or a comparison.", 2, 2,
+            args => Value.FromText(Parsed(args))),
 
         // -------------------------------------------------------------------- json
         Fn("jsonGet", "jsonGet(json, path)",
@@ -448,9 +458,7 @@ internal static class FunctionLibrary
         if (DateTimeOffset.TryParseExact(trimmed, MomentFormats, CultureInfo.InvariantCulture,
                 DateTimeStyles.AllowWhiteSpaces, out var exact))
         {
-            return exact.Year == 1
-                ? new DateTimeOffset(DateTime.Today.Add(exact.TimeOfDay), DateTimeOffset.Now.Offset)
-                : exact;
+            return Anchored(exact);
         }
 
         if (DateTimeOffset.TryParse(trimmed, CultureInfo.InvariantCulture,
@@ -460,6 +468,34 @@ internal static class FunctionLibrary
         }
 
         throw ExpressionException.TypeMismatch($"\"{text}\" is not a date");
+    }
+
+    /// <summary>
+    /// A clock time with no date on it belongs to today: "wait until 09:30" means the next one,
+    /// and a text written in a pattern that only names a time reads the same way.
+    /// </summary>
+    private static DateTimeOffset Anchored(DateTimeOffset moment)
+        => moment.Year == 1
+            ? new DateTimeOffset(DateTime.Today.Add(moment.TimeOfDay), DateTimeOffset.Now.Offset)
+            : moment;
+
+    /// <summary>
+    /// Reads a date out of text that is written in a pattern rather than in one of the shapes
+    /// <see cref="Moment"/> already knows — a report that writes 01/03/2024, say. What comes back
+    /// is stamped the way every date function writes, not in the pattern it was read in, so the
+    /// answer can be handed straight to the next one.
+    /// </summary>
+    private static string Parsed(IReadOnlyList<Func<Value>> args)
+    {
+        var text = S(args, 0).Trim();
+        var pattern = S(args, 1);
+        if (DateTimeOffset.TryParseExact(text, pattern, CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces, out var exact))
+        {
+            return Stamp(Anchored(exact));
+        }
+
+        throw ExpressionException.TypeMismatch($"\"{text}\" is not a date written as \"{pattern}\"");
     }
 
     /// <summary>A date written back in the one shape every date function reads.</summary>
