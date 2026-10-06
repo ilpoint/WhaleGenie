@@ -673,6 +673,17 @@ internal static class ActionStrings
         ["system.volume.stepPercent.hint"] = "音量调大或调小多少个百分点。被\"调大\"和\"调小\"使用，两端都不会超过 0 和 100。",
         ["system.volume.resultVariable.label"] = "结果变量",
         ["system.volume.resultVariable.hint"] = "接收调整后音量的变量，0 到 100。只做静音的步骤也会把当前音量记下来。",
+        ["system.ime.name"] = "输入法",
+        ["system.ime.desc"] = "读取最前面那个窗口的键盘布局，或者把它切到另一种布局。",
+        ["system.ime.what.label"] = "执行",
+        ["system.ime.what.hint"] = "这里说的都是最前面那个窗口——人正在打字的那个。宏在中文布局下发送西文按键，拿到的是候选词而不是快捷键，所以先切到英文布局往往就是宏能不能用的关键。中文输入法自己的中英开关只能靠按键去关（Windows 把这个状态记在正在打字的那个程序里），发 Ctrl+Space 或 Shift 就是那件事。",
+        ["system.ime.what.option.get"] = "当前是哪种布局",
+        ["system.ime.what.option.list"] = "列出已安装的布局",
+        ["system.ime.what.option.switch"] = "切换到另一种布局",
+        ["system.ime.layout.label"] = "布局",
+        ["system.ime.layout.hint"] = "要切换到的布局，被\"切换到另一种布局\"使用。写名字的一部分就能匹配；可选的名字用\"列出已安装的布局\"查出来。这一步会等到窗口真的换过去，所以下一步可以放心按那种语言打字。",
+        ["system.ime.resultVariable.label"] = "结果变量",
+        ["system.ime.resultVariable.hint"] = "接收结果的变量：当前布局名，或者可以切换过去的布局列表。",
 
         // ------------------------------------------------------------------ window
         ["window.exists.name"] = "窗口是否存在",

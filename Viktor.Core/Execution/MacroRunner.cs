@@ -582,6 +582,10 @@ public sealed class MacroRunner
                 Volume(step, depth);
                 return Signal.Normal;
 
+            case "system.ime":
+                InputMethod(step, depth);
+                return Signal.Normal;
+
             // ----------------------------------------------------------------- window
             case "window.exists":
                 WindowExists(step, depth);
@@ -3011,6 +3015,52 @@ public sealed class MacroRunner
             Log(LogLevel.Info, depth, step.Type,
                 _devices.System.IsMuted() ? "Run.SoundOff" : "Run.SoundOn");
         }
+    }
+
+    /// <summary>
+    /// Reads or changes what the window with the focus is typing in. A macro that types Latin keys
+    /// while a Chinese layout is in use gets Chinese candidates instead, so switching the window to
+    /// its English layout first is often the difference between a macro that works and one that
+    /// types 你好.
+    /// </summary>
+    private void InputMethod(ExecutableStep step, int depth)
+    {
+        var what = step.Text("what").Trim().ToLowerInvariant();
+        var variable = VariableName(step, "resultVariable", "ime");
+        Value answer;
+
+        switch (what)
+        {
+            case "get":
+                answer = Value.FromText(_devices.System.InputMethod());
+                break;
+
+            case "list":
+                answer = Value.FromText(string.Join(';', _devices.System.InputMethods()));
+                break;
+
+            case "switch":
+                var wanted = Read(step.Text("layout")).AsText().Trim();
+                if (wanted.Length == 0)
+                {
+                    throw new StepFailure("Run.MissingName");
+                }
+
+                var switched = _devices.System.SwitchInputMethod(wanted);
+                if (switched is null)
+                {
+                    throw new StepFailure("Run.LayoutNotFound", wanted);
+                }
+
+                answer = Value.FromText(switched);
+                break;
+
+            default:
+                throw new StepFailure("Run.UnknownInputMethodAction", what);
+        }
+
+        Variables.Set(variable, answer);
+        Log(LogLevel.Info, depth, step.Type, "Run.Set", variable, answer.AsText());
     }
 
     /// <summary>Stores a value under a variable a step named, unless it named none.</summary>

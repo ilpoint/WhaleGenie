@@ -1051,6 +1051,37 @@ public static class ActionCatalog
                     namesVariable: true, defaultValue: "volume"),
             ],
         },
+        new()
+        {
+            Key = "system.ime",
+            Category = ActionCategory.System,
+            DisplayName = "Input Method",
+            Description = "Read or change the keyboard layout and input method of the window in "
+                + "front.",
+            Parameters =
+            [
+                Choice("what", "Do what",
+                    ["get", "list", "switch"], "get",
+                    "Which keyboard layout the window in front is typing in, and how to give it "
+                    + "another. A macro that types Latin keys while a Chinese layout is in use gets "
+                    + "Chinese candidates instead of its shortcut, so switching to the English "
+                    + "layout first is often what makes a macro work. Turning a Chinese input "
+                    + "method's own Chinese/English switch off is a key press rather than a setting "
+                    + "— Windows keeps that state inside the program being typed into — so that part "
+                    + "is done by sending Ctrl+Space or Shift.",
+                    labels:
+                    ["Which layout is in use", "List the installed layouts", "Switch to another layout"]),
+                Text("layout", "Layout", "英语(美国)", required: false,
+                    hint: "Which layout to switch to, used by \"Switch to another layout\". Part of "
+                          + "the name is enough; \"List the installed layouts\" writes out the names "
+                          + "to choose from. The step waits for the window to really change over, so "
+                          + "the step after it can rely on typing in that language."),
+                Variable("resultVariable", "Result variable", "ime",
+                    "Variable that receives the answer: the layout in use, or the list of layouts "
+                    + "that could be switched to.",
+                    namesVariable: true, defaultValue: "ime"),
+            ],
+        },
 
         // ------------------------------------------------------------------ window
         new()

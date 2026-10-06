@@ -132,6 +132,12 @@ public sealed class WindowsSystemDevice : ISystemDevice
 
     public void SetMuted(bool muted) => WindowsAudio.SetMuted(muted);
 
+    public string InputMethod() => WindowsKeyboard.Current();
+
+    public IReadOnlyList<string> InputMethods() => WindowsKeyboard.Installed();
+
+    public string? SwitchInputMethod(string layout) => WindowsKeyboard.SwitchTo(layout);
+
     /// <summary>
     /// Gives this process the privilege that shutting the machine down needs. Windows hands that
     /// privilege to every user but leaves it switched off, and turning it on is what shutdown.exe

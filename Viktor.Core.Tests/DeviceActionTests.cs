@@ -2512,6 +2512,62 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task The_input_method_action_reads_the_layout_the_focused_window_is_using()
+    {
+        var devices = new FakeDeviceLayer();
+        var (_, _, store) = await RunAsync(
+        [
+            Step("system.ime", Param("what", "get"), Param("resultVariable", "which")),
+            Step("system.ime", Param("what", "list"), Param("resultVariable", "all")),
+        ], devices);
+
+        Assert.Equal("中文(简体) - 微软拼音", store.Local.Values["which"].AsText());
+
+        // The list is what the layout field can be filled in from, so it is the same wording.
+        Assert.Equal("中文(简体) - 微软拼音;英语(美国)", store.Local.Values["all"].AsText());
+    }
+
+    [Fact]
+    public async Task The_input_method_action_switches_to_a_layout_by_part_of_its_name()
+    {
+        var devices = new FakeDeviceLayer();
+        var (_, _, store) = await RunAsync(
+        [
+            Step("system.ime", Param("what", "switch"), Param("layout", "英语"),
+                Param("resultVariable", "now")),
+        ], devices);
+
+        // The variable holds the layout the window really ended up on, which is the name the device
+        // matched rather than the part the macro typed.
+        Assert.Equal("英语(美国)", store.Local.Values["now"].AsText());
+        Assert.Contains("switchInputMethod 英语", devices.Calls);
+    }
+
+    [Fact]
+    public async Task The_input_method_action_says_so_when_no_layout_matches()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("system.ime", Param("what", "switch"), Param("layout", "法语"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.LayoutNotFound", result.Key);
+        Assert.Contains("法语", result.Detail);
+    }
+
+    [Fact]
+    public async Task The_input_method_action_refuses_a_name_it_does_not_know()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("system.ime", Param("what", "chinese"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.UnknownInputMethodAction", result.Key);
+        Assert.Empty(devices.Calls);
+    }
+
+    [Fact]
     public async Task Checking_for_a_window_leaves_true_or_false()
     {
         var devices = new FakeDeviceLayer();
@@ -3764,6 +3820,37 @@ internal sealed class FakeDeviceLayer
     {
         Note($"setMuted {muted}");
         SoundOff = muted;
+    }
+
+    /// <summary>The layouts the fake says are installed, and which of them is being typed in.</summary>
+    public List<string> Layouts { get; } = ["\u4e2d\u6587(\u7b80\u4f53) - \u5fae\u8f6f\u62fc\u97f3", "\u82f1\u8bed(\u7f8e\u56fd)"];
+
+    public string Layout { get; set; } = "\u4e2d\u6587(\u7b80\u4f53) - \u5fae\u8f6f\u62fc\u97f3";
+
+    string ISystemDevice.InputMethod()
+    {
+        Note("inputMethod");
+        return Layout;
+    }
+
+    IReadOnlyList<string> ISystemDevice.InputMethods()
+    {
+        Note("inputMethods");
+        return Layouts;
+    }
+
+    string? ISystemDevice.SwitchInputMethod(string layout)
+    {
+        Note($"switchInputMethod {layout}");
+        var found = Layouts.FirstOrDefault(installed =>
+            installed.Contains(layout, StringComparison.OrdinalIgnoreCase));
+        if (found is null)
+        {
+            return null;
+        }
+
+        Layout = found;
+        return found;
     }
 
     IReadOnlyList<WindowInfo> IWindowDevice.List()

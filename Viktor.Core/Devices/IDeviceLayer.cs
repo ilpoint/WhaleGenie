@@ -287,6 +287,18 @@ public interface ISystemDevice
 
     /// <summary>Switches the sound off, or back on.</summary>
     void SetMuted(bool muted);
+
+    /// <summary>The keyboard layout the focused window is typing in, said the way a person would.</summary>
+    string InputMethod();
+
+    /// <summary>Every keyboard layout installed on this machine, said the same way.</summary>
+    IReadOnlyList<string> InputMethods();
+
+    /// <summary>
+    /// Switches the focused window to the layout whose name matches and says which one it ended up
+    /// on, or null when the machine has no such layout.
+    /// </summary>
+    string? SwitchInputMethod(string layout);
 }
 
 /// <summary>Open windows: finding them, moving them, and closing them.</summary>
@@ -497,6 +509,12 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public bool IsMuted() => throw Missing("the sound card");
 
         public void SetMuted(bool muted) => throw Missing("the sound card");
+
+        public string InputMethod() => throw Missing("a keyboard layout");
+
+        public IReadOnlyList<string> InputMethods() => throw Missing("a keyboard layout");
+
+        public string? SwitchInputMethod(string layout) => throw Missing("a keyboard layout");
 
         // Named through the interface because the process device already has a List and a Find
         // that take no such argument.
