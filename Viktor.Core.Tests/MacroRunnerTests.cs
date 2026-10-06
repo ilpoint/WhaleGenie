@@ -966,6 +966,40 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task A_length_of_time_can_be_given_slack_so_it_is_never_the_same_twice()
+    {
+        // 200ms with 25% of give lands somewhere between 150 and 250, and never on the same
+        // number twice: this is what stops a wait from looking like a machine's.
+        var varied = Step("control.delay",
+            new ExecutableParameter { Name = "ms", Text = "200", Jitter = 0.25m });
+
+        var waits = new List<double>();
+        for (var round = 0; round < 5; round++)
+        {
+            waits.Add(await TimeAsync([varied], 1));
+        }
+
+        Assert.All(waits, taken => Assert.InRange(taken, 145, 300));
+        Assert.True(waits.Max() - waits.Min() > 10,
+            $"every wait came out about the same: {string.Join(", ", waits.Select(w => w.ToString("0")))}");
+
+        // The macro keeps the number it was written with; the give only bends it while it runs.
+        Assert.Equal("200", varied.Text("ms"));
+    }
+
+    [Fact]
+    public async Task The_slack_of_a_time_is_bent_with_it_by_the_speed_factor()
+    {
+        // The factor bends the whole wait, give included: 250 ±20% at ×0.1 is at most 30ms.
+        var varied = Step("control.delay",
+            new ExecutableParameter { Name = "ms", Text = "250", Jitter = 0.2m });
+
+        var quickest = await QuickestAsync([varied], 0.1, rounds: 8);
+
+        Assert.True(quickest < 40, $"×0.1 should barely wait, took {quickest:0}ms");
+    }
+
+    [Fact]
     public async Task A_speed_factor_also_bends_the_pauses_around_a_step()
     {
         var paused = new ExecutableStep

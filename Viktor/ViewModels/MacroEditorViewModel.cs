@@ -984,6 +984,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         Name = parameter.Name,
         Kind = parameter.Kind,
         Value = parameter.Value,
+        Jitter = parameter.Jitter,
         Steps = parameter.Steps.Select(Clone).ToList(),
         Condition = parameter.Condition is null ? null : Clone(parameter.Condition),
     };

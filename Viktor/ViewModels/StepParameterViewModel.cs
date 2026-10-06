@@ -105,7 +105,18 @@ public partial class StepParameterViewModel : ViewModelBase
     public partial string Text { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(JitterRange))]
+    [NotifyPropertyChangedFor(nameof(HasJitterRange))]
     public partial decimal? NumberValue { get; set; }
+
+    /// <summary>
+    /// How far a length of time may move each run, as a percentage of it: 20 means the wait comes
+    /// out somewhere between 80% and 120% of what is written. Empty means "use it as written".
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(JitterRange))]
+    [NotifyPropertyChangedFor(nameof(HasJitterRange))]
+    public partial decimal? JitterPercent { get; set; }
 
     /// <summary>
     /// The unit the box is showing a length of time in. Switching it keeps the moment the same
@@ -135,6 +146,8 @@ public partial class StepParameterViewModel : ViewModelBase
             OnPropertyChanged(nameof(Minimum));
             OnPropertyChanged(nameof(Maximum));
             OnPropertyChanged(nameof(CurrentText));
+            OnPropertyChanged(nameof(JitterRange));
+            OnPropertyChanged(nameof(HasJitterRange));
         }
     }
 
@@ -164,6 +177,8 @@ public partial class StepParameterViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsDurationFormula))]
     [NotifyPropertyChangedFor(nameof(CanToggleFormula))]
     [NotifyPropertyChangedFor(nameof(FormulaTip))]
+    [NotifyPropertyChangedFor(nameof(JitterRange))]
+    [NotifyPropertyChangedFor(nameof(HasJitterRange))]
     public partial bool UseFormula { get; set; }
 
     [ObservableProperty]
@@ -301,6 +316,32 @@ public partial class StepParameterViewModel : ViewModelBase
 
     /// <summary>True when the number is a length of time rather than a count or a pixel.</summary>
     public bool IsDuration => IsNumber && Definition.IsDuration;
+
+    /// <summary>
+    /// What the give does to the number on screen, so the range is never a sum to do in the head.
+    /// Empty while there is nothing to say: no give, no number yet, or an expression whose value
+    /// is only known when the macro runs.
+    /// </summary>
+    public string JitterRange
+    {
+        get
+        {
+            var percent = Math.Min(100m, JitterPercent ?? 0m);
+            var milliseconds = Milliseconds;
+            if (!IsDuration || UseFormula || percent <= 0m || milliseconds <= 0m)
+            {
+                return string.Empty;
+            }
+
+            var give = milliseconds * percent / 100m;
+            return Strings.Format("Add.JitterRange",
+                DurationUnit.Written(decimal.Round(milliseconds - give)),
+                DurationUnit.Written(decimal.Round(milliseconds + give)));
+        }
+    }
+
+    /// <summary>True when there is a range worth showing under the field.</summary>
+    public bool HasJitterRange => JitterRange.Length > 0;
 
     /// <summary>True while the unit dropdown belongs on screen beside a dialled-in time.</summary>
     public bool IsDurationEditor => IsDuration && !UseFormula;
@@ -544,6 +585,10 @@ public partial class StepParameterViewModel : ViewModelBase
         Name = Definition.Name,
         Kind = Definition.Kind,
         Value = CurrentText.Trim(),
+        // A blank field carries nothing to move, so a give typed beside nothing is dropped with it.
+        Jitter = IsIncluded && JitterPercent is > 0m
+            ? Math.Min(100m, JitterPercent.Value) / 100m
+            : 0m,
         Steps = Definition.Kind is ActionParameterKind.Steps
             ? List?.Steps.ToList() ?? []
             : [],
@@ -570,6 +615,8 @@ public partial class StepParameterViewModel : ViewModelBase
 
             return;
         }
+
+        JitterPercent = stored.HasJitter ? stored.Jitter * 100m : null;
 
         var raw = stored.Value;
         switch (Definition.Kind)

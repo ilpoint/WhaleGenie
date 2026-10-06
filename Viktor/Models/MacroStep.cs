@@ -22,6 +22,16 @@ public class StepParameter
 
     public string Value { get; init; } = string.Empty;
 
+    /// <summary>
+    /// How much the value may move from run to run, written as a fraction of it: 0.2 is "20%
+    /// either way", so 500 lands somewhere between 400 and 600. Only lengths of time are given
+    /// one, which is what keeps a wait from looking mechanical.
+    /// </summary>
+    public decimal Jitter { get; init; }
+
+    /// <summary>True when the value was written with some give in it.</summary>
+    public bool HasJitter => Jitter > 0m;
+
     /// <summary>Child steps, filled in when <see cref="Kind"/> is <see cref="ActionParameterKind.Steps"/>.</summary>
     public List<MacroStep> Steps { get; init; } = [];
 
@@ -43,7 +53,8 @@ public class StepParameter
     };
 
     /// <summary>Rebuilds a parameter from the JSON node written by <see cref="ToJson"/>.</summary>
-    public static StepParameter FromJson(string name, JsonNode? node, ActionDefinition? owner)
+    public static StepParameter FromJson(string name, JsonNode? node, ActionDefinition? owner,
+        decimal jitter = 0m)
     {
         var definition = owner?.Parameters.FirstOrDefault(candidate => candidate.Name == name);
         var expectsCondition = definition?.Kind is ActionParameterKind.Condition;
@@ -67,6 +78,7 @@ public class StepParameter
                 Name = name,
                 Kind = definition?.Kind ?? ActionParameterKind.Text,
                 Value = ReadValue(node),
+                Jitter = jitter,
             },
         };
     }
@@ -225,7 +237,7 @@ public class MacroStep : INotifyPropertyChanged
                     default:
                         if (!string.IsNullOrWhiteSpace(parameter.Value))
                         {
-                            parts.Add($"{label} = {DescribeValue(parameter)}");
+                            parts.Add($"{label} = {DescribeValue(parameter)}{JitterNote(parameter)}");
                         }
                         break;
                 }
@@ -235,6 +247,13 @@ public class MacroStep : INotifyPropertyChanged
             return values.Length == 0 ? Type : $"{Type} · {values}";
         }
     }
+
+    /// <summary>How much a value is allowed to move, shown after it, or nothing when it is fixed.</summary>
+    private static string JitterNote(StepParameter parameter)
+        => parameter.HasJitter
+            ? " " + Strings.Format("Editor.JitterDetail",
+                (parameter.Jitter * 100m).ToString("0.##", CultureInfo.InvariantCulture))
+            : string.Empty;
 
     public Geometry? Icon => Definition?.Icon;
 
@@ -311,6 +330,19 @@ public class MacroStep : INotifyPropertyChanged
             ["params"] = parameters,
         };
 
+        // How much a length of time may move is written beside the parameters rather than inside
+        // them, so a step saved before this existed still reads back exactly as it was.
+        var jitter = new JsonObject();
+        foreach (var parameter in Parameters.Where(parameter => parameter.HasJitter))
+        {
+            jitter[parameter.Name] = JsonValue.Create(parameter.Jitter);
+        }
+
+        if (jitter.Count > 0)
+        {
+            node["jitter"] = jitter;
+        }
+
         if (!Meta.IsEmpty)
         {
             node["meta"] = Meta.ToJson();
@@ -331,12 +363,20 @@ public class MacroStep : INotifyPropertyChanged
         if (node["params"] is JsonObject parameters)
         {
             var definition = ActionCatalog.Find(step.Type);
+            var jitters = node["jitter"] as JsonObject;
             foreach (var (name, value) in parameters)
             {
-                step.Parameters.Add(StepParameter.FromJson(name, value, definition));
+                step.Parameters.Add(
+                    StepParameter.FromJson(name, value, definition, JitterOf(jitters, name)));
             }
         }
 
         return step;
     }
+
+    /// <summary>Reads the give a parameter was written with, or zero when it has none.</summary>
+    private static decimal JitterOf(JsonObject? jitters, string name)
+        => jitters?[name] is JsonValue value && value.TryGetValue<decimal>(out var fraction)
+            ? Math.Max(0m, fraction)
+            : 0m;
 }

@@ -14,6 +14,13 @@ public sealed class ExecutableParameter
     /// <summary>The value as written; the runner reads it as an expression when it needs to.</summary>
     public string Text { get; init; } = string.Empty;
 
+    /// <summary>
+    /// How far <see cref="Text"/> may move each run, as a fraction of it: 0.2 means "somewhere
+    /// from 80% to 120% of what was written". Zero uses the value as written. Only lengths of
+    /// time are given one, which is what keeps a macro's waits from looking like a machine's.
+    /// </summary>
+    public decimal Jitter { get; init; }
+
     /// <summary>Child steps, for a parameter that holds a list of them.</summary>
     public IReadOnlyList<ExecutableStep> Steps { get; init; } = [];
 
@@ -44,6 +51,9 @@ public sealed class ExecutableStep
 
     /// <summary>The condition held by a named parameter.</summary>
     public ExecutableStep? Condition(string name) => Parameter(name)?.Condition;
+
+    /// <summary>The slack a named parameter carries, as a fraction of it, or zero.</summary>
+    public decimal Jitter(string name) => Parameter(name)?.Jitter ?? 0m;
 
     private ExecutableParameter? Parameter(string name)
         => Parameters.FirstOrDefault(parameter => parameter.Name == name);

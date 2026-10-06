@@ -30,6 +30,7 @@ public static class MacroStepConverter
     {
         Name = parameter.Name,
         Text = parameter.Value,
+        Jitter = parameter.Jitter,
         Steps = [.. parameter.Steps.Select(step => Convert(step, counter))],
         Condition = parameter.Condition is null ? null : Convert(parameter.Condition, counter),
     };

@@ -4207,12 +4207,29 @@ public sealed class MacroRunner
     {
         try
         {
-            return (int)Read(step.Text(name)).AsNumber();
+            return Vary(step, name, (int)Read(step.Text(name)).AsNumber());
         }
         catch (ExpressionException)
         {
             return 0;
         }
+    }
+
+    /// <summary>
+    /// Bends a number by whatever slack the step asked for. Only lengths of time are written with
+    /// one, so this is what stops a macro's waits from looking like a machine's: 500 written with
+    /// 20% of give comes out anywhere from 400 to 600, a fresh number every time the step runs.
+    /// </summary>
+    private static int Vary(ExecutableStep step, string name, int value)
+    {
+        var jitter = Math.Min(1m, Math.Max(0m, step.Jitter(name)));
+        if (jitter == 0m || value == 0)
+        {
+            return value;
+        }
+
+        var bend = 1 + (((System.Random.Shared.NextDouble() * 2) - 1) * (double)jitter);
+        return (int)Math.Round(value * bend);
     }
 
     /// <summary>A number a step may leave out, taking <paramref name="fallback"/> when it does.</summary>

@@ -259,6 +259,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Meta.RetryJitter"] = "retry ×{0}, at random intervals",
         ["Editor.Meta.Timeout"] = "times out after {0}",
         ["Editor.Meta.Pauses"] = "pauses {0} before, {1} after",
+        ["Editor.JitterDetail"] = "±{0}%",
         ["Editor.Meta.OnErrorContinue"] = "carries on when it fails",
         ["Editor.Meta.OnErrorNextIteration"] = "starts the next round when it fails",
         ["Editor.Meta.OnErrorAsk"] = "asks when it fails",
@@ -380,6 +381,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.Category.Uia"] = "Interface elements",
         ["Add.Category.Script"] = "Scripts",
         ["Add.Category.Condition"] = "Conditions",
+        ["Add.JitterSign"] = "±",
+        ["Add.JitterUnit"] = "%",
+        ["Add.JitterHint"] = "How far the time may move each run, as a percentage of it.",
+        ["Add.JitterRange"] = "Each run: {0} to {1}",
         ["Add.StepErrorJumps"] = "Send a failure to an anchor",
         ["Add.StepErrorJumpsHint"] = "One rule per line: the failure it is about, then \"->\" and "
             + "the anchor to carry on at, or \"=>\" when the handler is to come back to the step "
@@ -883,6 +888,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Meta.RetryJitter"] = "重试 {0} 次（等待随机）",
         ["Editor.Meta.Timeout"] = "超过 {0} 算失败",
         ["Editor.Meta.Pauses"] = "前置 {0} / 后置 {1}",
+        ["Editor.JitterDetail"] = "±{0}%",
         ["Editor.Meta.OnErrorContinue"] = "失败后继续",
         ["Editor.Meta.OnErrorNextIteration"] = "失败后进入下一轮循环",
         ["Editor.Meta.OnErrorAsk"] = "失败后询问",
@@ -1004,6 +1010,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.Category.Uia"] = "界面元素",
         ["Add.Category.Script"] = "脚本",
         ["Add.Category.Condition"] = "条件",
+        ["Add.JitterSign"] = "±",
+        ["Add.JitterUnit"] = "%",
+        ["Add.JitterHint"] = "每次运行时在这个时长上下浮动的比例。",
+        ["Add.JitterRange"] = "每次在 {0} – {1} 之间",
         ["Add.StepErrorJumps"] = "失败时跳到锚点",
         ["Add.StepErrorJumpsHint"] = "一行一条规则：先是它管哪个失败，然后 “->” 和要继续执行的"
             + "锚点名；写 “=>” 表示处理段办完要回到失败那一步之后。失败名支持通配，"
