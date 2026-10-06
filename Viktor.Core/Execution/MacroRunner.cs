@@ -586,6 +586,10 @@ public sealed class MacroRunner
                 InputMethod(step, depth);
                 return Signal.Normal;
 
+            case "system.brightness":
+                Brightness(step, depth);
+                return Signal.Normal;
+
             // ----------------------------------------------------------------- window
             case "window.exists":
                 WindowExists(step, depth);
@@ -2974,6 +2978,9 @@ public sealed class MacroRunner
         var what = step.Text("what").Trim().ToLowerInvariant();
         switch (what)
         {
+            // A step written before this field existed means the same as the editor's own default:
+            // read the level and leave the machine alone.
+            case "":
             case "get":
                 break;
 
@@ -3061,6 +3068,41 @@ public sealed class MacroRunner
 
         Variables.Set(variable, answer);
         Log(LogLevel.Info, depth, step.Type, "Run.Set", variable, answer.AsText());
+    }
+
+    /// <summary>
+    /// Reads or changes how bright the screens are. Like the volume, the result is the brightness the
+    /// machine was left at rather than the one that was asked for, so a macro can put it back.
+    /// </summary>
+    private void Brightness(ExecutableStep step, int depth)
+    {
+        var what = step.Text("what").Trim().ToLowerInvariant();
+        switch (what)
+        {
+            // A step written before this field existed means the same as the editor's own default:
+            // read the brightness and leave the screens alone.
+            case "":
+            case "get":
+                break;
+
+            case "set":
+                _devices.System.SetBrightness(OptionalNumber(step, "percent", 50));
+                break;
+
+            case "up":
+            case "down":
+                var move = OptionalNumber(step, "stepPercent", 10);
+                _devices.System.SetBrightness(
+                    _devices.System.Brightness() + (what is "up" ? move : -move));
+                break;
+
+            default:
+                throw new StepFailure("Run.UnknownBrightnessAction", what);
+        }
+
+        var level = _devices.System.Brightness();
+        Variables.Set(VariableName(step, "resultVariable", "brightness"), Value.FromNumber(level));
+        Log(LogLevel.Info, depth, step.Type, "Run.Brightness", level);
     }
 
     /// <summary>Stores a value under a variable a step named, unless it named none.</summary>

@@ -299,6 +299,12 @@ public interface ISystemDevice
     /// on, or null when the machine has no such layout.
     /// </summary>
     string? SwitchInputMethod(string layout);
+
+    /// <summary>The brightness of the screens, from 0 to 100.</summary>
+    int Brightness();
+
+    /// <summary>Turns the screens up or down to a brightness from 0 to 100.</summary>
+    void SetBrightness(int percent);
 }
 
 /// <summary>Open windows: finding them, moving them, and closing them.</summary>
@@ -515,6 +521,10 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public IReadOnlyList<string> InputMethods() => throw Missing("a keyboard layout");
 
         public string? SwitchInputMethod(string layout) => throw Missing("a keyboard layout");
+
+        public int Brightness() => throw Missing("an adjustable screen");
+
+        public void SetBrightness(int percent) => throw Missing("an adjustable screen");
 
         // Named through the interface because the process device already has a List and a Find
         // that take no such argument.

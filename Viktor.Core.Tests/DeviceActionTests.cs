@@ -2568,6 +2568,48 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task The_brightness_action_leaves_behind_the_brightness_the_screens_ended_at()
+    {
+        var devices = new FakeDeviceLayer { ScreenBrightness = 20 };
+        var (_, _, store) = await RunAsync(
+        [
+            Step("system.brightness", Param("what", "up"), Param("stepPercent", "30"),
+                Param("resultVariable", "up")),
+            Step("system.brightness", Param("what", "down"), Param("stepPercent", "15"),
+                Param("resultVariable", "down")),
+        ], devices);
+
+        Assert.Equal(50d, store.Local.Values["up"].Number);
+        Assert.Equal(35d, store.Local.Values["down"].Number);
+        Assert.Contains("setBrightness 50", devices.Calls);
+        Assert.Contains("setBrightness 35", devices.Calls);
+    }
+
+    [Fact]
+    public async Task The_brightness_action_reads_without_changing_anything()
+    {
+        var devices = new FakeDeviceLayer { ScreenBrightness = 65 };
+        var (_, _, store) = await RunAsync([Step("system.brightness")], devices);
+
+        Assert.Equal(65d, store.Local.Values["brightness"].Number);
+
+        // Reading is the whole step, so the screens are asked exactly once.
+        Assert.Equal(["brightness"], devices.Calls);
+    }
+
+    [Fact]
+    public async Task The_brightness_action_refuses_a_name_it_does_not_know()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("system.brightness", Param("what", "darker"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.UnknownBrightnessAction", result.Key);
+        Assert.Empty(devices.Calls);
+    }
+
+    [Fact]
     public async Task Checking_for_a_window_leaves_true_or_false()
     {
         var devices = new FakeDeviceLayer();
@@ -3851,6 +3893,21 @@ internal sealed class FakeDeviceLayer
 
         Layout = found;
         return found;
+    }
+
+    /// <summary>How bright the fake says the screens are.</summary>
+    public int ScreenBrightness { get; set; } = 50;
+
+    int ISystemDevice.Brightness()
+    {
+        Note("brightness");
+        return ScreenBrightness;
+    }
+
+    void ISystemDevice.SetBrightness(int percent)
+    {
+        Note($"setBrightness {percent}");
+        ScreenBrightness = Math.Clamp(percent, 0, 100);
     }
 
     IReadOnlyList<WindowInfo> IWindowDevice.List()

@@ -1082,6 +1082,32 @@ public static class ActionCatalog
                     namesVariable: true, defaultValue: "ime"),
             ],
         },
+        new()
+        {
+            Key = "system.brightness",
+            Category = ActionCategory.System,
+            DisplayName = "Brightness",
+            Description = "Read or change how bright the screens are.",
+            Parameters =
+            [
+                Choice("what", "Do what", ["get", "set", "up", "down"], "get",
+                    "Whether to read the brightness, set it to a level, or move it up or down a "
+                    + "few points. Every screen that answers is changed together — this talks to the "
+                    + "screen itself over its video cable, the same way the brightness buttons on a "
+                    + "monitor do, so a laptop's own panel or a screen that does not carry the "
+                    + "setting may not answer at all.",
+                    labels: ["Read it", "Set the level", "Turn it up", "Turn it down"]),
+                Number("percent", "Level %", 50,
+                    "The level to set, from 0 to 100. Used by \"Set the level\".", max: 100),
+                Number("stepPercent", "By how much", 10,
+                    "How far to move the brightness, in points. Used by \"Turn it up\" and \"Turn it "
+                    + "down\", which never go past 0 or 100.",
+                    min: 1, max: 100),
+                Variable("resultVariable", "Result variable", "brightness",
+                    "Variable that receives the brightness the screens are left at, from 0 to 100.",
+                    namesVariable: true, defaultValue: "brightness"),
+            ],
+        },
 
         // ------------------------------------------------------------------ window
         new()
