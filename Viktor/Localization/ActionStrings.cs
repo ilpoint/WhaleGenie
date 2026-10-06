@@ -483,6 +483,16 @@ internal static class ActionStrings
         ["clipboard.writeImage.image.label"] = "图片",
         ["clipboard.writeImage.image.hint"] = "可以是图片文件，也可以是前面步骤填好的图像变量。",
 
+        ["clipboard.readFiles.name"] = "读取剪贴板文件",
+        ["clipboard.readFiles.desc"] = "把剪贴板上的文件路径读成列表。",
+        ["clipboard.readFiles.resultVariable.label"] = "结果变量",
+        ["clipboard.readFiles.resultVariable.hint"] = "接收完整路径列表的变量；剪贴板上没有文件时是空列表。",
+
+        ["clipboard.writeFiles.name"] = "复制文件到剪贴板",
+        ["clipboard.writeFiles.desc"] = "把文件放到剪贴板上，粘贴出来的是文件本身。",
+        ["clipboard.writeFiles.files.label"] = "文件",
+        ["clipboard.writeFiles.files.hint"] = "路径列表，也可以只写一个路径。相对路径按宏文件夹解析；每个文件都要真的存在，否则粘贴时会在对方程序里悄悄失败。",
+
         ["clipboard.clear.name"] = "清空剪贴板",
         ["clipboard.clear.desc"] = "清空剪贴板内容。",
 

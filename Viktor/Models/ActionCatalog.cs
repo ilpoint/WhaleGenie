@@ -726,6 +726,35 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "clipboard.readFiles",
+            Category = ActionCategory.Clipboard,
+            DisplayName = "Read Clipboard Files",
+            Description = "Take the paths of the files on the clipboard into a list.",
+            Parameters =
+            [
+                Variable("resultVariable", "Result variable", "files",
+                    "Variable that receives the list of full paths. An empty list means the "
+                    + "clipboard holds no files.",
+                    required: false, namesVariable: true),
+            ],
+        },
+        new()
+        {
+            Key = "clipboard.writeFiles",
+            Category = ActionCategory.Clipboard,
+            DisplayName = "Copy Files to Clipboard",
+            Description = "Put files on the clipboard, so a paste drops the files themselves.",
+            Parameters =
+            [
+                Variable("files", "Files", "$files",
+                    "A list of paths, or a single path. A relative one is taken from the macros "
+                    + "folder, and every file has to be there: a paste of a path that points "
+                    + "nowhere fails quietly in whatever program receives it.",
+                    namesVariable: false),
+            ],
+        },
+        new()
+        {
             Key = "clipboard.clear",
             Category = ActionCategory.Clipboard,
             DisplayName = "Clear Clipboard",

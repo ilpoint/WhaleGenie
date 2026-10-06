@@ -1702,6 +1702,60 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task The_files_on_the_clipboard_come_back_as_a_list()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.ClipboardFiles.Add(@"C:\reports\day.csv");
+        devices.ClipboardFiles.Add(@"C:\reports\week.csv");
+        var (_, _, store) = await RunAsync(
+            [Step("clipboard.readFiles", Param("resultVariable", "picked"))], devices);
+
+        Assert.Equal(["C:\\reports\\day.csv", "C:\\reports\\week.csv"],
+            store.Local.Values["picked"].Items.Select(item => item.AsText()));
+    }
+
+    [Fact]
+    public async Task Files_can_be_put_on_the_clipboard()
+    {
+        var devices = new FakeDeviceLayer { PathExists = true };
+        var (result, _, _) = await RunAsync(
+        [
+            // A list is built by the actions that build lists, and handing it straight over is
+            // what a macro does after reading a folder.
+            Step("control.listCreate", Param("name", "chosen"),
+                Param("items", @"G:\fake\a.txt; G:\fake\b.txt")),
+            Step("clipboard.writeFiles", Param("files", "$chosen")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal([@"G:\fake\a.txt", @"G:\fake\b.txt"], devices.ClipboardFiles);
+    }
+
+    [Fact]
+    public async Task A_relative_path_on_the_clipboard_is_taken_from_the_macros_folder()
+    {
+        var devices = new FakeDeviceLayer { PathExists = true };
+        var (result, _, _) = await RunAsync(
+            [Step("clipboard.writeFiles", Param("files", "notes.txt"))], devices);
+
+        // Explorer can only paste a path that really points somewhere, so it goes out as a full one.
+        Assert.True(result.Succeeded);
+        Assert.Equal([@"G:\fake\notes.txt"], devices.ClipboardFiles);
+    }
+
+    [Fact]
+    public async Task Putting_a_file_on_the_clipboard_that_is_not_there_is_a_failure()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("clipboard.writeFiles", Param("files", "ghost.txt"))], devices);
+
+        // The paste would happen in another program, where nothing could report this back.
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.FileNotFound", result.Key);
+    }
+
+    [Fact]
     public async Task Clearing_the_clipboard_empties_it()
     {
         var devices = new FakeDeviceLayer { ClipboardText = "gone" };
@@ -3206,6 +3260,23 @@ internal sealed class FakeDeviceLayer
 
     /// <summary>The picture the fake clipboard is holding, if any.</summary>
     public ImageFrame? ClipboardCopy { get; set; }
+
+    IReadOnlyList<string> IClipboardDevice.ReadFiles()
+    {
+        Note("clipboardReadFiles");
+        return [.. ClipboardFiles];
+    }
+
+    void IClipboardDevice.WriteFiles(IReadOnlyList<string> paths)
+    {
+        Note($"clipboardWriteFiles {string.Join("|", paths)}");
+        ClipboardFiles.Clear();
+        ClipboardFiles.AddRange(paths);
+        ClipboardChanges++;
+    }
+
+    /// <summary>The file paths the fake clipboard is holding.</summary>
+    public List<string> ClipboardFiles { get; } = [];
 
     void IClipboardDevice.Clear()
     {

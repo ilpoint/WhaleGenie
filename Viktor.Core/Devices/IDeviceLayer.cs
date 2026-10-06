@@ -219,6 +219,15 @@ public interface IClipboardDevice
     /// <summary>Puts a picture on the clipboard, the same as copying one.</summary>
     void WriteImage(ImageFrame image);
 
+    /// <summary>The paths of the files on the clipboard, or an empty list when there are none.</summary>
+    IReadOnlyList<string> ReadFiles();
+
+    /// <summary>
+    /// Puts file paths on the clipboard the way copying files in Explorer does, so pasting drops
+    /// the files themselves rather than their names.
+    /// </summary>
+    void WriteFiles(IReadOnlyList<string> paths);
+
     /// <summary>Empties the clipboard.</summary>
     void Clear();
 }
@@ -433,6 +442,10 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public void WriteText(string text) => throw Missing("the clipboard");
 
         public void WriteImage(ImageFrame image) => throw Missing("the clipboard");
+
+        public IReadOnlyList<string> ReadFiles() => throw Missing("the clipboard");
+
+        public void WriteFiles(IReadOnlyList<string> paths) => throw Missing("the clipboard");
 
         public void Clear() => throw Missing("the clipboard");
 

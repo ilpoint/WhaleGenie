@@ -511,6 +511,14 @@ public sealed class MacroRunner
                 ClipboardImageWrite(step, depth);
                 return Signal.Normal;
 
+            case "clipboard.readFiles":
+                ClipboardFilesRead(step, depth);
+                return Signal.Normal;
+
+            case "clipboard.writeFiles":
+                ClipboardFilesWrite(step, depth);
+                return Signal.Normal;
+
             case "clipboard.clear":
                 _devices.Clipboard.Clear();
                 Log(LogLevel.Info, depth, step.Type, "Run.ClearedClipboard");
@@ -2603,6 +2611,51 @@ public sealed class MacroRunner
         _devices.Clipboard.WriteImage(picture);
         Log(LogLevel.Info, depth, step.Type, "Run.CopiedImageToClipboard",
             $"{picture.Width}x{picture.Height}");
+    }
+
+    /// <summary>Takes the paths of the files on the clipboard into a list.</summary>
+    private void ClipboardFilesRead(ExecutableStep step, int depth)
+    {
+        var name = ClipboardName(step);
+        var files = _devices.Clipboard.ReadFiles();
+
+        Variables.Set(name, Value.FromList(files.Select(Value.FromText)));
+        Log(LogLevel.Info, depth, step.Type, "Run.ReadClipboardFiles", name, files.Count);
+    }
+
+    /// <summary>
+    /// Puts files on the clipboard. A relative path is taken from the macros folder, and every
+    /// file is checked to be there: the paste happens in another program, where a path that points
+    /// nowhere is refused in a way the macro never gets to see.
+    /// </summary>
+    private void ClipboardFilesWrite(ExecutableStep step, int depth)
+    {
+        var value = Read(step.Text("files"));
+        var paths = new List<string>();
+        foreach (var item in value.IsList ? value.Items : [value])
+        {
+            var written = item.AsText().Trim();
+            if (written.Length == 0)
+            {
+                continue;
+            }
+
+            var full = _devices.Files.Resolve(written);
+            if (!_devices.Files.Exists(full))
+            {
+                throw new StepFailure("Run.FileNotFound", written);
+            }
+
+            paths.Add(full);
+        }
+
+        if (paths.Count == 0)
+        {
+            throw new StepFailure("Run.MissingPath");
+        }
+
+        _devices.Clipboard.WriteFiles(paths);
+        Log(LogLevel.Info, depth, step.Type, "Run.CopiedFilesToClipboard", paths.Count);
     }
 
     /// <summary>Waits for the clipboard to change, then keeps whatever landed on it.</summary>

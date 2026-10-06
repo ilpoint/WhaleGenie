@@ -16,7 +16,11 @@ public sealed class WindowsClipboardDevice : IClipboardDevice
     private const uint UnicodeText = 13;
     private const uint DeviceIndependentBitmap = 8;
     private const uint DeviceIndependentBitmapV5 = 17;
+    private const uint ShellFileList = 15;
     private const uint MoveableMemory = 0x0002;
+
+    /// <summary>How many bytes the shell's file-list header takes up before the paths start.</summary>
+    private const int DropHeader = 20;
     private const int OpenAttempts = 12;
     private const int OpenPauseMs = 15;
 
@@ -108,6 +112,121 @@ public sealed class WindowsClipboardDevice : IClipboardDevice
             Put(DeviceIndependentBitmap, ClipboardImage.ToDib(image));
             return true;
         });
+    }
+
+    public IReadOnlyList<string> ReadFiles()
+    {
+        Require();
+        return InClipboard(() =>
+        {
+            if (!IsClipboardFormatAvailable(ShellFileList))
+            {
+                return [];
+            }
+
+            var bytes = Contents(ShellFileList);
+            if (bytes.Length < DropHeader)
+            {
+                return [];
+            }
+
+            // The header says where the list starts and whether the names are Unicode. Explorer,
+            // and everything that copies files like Explorer, writes them in Unicode.
+            var start = ReadInt(bytes, 0);
+            var wide = ReadInt(bytes, 16) != 0;
+            if (start < DropHeader || start >= bytes.Length)
+            {
+                return [];
+            }
+
+            return wide ? WidePaths(bytes, start) : NarrowPaths(bytes, start);
+        });
+    }
+
+    public void WriteFiles(IReadOnlyList<string> paths)
+    {
+        Require();
+        InClipboard(() =>
+        {
+            EmptyClipboard();
+            Put(ShellFileList, DropFiles(paths));
+            return true;
+        });
+    }
+
+    /// <summary>
+    /// The block the shell reads a file list out of: a header, then the paths one after another,
+    /// each ending in a null and the whole lot ending in a second one.
+    /// </summary>
+    private static byte[] DropFiles(IReadOnlyList<string> paths)
+    {
+        var lists = new List<byte[]>(paths.Count);
+        var size = DropHeader;
+        foreach (var path in paths)
+        {
+            var encoded = System.Text.Encoding.Unicode.GetBytes(path + "\0");
+            lists.Add(encoded);
+            size += encoded.Length;
+        }
+
+        var bytes = new byte[size + 2];
+        WriteInt(bytes, 0, DropHeader);
+        WriteInt(bytes, 16, 1);
+
+        var at = DropHeader;
+        foreach (var encoded in lists)
+        {
+            encoded.CopyTo(bytes, at);
+            at += encoded.Length;
+        }
+
+        return bytes;
+    }
+
+    private static IReadOnlyList<string> WidePaths(byte[] bytes, int start)
+    {
+        var paths = new List<string>();
+        var at = start;
+        while (at + 1 < bytes.Length)
+        {
+            var end = at;
+            while (end + 1 < bytes.Length && (bytes[end] != 0 || bytes[end + 1] != 0))
+            {
+                end += 2;
+            }
+
+            if (end == at)
+            {
+                break;
+            }
+
+            paths.Add(System.Text.Encoding.Unicode.GetString(bytes, at, end - at));
+            at = end + 2;
+        }
+
+        return paths;
+    }
+
+    private static IReadOnlyList<string> NarrowPaths(byte[] bytes, int start)
+    {
+        // An older program can still put a file list on the clipboard in the system code page,
+        // so those names are read the same way the file actions read a file of that age.
+        var text = TextEncoding.Resolve("gbk");
+        var paths = new List<string>();
+        var at = start;
+        while (at < bytes.Length)
+        {
+            var end = Array.IndexOf(bytes, (byte)0, at);
+            if (end < 0 || end == at)
+            {
+                break;
+            }
+
+            paths.Add(text.GetString(bytes, at, end - at));
+            at = end + 1;
+        }
+
+        return paths;
     }
 
     /// <summary>The bytes of the memory the clipboard is holding for one of its formats.</summary>
@@ -262,6 +381,17 @@ public sealed class WindowsClipboardDevice : IClipboardDevice
 
     [DllImport("kernel32.dll")]
     private static extern UIntPtr GlobalSize(IntPtr memory);
+
+    private static int ReadInt(byte[] bytes, int at)
+        => bytes[at] | bytes[at + 1] << 8 | bytes[at + 2] << 16 | bytes[at + 3] << 24;
+
+    private static void WriteInt(byte[] bytes, int at, int value)
+    {
+        bytes[at] = (byte)value;
+        bytes[at + 1] = (byte)(value >> 8);
+        bytes[at + 2] = (byte)(value >> 16);
+        bytes[at + 3] = (byte)(value >> 24);
+    }
 
     [DllImport("kernel32.dll")]
     private static extern bool GlobalUnlock(IntPtr memory);
