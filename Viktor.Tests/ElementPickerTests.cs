@@ -99,11 +99,38 @@ public class ElementPickerTests
     }
 
     [Fact]
+    public void Coming_back_onto_a_control_does_not_open_the_picker_a_second_time()
+    {
+        Ui.Run(() =>
+        {
+            var found = false;
+            var window = new ElementPickerWindow((x, y) => found ? At(x, y) : null);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            // The pointer crosses empty desktop and comes back onto a control, which takes the
+            // frame off the screen and puts it back. Putting it back opens the window again, and
+            // that must not build a second readout: the words already belong to the first one, and
+            // a control with two parents throws instead of drawing.
+            window.ProbeAt(300, 200);
+            Assert.False(window.IsVisible);
+
+            found = true;
+            window.ProbeAt(300, 200);
+
+            Assert.True(window.IsVisible);
+            Assert.NotNull(window.Hovered);
+            window.Close();
+        });
+    }
+
+    [Fact]
     public void A_place_with_nothing_on_it_is_not_taken()
     {
         Ui.Run(() =>
         {
-            var window = new ElementPickerWindow((x, y) => null);
+            var found = false;
+            var window = new ElementPickerWindow((x, y) => found ? At(x, y) : null);
 
             window.Show();
             Dispatcher.UIThread.RunJobs();
@@ -111,12 +138,18 @@ public class ElementPickerTests
             window.ProbeAt(300, 200);
             Assert.Null(window.Hovered);
 
-            // Nothing worth writing, so the picker stays up and the pointer can be moved on.
+            // Nothing worth writing, so the picker takes nothing.
             window.Confirm();
             Assert.Null(window.Chosen);
-            Assert.True(window.IsVisible);
 
-            window.Close();
+            // And it is still picking: the next place the pointer lands is taken as usual, which
+            // is what "the picker stays up" means — its frame is off the screen only because
+            // there is nothing under the pointer to outline.
+            found = true;
+            window.ProbeAt(300, 200);
+            window.Confirm();
+
+            Assert.Equal("Button[automationId='saveButton']", window.Chosen!.Selector);
         });
     }
 

@@ -45,6 +45,9 @@ public sealed class ElementPickerWindow : Window
     private IGlobalHook? _hook;
     private bool _done;
 
+    /// <summary>True once the hook and the timer are watching, which is only worth doing once.</summary>
+    private bool _watching;
+
     /// <summary>Where the frame is, written while drawing and read by the hook's own thread.</summary>
     private volatile Box? _frameBox;
 
@@ -126,11 +129,16 @@ public sealed class ElementPickerWindow : Window
 
         ShowReadout();
 
-        if (!_listen)
+        // The frame comes off the screen and goes back on as the pointer moves between a control
+        // and the desktop, and each time it comes back the window opens again. The hook and the
+        // timer are already watching, so setting them up a second time would only answer every
+        // click twice.
+        if (!_listen || _watching)
         {
             return;
         }
 
+        _watching = true;
         AttachHook();
         FollowPointer();
         _timer.Start();
@@ -306,32 +314,40 @@ public sealed class ElementPickerWindow : Window
     /// </summary>
     private void ShowReadout()
     {
-        _readoutText.Foreground = Brushes.White;
-        _readoutText.FontSize = 12;
-        _readoutText.MaxWidth = 460;
-        _readoutText.TextTrimming = TextTrimming.CharacterEllipsis;
-
-        _readout = new Window
+        if (_readout is null)
         {
-            Content = new Border
-            {
-                Background = new SolidColorBrush(Color.FromRgb(0x11, 0x25, 0x38)),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(0x0A, 0x84, 0xFF)),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(5),
-                Padding = new Thickness(9, 5),
-                Child = _readoutText,
-            },
-            SizeToContent = SizeToContent.WidthAndHeight,
-            WindowDecorations = WindowDecorations.None,
-            CanResize = false,
-            ShowInTaskbar = false,
-            ShowActivated = false,
-            Topmost = true,
-            Title = Strings.Get("Element.Title"),
-        };
+            _readoutText.Foreground = Brushes.White;
+            _readoutText.FontSize = 12;
+            _readoutText.MaxWidth = 460;
+            _readoutText.TextTrimming = TextTrimming.CharacterEllipsis;
 
-        _readout.Show(this);
+            _readout = new Window
+            {
+                Content = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(0x11, 0x25, 0x38)),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(0x0A, 0x84, 0xFF)),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(5),
+                    Padding = new Thickness(9, 5),
+                    Child = _readoutText,
+                },
+                SizeToContent = SizeToContent.WidthAndHeight,
+                WindowDecorations = WindowDecorations.None,
+                CanResize = false,
+                ShowInTaskbar = false,
+                ShowActivated = false,
+                Topmost = true,
+                Title = Strings.Get("Element.Title"),
+            };
+        }
+
+        // The readout is made once. Making a second one would put the same text block inside two
+        // borders, which is an error rather than a second readout.
+        if (!_readout.IsVisible)
+        {
+            _readout.Show(this);
+        }
     }
 
     /// <summary>Puts the readout beside the pointer, kept inside the screen.</summary>
