@@ -128,6 +128,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.AltXHint"] = "Press Alt + X to capture current cursor position",
         ["Editor.AltCHint"] = "Press Alt + C to capture screen color at cursor position",
         ["Editor.PickColor"] = "Pick a color from the screen",
+        ["Editor.Schedule"] = "Schedule :",
+        ["Editor.Interval"] = "Every :",
+        ["Editor.ScheduleTime"] = "Time :",
+        ["Editor.ScheduleTimeHint"] = "HH:mm, or HH:mm:ss",
+        ["Editor.ScheduleNote"] = "A timed macro runs one pass each time its schedule comes "
+            + "round. Counting starts when the system is switched on.",
 
         // ----------------------------------------------------------- colour picker
         ["Picker.Title"] = "Color Picker",
@@ -236,6 +242,15 @@ public sealed class Strings : INotifyPropertyChanged
 
         ["Trigger.Keys"] = "Keystrokes / Button Inputs",
         ["Trigger.Color"] = "Color / Pixel Changes",
+        ["Trigger.Timer"] = "Timer / Schedule",
+        ["Schedule.Interval"] = "At an Interval",
+        ["Schedule.Daily"] = "Every Day at a Time",
+        ["Schedule.Unit.Seconds"] = "seconds",
+        ["Schedule.Unit.Minutes"] = "minutes",
+        ["Schedule.Unit.Hours"] = "hours",
+        ["Schedule.IntervalSummary"] = "Every {0} {1}",
+        ["Schedule.DailySummary"] = "Every day at {0}",
+        ["Schedule.DailyUnset"] = "Every day (no time set)",
         ["Loop.Toggle"] = "Until Key Pressed Again (Toggle)",
         ["Loop.Hold"] = "While Holding Key (Hold)",
         ["Loop.Press"] = "Once, When Key Pressed (Press)",
@@ -665,6 +680,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.AltXHint"] = "按 Alt + X 记录光标当前位置",
         ["Editor.AltCHint"] = "按 Alt + C 记录光标处的屏幕颜色",
         ["Editor.PickColor"] = "从屏幕上拾取颜色",
+        ["Editor.Schedule"] = "计划：",
+        ["Editor.Interval"] = "每隔：",
+        ["Editor.ScheduleTime"] = "时间：",
+        ["Editor.ScheduleTimeHint"] = "HH:mm 或 HH:mm:ss",
+        ["Editor.ScheduleNote"] = "定时触发的宏每次到点执行一遍，计时从打开系统时开始。",
 
         // ----------------------------------------------------------- colour picker
         ["Picker.Title"] = "屏幕取色",
@@ -766,6 +786,15 @@ public sealed class Strings : INotifyPropertyChanged
 
         ["Trigger.Keys"] = "键盘 / 鼠标输入",
         ["Trigger.Color"] = "颜色 / 像素变化",
+        ["Trigger.Timer"] = "定时",
+        ["Schedule.Interval"] = "按间隔重复",
+        ["Schedule.Daily"] = "每天固定时间",
+        ["Schedule.Unit.Seconds"] = "秒",
+        ["Schedule.Unit.Minutes"] = "分钟",
+        ["Schedule.Unit.Hours"] = "小时",
+        ["Schedule.IntervalSummary"] = "每 {0} {1}",
+        ["Schedule.DailySummary"] = "每天 {0}",
+        ["Schedule.DailyUnset"] = "每天（还没填时间）",
         ["Loop.Toggle"] = "再次按键时停止（切换）",
         ["Loop.Hold"] = "按住期间循环（长按）",
         ["Loop.Press"] = "按下时执行一次（按下）",

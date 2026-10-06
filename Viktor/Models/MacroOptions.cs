@@ -8,6 +8,9 @@ public enum MacroTrigger
 
     /// <summary>A change of colour at a watched screen position.</summary>
     ColorPixelChanges,
+
+    /// <summary>A time, either every so often or at a set time of day.</summary>
+    Timer,
 }
 
 /// <summary>How a macro repeats once it has been triggered.</summary>
@@ -24,6 +27,24 @@ public enum MacroLoop
 
     /// <summary>Once, When Key Released.</summary>
     Release,
+}
+
+/// <summary>How a timer trigger decides when the macro runs.</summary>
+public enum ScheduleMode
+{
+    /// <summary>Every so many seconds, minutes or hours.</summary>
+    Interval,
+
+    /// <summary>Once a day, at a set time.</summary>
+    Daily,
+}
+
+/// <summary>The unit an interval schedule counts its wait in.</summary>
+public enum ScheduleUnit
+{
+    Seconds,
+    Minutes,
+    Hours,
 }
 
 /// <summary>How the watched colour is compared to the pixel under the trigger position.</summary>

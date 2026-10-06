@@ -343,6 +343,10 @@
                                                       Stroke="#CDCDCD" StrokeThickness="1.6"
                                                       IsVisible="{Binding IsColorTrigger}"
                                                       Data="M 2,22 L 3,21 H 6 L 15,12 M 3,21 V 18 L 12,9 M 15,6 L 18.4,2.6 A 2.1,2.1 0 1 1 21.4,5.6 L 18,9 L 18.9,9.9 A 2.1,2.1 0 1 1 15.9,12.9 L 9.3,6.3 A 2.1,2.1 0 1 1 12.3,3.3 L 13.1,4 Z" />
+                                                <Path Width="15" Height="15" Stretch="Uniform"
+                                                      Stroke="#CDCDCD" StrokeThickness="1.6"
+                                                      IsVisible="{Binding IsTimerTrigger}"
+                                                      Data="M 12,2.6 A 9.4,9.4 0 1 1 2.6,12 A 9.4,9.4 0 1 1 12,2.6 Z M 12,6.6 V 12.4 L 16.2,14.8" />
                                             </Panel>
                                         </Border>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">

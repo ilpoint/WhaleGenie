@@ -53,6 +53,18 @@ public partial class MacroItem : ObservableObject
     /// <summary>When set, the macro runs only once instead of repeating.</summary>
     public bool TriggerOnce { get; set; }
 
+    /// <summary>Whether a timer trigger repeats by the clock or at a set time of day.</summary>
+    public ScheduleMode ScheduleMode { get; set; } = ScheduleMode.Interval;
+
+    /// <summary>How many seconds, minutes or hours an interval schedule waits.</summary>
+    public int ScheduleInterval { get; set; } = 5;
+
+    /// <summary>The unit <see cref="ScheduleInterval"/> counts in.</summary>
+    public ScheduleUnit ScheduleUnit { get; set; } = ScheduleUnit.Seconds;
+
+    /// <summary>The time of day a daily schedule runs at, written <c>08:30</c>.</summary>
+    public string ScheduleTime { get; set; } = "08:00";
+
     /// <summary>Colour watched for the trigger, as a hex string (for example <c>#000000</c>).</summary>
     [ObservableProperty]
     public partial string HexColor { get; set; } = "#000000";
@@ -63,6 +75,9 @@ public partial class MacroItem : ObservableObject
     /// <summary>True when the macro is started by a colour / pixel change.</summary>
     public bool IsColorTrigger => TriggerMode == MacroTrigger.ColorPixelChanges;
 
+    /// <summary>True when the macro is started by the clock.</summary>
+    public bool IsTimerTrigger => TriggerMode == MacroTrigger.Timer;
+
     /// <summary>True when the macro is started by input and the binding is a mouse button.</summary>
     public bool IsMouseTrigger => IsKeyTrigger && LooksLikeMouseButton(BindKey);
 
@@ -71,11 +86,15 @@ public partial class MacroItem : ObservableObject
 
     /// <summary>
     /// What the macro card previews next to the trigger icon: the bound key (for example
-    /// <c>NumPad7</c>) or the watched colour, so the list says what starts each macro.
+    /// <c>NumPad7</c>), the watched colour or the schedule, so the list says what starts each macro.
     /// </summary>
-    public string TriggerPreview => TriggerMode == MacroTrigger.ColorPixelChanges
-        ? (string.IsNullOrWhiteSpace(HexColor) ? NoPreview : HexColor.ToUpperInvariant())
-        : (string.IsNullOrWhiteSpace(BindKey) ? NoPreview : BindKey);
+    public string TriggerPreview => TriggerMode switch
+    {
+        MacroTrigger.ColorPixelChanges =>
+            string.IsNullOrWhiteSpace(HexColor) ? NoPreview : HexColor.ToUpperInvariant(),
+        MacroTrigger.Timer => MacroSchedule.Describe(this),
+        _ => string.IsNullOrWhiteSpace(BindKey) ? NoPreview : BindKey,
+    };
 
     private bool IsKeyTrigger => TriggerMode == MacroTrigger.KeystrokesButtonInputs;
 
@@ -103,6 +122,7 @@ public partial class MacroItem : ObservableObject
     private void RefreshTriggerDisplay()
     {
         OnPropertyChanged(nameof(IsColorTrigger));
+        OnPropertyChanged(nameof(IsTimerTrigger));
         OnPropertyChanged(nameof(IsMouseTrigger));
         OnPropertyChanged(nameof(IsKeyboardTrigger));
         OnPropertyChanged(nameof(TriggerPreview));
@@ -166,6 +186,13 @@ public partial class MacroItem : ObservableObject
             ["triggerMode"] = TriggerMode.ToString(),
             ["loopMode"] = LoopMode.ToString(),
             ["bindKey"] = BindKey,
+            ["schedule"] = new JsonObject
+            {
+                ["mode"] = ScheduleMode.ToString(),
+                ["interval"] = ScheduleInterval,
+                ["unit"] = ScheduleUnit.ToString(),
+                ["time"] = ScheduleTime,
+            },
             ["positionCapture"] = PositionCapture.ToString(),
             ["colorMatch"] = ColorMatch.ToString(),
             ["colorPosition"] = new JsonObject
@@ -196,6 +223,7 @@ public partial class MacroItem : ObservableObject
     {
         var position = node["colorPosition"] as JsonObject;
         var record = node["record"] as JsonObject;
+        var schedule = node["schedule"] as JsonObject;
 
         var macro = new MacroItem
         {
@@ -205,6 +233,10 @@ public partial class MacroItem : ObservableObject
             TriggerMode = ReadEnum(node, "triggerMode", MacroTrigger.KeystrokesButtonInputs),
             LoopMode = ReadEnum(node, "loopMode", MacroLoop.Toggle),
             BindKey = node["bindKey"]?.GetValue<string>() ?? string.Empty,
+            ScheduleMode = ReadEnum(schedule, "mode", ScheduleMode.Interval),
+            ScheduleInterval = ReadInt(schedule?["interval"], 5),
+            ScheduleUnit = ReadEnum(schedule, "unit", ScheduleUnit.Seconds),
+            ScheduleTime = schedule?["time"]?.GetValue<string>() ?? "08:00",
             PositionCapture = ReadEnum(node, "positionCapture", MousePositionMode.SaveCurrentPosition),
             ColorMatch = ReadEnum(node, "colorMatch", ColorMatchCondition.ColorMatches),
             ColorPositionX = ReadInt(position?["x"]),
@@ -236,8 +268,8 @@ public partial class MacroItem : ObservableObject
         return macro;
     }
 
-    private static T ReadEnum<T>(JsonObject node, string name, T fallback) where T : struct, System.Enum
-        => System.Enum.TryParse<T>(node[name]?.GetValue<string>(), out var parsed) ? parsed : fallback;
+    private static T ReadEnum<T>(JsonObject? node, string name, T fallback) where T : struct, System.Enum
+        => System.Enum.TryParse<T>(node?[name]?.GetValue<string>(), out var parsed) ? parsed : fallback;
 
     private static bool ReadBool(JsonNode? node, bool fallback = false)
         => node is JsonValue value && value.TryGetValue<bool>(out var result) ? result : fallback;

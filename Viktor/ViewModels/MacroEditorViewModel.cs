@@ -165,6 +165,8 @@ public partial class MacroEditorViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TriggerIndex))]
     [NotifyPropertyChangedFor(nameof(IsColorTrigger))]
+    [NotifyPropertyChangedFor(nameof(IsKeyTrigger))]
+    [NotifyPropertyChangedFor(nameof(IsTimerTrigger))]
     public partial MacroTrigger TriggerMode { get; set; } = MacroTrigger.KeystrokesButtonInputs;
 
     [ObservableProperty]
@@ -175,6 +177,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     [
         Strings.Get("Trigger.Keys"),
         Strings.Get("Trigger.Color"),
+        Strings.Get("Trigger.Timer"),
     ];
 
     public IReadOnlyList<string> LoopOptions { get; } =
@@ -190,15 +193,78 @@ public partial class MacroEditorViewModel : ViewModelBase
         get => (int)TriggerMode;
         set
         {
-            if (value >= 0 && value <= (int)MacroTrigger.ColorPixelChanges)
+            if (value >= 0 && value < TriggerOptions.Count)
             {
                 TriggerMode = (MacroTrigger)value;
             }
         }
     }
 
+    /// <summary>True when the macro is started by a key or a mouse button.</summary>
+    public bool IsKeyTrigger => TriggerMode == MacroTrigger.KeystrokesButtonInputs;
+
     /// <summary>True when the macro is started by a colour / pixel change rather than by input.</summary>
     public bool IsColorTrigger => TriggerMode == MacroTrigger.ColorPixelChanges;
+
+    /// <summary>True when the macro is started by the clock.</summary>
+    public bool IsTimerTrigger => TriggerMode == MacroTrigger.Timer;
+
+    public IReadOnlyList<string> ScheduleOptions { get; } =
+    [
+        Strings.Get("Schedule.Interval"),
+        Strings.Get("Schedule.Daily"),
+    ];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ScheduleIndex))]
+    [NotifyPropertyChangedFor(nameof(IsIntervalSchedule))]
+    public partial ScheduleMode ScheduleMode { get; set; } = ScheduleMode.Interval;
+
+    public int ScheduleIndex
+    {
+        get => (int)ScheduleMode;
+        set
+        {
+            if (value >= 0 && value < ScheduleOptions.Count)
+            {
+                ScheduleMode = (ScheduleMode)value;
+            }
+        }
+    }
+
+    /// <summary>True while the schedule waits a fixed gap rather than naming a time of day.</summary>
+    public bool IsIntervalSchedule => ScheduleMode == ScheduleMode.Interval;
+
+    /// <summary>How many seconds, minutes or hours an interval schedule waits.</summary>
+    [ObservableProperty]
+    public partial int? ScheduleInterval { get; set; } = 5;
+
+    public IReadOnlyList<string> ScheduleUnitOptions { get; } =
+    [
+        Strings.Get("Schedule.Unit.Seconds"),
+        Strings.Get("Schedule.Unit.Minutes"),
+        Strings.Get("Schedule.Unit.Hours"),
+    ];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ScheduleUnitIndex))]
+    public partial ScheduleUnit ScheduleUnit { get; set; } = ScheduleUnit.Seconds;
+
+    public int ScheduleUnitIndex
+    {
+        get => (int)ScheduleUnit;
+        set
+        {
+            if (value >= 0 && value < ScheduleUnitOptions.Count)
+            {
+                ScheduleUnit = (ScheduleUnit)value;
+            }
+        }
+    }
+
+    /// <summary>The time of day a daily schedule runs at, written <c>08:30</c>.</summary>
+    [ObservableProperty]
+    public partial string ScheduleTime { get; set; } = "08:00";
 
     public int LoopIndex
     {
@@ -704,6 +770,10 @@ public partial class MacroEditorViewModel : ViewModelBase
             TriggerMode = macro.TriggerMode;
             LoopMode = macro.LoopMode;
             BindKey = macro.BindKey;
+            ScheduleMode = macro.ScheduleMode;
+            ScheduleInterval = macro.ScheduleInterval;
+            ScheduleUnit = macro.ScheduleUnit;
+            ScheduleTime = macro.ScheduleTime;
             PositionCapture = macro.PositionCapture;
             ColorMatch = macro.ColorMatch;
             ColorPositionX = macro.ColorPositionX.ToString(CultureInfo.InvariantCulture);
@@ -1044,22 +1114,27 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     private MacroItem BuildMacro()
     {
+        // The loop a key trigger uses has nothing to hold on to when the clock does the
+        // starting, so a timed macro just says when it runs.
+        var action = TriggerMode == MacroTrigger.Timer ? string.Empty : LoopName(LoopMode);
+
         var macro = new MacroItem
         {
             Name = Name.Trim(),
-            Trigger = TriggerMode == MacroTrigger.KeystrokesButtonInputs
-                ? Strings.Get("Trigger.Keys")
-                : Strings.Get("Trigger.Color"),
-            Action = LoopMode switch
+            Trigger = TriggerMode switch
             {
-                MacroLoop.Hold => Strings.Get("Loop.Hold"),
-                MacroLoop.Press => Strings.Get("Loop.Press"),
-                MacroLoop.Release => Strings.Get("Loop.Release"),
-                _ => Strings.Get("Loop.Toggle"),
+                MacroTrigger.ColorPixelChanges => Strings.Get("Trigger.Color"),
+                MacroTrigger.Timer => Strings.Get("Trigger.Timer"),
+                _ => Strings.Get("Trigger.Keys"),
             },
+            Action = action,
             TriggerMode = TriggerMode,
             LoopMode = LoopMode,
             BindKey = BindKey,
+            ScheduleMode = ScheduleMode,
+            ScheduleInterval = Math.Max(1, ScheduleInterval ?? 5),
+            ScheduleUnit = ScheduleUnit,
+            ScheduleTime = ScheduleTime.Trim(),
             PositionCapture = PositionCapture,
             ColorMatch = ColorMatch,
             ColorPositionX = ParseCoordinate(ColorPositionX),
@@ -1088,4 +1163,13 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>Reads a numeric parameter typed into a plain input box, falling back to zero.</summary>
     private static int ParseCoordinate(string? value)
         => int.TryParse(value?.Trim(), out var result) ? result : 0;
+
+    /// <summary>The loop a key trigger uses, said the way the interface says it.</summary>
+    private static string LoopName(MacroLoop loop) => loop switch
+    {
+        MacroLoop.Hold => Strings.Get("Loop.Hold"),
+        MacroLoop.Press => Strings.Get("Loop.Press"),
+        MacroLoop.Release => Strings.Get("Loop.Release"),
+        _ => Strings.Get("Loop.Toggle"),
+    };
 }

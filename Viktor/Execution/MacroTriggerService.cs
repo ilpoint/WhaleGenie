@@ -12,13 +12,13 @@ using Viktor.Models;
 namespace Viktor.Execution;
 
 /// <summary>
-/// Watches the keyboard and the watched pixels for what the macros in the list are waiting for,
-/// and runs them the way their trigger settings ask. The main window's system switch turns the
-/// whole thing on and off.
+/// Watches the keyboard, the watched pixels and the clock for what the macros in the list are
+/// waiting for, and runs them the way their trigger settings ask. The main window's system switch
+/// turns the whole thing on and off.
 /// </summary>
 public sealed class MacroTriggerService : IDisposable
 {
-    /// <summary>How often a watched pixel is looked at.</summary>
+    /// <summary>How often a watched pixel is looked at, and the clock is asked the time.</summary>
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(60);
 
     /// <summary>A breather between the passes of a macro that repeats, so it cannot spin.</summary>
@@ -34,6 +34,7 @@ public sealed class MacroTriggerService : IDisposable
     private readonly HashSet<MacroItem> _colourHeld = [];
     private readonly HashSet<MacroItem> _colourStopping = [];
     private readonly HashSet<MacroItem> _spent = [];
+    private readonly Dictionary<MacroItem, DateTime> _scheduleDue = [];
     private readonly HashSet<string> _heldKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly Timer _poll;
 
@@ -138,6 +139,7 @@ public sealed class MacroTriggerService : IDisposable
             _colourTriggered.Clear();
             _colourHeld.Clear();
             _colourStopping.Clear();
+            _scheduleDue.Clear();
         }
 
         foreach (var cancellation in cancellations)
@@ -167,6 +169,7 @@ public sealed class MacroTriggerService : IDisposable
             _colourTriggered.Remove(macro);
             _colourHeld.Remove(macro);
             _colourStopping.Remove(macro);
+            _scheduleDue.Remove(macro);
         }
     }
 
@@ -606,7 +609,8 @@ public sealed class MacroTriggerService : IDisposable
             }
         }
 
-        PruneColourWatches(macros);
+        PollTimers(macros);
+        PruneWatches(macros);
     }
 
     /// <summary>True when a running macro has been asked to stop once its current pass ends.</summary>
@@ -618,12 +622,90 @@ public sealed class MacroTriggerService : IDisposable
         }
     }
 
-    /// <summary>Forgets the pixels watched for macros that are no longer in the list.</summary>
-    private void PruneColourWatches(IReadOnlyList<MacroItem> macros)
+    /// <summary>Runs the macros a timer trigger is waiting for.</summary>
+    private void PollTimers(IReadOnlyList<MacroItem> macros)
+    {
+        var now = DateTime.Now;
+
+        foreach (var macro in macros)
+        {
+            if (!macro.IsEnabled || macro.TriggerMode != MacroTrigger.Timer)
+            {
+                continue;
+            }
+
+            // A schedule that has had its one turn waits until the macro is re-armed.
+            if (macro.TriggerOnce && IsSpent(macro))
+            {
+                continue;
+            }
+
+            var fire = false;
+            lock (_gate)
+            {
+                if (!_scheduleDue.TryGetValue(macro, out var due))
+                {
+                    // Counting starts when the system is switched on, so turning it on does not
+                    // set off every interval macro in the list at once.
+                    if (NextDue(macro, now) is { } first)
+                    {
+                        _scheduleDue[macro] = first;
+                    }
+                }
+                else if (now >= due)
+                {
+                    fire = true;
+
+                    // The next run counts from the one that has just come round, so the schedule
+                    // does not drift. When the machine was away past several of them, the wait
+                    // starts again from now rather than firing them off in a burst.
+                    var next = NextDue(macro, due);
+                    if (next is not { } armed || armed <= now)
+                    {
+                        next = NextDue(macro, now);
+                    }
+
+                    if (next is { } moment)
+                    {
+                        _scheduleDue[macro] = moment;
+                    }
+                    else
+                    {
+                        _scheduleDue.Remove(macro);
+                    }
+                }
+            }
+
+            if (fire)
+            {
+                // One pass for each moment the schedule comes round. A timer says how often to
+                // start, so "while holding" and "until pressed again" have nothing to hold on to;
+                // a macro that wants to keep going writes its own loop.
+                Start(macro, repeating: false);
+            }
+        }
+    }
+
+    /// <summary>When this macro's schedule next wants to run, or null when it is not filled in.</summary>
+    private static DateTime? NextDue(MacroItem macro, DateTime from)
+        => MacroSchedule.TryNextDue(macro, from, out var due) ? due : null;
+
+    /// <summary>True when a "trigger once" macro has already had its turn.</summary>
+    private bool IsSpent(MacroItem macro)
     {
         lock (_gate)
         {
-            if (_colourTriggered.Count == 0 && _colourHeld.Count == 0 && _colourStopping.Count == 0)
+            return _spent.Contains(macro);
+        }
+    }
+
+    /// <summary>Forgets what was watched for macros that are gone, switched off or changed.</summary>
+    private void PruneWatches(IReadOnlyList<MacroItem> macros)
+    {
+        lock (_gate)
+        {
+            if (_colourTriggered.Count == 0 && _colourHeld.Count == 0 && _colourStopping.Count == 0
+                && _scheduleDue.Count == 0)
             {
                 return;
             }
@@ -631,14 +713,31 @@ public sealed class MacroTriggerService : IDisposable
             var tracked = new HashSet<MacroItem>(_colourTriggered);
             tracked.UnionWith(_colourHeld);
             tracked.UnionWith(_colourStopping);
+            tracked.UnionWith(_scheduleDue.Keys);
 
             foreach (var item in tracked)
             {
-                if (!macros.Contains(item))
+                if (!macros.Contains(item) || !item.IsEnabled)
                 {
                     _colourTriggered.Remove(item);
                     _colourHeld.Remove(item);
                     _colourStopping.Remove(item);
+                    _scheduleDue.Remove(item);
+                    continue;
+                }
+
+                // A macro moved to another kind of trigger stands down like one that was removed,
+                // so moving it back starts its watch over.
+                if (item.TriggerMode != MacroTrigger.ColorPixelChanges)
+                {
+                    _colourTriggered.Remove(item);
+                    _colourHeld.Remove(item);
+                    _colourStopping.Remove(item);
+                }
+
+                if (item.TriggerMode != MacroTrigger.Timer)
+                {
+                    _scheduleDue.Remove(item);
                 }
             }
         }
