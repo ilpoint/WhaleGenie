@@ -1320,6 +1320,123 @@ public class DeviceActionTests
         Assert.True(result.Succeeded);
         Assert.Contains("move 113 210 0", devices.Calls);
     }
+
+    // ------------------------------------------------------------- wait until
+
+    [Fact]
+    public async Task A_wait_until_holds_on_the_first_look_and_keeps_how_long_it_waited()
+    {
+        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0x10, 0x20, 0x30) };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("control.waitUntil",
+                When("condition", Step("condition.colorEquals",
+                    Param("x", "0"), Param("y", "0"), Param("color", "#102030"),
+                    Param("tolerance", "5"))),
+                Param("timeoutMs", "2000"), Param("pollMs", "10"),
+                Param("onTimeout", "stop"), Param("elapsedVariable", "waited")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.True(store.Local.Values["waited"].AsNumber() >= 0);
+
+        // A wait that already holds costs nothing: the colour was looked at once, not once a poll.
+        Assert.Single(devices.Calls, call => call == "pixel 0 0");
+    }
+
+    [Fact]
+    public async Task A_wait_until_asks_the_question_again_until_it_holds()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Match = new ImageMatch(0.99, new ScreenPoint(3, 4), new ScreenSize(6, 6)),
+            MatchAfter = 3,
+        };
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("control.waitUntil",
+                When("condition", Step("condition.imageExists",
+                    Param("image", "a.png"), Param("confidence", "90"), Param("region", ""))),
+                Param("timeoutMs", "2000"), Param("pollMs", "10"), Param("onTimeout", "stop")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.True(devices.Searches >= 3, $"the picture should be looked for again, looked {devices.Searches} times");
+    }
+
+    [Fact]
+    public async Task A_wait_until_that_never_holds_stops_the_macro()
+    {
+        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0xFF, 0xFF, 0xFF) };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("control.waitUntil",
+                When("condition", Step("condition.colorEquals",
+                    Param("x", "0"), Param("y", "0"), Param("color", "#102030"),
+                    Param("tolerance", "5"))),
+                Param("timeoutMs", "80"), Param("pollMs", "10"),
+                Param("onTimeout", "stop"), Param("elapsedVariable", "waited")),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.WaitTimeout", result.Key);
+        Assert.True(store.Local.Values["waited"].AsNumber() >= 80,
+            "how long it waited is worth keeping even when it gave up");
+    }
+
+    [Fact]
+    public async Task A_wait_until_can_be_told_to_carry_on_when_the_time_runs_out()
+    {
+        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0xFF, 0xFF, 0xFF) };
+        var host = new SilentRunHost();
+        var store = new VariableStore();
+
+        var result = await new MacroRunner(store, host, devices).RunAsync(
+        [
+            Step("control.waitUntil",
+                When("condition", Step("condition.colorEquals",
+                    Param("x", "0"), Param("y", "0"), Param("color", "#102030"),
+                    Param("tolerance", "5"))),
+                Param("timeoutMs", "80"), Param("pollMs", "10"), Param("onTimeout", "continue")),
+            Step("control.setVariable", Param("name", "after"), Param("scope", "local"),
+                Param("value", "1")),
+        ]);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(host.Entries, entry => entry.Key == "Run.WaitGaveUp");
+        Assert.Equal(1, store.Local.Values["after"].AsNumber());
+    }
+
+    [Fact]
+    public async Task A_wait_until_says_which_condition_it_waited_for()
+    {
+        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0x10, 0x20, 0x30) };
+        var host = new SilentRunHost();
+
+        await new MacroRunner(new VariableStore(), host, devices).RunAsync(
+        [
+            Step("control.waitUntil",
+                When("condition", Step("condition.colorEquals",
+                    Param("x", "0"), Param("y", "0"), Param("color", "#102030"),
+                    Param("tolerance", "5"))),
+                Param("timeoutMs", "2000"), Param("pollMs", "10")),
+        ]);
+
+        var line = Assert.Single(host.Entries, entry => entry.Key == "Run.WaitedFor");
+        Assert.Equal("condition.colorEquals", line.Arguments[1]);
+    }
+
+    [Fact]
+    public async Task A_wait_until_with_nothing_to_wait_for_is_refused()
+    {
+        var (result, _, _) = await RunAsync([Step("control.waitUntil", Param("timeoutMs", "10"))]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.MissingCondition", result.Key);
+    }
 }
 
 /// <summary>

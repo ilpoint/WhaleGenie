@@ -13,6 +13,21 @@ internal static class ActionStrings
     internal static readonly Dictionary<string, string> Chinese = new()
     {
         // ------------------------------------------------------------------ control
+        ["control.waitUntil.name"] = "等待直到",
+        ["control.waitUntil.desc"] = "反复判断一个条件，成立之后再继续往下走。",
+        ["control.waitUntil.condition.label"] = "条件",
+        ["control.waitUntil.condition.hint"] = "会一遍遍判断这个条件，直到它成立。颜色、图片、文字、界面元素、变量比较都可以用来等。",
+        ["control.waitUntil.timeoutMs.label"] = "超时毫秒",
+        ["control.waitUntil.timeoutMs.hint"] = "超过这个时长就放弃。",
+        ["control.waitUntil.pollMs.label"] = "检查间隔毫秒",
+        ["control.waitUntil.pollMs.hint"] = "两次判断之间等待多久。",
+        ["control.waitUntil.onTimeout.label"] = "一直不成立时",
+        ["control.waitUntil.onTimeout.hint"] = "时间到了以后这个宏怎么做。",
+        ["control.waitUntil.onTimeout.option.stop"] = "停止整个宏",
+        ["control.waitUntil.onTimeout.option.continue"] = "忽略并继续下一步",
+        ["control.waitUntil.elapsedVariable.label"] = "等待时长毫秒",
+        ["control.waitUntil.elapsedVariable.hint"] = "用来接收这次等待实际花了多少毫秒；等到和超时都会写入。",
+
         ["control.sequence.name"] = "顺序执行",
         ["control.sequence.desc"] = "按顺序依次执行子步骤。",
         ["control.sequence.name.label"] = "名称",

@@ -357,6 +357,9 @@ public sealed class MacroRunner
                     Number(step, "minMs"), Number(step, "maxMs") + 1)), token);
                 return Signal.Normal;
 
+            case "control.waitUntil":
+                return await RunWaitUntil(step, depth, token);
+
             case "control.repeat":
                 return await RunRepeat(step, depth, token);
 
@@ -700,6 +703,50 @@ public sealed class MacroRunner
         }
     }
 
+    /// <summary>
+    /// Waits for a condition of the macro's own choosing: any of the conditions an if or a while
+    /// can use, asked again and again until it holds. This is the general shape of every other
+    /// wait in the catalogue — waiting for a colour, a picture or an element is this block with
+    /// the question already written in.
+    /// </summary>
+    private async Task<Signal> RunWaitUntil(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var condition = step.Condition("condition")
+                        ?? throw new StepFailure("Run.MissingCondition");
+        var timeout = Math.Max(0, Number(step, "timeoutMs"));
+        var poll = Number(step, "pollMs");
+        if (poll <= 0)
+        {
+            poll = 200;
+        }
+
+        var started = Stopwatch.GetTimestamp();
+        var held = await WaitForFlagAsync(() => Check(condition, depth, token), timeout, poll, token);
+        var waited = (int)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+
+        // How long it waited is worth keeping even when it gave up, which is what makes a macro
+        // that is too slow to catch something diagnosable.
+        var name = step.Text("elapsedVariable").Trim();
+        if (name.Length > 0)
+        {
+            Variables.Set(name, Value.FromNumber(waited));
+        }
+
+        if (held)
+        {
+            Log(LogLevel.Info, depth, step.Type, "Run.WaitedFor", waited, condition.Type);
+            return Signal.Normal;
+        }
+
+        if (string.Equals(step.Text("onTimeout").Trim(), "continue", StringComparison.OrdinalIgnoreCase))
+        {
+            Log(LogLevel.Warn, depth, step.Type, "Run.WaitGaveUp", waited, condition.Type);
+            return Signal.Normal;
+        }
+
+        throw new StepFailure("Run.WaitTimeout", condition.Type);
+    }
+
     private async Task<Signal> RunRepeat(ExecutableStep step, int depth, CancellationToken token)
     {
         var times = Math.Max(0, Number(step, "times"));
@@ -735,7 +782,7 @@ public sealed class MacroRunner
         {
             token.ThrowIfCancellationRequested();
             Variables.Local.Set("sys.loopIndex", Value.FromNumber(round));
-            if (condition is not null && !await Check(condition, depth, token))
+            if (condition is not null && !Check(condition, depth, token))
             {
                 return Signal.Normal;
             }
@@ -799,7 +846,7 @@ public sealed class MacroRunner
     private async Task<Signal> RunIf(ExecutableStep step, int depth, CancellationToken token)
     {
         var condition = step.Condition("condition");
-        var matched = condition is null || await Check(condition, depth, token);
+        var matched = condition is null || Check(condition, depth, token);
         return await RunSteps(step.Children(matched ? "then" : "else"), depth + 1, token);
     }
 
@@ -862,7 +909,12 @@ public sealed class MacroRunner
         Variables.Set(name, Value.FromText(reason));
     }
 
-    private async Task<bool> Check(ExecutableStep condition, int depth, CancellationToken token)
+    /// <summary>
+    /// Answers one condition. Nothing here waits or hands work to another thread, so a condition
+    /// can be asked again and again without holding anything up — which is what the wait block
+    /// does with it.
+    /// </summary>
+    private bool Check(ExecutableStep condition, int depth, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
@@ -871,7 +923,7 @@ public sealed class MacroRunner
             case "condition.compare":
                 return Compare(condition);
             case "condition.group":
-                return await Group(condition, depth, token);
+                return Group(condition, depth, token);
             case "condition.randomChance":
                 return System.Random.Shared.NextDouble() * 100 < Number(condition, "percent");
             case "condition.imageExists":
@@ -922,7 +974,7 @@ public sealed class MacroRunner
         };
     }
 
-    private async Task<bool> Group(ExecutableStep step, int depth, CancellationToken token)
+    private bool Group(ExecutableStep step, int depth, CancellationToken token)
     {
         var children = step.Children("conditions");
         if (children.Count == 0)
@@ -933,7 +985,7 @@ public sealed class MacroRunner
         var results = new List<bool>(children.Count);
         foreach (var child in children)
         {
-            results.Add(await Check(child, depth, token));
+            results.Add(Check(child, depth, token));
         }
 
         return step.Text("op") switch
@@ -1121,16 +1173,12 @@ public sealed class MacroRunner
         var x = Number(step, "x");
         var y = Number(step, "y");
         var timeout = Math.Max(0, Number(step, "timeoutMs"));
-        var started = Stopwatch.GetTimestamp();
 
-        while (!_devices.Screen.PixelAt(x, y).Matches(target, tolerance))
+        var seen = await WaitForFlagAsync(
+            () => _devices.Screen.PixelAt(x, y).Matches(target, tolerance), timeout, 50, token);
+        if (!seen)
         {
-            if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeout)
-            {
-                throw new StepFailure("Run.WaitColorTimeout", target.ToHex());
-            }
-
-            await Pause(50, token);
+            throw new StepFailure("Run.WaitColorTimeout", target.ToHex());
         }
 
         Log(LogLevel.Info, depth, step.Type, "Run.SawColor", target.ToHex());
@@ -1211,22 +1259,7 @@ public sealed class MacroRunner
             interval = 200;
         }
 
-        var started = Stopwatch.GetTimestamp();
-        while (true)
-        {
-            var match = Search(step);
-            if (match is not null)
-            {
-                return match;
-            }
-
-            if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeout)
-            {
-                return null;
-            }
-
-            await Pause(interval, token);
-        }
+        return await WaitForValueAsync(() => Search(step), timeout, interval, token);
     }
 
     /// <summary>
@@ -1759,16 +1792,10 @@ public sealed class MacroRunner
     private async Task AwaitClipboard(ExecutableStep step, int before, CancellationToken token)
     {
         var timeout = OptionalNumber(step, "timeoutMs", 1500);
-        var started = Stopwatch.GetTimestamp();
 
-        while (_devices.Clipboard.ChangeCount == before)
+        if (!await WaitForFlagAsync(() => _devices.Clipboard.ChangeCount != before, timeout, 30, token))
         {
-            if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeout)
-            {
-                throw new StepFailure("Run.ClipboardTimeout");
-            }
-
-            await Pause(30, token);
+            throw new StepFailure("Run.ClipboardTimeout");
         }
     }
 
@@ -1799,30 +1826,22 @@ public sealed class MacroRunner
     {
         var name = Read(step.Text("name")).AsText();
         var timeout = OptionalNumber(step, "timeoutMs", 10000);
-        var started = Stopwatch.GetTimestamp();
 
-        while (true)
+        var ids = await WaitForValueAsync(
+            () => _devices.Processes.Find(name) is { Count: > 0 } found ? found : null,
+            timeout, 100, token);
+        if (ids is null)
         {
-            var found = _devices.Processes.Find(name);
-            if (found.Count > 0)
-            {
-                var variable = VariableName(step, "resultVariable", string.Empty);
-                if (variable.Length > 0)
-                {
-                    Variables.Set(variable, Value.FromNumber(found[0]));
-                }
-
-                Log(LogLevel.Info, depth, step.Type, "Run.ProgramFound", name, found[0]);
-                return;
-            }
-
-            if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeout)
-            {
-                throw new StepFailure("Run.ProgramNotFound", name);
-            }
-
-            await Pause(100, token);
+            throw new StepFailure("Run.ProgramNotFound", name);
         }
+
+        var variable = VariableName(step, "resultVariable", string.Empty);
+        if (variable.Length > 0)
+        {
+            Variables.Set(variable, Value.FromNumber(ids[0]));
+        }
+
+        Log(LogLevel.Info, depth, step.Type, "Run.ProgramFound", name, ids[0]);
     }
 
     /// <summary>Waits for a program to finish and keeps the exit code it returned.</summary>
@@ -1830,16 +1849,10 @@ public sealed class MacroRunner
     {
         var id = ProcessId(step);
         var timeout = OptionalNumber(step, "timeoutMs", 60000);
-        var started = Stopwatch.GetTimestamp();
 
-        while (!_devices.Processes.HasExited(id))
+        if (!await WaitForFlagAsync(() => _devices.Processes.HasExited(id), timeout, 100, token))
         {
-            if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeout)
-            {
-                throw new StepFailure("Run.ProcessTimeout", id.ToString(CultureInfo.InvariantCulture));
-            }
-
-            await Pause(100, token);
+            throw new StepFailure("Run.ProcessTimeout", id.ToString(CultureInfo.InvariantCulture));
         }
 
         var code = _devices.Processes.ExitCode(id) ?? 0;
@@ -2000,30 +2013,20 @@ public sealed class MacroRunner
     {
         var title = Read(step.Text("title")).AsText();
         var timeout = OptionalNumber(step, "timeoutMs", 10000);
-        var started = Stopwatch.GetTimestamp();
 
-        while (true)
+        var window = await WaitForValueAsync(() => _devices.Windows.Find(title), timeout, 100, token);
+        if (window is null)
         {
-            var window = _devices.Windows.Find(title);
-            if (window is not null)
-            {
-                var name = VariableName(step, "resultVariable", string.Empty);
-                if (name.Length > 0)
-                {
-                    Variables.Set(name, Value.FromText(window.Title));
-                }
-
-                Log(LogLevel.Info, depth, step.Type, "Run.WindowAppeared", window.Title);
-                return;
-            }
-
-            if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeout)
-            {
-                throw new StepFailure("Run.WindowTimeout", title);
-            }
-
-            await Pause(100, token);
+            throw new StepFailure("Run.WindowTimeout", title);
         }
+
+        var name = VariableName(step, "resultVariable", string.Empty);
+        if (name.Length > 0)
+        {
+            Variables.Set(name, Value.FromText(window.Title));
+        }
+
+        Log(LogLevel.Info, depth, step.Type, "Run.WindowAppeared", window.Title);
     }
 
     /// <summary>Collects the titles of the open windows into a list.</summary>
@@ -2118,27 +2121,19 @@ public sealed class MacroRunner
         var wanted = Read(step.Text("text")).AsText();
         var mode = step.Text("matchMode");
         var timeout = Math.Max(0, Number(step, "timeoutMs"));
-        var started = Stopwatch.GetTimestamp();
 
-        while (true)
+        var span = await WaitForValueAsync(
+            () => ReadSpans(step).FirstOrDefault(candidate => Matches(candidate.Text, wanted, mode)),
+            timeout, 200, token);
+        if (span is null)
         {
-            var span = ReadSpans(step).FirstOrDefault(candidate => Matches(candidate.Text, wanted, mode));
-            if (span is not null)
-            {
-                var x = span.Center.X + Number(step, "offsetX");
-                var y = span.Center.Y + Number(step, "offsetY");
-                _devices.Input.Click(Button(step), x, y, 1, 0);
-                Log(LogLevel.Info, depth, step.Type, "Run.ClickedText", wanted, $"{x},{y}");
-                return;
-            }
-
-            if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeout)
-            {
-                throw new StepFailure("Run.TextNotFound", wanted);
-            }
-
-            await Pause(200, token);
+            throw new StepFailure("Run.TextNotFound", wanted);
         }
+
+        var x = span.Center.X + Number(step, "offsetX");
+        var y = span.Center.Y + Number(step, "offsetY");
+        _devices.Input.Click(Button(step), x, y, 1, 0);
+        Log(LogLevel.Info, depth, step.Type, "Run.ClickedText", wanted, $"{x},{y}");
     }
 
     private static string Language(ExecutableStep step)
@@ -2180,15 +2175,9 @@ public sealed class MacroRunner
             poll = 200;
         }
 
-        var started = Stopwatch.GetTimestamp();
-        while (!_devices.Ui.Exists(query, 0))
+        if (!await WaitForFlagAsync(() => _devices.Ui.Exists(query, 0), timeout, poll, token))
         {
-            if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeout)
-            {
-                throw new StepFailure("Run.ElementNotFound", step.Text("selector"));
-            }
-
-            await Pause(poll, token);
+            throw new StepFailure("Run.ElementNotFound", step.Text("selector"));
         }
 
         Log(LogLevel.Info, depth, step.Type, "Run.ElementFound", step.Text("selector"));
@@ -2198,16 +2187,10 @@ public sealed class MacroRunner
     {
         var query = Query(step);
         var timeout = Math.Max(0, Number(step, "timeoutMs"));
-        var started = Stopwatch.GetTimestamp();
 
-        while (!_devices.Ui.Exists(query, 0))
+        if (!await WaitForFlagAsync(() => _devices.Ui.Exists(query, 0), timeout, 200, token))
         {
-            if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeout)
-            {
-                throw new StepFailure("Run.ElementNotFound", step.Text("selector"));
-            }
-
-            await Pause(200, token);
+            throw new StepFailure("Run.ElementNotFound", step.Text("selector"));
         }
 
         if (!_devices.Ui.Click(query, Button(step)))
@@ -2412,6 +2395,56 @@ public sealed class MacroRunner
         if (milliseconds > 0)
         {
             await Task.Delay(milliseconds, token);
+        }
+    }
+
+    /// <summary>
+    /// Waits for something to become true, asking again every <paramref name="pollMs"/> and giving
+    /// up after <paramref name="timeoutMs"/>. Every wait in the engine comes through here: waiting
+    /// is the same thing whether it is a colour, a picture, an element, a window or a condition the
+    /// macro wrote itself, so the pacing and the way a timeout is counted are written once. The
+    /// question is asked before the clock is read, so a wait that already holds costs nothing, and
+    /// a timeout of zero means "look once and give up".
+    /// </summary>
+    private async Task<bool> WaitForFlagAsync(Func<bool> ready, int timeoutMs, int pollMs,
+        CancellationToken token)
+    {
+        var started = Stopwatch.GetTimestamp();
+        while (true)
+        {
+            if (ready())
+            {
+                return true;
+            }
+
+            if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeoutMs)
+            {
+                return false;
+            }
+
+            await Pause(pollMs, token);
+        }
+    }
+
+    /// <summary>The same wait, for something that turns up rather than becomes true.</summary>
+    private async Task<T?> WaitForValueAsync<T>(Func<T?> probe, int timeoutMs, int pollMs,
+        CancellationToken token)
+        where T : class
+    {
+        var started = Stopwatch.GetTimestamp();
+        while (true)
+        {
+            if (probe() is { } found)
+            {
+                return found;
+            }
+
+            if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeoutMs)
+            {
+                return null;
+            }
+
+            await Pause(pollMs, token);
         }
     }
 

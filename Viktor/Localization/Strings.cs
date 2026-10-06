@@ -450,6 +450,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.ElementNotWritable"] = "The element could not be filled in: {0}",
         ["Run.ElementFilled"] = "Filled in {0} with \"{1}\"",
         ["Run.ClickedElement"] = "Clicked the element: {0}",
+        ["Run.WaitedFor"] = "The wait held after {0} ms: {1}.",
+        ["Run.WaitGaveUp"] = "Gave up after {0} ms, so the macro carried on: {1} never held.",
+        ["Run.WaitTimeout"] = "The wait ran out: {0} never held.",
+        ["Run.MissingCondition"] = "This wait has no condition to wait for.",
         ["Run.WindowNotFound"] = "No window matches that title: {0}",
         ["Run.FocusedWindow"] = "Brought the window to the front: {0}",
         ["Run.EmptySelector"] = "No element selector was given.",
@@ -950,6 +954,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.Finally"] = "正在执行收尾步骤。",
         ["Add.SystemReadOnly"] = "“{0}”是系统变量，宏只能读取，不能修改。",
         ["Add.GlobalMustExist"] = "全局变量“{0}”不存在，请先在变量中心创建。",
+
+        ["Run.WaitedFor"] = "等待在 {0} 毫秒后成立：{1}。",
+        ["Run.WaitGaveUp"] = "等了 {0} 毫秒仍不成立，按设置继续往下走：{1} 一直没有成立。",
+        ["Run.WaitTimeout"] = "等待超时，{0} 始终没有成立。",
+        ["Run.MissingCondition"] = "这一步没有填写要等待的条件。",
 
         // system variable descriptions
         ["Variable.sys.macroLoop.desc"] = "整个宏已经循环的次数。",

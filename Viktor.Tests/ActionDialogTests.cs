@@ -177,4 +177,28 @@ public class ActionDialogTests
             Assert.Equal("60", Value(viewModel, "endY"));
         });
     }
+
+    [Fact]
+    public void A_wait_until_is_edited_with_the_condition_editor()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("control.waitUntil");
+            var condition = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "condition");
+
+            // The wait borrows the same nested condition editor an if or a while uses, and it
+            // offers nothing but conditions, so a stray action cannot be dropped in as one.
+            Assert.True(condition.IsNested);
+            Assert.NotNull(condition.List);
+            Assert.True(condition.List!.IsCondition);
+            Assert.Same(ActionCatalog.Conditions, condition.List.Catalog);
+
+            Assert.Equal("10000", Value(viewModel, "timeoutMs"));
+            Assert.Equal("200", Value(viewModel, "pollMs"));
+            Assert.Equal("stop", Value(viewModel, "onTimeout"));
+            Assert.True(viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "elapsedVariable").IsVariable);
+        });
+    }
 }
