@@ -201,4 +201,19 @@ public class ActionDialogTests
                 .First(parameter => parameter.Definition.Name == "elapsedVariable").IsVariable);
         });
     }
+
+    [Fact]
+    public void A_move_offers_the_three_ways_a_pointer_can_travel()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.mouseMove");
+            var style = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "style");
+
+            Assert.True(style.IsChoice);
+            Assert.Equal("direct", Value(viewModel, "style"));
+            Assert.Equal(["direct", "smooth", "human"], style.Choices.Select(choice => choice.Value));
+        });
+    }
 }

@@ -1437,6 +1437,101 @@ public class DeviceActionTests
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.MissingCondition", result.Key);
     }
+
+    // ------------------------------------------------------------ mouse routes
+
+    [Fact]
+    public async Task A_straight_move_is_the_move_it_has_always_been()
+    {
+        var (result, devices, _) = await RunAsync(
+            [Step("input.mouseMove", Param("x", "400"), Param("y", "0"), Param("durationMs", "300"))]);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(["move 400 0 300"], devices.Calls);
+        Assert.Empty(devices.Paths);
+    }
+
+    [Fact]
+    public async Task A_bent_move_walks_a_path_instead_of_jumping()
+    {
+        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(0, 0) };
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.mouseMove", Param("x", "400"), Param("y", "0"),
+                Param("durationMs", "300"), Param("style", "smooth")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        var path = Assert.Single(devices.Paths);
+        Assert.Equal(new ScreenPoint(0, 0), path[0]);
+        Assert.Equal(new ScreenPoint(400, 0), path[^1]);
+        Assert.True(path.Any(point => Math.Abs(point.Y) >= 20), "the path should bow out of the line");
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("move ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_bent_move_with_no_duration_borrows_one_so_that_it_can_bend()
+    {
+        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(0, 0) };
+
+        var (result, _, _) = await RunAsync(
+            [Step("input.mouseMove", Param("x", "400"), Param("y", "0"), Param("style", "human"))],
+            devices);
+
+        Assert.True(result.Succeeded);
+        var call = Assert.Single(devices.Calls);
+        Assert.StartsWith("along ", call, StringComparison.Ordinal);
+        Assert.EndsWith(" 200", call, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_relative_move_bends_from_wherever_the_pointer_is()
+    {
+        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(20, 30) };
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.mouseMoveRelative", Param("dx", "200"), Param("dy", "0"),
+                Param("durationMs", "300"), Param("style", "smooth")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        var path = Assert.Single(devices.Paths);
+        Assert.Equal(new ScreenPoint(20, 30), path[0]);
+        Assert.Equal(new ScreenPoint(220, 30), path[^1]);
+    }
+
+    [Fact]
+    public async Task A_straight_drag_is_still_one_call_with_its_steps()
+    {
+        var (result, devices, _) = await RunAsync(
+        [
+            Step("input.mouseDrag", Param("startX", "0"), Param("startY", "0"), Param("endX", "300"),
+                Param("endY", "0"), Param("durationMs", "300"), Param("steps", "30")),
+        ]);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(["drag left 0 0 300 0 300 30"], devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_hand_like_drag_is_the_same_path_with_the_button_held()
+    {
+        var (result, devices, _) = await RunAsync(
+        [
+            Step("input.mouseDrag", Param("startX", "0"), Param("startY", "0"), Param("endX", "300"),
+                Param("endY", "0"), Param("durationMs", "300"), Param("steps", "30"),
+                Param("style", "human")),
+        ]);
+
+        Assert.True(result.Succeeded);
+        var path = Assert.Single(devices.Paths);
+        Assert.Equal(31, path.Count);
+        Assert.Equal(new ScreenPoint(0, 0), path[0]);
+        Assert.Equal(new ScreenPoint(300, 0), path[^1]);
+        Assert.Contains("dragAlong left 31 300", devices.Calls);
+    }
 }
 
 /// <summary>
@@ -1448,6 +1543,9 @@ internal sealed class FakeDeviceLayer
       IClipboardDevice, IProcessDevice, ISystemDevice, IWindowDevice
 {
     public List<string> Calls { get; } = [];
+
+    /// <summary>The paths the pointer was asked to travel, in the order they were asked for.</summary>
+    public List<IReadOnlyList<ScreenPoint>> Paths { get; } = [];
 
     public ScreenPoint Cursor { get; set; } = new(7, 9);
 
@@ -1590,6 +1688,12 @@ internal sealed class FakeDeviceLayer
 
     public void MoveMouse(int x, int y, int durationMs) => Note($"move {x} {y} {durationMs}");
 
+    public void MoveMouseAlong(IReadOnlyList<ScreenPoint> path, int durationMs)
+    {
+        Paths.Add(path);
+        Note($"along {path.Count} {durationMs}");
+    }
+
     public void MoveMouseRelative(int dx, int dy, int durationMs) => Note($"moveBy {dx} {dy} {durationMs}");
 
     public void MouseDown(string button, int x, int y) => Note($"down {button} {x} {y}");
@@ -1603,6 +1707,12 @@ internal sealed class FakeDeviceLayer
 
     public void Drag(string button, int startX, int startY, int endX, int endY, int durationMs, int steps)
         => Note($"drag {button} {startX} {startY} {endX} {endY} {durationMs} {steps}");
+
+    public void DragAlong(string button, IReadOnlyList<ScreenPoint> path, int durationMs)
+    {
+        Paths.Add(path);
+        Note($"dragAlong {button} {path.Count} {durationMs}");
+    }
 
     public PixelColor PixelAt(int x, int y)
     {

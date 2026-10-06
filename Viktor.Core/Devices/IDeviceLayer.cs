@@ -22,6 +22,13 @@ public interface IInputDevice
 
     void MoveMouse(int x, int y, int durationMs);
 
+    /// <summary>
+    /// Walks the pointer along a planned path, finishing on its last point. The first point is
+    /// where the pointer already is, so only the stops after it are sent. A move that goes
+    /// straight is the same call with a line as the path.
+    /// </summary>
+    void MoveMouseAlong(IReadOnlyList<ScreenPoint> path, int durationMs);
+
     void MoveMouseRelative(int dx, int dy, int durationMs);
 
     void MouseDown(string button, int x, int y);
@@ -34,6 +41,12 @@ public interface IInputDevice
     void Scroll(string direction, int amount, int x, int y);
 
     void Drag(string button, int startX, int startY, int endX, int endY, int durationMs, int steps);
+
+    /// <summary>
+    /// Presses the button at the first point, walks the rest of the path with it held, and
+    /// releases on the last one.
+    /// </summary>
+    void DragAlong(string button, IReadOnlyList<ScreenPoint> path, int durationMs);
 }
 
 /// <summary>The screen: its size, its pixels, and pictures of it.</summary>
@@ -357,6 +370,9 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public void MoveMouse(int x, int y, int durationMs) => throw Missing("the mouse");
 
+        public void MoveMouseAlong(IReadOnlyList<ScreenPoint> path, int durationMs)
+            => throw Missing("the mouse");
+
         public void MoveMouseRelative(int dx, int dy, int durationMs) => throw Missing("the mouse");
 
         public void MouseDown(string button, int x, int y) => throw Missing("the mouse");
@@ -368,6 +384,9 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public void Scroll(string direction, int amount, int x, int y) => throw Missing("the mouse");
 
         public void Drag(string button, int startX, int startY, int endX, int endY, int durationMs, int steps)
+            => throw Missing("the mouse");
+
+        public void DragAlong(string button, IReadOnlyList<ScreenPoint> path, int durationMs)
             => throw Missing("the mouse");
 
         public PixelColor PixelAt(int x, int y) => throw Missing("the screen");

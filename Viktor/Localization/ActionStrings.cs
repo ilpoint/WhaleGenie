@@ -511,6 +511,11 @@ internal static class ActionStrings
         ["input.mouseMove.y.hint"] = "目标屏幕纵坐标。",
         ["input.mouseMove.durationMs.label"] = "用时毫秒",
         ["input.mouseMove.durationMs.hint"] = "0 表示瞬间跳到目标位置。",
+        ["input.mouseMove.style.label"] = "移动方式",
+        ["input.mouseMove.style.hint"] = "鼠标怎么走过去。弧线会绕开直线；模拟人手在弧线上再带一点抖动、两头慢中间快，看起来不像机器画的。走弧线需要时间，所以瞬时移动会自动借 200 毫秒。",
+        ["input.mouseMove.style.option.direct"] = "直线",
+        ["input.mouseMove.style.option.smooth"] = "弧线",
+        ["input.mouseMove.style.option.human"] = "模拟人手",
 
         ["input.mouseMoveRelative.name"] = "鼠标相对移动",
         ["input.mouseMoveRelative.desc"] = "在当前光标位置的基础上偏移一段距离。",
@@ -520,6 +525,11 @@ internal static class ActionStrings
         ["input.mouseMoveRelative.dy.hint"] = "垂直方向移动的像素数。",
         ["input.mouseMoveRelative.durationMs.label"] = "用时毫秒",
         ["input.mouseMoveRelative.durationMs.hint"] = "0 表示瞬间跳到目标位置。",
+        ["input.mouseMoveRelative.style.label"] = "移动方式",
+        ["input.mouseMoveRelative.style.hint"] = "鼠标怎么走过去。弧线会绕开直线；模拟人手在弧线上再带一点抖动、两头慢中间快，看起来不像机器画的。走弧线需要时间，所以瞬时移动会自动借 200 毫秒。",
+        ["input.mouseMoveRelative.style.option.direct"] = "直线",
+        ["input.mouseMoveRelative.style.option.smooth"] = "弧线",
+        ["input.mouseMoveRelative.style.option.human"] = "模拟人手",
 
         ["input.mouseClick.name"] = "鼠标点击",
         ["input.mouseClick.desc"] = "在屏幕指定位置点击鼠标按键。",
@@ -582,6 +592,11 @@ internal static class ActionStrings
         ["input.mouseDrag.durationMs.hint"] = "整个拖拽过程的时长。",
         ["input.mouseDrag.steps.label"] = "移动步数",
         ["input.mouseDrag.steps.hint"] = "拖拽过程中发送的中间移动事件数量。",
+        ["input.mouseDrag.style.label"] = "移动方式",
+        ["input.mouseDrag.style.hint"] = "拖着走的时候鼠标怎么移动。弧线会绕开直线；模拟人手在弧线上再带一点抖动，看起来不像机器画的。",
+        ["input.mouseDrag.style.option.direct"] = "直线",
+        ["input.mouseDrag.style.option.smooth"] = "弧线",
+        ["input.mouseDrag.style.option.human"] = "模拟人手",
 
         // ------------------------------------------------------------------- vision
         ["vision.capture.name"] = "截屏",

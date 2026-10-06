@@ -930,6 +930,7 @@ public static class ActionCatalog
                 Number("x", "X", 0, "Target screen column."),
                 Number("y", "Y", 0, "Target screen row."),
                 Number("durationMs", "Duration ms", 0, "0 jumps straight to the target."),
+                Movement(),
             ],
         },
         new()
@@ -943,6 +944,7 @@ public static class ActionCatalog
                 Number("dx", "Offset X", 0, "Pixels to move horizontally.", min: -100000m),
                 Number("dy", "Offset Y", 0, "Pixels to move vertically.", min: -100000m),
                 Number("durationMs", "Duration ms", 0, "0 jumps straight to the target."),
+                Movement(),
             ],
         },
         new()
@@ -1028,6 +1030,7 @@ public static class ActionCatalog
                 Button(),
                 Number("durationMs", "Duration ms", 300, "How long the drag takes."),
                 Number("steps", "Move steps", 20, "Intermediate move events sent while dragging.", min: 1),
+                Movement(),
             ],
         },
 
@@ -1600,6 +1603,18 @@ public static class ActionCatalog
     /// <summary>Mouse button picker shared by every input action that clicks.</summary>
     private static ActionParameter Button()
         => Choice("button", "Button", ["left", "right", "middle", "back", "forward"], "left");
+
+    /// <summary>
+    /// How the pointer travels, shared by the moves that can bend their path. The straight line
+    /// is the default so that a macro written before this setting existed still moves the same way.
+    /// </summary>
+    private static ActionParameter Movement()
+        => Choice("style", "Movement", ["direct", "smooth", "human"], "direct",
+            "How the pointer travels. A bent path bows out of the straight line; a hand-like one "
+            + "bows, drifts slightly and eases in and out, so the move does not look like a machine "
+            + "drew it. A bent path is travelled rather than jumped, so an instant move borrows "
+            + "200 ms to have somewhere to bend.",
+            labels: ["Straight line", "Bent path", "Hand-like"]);
 
     /// <summary>A file or folder path, which may be written as an expression.</summary>
     private static ActionParameter FilePath(string name, string label, string placeholder, string hint)

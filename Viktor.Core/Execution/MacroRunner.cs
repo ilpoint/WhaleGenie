@@ -62,6 +62,13 @@ public sealed class MacroRunner
     private const double SmallestScale = 0.1;
     private const double LargestScale = 10;
 
+    /// <summary>
+    /// How long a move borrows when it was written as an instant jump but asked to travel along a
+    /// bent or hand-like path: there is no path to travel without a duration, and quietly going
+    /// straight instead would make the style look broken.
+    /// </summary>
+    private const int BorrowedMoveMs = 200;
+
     private static double Clamp(double scale)
         => double.IsFinite(scale) ? Math.Clamp(scale, SmallestScale, LargestScale) : 1;
 
@@ -583,13 +590,11 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "input.mouseMove":
-                _devices.Input.MoveMouse(Number(step, "x"), Number(step, "y"),
-                    Pace(Number(step, "durationMs")));
+                MovePointer(step, new ScreenPoint(Number(step, "x"), Number(step, "y")));
                 return Signal.Normal;
 
             case "input.mouseMoveRelative":
-                _devices.Input.MoveMouseRelative(Number(step, "dx"), Number(step, "dy"),
-                    Pace(Number(step, "durationMs")));
+                MovePointerBy(step);
                 return Signal.Normal;
 
             case "input.mouseClick":
@@ -630,9 +635,7 @@ public sealed class MacroRunner
                 }
 
             case "input.mouseDrag":
-                _devices.Input.Drag(Button(step), Number(step, "startX"), Number(step, "startY"),
-                    Number(step, "endX"), Number(step, "endY"), Pace(Number(step, "durationMs")),
-                    Number(step, "steps"));
+                DragPointer(step);
                 return Signal.Normal;
 
             // ----------------------------------------------------------------- vision
@@ -1118,6 +1121,74 @@ public sealed class MacroRunner
     {
         var button = step.Text("button").Trim();
         return button.Length == 0 ? "left" : button;
+    }
+
+    /// <summary>
+    /// Moves the pointer to a point. A straight move is handed to the device exactly as it always
+    /// was; a bent or hand-like one is worked out into a path first, because the shape of that
+    /// path is the whole point of those styles.
+    /// </summary>
+    private void MovePointer(ExecutableStep step, ScreenPoint to)
+    {
+        var route = MousePath.Route(step.Text("style"));
+        var duration = Pace(Number(step, "durationMs"));
+        if (route is MouseRoute.Direct)
+        {
+            _devices.Input.MoveMouse(to.X, to.Y, duration);
+            return;
+        }
+
+        WalkPointer(route, _devices.Input.Cursor, to, duration);
+    }
+
+    /// <summary>The same, for a move written as an offset from wherever the pointer is.</summary>
+    private void MovePointerBy(ExecutableStep step)
+    {
+        var dx = Number(step, "dx");
+        var dy = Number(step, "dy");
+        var route = MousePath.Route(step.Text("style"));
+        var duration = Pace(Number(step, "durationMs"));
+        if (route is MouseRoute.Direct)
+        {
+            _devices.Input.MoveMouseRelative(dx, dy, duration);
+            return;
+        }
+
+        var from = _devices.Input.Cursor;
+        WalkPointer(route, from, new ScreenPoint(from.X + dx, from.Y + dy), duration);
+    }
+
+    private void WalkPointer(MouseRoute route, ScreenPoint from, ScreenPoint to, int duration)
+    {
+        if (duration <= 0)
+        {
+            duration = Pace(BorrowedMoveMs);
+        }
+
+        _devices.Input.MoveMouseAlong(
+            MousePath.Plan(route, from, to, MousePath.StepsFor(route, duration)), duration);
+    }
+
+    /// <summary>Presses, travels, and lets go: the same shape of path as a plain move.</summary>
+    private void DragPointer(ExecutableStep step)
+    {
+        var from = new ScreenPoint(Number(step, "startX"), Number(step, "startY"));
+        var to = new ScreenPoint(Number(step, "endX"), Number(step, "endY"));
+        var duration = Pace(Number(step, "durationMs"));
+        var steps = Math.Clamp(Number(step, "steps"), 1, 200);
+        var route = MousePath.Route(step.Text("style"));
+        if (route is MouseRoute.Direct)
+        {
+            _devices.Input.Drag(Button(step), from.X, from.Y, to.X, to.Y, duration, steps);
+            return;
+        }
+
+        if (duration <= 0)
+        {
+            duration = Pace(BorrowedMoveMs);
+        }
+
+        _devices.Input.DragAlong(Button(step), MousePath.Plan(route, from, to, steps), duration);
     }
 
     private static IReadOnlyList<string> Keys(ExecutableStep step)

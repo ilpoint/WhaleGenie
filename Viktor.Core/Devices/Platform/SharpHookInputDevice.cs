@@ -105,6 +105,30 @@ public sealed class SharpHookInputDevice : IInputDevice
 
     public void MoveMouse(int x, int y, int durationMs) => Glide(Cursor, new ScreenPoint(x, y), durationMs);
 
+    public void MoveMouseAlong(IReadOnlyList<ScreenPoint> path, int durationMs)
+    {
+        if (path.Count == 0)
+        {
+            return;
+        }
+
+        if (path.Count == 1 || durationMs <= 0)
+        {
+            var end = path[^1];
+            _simulator.SimulateMouseMovement(Clamp(end.X), Clamp(end.Y));
+            return;
+        }
+
+        // The path already says which way to go, so the stops are simply sent in order at an
+        // even pace: the shape of the path is what makes the pointer bend and ease.
+        var wait = Math.Max(1, durationMs / (path.Count - 1));
+        for (var index = 1; index < path.Count; index++)
+        {
+            _simulator.SimulateMouseMovement(Clamp(path[index].X), Clamp(path[index].Y));
+            Thread.Sleep(wait);
+        }
+    }
+
     public void MoveMouseRelative(int dx, int dy, int durationMs)
     {
         var from = Cursor;
@@ -171,9 +195,18 @@ public sealed class SharpHookInputDevice : IInputDevice
     }
 
     public void Drag(string button, int startX, int startY, int endX, int endY, int durationMs, int steps)
+        => DragAlong(button, MousePath.Plan(MouseRoute.Direct, new ScreenPoint(startX, startY),
+            new ScreenPoint(endX, endY), Math.Clamp(steps, 1, 200)), durationMs);
+
+    public void DragAlong(string button, IReadOnlyList<ScreenPoint> path, int durationMs)
     {
+        if (path.Count == 0)
+        {
+            return;
+        }
+
         var code = Button(button);
-        MoveMouse(startX, startY, 0);
+        MoveMouse(path[0].X, path[0].Y, 0);
         ViktorInputGate.Note(KeyNames.MouseName(code));
         _simulator.SimulateMousePress(code);
 
@@ -181,14 +214,10 @@ public sealed class SharpHookInputDevice : IInputDevice
         {
             // The intermediate moves are what tell the target it is being dragged rather
             // than clicked, so at least one of them always happens.
-            var count = Math.Clamp(steps, 1, 200);
-            var wait = durationMs > 0 ? Math.Max(1, durationMs / count) : 0;
-            for (var index = 1; index <= count; index++)
+            var wait = path.Count > 1 && durationMs > 0 ? Math.Max(1, durationMs / (path.Count - 1)) : 0;
+            for (var index = 1; index < path.Count; index++)
             {
-                var ratio = (double)index / count;
-                var x = (int)Math.Round(startX + ((endX - startX) * ratio));
-                var y = (int)Math.Round(startY + ((endY - startY) * ratio));
-                _simulator.SimulateMouseMovement(Clamp(x), Clamp(y));
+                _simulator.SimulateMouseMovement(Clamp(path[index].X), Clamp(path[index].Y));
 
                 if (wait > 0)
                 {
@@ -211,14 +240,11 @@ public sealed class SharpHookInputDevice : IInputDevice
             return;
         }
 
-        var steps = Math.Clamp(durationMs / 16, 1, 120);
-        var wait = Math.Max(1, durationMs / steps);
-        for (var index = 1; index <= steps; index++)
+        var path = MousePath.Plan(MouseRoute.Direct, from, to, MousePath.StepsFor(MouseRoute.Direct, durationMs));
+        var wait = Math.Max(1, durationMs / (path.Count - 1));
+        for (var index = 1; index < path.Count; index++)
         {
-            var ratio = (double)index / steps;
-            var x = (int)Math.Round(from.X + ((to.X - from.X) * ratio));
-            var y = (int)Math.Round(from.Y + ((to.Y - from.Y) * ratio));
-            _simulator.SimulateMouseMovement(Clamp(x), Clamp(y));
+            _simulator.SimulateMouseMovement(Clamp(path[index].X), Clamp(path[index].Y));
             Thread.Sleep(wait);
         }
     }
