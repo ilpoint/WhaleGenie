@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Viktor.Core.Devices;
@@ -60,10 +61,49 @@ public partial class AddActionViewModel : ViewModelBase
         {
             setting.PropertyChanged += OnSettingChanged;
         }
+
+        RebuildActions();
     }
 
     /// <summary>Everything the "Select Action" dropdown offers.</summary>
     public IReadOnlyList<ActionDefinition> AvailableActions { get; }
+
+    /// <summary>What the picker's search box holds. Blank shows the whole catalogue.</summary>
+    [ObservableProperty]
+    public partial string ActionSearch { get; set; } = string.Empty;
+
+    /// <summary>The catalogue as the picker shows it: recently used first, then a group a category.</summary>
+    public ObservableCollection<ActionGroupViewModel> ActionGroups { get; } = [];
+
+    /// <summary>
+    /// True while the picker itself is on screen. Choosing an action folds it down to one line, so
+    /// the fields it is about to fill are not pushed off the bottom of the dialog.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsPickerOpen { get; set; } = true;
+
+    /// <summary>True when the search box has hidden everything, so the picker can say so.</summary>
+    public bool HasNoActionMatch => ActionGroups.Count == 0;
+
+    /// <summary>
+    /// The actions used most recently, newest first. Shared by every dialog in the run, so the
+    /// second step of a macro can start from what the first one used.
+    /// </summary>
+    private static readonly List<string> RecentlyUsed = [];
+
+    /// <summary>How many actions the "recently used" group holds at most.</summary>
+    private const int RecentLimit = 8;
+
+    /// <summary>Key of the group that holds those, which is not a category.</summary>
+    private const string RecentGroup = "recent";
+
+    /// <summary>Groups the user opened by hand, so a search does not fold them back up.</summary>
+    private readonly HashSet<string> _openedGroups = new(StringComparer.Ordinal);
+
+    /// <summary>The action being built, on the line the folded-away picker leaves behind.</summary>
+    public string SelectedActionTitle => SelectedDefinition is null
+        ? Strings.Get("Add.NoSelection")
+        : SelectedDefinition.Key + " · " + SelectedDefinition.LocalName;
 
     /// <summary>
     /// Where a picture taken from the screen is saved while this dialog is open, and where a
@@ -119,6 +159,7 @@ public partial class AddActionViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(HasSelection))]
     [NotifyPropertyChangedFor(nameof(SelectedKey))]
     [NotifyPropertyChangedFor(nameof(Description))]
+    [NotifyPropertyChangedFor(nameof(SelectedActionTitle))]
     public partial ActionDefinition? SelectedDefinition { get; set; }
 
     /// <summary>Editors for the selected action, rebuilt whenever the selection changes.</summary>
@@ -139,11 +180,15 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AdvancedLabel))]
+    [NotifyPropertyChangedFor(nameof(AdvancedCaret))]
     public partial bool ShowAdvanced { get; set; }
 
     /// <summary>Text of the fold's button, which says how many settings are behind it.</summary>
     public string AdvancedLabel => Strings.Format(
         ShowAdvanced ? "Add.AdvancedHide" : "Add.AdvancedShow", AdvancedRows.Count);
+
+    /// <summary>The mark on that button, pointing the way the fold will go.</summary>
+    public Geometry AdvancedCaret => ShowAdvanced ? Carets.Open : Carets.Shut;
 
     public bool HasSelection => SelectedDefinition is not null;
 
@@ -336,7 +381,110 @@ public partial class AddActionViewModel : ViewModelBase
     /// action it stands for, so the user only has to fill the blanks in.
     /// </summary>
     public void SelectAction(string key)
-        => SelectedDefinition = AvailableActions.FirstOrDefault(definition => definition.Key == key);
+    {
+        if (AvailableActions.FirstOrDefault(definition => definition.Key == key) is not { } definition)
+        {
+            return;
+        }
+
+        SelectedDefinition = definition;
+        IsPickerOpen = false;
+    }
+
+    /// <summary>Reopens the picker on the line the folded-away one left behind.</summary>
+    [RelayCommand]
+    private void OpenPicker()
+    {
+        ActionSearch = string.Empty;
+        IsPickerOpen = true;
+    }
+
+    /// <summary>Folds a group open or shut and remembers which way it went.</summary>
+    public void ToggleGroup(ActionGroupViewModel group)
+    {
+        group.IsOpen = !group.IsOpen;
+        if (group.IsOpen)
+        {
+            _openedGroups.Add(group.Key);
+        }
+        else
+        {
+            _openedGroups.Remove(group.Key);
+        }
+    }
+
+    /// <summary>What the search box does to the picker: it filters it, so it is rebuilt.</summary>
+    partial void OnActionSearchChanged(string value) => RebuildActions();
+
+    /// <summary>
+    /// Fills the picker with the actions that answer to what has been typed, as a group of
+    /// recently used ones followed by a group a category.
+    /// </summary>
+    private void RebuildActions()
+    {
+        var search = ActionSearch.Trim();
+        var matching = AvailableActions.Where(action => Matches(action, search)).ToList();
+
+        // A search has already narrowed the list, so everything left in it is worth showing;
+        // with a blank box the groups start folded, which is what keeps the catalogue readable.
+        var searching = search.Length > 0;
+
+        ActionGroups.Clear();
+
+        var recent = new List<ActionDefinition>();
+        foreach (var key in RecentlyUsed)
+        {
+            if (matching.FirstOrDefault(action => string.Equals(action.Key, key, StringComparison.Ordinal))
+                is { } used && !recent.Contains(used))
+            {
+                recent.Add(used);
+            }
+        }
+
+        if (recent.Count > 0)
+        {
+            Group(RecentGroup, Strings.Get("Add.RecentlyUsed"), null, recent, open: true);
+        }
+
+        foreach (var category in matching.GroupBy(action => action.Category)
+                     .OrderBy(group => (int)group.Key))
+        {
+            var key = category.Key.ToString();
+            Group(key, CategoryName(category.Key), ActionCatalog.IconFor(category.Key), [.. category],
+                searching || _openedGroups.Contains(key));
+        }
+
+        OnPropertyChanged(nameof(HasNoActionMatch));
+    }
+
+    private void Group(string key, string title, Geometry? icon,
+        IReadOnlyList<ActionDefinition> actions, bool open)
+        => ActionGroups.Add(new ActionGroupViewModel(key, title, icon, actions, open));
+
+    /// <summary>True when an action answers to what has been typed: its key, name or description.</summary>
+    private static bool Matches(ActionDefinition action, string search)
+        => search.Length == 0
+           || action.Key.Contains(search, StringComparison.OrdinalIgnoreCase)
+           || action.LocalName.Contains(search, StringComparison.OrdinalIgnoreCase)
+           || action.LocalDescription.Contains(search, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>What a category of the catalogue is called in the interface language.</summary>
+    private static string CategoryName(ActionCategory category)
+        => Strings.Get("Add.Category." + category, category.ToString());
+
+    /// <summary>
+    /// Notes an action as just used, moving it to the front. The list is kept short because a
+    /// "recently used" group that grows without end is only another long list.
+    /// </summary>
+    private static void Note(ActionDefinition action)
+    {
+        RecentlyUsed.RemoveAll(key => string.Equals(key, action.Key, StringComparison.Ordinal));
+        RecentlyUsed.Insert(0, action.Key);
+        if (RecentlyUsed.Count > RecentLimit)
+        {
+            RecentlyUsed.RemoveRange(RecentLimit, RecentlyUsed.Count - RecentLimit);
+        }
+    }
 
     /// <summary>
     /// Variable names the pickers offer: the ones the editor already knows about plus
@@ -394,6 +542,10 @@ public partial class AddActionViewModel : ViewModelBase
         // A step that already uses one of the folded settings opens with them in view, so the
         // reason it behaves unusually is not hidden under a fold the user has to know about.
         ShowAdvanced = Parameters.Any(parameter => parameter.IsAdvanced && !parameter.IsDefault);
+
+        // A step being edited already has its action, so the picker folds down to the line that
+        // names it and the whole dialog is about the fields.
+        IsPickerOpen = false;
     }
 
     private void BuildParameters(ActionDefinition? definition)
@@ -767,7 +919,13 @@ public partial class AddActionViewModel : ViewModelBase
     private void ToggleAdvanced() => ShowAdvanced = !ShowAdvanced;
 
     [RelayCommand(CanExecute = nameof(CanSave))]
-    private void Save() => CloseRequested?.Invoke(BuildStep());
+    private void Save()
+    {
+        // An action that made it onto a step is one the user really reached for, which is what the
+        // "recently used" group is about.
+        Note(SelectedDefinition!);
+        CloseRequested?.Invoke(BuildStep());
+    }
 
     [RelayCommand]
     private void Cancel() => CloseRequested?.Invoke(null);

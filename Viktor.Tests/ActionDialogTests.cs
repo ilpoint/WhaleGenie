@@ -1,4 +1,6 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Viktor.Core.Devices;
@@ -865,13 +867,52 @@ public class ActionDialogTests
             Assert.False(viewModel.ShowAdvanced);
 
             var fold = window.GetVisualDescendants().OfType<Button>()
-                .First(button => Equals(button.Content, viewModel.AdvancedLabel));
+                .First(button => button.Classes.Contains("Disclosure"));
             Assert.True(fold.IsVisible);
 
             fold.Command?.Execute(fold.CommandParameter);
             Dispatcher.UIThread.RunJobs();
 
             Assert.True(viewModel.ShowAdvanced);
+        });
+    }
+
+    [Fact]
+    public void The_fold_sits_on_the_heading_so_a_full_box_of_fields_cannot_push_it_away()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            // Six fields, which is what used to push the fold below the bottom edge of the
+            // dialog and leave a step that has folded settings with no way to reach them.
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("input.mouseClick");
+            Dispatcher.UIThread.RunJobs();
+
+            var fold = window.GetVisualDescendants().OfType<Button>()
+                .First(button => button.Classes.Contains("Disclosure"));
+            Assert.True(fold.IsVisible);
+
+            var corner = fold.TranslatePoint(default, window);
+            Assert.NotNull(corner);
+
+            // The fold belongs to the heading of the box, so it reads above every field rather
+            // than under the last of them, where a full box of fields used to leave it off the
+            // bottom edge with no way to reach the settings behind it.
+            var fields = window.GetVisualDescendants().OfType<Control>()
+                .Where(control => control.DataContext is StepParameterViewModel
+                    && control.IsEffectivelyVisible)
+                .Select(control => control.TranslatePoint(default, window))
+                .OfType<Point>()
+                .ToList();
+
+            Assert.NotEmpty(fields);
+            Assert.All(fields, field => Assert.True(field.Y > corner!.Value.Y,
+                $"the fold at {corner} is not above the field at {field}"));
+            Assert.InRange(corner!.Value.Y + fold.Bounds.Height, 0, window.Bounds.Height);
         });
     }
 
@@ -959,6 +1000,164 @@ public class ActionDialogTests
             // What the step is about stays in front.
             Assert.Contains("image", visible);
             Assert.Contains("region", visible);
+        });
+    }
+
+    [Fact]
+    public void The_action_picker_opens_as_searchable_groups_rather_than_one_long_list()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            Assert.True(viewModel.IsPickerOpen);
+            Assert.Empty(viewModel.ActionSearch);
+
+            // A group a category, all shut: over a hundred actions read as a dozen headings
+            // until one of them is opened or a search says which one matters.
+            var groups = viewModel.ActionGroups.Where(group => group.Key != "recent").ToList();
+            Assert.Equal(
+                viewModel.AvailableActions.Select(action => action.Category.ToString())
+                    .Distinct().Order().ToList(),
+                groups.Select(group => group.Key).Order().ToList());
+            Assert.All(groups, group => Assert.False(group.IsOpen));
+            Assert.All(groups, group => Assert.NotEmpty(group.Actions));
+
+            var search = window.GetVisualDescendants().OfType<TextBox>()
+                .First(box => Equals(box.PlaceholderText, Strings.Get("Add.SearchAction")));
+            Assert.True(search.IsEffectivelyVisible);
+
+            // The dropdown the picker used to be, holding every action at once, is gone.
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<ComboBox>(),
+                box => ReferenceEquals(box.ItemsSource, viewModel.AvailableActions));
+        });
+    }
+
+    [Fact]
+    public void Typing_in_the_search_narrows_the_catalogue_to_what_matches()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.mouseMove");
+            viewModel.OpenPickerCommand.Execute(null);
+
+            // Something written in any of the three things a search reads — the key, the name the
+            // card shows, what the action does — finds the action. The name is asked for in
+            // whatever language the interface is in rather than a word typed into the case.
+            var target = viewModel.AvailableActions.First(action => action.Key == "input.mouseScroll");
+            foreach (var term in new[] { "mouseScroll", target.LocalName })
+            {
+                viewModel.ActionSearch = term;
+                Dispatcher.UIThread.RunJobs();
+
+                var found = viewModel.ActionGroups.SelectMany(group => group.Actions).ToList();
+                Assert.NotEmpty(found);
+                Assert.Contains(target, found);
+                Assert.All(found, action => Assert.True(
+                    action.Key.Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || action.LocalName.Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || action.LocalDescription.Contains(term, StringComparison.OrdinalIgnoreCase)));
+
+                // A search has already done the narrowing, so everything left is open to read.
+                Assert.All(viewModel.ActionGroups, group => Assert.True(group.IsOpen, group.Key));
+            }
+
+            // Something no action answers to empties the picker and says so, rather than
+            // leaving the last result of the previous search behind under the box.
+            viewModel.ActionSearch = "zzzz";
+            Dispatcher.UIThread.RunJobs();
+            Assert.Empty(viewModel.ActionGroups);
+            Assert.True(viewModel.HasNoActionMatch);
+        });
+    }
+
+    [Fact]
+    public void Choosing_an_action_folds_the_picker_down_to_the_line_that_names_it()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+
+            // Clicking a card in the picker is the same thing as choosing that action.
+            var card = window.GetVisualDescendants().OfType<Button>()
+                .First(button => button.Classes.Contains("ActionCard")
+                    && button.DataContext is ActionDefinition { Key: "input.mouseMove" });
+            card.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("input.mouseMove", viewModel.SelectedDefinition!.Key);
+            Assert.False(viewModel.IsPickerOpen);
+            Assert.Contains(viewModel.SelectedDefinition.LocalName, viewModel.SelectedActionTitle);
+
+            // The search box and the groups step out of the way and leave the fields the room.
+            var search = window.GetVisualDescendants().OfType<TextBox>()
+                .First(box => Equals(box.PlaceholderText, Strings.Get("Add.SearchAction")));
+            Assert.False(search.IsEffectivelyVisible);
+
+            viewModel.OpenPickerCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            // Asking for another action brings the picker back with the search box emptied, so
+            // the previous search is not still in the way.
+            Assert.True(viewModel.IsPickerOpen);
+            Assert.Empty(viewModel.ActionSearch);
+            Assert.True(search.IsEffectivelyVisible);
+        });
+    }
+
+    [Fact]
+    public void A_group_opened_by_hand_stays_open()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            var heading = window.GetVisualDescendants().OfType<Button>()
+                .First(button => button.Classes.Contains("GroupToggle")
+                    && button.DataContext is ActionGroupViewModel { Key: "Input" });
+            Assert.False(((ActionGroupViewModel)heading.DataContext!).IsOpen);
+
+            heading.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            // A search rebuilds the groups, and the one the user opened is still open after it.
+            Assert.True(viewModel.ActionGroups.First(group => group.Key == "Input").IsOpen);
+            viewModel.ActionSearch = "mouse";
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(viewModel.ActionGroups.First(group => group.Key == "Input").IsOpen);
+        });
+    }
+
+    [Fact]
+    public void An_action_that_has_just_been_used_waits_at_the_top_of_the_picker()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("vision.getPixel");
+            viewModel.CloseRequested += _ => { };
+            viewModel.SaveCommand.Execute(null);
+
+            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var picker = (AddActionViewModel)window.DataContext!;
+            var recent = picker.ActionGroups.First(group => group.Key == "recent");
+
+            // The group is there to save the trip back through the categories, so it is open
+            // and the action is the first thing in it.
+            Assert.True(recent.IsOpen);
+            Assert.Equal("vision.getPixel", recent.Actions[0].Key);
         });
     }
 

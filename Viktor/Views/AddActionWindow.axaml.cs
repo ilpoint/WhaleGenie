@@ -184,6 +184,26 @@ public partial class AddActionWindow : Window
         }
     }
 
+    /// <summary>Folds one group of the action picker open or shut.</summary>
+    private void OnToggleActionGroup(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: ActionGroupViewModel group }
+            && DataContext is AddActionViewModel viewModel)
+        {
+            viewModel.ToggleGroup(group);
+        }
+    }
+
+    /// <summary>Chooses the action whose card was clicked.</summary>
+    private void OnPickAction(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: ActionDefinition definition }
+            && DataContext is AddActionViewModel viewModel)
+        {
+            viewModel.SelectAction(definition.Key);
+        }
+    }
+
     /// <summary>Opens the screen magnifier for a colour parameter and keeps what it reads.</summary>
     private async void OnPickParameterColor(object? sender, RoutedEventArgs e)
     {
