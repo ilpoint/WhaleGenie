@@ -265,7 +265,9 @@ public sealed record StartRequest(
 
 /// <summary>
 /// How a command line is to be run: what to run, where, how long it may take, and what it is
-/// handed before it starts.
+/// handed before it starts. <see cref="OnOutput"/> and <see cref="OnError"/> are for a caller
+/// that wants each line while the program is still running; they are called on the thread that
+/// asked for the run, and the whole of what was printed still comes back in the result.
 /// </summary>
 public sealed record CommandRequest(
     string FileName,
@@ -273,7 +275,9 @@ public sealed record CommandRequest(
     string WorkingDirectory = "",
     int TimeoutMs = 30000,
     IReadOnlyDictionary<string, string>? Environment = null,
-    string? StandardInput = null);
+    string? StandardInput = null,
+    Action<string>? OnOutput = null,
+    Action<string>? OnError = null);
 
 /// <summary>
 /// How a window is picked out of the ones that are open. A title is what a person sees, but it

@@ -2871,8 +2871,19 @@ public sealed class MacroRunner
         var folder = Read(step.Text("workingDirectory")).AsText();
         var timeout = OptionalNumber(step, "timeoutMs", 30000);
 
+        // A command that takes its time is easier to trust when what it prints turns up while it is
+        // still running, but one that prints thousands of lines would bury the log, so this is
+        // asked for rather than assumed.
+        var watching = Flag(step, "streamOutput", false);
+        if (watching)
+        {
+            Log(LogLevel.Info, depth, step.Type, "Run.CommandStarted", program);
+        }
+
         var result = _devices.Processes.Run(new CommandRequest(program, arguments, folder, timeout,
-            EnvironmentOf(step), StandardInputOf(step)));
+            EnvironmentOf(step), StandardInputOf(step),
+            watching ? line => Log(LogLevel.Info, depth, step.Type, "Run.CommandOutput", line) : null,
+            watching ? line => Log(LogLevel.Info, depth, step.Type, "Run.CommandError", line) : null));
 
         Store(step, "resultVariable", "output", Value.FromText(result.StandardOutput));
         Store(step, "errorVariable", string.Empty, Value.FromText(result.StandardError));

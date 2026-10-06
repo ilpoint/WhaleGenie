@@ -246,28 +246,110 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
 
             var feeding = Feed(process, request.StandardInput);
 
-            // Both pipes are drained at once, so a program that talks a lot on one of them
-            // cannot fill it up and stop while this side waits on the other.
-            var output = process.StandardOutput.ReadToEndAsync();
-            var error = process.StandardError.ReadToEndAsync();
-
-            if (!process.WaitForExit(Math.Max(0, request.TimeoutMs)))
+            // Nobody is listening line by line, so the whole of what the program says can simply
+            // be gathered at the end.
+            if (request.OnOutput is null && request.OnError is null)
             {
-                Kill(process);
-                throw new DeviceActionException("Run.CommandTimeout", request.FileName);
+                return Collect(process, request, feeding);
             }
 
-            feeding?.GetAwaiter().GetResult();
-
-            return new CommandResult(
-                process.ExitCode,
-                output.GetAwaiter().GetResult(),
-                error.GetAwaiter().GetResult());
+            return Watch(process, request, feeding);
         }
         catch (Exception error) when (Recoverable(error))
         {
             throw new DeviceActionException("Run.ProgramFailed",
                 $"{request.FileName}: {error.Message}");
+        }
+    }
+
+    /// <summary>Runs a program to the end and gathers everything it printed.</summary>
+    private static CommandResult Collect(Process process, CommandRequest request, Task? feeding)
+    {
+        // Both pipes are drained at once, so a program that talks a lot on one of them
+        // cannot fill it up and stop while this side waits on the other.
+        var output = process.StandardOutput.ReadToEndAsync();
+        var error = process.StandardError.ReadToEndAsync();
+
+        if (!process.WaitForExit(Math.Max(0, request.TimeoutMs)))
+        {
+            Kill(process);
+            throw new DeviceActionException("Run.CommandTimeout", request.FileName);
+        }
+
+        feeding?.GetAwaiter().GetResult();
+
+        return new CommandResult(
+            process.ExitCode,
+            output.GetAwaiter().GetResult(),
+            error.GetAwaiter().GetResult());
+    }
+
+    /// <summary>
+    /// Runs a program somebody is watching: every line is handed over as it is printed, and the
+    /// whole of it is kept for the result. The lines are picked up on the thread that asked for the
+    /// run rather than on the reading threads, so a caller that writes them into a log gets them in
+    /// order, on a thread it already knows, and without anything else to lock.
+    /// </summary>
+    private static CommandResult Watch(Process process, CommandRequest request, Task? feeding)
+    {
+        var printed = new ConcurrentQueue<string>();
+        var complained = new ConcurrentQueue<string>();
+
+        process.OutputDataReceived += (_, line) => Take(printed, line.Data);
+        process.ErrorDataReceived += (_, line) => Take(complained, line.Data);
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+
+        var lines = new List<string>();
+        var errors = new List<string>();
+        var started = Stopwatch.GetTimestamp();
+        var timeout = Math.Max(0, request.TimeoutMs);
+
+        while (!process.WaitForExit(PollMs))
+        {
+            Drain(printed, lines, request.OnOutput);
+            Drain(complained, errors, request.OnError);
+
+            if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeout)
+            {
+                Kill(process);
+                throw new DeviceActionException("Run.CommandTimeout", request.FileName);
+            }
+        }
+
+        // The program has gone, but the two readers are still handing over what was left in the
+        // pipes, and waiting for the process again is what waits for them to finish.
+        process.WaitForExit();
+        Drain(printed, lines, request.OnOutput);
+        Drain(complained, errors, request.OnError);
+        feeding?.GetAwaiter().GetResult();
+
+        return new CommandResult(
+            process.ExitCode,
+            string.Join(Environment.NewLine, lines),
+            string.Join(Environment.NewLine, errors));
+    }
+
+    /// <summary>How often a watched run looks at what has arrived so far.</summary>
+    private const int PollMs = 20;
+
+    /// <summary>Keeps a line the readers handed over; a null line is the end of that stream.</summary>
+    private static void Take(ConcurrentQueue<string> queue, string? line)
+    {
+        if (line is not null)
+        {
+            queue.Enqueue(line);
+        }
+    }
+
+    /// <summary>Hands on everything that has arrived, in the order it was printed.</summary>
+    private static void Drain(ConcurrentQueue<string> queue, List<string> gathered,
+        Action<string>? listener)
+    {
+        while (queue.TryDequeue(out var line))
+        {
+            listener?.Invoke(line);
+            gathered.Add(line);
         }
     }
 

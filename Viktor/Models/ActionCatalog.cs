@@ -926,6 +926,10 @@ public static class ActionCatalog
                     + "variable holds.",
                     "first line\nsecond line", required: false),
                 Number("timeoutMs", "Timeout ms", 30000, "How long the command may run."),
+                Toggle("streamOutput", "Write output to the log as it arrives", false,
+                    "Put every line the command prints into the run log while it is still running, "
+                    + "which is how a long build or script can be watched. The result variable still "
+                    + "holds the whole output."),
                 Variable("resultVariable", "Result variable", "output",
                     "Variable that receives what the command printed.",
                     required: false, namesVariable: true),

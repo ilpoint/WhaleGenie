@@ -1984,6 +1984,51 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_command_can_report_what_it_prints_while_it_is_still_running()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Command = new CommandResult(0, "first\n\nthird", "watch out"),
+        };
+        var host = new SilentRunHost();
+        var store = new VariableStore();
+
+        await new MacroRunner(store, host, devices).RunAsync(
+        [
+            Step("command.run", Param("file", "build.exe"), Param("streamOutput", "true"),
+                Param("resultVariable", "out")),
+        ]);
+
+        // Every line is handed over as it arrives, blank lines included, and the result variable
+        // still holds all of it.
+        Assert.Equal(
+            ["first", "", "third"],
+            host.Entries.Where(entry => entry.Key == "Run.CommandOutput")
+                .Select(entry => (string)entry.Arguments[0]).ToArray());
+        Assert.Equal("watch out",
+            Assert.Single(host.Entries, entry => entry.Key == "Run.CommandError").Arguments[0]);
+        Assert.Equal("first\n\nthird", store.Local.Values["out"].AsText());
+    }
+
+    [Fact]
+    public async Task A_command_that_is_not_watched_keeps_its_output_to_itself()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Command = new CommandResult(0, "first\nsecond", string.Empty),
+        };
+        var host = new SilentRunHost();
+
+        await new MacroRunner(new VariableStore(), host, devices).RunAsync(
+        [
+            Step("command.run", Param("file", "build.exe"), Param("resultVariable", "out")),
+        ]);
+
+        Assert.DoesNotContain(host.Entries, entry => entry.Key == "Run.CommandOutput");
+        Assert.DoesNotContain(host.Entries, entry => entry.Key == "Run.CommandStarted");
+    }
+
+    [Fact]
     public async Task Waiting_for_a_program_keeps_the_id_once_it_appears()
     {
         var devices = new FakeDeviceLayer
@@ -3452,8 +3497,27 @@ internal sealed class FakeDeviceLayer
         Note($"run {request.FileName}|{request.Arguments}|{request.WorkingDirectory}"
              + $"|{request.TimeoutMs}{EnvironmentNote(request.Environment)}"
              + InputNote(request.StandardInput));
+
+        // A real device hands each line over while the program is still running; the fake has all
+        // of them already and hands them over the same way, blank lines included.
+        foreach (var line in Lines(Command.StandardOutput))
+        {
+            request.OnOutput?.Invoke(line);
+        }
+
+        foreach (var line in Lines(Command.StandardError))
+        {
+            request.OnError?.Invoke(line);
+        }
+
         return Command;
     }
+
+    /// <summary>The lines a stream holds, the way reading it a line at a time would find them.</summary>
+    private static IEnumerable<string> Lines(string text)
+        => text.Length == 0
+            ? []
+            : text.Replace("\r\n", "\n").TrimEnd('\n').Split('\n');
 
     string ISystemDevice.Info(string field)
     {

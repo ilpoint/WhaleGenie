@@ -590,6 +590,8 @@ internal static class ActionStrings
         ["command.run.standardInput.hint"] = "这条命令从标准输入读到的东西。留空表示不给它任何输入。按 UTF-8 发送，里面的 $变量 会替换成那个变量的值。",
         ["command.run.timeoutMs.label"] = "超时毫秒",
         ["command.run.timeoutMs.hint"] = "命令最多可以运行多久。",
+        ["command.run.streamOutput.label"] = "输出实时写入日志",
+        ["command.run.streamOutput.hint"] = "命令还在跑的时候，它打印的每一行就立刻出现在运行日志里，长时间跑的构建或脚本可以这样看着进度。结果变量里仍然是完整输出。",
         ["command.run.resultVariable.label"] = "结果变量",
         ["command.run.resultVariable.hint"] = "接收命令输出的变量。",
         ["command.run.errorVariable.label"] = "错误变量",
