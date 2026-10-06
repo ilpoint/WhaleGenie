@@ -173,6 +173,77 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         }
     }
 
+    public IReadOnlyList<UiElementInfo> FindAll(UiQuery query, int limit)
+    {
+        Require();
+        if (query.IsEmpty)
+        {
+            throw new DeviceActionException("Run.EmptySelector");
+        }
+
+        var hits = new List<UiElementInfo>();
+        foreach (var element in Search(query, Math.Max(1, limit)))
+        {
+            if (Info(element) is { } info)
+            {
+                hits.Add(info);
+            }
+        }
+
+        return hits;
+    }
+
+    /// <summary>
+    /// The elements the query describes, in the order a person counts them on screen: across the
+    /// row first, then down. The list is cut to <paramref name="limit"/>, and a query that turns up
+    /// nothing but a window it names answers with that window.
+    /// </summary>
+    private List<AutomationElement> Search(UiQuery query, int limit)
+    {
+        try
+        {
+            var root = Root(query);
+            if (root is null)
+            {
+                return [];
+            }
+
+            var condition = Condition(query);
+            if (condition is null)
+            {
+                // Only a window was named, so the window itself is the answer.
+                return [root];
+            }
+
+            var found = new List<AutomationElement>(root.FindAllDescendants(condition));
+            if (Matches(root, query))
+            {
+                found.Add(root);
+            }
+
+            // Reading the rectangle of every hit costs a call into the provider each, so a query
+            // that turned up one thing — by far the common case — is answered without ordering.
+            if (found.Count <= 1)
+            {
+                return found;
+            }
+
+            return
+            [
+                .. found
+                    .Select(element => (Element: element, Corner: Corner(element)))
+                    .OrderBy(hit => hit.Corner.Y)
+                    .ThenBy(hit => hit.Corner.X)
+                    .Take(limit)
+                    .Select(hit => hit.Element),
+            ];
+        }
+        catch (Exception error) when (Recoverable(error))
+        {
+            return [];
+        }
+    }
+
     /// <summary>
     /// What UI Automation sees under a screen point, for the picker that writes selectors out of
     /// what is on screen. Null when there is nothing there, or when nothing useful can be read
@@ -185,32 +256,56 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         try
         {
             var element = _automation.Value.FromPoint(new System.Drawing.Point(x, y));
-            if (element is null)
-            {
-                return null;
-            }
-
-            // UI Automation reports the rectangle in screen pixels, which is the unit a selector
-            // taken here has to come back in.
-            var bounds = element.BoundingRectangle;
-            var info = new UiElementInfo(
-                Read(() => element.Name),
-                Read(() => element.AutomationId),
-                Read(() => element.ControlType.ToString()),
-                Read(() => element.ClassName),
-                new ScreenPoint(bounds.X, bounds.Y),
-                new ScreenSize(bounds.Width, bounds.Height),
-                WindowTitleOf(element));
-
-            // An element nobody can name is one a macro could never look up again, so the picker
-            // is better off saying it found nothing.
-            return info.ControlType.Length == 0 && info.Name.Length == 0 && info.AutomationId.Length == 0
-                ? null
-                : info;
+            return element is null ? null : Info(element);
         }
         catch (Exception error) when (Recoverable(error))
         {
             return null;
+        }
+    }
+
+    /// <summary>
+    /// What UI Automation says about an element. An element nobody can name is one a macro could
+    /// never look up again, so it answers with null the way the picker wants, rather than with a
+    /// description nothing can match.
+    /// </summary>
+    private static UiElementInfo? Info(AutomationElement element)
+    {
+        var controlType = Read(() => element.ControlType.ToString());
+        var name = Read(() => element.Name);
+        var automationId = Read(() => element.AutomationId);
+
+        if (controlType.Length == 0 && name.Length == 0 && automationId.Length == 0)
+        {
+            return null;
+        }
+
+        // UI Automation reports the rectangle in screen pixels, which is the unit a selector
+        // taken here has to come back in.
+        var bounds = Bounds(element);
+        return new UiElementInfo(
+            name,
+            automationId,
+            controlType,
+            Read(() => element.ClassName),
+            new ScreenPoint(bounds.X, bounds.Y),
+            new ScreenSize(bounds.Width, bounds.Height),
+            WindowTitleOf(element));
+    }
+
+    /// <summary>
+    /// Where an element sits. A provider that refuses to say is not worth losing the element over,
+    /// so an empty rectangle comes back instead.
+    /// </summary>
+    private static System.Drawing.Rectangle Bounds(AutomationElement element)
+    {
+        try
+        {
+            return element.BoundingRectangle;
+        }
+        catch (Exception error) when (Recoverable(error))
+        {
+            return System.Drawing.Rectangle.Empty;
         }
     }
 
@@ -295,30 +390,22 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         return null;
     }
 
-    /// <summary>The first element the query describes, or null when nothing matches.</summary>
+    /// <summary>
+    /// The element the query means: the one sitting at its own place in the list of matches, or
+    /// null when there are not that many.
+    /// </summary>
     private AutomationElement? Find(UiQuery query)
     {
-        try
-        {
-            var root = Root(query);
-            if (root is null)
-            {
-                return null;
-            }
+        var index = Math.Max(1, query.Index);
+        var hits = Search(query, index);
+        return index <= hits.Count ? hits[index - 1] : null;
+    }
 
-            var condition = Condition(query);
-            if (condition is null)
-            {
-                // Only a window was named, so the window itself is the answer.
-                return root;
-            }
-
-            return root.FindFirstDescendant(condition) ?? (Matches(root, query) ? root : null);
-        }
-        catch (Exception error) when (Recoverable(error))
-        {
-            return null;
-        }
+    /// <summary>Where an element starts on screen, or the origin when the provider will not say.</summary>
+    private static ScreenPoint Corner(AutomationElement element)
+    {
+        var bounds = Bounds(element);
+        return new ScreenPoint(bounds.X, bounds.Y);
     }
 
     private ConditionBase? Condition(UiQuery query)
@@ -354,18 +441,49 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
     private static bool Matches(AutomationElement element, UiQuery query)
     {
         if (!string.IsNullOrWhiteSpace(query.Name)
-            && !string.Equals(element.Name, query.Name, StringComparison.OrdinalIgnoreCase))
+            && !string.Equals(Read(() => element.Name), query.Name, StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
 
         if (!string.IsNullOrWhiteSpace(query.AutomationId)
-            && !string.Equals(element.AutomationId, query.AutomationId, StringComparison.OrdinalIgnoreCase))
+            && !string.Equals(Read(() => element.AutomationId), query.AutomationId,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.ClassName)
+            && !string.Equals(Read(() => element.ClassName), query.ClassName,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        // The kind of control has to be compared as well: a query that names only a kind — "the
+        // edit boxes in this window" — would otherwise match the window itself, because the window
+        // has no name to disagree with.
+        if (!string.IsNullOrWhiteSpace(query.ControlType)
+            && ControlTypeOf(query.ControlType!) is { } wanted
+            && TypeOf(element) != wanted)
         {
             return false;
         }
 
         return true;
+    }
+
+    /// <summary>The kind of control an element is, or null when the provider will not say.</summary>
+    private static ControlType? TypeOf(AutomationElement element)
+    {
+        try
+        {
+            return element.ControlType;
+        }
+        catch (Exception error) when (Recoverable(error))
+        {
+            return null;
+        }
     }
 
     private void ClickAt(AutomationElement element, string button, UiQuery query)

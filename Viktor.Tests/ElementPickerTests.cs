@@ -209,7 +209,7 @@ public class ElementPickerTests
 
         Assert.Equal(
             ["condition.uiaExists", "condition.uiaNotExists", "uia.click", "uia.exists",
-             "uia.getText", "uia.setText", "uia.waitElement"],
+             "uia.find", "uia.getText", "uia.setText", "uia.waitElement"],
             keys);
     }
 

@@ -101,6 +101,13 @@ public interface IUiDevice
 
     /// <summary>Writes into an element, optionally clearing what was there first.</summary>
     bool SetText(UiQuery query, string text, bool clearFirst);
+
+    /// <summary>
+    /// Every element the query describes, in the order a person counts them on screen and at most
+    /// <paramref name="limit"/> of them. Each one carries the rectangle it occupies, which is what
+    /// a step that reads where something is, or that measures from it, needs.
+    /// </summary>
+    IReadOnlyList<UiElementInfo> FindAll(UiQuery query, int limit);
 }
 
 /// <summary>Files on disk.</summary>
@@ -438,6 +445,9 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public string? GetText(UiQuery query) => throw Missing("UI Automation");
 
         public bool SetText(UiQuery query, string text, bool clearFirst) => throw Missing("UI Automation");
+
+        public IReadOnlyList<UiElementInfo> FindAll(UiQuery query, int limit)
+            => throw Missing("UI Automation");
 
         private static DeviceUnavailableException Missing(string capability) => new(capability);
     }

@@ -1262,10 +1262,31 @@ public static class ActionCatalog
             [
                 Window(),
                 Selector(),
+                MatchIndex(),
                 Number("timeoutMs", "Timeout ms", 0, "0 checks once and returns immediately."),
                 Variable("resultVariable", "Result variable", "exists",
                     "Variable that receives true or false.",
                     namesVariable: true, defaultValue: "exists"),
+            ],
+        },
+        new()
+        {
+            Key = "uia.find",
+            Category = ActionCategory.Uia,
+            DisplayName = "Find Element",
+            Description = "Find a UI Automation element and remember where it is.",
+            Parameters =
+            [
+                Window(),
+                Selector(),
+                MatchIndex(),
+                AllMatches(),
+                Variable("resultVariable", "Result variable", "element",
+                    "Variable that receives the element's centre, empty when it was not found. "
+                    + "$name.x, $name.y, $name.width, $name.height and $name.text hold the parts, "
+                    + "which is what a later step measures from, and $name.count and $name.list "
+                    + "the whole set when the step records it.",
+                    namesVariable: true, defaultValue: "element"),
             ],
         },
         new()
@@ -1278,6 +1299,7 @@ public static class ActionCatalog
             [
                 Window(),
                 Selector(),
+                MatchIndex(),
                 Number("timeoutMs", "Timeout ms", 10000, "Give up after this long."),
                 Number("pollMs", "Poll ms", 200, "Delay between checks."),
             ],
@@ -1292,6 +1314,7 @@ public static class ActionCatalog
             [
                 Window(),
                 Selector(),
+                MatchIndex(),
                 Number("timeoutMs", "Timeout ms", 5000, "Wait this long for the element before clicking."),
                 Button(),
             ],
@@ -1306,6 +1329,7 @@ public static class ActionCatalog
             [
                 Window(),
                 Selector(),
+                MatchIndex(),
                 Text("text", "Text", "Hello", "Text written into the element."),
                 Toggle("clearFirst", "Clear first", true, "Clear the field before typing."),
             ],
@@ -1320,6 +1344,7 @@ public static class ActionCatalog
             [
                 Window(),
                 Selector(),
+                MatchIndex(),
                 Variable("resultVariable", "Result variable", "text",
                     "Variable that receives the text.",
                     namesVariable: true, defaultValue: "text"),

@@ -919,6 +919,75 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Finding_an_element_records_where_it_sits()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Elements.Add(new UiElementInfo("Save", "saveButton", "Button", "ButtonClass",
+            new ScreenPoint(10, 20), new ScreenSize(80, 24), "Untitled - Notepad"));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("uia.find", Param("window", "Notepad"), Param("selector", "Button[name='Save']"),
+                Param("resultVariable", "save")),
+        ], devices);
+
+        // The centre is what a click aims at, and the parts are what a later step measures from.
+        Assert.Equal("50,32", store.Local.Values["save"].AsText());
+        Assert.Equal("50", store.Local.Values["save.x"].AsText());
+        Assert.Equal("32", store.Local.Values["save.y"].AsText());
+        Assert.Equal("80", store.Local.Values["save.width"].AsText());
+        Assert.Equal("24", store.Local.Values["save.height"].AsText());
+        Assert.Equal("Save", store.Local.Values["save.text"].AsText());
+    }
+
+    [Fact]
+    public async Task A_find_that_hits_nothing_empties_the_variable()
+    {
+        var devices = new FakeDeviceLayer();
+        var (_, _, store) = await RunAsync(
+        [
+            Step("uia.find", Param("selector", "Button[name='Save']"),
+                Param("resultVariable", "save")),
+        ], devices);
+
+        Assert.Equal(string.Empty, store.Local.Values["save"].AsText());
+        Assert.Equal(string.Empty, store.Local.Values["save.x"].AsText());
+    }
+
+    [Fact]
+    public async Task Recording_every_element_notes_how_many_and_where()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Elements.Add(new UiElementInfo("Row 1", "row1", "ListItem", "ListBoxItem",
+            new ScreenPoint(0, 100), new ScreenSize(200, 20), "Tasks"));
+        devices.Elements.Add(new UiElementInfo("Row 2", "row2", "ListItem", "ListBoxItem",
+            new ScreenPoint(0, 120), new ScreenSize(200, 20), "Tasks"));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("uia.find", Param("selector", "ListItem[automationId='row1']"),
+                Param("allMatches", "true"), Param("resultVariable", "rows")),
+        ], devices);
+
+        Assert.Equal("2", store.Local.Values["rows.count"].AsText());
+        Assert.Equal("100,110", store.Local.Values["rows.list"].Items[0].AsText());
+        Assert.Equal("100,130", store.Local.Values["rows.list"].Items[1].AsText());
+    }
+
+    [Fact]
+    public async Task The_match_number_asks_the_search_for_that_one()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("uia.click", Param("selector", "ListItem[automationId='row1']"),
+                Param("matchIndex", "3"), Param("timeoutMs", "0")),
+        ], devices);
+
+        Assert.Contains("clickElement  #3 left", devices.Calls);
+    }
+
+    [Fact]
     public async Task Writing_into_an_element_carries_the_text_and_the_clear_flag()
     {
         var devices = new FakeDeviceLayer { ElementWritable = true };
@@ -2052,6 +2121,9 @@ internal sealed class FakeDeviceLayer
     /// <summary>Whether UI Automation should say the element is there.</summary>
     public bool ElementExists { get; set; } = true;
 
+    /// <summary>What a UI Automation search turns up, in the order it reports them.</summary>
+    public List<UiElementInfo> Elements { get; } = [];
+
     /// <summary>What reading an element gives back.</summary>
     public string? ElementText { get; set; }
 
@@ -2245,7 +2317,7 @@ internal sealed class FakeDeviceLayer
 
     public bool Click(UiQuery query, string button)
     {
-        Note($"clickElement {query.Name} {button}");
+        Note($"clickElement {query.Name} #{query.Index} {button}");
         return ElementExists;
     }
 
@@ -2265,6 +2337,12 @@ internal sealed class FakeDeviceLayer
     {
         Note($"fill {query.ControlType}/{query.AutomationId} {text} {clearFirst}");
         return ElementWritable;
+    }
+
+    public IReadOnlyList<UiElementInfo> FindAll(UiQuery query, int limit)
+    {
+        Note($"findElements {query.ControlType}/{query.Name} #{query.Index} take {limit}");
+        return [.. Elements.Take(Math.Max(1, limit))];
     }
 
     bool IFileDevice.Exists(string path)

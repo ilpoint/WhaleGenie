@@ -692,6 +692,10 @@ public sealed class MacroRunner
                 Exists(step, depth);
                 return Signal.Normal;
 
+            case "uia.find":
+                FindElement(step, depth);
+                return Signal.Normal;
+
             case "uia.waitElement":
                 await WaitElement(step, depth, token);
                 return Signal.Normal;
@@ -1636,15 +1640,19 @@ public sealed class MacroRunner
     /// with the list functions.
     /// </summary>
     private void Remember(string name, IReadOnlyList<ImageMatch> hits, bool every)
+        => Remember(name, [.. hits.Select(hit => hit.Center)], every);
+
+    /// <summary>The same, for hits that are only places: the elements a search turned up.</summary>
+    private void Remember(string name, IReadOnlyList<ScreenPoint> centres, bool every)
     {
         if (!every)
         {
             return;
         }
 
-        Variables.Set(name + ".count", Value.FromNumber(hits.Count));
+        Variables.Set(name + ".count", Value.FromNumber(centres.Count));
         Variables.Set(name + ".list", Value.FromList(
-            hits.Select(hit => Value.FromText($"{hit.Center.X},{hit.Center.Y}"))));
+            centres.Select(centre => Value.FromText($"{centre.X},{centre.Y}"))));
     }
 
     /// <summary>
@@ -2602,6 +2610,41 @@ public sealed class MacroRunner
         Log(LogLevel.Info, depth, step.Type, "Run.ElementFound", step.Text("selector"));
     }
 
+    /// <summary>
+    /// Where an element sits, written into a variable the way a found picture is: the centre as
+    /// "x,y", and the parts as $name.x, $name.y, $name.width and $name.height. That is what lets a
+    /// later step point at the element — or a little way from it — without hunting for it again.
+    /// </summary>
+    private void FindElement(ExecutableStep step, int depth)
+    {
+        var name = VariableName(step, "resultVariable", "element");
+        var every = Flag(step, "allMatches", false);
+        var index = Index(step, "matchIndex", 1);
+
+        // Asking for the whole list is what makes the list worth collecting; otherwise the search
+        // only has to reach as far as the hit the step named.
+        var hits = _devices.Ui.FindAll(Query(step), every ? MatchLimit : index);
+        var match = index <= hits.Count ? hits[index - 1] : null;
+
+        if (match is null)
+        {
+            StoreMiss(name);
+        }
+        else
+        {
+            StoreMatch(name, Centre(match), match.Size, 1, match.Name);
+        }
+
+        Remember(name, [.. hits.Select(Centre)], every);
+        Log(LogLevel.Info, depth, step.Type, match is null ? "Run.ElementMissing" : "Run.ElementWhere",
+            name, match is null ? string.Empty : $"{Centre(match).X},{Centre(match).Y}");
+    }
+
+    /// <summary>The middle of an element, which is the point a click aimed at it would land on.</summary>
+    private static ScreenPoint Centre(UiElementInfo element)
+        => new(element.Location.X + (element.Size.Width / 2),
+            element.Location.Y + (element.Size.Height / 2));
+
     private async Task ClickElement(ExecutableStep step, int depth, CancellationToken token)
     {
         var query = Query(step);
@@ -2712,7 +2755,8 @@ public sealed class MacroRunner
         }
 
         var title = Read(step.Text("window")).AsText().Trim();
-        return new UiQuery(name, id, type, cls, title.Length == 0 ? null : title);
+        return new UiQuery(name, id, type, cls, title.Length == 0 ? null : title,
+            Index(step, "matchIndex", 1));
     }
 
     /// <summary>

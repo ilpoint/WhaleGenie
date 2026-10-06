@@ -86,13 +86,20 @@ public sealed record TextSpan(string Text, ScreenPoint Location, ScreenSize Size
     public ScreenPoint Center => new(Location.X + (Size.Width / 2), Location.Y + (Size.Height / 2));
 }
 
-/// <summary>What to look for through UI Automation. Every part is optional.</summary>
+/// <summary>
+/// What to look for through UI Automation. Every part is optional. A window or a page often shows
+/// the same control many times over — five rows of one list, four identical buttons — so
+/// <paramref name="Index"/> says which of the matches a step means, counted the way a person counts
+/// them on screen: across the row first, then down. One is the first one, which is what a step
+/// written before this setting existed still asks for.
+/// </summary>
 public sealed record UiQuery(
     string? Name = null,
     string? AutomationId = null,
     string? ControlType = null,
     string? ClassName = null,
-    string? WindowTitle = null)
+    string? WindowTitle = null,
+    int Index = 1)
 {
     /// <summary>True when the query would match anything, which is never what was meant.</summary>
     public bool IsEmpty
