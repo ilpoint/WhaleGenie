@@ -58,11 +58,17 @@ public partial class StepParameterViewModel : ViewModelBase
                 ? "Add.NestedCondition"
                 : definition.ConditionsOnly
                     ? "Add.NestedAddCondition"
-                    : "Add.NestedAdd";
+                    : definition.AddLabelKey.Length > 0
+                        ? definition.AddLabelKey
+                        : "Add.NestedAdd";
             List = new StepListEditorViewModel(
                 Strings.Get(addLabelKey),
                 isCondition,
-                isCondition || definition.ConditionsOnly ? ActionCatalog.Conditions : null);
+                isCondition || definition.ConditionsOnly
+                    ? ActionCatalog.Conditions
+                    : definition.ChildKeys.Count > 0
+                        ? ActionCatalog.ForKeys(definition.ChildKeys)
+                        : null);
         }
     }
 

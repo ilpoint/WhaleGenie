@@ -80,6 +80,13 @@ public static class ActionCatalog
         "Contains", "Does not contain", "Exists", "Regex match",
     ];
 
+    /// <summary>How a switch compares its value against the values of a case.</summary>
+    private static readonly string[] MatchModes = ["equals", "contains", "startsWith", "regex"];
+
+    /// <summary>English fallback text for <see cref="MatchModes"/>; the UI translates it.</summary>
+    private static readonly string[] MatchModeLabels =
+        ["Equals", "Contains", "Starts with", "Regex"];
+
     /// <summary>Every action offered by the "Select Action" dropdown, grouped by category.</summary>
     public static IReadOnlyList<ActionDefinition> Definitions { get; } =
     [
@@ -221,6 +228,40 @@ public static class ActionCatalog
                 Condition("condition", "Condition", "Checked once when the step runs."),
                 Steps("then", "Then steps", "Steps to run when the condition is true."),
                 Steps("else", "Else steps", "Steps to run when the condition is false."),
+            ],
+        },
+        new()
+        {
+            Key = "control.switch",
+            Category = ActionCategory.Control,
+            DisplayName = "Switch",
+            Description = "Run the one case whose values match, and the otherwise steps when none do.",
+            Parameters =
+            [
+                Expression("value", "Value", "$name",
+                    "What the cases are compared against, read once when the step runs."),
+                Choice("matchMode", "Match mode", MatchModes, "equals",
+                    "How a case's values are compared with the value.",
+                    labels: MatchModeLabels),
+                CaseList("cases", "Cases",
+                    "One entry per case, tried from the top down. The first match runs and the "
+                    + "rest are left alone."),
+                Steps("otherwise", "Otherwise steps", "Steps to run when no case matched."),
+            ],
+        },
+        new()
+        {
+            Key = "control.case",
+            Category = ActionCategory.Control,
+            DisplayName = "Case",
+            Description = "One branch of a switch: the values it answers to and the steps to run.",
+            Hidden = true,
+            Parameters =
+            [
+                Text("values", "Values", "a; b; c",
+                    "Values this case answers to, separated by \";\". Each one is compared with "
+                    + "the switch's value the way its match mode says."),
+                Steps("body", "Case steps", "Steps that run when this case matches."),
             ],
         },
         new()
@@ -1708,10 +1749,12 @@ public static class ActionCatalog
     /// <summary>
     /// Everything that can be a step of its own. The conditions are left out on purpose: they say
     /// what has to be true rather than doing something, so they are only ever offered inside an if,
-    /// a while or a wait, where the engine knows how to ask them.
+    /// a while or a wait, where the engine knows how to ask them. A hidden action belongs to a
+    /// container — a switch case — and is added through that container, so it stays out too.
     /// </summary>
     public static IReadOnlyList<ActionDefinition> RunnableActions { get; } =
-        [.. Definitions.Where(definition => definition.Category != ActionCategory.Condition)];
+        [.. Definitions.Where(definition =>
+            definition.Category != ActionCategory.Condition && !definition.Hidden)];
 
     /// <summary>Finds a definition by its fully qualified key.</summary>
     public static ActionDefinition? Find(string key)
@@ -1725,6 +1768,13 @@ public static class ActionCatalog
             ? aliased
             : null;
     }
+
+    /// <summary>
+    /// The catalogue entries for a fixed list of keys, in the order given. Used where a nested
+    /// editor accepts one particular kind of child, such as the cases of a switch.
+    /// </summary>
+    public static IReadOnlyList<ActionDefinition> ForKeys(IReadOnlyList<string> keys)
+        => [.. keys.Select(Find).OfType<ActionDefinition>()];
 
     /// <summary>Line-art icon shared by every action of a category.</summary>
     public static Geometry? IconFor(ActionCategory category) => category switch
@@ -1820,6 +1870,19 @@ public static class ActionCatalog
             Hint = hint,
             Required = true,
             ConditionsOnly = true,
+        };
+
+    /// <summary>A list of switch cases, so the nested editor only offers <c>control.case</c>.</summary>
+    private static ActionParameter CaseList(string name, string label, string hint)
+        => new()
+        {
+            Name = name,
+            Label = label,
+            Kind = ActionParameterKind.Steps,
+            Hint = hint,
+            Required = false,
+            AddLabelKey = "Add.NestedAddCase",
+            ChildKeys = ["control.case"],
         };
 
     /// <summary>Name of a variable, edited with a suggestion list.</summary>

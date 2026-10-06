@@ -387,6 +387,9 @@ public sealed class MacroRunner
             case "control.for":
                 return await RunFor(step, depth, token);
 
+            case "control.switch":
+                return await RunSwitch(step, depth, token);
+
             case "control.if":
                 return await RunIf(step, depth, token);
 
@@ -940,6 +943,73 @@ public sealed class MacroRunner
         }
 
         return Signal.Normal;
+    }
+
+    /// <summary>
+    /// Compares one value against the values of each case in turn and runs the first case that
+    /// matches. The rest are left alone, and the otherwise steps take over when nothing matches —
+    /// that is what makes a switch different from a row of separate ifs.
+    /// </summary>
+    private async Task<Signal> RunSwitch(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var value = Read(step.Text("value"));
+        var mode = step.Text("matchMode");
+
+        foreach (var branch in step.Children("cases"))
+        {
+            if (branch.Type != "control.case")
+            {
+                continue;
+            }
+
+            foreach (var wanted in Labels(branch))
+            {
+                if (CaseMatches(value, wanted, mode))
+                {
+                    return await RunSteps(branch.Children("body"), depth + 1, token);
+                }
+            }
+        }
+
+        return await RunSteps(step.Children("otherwise"), depth + 1, token);
+    }
+
+    /// <summary>
+    /// The values a case answers to, separated by a semicolon or a line break. They are read
+    /// through the same $name substitution as everywhere else, so a case value can name a variable.
+    /// </summary>
+    private IReadOnlyList<string> Labels(ExecutableStep branch)
+        => [.. branch.Text("values")
+            .Split([';', '\n', '\r'],
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(label => Interpolate(label).Trim())
+            .Where(label => label.Length > 0)];
+
+    /// <summary>Compares the switch's value against one case value the way the step chose.</summary>
+    private static bool CaseMatches(Value value, string wanted, string mode)
+    {
+        switch (mode.Trim().ToLowerInvariant())
+        {
+            case "contains":
+                return value.AsText().Contains(wanted, StringComparison.OrdinalIgnoreCase);
+            case "startswith":
+                return value.AsText().StartsWith(wanted, StringComparison.OrdinalIgnoreCase);
+            case "regex":
+                try
+                {
+                    return Regex.IsMatch(value.AsText(), wanted, RegexOptions.IgnoreCase);
+                }
+                catch (ArgumentException)
+                {
+                    // A pattern the machine cannot read is the macro's problem to see, not a
+                    // stack trace to puzzle over, so it comes back as a failed step.
+                    throw new StepFailure("Run.BadPattern", wanted);
+                }
+            default:
+                // NumericEquals reads "1" against 1 as well as plain text, the same way an
+                // equality condition does.
+                return value.NumericEquals(Value.FromText(wanted));
+        }
     }
 
     private async Task<Signal> RunIf(ExecutableStep step, int depth, CancellationToken token)

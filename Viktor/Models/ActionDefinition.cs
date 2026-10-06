@@ -112,6 +112,19 @@ public class ActionParameter
     public bool ConditionsOnly { get; init; }
 
     /// <summary>
+    /// When set on a <see cref="ActionParameterKind.Steps"/> parameter, the nested editor only
+    /// offers these action keys. It is how a switch keeps a case list holding cases and nothing
+    /// else, the same way <see cref="ConditionsOnly"/> keeps a group holding conditions.
+    /// </summary>
+    public IReadOnlyList<string> ChildKeys { get; init; } = [];
+
+    /// <summary>
+    /// Resource key of the button that opens the picker for a nested list. Empty means the
+    /// usual "add step" wording; a switch sets it so the button reads "add case".
+    /// </summary>
+    public string AddLabelKey { get; init; } = string.Empty;
+
+    /// <summary>
     /// Name of a sibling list parameter this parameter depends on. It only takes part
     /// in the step once that list holds two or more items, which is how the AND / OR / NOT
     /// logic of a condition group stays out of the way while the group has a single condition.
@@ -168,6 +181,12 @@ public class ActionDefinition
     public string LocalDescription => Strings.Get($"{Key}.desc", Description);
 
     public IReadOnlyList<ActionParameter> Parameters { get; init; } = [];
+
+    /// <summary>
+    /// True for an action that only makes sense inside a particular container, such as a switch
+    /// case. It stays out of the step picker and is reached through its parent instead.
+    /// </summary>
+    public bool Hidden { get; init; }
 
     /// <summary>Line-art icon for the category, shared by every action inside it.</summary>
     public Avalonia.Media.Geometry? Icon => ActionCatalog.IconFor(Category);

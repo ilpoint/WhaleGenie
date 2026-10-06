@@ -200,6 +200,37 @@ public class ActionDialogTests
     }
 
     [Fact]
+    public void A_case_is_only_reachable_through_the_switch_that_owns_it()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(null, null, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var picker = (AddActionViewModel)window.DataContext!;
+
+            // A case is half of a branch: without a switch to belong to it would have nothing
+            // to match against, so it is never offered as a step of its own.
+            Assert.DoesNotContain(picker.AvailableActions, action => action.Key == "control.case");
+            Assert.Contains(picker.AvailableActions, action => action.Key == "control.switch");
+
+            var viewModel = Open("control.switch");
+            var cases = viewModel.Parameters.First(parameter => parameter.Definition.Name == "cases");
+
+            Assert.True(cases.IsNested);
+            Assert.NotNull(cases.List);
+            Assert.Equal(["control.case"], cases.List!.Catalog!.Select(action => action.Key));
+
+            // The otherwise block holds ordinary steps, so it keeps the full list.
+            var otherwise = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "otherwise");
+            Assert.True(otherwise.IsNested);
+            Assert.Null(otherwise.List!.Catalog);
+        });
+    }
+
+    [Fact]
     public void A_multi_point_colour_condition_asks_for_points_and_how_they_are_met()
     {
         Ui.Run(() =>

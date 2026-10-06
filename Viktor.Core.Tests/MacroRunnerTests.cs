@@ -327,6 +327,92 @@ public class MacroRunnerTests
         Assert.False(store.TryGet("round", out _));
     }
 
+    private static ExecutableStep Case(string values, params ExecutableStep[] steps)
+        => Step("control.case", Param("values", values), Body("body", steps));
+
+    [Fact]
+    public async Task A_switch_runs_the_first_case_that_matches()
+    {
+        var store = Store();
+        store.Local.Set("kind", Value.FromText("b"));
+        var branch = Step("control.switch",
+            Param("value", "$kind"),
+            Param("matchMode", "equals"),
+            Body("cases",
+                Case("a; b", Set("hit", "one")),
+                // This case answers to "b" as well, but the first match has already run.
+                Case("b; c", Set("hit", "two"))),
+            Body("otherwise", Set("hit", "none")));
+
+        var (_, _) = await RunAsync([branch], variables: store);
+
+        Assert.Equal("one", store.Local.Values["hit"].AsText());
+    }
+
+    [Fact]
+    public async Task A_switch_falls_through_to_the_otherwise_steps()
+    {
+        var store = Store();
+        store.Local.Set("kind", Value.FromText("z"));
+        var branch = Step("control.switch",
+            Param("value", "$kind"),
+            Param("matchMode", "equals"),
+            Body("cases",
+                Case("a; b", Set("hit", "one")),
+                Case("c; d", Set("hit", "two"))),
+            Body("otherwise", Set("hit", "none")));
+
+        var (_, _) = await RunAsync([branch], variables: store);
+
+        Assert.Equal("none", store.Local.Values["hit"].AsText());
+    }
+
+    [Fact]
+    public async Task A_switch_can_compare_the_way_the_step_asks()
+    {
+        var store = Store();
+        store.Local.Set("kind", Value.FromText("Running fast"));
+        var branch = Step("control.switch",
+            Param("value", "$kind"),
+            Param("matchMode", "contains"),
+            Body("cases", Case("run", Set("hit", "yes"))));
+
+        var (_, _) = await RunAsync([branch], variables: store);
+
+        Assert.Equal("yes", store.Local.Values["hit"].AsText());
+    }
+
+    [Fact]
+    public async Task A_switch_reads_a_number_against_its_case_values()
+    {
+        var store = Store(("n", 2));
+        var branch = Step("control.switch",
+            Param("value", "$n"),
+            Param("matchMode", "equals"),
+            Body("cases",
+                Case("1", Set("hit", "one")),
+                Case("2; 3", Set("hit", "two or three"))));
+
+        var (_, _) = await RunAsync([branch], variables: store);
+
+        Assert.Equal("two or three", store.Local.Values["hit"].AsText());
+    }
+
+    [Fact]
+    public async Task A_switch_with_no_matching_case_and_no_otherwise_does_nothing()
+    {
+        var store = Store();
+        store.Local.Set("kind", Value.FromText("z"));
+        var branch = Step("control.switch",
+            Param("value", "$kind"),
+            Body("cases", Case("a", Set("hit", "one"))));
+
+        var (result, _) = await RunAsync([branch], variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.False(store.TryGet("hit", out _));
+    }
+
     [Fact]
     public async Task If_picks_the_matching_branch()
     {
