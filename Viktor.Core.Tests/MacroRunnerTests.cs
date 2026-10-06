@@ -233,6 +233,101 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task Counting_from_one_to_three_runs_three_times()
+    {
+        var store = Store(("sum", 0), ("i", 0));
+        var loop = Step("control.for",
+            Param("from", "1"),
+            Param("to", "3"),
+            Param("intervalMs", "0"),
+            Param("variable", "i"),
+            Body("body", Set("sum", "$sum + $i")));
+
+        var (_, _) = await RunAsync([loop], variables: store);
+
+        Assert.Equal(6, N(store, "sum"));
+        Assert.Equal(3, N(store, "i"));
+    }
+
+    [Fact]
+    public async Task A_counting_loop_can_go_downwards()
+    {
+        var store = Store(("rounds", 0));
+        var loop = Step("control.for",
+            Param("from", "5"),
+            Param("to", "1"),
+            Param("step", "-1"),
+            Body("body", Set("rounds", "$rounds + 1")));
+
+        var (_, _) = await RunAsync([loop], variables: store);
+
+        Assert.Equal(5, N(store, "rounds"));
+    }
+
+    [Fact]
+    public async Task A_zero_step_takes_its_direction_from_the_numbers()
+    {
+        var store = Store(("rounds", 0));
+        var loop = Step("control.for",
+            Param("from", "5"),
+            Param("to", "1"),
+            Param("step", "0"),
+            Body("body", Set("rounds", "$rounds + 1")));
+
+        var (_, _) = await RunAsync([loop], variables: store);
+
+        Assert.Equal(5, N(store, "rounds"));
+    }
+
+    [Fact]
+    public async Task Break_leaves_a_counting_loop()
+    {
+        var store = Store(("n", 0));
+        var body = Body("body",
+            Set("n", "$n + 1"),
+            Step("control.if",
+                When("condition", Step("condition.compare",
+                    Param("variable", "i"), Param("operator", "greaterOrEqual"), Param("value", "2"))),
+                Body("then", Step("control.break"))));
+
+        var loop = Step("control.for", Param("from", "1"), Param("to", "10"), body);
+        var (_, _) = await RunAsync([loop], variables: store);
+
+        Assert.Equal(2, N(store, "n"));
+    }
+
+    [Fact]
+    public async Task For_each_can_number_the_rounds_when_asked()
+    {
+        var store = Store();
+        var loop = Step("control.forEach",
+            Param("items", "[10, 20, 30]"),
+            Param("itemVariable", "item"),
+            Param("indexVariable", "round"),
+            Body("body", Set("seen", "$round")));
+
+        var (_, _) = await RunAsync([loop], variables: store);
+
+        Assert.Equal(2, N(store, "round"));
+        Assert.Equal(2, N(store, "seen"));
+    }
+
+    [Fact]
+    public async Task For_each_leaves_the_round_variable_alone_when_not_asked_for()
+    {
+        var store = Store();
+        var loop = Step("control.forEach",
+            Param("items", "[10, 20]"),
+            Param("itemVariable", "item"),
+            Body("body", Set("seen", "$item")));
+
+        var (_, _) = await RunAsync([loop], variables: store);
+
+        Assert.Equal(20, N(store, "seen"));
+        Assert.False(store.TryGet("round", out _));
+    }
+
+    [Fact]
     public async Task If_picks_the_matching_branch()
     {
         var store = Store(("n", 5));

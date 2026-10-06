@@ -180,8 +180,34 @@ public static class ActionCatalog
                     + "or $names."),
                 Text("itemVariable", "Item variable", hint: "Variable that receives the current item.",
                     defaultValue: "item"),
+                Text("indexVariable", "Index variable", required: false,
+                    hint: "Optional variable that receives which round this is, counted from 0 in "
+                          + "the order the items are walked in. Leave it empty to keep the round "
+                          + "number out of the variables."),
                 Toggle("reverse", "Reverse order", false, "Iterate from the last item to the first."),
                 Steps("body", "Body steps", "Steps that run once per item."),
+            ],
+        },
+        new()
+        {
+            Key = "control.for",
+            Category = ActionCategory.Control,
+            DisplayName = "Count From To",
+            Description = "Count from one number to another, running the child steps each time.",
+            Parameters =
+            [
+                Number("from", "From", 1, "The first value the counter takes.", min: -1000000),
+                Number("to", "To", 5,
+                    "The last value the counter takes, included, so counting 1 to 3 runs three "
+                    + "times.", min: -1000000),
+                Number("step", "Step", 1,
+                    "What the counter is increased by each round. A negative step counts down; "
+                    + "0 means \"count upwards, or downwards when From is above To\".", min: -1000000),
+                Number("intervalMs", "Interval ms", 0, "Pause between rounds."),
+                Variable("variable", "Counter variable", "i",
+                    "Variable that receives the value of this round.",
+                    namesVariable: true, defaultValue: "i"),
+                Steps("body", "Body steps", "Steps that run once per round."),
             ],
         },
         new()

@@ -384,6 +384,9 @@ public sealed class MacroRunner
             case "control.forEach":
                 return await RunForEach(step, depth, token);
 
+            case "control.for":
+                return await RunFor(step, depth, token);
+
             case "control.if":
                 return await RunIf(step, depth, token);
 
@@ -863,12 +866,19 @@ public sealed class MacroRunner
             ? items.Reverse()
             : items;
 
+        // The round number is only worth having when the step asked for it by name: a variable
+        // nobody asked for is one more thing to puzzle over in the variable list.
+        var indexName = step.Text("indexVariable").Trim();
         var index = 0;
         foreach (var item in order)
         {
             token.ThrowIfCancellationRequested();
             Variables.Local.Set("sys.loopIndex", Value.FromNumber(index));
             Variables.Set(itemName, item);
+            if (indexName.Length > 0)
+            {
+                Variables.Set(indexName, Value.FromNumber(index));
+            }
 
             var signal = await RunSteps(step.Children("body"), depth + 1, token);
             if (signal is Signal.Stop or Signal.Failed)
@@ -882,6 +892,51 @@ public sealed class MacroRunner
             }
 
             index++;
+        }
+
+        return Signal.Normal;
+    }
+
+    /// <summary>
+    /// Counts from one number to another, running the body once per value. The counter is a variable
+    /// the body can read, which is the difference between this and "repeat": repeating counts the
+    /// rounds in the runner's head, while counting hands the number to the macro.
+    /// </summary>
+    private async Task<Signal> RunFor(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var from = OptionalNumber(step, "from", 1);
+        var to = OptionalNumber(step, "to", 5);
+        var stride = OptionalNumber(step, "step", 1);
+        if (stride == 0)
+        {
+            // A step is what the counter moves by, so a zero would never move it at all. Taking the
+            // direction from where it starts and where it ends is what that can only have meant.
+            stride = to >= from ? 1 : -1;
+        }
+
+        var counter = VariableName(step, "variable", "i");
+        var interval = Pace(Number(step, "intervalMs"));
+        var round = 0;
+
+        for (var value = from; stride > 0 ? value <= to : value >= to; value += stride)
+        {
+            token.ThrowIfCancellationRequested();
+            Variables.Local.Set("sys.loopIndex", Value.FromNumber(round));
+            Variables.Set(counter, Value.FromNumber(value));
+
+            var signal = await RunSteps(step.Children("body"), depth + 1, token);
+            if (signal is Signal.Stop or Signal.Failed)
+            {
+                return signal;
+            }
+
+            if (signal is Signal.Break)
+            {
+                return Signal.Normal;
+            }
+
+            round++;
+            await Pause(interval, token);
         }
 
         return Signal.Normal;
