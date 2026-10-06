@@ -365,6 +365,10 @@ public class ActionDialogTests
         public WindowInfo? Find(string value, WindowMatch match)
             => Notepad.Title.Contains(value, StringComparison.OrdinalIgnoreCase) ? Notepad : null;
 
+        public string ProcessOf(long handle) => "notepad";
+
+        public string ClassOf(long handle) => "Notepad";
+
         public bool Activate(long handle) => true;
 
         public bool Minimize(long handle) => true;

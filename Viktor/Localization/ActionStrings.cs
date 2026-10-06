@@ -610,7 +610,14 @@ internal static class ActionStrings
         ["window.close.matchBy.option.class"] = WindowMatchByClass,
 
         ["window.list.name"] = "列出窗口",
-        ["window.list.desc"] = "把打开的窗口标题收集成列表。",
+        ["window.list.desc"] = "把打开的窗口标题收集成列表，也可以只留符合条件的那些。",
+        ["window.list.filter.label"] = "筛选文字",
+        ["window.list.filter.hint"] = "只保留标题、进程名或窗口类名里含有这段文字的窗口。留空表示全部。",
+        ["window.list.filterBy.label"] = "按什么筛选",
+        ["window.list.filterBy.hint"] = "筛选文字和窗口的哪一部分比较。",
+        ["window.list.filterBy.option.title"] = WindowMatchByTitle,
+        ["window.list.filterBy.option.process"] = WindowMatchByProcess,
+        ["window.list.filterBy.option.class"] = WindowMatchByClass,
         ["window.list.resultVariable.label"] = "结果变量",
         ["window.list.resultVariable.hint"] = "接收标题列表的变量。",
 

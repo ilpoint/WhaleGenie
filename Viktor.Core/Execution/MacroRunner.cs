@@ -2723,11 +2723,17 @@ public sealed class MacroRunner
         Log(LogLevel.Info, depth, step.Type, "Run.WindowAppeared", window.Title);
     }
 
-    /// <summary>Collects the titles of the open windows into a list.</summary>
+    /// <summary>
+    /// Collects the titles of the open windows into a list, narrowed down to the ones a step asks
+    /// for. A filter that looks at the process or the class has to ask the device about each
+    /// window, so a step that leaves the filter empty never pays for that.
+    /// </summary>
     private void ListWindows(ExecutableStep step, int depth)
     {
         var titles = _devices.Windows
             .List()
+            .Where(window => Keeps(window, Read(step.Text("filter")).AsText().Trim(),
+                WindowMatchOf(step.Text("filterBy"))))
             .Select(window => window.Title)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -2735,6 +2741,24 @@ public sealed class MacroRunner
         var name = VariableName(step, "resultVariable", "windows");
         Variables.Set(name, Value.FromList(titles.Select(Value.FromText)));
         Log(LogLevel.Info, depth, step.Type, "Run.ListedWindows", titles.Count);
+    }
+
+    /// <summary>Whether a window survives a listing filter; an empty filter keeps every one.</summary>
+    private bool Keeps(WindowInfo window, string filter, WindowMatch match)
+    {
+        if (filter.Length == 0)
+        {
+            return true;
+        }
+
+        var text = match switch
+        {
+            WindowMatch.Process => _devices.Windows.ProcessOf(window.Handle),
+            WindowMatch.ClassName => _devices.Windows.ClassOf(window.Handle),
+            _ => window.Title,
+        };
+
+        return text.Contains(filter, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Does something to the window a step names, or fails the step when it is not open.</summary>

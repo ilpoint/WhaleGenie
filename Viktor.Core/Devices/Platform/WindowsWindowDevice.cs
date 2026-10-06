@@ -54,7 +54,7 @@ public sealed class WindowsWindowDevice : IWindowDevice
     /// listing already holds it; a process name costs a lookup per window, so it is only paid for
     /// when a step actually asks to match that way.
     /// </summary>
-    private static bool Matches(WindowInfo window, string wanted, WindowMatch match)
+    private bool Matches(WindowInfo window, string wanted, WindowMatch match)
     {
         if (match is WindowMatch.Title)
         {
@@ -63,20 +63,25 @@ public sealed class WindowsWindowDevice : IWindowDevice
 
         if (match is WindowMatch.Process)
         {
-            return ProcessName(window.Handle).Contains(wanted, StringComparison.OrdinalIgnoreCase);
+            return ProcessOf(window.Handle).Contains(wanted, StringComparison.OrdinalIgnoreCase);
         }
 
-        return ClassOf(new IntPtr(window.Handle)).Contains(wanted, StringComparison.OrdinalIgnoreCase);
+        return ClassOf(window.Handle).Contains(wanted, StringComparison.OrdinalIgnoreCase);
     }
+
+    public string ProcessOf(long handle) => ProcessName(handle);
 
     /// <summary>
     /// The class a window was registered under, which is the kind of window rather than the
     /// document in it: every Notepad window is "Notepad", however it was renamed.
     /// </summary>
-    private static string ClassOf(IntPtr handle)
+    public string ClassOf(long handle)
     {
+        Require();
+
         var name = new StringBuilder(256);
-        return GetClassName(handle, name, name.Capacity) > 0 ? name.ToString() : string.Empty;
+        var window = new IntPtr(handle);
+        return GetClassName(window, name, name.Capacity) > 0 ? name.ToString() : string.Empty;
     }
 
     public bool Activate(long handle)

@@ -2122,6 +2122,32 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Listing_windows_can_be_narrowed_down()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Windows.Add(new WindowInfo(2, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Windows.Add(new WindowInfo(3, "Notepad - notes.txt",
+            new ScreenPoint(), new ScreenSize(), false, false));
+        devices.WindowFacts[2] = ("calc-app", "CalcFrame");
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("window.list", Param("filter", "notepad"), Param("filterBy", "title"),
+                Param("resultVariable", "byTitle")),
+            Step("window.list", Param("filter", "calc"), Param("filterBy", "process"),
+                Param("resultVariable", "byProcess")),
+            Step("window.list", Param("filter", "CalcFrame"), Param("filterBy", "class"),
+                Param("resultVariable", "byClass")),
+        ], devices);
+
+        Assert.Equal(["Notepad", "Notepad - notes.txt"],
+            store.Local.Values["byTitle"].Items.Select(item => item.AsText()));
+        Assert.Equal(["Calculator"], store.Local.Values["byProcess"].Items.Select(item => item.AsText()));
+        Assert.Equal(["Calculator"], store.Local.Values["byClass"].Items.Select(item => item.AsText()));
+    }
+
+    [Fact]
     public async Task A_found_image_reports_its_parts_by_name()
     {
         var devices = new FakeDeviceLayer
@@ -3013,6 +3039,22 @@ internal sealed class FakeDeviceLayer
         => WindowFacts.TryGetValue(window.Handle, out var facts)
             ? facts
             : (string.Empty, string.Empty);
+
+    string IWindowDevice.ProcessOf(long handle)
+    {
+        Note($"processOf {handle}");
+        return Windows.FirstOrDefault(window => window.Handle == handle) is { } window
+            ? Facts(window).Process
+            : string.Empty;
+    }
+
+    string IWindowDevice.ClassOf(long handle)
+    {
+        Note($"classOf {handle}");
+        return Windows.FirstOrDefault(window => window.Handle == handle) is { } window
+            ? Facts(window).ClassName
+            : string.Empty;
+    }
 
     bool IWindowDevice.Activate(long handle)
     {

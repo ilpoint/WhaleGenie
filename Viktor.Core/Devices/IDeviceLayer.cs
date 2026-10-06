@@ -238,6 +238,16 @@ public interface IWindowDevice
     /// </summary>
     WindowInfo? Find(string value, WindowMatch match);
 
+    /// <summary>
+    /// The name of the program that owns a window, without the ".exe", or an empty string when the
+    /// window is gone. Looking a process up costs more than reading a title, which is why a step
+    /// that only compares titles never causes one.
+    /// </summary>
+    string ProcessOf(long handle);
+
+    /// <summary>The class a window was registered under, such as "Notepad", or an empty string.</summary>
+    string ClassOf(long handle);
+
     /// <summary>Brings a window to the front, restoring it first if it was shrunk.</summary>
     bool Activate(long handle);
 
@@ -402,6 +412,10 @@ public sealed class NullDeviceLayer : IDeviceLayer
         IReadOnlyList<WindowInfo> IWindowDevice.List() => throw Missing("windows");
 
         WindowInfo? IWindowDevice.Find(string value, WindowMatch match) => throw Missing("windows");
+
+        string IWindowDevice.ProcessOf(long handle) => throw Missing("windows");
+
+        string IWindowDevice.ClassOf(long handle) => throw Missing("windows");
 
         bool IWindowDevice.Activate(long handle) => throw Missing("windows");
 

@@ -923,9 +923,15 @@ public static class ActionCatalog
             Key = "window.list",
             Category = ActionCategory.Window,
             DisplayName = "List Windows",
-            Description = "Collect the titles of the open windows into a list.",
+            Description = "Collect the titles of the open windows, or of the ones that match, "
+                + "into a list.",
             Parameters =
             [
+                Text("filter", "Filter", "notepad",
+                    "Keep only the windows whose title, process or class contains this text. "
+                    + "Leave it empty for every window.", required: false),
+                Choice("filterBy", "Filter by", ["title", "process", "class"], "title",
+                    "Which part of a window the filter text is compared with."),
                 Variable("resultVariable", "Result variable", "windows",
                     "Variable that receives the list of titles.", required: false, namesVariable: true),
             ],
