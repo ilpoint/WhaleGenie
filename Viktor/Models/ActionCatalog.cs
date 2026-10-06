@@ -1020,6 +1020,37 @@ public static class ActionCatalog
                     max: 600),
             ],
         },
+        new()
+        {
+            Key = "system.volume",
+            Category = ActionCategory.System,
+            DisplayName = "Volume",
+            Description = "Read or change the volume of the speakers Windows is using.",
+            Parameters =
+            [
+                Choice("what", "Do what",
+                    ["get", "set", "up", "down", "mute", "unmute", "toggleMute"], "get",
+                    "Whether to read the volume, set it to a level, move it up or down by a few "
+                    + "points, or switch the sound off and on. The sound card is the machine's own, "
+                    + "so this is not the same as the volume keys, which turn up whatever window "
+                    + "has the focus.",
+                    labels:
+                    [
+                        "Read it", "Set the level", "Turn it up", "Turn it down", "Mute",
+                        "Unmute", "Mute or unmute",
+                    ]),
+                Number("percent", "Level %", 50,
+                    "The level to set, from 0 to 100. Used by \"Set the level\".", max: 100),
+                Number("stepPercent", "By how much", 5,
+                    "How far to move the volume, in points. Used by \"Turn it up\" and \"Turn it "
+                    + "down\", which never go past 0 or 100.",
+                    min: 1, max: 100),
+                Variable("resultVariable", "Result variable", "volume",
+                    "Variable that receives the volume the machine is left at, from 0 to 100. A "
+                    + "step that only mutes still reports the level it is waiting at.",
+                    namesVariable: true, defaultValue: "volume"),
+            ],
+        },
 
         // ------------------------------------------------------------------ window
         new()

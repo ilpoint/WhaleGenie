@@ -2451,6 +2451,67 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task The_volume_action_leaves_behind_the_level_the_machine_ended_at()
+    {
+        var devices = new FakeDeviceLayer { SpeakerVolume = 30 };
+        var (_, _, store) = await RunAsync(
+        [
+            Step("system.volume", Param("what", "set"), Param("percent", "80"),
+                Param("resultVariable", "was")),
+            Step("system.volume", Param("what", "down"), Param("stepPercent", "15"),
+                Param("resultVariable", "now")),
+        ], devices);
+
+        Assert.Equal(80d, store.Local.Values["was"].Number);
+        Assert.Equal(65d, store.Local.Values["now"].Number);
+        Assert.Contains("setVolume 80", devices.Calls);
+        Assert.Contains("setVolume 65", devices.Calls);
+    }
+
+    [Fact]
+    public async Task Turning_the_volume_down_never_goes_below_nothing()
+    {
+        var devices = new FakeDeviceLayer { SpeakerVolume = 4 };
+        var (_, _, store) = await RunAsync(
+        [
+            Step("system.volume", Param("what", "down"), Param("stepPercent", "20")),
+        ], devices);
+
+        // The device clamps as well, so a macro cannot talk the machine into a volume it cannot have.
+        Assert.Equal(0d, store.Local.Values["volume"].Number);
+    }
+
+    [Fact]
+    public async Task Muting_says_which_way_the_sound_went()
+    {
+        var devices = new FakeDeviceLayer();
+        var host = new SilentRunHost();
+
+        await new MacroRunner(new VariableStore(), host, devices).RunAsync(
+        [
+            Step("system.volume", Param("what", "toggleMute")),
+            Step("system.volume", Param("what", "toggleMute")),
+        ]);
+
+        // The level does not change when the sound is switched off, so each way is said out loud
+        // rather than leaving a reader to work it out from a number that never moved.
+        Assert.Single(host.Entries, entry => entry.Key == "Run.SoundOff");
+        Assert.Single(host.Entries, entry => entry.Key == "Run.SoundOn");
+    }
+
+    [Fact]
+    public async Task The_volume_action_refuses_a_name_it_does_not_know()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("system.volume", Param("what", "louder"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.UnknownVolumeAction", result.Key);
+        Assert.Empty(devices.Calls);
+    }
+
+    [Fact]
     public async Task Checking_for_a_window_leaves_true_or_false()
     {
         var devices = new FakeDeviceLayer();
@@ -3674,6 +3735,35 @@ internal sealed class FakeDeviceLayer
     void ISystemDevice.Power(PowerAction action, int graceSeconds)
     {
         Note($"power {action} {graceSeconds}");
+    }
+
+    /// <summary>What the speakers are set to in the fake, and whether they are switched off.</summary>
+    public int SpeakerVolume { get; set; } = 50;
+
+    public bool SoundOff { get; set; }
+
+    int ISystemDevice.Volume()
+    {
+        Note("volume");
+        return SpeakerVolume;
+    }
+
+    void ISystemDevice.SetVolume(int percent)
+    {
+        Note($"setVolume {percent}");
+        SpeakerVolume = Math.Clamp(percent, 0, 100);
+    }
+
+    bool ISystemDevice.IsMuted()
+    {
+        Note("isMuted");
+        return SoundOff;
+    }
+
+    void ISystemDevice.SetMuted(bool muted)
+    {
+        Note($"setMuted {muted}");
+        SoundOff = muted;
     }
 
     IReadOnlyList<WindowInfo> IWindowDevice.List()

@@ -275,6 +275,18 @@ public interface ISystemDevice
     /// down, and is ignored by the rest.
     /// </summary>
     void Power(PowerAction action, int graceSeconds);
+
+    /// <summary>The volume of the speakers Windows is using, from 0 to 100.</summary>
+    int Volume();
+
+    /// <summary>Turns the speakers up or down to a level from 0 to 100.</summary>
+    void SetVolume(int percent);
+
+    /// <summary>Whether the sound is switched off.</summary>
+    bool IsMuted();
+
+    /// <summary>Switches the sound off, or back on.</summary>
+    void SetMuted(bool muted);
 }
 
 /// <summary>Open windows: finding them, moving them, and closing them.</summary>
@@ -477,6 +489,14 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public string Environment(string name) => throw Missing("environment variables");
 
         public void Power(PowerAction action, int graceSeconds) => throw Missing("power");
+
+        public int Volume() => throw Missing("the sound card");
+
+        public void SetVolume(int percent) => throw Missing("the sound card");
+
+        public bool IsMuted() => throw Missing("the sound card");
+
+        public void SetMuted(bool muted) => throw Missing("the sound card");
 
         // Named through the interface because the process device already has a List and a Find
         // that take no such argument.

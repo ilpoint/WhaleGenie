@@ -578,6 +578,10 @@ public sealed class MacroRunner
                 Power(step, depth);
                 return Signal.Normal;
 
+            case "system.volume":
+                Volume(step, depth);
+                return Signal.Normal;
+
             // ----------------------------------------------------------------- window
             case "window.exists":
                 WindowExists(step, depth);
@@ -2954,6 +2958,59 @@ public sealed class MacroRunner
         _devices.System.Power(action, grace);
         Log(LogLevel.Info, depth, step.Type, "Run.Power", wanted.Length == 0 ? "lock" : wanted,
             grace);
+    }
+
+    /// <summary>
+    /// Reads or changes the volume of the speakers Windows is using. Whatever the step asked for,
+    /// what it leaves behind is the level the machine ended up at, so a macro that turned the sound
+    /// down can put it back the way it found it.
+    /// </summary>
+    private void Volume(ExecutableStep step, int depth)
+    {
+        var what = step.Text("what").Trim().ToLowerInvariant();
+        switch (what)
+        {
+            case "get":
+                break;
+
+            case "set":
+                _devices.System.SetVolume(OptionalNumber(step, "percent", 50));
+                break;
+
+            case "up":
+            case "down":
+                var move = OptionalNumber(step, "stepPercent", 5);
+                _devices.System.SetVolume(
+                    _devices.System.Volume() + (what == "up" ? move : -move));
+                break;
+
+            case "mute":
+                _devices.System.SetMuted(true);
+                break;
+
+            case "unmute":
+                _devices.System.SetMuted(false);
+                break;
+
+            case "togglemute":
+                _devices.System.SetMuted(!_devices.System.IsMuted());
+                break;
+
+            default:
+                throw new StepFailure("Run.UnknownVolumeAction", what);
+        }
+
+        var level = _devices.System.Volume();
+        Variables.Set(VariableName(step, "resultVariable", "volume"), Value.FromNumber(level));
+        Log(LogLevel.Info, depth, step.Type, "Run.Volume", level);
+
+        // Switching the sound off does not change the level, so the level alone would leave a reader
+        // wondering whether the macro had done anything at all.
+        if (what is "mute" or "unmute" or "togglemute")
+        {
+            Log(LogLevel.Info, depth, step.Type,
+                _devices.System.IsMuted() ? "Run.SoundOff" : "Run.SoundOn");
+        }
     }
 
     /// <summary>Stores a value under a variable a step named, unless it named none.</summary>

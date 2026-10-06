@@ -124,6 +124,14 @@ public sealed class WindowsSystemDevice : ISystemDevice
         }
     }
 
+    public int Volume() => WindowsAudio.Volume();
+
+    public void SetVolume(int percent) => WindowsAudio.SetVolume(percent);
+
+    public bool IsMuted() => WindowsAudio.Muted();
+
+    public void SetMuted(bool muted) => WindowsAudio.SetMuted(muted);
+
     /// <summary>
     /// Gives this process the privilege that shutting the machine down needs. Windows hands that
     /// privilege to every user but leaves it switched off, and turning it on is what shutdown.exe
