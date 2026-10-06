@@ -555,6 +555,36 @@
                                            Text="{Binding [Editor.ProcessNote], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
 
+                            <!-- Window trigger settings -->
+                            <StackPanel IsVisible="{Binding IsWindowTrigger}">
+                                <TextBlock Classes="FieldLabel"
+                                           Text="{Binding [Editor.TriggerBy], Source={x:Static loc:Strings.Current}}" />
+                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding TriggerOptions}"
+                                          SelectedIndex="{Binding TriggerIndex}" />
+
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           Text="{Binding [Editor.WindowLookup], Source={x:Static loc:Strings.Current}}" />
+                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding WindowLookupOptions}"
+                                          SelectedIndex="{Binding WindowLookupIndex}" />
+
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           Text="{Binding [Editor.WindowValue], Source={x:Static loc:Strings.Current}}" />
+                                <TextBox Classes="ParamInput" Text="{Binding WindowValue}"
+                                         PlaceholderText="{Binding [Editor.WindowValueHint], Source={x:Static loc:Strings.Current}}" />
+
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           Text="{Binding [Editor.WindowWhen], Source={x:Static loc:Strings.Current}}" />
+                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding WindowChangeOptions}"
+                                          SelectedIndex="{Binding WindowChangeIndex}" />
+
+                                <CheckBox Margin="0,10,0,0" Foreground="#C8C8C8" FontSize="12.5"
+                                          Content="{Binding [Editor.TriggerOnce], Source={x:Static loc:Strings.Current}}"
+                                          IsChecked="{Binding TriggerOnce}" />
+
+                                <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                           Text="{Binding [Editor.WindowNote], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+
                             <Border Classes="GroupBox">
                                 <StackPanel>
                                     <TextBlock Classes="GroupHeader" Margin="0,0,0,10"

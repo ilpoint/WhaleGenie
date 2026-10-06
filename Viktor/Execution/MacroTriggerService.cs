@@ -21,6 +21,13 @@ public sealed class MacroTriggerService : IDisposable
     /// <summary>How often a watched pixel is looked at, and the clock is asked the time.</summary>
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(60);
 
+    /// <summary>
+    /// How often the open windows are looked at. A title comes free with the listing, but a
+    /// program name or a window class costs a look-up per window, so the window list is not read
+    /// as often as a pixel: half a second late is soon enough to notice a window opening.
+    /// </summary>
+    private static readonly TimeSpan WindowPollInterval = TimeSpan.FromMilliseconds(500);
+
     /// <summary>A breather between the passes of a macro that repeats, so it cannot spin.</summary>
     private const int RepeatGapMs = 10;
 
@@ -37,10 +44,12 @@ public sealed class MacroTriggerService : IDisposable
     private readonly Dictionary<MacroItem, DateTime> _scheduleDue = [];
     private readonly Dictionary<MacroItem, FileWatch> _watches = [];
     private readonly Dictionary<MacroItem, HashSet<int>> _programsRunning = [];
+    private readonly Dictionary<MacroItem, bool> _windowsThere = [];
     private readonly HashSet<string> _heldKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly Timer _poll;
 
     private IGlobalHook? _hook;
+    private DateTime _windowsDueAt;
     private bool _enabled;
     private bool _disposed;
 
@@ -143,6 +152,7 @@ public sealed class MacroTriggerService : IDisposable
             _colourStopping.Clear();
             _scheduleDue.Clear();
             _programsRunning.Clear();
+            _windowsThere.Clear();
         }
 
         foreach (var cancellation in cancellations)
@@ -174,6 +184,7 @@ public sealed class MacroTriggerService : IDisposable
             _colourStopping.Remove(macro);
             _scheduleDue.Remove(macro);
             _programsRunning.Remove(macro);
+            _windowsThere.Remove(macro);
         }
     }
 
@@ -616,6 +627,7 @@ public sealed class MacroTriggerService : IDisposable
         PollTimers(macros);
         PollFiles(macros);
         PollProcesses(macros);
+        PollWindows(macros);
         PruneWatches(macros);
     }
 
@@ -838,6 +850,84 @@ public sealed class MacroTriggerService : IDisposable
         }
     }
 
+    /// <summary>
+    /// Runs the macros waiting for a window to appear or to go away. A macro is answered by
+    /// whether a window matching it is there at all, so a window whose title comes to match what
+    /// the macro is waiting for counts as appearing, which is what "wait for the page to load"
+    /// means in practice.
+    /// </summary>
+    private void PollWindows(IReadOnlyList<MacroItem> macros)
+    {
+        var now = DateTime.Now;
+        if (now < _windowsDueAt)
+        {
+            return;
+        }
+
+        _windowsDueAt = now + WindowPollInterval;
+
+        foreach (var macro in macros)
+        {
+            if (!macro.IsEnabled || macro.TriggerMode != MacroTrigger.Window)
+            {
+                continue;
+            }
+
+            var value = macro.WindowValue.Trim();
+            if (value.Length == 0)
+            {
+                continue;
+            }
+
+            bool there;
+            try
+            {
+                there = _devices.Windows.Find(value, macro.WindowLookup) is not null;
+            }
+            catch (Exception)
+            {
+                continue;   // the window list can be refused; the trigger simply waits
+            }
+
+            bool before;
+            lock (_gate)
+            {
+                if (!_windowsThere.TryGetValue(macro, out before))
+                {
+                    // What is open when the system is switched on is not something that has just
+                    // appeared.
+                    _windowsThere[macro] = there;
+                    continue;
+                }
+
+                _windowsThere[macro] = there;
+            }
+
+            if (before == there)
+            {
+                continue;
+            }
+
+            // A "once" macro waits to be re-armed rather than watching for ever.
+            if (macro.TriggerOnce && IsSpent(macro))
+            {
+                continue;
+            }
+
+            var wanted = macro.WindowChange switch
+            {
+                WindowChangeKind.Appeared => there,
+                WindowChangeKind.Disappeared => !there,
+                _ => true,
+            };
+
+            if (wanted)
+            {
+                Start(macro, repeating: false);
+            }
+        }
+    }
+
     /// <summary>True when a "trigger once" macro has already had its turn.</summary>
     private bool IsSpent(MacroItem macro)
     {
@@ -853,7 +943,8 @@ public sealed class MacroTriggerService : IDisposable
         lock (_gate)
         {
             if (_colourTriggered.Count == 0 && _colourHeld.Count == 0 && _colourStopping.Count == 0
-                && _scheduleDue.Count == 0 && _watches.Count == 0 && _programsRunning.Count == 0)
+                && _scheduleDue.Count == 0 && _watches.Count == 0 && _programsRunning.Count == 0
+                && _windowsThere.Count == 0)
             {
                 return;
             }
@@ -863,6 +954,7 @@ public sealed class MacroTriggerService : IDisposable
             tracked.UnionWith(_colourStopping);
             tracked.UnionWith(_scheduleDue.Keys);
             tracked.UnionWith(_programsRunning.Keys);
+            tracked.UnionWith(_windowsThere.Keys);
 
             foreach (var item in tracked)
             {
@@ -873,6 +965,7 @@ public sealed class MacroTriggerService : IDisposable
                     _colourStopping.Remove(item);
                     _scheduleDue.Remove(item);
                     _programsRunning.Remove(item);
+                    _windowsThere.Remove(item);
                     continue;
                 }
 
@@ -893,6 +986,11 @@ public sealed class MacroTriggerService : IDisposable
                 if (item.TriggerMode != MacroTrigger.Process)
                 {
                     _programsRunning.Remove(item);
+                }
+
+                if (item.TriggerMode != MacroTrigger.Window)
+                {
+                    _windowsThere.Remove(item);
                 }
             }
 

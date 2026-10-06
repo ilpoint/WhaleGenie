@@ -146,6 +146,13 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.ProcessWhen"] = "When :",
         ["Editor.ProcessNote"] = "The macro runs once each time the program starts or stops. "
             + "A program that is already open when the system is switched on is not a start.",
+        ["Editor.WindowLookup"] = "Match by :",
+        ["Editor.WindowValue"] = "Window :",
+        ["Editor.WindowValueHint"] = "part of the title",
+        ["Editor.WindowWhen"] = "When :",
+        ["Editor.WindowNote"] = "The open windows are looked at twice a second, so a window is "
+            + "noticed about half a second after it arrives. A window open when the system is "
+            + "switched on has not just appeared.",
 
         // ----------------------------------------------------------- colour picker
         ["Picker.Title"] = "Color Picker",
@@ -257,6 +264,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Trigger.Timer"] = "Timer / Schedule",
         ["Trigger.File"] = "File / Folder Changes",
         ["Trigger.Process"] = "Program Started / Stopped",
+        ["Trigger.Window"] = "Window Appears / Goes Away",
         ["Schedule.Interval"] = "At an Interval",
         ["Schedule.Daily"] = "Every Day at a Time",
         ["Schedule.Unit.Seconds"] = "seconds",
@@ -272,6 +280,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["ProcessChange.Started"] = "Started",
         ["ProcessChange.Stopped"] = "Stopped",
         ["ProcessChange.Any"] = "Started or stopped",
+        ["WindowChange.Appeared"] = "Appears",
+        ["WindowChange.Disappeared"] = "Goes away",
+        ["WindowChange.Any"] = "Either",
+        ["WindowLookup.Title"] = "Title",
+        ["WindowLookup.Process"] = "Program",
+        ["WindowLookup.ClassName"] = "Window class",
         ["Loop.Toggle"] = "Until Key Pressed Again (Toggle)",
         ["Loop.Hold"] = "While Holding Key (Hold)",
         ["Loop.Press"] = "Once, When Key Pressed (Press)",
@@ -716,6 +730,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.ProcessNameHint"] = "notepad、chrome，不用写 .exe",
         ["Editor.ProcessWhen"] = "时机：",
         ["Editor.ProcessNote"] = "程序每次启动或退出执行一遍；打开系统时就已经在运行的程序不算启动。",
+        ["Editor.WindowLookup"] = "匹配方式：",
+        ["Editor.WindowValue"] = "窗口：",
+        ["Editor.WindowValueHint"] = "标题的一部分",
+        ["Editor.WindowWhen"] = "时机：",
+        ["Editor.WindowNote"] = "每秒检查两次窗口列表，窗口出现后约半秒会被注意到；"
+            + "打开系统时就已经开着的窗口不算刚出现。",
 
         // ----------------------------------------------------------- colour picker
         ["Picker.Title"] = "屏幕取色",
@@ -820,6 +840,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Trigger.Timer"] = "定时",
         ["Trigger.File"] = "文件 / 文件夹变化",
         ["Trigger.Process"] = "程序启动 / 退出",
+        ["Trigger.Window"] = "窗口出现 / 消失",
         ["Schedule.Interval"] = "按间隔重复",
         ["Schedule.Daily"] = "每天固定时间",
         ["Schedule.Unit.Seconds"] = "秒",
@@ -835,6 +856,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["ProcessChange.Started"] = "启动时",
         ["ProcessChange.Stopped"] = "退出时",
         ["ProcessChange.Any"] = "启动或退出",
+        ["WindowChange.Appeared"] = "出现时",
+        ["WindowChange.Disappeared"] = "消失时",
+        ["WindowChange.Any"] = "出现或消失",
+        ["WindowLookup.Title"] = "标题",
+        ["WindowLookup.Process"] = "程序名",
+        ["WindowLookup.ClassName"] = "窗口类名",
         ["Loop.Toggle"] = "再次按键时停止（切换）",
         ["Loop.Hold"] = "按住期间循环（长按）",
         ["Loop.Press"] = "按下时执行一次（按下）",

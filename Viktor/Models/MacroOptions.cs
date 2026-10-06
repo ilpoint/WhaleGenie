@@ -17,6 +17,9 @@ public enum MacroTrigger
 
     /// <summary>A program starting or finishing.</summary>
     Process,
+
+    /// <summary>A window that matches a description appearing or going away.</summary>
+    Window,
 }
 
 /// <summary>How a macro repeats once it has been triggered.</summary>
@@ -77,6 +80,19 @@ public enum ProcessChangeKind
 
     /// <summary>The program is no longer among the running ones.</summary>
     Stopped,
+
+    /// <summary>Either of the other two.</summary>
+    Any,
+}
+
+/// <summary>Whether a window appearing or a window going away starts the macro.</summary>
+public enum WindowChangeKind
+{
+    /// <summary>A window matching the description is there now and was not before.</summary>
+    Appeared,
+
+    /// <summary>No window matching the description is left.</summary>
+    Disappeared,
 
     /// <summary>Either of the other two.</summary>
     Any,

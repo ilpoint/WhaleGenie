@@ -2,6 +2,7 @@ using System.Collections.Generic;
 
 using System.Text.Json.Nodes;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Viktor.Core.Devices;
 
 namespace Viktor.Models;
 
@@ -83,6 +84,15 @@ public partial class MacroItem : ObservableObject
     /// <summary>Whether the program starting or the program finishing starts the macro.</summary>
     public ProcessChangeKind ProcessChange { get; set; } = ProcessChangeKind.Started;
 
+    /// <summary>What a window trigger compares against the open windows.</summary>
+    public string WindowValue { get; set; } = string.Empty;
+
+    /// <summary>Which part of a window a window trigger compares: title, program or class.</summary>
+    public WindowMatch WindowLookup { get; set; } = WindowMatch.Title;
+
+    /// <summary>Whether the window appearing or going away starts the macro.</summary>
+    public WindowChangeKind WindowChange { get; set; } = WindowChangeKind.Appeared;
+
     /// <summary>Colour watched for the trigger, as a hex string (for example <c>#000000</c>).</summary>
     [ObservableProperty]
     public partial string HexColor { get; set; } = "#000000";
@@ -102,6 +112,9 @@ public partial class MacroItem : ObservableObject
     /// <summary>True when the macro is started by a program starting or finishing.</summary>
     public bool IsProcessTrigger => TriggerMode == MacroTrigger.Process;
 
+    /// <summary>True when the macro is started by a window appearing or going away.</summary>
+    public bool IsWindowTrigger => TriggerMode == MacroTrigger.Window;
+
     /// <summary>True when the macro is started by input and the binding is a mouse button.</summary>
     public bool IsMouseTrigger => IsKeyTrigger && LooksLikeMouseButton(BindKey);
 
@@ -110,8 +123,8 @@ public partial class MacroItem : ObservableObject
 
     /// <summary>
     /// What the macro card previews next to the trigger icon: the bound key (for example
-    /// <c>NumPad7</c>), the watched colour, the schedule, the watched path or the program, so the
-    /// list says what starts each macro.
+    /// <c>NumPad7</c>), the watched colour, the schedule, the watched path, the program or the
+    /// window, so the list says what starts each macro.
     /// </summary>
     public string TriggerPreview => TriggerMode switch
     {
@@ -122,6 +135,8 @@ public partial class MacroItem : ObservableObject
             string.IsNullOrWhiteSpace(WatchPath) ? NoPreview : WatchPath,
         MacroTrigger.Process =>
             string.IsNullOrWhiteSpace(ProcessName) ? NoPreview : ProcessName,
+        MacroTrigger.Window =>
+            string.IsNullOrWhiteSpace(WindowValue) ? NoPreview : WindowValue,
         _ => string.IsNullOrWhiteSpace(BindKey) ? NoPreview : BindKey,
     };
 
@@ -154,6 +169,7 @@ public partial class MacroItem : ObservableObject
         OnPropertyChanged(nameof(IsTimerTrigger));
         OnPropertyChanged(nameof(IsFileTrigger));
         OnPropertyChanged(nameof(IsProcessTrigger));
+        OnPropertyChanged(nameof(IsWindowTrigger));
         OnPropertyChanged(nameof(IsMouseTrigger));
         OnPropertyChanged(nameof(IsKeyboardTrigger));
         OnPropertyChanged(nameof(TriggerPreview));
@@ -236,6 +252,12 @@ public partial class MacroItem : ObservableObject
                 ["name"] = ProcessName,
                 ["change"] = ProcessChange.ToString(),
             },
+            ["window"] = new JsonObject
+            {
+                ["value"] = WindowValue,
+                ["lookup"] = WindowLookup.ToString(),
+                ["change"] = WindowChange.ToString(),
+            },
             ["positionCapture"] = PositionCapture.ToString(),
             ["colorMatch"] = ColorMatch.ToString(),
             ["colorPosition"] = new JsonObject
@@ -269,6 +291,7 @@ public partial class MacroItem : ObservableObject
         var schedule = node["schedule"] as JsonObject;
         var watch = node["watch"] as JsonObject;
         var program = node["program"] as JsonObject;
+        var window = node["window"] as JsonObject;
 
         var macro = new MacroItem
         {
@@ -288,6 +311,9 @@ public partial class MacroItem : ObservableObject
             WatchSubfolders = ReadBool(watch?["subfolders"]),
             ProcessName = program?["name"]?.GetValue<string>() ?? string.Empty,
             ProcessChange = ReadEnum(program, "change", ProcessChangeKind.Started),
+            WindowValue = window?["value"]?.GetValue<string>() ?? string.Empty,
+            WindowLookup = ReadEnum(window, "lookup", WindowMatch.Title),
+            WindowChange = ReadEnum(window, "change", WindowChangeKind.Appeared),
             PositionCapture = ReadEnum(node, "positionCapture", MousePositionMode.SaveCurrentPosition),
             ColorMatch = ReadEnum(node, "colorMatch", ColorMatchCondition.ColorMatches),
             ColorPositionX = ReadInt(position?["x"]),

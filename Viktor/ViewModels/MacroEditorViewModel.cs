@@ -9,6 +9,7 @@ using System.Text.Json.Nodes;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Viktor.Core.Devices;
 using Viktor.Localization;
 using Viktor.Models;
 
@@ -169,6 +170,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsTimerTrigger))]
     [NotifyPropertyChangedFor(nameof(IsFileTrigger))]
     [NotifyPropertyChangedFor(nameof(IsProcessTrigger))]
+    [NotifyPropertyChangedFor(nameof(IsWindowTrigger))]
     public partial MacroTrigger TriggerMode { get; set; } = MacroTrigger.KeystrokesButtonInputs;
 
     [ObservableProperty]
@@ -182,6 +184,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         Strings.Get("Trigger.Timer"),
         Strings.Get("Trigger.File"),
         Strings.Get("Trigger.Process"),
+        Strings.Get("Trigger.Window"),
     ];
 
     public IReadOnlyList<string> LoopOptions { get; } =
@@ -218,6 +221,59 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     /// <summary>True when the macro is started by a program starting or finishing.</summary>
     public bool IsProcessTrigger => TriggerMode == MacroTrigger.Process;
+
+    /// <summary>True when the macro is started by a window appearing or going away.</summary>
+    public bool IsWindowTrigger => TriggerMode == MacroTrigger.Window;
+
+    /// <summary>What a window trigger compares against the open windows.</summary>
+    [ObservableProperty]
+    public partial string WindowValue { get; set; } = string.Empty;
+
+    public IReadOnlyList<string> WindowLookupOptions { get; } =
+    [
+        Strings.Get("WindowLookup.Title"),
+        Strings.Get("WindowLookup.Process"),
+        Strings.Get("WindowLookup.ClassName"),
+    ];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(WindowLookupIndex))]
+    public partial WindowMatch WindowLookup { get; set; } = WindowMatch.Title;
+
+    public int WindowLookupIndex
+    {
+        get => (int)WindowLookup;
+        set
+        {
+            if (value >= 0 && value < WindowLookupOptions.Count)
+            {
+                WindowLookup = (WindowMatch)value;
+            }
+        }
+    }
+
+    public IReadOnlyList<string> WindowChangeOptions { get; } =
+    [
+        Strings.Get("WindowChange.Appeared"),
+        Strings.Get("WindowChange.Disappeared"),
+        Strings.Get("WindowChange.Any"),
+    ];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(WindowChangeIndex))]
+    public partial WindowChangeKind WindowChange { get; set; } = WindowChangeKind.Appeared;
+
+    public int WindowChangeIndex
+    {
+        get => (int)WindowChange;
+        set
+        {
+            if (value >= 0 && value < WindowChangeOptions.Count)
+            {
+                WindowChange = (WindowChangeKind)value;
+            }
+        }
+    }
 
     /// <summary>The program a process trigger waits for, without the ".exe".</summary>
     [ObservableProperty]
@@ -853,6 +909,9 @@ public partial class MacroEditorViewModel : ViewModelBase
             WatchSubfolders = macro.WatchSubfolders;
             ProcessName = macro.ProcessName;
             ProcessChange = macro.ProcessChange;
+            WindowValue = macro.WindowValue;
+            WindowLookup = macro.WindowLookup;
+            WindowChange = macro.WindowChange;
             PositionCapture = macro.PositionCapture;
             ColorMatch = macro.ColorMatch;
             ColorPositionX = macro.ColorPositionX.ToString(CultureInfo.InvariantCulture);
@@ -1206,6 +1265,7 @@ public partial class MacroEditorViewModel : ViewModelBase
                 MacroTrigger.Timer => Strings.Get("Trigger.Timer"),
                 MacroTrigger.FileChanges => Strings.Get("Trigger.File"),
                 MacroTrigger.Process => Strings.Get("Trigger.Process"),
+                MacroTrigger.Window => Strings.Get("Trigger.Window"),
                 _ => Strings.Get("Trigger.Keys"),
             },
             Action = action,
@@ -1222,6 +1282,9 @@ public partial class MacroEditorViewModel : ViewModelBase
             WatchSubfolders = WatchSubfolders,
             ProcessName = ProcessName.Trim(),
             ProcessChange = ProcessChange,
+            WindowValue = WindowValue.Trim(),
+            WindowLookup = WindowLookup,
+            WindowChange = WindowChange,
             PositionCapture = PositionCapture,
             ColorMatch = ColorMatch,
             ColorPositionX = ParseCoordinate(ColorPositionX),

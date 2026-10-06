@@ -1,3 +1,4 @@
+using Viktor.Core.Devices;
 using Viktor.Models;
 using Viktor.ViewModels;
 
@@ -29,6 +30,7 @@ public class TriggerKindTests
                 Assert.Equal(kind == MacroTrigger.Timer, editor.IsTimerTrigger);
                 Assert.Equal(kind == MacroTrigger.FileChanges, editor.IsFileTrigger);
                 Assert.Equal(kind == MacroTrigger.Process, editor.IsProcessTrigger);
+                Assert.Equal(kind == MacroTrigger.Window, editor.IsWindowTrigger);
             }
         });
     }
@@ -43,6 +45,8 @@ public class TriggerKindTests
             Assert.Equal(editor.ScheduleUnitOptions.Count, Enum.GetValues<ScheduleUnit>().Length);
             Assert.Equal(editor.WatchChangeOptions.Count, Enum.GetValues<FileChangeKind>().Length);
             Assert.Equal(editor.ProcessChangeOptions.Count, Enum.GetValues<ProcessChangeKind>().Length);
+            Assert.Equal(editor.WindowChangeOptions.Count, Enum.GetValues<WindowChangeKind>().Length);
+            Assert.Equal(editor.WindowLookupOptions.Count, Enum.GetValues<WindowMatch>().Length);
 
             foreach (var mode in Enum.GetValues<ScheduleMode>())
             {
@@ -67,6 +71,18 @@ public class TriggerKindTests
                 editor.ProcessChangeIndex = (int)change;
                 Assert.Equal(change, editor.ProcessChange);
             }
+
+            foreach (var change in Enum.GetValues<WindowChangeKind>())
+            {
+                editor.WindowChangeIndex = (int)change;
+                Assert.Equal(change, editor.WindowChange);
+            }
+
+            foreach (var lookup in Enum.GetValues<WindowMatch>())
+            {
+                editor.WindowLookupIndex = (int)lookup;
+                Assert.Equal(lookup, editor.WindowLookup);
+            }
         });
     }
 
@@ -90,6 +106,9 @@ public class TriggerKindTests
                 ScheduleTime = "21:15",
                 ScheduleInterval = 30,
                 ScheduleUnit = ScheduleUnit.Minutes,
+                WindowValue = " Setup ",
+                WindowLookup = WindowMatch.ClassName,
+                WindowChange = WindowChangeKind.Disappeared,
             };
 
             var editor = new MacroEditorViewModel();
@@ -112,6 +131,9 @@ public class TriggerKindTests
             Assert.Equal("21:15", saved.ScheduleTime);
             Assert.Equal(30, saved.ScheduleInterval);
             Assert.Equal(ScheduleUnit.Minutes, saved.ScheduleUnit);
+            Assert.Equal("Setup", saved.WindowValue);
+            Assert.Equal(WindowMatch.ClassName, saved.WindowLookup);
+            Assert.Equal(WindowChangeKind.Disappeared, saved.WindowChange);
         });
     }
 
@@ -153,6 +175,37 @@ public class TriggerKindTests
 
         Assert.Equal("notepad", restored.ProcessName);
         Assert.Equal(ProcessChangeKind.Stopped, restored.ProcessChange);
+    }
+
+    [Fact]
+    public void A_window_trigger_is_previewed_with_the_window_and_survives_being_saved()
+    {
+        var macro = new MacroItem
+        {
+            TriggerMode = MacroTrigger.Window,
+            WindowValue = "Save As",
+            WindowLookup = WindowMatch.Title,
+            WindowChange = WindowChangeKind.Appeared,
+        };
+
+        Assert.True(macro.IsWindowTrigger);
+        Assert.Equal("Save As", macro.TriggerPreview);
+
+        var restored = MacroItem.FromJson(macro.ToJson());
+
+        Assert.Equal("Save As", restored.WindowValue);
+        Assert.Equal(WindowMatch.Title, restored.WindowLookup);
+        Assert.Equal(WindowChangeKind.Appeared, restored.WindowChange);
+    }
+
+    [Fact]
+    public void A_macro_written_before_the_window_trigger_existed_waits_for_a_title()
+    {
+        var macro = MacroItem.FromJson(new System.Text.Json.Nodes.JsonObject { ["name"] = "Old" });
+
+        Assert.Equal(string.Empty, macro.WindowValue);
+        Assert.Equal(WindowMatch.Title, macro.WindowLookup);
+        Assert.Equal(WindowChangeKind.Appeared, macro.WindowChange);
     }
 
     [Fact]
