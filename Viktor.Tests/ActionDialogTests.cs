@@ -597,4 +597,48 @@ public class ActionDialogTests
             Assert.Equal(Strings.Get("Add.StepRetryPlanNone"), viewModel.RetryPlan);
         });
     }
+
+    [Fact]
+    public void Error_rules_are_typed_in_the_step_settings_and_saved_on_the_step()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.keyPress");
+            Assert.True(viewModel.CanSave);
+
+            viewModel.MetaErrorJumps = "*NotFound => 修一下";
+
+            MacroStep? saved = null;
+            viewModel.CloseRequested += step => saved = step;
+            viewModel.SaveCommand.Execute(null);
+
+            Assert.NotNull(saved);
+            Assert.Equal([new ErrorJump("*NotFound", "修一下", true)], saved!.Meta.Jumps);
+
+            // Reopening the step shows the same words the user typed, not a rewritten form.
+            var reopened = new AddActionWindow(saved, ActionCatalog.Definitions, [], []);
+            Dispatcher.UIThread.RunJobs();
+            var again = (AddActionViewModel)reopened.DataContext!;
+            Assert.Equal("*NotFound => 修一下", again.MetaErrorJumps);
+        });
+    }
+
+    [Fact]
+    public void A_rule_line_that_says_nothing_about_where_to_go_stops_the_step_being_saved()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.keyPress");
+
+            viewModel.MetaErrorJumps = "Run.ImageNotFound";
+
+            Assert.False(viewModel.CanSave);
+            Assert.Equal(Strings.Format("Add.BadErrorJump", "Run.ImageNotFound"),
+                viewModel.ValidationMessage);
+
+            // Putting it right lets the step be saved again.
+            viewModel.MetaErrorJumps = "Run.ImageNotFound -> 修一下";
+            Assert.True(viewModel.CanSave);
+        });
+    }
 }
