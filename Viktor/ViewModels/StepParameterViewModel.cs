@@ -141,10 +141,11 @@ public partial class StepParameterViewModel : ViewModelBase
 
     /// <summary>
     /// True when this parameter is a UI Automation selector, which the element picker can take
-    /// off the screen instead of it being written out by hand.
+    /// off the screen instead of it being written out by hand. The control a step measures from is
+    /// one of these as well: it names a control the same way, so it is picked the same way.
     /// </summary>
     public bool IsSelector => Definition.Kind is ActionParameterKind.Text
-                              && Definition.Name == "selector";
+                              && Definition.Name is "selector" or "anchorSelector";
 
     /// <summary>True when this parameter is a picture the action looks for on screen.</summary>
     public bool IsImage => Definition.Kind is ActionParameterKind.Image;

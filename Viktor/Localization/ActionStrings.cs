@@ -37,6 +37,15 @@ internal static class ActionStrings
         "坐标从哪个窗口量起，填标题的一部分即可。留空表示运行时最前面那个窗口；"
         + "选“屏幕像素”时用不到它。";
 
+    /// <summary>
+    /// The hint the actions that can measure from a control share for the control they measure from,
+    /// written once for the same reason the coordinate-origin hint is.
+    /// </summary>
+    private const string AnchorElementHint =
+        "坐标从这个控件量起，例如 Button[name='Save']，可以点“拾取元素”直接从屏幕上抓；"
+        + "这一步每次运行都会重新找它，控件移动之后数字仍然落在它身上。"
+        + "选其他坐标基准时用不到它。";
+
     /// <summary>The hint every search-region field shares, in the wording the English one uses.</summary>
     private const string RegionHintText =
         "可选，格式 x,y,width,height，也可写成 $变量；一次要看几块区域就用分号隔开，每块都会搜；"
@@ -748,6 +757,9 @@ internal static class ActionStrings
         // 坐标基准：所有带坐标或矩形的动作共用一组文案。
         ["input.mouseMove.anchorMode.label"] = "坐标基准",
         ["input.mouseMove.anchorMode.hint"] = AnchorModeHint,
+        ["input.mouseMove.anchorMode.option.element"] = "界面元素左上角",
+        ["input.mouseMove.anchorSelector.label"] = "锚点元素",
+        ["input.mouseMove.anchorSelector.hint"] = AnchorElementHint,
         ["input.mouseMove.anchorMode.option.screen"] = "屏幕像素",
         ["input.mouseMove.anchorMode.option.window"] = "窗口左上角",
         ["input.mouseMove.anchorMode.option.client"] = "窗口客户区",
@@ -756,6 +768,9 @@ internal static class ActionStrings
 
         ["input.mouseClick.anchorMode.label"] = "坐标基准",
         ["input.mouseClick.anchorMode.hint"] = AnchorModeHint,
+        ["input.mouseClick.anchorMode.option.element"] = "界面元素左上角",
+        ["input.mouseClick.anchorSelector.label"] = "锚点元素",
+        ["input.mouseClick.anchorSelector.hint"] = AnchorElementHint,
         ["input.mouseClick.anchorMode.option.screen"] = "屏幕像素",
         ["input.mouseClick.anchorMode.option.window"] = "窗口左上角",
         ["input.mouseClick.anchorMode.option.client"] = "窗口客户区",
@@ -764,6 +779,9 @@ internal static class ActionStrings
 
         ["input.mouseDoubleClick.anchorMode.label"] = "坐标基准",
         ["input.mouseDoubleClick.anchorMode.hint"] = AnchorModeHint,
+        ["input.mouseDoubleClick.anchorMode.option.element"] = "界面元素左上角",
+        ["input.mouseDoubleClick.anchorSelector.label"] = "锚点元素",
+        ["input.mouseDoubleClick.anchorSelector.hint"] = AnchorElementHint,
         ["input.mouseDoubleClick.anchorMode.option.screen"] = "屏幕像素",
         ["input.mouseDoubleClick.anchorMode.option.window"] = "窗口左上角",
         ["input.mouseDoubleClick.anchorMode.option.client"] = "窗口客户区",
@@ -772,6 +790,9 @@ internal static class ActionStrings
 
         ["input.mouseDown.anchorMode.label"] = "坐标基准",
         ["input.mouseDown.anchorMode.hint"] = AnchorModeHint,
+        ["input.mouseDown.anchorMode.option.element"] = "界面元素左上角",
+        ["input.mouseDown.anchorSelector.label"] = "锚点元素",
+        ["input.mouseDown.anchorSelector.hint"] = AnchorElementHint,
         ["input.mouseDown.anchorMode.option.screen"] = "屏幕像素",
         ["input.mouseDown.anchorMode.option.window"] = "窗口左上角",
         ["input.mouseDown.anchorMode.option.client"] = "窗口客户区",
@@ -780,6 +801,9 @@ internal static class ActionStrings
 
         ["input.mouseUp.anchorMode.label"] = "坐标基准",
         ["input.mouseUp.anchorMode.hint"] = AnchorModeHint,
+        ["input.mouseUp.anchorMode.option.element"] = "界面元素左上角",
+        ["input.mouseUp.anchorSelector.label"] = "锚点元素",
+        ["input.mouseUp.anchorSelector.hint"] = AnchorElementHint,
         ["input.mouseUp.anchorMode.option.screen"] = "屏幕像素",
         ["input.mouseUp.anchorMode.option.window"] = "窗口左上角",
         ["input.mouseUp.anchorMode.option.client"] = "窗口客户区",
@@ -788,6 +812,9 @@ internal static class ActionStrings
 
         ["input.mouseScroll.anchorMode.label"] = "坐标基准",
         ["input.mouseScroll.anchorMode.hint"] = AnchorModeHint,
+        ["input.mouseScroll.anchorMode.option.element"] = "界面元素左上角",
+        ["input.mouseScroll.anchorSelector.label"] = "锚点元素",
+        ["input.mouseScroll.anchorSelector.hint"] = AnchorElementHint,
         ["input.mouseScroll.anchorMode.option.screen"] = "屏幕像素",
         ["input.mouseScroll.anchorMode.option.window"] = "窗口左上角",
         ["input.mouseScroll.anchorMode.option.client"] = "窗口客户区",
@@ -796,6 +823,9 @@ internal static class ActionStrings
 
         ["input.mouseDrag.anchorMode.label"] = "坐标基准",
         ["input.mouseDrag.anchorMode.hint"] = AnchorModeHint,
+        ["input.mouseDrag.anchorMode.option.element"] = "界面元素左上角",
+        ["input.mouseDrag.anchorSelector.label"] = "锚点元素",
+        ["input.mouseDrag.anchorSelector.hint"] = AnchorElementHint,
         ["input.mouseDrag.anchorMode.option.screen"] = "屏幕像素",
         ["input.mouseDrag.anchorMode.option.window"] = "窗口左上角",
         ["input.mouseDrag.anchorMode.option.client"] = "窗口客户区",
@@ -804,6 +834,9 @@ internal static class ActionStrings
 
         ["vision.capture.anchorMode.label"] = "坐标基准",
         ["vision.capture.anchorMode.hint"] = AnchorModeHint,
+        ["vision.capture.anchorMode.option.element"] = "界面元素左上角",
+        ["vision.capture.anchorSelector.label"] = "锚点元素",
+        ["vision.capture.anchorSelector.hint"] = AnchorElementHint,
         ["vision.capture.anchorMode.option.screen"] = "屏幕像素",
         ["vision.capture.anchorMode.option.window"] = "窗口左上角",
         ["vision.capture.anchorMode.option.client"] = "窗口客户区",

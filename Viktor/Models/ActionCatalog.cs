@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -934,7 +935,7 @@ public static class ActionCatalog
             [
                 Number("x", "X", 0, "Target screen column."),
                 Number("y", "Y", 0, "Target screen row."),
-                ..Anchor(),
+                ..Anchor(withElement: true),
                 Number("durationMs", "Duration ms", 0, "0 jumps straight to the target."),
                 Movement(),
                 ..Delivery(),
@@ -966,7 +967,7 @@ public static class ActionCatalog
                 Button(),
                 Number("x", "X", 0, "Screen column to click."),
                 Number("y", "Y", 0, "Screen row to click."),
-                ..Anchor(),
+                ..Anchor(withElement: true),
                 Number("clicks", "Clicks", 1, "How many clicks to send.", min: 1),
                 Number("intervalMs", "Interval ms", 0, "Pause between repeated clicks."),
                 ..Delivery(),
@@ -983,7 +984,7 @@ public static class ActionCatalog
                 Button(),
                 Number("x", "X", 0, "Screen column to click."),
                 Number("y", "Y", 0, "Screen row to click."),
-                ..Anchor(),
+                ..Anchor(withElement: true),
                 ..Delivery(),
             ],
         },
@@ -998,7 +999,7 @@ public static class ActionCatalog
                 Button(),
                 Number("x", "X", 0, "Screen column to press."),
                 Number("y", "Y", 0, "Screen row to press."),
-                ..Anchor(),
+                ..Anchor(withElement: true),
                 ..Delivery(),
             ],
         },
@@ -1013,7 +1014,7 @@ public static class ActionCatalog
                 Button(),
                 Number("x", "X", 0, "Screen column to release at."),
                 Number("y", "Y", 0, "Screen row to release at."),
-                ..Anchor(),
+                ..Anchor(withElement: true),
                 ..Delivery(),
             ],
         },
@@ -1029,7 +1030,7 @@ public static class ActionCatalog
                 Number("amount", "Amount", 3, "Number of wheel notches.", min: 1),
                 Number("x", "X", 0, "Screen column to scroll at."),
                 Number("y", "Y", 0, "Screen row to scroll at."),
-                ..Anchor(),
+                ..Anchor(withElement: true),
                 ..Delivery(),
             ],
         },
@@ -1045,7 +1046,7 @@ public static class ActionCatalog
                 Number("startY", "Start Y", 0),
                 Number("endX", "End X", 0, "Where the drag ends."),
                 Number("endY", "End Y", 0),
-                ..Anchor(),
+                ..Anchor(withElement: true),
                 Button(),
                 Number("durationMs", "Duration ms", 300, "How long the drag takes."),
                 Number("steps", "Move steps", 20, "Intermediate move events sent while dragging.", min: 1),
@@ -1067,7 +1068,7 @@ public static class ActionCatalog
                 Number("y", "Y", 0, "Region origin row."),
                 Number("width", "Width", 100, "Region width in pixels.", min: 1),
                 Number("height", "Height", 100, "Region height in pixels.", min: 1),
-                ..Anchor(),
+                ..Anchor(withElement: true),
                 Variable("saveTo", "Save to variable", "shot",
                     "Variable that receives the captured image. $name.x, $name.y, $name.width and "
                     + "$name.height hold the rectangle it covered, so a later step can search it.",
@@ -1912,15 +1913,24 @@ public static class ActionCatalog
     /// position or a rectangle. Screen pixels are what every macro written before this setting
     /// used; the other two make the numbers follow a window, which is what stops a macro from
     /// aiming at the wrong place the moment the window is dragged somewhere else.
+    /// <paramref name="withElement"/> adds a fourth choice, measuring from a control rather than a
+    /// window. Only the actions that put the pointer somewhere offer it: a control is what a person
+    /// actually aims at, and the actions that merely read a point would grow a field for nothing.
     /// </summary>
-    private static ActionParameter[] Anchor() =>
+    private static ActionParameter[] Anchor(bool withElement = false) =>
     [
-        Choice("anchorMode", "Coordinates from", ["screen", "window", "client"], "screen",
+        Choice("anchorMode", "Coordinates from",
+            withElement ? ["screen", "window", "client", "element"] : ["screen", "window", "client"],
+            "screen",
             "What this step's coordinates are measured from. Screen is a pixel position on the "
             + "desktop, which is how macros were written before this setting existed. Window and "
             + "client measure from the window named below instead, so the step lands in the same "
-            + "place inside that window after it has been moved or resized.",
-            labels: ["Screen pixels", "Window top-left", "Window client area"]),
+            + "place inside that window after it has been moved or resized. Element measures from a "
+            + "control, found by the selector below, so the numbers follow that control around the "
+            + "screen and through a list that scrolls.",
+            labels: withElement
+                ? ["Screen pixels", "Window top-left", "Window client area", "UI element top-left"]
+                : ["Screen pixels", "Window top-left", "Window client area"]),
         new()
         {
             Name = "anchorWindow",
@@ -1931,6 +1941,20 @@ public static class ActionCatalog
                    + "Leave it empty for the window in front. The screen mode does not use it.",
             Required = false,
         },
+        ..(withElement ? AnchorElement() : Array.Empty<ActionParameter>()),
+    ];
+
+    /// <summary>
+    /// The control a step measures from when it measures from one. The element picker fills this in
+    /// the same way it fills in the selector of a step that looks for a control.
+    /// </summary>
+    private static ActionParameter[] AnchorElement() =>
+    [
+        Text("anchorSelector", "Anchor element", "Button[name='Save']", required: false,
+            hint: "The control the coordinates are measured from, for example Button[name='Save']; "
+                  + "the element picker can take it off the screen. It is looked up again on every "
+                  + "run, so the numbers stay on the control after it has moved. The other "
+                  + "coordinate origins do not use it."),
     ];
 
     /// <summary>

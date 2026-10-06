@@ -110,6 +110,66 @@ public sealed record UiQuery(
            && string.IsNullOrWhiteSpace(WindowTitle);
 
     /// <summary>
+    /// Reads selector text such as <c>Button[name='Save']</c> or
+    /// <c>Edit[automationId='input', class='Edit']</c> back into the query it describes. The text
+    /// before the bracket is the kind of control, and everything inside is a property written as
+    /// <c>name=value</c>. Anything unrecognised is left out rather than refused, so a selector
+    /// with a stray word in it still finds what the rest of it describes.
+    /// </summary>
+    public static UiQuery Parse(string? selector, string? windowTitle = null, int index = 1)
+    {
+        var text = (selector ?? string.Empty).Trim();
+        string? name = null;
+        string? id = null;
+        string? type = null;
+        string? cls = null;
+
+        var open = text.IndexOf('[');
+        var head = open < 0 ? text : text[..open].Trim();
+        if (head.Length > 0)
+        {
+            type = head;
+        }
+
+        var close = text.LastIndexOf(']');
+        if (open >= 0 && close > open)
+        {
+            foreach (var clause in text[(open + 1)..close]
+                         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                var split = clause.IndexOf('=');
+                if (split <= 0)
+                {
+                    continue;
+                }
+
+                var key = clause[..split].Trim().ToLowerInvariant();
+                var value = clause[(split + 1)..].Trim().Trim('\'', '"');
+                switch (key)
+                {
+                    case "name":
+                        name = value;
+                        break;
+                    case "automationid":
+                        id = value;
+                        break;
+                    case "controltype":
+                    case "type":
+                        type = value;
+                        break;
+                    case "class":
+                    case "classname":
+                        cls = value;
+                        break;
+                }
+            }
+        }
+
+        var title = (windowTitle ?? string.Empty).Trim();
+        return new UiQuery(name, id, type, cls, title.Length == 0 ? null : title, index);
+    }
+
+    /// <summary>
     /// The selector text this query reads back as: the control type, then the parts that pin it
     /// down, in the order the engine reads them. Only a value the reader can give back unchanged
     /// is written, so a name holding a quote or a comma is left out rather than turning into a

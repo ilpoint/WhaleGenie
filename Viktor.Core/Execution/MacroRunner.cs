@@ -1256,11 +1256,22 @@ public sealed class MacroRunner
     /// <summary>
     /// The corner a step's numbers are measured from, or <c>null</c> when they are screen pixels
     /// already. It is looked up afresh every time the step runs, which is what keeps a macro that
-    /// names a window pointing at the same place after the window has been dragged elsewhere.
+    /// names a window or a control pointing at the same place after the window has been dragged
+    /// elsewhere or the list under the control has been scrolled.
     /// </summary>
     private ScreenPoint? Anchor(ExecutableStep step)
     {
         var mode = step.Text("anchorMode").Trim().ToLowerInvariant();
+
+        if (mode == "element")
+        {
+            var selector = step.Text("anchorSelector");
+            var anchor = _devices.Ui.FindAll(AnchorQuery(step), 1).FirstOrDefault()
+                         ?? throw new StepFailure("Run.ElementNotFound", selector);
+
+            return anchor.Location;
+        }
+
         if (mode is not ("window" or "client"))
         {
             return null;
@@ -2814,61 +2825,20 @@ public sealed class MacroRunner
 
     /// <summary>
     /// Reads a selector such as <c>Button[name='Save']</c> or <c>Edit[automationId='input']</c>,
-    /// together with the optional window title in front of it.
+    /// together with the optional window title beside it.
     /// </summary>
     private UiQuery Query(ExecutableStep step)
-    {
-        var text = step.Text("selector").Trim();
-        string? name = null;
-        string? id = null;
-        string? type = null;
-        string? cls = null;
-
-        var open = text.IndexOf('[');
-        var head = open < 0 ? text : text[..open].Trim();
-        if (head.Length > 0)
-        {
-            type = head;
-        }
-
-        var close = text.LastIndexOf(']');
-        if (open >= 0 && close > open)
-        {
-            foreach (var clause in text[(open + 1)..close]
-                         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                var split = clause.IndexOf('=');
-                if (split <= 0)
-                {
-                    continue;
-                }
-
-                var key = clause[..split].Trim().ToLowerInvariant();
-                var value = clause[(split + 1)..].Trim().Trim('\'', '"');
-                switch (key)
-                {
-                    case "name":
-                        name = value;
-                        break;
-                    case "automationid":
-                        id = value;
-                        break;
-                    case "controltype":
-                    case "type":
-                        type = value;
-                        break;
-                    case "class":
-                    case "classname":
-                        cls = value;
-                        break;
-                }
-            }
-        }
-
-        var title = Read(step.Text("window")).AsText().Trim();
-        return new UiQuery(name, id, type, cls, title.Length == 0 ? null : title,
+        => UiQuery.Parse(
+            step.Text("selector"),
+            Read(step.Text("window")).AsText(),
             Index(step, "matchIndex", 1));
-    }
+
+    /// <summary>
+    /// The same, for the control a step measures its coordinates from. A step that is anchored to a
+    /// control keeps its own pair of fields, so the two readings never take each other's values.
+    /// </summary>
+    private UiQuery AnchorQuery(ExecutableStep step)
+        => UiQuery.Parse(step.Text("anchorSelector"), Read(step.Text("anchorWindow")).AsText());
 
     /// <summary>
     /// Reads a value: a bare variable name, then an expression, then plain text. That is

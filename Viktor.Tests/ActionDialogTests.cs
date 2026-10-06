@@ -251,6 +251,64 @@ public class ActionDialogTests
         });
     }
 
+    [Fact]
+    public void A_position_picked_on_screen_is_stored_relative_to_a_controls_corner()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.mouseClick");
+            viewModel.Ui = new OneFoundElement();
+            Anchor(viewModel, "element");
+            viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "anchorSelector").Text =
+                "Button[automationId='saveButton']";
+
+            Assert.True(viewModel.ApplyCursorPosition(1010, 520));
+
+            Assert.Equal("10", Value(viewModel, "x"));
+            Assert.Equal("20", Value(viewModel, "y"));
+        });
+    }
+
+    [Fact]
+    public void A_step_measured_from_a_control_keeps_that_choice_when_it_is_saved()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.mouseMove");
+            Anchor(viewModel, "element");
+            viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "anchorSelector").Text =
+                "Button[automationId='saveButton']";
+
+            MacroStep? saved = null;
+            viewModel.CloseRequested += result => saved = result;
+            viewModel.SaveCommand.Execute(null);
+
+            Assert.NotNull(saved);
+            Assert.Contains(saved!.Parameters, parameter =>
+                parameter.Name == "anchorMode" && parameter.Value == "element");
+            Assert.Contains(saved.Parameters, parameter =>
+                parameter.Name == "anchorSelector"
+                && parameter.Value == "Button[automationId='saveButton']");
+        });
+    }
+
+    [Fact]
+    public void Only_the_actions_that_put_the_pointer_somewhere_measure_from_a_control()
+    {
+        var keys = Ui.Run(() => ActionCatalog.Definitions
+            .Where(definition => definition.Parameters.Any(parameter => parameter.Name == "anchorSelector"))
+            .Select(definition => definition.Key)
+            .Order()
+            .ToList());
+
+        Assert.Equal(
+            ["input.mouseClick", "input.mouseDoubleClick", "input.mouseDown", "input.mouseDrag",
+             "input.mouseMove", "input.mouseScroll", "input.mouseUp", "vision.capture"],
+            keys);
+    }
+
     /// <summary>Turns the coordinate picker of a dialog onto a named window.</summary>
     private static void Anchor(AddActionViewModel viewModel, string mode)
     {
@@ -290,6 +348,39 @@ public class ActionDialogTests
         public bool Move(long handle, int x, int y, int width, int height) => true;
 
         public ScreenPoint ClientOrigin(long handle) => new(1000, 520);
+    }
+
+    /// <summary>
+    /// One control on screen at 1000,500, which is what a step anchored to a control measures from.
+    /// Everything asked of it except the search is answered with "yes", because this stand-in
+    /// exists to show where the numbers land rather than to drive anything.
+    /// </summary>
+    private sealed class OneFoundElement : IUiDevice
+    {
+        private static readonly UiElementInfo Save = new("Save", "saveButton", "Button",
+            "ButtonClass", new ScreenPoint(1000, 500), new ScreenSize(80, 24), "Notepad");
+
+        public bool Exists(UiQuery query, int timeoutMs) => true;
+
+        public bool Click(UiQuery query, string button) => true;
+
+        public bool FocusWindow(string title) => true;
+
+        public string? GetText(UiQuery query) => Save.Name;
+
+        public bool SetText(UiQuery query, string text, bool clearFirst) => true;
+
+        public IReadOnlyList<UiElementInfo> FindAll(UiQuery query, int limit) => [Save];
+
+        public bool Select(UiQuery query, string text, int itemIndex) => true;
+
+        public bool SetChecked(UiQuery query, bool? state) => true;
+
+        public bool SetExpanded(UiQuery query, string action) => true;
+
+        public bool ScrollIntoView(UiQuery query) => true;
+
+        public IReadOnlyList<IReadOnlyList<string>> ReadTable(UiQuery query, int limit) => [];
     }
     [Fact]
     public void A_vision_result_is_a_variable_the_macro_already_knows()

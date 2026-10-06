@@ -91,6 +91,13 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     public IWindowDevice? Windows { get; set; }
 
+    /// <summary>
+    /// The controls on the desktop, so a position picked off the screen can be stored the way a
+    /// step anchored to a control reads it back. Filled in by the dialog beside
+    /// <see cref="Windows"/>, and unused by a step that measures from anything else.
+    /// </summary>
+    public IUiDevice? Ui { get; set; }
+
     /// <summary>Title-bar text, which changes when an existing step is being edited.</summary>
     public string Header => Strings.Get(IsEditing ? "Add.EditTitle" : "Add.Title");
 
@@ -505,6 +512,11 @@ public partial class AddActionViewModel : ViewModelBase
     private ScreenPoint? AnchorOrigin()
     {
         var mode = Parameter("anchorMode")?.CurrentText.Trim().ToLowerInvariant();
+        if (mode == "element")
+        {
+            return ElementOrigin();
+        }
+
         if (Windows is null || mode is not ("window" or "client"))
         {
             return null;
@@ -517,6 +529,33 @@ public partial class AddActionViewModel : ViewModelBase
         }
 
         return mode == "client" ? Windows.ClientOrigin(window.Handle) : window.Location;
+    }
+
+    /// <summary>
+    /// Where the control a step is anchored to sits right now. Null when nothing has been picked
+    /// yet, when the control is not on screen, or when the dialog has no way to look it up: the
+    /// plain numbers are then the best that can be done, and the engine says so when the macro runs.
+    /// </summary>
+    private ScreenPoint? ElementOrigin()
+    {
+        var selector = Parameter("anchorSelector")?.Text?.Trim() ?? string.Empty;
+        if (Ui is null || selector.Length == 0)
+        {
+            return null;
+        }
+
+        try
+        {
+            var query = UiQuery.Parse(selector, Parameter("anchorWindow")?.Text);
+            return Ui.FindAll(query, 1).FirstOrDefault() is { } anchor ? anchor.Location : null;
+        }
+        catch (Exception)
+        {
+            // A control that cannot be looked up right now is not worth failing the dialog over:
+            // the numbers are written down as screen pixels, and the step says what it needed when
+            // the macro runs.
+            return null;
+        }
     }
 
     /// <summary>

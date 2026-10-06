@@ -1123,6 +1123,39 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Coordinates_can_be_measured_from_a_control()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Elements.Add(new UiElementInfo("Panel", "panel", "Pane", "PaneClass",
+            new ScreenPoint(200, 100), new ScreenSize(400, 300), "Tasks"));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.mouseMove", Param("x", "10"), Param("y", "20"),
+                Param("anchorMode", "element"), Param("anchorSelector", "Pane[automationId='panel']")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("findElements Pane//panel #1 take 1", devices.Calls);
+        Assert.Contains("move 210 120 0", devices.Calls);
+    }
+
+    [Fact]
+    public async Task Measuring_from_a_control_that_is_not_there_fails_the_step()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.mouseMove", Param("x", "10"), Param("y", "20"),
+                Param("anchorMode", "element"), Param("anchorSelector", "Pane[automationId='panel']")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.ElementNotFound", result.Key);
+        Assert.DoesNotContain("move 10 20 0", devices.Calls);
+    }
+
+    [Fact]
     public async Task Writing_into_an_element_carries_the_text_and_the_clear_flag()
     {
         var devices = new FakeDeviceLayer { ElementWritable = true };
@@ -2476,7 +2509,7 @@ internal sealed class FakeDeviceLayer
 
     public IReadOnlyList<UiElementInfo> FindAll(UiQuery query, int limit)
     {
-        Note($"findElements {query.ControlType}/{query.Name} #{query.Index} take {limit}");
+        Note($"findElements {query.ControlType}/{query.Name}/{query.AutomationId} #{query.Index} take {limit}");
         return [.. Elements.Take(Math.Max(1, limit))];
     }
 

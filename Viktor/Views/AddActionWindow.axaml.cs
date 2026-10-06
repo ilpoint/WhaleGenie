@@ -36,8 +36,10 @@ public partial class AddActionWindow : Window
         viewModel.AssetFolder = assetFolder ?? string.Empty;
 
         // Picking a position has to know where the window a step is anchored to sits right now,
-        // so what the pointer is over is stored the way the engine will read it back.
+        // so what the pointer is over is stored the way the engine will read it back. The same goes
+        // for a step anchored to a control, which needs the control's own rectangle.
         viewModel.Windows = new WindowsWindowDevice();
+        viewModel.Ui = new FlaUiDevice();
 
         if (existing is not null)
         {
@@ -297,10 +299,15 @@ public partial class AddActionWindow : Window
 
         parameter.Text = picked.Selector;
 
-        if (viewModel.Parameters.FirstOrDefault(item => item.Definition.Name == "window") is { } filter
-            && string.IsNullOrWhiteSpace(filter.Text))
+        // The window filter is filled in for whichever field this action keeps it in, so a step
+        // that is anchored to a control gets the same narrowing as one that looks the control up.
+        foreach (var name in new[] { "window", "anchorWindow" })
         {
-            filter.Text = picked.Window;
+            if (viewModel.Parameters.FirstOrDefault(item => item.Definition.Name == name) is { } filter
+                && string.IsNullOrWhiteSpace(filter.Text))
+            {
+                filter.Text = picked.Window;
+            }
         }
     }
 
