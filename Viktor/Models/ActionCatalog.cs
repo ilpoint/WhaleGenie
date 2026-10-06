@@ -1542,7 +1542,7 @@ public static class ActionCatalog
             [
                 Image("image", "Image file", @"C:\images\ok.png",
                    "Reference image: a file path, or the variable a Capture step saved ($shot)."),
-                Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100),
+                Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 Text("region", "Search region", required: false, hint: RegionHint),
                 ..Anchor(),
                 MatchIndex(),
@@ -1564,7 +1564,7 @@ public static class ActionCatalog
             [
                 Image("image", "Image file", @"C:\images\ok.png",
                     "Reference image to wait for: a file path, or the variable a Capture saved."),
-                Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100),
+                Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 Text("region", "Search region", required: false, hint: RegionHint),
                 ..Anchor(),
                 MatchIndex(),
@@ -1584,12 +1584,13 @@ public static class ActionCatalog
             Parameters =
             [
                 Image("image", "Image file", @"C:\images\ok.png"),
-                Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100),
+                Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 Text("region", "Search region", required: false, hint: RegionHint),
                 ..Anchor(),
                 MatchIndex(),
-                Number("offsetX", "Offset X", 0, "Pixels added to the match centre.", min: -100000m),
-                Number("offsetY", "Offset Y", 0, min: -100000m),
+                Number("offsetX", "Offset X", 0, "Pixels added to the match centre.",
+                    min: -100000m, advanced: true),
+                Number("offsetY", "Offset Y", 0, min: -100000m, advanced: true),
                 Number("timeoutMs", "Timeout", 5000, "Wait this long for the image before giving up."),
                 Button(),
             ],
@@ -1622,7 +1623,7 @@ public static class ActionCatalog
                 Number("y", "Y", 0, "Screen row to watch."),
                 ..Anchor(),
                 ColorPick("color", "Colour", "#000000", "Colour the pixel has to show."),
-                Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100),
+                Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100, advanced: true),
                 Number("timeoutMs", "Timeout", 5000, "Give up after this long."),
             ],
         },
@@ -1635,7 +1636,7 @@ public static class ActionCatalog
             Parameters =
             [
                 ColorPick("color", "Colour", "#000000", "Colour to look for."),
-                Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100),
+                Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100, advanced: true),
                 Number("matchIndex", "Match number", 1,
                     "Which hit to use, counted from the top left: down the screen first, then "
                     + "across. 1 is the first one.", min: 1, max: 200),
@@ -1719,8 +1720,9 @@ public static class ActionCatalog
                 Content(),
                 Preprocess(),
                 MinScore(),
-                Number("offsetX", "Offset X", 0, "Pixels added to the match centre.", min: -100000m),
-                Number("offsetY", "Offset Y", 0, min: -100000m),
+                Number("offsetX", "Offset X", 0, "Pixels added to the match centre.",
+                    min: -100000m, advanced: true),
+                Number("offsetY", "Offset Y", 0, min: -100000m, advanced: true),
                 Number("timeoutMs", "Timeout", 5000, "Wait this long for the text before giving up."),
                 Button(),
             ],
@@ -1905,7 +1907,7 @@ public static class ActionCatalog
                     "Stop after this many rows of data, counted from the top. Rows that hold "
                     + "nothing at all — the strip the column titles live in, and the empty row "
                     + "some grids keep at the bottom for typing a new one in — are left out.",
-                    min: 1, max: 10000),
+                    min: 1, max: 10000, advanced: true),
                 Variable("resultVariable", "Result variable", "table",
                     "Variable that receives the rows. $name holds a list of rows, and every row is "
                     + "a list of cells, the same shape the CSV reader gives back.",
@@ -1985,7 +1987,7 @@ public static class ActionCatalog
             Parameters =
             [
                 Image("image", "Image file", @"C:\images\ok.png"),
-                Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100),
+                Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 Text("region", "Search region", required: false, hint: RegionHint),
                 ..Anchor(),
             ],
@@ -1999,7 +2001,7 @@ public static class ActionCatalog
             Parameters =
             [
                 Image("image", "Image file", @"C:\images\ok.png"),
-                Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100),
+                Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 Text("region", "Search region", required: false, hint: RegionHint),
                 ..Anchor(),
             ],
@@ -2068,7 +2070,7 @@ public static class ActionCatalog
                 Number("y", "Y", 0, "Screen row to compare."),
                 ..Anchor(),
                 ColorPick("color", "Colour", "#000000"),
-                Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100),
+                Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100, advanced: true),
             ],
         },
         new()
@@ -2082,7 +2084,7 @@ public static class ActionCatalog
                 Multiline("points", "Points",
                     "One x,y,#RRGGBB per point, separated by a semicolon or a new line.",
                     "100,200,#FF0000; 300,400,#00FF00"),
-                Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100),
+                Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100, advanced: true),
                 Choice("mode", "Mode", ["all", "any"], "all",
                     "Whether every point has to match or one is enough.",
                     labels: ["Every point", "Any point"]),
@@ -2322,7 +2324,8 @@ public static class ActionCatalog
         };
 
     private static ActionParameter Number(string name, string label, decimal defaultValue,
-        string hint = "", decimal min = 0m, decimal max = StepMeta.LongestPauseMs)
+        string hint = "", decimal min = 0m, decimal max = StepMeta.LongestPauseMs,
+        bool advanced = false)
         => new()
         {
             Name = name,
@@ -2336,6 +2339,7 @@ public static class ActionCatalog
             // unit dropdown without each call site having to ask for it. A number that is not a
             // length of time is simply never named that way.
             IsDuration = name == "ms" || name.EndsWith("Ms", StringComparison.Ordinal),
+            Advanced = advanced,
         };
 
     private static ActionParameter Toggle(string name, string label, bool defaultValue = false,
@@ -2424,7 +2428,7 @@ public static class ActionCatalog
     private static ActionParameter MatchIndex()
         => Number("matchIndex", "Match number", 1,
             "Which hit to use, counted from the top left: down the screen first, then across. "
-            + "1 is the first one.", min: 1, max: 200);
+            + "1 is the first one.", min: 1, max: 200, advanced: true);
 
     /// <summary>
     /// Whether a step records the whole set of hits as well as the one it picked, shared by the
@@ -2595,7 +2599,8 @@ public static class ActionCatalog
         => Number("minScore", "Lowest score", 0,
             "Leave a reading out when the model was less sure of it than this. Measured on a "
             + "real screen: clean writing scores around 40, writing too blurred to read around "
-            + "24, and rubbish read off a busy background around 16. 0 keeps everything.");
+            + "24, and rubbish read off a busy background around 16. 0 keeps everything.",
+            advanced: true);
 
     /// <summary>A window title, filled in from the windows that are open by the window picker.</summary>
     private static ActionParameter Window(string name = "window",

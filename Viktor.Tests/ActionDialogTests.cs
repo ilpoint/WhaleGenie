@@ -925,7 +925,39 @@ public class ActionDialogTests
 
             Assert.NotNull(saved);
             Assert.Contains(saved!.Parameters,
-                parameter => parameter.Name == "inputMode" && parameter.Value == "background");
+               parameter => parameter.Name == "inputMode" && parameter.Value == "background");
         });
+    }
+
+    [Fact]
+    public void The_knobs_of_a_search_sit_behind_the_fold_too()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("vision.findImage");
+            var visible = viewModel.Rows.SelectMany(Names).ToList();
+            var folded = viewModel.AdvancedRows.SelectMany(Names).ToList();
+
+            // How sure a match has to be, which hit to take and where a click lands on it are
+            // worth having and not worth showing on every step.
+            Assert.DoesNotContain("confidence", visible);
+            Assert.Contains("confidence", folded);
+            Assert.Contains("matchIndex", folded);
+            Assert.Contains("offsetX", folded);
+
+            // What the step is about stays in front.
+            Assert.Contains("image", visible);
+            Assert.Contains("region", visible);
+        });
+    }
+
+    /// <summary>The parameter names on one line of the dialog.</summary>
+    private static IEnumerable<string> Names(ParameterRowViewModel row)
+    {
+        yield return row.First.Definition.Name;
+        if (row.Second is { } second)
+        {
+            yield return second.Definition.Name;
+        }
     }
 }
