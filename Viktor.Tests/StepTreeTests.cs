@@ -24,6 +24,9 @@ public class StepTreeTests
     private static StepParameter Body(string name, params MacroStep[] steps)
         => new() { Name = name, Kind = ActionParameterKind.Steps, Steps = [.. steps] };
 
+    private static StepParameter Text(string name, string value)
+        => new() { Name = name, Kind = ActionParameterKind.Text, Value = value };
+
     private static MacroStep Loop(params MacroStep[] steps)
         => Step("control.repeat", Body("body", steps));
 
@@ -220,6 +223,57 @@ public class StepTreeTests
             editor.AddStep(added);
 
             Assert.Equal([inside, added], Inside(loop));
+        });
+    }
+
+    [Fact]
+    public void A_list_that_only_takes_one_kind_of_step_says_so_where_the_step_is_added()
+    {
+        Ui.Run(() =>
+        {
+            var editor = new MacroEditorViewModel();
+            var branch = Step("control.case", Text("values", "a"), Body("body", Step("control.log")));
+            var switchStep = Step("control.switch", Text("value", "$x"),
+                new StepParameter { Name = "cases", Kind = ActionParameterKind.Steps, Steps = [branch] });
+            var loop = Loop(Step("control.log"));
+
+            editor.AddStep(switchStep);
+            editor.AddStep(loop);
+
+            // Nothing is being added, so nothing is being narrowed yet.
+            Assert.Null(editor.InsertChoices);
+
+            // A switch's list holds branches and nothing else, so that is all the dialog offers
+            // when the step is meant for it. The restriction travels with the place the step is
+            // going, not with the dialog.
+            editor.AddInsideCommand.Execute(
+                editor.Rows.First(row => row.IsHead && row.List!.Name == "cases"));
+            Assert.Equal(["control.case"], editor.InsertChoices!.Select(action => action.Key));
+
+            // A block that runs ordinary steps takes anything.
+            editor.AddInsideCommand.Execute(
+                editor.Rows.First(row => row.IsHead && ReferenceEquals(row.Step, loop)));
+            Assert.Null(editor.InsertChoices);
+        });
+    }
+
+    [Fact]
+    public void A_step_dropped_onto_a_block_lands_inside_it()
+    {
+        Ui.Run(() =>
+        {
+            var editor = new MacroEditorViewModel();
+            var inside = Step("control.log");
+            var loop = Loop(inside);
+            var outside = Step("control.delay");
+            editor.AddStep(loop);
+            editor.AddStep(outside);
+
+            editor.SetSelection([outside]);
+            editor.MoveSelectionInto(loop);
+
+            Assert.Equal([inside, outside], Inside(loop));
+            Assert.Same(loop, Assert.Single(editor.Steps));
         });
     }
 

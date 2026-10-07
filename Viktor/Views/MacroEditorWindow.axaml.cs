@@ -70,7 +70,13 @@ public partial class MacroEditorWindow : Window
     /// <summary>Row the dragged block would land at, or -1 while there is no drop target.</summary>
     private int _dropSlot = -1;
 
+    /// <summary>Block a dragged step would be put inside, or null while it lands between rows.</summary>
+    private MacroStep? _dropInto;
+
     private double _dropMarkerY;
+
+    /// <summary>How far the drop line is indented, which is what says "inside this block".</summary>
+    private double _dropMarkerIndent;
 
     public MacroEditorWindow()
         : this(null, null, null)
@@ -561,8 +567,10 @@ public partial class MacroEditorWindow : Window
     /// <summary>Opens the add-action dialog and appends the step it returns.</summary>
     private async void OnAddStepRequested()
     {
-        var dialog = new AddActionWindow(null, null, _viewModel.CollectVariables(), MacroNames(),
-            null, _assetFolder);
+        // A list may only take certain kinds of step — a switch's branches, a condition — so the
+        // dialog is opened with the choices the place the step is going allows.
+        var dialog = new AddActionWindow(null, _viewModel.InsertChoices, _viewModel.CollectVariables(),
+            MacroNames(), null, _assetFolder);
         var step = await dialog.ShowDialog<MacroStep?>(this);
 
         if (step is not null)
@@ -960,10 +968,20 @@ public partial class MacroEditorWindow : Window
         // capture asks for the drag to end and would wipe the drop row out from under us.
         var dropping = _draggingSteps;
         var slot = _dropSlot;
+        var into = _dropInto;
         EndStepDrag();
         e.Pointer.Capture(null);
 
-        if (dropping && slot >= 0)
+        if (!dropping)
+        {
+            return;
+        }
+
+        if (into is not null)
+        {
+            _viewModel.MoveSelectionInto(into);
+        }
+        else if (slot >= 0)
         {
             _viewModel.MoveSelectionTo(slot);
         }
@@ -977,6 +995,7 @@ public partial class MacroEditorWindow : Window
         _pressedRow = null;
         _draggingSteps = false;
         _dropSlot = -1;
+        _dropInto = null;
 
         if (_dropMarker is not null)
         {
@@ -995,6 +1014,8 @@ public partial class MacroEditorWindow : Window
         var point = e.GetPosition(_stepList);
         var slot = _viewModel.Rows.Count;
         var markerY = _stepList.Bounds.Height;
+        var indent = 0d;
+        _dropInto = null;
 
         foreach (var item in _stepList.GetVisualDescendants().OfType<ListBoxItem>())
         {
@@ -1005,6 +1026,19 @@ public partial class MacroEditorWindow : Window
 
             var top = item.TranslatePoint(new Point(0, 0), _stepList)?.Y ?? 0;
             var bottom = top + item.Bounds.Height;
+            var height = bottom - top;
+
+            // The middle of a block that runs one list of steps means "put it inside this block".
+            // A block with several lists — an if, a try, a switch — leaves it to the row of the
+            // list it is meant for, because "inside" would not say which one.
+            if (row.CanFold && row.Step.StepLists.Count() == 1
+                && point.Y >= top + (height / 3) && point.Y < bottom - (height / 3))
+            {
+                _dropInto = row.Step;
+                slot = -1;
+                (markerY, indent) = EndOfBlock(row, bottom);
+                break;
+            }
 
             // Past the middle of a row means the block goes after it, not before.
             if (point.Y < top + ((bottom - top) / 2))
@@ -1020,7 +1054,33 @@ public partial class MacroEditorWindow : Window
 
         _dropSlot = slot;
         _dropMarkerY = markerY;
+        _dropMarkerIndent = indent;
         ShowDropMarker();
+    }
+
+    /// <summary>
+    /// Where the drop line goes for a step about to land inside a block: under the line that
+    /// closes the block, indented one level in, which is the place the step will end up in.
+    /// </summary>
+    private (double Y, double Indent) EndOfBlock(StepRow block, double fallback)
+    {
+        var indent = (block.Depth + 1) * 18;
+        if (_stepList is null)
+        {
+            return (fallback, indent);
+        }
+
+        foreach (var item in _stepList.GetVisualDescendants().OfType<ListBoxItem>())
+        {
+            if (item.DataContext is StepRow { IsFoot: true } foot
+                && ReferenceEquals(foot.Step, block.Step))
+            {
+                var top = item.TranslatePoint(new Point(0, 0), _stepList)?.Y ?? fallback;
+                return (top + item.Bounds.Height, indent);
+            }
+        }
+
+        return (fallback, indent);
     }
 
     private void ShowDropMarker()
@@ -1031,7 +1091,8 @@ public partial class MacroEditorWindow : Window
         }
 
         var highest = Math.Max(0, _dropLayer.Bounds.Height - 2);
-        _dropMarker.Width = _dropLayer.Bounds.Width;
+        Canvas.SetLeft(_dropMarker, _dropMarkerIndent);
+        _dropMarker.Width = Math.Max(0, _dropLayer.Bounds.Width - _dropMarkerIndent);
         Canvas.SetTop(_dropMarker, Math.Clamp(_dropMarkerY, 0, highest));
         _dropMarker.IsVisible = true;
     }

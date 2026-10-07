@@ -9,8 +9,9 @@ using Viktor.Models;
 namespace Viktor.ViewModels;
 
 /// <summary>
-/// Edits the steps nested inside another step: the body of a repeat or while loop,
-/// the branches of an if, or the single condition those loops test.
+/// Edits the condition of a step: the one an if, a while or a wait tests, or the conditions a
+/// logic group combines. This is the one thing a step needs that is not a step itself, which is
+/// why it is picked in the dialog rather than written in the editor's step list.
 /// </summary>
 public partial class StepListEditorViewModel : ViewModelBase
 {
@@ -44,6 +45,7 @@ public partial class StepListEditorViewModel : ViewModelBase
 
     public bool HasSteps => Steps.Count > 0;
 
+    /// <summary>True when there is a condition picked to edit.</summary>
     public bool CanEdit => SelectedStep is not null;
 
     [ObservableProperty]
@@ -61,25 +63,6 @@ public partial class StepListEditorViewModel : ViewModelBase
             EditRequested?.Invoke(SelectedStep);
         }
     }
-
-    [RelayCommand]
-    private void Delete()
-    {
-        if (SelectedStep is null)
-        {
-            return;
-        }
-
-        Steps.Remove(SelectedStep);
-        SelectedStep = null;
-        Refresh();
-    }
-
-    [RelayCommand]
-    private void MoveUp() => Move(-1);
-
-    [RelayCommand]
-    private void MoveDown() => Move(1);
 
     /// <summary>Adds a step chosen in the picker.</summary>
     public void AddStep(MacroStep step)
@@ -122,25 +105,7 @@ public partial class StepListEditorViewModel : ViewModelBase
         Refresh();
     }
 
-    private void Move(int offset)
-    {
-        if (SelectedStep is null)
-        {
-            return;
-        }
-
-        var index = Steps.IndexOf(SelectedStep);
-        var target = index + offset;
-
-        if (index < 0 || target < 0 || target >= Steps.Count)
-        {
-            return;
-        }
-
-        Steps.Move(index, target);
-    }
-
-    /// <summary>Signals the owning dialog so the JSON preview follows the nested list.</summary>
+    /// <summary>Signals the owning dialog that the list on screen has changed.</summary>
     private void Refresh()
     {
         OnPropertyChanged(nameof(HasSteps));

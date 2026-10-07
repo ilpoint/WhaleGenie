@@ -106,21 +106,21 @@ public class ActionParameter
     public IReadOnlyList<string> OptionLabels { get; init; } = [];
 
     /// <summary>
-    /// When set on a <see cref="ActionParameterKind.Steps"/> parameter, the nested
-    /// editor only offers the <c>condition.*</c> actions, so a group can nest.
+    /// When set on a <see cref="ActionParameterKind.Steps"/> parameter, that list only takes
+    /// conditions, so a logic group can hold other conditions and nest.
     /// </summary>
     public bool ConditionsOnly { get; init; }
 
     /// <summary>
-    /// When set on a <see cref="ActionParameterKind.Steps"/> parameter, the nested editor only
-    /// offers these action keys. It is how a switch keeps a case list holding cases and nothing
-    /// else, the same way <see cref="ConditionsOnly"/> keeps a group holding conditions.
+    /// When set on a <see cref="ActionParameterKind.Steps"/> parameter, that list only takes
+    /// these action keys: it is how a switch keeps a case list holding cases and nothing else,
+    /// the same way <see cref="ConditionsOnly"/> keeps a group holding conditions.
     /// </summary>
     public IReadOnlyList<string> ChildKeys { get; init; } = [];
 
     /// <summary>
-    /// Resource key of the button that opens the picker for a nested list. Empty means the
-    /// usual "add step" wording; a switch sets it so the button reads "add case".
+    /// Resource key of the label for adding to this list, when the list has a name of its own.
+    /// Empty means the usual "add step" wording; a switch sets it so the button reads "add case".
     /// </summary>
     public string AddLabelKey { get; init; } = string.Empty;
 

@@ -57,21 +57,16 @@ public partial class StepParameterViewModel : ViewModelBase
         if (definition.Kind is ActionParameterKind.Steps or ActionParameterKind.Condition)
         {
             var isCondition = definition.Kind is ActionParameterKind.Condition;
-            var addLabelKey = isCondition
-                ? "Add.NestedCondition"
-                : definition.ConditionsOnly
-                    ? "Add.NestedAddCondition"
-                    : definition.AddLabelKey.Length > 0
-                        ? definition.AddLabelKey
-                        : "Add.NestedAdd";
+            // Conditions are what this dialog is for. The steps of a block are edited in the
+            // editor's own list, where the block's shape can be seen, so a list of those gets no
+            // editor here — only a line saying where they went.
+            var conditions = isCondition || definition.ConditionsOnly;
             List = new StepListEditorViewModel(
-                Strings.Get(addLabelKey),
+                conditions
+                    ? Strings.Get(isCondition ? "Add.NestedCondition" : "Add.NestedAddCondition")
+                    : string.Empty,
                 isCondition,
-                isCondition || definition.ConditionsOnly
-                    ? ActionCatalog.Conditions
-                    : definition.ChildKeys.Count > 0
-                        ? ActionCatalog.ForKeys(definition.ChildKeys)
-                        : null);
+                conditions ? ActionCatalog.Conditions : null);
         }
     }
 
@@ -374,6 +369,25 @@ public partial class StepParameterViewModel : ViewModelBase
 
     /// <summary>True when this parameter is edited with the nested step editor.</summary>
     public bool IsNested => List is not null;
+
+    /// <summary>
+    /// True when what the nested editor holds is a condition: either the condition of an if, a
+    /// while or a wait, or the conditions a logic group combines. Conditions are picked here,
+    /// because a condition is "what this step needs" rather than a step of the macro.
+    /// </summary>
+    public bool IsConditionList => List is not null
+        && (Definition.Kind is ActionParameterKind.Condition || Definition.ConditionsOnly);
+
+    /// <summary>
+    /// True when this parameter holds the steps of a block. Those are edited in the editor's
+    /// list, so the dialog only says so.
+    /// </summary>
+    public bool IsStepList => List is not null && !IsConditionList;
+
+    /// <summary>Where the steps of a block went, which is what the dialog shows in their place.</summary>
+    public string StepsNote => IsStepList
+        ? Strings.Format("Add.StepsInList", Strings.Format("Common.StepCount", List?.Steps.Count ?? 0))
+        : string.Empty;
 
     /// <summary>True when this parameter is edited as an expression.</summary>
     public bool IsExpression => Definition.Kind is ActionParameterKind.Expression;

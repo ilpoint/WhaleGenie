@@ -255,7 +255,11 @@
                                IsVisible="{Binding ShowExpressionSuccess}" />
                 </StackPanel>
 
-                <Border Classes="NestedBox" IsVisible="{Binding IsNested}">
+                <!-- The condition of the step, or the conditions a logic group combines. It stays
+                     in the dialog because a condition is what the step needs rather than a step
+                     of the macro; the steps inside a block are edited in the editor's own list,
+                     where the block's shape can be seen. -->
+                <Border Classes="NestedBox" IsVisible="{Binding IsConditionList}">
                     <StackPanel>
                         <ListBox Classes="NestedList" Height="128"
                                  ItemsSource="{Binding List.Steps}"
@@ -281,21 +285,13 @@
                                     Content="{Binding [Add.NestedEdit], Source={x:Static loc:Strings.Current}}"
                                     IsEnabled="{Binding List.CanEdit}"
                                     Command="{Binding List.EditCommand}" />
-                            <Button Classes="FlatButton" Height="30" Padding="10,0"
-                                    Content="{Binding [Add.NestedRemove], Source={x:Static loc:Strings.Current}}"
-                                    IsEnabled="{Binding List.CanEdit}"
-                                    Command="{Binding List.DeleteCommand}" />
-                            <Button Classes="FlatButton" Height="30" Padding="10,0"
-                                    Content="{Binding [Add.NestedUp], Source={x:Static loc:Strings.Current}}"
-                                    IsEnabled="{Binding List.CanEdit}"
-                                    Command="{Binding List.MoveUpCommand}" />
-                            <Button Classes="FlatButton" Height="30" Padding="10,0"
-                                    Content="{Binding [Add.NestedDown], Source={x:Static loc:Strings.Current}}"
-                                    IsEnabled="{Binding List.CanEdit}"
-                                    Command="{Binding List.MoveDownCommand}" />
                         </StackPanel>
                     </StackPanel>
                 </Border>
+
+                <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
+                           IsVisible="{Binding IsStepList}"
+                           Text="{Binding StepsNote}" />
 
                 <TextBlock Classes="Muted" Text="{Binding Hint}"
                            IsVisible="{Binding HasHint}"

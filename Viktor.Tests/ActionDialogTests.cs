@@ -228,15 +228,40 @@ public class ActionDialogTests
             var viewModel = Open("control.switch");
             var cases = viewModel.Parameters.First(parameter => parameter.Definition.Name == "cases");
 
-            Assert.True(cases.IsNested);
-            Assert.NotNull(cases.List);
-            Assert.Equal(["control.case"], cases.List!.Catalog!.Select(action => action.Key));
-
-            // The otherwise block holds ordinary steps, so it keeps the full list.
+            // The branches of a switch are steps of a block, so they are edited in the editor's
+            // own list, where the switch can be seen whole, and the dialog only says so. What a
+            // list may take is asked of the place the step is going (the editor's `InsertChoices`),
+            // not of this dialog.
             var otherwise = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "otherwise");
-            Assert.True(otherwise.IsNested);
-            Assert.Null(otherwise.List!.Catalog);
+
+            Assert.True(cases.IsStepList);
+            Assert.False(cases.IsConditionList);
+            Assert.True(otherwise.IsStepList);
+        });
+    }
+
+    [Fact]
+    public void The_steps_of_a_block_are_edited_in_the_editor_and_not_in_the_dialog()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("control.repeat");
+            var body = viewModel.Parameters.First(parameter => parameter.Definition.Name == "body");
+
+            // The dialog says where the steps of a block went instead of showing a second list
+            // of the same steps, which is what used to make the same structure editable twice.
+            Assert.True(body.IsStepList);
+            Assert.False(body.IsConditionList);
+            Assert.NotEmpty(body.StepsNote);
+
+            // A condition is the one thing a step needs that is not a step, so it stays here.
+            var test = Open("control.if");
+            var condition = test.Parameters.First(parameter => parameter.Definition.Name == "condition");
+
+            Assert.True(condition.IsConditionList);
+            Assert.False(condition.IsStepList);
+            Assert.Same(ActionCatalog.Conditions, condition.List!.Catalog);
         });
     }
 

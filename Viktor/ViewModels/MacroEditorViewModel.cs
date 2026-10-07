@@ -93,9 +93,11 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     /// <summary>
     /// Where the next step the dialog builds is to land, remembered between the press that asked
-    /// for it and the dialog coming back with an answer. Null means the end of the macro.
+    /// for it and the dialog coming back with an answer. The step that owns the list comes along
+    /// because a list may only take certain kinds of step — a switch's branches, or a condition.
+    /// Null means the end of the macro.
     /// </summary>
-    private (IList<MacroStep> List, int Index)? _insertAt;
+    private (MacroStep Owner, StepParameter Parameter, int Index)? _insertAt;
 
     private bool _loading;
 
@@ -690,8 +692,30 @@ public partial class MacroEditorViewModel : ViewModelBase
             return;
         }
 
-        _insertAt = (parameter.Steps, parameter.Steps.Count);
+        _insertAt = (row.Step, parameter, parameter.Steps.Count);
         AddStepRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// What the "Add Action" dialog may offer for the step being built: a switch's branch list
+    /// only takes branches, a condition list only takes conditions, everything else takes
+    /// anything. Read by the window when it opens the dialog.
+    /// </summary>
+    public IReadOnlyList<ActionDefinition>? InsertChoices => _insertAt is { } at
+        ? ChoicesFor(at.Owner, at.Parameter)
+        : null;
+
+    private static IReadOnlyList<ActionDefinition>? ChoicesFor(MacroStep owner, StepParameter parameter)
+    {
+        if (parameter.Kind is ActionParameterKind.Condition)
+        {
+            return ActionCatalog.Conditions;
+        }
+
+        var definition = owner.Definition?.Parameters
+            .FirstOrDefault(candidate => candidate.Name == parameter.Name);
+
+        return definition is { ChildKeys.Count: > 0 } ? ActionCatalog.ForKeys(definition.ChildKeys) : null;
     }
 
     /// <summary>Folds a block open or shut, so a long macro can be read at the level wanted.</summary>
@@ -869,7 +893,9 @@ public partial class MacroEditorViewModel : ViewModelBase
     {
         PushUndo();
 
-        var (list, index) = _insertAt ?? (Steps, Steps.Count);
+        var (list, index) = _insertAt is { } at
+            ? ((IList<MacroStep>)at.Parameter.Steps, at.Index)
+            : ((IList<MacroStep>)Steps, Steps.Count);
         _insertAt = null;
         list.Insert(Math.Clamp(index, 0, list.Count), step);
 
@@ -1235,14 +1261,48 @@ public partial class MacroEditorViewModel : ViewModelBase
     }
 
     /// <summary>Where a step asked for now should go: below the picked one, in its own block.</summary>
-    private (IList<MacroStep> List, int Index)? InsertionPoint()
+    private (MacroStep Owner, StepParameter Parameter, int Index)? InsertionPoint()
     {
-        if (Ordered(_selection).LastOrDefault() is not { } anchor || ListOf(anchor) is not { } list)
+        if (Ordered(_selection).LastOrDefault() is not { } anchor || OwnerOf(anchor) is not { } at)
         {
             return null;
         }
 
-        return (list, list.IndexOf(anchor) + 1);
+        return (at.Owner, at.Parameter, at.Parameter.Steps.IndexOf(anchor) + 1);
+    }
+
+    /// <summary>
+    /// The step that holds the list a step is written in, and the parameter carrying that list.
+    /// </summary>
+    private (MacroStep Owner, StepParameter Parameter)? OwnerOf(MacroStep step)
+    {
+        foreach (var owner in DocumentOrder())
+        {
+            foreach (var parameter in owner.StepLists)
+            {
+                if (parameter.Steps.Contains(step))
+                {
+                    return (owner, parameter);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Puts the picked steps inside a block, at the end of the steps it runs. This is what a drop
+    /// onto the block itself asks for, as opposed to a drop between two rows.
+    /// </summary>
+    public void MoveSelectionInto(MacroStep block)
+    {
+        if (block.StepLists.FirstOrDefault() is not { } parameter || _selection.Count == 0)
+        {
+            return;
+        }
+
+        block.IsExpanded = true;
+        MoveSelectionToTarget(parameter.Steps, parameter.Steps.Count);
     }
 
     private void MoveSelection(int offset)
@@ -1291,13 +1351,22 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     public void MoveSelectionTo(int slot)
     {
+        var (target, index) = DropTarget(slot);
+        MoveSelectionToTarget(target, index);
+    }
+
+    /// <summary>
+    /// Moves the picked steps into a list of steps at a position. A step is never moved into
+    /// itself, and a move that would change nothing leaves no undo entry behind.
+    /// </summary>
+    private void MoveSelectionToTarget(IList<MacroStep> target, int index)
+    {
         var selected = Ordered(_selection);
         if (selected.Count == 0)
         {
             return;
         }
 
-        var (target, index) = DropTarget(slot);
         if (selected.Any(step => IsInside(target, step)))
         {
             return;

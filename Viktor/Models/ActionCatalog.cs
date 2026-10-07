@@ -2304,7 +2304,7 @@ public static class ActionCatalog
             Kind = ActionParameterKind.Steps,
             Hint = hint,
             Required = false,
-            AddLabelKey = "Add.NestedAddCase",
+            AddLabelKey = "Add.Case",
             ChildKeys = ["control.case"],
         };
 

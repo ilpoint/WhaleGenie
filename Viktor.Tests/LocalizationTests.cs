@@ -70,6 +70,22 @@ public class LocalizationTests
     }
 
     [Fact]
+    public void Every_list_that_names_its_own_add_button_is_named_in_both_languages()
+    {
+        // The label of an "add to this list" button is a key the catalogue carries, so renaming
+        // the text would otherwise leave the button showing the raw key with nothing to notice it.
+        var gaps = ActionCatalog.Definitions
+            .SelectMany(definition => definition.Parameters)
+            .Select(parameter => parameter.AddLabelKey)
+            .Where(key => key.Length > 0)
+            .Where(key => !Strings.English.ContainsKey(key) || !Strings.Chinese.ContainsKey(key))
+            .Order()
+            .ToList();
+
+        Assert.Empty(gaps);
+    }
+
+    [Fact]
     public void Every_chinese_key_belongs_to_an_action()
     {
         var orphans = Ui.Run(() =>

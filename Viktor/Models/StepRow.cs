@@ -80,8 +80,14 @@ public sealed class StepRow
     /// <summary>What the line closing this block says, named after the block it closes.</summary>
     public string FootLabel => Strings.Format("Editor.BlockEnd", Step.DisplayName);
 
-    /// <summary>What the "add a step here" button on a head row says.</summary>
-    public string AddHint => Strings.Get("Editor.AddInside");
+    /// <summary>
+    /// What the button that adds to this list says. A list the catalogue names — the branches of
+    /// a switch — names itself, so the button says "add a branch" rather than "add a step".
+    /// </summary>
+    public string AddHint => List is not null
+        && Step.ParameterDefinition(List) is { AddLabelKey.Length: > 0 } definition
+            ? Strings.Get(definition.AddLabelKey)
+            : Strings.Get("Editor.AddInside");
 
     // The step's own look, passed through so one row template binds one kind of thing.
 

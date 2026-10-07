@@ -291,7 +291,8 @@ public class MacroStep : INotifyPropertyChanged
         return parameter.Value;
     }
 
-    private ActionParameter? ParameterDefinition(StepParameter parameter)
+    /// <summary>The catalogue entry for a parameter of this step, or null when it is unknown.</summary>
+    public ActionParameter? ParameterDefinition(StepParameter parameter)
         => Definition?.Parameters.FirstOrDefault(parameterDefinition =>
             parameterDefinition.Name == parameter.Name);
 
