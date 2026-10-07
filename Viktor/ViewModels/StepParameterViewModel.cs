@@ -569,25 +569,6 @@ public partial class StepParameterViewModel : ViewModelBase
             : Strings.Format("Add.ExpressionResult", value.AsText());
     }
 
-    /// <summary>
-    /// Answers for every name the macro knows with a plain value, so an expression can be
-    /// checked while the macro is still being written and nothing has run yet.
-    /// </summary>
-    private sealed class KnownVariables(IReadOnlyList<string> names) : IVariableResolver
-    {
-        public bool TryGet(string name, out Value value)
-        {
-            if (names.Any(candidate => string.Equals(candidate, name, StringComparison.OrdinalIgnoreCase)))
-            {
-                value = Value.FromNumber(0);
-                return true;
-            }
-
-            value = Value.Null;
-            return false;
-        }
-    }
-
     /// <summary>The value as text, taken from whichever editor this parameter uses.</summary>
     public string CurrentText => Definition.Kind switch
     {

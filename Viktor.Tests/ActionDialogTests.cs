@@ -261,6 +261,54 @@ public class ActionDialogTests
     }
 
     [Fact]
+    public void A_switch_compares_two_operands_with_an_operator_from_a_list()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("control.switch");
+            var value = viewModel.Parameters.First(parameter => parameter.Definition.Name == "value");
+            var mode = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "matchMode");
+
+            // Both sides of a switch's comparison are operands: a variable list to pick from with
+            // room to type, so a value never has to be spelled from memory. The operator is only
+            // ever picked, never written out.
+            Assert.True(value.IsVariable);
+            Assert.False(value.IsExpression);
+            Assert.True(mode.IsChoice);
+            Assert.NotEmpty(mode.Choices);
+
+            var branch = Open("control.case");
+            var values = branch.Parameters.First(parameter => parameter.Definition.Name == "values");
+
+            // The other side is an operand too, so the branch values read the same way the value
+            // they are compared with does.
+            Assert.True(values.IsVariable);
+        });
+    }
+
+    [Fact]
+    public void A_variable_calculation_picks_its_operands_and_its_operator()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("control.calculate");
+            var left = viewModel.Parameters.First(parameter => parameter.Definition.Name == "left");
+            var right = viewModel.Parameters.First(parameter => parameter.Definition.Name == "right");
+            var op = viewModel.Parameters.First(parameter => parameter.Definition.Name == "operator");
+
+            // An operand is a variable list that can still be typed into; the operator is a fixed
+            // list, which is the whole point of the action: it is one step of arithmetic the user
+            // assembles instead of a formula the user has to write.
+            Assert.True(left.IsVariable);
+            Assert.True(right.IsVariable);
+            Assert.True(op.IsChoice);
+            Assert.Equal("add", op.Definition.DefaultValue);
+            Assert.Contains(op.Choices, choice => choice.Value == "divide");
+        });
+    }
+
+    [Fact]
     public void The_steps_of_a_block_are_edited_in_the_editor_and_not_in_the_dialog()
     {
         Ui.Run(() =>

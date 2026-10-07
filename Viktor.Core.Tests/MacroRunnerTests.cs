@@ -944,6 +944,78 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task A_calculation_works_out_the_two_operands_and_stores_the_answer()
+    {
+        var store = Store(("count", 4));
+        var (result, _) = await RunAsync(
+            [Step("control.calculate",
+                Param("name", "total"), Param("scope", "local"),
+                Param("left", "$count"), Param("operator", "add"), Param("right", "3"))],
+            variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(7, N(store, "total"));
+    }
+
+    [Fact]
+    public async Task A_calculation_offers_subtract_multiply_divide_and_remainder()
+    {
+        var store = Store(("n", 10), ("m", 3));
+        var (result, _) = await RunAsync(
+            [
+                Step("control.calculate",
+                    Param("name", "minus"), Param("left", "$n"), Param("operator", "subtract"),
+                    Param("right", "$m")),
+                Step("control.calculate",
+                    Param("name", "times"), Param("left", "$n"), Param("operator", "multiply"),
+                    Param("right", "$m")),
+                Step("control.calculate",
+                    Param("name", "over"), Param("left", "$n"), Param("operator", "divide"),
+                    Param("right", "4")),
+                Step("control.calculate",
+                    Param("name", "left"), Param("left", "$n"), Param("operator", "remainder"),
+                    Param("right", "$m")),
+            ],
+            variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(7, N(store, "minus"));
+        Assert.Equal(30, N(store, "times"));
+        Assert.Equal(2.5, N(store, "over"));
+        Assert.Equal(1, N(store, "left"));
+    }
+
+    [Fact]
+    public async Task A_calculation_can_put_two_pieces_of_text_together()
+    {
+        var store = Store();
+        store.Local.SetText("name", "Ada");
+        var (result, _) = await RunAsync(
+            [Step("control.calculate",
+                Param("name", "greeting"), Param("left", "Hello "),
+                Param("operator", "join"), Param("right", "$name"))],
+            variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("Hello Ada", store.Local.Values["greeting"].AsText());
+    }
+
+    [Fact]
+    public async Task A_calculation_that_divides_by_zero_fails_the_step()
+    {
+        var store = Store();
+        var (result, _) = await RunAsync(
+            [Step("control.calculate",
+                Param("name", "x"), Param("left", "1"), Param("operator", "divide"),
+                Param("right", "0"))],
+            variables: store);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.DivideByZero", result.Key);
+        Assert.False(store.TryGet("x", out _));
+    }
+
+    [Fact]
     public async Task Lists_can_be_created_and_changed()
     {
         var store = Store();

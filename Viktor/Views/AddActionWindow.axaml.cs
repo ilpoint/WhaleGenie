@@ -184,6 +184,25 @@ public partial class AddActionWindow : Window
         }
     }
 
+    /// <summary>
+    /// Opens the expression builder on the field that asked for it and keeps what it returns.
+    /// Writing a formula is the same whether the field holds an expression or a number turned
+    /// into one, so both reach it through here.
+    /// </summary>
+    private async void OnOpenExpressionBuilder(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel parameter })
+        {
+            return;
+        }
+
+        if (await ExpressionBuilderWindow.ShowFor(this, parameter.Text ?? string.Empty,
+                parameter.Variables) is { } built)
+        {
+            parameter.Text = built;
+        }
+    }
+
     /// <summary>Folds one group of the action picker open or shut.</summary>
     private void OnToggleActionGroup(object? sender, RoutedEventArgs e)
     {

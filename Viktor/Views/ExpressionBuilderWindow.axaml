@@ -1,0 +1,190 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Viktor.ViewModels"
+        xmlns:loc="using:Viktor.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="620"
+        x:Class="Viktor.Views.ExpressionBuilderWindow"
+        x:DataType="vm:ExpressionBuilderViewModel"
+        Title="Viktor"
+        Width="560" Height="620"
+        MinWidth="460" MinHeight="420"
+        WindowStartupLocation="CenterOwner"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        WindowDecorations="BorderOnly"
+        Background="#232323">
+
+    <Design.DataContext>
+        <vm:ExpressionBuilderViewModel />
+    </Design.DataContext>
+
+    <Window.Styles>
+        <Style Selector="TextBlock.FieldLabel">
+            <Setter Property="Foreground" Value="#C8A165" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Margin" Value="2,0,0,5" />
+        </Style>
+        <Style Selector="TextBlock.Muted">
+            <Setter Property="Foreground" Value="#9A9A9A" />
+            <Setter Property="FontSize" Value="11.5" />
+        </Style>
+
+        <Style Selector="TextBox.ExprInput">
+            <Setter Property="Background" Value="#1E1E1E" />
+            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="9,7" />
+        </Style>
+
+        <Style Selector="ComboBox.OpSelect">
+            <Setter Property="Background" Value="#1E1E1E" />
+            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="FontSize" Value="12.5" />
+        </Style>
+
+        <Style Selector="Button.OpButton">
+            <Setter Property="Background" Value="#333333" />
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="MinWidth" Value="46" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.OpButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#454545" />
+        </Style>
+
+        <Style Selector="Button.FlatButton">
+            <Setter Property="Background" Value="#404040" />
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4C4C4C" />
+        </Style>
+
+        <Style Selector="Button.PrimaryButton">
+            <Setter Property="Background" Value="#C8401C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Padding" Value="18,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#D9502A" />
+        </Style>
+
+        <Style Selector="Button.TitleBarButton">
+            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4A4A4A" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="38,*,Auto">
+        <Grid Grid.Row="0" Background="#202020" ColumnDefinitions="Auto,*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
+                <Border Background="#C8401C" CornerRadius="4" Padding="4,1" Width="30">
+                    <TextBlock Text="VIK" Foreground="White" FontWeight="Bold" FontSize="9"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock Text="{Binding Header}" Foreground="#E8E8E8" FontSize="13"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0"
+                        VerticalAlignment="Center">
+                <Button Classes="TitleBarButton" Name="CloseButton">
+                    <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6"
+                          Data="M 1,1 L 7,7 M 1,7 L 7,1" />
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" Padding="16,12,16,4" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding Help}" />
+
+                <TextBlock Classes="FieldLabel" Margin="2,14,0,6"
+                           Text="{Binding OperatorsHeader}" />
+                <ItemsControl ItemsSource="{Binding Operators}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ExpressionOperator">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Margin="0,0,0,5">
+                                <Button Classes="OpButton" Content="{Binding Token}"
+                                        ToolTip.Tip="{Binding Hint}"
+                                        Click="OnInsertOperator" />
+                                <TextBlock Grid.Column="1" Classes="Muted" VerticalAlignment="Center"
+                                           TextWrapping="Wrap" Text="{Binding Hint}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Classes="FieldLabel" Margin="2,16,0,6"
+                           Text="{Binding ExpressionHeader}" />
+                <TextBox Name="ExpressionBox" Classes="ExprInput"
+                         AcceptsReturn="True" TextWrapping="Wrap" Height="74"
+                         PlaceholderText="{Binding Placeholder}"
+                         Text="{Binding Expression}" />
+                <TextBlock Classes="Muted" Margin="2,6,0,0" TextWrapping="Wrap"
+                           Foreground="#E06C75" Text="{Binding Message}"
+                           IsVisible="{Binding ShowError}" />
+                <TextBlock Classes="Muted" Margin="2,6,0,0" TextWrapping="Wrap"
+                           Foreground="#7FC97F" Text="{Binding Message}"
+                           IsVisible="{Binding ShowOk}" />
+
+                <TextBlock Classes="FieldLabel" Margin="2,16,0,6"
+                           Text="{Binding VariablesHeader}" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <ComboBox Classes="OpSelect" HorizontalAlignment="Stretch"
+                              ItemsSource="{Binding Variables}"
+                              SelectedItem="{Binding Variable}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" FontSize="12.5" Foreground="#E8E8E8" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Button Grid.Column="1" Classes="FlatButton" Height="32" Padding="14,0"
+                            Content="{Binding InsertLabel}" Click="OnInsertVariable" />
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="16,10,16,14">
+            <Button Grid.Column="1" Classes="FlatButton" Height="36" MinWidth="92"
+                    Content="{Binding [Add.Cancel], Source={x:Static loc:Strings.Current}}"
+                    Command="{Binding CancelCommand}" />
+            <Button Grid.Column="2" Classes="PrimaryButton" Height="36" MinWidth="110"
+                    Margin="8,0,0,0"
+                    Content="{Binding [Common.Ok], Source={x:Static loc:Strings.Current}}"
+                    Command="{Binding ConfirmCommand}" />
+        </Grid>
+    </Grid>
+</Window>

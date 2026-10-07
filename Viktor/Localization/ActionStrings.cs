@@ -187,9 +187,10 @@ internal static class ActionStrings
 
         ["control.switch.name"] = "多分支",
         ["control.switch.desc"] = "拿一个值从上到下比对各分支，命中第一个就执行它的步骤，都没命中就走“其他情况”。",
-        ["control.switch.value.label"] = "要比对的值",
-        ["control.switch.value.hint"] = "执行到这一步时读取一次，用来和各分支填的值比较。",
-        ["control.switch.matchMode.label"] = "比对方式",
+        ["control.switch.value.label"] = "要比对的值（操作数）",
+        ["control.switch.value.hint"] = "执行到这一步时读取一次，用来和各分支填的值比较。从下拉列表里选一个变量，"
+            + "也可以直接手输变量名、数字或文本。",
+        ["control.switch.matchMode.label"] = "比对方式（运算符）",
         ["control.switch.matchMode.hint"] = "决定分支里填的值怎么和上面的值比较。",
         ["control.switch.matchMode.option.equals"] = "等于",
         ["control.switch.matchMode.option.contains"] = "包含",
@@ -202,8 +203,9 @@ internal static class ActionStrings
 
         ["control.case.name"] = "分支",
         ["control.case.desc"] = "多分支里的一条：它应答哪些值，以及命中后要执行的步骤。",
-        ["control.case.values.label"] = "分支值",
-        ["control.case.values.hint"] = "这条分支应答的值，用“;”隔开；每个值都按上面的比对方式和要比对的值比较。",
+        ["control.case.values.label"] = "分支值（操作数）",
+        ["control.case.values.hint"] = "这条分支应答的值，从下拉列表里选变量或直接手输，用“;”隔开多个；"
+            + "每个值都按上面的比对方式和要比对的值比较。",
         ["control.case.body.label"] = "分支步骤",
         ["control.case.body.hint"] = "这条分支命中时执行的子步骤。",
 
@@ -239,6 +241,29 @@ internal static class ActionStrings
         ["control.setVariable.scope.hint"] = "局部变量只属于本宏，全局变量由所有宏共享。",
         ["control.setVariable.scope.option.local"] = "局部变量（仅本宏）",
         ["control.setVariable.scope.option.global"] = "全局变量（所有宏共享）",
+
+        ["control.calculate.name"] = "变量运算",
+        ["control.calculate.desc"] = "用两个操作数和一个运算符算出一个值，存进变量里，不用自己写公式。",
+        ["control.calculate.name.label"] = "结果变量名",
+        ["control.calculate.name.hint"] = "算出来的值存在这里。局部变量在这里命名即可；"
+            + "全局变量必须先在变量中心创建。",
+        ["control.calculate.scope.label"] = "作用范围",
+        ["control.calculate.scope.hint"] = "局部变量只属于本宏，全局变量由所有宏共享。",
+        ["control.calculate.scope.option.local"] = "局部变量（仅本宏）",
+        ["control.calculate.scope.option.global"] = "全局变量（所有宏共享）",
+        ["control.calculate.left.label"] = "左操作数",
+        ["control.calculate.left.hint"] = "第一个操作数，从下拉列表里选变量或直接手输。它不一定是数字："
+            + "“拼接文本”会把两段文本接在一起。",
+        ["control.calculate.operator.label"] = "运算符",
+        ["control.calculate.operator.hint"] = "要对两个操作数做什么，只能从这个下拉列表里选。",
+        ["control.calculate.operator.option.add"] = "加（+）",
+        ["control.calculate.operator.option.subtract"] = "减（−）",
+        ["control.calculate.operator.option.multiply"] = "乘（×）",
+        ["control.calculate.operator.option.divide"] = "除（÷）",
+        ["control.calculate.operator.option.remainder"] = "取余（%）",
+        ["control.calculate.operator.option.join"] = "拼接文本",
+        ["control.calculate.right.label"] = "右操作数",
+        ["control.calculate.right.hint"] = "第二个操作数，从下拉列表里选变量或直接手输。",
 
         ["control.listCreate.name"] = "创建列表",
         ["control.listCreate.desc"] = "建立一个列表变量，覆盖它原来的内容。",

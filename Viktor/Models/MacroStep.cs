@@ -330,7 +330,7 @@ public class MacroStep : INotifyPropertyChanged
     {
         "itemVariable" or "indexVariable" or "resultVariable" or "errorVariable"
             or "exitCodeVariable" or "saveTo" => true,
-        "name" => Type is "control.setVariable" or "control.listCreate",
+        "name" => Type is "control.setVariable" or "control.calculate" or "control.listCreate",
         "variable" => Type is "control.for",
         "elapsedVariable" => Type is "control.waitUntil",
         _ => false,

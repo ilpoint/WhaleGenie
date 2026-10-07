@@ -89,6 +89,18 @@ public static class ActionCatalog
     private static readonly string[] MatchModeLabels =
         ["Equals", "Contains", "Starts with", "Regex"];
 
+    /// <summary>
+    /// The operators <c>control.calculate</c> offers. They are a fixed list rather than free text
+    /// because the point of the action is to stop the user from having to write an expression:
+    /// the operator is picked, never spelled.
+    /// </summary>
+    private static readonly string[] CalculateOperators =
+        ["add", "subtract", "multiply", "divide", "remainder", "join"];
+
+    /// <summary>English fallback text for <see cref="CalculateOperators"/>; the UI translates it.</summary>
+    private static readonly string[] CalculateOperatorLabels =
+        ["Add (+)", "Subtract (−)", "Multiply (×)", "Divide (÷)", "Remainder (%)", "Join text"];
+
     /// <summary>Every action offered by the "Select Action" dropdown, grouped by category.</summary>
     public static IReadOnlyList<ActionDefinition> Definitions { get; } =
     [
@@ -244,9 +256,13 @@ public static class ActionCatalog
             Description = "Run the one case whose values match, and the otherwise steps when none do.",
             Parameters =
             [
-                Expression("value", "Value", "$name",
-                    "What the cases are compared against, read once when the step runs."),
-                Choice("matchMode", "Match mode", MatchModes, "equals",
+                // The value is an operand rather than an expression: it reads from the variable
+                // list like a condition does, and plain text such as "Running fast" is a value,
+                // not a mistake to flag. A one-step formula still works, the engine reads both.
+                Variable("value", "Value (operand)", "count",
+                    "What the cases are compared against, read once when the step runs. Pick a "
+                    + "variable from the list or type a name, a number or text of your own."),
+                Choice("matchMode", "Match mode (operator)", MatchModes, "equals",
                     "How a case's values are compared with the value.",
                     labels: MatchModeLabels),
                 CaseList("cases", "Cases",
@@ -264,9 +280,12 @@ public static class ActionCatalog
             Hidden = true,
             Parameters =
             [
-                Text("values", "Values", "a; b; c",
-                    "Values this case answers to, separated by \";\". Each one is compared with "
-                    + "the switch's value the way its match mode says."),
+                // The other half of the comparison the switch names. It is an operand too, so the
+                // two sides of a case read the same way and neither has to be spelled from memory.
+                Variable("values", "Values (operand)", "a; b; c",
+                    "Values this case answers to, picked from the variable list or typed in, "
+                    + "separated by \";\". Each one is compared with the switch's value the way "
+                    + "its match mode says."),
                 Steps("body", "Case steps", "Steps that run when this case matches."),
             ],
         },
@@ -330,6 +349,31 @@ public static class ActionCatalog
                     labels: ["Local (this macro)", "Global (shared)"]),
                 Expression("value", "Value", "3",
                     "A number, text, $variable, or a formula such as $count + 1 or upper($name)."),
+            ],
+        },
+        new()
+        {
+            Key = "control.calculate",
+            Category = ActionCategory.Control,
+            DisplayName = "Calculate",
+            Description = "Work out one value from two operands and store it in a variable.",
+            Parameters =
+            [
+                Variable("name", "Variable name", "count",
+                    "Where the answer is stored. Local variables are created here; global "
+                    + "variables must exist already, add them in the Variable Center.",
+                    namesVariable: true),
+                Choice("scope", "Scope", ["local", "global"], "local",
+                    "Local values belong to this macro, global values are shared by every macro.",
+                    labels: ["Local (this macro)", "Global (shared)"]),
+                Variable("left", "Left operand", "1",
+                    "The first operand, picked from the variable list or typed in. It does not "
+                    + "have to be a number: \"join\" puts two pieces of text together."),
+                Choice("operator", "Operator", CalculateOperators, "add",
+                    "What to do with the two operands. The operator is chosen from this list.",
+                    labels: CalculateOperatorLabels),
+                Variable("right", "Right operand", "1",
+                    "The second operand, picked from the variable list or typed in."),
             ],
         },
         new()

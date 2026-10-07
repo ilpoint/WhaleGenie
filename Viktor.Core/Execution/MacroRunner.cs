@@ -596,6 +596,10 @@ public sealed class MacroRunner
                 SetVariable(step, depth);
                 return Signal.Normal;
 
+            case "control.calculate":
+                Calculate(step, depth);
+                return Signal.Normal;
+
             case "control.listCreate":
                 CreateList(step, depth);
                 return Signal.Normal;
@@ -1526,6 +1530,55 @@ public sealed class MacroRunner
         Variables.Set(name, value, target);
         Log(LogLevel.Info, depth, step.Type, "Run.Set", name, value.AsText());
     }
+
+    /// <summary>
+    /// Works out one value from two operands and an operator the step chose from a fixed list,
+    /// and stores it. It is the same arithmetic an expression would write, offered as pickable
+    /// pieces so nothing has to be spelled from memory.
+    /// </summary>
+    private void Calculate(ExecutableStep step, int depth)
+    {
+        var name = step.Text("name").Trim();
+        if (name.Length == 0)
+        {
+            throw new StepFailure("Run.MissingVariable");
+        }
+
+        var left = Read(step.Text("left"));
+        var right = Read(step.Text("right"));
+        var value = step.Text("operator") switch
+        {
+            "subtract" => Value.FromNumber(left.AsNumber() - right.AsNumber()),
+            "multiply" => Value.FromNumber(left.AsNumber() * right.AsNumber()),
+            "divide" => Divide(left.AsNumber(), right.AsNumber()),
+            "remainder" => Remainder(left.AsNumber(), right.AsNumber()),
+            "join" => Value.FromText(Join(step.Text("left"), step.Text("right"))),
+            _ => Value.FromNumber(left.AsNumber() + right.AsNumber()),
+        };
+
+        var target = Target(step);
+        Variables.Set(name, value, target);
+        Log(LogLevel.Info, depth, step.Type, "Run.Set", name, value.AsText());
+    }
+
+    /// <summary>Divides, failing the step rather than handing back an infinity the macro cannot read.</summary>
+    private static Value Divide(double left, double right)
+        => right == 0 ? throw new StepFailure("Run.DivideByZero") : Value.FromNumber(left / right);
+
+    /// <summary>The remainder of a division, with the same guard as dividing.</summary>
+    private static Value Remainder(double left, double right)
+        => right == 0 ? throw new StepFailure("Run.DivideByZero") : Value.FromNumber(left % right);
+
+    /// <summary>
+    /// Puts two operands together as text. It reads them as written rather than the way every
+    /// other value is read, because the spaces around a piece of text are the whole point of
+    /// joining: trimming "Hello " would turn "Hello Ada" into "HelloAda".
+    /// </summary>
+    private string Join(string left, string right) => Piece(left) + Piece(right);
+
+    /// <summary>One operand of a join: a name the macro knows, or the text itself with its variables filled in.</summary>
+    private string Piece(string text)
+        => Variables.TryGet(text.Trim(), out var value) ? value.AsText() : Interpolate(text);
 
     private void CreateList(ExecutableStep step, int depth)
     {
