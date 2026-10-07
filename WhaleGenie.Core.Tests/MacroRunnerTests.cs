@@ -1050,6 +1050,37 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task A_calculation_operand_may_be_a_formula_of_its_own()
+    {
+        // The editor offers the expression editor for an operand, so an operand may be worked out
+        // where it is written rather than being one value the macro knows.
+        var store = Store(("count", 4));
+        var (result, _) = await RunAsync(
+            [Step("control.calculate",
+                Param("name", "total"), Param("left", "$count + 1"),
+                Param("operator", "multiply"), Param("right", "2"))],
+            variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(10, N(store, "total"));
+    }
+
+    [Fact]
+    public async Task Putting_text_together_works_out_an_operand_written_as_a_formula()
+    {
+        var store = Store(("count", 3));
+        store.Local.SetText("name", "Ada");
+        var (result, _) = await RunAsync(
+            [Step("control.calculate",
+                Param("name", "line"), Param("left", "upper($name)"),
+                Param("operator", "join"), Param("right", "$count"))],
+            variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("ADA3", store.Local.Values["line"].AsText());
+    }
+
+    [Fact]
     public async Task A_calculation_that_divides_by_zero_fails_the_step()
     {
         var store = Store();

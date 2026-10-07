@@ -1613,15 +1613,34 @@ public sealed class MacroRunner
         => right == 0 ? throw new StepFailure("Run.DivideByZero") : Value.FromNumber(left % right);
 
     /// <summary>
-    /// Puts two operands together as text. It reads them as written rather than the way every
-    /// other value is read, because the spaces around a piece of text are the whole point of
-    /// joining: trimming "Hello " would turn "Hello Ada" into "HelloAda".
+    /// Puts two operands together as text. An operand written as text is read as written rather
+    /// than the way every other value is read, because the spaces around a piece of text are the
+    /// whole point of joining: trimming "Hello " would turn "Hello Ada" into "HelloAda".
     /// </summary>
     private string Join(string left, string right) => Piece(left) + Piece(right);
 
-    /// <summary>One operand of a join: a name the macro knows, or the text itself with its variables filled in.</summary>
+    /// <summary>
+    /// One operand of a join: a name the macro knows, a formula, or the text itself with its
+    /// variables filled in. The editor offers the expression editor for these operands, so a
+    /// formula has to be worked out here — taken literally it would join the formula's own letters
+    /// in and say nothing about having done so. Text that is not a formula keeps its spaces.
+    /// </summary>
     private string Piece(string text)
-        => Variables.TryGet(text.Trim(), out var value) ? value.AsText() : Interpolate(text);
+    {
+        var trimmed = text.Trim();
+        if (Variables.TryGet(trimmed, out var value))
+        {
+            return value.AsText();
+        }
+
+        if (trimmed.Length > 0 && LooksLikeExpression(trimmed)
+            && Expression.TryEvaluate(trimmed, Variables, out var worked, out _))
+        {
+            return worked.AsText();
+        }
+
+        return Interpolate(text);
+    }
 
     private void CreateList(ExecutableStep step, int depth)
     {
