@@ -191,10 +191,17 @@ internal static class ActionStrings
         ["control.switch.value.hint"] = "执行到这一步时读取一次，用来和各分支填的值比较。从下拉列表里选一个变量，"
             + "也可以直接手输变量名、数字或文本。",
         ["control.switch.matchMode.label"] = "比对方式（运算符）",
-        ["control.switch.matchMode.hint"] = "决定分支里填的值怎么和上面的值比较。",
+        ["control.switch.matchMode.hint"] = "决定分支里填的值怎么和上面的值比较：等于、不等于、包含、"
+            + "开头 / 结尾、大于 / 小于、正则，只能从这个下拉框里选。",
         ["control.switch.matchMode.option.equals"] = "等于",
+        ["control.switch.matchMode.option.notEquals"] = "不等于",
         ["control.switch.matchMode.option.contains"] = "包含",
         ["control.switch.matchMode.option.startsWith"] = "以…开头",
+        ["control.switch.matchMode.option.endsWith"] = "以…结尾",
+        ["control.switch.matchMode.option.greaterThan"] = "大于",
+        ["control.switch.matchMode.option.greaterOrEqual"] = "大于等于",
+        ["control.switch.matchMode.option.lessThan"] = "小于",
+        ["control.switch.matchMode.option.lessOrEqual"] = "小于等于",
         ["control.switch.matchMode.option.regex"] = "正则匹配",
         ["control.switch.cases.label"] = "分支",
         ["control.switch.cases.hint"] = "一行一个分支，从上到下比对；命中第一个分支后执行该分支，其余分支不再比对。",

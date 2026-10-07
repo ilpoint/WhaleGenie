@@ -900,7 +900,13 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     private string? ScopeError()
     {
-        if (SelectedDefinition?.Key is not "control.setVariable")
+        // Every action that stores a value into a named variable asks the same two questions:
+        // whether the name belongs to Viktor itself, and whether a shared name exists to write
+        // to. Reading it off the parameters rather than listing the actions means a new one that
+        // stores a value gets the same answers without being remembered here.
+        if (SelectedDefinition is not { } definition
+            || definition.Parameters.All(parameter => parameter.Name != "name")
+            || definition.Parameters.All(parameter => parameter.Name != "scope"))
         {
             return null;
         }

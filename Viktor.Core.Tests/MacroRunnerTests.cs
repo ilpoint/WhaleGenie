@@ -466,6 +466,55 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task A_switch_can_answer_to_every_kind_of_comparison()
+    {
+        var store = Store(("n", 2));
+        store.Local.Set("kind", Value.FromText("Running fast"));
+
+        var (result, _) = await RunAsync(
+        [
+            Step("control.switch", Param("value", "$kind"), Param("matchMode", "endsWith"),
+                Body("cases",
+                    Case("slow", Set("hit", "slow")),
+                    Case("fast", Set("hit", "fast")))),
+            Step("control.switch", Param("value", "$kind"), Param("matchMode", "notEquals"),
+                Body("cases", Case("Stopped", Set("other", "yes")))),
+            Step("control.switch", Param("value", "$n"), Param("matchMode", "greaterThan"),
+                Body("cases", Case("1", Set("big", "yes")))),
+            Step("control.switch", Param("value", "$n"), Param("matchMode", "lessOrEqual"),
+                Body("cases", Case("2", Set("small", "yes")))),
+        ], variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("fast", store.Local.Values["hit"].AsText());
+        Assert.Equal("yes", store.Local.Values["other"].AsText());
+        Assert.Equal("yes", store.Local.Values["big"].AsText());
+        Assert.Equal("yes", store.Local.Values["small"].AsText());
+    }
+
+    [Fact]
+    public async Task A_switch_puts_text_in_order_as_text_and_numbers_as_numbers()
+    {
+        var store = Store();
+        store.Local.Set("word", Value.FromText("banana"));
+        store.Local.SetText("ten", "10");
+
+        var (result, _) = await RunAsync(
+        [
+            // "b" comes after "a", so a text branch that only knows letters still lines up.
+            Step("control.switch", Param("value", "$word"), Param("matchMode", "greaterThan"),
+                Body("cases", Case("apple", Set("after", "yes")))),
+            // 10 is bigger than 9 as a number, and would have come first read as text.
+            Step("control.switch", Param("value", "$ten"), Param("matchMode", "greaterThan"),
+                Body("cases", Case("9", Set("bigger", "yes")))),
+        ], variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("yes", store.Local.Values["after"].AsText());
+        Assert.Equal("yes", store.Local.Values["bigger"].AsText());
+    }
+
+    [Fact]
     public async Task A_switch_with_no_matching_case_and_no_otherwise_does_nothing()
     {
         var store = Store();

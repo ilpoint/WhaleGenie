@@ -66,12 +66,21 @@ public partial class StepParameterViewModel : ViewModelBase
                 ? Strings.Get(definition.AddLabelKey)
                 : Strings.Get("Add.AddStepToBlock");
 
+            // A list that only takes one kind of step says so wherever a step is added to it, and
+            // that includes the button in this dialog: a switch's branches are branches even when
+            // they are added from here, not whatever action happened to be picked.
+            var catalog = conditions
+                ? ActionCatalog.Conditions
+                : definition.ChildKeys.Count > 0
+                    ? ActionCatalog.ForKeys(definition.ChildKeys)
+                    : null;
+
             List = new StepListEditorViewModel(
                 conditions
                     ? Strings.Get(isCondition ? "Add.NestedCondition" : "Add.NestedAddCondition")
                     : addLabel,
                 isCondition,
-                conditions ? ActionCatalog.Conditions : null);
+                catalog);
 
             // The line under the list says how many steps are in it, so it has to follow the list.
             List.PropertyChanged += (_, _) => OnPropertyChanged(nameof(StepsNote));

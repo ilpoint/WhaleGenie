@@ -452,7 +452,8 @@ public sealed class Strings : INotifyPropertyChanged
             + "and the variables in scope are a list, so nothing has to be typed from memory.",
         ["ExprBuilder.Title"] = "Expression builder",
         ["ExprBuilder.Help"] = "Click an operator or a variable to add it at the cursor, or edit "
-            + "the expression directly. The line under the box shows what it comes to.",
+            + "the expression directly. Hover over an operator to see what it does, and watch the "
+            + "line under the box for what the expression comes to.",
         ["ExprBuilder.Operators"] = "Operators",
         ["ExprBuilder.Expression"] = "Expression",
         ["ExprBuilder.Variables"] = "Insert variable",
@@ -1124,7 +1125,7 @@ public sealed class Strings : INotifyPropertyChanged
             + "不用凭记忆手写。",
         ["ExprBuilder.Title"] = "运算编辑器",
         ["ExprBuilder.Help"] = "点运算符或变量即可插入到光标处，也可以直接改下面的表达式。"
-            + "输入框下方会显示它算出来的结果。",
+            + "鼠标停在运算符上会说明它的作用；输入框下方会显示它算出来的结果。",
         ["ExprBuilder.Operators"] = "运算符",
         ["ExprBuilder.Expression"] = "当前表达式",
         ["ExprBuilder.Variables"] = "插入变量",

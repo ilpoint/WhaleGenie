@@ -82,12 +82,24 @@ public static class ActionCatalog
         "Contains", "Does not contain", "Exists", "Regex match",
     ];
 
-    /// <summary>How a switch compares its value against the values of a case.</summary>
-    private static readonly string[] MatchModes = ["equals", "contains", "startsWith", "regex"];
+    /// <summary>
+    /// How a switch compares its value against the values of a case. It carries the same kinds of
+    /// comparison a condition does, so a many-way branch is not a poorer test than a two-way one,
+    /// and it stays one reading per branch: the value on the left is the switch's, the operator
+    /// and the value on the right are the branch's.
+    /// </summary>
+    private static readonly string[] MatchModes =
+    [
+        "equals", "notEquals", "contains", "startsWith", "endsWith",
+        "greaterThan", "greaterOrEqual", "lessThan", "lessOrEqual", "regex",
+    ];
 
     /// <summary>English fallback text for <see cref="MatchModes"/>; the UI translates it.</summary>
     private static readonly string[] MatchModeLabels =
-        ["Equals", "Contains", "Starts with", "Regex"];
+    [
+        "Equals", "Not equals", "Contains", "Starts with", "Ends with",
+        "Greater than", "Greater or equal", "Less than", "Less or equal", "Regex",
+    ];
 
     /// <summary>
     /// The operators <c>control.calculate</c> offers. They are a fixed list rather than free text

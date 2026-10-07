@@ -4,12 +4,12 @@
         xmlns:loc="using:Viktor.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="620"
+        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="470"
         x:Class="Viktor.Views.ExpressionBuilderWindow"
         x:DataType="vm:ExpressionBuilderViewModel"
         Title="Viktor"
-        Width="560" Height="620"
-        MinWidth="460" MinHeight="420"
+        Width="560" Height="470"
+        MinWidth="460" MinHeight="360"
         WindowStartupLocation="CenterOwner"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
@@ -132,16 +132,20 @@
 
                 <TextBlock Classes="FieldLabel" Margin="2,14,0,6"
                            Text="{Binding OperatorsHeader}" />
+                <!-- The operators read as a wall of buttons that wrap, and each one says what it
+                     does on hover. A list with a description beside every button would push the
+                     variable picker below the fold, which is what made the dialog too tall. -->
                 <ItemsControl ItemsSource="{Binding Operators}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:ExpressionOperator">
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Margin="0,0,0,5">
-                                <Button Classes="OpButton" Content="{Binding Token}"
-                                        ToolTip.Tip="{Binding Hint}"
-                                        Click="OnInsertOperator" />
-                                <TextBlock Grid.Column="1" Classes="Muted" VerticalAlignment="Center"
-                                           TextWrapping="Wrap" Text="{Binding Hint}" />
-                            </Grid>
+                            <Button Classes="OpButton" Margin="0,0,6,6" Content="{Binding Token}"
+                                    ToolTip.Tip="{Binding Hint}"
+                                    Click="OnInsertOperator" />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

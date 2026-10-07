@@ -1260,10 +1260,22 @@ public sealed class MacroRunner
     {
         switch (mode.Trim().ToLowerInvariant())
         {
+            case "notequals":
+                return !value.NumericEquals(Value.FromText(wanted));
             case "contains":
                 return value.AsText().Contains(wanted, StringComparison.OrdinalIgnoreCase);
             case "startswith":
                 return value.AsText().StartsWith(wanted, StringComparison.OrdinalIgnoreCase);
+            case "endswith":
+                return value.AsText().EndsWith(wanted, StringComparison.OrdinalIgnoreCase);
+            case "greaterthan":
+                return Order(value.AsText(), wanted) > 0;
+            case "greaterorequal":
+                return Order(value.AsText(), wanted) >= 0;
+            case "lessthan":
+                return Order(value.AsText(), wanted) < 0;
+            case "lessorequal":
+                return Order(value.AsText(), wanted) <= 0;
             case "regex":
                 try
                 {
@@ -1281,6 +1293,17 @@ public sealed class MacroRunner
                 return value.NumericEquals(Value.FromText(wanted));
         }
     }
+
+    /// <summary>
+    /// Puts two texts in order for a greater-than or less-than branch: as numbers when both read
+    /// as numbers, and the way the expression language compares text otherwise, so "b" after "a"
+    /// works and "10" still beats "9" rather than falling behind it.
+    /// </summary>
+    private static int Order(string value, string wanted)
+        => double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var left)
+           && double.TryParse(wanted, NumberStyles.Any, CultureInfo.InvariantCulture, out var right)
+            ? left.CompareTo(right)
+            : string.Compare(value, wanted, StringComparison.OrdinalIgnoreCase);
 
     private async Task<Signal> RunIf(ExecutableStep step, int depth, CancellationToken token)
     {

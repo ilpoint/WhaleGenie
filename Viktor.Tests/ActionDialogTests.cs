@@ -261,6 +261,24 @@ public class ActionDialogTests
     }
 
     [Fact]
+    public void The_add_button_in_a_block_offers_only_what_that_list_takes()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("control.switch");
+            var cases = viewModel.Parameters.First(parameter => parameter.Definition.Name == "cases");
+            var otherwise = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "otherwise");
+
+            // A switch's branches are branches wherever they are added from, so the button in the
+            // dialog is narrowed the same way the editor's own list is. An ordinary block takes
+            // anything and says so by offering nothing in particular.
+            Assert.Equal(["control.case"], cases.List!.Catalog!.Select(action => action.Key));
+            Assert.Null(otherwise.List!.Catalog);
+        });
+    }
+
+    [Fact]
     public void A_switch_compares_two_operands_with_an_operator_from_a_list()
     {
         Ui.Run(() =>
@@ -305,6 +323,28 @@ public class ActionDialogTests
             Assert.True(op.IsChoice);
             Assert.Equal("add", op.Definition.DefaultValue);
             Assert.Contains(op.Choices, choice => choice.Value == "divide");
+        });
+    }
+
+    [Fact]
+    public void Nothing_can_be_stored_into_a_variable_Viktor_owns()
+    {
+        Ui.Run(() =>
+        {
+            // The variables Viktor provides are read-only, and the rule belongs to storing a value
+            // under a name rather than to one action, so a calculation is refused the same way
+            // "Set Variable" is. The clipboard is written by the clipboard action, never by
+            // storing into sys.clipboard.
+            foreach (var key in new[] { "control.setVariable", "control.calculate", "control.listCreate" })
+            {
+                var viewModel = Open(key);
+                viewModel.Parameters.First(parameter => parameter.Definition.Name == "name").Text =
+                    "sys.clipboard";
+
+                Assert.False(viewModel.CanSave);
+                Assert.Equal(Strings.Format("Add.SystemReadOnly", "sys.clipboard"),
+                    viewModel.ValidationMessage);
+            }
         });
     }
 
