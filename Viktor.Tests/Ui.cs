@@ -1,5 +1,12 @@
 using Avalonia.Headless;
 
+// The headless session is one thread carrying one Avalonia application. Two test classes that
+// start at the same time race to set that up, and the one that loses is told its own dispatcher
+// belongs to another thread — a failure that says nothing about what the check was looking at.
+// So the checks that need the session take their turn instead of starting together. The engine's
+// own checks live in another assembly and still run side by side.
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
+
 namespace Viktor.Tests;
 
 /// <summary>
