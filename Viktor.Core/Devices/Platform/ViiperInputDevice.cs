@@ -51,6 +51,19 @@ public sealed class ViiperInputDevice : IInputDevice, IDisposable
     /// </summary>
     private const int SettleMs = 30;
 
+    /// <summary>How many times a move is tried before the machine is given up on.</summary>
+    private const int SeekTries = 12;
+
+    /// <summary>How close to the point asked for counts as being there, in pixels.</summary>
+    private const int Arrived = 1;
+
+    /// <summary>
+    /// How far the pointer is moved to find out whether the machine is listening to the devices at
+    /// all. A pixel is not enough: the machine rounds movement this small away, and the check would
+    /// answer "no" on a device that is working perfectly well.
+    /// </summary>
+    private const int Nudge = 10;
+
     private readonly Func<IViiperLink> _connect;
 
     private readonly object _gate = new();
@@ -185,15 +198,17 @@ public sealed class ViiperInputDevice : IInputDevice, IDisposable
 
         lock (_gate)
         {
-            // The path starts where the pointer was when it was planned. Going there first costs
-            // one report and makes the last point land exactly, wherever the pointer really was.
-            var from = Pointer();
-            Push(path[0].X - from.X, path[0].Y - from.Y);
+            // Both ends of the path are made sure of: the first is where the pointer is meant to
+            // already be, and the last is where the macro wants it. Everything between is only the
+            // way it gets there.
+            _ = Seek(path[0]);
 
             if (path.Count > 1 && durationMs > 0)
             {
                 Walk(path, Math.Max(1, durationMs / (path.Count - 1)));
             }
+
+            _ = Seek(path[^1]);
         }
     }
 
@@ -296,6 +311,9 @@ public sealed class ViiperInputDevice : IInputDevice, IDisposable
                 Walk(path, path.Count > 1 && durationMs > 0
                     ? Math.Max(1, durationMs / (path.Count - 1))
                     : 0);
+
+                // The end of a drag is where the button is let go, so it is worth landing on.
+                _ = Seek(path[^1]);
             }
             finally
             {
@@ -344,15 +362,14 @@ public sealed class ViiperInputDevice : IInputDevice, IDisposable
     /// <summary>Walks the pointer to one point, or sends the whole distance at once.</summary>
     private void Glide(ScreenPoint to, int durationMs)
     {
-        var from = Pointer();
-        if (durationMs <= 0)
+        if (durationMs > 0)
         {
-            Push(to.X - from.X, to.Y - from.Y);
-            return;
+            var from = Pointer();
+            var stops = MousePath.StepsFor(MouseRoute.Direct, durationMs);
+            Walk(MousePath.Plan(MouseRoute.Direct, from, to, stops), durationMs / stops);
         }
 
-        var stops = MousePath.StepsFor(MouseRoute.Direct, durationMs);
-        Walk(MousePath.Plan(MouseRoute.Direct, from, to, stops), durationMs / stops);
+        _ = Seek(to);
     }
 
     /// <summary>
@@ -452,8 +469,8 @@ public sealed class ViiperInputDevice : IInputDevice, IDisposable
     }
 
     /// <summary>
-    /// The connection to the server, opened the first time a step needs it. Opening it is what
-    /// fails when the driver or the server is missing, so it happens here rather than when the
+    /// The connection to the server, opened and woken the first time a step needs it. Opening it is
+    /// what fails when the driver or the server is missing, so it happens here rather than when the
     /// device is made — and the run reports it on the step that asked for driver-level input.
     /// </summary>
     private IViiperLink Link()
@@ -464,37 +481,39 @@ public sealed class ViiperInputDevice : IInputDevice, IDisposable
         }
 
         var link = _connect();
+        _link = link;
+
         try
         {
-            Wake(link);
+            Wake();
+            return link;
         }
         catch
         {
+            _link = null;
             link.Dispose();
             throw;
         }
-
-        _link = link;
-        return link;
     }
 
     /// <summary>
-    /// Waits for the virtual keyboard and mouse to be devices the machine is really listening to.
-    /// A device that has just been put on the machine is not one yet: report after report goes
-    /// nowhere for a quarter of a second, and a macro's first move would silently not happen.
+    /// Waits for the virtual keyboard and mouse to be devices the machine is really listening to,
+    /// and gives up when they never are.
     ///
-    /// The check is a nudge of one pixel that is taken straight back, so the pointer ends where it
-    /// started. It is also the only way to tell a device that never attaches at all — which is what
-    /// a VIIPER server started without its auto-attach flag leaves behind — from one that works.
+    /// A device that has just been put on the machine is not one the machine polls yet: everything
+    /// sent in the first quarter of a second goes nowhere, so a macro's first move would silently
+    /// not happen. Nothing can be read back from a keyboard, but the pointer can be asked to move
+    /// and put back, which is what this does — both ways round, in case one of them is off the edge
+    /// of the screen, and wait as long as a device takes to be noticed. A device the machine never
+    /// notices never moves at all, which is what a VIIPER server started without its auto-attach
+    /// flag leaves behind.
     /// </summary>
-    private static void Wake(IViiperLink link)
+    private void Wake()
     {
-        var at = link.Cursor;
-        for (var attempt = 0; attempt < 20; attempt++)
+        var at = Pointer();
+        foreach (var (dx, dy) in new[] { (Nudge, 0), (-Nudge, 0), (0, Nudge), (0, -Nudge) })
         {
-            // Both ways round, because a pointer sitting against an edge of the screen has nowhere
-            // to go in that direction.
-            if (Nudge(link, at, 1) || Nudge(link, at, -1))
+            if (Seek(new ScreenPoint(at.X + dx, at.Y + dy)) && Seek(at))
             {
                 return;
             }
@@ -503,20 +522,50 @@ public sealed class ViiperInputDevice : IInputDevice, IDisposable
         throw new DeviceActionException("Run.NoDriverAttached");
     }
 
-    /// <summary>Moves the pointer a hair and puts it back, saying whether the machine moved it.</summary>
-    private static bool Nudge(IViiperLink link, ScreenPoint at, short by)
+    /// <summary>
+    /// Puts the pointer on a point, saying whether it got there.
+    ///
+    /// A report can go nowhere while the machine is still waking up to a device that has just been
+    /// plugged in, and a pointer whose speed the machine boosts moves further than it was told, so
+    /// what is left to cover is measured and sent again rather than assumed. Each try after one
+    /// that went too far sends less of what remains, which settles rather than swinging wider.
+    ///
+    /// A point the machine will not allow — past the edge of the screen, say — is not a failure of
+    /// the step: the pointer is left as close as the machine lets it be and the macro carries on,
+    /// which is what the same move does when it is sent through the front device.
+    /// </summary>
+    private bool Seek(ScreenPoint to)
     {
-        link.SendMouse(0, by, 0, 0, 0);
-        Thread.Sleep(SettleMs);
-
-        var moved = link.Cursor.X - at.X;
-        if (moved == 0)
+        var share = 1.0;
+        var at = Pointer();
+        for (var attempt = 0; attempt < SeekTries; attempt++)
         {
-            return false;
+            var dx = to.X - at.X;
+            var dy = to.Y - at.Y;
+            if (Math.Abs(dx) <= Arrived && Math.Abs(dy) <= Arrived)
+            {
+                return true;
+            }
+
+            Push(Step(dx, share), Step(dy, share));
+            Sleep(SettleMs);
+
+            var now = Pointer();
+            if (Math.Abs(to.X - now.X) > Math.Abs(dx) || Math.Abs(to.Y - now.Y) > Math.Abs(dy))
+            {
+                share /= 2;
+            }
+
+            at = now;
         }
 
-        link.SendMouse(0, (short)-moved, 0, 0, 0);
-        Thread.Sleep(SettleMs);
-        return true;
+        return false;
+    }
+
+    /// <summary>How much of the distance left to cover to send, and never nothing at all.</summary>
+    private static int Step(int left, double share)
+    {
+        var step = (int)Math.Round(left * share, MidpointRounding.AwayFromZero);
+        return step != 0 ? step : Math.Sign(left);
     }
 }

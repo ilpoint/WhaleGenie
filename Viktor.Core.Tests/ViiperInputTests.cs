@@ -194,9 +194,7 @@ public class ViiperInputTests
 
         Assert.Equal(
         [
-            "mouse 0:0,0:0,0", // the pointer is already there, and nothing is held
-            "mouse 2:0,0:0,0", // pressed
-            "mouse 2:0,0:0,0", // still pressed while the pointer is put where it is let go
+            "mouse 2:0,0:0,0", // pressed, where the pointer already is
             "mouse 0:0,0:0,0", // let go
         ], link.Sent);
     }
@@ -210,7 +208,7 @@ public class ViiperInputTests
 
         // One notch at a time: the device counts in whole notches, and the machine turns each of
         // them into the 120 units a step asks in.
-        Assert.Equal(["mouse 0:0,0:0,0", "mouse 0:0,0:-1,0"], link.Sent);
+        Assert.Equal(["mouse 0:0,0:-1,0"], link.Sent);
     }
 
     [Fact]
@@ -222,7 +220,6 @@ public class ViiperInputTests
 
         Assert.Equal(
         [
-            "mouse 0:0,0:0,0",
             "mouse 0:0,0:-1,0",
             "mouse 0:0,0:-1,0",
             "mouse 0:0,0:-1,0",
@@ -236,7 +233,7 @@ public class ViiperInputTests
 
         device.Scroll("right", 120, 0, 0);
 
-        Assert.Equal(["mouse 0:0,0:0,0", "mouse 0:0,0:0,1"], link.Sent);
+        Assert.Equal(["mouse 0:0,0:0,1"], link.Sent);
     }
 
     [Fact]
@@ -301,6 +298,32 @@ public class ViiperInputTests
         Assert.Equal("Run.NoDriverAttached", failure.Key);
     }
 
+    [Fact]
+    public void A_device_the_machine_has_not_noticed_yet_is_waited_for()
+    {
+        // A device that has just been plugged in is not polled for a moment, so what it sends in
+        // that moment goes nowhere. Waiting is the whole point of the nudge, and it is undone so
+        // that opening a connection does not move the pointer.
+        var link = new FakeLink(10, 20, deaf: 5);
+        using var device = new ViiperInputDevice(() => link);
+
+        Assert.Equal(new ScreenPoint(10, 20), device.Cursor);
+        Assert.Equal(new ScreenPoint(10, 20), link.Cursor);
+    }
+
+    [Fact]
+    public void A_move_to_a_point_the_machine_will_not_allow_leaves_the_pointer_where_it_can()
+    {
+        // The machine keeps the pointer on the screen, so a macro that asks for a point past the edge
+        // of it lands on the edge and carries on — which is what the same move does when it goes
+        // through the front device, rather than failing the step.
+        using var device = new ViiperInputDevice(() => new FakeLink(0, 0, limitX: 100));
+
+        device.MoveMouse(500, 0, 0);
+
+        Assert.Equal(new ScreenPoint(100, 0), device.Cursor);
+    }
+
     private static (ViiperInputDevice Device, FakeLink Link) Linked(int x = 0, int y = 0)
     {
         var link = new FakeLink(x, y);
@@ -316,9 +339,11 @@ public class ViiperInputTests
 
     /// <summary>
     /// A link that writes every report down instead of sending it, and moves its own idea of the
-    /// pointer by what the reports say — which is what the machine on the other end does.
+    /// pointer by what the reports say — which is what the machine on the other end does. It can be
+    /// told to be deaf for a while, the way a device the machine has not noticed yet is, and to keep
+    /// the pointer inside a limit, the way a screen edge does.
     /// </summary>
-    private sealed class FakeLink(int x, int y) : IViiperLink
+    private sealed class FakeLink(int x, int y, int deaf = 0, int? limitX = null) : IViiperLink
     {
         public List<string> Sent { get; } = [];
 
@@ -330,7 +355,18 @@ public class ViiperInputTests
         public void SendMouse(byte buttons, short dx, short dy, short wheel, short pan)
         {
             Sent.Add($"mouse {buttons}:{dx},{dy}:{wheel},{pan}");
+
+            if (deaf > 0)
+            {
+                deaf--;
+                return;
+            }
+
             Cursor = new ScreenPoint(Cursor.X + dx, Cursor.Y + dy);
+            if (limitX is { } bound && Cursor.X > bound)
+            {
+                Cursor = new ScreenPoint(bound, Cursor.Y);
+            }
         }
 
         public void Dispose()
