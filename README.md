@@ -135,6 +135,8 @@ WhaleGenie\
     WhaleGenie.dll
     WhaleGenie.deps.json
     WhaleGenie.runtimeconfig.json
+    LICENSE.txt                 ← 程序自己的许可
+    THIRD-PARTY-NOTICES.md      ← 用到的别人的东西，见下面「致谢与许可」
     lib\                    ← 程序用到的 dll 都在这一层文件夹里
 ```
 
