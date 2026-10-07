@@ -490,6 +490,16 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.FailureScreenshot"] = "Save a picture of the screen when a run fails",
         ["Settings.FailureScreenshotHint"] =
             "Kept in the logs folder beside the program. Nothing is written while a macro runs well.",
+        ["Settings.Driver"] = "Driver-level input",
+        ["Settings.DriverReady"] = "usbip-win2 driver installed, VIIPER server answering.",
+        ["Settings.DriverMissing"] = "The usbip-win2 driver is not installed.",
+        ["Settings.DriverServerMissing"] =
+            "The usbip-win2 driver is installed, but no VIIPER server is answering.",
+        ["Settings.DriverInstall"] = "Install driver...",
+        ["Settings.DriverHint"] =
+            "Driver-level input makes the target program see real hardware. It needs the usbip-win2 "
+            + "driver and a running VIIPER server; the driver is installed by hand, which wants "
+            + "administrator rights, briefly disconnects USB devices and may ask for a restart.",
         ["Settings.Note"] = "Action names and parameter text use the selected language when a window is opened.",
         ["Settings.Close"] = "Close",
 
@@ -1168,6 +1178,14 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.LanguageHint"] = "立即应用到所有窗口。",
         ["Settings.FailureScreenshot"] = "运行失败时保存屏幕截图",
         ["Settings.FailureScreenshotHint"] = "保存到程序所在目录下的 logs 文件夹。宏运行顺利时不会写入任何文件。",
+        ["Settings.Driver"] = "驱动级输入",
+        ["Settings.DriverReady"] = "usbip-win2 驱动已安装，VIIPER 服务端正在应答。",
+        ["Settings.DriverMissing"] = "尚未安装 usbip-win2 驱动。",
+        ["Settings.DriverServerMissing"] = "usbip-win2 驱动已安装，但没有 VIIPER 服务端在应答。",
+        ["Settings.DriverInstall"] = "安装驱动…",
+        ["Settings.DriverHint"] =
+            "驱动级输入让目标程序把输入当成真实硬件，需要 usbip-win2 驱动和正在运行的 VIIPER 服务端。"
+            + "驱动要手动安装：需要管理员权限，会短暂断开 USB 设备，可能要求重启。",
         ["Settings.Note"] = "动作名称和参数文本会在窗口打开时按所选语言显示。",
         ["Settings.Close"] = "关闭",
 

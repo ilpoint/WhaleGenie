@@ -4,11 +4,11 @@
         xmlns:loc="using:Viktor.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="440" d:DesignHeight="360"
+        mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="670"
         x:Class="Viktor.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
         Title="Settings"
-        Width="440" Height="360"
+        Width="480" Height="670"
         WindowStartupLocation="CenterOwner"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
@@ -85,7 +85,7 @@
             </Button>
         </Grid>
 
-        <StackPanel Grid.Row="1" Margin="20,18,20,0">
+        <StackPanel Grid.Row="1" Name="SettingsPanel" Margin="20,18,20,0">
             <TextBlock Classes="FieldLabel"
                        Text="{Binding [Settings.Language], Source={x:Static loc:Strings.Current}}" />
             <ComboBox Classes="LanguageSelect"
@@ -99,6 +99,19 @@
                       Content="{Binding [Settings.FailureScreenshot], Source={x:Static loc:Strings.Current}}" />
             <TextBlock Classes="Muted" Margin="2,7,0,0" TextWrapping="Wrap"
                        Text="{Binding [Settings.FailureScreenshotHint], Source={x:Static loc:Strings.Current}}" />
+
+            <TextBlock Classes="FieldLabel" Margin="2,18,0,6"
+                       Text="{Binding [Settings.Driver], Source={x:Static loc:Strings.Current}}" />
+            <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap" Foreground="#E0A84A"
+                       Text="{Binding DriverStatus}" IsVisible="{Binding !DriverReady}" />
+            <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap" Foreground="#7BC17B"
+                       Text="{Binding DriverStatus}" IsVisible="{Binding DriverReady}" />
+            <Button Classes="FlatButton" Name="DriverInstallButton" Height="32"
+                    HorizontalAlignment="Left" Margin="2,10,0,0"
+                    Click="OnInstallDriverClicked"
+                    Content="{Binding [Settings.DriverInstall], Source={x:Static loc:Strings.Current}}" />
+            <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
+                       Text="{Binding [Settings.DriverHint], Source={x:Static loc:Strings.Current}}" />
 
             <TextBlock Classes="Muted" Margin="2,16,0,0" TextWrapping="Wrap"
                        Text="{Binding [Settings.Note], Source={x:Static loc:Strings.Current}}" />

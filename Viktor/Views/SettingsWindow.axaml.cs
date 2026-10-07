@@ -44,6 +44,14 @@ public partial class SettingsWindow : Window
         }
     }
 
+    /// <summary>
+    /// Sends the user to the driver's own download page instead of installing anything: the driver
+    /// belongs to another project, its installer wants administrator rights and a restart, and
+    /// fetching a file is something the person should see happen.
+    /// </summary>
+    private void OnInstallDriverClicked(object? sender, RoutedEventArgs e)
+        => WebPage.Open(ProjectLinks.DriverDownload);
+
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
