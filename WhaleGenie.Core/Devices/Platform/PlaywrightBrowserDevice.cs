@@ -195,11 +195,13 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
                 if (!_listening)
                 {
-                    // The answer binding sits on the context rather than on the page, because a
-                    // pick can land in a frame inside the page: the binding is the only thing that
-                    // says which frame answered, and the frame is part of the selector. The "still
-                    // wanted" binding is what the init script asks before putting the picker back
-                    // after a navigation, since an init script cannot be removed once added.
+                    // Everything here sits on the context rather than on the page, because picking
+                    // has to reach every tab and every frame of them: the answer binding is the
+                    // only thing that says which frame answered (and the frame is part of the
+                    // selector), and a picker that only knew the first page would leave every
+                    // other tab dead. The "still wanted" binding is what the init script asks
+                    // before putting the picker back after a navigation, since an init script
+                    // cannot be removed once added.
                     await page.Context.ExposeBindingAsync(
                         "__whalegeniePicked",
                         (BindingSource source, string? selector) =>
@@ -207,23 +209,24 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                             _answeredFrame = source.Frame;
                             _picked?.TrySetResult(selector ?? string.Empty);
                         });
-                    await page.ExposeFunctionAsync("__whalegenieListening", () => _picked is not null);
-                    await page.AddInitScriptAsync(BrowserPickerScript.InitScript(hint));
+                    await page.Context.ExposeBindingAsync(
+                        "__whalegenieListening", (BindingSource _) => _picked is not null);
+                    await page.Context.AddInitScriptAsync(BrowserPickerScript.InitScript(hint));
                     _listening = true;
                 }
 
-                // Every frame gets a picker: a page built out of frames is still one page to the
-                // person looking at it, and a picker that only knew the top document would let a
-                // click that landed in a frame go straight through to the page instead.
-                foreach (var frame in page.Frames)
+                // Every tab, and every frame of every tab: a page built out of frames is still one
+                // page to the person looking at it, and a click that landed anywhere the picker had
+                // not been put would go straight through to the page instead of being taken.
+                foreach (var frame in Frames(page))
                 {
                     try
                     {
                         await frame.EvaluateAsync(BrowserPickerScript.Source, new { hint });
                     }
-                    catch (PlaywrightException) when (frame != page.MainFrame)
+                    catch (PlaywrightException) when (!ReferenceEquals(frame, page.MainFrame))
                     {
-                        // A frame can go away between being listed and being armed.
+                        // A frame or a tab can go away between being listed and being armed.
                     }
                 }
             });
@@ -288,12 +291,19 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     }
 
     /// <summary>
+    /// Every frame the picker has to reach: each frame of each tab of the browser. Tabs are opened
+    /// by the person as much as by the macro, and the one being looked at is not always the first.
+    /// </summary>
+    private static IEnumerable<IFrame> Frames(IPage page)
+        => page.Context.Pages.SelectMany(tab => tab.Frames);
+
+    /// <summary>
     /// Takes the picker off the page when the wait ends first — a person who never clicked should
     /// not be left with a banner and a highlight following the pointer around the page.
     /// </summary>
     private static void TryStopPicking(IPage page)
     {
-        foreach (var frame in page.Frames)
+        foreach (var frame in Frames(page))
         {
             try
             {

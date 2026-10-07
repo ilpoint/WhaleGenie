@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using WhaleGenie.Core.Devices;
@@ -58,7 +60,7 @@ public sealed class AppTray : IDisposable
         {
             var area = new WindowsTray(
                 Strings.Get("Tray.Tooltip"), Strings.Get("Tray.Show"), Strings.Get("Tray.Exit"));
-            return new AppTray(window, area, () => desktop.Shutdown());
+            return new AppTray(window, area, () => Leave(window, desktop));
         }
         catch (Exception)
         {
@@ -66,6 +68,42 @@ public sealed class AppTray : IDisposable
             // program starts — must not turn into a program that will not start at all.
             return null;
         }
+    }
+
+    /// <summary>Leaves the program, letting whatever has unsaved work have its say first.</summary>
+    private static void Leave(Window window, IClassicDesktopStyleApplicationLifetime desktop)
+        => Insist(
+            [.. desktop.Windows.Where(open => !ReferenceEquals(open, window))],
+            () =>
+            {
+                window.Hide();
+                desktop.Shutdown();
+            });
+
+    /// <summary>
+    /// Asks the windows to close, and finishes only once they are gone.
+    /// </summary>
+    /// <remarks>
+    /// A window that stays is one that is asking the person something — the macro editor holding
+    /// unsaved steps is the one that does this. Going ahead anyway would throw away the changes the
+    /// prompt was asking about and make the prompt a lie, so instead the answer decides it: save or
+    /// discard and the window goes and the rest of the way out runs, dismiss the question and the
+    /// window stays and the program stays with it. They are asked newest first, because the windows
+    /// opened over the main one are the ones with something to say.
+    /// </remarks>
+    internal static void Insist(IReadOnlyList<Window> windows, Action finish)
+    {
+        foreach (var window in windows.Reverse())
+        {
+            window.Close();
+            if (window.IsVisible)
+            {
+                window.Closed += (_, _) => Insist(windows, finish);
+                return;
+            }
+        }
+
+        finish();
     }
 
     /// <summary>

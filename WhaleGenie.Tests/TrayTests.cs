@@ -145,6 +145,47 @@ public class TrayTests
         });
     }
 
+    [Fact]
+    public void Leaving_waits_for_a_window_that_is_asking_about_unsaved_work()
+    {
+        Ui.Run(() =>
+        {
+            var stubborn = new Window();
+            var asked = 0;
+            var allow = false;
+            stubborn.Closing += (_, e) =>
+            {
+                if (!allow)
+                {
+                    e.Cancel = true;
+                    asked++;
+                }
+            };
+            stubborn.Show();
+
+            var plain = new Window();
+            plain.Show();
+
+            var left = 0;
+            AppTray.Insist([plain, stubborn], () => left++);
+
+            // The window opened last is asked first, and while it is asking nothing has gone
+            // anywhere — the changes it is asking about are still there to be saved.
+            Assert.Equal(1, asked);
+            Assert.True(stubborn.IsVisible);
+            Assert.True(plain.IsVisible);
+            Assert.Equal(0, left);
+
+            // Answering the question lets it go, and the rest of the way out runs with it.
+            allow = true;
+            stubborn.Close();
+
+            Assert.Equal(1, left);
+            Assert.False(stubborn.IsVisible);
+            Assert.False(plain.IsVisible);
+        });
+    }
+
     /// <summary>
     /// Stands in for the shell's notification area: it records the balloons and lets a test be the
     /// person clicking the icon.
