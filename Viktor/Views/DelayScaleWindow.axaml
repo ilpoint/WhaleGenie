@@ -7,7 +7,7 @@
         mc:Ignorable="d" d:DesignWidth="470" d:DesignHeight="330"
         x:Class="Viktor.Views.DelayScaleWindow"
         x:DataType="vm:DelayScaleViewModel"
-        Title="Viktor"
+        Title="WhaleGenie"
         Width="470" Height="330"
         WindowStartupLocation="CenterOwner"
         ExtendClientAreaToDecorationsHint="True"

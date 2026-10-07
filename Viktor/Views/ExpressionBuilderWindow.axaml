@@ -7,7 +7,7 @@
         mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="470"
         x:Class="Viktor.Views.ExpressionBuilderWindow"
         x:DataType="vm:ExpressionBuilderViewModel"
-        Title="Viktor"
+        Title="WhaleGenie"
         Width="560" Height="470"
         MinWidth="460" MinHeight="360"
         WindowStartupLocation="CenterOwner"

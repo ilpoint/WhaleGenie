@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   package:
-    # Viktor 要在真实 Windows 桌面上跑，包只能在 Windows 上打。
+    # WhaleGenie 要在真实 Windows 桌面上跑，包只能在 Windows 上打。
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -54,10 +54,10 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Viktor-${{ matrix.rid }}
+          name: WhaleGenie-${{ matrix.rid }}
           path: |
-            dist/Viktor-${{ steps.version.outputs.tag }}-${{ matrix.rid }}.zip
-            dist/Viktor-${{ steps.version.outputs.tag }}-${{ matrix.rid }}-standalone.zip
+            dist/WhaleGenie-${{ steps.version.outputs.tag }}-${{ matrix.rid }}.zip
+            dist/WhaleGenie-${{ steps.version.outputs.tag }}-${{ matrix.rid }}-standalone.zip
           if-no-files-found: error
 
   release:
@@ -94,6 +94,6 @@ jobs:
             gh release upload "$TAG" packages/*.zip --clobber
           else
             gh release create "$TAG" packages/*.zip \
-              --title "Viktor $TAG" \
+              --title "WhaleGenie $TAG" \
               --notes-file .github/release-notes.md
           fi

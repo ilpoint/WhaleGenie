@@ -1,16 +1,16 @@
 <#
 .SYNOPSIS
-    把 Viktor 打成两个便携包：一个要机器上有 .NET 桌面运行时，一个什么都不要。
+    把 WhaleGenie 打成两个便携包：一个要机器上有 .NET 桌面运行时，一个什么都不要。
 .DESCRIPTION
-    两种包的内容只差运行时，目录形状是一样的：外层一个 Viktor 文件夹，里面是 exe、
+    两种包的内容只差运行时，目录形状是一样的：外层一个 WhaleGenie 文件夹，里面是 exe、
     清单和装 dll 的 lib 文件夹。用户解开压缩包先看到 exe，不用在一堆 dll 里翻。
 
     用法：
         pwsh build/package.ps1 -Tag v0.01
         pwsh build/package.ps1 -Tag v0.01 -Version 0.01 -Rid win-x64
 
-    产物落在 -OutDir（默认 dist，已在 .gitignore 里）：Viktor-<标签>-<架构>.zip 和
-    Viktor-<标签>-<架构>-standalone.zip。打包过程中用的中间目录结束时会被删掉。
+    产物落在 -OutDir（默认 dist，已在 .gitignore 里）：WhaleGenie-<标签>-<架构>.zip 和
+    WhaleGenie-<标签>-<架构>-standalone.zip。打包过程中用的中间目录结束时会被删掉。
 #>
 [CmdletBinding()]
 param(
@@ -69,12 +69,12 @@ function Remove-Folder([string]$Path) {
 }
 
 <#
-    把一次 dotnet publish 的结果摆成便携包的形状。清单（Viktor.deps.json）里每一项的
+    把一次 dotnet publish 的结果摆成便携包的形状。清单（WhaleGenie.deps.json）里每一项的
     写法决定运行时装到哪儿找程序集和原生库，所以 dll 搬家时清单得跟着改：留在 exe
     旁边的保持原名，进 lib 的写成 lib/<文件名>。
 #>
 function New-PortableFolder([string]$Published, [string]$Package) {
-    $app = Join-Path $Package 'Viktor'
+    $app = Join-Path $Package 'WhaleGenie'
     $lib = Join-Path $app 'lib'
     [System.IO.Directory]::CreateDirectory($lib) | Out-Null
 
@@ -84,10 +84,10 @@ function New-PortableFolder([string]$Published, [string]$Package) {
     Get-ChildItem $app -Recurse -Filter *.pdb | ForEach-Object { $_.Delete() }
 
     $moved = @(Get-ChildItem $Published -File |
-        Where-Object { $_.Extension -eq '.dll' -and $_.Name -ne 'Viktor.dll' -and -not (Test-HostFile $_.Name) } |
+        Where-Object { $_.Extension -eq '.dll' -and $_.Name -ne 'WhaleGenie.dll' -and -not (Test-HostFile $_.Name) } |
         ForEach-Object { $_.Name })
 
-    $deps = Join-Path $app 'Viktor.deps.json'
+    $deps = Join-Path $app 'WhaleGenie.deps.json'
     $json = [System.IO.File]::ReadAllText($deps)
     $json = [regex]::Replace($json, '"((?:[^"]*/)?)([^"/]+\.dll)":', {
             param($match)
@@ -135,8 +135,8 @@ foreach ($architecture in $Rid) {
     $framework = New-PortableFolder (Join-Path $published 'framework') (Join-Path $package 'framework')
     $standalone = New-PortableFolder (Join-Path $published 'standalone') (Join-Path $package 'standalone')
 
-    $frameworkZip = Join-Path $OutDir "Viktor-$Tag-$architecture.zip"
-    $standaloneZip = Join-Path $OutDir "Viktor-$Tag-$architecture-standalone.zip"
+    $frameworkZip = Join-Path $OutDir "WhaleGenie-$Tag-$architecture.zip"
+    $standaloneZip = Join-Path $OutDir "WhaleGenie-$Tag-$architecture-standalone.zip"
     foreach ($zip in @($frameworkZip, $standaloneZip)) {
         if (Test-Path $zip) {
             [System.IO.File]::Delete($zip)

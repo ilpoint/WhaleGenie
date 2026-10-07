@@ -7,7 +7,7 @@
         mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="520"
         x:Class="Viktor.Views.WindowPickerWindow"
         x:DataType="vm:WindowPickerViewModel"
-        Title="Viktor"
+        Title="WhaleGenie"
         Width="560" Height="520"
         MinWidth="420" MinHeight="320"
         WindowStartupLocation="CenterOwner"

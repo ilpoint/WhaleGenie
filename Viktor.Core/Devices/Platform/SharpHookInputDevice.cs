@@ -18,7 +18,7 @@ public sealed class SharpHookInputDevice : IInputDevice
     private static readonly MouseWheelScrollType Scrolling = MouseWheelScrollType.BlockScroll;
 
     /// <summary>The one simulator this device reuses, since setting one up is not cheap.</summary>
-    private readonly IEventSimulator _simulator = EventSimulator.Create("Viktor");
+    private readonly IEventSimulator _simulator = EventSimulator.Create("WhaleGenie");
 
     public ScreenPoint Cursor => WindowsScreenDevice.CursorPosition();
 

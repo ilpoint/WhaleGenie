@@ -7,7 +7,7 @@
         mc:Ignorable="d" d:DesignWidth="460" d:DesignHeight="210"
         x:Class="Viktor.Views.ConfirmDialog"
         x:DataType="vm:ConfirmDialogViewModel"
-        Title="Viktor"
+        Title="WhaleGenie"
         Width="460" Height="210"
         WindowStartupLocation="CenterOwner"
         ExtendClientAreaToDecorationsHint="True"

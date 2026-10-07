@@ -4127,7 +4127,7 @@ public sealed class MacroRunner
     {
         var language = step.Text("language").Trim().ToLowerInvariant();
         var extension = ScriptExtension(step, language);
-        var temp = Path.Combine(Path.GetTempPath(), "Viktor");
+        var temp = Path.Combine(Path.GetTempPath(), "WhaleGenie");
         var path = Path.Combine(temp, $"script-{Guid.NewGuid():N}{extension}");
         var script = Template(step.Text("script"));
         if (script.Trim().Length == 0)

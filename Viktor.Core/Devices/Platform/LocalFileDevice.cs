@@ -8,7 +8,7 @@ namespace Viktor.Core.Devices.Platform;
 /// <summary>
 /// Files on this machine. A path the macro writes on its own is taken to be inside the
 /// macros folder, so a shared macro keeps its data together instead of scattering it
-/// wherever Viktor happened to be started from. A full path is used as written.
+/// wherever WhaleGenie happened to be started from. A full path is used as written.
 /// </summary>
 public sealed class LocalFileDevice : IFileDevice
 {
@@ -16,7 +16,7 @@ public sealed class LocalFileDevice : IFileDevice
     {
         BaseFolder = string.IsNullOrWhiteSpace(baseFolder)
             ? Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Viktor")
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "WhaleGenie")
             : baseFolder;
     }
 

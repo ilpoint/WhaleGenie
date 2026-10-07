@@ -3,6 +3,15 @@
     <RootNamespace>Viktor</RootNamespace>
     <OutputType>WinExe</OutputType>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!--
+      What the program is called where a person sees it. The projects and namespaces keep the name
+      the code has always had; this is only the file people double-click and the name Windows shows
+      beside it, so it does not collide with the other program of the old name.
+    -->
+    <AssemblyName>WhaleGenie</AssemblyName>
+    <Product>WhaleGenie</Product>
+    <AssemblyTitle>WhaleGenie</AssemblyTitle>
+    <ApplicationIcon>Assets\WhaleGenie.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

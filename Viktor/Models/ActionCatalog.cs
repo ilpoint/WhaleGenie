@@ -461,7 +461,7 @@ public static class ActionCatalog
             Key = "control.log",
             Category = ActionCategory.Control,
             DisplayName = "Log",
-            Description = "Write a message to the Viktor log.",
+            Description = "Write a message to the WhaleGenie log.",
             Parameters =
             [
                 Multiline("message", "Message", "Text written to the log.", "Loop finished"),
@@ -895,7 +895,7 @@ public static class ActionCatalog
                     + "elevated cannot be kept off the screen."),
                 Multiline("environment", "Environment variables",
                     "One NAME=value per line for the program to start with. Leave it empty to "
-                    + "start the program with Viktor's own environment. Lines starting with # are "
+                    + "start the program with WhaleGenie's own environment. Lines starting with # are "
                     + "skipped. Giving a program its own environment means naming the program "
                     + "itself, not a document or a shortcut.",
                     "LANG=zh_CN.UTF-8", required: false),
@@ -987,7 +987,7 @@ public static class ActionCatalog
                     "Folder to run the command in.", required: false),
                 Multiline("environment", "Environment variables",
                     "One NAME=value per line for the command to run with. Leave it empty to run "
-                    + "it with Viktor's own environment. Lines starting with # are skipped.",
+                    + "it with WhaleGenie's own environment. Lines starting with # are skipped.",
                     "LANG=zh_CN.UTF-8", required: false),
                 Multiline("standardInput", "Standard input",
                     "What the command reads on its standard input. Leave it empty to give the "
@@ -2009,7 +2009,7 @@ public static class ActionCatalog
                           + "here as well.", foreign: true),
                 Text("folder", "Working folder", required: false,
                     hint: "The folder the script runs in. Leave it empty to run it in the macros "
-                          + "folder, or wherever Viktor is when that folder is not there yet."),
+                          + "folder, or wherever WhaleGenie is when that folder is not there yet."),
                 Number("timeoutMs", "Timeout", 60000,
                     "Stop the script and fail the step after this long."),
                 Variable("resultVariable", "Result variable", "output",

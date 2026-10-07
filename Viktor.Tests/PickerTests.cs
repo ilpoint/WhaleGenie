@@ -52,9 +52,10 @@ public class PickerTests
         Assert.Equal(Path.Combine(Path.GetDirectoryName(package)!, "demo.assets"),
             ImageAssets.FolderFor(package));
 
-        // With nothing saved yet there is no package to sit beside, so Viktor keeps its own folder.
-        Assert.EndsWith(Path.Combine("Viktor", "images"), ImageAssets.FolderFor(null));
-        Assert.EndsWith(Path.Combine("Viktor", "images"), ImageAssets.FolderFor("   "));
+        // With nothing saved yet there is no package to sit beside, so WhaleGenie keeps its own
+        // folder.
+        Assert.EndsWith(Path.Combine("WhaleGenie", "images"), ImageAssets.FolderFor(null));
+        Assert.EndsWith(Path.Combine("WhaleGenie", "images"), ImageAssets.FolderFor("   "));
     }
 
     [Fact]

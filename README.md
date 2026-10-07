@@ -1,4 +1,4 @@
-# Viktor
+# WhaleGenie（鲸灵）
 
 Windows 上的宏自动化工具：把键盘、鼠标、屏幕和窗口上的操作编成一步步的宏，用热键、鼠标按键、
 滚轮或屏幕上某个像素的颜色触发它。界面用 Avalonia 写，执行引擎与界面分离。
@@ -75,16 +75,16 @@ dotnet format Viktor.slnx           # 按 .editorconfig 整理格式
 | 屏幕区域（x/y/width/height、起点终点、region） | 框选区域 | 在屏幕上拖一个矩形，一次填满整组参数 |
 
 截屏存下来的图片放在宏包旁边的 `<宏名>.assets` 文件夹里，保存宏包时自动收进 `assets/`；
-项目还没保存过时先放在 `%LOCALAPPDATA%\Viktor\images`。路径的解析与截图落盘都在
+项目还没保存过时先放在 `%LOCALAPPDATA%\WhaleGenie\images`。路径的解析与截图落盘都在
 `Viktor/Storage/ImageAssets.cs`。
 
 ## 程序自己的文件放哪儿
 
-`settings.json`（设置窗口里的选择）和 `logs`（运行失败时的截图）都写在 `Viktor.exe` 所在的
+`settings.json`（设置窗口里的选择）和 `logs`（运行失败时的截图）都写在 `WhaleGenie.exe` 所在的
 目录：整个文件夹拷走就等于把设置一起带走，两个副本放在一起也不会互相干扰。装在只让管理员
 写的地方（比如 `Program Files`）时这两样写不进去，程序照常运行，只是设置不落盘、失败不留图。
 
-宏和宏包不跟着程序走：默认在「文档」目录下的 `Viktor` 里（`%USERPROFILE%\Documents\Viktor`），
+宏和宏包不跟着程序走：默认在「文档」目录下的 `WhaleGenie` 里（`%USERPROFILE%\Documents\WhaleGenie`），
 它在哪由打开的宏包决定。
 
 ## 提交与 CI
@@ -113,27 +113,27 @@ Settings → Actions → General → Workflow permissions 里放开一次。
 
 | 包 | 自带运行环境 | 体积（x64 打包后 / 解压后） | 什么时候用 |
 | --- | --- | --- | --- |
-| `Viktor-<版本>-win-x64.zip` | 否，要装 .NET 10 桌面运行时 | 63 MB / 145 MB | 体积最小；已经装过运行环境 |
-| `Viktor-<版本>-win-x64-standalone.zip` | 是 | 135 MB / 315 MB | 换机器、给别人，什么都不用装 |
+| `WhaleGenie-<版本>-win-x64.zip` | 否，要装 .NET 10 桌面运行时 | 63 MB / 145 MB | 体积最小；已经装过运行环境 |
+| `WhaleGenie-<版本>-win-x64-standalone.zip` | 是 | 135 MB / 315 MB | 换机器、给别人，什么都不用装 |
 
 不再出单文件包：exe 旁边的那些 dll 单文件版一样要在第一次启动时解压到系统临时目录，
 省下来的只是"拷一个文件"这点方便，却多一种要验的形态。
 
-两种包解开后形状一样，只有一个 `Viktor` 文件夹，exe 就在最外层：
+两种包解开后形状一样，只有一个 `WhaleGenie` 文件夹，exe 就在最外层：
 
 ```
-Viktor\
-    Viktor.exe              ← 双击它
-    Viktor.dll
-    Viktor.deps.json
-    Viktor.runtimeconfig.json
+WhaleGenie\
+    WhaleGenie.exe              ← 双击它
+    WhaleGenie.dll
+    WhaleGenie.deps.json
+    WhaleGenie.runtimeconfig.json
     lib\                    ← 程序用到的 dll 都在这一层文件夹里
 ```
 
 自带运行时的那一个，根目录还会多出 .NET 运行时自己的十来个文件（`hostfxr.dll`、`coreclr.dll`
 这些）。它们必须和 exe 放在一起：宿主是先找 `hostpolicy`、再找 `coreclr`、再由 `coreclr` 找
 JIT 和核心库的，都按"exe 所在目录"找，放进 `lib` 程序连报错的机会都没有。其余两百多个 dll
-都在 `lib` 里，运行时按清单（`Viktor.deps.json`）里的路径去那儿取，清单里的路径在打包时
+都在 `lib` 里，运行时按清单（`WhaleGenie.deps.json`）里的路径去那儿取，清单里的路径在打包时
 跟着一起改写。
 
 体积里不含调试符号：打包时会把 `.pdb` 删掉，它比程序本身还大（Skia 一份就 80 MB）。不做裁剪
@@ -148,7 +148,8 @@ pwsh build/package.ps1 -Tag v0.01                 # x64 / x86 两种包都出
 pwsh build/package.ps1 -Tag v0.01 -Rid win-x64    # 只要 x64
 ```
 
-产物落在 `dist\`（已忽略）：`Viktor-<标签>-<架构>.zip` 和 `Viktor-<标签>-<架构>-standalone.zip`。
+产物落在 `dist\`（已忽略）：`WhaleGenie-<标签>-<架构>.zip` 和
+`WhaleGenie-<标签>-<架构>-standalone.zip`。
 
 32 位（`-r win-x86`）两种包都能出，但找图/等图/点图依赖的 OpenCV 只有 64 位原生库，
 这几个动作在 32 位包里不可用，其余功能正常。面向用户的说明写在 `.github/release-notes.md`，

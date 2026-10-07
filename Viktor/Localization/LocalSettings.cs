@@ -9,9 +9,9 @@ namespace Viktor.Localization;
 public static class LocalSettings
 {
     /// <summary>
-    /// The file the choices live in: beside the program, so a copy of Viktor carries its own
+    /// The file the choices live in: beside the program, so a copy of WhaleGenie carries its own
     /// choices with it. It can be moved so a check runs against a file of its own instead of the
-    /// one whoever is using Viktor keeps.
+    /// one whoever is using WhaleGenie keeps.
     /// </summary>
     internal static string FilePath { get; set; } = AppPaths.Settings;
 

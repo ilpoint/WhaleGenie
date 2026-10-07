@@ -86,14 +86,14 @@ public static class MacroPackage
         var format = manifest["format"]?.GetValue<string>();
         if (!string.Equals(format, FormatId, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidDataException($"'{format}' is not a Viktor macro package.");
+            throw new InvalidDataException($"'{format}' is not a WhaleGenie macro package.");
         }
 
         var version = manifest["version"]?.GetValue<int>() ?? 0;
         if (version > FormatVersion)
         {
             throw new InvalidDataException(
-                $"The package was written by a newer Viktor (format {version}).");
+                $"The package was written by a newer WhaleGenie (format {version}).");
         }
 
         var assets = new AssetExtractor(archive, AssetFolderFor(fullPath));
@@ -187,7 +187,7 @@ public static class MacroPackage
         {
             ["format"] = FormatId,
             ["version"] = FormatVersion,
-            ["app"] = "Viktor",
+            ["app"] = "WhaleGenie",
             ["appVersion"] = appVersion,
             ["savedUtc"] = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture),
             ["macros"] = manifestMacros,
@@ -205,14 +205,14 @@ public static class MacroPackage
         IReadOnlyList<VariableDefinition> globals, IReadOnlyList<string> assets)
     {
         var text = new StringBuilder();
-        text.AppendLine("# Viktor macro package");
+        text.AppendLine("# WhaleGenie macro package");
         text.AppendLine();
-        text.AppendLine("This file is a Viktor macro project. It is a zip archive; rename it to")
-            .AppendLine("`.zip` if you want to look inside without Viktor.");
+        text.AppendLine("This file is a WhaleGenie macro project. It is a zip archive; rename it to")
+            .AppendLine("`.zip` if you want to look inside without WhaleGenie.");
         text.AppendLine();
         text.AppendLine(CultureInfo.InvariantCulture,
             $"- Format: `{FormatId}` version {FormatVersion}");
-        text.AppendLine(CultureInfo.InvariantCulture, $"- Written by Viktor {appVersion}");
+        text.AppendLine(CultureInfo.InvariantCulture, $"- Written by WhaleGenie {appVersion}");
         text.AppendLine(CultureInfo.InvariantCulture,
             $"- Saved: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
         text.AppendLine();

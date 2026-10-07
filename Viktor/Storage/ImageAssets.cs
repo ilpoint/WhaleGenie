@@ -17,13 +17,13 @@ public static class ImageAssets
 {
     /// <summary>
     /// Where a freshly taken picture goes: beside the macro package, so it travels with it,
-    /// or in Viktor's own folder while the project has not been saved yet.
+    /// or in WhaleGenie's own folder while the project has not been saved yet.
     /// </summary>
     public static string FolderFor(string? packagePath)
         => string.IsNullOrWhiteSpace(packagePath)
             ? Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Viktor",
+                "WhaleGenie",
                 "images")
             : MacroPackage.AssetFolderFor(packagePath!);
 

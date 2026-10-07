@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="292" d:DesignHeight="464"
         x:Class="Viktor.Views.ColorPickerWindow"
-        Title="Viktor"
+        Title="WhaleGenie"
         Width="292" Height="464"
         WindowDecorations="None"
         CanResize="False"
