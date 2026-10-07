@@ -17,6 +17,7 @@ public enum ActionCategory
     Vision,
     Ocr,
     Uia,
+    Browser,
     Script,
     Condition,
 }

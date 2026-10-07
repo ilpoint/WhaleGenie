@@ -1027,6 +1027,36 @@ public sealed class MacroRunner
                 FocusWindow(step, depth);
                 return Signal.Normal;
 
+            // --------------------------------------------------------------- browser
+            case "browser.open":
+                BrowserOpen(step, depth);
+                return Signal.Normal;
+
+            case "browser.goTo":
+                _devices.Browser.GoTo(Read(step.Text("url")).AsText());
+                Log(LogLevel.Info, depth, step.Type, "Run.BrowserAddress", _devices.Browser.Url);
+                return Signal.Normal;
+
+            case "browser.click":
+                _devices.Browser.Click(Read(step.Text("target")).AsText());
+                Log(LogLevel.Info, depth, step.Type, "Run.BrowserClicked", step.Text("target"));
+                return Signal.Normal;
+
+            case "browser.fill":
+                _devices.Browser.Fill(
+                    Read(step.Text("target")).AsText(), Read(step.Text("text")).AsText());
+                Log(LogLevel.Info, depth, step.Type, "Run.BrowserFilled", step.Text("target"));
+                return Signal.Normal;
+
+            case "browser.readText":
+                BrowserReadText(step, depth);
+                return Signal.Normal;
+
+            case "browser.close":
+                _devices.Browser.Close();
+                Log(LogLevel.Info, depth, step.Type, "Run.ClosedBrowser");
+                return Signal.Normal;
+
             // ------------------------------------------------------------------ script
             case "script.run":
                 RunScript(step, depth);
@@ -4222,6 +4252,34 @@ public sealed class MacroRunner
     };
 
     // --------------------------------------------------------------------- script
+
+    /// <summary>
+    /// Opens a browser, after checking the one Playwright drives is on the machine. The check
+    /// happens here rather than inside the driver so the user is told what to install instead of
+    /// being handed whatever the driver says when it finds nothing to start.
+    /// </summary>
+    private void BrowserOpen(ExecutableStep step, int depth)
+    {
+        var browser = _devices.Browser;
+        if (!browser.Ready)
+        {
+            throw new StepFailure("Run.BrowserMissing", browser.InstallHint);
+        }
+
+        var engine = step.Text("browser").Trim();
+        var url = Read(step.Text("url")).AsText();
+        browser.Open(engine, url, Flag(step, "headless", false));
+        Log(LogLevel.Info, depth, step.Type, "Run.OpenedBrowser", engine, browser.Url);
+    }
+
+    /// <summary>Reads the page, or one element of it, into a variable.</summary>
+    private void BrowserReadText(ExecutableStep step, int depth)
+    {
+        var text = _devices.Browser.Text(Read(step.Text("target")).AsText());
+        var name = VariableName(step, "resultVariable", "text");
+        Variables.Set(name, Value.FromText(text));
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserRead", text.Length, name);
+    }
 
     /// <summary>
     /// Runs a short script through an interpreter the machine already has. This is the block that

@@ -58,6 +58,9 @@ The icon was scaled and modified from the original.
   <https://github.com/FlaUI/FlaUI>
 - Interop.UIAutomationClient — MIT
   <https://github.com/Roemer/UIAutomation-Interop>
+- Playwright（Microsoft.Playwright）— Apache-2.0
+  <https://github.com/microsoft/playwright-dotnet>
+  随包分发的是它的驱动，里面带一份 Node.js；浏览器本体不在这里，见下面「用户自己装的组件」。
 
 ### 运行环境
 
@@ -80,3 +83,9 @@ The icon was scaled and modified from the original.
   <https://github.com/vadimgrn/usbip-win2>
 - VIIPER 服务端 — GPL-3.0
   <https://github.com/Alia5/VIIPER>
+
+浏览器动作要用到下面这些，同样不跟着本程序分发，程序里给的是安装命令：
+
+- Playwright 的浏览器（Chromium、Firefox、WebKit）— 各自按 BSD-3-Clause 等开源协议授权，
+  Playwright 自己的许可为 Apache-2.0
+  <https://playwright.dev/docs/browsers>

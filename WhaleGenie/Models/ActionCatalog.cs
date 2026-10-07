@@ -51,6 +51,9 @@ public static class ActionCatalog
     private static readonly Geometry DataIcon =
         Geometry.Parse("M9,4 L6,12 L9,20 M15,4 L18,12 L15,20");
 
+    private static readonly Geometry BrowserIcon =
+        Geometry.Parse("M12,3 A9,9 0 1 0 12,21 A9,9 0 1 0 12,3 M3,9 H21 M3,15 H21 M12,3 C9,7 9,17 12,21");
+
     private static readonly Geometry ClipboardIcon =
         Geometry.Parse("M6,5 H18 V21 H6 Z M9,3 H15 V6 H9 Z M9,11 H15 M9,15 H13");
 
@@ -2060,6 +2063,90 @@ public static class ActionCatalog
             ],
         },
 
+        // ---------------------------------------------------------------- browser
+        new()
+        {
+            Key = "browser.open",
+            Category = ActionCategory.Browser,
+            DisplayName = "Open Browser",
+            Description = "Start a browser and open a page at an address.",
+            Parameters =
+            [
+                Choice("browser", "Browser", ["chromium", "firefox", "webkit"], "chromium",
+                    "Which browser engine to drive. Chromium is the one the browser actions are "
+                    + "installed for by default.",
+                    labels: ["Chromium", "Firefox", "WebKit"]),
+                Text("url", "Address", "https://example.com",
+                    "The page to open. Leave it empty to open the browser without a page yet.",
+                    required: false),
+                Toggle("headless", "Hidden window", false,
+                    "Open the browser without showing it. A page kept off the screen is quicker, "
+                    + "but nothing can be watched while the macro runs."),
+            ],
+        },
+        new()
+        {
+            Key = "browser.goTo",
+            Category = ActionCategory.Browser,
+            DisplayName = "Go To Address",
+            Description = "Sends the page the browser has open to another address.",
+            Parameters =
+            [
+                Text("url", "Address", "https://example.com", "The page to open."),
+            ],
+        },
+        new()
+        {
+            Key = "browser.click",
+            Category = ActionCategory.Browser,
+            DisplayName = "Click Element",
+            Description = "Clicks the first element a selector names.",
+            Parameters =
+            [
+                Text("target", "Selector", "#submit",
+                    "Where the element is. Playwright selectors read like CSS, and also like text: "
+                    + "\"text=Sign in\" clicks the first thing showing that text."),
+            ],
+        },
+        new()
+        {
+            Key = "browser.fill",
+            Category = ActionCategory.Browser,
+            DisplayName = "Fill In",
+            Description = "Types text into the element a selector names.",
+            Parameters =
+            [
+                Text("target", "Selector", "#search",
+                    "Which element to type into, named the way the click action names one."),
+                Text("text", "Text", "$query",
+                    "What to type. Variables are filled in first, so a macro can type what it just "
+                    + "read somewhere else.", acceptsFormula: true),
+            ],
+        },
+        new()
+        {
+            Key = "browser.readText",
+            Category = ActionCategory.Browser,
+            DisplayName = "Read Text",
+            Description = "Reads the text of an element, or of the whole page.",
+            Parameters =
+            [
+                Text("target", "Selector", "",
+                    "Which element to read, named the way the click action names one. Leave it "
+                    + "empty to read the whole page.", required: false),
+                Variable("resultVariable", "Result variable", "text",
+                    "Variable that receives the text.", required: false, namesVariable: true),
+            ],
+        },
+        new()
+        {
+            Key = "browser.close",
+            Category = ActionCategory.Browser,
+            DisplayName = "Close Browser",
+            Description = "Closes the browser the macro opened.",
+            Parameters = [],
+        },
+
         // ----------------------------------------------------------------- script
         new()
         {
@@ -2345,6 +2432,7 @@ public static class ActionCatalog
         ActionCategory.Vision => VisionIcon,
         ActionCategory.Ocr => OcrIcon,
         ActionCategory.Uia => UiaIcon,
+        ActionCategory.Browser => BrowserIcon,
         ActionCategory.Script => ScriptIcon,
         ActionCategory.Condition => ConditionIcon,
         _ => null,

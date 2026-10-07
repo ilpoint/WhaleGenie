@@ -335,6 +335,50 @@ public interface ISystemDevice
     void SetBrightness(int percent);
 }
 
+/// <summary>
+/// A browser the macro drives over its own automation protocol. Unlike the other devices this
+/// one is stateful on purpose: a macro says "open this" and then "click that" the way a person
+/// works, so the device keeps the page between steps until the macro closes it.
+/// </summary>
+public interface IBrowserDevice
+{
+    /// <summary>
+    /// Whether the browsers this device drives are on the machine. They are fetched separately
+    /// from the program, so a machine that never ran a macro may not have them yet.
+    /// </summary>
+    bool Ready { get; }
+
+    /// <summary>How the browsers are put on the machine, told to the user when they are missing.</summary>
+    string InstallHint { get; }
+
+    /// <summary>Whether a browser is open right now.</summary>
+    bool IsOpen { get; }
+
+    /// <summary>Starts a browser and opens a page at this address.</summary>
+    void Open(string browser, string url, bool headless);
+
+    /// <summary>Sends the page to this address.</summary>
+    void GoTo(string url);
+
+    /// <summary>Where the page is right now.</summary>
+    string Url { get; }
+
+    /// <summary>Clicks the first element the selector names.</summary>
+    void Click(string selector);
+
+    /// <summary>Types text into the element the selector names, replacing what it held.</summary>
+    void Fill(string selector, string text);
+
+    /// <summary>
+    /// The text the selector names, or the whole page's text when the selector is empty. The
+    /// whole-page reading is what a macro wants when it is after the content rather than one field.
+    /// </summary>
+    string Text(string selector);
+
+    /// <summary>Closes the browser and lets go of it, which a macro does when it is done.</summary>
+    void Close();
+}
+
 /// <summary>Open windows: finding them, moving them, and closing them.</summary>
 public interface IWindowDevice
 {
@@ -410,6 +454,9 @@ public interface IDeviceLayer
     ISystemDevice System { get; }
 
     IWindowDevice Windows { get; }
+
+    /// <summary>The browser a macro drives, when the actions for it are used.</summary>
+    IBrowserDevice Browser { get; }
 }
 
 /// <summary>Thrown when an action needs something this machine cannot give it.</summary>
@@ -466,11 +513,33 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
     public IWindowDevice Windows => _refusal;
 
+    public IBrowserDevice Browser => _refusal;
+
     /// <summary>Answers every request with "not available", naming what was asked for.</summary>
     private sealed class Refusal
         : IInputDevice, IScreenDevice, IVisionDevice, IOcrDevice, IUiDevice, IFileDevice,
-          IClipboardDevice, IProcessDevice, ISystemDevice, IWindowDevice
+          IClipboardDevice, IProcessDevice, ISystemDevice, IWindowDevice, IBrowserDevice
     {
+        public bool Ready => throw Missing("a browser");
+
+        public string InstallHint => throw Missing("a browser");
+
+        public bool IsOpen => throw Missing("a browser");
+
+        public void Open(string browser, string url, bool headless) => throw Missing("a browser");
+
+        public void GoTo(string url) => throw Missing("a browser");
+
+        public string Url => throw Missing("a browser");
+
+        public void Click(string selector) => throw Missing("a browser");
+
+        public void Fill(string selector, string text) => throw Missing("a browser");
+
+        public string Text(string selector) => throw Missing("a browser");
+
+        public void Close() => throw Missing("a browser");
+
         public string BaseFolder => throw Missing("files");
 
         public string Resolve(string path) => throw Missing("files");

@@ -1715,6 +1715,47 @@ internal static class ActionStrings
         ["uia.focusWindow.window.label"] = "窗口",
         ["uia.focusWindow.window.hint"] = "窗口标题，或保存标题的 $变量。可以用“拾取窗口”从当前打开的窗口里选一个。",
 
+        // ---------------------------------------------------------------- browser
+        ["browser.open.name"] = "打开浏览器",
+        ["browser.open.desc"] = "启动浏览器并打开一个网址。",
+        ["browser.open.browser.label"] = "浏览器",
+        ["browser.open.browser.hint"] = "驱动哪个浏览器内核。默认装好的是 Chromium。",
+        ["browser.open.browser.option.chromium"] = "Chromium",
+        ["browser.open.browser.option.firefox"] = "Firefox",
+        ["browser.open.browser.option.webkit"] = "WebKit",
+        ["browser.open.url.label"] = "网址",
+        ["browser.open.url.hint"] = "要打开的页面。留空表示先只开浏览器，不打开页面。",
+        ["browser.open.headless.label"] = "不显示窗口",
+        ["browser.open.headless.hint"] = "不显示浏览器窗口。速度更快，但运行过程中看不到页面。",
+
+        ["browser.goTo.name"] = "转到网址",
+        ["browser.goTo.desc"] = "让浏览器当前页面转到另一个网址。",
+        ["browser.goTo.url.label"] = "网址",
+        ["browser.goTo.url.hint"] = "要打开的页面。",
+
+        ["browser.click.name"] = "点击元素",
+        ["browser.click.desc"] = "点击选择器指定的第一个元素。",
+        ["browser.click.target.label"] = "选择器",
+        ["browser.click.target.hint"] = "元素在哪。Playwright 的选择器像 CSS，也能按文字找："
+            + "“text=登录”会点第一个显示这段文字的东西。",
+
+        ["browser.fill.name"] = "填写",
+        ["browser.fill.desc"] = "往选择器指定的元素里输入文本。",
+        ["browser.fill.target.label"] = "选择器",
+        ["browser.fill.target.hint"] = "要输入到哪个元素，写法同“点击元素”。",
+        ["browser.fill.text.label"] = "文本",
+        ["browser.fill.text.hint"] = "要输入的内容。变量会先填进去，所以可以把别处读到的值输入进来。",
+
+        ["browser.readText.name"] = "读取文本",
+        ["browser.readText.desc"] = "读取某个元素、或整个页面的文本。",
+        ["browser.readText.target.label"] = "选择器",
+        ["browser.readText.target.hint"] = "要读取哪个元素，写法同“点击元素”。留空表示读整个页面。",
+        ["browser.readText.resultVariable.label"] = "结果变量",
+        ["browser.readText.resultVariable.hint"] = "存文本的变量。",
+
+        ["browser.close.name"] = "关闭浏览器",
+        ["browser.close.desc"] = "关闭宏打开的浏览器。",
+
         // ------------------------------------------------------------------ script
         ["script.run.name"] = "运行脚本",
         ["script.run.desc"] = "用选定的解释器运行一段脚本，用于处理动作目录未覆盖的情况。",

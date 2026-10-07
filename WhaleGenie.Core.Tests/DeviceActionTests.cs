@@ -3598,6 +3598,44 @@ public class DeviceActionTests
         Assert.Equal(new ScreenPoint(300, 0), path[^1]);
         Assert.Contains("dragAlong left 31 300", devices.Calls);
     }
+
+    [Fact]
+    public async Task A_browser_is_opened_driven_and_closed()
+    {
+        var devices = new FakeDeviceLayer { BrowserPage = "Hello from the page" };
+        var (result, _, store) = await RunAsync(
+        [
+            Step("browser.open", Param("browser", "chromium"), Param("url", "https://example.com"),
+                Param("headless", "true")),
+            Step("browser.goTo", Param("url", "https://example.com/next")),
+            Step("browser.click", Param("target", "#go")),
+            Step("browser.fill", Param("target", "#q"), Param("text", "macro")),
+            Step("browser.readText", Param("target", "#result"), Param("resultVariable", "answer")),
+            Step("browser.close"),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("Hello from the page", store.Local.Values["answer"].AsText());
+        Assert.Contains("browserOpen chromium https://example.com True", devices.Calls);
+        Assert.Contains("browserGoTo https://example.com/next", devices.Calls);
+        Assert.Contains("browserClick #go", devices.Calls);
+        Assert.Contains("browserFill #q macro", devices.Calls);
+        Assert.Contains("browserText #result", devices.Calls);
+        Assert.Contains("browserClose", devices.Calls);
+        Assert.False(devices.BrowserOpen);
+    }
+
+    [Fact]
+    public async Task A_browser_that_is_not_installed_says_what_to_install()
+    {
+        var devices = new FakeDeviceLayer { BrowserReady = false };
+        var (result, _, _) = await RunAsync(
+            [Step("browser.open", Param("url", "https://example.com"))], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BrowserMissing", result.Key);
+        Assert.DoesNotContain("browserOpen", devices.Calls);
+    }
 }
 
 /// <summary>
@@ -3606,7 +3644,7 @@ public class DeviceActionTests
 /// </summary>
 internal sealed class FakeDeviceLayer
     : IDeviceLayer, IInputDevice, IScreenDevice, IVisionDevice, IOcrDevice, IUiDevice, IFileDevice,
-      IClipboardDevice, IProcessDevice, ISystemDevice, IWindowDevice
+      IClipboardDevice, IProcessDevice, ISystemDevice, IWindowDevice, IBrowserDevice
 {
     public List<string> Calls { get; } = [];
 
@@ -3778,6 +3816,53 @@ internal sealed class FakeDeviceLayer
     ISystemDevice IDeviceLayer.System => this;
 
     IWindowDevice IDeviceLayer.Windows => this;
+
+    IBrowserDevice IDeviceLayer.Browser => this;
+
+    public bool BrowserReady { get; set; } = true;
+
+    public string BrowserPage { get; set; } = "page text";
+
+    bool IBrowserDevice.Ready => BrowserReady;
+
+    string IBrowserDevice.InstallHint => "install the browser";
+
+    bool IBrowserDevice.IsOpen => BrowserOpen;
+
+    public bool BrowserOpen { get; private set; }
+
+    string IBrowserDevice.Url => BrowserAddress;
+
+    public string BrowserAddress { get; private set; } = string.Empty;
+
+    void IBrowserDevice.Open(string browser, string url, bool headless)
+    {
+        Note($"browserOpen {browser} {url} {headless}");
+        BrowserOpen = true;
+        BrowserAddress = url;
+    }
+
+    void IBrowserDevice.GoTo(string url)
+    {
+        Note($"browserGoTo {url}");
+        BrowserAddress = url;
+    }
+
+    void IBrowserDevice.Click(string selector) => Note($"browserClick {selector}");
+
+    void IBrowserDevice.Fill(string selector, string text) => Note($"browserFill {selector} {text}");
+
+    string IBrowserDevice.Text(string selector)
+    {
+        Note($"browserText {selector}");
+        return BrowserPage;
+    }
+
+    void IBrowserDevice.Close()
+    {
+        Note("browserClose");
+        BrowserOpen = false;
+    }
 
     public void KeyPress(string key, int holdMs) => Note($"keyPress {key} {holdMs}");
 

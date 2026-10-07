@@ -162,5 +162,6 @@ pwsh build/package.ps1 -Tag v0.01 -Rid win-x64    # 只要 x64
 `WhaleGenie-<标签>-<架构>-standalone.zip`。
 
 32 位（`-r win-x86`）两种包都能出，但找图/等图/点图依赖的 OpenCV 只有 64 位原生库，
-这几个动作在 32 位包里不可用，其余功能正常。面向用户的说明写在 `.github/release-notes.md`，
+这几个动作在 32 位包里不可用；浏览器动作依赖的 Playwright 驱动同样只有 64 位，也一样
+用不了；其余功能正常。面向用户的说明写在 `.github/release-notes.md`，
 发版时原样作为 Release 说明贴出去。

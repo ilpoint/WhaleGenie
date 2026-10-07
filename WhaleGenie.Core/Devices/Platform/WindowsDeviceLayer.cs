@@ -27,6 +27,8 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
 
     private readonly Lazy<IWindowDevice> _windows = new(() => new WindowsWindowDevice());
 
+    private readonly Lazy<IBrowserDevice> _browser = new(() => new PlaywrightBrowserDevice());
+
     public WindowsDeviceLayer()
     {
         _inputs = new Lazy<IInputRouter>(() => new WindowsInputRouter(_input.Value));
@@ -65,6 +67,9 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
     /// <summary>Open windows, reached through the Win32 calls.</summary>
     public IWindowDevice Windows => _windows.Value;
 
+    /// <summary>A browser driven over its own automation protocol, started when a macro asks.</summary>
+    public IBrowserDevice Browser => _browser.Value;
+
     /// <summary>
     /// Lets go of what was opened. The keyboard, mouse and screen hold nothing, so only the
     /// few that do — UI Automation's connection, the loaded text recognition models, the programs
@@ -92,6 +97,12 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
         if (_processes.IsValueCreated && _processes.Value is IDisposable processes)
         {
             processes.Dispose();
+        }
+
+        // A browser left open would keep a window on screen after the macro has finished.
+        if (_browser.IsValueCreated && _browser.Value is IDisposable browser)
+        {
+            browser.Dispose();
         }
     }
 }
