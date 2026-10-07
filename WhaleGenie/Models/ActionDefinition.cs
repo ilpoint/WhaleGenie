@@ -138,6 +138,22 @@ public class ActionParameter
     public bool NamesVariable { get; init; }
 
     /// <summary>
+    /// True when the text may name variables, so the editor offers them while the field is typed
+    /// in. It is what keeps a hint that says "written out or held in a variable" honest: without
+    /// it the field is a plain box and the name has to be spelled from memory. The value itself is
+    /// still text — the engine fills <c>$name</c> in rather than working anything out.
+    /// </summary>
+    public bool AcceptsVariables { get; init; }
+
+    /// <summary>
+    /// True when the whole value is read as one: a variable, a formula, or plain text. Such a
+    /// field is offered the expression editor, because what it builds there is exactly what the
+    /// engine reads. False for text that is only filled in, where a formula would be taken
+    /// literally and quietly mean something else.
+    /// </summary>
+    public bool AcceptsFormula { get; init; }
+
+    /// <summary>
     /// True when the text is written in another language's syntax rather than as a macro value:
     /// a script's body, where <c>$name</c> means that language's own variable and nothing to do
     /// with a variable the macro reads. The editor leaves such text alone when it looks for the

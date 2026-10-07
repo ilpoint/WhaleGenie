@@ -1149,11 +1149,11 @@ public static class ActionCatalog
             [
                 Text("heading", "Title", "Backup finished",
                     "The heading of the notification. Leave it empty to head it with the program's "
-                    + "own name.", required: false),
+                    + "own name.", required: false, acceptsFormula: true),
                 Text("message", "Message", "All the files were copied.",
                     "What the notification says. Variables in it are filled in the way they are "
                     + "everywhere else, so a macro can report what it just did.",
-                    required: true),
+                    required: true, acceptsFormula: true),
                 Choice("what", "Kind", ["information", "warning", "error"], "information",
                     "How the notification is marked: an ordinary note, something worth looking at, "
                     + "or something that went wrong. A machine with its notifications switched off "
@@ -1607,7 +1607,7 @@ public static class ActionCatalog
                 Image("image", "Image file", @"C:\images\ok.png",
                    "Reference image: a file path, or the variable a Capture step saved ($shot)."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
-                Text("region", "Search region", required: false, hint: RegionHint),
+                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
                 ..Anchor(),
                 MatchIndex(),
                 AllMatches(),
@@ -1629,7 +1629,7 @@ public static class ActionCatalog
                 Image("image", "Image file", @"C:\images\ok.png",
                     "Reference image to wait for: a file path, or the variable a Capture saved."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
-                Text("region", "Search region", required: false, hint: RegionHint),
+                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
                 ..Anchor(),
                 MatchIndex(),
                 Number("timeoutMs", "Timeout", 5000, "Give up after this long."),
@@ -1649,7 +1649,7 @@ public static class ActionCatalog
             [
                 Image("image", "Image file", @"C:\images\ok.png"),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
-                Text("region", "Search region", required: false, hint: RegionHint),
+                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
                 ..Anchor(),
                 MatchIndex(),
                 Number("offsetX", "Offset X", 0, "Pixels added to the match centre.",
@@ -1705,7 +1705,7 @@ public static class ActionCatalog
                     "Which hit to use, counted from the top left: down the screen first, then "
                     + "across. 1 is the first one.", min: 1, max: 200),
                 AllMatches(),
-                Text("region", "Search region", required: false, hint: RegionHint),
+                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
                 ..Anchor(),
                 Number("timeoutMs", "Timeout", 0,
                     "0 looks once and leaves the result empty when the colour is not there. "
@@ -1755,7 +1755,7 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("text", "Text to find", "Save", "Text to look for."),
-                Text("region", "Search region", required: false, hint: RegionHint),
+                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
                 ..Anchor(),
                 TextMatch(),
                 Content(),
@@ -1904,7 +1904,8 @@ public static class ActionCatalog
                 MatchIndex(),
                 Text("item", "Entry", "Ready", required: false,
                     hint: "The entry to pick, by the text it shows; a $variable holding the text "
-                          + "works too. Leave it empty and fill in the number below instead."),
+                          + "works too. Leave it empty and fill in the number below instead.",
+                    acceptsFormula: true),
                 Number("itemIndex", "Entry number", 0,
                     "Which entry to pick, counted from 1. 0 means pick the one named above.",
                     max: 10000),
@@ -2052,7 +2053,7 @@ public static class ActionCatalog
             [
                 Image("image", "Image file", @"C:\images\ok.png"),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
-                Text("region", "Search region", required: false, hint: RegionHint),
+                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
                 ..Anchor(),
             ],
         },
@@ -2066,7 +2067,7 @@ public static class ActionCatalog
             [
                 Image("image", "Image file", @"C:\images\ok.png"),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
-                Text("region", "Search region", required: false, hint: RegionHint),
+                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
                 ..Anchor(),
             ],
         },
@@ -2079,7 +2080,7 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("text", "Text", "Ready"),
-                Text("region", "Search region", required: false, hint: RegionHint),
+                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
                 ..Anchor(),
                 TextMatch(),
             ],
@@ -2093,7 +2094,7 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("text", "Text", "Ready"),
-                Text("region", "Search region", required: false, hint: RegionHint),
+                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
                 ..Anchor(),
                 TextMatch(),
             ],
@@ -2284,7 +2285,7 @@ public static class ActionCatalog
 
     private static ActionParameter Text(string name, string label, string placeholder = "",
         string hint = "", bool required = true, string defaultValue = "", bool advanced = false,
-        bool foreign = false)
+        bool foreign = false, bool acceptsVariables = false, bool acceptsFormula = false)
         => new()
         {
             Name = name,
@@ -2296,6 +2297,8 @@ public static class ActionCatalog
             DefaultValue = defaultValue,
             Advanced = advanced,
             ForeignText = foreign,
+            AcceptsVariables = acceptsVariables,
+            AcceptsFormula = acceptsFormula,
         };
 
     private static ActionParameter Multiline(string name, string label, string hint = "",

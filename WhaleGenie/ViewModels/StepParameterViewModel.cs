@@ -28,11 +28,25 @@ public partial class StepParameterViewModel : ViewModelBase
         Macros = macros ?? [];
         DurationUnits = DurationUnit.Localized();
         _unit = DurationUnits[0];
-        ExpressionSuggestions = definition.Kind
+
+        // A field that may name variables offers them; one that is read as a whole value offers the
+        // functions as well, because a function name is something the expression reader understands
+        // there. Text that is only filled in offers the names alone: a function in it would be
+        // taken literally.
+        var knowsFunctions = definition.Kind
             is ActionParameterKind.Expression or ActionParameterKind.Number
-            ? [.. Variables.Select(name => "$" + name),
-               .. Expression.Functions.Select(function => function.Name + "(")]
-            : [];
+            || definition.AcceptsFormula;
+        var suggestions = new List<string>();
+        if (knowsFunctions || definition.AcceptsVariables)
+        {
+            suggestions.AddRange(Variables.Select(name => "$" + name));
+            if (knowsFunctions)
+            {
+                suggestions.AddRange(Expression.Functions.Select(function => function.Name + "("));
+            }
+        }
+
+        ExpressionSuggestions = suggestions;
         Text = definition.DefaultValue;
         Flag = string.Equals(definition.DefaultValue, "true", StringComparison.OrdinalIgnoreCase);
         Choices = [.. definition.OptionChoices.Select(choice => choice with
@@ -222,9 +236,26 @@ public partial class StepParameterViewModel : ViewModelBase
 
     /// <summary>
     /// True when the parameter is written in a plain one-line field with nothing beside it. A
-    /// selector is left out of that group because it carries the element picker's button.
+    /// selector is left out of that group because it carries the element picker's button, and so
+    /// is a field the variables are offered in, which has a list of its own over it.
     /// </summary>
-    public bool IsPlainText => IsText && !IsSelector;
+    public bool IsPlainText => IsText && !IsSelector && !OffersVariables;
+
+    /// <summary>
+    /// True when the field is offered the variables it may name. A hint that says "written out or
+    /// held in a variable" is only honest if the name can be picked instead of remembered, which
+    /// is what this drives.
+    /// </summary>
+    public bool OffersVariables => IsText
+        && !IsSelector
+        && (Definition.AcceptsVariables || Definition.AcceptsFormula);
+
+    /// <summary>
+    /// True when the whole value is read as one, so the expression editor may build it: what it
+    /// makes there is what the engine reads. Text that is only filled in stays out, because a
+    /// formula written into it would be taken literally.
+    /// </summary>
+    public bool IsFormulaText => IsText && Definition.AcceptsFormula;
 
     /// <summary>
     /// True when this parameter is a UI Automation selector, which the element picker can take
