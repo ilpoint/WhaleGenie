@@ -458,19 +458,31 @@ public partial class MainWindow : Window
         => WebPage.Open(ProjectLinks.Feedback);
 
     /// <summary>
-    /// Says what Viktor is and offers the project page, which is what both the "?" button and
-    /// "About" are for.
+    /// Says what the program is and offers the two documents that belong with it: the project page,
+    /// and the list of what inside it was made by somebody else. Both the "?" button and "About"
+    /// open this.
     /// </summary>
     private async void OnAboutClicked(object? sender, RoutedEventArgs e)
     {
         var choice = await ConfirmDialog.ShowAsync(this, Strings.Get("Main.Title"),
             Strings.Format("Main.AboutText", Version()), Strings.Get("Main.AboutOpenPage"),
-            showCancel: false);
+            Strings.Get("Main.AboutNotices"), showCancel: false, height: 320);
 
         if (choice == ConfirmChoice.Primary)
         {
             WebPage.Open(ProjectLinks.Home);
         }
+        else if (choice == ConfirmChoice.Secondary)
+        {
+            await ShowThirdPartyNoticesAsync();
+        }
+    }
+
+    /// <summary>Shows the third-party work the release ships, which the same document lists.</summary>
+    private async Task ShowThirdPartyNoticesAsync()
+    {
+        await ConfirmDialog.ShowAsync(this, Strings.Get("Main.AboutNotices"),
+            ThirdPartyNotices.Read(), Strings.Get("Common.Ok"), showCancel: false, height: 460);
     }
 
     /// <summary>The version the about box names, read from the program itself.</summary>

@@ -16,6 +16,11 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <!--
+      "关于"窗口要能显示第三方说明，发行包里也要求它跟着 exe 走。同一份文件链接进来，不抄
+      第二遍：程序里显示的、仓库里放的就永远是同一段文字。
+    -->
+    <AvaloniaResource Include="..\THIRD-PARTY-NOTICES.md" Link="Assets\THIRD-PARTY-NOTICES.md" />
   </ItemGroup>
 
   <ItemGroup>

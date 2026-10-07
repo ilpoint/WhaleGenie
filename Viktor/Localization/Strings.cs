@@ -93,10 +93,13 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.Feedback"] = "Feedback",
         ["Main.GetStarted"] = "Get Started",
         ["Main.About"] = "About",
-        ["Main.AboutText"] = "Turn keyboard, mouse, screen and window actions into step-by-step "
+        ["Main.AboutText"] = "A little assistant DeepSeek helped write, which is why it is called "
+            + "WhaleGenie.\n\nTurn keyboard, mouse, screen and window actions into step-by-step "
             + "macros, and start them with a hotkey, a mouse button, the wheel, or the colour of a "
-            + "pixel on the screen.\n\nVersion {0}",
+            + "pixel on the screen.\n\nVersion {0}\nIcon: the pixel-art whale emoji by Emojiall, "
+            + "under CC BY 4.0, scaled and modified.",
         ["Main.AboutOpenPage"] = "Open the project page",
+        ["Main.AboutNotices"] = "Third-party components",
         ["Main.AboutUnknownVersion"] = "unknown",
         ["Main.SearchPlaceholder"] = "Type to search..",
         ["Main.EmptyTitle"] = "No macros yet.",
@@ -815,9 +818,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.Feedback"] = "反馈",
         ["Main.GetStarted"] = "快速上手",
         ["Main.About"] = "关于",
-        ["Main.AboutText"] = "把键盘、鼠标、屏幕和窗口上的操作编成一步步的宏，用热键、鼠标按键、"
-            + "滚轮，或屏幕上某个像素的颜色触发它。\n\n版本 {0}",
+        ["Main.AboutText"] = "DeepSeek 帮忙写的小助手，所以是鲸灵啦。\n\n把键盘、鼠标、屏幕和窗口上的"
+            + "操作编成一步步的宏，用热键、鼠标按键、滚轮，或屏幕上某个像素的颜色触发它。\n\n"
+            + "版本 {0}\n图标：像素风的鲸鱼 emoji 由 Emojiall 创作，采用 CC BY 4.0 协议，已缩放修改。",
         ["Main.AboutOpenPage"] = "打开项目主页",
+        ["Main.AboutNotices"] = "第三方组件",
         ["Main.AboutUnknownVersion"] = "未知",
         ["Main.SearchPlaceholder"] = "输入以搜索..",
         ["Main.EmptyTitle"] = "还没有宏。",

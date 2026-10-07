@@ -24,6 +24,12 @@ public partial class ConfirmDialogViewModel : ViewModelBase
 
     public string Message { get; init; } = string.Empty;
 
+    /// <summary>
+    /// How tall the window is. A question fits in the default, a whole document does not: the
+    /// message area scrolls, so a taller window is only about showing more at once.
+    /// </summary>
+    public double WindowHeight { get; init; } = 210;
+
     public string PrimaryLabel { get; init; } = "OK";
 
     public string? SecondaryLabel { get; init; }
