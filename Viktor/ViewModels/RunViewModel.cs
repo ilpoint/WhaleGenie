@@ -283,9 +283,10 @@ public partial class RunViewModel : ViewModelBase, IRunHost
     }
 
     /// <summary>Hands a failed step to the user, who picks what happens next.</summary>
-    public async Task<StepErrorChoice> Ask(string step, string reason, string detail, CancellationToken token)
+    public async Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
+        CancellationToken token)
     {
-        Question = FailedStepPrompt.Question(step, reason, detail);
+        Question = FailedStepPrompt.Question(step, reason, detail, comment);
         IsAsking = true;
 
         var answer = new TaskCompletionSource<StepErrorChoice>(TaskCreationOptions.RunContinuationsAsynchronously);

@@ -681,6 +681,8 @@
                                                Text="{Binding [Add.StepTimeout], Source={x:Static loc:Strings.Current}}" />
                                     <ContentControl Content="{Binding MetaTimeout}"
                                                     ContentTemplate="{StaticResource DurationSetting}" />
+                                    <TextBlock Classes="Muted" Margin="0,5,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Add.StepTimeoutHint], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock Classes="FieldLabel"

@@ -718,7 +718,12 @@ public class MacroRunnerTests
         var broken = new ExecutableStep
         {
             Type = "something.unknown",
-            Meta = new StepMeta { OnError = StepErrorAction.AskUser, RetryDelayMs = 0 },
+            Meta = new StepMeta
+            {
+                OnError = StepErrorAction.AskUser,
+                RetryDelayMs = 0,
+                Comment = "the note I wrote on this step",
+            },
         };
 
         var (result, _) = await RunAsync([broken], host, store);
@@ -728,6 +733,10 @@ public class MacroRunnerTests
         Assert.Equal("something.unknown", host.Questions[0].Step);
         Assert.Equal("Run.Unsupported", host.Questions[0].Reason);
         Assert.Equal("something.unknown", host.Questions[0].Detail);
+
+        // The note is the user's own words about why the step was there, so it travels with the
+        // question: the window that asks has no other way to know it.
+        Assert.Equal("the note I wrote on this step", host.Questions[0].Comment);
     }
 
     [Fact]
@@ -761,6 +770,91 @@ public class MacroRunnerTests
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.Timeout", result.Key);
+    }
+
+    [Fact]
+    public async Task A_step_that_runs_past_its_timeout_is_stopped_where_it_stands()
+    {
+        // The wait asks for five seconds and is allowed a tenth of one. The limit is what ends it,
+        // so the run comes back in a moment instead of sitting out the whole delay and being told
+        // off afterwards.
+        var slow = new ExecutableStep
+        {
+            Type = "control.delay",
+            Parameters = [Param("ms", "5000")],
+            Meta = new StepMeta { TimeoutMs = 100 },
+        };
+
+        var watch = Stopwatch.StartNew();
+        var (result, _) = await RunAsync([slow]);
+        watch.Stop();
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.Timeout", result.Key);
+        Assert.True(watch.Elapsed.TotalMilliseconds < 2000,
+            $"the wait should have been cut short, took {watch.Elapsed.TotalMilliseconds:0} ms");
+    }
+
+    [Fact]
+    public async Task A_blocks_timeout_cuts_short_the_wait_inside_it()
+    {
+        // The step inside is allowed as long as it likes; the block it sits in is not, and that is
+        // the limit that ends the wait.
+        var block = new ExecutableStep
+        {
+            Type = "control.sequence",
+            Parameters = [Body("steps", Step("control.delay", Param("ms", "5000")))],
+            Meta = new StepMeta { TimeoutMs = 100 },
+        };
+
+        var watch = Stopwatch.StartNew();
+        var (result, _) = await RunAsync([block]);
+        watch.Stop();
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.Timeout", result.Key);
+        Assert.True(watch.Elapsed.TotalMilliseconds < 2000,
+            $"the block should have given up on the step inside it, took {watch.Elapsed.TotalMilliseconds:0} ms");
+    }
+
+    [Fact]
+    public async Task Stopping_a_run_is_not_read_as_a_timeout()
+    {
+        // A step that is allowed a minute still has to end when the user stops the macro: that is a
+        // stop, and calling it a timeout would point the reader at the wrong thing.
+        var waiting = new ExecutableStep
+        {
+            Type = "control.delay",
+            Parameters = [Param("ms", "30000")],
+            Meta = new StepMeta { TimeoutMs = 60000 },
+        };
+
+        using var stop = new CancellationTokenSource();
+        var run = new MacroRunner(new VariableStore(), new SilentRunHost(), NullDeviceLayer.Instance)
+            .RunAsync([waiting], stop.Token);
+
+        await Task.Delay(20);
+        await stop.CancelAsync();
+        var result = await run;
+
+        Assert.Equal(RunStatus.Stopped, result.Status);
+        Assert.NotEqual("Run.Timeout", result.Key);
+    }
+
+    [Fact]
+    public async Task A_step_that_fits_inside_its_timeout_is_left_alone()
+    {
+        // The clock must not be so eager that an honest step fails: this one is allowed plenty.
+        var quick = new ExecutableStep
+        {
+            Type = "control.delay",
+            Parameters = [Param("ms", "20")],
+            Meta = new StepMeta { TimeoutMs = 5000 },
+        };
+
+        var (result, _) = await RunAsync([quick]);
+
+        Assert.True(result.Succeeded, result.Key);
     }
 
     [Fact]
@@ -1378,7 +1472,8 @@ public class MacroRunnerTests
             return Task.CompletedTask;
         }
 
-        public Task<StepErrorChoice> Ask(string step, string reason, string detail, CancellationToken token)
+        public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
+            CancellationToken token)
             => Task.FromResult(StepErrorChoice.Stop);
     }
 
@@ -1390,7 +1485,7 @@ public class MacroRunnerTests
         public int Asked => _index;
 
         /// <summary>What the runner said each time it asked the user.</summary>
-        public System.Collections.Generic.List<(string Step, string Reason, string Detail)> Questions { get; } = [];
+        public System.Collections.Generic.List<(string Step, string Reason, string Detail, string Comment)> Questions { get; } = [];
 
         public void Log(LogEntry entry)
         {
@@ -1399,9 +1494,10 @@ public class MacroRunnerTests
         public Task BeforeStep(ExecutableStep step, int depth, CancellationToken token)
             => Task.CompletedTask;
 
-        public Task<StepErrorChoice> Ask(string step, string reason, string detail, CancellationToken token)
+        public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
+            CancellationToken token)
         {
-            Questions.Add((step, reason, detail));
+            Questions.Add((step, reason, detail, comment));
             var answer = _index < answers.Length ? answers[_index] : StepErrorChoice.Stop;
             _index++;
             return Task.FromResult(answer);

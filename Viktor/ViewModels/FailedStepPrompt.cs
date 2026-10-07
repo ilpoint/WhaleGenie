@@ -16,10 +16,16 @@ internal static class FailedStepPrompt
     /// <summary>
     /// The question itself. The reason is a message key that may want the detail filled in, so a
     /// failure with nothing to add is worded with an empty one rather than left half-written.
+    /// The note the user wrote on the step gets a line of its own: it is often the only thing
+    /// that says why the step was in the macro at all, which is exactly what somebody looking at
+    /// a failure wants to know.
     /// </summary>
-    public static string Question(string step, string reason, string detail)
+    public static string Question(string step, string reason, string detail, string comment)
     {
         var why = detail.Length == 0 ? Strings.Format(reason, string.Empty) : Strings.Format(reason, detail);
-        return $"{Strings.Format("Run.Ask", Name(step))}\n{why}";
+        var text = $"{Strings.Format("Run.Ask", Name(step))}\n{why}";
+
+        var note = comment.Trim();
+        return note.Length == 0 ? text : $"{text}\n{Strings.Format("Run.AskComment", note)}";
     }
 }

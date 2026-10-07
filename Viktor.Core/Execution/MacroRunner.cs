@@ -347,11 +347,32 @@ public sealed class MacroRunner
 
         for (var attempt = 0; ; attempt++)
         {
+            // A step that is allowed so long gets a clock of its own. The limit is what stops it:
+            // a wait that would run past it gives up where it stands rather than carrying on and
+            // being told off afterwards, which is what "this step may take at most so long" means
+            // to whoever wrote it. An outer stop is a different thing and stays one.
+            using var limit = step.Meta.TimeoutMs > 0
+                ? CancellationTokenSource.CreateLinkedTokenSource(token)
+                : null;
+            limit?.CancelAfter(step.Meta.TimeoutMs);
+
             try
             {
                 var started = Stopwatch.GetTimestamp();
-                var signal = await ExecuteChecked(step, depth, token);
+                Signal signal;
+                try
+                {
+                    signal = await ExecuteChecked(step, depth, limit?.Token ?? token);
+                }
+                catch (OperationCanceledException)
+                    when (limit is { IsCancellationRequested: true } && !token.IsCancellationRequested)
+                {
+                    throw new StepFailure("Run.Timeout",
+                        step.Meta.TimeoutMs.ToString(CultureInfo.InvariantCulture));
+                }
 
+                // The clock catches what the token cannot: a device call that blocks until it is
+                // finished never looks at a cancellation, so it is still told off for going over.
                 var elapsed = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
                 if (step.Meta.TimeoutMs > 0 && elapsed > step.Meta.TimeoutMs)
                 {
@@ -437,7 +458,7 @@ public sealed class MacroRunner
 
     private async Task<Decision> Ask(ExecutableStep step, StepFailure failure, CancellationToken token)
     {
-        var choice = await _host.Ask(step.Type, failure.Key, failure.Detail, token);
+        var choice = await _host.Ask(step.Type, failure.Key, failure.Detail, step.Meta.Comment, token);
         return choice switch
         {
             StepErrorChoice.Retry => Decision.Retry,

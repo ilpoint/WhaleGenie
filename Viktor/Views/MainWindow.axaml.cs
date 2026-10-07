@@ -410,11 +410,12 @@ public partial class MainWindow : Window
     /// interface thread; an answer of "stop" is what a closed box or a cancelled run gives, which
     /// is the one choice that cannot make things worse on its own.
     /// </summary>
-    private async Task<StepErrorChoice> AskAboutFailedStep(string step, string reason, string detail)
+    private async Task<StepErrorChoice> AskAboutFailedStep(string step, string reason, string detail,
+        string comment)
         => await Dispatcher.UIThread.InvokeAsync(async () =>
         {
             var choice = await ConfirmDialog.ShowAsync(this, Strings.Get("Run.AskTitle"),
-                FailedStepPrompt.Question(step, reason, detail),
+                FailedStepPrompt.Question(step, reason, detail, comment),
                 Strings.Get("Run.AskRetry"), Strings.Get("Run.AskSkip"), true, Strings.Get("Run.AskStop"));
 
             return choice switch

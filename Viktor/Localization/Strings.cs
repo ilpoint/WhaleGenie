@@ -402,6 +402,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.StepComment"] = "Comment",
         ["Add.StepCommentHint"] = "A note shown under the step in the list",
         ["Add.StepTimeout"] = "Timeout",
+        ["Add.StepTimeoutHint"] = "The limit is what ends the step: a wait that would run past it "
+            + "stops there, and so does everything inside a block. 0 means no limit.",
         ["Add.StepRetry"] = "Retries",
         ["Add.StepRetryDelay"] = "Retry delay",
         ["Add.StepOnError"] = "When it fails",
@@ -553,6 +555,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.AskSkip"] = "Skip it",
         ["Run.AskStop"] = "Stop",
         ["Run.AskTitle"] = "A step failed",
+        ["Run.AskComment"] = "Your note on this step: {0}",
         ["Run.NoVariables"] = "This macro does not use any variables yet.",
         ["Run.NoDevice"] = "This machine cannot do that yet: {0} is not connected.",
         ["Run.UnknownKey"] = "That is not a key name Viktor knows: {0}",
@@ -1031,6 +1034,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.StepComment"] = "备注",
         ["Add.StepCommentHint"] = "显示在步骤下方的备注",
         ["Add.StepTimeout"] = "超时",
+        ["Add.StepTimeoutHint"] = "到点就当场结束这一步：正在等的等待会在那里停下，块里面的东西也一起停。"
+            + "0 表示不限。",
         ["Add.StepRetry"] = "重试次数",
         ["Add.StepRetryDelay"] = "重试间隔",
         ["Add.StepOnError"] = "失败后",
@@ -1176,6 +1181,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.AskSkip"] = "跳过这一步",
         ["Run.AskStop"] = "停止宏",
         ["Run.AskTitle"] = "有一步失败了",
+        ["Run.AskComment"] = "这一步的备注：{0}",
         ["Run.NoVariables"] = "这个宏还没有使用变量。",
         ["Run.NoDevice"] = "这台机器还不能做这件事：{0} 尚未接入。",
         ["Run.UnknownKey"] = "维克多不认识这个键名：{0}",

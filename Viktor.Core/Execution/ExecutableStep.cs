@@ -113,9 +113,11 @@ public interface IRunHost
     /// <summary>
     /// Asked when a step's failure rule is <see cref="StepErrorAction.AskUser"/>. The reason is
     /// a message key and the detail is what the runner was doing, so the host can word the
-    /// question in the reader's language.
+    /// question in the reader's language. The comment is the note the user wrote on the step,
+    /// which is where the reason this step was in the macro at all tends to live.
     /// </summary>
-    Task<StepErrorChoice> Ask(string step, string reason, string detail, CancellationToken token);
+    Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
+        CancellationToken token);
 }
 
 /// <summary>A host that keeps the log and answers nothing, used when nobody is watching.</summary>
@@ -130,7 +132,8 @@ public sealed class SilentRunHost : IRunHost
 
     public Task BeforeStep(ExecutableStep step, int depth, CancellationToken token) => Task.CompletedTask;
 
-    public Task<StepErrorChoice> Ask(string step, string reason, string detail, CancellationToken token)
+    public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
+        CancellationToken token)
         => Task.FromResult(StepErrorChoice.Stop);
 }
 

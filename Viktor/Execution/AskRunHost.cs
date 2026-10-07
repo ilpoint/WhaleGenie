@@ -12,7 +12,7 @@ namespace Viktor.Execution;
 /// or with the run already cancelled — the answer is to stop, which is the one choice that
 /// cannot make things worse on its own.
 /// </summary>
-public sealed class AskRunHost(Func<string, string, string, Task<StepErrorChoice>>? ask) : IRunHost
+public sealed class AskRunHost(Func<string, string, string, string, Task<StepErrorChoice>>? ask) : IRunHost
 {
     /// <summary>A triggered run has no log window to write to, so the lines are dropped.</summary>
     public void Log(LogEntry entry)
@@ -23,8 +23,9 @@ public sealed class AskRunHost(Func<string, string, string, Task<StepErrorChoice
     public Task BeforeStep(ExecutableStep step, int depth, CancellationToken token)
         => Task.CompletedTask;
 
-    public Task<StepErrorChoice> Ask(string step, string reason, string detail, CancellationToken token)
+    public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
+        CancellationToken token)
         => ask is null || token.IsCancellationRequested
             ? Task.FromResult(StepErrorChoice.Stop)
-            : ask(step, reason, detail);
+            : ask(step, reason, detail, comment);
 }

@@ -73,7 +73,7 @@ public sealed class MacroTriggerService : IDisposable
     /// Asked when a step of a triggered macro has a failure rule of "ask me". Set by the window
     /// that can ask; without it a run that wants to ask stops, which says more than guessing.
     /// </summary>
-    public Func<string, string, string, Task<StepErrorChoice>>? Ask { get; set; }
+    public Func<string, string, string, string, Task<StepErrorChoice>>? Ask { get; set; }
 
     /// <summary>The system switch on the main window.</summary>
     public bool IsEnabled
