@@ -368,4 +368,35 @@ public class StepTreeTests
     /// <summary>A point inside a row, as a fraction of its width and height, in window space.</summary>
     private static Point Waypoint(Window window, Visual row, double x, double y)
         => row.TranslatePoint(new Point(row.Bounds.Width * x, row.Bounds.Height * y), window) ?? default;
+
+    [Fact]
+    public void A_mouse_drag_onto_the_middle_of_a_block_puts_the_step_inside_it()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var inside = Step("control.log");
+            var loop = Loop(inside);
+            var outside = Step("control.delay");
+            editor.AddStep(loop);
+            editor.AddStep(outside);
+            Dispatcher.UIThread.RunJobs();
+
+            var rows = window.GetVisualDescendants().OfType<ListBoxItem>().ToList();
+            var from = Waypoint(window, rows[4], 0.5, 0.5);
+            var to = Waypoint(window, rows[0], 0.5, 0.5);
+            window.MouseDown(from, MouseButton.Left, RawInputModifiers.LeftMouseButton);
+            window.MouseMove(to, RawInputModifiers.LeftMouseButton);
+            window.MouseUp(to, MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal([inside, outside], Inside(loop));
+            Assert.Same(loop, Assert.Single(editor.Steps));
+        });
+    }
 }
