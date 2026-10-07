@@ -183,7 +183,15 @@ public partial class AddActionViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(SelectedKey))]
     [NotifyPropertyChangedFor(nameof(Description))]
     [NotifyPropertyChangedFor(nameof(SelectedActionTitle))]
+    [NotifyPropertyChangedFor(nameof(IsBlock))]
     public partial ActionDefinition? SelectedDefinition { get; set; }
+
+    /// <summary>
+    /// True when the step being edited holds steps of its own. The settings every step carries
+    /// then read as being about the whole block: a failure inside it that no step handled is this
+    /// block failing, and the block is what gets retried or left out.
+    /// </summary>
+    public bool IsBlock => SelectedDefinition is { } definition && HoldsSteps(definition);
 
     /// <summary>Editors for the selected action, rebuilt whenever the selection changes.</summary>
     public ObservableCollection<StepParameterViewModel> Parameters { get; } = [];
@@ -447,7 +455,7 @@ public partial class AddActionViewModel : ViewModelBase
         // The blocks are lifted out of the categories and listed together, because "which shape
         // does this task need" is the question the picker is asked first, and the four repeats
         // only differ from each other when they stand side by side.
-        var blocks = matching.Where(IsBlock)
+        var blocks = matching.Where(HoldsSteps)
             .OrderBy(BlockRank)
             .ToList();
 
@@ -457,7 +465,7 @@ public partial class AddActionViewModel : ViewModelBase
                 blocks, searching || _openedGroups.Contains(BlockGroup), Strings.Get("Add.BlocksNote"));
         }
 
-        foreach (var category in matching.Where(action => !IsBlock(action))
+        foreach (var category in matching.Where(action => !HoldsSteps(action))
                      .GroupBy(action => action.Category)
                      .OrderBy(group => (int)group.Key))
         {
@@ -474,7 +482,7 @@ public partial class AddActionViewModel : ViewModelBase
     /// something the run just does. The logic group is not one of these — it holds conditions,
     /// which are what a block asks about, not steps the run walks through.
     /// </summary>
-    private static bool IsBlock(ActionDefinition action)
+    private static bool HoldsSteps(ActionDefinition action)
         => action.Parameters.Any(parameter =>
             parameter.Kind is ActionParameterKind.Steps && !parameter.ConditionsOnly);
 

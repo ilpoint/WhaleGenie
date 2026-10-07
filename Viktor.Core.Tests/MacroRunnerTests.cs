@@ -28,6 +28,19 @@ public class MacroRunnerTests
 
     private static ExecutableStep AddOne(string name) => Set(name, "$" + name + " + 1");
 
+    /// <summary>
+    /// A step that fails however it is run: a key press with no device layer behind it reports
+    /// that the keyboard is missing. Tests say what the macro makes of a failure with it instead
+    /// of leaning on a real machine.
+    /// </summary>
+    private static ExecutableStep Broken(StepMeta? meta = null)
+        => new()
+        {
+            Type = "input.keyPress",
+            Parameters = [Param("key", "F5")],
+            Meta = meta ?? StepMeta.Empty,
+        };
+
     private static VariableStore Store(params (string Name, double Value)[] numbers)
     {
         var store = new VariableStore();
@@ -559,6 +572,114 @@ public class MacroRunnerTests
 
         Assert.True(result.Succeeded);
         Assert.Equal(2, host.Entries.Count(entry => entry.Key == "Run.Retry"));
+    }
+
+    [Fact]
+    public async Task A_failure_inside_a_block_is_answered_by_the_block()
+    {
+        var store = Store();
+        var loop = new ExecutableStep
+        {
+            Type = "control.repeat",
+            Parameters = [Param("times", "2"), Body("body", Broken())],
+            Meta = new StepMeta { OnError = StepErrorAction.Continue },
+        };
+
+        var (result, _) = await RunAsync([loop, Set("after", "1")], variables: store);
+
+        // Nothing inside the block said what to do about the failure, so the block's own rule
+        // decided: what is left of the block is left out, and the macro carries on after it.
+        Assert.True(result.Succeeded);
+        Assert.Equal("1", store.Local.Values["after"].AsText());
+    }
+
+    [Fact]
+    public async Task A_block_that_is_retried_runs_its_steps_again_from_the_top()
+    {
+        var store = Store(("rounds", 0));
+        var loop = new ExecutableStep
+        {
+            Type = "control.repeat",
+            Parameters = [Param("times", "1"), Body("body", AddOne("rounds"), Broken())],
+            Meta = new StepMeta
+            {
+                RetryCount = 2,
+                RetryDelayMs = 0,
+                OnError = StepErrorAction.Continue,
+            },
+        };
+
+        var (result, host) = await RunAsync([loop], variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(3, N(store, "rounds"));
+        Assert.Equal(2, host.Entries.Count(entry => entry.Key == "Run.Retry"));
+    }
+
+    [Fact]
+    public async Task A_step_that_handles_its_own_failure_never_reaches_the_block()
+    {
+        var store = Store(("rounds", 0));
+        var handled = Broken(new StepMeta { OnError = StepErrorAction.Continue });
+        var loop = new ExecutableStep
+        {
+            Type = "control.repeat",
+            Parameters = [Param("times", "1"), Body("body", AddOne("rounds"), handled)],
+            Meta = new StepMeta
+            {
+                RetryCount = 2,
+                RetryDelayMs = 0,
+                OnError = StepErrorAction.Continue,
+            },
+        };
+
+        var (result, host) = await RunAsync([loop], variables: store);
+
+        // The step dealt with it itself, so there is nothing left for the block to answer: the
+        // block runs once and is never retried.
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, N(store, "rounds"));
+        Assert.DoesNotContain(host.Entries, entry => entry.Key == "Run.Retry");
+    }
+
+    [Fact]
+    public async Task A_block_can_send_the_run_on_to_the_next_round_of_its_loop()
+    {
+        var store = Store(("rounds", 0));
+        var group = new ExecutableStep
+        {
+            Type = "control.sequence",
+            Parameters = [Body("steps", Broken())],
+            Meta = new StepMeta { OnError = StepErrorAction.NextIteration },
+        };
+
+        var (result, _) = await RunAsync(
+            [Step("control.repeat", Param("times", "3"),
+                Body("body", AddOne("rounds"), group, Set("never", "1")))],
+            variables: store);
+
+        // The failure is the block's, and the block sits inside a loop, so "another round" is
+        // that loop's next round: the rest of this one is left out.
+        Assert.True(result.Succeeded);
+        Assert.Equal(3, N(store, "rounds"));
+        Assert.False(store.TryGet("never", out _));
+    }
+
+    [Fact]
+    public async Task A_failure_inside_a_block_that_nobody_answers_still_stops_the_run()
+    {
+        var store = Store();
+        var loop = new ExecutableStep
+        {
+            Type = "control.repeat",
+            Parameters = [Param("times", "2"), Body("body", Broken())],
+        };
+
+        var (result, _) = await RunAsync([loop, Set("after", "1")], variables: store);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.NoDevice", result.Key);
+        Assert.False(store.TryGet("after", out _));
     }
 
     [Fact]

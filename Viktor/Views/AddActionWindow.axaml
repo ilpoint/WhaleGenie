@@ -646,6 +646,13 @@
                                 </Button>
                             </Grid>
 
+                            <!-- A block's settings are about the block, not about one thing the run
+                                 does, and the two levels are what make a failure answerable at the
+                                 level it belongs to. -->
+                            <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="2,0,0,8"
+                                       IsVisible="{Binding IsBlock}"
+                                       Text="{Binding [Add.BlockSettings], Source={x:Static loc:Strings.Current}}" />
+
                             <ItemsControl ItemsSource="{Binding Rows}"
                                           ItemTemplate="{StaticResource ParameterRowEditor}" />
 

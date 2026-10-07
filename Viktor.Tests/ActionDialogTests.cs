@@ -273,6 +273,29 @@ public class ActionDialogTests
     }
 
     [Fact]
+    public void The_settings_of_a_block_say_they_are_about_the_block()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(
+                new MacroStep { Type = "control.repeat" }, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+
+            // Retries, timeouts and "when it fails" mean something bigger on a block: a failure
+            // inside it that no step answered is the block failing, so the dialog says so.
+            Assert.True(viewModel.IsBlock);
+            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible && text.Text == Strings.Get("Add.BlockSettings"));
+
+            // A step that does one thing is not a block, and the line is not about it.
+            Assert.False(Open("control.delay").IsBlock);
+        });
+    }
+
+    [Fact]
     public void A_block_can_be_given_a_step_from_its_own_dialog()
     {
         Ui.Run(() =>

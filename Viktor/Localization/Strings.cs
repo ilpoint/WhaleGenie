@@ -397,6 +397,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.JitterRange"] = "Each run: {0} to {1}",
         ["Add.FormulaPlaceholder"] = "$match.x or $count + 1",
         ["Add.StepSettings"] = "Step settings",
+        ["Add.BlockSettings"] = "These settings belong to the whole block: a failure inside it that "
+            + "no step handled counts as this block failing.",
         ["Add.StepComment"] = "Comment",
         ["Add.StepCommentHint"] = "A note shown under the step in the list",
         ["Add.StepTimeout"] = "Timeout",
@@ -411,7 +413,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.Backoff.Fixed"] = "The same every time",
         ["Add.Backoff.Doubling"] = "Double each attempt",
         ["Add.Backoff.Jitter"] = "Half to one and a half times, at random",
-        ["Add.StepRetryPlanNone"] = "This step is not retried: the first failure goes straight to "
+        ["Add.StepRetryPlanNone"] = "Not retried: the first failure goes straight to "
             + "the rule beside it.",
         ["Add.StepRetryPlanFixed"] = "Tried {0} more time(s), waiting {1} each time.",
         ["Add.StepRetryPlanGrowing"] = "Tried {0} more time(s), waiting {1}.",
@@ -1021,6 +1023,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.JitterRange"] = "每次在 {0} – {1} 之间",
         ["Add.FormulaPlaceholder"] = "$match.x 或 $count + 1",
         ["Add.StepSettings"] = "步骤设置",
+        ["Add.BlockSettings"] = "这是整段的设置：里面哪一步没处理掉的失败，都算这一段失败；重试、"
+            + "超时和失败后怎么办都按这里来。",
         ["Add.StepComment"] = "备注",
         ["Add.StepCommentHint"] = "显示在步骤下方的备注",
         ["Add.StepTimeout"] = "超时",
@@ -1034,7 +1038,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.Backoff.Fixed"] = "每次都一样",
         ["Add.Backoff.Doubling"] = "每次翻倍",
         ["Add.Backoff.Jitter"] = "在半倍到一倍半之间随机",
-        ["Add.StepRetryPlanNone"] = "这一步不重试，第一次失败就按右边的规则处理。",
+        ["Add.StepRetryPlanNone"] = "不重试：第一次失败就按右边的规则处理。",
         ["Add.StepRetryPlanFixed"] = "会再试 {0} 次，每次先等 {1}。",
         ["Add.StepRetryPlanGrowing"] = "会再试 {0} 次，等待依次是 {1}。",
         ["Add.StepRetryPlanRandom"] = "会再试 {0} 次，每次等 {1} 到 {2} 之间的随机时长。",

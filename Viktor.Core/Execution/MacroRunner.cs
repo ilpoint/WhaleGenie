@@ -360,6 +360,38 @@ public sealed class MacroRunner
                 }
 
                 _executed++;
+
+                // A step that holds steps fails when one of them fails. That arrives as a signal
+                // rather than as an exception — the step that failed has already said what it
+                // wants done about it — so the settings on this step are what decide what a
+                // failure it did not handle means: try the whole block again, leave the rest of
+                // it out, go on to the next round of the loop it sits in, or stop. A step that
+                // handled its own failure never gets this far, which is what makes the two
+                // levels work together: the inside decides first, the block decides what is left.
+                if (signal is Signal.Failed)
+                {
+                    if (attempt < step.Meta.RetryCount)
+                    {
+                        Log(LogLevel.Warn, depth, step.Type, "Run.Retry", attempt + 1);
+                        await Pause(RetryPause(step, attempt + 1), token);
+                        continue;
+                    }
+
+                    var decided = await Decide(step, token);
+                    if (decided is Decision.Retry)
+                    {
+                        await Pause(RetryPause(step, attempt + 1), token);
+                        continue;
+                    }
+
+                    return decided switch
+                    {
+                        Decision.Skip => Signal.Normal,
+                        Decision.NextIteration => Signal.Continue,
+                        _ => Signal.Failed,
+                    };
+                }
+
                 await Pause(Pace(step.Meta.DelayAfterMs), token);
                 return signal;
             }
@@ -373,29 +405,35 @@ public sealed class MacroRunner
                 Log(LogLevel.Error, depth, step.Type, failure.Key, failure.Detail);
                 _failure = failure;
 
-                var decision = step.Meta.OnError switch
+                var decision = await Decide(step, token);
+                if (decision is not Decision.Retry)
                 {
-                    StepErrorAction.Continue => Decision.Skip,
-                    StepErrorAction.NextIteration => Decision.NextIteration,
-                    StepErrorAction.AskUser => await Ask(step, failure, token),
-                    _ => Decision.Stop,
-                };
-
-                if (decision is Decision.Retry)
-                {
-                    await Pause(RetryPause(step, attempt + 1), token);
-                    continue;
+                    return decision switch
+                    {
+                        Decision.Skip => Signal.Normal,
+                        Decision.NextIteration => Signal.Continue,
+                        _ => Signal.Failed,
+                    };
                 }
 
-                return decision switch
-                {
-                    Decision.Skip => Signal.Normal,
-                    Decision.NextIteration => Signal.Continue,
-                    _ => Signal.Failed,
-                };
+                await Pause(RetryPause(step, attempt + 1), token);
             }
         }
     }
+
+    /// <summary>
+    /// What the step's failure rule says to do about the failure that just happened. The failure
+    /// the rule is asked about is the last one the run saw: a step that failed on its own set it,
+    /// and one that failed because of the steps inside it was given it by the step that failed.
+    /// </summary>
+    private async Task<Decision> Decide(ExecutableStep step, CancellationToken token)
+        => step.Meta.OnError switch
+        {
+            StepErrorAction.Continue => Decision.Skip,
+            StepErrorAction.NextIteration => Decision.NextIteration,
+            StepErrorAction.AskUser => await Ask(step, _failure ?? new StepFailure("Run.Failed"), token),
+            _ => Decision.Stop,
+        };
 
     private async Task<Decision> Ask(ExecutableStep step, StepFailure failure, CancellationToken token)
     {
