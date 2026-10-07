@@ -109,7 +109,7 @@ git push origin v0.01
 建 Release 需要写权限。仓库若把 Actions 的默认权限设成了只读，要在
 Settings → Actions → General → Workflow permissions 里放开一次。
 
-每次出两个包，差别只在"要不要自己带运行环境"，其余完全一样：
+两种包差别只在"要不要自己带运行环境"，其余完全一样：
 
 | 包 | 自带运行环境 | 体积（x64 打包后 / 解压后） | 什么时候用 |
 | --- | --- | --- | --- |
@@ -133,7 +133,8 @@ Viktor\
 自带运行时的那一个，根目录还会多出 .NET 运行时自己的十来个文件（`hostfxr.dll`、`coreclr.dll`
 这些）。它们必须和 exe 放在一起：宿主是先找 `hostpolicy`、再找 `coreclr`、再由 `coreclr` 找
 JIT 和核心库的，都按"exe 所在目录"找，放进 `lib` 程序连报错的机会都没有。其余两百多个 dll
-都在 `lib` 里，运行时按清单（`Viktor.deps.json`）里的路径去那儿取，两份清单在打包时一起改写。
+都在 `lib` 里，运行时按清单（`Viktor.deps.json`）里的路径去那儿取，清单里的路径在打包时
+跟着一起改写。
 
 体积里不含调试符号：打包时会把 `.pdb` 删掉，它比程序本身还大（Skia 一份就 80 MB）。不做裁剪
 （`PublishTrimmed`）：Avalonia 的 XAML、UIA 和 OCR 都靠反射找类型，裁了就得一个动作一个动作地
