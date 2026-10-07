@@ -444,7 +444,7 @@ public partial class MainWindow : Window
 
     /// <summary>Shows what the whole release list says, which is the change log.</summary>
     private void OnWhatsNewClicked(object? sender, RoutedEventArgs e)
-        => OpenLink(ProjectLinks.Releases);
+        => WebPage.Open(ProjectLinks.Releases);
 
     /// <summary>
     /// Opens where a newer version would be. Viktor does not check by itself: asking GitHub on
@@ -452,10 +452,10 @@ public partial class MainWindow : Window
     /// and the download — with the user.
     /// </summary>
     private void OnUpdatesClicked(object? sender, RoutedEventArgs e)
-        => OpenLink(ProjectLinks.LatestRelease);
+        => WebPage.Open(ProjectLinks.LatestRelease);
 
     private void OnFeedbackClicked(object? sender, RoutedEventArgs e)
-        => OpenLink(ProjectLinks.Feedback);
+        => WebPage.Open(ProjectLinks.Feedback);
 
     /// <summary>
     /// Says what Viktor is and offers the project page, which is what both the "?" button and
@@ -469,7 +469,7 @@ public partial class MainWindow : Window
 
         if (choice == ConfirmChoice.Primary)
         {
-            OpenLink(ProjectLinks.Home);
+            WebPage.Open(ProjectLinks.Home);
         }
     }
 
@@ -478,10 +478,6 @@ public partial class MainWindow : Window
         => typeof(MainWindow).Assembly.GetName().Version is { } version
             ? $"v{version.Major}.{version.Minor}.{version.Build}"
             : Strings.Get("Main.AboutUnknownVersion");
-
-    /// <summary>Hands a web address to whatever the machine opens web addresses with.</summary>
-    private static void OpenLink(string url)
-        => Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
 
     private async void OnOpenSettings(object? sender, RoutedEventArgs e)
     {
