@@ -388,6 +388,29 @@ public class StepTreeTests
     }
 
     [Fact]
+    public void A_step_can_be_added_to_a_block_that_sits_inside_another_block()
+    {
+        Ui.Run(() =>
+        {
+            var editor = new MacroEditorViewModel();
+            var inner = Loop();
+            var outer = Loop(inner);
+            editor.AddStep(outer);
+
+            // The plus on the inner block's title line is what says "a step goes in here".
+            var head = editor.Rows.First(row => row.IsHead && ReferenceEquals(row.Step, inner));
+            editor.AddInsideCommand.Execute(head);
+
+            // The dialog that opens is about that list, so what it returns lands inside the inner
+            // block rather than beside it.
+            editor.AddStep(Step("control.log"));
+
+            Assert.Equal(["control.log"], Inside(inner).Select(step => step.Type));
+            Assert.Equal(["control.repeat"], editor.Steps.Select(step => step.Type));
+        });
+    }
+
+    [Fact]
     public void Double_clicking_a_step_inside_a_block_edits_that_step()
     {
         Ui.Run(() =>

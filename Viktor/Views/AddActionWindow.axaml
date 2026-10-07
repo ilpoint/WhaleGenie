@@ -289,9 +289,18 @@
                     </StackPanel>
                 </Border>
 
-                <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
-                           IsVisible="{Binding IsStepList}"
-                           Text="{Binding StepsNote}" />
+                <!-- A block keeps its steps in the editor's list, where the shape they make can
+                     be seen, so this dialog does not show them — but it still adds one, because
+                     "this block needs another step in it" is a thing to want while its settings
+                     are open. -->
+                <StackPanel IsVisible="{Binding IsStepList}" Margin="2,8,0,0">
+                    <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding StepsNote}" />
+                    <Button Classes="FlatButton" Height="30" Padding="10,0" Margin="0,7,0,0"
+                            HorizontalAlignment="Left"
+                            Content="{Binding List.AddLabel}"
+                            ToolTip.Tip="{Binding [Add.AddStepToBlockHint], Source={x:Static loc:Strings.Current}}"
+                            Command="{Binding List.AddCommand}" />
+                </StackPanel>
 
                 <TextBlock Classes="Muted" Text="{Binding Hint}"
                            IsVisible="{Binding HasHint}"

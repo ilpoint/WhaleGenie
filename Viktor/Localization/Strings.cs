@@ -354,7 +354,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.NestedAddCondition"] = "Add condition",
         ["Add.Case"] = "Add case",
         ["Add.NestedEdit"] = "Edit",
-        ["Add.StepsInList"] = "The steps inside this block are edited in the editor's list: {0}",
+        ["Add.StepsInList"] = "The steps inside a block are put in order in the editor's list: {0}",
+        ["Add.AddStepToBlock"] = "Add a step",
+        ["Add.AddStepToBlockHint"] = "Appends a step to the end of this block. Their order and "
+            + "deleting them are done in the editor's list, where the shape of the macro shows.",
         ["Add.ExpressionValid"] = "Expression is valid",
         ["Add.ExpressionResult"] = "= {0}",
         ["Add.FormulaUse"] = "Write this as an expression, for example $match.x",
@@ -976,7 +979,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.NestedAddCondition"] = "添加条件",
         ["Add.Case"] = "添加分支",
         ["Add.NestedEdit"] = "编辑",
-        ["Add.StepsInList"] = "这一块里的步骤在编辑器列表里增删：{0}",
+        ["Add.StepsInList"] = "这一块里的步骤在编辑器列表里调整：{0}",
+        ["Add.AddStepToBlock"] = "加一步",
+        ["Add.AddStepToBlockHint"] = "把一步加到这一块的末尾。它们的前后顺序和删除在编辑器列表里做，"
+            + "那里看得见这个宏的结构。",
         ["Add.ExpressionValid"] = "表达式有效",
         ["Add.ExpressionResult"] = "= {0}",
         ["Add.FormulaUse"] = "改写为表达式，例如 $match.x",

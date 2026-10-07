@@ -57,16 +57,24 @@ public partial class StepParameterViewModel : ViewModelBase
         if (definition.Kind is ActionParameterKind.Steps or ActionParameterKind.Condition)
         {
             var isCondition = definition.Kind is ActionParameterKind.Condition;
-            // Conditions are what this dialog is for. The steps of a block are edited in the
-            // editor's own list, where the block's shape can be seen, so a list of those gets no
-            // editor here — only a line saying where they went.
+            // Conditions are what this dialog is for. The steps of a block are put in order in the
+            // editor's own list, where the block's shape can be seen, so this dialog does not show
+            // them — but it does add one, because "this block needs another step in it" is a thing
+            // to want while its settings are open.
             var conditions = isCondition || definition.ConditionsOnly;
+            var addLabel = definition.AddLabelKey.Length > 0
+                ? Strings.Get(definition.AddLabelKey)
+                : Strings.Get("Add.AddStepToBlock");
+
             List = new StepListEditorViewModel(
                 conditions
                     ? Strings.Get(isCondition ? "Add.NestedCondition" : "Add.NestedAddCondition")
-                    : string.Empty,
+                    : addLabel,
                 isCondition,
                 conditions ? ActionCatalog.Conditions : null);
+
+            // The line under the list says how many steps are in it, so it has to follow the list.
+            List.PropertyChanged += (_, _) => OnPropertyChanged(nameof(StepsNote));
         }
     }
 

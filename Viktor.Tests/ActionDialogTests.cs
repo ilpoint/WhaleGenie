@@ -237,6 +237,9 @@ public class ActionDialogTests
 
             Assert.True(cases.IsStepList);
             Assert.False(cases.IsConditionList);
+            // A list that names itself says so on the button that adds to it, the way the editor's
+            // own list does: the branches of a switch are branches, not steps.
+            Assert.Equal(Strings.Get("Add.Case"), cases.List!.AddLabel);
             Assert.True(otherwise.IsStepList);
         });
     }
@@ -255,6 +258,10 @@ public class ActionDialogTests
             Assert.False(body.IsConditionList);
             Assert.NotEmpty(body.StepsNote);
 
+            // Adding one is still here: it is the one thing about the inside of a block you may
+            // well want while its settings are open.
+            Assert.Equal(Strings.Get("Add.AddStepToBlock"), body.List!.AddLabel);
+
             // A condition is the one thing a step needs that is not a step, so it stays here.
             var test = Open("control.if");
             var condition = test.Parameters.First(parameter => parameter.Definition.Name == "condition");
@@ -262,6 +269,55 @@ public class ActionDialogTests
             Assert.True(condition.IsConditionList);
             Assert.False(condition.IsStepList);
             Assert.Same(ActionCatalog.Conditions, condition.List!.Catalog);
+        });
+    }
+
+    [Fact]
+    public void A_block_can_be_given_a_step_from_its_own_dialog()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(
+                new MacroStep { Type = "control.repeat" }, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            var body = viewModel.Parameters.First(parameter => parameter.Definition.Name == "body");
+            var before = body.StepsNote;
+
+            // The block's settings carry the line about where its steps are ordered, and beside it
+            // the one thing this dialog still does to them: add another.
+            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible && text.Text == body.StepsNote);
+            var button = Assert.Single(window.GetVisualDescendants().OfType<Button>(),
+                candidate => candidate.IsEffectivelyVisible
+                    && Equals(candidate.Content, body.List!.AddLabel));
+
+            button.Command!.Execute(button.CommandParameter);
+            Dispatcher.UIThread.RunJobs();
+
+            // The action is picked in the same dialog the editor opens for a step of its own, and
+            // what it returns is appended to this block's list rather than to the macro.
+            var nested = window.OwnedWindows.OfType<AddActionWindow>().Single();
+            var picker = (AddActionViewModel)nested.DataContext!;
+            picker.SelectAction("control.delay");
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(picker.CanSave, picker.ValidationMessage);
+            picker.SaveCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("control.delay", Assert.Single(body.List!.Steps).Type);
+
+            // The line under the settings is the count, so it has to follow what was added.
+            Assert.NotEqual(before, body.StepsNote);
+
+            MacroStep? saved = null;
+            viewModel.CloseRequested += step => saved = step;
+            viewModel.SaveCommand.Execute(null);
+
+            Assert.Equal("control.delay",
+                Assert.Single(saved!.StepLists.Single().Steps).Type);
         });
     }
 
