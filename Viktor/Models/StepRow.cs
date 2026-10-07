@@ -49,6 +49,13 @@ public sealed class StepRow
     /// <summary>How many blocks this row is nested in, which is what the left margin draws.</summary>
     public int Depth { get; init; }
 
+    /// <summary>
+    /// What the design-time check found wrong with this step, or empty when it found nothing.
+    /// It travels with the row rather than being looked up again so the list can mark the row
+    /// it came from, which is what saves the user from having to hunt for it.
+    /// </summary>
+    public string Problem { get; init; } = string.Empty;
+
     /// <summary>Left margin that indents a row by how deep it sits.</summary>
     public Thickness Indent => new(Depth * 18, 0, 0, 0);
 
@@ -59,6 +66,9 @@ public sealed class StepRow
 
     /// <summary>True on the line that closes a block.</summary>
     public bool IsFoot => Kind is StepRowKind.Foot;
+
+    /// <summary>True on a step the check has something to say about.</summary>
+    public bool HasProblem => Problem.Length > 0;
 
     /// <summary>True on a step that holds steps of its own, so it offers a fold arrow.</summary>
     public bool CanFold => IsStep && Step.HasChildren;

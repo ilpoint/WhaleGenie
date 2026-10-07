@@ -127,6 +127,31 @@
             <Setter Property="BorderBrush" Value="#FF6A35" />
         </Style>
 
+        <!-- A step the design-time check is unhappy about: the row keeps its place and gains an
+             amber edge and mark, so what is wrong is visible without opening anything. -->
+        <Style Selector="Border.StepRow.problem">
+            <Setter Property="BorderBrush" Value="#C8913C" />
+        </Style>
+        <Style Selector="ListBox.StepList ListBoxItem:selected Border.StepRow.problem">
+            <Setter Property="BorderBrush" Value="#FFB45C" />
+        </Style>
+        <Style Selector="Path.ProblemMark">
+            <Setter Property="Width" Value="15" />
+            <Setter Property="Height" Value="15" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="Stroke" Value="#E0A23C" />
+            <Setter Property="StrokeThickness" Value="1.6" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+            <Setter Property="StrokeJoin" Value="Round" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.ProblemSummary">
+            <Setter Property="Foreground" Value="#E0A23C" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="2,0,0,8" />
+        </Style>
+
         <!-- The two ends of a block: the line its steps start under, and the line that closes it.
              They are what makes "inside the loop" and "after the loop" tell themselves apart. -->
         <Style Selector="Border.StepHead">
@@ -802,7 +827,7 @@
 
 <!-- Right: Action Editor -->
      <Border Grid.Column="2" Background="#292929" CornerRadius="6">
-            <Grid RowDefinitions="Auto,Auto,*" Margin="18,16">
+            <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="18,16">
             <TextBlock Grid.Row="0" Classes="SectionHeader"
                        Text="{Binding [Editor.ActionEditor], Source={x:Static loc:Strings.Current}}" />
 
@@ -825,8 +850,14 @@
                      </DataTemplate>
                  </ItemsControl.ItemTemplate>
              </ItemsControl>
+
+                   <!-- What the design-time check made of the steps, so a problem is known while
+                        the macro is being written rather than when a trigger fires it. -->
+                   <TextBlock Grid.Row="2" Classes="ProblemSummary" IsVisible="{Binding HasProblems}"
+                              Text="{Binding ProblemSummary}" />
+
                    <!-- Empty state -->
-                   <StackPanel Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4"
+                   <StackPanel Grid.Row="3" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4"
                                IsVisible="{Binding !HasSteps}">
                        <TextBlock Foreground="#C0C0C0" FontSize="13"
                                   Text="{Binding [Editor.NoSteps], Source={x:Static loc:Strings.Current}}"
@@ -835,7 +866,7 @@
                                   Classes="Muted" HorizontalAlignment="Center" TextAlignment="Center" />
                    </StackPanel>
 
-                   <ListBox Grid.Row="2" Name="StepList" Classes="StepList"
+                   <ListBox Grid.Row="3" Name="StepList" Classes="StepList"
                             ItemsSource="{Binding Rows}" SelectionMode="Multiple"
                             IsVisible="{Binding HasSteps}"
                             DoubleTapped="OnStepDoubleTapped">
@@ -844,7 +875,8 @@
                               <Panel>
                                   <!-- A step, indented by how deep it sits. A block carries a
                                        fold arrow, so what is inside it can be put away. -->
-                                  <Border Classes="StepRow" Opacity="{Binding RowOpacity}"
+                                  <Border Classes="StepRow" Classes.problem="{Binding HasProblem}"
+                                          Opacity="{Binding RowOpacity}"
                                           Margin="{Binding Indent}"
                                           IsVisible="{Binding IsStep}">
                                       <StackPanel Orientation="Horizontal" Spacing="6">
@@ -877,6 +909,10 @@
                                                          Foreground="#8FB3D9" TextWrapping="Wrap"
                                                          IsVisible="{Binding HasMetaSummary}" />
                                           </StackPanel>
+                                          <Path Classes="ProblemMark"
+                                                IsVisible="{Binding HasProblem}"
+                                                ToolTip.Tip="{Binding Problem}"
+                                                Data="M12,3.5 L22,20 L2,20 Z M12,9.5 L12,14.5 M12,16.8 L12,17.6" />
                                       </StackPanel>
                                   </Border>
 
@@ -911,7 +947,7 @@
 
                    <!-- The seam a dragged block drops on. Sits in the same cell as the list and
                         is not hit-testable, so it never swallows the drag that draws it. -->
-                   <Canvas Grid.Row="2" Name="DropLayer" IsHitTestVisible="False">
+                   <Canvas Grid.Row="3" Name="DropLayer" IsHitTestVisible="False">
                        <Border Name="DropMarker" Height="2" CornerRadius="1"
                                Background="#FF6A35" IsVisible="False" />
                    </Canvas>

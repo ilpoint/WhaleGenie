@@ -328,8 +328,11 @@ public class MacroStep : INotifyPropertyChanged
     /// <summary>True when the parameter creates a variable rather than referencing one.</summary>
     private bool DefinesVariable(StepParameter parameter) => parameter.Name switch
     {
-        "itemVariable" or "resultVariable" or "errorVariable" or "saveTo" => true,
+        "itemVariable" or "indexVariable" or "resultVariable" or "errorVariable"
+            or "exitCodeVariable" or "saveTo" => true,
         "name" => Type is "control.setVariable" or "control.listCreate",
+        "variable" => Type is "control.for",
+        "elapsedVariable" => Type is "control.waitUntil",
         _ => false,
     };
 

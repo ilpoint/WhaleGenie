@@ -137,6 +137,14 @@ public class ActionParameter
     /// </summary>
     public bool NamesVariable { get; init; }
 
+    /// <summary>
+    /// True when the text is written in another language's syntax rather than as a macro value:
+    /// a script's body, where <c>$name</c> means that language's own variable and nothing to do
+    /// with a variable the macro reads. The editor leaves such text alone when it looks for the
+    /// variables a macro uses.
+    /// </summary>
+    public bool ForeignText { get; init; }
+
     /// <summary>Choices paired with the text shown for them, honouring any labels.</summary>
     public IReadOnlyList<ActionParameterOption> OptionChoices
     {

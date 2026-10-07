@@ -172,6 +172,33 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     public bool HasSteps => Steps.Count > 0;
 
+    /// <summary>
+    /// Names of the other macros in the project. A step that calls a macro is checked against
+    /// these, so a call left pointing at a name that has gone is called out here rather than
+    /// waiting for the trigger to fire. The macro being edited is added by the check itself,
+    /// because a macro may call itself.
+    /// </summary>
+    private IReadOnlyList<string> _projectMacros = [];
+
+    /// <summary>What the design-time check has to say about the steps as they stand now.</summary>
+    public IReadOnlyList<MacroProblem> Problems { get; private set; } = [];
+
+    public bool HasProblems => Problems.Count > 0;
+
+    /// <summary>One line above the list saying how much the editor has to say.</summary>
+    public string ProblemSummary => Strings.Format("Editor.ProblemSummary",
+        Problems.Select(problem => problem.Step).Distinct().Count());
+
+    /// <summary>Which steps the check is unhappy about, and what it says about each one.</summary>
+    private Dictionary<MacroStep, string> _problemByStep = [];
+
+    /// <summary>Hands in the macro names a call may reach, and checks the steps again.</summary>
+    public void SetProjectMacros(IEnumerable<string> names)
+    {
+        _projectMacros = [.. names];
+        RebuildRows();
+    }
+
     public bool HasSelection => _selection.Count > 0;
 
     /// <summary>The steps highlighted in the action list.</summary>
@@ -1446,6 +1473,8 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     private void RebuildRows()
     {
+        RefreshProblems();
+
         IsRebuildingRows = true;
         try
         {
@@ -1456,6 +1485,23 @@ public partial class MacroEditorViewModel : ViewModelBase
         {
             IsRebuildingRows = false;
         }
+    }
+
+    /// <summary>
+    /// Runs the design-time check over the steps as they stand and puts the answers where the
+    /// rows and the line above the list can read them.
+    /// </summary>
+    private void RefreshProblems()
+    {
+        Problems = MacroCheck.Inspect(Steps, _projectMacros, Name);
+        _problemByStep = Problems
+            .GroupBy(problem => problem.Step)
+            .ToDictionary(group => group.Key,
+                group => string.Join("\n", group.Select(problem => problem.Message).Distinct()));
+
+        OnPropertyChanged(nameof(Problems));
+        OnPropertyChanged(nameof(HasProblems));
+        OnPropertyChanged(nameof(ProblemSummary));
     }
 
     private void AddRows(IList<MacroStep> steps, StepParameter? owner, int depth)
@@ -1471,6 +1517,7 @@ public partial class MacroEditorViewModel : ViewModelBase
                 Index = index,
                 RowIndex = Rows.Count,
                 Depth = depth,
+                Problem = _problemByStep.GetValueOrDefault(step) ?? string.Empty,
             });
 
             var lists = step.StepLists.ToList();
@@ -1664,11 +1711,24 @@ public partial class MacroEditorViewModel : ViewModelBase
         base.OnPropertyChanged(e);
 
         // Highlighting rows in the list, and starting or stopping a recording, are not edits
-        // of the macro itself.
+        // of the macro itself, and neither is what the design-time check made of it.
         if (!_loading && e.PropertyName is not (nameof(IsDirty) or nameof(HasSelection)
-                or nameof(SelectedSteps) or nameof(IsRecording) or nameof(RecordedEvents)))
+                or nameof(SelectedSteps) or nameof(IsRecording) or nameof(RecordedEvents)
+                or nameof(Problems) or nameof(HasProblems) or nameof(ProblemSummary)))
         {
             IsDirty = true;
+        }
+    }
+
+    /// <summary>
+    /// Renaming a macro changes which calls point at it, so the check has to be run again —
+    /// including when the new name is the one a self-call was waiting for.
+    /// </summary>
+    partial void OnNameChanged(string value)
+    {
+        if (!_loading)
+        {
+            NotifyStepsChanged();
         }
     }
 

@@ -270,6 +270,16 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Meta.OnErrorNextIteration"] = "starts the next round when it fails",
         ["Editor.Meta.OnErrorAsk"] = "asks when it fails",
 
+        // What the editor can tell is wrong before the macro runs. Only what the steps
+        // themselves decide is called out here; anything that needs a run stays unsaid.
+        ["Editor.ProblemSummary"] = "{0} step(s) the editor is not happy with.",
+        ["Editor.ProblemMark"] = "The editor has something to say about this step",
+        ["Editor.Problem.BreakOutsideLoop"] = "This break is not inside a loop, so there is nothing to leave.",
+        ["Editor.Problem.ContinueOutsideLoop"] = "This continue is not inside a loop, so there is no next round to start.",
+        ["Editor.Problem.NoMacro"] = "This step does not say which macro to run.",
+        ["Editor.Problem.MacroNotFound"] = "There is no macro called \"{0}\" in this project.",
+        ["Editor.Problem.UndefinedVariable"] = "Nothing defines \"${0}\", so it reads as nothing.",
+
         ["Trigger.Keys"] = "Keystrokes / Button Inputs",
         ["Trigger.Color"] = "Color / Pixel Changes",
         ["Trigger.Timer"] = "Timer / Schedule",
@@ -904,6 +914,16 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Meta.OnErrorContinue"] = "失败后继续",
         ["Editor.Meta.OnErrorNextIteration"] = "失败后进入下一轮循环",
         ["Editor.Meta.OnErrorAsk"] = "失败后询问",
+
+        // 编辑器在宏跑起来之前就能看出来的问题。只有步骤本身能定下来的才写在这里，
+        // 需要跑一次才知道的事情不写。
+        ["Editor.ProblemSummary"] = "有 {0} 个步骤被编辑器标了出来。",
+        ["Editor.ProblemMark"] = "编辑器对这个步骤有话说",
+        ["Editor.Problem.BreakOutsideLoop"] = "这个 break 不在任何循环里，没有可以跳出的循环。",
+        ["Editor.Problem.ContinueOutsideLoop"] = "这个 continue 不在任何循环里，没有可以进入的下一轮。",
+        ["Editor.Problem.NoMacro"] = "这一步没有选要执行的宏。",
+        ["Editor.Problem.MacroNotFound"] = "本项目里没有名为“{0}”的宏。",
+        ["Editor.Problem.UndefinedVariable"] = "没有定义“${0}”，读到的会是空的。",
 
         ["Trigger.Keys"] = "键盘 / 鼠标输入",
         ["Trigger.Color"] = "颜色 / 像素变化",

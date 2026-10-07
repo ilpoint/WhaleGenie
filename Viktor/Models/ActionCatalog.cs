@@ -1928,10 +1928,10 @@ public static class ActionCatalog
                     "The script itself. {{name}} is replaced by what the variable name holds "
                     + "before the script runs, which is how a macro value gets in; everything the "
                     + "script prints comes back in the result variable below.",
-                    "Write-Host \"Hello\""),
+                    "Write-Host \"Hello\"", foreign: true),
                 Text("arguments", "Arguments", "first second", required: false,
                     hint: "Extra arguments for the script's command line. {{name}} is filled in "
-                          + "here as well."),
+                          + "here as well.", foreign: true),
                 Text("folder", "Working folder", required: false,
                     hint: "The folder the script runs in. Leave it empty to run it in the macros "
                           + "folder, or wherever Viktor is when that folder is not there yet."),
@@ -2186,7 +2186,8 @@ public static class ActionCatalog
     // ------------------------------------------------------------------ builders
 
     private static ActionParameter Text(string name, string label, string placeholder = "",
-        string hint = "", bool required = true, string defaultValue = "", bool advanced = false)
+        string hint = "", bool required = true, string defaultValue = "", bool advanced = false,
+        bool foreign = false)
         => new()
         {
             Name = name,
@@ -2197,10 +2198,11 @@ public static class ActionCatalog
             Required = required,
             DefaultValue = defaultValue,
             Advanced = advanced,
+            ForeignText = foreign,
         };
 
     private static ActionParameter Multiline(string name, string label, string hint = "",
-        string placeholder = "", bool required = true)
+        string placeholder = "", bool required = true, bool foreign = false)
         => new()
         {
             Name = name,
@@ -2209,6 +2211,7 @@ public static class ActionCatalog
             Hint = hint,
             Placeholder = placeholder,
             Required = required,
+            ForeignText = foreign,
         };
 
     /// <summary>

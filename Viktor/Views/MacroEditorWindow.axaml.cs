@@ -27,6 +27,10 @@ public partial class MacroEditorWindow : Window
     private readonly MacroEditorViewModel _viewModel;
     private readonly IReadOnlyList<MacroItem> _project;
 
+    /// <summary>The macro being edited, kept apart from the rest of the project so a call it makes
+    /// can be told from a call to another macro.</summary>
+    private readonly MacroItem? _editing;
+
     /// <summary>Where a picture taken from the screen is put, so it travels with the package.</summary>
     private readonly string _assetFolder;
 
@@ -94,12 +98,19 @@ public partial class MacroEditorWindow : Window
         InitializeComponent();
 
         _project = project ?? (existing is null ? [] : [existing]);
+        _editing = existing;
         _assetFolder = ImageAssets.FolderFor(packagePath);
         _viewModel = new MacroEditorViewModel();
         if (existing is not null)
         {
             _viewModel.LoadFrom(existing);
         }
+
+        // The other macros a call may point at, so a run-another-macro step that no longer names
+        // one is marked while it is being read rather than when the trigger fires.
+        _viewModel.SetProjectMacros(_project
+            .Where(macro => !ReferenceEquals(macro, _editing))
+            .Select(macro => macro.Name));
 
         DataContext = _viewModel;
         Title = Strings.Get("Editor.Title");
