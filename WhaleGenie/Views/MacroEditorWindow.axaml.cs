@@ -738,6 +738,12 @@ public partial class MacroEditorWindow : Window
                     _allowClose = true;
                     Close(null);
                     break;
+                default:
+                    // "Not now" is an answer as well, and it belongs to the exit the tray may have
+                    // started: without saying so, that exit would still be waiting on this window
+                    // and would stop the program the next time it closed for a reason of its own.
+                    AppTray.Current?.CalledOff();
+                    break;
             }
         }
         finally

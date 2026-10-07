@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Localization;
@@ -19,6 +20,14 @@ namespace WhaleGenie.Execution;
 /// </summary>
 public sealed class AppTray : IDisposable
 {
+    /// <summary>
+    /// The tray this program has, or null when it has none. A window that asks about work which is
+    /// not saved needs it to say that the question was dismissed: that answer belongs to the exit
+    /// which asked the question, and an exit that did not hear it would still be waiting — and
+    /// would take the program down the next time that window closed for a reason of the user's own.
+    /// </summary>
+    public static AppTray? Current { get; private set; }
+
     private readonly Window _window;
 
     private readonly INotificationArea _area;
@@ -32,17 +41,30 @@ public sealed class AppTray : IDisposable
 
     private bool _disposed;
 
+    /// <summary>
+    /// The way out as far as it has got: the windows still to be asked, and what runs once they are
+    /// all gone. It is held while a window is asking about work that is not saved, because the
+    /// answer — not the asking — is what decides whether the program stops.
+    /// </summary>
+    private IReadOnlyList<Window>? _waiting;
+
+    private Action? _whenGone;
+
     public AppTray(Window window, INotificationArea area, Action exit)
     {
         _window = window;
         _area = area;
         _exit = exit;
 
+        Current = this;
         _area.Activated += Restore;
         _area.ExitRequested += Stop;
         _window.PropertyChanged += OnWindowPropertyChanged;
         _window.Closing += OnClosing;
     }
+
+    /// <summary>True while the icon's menu is what is closing the program.</summary>
+    public bool IsLeaving => _exiting;
 
     /// <summary>
     /// Puts the icon in the notification area for this program, or answers null when there is no
@@ -60,7 +82,9 @@ public sealed class AppTray : IDisposable
         {
             var area = new WindowsTray(
                 Strings.Get("Tray.Tooltip"), Strings.Get("Tray.Show"), Strings.Get("Tray.Exit"));
-            return new AppTray(window, area, () => Leave(window, desktop));
+            AppTray? tray = null;
+            tray = new AppTray(window, area, () => tray!.Leave(desktop));
+            return tray;
         }
         catch (Exception)
         {
@@ -71,39 +95,114 @@ public sealed class AppTray : IDisposable
     }
 
     /// <summary>Leaves the program, letting whatever has unsaved work have its say first.</summary>
-    private static void Leave(Window window, IClassicDesktopStyleApplicationLifetime desktop)
-        => Insist(
-            [.. desktop.Windows.Where(open => !ReferenceEquals(open, window))],
-            () =>
-            {
-                window.Hide();
-                desktop.Shutdown();
-            });
+    private void Leave(IClassicDesktopStyleApplicationLifetime desktop)
+        => Walk([.. desktop.Windows], () => desktop.Shutdown());
 
     /// <summary>
-    /// Asks the windows to close, and finishes only once they are gone.
+    /// Asks the windows to close, newest first, and runs <paramref name="finish"/> once they are
+    /// all gone.
     /// </summary>
     /// <remarks>
-    /// A window that stays is one that is asking the person something — the macro editor holding
-    /// unsaved steps is the one that does this. Going ahead anyway would throw away the changes the
-    /// prompt was asking about and make the prompt a lie, so instead the answer decides it: save or
-    /// discard and the window goes and the rest of the way out runs, dismiss the question and the
-    /// window stays and the program stays with it. They are asked newest first, because the windows
-    /// opened over the main one are the ones with something to say.
+    /// A window that calls the close off is one that is asking the person something — the macro
+    /// editor holding unsaved steps, or the main window holding a project that was changed. Going
+    /// ahead anyway would throw away the changes the prompt was asking about and make the prompt a
+    /// lie, so the walk waits there instead: the answer closes the window and carries on from where
+    /// it stopped, and a question that is dismissed calls the whole way out off (see
+    /// <see cref="CalledOff"/>). The newest windows are asked first, because the ones opened over
+    /// the main window are the ones with something to say.
     /// </remarks>
-    internal static void Insist(IReadOnlyList<Window> windows, Action finish)
+    internal void Walk(IReadOnlyList<Window> windows, Action finish)
     {
         foreach (var window in windows.Reverse())
         {
-            window.Close();
-            if (window.IsVisible)
+            if (Refused(window))
             {
-                window.Closed += (_, _) => Insist(windows, finish);
+                _waiting = windows;
+                _whenGone = finish;
+                window.Closed += OnAnswered;
                 return;
             }
         }
 
+        _waiting = null;
+        _whenGone = null;
         finish();
+    }
+
+    /// <summary>
+    /// Asks a window to close and answers whether it said no.
+    /// </summary>
+    /// <remarks>
+    /// Whether the window is on screen is not the question: the main window spends most of its life
+    /// hidden in the notification area, so a window asking about unsaved work would look like a
+    /// window that had gone — and the program would stop on top of the question it was asking. What
+    /// says a window is still there is that one of its handlers called the close off, and those
+    /// have all had their say by the time this returns.
+    /// </remarks>
+    private static bool Refused(Window window)
+    {
+        var refused = false;
+
+        void Watch(object? sender, WindowClosingEventArgs e) => refused |= e.Cancel;
+
+        window.Closing += Watch;
+        try
+        {
+            window.Close();
+        }
+        finally
+        {
+            window.Closing -= Watch;
+        }
+
+        return refused;
+    }
+
+    /// <summary>Carries the way out on from the window that was asking, now that it has gone.</summary>
+    private void OnAnswered(object? sender, EventArgs e)
+    {
+        if (sender is Window window)
+        {
+            window.Closed -= OnAnswered;
+        }
+
+        // One turn later, and below everything already waiting to run: a window that closes on the
+        // way out hands something over as it goes — the editor hands its macro to the list, which
+        // arrives on the next turn and is what the question after it is about — so carrying on
+        // straight away would ask about the project as it was before the user finished writing it.
+        Dispatcher.UIThread.Post(Resume, DispatcherPriority.Background);
+    }
+
+    /// <summary>Picks the way out up again, unless the question that stopped it was dismissed.</summary>
+    private void Resume()
+    {
+        if (_waiting is not { } windows || _whenGone is not { } finish)
+        {
+            return;
+        }
+
+        _waiting = null;
+        _whenGone = null;
+        Walk(windows, finish);
+    }
+
+    /// <summary>
+    /// The question a window was asking has been dismissed, so the way out it belonged to is off:
+    /// the program stays up, and closing that window later is an ordinary close again.
+    /// </summary>
+    public void CalledOff()
+    {
+        if (_waiting is { } windows)
+        {
+            foreach (var window in windows)
+            {
+                window.Closed -= OnAnswered;
+            }
+        }
+
+        _waiting = null;
+        _whenGone = null;
+        _exiting = false;
     }
 
     /// <summary>
@@ -171,6 +270,11 @@ public sealed class AppTray : IDisposable
         }
 
         _disposed = true;
+        if (ReferenceEquals(Current, this))
+        {
+            Current = null;
+        }
+
         _window.PropertyChanged -= OnWindowPropertyChanged;
         _window.Closing -= OnClosing;
         _area.Activated -= Restore;

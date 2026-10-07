@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
@@ -150,6 +151,11 @@ public class TrayTests
     {
         Ui.Run(() =>
         {
+            var host = new Window();
+            host.Show();
+
+            var tray = new AppTray(host, new FakeArea(), () => { });
+
             var stubborn = new Window();
             var asked = 0;
             var allow = false;
@@ -167,7 +173,7 @@ public class TrayTests
             plain.Show();
 
             var left = 0;
-            AppTray.Insist([plain, stubborn], () => left++);
+            tray.Walk([plain, stubborn], () => left++);
 
             // The window opened last is asked first, and while it is asking nothing has gone
             // anywhere — the changes it is asking about are still there to be saved.
@@ -179,10 +185,175 @@ public class TrayTests
             // Answering the question lets it go, and the rest of the way out runs with it.
             allow = true;
             stubborn.Close();
+            Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(1, left);
             Assert.False(stubborn.IsVisible);
             Assert.False(plain.IsVisible);
+
+            tray.Dispose();
+            host.Close();
+        });
+    }
+
+    [Fact]
+    public void A_question_that_is_dismissed_calls_the_way_out_off()
+    {
+        Ui.Run(() =>
+        {
+            var host = new Window();
+            host.Show();
+
+            var stubborn = new Window();
+            var allow = false;
+            stubborn.Closing += (_, e) =>
+            {
+                if (!allow)
+                {
+                    e.Cancel = true;
+                }
+            };
+            stubborn.Show();
+
+            var area = new FakeArea();
+            var left = 0;
+            AppTray? tray = null;
+            tray = new AppTray(host, area, () => tray!.Walk([stubborn], () => left++));
+
+            area.RaiseExitRequested();
+
+            // The way out is waiting on the question the window put up.
+            Assert.True(stubborn.IsVisible);
+            Assert.True(tray.IsLeaving);
+            Assert.Equal(0, left);
+
+            // The question is dismissed, so the way out it belonged to is off. Closing that window
+            // later is an ordinary close: nothing may be waiting to take the program down with it.
+            tray.CalledOff();
+
+            Assert.False(tray.IsLeaving);
+
+            allow = true;
+            stubborn.Close();
+
+            Assert.Equal(0, left);
+
+            tray.Dispose();
+            host.Close();
+        });
+    }
+
+    [Fact]
+    public void A_window_asking_from_the_notification_area_still_stops_the_way_out()
+    {
+        Ui.Run(() =>
+        {
+            var host = new Window();
+            host.Show();
+
+            // Away in the notification area, which is where the main window spends most of its
+            // life — and where a question about unsaved work still has to be asked.
+            var hidden = new Window();
+            hidden.Show();
+            hidden.Closing += (_, e) => e.Cancel = true;
+            hidden.Hide();
+
+            var tray = new AppTray(host, new FakeArea(), () => { });
+            var left = 0;
+            tray.Walk([hidden], () => left++);
+
+            Assert.Equal(0, left);
+
+            tray.Dispose();
+            host.Close();
+        });
+    }
+
+    [Fact]
+    public void The_question_after_a_window_closed_sees_what_that_window_handed_over()
+    {
+        Ui.Run(() =>
+        {
+            var host = new Window();
+            host.Show();
+            var tray = new AppTray(host, new FakeArea(), () => { });
+
+            // The window asked first is one that hands something over on its way out — the macro
+            // editor giving its macro to the list — and the hand-over takes a turn to arrive, the
+            // way the result of a dialog does.
+            var handedOver = false;
+            var editor = new Window();
+            var writing = true;
+            editor.Closing += (_, e) =>
+            {
+                if (writing)
+                {
+                    e.Cancel = true;
+                }
+                else
+                {
+                    Dispatcher.UIThread.Post(() => handedOver = true);
+                }
+            };
+            editor.Show();
+
+            // The window asked next is the one that has to know whether it arrived.
+            var landed = false;
+            var project = new Window();
+            var asking = true;
+            project.Closing += (_, e) =>
+            {
+                if (asking)
+                {
+                    e.Cancel = true;
+                    landed = handedOver;
+                }
+            };
+            project.Show();
+
+            var left = 0;
+            tray.Walk([project, editor], () => left++);
+
+            writing = false;
+            editor.Close();
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(handedOver);
+            Assert.True(landed);
+            Assert.Equal(0, left);
+
+            asking = false;
+            project.Close();
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(1, left);
+
+            tray.Dispose();
+            host.Close();
+        });
+    }
+
+    [Fact]
+    public void The_icons_menu_closes_the_window_rather_than_hiding_it()
+    {
+        Ui.Run(() =>
+        {
+            var window = new Window();
+            window.Show();
+
+            var area = new FakeArea();
+            var left = 0;
+            AppTray? tray = null;
+            tray = new AppTray(window, area, () => tray!.Walk([window], () => left++));
+
+            area.RaiseExitRequested();
+
+            // This is the one close that really leaves: the window goes, and the program with it.
+            Assert.Equal(1, left);
+            Assert.False(window.IsVisible);
+            Assert.True(tray!.IsLeaving);
+
+            tray.Dispose();
         });
     }
 

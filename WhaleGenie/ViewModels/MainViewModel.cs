@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -15,6 +16,7 @@ public partial class MainViewModel : ViewModelBase
         Macros.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(HasMacros));
+            OnPropertyChanged(nameof(HasUnsavedChanges));
             RefreshVisibleMacros();
         };
         Localization.Strings.Current.LanguageChanged += () => OnPropertyChanged(nameof(WindowTitle));
@@ -44,6 +46,23 @@ public partial class MainViewModel : ViewModelBase
         IsRunning ? "Main.SystemDisableHint" : "Main.SystemEnableHint");
 
     public string Version { get; } = "v0.0.1";
+
+    /// <summary>
+    /// Whether anything in the list has been changed since the package was last written — macros
+    /// added, edited, removed or armed or disarmed, and shared variables imported. The armed state
+    /// counts because it is written into the package: a macro that was switched off here is off
+    /// the next time the package is opened, so it is a change like any other.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasUnsavedChanges))]
+    public partial bool IsDirty { get; set; }
+
+    /// <summary>
+    /// True when stopping the program would throw away something the user made. A project that was
+    /// never saved and holds nothing is not one of those, so "close all" on a list that is only
+    /// memory does not turn into a question at exit.
+    /// </summary>
+    public bool HasUnsavedChanges => IsDirty && (Macros.Count > 0 || CurrentPath is not null);
 
     /// <summary>Package file the macros are saved to, or <c>null</c> before the first save.</summary>
     [ObservableProperty]
@@ -112,6 +131,7 @@ public partial class MainViewModel : ViewModelBase
         }
 
         Macros.Add(macro);
+        IsDirty = true;
     }
 
     /// <summary>Swaps an edited macro back into the list, keeping its on/off state.</summary>
@@ -125,22 +145,56 @@ public partial class MainViewModel : ViewModelBase
 
         edited.IsEnabled = original.IsEnabled;
         Macros[index] = edited;
+        IsDirty = true;
     }
 
     /// <summary>Removes a macro from the list.</summary>
-    public void RemoveMacro(MacroItem macro) => Macros.Remove(macro);
+    public void RemoveMacro(MacroItem macro)
+    {
+        Macros.Remove(macro);
+        IsDirty = true;
+    }
 
     /// <summary>Removes every macro, used by "close all".</summary>
-    public void ClearMacros() => Macros.Clear();
+    public void ClearMacros()
+    {
+        Macros.Clear();
+        IsDirty = true;
+    }
 
     /// <summary>Arms or disarms a macro; the macro list shows the state as a coloured dot.</summary>
-    public void ToggleMacro(MacroItem macro) => macro.IsEnabled = !macro.IsEnabled;
+    public void ToggleMacro(MacroItem macro)
+    {
+        macro.IsEnabled = !macro.IsEnabled;
+        IsDirty = true;
+    }
+
+    /// <summary>
+    /// What the shared variables hold, one line each, so that a change made while they were open
+    /// can be told from no change at all.
+    /// </summary>
+    /// <remarks>
+    /// Nothing else watches them: the package carries the shared variables beside the macros, but
+    /// they are not on the macro list, so nothing on that list moves when one is added, renamed or
+    /// given another starting value.
+    /// </remarks>
+    public static IReadOnlyList<string> SharedVariables()
+        => [.. VariableCatalog.Globals.Select(variable =>
+            $"{variable.Name}\u001f{variable.Type}\u001f{variable.DefaultValue}\u001f{variable.Description}")];
+
+    /// <summary>Whether the shared variables have moved on since <paramref name="before"/> was taken.</summary>
+    public static bool SharedVariablesChangedSince(IReadOnlyList<string> before)
+        => !before.SequenceEqual(SharedVariables());
+
+    /// <summary>Notes that the shared variables themselves were changed.</summary>
+    public void MarkSharedVariablesChanged() => IsDirty = true;
 
     /// <summary>Writes the macro list and the shared variables to a package file.</summary>
     public void SavePackage(string path)
     {
         Storage.MacroPackage.Save(path, [.. Macros], [.. VariableCatalog.Globals], Version);
         CurrentPath = path;
+        IsDirty = false;
     }
 
     /// <summary>Replaces everything with the contents of a package file.</summary>
@@ -161,6 +215,7 @@ public partial class MainViewModel : ViewModelBase
         }
 
         CurrentPath = path;
+        IsDirty = false;
     }
 
     /// <summary>Adds the macros of a package file to the list without replacing what is there.</summary>

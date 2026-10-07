@@ -566,6 +566,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.SaveProjectTitle"] = "Save Macro Project",
         ["Main.CloseAllTitle"] = "Close all macros",
         ["Main.CloseAllMessage"] = "Remove every macro from the list? The saved package is not changed.",
+        ["Main.UnsavedTitle"] = "Unsaved project",
+        ["Main.UnsavedMessage"] =
+            "The macros in the list have changes that are not saved yet. Closing the program now "
+            + "loses them.",
+        ["Main.UnsavedSave"] = "Save project",
+        ["Main.UnsavedDiscard"] = "Discard changes",
         ["Package.Filter"] = "WhaleGenie Macro Package",
         ["Package.OpenFailed"] = "This file could not be opened",
         ["Package.SaveFailed"] = "This file could not be saved",
@@ -1317,6 +1323,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.SaveProjectTitle"] = "保存宏项目",
         ["Main.CloseAllTitle"] = "关闭全部宏",
         ["Main.CloseAllMessage"] = "从列表中移除所有宏？已保存的宏包不会被修改。",
+        ["Main.UnsavedTitle"] = "项目还没有保存",
+        ["Main.UnsavedMessage"] = "宏列表里还有尚未保存的修改，现在关闭程序会丢掉它们。",
+        ["Main.UnsavedSave"] = "保存项目",
+        ["Main.UnsavedDiscard"] = "放弃修改",
         ["Package.Filter"] = "鲸灵宏包",
         ["Package.OpenFailed"] = "无法打开该文件",
         ["Package.SaveFailed"] = "无法保存该文件",

@@ -32,9 +32,35 @@ public partial class MainWindow : Window
     /// <summary>The shared hook the Home key is answered through; null until the window is open.</summary>
     private IGlobalHook? _hotkeyHook;
 
+    /// <summary>Set by the tray once the answer to the leaving question is "go".</summary>
+    private bool _allowClose;
+
+    /// <summary>Whether the question about unsaved work is on screen, so only one is asked.</summary>
+    private bool _askingToSave;
+
+    /// <summary>
+    /// The icon in the notification area, or null when this machine has none. It is what tells a
+    /// close that leaves the program apart from a close that only puts the window out of the way,
+    /// which is the difference between asking about unsaved work and saying nothing at all.
+    /// </summary>
+    internal AppTray? Tray { get; set; }
+
+    /// <summary>
+    /// Puts the question about the unsaved project to the user and reports what they chose. It is
+    /// a property so that a check can answer without a dialog standing between it and the decision;
+    /// nothing else replaces it.
+    /// </summary>
+    internal Func<Task<ConfirmChoice>> AskToSaveProject { get; set; }
+
     public MainWindow()
     {
         InitializeComponent();
+
+        AskToSaveProject = () => ConfirmDialog.ShowAsync(this,
+            Strings.Get("Main.UnsavedTitle"),
+            Strings.Get("Main.UnsavedMessage"),
+            Strings.Get("Main.UnsavedSave"),
+            Strings.Get("Main.UnsavedDiscard"));
 
         var minimizeButton = this.FindControl<Button>("MinimizeButton");
         if (minimizeButton is not null)
@@ -89,6 +115,82 @@ public partial class MainWindow : Window
         // Lights the button up and swaps its hint, so the state is readable at a glance.
         button.Classes.Set("Pinned", _alwaysOnTop);
         ToolTip.SetTip(button, Strings.Get(_alwaysOnTop ? "Main.AlwaysOnTopCancel" : "Main.AlwaysOnTop"));
+    }
+
+    /// <summary>True when a close really stops the program rather than hiding the window.</summary>
+    private bool Leaving => Tray is null || Tray.IsLeaving;
+
+    /// <summary>
+    /// Asks about the project before the program stops. A plain close is not the moment for this:
+    /// the window only goes out of the way, and everything in it is still there to be saved later.
+    /// </summary>
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        base.OnClosing(e);
+
+        if (_allowClose
+            || !Leaving
+            || DataContext is not MainViewModel { HasUnsavedChanges: true })
+        {
+            return;
+        }
+
+        e.Cancel = true;
+
+        // Out of the closing event before the question is asked: the dialog is a window of its own,
+        // and opening one while this one is being closed is not a position to be in.
+        Dispatcher.UIThread.Post(() => _ = PromptToSaveProjectAsync());
+    }
+
+    /// <summary>
+    /// Puts the unsaved project to the user, the same question the macro editor asks about one
+    /// macro. Only "save" and "discard" let the program stop; dismissing the question means the
+    /// user is staying, and the way out the tray started is called off with it.
+    /// </summary>
+    private async Task PromptToSaveProjectAsync()
+    {
+        if (_askingToSave || DataContext is not MainViewModel viewModel)
+        {
+            return;
+        }
+
+        _askingToSave = true;
+        try
+        {
+            // The window is usually away in the notification area, and a question nobody can see
+            // is no question at all: it comes back so the answer can be given.
+            if (!IsVisible)
+            {
+                Show();
+                WindowState = WindowState.Normal;
+                Activate();
+            }
+
+            var choice = await AskToSaveProject();
+
+            if (choice == ConfirmChoice.Primary)
+            {
+                // A save that was called off — the file picker dismissed — is an answer as well:
+                // the project is still unsaved, so the program stays.
+                if (!await SaveProjectAsync(viewModel))
+                {
+                    Tray?.CalledOff();
+                    return;
+                }
+            }
+            else if (choice != ConfirmChoice.Secondary)
+            {
+                Tray?.CalledOff();
+                return;
+            }
+
+            _allowClose = true;
+            Close();
+        }
+        finally
+        {
+            _askingToSave = false;
+        }
     }
 
     /// <summary>
@@ -231,9 +333,21 @@ public partial class MainWindow : Window
     /// <summary>Opens the Variable Center, listing the variables the macros can use.</summary>
     private async Task ShowVariableCenterAsync()
     {
-        var macros = (DataContext as MainViewModel)?.Macros;
-        var window = new VariableCenterWindow(macros);
-        await window.ShowDialogOver(this);
+        if (DataContext is not MainViewModel viewModel)
+        {
+            return;
+        }
+
+        // The shared variables are written into the package with the macros, so adding or editing
+        // one is a change to the project like any other — and nothing on the macro list moves when
+        // it happens, so this is the one place that can notice it.
+        var before = MainViewModel.SharedVariables();
+        await new VariableCenterWindow(viewModel.Macros).ShowDialogOver(this);
+
+        if (MainViewModel.SharedVariablesChangedSince(before))
+        {
+            viewModel.MarkSharedVariablesChanged();
+        }
     }
 
     // -------------------------------------------------------------- macro package
@@ -366,7 +480,17 @@ public partial class MainWindow : Window
         return files.Count > 0 ? files[0].TryGetLocalPath() : null;
     }
 
-    private async Task SaveAsAsync(MainViewModel viewModel)
+    /// <summary>
+    /// Writes the project out, asking where it goes when it has no file yet. False when the save
+    /// was called off or failed, which is the answer that keeps a program from stopping on a
+    /// project it did not manage to write.
+    /// </summary>
+    private async Task<bool> SaveProjectAsync(MainViewModel viewModel)
+        => viewModel.CurrentPath is { Length: > 0 } current
+            ? Save(viewModel, current)
+            : await SaveAsAsync(viewModel);
+
+    private async Task<bool> SaveAsAsync(MainViewModel viewModel)
     {
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
@@ -381,19 +505,23 @@ public partial class MainWindow : Window
 
         if (file?.TryGetLocalPath() is { Length: > 0 } path)
         {
-            Save(viewModel, path);
+            return Save(viewModel, path);
         }
+
+        return false;
     }
 
-    private void Save(MainViewModel viewModel, string path)
+    private bool Save(MainViewModel viewModel, string path)
     {
         try
         {
             viewModel.SavePackage(path);
+            return true;
         }
         catch (Exception error)
         {
             _ = ReportAsync(Strings.Get("Package.SaveFailed"), path, error);
+            return false;
         }
     }
 

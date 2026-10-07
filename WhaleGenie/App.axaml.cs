@@ -10,9 +10,6 @@ namespace WhaleGenie;
 
 public partial class App : Application
 {
-    /// <summary>The icon this program keeps in the notification area; null when it has none.</summary>
-    private AppTray? _tray;
-
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -39,11 +36,13 @@ public partial class App : Application
             desktop.MainWindow = window;
 
             // From here on, the window is put out of the way rather than closed, and the icon in
-            // the notification area is how it comes back and how the program is stopped.
-            _tray = AppTray.Attach(window, desktop);
+            // the notification area is how it comes back and how the program is stopped. The window
+            // is given the icon as well, because the icon's menu is the one close that really
+            // leaves — and that is the one time the window has to ask about work that is not saved.
+            window.Tray = AppTray.Attach(window, desktop);
             desktop.Exit += (_, _) =>
             {
-                _tray?.Dispose();
+                window.Tray?.Dispose();
                 BrowserPicker.Close();
             };
         }
