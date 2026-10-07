@@ -344,6 +344,10 @@
                     </StackPanel>
                 </Button>
 
+                <TextBlock Classes="Muted" Margin="22,3,10,0"
+                           TextWrapping="Wrap" Text="{Binding Note}"
+                           IsVisible="{Binding HasNote}" />
+
                 <ItemsControl ItemsSource="{Binding Actions}" IsVisible="{Binding IsOpen}"
                               Margin="22,7,0,4">
                     <ItemsControl.ItemsPanel>

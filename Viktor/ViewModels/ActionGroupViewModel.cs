@@ -14,13 +14,14 @@ namespace Viktor.ViewModels;
 public partial class ActionGroupViewModel : ViewModelBase
 {
     public ActionGroupViewModel(string key, string title, Geometry? icon,
-        IReadOnlyList<ActionDefinition> actions, bool open)
+        IReadOnlyList<ActionDefinition> actions, bool open, string note = "")
     {
         Key = key;
         Title = title;
         Icon = icon;
         Actions = actions;
         IsOpen = open;
+        Note = note;
     }
 
     /// <summary>Identifies the group, so a folded state can be found again after a search.</summary>
@@ -34,6 +35,14 @@ public partial class ActionGroupViewModel : ViewModelBase
     public bool HasIcon => Icon is not null;
 
     public IReadOnlyList<ActionDefinition> Actions { get; }
+
+    /// <summary>
+    /// A sentence the group says about itself, shown under its heading. Only the block group has
+    /// one: it is the group whose members are easiest to confuse with something else.
+    /// </summary>
+    public string Note { get; }
+
+    public bool HasNote => Note.Length > 0;
 
     /// <summary>What the heading reads, naming the category and how much is under it.</summary>
     public string Header => Strings.Format("Add.ActionGroup", Title, Actions.Count);

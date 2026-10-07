@@ -1003,15 +1003,39 @@ public class ActionDialogTests
             Assert.True(viewModel.IsPickerOpen);
             Assert.Empty(viewModel.ActionSearch);
 
-            // A group a category, all shut: over a hundred actions read as a dozen headings
-            // until one of them is opened or a search says which one matters.
-            var groups = viewModel.ActionGroups.Where(group => group.Key != "recent").ToList();
+            // The blocks are lifted out of the categories and listed together, in the order a
+            // task is built in: the four things that all "repeat" only read as different from
+            // each other when they stand side by side.
+            var blocks = viewModel.ActionGroups.First(group => group.Key == "blocks");
+            Assert.Equal(
+                ["control.sequence", "control.repeat", "control.while", "control.for",
+                    "control.forEach", "control.if", "control.switch", "control.try",
+                    // The switch case is a block too, and only ever offered inside a switch, so
+                    // it lands after the ones a task is built from.
+                    "control.case"],
+                blocks.Actions.Select(action => action.Key));
+            Assert.True(blocks.HasNote);
+
+            // Everything else stays a group a category, and no block is left behind in one.
+            var groups = viewModel.ActionGroups
+                .Where(group => group.Key is not "recent" and not "blocks").ToList();
             Assert.Equal(
                 viewModel.AvailableActions.Select(action => action.Category.ToString())
                     .Distinct().Order().ToList(),
                 groups.Select(group => group.Key).Order().ToList());
+            Assert.All(groups, group => Assert.All(group.Actions,
+                action => Assert.Equal(action.Category.ToString(), group.Key)));
+            Assert.All(groups.SelectMany(group => group.Actions), action => Assert.DoesNotContain(
+                action.Parameters,
+                parameter => parameter.Kind is ActionParameterKind.Steps && !parameter.ConditionsOnly));
+
+            // Over a hundred actions read as a dozen shut headings until one of them is opened or
+            // a search says which one matters. ("Recently used" is the exception: it is open,
+            // because a handful of actions the user just reached for is already short enough.)
+            Assert.False(blocks.IsOpen);
             Assert.All(groups, group => Assert.False(group.IsOpen));
             Assert.All(groups, group => Assert.NotEmpty(group.Actions));
+            Assert.NotEmpty(blocks.Actions);
 
             var search = window.GetVisualDescendants().OfType<TextBox>()
                 .First(box => Equals(box.PlaceholderText, Strings.Get("Add.SearchAction")));

@@ -131,7 +131,7 @@ internal static class ActionStrings
         ["control.delayRandom.maxMs.hint"] = "最长等待时长。",
 
         ["control.repeat.name"] = "重复",
-        ["control.repeat.desc"] = "把子步骤重复执行固定次数。",
+        ["control.repeat.desc"] = "把子步骤重复执行固定次数 —— 已经知道要跑几遍时用它。",
         ["control.repeat.times.label"] = "次数",
         ["control.repeat.times.hint"] = "重复执行的次数。",
         ["control.repeat.intervalMs.label"] = "间隔",
@@ -140,7 +140,7 @@ internal static class ActionStrings
         ["control.repeat.body.hint"] = "每轮执行一次的子步骤。",
 
         ["control.while.name"] = "当…时循环",
-        ["control.while.desc"] = "条件成立期间，反复执行子步骤。",
+        ["control.while.desc"] = "条件成立期间反复执行子步骤 —— 要等某个状态变了才停时用它。",
         ["control.while.condition.label"] = "条件",
         ["control.while.condition.hint"] = "每轮开始前判断一次。",
         ["control.while.maxIterations.label"] = "最大轮数",
@@ -149,7 +149,7 @@ internal static class ActionStrings
         ["control.while.body.hint"] = "条件成立时执行的子步骤。",
 
         ["control.forEach.name"] = "遍历",
-        ["control.forEach.desc"] = "对列表或变量中的每一项执行一次子步骤。",
+        ["control.forEach.desc"] = "对列表或变量中的每一项各执行一次子步骤 —— 有一批值要逐个处理时用它。",
         ["control.forEach.items.label"] = "列表项",
         ["control.forEach.items.hint"] = "一个列表，或保存列表的 $变量。例如 [1, 2, 3]、split($text, \",\") 或 $names。",
         ["control.forEach.itemVariable.label"] = "当前项变量",
@@ -162,7 +162,7 @@ internal static class ActionStrings
         ["control.forEach.body.hint"] = "每一项执行一次的子步骤。",
 
         ["control.for.name"] = "计数循环",
-        ["control.for.desc"] = "从一个数数到另一个数，每数一个就执行一遍子步骤。",
+        ["control.for.desc"] = "从一个数数到另一个数，每数一个执行一遍子步骤 —— 需要“现在是第几轮”时用它。",
         ["control.for.from.label"] = "起始值",
         ["control.for.from.hint"] = "计数器第一次取的值。",
         ["control.for.to.label"] = "结束值",

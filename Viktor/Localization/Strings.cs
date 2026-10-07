@@ -369,6 +369,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.AdvancedHide"] = "Hide advanced options",
         ["Add.ActionGroup"] = "{0} ({1})",
         ["Add.RecentlyUsed"] = "Recently used",
+        ["Add.Blocks"] = "Blocks",
+        ["Add.BlocksNote"] = "These are the shapes a task is built from: what the run does when it "
+            + "reaches them. The trigger's \"repeat while held\" is a different thing — it starts "
+            + "the whole macro over, and has nothing to do with the loops here.",
         ["Add.SearchAction"] = "Search: keys, names, or what an action does",
         ["Add.ChangeAction"] = "Change",
         ["Add.NoActionFound"] = "Nothing in the catalogue matches that.",
@@ -987,6 +991,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.AdvancedHide"] = "收起高级选项",
         ["Add.ActionGroup"] = "{0}（{1}）",
         ["Add.RecentlyUsed"] = "最近使用",
+        ["Add.Blocks"] = "流程块",
+        ["Add.BlocksNote"] = "这些是搭一个任务用的骨架：宏走到这里会按它的说法执行。触发方式里的"
+            + "“按住期间循环（长按）”是另一回事，那是让整个宏一遍遍重来，和这里的循环不相干。",
         ["Add.SearchAction"] = "搜索：按键、名称或作用",
         ["Add.ChangeAction"] = "更换",
         ["Add.NoActionFound"] = "目录里没有匹配的动作。",

@@ -72,7 +72,10 @@ public partial class AddActionViewModel : ViewModelBase
     [ObservableProperty]
     public partial string ActionSearch { get; set; } = string.Empty;
 
-    /// <summary>The catalogue as the picker shows it: recently used first, then a group a category.</summary>
+    /// <summary>
+    /// The catalogue as the picker shows it: recently used first, then the blocks, then a group a
+    /// category.
+    /// </summary>
     public ObservableCollection<ActionGroupViewModel> ActionGroups { get; } = [];
 
     /// <summary>
@@ -96,6 +99,26 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>Key of the group that holds those, which is not a category.</summary>
     private const string RecentGroup = "recent";
+
+    /// <summary>Key of the group that holds the blocks, which is not a category either.</summary>
+    private const string BlockGroup = "blocks";
+
+    /// <summary>
+    /// The order the blocks are listed in: the run in order, the four repeats, then the branch,
+    /// the many-way branch and the tidy-up. This is the order a task is built in, and it puts the
+    /// four things that all "repeat" next to each other where they can be told apart.
+    /// </summary>
+    private static readonly string[] BlockOrder =
+    [
+        "control.sequence",
+        "control.repeat",
+        "control.while",
+        "control.for",
+        "control.forEach",
+        "control.if",
+        "control.switch",
+        "control.try",
+    ];
 
     /// <summary>Groups the user opened by hand, so a search does not fold them back up.</summary>
     private readonly HashSet<string> _openedGroups = new(StringComparer.Ordinal);
@@ -393,7 +416,7 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>
     /// Fills the picker with the actions that answer to what has been typed, as a group of
-    /// recently used ones followed by a group a category.
+    /// recently used ones, then the blocks, then a group a category.
     /// </summary>
     private void RebuildActions()
     {
@@ -421,7 +444,21 @@ public partial class AddActionViewModel : ViewModelBase
             Group(RecentGroup, Strings.Get("Add.RecentlyUsed"), null, recent, open: true);
         }
 
-        foreach (var category in matching.GroupBy(action => action.Category)
+        // The blocks are lifted out of the categories and listed together, because "which shape
+        // does this task need" is the question the picker is asked first, and the four repeats
+        // only differ from each other when they stand side by side.
+        var blocks = matching.Where(IsBlock)
+            .OrderBy(BlockRank)
+            .ToList();
+
+        if (blocks.Count > 0)
+        {
+            Group(BlockGroup, Strings.Get("Add.Blocks"), ActionCatalog.IconFor(ActionCategory.Control),
+                blocks, searching || _openedGroups.Contains(BlockGroup), Strings.Get("Add.BlocksNote"));
+        }
+
+        foreach (var category in matching.Where(action => !IsBlock(action))
+                     .GroupBy(action => action.Category)
                      .OrderBy(group => (int)group.Key))
         {
             var key = category.Key.ToString();
@@ -432,9 +469,25 @@ public partial class AddActionViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasNoActionMatch));
     }
 
+    /// <summary>
+    /// True for an action that holds steps of its own: it is a block in the macro rather than
+    /// something the run just does. The logic group is not one of these — it holds conditions,
+    /// which are what a block asks about, not steps the run walks through.
+    /// </summary>
+    private static bool IsBlock(ActionDefinition action)
+        => action.Parameters.Any(parameter =>
+            parameter.Kind is ActionParameterKind.Steps && !parameter.ConditionsOnly);
+
+    /// <summary>
+    /// Where a block sits in <see cref="BlockOrder"/>. A block that is not on the list — the
+    /// switch case, which is reached through its own parent instead — comes last rather than first.
+    /// </summary>
+    private static int BlockRank(ActionDefinition action)
+        => Array.IndexOf(BlockOrder, action.Key) is var at && at >= 0 ? at : BlockOrder.Length;
+
     private void Group(string key, string title, Geometry? icon,
-        IReadOnlyList<ActionDefinition> actions, bool open)
-        => ActionGroups.Add(new ActionGroupViewModel(key, title, icon, actions, open));
+        IReadOnlyList<ActionDefinition> actions, bool open, string note = "")
+        => ActionGroups.Add(new ActionGroupViewModel(key, title, icon, actions, open, note));
 
     /// <summary>True when an action answers to what has been typed: its key, name or description.</summary>
     private static bool Matches(ActionDefinition action, string search)

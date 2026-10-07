@@ -155,7 +155,8 @@ public static class ActionCatalog
             Key = "control.repeat",
             Category = ActionCategory.Control,
             DisplayName = "Repeat",
-            Description = "Run child steps a fixed number of times.",
+            Description = "Run child steps a fixed number of times — for when you already know "
+                + "how many rounds it takes.",
             Parameters =
             [
                 Number("times", "Times", 10, "How many iterations to run.", min: 1),
@@ -168,7 +169,8 @@ public static class ActionCatalog
             Key = "control.while",
             Category = ActionCategory.Control,
             DisplayName = "While",
-            Description = "Repeat child steps while a condition stays true.",
+            Description = "Repeat child steps while a condition stays true — for when only the "
+                + "state decides when to stop.",
             Parameters =
             [
                 Condition("condition", "Condition", "Checked before every iteration."),
@@ -181,7 +183,8 @@ public static class ActionCatalog
             Key = "control.forEach",
             Category = ActionCategory.Control,
             DisplayName = "For Each",
-            Description = "Run child steps once per item in a list or variable.",
+            Description = "Run child steps once per item in a list or variable — for a batch of "
+                + "values that each want the same handling.",
             Parameters =
             [
                 Expression("items", "Items", "$names",
@@ -202,7 +205,8 @@ public static class ActionCatalog
             Key = "control.for",
             Category = ActionCategory.Control,
             DisplayName = "Count From To",
-            Description = "Count from one number to another, running the child steps each time.",
+            Description = "Count from one number to another, running the child steps each time — "
+                + "for when the steps need the number of the round they are on.",
             Parameters =
             [
                 Number("from", "From", 1, "The first value the counter takes.", min: -1000000),
