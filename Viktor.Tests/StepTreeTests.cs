@@ -408,11 +408,15 @@ public class StepTreeTests
             editor.AddStep(leaf);
             Dispatcher.UIThread.RunJobs();
 
-            editor.SetSelection([leaf]);
+            // Pick the step the way a user does, so the list really is holding a highlight of its
+            // own: clearing only the editor's copy would leave the row looking picked.
+            var list = window.GetVisualDescendants().OfType<ListBox>().First();
+            Click(window, window.GetVisualDescendants().OfType<ListBoxItem>().First());
+            Dispatcher.UIThread.RunJobs();
             Assert.Same(leaf, Assert.Single(editor.SelectedSteps));
+            Assert.Single(list.SelectedItems!);
 
             // Below the last row there is nothing to pick, so a press there means "none of these".
-            var list = window.GetVisualDescendants().OfType<ListBox>().First();
             var empty = list.TranslatePoint(
                 new Point(list.Bounds.Width / 2, list.Bounds.Height - 4), window) ?? default;
             window.MouseDown(empty, MouseButton.Left, RawInputModifiers.LeftMouseButton);
@@ -420,6 +424,7 @@ public class StepTreeTests
             Dispatcher.UIThread.RunJobs();
 
             Assert.Empty(editor.SelectedSteps);
+            Assert.Empty(list.SelectedItems!);
         });
     }
 
@@ -429,9 +434,9 @@ public class StepTreeTests
             .Single(button => button.IsEffectivelyVisible && button.Bounds.Width > 0
                 && button.DataContext is StepRow row && match(row));
 
-    private static void Click(Window window, Button button)
+    private static void Click(Window window, Visual target)
     {
-        var at = Waypoint(window, button, 0.5, 0.5);
+        var at = Waypoint(window, target, 0.5, 0.5);
         window.MouseDown(at, MouseButton.Left, RawInputModifiers.LeftMouseButton);
         window.MouseUp(at, MouseButton.Left);
     }

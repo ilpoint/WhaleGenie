@@ -928,6 +928,10 @@ public partial class MacroEditorWindow : Window
         if (pressed && row is null && !onButton && !IsOnScrollbar(e.Source))
         {
             _viewModel.SetSelection([]);
+
+            // The list keeps a highlight of its own, so clearing the editor alone leaves the row
+            // looking picked: the list has to be told to let go as well.
+            _viewModel.RefreshSelection();
         }
 
         _dragOrigin = e.GetPosition(this);
