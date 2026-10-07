@@ -1,8 +1,12 @@
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
+using WhaleGenie.Models;
+using WhaleGenie.ViewModels;
+using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
 
@@ -355,6 +359,96 @@ public class TrayTests
 
             tray.Dispose();
         });
+    }
+
+    [Fact]
+    public void A_window_that_answers_from_its_own_OnClosing_is_heard()
+    {
+        Ui.Run(() =>
+        {
+            var host = new Window();
+            host.Show();
+
+            // The main window and the macro editor both answer from an OnClosing override rather
+            // than from a Closing handler. The answer has to be readable there, and what makes it
+            // readable is that the override writes it before the base call — the base call is what
+            // raises the event the way out listens in.
+            var asking = new AskingWindow();
+            asking.Show();
+
+            var tray = new AppTray(host, new FakeArea(), () => { });
+            var left = 0;
+            tray.Walk([asking], () => left++);
+
+            Assert.Equal(0, left);
+            Assert.True(asking.IsVisible);
+
+            tray.Dispose();
+            host.Close();
+        });
+    }
+
+    [Fact]
+    public void The_icons_menu_asks_the_main_window_about_its_project()
+    {
+        Ui.Run(() =>
+        {
+            // The real thing, as far as it can be built here: the icon's menu, the walk it runs,
+            // and the main window that answers by putting up its own question.
+            var asked = 0;
+            var answer = ConfirmChoice.Cancel;
+            var window = new MainWindow
+            {
+                DataContext = new MainViewModel(),
+                AskToSaveProject = () =>
+                {
+                    asked++;
+                    return Task.FromResult(answer);
+                },
+            };
+            window.Show();
+
+            ((MainViewModel)window.DataContext!).AddMacro(new MacroItem { Name = "login" });
+
+            var area = new FakeArea();
+            var left = 0;
+            AppTray? tray = null;
+            tray = new AppTray(window, area, () => tray!.Walk([window], () => left++));
+
+            area.RaiseExitRequested();
+            Dispatcher.UIThread.RunJobs();
+
+            // It asked, and the program is still here with the window and the macro: nothing was
+            // thrown away on the way out.
+            Assert.Equal(1, asked);
+            Assert.True(window.IsVisible);
+            Assert.Equal(0, left);
+
+            // Answering "do not save" lets the window go, and the way out with it.
+            answer = ConfirmChoice.Secondary;
+            window.Close();
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(2, asked);
+            Assert.False(window.IsVisible);
+            Assert.Equal(1, left);
+
+            tray.Dispose();
+        });
+    }
+
+    /// <summary>
+    /// Stands in for a window that turns a close down to ask the person something, which is what
+    /// the main window and the macro editor do — and what has to be written down before the base
+    /// call, or the way out reads the window as one that has already gone.
+    /// </summary>
+    private sealed class AskingWindow : Window
+    {
+        protected override void OnClosing(WindowClosingEventArgs e)
+        {
+            e.Cancel = true;
+            base.OnClosing(e);
+        }
     }
 
     /// <summary>

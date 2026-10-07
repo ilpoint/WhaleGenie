@@ -701,16 +701,21 @@ public partial class MacroEditorWindow : Window
     /// <summary>Prompts for unsaved work before the editor is dismissed.</summary>
     protected override void OnClosing(WindowClosingEventArgs e)
     {
-        base.OnClosing(e);
-
         if (_allowClose || !_viewModel.IsDirty)
         {
             _closing = true;
-            return;
+        }
+        else
+        {
+            // The answer is given before the base call, because the base call is what raises the
+            // Closing event and the way out reads the answer there. A handler that ran first and
+            // found nothing would take this window for one that had already gone, and would stop
+            // the program on top of the very question it is asking.
+            e.Cancel = true;
+            _ = PromptToSaveAsync();
         }
 
-        e.Cancel = true;
-        _ = PromptToSaveAsync();
+        base.OnClosing(e);
     }
 
     private async Task PromptToSaveAsync()

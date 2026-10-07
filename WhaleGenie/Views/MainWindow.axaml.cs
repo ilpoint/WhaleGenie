@@ -126,20 +126,22 @@ public partial class MainWindow : Window
     /// </summary>
     protected override void OnClosing(WindowClosingEventArgs e)
     {
-        base.OnClosing(e);
-
-        if (_allowClose
-            || !Leaving
-            || DataContext is not MainViewModel { HasUnsavedChanges: true })
+        if (!_allowClose
+            && Leaving
+            && DataContext is MainViewModel { HasUnsavedChanges: true })
         {
-            return;
+            // The answer is given before the base call, because the base call is what raises the
+            // Closing event and the way out reads the answer there. A handler that ran first and
+            // found nothing would take this window for one that had already gone, and would stop
+            // the program on top of the very question it is asking.
+            e.Cancel = true;
+
+            // And the question itself goes up one turn later: the dialog is a window of its own,
+            // and opening one while this one is being closed is not a position to be in.
+            Dispatcher.UIThread.Post(() => _ = PromptToSaveProjectAsync());
         }
 
-        e.Cancel = true;
-
-        // Out of the closing event before the question is asked: the dialog is a window of its own,
-        // and opening one while this one is being closed is not a position to be in.
-        Dispatcher.UIThread.Post(() => _ = PromptToSaveProjectAsync());
+        base.OnClosing(e);
     }
 
     /// <summary>
