@@ -11,9 +11,9 @@ using WhaleGenie.Localization;
 namespace WhaleGenie.Views;
 
 /// <summary>
-/// The browser the editor keeps open while elements are picked off a page. It is opened on the
-/// first pick and left standing for the next one, so a page that was navigated to — and logged
-/// into — is not fetched again for every field, and it is closed with the dialog that opened it.
+/// The page elements are picked off. When a macro already has a browser open — the one the step is
+/// about — that is the page picked on; a browser of this picker's own is only opened when the
+/// program has none, and that one is closed with the dialog that opened it.
 /// </summary>
 /// <remarks>
 /// The picking itself is the page's own work: the device hands the page a script that outlines
@@ -26,21 +26,35 @@ internal static class BrowserPicker
     /// <summary>How long a pick waits for a click before giving up.</summary>
     private const int PickTimeoutMs = 120_000;
 
-    /// <summary>The one browser the editor drives while the dialog is up.</summary>
-    private static PlaywrightBrowserDevice? _browser;
+    /// <summary>The browser this picker opened for itself, when the program had none open.</summary>
+    private static PlaywrightBrowserDevice? _own;
 
     /// <summary>
-    /// Opens the page when there is none yet — at the address the step is about when it has one —
-    /// and answers with the selector of the element that was clicked, or an empty string when the
-    /// person gave up.
+    /// Goes to the page the step is about and answers with the selector of the element that was
+    /// clicked on it, or an empty string when the person gave up.
     /// </summary>
     public static async Task<string> PickAsync(string url)
     {
-        var browser = _browser ??= new PlaywrightBrowserDevice();
+        // The page a macro has open is the page the step is about, so it is picked on rather than
+        // opened again: a browser of this picker's own would be a second, empty one, without the
+        // pages the macro brought up and without the logins that went with them.
+        var browser = _own ?? PlaywrightBrowserDevice.OpenPage();
+        if (browser is null)
+        {
+            browser = _own = new PlaywrightBrowserDevice();
+        }
+
+        var address = Address(url);
         if (!browser.IsOpen)
         {
             // Edge is the browser Windows already has, so the editor never has to fetch one.
-            browser.Open("edge", Address(url), headless: false);
+            browser.Open("edge", address, headless: false);
+        }
+        else if (address.Length > 0 && !SamePage(browser.Url, address))
+        {
+            // A step that names a page is about that page, so a browser sitting somewhere else is
+            // sent there — the same place the macro will be looking when this step runs.
+            browser.GoTo(address);
         }
 
         var hint = Strings.Get("Add.BrowserPickBanner");
@@ -52,16 +66,20 @@ internal static class BrowserPicker
         return await Task.Run(() => browser.Pick(hint, PickTimeoutMs));
     }
 
-    /// <summary>Closes the browsing page, which the dialog does when it goes away.</summary>
+    /// <summary>
+    /// Closes the page this picker opened for itself, which the dialog does when it goes away. A
+    /// page the program already had open is left standing: it belongs to the macro that opened it.
+    /// </summary>
     public static void Close()
     {
-        _browser?.Dispose();
-        _browser = null;
+        _own?.Dispose();
+        _own = null;
     }
 
     /// <summary>
-    /// The address to open at: the step's own when it is one, and a blank page otherwise, because
-    /// a field holding a variable name is not somewhere to browse to.
+    /// The address to go to: the step's own when it names a page, and none when it does not,
+    /// because a field holding a variable name is not somewhere to browse to, and a blank address
+    /// is what tells the browser to open without a page rather than go somewhere wrong.
     /// </summary>
     private static string Address(string url)
     {
@@ -70,8 +88,16 @@ internal static class BrowserPicker
             || trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
             || trimmed.StartsWith("file://", StringComparison.OrdinalIgnoreCase)
             ? trimmed
-            : "about:blank";
+            : string.Empty;
     }
+
+    /// <summary>
+    /// Whether the page is already at an address, so a pick does not send it away from what the
+    /// person is looking at over a difference as small as a trailing slash.
+    /// </summary>
+    private static bool SamePage(string current, string wanted) =>
+        string.Equals(current.Trim().TrimEnd('/'), wanted.Trim().TrimEnd('/'),
+            StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Lets go of the pin on this program's windows while somebody is on the page.</summary>
     private static IDisposable Unpin()

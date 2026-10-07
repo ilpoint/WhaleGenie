@@ -16,6 +16,20 @@ namespace WhaleGenie.Core.Devices.Platform;
 /// </summary>
 public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 {
+    /// <summary>
+    /// The browsers this program has a page open in, oldest first.
+    /// </summary>
+    /// <remarks>
+    /// A macro and the editor's element picker reach the browser through separate device layers,
+    /// but they are the same person looking at the same page. So the picker asks here first and
+    /// works on the page a macro opened, instead of starting a second browser with none of the
+    /// pages, and none of the logins, the macro had brought up.
+    /// </remarks>
+    private static readonly List<PlaywrightBrowserDevice> Opened = [];
+
+    /// <summary>Guards the list, which a macro's own thread and the editor both reach.</summary>
+    private static readonly object OpenedGate = new();
+
     private IPlaywright? _playwright;
     private IBrowser? _browser;
     private IPage? _page;
@@ -25,6 +39,9 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
     /// <summary>Whether the picker's bindings and init script have been installed on this page.</summary>
     private bool _listening;
+
+    /// <summary>Whether the browser was opened without a window.</summary>
+    private bool _headless;
 
     /// <summary>
     /// The browsers Playwright fetches land under the profile's cache folder; the one being asked
@@ -91,6 +108,9 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
     public bool IsOpen => _page is not null;
 
+    /// <summary>True when the browser has no window, so there is nothing on screen to work on.</summary>
+    public bool IsHeadless => _headless;
+
     public string Url => _page?.Url ?? string.Empty;
 
     public void Open(string browser, string url, bool headless)
@@ -108,7 +128,9 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                 Channel = channel.Length == 0 ? null : channel,
                 Headless = headless,
             });
+            _headless = headless;
             _page = await _browser.NewPageAsync();
+            Remember();
             if (!string.IsNullOrWhiteSpace(url))
             {
                 await _page.GotoAsync(url);
@@ -188,6 +210,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
     public void Close()
     {
+        Forget();
         if (_page is null && _browser is null)
         {
             return;
@@ -203,7 +226,40 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
         _page = null;
         _browser = null;
+        _headless = false;
         _listening = false;
+    }
+
+    /// <summary>
+    /// The page this program already has open and shown, for whoever wants to work on it rather
+    /// than start a browser of their own. A browser opened without a window is not one of these:
+    /// there is nothing on screen to work on.
+    /// </summary>
+    public static PlaywrightBrowserDevice? OpenPage()
+    {
+        lock (OpenedGate)
+        {
+            return Opened.LastOrDefault(device => device.IsOpen && !device.IsHeadless);
+        }
+    }
+
+    /// <summary>Adds this device to the ones with a page open, newest last.</summary>
+    private void Remember()
+    {
+        lock (OpenedGate)
+        {
+            Opened.Remove(this);
+            Opened.Add(this);
+        }
+    }
+
+    /// <summary>Takes this device off the ones with a page open.</summary>
+    private void Forget()
+    {
+        lock (OpenedGate)
+        {
+            Opened.Remove(this);
+        }
     }
 
     public void Dispose()
