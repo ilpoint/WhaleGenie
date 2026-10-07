@@ -87,6 +87,14 @@ dotnet format Viktor.slnx           # 按 .editorconfig 整理格式
 宏和宏包不跟着程序走：默认在「文档」目录下的 `WhaleGenie` 里（`%USERPROFILE%\Documents\WhaleGenie`），
 它在哪由打开的宏包决定。
 
+## 致谢与许可
+
+「DeepSeek 帮忙写的小助手，所以是鲸灵啦。」程序本身按 MIT 协议授权，全文见 `LICENSE.txt`。
+
+里面用到的别人的东西、以及图标素材的出处，写在 `THIRD-PARTY-NOTICES.md`：仓库根目录放一份，
+发布包里也放一份在 `WhaleGenie.exe` 旁边，程序里的「关于 → 第三方组件」显示的就是同一份。
+图标是 Emojiall 的像素风鲸鱼 emoji，按 CC BY 4.0 使用，已缩放修改。
+
 ## 提交与 CI
 
 `master` 是主线，`.github/workflows/ci.yml` 在推送与 PR 上跑格式检查、构建和全部测试，
