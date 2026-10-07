@@ -507,8 +507,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.Server"] = "VIIPER server",
         ["Settings.ServerReady"] = "A VIIPER server is answering on this machine.",
         ["Settings.ServerWillStart"] =
-            "Not running. WhaleGenie starts it when a macro needs driver-level input, and stops it "
-            + "again when it exits.",
+            "Not running. WhaleGenie starts it as soon as it starts itself, and stops it again when "
+            + "it exits.",
         ["Settings.ServerNotSet"] =
             "Not running, and no viiper.exe chosen yet: pick the file below, or start the server "
             + "yourself.",
@@ -518,8 +518,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.ServerHint"] =
             "VIIPER is another project: its zip is downloaded and unzipped by hand, and where it "
             + "lands does not matter. Point at viiper.exe once and WhaleGenie runs it with "
-            + "--api.auto-attach-local-client whenever a macro asks for driver-level input. A server "
-            + "that was already running is left alone.",
+            + "--api.auto-attach-local-client whenever it starts up, so the first driver-level move "
+            + "of a macro is not the one that waits for it. A server that was already running is "
+            + "left alone.",
         ["Settings.Note"] = "Action names and parameter text use the selected language when a window is opened.",
         ["Settings.Close"] = "Close",
 
@@ -1225,15 +1226,15 @@ public sealed class Strings : INotifyPropertyChanged
             + "启动、自己关掉。",
         ["Settings.Server"] = "VIIPER 服务端",
         ["Settings.ServerReady"] = "VIIPER 服务端正在应答。",
-        ["Settings.ServerWillStart"] = "还没在运行。宏要用驱动级输入时鲸灵会自己启动它，退出鲸灵时关掉。",
+        ["Settings.ServerWillStart"] = "还没在运行。鲸灵启动时就会把它跑起来，退出鲸灵时关掉。",
         ["Settings.ServerNotSet"] = "没在运行，也还没选过 viiper.exe：选一下下面的文件，或者自己把它跑起来。",
         ["Settings.ServerDownload"] = "下载 VIIPER…",
         ["Settings.ServerChoose"] = "选择 viiper.exe…",
         ["Settings.ServerFilter"] = "程序",
         ["Settings.ServerHint"] =
             "VIIPER 也是别人的项目：压缩包自己下载、自己解压，解到哪都行。选一次 viiper.exe，以后"
-            + "宏要用驱动级输入时鲸灵会带上 --api.auto-attach-local-client 把它跑起来；本来就在运行"
-            + "的那个不动它。",
+            + "鲸灵一启动就带上 --api.auto-attach-local-client 把它跑起来，宏里第一次用驱动级输入"
+            + "才不用在那儿等它；本来就在运行的那个不动它。",
         ["Settings.Note"] = "动作名称和参数文本会在窗口打开时按所选语言显示。",
         ["Settings.Close"] = "关闭",
 

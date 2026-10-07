@@ -10,6 +10,7 @@ namespace WhaleGenie.Core.Tests;
 public class ViiperServerTests : IDisposable
 {
     private readonly Func<bool> _answering = ViiperServer.Answering;
+    private readonly Func<bool> _driverInstalled = ViiperServer.DriverInstalled;
     private readonly Func<string, bool> _launch = ViiperServer.Launch;
     private readonly string? _executable = ViiperServer.Executable;
 
@@ -17,6 +18,7 @@ public class ViiperServerTests : IDisposable
     public void Dispose()
     {
         ViiperServer.Answering = _answering;
+        ViiperServer.DriverInstalled = _driverInstalled;
         ViiperServer.Launch = _launch;
         ViiperServer.Executable = _executable;
         GC.SuppressFinalize(this);
@@ -38,6 +40,76 @@ public class ViiperServerTests : IDisposable
 
         Assert.True(ViiperServer.Ensure());
         Assert.Equal(0, launched);
+    }
+
+    [Fact]
+    public async Task Warming_up_starts_the_server_before_anybody_asks_for_it()
+    {
+        // Starting that program costs a second and a half here, and it is the macro's first move
+        // that pays for it: warming up is what moves that cost off the step.
+        var launched = 0;
+        ViiperServer.Answering = () => false;
+        ViiperServer.DriverInstalled = () => true;
+        ViiperServer.Launch = _ =>
+        {
+            launched++;
+            return true;
+        };
+        ViiperServer.Executable = ProgramFile();
+
+        await ViiperServer.WarmUp();
+
+        Assert.Equal(1, launched);
+    }
+
+    [Fact]
+    public async Task Warming_up_leaves_alone_what_is_already_running()
+    {
+        var launched = 0;
+        ViiperServer.Answering = () => true;
+        ViiperServer.DriverInstalled = () => true;
+        ViiperServer.Launch = _ =>
+        {
+            launched++;
+            return true;
+        };
+
+        await ViiperServer.WarmUp();
+
+        Assert.Equal(0, launched);
+    }
+
+    [Fact]
+    public async Task Without_the_driver_there_is_nothing_to_warm_up()
+    {
+        // A server on a machine with no virtual USB device to put anything on would be a process
+        // started for nothing.
+        var launched = 0;
+        ViiperServer.Answering = () => false;
+        ViiperServer.DriverInstalled = () => false;
+        ViiperServer.Launch = _ =>
+        {
+            launched++;
+            return true;
+        };
+        ViiperServer.Executable = ProgramFile();
+
+        await ViiperServer.WarmUp();
+
+        Assert.Equal(0, launched);
+    }
+
+    [Fact]
+    public async Task A_warm_up_that_cannot_start_anything_is_not_reported()
+    {
+        // Nobody asked for a server yet, so nobody is told about one that did not come up: the step
+        // that needs it says so, and says what to do about it.
+        ViiperServer.Answering = () => false;
+        ViiperServer.DriverInstalled = () => true;
+        ViiperServer.Launch = _ => false;
+        ViiperServer.Executable = ProgramFile();
+
+        await ViiperServer.WarmUp();
     }
 
     [Fact]

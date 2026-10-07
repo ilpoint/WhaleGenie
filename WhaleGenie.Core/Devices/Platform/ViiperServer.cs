@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace WhaleGenie.Core.Devices.Platform;
 
@@ -43,6 +44,13 @@ public static class ViiperServer
     internal static Func<bool> Answering { get; set; } = DriverInput.IsServerAnswering;
 
     /// <summary>
+    /// Whether the usbip-win2 driver is on this machine, which is what makes a server worth
+    /// starting. A check hands in its own answer, like the two above.
+    /// </summary>
+    internal static Func<bool> DriverInstalled { get; set; }
+        = () => DriverInput.Check() != DriverInputState.DriverMissing;
+
+    /// <summary>
     /// How the program is put on the machine and waited for. A check hands in something that records
     /// what would have been started instead of starting it.
     /// </summary>
@@ -54,6 +62,36 @@ public static class ViiperServer
     /// Null means nobody has said, which is the case until the settings window is used.
     /// </summary>
     public static string? Executable { get; set; }
+
+    /// <summary>
+    /// Starts what gets started before anybody needs it, on a thread of its own so the window that
+    /// asked for it does not wait.
+    ///
+    /// Starting that program and its USB bus costs a second and a half on this machine, and it is
+    /// paid by whichever macro step is the first to ask — so a macro whose first move is
+    /// driver-level would sit there doing nothing for that long and look broken. Warming up when
+    /// the program starts moves that cost to where nobody is waiting. It is only an optimisation:
+    /// everything is still started on demand when this was not done or did not work.
+    /// </summary>
+    public static Task WarmUp() => Task.Run(() =>
+    {
+        try
+        {
+            // Nothing to warm up without the driver, and nothing to do when a server is already
+            // answering — that one is not ours to touch.
+            if (Answering() || !DriverInstalled())
+            {
+                return;
+            }
+
+            Ensure();
+        }
+        catch
+        {
+            // Whatever is missing is reported by the step that needs it, with a message that says
+            // what to do about it. A warm-up that fails is not worth telling anybody about.
+        }
+    });
 
     /// <summary>
     /// Makes sure a server is answering, starting the one at <see cref="Executable"/> when nothing
