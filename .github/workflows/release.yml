@@ -41,48 +41,23 @@ jobs:
           "tag=$tag" >> $env:GITHUB_OUTPUT
           "version=$($tag -replace '^v','')" >> $env:GITHUB_OUTPUT
 
-      # 三种包都要，因为"要不要自己带运行环境"是使用者的事，不是我们替他定的事：
-      #   框架依赖 —— 最小，机器上本来就有 .NET 桌面运行时时最省事；
-      #   自带运行时（文件夹） —— 不用装任何东西，解压即用，适合换机器、给别人；
-      #   自带运行时（单文件） —— 拷一个 exe 就能走，代价是第一次启动会解压原生库。
-      # 不想要哪一种，把对应那一段和下面的文件名删掉即可。
-      - name: 打包（框架依赖）
-        run: >
-          dotnet publish Viktor/Viktor.csproj -c Release -r ${{ matrix.rid }}
-          --self-contained false -p:DebugType=none
-          -p:Version=${{ steps.version.outputs.version }} -o dist/framework
-
-      - name: 打包（自带运行时，文件夹）
-        run: >
-          dotnet publish Viktor/Viktor.csproj -c Release -r ${{ matrix.rid }}
-          --self-contained true -p:DebugType=none
-          -p:Version=${{ steps.version.outputs.version }} -o dist/folder
-
-      - name: 打包（自带运行时，单文件）
-        run: >
-          dotnet publish Viktor/Viktor.csproj -c Release -r ${{ matrix.rid }}
-          --self-contained true -p:DebugType=none -p:PublishSingleFile=true
-          -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
-          -p:Version=${{ steps.version.outputs.version }} -o dist/single
-
-      - name: 起名并压包
-        id: zip
-        run: |
-          $tag = "${{ steps.version.outputs.tag }}"
-          $rid = "${{ matrix.rid }}"
-          Get-ChildItem dist -Recurse -Filter *.pdb | Remove-Item   # 调试符号，用户不需要
-          Compress-Archive -Path dist/framework/* -DestinationPath "Viktor-$tag-$rid.zip"
-          Compress-Archive -Path dist/folder/* -DestinationPath "Viktor-$tag-$rid-standalone.zip"
-          Move-Item dist/single/Viktor.exe "Viktor-$tag-$rid-standalone.exe"
-          Get-ChildItem "Viktor-$tag-$rid*" | ForEach-Object { $_.Name }
+      # 两种包，差别只在"要不要自己带运行环境"：
+      #   框架依赖 —— 最小，机器上装过 .NET 桌面运行时就用它；
+      #   自带运行时 —— 不用装任何东西，解压即用，适合换机器、给别人。
+      # 包装成什么样、exe 和 dll 怎么分，都写在 build/package.ps1 里，本地发版走的也是它。
+      - name: 打包
+        run: >-
+          pwsh build/package.ps1
+          -Tag "${{ steps.version.outputs.tag }}"
+          -Version "${{ steps.version.outputs.version }}"
+          -Rid ${{ matrix.rid }}
 
       - uses: actions/upload-artifact@v4
         with:
           name: Viktor-${{ matrix.rid }}
           path: |
-            Viktor-${{ steps.version.outputs.tag }}-${{ matrix.rid }}.zip
-            Viktor-${{ steps.version.outputs.tag }}-${{ matrix.rid }}-standalone.zip
-            Viktor-${{ steps.version.outputs.tag }}-${{ matrix.rid }}-standalone.exe
+            dist/Viktor-${{ steps.version.outputs.tag }}-${{ matrix.rid }}.zip
+            dist/Viktor-${{ steps.version.outputs.tag }}-${{ matrix.rid }}-standalone.zip
           if-no-files-found: error
 
   release:
@@ -116,9 +91,9 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           if gh release view "$TAG" > /dev/null 2>&1; then
-            gh release upload "$TAG" packages/*.zip packages/*.exe --clobber
+            gh release upload "$TAG" packages/*.zip --clobber
           else
-            gh release create "$TAG" packages/*.zip packages/*.exe \
+            gh release create "$TAG" packages/*.zip \
               --title "Viktor $TAG" \
               --notes-file .github/release-notes.md
           fi
