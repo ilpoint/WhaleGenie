@@ -176,6 +176,18 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         {
             Wait(async () =>
             {
+                // The page is what the person is about to point at, and it was opened from behind
+                // this program's own windows, so it is brought in front of them — otherwise the
+                // editor the step is being written in covers the very elements to be clicked.
+                try
+                {
+                    await page.BringToFrontAsync();
+                }
+                catch (PlaywrightException)
+                {
+                    // A window that will not come forward is no reason to refuse the pick.
+                }
+
                 if (!_listening)
                 {
                     // The answer binding sits on the context rather than on the page, because a

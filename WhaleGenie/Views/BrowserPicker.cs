@@ -59,7 +59,9 @@ internal static class BrowserPicker
 
         var hint = Strings.Get("Add.BrowserPickBanner");
 
-        using var aside = StepAside();
+        // Letting go of the pin is what lets the page come up in front instead of behind us; the
+        // device does the rest of the work of putting it there.
+        using var unpinned = Unpin();
         return await Task.Run(() => browser.Pick(hint, PickTimeoutMs));
     }
 
@@ -97,64 +99,44 @@ internal static class BrowserPicker
             StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Gets this program out of the way while somebody is on the page. Two things are in the way:
-    /// the pin, which a window belonging to another program cannot be given, and the windows
-    /// themselves, which sit on top of the very elements being pointed at.
+    /// Lets go of the pin on this program's windows while somebody is on the page: Windows keeps a
+    /// pinned window above every window that is not pinned, and the browser is another program, so
+    /// the pin cannot travel to it the way it travels to our own dialogs. The page itself is
+    /// brought in front by the device, which is what keeps our windows from covering it.
     /// </summary>
-    private static IDisposable StepAside()
+    /// <remarks>
+    /// Nothing else is done to the windows, and in particular they are not minimised: this program
+    /// treats its own window being minimised as "go to the notification area", so a minimised main
+    /// window hides itself and stays hidden — everything the person was working in disappears.
+    /// </remarks>
+    private static IDisposable Unpin()
     {
         var windows = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)
-            ?.Windows.Where(window => window.IsVisible).ToArray()
+            ?.Windows.Where(window => window.Topmost).ToArray()
             ?? [];
 
-        var active = windows.FirstOrDefault(window => window.IsActive);
-        var away = windows
-            .Select(window => new SteppedAside(window, window.Topmost, window.WindowState))
-            .ToArray();
-
-        foreach (var window in away)
+        foreach (var window in windows)
         {
-            window.Window.Topmost = false;
-            try
-            {
-                window.Window.WindowState = WindowState.Minimized;
-            }
-            catch (Exception)
-            {
-                // A window that will not be minimised is no reason to refuse the pick; it simply
-                // stays where it is.
-            }
+            window.Topmost = false;
         }
 
-        return new OutOfTheWay(away, active);
+        return new Pinned(windows);
     }
 
-    /// <summary>One window that was moved out of the way, and what it looked like before.</summary>
-    private sealed record SteppedAside(Window Window, bool Pinned, WindowState State);
-
     /// <summary>
-    /// Puts the windows back when the page is done with. A window that was closed while the pick was
-    /// outstanding is skipped: the person can dismiss the dialog without waiting for it.
+    /// Takes the pin back up when the page is done with. A window that was closed while the pick
+    /// was outstanding is skipped: the person can dismiss the dialog without waiting for it.
     /// </summary>
-    private sealed class OutOfTheWay(IReadOnlyList<SteppedAside> windows, Window? active) : IDisposable
+    private sealed class Pinned(IReadOnlyList<Window> windows) : IDisposable
     {
         public void Dispose()
         {
-            foreach (var entry in windows)
+            foreach (var window in windows)
             {
-                if (!entry.Window.IsVisible)
+                if (window.IsVisible)
                 {
-                    continue;
+                    window.Topmost = true;
                 }
-
-                entry.Window.WindowState = entry.State;
-                entry.Window.Topmost = entry.Pinned;
-            }
-
-            // The page was in front; the dialog the person was on goes back in front of it.
-            if (active is { IsVisible: true })
-            {
-                active.Activate();
             }
         }
     }

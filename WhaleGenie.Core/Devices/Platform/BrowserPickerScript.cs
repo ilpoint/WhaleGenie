@@ -52,24 +52,24 @@ internal static class BrowserPickerScript
           banner.style.zIndex = '2147483647';
           banner.style.left = '12px';
           banner.style.bottom = '12px';
-          banner.style.padding = '6px 12px';
+          banner.style.padding = '8px 14px';
           banner.style.borderRadius = '8px';
-          banner.style.background = 'rgba(16,18,22,0.25)';
-          banner.style.border = '1px solid rgba(255,255,255,0.25)';
+          banner.style.background = 'rgba(16,18,22,0.72)';
+          banner.style.border = '1px solid rgba(255,255,255,0.35)';
           banner.style.color = '#FFFFFF';
-          banner.style.font = '12px/1.4 system-ui, "Segoe UI", sans-serif';
+          banner.style.font = '600 14px/1.4 system-ui, "Segoe UI", sans-serif';
           banner.style.textShadow = '0 1px 2px rgba(0,0,0,0.9)';
-          banner.style.backdropFilter = 'blur(2px)';
           banner.style.maxWidth = '80vw';
           banner.style.whiteSpace = 'nowrap';
           banner.textContent = hint;
           root.appendChild(box);
           root.appendChild(banner);
 
-          // The hint has been read by the time somebody has moved the pointer to the element they
-          // want, so it steps back out of the way of the page rather than sitting on it.
-          banner.style.transition = 'opacity 0.8s ease 4s';
-          requestAnimationFrame(() => { banner.style.opacity = '0.15'; });
+          // Speaking up and then getting out of the way: anything still sitting on the page is
+          // something the person cannot see, so once the hint has had its few seconds it goes
+          // rather than lingering as a faint smudge over the elements.
+          banner.style.transition = 'opacity 0.6s ease 6s';
+          requestAnimationFrame(() => { banner.style.opacity = '0'; });
 
           const escape = (value) =>
             window.CSS && CSS.escape ? CSS.escape(value) : String(value).replace(/["\\]/g, '\\$&');
