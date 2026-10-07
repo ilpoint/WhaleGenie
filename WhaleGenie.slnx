@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="WhaleGenie.Core.Tests/WhaleGenie.Core.Tests.csproj" Id="8302107e-15b8-4668-b07f-99e8cd751013" />
+  <Project Path="WhaleGenie.Core/WhaleGenie.Core.csproj" />
+  <Project Path="WhaleGenie/WhaleGenie.csproj" />
+  <Project Path="WhaleGenie.Tests/WhaleGenie.Tests.csproj" />
+</Solution>

@@ -11,10 +11,10 @@ Windows 上的宏自动化工具：把键盘、鼠标、屏幕和窗口上的操
 ## 常用命令
 
 ```powershell
-dotnet build Viktor.slnx            # 构建
-dotnet test Viktor.slnx             # 跑全部测试
-dotnet run --project Viktor         # 启动程序
-dotnet format Viktor.slnx           # 按 .editorconfig 整理格式
+dotnet build WhaleGenie.slnx            # 构建
+dotnet test WhaleGenie.slnx             # 跑全部测试
+dotnet run --project WhaleGenie         # 启动程序
+dotnet format WhaleGenie.slnx           # 按 .editorconfig 整理格式
 ```
 
 构建把警告当成错误（`Directory.Build.props` 里的 `TreatWarningsAsErrors`），
@@ -24,23 +24,23 @@ dotnet format Viktor.slnx           # 按 .editorconfig 整理格式
 
 | 项目 | 职责 |
 | --- | --- |
-| `Viktor.Core` | 执行引擎。动作目录、变量、表达式、宏包读写、以及所有真正碰机器的设备（输入、屏幕、OCR、UI Automation、文件、进程） |
-| `Viktor` | 界面。窗口、视图模型、文案、触发器监听 |
-| `Viktor.Core.Tests` | 引擎的测试，跑在替身设备层上，不碰真实桌面 |
-| `Viktor.Tests` | 界面的测试，跑在 Avalonia 无头平台上 |
+| `WhaleGenie.Core` | 执行引擎。动作目录、变量、表达式、宏包读写、以及所有真正碰机器的设备（输入、屏幕、OCR、UI Automation、文件、进程） |
+| `WhaleGenie` | 界面。窗口、视图模型、文案、触发器监听 |
+| `WhaleGenie.Core.Tests` | 引擎的测试，跑在替身设备层上，不碰真实桌面 |
+| `WhaleGenie.Tests` | 界面的测试，跑在 Avalonia 无头平台上 |
 
 ## 测试怎么分层
 
-1. **纯逻辑**（`Viktor.Core.Tests`）：引擎的每一步、变量与表达式、宏包往返。用替身设备层，
+1. **纯逻辑**（`WhaleGenie.Core.Tests`）：引擎的每一步、变量与表达式、宏包往返。用替身设备层，
    断言的是"引擎要求了什么"，不是"桌面上发生了什么"。
-2. **界面逻辑与控件**（`Viktor.Tests`）：参数成型、触发器比对、卡片显示、文案完整性，
+2. **界面逻辑与控件**（`WhaleGenie.Tests`）：参数成型、触发器比对、卡片显示、文案完整性，
    以及能真的开窗口、发按键的无头用例。无头会话把测试放在同一条 UI 线程上跑，
    `Ui.Run(...)` 是入口。
 3. **手动**：真的移动鼠标、真的抓屏取色、真的注入按键这类事情无法在测试里验证，
    改动这部分时按用例手动过一遍。
 
 文案是两份手写的表（`Strings` 的英文与中文、`ActionStrings` 的中文），
-`Viktor.Tests` 里的本地化用例会检查键是否两边齐全、动作的每个参数和每个下拉选项是否有中文。
+`WhaleGenie.Tests` 里的本地化用例会检查键是否两边齐全、动作的每个参数和每个下拉选项是否有中文。
 
 ## 代码约定
 
@@ -59,7 +59,7 @@ dotnet format Viktor.slnx           # 按 .editorconfig 整理格式
 | `assets/` | 宏用到的图片，引用写作 `assets/<文件名>` |
 | `<宏名>.json` | 每个宏的步骤树 |
 
-读写都在 `Viktor/Storage/MacroPackage.cs`：打开时把 `assets/` 解到磁盘并在步骤里改写成绝对路径，
+读写都在 `WhaleGenie/Storage/MacroPackage.cs`：打开时把 `assets/` 解到磁盘并在步骤里改写成绝对路径，
 保存时再把用到的图片收进包里。
 
 ## 拾取器
@@ -76,7 +76,7 @@ dotnet format Viktor.slnx           # 按 .editorconfig 整理格式
 
 截屏存下来的图片放在宏包旁边的 `<宏名>.assets` 文件夹里，保存宏包时自动收进 `assets/`；
 项目还没保存过时先放在 `%LOCALAPPDATA%\WhaleGenie\images`。路径的解析与截图落盘都在
-`Viktor/Storage/ImageAssets.cs`。
+`WhaleGenie/Storage/ImageAssets.cs`。
 
 ## 程序自己的文件放哪儿
 

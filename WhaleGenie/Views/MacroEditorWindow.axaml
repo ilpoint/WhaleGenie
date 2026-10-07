@@ -1,0 +1,959 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:WhaleGenie.ViewModels"
+        xmlns:models="using:WhaleGenie.Models"
+        xmlns:conv="using:WhaleGenie.Converters"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="940" d:DesignHeight="760"
+        x:Class="WhaleGenie.Views.MacroEditorWindow"
+        x:DataType="vm:MacroEditorViewModel"
+        Title="Macro Editor"
+        Width="940" Height="780"
+        MinWidth="860" MinHeight="620"
+        WindowStartupLocation="CenterOwner"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        WindowDecorations="BorderOnly"
+        Background="#232323">
+
+    <Design.DataContext>
+        <vm:MacroEditorViewModel />
+    </Design.DataContext>
+
+    <Window.KeyBindings>
+        <!-- Ctrl + F10 starts and stops recording. Escape is deliberately left unbound: it is a
+             key the work being recorded is likely to use, and it must not end the recording or
+             throw the editor away. -->
+        <KeyBinding Gesture="Ctrl+F10" Command="{Binding ToggleRecordCommand}" />
+        <KeyBinding Gesture="Insert" Command="{Binding NewStepCommand}" />
+    </Window.KeyBindings>
+
+    <Window.Resources>
+        <conv:BoolToOpacityConverter x:Key="RowOpacity" />
+        <conv:HexColorToBrushConverter x:Key="HexBrush" />
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="TextBlock.SectionHeader">
+            <Setter Property="Foreground" Value="#C0C0C0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+        <Style Selector="TextBlock.GroupHeader">
+            <Setter Property="Foreground" Value="#C0C0C0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,16,0,9" />
+        </Style>
+        <Style Selector="TextBlock.FieldLabel">
+            <Setter Property="Foreground" Value="#C8C8C8" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Margin" Value="2,2,0,6" />
+        </Style>
+        <!-- Line-art icon used beside each recordable action row -->
+        <Style Selector="Path.RecordIcon">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="Stroke" Value="#E4E4E4" />
+            <Setter Property="StrokeThickness" Value="1.6" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+            <Setter Property="StrokeJoin" Value="Round" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <!-- Idle: red record dot. Recording: white stop square. -->
+        <Style Selector="Path.RecordIndicator">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="Fill" Value="#E23B18" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Path.RecordIndicator.Stop">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+            <Setter Property="Fill" Value="#FFFFFF" />
+            <Style.Animations>
+                <!-- Slow pulse so an in-progress recording is obvious at a glance. -->
+                <Animation Duration="0:0:1.2" IterationCount="INFINITE" PlaybackDirection="Alternate">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="1" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="0.35" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+        <Style Selector="TextBlock.Muted">
+            <Setter Property="Foreground" Value="#9A9A9A" />
+            <Setter Property="FontSize" Value="11.5" />
+        </Style>
+
+        <!-- Step list: rows keep the card look and gain a selection highlight. -->
+        <Style Selector="ListBox.StepList">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="ListBox.StepList ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+        <Style Selector="ListBox.StepList ListBoxItem /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBox.StepList ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBox.StepList ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <!-- The row look lives here, not on the element, so the selected state can win. -->
+        <Style Selector="Border.StepRow">
+            <Setter Property="Background" Value="#2E2E2E" />
+            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="10,8" />
+        </Style>
+        <Style Selector="ListBox.StepList ListBoxItem:selected Border.StepRow">
+            <Setter Property="Background" Value="#4A2A20" />
+            <Setter Property="BorderBrush" Value="#FF6A35" />
+        </Style>
+
+        <!-- A step the design-time check is unhappy about: the row keeps its place and gains an
+             amber edge and mark, so what is wrong is visible without opening anything. -->
+        <Style Selector="Border.StepRow.problem">
+            <Setter Property="BorderBrush" Value="#C8913C" />
+        </Style>
+        <Style Selector="ListBox.StepList ListBoxItem:selected Border.StepRow.problem">
+            <Setter Property="BorderBrush" Value="#FFB45C" />
+        </Style>
+        <Style Selector="Path.ProblemMark">
+            <Setter Property="Width" Value="15" />
+            <Setter Property="Height" Value="15" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="Stroke" Value="#E0A23C" />
+            <Setter Property="StrokeThickness" Value="1.6" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+            <Setter Property="StrokeJoin" Value="Round" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.ProblemSummary">
+            <Setter Property="Foreground" Value="#E0A23C" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="2,0,0,8" />
+        </Style>
+
+        <!-- The two ends of a block: the line its steps start under, and the line that closes it.
+             They are what makes "inside the loop" and "after the loop" tell themselves apart. -->
+        <Style Selector="Border.StepHead">
+            <Setter Property="Background" Value="#262626" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="8,2" />
+        </Style>
+        <Style Selector="TextBlock.StepHeadLabel">
+            <Setter Property="Foreground" Value="#B0B0B0" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.StepFoot">
+            <Setter Property="BorderBrush" Value="#4A4A4A" />
+            <Setter Property="BorderThickness" Value="2,0,0,0" />
+            <Setter Property="Padding" Value="8,1" />
+        </Style>
+        <Style Selector="TextBlock.StepFootLabel">
+            <Setter Property="Foreground" Value="#8A8A8A" />
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- Fold arrow on a block, and the "add a step in here" button on a block's title. -->
+        <Style Selector="Button.RowButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.RowButton Path">
+            <Setter Property="Stroke" Value="#B0B0B0" />
+            <Setter Property="StrokeThickness" Value="1.6" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+            <Setter Property="StrokeJoin" Value="Round" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="Width" Value="10" />
+            <Setter Property="Height" Value="10" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.RowButton /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.RowButton:pointerover Path">
+            <Setter Property="Stroke" Value="#FF8A5C" />
+        </Style>
+
+        <!-- Record toggle, idle: dark plate with a red dot. -->
+        <Style Selector="Button.RecordButton">
+            <Setter Property="Background" Value="#4A2417" />
+            <Setter Property="BorderBrush" Value="#8A4227" />
+            <Setter Property="BorderThickness" Value="1.5" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.RecordButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#5C2D1C" />
+            <Setter Property="BorderBrush" Value="#A6512F" />
+            <Setter Property="BorderThickness" Value="1.5" />
+        </Style>
+        <Style Selector="Button.RecordButton:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3D1D12" />
+            <Setter Property="BorderBrush" Value="#A6512F" />
+            <Setter Property="BorderThickness" Value="1.5" />
+        </Style>
+
+        <!-- Recording: hot red plate with a white stop square and a heavier border. -->
+        <Style Selector="Button.RecordButton.Recording">
+            <Setter Property="Background" Value="#D8451B" />
+            <Setter Property="BorderBrush" Value="#FF7A4D" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+        <Style Selector="Button.RecordButton.Recording /template/ ContentPresenter">
+            <Setter Property="Background" Value="#D8451B" />
+            <Setter Property="BorderBrush" Value="#FF7A4D" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+        <Style Selector="Button.RecordButton.Recording:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#E8501F" />
+            <Setter Property="BorderBrush" Value="#FF9A70" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+        <Style Selector="Button.RecordButton.Recording:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#C23D16" />
+            <Setter Property="BorderBrush" Value="#FF9A70" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+
+        <Style Selector="TextBox.NameInput">
+            <Setter Property="Background" Value="#2E2E2E" />
+            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="10,7" />
+        </Style>
+
+        <!-- Plain parameter input, without the spin buttons a NumericUpDown would add -->
+        <Style Selector="TextBox.ParamInput">
+            <Setter Property="Background" Value="#2E2E2E" />
+            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="8,6" />
+        </Style>
+
+        <Style Selector="ComboBox.OptionSelect">
+            <Setter Property="Background" Value="#2E2E2E" />
+            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Foreground" Value="#E4E4E4" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Width" Value="252" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+
+        <Style Selector="Border.ActionCell">
+            <Setter Property="Background" Value="#2E2E2E" />
+            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="8,6" />
+        </Style>
+
+        <!-- Groups a section so it reads separately from the settings above it -->
+        <Style Selector="Border.GroupBox">
+            <Setter Property="Background" Value="#1F1F1F" />
+            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,10,10,14" />
+            <Setter Property="Margin" Value="0,4,0,0" />
+        </Style>
+
+        <Style Selector="Button.TitleBarButton">
+            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4A4A4A" />
+        </Style>
+
+        <!-- Flat grey button used by Set Key / Record / the action palette -->
+        <Style Selector="Button.FlatButton">
+            <Setter Property="Background" Value="#404040" />
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4C4C4C" />
+        </Style>
+        <Style Selector="Button.FlatButton:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#565656" />
+        </Style>
+
+        <Style Selector="Button.PaletteButton">
+            <Setter Property="Background" Value="#404040" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,5,5" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.PaletteButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4F4F4F" />
+        </Style>
+        <Style Selector="Button.PaletteButton Path">
+            <Setter Property="Stroke" Value="#E0E0E0" />
+            <Setter Property="StrokeThickness" Value="1.5" />
+        </Style>
+
+        <!-- The run-and-debug entry wears the debug violet so it is easy to find. -->
+        <Style Selector="Button.PaletteButton.primary">
+            <Setter Property="Background" Value="#6A4FC9" />
+            <Setter Property="Width" Value="44" />
+        </Style>
+        <Style Selector="Button.PaletteButton.primary /template/ ContentPresenter">
+            <Setter Property="Background" Value="#6A4FC9" />
+        </Style>
+        <Style Selector="Button.PaletteButton.primary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#7C61DB" />
+        </Style>
+        <Style Selector="Button.PaletteButton.primary:disabled /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3A3450" />
+        </Style>
+        <Style Selector="Button.PaletteButton.primary Path">
+            <Setter Property="Stroke" Value="#F2EEFF" />
+            <Setter Property="StrokeThickness" Value="1.7" />
+        </Style>
+        <Style Selector="Button.PaletteButton.primary:disabled Path">
+            <Setter Property="Stroke" Value="#7B7396" />
+        </Style>
+
+        <Style Selector="Button.SaveButton">
+            <Setter Property="Background" Value="#C8401C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.SaveButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#D9502A" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="38,*">
+
+        <!-- Title bar -->
+        <Grid Grid.Row="0" Background="#202020" ColumnDefinitions="Auto,*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
+                <Border Background="#C8401C" CornerRadius="4" Padding="4,1" Width="30">
+                    <TextBlock Text="VIK" Foreground="White" FontWeight="Bold" FontSize="9"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock Foreground="#E8E8E8" FontSize="13" VerticalAlignment="Center"
+                           Text="{Binding [Editor.Title], Source={x:Static loc:Strings.Current}}" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0" VerticalAlignment="Center">
+                <Button Classes="TitleBarButton" Name="MinimizeButton"
+                        ToolTip.Tip="{Binding [Common.Minimize], Source={x:Static loc:Strings.Current}}">
+                    <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6" Data="M 0,5 H 8" />
+                </Button>
+                <Button Classes="TitleBarButton" Name="CloseButton"
+                        ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
+                    <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6" Data="M 1,1 L 7,7 M 1,7 L 7,1" />
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnDefinitions="452,16,*" Margin="14">
+
+            <!-- Left: Trigger Settings -->
+            <Border Grid.Column="0" Background="#292929" CornerRadius="6">
+                <Grid RowDefinitions="*,Auto">
+                    <ScrollViewer Grid.Row="0" Padding="18,16,18,8" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBox Classes="NameInput" Text="{Binding Name}"
+                                     PlaceholderText="{Binding [Editor.NamePlaceholder], Source={x:Static loc:Strings.Current}}" />
+
+                            <TextBlock Classes="GroupHeader"
+                                       Text="{Binding [Editor.TriggerSettings], Source={x:Static loc:Strings.Current}}" />
+
+                            <!-- Keystroke / button trigger settings -->
+                            <StackPanel IsVisible="{Binding IsKeyTrigger}">
+                                <TextBlock Classes="FieldLabel"
+                                           Text="{Binding [Editor.TriggerBy], Source={x:Static loc:Strings.Current}}" />
+                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding TriggerOptions}"
+                                          SelectedIndex="{Binding TriggerIndex}" />
+
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           Text="{Binding [Editor.Loop], Source={x:Static loc:Strings.Current}}" />
+                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding LoopOptions}"
+                                          SelectedIndex="{Binding LoopIndex}" />
+
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           Text="{Binding [Editor.BindKey], Source={x:Static loc:Strings.Current}}" />
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Border Background="#2E2E2E" BorderBrush="#3A3A3A" BorderThickness="1"
+                                            CornerRadius="5" Padding="11,8">
+                                        <TextBlock Text="{Binding BindKeyDisplay}" FontSize="12.5"
+                                                   Foreground="#E4E4E4" VerticalAlignment="Center" />
+                                    </Border>
+                                    <Button Grid.Column="1" Classes="FlatButton" Margin="8,0,0,0" Height="34"
+                                            Content="{Binding SetKeyLabel}"
+                                            IsEnabled="{Binding !IsRecording}"
+                                            ToolTip.Tip="{Binding [Editor.Tip.SetKey], Source={x:Static loc:Strings.Current}}"
+                                            Command="{Binding SetKeyCommand}" />
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Colour / pixel trigger settings -->
+                            <Grid IsVisible="{Binding IsColorTrigger}" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto"
+                                  ColumnSpacing="14" RowSpacing="12">
+                                <StackPanel Grid.Row="0" Grid.Column="0">
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Editor.TriggerBy], Source={x:Static loc:Strings.Current}}" />
+                                    <ComboBox Classes="OptionSelect" Width="195" ItemsSource="{Binding TriggerOptions}"
+                                              SelectedIndex="{Binding TriggerIndex}" />
+
+                                    <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                               Text="{Binding [Editor.When], Source={x:Static loc:Strings.Current}}" />
+                                    <ComboBox Classes="OptionSelect" Width="195" ItemsSource="{Binding ColorMatchOptions}"
+                                              SelectedIndex="{Binding ColorMatchIndex}" />
+
+                                    <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                               Text="{Binding [Editor.ColorPosition], Source={x:Static loc:Strings.Current}}" />
+                                    <Grid ColumnDefinitions="Auto,*,Auto,*" ColumnSpacing="6">
+                                        <TextBlock Grid.Column="0" Classes="FieldLabel"
+                                                   Text="{Binding [Editor.X], Source={x:Static loc:Strings.Current}}"
+                                                   VerticalAlignment="Center" Margin="2,0,0,0" />
+                                        <TextBox Grid.Column="1" Classes="ParamInput"
+                                                 Text="{Binding ColorPositionX}" />
+                                        <TextBlock Grid.Column="2" Classes="FieldLabel"
+                                                   Text="{Binding [Editor.Y], Source={x:Static loc:Strings.Current}}"
+                                                   VerticalAlignment="Center" />
+                                        <TextBox Grid.Column="3" Classes="ParamInput"
+                                                 Text="{Binding ColorPositionY}" />
+                                    </Grid>
+
+                                    <CheckBox Margin="0,10,0,0"
+                                              Content="{Binding [Editor.UseCursorPosition], Source={x:Static loc:Strings.Current}}"
+                                              Foreground="#C8C8C8" FontSize="12.5"
+                                              IsChecked="{Binding UseCursorPosition}" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,25,0,0">
+                                    <CheckBox Foreground="#C8C8C8" FontSize="12.5"
+                                              Content="{Binding [Editor.TriggerOnce], Source={x:Static loc:Strings.Current}}"
+                                              IsChecked="{Binding TriggerOnce}" />
+
+                                    <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                               Text="{Binding [Editor.HexColor], Source={x:Static loc:Strings.Current}}" />
+                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                                        <TextBox Classes="ParamInput" Text="{Binding HexColor}" />
+                                        <Border Grid.Column="1" Width="33" Height="33" CornerRadius="5"
+                                                Background="{Binding HexColor, Converter={StaticResource HexBrush}}"
+                                                BorderBrush="#3A3A3A" BorderThickness="1" />
+                                        <Button Grid.Column="2" Classes="FlatButton" Name="PickColorButton"
+                                                Width="38" Height="33" Padding="0"
+                                                ToolTip.Tip="{Binding [Editor.PickColor], Source={x:Static loc:Strings.Current}}"
+                                                Click="OnPickColorClicked">
+                                            <Path Width="17" Height="17" Stretch="Uniform"
+                                                  Stroke="#E4E4E4" StrokeThickness="1.7"
+                                                  Data="M 2,22 L 3,21 H 6 L 15,12 M 3,21 V 18 L 12,9 M 15,6 L 18.4,2.6 A 2.1,2.1 0 1 1 21.4,5.6 L 18,9 L 18.9,9.9 A 2.1,2.1 0 1 1 15.9,12.9 L 9.3,6.3 A 2.1,2.1 0 1 1 12.3,3.3 L 13.1,4 Z" />
+                                        </Button>
+                                    </Grid>
+
+                                    <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                               Text="{Binding [Editor.ColorTolerance], Source={x:Static loc:Strings.Current}}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBox Classes="ParamInput" Width="90" Text="{Binding ColorTolerance}" />
+                                        <TextBlock Text="%" FontSize="12.5" Foreground="#C8C8C8"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="1" Grid.ColumnSpan="2">
+                                    <TextBlock Classes="Muted"
+                                               Text="{Binding [Editor.AltXHint], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Muted" Margin="0,2,0,0"
+                                               Text="{Binding [Editor.AltCHint], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Muted" Margin="0,2,0,0" Name="PickStatus"
+                                               Foreground="#8FC7F0" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Timer trigger settings -->
+                            <StackPanel IsVisible="{Binding IsTimerTrigger}">
+                                <TextBlock Classes="FieldLabel"
+                                           Text="{Binding [Editor.TriggerBy], Source={x:Static loc:Strings.Current}}" />
+                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding TriggerOptions}"
+                                          SelectedIndex="{Binding TriggerIndex}" />
+
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           Text="{Binding [Editor.Schedule], Source={x:Static loc:Strings.Current}}" />
+                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding ScheduleOptions}"
+                                          SelectedIndex="{Binding ScheduleIndex}" />
+
+                                <!-- Every so often: how many, and the unit they are counted in -->
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           IsVisible="{Binding IsIntervalSchedule}"
+                                           Text="{Binding [Editor.Interval], Source={x:Static loc:Strings.Current}}" />
+                                <Grid IsVisible="{Binding IsIntervalSchedule}"
+                                      ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <NumericUpDown Grid.Column="0" Value="{Binding ScheduleInterval}"
+                                                   Minimum="1" Maximum="9999" Increment="1" FormatString="0" />
+                                    <ComboBox Grid.Column="1" Classes="OptionSelect" Width="112"
+                                              ItemsSource="{Binding ScheduleUnitOptions}"
+                                              SelectedIndex="{Binding ScheduleUnitIndex}" />
+                                </Grid>
+
+                                <!-- Every day at a time of day -->
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           IsVisible="{Binding !IsIntervalSchedule}"
+                                           Text="{Binding [Editor.ScheduleTime], Source={x:Static loc:Strings.Current}}" />
+                                <TextBox Classes="ParamInput" IsVisible="{Binding !IsIntervalSchedule}"
+                                         Text="{Binding ScheduleTime}"
+                                         PlaceholderText="{Binding [Editor.ScheduleTimeHint], Source={x:Static loc:Strings.Current}}" />
+
+                                <CheckBox Margin="0,10,0,0" Foreground="#C8C8C8" FontSize="12.5"
+                                          Content="{Binding [Editor.TriggerOnce], Source={x:Static loc:Strings.Current}}"
+                                          IsChecked="{Binding TriggerOnce}" />
+
+                                <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                           Text="{Binding [Editor.ScheduleNote], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+
+                            <!-- File / folder trigger settings -->
+                            <StackPanel IsVisible="{Binding IsFileTrigger}">
+                                <TextBlock Classes="FieldLabel"
+                                           Text="{Binding [Editor.TriggerBy], Source={x:Static loc:Strings.Current}}" />
+                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding TriggerOptions}"
+                                          SelectedIndex="{Binding TriggerIndex}" />
+
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           Text="{Binding [Editor.WatchPath], Source={x:Static loc:Strings.Current}}" />
+                                <TextBox Classes="ParamInput" Text="{Binding WatchPath}"
+                                         PlaceholderText="{Binding [Editor.WatchPathHint], Source={x:Static loc:Strings.Current}}" />
+
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           Text="{Binding [Editor.WatchChange], Source={x:Static loc:Strings.Current}}" />
+                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding WatchChangeOptions}"
+                                          SelectedIndex="{Binding WatchChangeIndex}" />
+
+                                <!-- Only a watched folder has names inside it to filter and folders below it -->
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           Text="{Binding [Editor.WatchFilter], Source={x:Static loc:Strings.Current}}" />
+                                <TextBox Classes="ParamInput" Text="{Binding WatchFilter}"
+                                         PlaceholderText="*" />
+
+                                <CheckBox Margin="0,10,0,0" Foreground="#C8C8C8" FontSize="12.5"
+                                          Content="{Binding [Editor.WatchSubfolders], Source={x:Static loc:Strings.Current}}"
+                                          IsChecked="{Binding WatchSubfolders}" />
+
+                                <CheckBox Margin="0,6,0,0" Foreground="#C8C8C8" FontSize="12.5"
+                                          Content="{Binding [Editor.TriggerOnce], Source={x:Static loc:Strings.Current}}"
+                                          IsChecked="{Binding TriggerOnce}" />
+
+                                <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                           Text="{Binding [Editor.WatchNote], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+
+                            <!-- Program trigger settings -->
+                            <StackPanel IsVisible="{Binding IsProcessTrigger}">
+                                <TextBlock Classes="FieldLabel"
+                                           Text="{Binding [Editor.TriggerBy], Source={x:Static loc:Strings.Current}}" />
+                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding TriggerOptions}"
+                                          SelectedIndex="{Binding TriggerIndex}" />
+
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           Text="{Binding [Editor.ProcessName], Source={x:Static loc:Strings.Current}}" />
+                                <TextBox Classes="ParamInput" Text="{Binding ProcessName}"
+                                         PlaceholderText="{Binding [Editor.ProcessNameHint], Source={x:Static loc:Strings.Current}}" />
+
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           Text="{Binding [Editor.ProcessWhen], Source={x:Static loc:Strings.Current}}" />
+                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding ProcessChangeOptions}"
+                                          SelectedIndex="{Binding ProcessChangeIndex}" />
+
+                                <CheckBox Margin="0,10,0,0" Foreground="#C8C8C8" FontSize="12.5"
+                                          Content="{Binding [Editor.TriggerOnce], Source={x:Static loc:Strings.Current}}"
+                                          IsChecked="{Binding TriggerOnce}" />
+
+                                <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                           Text="{Binding [Editor.ProcessNote], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+
+                            <!-- Window trigger settings -->
+                            <StackPanel IsVisible="{Binding IsWindowTrigger}">
+                                <TextBlock Classes="FieldLabel"
+                                           Text="{Binding [Editor.TriggerBy], Source={x:Static loc:Strings.Current}}" />
+                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding TriggerOptions}"
+                                          SelectedIndex="{Binding TriggerIndex}" />
+
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           Text="{Binding [Editor.WindowLookup], Source={x:Static loc:Strings.Current}}" />
+                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding WindowLookupOptions}"
+                                          SelectedIndex="{Binding WindowLookupIndex}" />
+
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           Text="{Binding [Editor.WindowValue], Source={x:Static loc:Strings.Current}}" />
+                                <TextBox Classes="ParamInput" Text="{Binding WindowValue}"
+                                         PlaceholderText="{Binding [Editor.WindowValueHint], Source={x:Static loc:Strings.Current}}" />
+
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           Text="{Binding [Editor.WindowWhen], Source={x:Static loc:Strings.Current}}" />
+                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding WindowChangeOptions}"
+                                          SelectedIndex="{Binding WindowChangeIndex}" />
+
+                                <CheckBox Margin="0,10,0,0" Foreground="#C8C8C8" FontSize="12.5"
+                                          Content="{Binding [Editor.TriggerOnce], Source={x:Static loc:Strings.Current}}"
+                                          IsChecked="{Binding TriggerOnce}" />
+
+                                <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                           Text="{Binding [Editor.WindowNote], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+
+                            <!-- Idle trigger settings -->
+                            <StackPanel IsVisible="{Binding IsIdleTrigger}">
+                                <TextBlock Classes="FieldLabel"
+                                           Text="{Binding [Editor.TriggerBy], Source={x:Static loc:Strings.Current}}" />
+                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding TriggerOptions}"
+                                          SelectedIndex="{Binding TriggerIndex}" />
+
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           Text="{Binding [Editor.IdleSeconds], Source={x:Static loc:Strings.Current}}" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <NumericUpDown Width="112" Height="30" Value="{Binding IdleSeconds}"
+                                                   Minimum="1" Maximum="86400" Increment="10" FormatString="0" />
+                                    <TextBlock FontSize="12.5" Foreground="#C8C8C8" VerticalAlignment="Center"
+                                               Text="{Binding [Schedule.Unit.Seconds], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+
+                                <CheckBox Margin="0,10,0,0" Foreground="#C8C8C8" FontSize="12.5"
+                                          Content="{Binding [Editor.TriggerOnce], Source={x:Static loc:Strings.Current}}"
+                                          IsChecked="{Binding TriggerOnce}" />
+
+                                <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                           Text="{Binding [Editor.IdleNote], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+
+                            <Border Classes="GroupBox">
+                                <StackPanel>
+                                    <TextBlock Classes="GroupHeader" Margin="0,0,0,10"
+                                               Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}" />
+
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Editor.PositionCapture], Source={x:Static loc:Strings.Current}}" />
+                                    <ComboBox Classes="OptionSelect" ItemsSource="{Binding PositionCaptureOptions}"
+                                              SelectedIndex="{Binding PositionCaptureIndex}" Margin="0,0,0,6" />
+
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="6" RowDefinitions="Auto,Auto" RowSpacing="4">
+                                        <Border Grid.Row="0" Grid.Column="0" Classes="ActionCell">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
+                                                            Opacity="{Binding RecordMouseMovement, Converter={StaticResource RowOpacity}}">
+                                                    <!-- Cursor pointer outline with motion chevrons trailing to the right -->
+                                                    <Path Classes="RecordIcon" Data="M9,8 L21,8 M15,2 L15,8 M13,4 L15,2 L17,4 M11,6 L9,8 L11,10 M19,6 L21,8 L19,10 M15,8 L15,17.5 L17.2,14.8 L18.8,18.8 L20.8,17.8 L19.2,13.5 L22.5,13.5 Z" />
+                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                               Text="{Binding [Editor.MouseMovement], Source={x:Static loc:Strings.Current}}" />
+                                                </StackPanel>
+                                                <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                                              Width="40"
+                                                              OnContent="" OffContent=""
+                                                              IsChecked="{Binding RecordMouseMovement}" />
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Grid.Row="0" Grid.Column="1" Classes="ActionCell">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
+                                                            Opacity="{Binding RecordMouseButtons, Converter={StaticResource RowOpacity}}">
+                                                    <!-- Mouse seen from above: rounded body, button split line and scroll wheel -->
+                                                    <Path Classes="RecordIcon" Data="M7,8.5 A5,5 0 0 1 17,8.5 L17,15.5 A5,5 0 0 1 7,15.5 Z M7,9.7 H17 M12,5.9 V9.7" />
+                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                               Text="{Binding [Editor.MouseButtons], Source={x:Static loc:Strings.Current}}" />
+                                                </StackPanel>
+                                                <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                                              Width="40"
+                                                              OnContent="" OffContent=""
+                                                              IsChecked="{Binding RecordMouseButtons}" />
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Grid.Row="1" Grid.Column="0" Classes="ActionCell">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
+                                                            Opacity="{Binding RecordKeyboardKeys, Converter={StaticResource RowOpacity}}">
+                                                    <Path Classes="RecordIcon" Data="M3,7 H21 V17 H3 Z M6,10 H8 M10,10 H12 M14,10 H16 M18,10 H18.01 M6,14 H10 M12,14 H16" />
+                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                               Text="{Binding [Editor.KeyboardKeys], Source={x:Static loc:Strings.Current}}" />
+                                                </StackPanel>
+                                                <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                                              Width="40"
+                                                              OnContent="" OffContent=""
+                                                              IsChecked="{Binding RecordKeyboardKeys}" />
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Grid.Row="1" Grid.Column="1" Classes="ActionCell">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
+                                                            Opacity="{Binding RecordDelays, Converter={StaticResource RowOpacity}}">
+                                                    <Path Classes="RecordIcon" Data="M12,3 A9,9 0 1 0 12,21 A9,9 0 1 0 12,3 M12,12 L12,7 M12,12 L15,14" />
+                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                               Text="{Binding [Editor.Delays], Source={x:Static loc:Strings.Current}}" />
+                                                </StackPanel>
+                                                <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                                              Width="40"
+                                                              OnContent="" OffContent=""
+                                                              IsChecked="{Binding RecordDelays}" />
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+
+                                    <Border Classes="ActionCell" Margin="0,4,0,0">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
+                                                        Opacity="{Binding RecordIgnoreInjected, Converter={StaticResource RowOpacity}}">
+                                                <!-- Funnel: input from elsewhere is filtered out -->
+                                                <Path Classes="RecordIcon" Data="M4,5 H20 L14,12.5 V20 L10,17 V12.5 Z" />
+                                                <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                           Text="{Binding [Editor.IgnoreInjected], Source={x:Static loc:Strings.Current}}" />
+                                            </StackPanel>
+                                            <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                                          Width="40"
+                                                          OnContent="" OffContent=""
+                                                          ToolTip.Tip="{Binding [Editor.Tip.IgnoreInjected], Source={x:Static loc:Strings.Current}}"
+                                                          IsChecked="{Binding RecordIgnoreInjected}" />
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- One line, so the record button below keeps its place on screen -->
+                                    <StackPanel Margin="0,10,0,0" Orientation="Horizontal" Spacing="7"
+                                                HorizontalAlignment="Center"
+                                                IsEnabled="{Binding RecordDelays}"
+                                                Opacity="{Binding RecordDelays, Converter={StaticResource RowOpacity}}">
+                                        <TextBlock Classes="FieldLabel" FontSize="12.5" Margin="0"
+                                                   Text="{Binding [Editor.IgnoreDelays], Source={x:Static loc:Strings.Current}}"
+                                                   VerticalAlignment="Center" />
+                                        <NumericUpDown Width="112" Height="30" Value="{Binding IgnoreDelaysBelowMs}"
+                                                       Minimum="0" Maximum="60000" Increment="10" FormatString="0" />
+                                        <TextBlock FontSize="12.5" Foreground="#C8C8C8"
+                                                   Text="{Binding [Editor.Milliseconds], Source={x:Static loc:Strings.Current}}"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <Button Classes="RecordButton" Height="42" HorizontalAlignment="Stretch"
+                                            Margin="0,9,0,0"
+                                            Classes.Recording="{Binding IsRecording}"
+                                           IsEnabled="{Binding !IsCapturingKey}"
+                                           AutomationProperties.Name="Record macro actions"
+                                           ToolTip.Tip="{Binding [Editor.Tip.Record], Source={x:Static loc:Strings.Current}}"
+                                           Command="{Binding ToggleRecordCommand}">
+                                        <StackPanel Orientation="Horizontal" Spacing="10"
+                                                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Path Classes="RecordIndicator"
+                                                  Data="M12,5.6 A6.4,6.4 0 1 0 12,18.4 A6.4,6.4 0 1 0 12,5.6 Z"
+                                                  IsVisible="{Binding !IsRecording}" />
+                                            <Path Classes="RecordIndicator Stop"
+                                                  Data="M7,7 H17 V17 H7 Z"
+                                                  IsVisible="{Binding IsRecording}" />
+                                            <!-- Fixed width keeps the indicator from jumping when the label changes -->
+                                            <StackPanel VerticalAlignment="Center" Width="112">
+                                                <TextBlock Text="{Binding RecordLabel}" HorizontalAlignment="Center"
+                                                           FontSize="13.5" FontWeight="SemiBold" />
+                                                <TextBlock Text="Ctrl + F10" HorizontalAlignment="Center"
+                                                           FontSize="11" Foreground="#FFE3D6" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <TextBlock Classes="Muted" Margin="0,6,0,0" HorizontalAlignment="Center"
+                                               TextAlignment="Center" TextWrapping="Wrap"
+                                               Text="{Binding RecordStatusText}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Save -->
+                    <Button Grid.Row="1" Classes="SaveButton" Margin="18,8,18,16"
+                            Content="{Binding [Editor.Save], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Editor.Tip.Save], Source={x:Static loc:Strings.Current}}"
+                            Command="{Binding SaveCommand}" />
+                </Grid>
+            </Border>
+
+<!-- Right: Action Editor -->
+     <Border Grid.Column="2" Background="#292929" CornerRadius="6">
+            <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="18,16">
+            <TextBlock Grid.Row="0" Classes="SectionHeader"
+                       Text="{Binding [Editor.ActionEditor], Source={x:Static loc:Strings.Current}}" />
+
+             <ItemsControl Grid.Row="1" ItemsSource="{Binding ActionPalette}" Margin="0,0,0,12">
+                 <ItemsControl.ItemsPanel>
+                     <ItemsPanelTemplate>
+                         <WrapPanel Orientation="Horizontal" />
+                     </ItemsPanelTemplate>
+                 </ItemsControl.ItemsPanel>
+                 <ItemsControl.ItemTemplate>
+                     <DataTemplate x:DataType="models:MacroAction">
+                        <Button Classes="PaletteButton" Classes.primary="{Binding IsPrimary}"
+                               ToolTip.Tip="{Binding Label}"
+                               ToolTip.ShowOnDisabled="True"
+                               IsEnabled="{Binding IsEnabled}"
+                                Command="{Binding $parent[ItemsControl].((vm:MacroEditorViewModel)DataContext).AddActionCommand}"
+                                CommandParameter="{Binding}">
+                             <Path Width="16" Height="16" Stretch="Uniform" Data="{Binding Icon}" />
+                         </Button>
+                     </DataTemplate>
+                 </ItemsControl.ItemTemplate>
+             </ItemsControl>
+
+                   <!-- What the design-time check made of the steps, so a problem is known while
+                        the macro is being written rather than when a trigger fires it. -->
+                   <TextBlock Grid.Row="2" Classes="ProblemSummary" IsVisible="{Binding HasProblems}"
+                              Text="{Binding ProblemSummary}" />
+
+                   <!-- Empty state -->
+                   <StackPanel Grid.Row="3" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4"
+                               IsVisible="{Binding !HasSteps}">
+                       <TextBlock Foreground="#C0C0C0" FontSize="13"
+                                  Text="{Binding [Editor.NoSteps], Source={x:Static loc:Strings.Current}}"
+                                  HorizontalAlignment="Center" />
+                       <TextBlock Text="{Binding [Editor.NoStepsHint], Source={x:Static loc:Strings.Current}}"
+                                  Classes="Muted" HorizontalAlignment="Center" TextAlignment="Center" />
+                   </StackPanel>
+
+                   <ListBox Grid.Row="3" Name="StepList" Classes="StepList"
+                            ItemsSource="{Binding Rows}" SelectionMode="Multiple"
+                            IsVisible="{Binding HasSteps}"
+                            DoubleTapped="OnStepDoubleTapped">
+                       <ListBox.ItemTemplate>
+                           <DataTemplate x:DataType="models:StepRow">
+                              <Panel>
+                                  <!-- A step, indented by how deep it sits. A block carries a
+                                       fold arrow, so what is inside it can be put away. -->
+                                  <Border Classes="StepRow" Classes.problem="{Binding HasProblem}"
+                                          Opacity="{Binding RowOpacity}"
+                                          Margin="{Binding Indent}"
+                                          IsVisible="{Binding IsStep}">
+                                      <StackPanel Orientation="Horizontal" Spacing="6">
+                                          <Button Classes="RowButton" IsVisible="{Binding CanFold}"
+                                                  ToolTip.Tip="{Binding FoldHint}"
+                                                  Command="{Binding $parent[ItemsControl].((vm:MacroEditorViewModel)DataContext).ToggleFoldCommand}"
+                                                  CommandParameter="{Binding}">
+                                              <Path Data="{Binding FoldIcon}" />
+                                          </Button>
+                                          <Path Width="16" Height="16" Stretch="Uniform" Stroke="#E4E4E4"
+                                                StrokeThickness="1.5" Data="{Binding Icon}"
+                                                VerticalAlignment="Center" Margin="0,0,4,0" />
+                                          <StackPanel VerticalAlignment="Center">
+                                              <StackPanel Orientation="Horizontal" Spacing="6">
+                                                  <TextBlock Text="{Binding DisplayName}" FontSize="12.5"
+                                                             Foreground="#E4E4E4" />
+                                                  <Border Background="#4A3A1E" CornerRadius="3" Padding="5,0"
+                                                          VerticalAlignment="Center"
+                                                          IsVisible="{Binding IsSkipped}">
+                                                      <TextBlock Text="{Binding SkipLabel}" FontSize="10.5"
+                                                                 Foreground="#D8B36A" />
+                                                  </Border>
+                                              </StackPanel>
+                                              <TextBlock Text="{Binding Detail}" Classes="Muted"
+                                                         TextWrapping="Wrap" />
+                                              <TextBlock Text="{Binding Comment}" FontSize="11"
+                                                         Foreground="#C8A165" TextWrapping="Wrap"
+                                                         IsVisible="{Binding HasComment}" />
+                                              <TextBlock Text="{Binding MetaSummary}" FontSize="10.5"
+                                                         Foreground="#8FB3D9" TextWrapping="Wrap"
+                                                         IsVisible="{Binding HasMetaSummary}" />
+                                          </StackPanel>
+                                          <Path Classes="ProblemMark"
+                                                IsVisible="{Binding HasProblem}"
+                                                ToolTip.Tip="{Binding Problem}"
+                                                Data="M12,3.5 L22,20 L2,20 Z M12,9.5 L12,14.5 M12,16.8 L12,17.6" />
+                                      </StackPanel>
+                                  </Border>
+
+                                  <!-- The title of one of a block's lists, with a button that adds
+                                       a step at the end of it. -->
+                                  <Border Classes="StepHead" Margin="{Binding Indent}"
+                                          IsVisible="{Binding IsHead}">
+                                      <StackPanel Orientation="Horizontal" Spacing="8">
+                                          <TextBlock Classes="StepHeadLabel"
+                                                     Text="{Binding HeadLabel}" />
+                                          <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                                     Text="{Binding HeadCount}" />
+                                          <Button Classes="RowButton"
+                                                  ToolTip.Tip="{Binding AddHint}"
+                                                  Command="{Binding $parent[ItemsControl].((vm:MacroEditorViewModel)DataContext).AddInsideCommand}"
+                                                  CommandParameter="{Binding}">
+                                              <Path Data="M12,5 L12,19 M5,12 L19,12" />
+                                          </Button>
+                                      </StackPanel>
+                                  </Border>
+
+                                  <!-- The line that closes a block, so "inside the block" and "after
+                                       the block" never read as the same place. -->
+                                  <Border Classes="StepFoot" Margin="{Binding Indent}"
+                                          IsVisible="{Binding IsFoot}">
+                                      <TextBlock Classes="StepFootLabel" Text="{Binding FootLabel}" />
+                                  </Border>
+                              </Panel>
+                           </DataTemplate>
+                       </ListBox.ItemTemplate>
+                   </ListBox>
+
+                   <!-- The seam a dragged block drops on. Sits in the same cell as the list and
+                        is not hit-testable, so it never swallows the drag that draws it. -->
+                   <Canvas Grid.Row="3" Name="DropLayer" IsHitTestVisible="False">
+                       <Border Name="DropMarker" Height="2" CornerRadius="1"
+                               Background="#FF6A35" IsVisible="False" />
+                   </Canvas>
+
+               </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

@@ -2,10 +2,8 @@
 
 这份文件说明 WhaleGenie 往哪儿走、按什么规矩改，给后面接手的人和 AI 助手看。
 
-**名字**：对外叫 WhaleGenie（中文名鲸灵），所以 exe、窗口标题、安装包和用户能看到、
-看得到的文案都用这个名字（英文文案 WhaleGenie，中文文案鲸灵）。代码里的项目名、命名空间、
-解决方案仍然叫 `Viktor`——它们没跟用户见过面，也没和别的程序撞名，改名属于纯机械的大改，
-要单独做；两套名字并存这件事记在这里，免得后来人以为是漏改。
+**名字**：从项目名、命名空间、项目文件、解决方案到 exe、窗口标题、安装包和用户能看到的
+文案，一律叫 WhaleGenie（中文文案鲸灵），只有一个名字，没有两套。
 面向使用者的说明在 `README.md`，两边各写各的，不要互相抄。
 这里只写**往哪走**和**定下来的事**，改过什么已经在 git 里，不要再抄一遍。
 
@@ -14,11 +12,11 @@
 Windows 上的宏自动化工具：把键盘、鼠标、屏幕和窗口上的操作编成一步步的宏，
 用热键、鼠标按键、滚轮或屏幕上某个像素的颜色触发它。
 
-- `Viktor.Core` 是执行引擎，不知道界面存在：动作目录、变量、表达式、宏包读写，
+- `WhaleGenie.Core` 是执行引擎，不知道界面存在：动作目录、变量、表达式、宏包读写，
   以及所有真正碰机器的设备（输入、屏幕、OCR、UI Automation、文件、进程）。
-- `Viktor` 是界面：窗口、视图模型、文案、触发器监听。
+- `WhaleGenie` 是界面：窗口、视图模型、文案、触发器监听。
 - 这条边界是有意的。引擎里不许 `using Avalonia`，界面里不许直接调 `SharpHook`/`OpenCV`，
-  两边通过 `Viktor.Core.Devices` 的设备接口和 `ExecutableStep` 对话。
+  两边通过 `WhaleGenie.Core.Devices` 的设备接口和 `ExecutableStep` 对话。
 
 ## 铁律
 
@@ -38,10 +36,10 @@ Windows 上的宏自动化工具：把键盘、鼠标、屏幕和窗口上的操
 ## 常用命令
 
 ```powershell
-dotnet build Viktor.slnx -c Release          # 构建（含警告检查）
-dotnet test  Viktor.slnx -c Release          # 全部测试
-dotnet format Viktor.slnx --verify-no-changes --no-restore   # 格式检查
-dotnet run --project Viktor                  # 启动程序
+dotnet build WhaleGenie.slnx -c Release          # 构建（含警告检查）
+dotnet test  WhaleGenie.slnx -c Release          # 全部测试
+dotnet format WhaleGenie.slnx --verify-no-changes --no-restore   # 格式检查
+dotnet run --project WhaleGenie                  # 启动程序
 ```
 
 Debug 构建会拉 `AvaloniaUI.DiagnosticsSupport`（`Program.cs` 里的 `WithDeveloperTools()`），
@@ -51,16 +49,16 @@ Debug 构建会拉 `AvaloniaUI.DiagnosticsSupport`（`Program.cs` 里的 `WithDe
 
 | 层 | 项目 | 验什么 |
 | --- | --- | --- |
-| 纯逻辑 | `Viktor.Core.Tests` | 引擎的每一步、变量与表达式、宏包往返。跑在替身设备层上，断言"引擎要求了什么" |
-| 界面 | `Viktor.Tests` | 参数成型、触发器比对、卡片显示、文案完整性、编辑器里真的发鼠标和按键的无头用例（`Ui.Run(...)`） |
+| 纯逻辑 | `WhaleGenie.Core.Tests` | 引擎的每一步、变量与表达式、宏包往返。跑在替身设备层上，断言"引擎要求了什么" |
+| 界面 | `WhaleGenie.Tests` | 参数成型、触发器比对、卡片显示、文案完整性、编辑器里真的发鼠标和按键的无头用例（`Ui.Run(...)`） |
 | 手动 | — | 真实输入、抓屏取色、UIA 拾取、录制、窗口布局 |
 
 每加一个动作，至少要有一条引擎用例走到它；每加一条用户可见文案，`LocalizationTests` 自动覆盖。
 
-**界面用例偶尔会整套一起红。** 表现是 `Viktor.Tests` 里一百来个用例同时失败，第一处堆栈落在
+**界面用例偶尔会整套一起红。** 表现是 `WhaleGenie.Tests` 里一百来个用例同时失败，第一处堆栈落在
 Avalonia headless 起应用那一步（`Dispatcher.VerifyAccess`，或者顺着 `ActionCatalog` 的静态
 构造撞在 `Geometry.Parse` 上）。这是无头会话启动时的竞态，不是用例在测的东西，重跑一次就好；
-单独跑 `dotnet test Viktor.Tests` 几乎不会碰上。CI 上碰上就重跑那个 job。
+单独跑 `dotnet test WhaleGenie.Tests` 几乎不会碰上。CI 上碰上就重跑那个 job。
 
 ## 现在做什么
 
@@ -235,12 +233,12 @@ RPA 平台：企业向的能力和明显偏办公文档解析的能力都不做�
   依赖的 zip、自带运行时的 zip，都由 `build/package.ps1` 摆好。形态就这两种，不再加：单文件版
   一样要把运行时解压到系统临时目录，省不了事还多一种要验的东西。
 - 两种包都是"一个 `WhaleGenie` 文件夹，exe 在最外层，其余 dll 进 `lib`"。dll 能进子目录靠
-  `Viktor/Program.cs` 里的两个解析钩子（托管程序集与原生库）和清单 `WhaleGenie.deps.json` 里一起
+  `WhaleGenie/Program.cs` 里的两个解析钩子（托管程序集与原生库）和清单 `WhaleGenie.deps.json` 里一起
   改写的路径，两样缺一不可——`Main` 里不许直接写 Avalonia 的类型，否则编译 `Main` 时就要先
   加载 Avalonia，钩子来不及挂上。宿主自己的十来个文件（`hostfxr`、`coreclr` 等）只能留在 exe
   旁边，这是运行时的规定。
 - 打包形状在测试里验不了，改 `build/package.ps1`、清单改写或上面那两个钩子之后，要本地跑一次
   脚本、把包解开双击一次，确认窗口起得来，涉及原生库的动作（找图这类）也得走一遍。
 - 程序旁边会多出两样运行期才有的东西，都不进仓库：`settings.json`（设置窗口的选择）和
-  `logs`（失败截图）。路径只在 `Viktor.Execution.AppPaths` 定义一次，由界面把
+  `logs`（失败截图）。路径只在 `WhaleGenie.Execution.AppPaths` 定义一次，由界面把
   `MacroRunner.FailureFolder` 指过去，引擎自己不猜程序装在哪。

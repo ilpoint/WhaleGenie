@@ -32,7 +32,7 @@ if (-not $Version) {
     $Version = $Tag -replace '^v', ''
 }
 
-$project = Join-Path $PSScriptRoot '..\Viktor\Viktor.csproj'
+$project = Join-Path $PSScriptRoot '..\WhaleGenie\WhaleGenie.csproj'
 $OutDir = Join-Path $PWD $OutDir
 
 # 运行时自己的这几个文件必须在 exe 旁边：宿主是先找 hostpolicy、再找 coreclr、再由

@@ -20,16 +20,16 @@ jobs:
           global-json-file: global.json
 
       - name: Restore
-        run: dotnet restore Viktor.slnx
+        run: dotnet restore WhaleGenie.slnx
 
       - name: Check formatting
-        run: dotnet format Viktor.slnx --verify-no-changes --no-restore
+        run: dotnet format WhaleGenie.slnx --verify-no-changes --no-restore
 
       - name: Build
-        run: dotnet build Viktor.slnx -c Release --no-restore
+        run: dotnet build WhaleGenie.slnx -c Release --no-restore
 
       - name: Test
-        run: dotnet test Viktor.slnx -c Release --no-build --no-restore --logger "trx;LogFileName=results.trx"
+        run: dotnet test WhaleGenie.slnx -c Release --no-build --no-restore --logger "trx;LogFileName=results.trx"
 
       - name: Keep the test report
         if: always()
