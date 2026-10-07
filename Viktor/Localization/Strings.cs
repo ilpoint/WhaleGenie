@@ -239,6 +239,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.JsonTree"] = "JSON Tree",
         ["Editor.NoSteps"] = "No steps yet.",
         ["Editor.StepDisabled"] = "skipped",
+        // The two ends of a block. They are what makes "inside the loop" and "after the loop"
+        // two different places on the list.
+        ["Editor.BlockEnd"] = "end of {0}",
+        ["Editor.Fold"] = "Fold the steps inside",
+        ["Editor.Unfold"] = "Show the steps inside",
+        ["Editor.AddInside"] = "Add a step at the end of this list",
         ["Editor.NoStepsHint"] = "Use Add new action above to pick an action and fill in its parameters.",
         ["Editor.UnsavedTitle"] = "Unsaved changes",
         ["Editor.ClearTitle"] = "Clear all steps",
@@ -868,6 +874,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.JsonTree"] = "JSON 树",
         ["Editor.NoSteps"] = "还没有步骤。",
         ["Editor.StepDisabled"] = "已停用",
+        // 块的两端。有了它们，“在循环里”和“在循环后面”才是列表上两个不同的位置。
+        ["Editor.BlockEnd"] = "{0} 结束",
+        ["Editor.Fold"] = "收起里面的步骤",
+        ["Editor.Unfold"] = "展开里面的步骤",
+        ["Editor.AddInside"] = "在这一块的末尾加一步",
         ["Editor.NoStepsHint"] = "点上面的“添加新动作”，选择动作并填写参数。",
         ["Editor.UnsavedTitle"] = "有未保存的修改",
         ["Editor.ClearTitle"] = "清空全部步骤",

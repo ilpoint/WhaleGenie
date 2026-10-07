@@ -90,6 +90,13 @@ public partial class MacroEditorViewModel : ViewModelBase
     private const string AddStepPaletteKey = "add";
 
     private readonly List<MacroStep> _selection = [];
+
+    /// <summary>
+    /// Where the next step the dialog builds is to land, remembered between the press that asked
+    /// for it and the dialog coming back with an answer. Null means the end of the macro.
+    /// </summary>
+    private (IList<MacroStep> List, int Index)? _insertAt;
+
     private bool _loading;
 
     /// <summary>How many step-list changes can be undone.</summary>
@@ -98,7 +105,11 @@ public partial class MacroEditorViewModel : ViewModelBase
     private readonly List<HistoryEntry> _undo = [];
     private readonly List<HistoryEntry> _redo = [];
 
-    /// <summary>The step list and selection as they were before one change.</summary>
+    /// <summary>
+    /// The steps and the selection as they were before one change. The selection is kept as the
+    /// positions the steps are written in, counting nested ones in the order the list shows them,
+    /// because the history holds copies of the steps rather than the steps themselves.
+    /// </summary>
     private sealed record HistoryEntry(
         IReadOnlyList<MacroStep> Steps, IReadOnlyList<int> Selection, double DelayScale);
 
@@ -149,6 +160,14 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>Steps built so far; saved as the macro's JSON tree.</summary>
     public ObservableCollection<MacroStep> Steps { get; } = [];
 
+    /// <summary>
+    /// The same steps as the editor shows them: a block that is open shows the steps inside it
+    /// indented underneath, with a line where it starts and a line where it ends. The list is
+    /// flat because that is what the control and every command work on, and a row carries the
+    /// depth and the list it belongs to, so the shape of the macro can be read off one list.
+    /// </summary>
+    public ObservableCollection<StepRow> Rows { get; } = [];
+
     public bool HasSteps => Steps.Count > 0;
 
     public bool HasSelection => _selection.Count > 0;
@@ -159,6 +178,13 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>True while the editor holds changes that have not been saved yet.</summary>
     [ObservableProperty]
     public partial bool IsDirty { get; set; }
+
+    /// <summary>
+    /// True while the rows are being rebuilt. The list lets go of its selection when the rows
+    /// under it are replaced, and that is not the user unpicking anything, so the view has to
+    /// know to look past it — otherwise every edit would end with nothing selected.
+    /// </summary>
+    public bool IsRebuildingRows { get; private set; }
 
     [ObservableProperty]
     public partial string Name { get; set; } = string.Empty;
@@ -640,9 +666,69 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
     }
 
-    /// <summary>Asks the window to open the "Add Action" dialog.</summary>
+    /// <summary>
+    /// Asks the window to open the "Add Action" dialog. The new step goes below whatever is
+    /// picked, inside the block it sits in, which is where a step added while reading a block
+    /// is wanted: with nothing picked it goes at the end of the macro.
+    /// </summary>
     [RelayCommand]
-    private void NewStep() => AddStepRequested?.Invoke();
+    private void NewStep()
+    {
+        _insertAt = InsertionPoint();
+        AddStepRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Asks the window to open the dialog for a step to go at the end of one of a block's lists,
+    /// which is what the "add" button on a head row does.
+    /// </summary>
+    [RelayCommand]
+    private void AddInside(StepRow? row)
+    {
+        if (row?.List is not { } parameter)
+        {
+            return;
+        }
+
+        _insertAt = (parameter.Steps, parameter.Steps.Count);
+        AddStepRequested?.Invoke();
+    }
+
+    /// <summary>Folds a block open or shut, so a long macro can be read at the level wanted.</summary>
+    [RelayCommand]
+    private void ToggleFold(StepRow? row)
+    {
+        if (row is null)
+        {
+            return;
+        }
+
+        SetExpanded(row.Step, !row.Step.IsExpanded);
+    }
+
+    /// <summary>
+    /// Shows or hides the steps inside a block. Folding a block the selection was inside takes
+    /// the selection with it — onto the block itself — because steps that are not on screen
+    /// must not be the ones a delete or a cut acts on.
+    /// </summary>
+    public void SetExpanded(MacroStep step, bool expanded)
+    {
+        step.IsExpanded = expanded;
+        RebuildRows();
+
+        var visible = Rows.Where(row => row.IsStep).Select(row => row.Step).ToHashSet();
+        if (_selection.Any(selected => !visible.Contains(selected)))
+        {
+            var kept = _selection.Where(visible.Contains).ToList();
+            _selection.Clear();
+            _selection.AddRange(kept.Count > 0 ? kept : [step]);
+            OnPropertyChanged(nameof(HasSelection));
+            OnPropertyChanged(nameof(SelectedSteps));
+            RefreshPaletteState();
+        }
+
+        SelectionRefreshRequested?.Invoke();
+    }
 
     /// <summary>Asks the window to open the run window for the steps as they are now.</summary>
     [RelayCommand]
@@ -691,14 +777,18 @@ public partial class MacroEditorViewModel : ViewModelBase
     private void GroupSelected()
     {
         var selected = Ordered(_selection);
-        if (selected.Count == 0)
+        if (selected.Count == 0 || ListOf(selected[0]) is not { } list)
         {
             return;
         }
 
+        // Grouping wraps steps that sit side by side. Steps picked out of different blocks have
+        // no one place to be wrapped into, so the block the first of them is in is the one that
+        // gets the group.
+        var grouped = selected.Where(step => ReferenceEquals(ListOf(step), list)).ToList();
         PushUndo();
 
-        var index = Steps.IndexOf(selected[0]);
+        var index = list.IndexOf(grouped[0]);
         var group = new MacroStep
         {
             Type = "control.sequence",
@@ -708,17 +798,17 @@ public partial class MacroEditorViewModel : ViewModelBase
                 {
                     Name = "steps",
                     Kind = ActionParameterKind.Steps,
-                    Steps = [.. selected],
+                    Steps = [.. grouped],
                 },
             ],
         };
 
-        foreach (var step in selected)
+        foreach (var step in grouped)
         {
-            Steps.Remove(step);
+            list.Remove(step);
         }
 
-        Steps.Insert(Math.Clamp(index, 0, Steps.Count), group);
+        list.Insert(Math.Clamp(index, 0, list.Count), group);
         RestoreSelection([group]);
         NotifyStepsChanged();
     }
@@ -733,9 +823,11 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         PushUndo();
 
-        foreach (var step in _selection.ToList())
+        // A block that is dropped takes the steps inside it with it, and a step that is already
+        // gone has no list to be taken from, so any order but this one would trip over itself.
+        foreach (var step in Ordered(_selection))
         {
-            Steps.Remove(step);
+            ListOf(step)?.Remove(step);
         }
 
         _selection.Clear();
@@ -769,11 +861,20 @@ public partial class MacroEditorViewModel : ViewModelBase
         NotifyStepsChanged();
     }
 
-    /// <summary>Appends a step built by the "Add Action" dialog.</summary>
+    /// <summary>
+    /// Puts a step built by the "Add Action" dialog where the editor said it was to go, which is
+    /// the end of the macro unless a step or a block was picked first.
+    /// </summary>
     public void AddStep(MacroStep step)
     {
         PushUndo();
-        Steps.Add(step);
+
+        var (list, index) = _insertAt ?? (Steps, Steps.Count);
+        _insertAt = null;
+        list.Insert(Math.Clamp(index, 0, list.Count), step);
+
+        ShowInside(list);
+        RestoreSelection([step]);
         NotifyStepsChanged();
     }
 
@@ -801,14 +902,23 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>Swaps a step for the edited version returned by the dialog.</summary>
     public void ReplaceStep(MacroStep original, MacroStep replacement)
     {
-        var index = Steps.IndexOf(original);
+        if (ListOf(original) is not { } list)
+        {
+            return;
+        }
+
+        var index = list.IndexOf(original);
         if (index < 0)
         {
             return;
         }
 
         PushUndo();
-        Steps[index] = replacement;
+
+        // A block the user had folded open stays folded open while it is being edited.
+        replacement.IsExpanded = original.IsExpanded;
+        list[index] = replacement;
+        RestoreSelection([replacement]);
         NotifyStepsChanged();
     }
 
@@ -825,15 +935,17 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         PushUndo();
 
-        var anchor = Ordered(_selection).LastOrDefault() ?? Steps.LastOrDefault();
-        var index = anchor is null ? Steps.Count : Steps.IndexOf(anchor) + 1;
+        var anchor = Ordered(_selection).LastOrDefault();
+        var list = anchor is null ? Steps : ListOf(anchor) ?? Steps;
+        var index = anchor is null ? list.Count : list.IndexOf(anchor) + 1;
         var copies = steps.Select(Clone).ToList();
 
         for (var offset = 0; offset < copies.Count; offset++)
         {
-            Steps.Insert(Math.Clamp(index + offset, 0, Steps.Count), copies[offset]);
+            list.Insert(Math.Clamp(index + offset, 0, list.Count), copies[offset]);
         }
 
+        ShowInside(list);
         RestoreSelection(copies);
         NotifyStepsChanged();
     }
@@ -890,6 +1002,8 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>Records what the action list has highlighted, so the palette can react.</summary>
     public void SetSelection(IEnumerable<MacroStep> steps)
     {
+        // A step asked for before this one is no longer the step being pointed at.
+        _insertAt = null;
         _selection.Clear();
         _selection.AddRange(steps);
 
@@ -897,6 +1011,13 @@ public partial class MacroEditorViewModel : ViewModelBase
         OnPropertyChanged(nameof(SelectedSteps));
         RefreshPaletteState();
     }
+
+    /// <summary>
+    /// Asks the view to put the highlight back on the rows the selection sits on. A block's title
+    /// and its closing line stand for the block itself, so picking one of those moves the
+    /// highlight onto the block's own row rather than leaving it on the line that was clicked.
+    /// </summary>
+    public void RefreshSelection() => SelectionRefreshRequested?.Invoke();
 
     /// <summary>Fills the editor from an existing macro so it can be edited.</summary>
     public void LoadFrom(MacroItem macro)
@@ -973,6 +1094,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         Type = step.Type,
         Parameters = step.Parameters.Select(Clone).ToList(),
         Meta = step.Meta,
+        IsExpanded = step.IsExpanded,
     };
 
     /// <summary>
@@ -989,8 +1111,139 @@ public partial class MacroEditorViewModel : ViewModelBase
         Condition = parameter.Condition is null ? null : Clone(parameter.Condition),
     };
 
+    /// <summary>
+    /// The given steps in the order they are written, nested ones included, so a run of them
+    /// keeps its order whichever block each came from.
+    /// </summary>
     private List<MacroStep> Ordered(IReadOnlyList<MacroStep> steps)
-        => steps.OrderBy(Steps.IndexOf).ToList();
+    {
+        var order = DocumentOrder();
+        return [.. steps.Where(order.Contains).OrderBy(order.IndexOf)];
+    }
+
+    /// <summary>Every step of the macro in the order it is written, deepest steps included.</summary>
+    private List<MacroStep> DocumentOrder()
+    {
+        var ordered = new List<MacroStep>();
+        Walk(Steps);
+        return ordered;
+
+        void Walk(IEnumerable<MacroStep> steps)
+        {
+            foreach (var step in steps)
+            {
+                ordered.Add(step);
+                foreach (var list in step.StepLists)
+                {
+                    Walk(list.Steps);
+                }
+            }
+        }
+    }
+
+    /// <summary>Every list of steps in the macro: the top level first, then the ones in blocks.</summary>
+    private IEnumerable<IList<MacroStep>> AllLists()
+    {
+        yield return Steps;
+
+        foreach (var list in Descend(Steps))
+        {
+            yield return list;
+        }
+    }
+
+    private static IEnumerable<IList<MacroStep>> Descend(IEnumerable<MacroStep> steps)
+    {
+        foreach (var step in steps)
+        {
+            foreach (var list in step.StepLists)
+            {
+                yield return list.Steps;
+
+                foreach (var nested in Descend(list.Steps))
+                {
+                    yield return nested;
+                }
+            }
+        }
+    }
+
+    /// <summary>The list of steps a step sits in, or null when the macro no longer holds it.</summary>
+    private IList<MacroStep>? ListOf(MacroStep step)
+        => AllLists().FirstOrDefault(list => list.Contains(step));
+
+    private bool InTree(MacroStep step) => ListOf(step) is not null;
+
+    /// <summary>
+    /// True when a list of steps lives inside the given step, so moving steps into it would put
+    /// the step inside itself.
+    /// </summary>
+    private static bool IsInside(IList<MacroStep> list, MacroStep step)
+        => step.StepLists.Any(own => ReferenceEquals(own.Steps, list)
+            || own.Steps.Any(child => IsInside(list, child)));
+
+    /// <summary>
+    /// Opens every block on the way to a list of steps, so a step put in there is not put in
+    /// a block the user cannot see.
+    /// </summary>
+    private void ShowInside(IList<MacroStep> list) => Open(list, Steps);
+
+    private static bool Open(IList<MacroStep> list, IEnumerable<MacroStep> from)
+    {
+        foreach (var step in from)
+        {
+            foreach (var own in step.StepLists)
+            {
+                if (ReferenceEquals(own.Steps, list) || Open(list, own.Steps))
+                {
+                    step.IsExpanded = true;
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// The list a drop in front of this row lands in, and where in that list. The rows are what
+    /// is read rather than the steps, because a head row means "the top of this block's steps"
+    /// and a foot row means "the end of them", and neither of those is a step.
+    /// </summary>
+    private (IList<MacroStep> List, int Index) DropTarget(int slot)
+    {
+        if (slot < 0 || slot >= Rows.Count)
+        {
+            return (Steps, Steps.Count);
+        }
+
+        var row = Rows[slot];
+
+        // A head row is the top of the steps it names, a foot row is the end of the block it
+        // closes, and any other row is the step itself, dropped in front of.
+        if (row.Kind is StepRowKind.Head && row.List is { } head)
+        {
+            return (head.Steps, 0);
+        }
+
+        if (row.Kind is StepRowKind.Foot && row.Step.StepLists.LastOrDefault() is { } last)
+        {
+            return (last.Steps, last.Steps.Count);
+        }
+
+        return (row.List?.Steps ?? (IList<MacroStep>)Steps, Math.Max(0, row.Index));
+    }
+
+    /// <summary>Where a step asked for now should go: below the picked one, in its own block.</summary>
+    private (IList<MacroStep> List, int Index)? InsertionPoint()
+    {
+        if (Ordered(_selection).LastOrDefault() is not { } anchor || ListOf(anchor) is not { } list)
+        {
+            return null;
+        }
+
+        return (list, list.IndexOf(anchor) + 1);
+    }
 
     private void MoveSelection(int offset)
     {
@@ -1001,7 +1254,7 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         PushUndo();
 
-        // Capture the rows first: moving them makes the list drop its selection,
+        // Capture the steps first: moving them makes the list drop its selection,
         // which clears the selection the loop below needs to keep stable.
         var moved = Ordered(_selection);
         var moving = new HashSet<MacroStep>(moved);
@@ -1009,15 +1262,21 @@ public partial class MacroEditorViewModel : ViewModelBase
         // Walk from the far end so a block of selected steps keeps its order.
         foreach (var step in offset < 0 ? moved : moved.AsEnumerable().Reverse())
         {
-            var index = Steps.IndexOf(step);
-            var target = index + offset;
-
-            if (index < 0 || target < 0 || target >= Steps.Count || moving.Contains(Steps[target]))
+            if (ListOf(step) is not { } list)
             {
                 continue;
             }
 
-            Steps.Move(index, target);
+            var index = list.IndexOf(step);
+            var target = index + offset;
+
+            if (index < 0 || target < 0 || target >= list.Count || moving.Contains(list[target]))
+            {
+                continue;
+            }
+
+            list.RemoveAt(index);
+            list.Insert(target, step);
         }
 
         RestoreSelection(moved);
@@ -1025,8 +1284,10 @@ public partial class MacroEditorViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Puts the selected steps where a drag dropped them. <paramref name="slot"/> is the row
-    /// index the block should start at, counted against the list as it stands now.
+    /// Puts the selected steps where a drag dropped them. <paramref name="slot"/> is the row the
+    /// block would land in front of, counted against the list as it stands now. The row is what
+    /// says which block the steps land in, so one drag can carry a step out of a loop, into one,
+    /// or past the line that closes a block.
     /// </summary>
     public void MoveSelectionTo(int slot)
     {
@@ -1036,38 +1297,50 @@ public partial class MacroEditorViewModel : ViewModelBase
             return;
         }
 
+        var (target, index) = DropTarget(slot);
+        if (selected.Any(step => IsInside(target, step)))
+        {
+            return;
+        }
+
         var moving = new HashSet<MacroStep>(selected);
 
-        // The row the block lands in front of. A row being dragged cannot be that anchor, or
+        // The step the block lands in front of. A step being dragged cannot be that anchor, or
         // the block would be measured against itself and could never move past it.
         MacroStep? anchor = null;
-        for (var index = Math.Clamp(slot, 0, Steps.Count); index < Steps.Count; index++)
+        for (var at = Math.Clamp(index, 0, target.Count); at < target.Count; at++)
         {
-            if (!moving.Contains(Steps[index]))
+            if (!moving.Contains(target[at]))
             {
-                anchor = Steps[index];
+                anchor = target[at];
                 break;
             }
         }
 
-        var reordered = Steps.Where(step => !moving.Contains(step)).ToList();
+        var reordered = target.Where(step => !moving.Contains(step)).ToList();
         var insertAt = anchor is null ? reordered.Count : reordered.IndexOf(anchor);
         reordered.InsertRange(insertAt, selected);
 
         // A drag that ends where it started is not a change, so it leaves no undo entry.
-        if (reordered.SequenceEqual(Steps))
+        if (reordered.SequenceEqual(target))
         {
             return;
         }
 
         PushUndo();
 
-        Steps.Clear();
-        foreach (var step in reordered)
+        foreach (var step in selected)
         {
-            Steps.Add(step);
+            ListOf(step)?.Remove(step);
         }
 
+        target.Clear();
+        foreach (var step in reordered)
+        {
+            target.Add(step);
+        }
+
+        ShowInside(target);
         RestoreSelection(selected);
         NotifyStepsChanged();
     }
@@ -1079,18 +1352,86 @@ public partial class MacroEditorViewModel : ViewModelBase
     private void RestoreSelection(IEnumerable<MacroStep> steps)
     {
         _selection.Clear();
-        _selection.AddRange(steps.Where(Steps.Contains));
+        _selection.AddRange(steps.Where(InTree));
 
         OnPropertyChanged(nameof(HasSelection));
         OnPropertyChanged(nameof(SelectedSteps));
-        SelectionRefreshRequested?.Invoke();
         RefreshPaletteState();
     }
 
+    /// <summary>
+    /// Rebuilds the rows the list shows and puts the selection back on them, in that order: the
+    /// view can only highlight a row that is there.
+    /// </summary>
     private void NotifyStepsChanged()
     {
+        RebuildRows();
         OnPropertyChanged(nameof(HasSteps));
         RefreshPaletteState();
+        SelectionRefreshRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Lays the steps out as rows, opening the blocks that are not folded away. Every row is
+    /// rebuilt rather than patched, so what the list shows can never drift from the steps.
+    /// </summary>
+    private void RebuildRows()
+    {
+        IsRebuildingRows = true;
+        try
+        {
+            Rows.Clear();
+            AddRows(Steps, null, 0);
+        }
+        finally
+        {
+            IsRebuildingRows = false;
+        }
+    }
+
+    private void AddRows(IList<MacroStep> steps, StepParameter? owner, int depth)
+    {
+        for (var index = 0; index < steps.Count; index++)
+        {
+            var step = steps[index];
+            Rows.Add(new StepRow
+            {
+                Kind = StepRowKind.Step,
+                Step = step,
+                List = owner,
+                Index = index,
+                RowIndex = Rows.Count,
+                Depth = depth,
+            });
+
+            var lists = step.StepLists.ToList();
+            if (lists.Count == 0 || !step.IsExpanded)
+            {
+                continue;
+            }
+
+            foreach (var list in lists)
+            {
+                Rows.Add(new StepRow
+                {
+                    Kind = StepRowKind.Head,
+                    Step = step,
+                    List = list,
+                    RowIndex = Rows.Count,
+                    Depth = depth + 1,
+                });
+
+                AddRows(list.Steps, list, depth + 2);
+            }
+
+            Rows.Add(new StepRow
+            {
+                Kind = StepRowKind.Foot,
+                Step = step,
+                RowIndex = Rows.Count,
+                Depth = depth,
+            });
+        }
     }
 
     /// <summary>True while the step list can be rolled back.</summary>
@@ -1144,7 +1485,7 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     private HistoryEntry Capture() => new(
         [.. Steps.Select(Clone)],
-        [.. _selection.Select(Steps.IndexOf).Where(index => index >= 0)],
+        [.. _selection.Select(step => DocumentOrder().IndexOf(step)).Where(index => index >= 0)],
         DelayScale);
 
     private void Restore(HistoryEntry entry)
@@ -1156,9 +1497,10 @@ public partial class MacroEditorViewModel : ViewModelBase
             Steps.Add(Clone(step));
         }
 
+        var written = DocumentOrder();
         var restored = entry.Selection
-            .Where(index => index < Steps.Count)
-            .Select(index => Steps[index])
+            .Where(index => index < written.Count)
+            .Select(index => written[index])
             .ToList();
 
         RestoreSelection(restored);

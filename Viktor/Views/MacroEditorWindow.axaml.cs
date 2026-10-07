@@ -63,7 +63,7 @@ public partial class MacroEditorWindow : Window
     private Point _dragOrigin;
 
     /// <summary>The row under the pointer when it went down; null when the press missed the rows.</summary>
-    private MacroStep? _pressedStep;
+    private StepRow? _pressedRow;
 
     private bool _draggingSteps;
 
@@ -148,12 +148,19 @@ public partial class MacroEditorWindow : Window
 
             stepList.SelectionChanged += (_, _) =>
             {
-                if (_syncingSelection)
+                // Rebuilding the rows makes the list let go of its selection for a moment; that
+                // is the editor's own doing, not the user unpicking the steps.
+                if (_syncingSelection || _viewModel.IsRebuildingRows)
                 {
                     return;
                 }
 
-                _viewModel.SetSelection(stepList.SelectedItems?.OfType<MacroStep>() ?? []);
+                // A block's title and its closing line stand for the block itself, so picking
+                // one picks the block. The highlight is then put back on the block's own row,
+                // because that is the row everything acts on.
+                var rows = stepList.SelectedItems?.OfType<StepRow>().ToList() ?? [];
+                _viewModel.SetSelection(rows.Select(row => row.Step).Distinct());
+                _viewModel.RefreshSelection();
             };
 
             // The list drops its selection when rows move, so the view model asks for it back.
@@ -168,9 +175,13 @@ public partial class MacroEditorWindow : Window
                 try
                 {
                     selected.Clear();
-                    foreach (var step in _viewModel.SelectedSteps)
+
+                    // The rows are rebuilt on every change, so the highlights have to be put on
+                    // the rows as they are now rather than on the ones that were picked.
+                    var wanted = _viewModel.SelectedSteps;
+                    foreach (var row in _viewModel.Rows.Where(row => row.IsStep && wanted.Contains(row.Step)))
                     {
-                        selected.Add(step);
+                        selected.Add(row);
                     }
                 }
                 finally
@@ -368,6 +379,12 @@ public partial class MacroEditorWindow : Window
                 break;
             case Key.Down when control:
                 viewModel.MoveSelectedDownCommand.Execute(null);
+                break;
+            case Key.Right when control:
+                Fold(true);
+                break;
+            case Key.Left when control:
+                Fold(false);
                 break;
             default:
                 return;
@@ -865,22 +882,33 @@ public partial class MacroEditorWindow : Window
         }
     }
 
+    /// <summary>Opens or folds the picked block, which is what the arrow keys do in a tree.</summary>
+    private void Fold(bool open)
+    {
+        if (_viewModel.SelectedSteps is [{ } step])
+        {
+            _viewModel.SetExpanded(step, open);
+        }
+    }
+
     /// <summary>Double-clicking a row opens it, which is what a list is expected to do.</summary>
     private void OnStepDoubleTapped(object? sender, TappedEventArgs e)
     {
-        if (RowUnder(e.Source) is not { } step)
+        if (RowUnder(e.Source) is not { IsStep: true } row)
         {
             return;
         }
 
         e.Handled = true;
-        OnEditStepRequested(step);
+        OnEditStepRequested(row.Step);
     }
 
     /// <summary>Remembers where a press landed, so a plain click never turns into a drag.</summary>
     private void OnStepPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        _pressedStep = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+        // A press on a button inside a row belongs to that button: folding a block open, or
+        // asking for a step inside one, must not turn into picking the row up as a drag.
+        _pressedRow = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && !IsOnButton(e.Source)
             ? RowUnder(e.Source)
             : null;
         _dragOrigin = e.GetPosition(this);
@@ -891,7 +919,7 @@ public partial class MacroEditorWindow : Window
     /// <summary>Starts the drag once the pointer has moved far enough, then tracks the drop row.</summary>
     private void OnStepPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (_pressedStep is null)
+        if (_pressedRow is null)
         {
             return;
         }
@@ -913,9 +941,9 @@ public partial class MacroEditorWindow : Window
             }
 
             // Dragging a row that is already part of a multiple selection moves them all.
-            if (_stepList is { } list && !_viewModel.SelectedSteps.Contains(_pressedStep))
+            if (_stepList is { } list && !_viewModel.SelectedSteps.Contains(_pressedRow.Step))
             {
-                list.SelectedItem = _pressedStep;
+                list.SelectedItem = _pressedRow;
             }
 
             _draggingSteps = true;
@@ -946,7 +974,7 @@ public partial class MacroEditorWindow : Window
 
     private void EndStepDrag()
     {
-        _pressedStep = null;
+        _pressedRow = null;
         _draggingSteps = false;
         _dropSlot = -1;
 
@@ -965,18 +993,12 @@ public partial class MacroEditorWindow : Window
         }
 
         var point = e.GetPosition(_stepList);
-        var slot = _viewModel.Steps.Count;
+        var slot = _viewModel.Rows.Count;
         var markerY = _stepList.Bounds.Height;
 
         foreach (var item in _stepList.GetVisualDescendants().OfType<ListBoxItem>())
         {
-            if (item.DataContext is not MacroStep step)
-            {
-                continue;
-            }
-
-            var index = _viewModel.Steps.IndexOf(step);
-            if (index < 0)
+            if (item.DataContext is not StepRow { RowIndex: >= 0 } row)
             {
                 continue;
             }
@@ -987,12 +1009,12 @@ public partial class MacroEditorWindow : Window
             // Past the middle of a row means the block goes after it, not before.
             if (point.Y < top + ((bottom - top) / 2))
             {
-                slot = index;
+                slot = row.RowIndex;
                 markerY = top;
                 break;
             }
 
-            slot = index + 1;
+            slot = row.RowIndex + 1;
             markerY = bottom;
         }
 
@@ -1014,9 +1036,13 @@ public partial class MacroEditorWindow : Window
         _dropMarker.IsVisible = true;
     }
 
-    /// <summary>The step row a pointer event happened on, or <c>null</c> when it missed them all.</summary>
-    private static MacroStep? RowUnder(object? source)
+    /// <summary>The row a pointer event happened on, or <c>null</c> when it missed them all.</summary>
+    private static StepRow? RowUnder(object? source)
         => source is Visual visual
-            ? visual.FindAncestorOfType<ListBoxItem>(true)?.DataContext as MacroStep
+            ? visual.FindAncestorOfType<ListBoxItem>(true)?.DataContext as StepRow
             : null;
+
+    /// <summary>True when the event landed on a button, which handles its own presses.</summary>
+    private static bool IsOnButton(object? source)
+        => source is Visual visual && visual.FindAncestorOfType<Button>(true) is not null;
 }

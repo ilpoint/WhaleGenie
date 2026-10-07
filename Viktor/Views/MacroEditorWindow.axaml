@@ -95,11 +95,6 @@
             <Setter Property="FontSize" Value="11.5" />
         </Style>
 
-        <!-- JSON tree: keep every branch open so the whole macro is readable at once. -->
-        <Style Selector="TreeViewItem">
-            <Setter Property="IsExpanded" Value="True" />
-        </Style>
-
         <!-- Step list: rows keep the card look and gain a selection highlight. -->
         <Style Selector="ListBox.StepList">
             <Setter Property="Background" Value="Transparent" />
@@ -130,6 +125,55 @@
         <Style Selector="ListBox.StepList ListBoxItem:selected Border.StepRow">
             <Setter Property="Background" Value="#4A2A20" />
             <Setter Property="BorderBrush" Value="#FF6A35" />
+        </Style>
+
+        <!-- The two ends of a block: the line its steps start under, and the line that closes it.
+             They are what makes "inside the loop" and "after the loop" tell themselves apart. -->
+        <Style Selector="Border.StepHead">
+            <Setter Property="Background" Value="#262626" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="8,2" />
+        </Style>
+        <Style Selector="TextBlock.StepHeadLabel">
+            <Setter Property="Foreground" Value="#B0B0B0" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.StepFoot">
+            <Setter Property="BorderBrush" Value="#4A4A4A" />
+            <Setter Property="BorderThickness" Value="2,0,0,0" />
+            <Setter Property="Padding" Value="8,1" />
+        </Style>
+        <Style Selector="TextBlock.StepFootLabel">
+            <Setter Property="Foreground" Value="#8A8A8A" />
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- Fold arrow on a block, and the "add a step in here" button on a block's title. -->
+        <Style Selector="Button.RowButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.RowButton Path">
+            <Setter Property="Stroke" Value="#B0B0B0" />
+            <Setter Property="StrokeThickness" Value="1.6" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+            <Setter Property="StrokeJoin" Value="Round" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="Width" Value="10" />
+            <Setter Property="Height" Value="10" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.RowButton /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.RowButton:pointerover Path">
+            <Setter Property="Stroke" Value="#FF8A5C" />
         </Style>
 
         <!-- Record toggle, idle: dark plate with a red dot. -->
@@ -792,37 +836,75 @@
                    </StackPanel>
 
                    <ListBox Grid.Row="2" Name="StepList" Classes="StepList"
-                            ItemsSource="{Binding Steps}" SelectionMode="Multiple"
+                            ItemsSource="{Binding Rows}" SelectionMode="Multiple"
                             IsVisible="{Binding HasSteps}"
                             DoubleTapped="OnStepDoubleTapped">
                        <ListBox.ItemTemplate>
-                           <DataTemplate x:DataType="models:MacroStep">
-                              <Border Classes="StepRow" Opacity="{Binding RowOpacity}">
-                                  <StackPanel Orientation="Horizontal" Spacing="10">
-                                      <Path Width="16" Height="16" Stretch="Uniform" Stroke="#E4E4E4"
-                                            StrokeThickness="1.5" Data="{Binding Icon}" VerticalAlignment="Center" />
-                                      <StackPanel VerticalAlignment="Center">
-                                          <StackPanel Orientation="Horizontal" Spacing="6">
-                                              <TextBlock Text="{Binding DisplayName}" FontSize="12.5"
-                                                         Foreground="#E4E4E4" />
-                                              <Border Background="#4A3A1E" CornerRadius="3" Padding="5,0"
-                                                      VerticalAlignment="Center"
-                                                      IsVisible="{Binding IsSkipped}">
-                                                  <TextBlock Text="{Binding SkipLabel}" FontSize="10.5"
-                                                             Foreground="#D8B36A" />
-                                              </Border>
+                           <DataTemplate x:DataType="models:StepRow">
+                              <Panel>
+                                  <!-- A step, indented by how deep it sits. A block carries a
+                                       fold arrow, so what is inside it can be put away. -->
+                                  <Border Classes="StepRow" Opacity="{Binding RowOpacity}"
+                                          Margin="{Binding Indent}"
+                                          IsVisible="{Binding IsStep}">
+                                      <StackPanel Orientation="Horizontal" Spacing="6">
+                                          <Button Classes="RowButton" IsVisible="{Binding CanFold}"
+                                                  ToolTip.Tip="{Binding FoldHint}"
+                                                  Command="{Binding $parent[ItemsControl].((vm:MacroEditorViewModel)DataContext).ToggleFoldCommand}"
+                                                  CommandParameter="{Binding}">
+                                              <Path Data="{Binding FoldIcon}" />
+                                          </Button>
+                                          <Path Width="16" Height="16" Stretch="Uniform" Stroke="#E4E4E4"
+                                                StrokeThickness="1.5" Data="{Binding Icon}"
+                                                VerticalAlignment="Center" Margin="0,0,4,0" />
+                                          <StackPanel VerticalAlignment="Center">
+                                              <StackPanel Orientation="Horizontal" Spacing="6">
+                                                  <TextBlock Text="{Binding DisplayName}" FontSize="12.5"
+                                                             Foreground="#E4E4E4" />
+                                                  <Border Background="#4A3A1E" CornerRadius="3" Padding="5,0"
+                                                          VerticalAlignment="Center"
+                                                          IsVisible="{Binding IsSkipped}">
+                                                      <TextBlock Text="{Binding SkipLabel}" FontSize="10.5"
+                                                                 Foreground="#D8B36A" />
+                                                  </Border>
+                                              </StackPanel>
+                                              <TextBlock Text="{Binding Detail}" Classes="Muted"
+                                                         TextWrapping="Wrap" />
+                                              <TextBlock Text="{Binding Comment}" FontSize="11"
+                                                         Foreground="#C8A165" TextWrapping="Wrap"
+                                                         IsVisible="{Binding HasComment}" />
+                                              <TextBlock Text="{Binding MetaSummary}" FontSize="10.5"
+                                                         Foreground="#8FB3D9" TextWrapping="Wrap"
+                                                         IsVisible="{Binding HasMetaSummary}" />
                                           </StackPanel>
-                                          <TextBlock Text="{Binding Detail}" Classes="Muted"
-                                                     TextWrapping="Wrap" />
-                                          <TextBlock Text="{Binding Comment}" FontSize="11"
-                                                     Foreground="#C8A165" TextWrapping="Wrap"
-                                                     IsVisible="{Binding HasComment}" />
-                                          <TextBlock Text="{Binding MetaSummary}" FontSize="10.5"
-                                                     Foreground="#8FB3D9" TextWrapping="Wrap"
-                                                     IsVisible="{Binding HasMetaSummary}" />
                                       </StackPanel>
-                                  </StackPanel>
-                              </Border>
+                                  </Border>
+
+                                  <!-- The title of one of a block's lists, with a button that adds
+                                       a step at the end of it. -->
+                                  <Border Classes="StepHead" Margin="{Binding Indent}"
+                                          IsVisible="{Binding IsHead}">
+                                      <StackPanel Orientation="Horizontal" Spacing="8">
+                                          <TextBlock Classes="StepHeadLabel"
+                                                     Text="{Binding HeadLabel}" />
+                                          <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                                     Text="{Binding HeadCount}" />
+                                          <Button Classes="RowButton"
+                                                  ToolTip.Tip="{Binding AddHint}"
+                                                  Command="{Binding $parent[ItemsControl].((vm:MacroEditorViewModel)DataContext).AddInsideCommand}"
+                                                  CommandParameter="{Binding}">
+                                              <Path Data="M12,5 L12,19 M5,12 L19,12" />
+                                          </Button>
+                                      </StackPanel>
+                                  </Border>
+
+                                  <!-- The line that closes a block, so "inside the block" and "after
+                                       the block" never read as the same place. -->
+                                  <Border Classes="StepFoot" Margin="{Binding Indent}"
+                                          IsVisible="{Binding IsFoot}">
+                                      <TextBlock Classes="StepFootLabel" Text="{Binding FootLabel}" />
+                                  </Border>
+                              </Panel>
                            </DataTemplate>
                        </ListBox.ItemTemplate>
                    </ListBox>

@@ -115,6 +115,23 @@ public class MacroStep : INotifyPropertyChanged
 
     public List<StepParameter> Parameters { get; init; } = [];
 
+    /// <summary>
+    /// True while the editor shows the steps written inside this one. It is editor state rather
+    /// than part of the macro, so it is never written to the file: a macro saved with a block
+    /// folded away is the same macro as one saved with it open.
+    /// </summary>
+    public bool IsExpanded { get; set; } = true;
+
+    /// <summary>The parameters of this step that hold steps, in the order they were written.</summary>
+    public IEnumerable<StepParameter> StepLists
+        => Parameters.Where(parameter => parameter.Kind == ActionParameterKind.Steps);
+
+    /// <summary>How many steps are written inside this one, all of its lists together.</summary>
+    public int ChildCount => StepLists.Sum(list => list.Steps.Count);
+
+    /// <summary>True when there are steps inside this one, so it can be folded open and shut.</summary>
+    public bool HasChildren => ChildCount > 0;
+
     private StepMeta _meta = StepMeta.Empty;
 
     /// <summary>
@@ -258,7 +275,7 @@ public class MacroStep : INotifyPropertyChanged
     public Geometry? Icon => Definition?.Icon;
 
     /// <summary>Localized label of a parameter, falling back to its raw name.</summary>
-    private string ParameterLabel(StepParameter parameter)
+    public string ParameterLabel(StepParameter parameter)
         => ParameterDefinition(parameter)?.LocalLabel ?? parameter.Name;
 
     /// <summary>Choice values are shown with their display text, everything else as typed.</summary>
