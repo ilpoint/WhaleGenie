@@ -638,6 +638,10 @@ public sealed class MacroRunner
                 WriteTextFile(step, depth);
                 return Signal.Normal;
 
+            case "file.appendLog":
+                AppendLog(step, depth);
+                return Signal.Normal;
+
             case "file.exists":
                 FileExists(step, depth);
                 return Signal.Normal;
@@ -2510,6 +2514,25 @@ public sealed class MacroRunner
 
         _devices.Files.WriteText(path, text, append, EncodingOf(step));
         Log(LogLevel.Info, depth, step.Type, append ? "Run.AppendedFile" : "Run.WroteFile", path, text.Length);
+    }
+
+    /// <summary>
+    /// Adds one line to a log file. It is a step of its own rather than write-text-in-append-mode
+    /// because keeping a log is a common enough thing to want: the line break and the time in front
+    /// of it are the two things every caller would otherwise have to remember to add.
+    /// </summary>
+    private void AppendLog(ExecutableStep step, int depth)
+    {
+        var path = PathOf(step);
+        var line = Read(step.Text("text")).AsText();
+        if (Flag(step, "timestamp", true))
+        {
+            line = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+                + " " + line;
+        }
+
+        _devices.Files.WriteText(path, line + Environment.NewLine, append: true, EncodingOf(step));
+        Log(LogLevel.Info, depth, step.Type, "Run.AppendedFile", path, line.Length);
     }
 
     private void FileExists(ExecutableStep step, int depth)

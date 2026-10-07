@@ -506,6 +506,24 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "file.appendLog",
+            Category = ActionCategory.File,
+            DisplayName = "Append to Log",
+            Description = "Add one line to a log file, creating the file when it is not there.",
+            Parameters =
+            [
+                FilePath("path", "File", "log.txt", "The log file the line is added to."),
+                Text("text", "Line", "Finished the run",
+                    "What the line says. Variables are filled in the way they are everywhere else. "
+                    + "The line ends with a line break, so the next one starts on a new line.",
+                    acceptsFormula: true),
+                Toggle("timestamp", "Put the time first", true,
+                    "Write the date and time in front of the line. A file of lines without them is "
+                    + "hard to read after the fact."),
+            ],
+        },
+        new()
+        {
             Key = "file.exists",
             Category = ActionCategory.File,
             DisplayName = "File Exists",

@@ -1632,6 +1632,36 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_log_line_is_added_to_the_end_of_the_file()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["log.txt"] = "first\n";
+        await RunAsync(
+        [
+            Step("file.appendLog", Param("path", "log.txt"), Param("text", "second"),
+                Param("timestamp", "false")),
+        ], devices);
+
+        // The line carries its own line break, which is what keeps the next one on its own line.
+        Assert.Equal("first\nsecond" + Environment.NewLine, devices.Files["log.txt"]);
+    }
+
+    [Fact]
+    public async Task A_log_line_can_carry_the_time_it_was_written()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("file.appendLog", Param("path", "log.txt"), Param("text", "done"),
+                Param("timestamp", "true")),
+        ], devices);
+
+        var text = devices.Files["log.txt"];
+        Assert.EndsWith(" done" + Environment.NewLine, text);
+        Assert.Matches(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} done", text);
+    }
+
+    [Fact]
     public async Task Checking_for_a_file_leaves_true_or_false()
     {
         var devices = new FakeDeviceLayer { PathExists = false };

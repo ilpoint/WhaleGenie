@@ -354,6 +354,15 @@ internal static class ActionStrings
         ["file.writeText.encoding.option.gbk"] = EncodingGbk,
         ["file.writeText.encoding.option.utf16"] = EncodingUtf16,
 
+        ["file.appendLog.name"] = "追加日志",
+        ["file.appendLog.desc"] = "往日志文件的末尾加一行，文件不在就新建。",
+        ["file.appendLog.path.label"] = "日志文件",
+        ["file.appendLog.path.hint"] = "要写入的日志文件。只写文件名时会相对宏文件夹解析。",
+        ["file.appendLog.text.label"] = "这一行",
+        ["file.appendLog.text.hint"] = "这一行写什么。变量会照常填进去，末尾自动换行，下一条从新的一行开始。",
+        ["file.appendLog.timestamp.label"] = "前面写上时间",
+        ["file.appendLog.timestamp.hint"] = "在每行前面写上日期和时间，事后翻日志才看得出先后。",
+
         ["file.exists.name"] = "文件是否存在",
         ["file.exists.desc"] = "检查文件或文件夹是否存在。",
         ["file.exists.path.label"] = "文件",
