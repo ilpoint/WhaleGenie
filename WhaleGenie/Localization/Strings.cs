@@ -521,6 +521,16 @@ public sealed class Strings : INotifyPropertyChanged
             + "--api.auto-attach-local-client whenever it starts up, so the first driver-level move "
             + "of a macro is not the one that waits for it. A server that was already running is "
             + "left alone.",
+        ["Settings.Admin"] = "Administrator",
+        ["Settings.AdminYes"] = "Running as administrator.",
+        ["Settings.AdminNo"] = "Not running as administrator.",
+        ["Settings.AdminHint"] =
+            "WhaleGenie reads its hotkeys through a system hook, and Windows does not let it see the "
+            + "keys that go to a window of a higher privilege — Task Manager, or anything started "
+            + "with \"run as administrator\" — nor put ordinary input into one. Sending input is not "
+            + "the problem: driver-level input reaches those windows, because the machine sees it as "
+            + "real hardware. Starting a macro from a hotkey in front of them is.",
+        ["Settings.AdminRestart"] = "Restart as administrator",
         ["Settings.Note"] = "Action names and parameter text use the selected language when a window is opened.",
         ["Settings.Close"] = "Close",
 
@@ -1235,6 +1245,15 @@ public sealed class Strings : INotifyPropertyChanged
             "VIIPER 也是别人的项目：压缩包自己下载、自己解压，解到哪都行。选一次 viiper.exe，以后"
             + "鲸灵一启动就带上 --api.auto-attach-local-client 把它跑起来，宏里第一次用驱动级输入"
             + "才不用在那儿等它；本来就在运行的那个不动它。",
+        ["Settings.Admin"] = "管理员权限",
+        ["Settings.AdminYes"] = "正以管理员身份运行。",
+        ["Settings.AdminNo"] = "没有以管理员身份运行。",
+        ["Settings.AdminHint"] =
+            "热键是靠系统钩子读的，前台窗口属于更高权限的程序时（任务管理器，或者任何「以管理员"
+            + "身份运行」起来的程序），Windows 不让鲸灵看到那里的按键，普通输入也送不进去。送输入"
+            + "不是问题——驱动级输入能进那些窗口，因为系统当它是真实硬件；问题是那些窗口在前面时"
+            + "热键启不了宏。",
+        ["Settings.AdminRestart"] = "以管理员身份重新启动",
         ["Settings.Note"] = "动作名称和参数文本会在窗口打开时按所选语言显示。",
         ["Settings.Close"] = "关闭",
 

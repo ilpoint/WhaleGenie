@@ -135,6 +135,20 @@
                 <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
                            Text="{Binding [Settings.ServerHint], Source={x:Static loc:Strings.Current}}" />
 
+                <TextBlock Classes="FieldLabel" Margin="2,18,0,6"
+                           Text="{Binding [Settings.Admin], Source={x:Static loc:Strings.Current}}" />
+                <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap" Foreground="#E0A84A"
+                           Text="{Binding AdminStatus}" IsVisible="{Binding !IsElevated}" />
+                <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap" Foreground="#7BC17B"
+                           Text="{Binding AdminStatus}" IsVisible="{Binding IsElevated}" />
+                <Button Classes="FlatButton" Name="AdminRestartButton" Height="32"
+                        HorizontalAlignment="Left" Margin="2,10,0,0"
+                        IsVisible="{Binding !IsElevated}"
+                        Click="OnRestartElevatedClicked"
+                        Content="{Binding [Settings.AdminRestart], Source={x:Static loc:Strings.Current}}" />
+                <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
+                           Text="{Binding [Settings.AdminHint], Source={x:Static loc:Strings.Current}}" />
+
                 <TextBlock Classes="Muted" Margin="2,16,0,0" TextWrapping="Wrap"
                            Text="{Binding [Settings.Note], Source={x:Static loc:Strings.Current}}" />
             </StackPanel>

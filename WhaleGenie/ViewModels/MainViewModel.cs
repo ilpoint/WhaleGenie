@@ -1,9 +1,9 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Security.Principal;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using WhaleGenie.Execution;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.ViewModels;
@@ -61,30 +61,9 @@ public partial class MainViewModel : ViewModelBase
     /// process really is elevated: a badge that is always there says nothing, and it made the
     /// window claim rights the program did not have.
     /// </summary>
-    private static string BaseTitle => IsElevated
+    private static string BaseTitle => ProcessRights.IsElevated
         ? Localization.Strings.Get("Main.Title") + Localization.Strings.Get("Main.AdminBadge")
         : Localization.Strings.Get("Main.Title");
-
-    /// <summary>
-    /// Whether this process was started with an administrator token. Read once, because a
-    /// running process cannot gain or lose that token along the way.
-    /// </summary>
-    private static readonly bool IsElevated = DetectElevation();
-
-    /// <summary>Answers <see cref="IsElevated"/>, and never fails the launch over it.</summary>
-    private static bool DetectElevation()
-    {
-        try
-        {
-            using var identity = WindowsIdentity.GetCurrent();
-            return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
-        }
-        catch (Exception)
-        {
-            // No answer means no badge, which is the safe way round.
-            return false;
-        }
-    }
 
     /// <summary>Folder holding the open package, used by "open location".</summary>
     public string? CurrentFolder => CurrentPath is null

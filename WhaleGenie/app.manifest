@@ -5,6 +5,19 @@
        For more details visit https://learn.microsoft.com/en-us/windows/win32/sbscs/application-manifests -->
   <assemblyIdentity version="1.0.0.0" name="WhaleGenie.Desktop"/>
 
+  <!--
+    Deliberately asInvoker: most macros never touch a window of a higher privilege, and asking
+    everybody for an administrator token at every launch would be a price paid by all of them. The
+    settings window tells whoever does need it, and offers to restart with that token.
+  -->
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
+    <security>
+      <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
+        <requestedExecutionLevel level="asInvoker" uiAccess="false" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
     <application>
       <!-- A list of the Windows versions that this application has been tested on

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices.Platform;
+using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.ViewModels;
@@ -17,19 +18,22 @@ public sealed record LanguageOption(Language Language, string Display)
 public partial class SettingsViewModel : ViewModelBase
 {
     public SettingsViewModel()
-        : this(DriverInput.Check, DriverInput.IsServerAnswering)
+        : this(DriverInput.Check, DriverInput.IsServerAnswering, ProcessRights.IsElevated)
     {
     }
 
     /// <summary>
     /// The same, with the answers about driver-level input handed in, so a check can describe a
-    /// machine that is not this one instead of asking the registry and the network.
+    /// machine that is not this one instead of asking the registry and the network — and with what
+    /// rights the program has, which a check cannot give itself either.
     /// </summary>
-    internal SettingsViewModel(Func<DriverInputState> driverInput, Func<bool> serverAnswering)
+    internal SettingsViewModel(Func<DriverInputState> driverInput, Func<bool> serverAnswering,
+        bool? elevated = null)
     {
         SelectedLanguage = Languages.First(option => option.Language == Strings.Current.Language);
         FailureScreenshot = LocalSettings.LoadFailureScreenshot();
         ViiperPath = LocalSettings.LoadViiperPath();
+        IsElevated = elevated ?? ProcessRights.IsElevated;
 
         DriverState = driverInput();
         DriverReady = DriverState == DriverInputState.Ready;
@@ -89,6 +93,16 @@ public partial class SettingsViewModel : ViewModelBase
     public partial string ViiperPath { get; set; }
 
     public bool HasViiperPath => ViiperPath.Length > 0;
+
+    /// <summary>
+    /// Whether this copy of the program was started as an administrator, which decides whether a
+    /// hotkey still reaches it while a window of a higher privilege is in front.
+    /// </summary>
+    public bool IsElevated { get; }
+
+    /// <summary>The line above the button that restarts the program with that token.</summary>
+    public string AdminStatus
+        => Strings.Get(IsElevated ? "Settings.AdminYes" : "Settings.AdminNo");
 
     partial void OnSelectedLanguageChanged(LanguageOption value)
         => Strings.Current.Language = value.Language;

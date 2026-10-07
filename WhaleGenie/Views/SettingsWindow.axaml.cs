@@ -1,7 +1,10 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.ViewModels;
@@ -84,6 +87,31 @@ public partial class SettingsWindow : Window
         if (DataContext is SettingsViewModel viewModel)
         {
             viewModel.ViiperPath = path;
+        }
+    }
+
+    /// <summary>
+    /// Starts a second copy of WhaleGenie with the UAC prompt in front of it, and closes this one.
+    ///
+    /// This is the only way to get the rights: a process cannot be given an administrator token
+    /// after it has started, and hotkeys are read through a system hook that Windows does not let a
+    /// lesser process put in front of a higher-privileged window. Two copies at once would both be
+    /// listening for those hotkeys, so one of them has to go — this one.
+    /// </summary>
+    private void OnRestartElevatedClicked(object? sender, RoutedEventArgs e)
+    {
+        // The server goes first: the copy that takes over starts its own, and a server left over
+        // from this one would be closed on the way out, right under the new copy.
+        ViiperServer.Stop();
+
+        if (!ProcessRights.RestartElevated())
+        {
+            return;
+        }
+
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            desktop.Shutdown();
         }
     }
 
