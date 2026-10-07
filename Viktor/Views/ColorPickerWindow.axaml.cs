@@ -76,7 +76,7 @@ public partial class ColorPickerWindow : Window
 
         try
         {
-            return await new ColorPickerWindow().ShowDialog<PixelColor?>(owner);
+            return await new ColorPickerWindow().ShowDialogOver<PixelColor?>(owner);
         }
         finally
         {

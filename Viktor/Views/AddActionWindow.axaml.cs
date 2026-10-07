@@ -101,7 +101,7 @@ public partial class AddActionWindow : Window
         var variables = (DataContext as AddActionViewModel)?.CollectVariables();
         var assets = (DataContext as AddActionViewModel)?.AssetFolder;
         var dialog = new AddActionWindow(null, list.Catalog, variables, null, null, assets);
-        var step = await dialog.ShowDialog<MacroStep?>(this);
+        var step = await dialog.ShowDialogOver<MacroStep?>(this);
 
         if (step is not null)
         {
@@ -115,7 +115,7 @@ public partial class AddActionWindow : Window
         var variables = (DataContext as AddActionViewModel)?.CollectVariables();
         var assets = (DataContext as AddActionViewModel)?.AssetFolder;
         var dialog = new AddActionWindow(step, null, variables, null, null, assets);
-        var edited = await dialog.ShowDialog<MacroStep?>(this);
+        var edited = await dialog.ShowDialogOver<MacroStep?>(this);
 
         if (edited is null || DataContext is not AddActionViewModel viewModel)
         {

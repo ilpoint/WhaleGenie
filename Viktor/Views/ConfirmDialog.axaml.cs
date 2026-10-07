@@ -44,7 +44,7 @@ public partial class ConfirmDialog : Window
             CancelLabel = cancelLabel,
         });
 
-        return dialog.ShowDialog<ConfirmChoice>(owner);
+        return dialog.ShowDialogOver<ConfirmChoice>(owner);
     }
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)

@@ -50,7 +50,7 @@ public partial class WindowPickerWindow : Window
 
     /// <summary>Shows the picker over <paramref name="owner"/> and reports the title that was picked.</summary>
     public static Task<string?> PickAsync(Window owner)
-        => new WindowPickerWindow().ShowDialog<string?>(owner);
+        => new WindowPickerWindow().ShowDialogOver<string?>(owner);
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {

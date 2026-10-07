@@ -233,7 +233,7 @@ public partial class MainWindow : Window
     {
         var macros = (DataContext as MainViewModel)?.Macros;
         var window = new VariableCenterWindow(macros);
-        await window.ShowDialog(this);
+        await window.ShowDialogOver(this);
     }
 
     // -------------------------------------------------------------- macro package
@@ -445,7 +445,7 @@ public partial class MainWindow : Window
     private async void OnOpenSettings(object? sender, RoutedEventArgs e)
     {
         var dialog = new SettingsWindow();
-        await dialog.ShowDialog(this);
+        await dialog.ShowDialogOver(this);
     }
 
     /// <summary>Opens the macro editor, either for a new macro or for an existing one.</summary>
@@ -458,7 +458,7 @@ public partial class MainWindow : Window
 
         // The package path is what a picture taken from the screen is stored beside.
         var editor = new MacroEditorWindow(existing, [.. viewModel.Macros], viewModel.CurrentPath);
-        var macro = await editor.ShowDialog<MacroItem?>(this);
+        var macro = await editor.ShowDialogOver<MacroItem?>(this);
 
         if (macro is null)
         {

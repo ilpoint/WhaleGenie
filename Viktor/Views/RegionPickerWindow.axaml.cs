@@ -79,7 +79,7 @@ public partial class RegionPickerWindow : Window
 
         try
         {
-            return await new RegionPickerWindow().ShowDialog<Region?>(owner);
+            return await new RegionPickerWindow().ShowDialogOver<Region?>(owner);
         }
         finally
         {

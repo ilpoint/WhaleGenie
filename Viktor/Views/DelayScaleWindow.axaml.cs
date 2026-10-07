@@ -40,7 +40,7 @@ public partial class DelayScaleWindow : Window
     /// dialog was dismissed without a choice.
     /// </summary>
     public static Task<double?> ShowFor(Window owner, double current, IReadOnlyList<MacroStep> steps)
-        => new DelayScaleWindow(new DelayScaleViewModel(current, steps)).ShowDialog<double?>(owner);
+        => new DelayScaleWindow(new DelayScaleViewModel(current, steps)).ShowDialogOver<double?>(owner);
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {

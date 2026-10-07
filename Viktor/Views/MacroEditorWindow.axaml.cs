@@ -582,7 +582,7 @@ public partial class MacroEditorWindow : Window
         // dialog is opened with the choices the place the step is going allows.
         var dialog = new AddActionWindow(null, _viewModel.InsertChoices, _viewModel.CollectVariables(),
             MacroNames(), null, _assetFolder);
-        var step = await dialog.ShowDialog<MacroStep?>(this);
+        var step = await dialog.ShowDialogOver<MacroStep?>(this);
 
         if (step is not null)
         {
@@ -595,7 +595,7 @@ public partial class MacroEditorWindow : Window
     {
         var dialog = new AddActionWindow(null, null, _viewModel.CollectVariables(), MacroNames(),
             "control.runMacro", _assetFolder);
-        var step = await dialog.ShowDialog<MacroStep?>(this);
+        var step = await dialog.ShowDialogOver<MacroStep?>(this);
 
         if (step is not null)
         {
@@ -660,7 +660,7 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        new RunWindow(_viewModel.Steps, null, _viewModel.DelayScale, BuildLibrary()).Show(this);
+        new RunWindow(_viewModel.Steps, null, _viewModel.DelayScale, BuildLibrary()).ShowOver(this);
     }
 
     /// <summary>Opens the run-speed dialog and keeps whatever factor it was given.</summary>
@@ -677,7 +677,7 @@ public partial class MacroEditorWindow : Window
     {
         var dialog = new AddActionWindow(step, null, _viewModel.CollectVariables(), MacroNames(),
             null, _assetFolder);
-        var edited = await dialog.ShowDialog<MacroStep?>(this);
+        var edited = await dialog.ShowDialogOver<MacroStep?>(this);
 
         if (edited is not null)
         {

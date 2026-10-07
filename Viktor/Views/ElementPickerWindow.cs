@@ -112,7 +112,7 @@ public sealed class ElementPickerWindow : Window
 
         try
         {
-            return await new ElementPickerWindow(null).ShowDialog<Pick?>(owner);
+            return await new ElementPickerWindow(null).ShowDialogOver<Pick?>(owner);
         }
         finally
         {
