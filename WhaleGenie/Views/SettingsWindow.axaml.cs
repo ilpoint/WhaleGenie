@@ -101,8 +101,9 @@ public partial class SettingsWindow : Window
     private void OnRestartElevatedClicked(object? sender, RoutedEventArgs e)
     {
         // The server goes first: the copy that takes over starts its own, and a server left over
-        // from this one would be closed on the way out, right under the new copy.
-        ViiperServer.Stop();
+        // from this one would be closed on the way out, right under the new copy. It is a hand-over
+        // rather than the way out, because saying no at the UAC prompt leaves this copy running.
+        ViiperServer.HandOver();
 
         if (!ProcessRights.RestartElevated())
         {

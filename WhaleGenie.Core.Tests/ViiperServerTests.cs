@@ -21,6 +21,7 @@ public class ViiperServerTests : IDisposable
         ViiperServer.DriverInstalled = _driverInstalled;
         ViiperServer.Launch = _launch;
         ViiperServer.Executable = _executable;
+        ViiperServer.Leaving = false;
         GC.SuppressFinalize(this);
     }
 
@@ -182,6 +183,88 @@ public class ViiperServerTests : IDisposable
         // running the real server is a thing for a person to do, not for a check.
         Assert.Equal("--api.auto-attach-local-client", ViiperServer.AutoAttach);
         Assert.Contains("Arguments = AutoAttach", Source(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void On_the_way_out_no_server_is_started_any_more()
+    {
+        // The way out closes the server, and a start that lands after that is a server with nothing
+        // left to close it — which is how one ends up running behind the user's back. A step asking
+        // for driver-level input in the last moment finds nothing rather than starting one.
+        var launched = 0;
+        ViiperServer.Answering = () => false;
+        ViiperServer.Launch = _ =>
+        {
+            launched++;
+            return true;
+        };
+        ViiperServer.Executable = ProgramFile();
+
+        ViiperServer.Stop();
+
+        Assert.True(ViiperServer.Leaving);
+        Assert.False(ViiperServer.Ensure());
+        Assert.Equal(0, launched);
+    }
+
+    [Fact]
+    public async Task There_is_nothing_to_warm_up_on_the_way_out()
+    {
+        // The warm-up runs on a thread of its own and does not wait for anybody, so it can still be
+        // about to start when the program is closing. Starting there would be the very server the
+        // way out cannot close.
+        var launched = 0;
+        ViiperServer.Answering = () => false;
+        ViiperServer.DriverInstalled = () => true;
+        ViiperServer.Launch = _ =>
+        {
+            launched++;
+            return true;
+        };
+        ViiperServer.Executable = ProgramFile();
+
+        ViiperServer.Stop();
+        await ViiperServer.WarmUp();
+
+        Assert.Equal(0, launched);
+    }
+
+    [Fact]
+    public void A_hand_over_still_allows_the_next_start()
+    {
+        // The elevated copy takes over and this one closes the server it started, so the new copy's
+        // own server is not closed right after it starts. But the user can say no at the prompt and
+        // this copy is then the one still running, so this is not the way out.
+        var launched = 0;
+        ViiperServer.Answering = () => false;
+        ViiperServer.Launch = _ =>
+        {
+            launched++;
+            return true;
+        };
+        ViiperServer.Executable = ProgramFile();
+
+        ViiperServer.HandOver();
+
+        Assert.False(ViiperServer.Leaving);
+        Assert.True(ViiperServer.Ensure());
+        Assert.Equal(1, launched);
+    }
+
+    [Fact]
+    public void The_server_is_put_where_windows_takes_it_down_with_us()
+    {
+        // Closing the server on the way out only covers ways out where this program runs to the end.
+        // A crash, or an end from the task manager, is a way out where nothing of ours runs at all,
+        // and the job object is what covers those: Windows closes the server with the last handle to
+        // the job, which is ours. Running that for real is a thing for a person to do, so it is read
+        // here, like the flag above.
+        var source = Source();
+
+        Assert.Contains("KeepWithUs(process);", source, StringComparison.Ordinal);
+        Assert.Contains("AssignProcessToJobObject(_job, process.Handle)", source,
+            StringComparison.Ordinal);
+        Assert.Contains("KillOnJobClose = 0x2000", source, StringComparison.Ordinal);
     }
 
     /// <summary>A file that is there, which is all the decision above asks of it.</summary>
