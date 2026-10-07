@@ -43,6 +43,29 @@ internal static class WindowsAudio
     }
 
     /// <summary>
+    /// Plays one of the machine's own event sounds. The sound is the one the user's sound scheme
+    /// gives that event, so it is what they expect to hear. A machine told to keep quiet plays
+    /// nothing and says nothing about it, but one that has no sound device at all says so here
+    /// rather than leaving a macro that meant to be heard quietly unheard.
+    /// </summary>
+    public static void Play(SoundKind kind)
+    {
+        var played = MessageBeep(kind switch
+        {
+            SoundKind.Information => Notice,
+            SoundKind.Warning => Caution,
+            SoundKind.Error => Stop,
+            SoundKind.Question => Ask,
+            _ => Any,
+        });
+
+        if (!played)
+        {
+            throw new DeviceActionException("Run.SoundRefused");
+        }
+    }
+
+    /// <summary>
     /// The speakers Windows is currently playing through. A machine with no sound card, or one whose
     /// audio service is not running, has none of these, and says so rather than reporting a volume
     /// of zero.
@@ -171,4 +194,18 @@ internal static class WindowsAudio
     private class MMDeviceEnumerator
     {
     }
+
+    /// <summary>
+    /// Plays the sound Windows keeps for one kind of event. The four kinds are the ones the sound
+    /// settings window lists by name; 0xFFFFFFFF asks for whatever the machine plays when nothing
+    /// more particular is wanted.
+    /// </summary>
+    [DllImport("user32.dll")]
+    private static extern bool MessageBeep(uint kind);
+
+    private const uint Any = 0xFFFFFFFF;
+    private const uint Stop = 0x00000010;
+    private const uint Ask = 0x00000020;
+    private const uint Caution = 0x00000030;
+    private const uint Notice = 0x00000040;
 }

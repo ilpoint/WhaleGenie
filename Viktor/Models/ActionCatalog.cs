@@ -1122,6 +1122,25 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "system.sound",
+            Category = ActionCategory.System,
+            DisplayName = "Sound",
+            Description = "Play one of the sounds this machine plays for an event.",
+            Parameters =
+            [
+                Choice("what", "Play which sound",
+                    ["default", "information", "warning", "error", "question"], "default",
+                    "Which of the machine's own sounds to play. A macro that has finished, or gone "
+                    + "wrong, can say so out loud without putting anything on the screen. Which "
+                    + "sound each of these is follows the machine's own sound settings: a machine "
+                    + "told to keep quiet plays nothing and the step is done either way, while one "
+                    + "with no sound device at all fails the step and says why.",
+                    labels:
+                    ["The default one", "Notice", "Warning", "Error", "Question"]),
+            ],
+        },
+        new()
+        {
             Key = "system.ime",
             Category = ActionCategory.System,
             DisplayName = "Input Method",

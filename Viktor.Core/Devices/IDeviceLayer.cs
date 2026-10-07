@@ -294,6 +294,13 @@ public interface ISystemDevice
     /// <summary>Switches the sound off, or back on.</summary>
     void SetMuted(bool muted);
 
+    /// <summary>
+    /// Plays one of the sounds this machine plays for an event, so a macro that has finished, or
+    /// gone wrong, can say so while nobody is looking at the screen. A machine told to keep quiet
+    /// plays nothing and is left alone; one with no sound device refuses, and the step says so.
+    /// </summary>
+    void PlaySound(SoundKind kind);
+
     /// <summary>The keyboard layout the focused window is typing in, said the way a person would.</summary>
     string InputMethod();
 
@@ -523,6 +530,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public bool IsMuted() => throw Missing("the sound card");
 
         public void SetMuted(bool muted) => throw Missing("the sound card");
+
+        public void PlaySound(SoundKind kind) => throw Missing("the sound card");
 
         public string InputMethod() => throw Missing("a keyboard layout");
 

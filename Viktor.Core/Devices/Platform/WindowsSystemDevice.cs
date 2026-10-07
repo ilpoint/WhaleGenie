@@ -132,6 +132,8 @@ public sealed class WindowsSystemDevice : ISystemDevice
 
     public void SetMuted(bool muted) => WindowsAudio.SetMuted(muted);
 
+    public void PlaySound(SoundKind kind) => WindowsAudio.Play(kind);
+
     public string InputMethod() => WindowsKeyboard.Current();
 
     public IReadOnlyList<string> InputMethods() => WindowsKeyboard.Installed();

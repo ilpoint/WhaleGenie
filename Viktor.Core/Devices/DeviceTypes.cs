@@ -286,6 +286,30 @@ public enum PowerAction
 }
 
 /// <summary>
+/// The sounds a machine plays for the things that happen to it, which are also what a macro that
+/// has finished — or gone wrong — can play to say so while nobody is looking at the screen.
+/// Which sound each of these is, and whether any of them is heard at all, is the machine's own
+/// sound scheme: Viktor asks for an event, not for a file.
+/// </summary>
+public enum SoundKind
+{
+    /// <summary>Whatever this machine plays when nothing more particular is asked for.</summary>
+    Default,
+
+    /// <summary>The sound for an ordinary notice.</summary>
+    Information,
+
+    /// <summary>The sound for something worth looking at.</summary>
+    Warning,
+
+    /// <summary>The sound for something that went wrong.</summary>
+    Error,
+
+    /// <summary>The sound for a question.</summary>
+    Question,
+}
+
+/// <summary>
 /// How a program is to be started: what to run, where, and how it should come up. Gathered into
 /// one thing rather than a row of loose arguments, because a call site should not have to be read
 /// twice to tell one switch from another.

@@ -786,6 +786,10 @@ public sealed class MacroRunner
                 Volume(step, depth);
                 return Signal.Normal;
 
+            case "system.sound":
+                PlaySound(step, depth);
+                return Signal.Normal;
+
             case "system.ime":
                 InputMethod(step, depth);
                 return Signal.Normal;
@@ -3429,6 +3433,28 @@ public sealed class MacroRunner
             Log(LogLevel.Info, depth, step.Type,
                 _devices.System.IsMuted() ? "Run.SoundOff" : "Run.SoundOn");
         }
+    }
+
+    /// <summary>
+    /// Plays one of the machine's own event sounds, so a macro that has finished, or gone wrong,
+    /// can say so where nobody is looking at the screen.
+    /// </summary>
+    private void PlaySound(ExecutableStep step, int depth)
+    {
+        var what = step.Text("what").Trim().ToLowerInvariant();
+        var kind = what switch
+        {
+            "" or "default" => SoundKind.Default,
+            "information" or "info" => SoundKind.Information,
+            "warning" => SoundKind.Warning,
+            "error" => SoundKind.Error,
+            "question" => SoundKind.Question,
+            _ => throw new StepFailure("Run.UnknownSound", what),
+        };
+
+        _devices.System.PlaySound(kind);
+        Log(LogLevel.Info, depth, step.Type, "Run.PlayedSound",
+            what.Length == 0 ? "default" : what);
     }
 
     /// <summary>

@@ -2798,6 +2798,33 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task The_sound_action_plays_the_sound_the_macro_picked()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("system.sound", Param("what", "error")),
+            Step("system.sound"),
+        ], devices);
+
+        // A step added and left alone plays the machine's own default sound rather than a particular
+        // one, so nothing in a macro shouts by accident.
+        Assert.Equal(["sound Error", "sound Default"], devices.Calls);
+    }
+
+    [Fact]
+    public async Task The_sound_action_refuses_a_name_it_does_not_know()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("system.sound", Param("what", "fanfare"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.UnknownSound", result.Key);
+        Assert.Empty(devices.Calls);
+    }
+
+    [Fact]
     public async Task The_input_method_action_reads_the_layout_the_focused_window_is_using()
     {
         var devices = new FakeDeviceLayer();
@@ -4162,6 +4189,8 @@ internal sealed class FakeDeviceLayer
         Note($"setMuted {muted}");
         SoundOff = muted;
     }
+
+    void ISystemDevice.PlaySound(SoundKind kind) => Note($"sound {kind}");
 
     /// <summary>The layouts the fake says are installed, and which of them is being typed in.</summary>
     public List<string> Layouts { get; } = ["\u4e2d\u6587(\u7b80\u4f53) - \u5fae\u8f6f\u62fc\u97f3", "\u82f1\u8bed(\u7f8e\u56fd)"];
