@@ -443,8 +443,11 @@
                 <StackPanel Orientation="Horizontal" Spacing="10">
                     <TextBlock FontSize="13" Foreground="White" VerticalAlignment="Center"
                                Text="{Binding [Main.AddMacro], Source={x:Static loc:Strings.Current}}" />
-                    <Border Background="White" CornerRadius="6" Padding="5,3" VerticalAlignment="Center">
-                        <TextBlock Text="+" Foreground="#2C2C2C" FontWeight="Bold" FontSize="14" />
+                    <!-- Same outlined badge as the run button beside it, so the two read as a pair. -->
+                    <Border BorderBrush="White" BorderThickness="2" CornerRadius="6" Padding="5,3"
+                            VerticalAlignment="Center">
+                        <PathIcon Width="14" Height="14" Foreground="White"
+                                  Data="M 6.5,1.5 H 7.5 V 6.5 H 12.5 V 7.5 H 7.5 V 12.5 H 6.5 V 7.5 H 1.5 V 6.5 H 6.5 Z" />
                     </Border>
                 </StackPanel>
             </Button>
