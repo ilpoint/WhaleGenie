@@ -442,6 +442,47 @@ public partial class MainWindow : Window
         OnOpenSettings(sender, e);
     }
 
+    /// <summary>Shows what the whole release list says, which is the change log.</summary>
+    private void OnWhatsNewClicked(object? sender, RoutedEventArgs e)
+        => OpenLink(ProjectLinks.Releases);
+
+    /// <summary>
+    /// Opens where a newer version would be. Viktor does not check by itself: asking GitHub on
+    /// every launch is a network call nobody asked for, and opening the page leaves the choice —
+    /// and the download — with the user.
+    /// </summary>
+    private void OnUpdatesClicked(object? sender, RoutedEventArgs e)
+        => OpenLink(ProjectLinks.LatestRelease);
+
+    private void OnFeedbackClicked(object? sender, RoutedEventArgs e)
+        => OpenLink(ProjectLinks.Feedback);
+
+    /// <summary>
+    /// Says what Viktor is and offers the project page, which is what both the "?" button and
+    /// "About" are for.
+    /// </summary>
+    private async void OnAboutClicked(object? sender, RoutedEventArgs e)
+    {
+        var choice = await ConfirmDialog.ShowAsync(this, Strings.Get("Main.Title"),
+            Strings.Format("Main.AboutText", Version()), Strings.Get("Main.AboutOpenPage"),
+            showCancel: false);
+
+        if (choice == ConfirmChoice.Primary)
+        {
+            OpenLink(ProjectLinks.Home);
+        }
+    }
+
+    /// <summary>The version the about box names, read from the program itself.</summary>
+    private static string Version()
+        => typeof(MainWindow).Assembly.GetName().Version is { } version
+            ? $"v{version.Major}.{version.Minor}.{version.Build}"
+            : Strings.Get("Main.AboutUnknownVersion");
+
+    /// <summary>Hands a web address to whatever the machine opens web addresses with.</summary>
+    private static void OpenLink(string url)
+        => Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+
     private async void OnOpenSettings(object? sender, RoutedEventArgs e)
     {
         var dialog = new SettingsWindow();

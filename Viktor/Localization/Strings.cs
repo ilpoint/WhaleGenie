@@ -93,6 +93,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.Feedback"] = "Feedback",
         ["Main.GetStarted"] = "Get Started",
         ["Main.About"] = "About",
+        ["Main.AboutText"] = "Turn keyboard, mouse, screen and window actions into step-by-step "
+            + "macros, and start them with a hotkey, a mouse button, the wheel, or the colour of a "
+            + "pixel on the screen.\n\nVersion {0}",
+        ["Main.AboutOpenPage"] = "Open the project page",
+        ["Main.AboutUnknownVersion"] = "unknown",
         ["Main.SearchPlaceholder"] = "Type to search..",
         ["Main.EmptyTitle"] = "No macros yet.",
         ["Main.NoMatch"] = "No macro matches what you typed.",
@@ -786,6 +791,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.Feedback"] = "反馈",
         ["Main.GetStarted"] = "快速上手",
         ["Main.About"] = "关于",
+        ["Main.AboutText"] = "把键盘、鼠标、屏幕和窗口上的操作编成一步步的宏，用热键、鼠标按键、"
+            + "滚轮，或屏幕上某个像素的颜色触发它。\n\n版本 {0}",
+        ["Main.AboutOpenPage"] = "打开项目主页",
+        ["Main.AboutUnknownVersion"] = "未知",
         ["Main.SearchPlaceholder"] = "输入以搜索..",
         ["Main.EmptyTitle"] = "还没有宏。",
         ["Main.NoMatch"] = "没有宏匹配你输入的内容。",
