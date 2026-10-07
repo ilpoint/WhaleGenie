@@ -1,0 +1,166 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Viiper.Client;
+using Viiper.Client.Devices.Keyboard;
+using Viiper.Client.Devices.Mouse;
+using Viiper.Client.Types;
+
+namespace Viktor.Core.Devices.Platform;
+
+/// <summary>
+/// The way driver-level reports reach the machine: one connection to the VIIPER server with a
+/// keyboard and a mouse on it, which the machine takes for hardware that is really there.
+/// </summary>
+/// <remarks>
+/// Kept behind an interface so the device's own bookkeeping — which keys are held, how far the
+/// pointer still has to go — can be checked without a server to send anything to.
+/// </remarks>
+public interface IViiperLink : IDisposable
+{
+    /// <summary>Where the pointer is on this machine right now.</summary>
+    ScreenPoint Cursor { get; }
+
+    /// <summary>
+    /// Sends one keyboard report: the whole picture of what is held down, not what changed,
+    /// because that is what a keyboard sends.
+    /// </summary>
+    void SendKeyboard(byte modifiers, IReadOnlyList<byte> keys);
+
+    /// <summary>
+    /// Sends one mouse report. The movement and the wheel are how far to go, not where to end up,
+    /// and the buttons stay as they are until the next report says otherwise.
+    /// </summary>
+    void SendMouse(byte buttons, short dx, short dy, short wheel, short pan);
+}
+
+/// <summary>
+/// A real connection to the VIIPER server running on this machine: a bus with a virtual keyboard
+/// and a virtual mouse on it. Neither the driver nor the server is Viktor's to install or start,
+/// so when one of them is missing the failure says which.
+/// </summary>
+public sealed class ViiperLink : IViiperLink
+{
+    /// <summary>What the server calls one keyboard and one mouse.</summary>
+    private const string Keyboard = "keyboard";
+
+    private const string Mouse = "mouse";
+
+    private readonly ViiperClient _client;
+    private readonly ViiperDevice _keyboard;
+    private readonly ViiperDevice _mouse;
+    private readonly uint _bus;
+    private readonly string _keyboardId;
+    private readonly string _mouseId;
+
+    private ViiperLink(ViiperClient client, uint bus, string keyboardId, ViiperDevice keyboard,
+        string mouseId, ViiperDevice mouse)
+    {
+        _client = client;
+        _bus = bus;
+        _keyboardId = keyboardId;
+        _keyboard = keyboard;
+        _mouseId = mouseId;
+        _mouse = mouse;
+    }
+
+    public ScreenPoint Cursor => WindowsScreenDevice.CursorPosition();
+
+    public void SendKeyboard(byte modifiers, IReadOnlyList<byte> keys)
+        => Wait(_keyboard.SendAsync(new KeyboardInput
+        {
+            Modifiers = modifiers,
+            Count = (byte)keys.Count,
+            Keys = [.. keys],
+        }));
+
+    public void SendMouse(byte buttons, short dx, short dy, short wheel, short pan)
+        => Wait(_mouse.SendAsync(new MouseInput
+        {
+            Buttons = buttons,
+            Dx = dx,
+            Dy = dy,
+            Wheel = wheel,
+            Pan = pan,
+        }));
+
+    /// <summary>
+    /// Opens a keyboard and a mouse on the server. The devices go on the bus that is already there
+    /// rather than a new one every time, so a machine that runs macros all day does not collect
+    /// buses it never removed.
+    /// </summary>
+    public static IViiperLink Open()
+    {
+        switch (DriverInput.Check())
+        {
+            case DriverInputState.DriverMissing:
+                throw new DeviceActionException("Run.NoDriver");
+            case DriverInputState.ServerMissing:
+                throw new DeviceActionException("Run.NoDriverServer");
+        }
+
+        var client = new ViiperClient(DriverInput.ServerHost, DriverInput.ServerPort);
+        try
+        {
+            var existing = Wait(client.BusListAsync()).Buses;
+            var bus = existing.Length > 0 ? existing[0] : Wait(client.BusCreateAsync(null)).BusID;
+
+            var keyboard = Wait(client.BusDeviceAddAsync(bus, new DeviceCreateRequest { Type = Keyboard }));
+            var mouse = Wait(client.BusDeviceAddAsync(bus, new DeviceCreateRequest { Type = Mouse }));
+
+            return new ViiperLink(
+                client,
+                bus,
+                keyboard.DevID,
+                Wait(client.ConnectDeviceAsync(bus, keyboard.DevID)),
+                mouse.DevID,
+                Wait(client.ConnectDeviceAsync(bus, mouse.DevID)));
+        }
+        catch (Exception failure) when (failure is not DeviceActionException)
+        {
+            client.Dispose();
+            throw new DeviceActionException("Run.NoDriverServer");
+        }
+    }
+
+    /// <summary>
+    /// Takes the two devices off the bus and closes the connection. The server would clear the
+    /// devices up on its own once the streams are closed, but saying so is quicker and leaves
+    /// nothing behind for the next run to wonder about.
+    /// </summary>
+    public void Dispose()
+    {
+        _keyboard.Dispose();
+        _mouse.Dispose();
+
+        Remove(_keyboardId);
+        Remove(_mouseId);
+
+        _client.Dispose();
+    }
+
+    /// <summary>
+    /// Takes one device off the bus. The server would clear the devices up on its own once their
+    /// streams are closed, so a removal that fails is left alone rather than raised.
+    /// </summary>
+    private void Remove(string device)
+    {
+        try
+        {
+            Wait(_client.BusDeviceRemoveAsync(_bus, device));
+        }
+        catch
+        {
+            // A device that cannot be taken off a server that is going away anyway is not worth
+            // failing a run over.
+        }
+    }
+
+    /// <summary>
+    /// Waits for one request. Everything here is a step in a macro, which is a sequential affair
+    /// that asks for results rather than for tasks, so the work is waited out rather than passed on.
+    /// </summary>
+    private static T Wait<T>(Task<T> request) => request.GetAwaiter().GetResult();
+
+    private static void Wait(Task request) => request.GetAwaiter().GetResult();
+}

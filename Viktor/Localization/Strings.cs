@@ -497,9 +497,10 @@ public sealed class Strings : INotifyPropertyChanged
             "The usbip-win2 driver is installed, but no VIIPER server is answering.",
         ["Settings.DriverInstall"] = "Install driver...",
         ["Settings.DriverHint"] =
-            "Driver-level input makes the target program see real hardware. It needs the usbip-win2 "
-            + "driver and a running VIIPER server; the driver is installed by hand, which wants "
-            + "administrator rights, briefly disconnects USB devices and may ask for a restart.",
+            "Driver-level input makes the target program see real hardware. Install the usbip-win2 "
+            + "driver by hand — administrator rights, a brief USB disconnect, possibly a restart — "
+            + "and start the VIIPER server with --api.auto-attach-local-client, or the virtual "
+            + "keyboard and mouse never reach this machine.",
         ["Settings.Note"] = "Action names and parameter text use the selected language when a window is opened.",
         ["Settings.Close"] = "Close",
 
@@ -619,6 +620,15 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.AskComment"] = "Your note on this step: {0}",
         ["Run.NoVariables"] = "This macro does not use any variables yet.",
         ["Run.NoDevice"] = "This machine cannot do that: {0} is not connected.",
+        ["Run.NoDriver"] =
+            "Driver-level input needs the usbip-win2 driver: the settings window has its download.",
+        ["Run.NoDriverServer"] =
+            "Driver-level input cannot reach the VIIPER server on this machine: start it first.",
+        ["Run.NoDriverAttached"] =
+            "Driver-level input is not reaching this machine: the virtual keyboard and mouse were "
+            + "not attached. Start the VIIPER server with --api.auto-attach-local-client.",
+        ["Run.NoDriverKey"] = "A virtual keyboard has no such key: {0}",
+        ["Run.NoDriverTyping"] = "Driver-level input cannot type this character: {0}",
         ["Run.UnknownKey"] = "Viktor does not recognise this key name: {0}",
         ["Run.EmptyChord"] = "The hotkey has no keys in it.",
         ["Run.PixelOutsideScreen"] = "That pixel is not on the screen: {0}",
@@ -1184,8 +1194,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.DriverServerMissing"] = "usbip-win2 驱动已安装，但没有 VIIPER 服务端在应答。",
         ["Settings.DriverInstall"] = "安装驱动…",
         ["Settings.DriverHint"] =
-            "驱动级输入让目标程序把输入当成真实硬件，需要 usbip-win2 驱动和正在运行的 VIIPER 服务端。"
-            + "驱动要手动安装：需要管理员权限，会短暂断开 USB 设备，可能要求重启。",
+            "驱动级输入让目标程序把输入当成真实硬件。usbip-win2 驱动要手动安装：需要管理员权限，"
+            + "会短暂断开 USB 设备，可能要求重启。VIIPER 服务端要带 --api.auto-attach-local-client "
+            + "启动，否则虚拟键盘和鼠标挂不到这台机器上。",
         ["Settings.Note"] = "动作名称和参数文本会在窗口打开时按所选语言显示。",
         ["Settings.Close"] = "关闭",
 
@@ -1302,6 +1313,13 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.AskComment"] = "步骤备注：{0}",
         ["Run.NoVariables"] = "这个宏还没有使用变量。",
         ["Run.NoDevice"] = "这台机器暂不支持该操作：{0} 尚未接入。",
+        ["Run.NoDriver"] = "驱动级输入需要先装好 usbip-win2 驱动，设置窗口里有下载入口。",
+        ["Run.NoDriverServer"] = "驱动级输入连不上本机的 VIIPER 服务端，请先启动它。",
+        ["Run.NoDriverAttached"] =
+            "驱动级输入没有送达这台机器：虚拟键盘和鼠标没有被挂到系统上。"
+            + "启动 VIIPER 服务端时要带 --api.auto-attach-local-client。",
+        ["Run.NoDriverKey"] = "虚拟键盘没有这个键：{0}",
+        ["Run.NoDriverTyping"] = "驱动级输入打不出这个字符：{0}",
         ["Run.UnknownKey"] = "无法识别这个键名：{0}",
         ["Run.EmptyChord"] = "这个组合键里没有任何按键。",
         ["Run.PixelOutsideScreen"] = "这个坐标不在屏幕上：{0}",

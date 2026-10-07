@@ -2477,7 +2477,8 @@ public static class ActionCatalog
             "How this step's input is sent. In front goes to whatever window has the focus. "
             + "Background posts the messages at the target window instead, which needs no focus "
             + "and leaves the on-screen pointer where it is. Driver sends it through a virtual "
-            + "USB device, which needs the VIIPER server running.",
+            + "USB device, which needs the usbip-win2 driver and the VIIPER server; the settings "
+            + "window shows whether this machine has them.",
             labels: ["In front", "Background (posted)", "Driver (virtual device)"],
             advanced: true),
         new()

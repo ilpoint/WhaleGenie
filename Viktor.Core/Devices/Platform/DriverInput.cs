@@ -34,8 +34,11 @@ public static class DriverInput
     /// </summary>
     private const string DriverService = @"SYSTEM\CurrentControlSet\Services\usbip2_ude";
 
-    /// <summary>The port the VIIPER server answers its clients on, on this machine only.</summary>
-    private const int ServerPort = 3242;
+    /// <summary>Where the VIIPER server answers: this machine, and only this machine.</summary>
+    public const string ServerHost = "127.0.0.1";
+
+    /// <summary>The port the VIIPER server answers its clients on.</summary>
+    public const int ServerPort = 3242;
 
     /// <summary>How long a probe waits for an answer before it counts as nothing being there.</summary>
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromMilliseconds(400);
@@ -80,7 +83,7 @@ public static class DriverInput
             try
             {
                 using var client = new TcpClient();
-                client.Connect(IPAddress.Loopback, ServerPort);
+                client.Connect(IPAddress.Parse(ServerHost), ServerPort);
                 return true;
             }
             catch

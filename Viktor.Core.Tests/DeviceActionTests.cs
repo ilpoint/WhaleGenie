@@ -234,6 +234,22 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Driver_input_goes_through_the_virtual_device_route()
+    {
+        var (result, devices, _) = await RunAsync(
+        [
+            Step("input.keyPress",
+                Param("key", "F5"), Param("holdMs", "10"), Param("inputMode", "driver")),
+        ]);
+
+        Assert.True(result.Succeeded);
+
+        var route = Assert.Single(devices.Routes);
+        Assert.Equal(InputDelivery.Driver, route.Delivery);
+        Assert.Equal(["keyPress F5 10"], devices.Calls);
+    }
+
+    [Fact]
     public async Task Background_input_is_posted_at_the_window_it_names()
     {
         var devices = new FakeDeviceLayer();

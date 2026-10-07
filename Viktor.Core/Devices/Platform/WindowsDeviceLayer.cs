@@ -67,11 +67,17 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
 
     /// <summary>
     /// Lets go of what was opened. The keyboard, mouse and screen hold nothing, so only the
-    /// two that do — UI Automation's connection and the loaded text recognition models — are
-    /// worth releasing, and only if they were ever opened.
+    /// few that do — UI Automation's connection, the loaded text recognition models, the programs
+    /// this run started, and the virtual keyboard and mouse a step may have put on the machine —
+    /// are worth releasing, and only if they were ever opened.
     /// </summary>
     public void Dispose()
     {
+        if (_inputs.IsValueCreated && _inputs.Value is IDisposable inputs)
+        {
+            inputs.Dispose();
+        }
+
         if (_ui.IsValueCreated)
         {
             _ui.Value.Dispose();

@@ -17,7 +17,7 @@ internal static class ActionStrings
     private const string InputModeHint =
         "这一步的输入怎么送出去。前台发给当前有焦点的窗口；后台把消息投给下面的目标窗口，"
         + "不用抢焦点，屏幕上的鼠标也不会真的移动；驱动级通过虚拟 USB 设备发送，"
-        + "需要先启动 VIIPER 服务端。";
+        + "需要 usbip-win2 驱动和运行中的 VIIPER 服务端，设置窗口里能看这两样在不在。";
 
     /// <summary>The matching hint for the window background input posts its messages at.</summary>
     private const string TargetWindowHint =
