@@ -360,10 +360,11 @@ public interface ISystemDevice
 public interface IBrowserDevice
 {
     /// <summary>
-    /// Whether the browsers this device drives are on the machine. They are fetched separately
-    /// from the program, so a machine that never ran a macro may not have them yet.
+    /// Whether this choice of browser can be started on this machine right now. The one Windows
+    /// already ships — Edge — can always be used; the engines Playwright downloads by itself have
+    /// to have been fetched first, so a machine that never ran a macro may not have them yet.
     /// </summary>
-    bool Ready { get; }
+    bool Ready(string browser);
 
     /// <summary>How the browsers are put on the machine, told to the user when they are missing.</summary>
     string InstallHint { get; }
@@ -537,7 +538,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
         : IInputDevice, IScreenDevice, IVisionDevice, IOcrDevice, IUiDevice, IFileDevice,
           IClipboardDevice, IProcessDevice, ISystemDevice, IWindowDevice, IBrowserDevice
     {
-        public bool Ready => throw Missing("a browser");
+        public bool Ready(string browser) => throw Missing("a browser");
 
         public string InstallHint => throw Missing("a browser");
 

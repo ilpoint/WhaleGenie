@@ -4286,12 +4286,12 @@ public sealed class MacroRunner
     private void BrowserOpen(ExecutableStep step, int depth)
     {
         var browser = _devices.Browser;
-        if (!browser.Ready)
+        var engine = step.Text("browser").Trim();
+        if (!browser.Ready(engine))
         {
             throw new StepFailure("Run.BrowserMissing", browser.InstallHint);
         }
 
-        var engine = step.Text("browser").Trim();
         var url = Read(step.Text("url")).AsText();
         browser.Open(engine, url, Flag(step, "headless", false));
         Log(LogLevel.Info, depth, step.Type, "Run.OpenedBrowser", engine, browser.Url);

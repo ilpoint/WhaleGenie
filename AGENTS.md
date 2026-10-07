@@ -219,13 +219,23 @@ OCR；UIA 的取值、选择、勾选、展开、滚动到可见、读表格；�
 `selector`——`selector` 这个名字在界面里归 UIA 的元素拾取器，重名会让浏览器动作多出一个
 用不上的拾取按钮。
 
-- **浏览器本体不由程序分发**。`IBrowserDevice.Ready` 只查 `%LOCALAPPDATA%\ms-playwright`
-  下有没有 chromium 目录，不认版本；没有时动作报 `Run.BrowserMissing`，文案里给出
-  `playwright.ps1 install chromium`。发行包必须带上 NuGet 拷出来的 `.playwright` 驱动目录，
-  改打包脚本时要一起看。
+**默认走系统自带的 Edge（`Channel = "msedge"`），用户什么都不用装。** 这一条是实测出来的：
+同一台机器上不跑 `playwright install`，Edge 通道照样能开页面、点击、填写、读字，而且
+`%LOCALAPPDATA%\ms-playwright` 从头到尾没出现过——Playwright 对 channel 用的是机器上那一份，
+不是自己下载的那一份。所以"用浏览器就要先装浏览器"这件事不存在，只有选了 Chromium / Firefox /
+WebKit 才需要下载。
+
+- `IBrowserDevice.Ready(browser)` 分两种问法：channel（edge / chrome）查系统装没装，
+  下载内核查 `%LOCALAPPDATA%\ms-playwright` 下有没有对应目录，都不认版本。没有时报
+  `Run.BrowserMissing`，文案里同时给出"改选 Edge"和 `playwright.ps1 install ...` 两条路。
+- Edge 的安装位置两个都要看（`Program Files` 和 `Program Files (x86)`）：32 位 Windows
+  下 64 位的 Edge 也在 x86 那个目录里。
+- 发行包必须带上 NuGet 拷出来的 `.playwright` 驱动目录（解开约 100 MB），改打包脚本时要一起看；
+  这个驱动是给 Edgeless 内核和 Firefox / WebKit 用的，Edge 通道也要它——省不掉。
 - Playwright 的调用是异步的，而且会回到发起调用时的同步上下文，在界面线程上直接等会死等；
   `PlaywrightBrowserDevice` 里所有调用都丢到线程池上等，和 `ViiperLink` 一个做法。
-- 真浏览器没法在无头测试里验，替身设备只记下了引擎要求了什么；改这块要按用例手动跑一遍。
+- 替身设备只记下引擎要求了什么，真浏览器要按用例手动跑一遍：打开 → 读文本 → 点击 → 填写 →
+  关闭，对着系统 Edge 跑通一遍，页面上用 `oninput` / `onclick` 把结果写回正文来确认真的生效。
 
 ## 还没做的
 

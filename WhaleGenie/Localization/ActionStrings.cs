@@ -1728,7 +1728,10 @@ internal static class ActionStrings
         ["browser.open.name"] = "打开浏览器",
         ["browser.open.desc"] = "启动浏览器并打开一个网址。",
         ["browser.open.browser.label"] = "浏览器",
-        ["browser.open.browser.hint"] = "驱动哪个浏览器内核。默认装好的是 Chromium。",
+        ["browser.open.browser.hint"] = "驱动哪个浏览器。Edge 是 Windows 自带的，不用装任何东西；"
+            + "Chrome 和 Playwright 自己下载的那几个内核，机器上没有时会给出安装命令。",
+        ["browser.open.browser.option.edge"] = "Edge（Windows 自带）",
+        ["browser.open.browser.option.chrome"] = "Chrome",
         ["browser.open.browser.option.chromium"] = "Chromium",
         ["browser.open.browser.option.firefox"] = "Firefox",
         ["browser.open.browser.option.webkit"] = "WebKit",

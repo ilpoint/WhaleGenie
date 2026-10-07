@@ -2088,10 +2088,12 @@ public static class ActionCatalog
             Description = "Start a browser and open a page at an address.",
             Parameters =
             [
-                Choice("browser", "Browser", ["chromium", "firefox", "webkit"], "chromium",
-                    "Which browser engine to drive. Chromium is the one the browser actions are "
-                    + "installed for by default.",
-                    labels: ["Chromium", "Firefox", "WebKit"]),
+                Choice("browser", "Browser",
+                    ["edge", "chrome", "chromium", "firefox", "webkit"], "edge",
+                    "Which browser to drive. Edge is already on every Windows, so nothing has to be "
+                    + "installed for it; a machine without Chrome or the engines Playwright fetches "
+                    + "gets a message naming the command that puts them there.",
+                    labels: ["Edge (already on Windows)", "Chrome", "Chromium", "Firefox", "WebKit"]),
                 Text("url", "Address", "https://example.com",
                     "The page to open. Leave it empty to open the browser without a page yet.",
                     required: false),

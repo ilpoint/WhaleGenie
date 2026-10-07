@@ -3,9 +3,11 @@ using Microsoft.Playwright;
 namespace WhaleGenie.Core.Devices.Platform;
 
 /// <summary>
-/// A browser driven through Playwright. The browsers themselves are a separate download, so the
-/// device says whether they are there before a macro tries to use them: the message the user gets
-/// is the command that puts them there, not a failure from somewhere inside the driver.
+/// A browser driven through Playwright. Edge is used by default, because Windows already has it:
+/// a macro that just wants to fill a form in does not have to fetch a browser first. The engines
+/// Playwright fetches for itself are still offered, and the device says whether they are there
+/// before a macro tries one, so the user gets the command that installs it rather than a failure
+/// from somewhere inside the driver.
 ///
 /// Playwright's own calls are asynchronous and come back on the context they were started from,
 /// which is the interface thread while a macro is running. Every call is therefore handed to the
@@ -18,25 +20,68 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     private IBrowser? _browser;
     private IPage? _page;
 
-    public bool Ready
+    /// <summary>
+    /// The browsers Playwright fetches land under the profile's cache folder; the one being asked
+    /// for having a folder there is what "already downloaded" means, and it is checked without
+    /// starting anything. A channel browser — Edge, Chrome — is the machine's own, so it needs no
+    /// download and is only checked for being present.
+    /// </summary>
+    public bool Ready(string browser)
     {
-        get
-        {
-            // The driver ships its browsers under the profile's cache folder; the folder being
-            // there is what "already downloaded" means, and it is checked without starting one.
-            var root = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "ms-playwright");
-            return Directory.Exists(root)
-                && Directory.EnumerateDirectories(root).Any(name =>
-                    Path.GetFileName(name).StartsWith("chromium", StringComparison.OrdinalIgnoreCase));
-        }
+        return Channel(browser).Length > 0
+            ? SystemBrowser(Channel(browser)) is not null
+            : Directory.Exists(Downloaded(browser));
     }
 
+    /// <summary>Where Playwright keeps the copy of an engine it downloaded.</summary>
+    private static string Downloaded(string browser) => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "ms-playwright",
+        browser.Trim().ToLowerInvariant() switch
+        {
+            "firefox" => "firefox",
+            "webkit" => "webkit",
+            _ => "chromium",
+        });
+
+    /// <summary>
+    /// The file a system browser is started from, or null when this machine has no such browser.
+    /// The two places Windows and the installers put them are both looked at, because a 32-bit
+    /// Windows keeps even a 64-bit Edge under Program Files (x86).
+    /// </summary>
+    private static string? SystemBrowser(string channel)
+    {
+        var name = channel == "chrome" ? "Google\\Chrome" : "Microsoft\\Edge";
+        foreach (var folder in new[]
+                 {
+                     Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                     Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                 })
+        {
+            var file = Path.Combine(folder, name, "Application",
+                channel == "chrome" ? "chrome.exe" : "msedge.exe");
+            if (File.Exists(file))
+            {
+                return file;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The channel a browser name asks for, empty when it means a downloaded engine.</summary>
+    private static string Channel(string browser) => browser.Trim().ToLowerInvariant() switch
+    {
+        "edge" => "msedge",
+        "chrome" => "chrome",
+        _ => string.Empty,
+    };
+
     public string InstallHint =>
-        "The browsers Playwright drives are not on this machine yet. Run "
-        + "\"playwright.ps1 install chromium\" once, from the folder WhaleGenie was installed in, "
-        + "and the browser actions work from then on.";
+        "This browser is not on this machine yet. Edge, the browser Windows already has, needs no "
+        + "installing at all — pick it instead. A downloaded engine is fetched once with "
+        + "\"playwright.ps1 install chromium\" (or firefox / webkit), run from the folder "
+        + "WhaleGenie was installed in.";
 
     public bool IsOpen => _page is not null;
 
@@ -51,8 +96,10 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         Wait(async () =>
         {
             _playwright ??= await Playwright.CreateAsync();
+            var channel = Channel(browser);
             _browser = await Launcher(browser).LaunchAsync(new BrowserTypeLaunchOptions
             {
+                Channel = channel.Length == 0 ? null : channel,
                 Headless = headless,
             });
             _page = await _browser.NewPageAsync();

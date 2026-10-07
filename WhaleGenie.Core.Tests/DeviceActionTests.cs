@@ -3636,7 +3636,7 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer { BrowserPage = "Hello from the page" };
         var (result, _, store) = await RunAsync(
         [
-            Step("browser.open", Param("browser", "chromium"), Param("url", "https://example.com"),
+            Step("browser.open", Param("browser", "edge"), Param("url", "https://example.com"),
                 Param("headless", "true")),
             Step("browser.goTo", Param("url", "https://example.com/next")),
             Step("browser.click", Param("target", "#go")),
@@ -3647,7 +3647,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Equal("Hello from the page", store.Local.Values["answer"].AsText());
-        Assert.Contains("browserOpen chromium https://example.com True", devices.Calls);
+        Assert.Contains("browserOpen edge https://example.com True", devices.Calls);
         Assert.Contains("browserGoTo https://example.com/next", devices.Calls);
         Assert.Contains("browserClick #go", devices.Calls);
         Assert.Contains("browserFill #q macro", devices.Calls);
@@ -3854,7 +3854,7 @@ internal sealed class FakeDeviceLayer
 
     public string BrowserPage { get; set; } = "page text";
 
-    bool IBrowserDevice.Ready => BrowserReady;
+    bool IBrowserDevice.Ready(string browser) => BrowserReady;
 
     string IBrowserDevice.InstallHint => "install the browser";
 
