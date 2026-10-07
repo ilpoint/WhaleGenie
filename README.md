@@ -101,43 +101,54 @@ git tag v0.01
 git push origin v0.01
 ```
 
-标签推上去之后，工作流会给 `win-x64` 和 `win-x86` 各打一个便携包
-（`Viktor-v0.01-win-x64.zip`、`Viktor-v0.01-win-x86.zip`），自动建好 Release 并把两个包挂上去。
-标签名同时决定了压缩包的名字和 exe 里的版本号，所以只有一处要改；想在网页上发也行：
-Actions → Release → Run workflow，填一个版本号。
+标签推上去之后，工作流会给 `win-x64` 和 `win-x86` 各打两个包——一个要机器上有 .NET 桌面
+运行时，一个自己带着运行环境——自动建好 Release 并把四个包挂上去。标签名同时决定了压缩包的
+名字和 exe 里的版本号，所以只有一处要改；想在网页上发也行：Actions → Release → Run workflow，
+填一个版本号。
 
 建 Release 需要写权限。仓库若把 Actions 的默认权限设成了只读，要在
 Settings → Actions → General → Workflow permissions 里放开一次。
 
-每次出三个包，差别只在"要不要自己带运行环境"，其余完全一样：
+每次出两个包，差别只在"要不要自己带运行环境"，其余完全一样：
 
-| 包 | 自带运行环境 | 体积（x64 解压后 / 打包后） | 什么时候用 |
+| 包 | 自带运行环境 | 体积（x64 打包后 / 解压后） | 什么时候用 |
 | --- | --- | --- | --- |
-| `Viktor-<版本>-win-x64.zip` | 否，要装 .NET 10 桌面运行时 | 145 MB / 63 MB | 体积最小；已经装过运行环境 |
-| `Viktor-<版本>-win-x64-standalone.zip` | 是 | 315 MB / 135 MB | 换机器、给别人，什么都不用装 |
-| `Viktor-<版本>-win-x64-standalone.exe` | 是 | 133 MB（单文件，打包前后都是它） | 只想拷一个文件走 |
+| `Viktor-<版本>-win-x64.zip` | 否，要装 .NET 10 桌面运行时 | 63 MB / 145 MB | 体积最小；已经装过运行环境 |
+| `Viktor-<版本>-win-x64-standalone.zip` | 是 | 135 MB / 315 MB | 换机器、给别人，什么都不用装 |
 
-体积里不含调试符号：发布时会把 `.pdb` 删掉，它比程序本身还大（Skia 一份就 80 MB）。
+不再出单文件包：exe 旁边的那些 dll 单文件版一样要在第一次启动时解压到系统临时目录，
+省下来的只是"拷一个文件"这点方便，却多一种要验的形态。
 
-三个包的手动打法是同一条 `dotnet publish`，只是开关不同：
+两种包解开后形状一样，只有一个 `Viktor` 文件夹，exe 就在最外层：
 
-```powershell
-# 框架依赖：最小，缺运行环境时 apphost 自己弹窗提示该装什么
-dotnet publish Viktor/Viktor.csproj -c Release -r win-x64 --self-contained false -o dist/framework
-
-# 自带运行环境，一整个文件夹
-dotnet publish Viktor/Viktor.csproj -c Release -r win-x64 --self-contained true -o dist/folder
-
-# 自带运行环境，单文件：原生库压进 exe，第一次启动解压到系统临时目录
-dotnet publish Viktor/Viktor.csproj -c Release -r win-x64 --self-contained true `
-  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
-  -p:EnableCompressionInSingleFile=true -o dist/single
+```
+Viktor\
+    Viktor.exe              ← 双击它
+    Viktor.dll
+    Viktor.deps.json
+    Viktor.runtimeconfig.json
+    lib\                    ← 程序用到的 dll 都在这一层文件夹里
 ```
 
-体积几乎全在原生库上（OpenCV 的 `OpenCvSharpExtern.dll` 约 73 MB、ffmpeg 约 29 MB，加上
-OCR 模型、Skia、HarfBuzz），所以单文件版不可能小到几十兆。不做裁剪（`PublishTrimmed`）：Avalonia 的 XAML、
-UIA 和 OCR 都靠反射找类型，裁了就得一个动作一个动作地验，不值当。
+自带运行时的那一个，根目录还会多出 .NET 运行时自己的十来个文件（`hostfxr.dll`、`coreclr.dll`
+这些）。它们必须和 exe 放在一起：宿主是先找 `hostpolicy`、再找 `coreclr`、再由 `coreclr` 找
+JIT 和核心库的，都按"exe 所在目录"找，放进 `lib` 程序连报错的机会都没有。其余两百多个 dll
+都在 `lib` 里，运行时按清单（`Viktor.deps.json`）里的路径去那儿取，两份清单在打包时一起改写。
 
-32 位（`-r win-x86`）三种包都能出，但找图/等图/点图依赖的 OpenCV 只有 64 位原生库，
+体积里不含调试符号：打包时会把 `.pdb` 删掉，它比程序本身还大（Skia 一份就 80 MB）。不做裁剪
+（`PublishTrimmed`）：Avalonia 的 XAML、UIA 和 OCR 都靠反射找类型，裁了就得一个动作一个动作地
+验，不值当；体积几乎全在原生库上（OpenCV 的 `OpenCvSharpExtern.dll` 约 73 MB、ffmpeg 约 29 MB，
+加上 OCR 模型、Skia、HarfBuzz）。
+
+本地想打同样的包，跑打包脚本就行——工作流里跑的也是它：
+
+```powershell
+pwsh build/package.ps1 -Tag v0.01                 # x64 / x86 两种包都出
+pwsh build/package.ps1 -Tag v0.01 -Rid win-x64    # 只要 x64
+```
+
+产物落在 `dist\`（已忽略）：`Viktor-<标签>-<架构>.zip` 和 `Viktor-<标签>-<架构>-standalone.zip`。
+
+32 位（`-r win-x86`）两种包都能出，但找图/等图/点图依赖的 OpenCV 只有 64 位原生库，
 这几个动作在 32 位包里不可用，其余功能正常。面向用户的说明写在 `.github/release-notes.md`，
 发版时原样作为 Release 说明贴出去。

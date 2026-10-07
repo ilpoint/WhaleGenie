@@ -210,9 +210,16 @@ RPA 平台：企业向的能力和明显偏办公文档解析的能力都不做�
 ## 提交与发布
 
 - `master` 是主线，`.github/workflows/ci.yml` 在推送与 PR 上跑格式检查、构建、全部测试。
-- 发布就是打一个 `v` 开头的标签，`.github/workflows/release.yml` 给 x64 / x86 各出三个包：
-  框架依赖的 zip、自带运行时的文件夹 zip、自带运行时的单文件 exe。不想要哪一种，删掉对应那段
-  发布步骤和文件名即可。
+- 发布就是打一个 `v` 开头的标签，`.github/workflows/release.yml` 给 x64 / x86 各出两个包：框架
+  依赖的 zip、自带运行时的 zip，都由 `build/package.ps1` 摆好。形态就这两种，不再加：单文件版
+  一样要把运行时解压到系统临时目录，省不了事还多一种要验的东西。
+- 两种包都是"一个 `Viktor` 文件夹，exe 在最外层，其余 dll 进 `lib`"。dll 能进子目录靠
+  `Viktor/Program.cs` 里的两个解析钩子（托管程序集与原生库）和清单 `Viktor.deps.json` 里一起
+  改写的路径，两样缺一不可——`Main` 里不许直接写 Avalonia 的类型，否则编译 `Main` 时就要先
+  加载 Avalonia，钩子来不及挂上。宿主自己的十来个文件（`hostfxr`、`coreclr` 等）只能留在 exe
+  旁边，这是运行时的规定。
+- 打包形状在测试里验不了，改 `build/package.ps1`、清单改写或上面那两个钩子之后，要本地跑一次
+  脚本、把包解开双击一次，确认窗口起得来，涉及原生库的动作（找图这类）也得走一遍。
 - 程序旁边会多出两样运行期才有的东西，都不进仓库：`settings.json`（设置窗口的选择）和
   `logs`（失败截图）。路径只在 `Viktor.Execution.AppPaths` 定义一次，由界面把
   `MacroRunner.FailureFolder` 指过去，引擎自己不猜程序装在哪。
