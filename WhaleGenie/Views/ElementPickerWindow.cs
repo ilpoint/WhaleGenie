@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -30,9 +29,6 @@ public sealed class ElementPickerWindow : Window
 
     /// <summary>How far the readout keeps out of the pointer's way, in screen pixels.</summary>
     private const int ReadoutGap = 18;
-
-    /// <summary>The region mode that subtracts one rectangle from another.</summary>
-    private const int RegionDifference = 4;
 
     private readonly Func<int, int, UiElementInfo?> _look;
     private readonly FlaUiDevice? _device;
@@ -277,35 +273,7 @@ public sealed class ElementPickerWindow : Window
         _frameBox = new Box(left, top, width, height);
 
         IsVisible = true;
-        Hollow(width, height);
-    }
-
-    /// <summary>
-    /// Cuts the middle out of the window, leaving a border a few pixels thick. Only that border
-    /// can be hit, so the control underneath goes on seeing the pointer as if the picker were not
-    /// there at all.
-    /// </summary>
-    private void Hollow(int width, int height)
-    {
-        if (!OperatingSystem.IsWindows()
-            || TryGetPlatformHandle() is not { } platform
-            || platform.Handle == IntPtr.Zero)
-        {
-            return;
-        }
-
-        var frame = CreateRectRgn(0, 0, width, height);
-        var hole = CreateRectRgn(Frame, Frame, width - Frame, height - Frame);
-        if (frame == IntPtr.Zero || hole == IntPtr.Zero)
-        {
-            return;
-        }
-
-        CombineRgn(frame, frame, hole, RegionDifference);
-        DeleteObject(hole);
-
-        // The window takes the region over, so it must not be freed here.
-        SetWindowRgn(platform.Handle, frame, true);
+        WindowHole.Cut(this, width, height, Frame);
     }
 
     /// <summary>
@@ -519,15 +487,4 @@ public sealed class ElementPickerWindow : Window
         Dispatcher.UIThread.Post(Cancel);
     }
 
-    [DllImport("gdi32.dll")]
-    private static extern IntPtr CreateRectRgn(int left, int top, int right, int bottom);
-
-    [DllImport("gdi32.dll")]
-    private static extern int CombineRgn(IntPtr target, IntPtr first, IntPtr second, int mode);
-
-    [DllImport("gdi32.dll")]
-    private static extern bool DeleteObject(IntPtr handle);
-
-    [DllImport("user32.dll")]
-    private static extern int SetWindowRgn(IntPtr window, IntPtr region, bool redraw);
 }

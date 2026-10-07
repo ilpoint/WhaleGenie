@@ -290,6 +290,12 @@ WebKit 才需要下载。
   收起来"的钩子（摘监听、删高亮），设备在等待结束时对每个 frame 调用它。以前只清
   `__whalegeniePicking` 和节点、把 `click` 监听留在页面上，于是某个 frame 被武装过却没被点，
   之后就一直把用户的点击吃掉——多个 frame 时尤其明显，实测过。
+- **拾取完能当场验一验。** 选择器写对没有，光看那串字看不出来，所以两种拾取器旁边都放了一个
+  "测试"：把当前的选择器拿去查一遍，查到就把那一块高亮一闪。UIA 那边是 `ElementFlashWindow`
+  ——一圈边框、中间用 `WindowHole` 挖空，所以元素本身还看得见，一秒半自己关掉；页面那边是
+  `PlaywrightBrowserDevice.Highlight` 配 `BrowserPickerScript.Flash`，查元素走 `Locator` 而不是
+  `querySelectorAll`，因为只有 `Locator` 会自己按选择器里的 `internal:control=enter-frame` 走进
+  frame。**高亮不是点击**：验的是"选中的是不是它"，真点下去会把用户的东西弄乱。
 - **拾取期间不要最小化这个程序的窗口。** 主窗口一被最小化，`AppTray` 就把它当成"收进通知
   区域"隐藏起来（`Hide()`），而且那个气泡一轮只弹一次 —— 用户看到的就是"程序界面凭空消失、
   也没有任何提示"，真机上实测踩过。所以 `BrowserPicker` 只放掉本程序窗口的置顶（别的进程的

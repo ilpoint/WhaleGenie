@@ -221,6 +221,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.PickBrowserElementHint"] =
             "Picks an element off the page the macro has open, or opens this address in a browser "
             + "for picking. Click the element to use and its selector is written here.",
+        ["Add.TestElement"] = "Test",
+        ["Add.TestElementHint"] =
+            "Highlights the element on screen, so a selector can be checked without running the "
+            + "step it belongs to.",
+        ["Add.TestElementEmpty"] = "Pick or write a selector first.",
+        ["Add.TestElementMissing"] = "Nothing on screen matches this selector right now.",
         ["Add.BrowserPickBanner"] =
             "Open the page to work on in the browser, then click the element to use. Esc gives up.",
         ["Add.BrowserPickFailed"] =
@@ -1000,6 +1006,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.PickBrowserElement"] = "在页面里拾取…",
         ["Add.PickBrowserElementHint"] =
             "在宏已经打开的页面上拾取；没有就把这个地址开在浏览器里。点一下要用的元素，它的选择器就写到这里。",
+        ["Add.TestElement"] = "测试",
+        ["Add.TestElementHint"] = "在屏幕上高亮这个元素，不用运行宏就能看看有没有选对。",
+        ["Add.TestElementEmpty"] = "先拾取或者填写选择器。",
+        ["Add.TestElementMissing"] = "现在屏幕上没有匹配这个选择器的元素。",
         ["Add.BrowserPickBanner"] = "先在浏览器里打开要操作的页面，再点一下要用的元素；按 Esc 放弃。",
         ["Add.BrowserPickFailed"] = "没能打开页面，或者没能从页面上拾取到元素。",
         ["Element.Title"] = "拾取元素",

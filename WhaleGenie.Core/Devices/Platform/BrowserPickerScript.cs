@@ -204,6 +204,40 @@ internal static class BrowserPickerScript
         """;
 
     /// <summary>
+    /// Outlines one element of the page for a moment, which is what the "test" button next to a
+    /// picker puts up. It is written as <c>(element) =&gt; …</c> because the device hands it to the
+    /// element's own locator: the script then runs in whichever document the element lives in — a
+    /// frame included — and draws the frame there, where the element actually is.
+    /// </summary>
+    internal const string Flash = """
+        (element) => {
+          const box = document.createElement('div');
+          box.setAttribute('data-whalegenie-flash', '');
+          box.style.pointerEvents = 'none';
+          box.style.position = 'fixed';
+          box.style.zIndex = '2147483647';
+          box.style.border = '2px solid #0A84FF';
+          box.style.background = 'rgba(10,132,255,0.18)';
+          box.style.borderRadius = '2px';
+          box.style.transition = 'opacity 0.5s ease';
+
+          const place = () => {
+            const rect = element.getBoundingClientRect();
+            box.style.left = rect.left + 'px';
+            box.style.top = rect.top + 'px';
+            box.style.width = rect.width + 'px';
+            box.style.height = rect.height + 'px';
+          };
+
+          place();
+          document.documentElement.appendChild(box);
+          setTimeout(() => { box.style.opacity = '0'; }, 1200);
+          setTimeout(() => { box.remove(); }, 1800);
+          return true;
+        }
+        """;
+
+    /// <summary>
     /// The same picker, as a statement the page can be handed to run on load. An init script is
     /// evaluated as plain source, so a bare arrow function would sit there uncalled; wrapping it
     /// in a call is what makes it install. Two more things this early in a document's life make

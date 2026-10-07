@@ -37,6 +37,13 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// </summary>
     private const string FrameStep = "internal:control=enter-frame";
 
+    /// <summary>
+    /// How long a check waits for the element it was handed. It is a question about a page that is
+    /// already open, so waiting the half minute a macro's own step waits would leave the person
+    /// staring at a dialog for a selector that is simply not there.
+    /// </summary>
+    private const float HighlightTimeoutMs = 3000;
+
     private IPlaywright? _playwright;
     private IBrowser? _browser;
     private IPage? _page;
@@ -217,6 +224,45 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         return new DeviceActionException(
             "Run.BrowserFailed",
             where.Length == 0 ? failure.Message : where + " — " + failure.Message);
+    }
+
+    /// <summary>
+    /// Outlines an element of the page for a moment, so a selector can be checked without running
+    /// the step it was written for. False when nothing on the page matches, which is an answer
+    /// rather than a failure: the question was "did that take the right element?".
+    /// </summary>
+    /// <remarks>
+    /// The lookup goes through a locator rather than a plain <c>querySelectorAll</c> because a
+    /// selector picked inside a frame carries the way in to that frame with it, and only Playwright
+    /// walks one. The element is then scrolled into view and handed to a script of its own
+    /// document, so the frame lands on screen where the person can see it.
+    /// </remarks>
+    public bool Highlight(string selector)
+    {
+        if (!IsOpen || string.IsNullOrWhiteSpace(selector))
+        {
+            return false;
+        }
+
+        try
+        {
+            Wait(async () =>
+            {
+                var page = Page();
+                await page.BringToFrontAsync();
+
+                var element = page.Locator(selector).First;
+                await element.ScrollIntoViewIfNeededAsync();
+                await element.EvaluateAsync<bool>(BrowserPickerScript.Flash, null,
+                    new LocatorEvaluateOptions { Timeout = HighlightTimeoutMs });
+            });
+
+            return true;
+        }
+        catch (Exception failure) when (failure is PlaywrightException or TimeoutException)
+        {
+            return false;
+        }
     }
 
     public string Pick(string hint, int timeoutMs)

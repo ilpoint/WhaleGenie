@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -387,6 +388,117 @@ public partial class AddActionWindow : Window
             }
         }
     }
+
+    /// <summary>
+    /// Flashes the control the selector names, so a pick can be checked without running the step.
+    /// The dialog steps aside first, the same way picking does: the control being looked at is
+    /// usually behind the window asking about it.
+    /// </summary>
+    private async void OnTestElement(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel parameter }
+            || DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        if (Selector(parameter) is not { Length: > 0 } selector)
+        {
+            await ReportTestAsync(Strings.Get("Add.TestElementEmpty"));
+            return;
+        }
+
+        // A control is measured from the same window field the picker fills in, so which one that
+        // is follows the field being tested rather than the action.
+        var filter = ParameterText(viewModel,
+            parameter.Definition.Name == "anchorSelector" ? "anchorWindow" : "window");
+
+        // Out of the way while the frame is up, the same way picking does it: the control is
+        // usually behind the very window asking about it. The dialog waits the frame out, so it
+        // never comes back on top of the thing it just said to look at.
+        var previous = WindowState;
+        WindowState = WindowState.Minimized;
+
+        ElementFlashWindow? flash = null;
+        try
+        {
+            if (ElementFlashWindow.Locate(viewModel.Ui, selector, filter) is { } found)
+            {
+                flash = ElementFlashWindow.Show(found);
+                if (flash is not null)
+                {
+                    await flash.Finished;
+                }
+            }
+        }
+        finally
+        {
+            // The dialog can be dismissed while the frame is up, and a window on its way out has
+            // nothing left to come back to.
+            if (!_closed)
+            {
+                WindowState = previous == WindowState.Maximized
+                    ? WindowState.Maximized
+                    : WindowState.Normal;
+                Activate();
+            }
+        }
+
+        if (flash is null && !_closed)
+        {
+            await ReportTestAsync(Strings.Get("Add.TestElementMissing"));
+        }
+    }
+
+    /// <summary>
+    /// Outlines the element a page selector names on the page it belongs to, which is the same
+    /// question the desktop picker answers next to it.
+    /// </summary>
+    private async void OnTestBrowserElement(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel parameter })
+        {
+            return;
+        }
+
+        if (Selector(parameter) is not { Length: > 0 } selector)
+        {
+            await ReportTestAsync(Strings.Get("Add.TestElementEmpty"));
+            return;
+        }
+
+        var found = false;
+        try
+        {
+            found = await BrowserPicker.HighlightAsync(selector);
+        }
+        catch (Exception)
+        {
+            // The dialog can be dismissed while the page is being asked, and a window that is on
+            // its way out is not worth reporting to.
+        }
+
+        if (!found && !_closed)
+        {
+            await ReportTestAsync(Strings.Get("Add.TestElementMissing"));
+        }
+    }
+
+    /// <summary>The selector a field holds, or null when nothing has been picked or written yet.</summary>
+    private static string? Selector(StepParameterViewModel parameter)
+    {
+        var text = (parameter.Text ?? string.Empty).Trim();
+        return text.Length == 0 ? null : text;
+    }
+
+    /// <summary>The text of a parameter of this action, or an empty string when it has none.</summary>
+    private static string ParameterText(AddActionViewModel viewModel, string name)
+        => viewModel.Parameters.FirstOrDefault(item => item.Definition.Name == name)?.Text ?? string.Empty;
+
+    /// <summary>Says what the test found, without leaving the dialog.</summary>
+    private async Task ReportTestAsync(string message)
+        => await ConfirmDialog.ShowAsync(this, Strings.Get("Add.TestElement"), message,
+            Strings.Get("Common.Ok"), showCancel: false);
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {

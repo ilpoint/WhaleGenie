@@ -83,6 +83,29 @@ internal static class BrowserPicker
     }
 
     /// <summary>
+    /// Outlines the element a selector names on the page a macro has open, which is what the
+    /// "test" button next to the picker asks for. False when there is no page to look on or nothing
+    /// there matches.
+    /// </summary>
+    /// <remarks>
+    /// It works on the same page the pick does — the one the macro opened, and the picker's own
+    /// when there was none — so what is checked is what a run would find. The pin comes off while
+    /// the frame is up, so the page can come in front of this program's own windows instead of
+    /// staying behind the dialog the button was pressed in.
+    /// </remarks>
+    public static async Task<bool> HighlightAsync(string selector)
+    {
+        var browser = _own is { IsOpen: true } own ? own : PlaywrightBrowserDevice.OpenPage();
+        if (browser is null)
+        {
+            return false;
+        }
+
+        using var unpinned = Unpin();
+        return await Task.Run(() => browser.Highlight(selector));
+    }
+
+    /// <summary>
     /// The address to go to: the step's own when it names a page, and none when it does not,
     /// because a field holding a variable name is not somewhere to browse to, and a blank address
     /// is what tells the browser to open without a page rather than go somewhere wrong.

@@ -75,24 +75,32 @@
 
                 <!-- A UI Automation selector: written out by hand, or taken off the screen by
                      pointing at the control. -->
-                <Grid IsVisible="{Binding IsSelector}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                <Grid IsVisible="{Binding IsSelector}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                     <TextBox Classes="ParamInput" Text="{Binding Text}"
                              PlaceholderText="{Binding Placeholder}" />
                     <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
                             Content="{Binding [Add.PickElement], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.PickElementHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickElement" />
+                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                            Content="{Binding [Add.TestElement], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.TestElementHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnTestElement" />
                 </Grid>
 
                 <!-- An element of a page: written out by hand, or taken off the page by pointing
                      at it in the browser. -->
-                <Grid IsVisible="{Binding IsBrowserTarget}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                <Grid IsVisible="{Binding IsBrowserTarget}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                     <TextBox Classes="ParamInput" Text="{Binding Text}"
                              PlaceholderText="{Binding Placeholder}" />
                     <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
                             Content="{Binding [Add.PickBrowserElement], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.PickBrowserElementHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickBrowserElement" />
+                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                            Content="{Binding [Add.TestElement], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.TestElementHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnTestBrowserElement" />
                 </Grid>
 
                 <TextBox Classes="ParamInput" Text="{Binding Text}"
