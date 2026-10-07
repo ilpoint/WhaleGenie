@@ -180,6 +180,60 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task A_break_outside_every_loop_fails_the_run()
+    {
+        var store = Store();
+        var (result, host) = await RunAsync(
+            [Step("control.break"), Set("after", "1")], variables: store);
+
+        // Leaving the rest of the macro out and calling that "finished" would hide the mistake.
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BreakOutsideLoop", result.Key);
+        Assert.False(store.TryGet("after", out _));
+        Assert.Contains(host.Entries, entry => entry.Key == "Run.BreakOutsideLoop");
+    }
+
+    [Fact]
+    public async Task A_continue_outside_every_loop_fails_the_run()
+    {
+        var store = Store();
+        var (result, _) = await RunAsync(
+            [Step("control.continue"), Set("after", "1")], variables: store);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.ContinueOutsideLoop", result.Key);
+        Assert.False(store.TryGet("after", out _));
+    }
+
+    [Fact]
+    public async Task A_break_inside_a_plain_block_is_still_outside_a_loop()
+    {
+        var (result, _) = await RunAsync(
+            [Step("control.sequence", Body("steps", Step("control.break"), Set("after", "1"))),
+                Set("later", "1")]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BreakOutsideLoop", result.Key);
+    }
+
+    [Fact]
+    public async Task A_next_round_rule_outside_a_loop_fails_the_run()
+    {
+        var broken = new ExecutableStep
+        {
+            Type = "input.keyPress",
+            Parameters = [Param("key", "F5")],
+            Meta = new StepMeta { OnError = StepErrorAction.NextIteration },
+        };
+
+        var (result, _) = await RunAsync([broken, Set("after", "1")]);
+
+        // There is no round to start, so "carry on as though this step had finished" is wrong.
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.ContinueOutsideLoop", result.Key);
+    }
+
+    [Fact]
     public async Task While_stops_when_the_condition_goes_false()
     {
         var store = Store(("n", 0));
@@ -1420,7 +1474,7 @@ public class MacroRunnerTests
     }
 
     [Fact]
-    public async Task A_break_with_no_loop_of_its_own_ends_only_the_called_macro()
+    public async Task A_break_inside_a_called_macro_that_has_no_loop_fails_the_call()
     {
         var store = Store();
         var library = new Library(("半途", [Step("control.break"), Set("子", "1")]));
@@ -1433,9 +1487,12 @@ public class MacroRunnerTests
                 Set("轮", "$轮 + 1"))),
         ], variables: store, macros: library);
 
-        Assert.True(result.Succeeded);
-        Assert.Equal(3, N(store, "轮"));
+        // The called macro starts outside every loop, whatever the caller is inside: its break
+        // has nothing of its own to leave, and it must not cut the caller's loop short either.
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BreakOutsideLoop", result.Key);
         Assert.False(store.TryGet("子", out _));
+        Assert.Equal(0, N(store, "轮"));
     }
 
     /// <summary>A stand-in for the macros of one project, so a call can be tested on its own.</summary>

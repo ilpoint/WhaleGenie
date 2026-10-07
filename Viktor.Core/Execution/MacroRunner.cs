@@ -36,6 +36,13 @@ public sealed class MacroRunner
 
     private int _executed;
     private int _callDepth;
+
+    /// <summary>
+    /// How many loops the run is inside right now. A break or a continue only means something
+    /// while this is above zero; one that reaches the top of a macro has nothing to act on.
+    /// </summary>
+    private int _loops;
+
     private StepFailure? _failure;
 
     public MacroRunner(VariableStore variables, IRunHost? host = null, IDeviceLayer? devices = null,
@@ -95,6 +102,7 @@ public sealed class MacroRunner
         CancellationToken token = default)
     {
         _executed = 0;
+        _loops = 0;
         _failure = null;
         _images.Clear();
         Log(LogLevel.Info, 0, string.Empty, "Run.Start", steps.Count);
@@ -106,6 +114,17 @@ public sealed class MacroRunner
         try
         {
             var signal = await RunSteps(steps, 0, token);
+
+            // A break or a continue that reaches the end of the macro had no loop to act on.
+            // Reporting that as "finished" would be a lie the user cannot see through, so it
+            // ends the run the same way a missing macro does.
+            if (signal is Signal.Break or Signal.Continue)
+            {
+                _failure = new StepFailure(LoopControlKey(signal));
+                Log(LogLevel.Error, 0, string.Empty, _failure.Key);
+                signal = Signal.Failed;
+            }
+
             var outcome = signal switch
             {
                 Signal.Stop => new RunResult(RunStatus.Stopped, "Run.Stopped", string.Empty, _executed),
@@ -136,6 +155,10 @@ public sealed class MacroRunner
         RunStatus.Failed => "Run.Aborted",
         _ => "Run.Finished",
     };
+
+    /// <summary>The message a break or a continue gets when it turns out to have no loop.</summary>
+    private static string LoopControlKey(Signal signal)
+        => signal is Signal.Break ? "Run.BreakOutsideLoop" : "Run.ContinueOutsideLoop";
 
     /// <summary>
     /// Leaves a picture of the screen behind when a run stops on a failure.
@@ -250,23 +273,31 @@ public sealed class MacroRunner
 
         var caller = Variables.SwapLocal(called);
         _callDepth++;
+
+        // The called macro starts outside every loop, whatever the caller is inside. A break in
+        // there belongs to a loop of its own or to nothing; it must never reach out and cut a
+        // loop in the caller short.
+        var outerLoops = _loops;
+        _loops = 0;
         try
         {
             Log(LogLevel.Info, depth, step.Type, "Run.CalledMacro", name, steps.Count);
             var signal = await RunSteps(steps, depth + 1, token);
 
-            // A break or a continue with no loop of its own to act on ends the called macro,
-            // rather than reaching out and cutting a loop in the caller short.
+            // A break or a continue that got this far had no loop of its own to act on. That is
+            // a mistake in the called macro, and the caller gets told rather than being handed
+            // back what looks like a finished call. Only "start the next round" can arrive here
+            // as a continue: a break or a continue written in the macro is caught where it is.
             if (signal is Signal.Break or Signal.Continue)
             {
-                Log(LogLevel.Warn, depth, step.Type, "Run.MacroBreak", name);
-                return Signal.Normal;
+                throw new StepFailure(LoopControlKey(signal), name);
             }
 
             return signal;
         }
         finally
         {
+            _loops = outerLoops;
             _callDepth--;
             Take(step, Variables.SwapLocal(caller));
         }
@@ -552,10 +583,10 @@ public sealed class MacroRunner
                 return await RunTry(step, depth, token);
 
             case "control.break":
-                return Signal.Break;
+                return LeaveLoop(Signal.Break, step);
 
             case "control.continue":
-                return Signal.Continue;
+                return LeaveLoop(Signal.Continue, step);
 
             case "control.stop":
                 Log(LogLevel.Warn, depth, step.Type, "Run.StopRequested", step.Text("reason"));
@@ -1013,7 +1044,7 @@ public sealed class MacroRunner
         {
             token.ThrowIfCancellationRequested();
             Variables.Local.Set("sys.loopIndex", Value.FromNumber(round));
-            var signal = await RunSteps(step.Children("body"), depth + 1, token);
+            var signal = await RunBody(step, depth, token);
             if (signal is Signal.Stop or Signal.Failed)
             {
                 return signal;
@@ -1044,7 +1075,7 @@ public sealed class MacroRunner
                 return Signal.Normal;
             }
 
-            var signal = await RunSteps(step.Children("body"), depth + 1, token);
+            var signal = await RunBody(step, depth, token);
             if (signal is Signal.Stop or Signal.Failed)
             {
                 return signal;
@@ -1058,6 +1089,34 @@ public sealed class MacroRunner
 
         return Signal.Normal;
     }
+
+    /// <summary>
+    /// Runs one round of a loop's body. Every loop goes through here so a break or a continue
+    /// written inside a body finds a loop above it; the depth is what tells the two apart from
+    /// one written where no loop is in reach.
+    /// </summary>
+    private async Task<Signal> RunBody(ExecutableStep step, int depth, CancellationToken token)
+    {
+        _loops++;
+        try
+        {
+            return await RunSteps(step.Children("body"), depth + 1, token);
+        }
+        finally
+        {
+            _loops--;
+        }
+    }
+
+    /// <summary>
+    /// What a break or a continue asks the loop it sits in to do. With no loop above it there is
+    /// nothing to ask, so the step fails instead of quietly ending the macro where it stands: a
+    /// run that reports success after skipping the rest of a macro is a lie the user cannot see.
+    /// </summary>
+    private Signal LeaveLoop(Signal signal, ExecutableStep step)
+        => _loops > 0
+            ? signal
+            : throw new StepFailure(LoopControlKey(signal), step.Type);
 
     private async Task<Signal> RunForEach(ExecutableStep step, int depth, CancellationToken token)
     {
@@ -1090,7 +1149,7 @@ public sealed class MacroRunner
                 Variables.Set(indexName, Value.FromNumber(index));
             }
 
-            var signal = await RunSteps(step.Children("body"), depth + 1, token);
+            var signal = await RunBody(step, depth, token);
             if (signal is Signal.Stop or Signal.Failed)
             {
                 return signal;
@@ -1134,7 +1193,7 @@ public sealed class MacroRunner
             Variables.Local.Set("sys.loopIndex", Value.FromNumber(round));
             Variables.Set(counter, Value.FromNumber(value));
 
-            var signal = await RunSteps(step.Children("body"), depth + 1, token);
+            var signal = await RunBody(step, depth, token);
             if (signal is Signal.Stop or Signal.Failed)
             {
                 return signal;
