@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -642,6 +643,10 @@ public sealed class MacroRunner
                 AppendLog(step, depth);
                 return Signal.Normal;
 
+            case "file.zip":
+                ZipFolder(step, depth);
+                return Signal.Normal;
+
             case "file.exists":
                 FileExists(step, depth);
                 return Signal.Normal;
@@ -700,6 +705,19 @@ public sealed class MacroRunner
 
             case "file.loadVariables":
                 LoadVariables(step, depth);
+                return Signal.Normal;
+
+            // ----------------------------------------------------------------- data
+            case "data.base64Encode":
+                EncodeBase64(step, depth);
+                return Signal.Normal;
+
+            case "data.base64Decode":
+                DecodeBase64(step, depth);
+                return Signal.Normal;
+
+            case "data.hash":
+                HashText(step, depth);
                 return Signal.Normal;
 
             // -------------------------------------------------------------- clipboard
@@ -2623,6 +2641,15 @@ public sealed class MacroRunner
         Log(LogLevel.Info, depth, step.Type, "Run.Unzipped", from, folder);
     }
 
+    private void ZipFolder(ExecutableStep step, int depth)
+    {
+        var folder = PathOf(step, "folder");
+        var to = PathOf(step, "to");
+
+        _devices.Files.Zip(folder, to);
+        Log(LogLevel.Info, depth, step.Type, "Run.Zipped", folder, to);
+    }
+
     private void ListFiles(ExecutableStep step, int depth)
     {
         var folder = PathOf(step, "folder");
@@ -2739,6 +2766,66 @@ public sealed class MacroRunner
         }
 
         Log(LogLevel.Info, depth, step.Type, "Run.LoadedVariables", path, saved.Count);
+    }
+
+    /// <summary>
+    /// Encodes text as Base64. The text is read the way any other value is and then taken as
+    /// UTF-8, which is the encoding every service a Base64 value is handed to expects.
+    /// </summary>
+    private void EncodeBase64(ExecutableStep step, int depth)
+    {
+        var text = Read(step.Text("text")).AsText();
+        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
+        Store(step, "resultVariable", "encoded", encoded, depth);
+    }
+
+    /// <summary>
+    /// Decodes Base64 back into text. Text that is not Base64 fails the step rather than turning
+    /// into a value the macro cannot explain: a macro that decoded nothing should say so.
+    /// </summary>
+    private void DecodeBase64(ExecutableStep step, int depth)
+    {
+        var text = Read(step.Text("text")).AsText();
+        byte[] bytes;
+        try
+        {
+            bytes = Convert.FromBase64String(text.Trim());
+        }
+        catch (FormatException)
+        {
+            throw new StepFailure("Run.BadBase64", text);
+        }
+
+        Store(step, "resultVariable", "decoded", Encoding.UTF8.GetString(bytes), depth);
+    }
+
+    /// <summary>Works out the checksum of a piece of text.</summary>
+    private void HashText(ExecutableStep step, int depth)
+    {
+        var text = Read(step.Text("text")).AsText();
+        var digest = ComputeHash(step.Text("algorithm"), Encoding.UTF8.GetBytes(text));
+        Store(step, "resultVariable", "digest", Convert.ToHexString(digest).ToLowerInvariant(), depth);
+    }
+
+    /// <summary>
+    /// The checksum a named algorithm works out. An unrecognized name falls back to SHA-256 rather
+    /// than failing: a step that asked for a checksum should get one the macro can compare.
+    /// </summary>
+    private static byte[] ComputeHash(string algorithm, byte[] bytes) =>
+        algorithm.Trim().ToLowerInvariant() switch
+        {
+            "md5" => MD5.HashData(bytes),
+            "sha1" => SHA1.HashData(bytes),
+            "sha512" => SHA512.HashData(bytes),
+            _ => SHA256.HashData(bytes),
+        };
+
+    /// <summary>Stores a value under a name and logs it, the way storing a value does.</summary>
+    private void Store(ExecutableStep step, string parameter, string fallback, string value, int depth)
+    {
+        var name = VariableName(step, parameter, fallback);
+        Variables.Set(name, Value.FromText(value));
+        Log(LogLevel.Info, depth, step.Type, "Run.Set", name, value);
     }
 
     /// <summary>Reads a JSON file, reporting a broken one as a failed step.</summary>

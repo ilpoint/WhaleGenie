@@ -153,6 +153,30 @@ public sealed class LocalFileDevice : IFileDevice
         }
     }
 
+    public void Zip(string folder, string to)
+    {
+        var source = Full(folder);
+        if (!Directory.Exists(source))
+        {
+            throw new DeviceActionException("Run.FolderNotFound", folder);
+        }
+
+        var target = Full(to);
+        Attempt(folder, () =>
+        {
+            var parent = Path.GetDirectoryName(target);
+            if (!string.IsNullOrEmpty(parent))
+            {
+                Directory.CreateDirectory(parent);
+            }
+
+            // The folder's own name is left out of the entries so that unpacking this zip hands
+            // back what was inside the folder, the way its Unzip counterpart writes it out.
+            ZipFile.CreateFromDirectory(source, target, CompressionLevel.Optimal, false);
+            return true;
+        });
+    }
+
     public void CreateFolder(string path)
     {
         var full = Full(path);

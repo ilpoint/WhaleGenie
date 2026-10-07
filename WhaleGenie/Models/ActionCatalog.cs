@@ -48,6 +48,9 @@ public static class ActionCatalog
     private static readonly Geometry FileIcon =
         Geometry.Parse("M6,3 H14 L18,7 V21 H6 Z M14,3 V7 H18 M9,12 H15 M9,16 H15");
 
+    private static readonly Geometry DataIcon =
+        Geometry.Parse("M9,4 L6,12 L9,20 M15,4 L18,12 L15,20");
+
     private static readonly Geometry ClipboardIcon =
         Geometry.Parse("M6,5 H18 V21 H6 Z M9,3 H15 V6 H9 Z M9,11 H15 M9,15 H13");
 
@@ -627,6 +630,19 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "file.zip",
+            Category = ActionCategory.File,
+            DisplayName = "Zip Folder",
+            Description = "Pack a folder into a zip file.",
+            Parameters =
+            [
+                FilePath("folder", "Folder", @"reports", "Folder to pack."),
+                FilePath("to", "Zip file", "reports.zip",
+                    "Zip file to write. One that is already there is replaced."),
+            ],
+        },
+        new()
+        {
             Key = "file.deleteFolder",
             Category = ActionCategory.File,
             DisplayName = "Delete Folder",
@@ -740,6 +756,57 @@ public static class ActionCatalog
             Parameters =
             [
                 FilePath("path", "File", "state.json", "File to read."),
+            ],
+        },
+
+        // -------------------------------------------------------------------- data
+        new()
+        {
+            Key = "data.base64Encode",
+            Category = ActionCategory.Data,
+            DisplayName = "Encode as Base64",
+            Description = "Turn text into Base64, the form a value takes inside a URL or a token.",
+            Parameters =
+            [
+                Text("text", "Text", "hello",
+                    "The text to encode. Variables are filled in first, then the whole value is "
+                    + "read as UTF-8.", acceptsFormula: true),
+                Variable("resultVariable", "Result variable", "encoded",
+                    "Variable that receives the Base64 text.", required: false, namesVariable: true),
+            ],
+        },
+        new()
+        {
+            Key = "data.base64Decode",
+            Category = ActionCategory.Data,
+            DisplayName = "Decode from Base64",
+            Description = "Turn Base64 back into the text it holds.",
+            Parameters =
+            [
+                Text("text", "Base64", "aGVsbG8=",
+                    "The Base64 text to decode. Variables are filled in first.", acceptsFormula: true),
+                Variable("resultVariable", "Result variable", "decoded",
+                    "Variable that receives the decoded text, read as UTF-8.",
+                    required: false, namesVariable: true),
+            ],
+        },
+        new()
+        {
+            Key = "data.hash",
+            Category = ActionCategory.Data,
+            DisplayName = "Hash Text",
+            Description = "Work out the checksum of a piece of text.",
+            Parameters =
+            [
+                Choice("algorithm", "Algorithm", ["md5", "sha1", "sha256", "sha512"], "sha256",
+                    "Which checksum to work out. SHA-256 is the ordinary choice; MD5 and SHA-1 are "
+                    + "here for matching a value some other program hands out.",
+                    labels: ["MD5", "SHA-1", "SHA-256", "SHA-512"]),
+                Text("text", "Text", "hello", "The text to work out the checksum of.",
+                    acceptsFormula: true),
+                Variable("resultVariable", "Result variable", "digest",
+                    "Variable that receives the checksum in lowercase letters and digits.",
+                    required: false, namesVariable: true),
             ],
         },
 
@@ -2269,6 +2336,7 @@ public static class ActionCatalog
     {
         ActionCategory.Control => ControlIcon,
         ActionCategory.File => FileIcon,
+        ActionCategory.Data => DataIcon,
         ActionCategory.Clipboard => ClipboardIcon,
         ActionCategory.Process => ProcessIcon,
         ActionCategory.System => SystemIcon,

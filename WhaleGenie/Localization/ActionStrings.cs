@@ -426,6 +426,13 @@ internal static class ActionStrings
         ["file.unzip.overwrite.label"] = "覆盖",
         ["file.unzip.overwrite.hint"] = "目标已存在同名文件时是否替换。",
 
+        ["file.zip.name"] = "压缩文件夹",
+        ["file.zip.desc"] = "把文件夹打包成一个 zip 压缩包。",
+        ["file.zip.folder.label"] = "文件夹",
+        ["file.zip.folder.hint"] = "要打包的文件夹。只写文件夹名时会相对宏文件夹解析。",
+        ["file.zip.to.label"] = "压缩包",
+        ["file.zip.to.hint"] = "要写出的 zip 文件，已存在时会替换。",
+
         ["file.deleteFolder.name"] = "删除文件夹",
         ["file.deleteFolder.desc"] = "删除文件夹；可选择连同其中的内容一起删除。",
         ["file.deleteFolder.path.label"] = "文件夹",
@@ -512,6 +519,35 @@ internal static class ActionStrings
         ["file.loadVariables.desc"] = "读取由“保存变量”写出的文件，恢复变量。",
         ["file.loadVariables.path.label"] = "文件",
         ["file.loadVariables.path.hint"] = "要读取的文件。只写文件名时会相对宏文件夹解析。",
+
+        // ------------------------------------------------------------------- data
+        ["data.base64Encode.name"] = "Base64 编码",
+        ["data.base64Encode.desc"] = "把文本编码成 Base64，放进 URL 或令牌时常用这种形式。",
+        ["data.base64Encode.text.label"] = "文本",
+        ["data.base64Encode.text.hint"] = "要编码的文本。变量会先填进去，然后整段按 UTF-8 处理。",
+        ["data.base64Encode.resultVariable.label"] = "结果变量",
+        ["data.base64Encode.resultVariable.hint"] = "存 Base64 文本的变量。",
+
+        ["data.base64Decode.name"] = "Base64 解码",
+        ["data.base64Decode.desc"] = "把 Base64 变回它原本的文本。",
+        ["data.base64Decode.text.label"] = "Base64",
+        ["data.base64Decode.text.hint"] = "要解码的 Base64 文本。变量会先填进去。",
+        ["data.base64Decode.resultVariable.label"] = "结果变量",
+        ["data.base64Decode.resultVariable.hint"] = "存解码后文本的变量，按 UTF-8 读出来。",
+
+        ["data.hash.name"] = "计算哈希",
+        ["data.hash.desc"] = "算出一段文本的校验和。",
+        ["data.hash.algorithm.label"] = "算法",
+        ["data.hash.algorithm.hint"] = "用哪种校验和。一般用 SHA-256；"
+            + "MD5 和 SHA-1 留着是为了对上别的程序给出的值。",
+        ["data.hash.algorithm.option.md5"] = "MD5",
+        ["data.hash.algorithm.option.sha1"] = "SHA-1",
+        ["data.hash.algorithm.option.sha256"] = "SHA-256",
+        ["data.hash.algorithm.option.sha512"] = "SHA-512",
+        ["data.hash.text.label"] = "文本",
+        ["data.hash.text.hint"] = "要算校验和的文本，按 UTF-8 处理。",
+        ["data.hash.resultVariable.label"] = "结果变量",
+        ["data.hash.resultVariable.hint"] = "存校验和的变量，用小写字母和数字。",
 
         // ---------------------------------------------------------------- clipboard
         ["clipboard.writeText.name"] = "复制到剪贴板",

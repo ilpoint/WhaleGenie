@@ -1816,6 +1816,18 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_folder_can_be_packed_into_a_zip_file()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("file.zip", Param("folder", "reports"), Param("to", "reports.zip"))],
+            devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(@"zip reports reports.zip", devices.Calls);
+    }
+
+    [Fact]
     public async Task A_zip_file_that_is_not_one_reports_what_the_device_said()
     {
         var devices = new FakeDeviceLayer { UnzipWorks = false };
@@ -4029,6 +4041,12 @@ internal sealed class FakeDeviceLayer
 
     /// <summary>Whether the fake's zip file unpacks, or turns out to be something else.</summary>
     public bool UnzipWorks { get; set; } = true;
+
+    void IFileDevice.Zip(string folder, string to)
+    {
+        Note($"zip {folder} {to}");
+        Files[to] = "zipped";
+    }
 
     void IFileDevice.DeleteFolder(string path, bool recurse)
     {

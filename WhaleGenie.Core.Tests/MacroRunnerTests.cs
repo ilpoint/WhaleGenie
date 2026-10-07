@@ -1069,6 +1069,59 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task Text_goes_through_Base64_and_comes_back()
+    {
+        var store = Store();
+        var (result, _) = await RunAsync(
+            [
+                Step("data.base64Encode", Param("text", "你好, Ada"),
+                    Param("resultVariable", "encoded")),
+                Step("data.base64Decode", Param("text", "$encoded"),
+                    Param("resultVariable", "back")),
+            ],
+            variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("你好, Ada", store.Local.Values["back"].AsText());
+
+        // Base64 of UTF-8 bytes, which is what every service on the other end expects.
+        Assert.Equal(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("你好, Ada")),
+            store.Local.Values["encoded"].AsText());
+    }
+
+    [Fact]
+    public async Task Text_that_is_not_Base64_fails_the_step()
+    {
+        var store = Store();
+        var (result, _) = await RunAsync(
+            [Step("data.base64Decode", Param("text", "not base64!!"), Param("resultVariable", "x"))],
+            variables: store);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BadBase64", result.Key);
+        Assert.False(store.TryGet("x", out _));
+    }
+
+    [Fact]
+    public async Task A_hash_is_worked_out_by_the_named_algorithm()
+    {
+        var store = Store();
+        var (result, _) = await RunAsync(
+            [
+                Step("data.hash", Param("algorithm", "sha256"), Param("text", "abc"),
+                    Param("resultVariable", "digest")),
+                Step("data.hash", Param("algorithm", "md5"), Param("text", "abc"),
+                    Param("resultVariable", "md5")),
+            ],
+            variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+            store.Local.Values["digest"].AsText());
+        Assert.Equal("900150983cd24fb0d6963f7d28e17f72", store.Local.Values["md5"].AsText());
+    }
+
+    [Fact]
     public async Task Lists_can_be_created_and_changed()
     {
         var store = Store();
