@@ -361,13 +361,17 @@
                                    Text="{Binding NewDefaultPreview}"
                                    IsVisible="{Binding ShowNewDefaultSummary}" />
                     </StackPanel>
-                    <TextBlock Classes="Muted" Margin="2,6,0,0" TextWrapping="Wrap"
-                               Text="{Binding ValidationMessage}" />
+                    <!-- Rejecting a name is a problem to fix, so it is said in red. -->
+                    <TextBlock Margin="2,6,0,0" TextWrapping="Wrap" Foreground="#E06C75"
+                               FontWeight="SemiBold" Text="{Binding ValidationMessage}" />
                 </StackPanel>
 
                 <!-- ===================== System variables ===================== -->
                 <StackPanel IsVisible="{Binding IsSystemTab}">
-                    <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="0,12,0,0"
+                    <!-- Read-only is the one thing to know about these, and it is easy to try to
+                         edit them anyway, so the line says so in red rather than in passing. -->
+                    <TextBlock TextWrapping="Wrap" Margin="0,12,0,0" Foreground="#E06C75"
+                               FontWeight="SemiBold"
                                Text="{Binding [Variable.SystemHint], Source={x:Static loc:Strings.Current}}" />
                     <Grid ColumnDefinitions="210,70,170,*" Margin="0,10,0,0">
                         <TextBlock Classes="ColumnHeader"

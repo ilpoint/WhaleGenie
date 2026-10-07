@@ -378,11 +378,25 @@ public partial class AddActionViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// True when <see cref="ValidationMessage"/> is a problem to fix rather than the empty dialog's
+    /// "pick an action first". Only a problem is worth shouting about: a line written in red as
+    /// soon as the dialog opens would report a mistake nobody has had the chance to make.
+    /// </summary>
+    public bool ValidationIsProblem => SelectedDefinition is not null && ValidationMessage.Length > 0;
+
     public bool CanSave => SelectedDefinition is not null
         && ScopeError() is null
         && MissingParameters().Count == 0;
 
-    partial void OnSelectedDefinitionChanged(ActionDefinition? value) => BuildParameters(value);
+    partial void OnSelectedDefinitionChanged(ActionDefinition? value)
+    {
+        BuildParameters(value);
+        // Choosing an action is what turns "pick one first" into a real answer, so whether the line
+        // is a problem changes here as well as when a parameter is filled in.
+        OnPropertyChanged(nameof(ValidationMessage));
+        OnPropertyChanged(nameof(ValidationIsProblem));
+    }
 
     /// <summary>
     /// Chooses an action by its catalogue key. A palette shortcut opens this dialog on the
@@ -878,6 +892,7 @@ public partial class AddActionViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasParameters));
         OnPropertyChanged(nameof(JsonPreview));
         OnPropertyChanged(nameof(ValidationMessage));
+        OnPropertyChanged(nameof(ValidationIsProblem));
         OnPropertyChanged(nameof(CanSave));
         SaveCommand.NotifyCanExecuteChanged();
     }

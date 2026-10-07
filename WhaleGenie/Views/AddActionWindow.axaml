@@ -810,8 +810,15 @@
 
             <!-- Save / cancel -->
             <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" Margin="4,12,4,0">
+                <!-- Nothing picked yet is not a mistake, so it stays quiet; anything else is a
+                     reason the step cannot be saved and is said in red, where it is hard to miss. -->
                 <TextBlock Grid.Column="0" Classes="Muted" VerticalAlignment="Center"
-                           TextWrapping="Wrap" Text="{Binding ValidationMessage}" />
+                           TextWrapping="Wrap" Text="{Binding ValidationMessage}"
+                           IsVisible="{Binding !ValidationIsProblem}" />
+                <TextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="#E06C75"
+                           FontWeight="SemiBold" TextWrapping="Wrap"
+                           Text="{Binding ValidationMessage}"
+                           IsVisible="{Binding ValidationIsProblem}" />
                 <Button Grid.Column="1" Classes="FlatButton" Height="38" MinWidth="92"
                         Content="{Binding [Add.Cancel], Source={x:Static loc:Strings.Current}}"
                         Margin="8,0,0,0" Command="{Binding CancelCommand}" />
