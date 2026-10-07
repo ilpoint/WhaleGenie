@@ -63,8 +63,12 @@ public sealed class MacroRunner
     private const double SmallestScale = 0.1;
     private const double LargestScale = 10;
 
-    /// <summary>Where inside the macros folder the pictures of failed runs are written.</summary>
-    private const string FailureFolder = "logs";
+    /// <summary>
+    /// Where the pictures of failed runs are written. Relative by default, which puts them beside
+    /// the macro's own data; the application hands in an absolute folder so they land in the
+    /// program's folder instead of inside a project somebody may well be sharing.
+    /// </summary>
+    public string FailureFolder { get; init; } = "logs";
 
     /// <summary>
     /// True when a run that stops on a failure should leave a picture of the screen behind, so the

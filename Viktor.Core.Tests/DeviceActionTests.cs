@@ -61,6 +61,24 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_picture_goes_to_the_folder_the_program_asks_for()
+    {
+        // The application hands in a folder of its own, so the pictures land beside the program
+        // instead of inside a project that somebody may well be sharing.
+        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#00FF00") };
+        var folder = Path.Combine("C:", "viktor", "logs");
+
+        var result = await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
+        {
+            FailureScreenshot = true,
+            FailureFolder = folder,
+        }.RunAsync([Step("nope.unknown")]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.StartsWith(folder, Assert.Single(devices.Blobs).Key, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_run_that_finishes_leaves_no_picture()
     {
         var devices = new FakeDeviceLayer { Display = Picture("#FF0000") };

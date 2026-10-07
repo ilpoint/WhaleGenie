@@ -442,7 +442,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.LanguageHint"] = "Applies immediately to every window.",
         ["Settings.FailureScreenshot"] = "Save a picture of the screen when a run fails",
         ["Settings.FailureScreenshotHint"] =
-            "Kept in the logs folder inside the macros folder. Nothing is written while a macro runs well.",
+            "Kept in the logs folder beside the program. Nothing is written while a macro runs well.",
         ["Settings.Note"] = "Action names and parameter text use the selected language when a window is opened.",
         ["Settings.Close"] = "Close",
 
@@ -1071,7 +1071,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.Language"] = "语言",
         ["Settings.LanguageHint"] = "立即应用到所有窗口。",
         ["Settings.FailureScreenshot"] = "运行失败时保存屏幕截图",
-        ["Settings.FailureScreenshotHint"] = "保存到宏文件夹下的 logs 目录。宏运行顺利时不会写入任何文件。",
+        ["Settings.FailureScreenshotHint"] = "保存到程序所在目录下的 logs 文件夹。宏运行顺利时不会写入任何文件。",
         ["Settings.Note"] = "动作名称和参数文本会在窗口打开时按所选语言显示。",
         ["Settings.Close"] = "关闭",
 

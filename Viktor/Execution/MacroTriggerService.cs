@@ -1139,6 +1139,7 @@ public sealed class MacroTriggerService : IDisposable
                 var runner = new MacroRunner(MacroVariables.Seed(), host, _devices, macro.DelayScale, library)
                 {
                     FailureScreenshot = failureScreenshot,
+                    FailureFolder = AppPaths.Logs,
                 };
                 var result = await runner.RunAsync(steps, token);
                 if (result.Status != RunStatus.Completed || !repeating || StoppingAfterPass(macro))

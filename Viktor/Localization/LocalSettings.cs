@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using Viktor.Execution;
 
 namespace Viktor.Localization;
 
@@ -8,13 +9,11 @@ namespace Viktor.Localization;
 public static class LocalSettings
 {
     /// <summary>
-    /// The file the choices live in. It can be moved so a check runs against a folder of its own
-    /// instead of the one the person using Viktor keeps their settings in.
+    /// The file the choices live in: beside the program, so a copy of Viktor carries its own
+    /// choices with it. It can be moved so a check runs against a file of its own instead of the
+    /// one whoever is using Viktor keeps.
     /// </summary>
-    internal static string FilePath { get; set; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "Viktor",
-        "settings.json");
+    internal static string FilePath { get; set; } = AppPaths.Settings;
 
     /// <summary>Reads the stored language, falling back to English.</summary>
     public static Language Load()

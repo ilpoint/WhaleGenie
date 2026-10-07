@@ -241,6 +241,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost
             await new MacroRunner(_variables, this, _devices, _delayScale, _macros)
             {
                 FailureScreenshot = LocalSettings.LoadFailureScreenshot(),
+                FailureFolder = AppPaths.Logs,
             }.RunAsync(_steps, cancellation.Token);
         }
         finally
