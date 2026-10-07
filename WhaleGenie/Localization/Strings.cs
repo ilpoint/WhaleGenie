@@ -217,6 +217,12 @@ public sealed class Strings : INotifyPropertyChanged
                                 + "window when the document name changes.",
         ["Add.PickElement"] = "Pick element…",
         ["Add.PickElementHint"] = "Point at a control on screen and click it to write its selector.",
+        ["Add.PickBrowserElement"] = "Pick on the page…",
+        ["Add.PickBrowserElementHint"] =
+            "Opens the page in a browser. Click the element to use on it and its selector is written here.",
+        ["Add.BrowserPickBanner"] = "Click the element to use. Esc gives up.",
+        ["Add.BrowserPickFailed"] =
+            "The page could not be opened, or nothing could be picked from it.",
         ["Element.Title"] = "Pick an element",
         ["Element.Empty"] = "No control to pick up here.",
         ["Element.Unknown"] = "Control",
@@ -982,6 +988,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["WindowPicker.Hint"] = "只保存标题的一部分，所以文档名变了以后宏仍然能找到这个窗口。",
         ["Add.PickElement"] = "拾取元素…",
         ["Add.PickElementHint"] = "把鼠标移到屏幕上的控件并点击，即可写入它的选择器。",
+        ["Add.PickBrowserElement"] = "在页面里拾取…",
+        ["Add.PickBrowserElementHint"] = "在浏览器里打开这个页面，点页面上要操作的元素，它的选择器就写到这里。",
+        ["Add.BrowserPickBanner"] = "点击要操作的元素；按 Esc 放弃。",
+        ["Add.BrowserPickFailed"] = "没能打开页面，或者没能从页面上拾取到元素。",
         ["Element.Title"] = "拾取元素",
         ["Element.Empty"] = "这里没有可拾取的控件，请换一个位置重试。",
         ["Element.Unknown"] = "控件",

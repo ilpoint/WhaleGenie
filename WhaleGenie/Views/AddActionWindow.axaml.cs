@@ -17,6 +17,9 @@ namespace WhaleGenie.Views;
 
 public partial class AddActionWindow : Window
 {
+    /// <summary>Whether the dialog has been dismissed, which can happen while a page is open.</summary>
+    private bool _closed;
+
     public AddActionWindow()
         : this(null, null, null, null, null, null)
     {
@@ -350,6 +353,41 @@ public partial class AddActionWindow : Window
         }
     }
 
+    /// <summary>
+    /// Opens the page a browser step is about and writes the selector of the element clicked on
+    /// it. The address comes from the step's own address field, so "go to this page, then click
+    /// that" is picked off the page the macro will actually be looking at.
+    /// </summary>
+    private async void OnPickBrowserElement(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel parameter }
+            || DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        var url = viewModel.Parameters.FirstOrDefault(item => item.Definition.Name == "url")?.Text
+            ?? string.Empty;
+
+        try
+        {
+            if (await BrowserPicker.PickAsync(url) is { Length: > 0 } selector)
+            {
+                parameter.Text = selector;
+            }
+        }
+        catch (Exception)
+        {
+            // The dialog can be dismissed while the page is open, and closing it takes the browser
+            // down with it — there is nowhere left to show a message about that.
+            if (!_closed)
+            {
+                await ConfirmDialog.ShowAsync(this, Strings.Get("Add.PickBrowserElement"),
+                    Strings.Get("Add.BrowserPickFailed"), Strings.Get("Common.Ok"), showCancel: false);
+            }
+        }
+    }
+
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
@@ -359,5 +397,13 @@ public partial class AddActionWindow : Window
         {
             BeginMoveDrag(e);
         }
+    }
+
+    /// <summary>The page a pick left open goes away with the dialog that opened it.</summary>
+    protected override void OnClosed(EventArgs e)
+    {
+        _closed = true;
+        base.OnClosed(e);
+        BrowserPicker.Close();
     }
 }

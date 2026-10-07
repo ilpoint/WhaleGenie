@@ -51,7 +51,7 @@ Debug 构建会拉 `AvaloniaUI.DiagnosticsSupport`（`Program.cs` 里的 `WithDe
 | --- | --- | --- |
 | 纯逻辑 | `WhaleGenie.Core.Tests` | 引擎的每一步、变量与表达式、宏包往返。跑在替身设备层上，断言"引擎要求了什么" |
 | 界面 | `WhaleGenie.Tests` | 参数成型、触发器比对、卡片显示、文案完整性、编辑器里真的发鼠标和按键的无头用例（`Ui.Run(...)`） |
-| 手动 | — | 真实输入、抓屏取色、UIA 拾取、录制、窗口布局 |
+| 手动 | — | 真实输入、抓屏取色、UIA 拾取、页面拾取、录制、窗口布局 |
 
 每加一个动作，至少要有一条引擎用例走到它；每加一条用户可见文案，`LocalizationTests` 自动覆盖。
 
@@ -234,8 +234,17 @@ WebKit 才需要下载。
   这个驱动是给 Edgeless 内核和 Firefox / WebKit 用的，Edge 通道也要它——省不掉。
 - Playwright 的调用是异步的，而且会回到发起调用时的同步上下文，在界面线程上直接等会死等；
   `PlaywrightBrowserDevice` 里所有调用都丢到线程池上等，和 `ViiperLink` 一个做法。
+- 页面里的元素不用手写选择器：`IBrowserDevice.Pick(hint, timeoutMs)` 把页面交给一段注入的脚本
+  （`BrowserPickerScript`），鼠标划过高亮、点一下就把选择器回传；编辑器在旁边放一个
+  "在页面里拾取…"按钮（`BrowserPicker`），用步骤自己的地址开一个 Edge，一个对话框里只开一次。
+  这跟 UIA 的元素拾取是两回事——页面上画出来的东西不是一窗控件，所以它在页面里自己做，不读屏幕。
+  脚本以 init script 注入，拾取期间页面跳转也不会掉；init script 撤不掉，于是它每次跨页先问
+  `__whalegenieListening`（"这次拾取还没结束吗"），拾取结束后再跨页就不会重新武装、不会吃掉
+  用户的点击。选择器优先 `data-testid` → `#id` → `name` / `aria-label` → 标签路径，每一条都用
+  `querySelectorAll` 验过"只挑中一个"才用。
 - 替身设备只记下引擎要求了什么，真浏览器要按用例手动跑一遍：打开 → 读文本 → 点击 → 填写 →
-  关闭，对着系统 Edge 跑通一遍，页面上用 `oninput` / `onclick` 把结果写回正文来确认真的生效。
+  关闭，对着系统 Edge 跑通一遍，页面上用 `oninput` / `onclick` 把结果写回正文来确认真的生效；
+  拾取也要手动点一遍，确认点中的是想要的那个元素、点完页面的点击真的被拦下来了。
 
 ## 还没做的
 

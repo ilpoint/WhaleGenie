@@ -236,10 +236,11 @@ public partial class StepParameterViewModel : ViewModelBase
 
     /// <summary>
     /// True when the parameter is written in a plain one-line field with nothing beside it. A
-    /// selector is left out of that group because it carries the element picker's button, and so
-    /// is a field the variables are offered in, which has a list of its own over it.
+    /// selector is left out of that group because it carries the element picker's button, an
+    /// element of a page carries the page picker's button, and a field the variables are offered
+    /// in has a list of its own over it.
     /// </summary>
-    public bool IsPlainText => IsText && !IsSelector && !OffersVariables;
+    public bool IsPlainText => IsText && !IsSelector && !IsBrowserTarget && !OffersVariables;
 
     /// <summary>
     /// True when the field is offered the variables it may name. A hint that says "written out or
@@ -266,6 +267,15 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </summary>
     public bool IsSelector => Definition.Kind is ActionParameterKind.Text
                               && Definition.Name is "selector" or "anchorSelector";
+
+    /// <summary>
+    /// True when this parameter names an element inside a page a browser action drives. It is
+    /// picked off the page itself — by pointing at it in the browser — rather than off the Windows
+    /// desktop the way a UI Automation selector is, so it carries a button of its own.
+    /// </summary>
+    public bool IsBrowserTarget => Definition.Kind is ActionParameterKind.Text
+                                   && Definition.Name is "target"
+                                   && Definition.OwnerKey.StartsWith("browser.", StringComparison.Ordinal);
 
     /// <summary>True when this parameter is a picture the action looks for on screen.</summary>
     public bool IsImage => Definition.Kind is ActionParameterKind.Image;

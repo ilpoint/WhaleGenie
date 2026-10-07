@@ -271,6 +271,55 @@ public class ElementPickerTests
         });
     }
 
+    /// <summary>
+    /// An element of a page is picked off the page, not off the desktop, so it carries its own
+    /// button. The bare one-line field would otherwise be drawn underneath it as well.
+    /// </summary>
+    [Fact]
+    public void An_element_of_a_page_is_picked_off_the_page()
+    {
+        Ui.Run(() =>
+        {
+            foreach (var key in new[] { "browser.click", "browser.fill", "browser.readText" })
+            {
+                var definition = ActionCatalog.Find(key)
+                    ?? throw new InvalidOperationException($"{key} is missing from the catalogue.");
+                var target = new StepParameterViewModel(
+                    definition.Parameters.First(parameter => parameter.Name == "target"));
+
+                Assert.True(target.IsBrowserTarget, $"{key}'s element is not picked off the page");
+                Assert.False(target.IsPlainText, $"{key}'s element is drawn twice");
+                Assert.False(target.IsSelector, $"{key}'s element got the UI Automation picker");
+            }
+
+            // A page is opened by the browser's own address field, which stays a plain box.
+            var open = ActionCatalog.Find("browser.open")
+                ?? throw new InvalidOperationException("browser.open is missing from the catalogue.");
+            var url = new StepParameterViewModel(
+                open.Parameters.First(parameter => parameter.Name == "url"));
+            Assert.False(url.IsBrowserTarget);
+            Assert.True(url.IsPlainText);
+        });
+    }
+
+    /// <summary>
+    /// The flag only means something if the dialog's markup uses it, so the block that draws the
+    /// page picker is read here: a field for it, and a button that asks for a pick.
+    /// </summary>
+    [Fact]
+    public void The_dialog_puts_the_page_picker_beside_an_element_of_a_page()
+    {
+        var markup = File.ReadAllText(
+            Path.Combine(Repository(), "WhaleGenie", "Views", "AddActionWindow.axaml"));
+
+        var start = markup.IndexOf("IsVisible=\"{Binding IsBrowserTarget}\"", StringComparison.Ordinal);
+        Assert.True(start >= 0, "the dialog stopped offering a picker for elements of a page");
+
+        var block = markup[start..markup.IndexOf("</Grid>", start, StringComparison.Ordinal)];
+        Assert.Contains("TextBox", block, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnPickBrowserElement\"", block, StringComparison.Ordinal);
+    }
+
     /// <summary>The control a test pretends the pointer was put on.</summary>
     private static UiElementInfo At(int x, int y) => new(
         "Save",
@@ -280,4 +329,18 @@ public class ElementPickerTests
         new ScreenPoint(x, y),
         new ScreenSize(80, 24),
         "Untitled - Notepad");
+
+    /// <summary>The repository root, found by walking up from the test binaries.</summary>
+    private static string Repository()
+    {
+        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
+        {
+            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
+            {
+                return at.FullName;
+            }
+        }
+
+        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
+    }
 }

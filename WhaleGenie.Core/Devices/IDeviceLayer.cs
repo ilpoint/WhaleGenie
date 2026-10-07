@@ -393,6 +393,15 @@ public interface IBrowserDevice
     /// </summary>
     string Text(string selector);
 
+    /// <summary>
+    /// Puts the open page into picking mode and waits for the person to click an element on it,
+    /// answering with a selector for what they clicked. An empty answer means they gave up, or
+    /// nothing was clicked in time. The page is left the way it was either way.
+    /// <paramref name="hint"/> is what the banner inside the page says, written in the reader's
+    /// language by whoever asked for the pick — the engine holds no user-facing text of its own.
+    /// </summary>
+    string Pick(string hint, int timeoutMs);
+
     /// <summary>Closes the browser and lets go of it, which a macro does when it is done.</summary>
     void Close();
 }
@@ -555,6 +564,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public void Fill(string selector, string text) => throw Missing("a browser");
 
         public string Text(string selector) => throw Missing("a browser");
+
+        public string Pick(string hint, int timeoutMs) => throw Missing("a browser");
 
         public void Close() => throw Missing("a browser");
 

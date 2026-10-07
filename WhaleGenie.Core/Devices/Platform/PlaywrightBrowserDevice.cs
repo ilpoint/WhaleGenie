@@ -20,6 +20,12 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     private IBrowser? _browser;
     private IPage? _page;
 
+    /// <summary>Handed the selector the person clicked, by the page's own script.</summary>
+    private TaskCompletionSource<string>? _picked;
+
+    /// <summary>Whether the picker's bindings and init script have been installed on this page.</summary>
+    private bool _listening;
+
     /// <summary>
     /// The browsers Playwright fetches land under the profile's cache folder; the one being asked
     /// for having a folder there is what "already downloaded" means, and it is checked without
@@ -125,6 +131,61 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             : await page.InnerTextAsync(selector);
     });
 
+    public string Pick(string hint, int timeoutMs)
+    {
+        var page = Page();
+
+        // The answer arrives on whichever thread Playwright dispatches on, so the wait below has
+        // to be able to let go of the caller while it is still outstanding.
+        var answer = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _picked = answer;
+        try
+        {
+            Wait(async () =>
+            {
+                if (!_listening)
+                {
+                    // The answer binding is what the page's script answers through; the "still
+                    // wanted" binding is what the init script asks before putting the picker back
+                    // after a navigation, since an init script cannot be removed once added.
+                    await page.ExposeFunctionAsync(
+                        "__whalegeniePicked", (string? selector) => _picked?.TrySetResult(selector ?? string.Empty));
+                    await page.ExposeFunctionAsync("__whalegenieListening", () => _picked is not null);
+                    await page.AddInitScriptAsync(BrowserPickerScript.InitScript(hint));
+                    _listening = true;
+                }
+
+                await page.EvaluateAsync(BrowserPickerScript.Source, new { hint });
+            });
+
+            return answer.Task.Wait(Math.Max(1000, timeoutMs)) ? answer.Task.Result : string.Empty;
+        }
+        finally
+        {
+            _picked = null;
+            TryStopPicking(page);
+        }
+    }
+
+    /// <summary>
+    /// Takes the picker off the page when the wait ends first — a person who never clicked should
+    /// not be left with a banner and a highlight following the pointer around the page.
+    /// </summary>
+    private static void TryStopPicking(IPage page)
+    {
+        try
+        {
+            Wait(async () => await page.EvaluateAsync(
+                "() => { if (window.__whalegeniePicking) {"
+                + " window.__whalegeniePicking = false;"
+                + " for (const node of document.querySelectorAll('[data-whalegenie-picker]')) { node.remove(); } } }"));
+        }
+        catch (PlaywrightException)
+        {
+            // The page went away while picking, which is one of the ways picking can end.
+        }
+    }
+
     public void Close()
     {
         if (_page is null && _browser is null)
@@ -142,6 +203,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
         _page = null;
         _browser = null;
+        _listening = false;
     }
 
     public void Dispose()

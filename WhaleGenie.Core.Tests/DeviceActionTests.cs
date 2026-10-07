@@ -3889,6 +3889,15 @@ internal sealed class FakeDeviceLayer
         return BrowserPage;
     }
 
+    /// <summary>What the next pick answers with, as though a person had clicked that element.</summary>
+    public string BrowserPicked { get; set; } = "#picked";
+
+    string IBrowserDevice.Pick(string hint, int timeoutMs)
+    {
+        Note($"browserPick {hint} {timeoutMs}");
+        return BrowserPicked;
+    }
+
     void IBrowserDevice.Close()
     {
         Note("browserClose");
