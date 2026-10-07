@@ -111,11 +111,13 @@ Settings → Actions → General → Workflow permissions 里放开一次。
 
 每次出三个包，差别只在"要不要自己带运行环境"，其余完全一样：
 
-| 包 | 自带运行环境 | 体积（x64 解压 / 压缩包） | 什么时候用 |
+| 包 | 自带运行环境 | 体积（x64 解压后 / 打包后） | 什么时候用 |
 | --- | --- | --- | --- |
-| `Viktor-<版本>-win-x64.zip` | 否，要装 .NET 10 桌面运行时 | 245 MB / 89 MB | 体积最小；已经装过运行环境 |
-| `Viktor-<版本>-win-x64-standalone.zip` | 是 | 415 MB / 161 MB | 换机器、给别人，什么都不用装 |
-| `Viktor-<版本>-win-x64-standalone.exe` | 是 | 309 MB / 133 MB（单文件） | 只想拷一个文件走 |
+| `Viktor-<版本>-win-x64.zip` | 否，要装 .NET 10 桌面运行时 | 145 MB / 63 MB | 体积最小；已经装过运行环境 |
+| `Viktor-<版本>-win-x64-standalone.zip` | 是 | 315 MB / 135 MB | 换机器、给别人，什么都不用装 |
+| `Viktor-<版本>-win-x64-standalone.exe` | 是 | 133 MB（单文件，打包前后都是它） | 只想拷一个文件走 |
+
+体积里不含调试符号：发布时会把 `.pdb` 删掉，它比程序本身还大（Skia 一份就 80 MB）。
 
 三个包的手动打法是同一条 `dotnet publish`，只是开关不同：
 
@@ -132,8 +134,8 @@ dotnet publish Viktor/Viktor.csproj -c Release -r win-x64 --self-contained true 
   -p:EnableCompressionInSingleFile=true -o dist/single
 ```
 
-体积几乎全在原生库上（OpenCV 约 73 MB、ffmpeg 约 29 MB，加上 OCR 的模型和 ONNX、Skia、
-HarfBuzz），所以单文件版不可能小到几十兆。不做裁剪（`PublishTrimmed`）：Avalonia 的 XAML、
+体积几乎全在原生库上（OpenCV 的 `OpenCvSharpExtern.dll` 约 73 MB、ffmpeg 约 29 MB，加上
+OCR 模型、Skia、HarfBuzz），所以单文件版不可能小到几十兆。不做裁剪（`PublishTrimmed`）：Avalonia 的 XAML、
 UIA 和 OCR 都靠反射找类型，裁了就得一个动作一个动作地验，不值当。
 
 32 位（`-r win-x86`）三种包都能出，但找图/等图/点图依赖的 OpenCV 只有 64 位原生库，

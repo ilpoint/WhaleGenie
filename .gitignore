@@ -30,6 +30,10 @@ bld/
 [Bb]in/
 [Oo]bj/
 [Oo]ut/
+
+# 发布产物：publish 的输出目录，release.yml 和本地打包都往这里放
+dist/
+
 [Ll]og/
 [Ll]ogs/
 
