@@ -285,8 +285,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost
     /// <summary>Hands a failed step to the user, who picks what happens next.</summary>
     public async Task<StepErrorChoice> Ask(string step, string reason, string detail, CancellationToken token)
     {
-        var why = detail.Length == 0 ? Strings.Format(reason, string.Empty) : Strings.Format(reason, detail);
-        Question = $"{Strings.Format("Run.Ask", Name(step))}\n{why}";
+        Question = FailedStepPrompt.Question(step, reason, detail);
         IsAsking = true;
 
         var answer = new TaskCompletionSource<StepErrorChoice>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -345,7 +344,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost
             Steps.Add(new RunStepViewModel
             {
                 Id = step.Id,
-                Label = Name(step.Type),
+                Label = FailedStepPrompt.Name(step.Type),
                 Detail = Detail(step),
                 Depth = depth,
             });
@@ -368,8 +367,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost
             Build(step.Children("conditions"), depth + 1);
         }
     }
-
-    private static string Name(string type) => ActionCatalog.Find(type)?.LocalName ?? type;
 
     private static string Detail(ExecutableStep step)
     {

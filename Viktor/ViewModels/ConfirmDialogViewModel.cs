@@ -1,5 +1,6 @@
 using System;
 using CommunityToolkit.Mvvm.Input;
+using Viktor.Localization;
 
 namespace Viktor.ViewModels;
 
@@ -31,6 +32,16 @@ public partial class ConfirmDialogViewModel : ViewModelBase
 
     /// <summary>False for messages that only need an acknowledgement button.</summary>
     public bool ShowCancel { get; init; } = true;
+
+    /// <summary>
+    /// What the button that turns the question down says. "Cancel" fits "should I save?", but a
+    /// question about a failed step wants "Stop" — closing the window still answers the safe way.
+    /// </summary>
+    public string? CancelLabel { get; init; }
+
+    public string CancelText => string.IsNullOrEmpty(CancelLabel)
+        ? Strings.Get("Confirm.Cancel")
+        : CancelLabel!;
 
     [RelayCommand]
     private void Primary() => CloseRequested?.Invoke(ConfirmChoice.Primary);

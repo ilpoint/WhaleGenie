@@ -12,6 +12,7 @@ using Avalonia.VisualTree;
 using SharpHook;
 using SharpHook.Data;
 using Viktor.Core.Devices.Platform;
+using Viktor.Core.Execution;
 using Viktor.Execution;
 using Viktor.Localization;
 using Viktor.Models;
@@ -104,6 +105,7 @@ public partial class MainWindow : Window
         }
 
         _triggers = new MacroTriggerService(() => viewModel.Macros);
+        _triggers.Ask = AskAboutFailedStep;
         _triggers.StatusChanged += OnTriggerStatusChanged;
         _triggers.IsEnabled = viewModel.IsRunning;
 
@@ -401,6 +403,27 @@ public partial class MainWindow : Window
         await ConfirmDialog.ShowAsync(this, header,
             $"{Path.GetFileName(path)}\n{error.Message}", Strings.Get("Common.Ok"), null, false);
     }
+
+    /// <summary>
+    /// Puts a failed step of a triggered macro to the user, the same question the debugger asks.
+    /// A trigger runs its macro on a thread of its own, so the question has to be handed to the
+    /// interface thread; an answer of "stop" is what a closed box or a cancelled run gives, which
+    /// is the one choice that cannot make things worse on its own.
+    /// </summary>
+    private async Task<StepErrorChoice> AskAboutFailedStep(string step, string reason, string detail)
+        => await Dispatcher.UIThread.InvokeAsync(async () =>
+        {
+            var choice = await ConfirmDialog.ShowAsync(this, Strings.Get("Run.AskTitle"),
+                FailedStepPrompt.Question(step, reason, detail),
+                Strings.Get("Run.AskRetry"), Strings.Get("Run.AskSkip"), true, Strings.Get("Run.AskStop"));
+
+            return choice switch
+            {
+                ConfirmChoice.Primary => StepErrorChoice.Retry,
+                ConfirmChoice.Secondary => StepErrorChoice.Skip,
+                _ => StepErrorChoice.Stop,
+            };
+        });
 
     private static void OpenFolder(string? folder)
     {

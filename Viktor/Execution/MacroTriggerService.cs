@@ -69,6 +69,12 @@ public sealed class MacroTriggerService : IDisposable
         _poll = new Timer(_ => Poll(), null, Timeout.Infinite, Timeout.Infinite);
     }
 
+    /// <summary>
+    /// Asked when a step of a triggered macro has a failure rule of "ask me". Set by the window
+    /// that can ask; without it a run that wants to ask stops, which says more than guessing.
+    /// </summary>
+    public Func<string, string, string, Task<StepErrorChoice>>? Ask { get; set; }
+
     /// <summary>The system switch on the main window.</summary>
     public bool IsEnabled
     {
@@ -1124,9 +1130,13 @@ public sealed class MacroTriggerService : IDisposable
             // keep asking the settings file, and a change made while it runs can wait.
             var failureScreenshot = LocalSettings.LoadFailureScreenshot();
 
+            // No debugger is behind a run a trigger started, but a step whose failure rule is
+            // "ask me" still has to reach whoever can put the question on screen.
+            var host = new AskRunHost(Ask);
+
             while (!token.IsCancellationRequested)
             {
-                var runner = new MacroRunner(MacroVariables.Seed(), null, _devices, macro.DelayScale, library)
+                var runner = new MacroRunner(MacroVariables.Seed(), host, _devices, macro.DelayScale, library)
                 {
                     FailureScreenshot = failureScreenshot,
                 };

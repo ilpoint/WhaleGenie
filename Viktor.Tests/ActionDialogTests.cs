@@ -84,6 +84,22 @@ public class ActionDialogTests
     }
 
     [Fact]
+    public void A_new_step_starts_by_pausing_and_asking_if_it_fails()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.keyPress");
+
+            MacroStep? saved = null;
+            viewModel.CloseRequested += step => saved = step;
+            viewModel.SaveCommand.Execute(null);
+
+            Assert.NotNull(saved);
+            Assert.Equal(StepErrorAction.AskUser, saved!.Meta.OnError);
+        });
+    }
+
+    [Fact]
     public void The_pointer_shortcut_writes_plain_numbers()
     {
         Ui.Run(() =>

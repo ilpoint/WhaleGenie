@@ -89,7 +89,7 @@
             <Button Classes="FlatButton" Content="{Binding SecondaryLabel}" Height="36" MinWidth="92"
                     IsVisible="{Binding HasSecondary}" Command="{Binding SecondaryCommand}" />
             <Button Classes="FlatButton" Height="36" MinWidth="92"
-                    Content="{Binding [Confirm.Cancel], Source={x:Static loc:Strings.Current}}"
+                    Content="{Binding CancelText}"
                     IsVisible="{Binding ShowCancel}"
                     Command="{Binding CancelCommand}" />
         </StackPanel>

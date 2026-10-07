@@ -48,7 +48,9 @@ public partial class AddActionViewModel : ViewModelBase
         AvailableActions = actions ?? ActionCatalog.RunnableActions;
         _variables = variables ?? [];
         _macros = macros ?? [];
-        MetaOnError = ErrorChoices[0];
+        // A step that fails is usually a surprise the macro cannot have planned for, so a new one
+        // starts by stopping and asking rather than bringing the whole run down on its own.
+        MetaOnError = ErrorChoices.First(choice => choice.Value == StepMeta.Name(StepErrorAction.AskUser));
         MetaRetryBackoff = BackoffChoices[0];
         MetaTimeout = new DurationSettingViewModel();
         MetaRetryDelay = new DurationSettingViewModel(500);
