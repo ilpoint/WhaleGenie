@@ -67,7 +67,7 @@
                                      MinimumPrefixLength="1"
                                      FilterMode="Contains" />
                     <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
-                            IsVisible="{Binding IsFormulaText}"
+                            IsVisible="{Binding OffersFormula}"
                             Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenExpressionBuilder" />
@@ -246,12 +246,21 @@
                     </ComboBox.ItemTemplate>
                 </ComboBox>
 
-                <AutoCompleteBox Classes="VarInput" IsVisible="{Binding IsVariable}"
-                                 ItemsSource="{Binding Variables}"
-                                 Text="{Binding Text}"
-                                 PlaceholderText="{Binding Placeholder}"
-                                 MinimumPrefixLength="0"
-                                 FilterMode="Contains" />
+                <!-- A variable, which may also be a whole value of its own: an operand of a
+                     calculation is written here, and may be built with the expression editor. -->
+                <Grid IsVisible="{Binding IsVariable}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                    <AutoCompleteBox Classes="VarInput"
+                                     ItemsSource="{Binding Variables}"
+                                     Text="{Binding Text}"
+                                     PlaceholderText="{Binding Placeholder}"
+                                     MinimumPrefixLength="0"
+                                     FilterMode="Contains" />
+                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                            IsVisible="{Binding OffersFormula}"
+                            Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnOpenExpressionBuilder" />
+                </Grid>
 
                 <AutoCompleteBox Classes="VarInput" IsVisible="{Binding IsMacro}"
                                  ItemsSource="{Binding Macros}"

@@ -23,13 +23,13 @@ public class VariableFieldTests
             // The whole value is read as one, so the expression editor may build it — this is the
             // one place where what the builder makes is exactly what the engine reads.
             Assert.True(message.OffersVariables);
-            Assert.True(message.IsFormulaText);
+            Assert.True(message.OffersFormula);
             Assert.False(message.IsPlainText);
             Assert.NotEmpty(message.ExpressionSuggestions);
             Assert.Contains(message.ExpressionSuggestions, entry => entry == "$count");
 
             Assert.True(heading.OffersVariables);
-            Assert.True(heading.IsFormulaText);
+            Assert.True(heading.OffersFormula);
         });
     }
 
@@ -49,7 +49,7 @@ public class VariableFieldTests
 
                 Assert.True(region.OffersVariables, $"{key} stopped offering its variables");
                 Assert.False(region.IsPlainText, $"{key}'s region went back to a plain box");
-                Assert.False(region.IsFormulaText, $"{key}'s region is not a formula field");
+                Assert.False(region.OffersFormula, $"{key}'s region is not a formula field");
                 Assert.NotEmpty(region.ExpressionSuggestions);
 
                 // A region is filled in rather than worked out, so it is offered names and not the
@@ -77,6 +77,32 @@ public class VariableFieldTests
     }
 
     /// <summary>
+    /// Working a value out is an action with three pieces — two operands and an operator — and the
+    /// operands are where the expression editor helps: an operand may itself be a whole value, so
+    /// it may be built rather than spelled out.
+    /// </summary>
+    [Fact]
+    public void A_calculation_operand_can_be_built_with_the_expression_editor()
+    {
+        Ui.Run(() =>
+        {
+            var calculate = Open("control.calculate");
+
+            foreach (var operand in new[] { "left", "right" })
+            {
+                var field = Parameter(calculate, operand);
+
+                // Still a variable list that can be typed into, and now buildable as well.
+                Assert.True(field.IsVariable);
+                Assert.True(field.OffersFormula);
+            }
+
+            // The operator stays a fixed list: not having to spell it is the point of the action.
+            Assert.True(Parameter(calculate, "operator").IsChoice);
+        });
+    }
+
+    /// <summary>
     /// The flags only mean something if the dialog's markup uses them, so the one place the
     /// parameter editors are written down is read here: a value field gets a list of the variables
     /// over it, and a whole-value field gets the expression editor beside it.
@@ -93,7 +119,7 @@ public class VariableFieldTests
         var block = markup[start..markup.IndexOf("</Grid>", start, StringComparison.Ordinal)];
         Assert.Contains("AutoCompleteBox", block, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ExpressionSuggestions}\"", block, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsFormulaText}\"", block, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding OffersFormula}\"", block, StringComparison.Ordinal);
         Assert.Contains("Click=\"OnOpenExpressionBuilder\"", block, StringComparison.Ordinal);
     }
 

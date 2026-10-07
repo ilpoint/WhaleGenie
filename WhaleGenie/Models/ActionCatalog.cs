@@ -380,12 +380,16 @@ public static class ActionCatalog
                     labels: ["Local (this macro)", "Global (shared)"]),
                 Variable("left", "Left operand", "1",
                     "The first operand, picked from the variable list or typed in. It does not "
-                    + "have to be a number: \"join\" puts two pieces of text together."),
+                    + "have to be a number: \"join\" puts two pieces of text together. A whole "
+                    + "operand may be worked out with the expression editor.",
+                    acceptsFormula: true),
                 Choice("operator", "Operator", CalculateOperators, "add",
                     "What to do with the two operands. The operator is chosen from this list.",
                     labels: CalculateOperatorLabels),
                 Variable("right", "Right operand", "1",
-                    "The second operand, picked from the variable list or typed in."),
+                    "The second operand, picked from the variable list or typed in. It may be "
+                    + "worked out with the expression editor the same way.",
+                    acceptsFormula: true),
             ],
         },
         new()
@@ -2380,7 +2384,8 @@ public static class ActionCatalog
 
     /// <summary>Name of a variable, edited with a suggestion list.</summary>
     private static ActionParameter Variable(string name, string label, string placeholder, string hint,
-        bool required = true, bool namesVariable = false, string defaultValue = "")
+        bool required = true, bool namesVariable = false, string defaultValue = "",
+        bool acceptsFormula = false)
         => new()
         {
             Name = name,
@@ -2391,6 +2396,7 @@ public static class ActionCatalog
             Required = required,
             NamesVariable = namesVariable,
             DefaultValue = defaultValue,
+            AcceptsFormula = acceptsFormula,
         };
 
     private static ActionParameter Number(string name, string label, decimal defaultValue,

@@ -253,9 +253,11 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>
     /// True when the whole value is read as one, so the expression editor may build it: what it
     /// makes there is what the engine reads. Text that is only filled in stays out, because a
-    /// formula written into it would be taken literally.
+    /// formula written into it would be taken literally. It holds for a value written in a text
+    /// box and for one picked from a variable list alike — an operand of a calculation is the
+    /// second kind, and being able to build it is the difference between this and the editor.
     /// </summary>
-    public bool IsFormulaText => IsText && Definition.AcceptsFormula;
+    public bool OffersFormula => Definition.AcceptsFormula;
 
     /// <summary>
     /// True when this parameter is a UI Automation selector, which the element picker can take
