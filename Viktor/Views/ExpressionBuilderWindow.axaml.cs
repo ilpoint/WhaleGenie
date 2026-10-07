@@ -23,6 +23,7 @@ public partial class ExpressionBuilderWindow : Window
         InitializeComponent();
 
         DataContext = viewModel;
+        Title = viewModel.Header;
         viewModel.CloseRequested += Close;
 
         var closeButton = this.FindControl<Button>("CloseButton");

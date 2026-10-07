@@ -18,6 +18,7 @@ public partial class ConfirmDialog : Window
         InitializeComponent();
 
         DataContext = viewModel;
+        Title = viewModel.Header;
         viewModel.CloseRequested += choice => Close(choice);
 
         var closeButton = this.FindControl<Button>("CloseButton");

@@ -10,7 +10,7 @@
         x:Class="Viktor.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/WhaleGenie.ico"
-        Title="WhaleGenie"
+        Title="{Binding WindowTitle}"
         Width="480" Height="680"
         MinWidth="360" MinHeight="480"
         ExtendClientAreaToDecorationsHint="True"
