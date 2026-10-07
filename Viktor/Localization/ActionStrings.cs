@@ -196,7 +196,7 @@ internal static class ActionStrings
         ["control.switch.matchMode.option.startsWith"] = "以…开头",
         ["control.switch.matchMode.option.regex"] = "正则匹配",
         ["control.switch.cases.label"] = "分支",
-        ["control.switch.cases.hint"] = "一条一个分支，从上往下比对；命中第一条就执行它，后面的不再看。",
+        ["control.switch.cases.hint"] = "一行一个分支，从上到下比对；命中第一个分支后执行该分支，其余分支不再比对。",
         ["control.switch.otherwise.label"] = "其他情况步骤",
         ["control.switch.otherwise.hint"] = "所有分支都没命中时执行的子步骤。",
 
@@ -286,15 +286,15 @@ internal static class ActionStrings
         ["control.log.level.label"] = "级别",
 
         ["control.runMacro.name"] = "执行其他宏",
-        ["control.runMacro.desc"] = "运行本项目里的另一个宏，就像把它的步骤写在这里一样。"
-            + "被调用的宏用自己的一套变量：它读到的就是下面“参数”里传进去的东西，"
-            + "它留下的东西靠“返回”挑回来。",
+        ["control.runMacro.desc"] = "运行本项目里的另一个宏，效果相当于把它的步骤写在这里。"
+            + "被调用的宏使用自己的一套变量：可读取下方“参数”中传入的值，"
+            + "其最终留下的值通过“返回”取回。",
         ["control.runMacro.macro.label"] = "宏",
         ["control.runMacro.macro.hint"] = "本项目里的另一个宏。改名或删除后这里需要跟着改。",
         ["control.runMacro.arguments.label"] = "参数",
-        ["control.runMacro.arguments.hint"] = "一行一个 NAME=value，作为被调用宏自己的变量传进去。"
-            + "值按其它字段一样的规则读取：count=$n + 1 传的是数字，xs=$list 传的是列表本身，"
-            + "写不出 NAME=value 的行会让这一步失败。# 开头的行会跳过。",
+        ["control.runMacro.arguments.hint"] = "一行一个 NAME=value，作为被调用宏自身的变量传入。"
+            + "值按与其他字段相同的规则读取：count=$n + 1 传入的是数字，xs=$list 传入的是列表本身；"
+            + "无法写成 NAME=value 的行会使这一步失败。# 开头的行会被跳过。",
         ["control.runMacro.returns.label"] = "返回",
         ["control.runMacro.returns.hint"] = "要带回本宏的变量名，用逗号隔开。被调用宏没有设置的"
             + "名字会带回空值，这样后面读到的永远是这一次的结果，而不是上一次残留的。",
@@ -366,7 +366,7 @@ internal static class ActionStrings
         ["file.createFolder.path.hint"] = "要创建的文件夹。只写名字时会相对宏文件夹解析。",
 
         ["file.path.name"] = "路径处理",
-        ["file.path.desc"] = "算出路径的一部分：拼接、拆开，或者看它指向哪里。",
+        ["file.path.desc"] = "得到一个路径的组成部分：拼接、拆分，或解析出它所指向的位置。",
         ["file.path.operation.label"] = "要算什么",
         ["file.path.operation.hint"] = "“拼接文件夹和文件名”把路径和下面的名字接起来；其余几项各取路径的一部分，或者给出固定位置的文件夹。",
         ["file.path.operation.option.combine"] = "拼接文件夹和文件名",
@@ -394,11 +394,11 @@ internal static class ActionStrings
         ["file.unzip.overwrite.hint"] = "目标已存在同名文件时是否替换。",
 
         ["file.deleteFolder.name"] = "删除文件夹",
-        ["file.deleteFolder.desc"] = "删除文件夹，需要时连里面的东西一起删。",
+        ["file.deleteFolder.desc"] = "删除文件夹；可选择连同其中的内容一起删除。",
         ["file.deleteFolder.path.label"] = "文件夹",
         ["file.deleteFolder.path.hint"] = "要删除的文件夹。只写名字时会相对宏文件夹解析。",
         ["file.deleteFolder.recurse.label"] = "连里面的内容一起删",
-        ["file.deleteFolder.recurse.hint"] = "不勾选时，文件夹里还有东西就原样留着，不会误删。",
+        ["file.deleteFolder.recurse.hint"] = "不勾选时，文件夹非空则保留原样，不会删除其中的内容。",
 
         ["file.listFiles.name"] = "列出文件",
         ["file.listFiles.desc"] = "把文件夹里的文件收集成列表。",
@@ -551,7 +551,7 @@ internal static class ActionStrings
         ["process.start.runAsAdmin.label"] = "以管理员身份运行",
         ["process.start.runAsAdmin.hint"] = "请 Windows 用管理员权限启动这个程序。系统会弹出自己的确认框，拒绝就让这一步失败。以管理员身份启动的程序无法隐藏窗口。",
         ["process.start.environment.label"] = "环境变量",
-        ["process.start.environment.hint"] = "这个程序启动时使用的环境变量，一行一个 NAME=value。留空表示沿用维克多自己的环境变量。以 # 开头的行会被忽略。自己带环境变量启动时，这里要写程序本身，不能写文档或快捷方式。",
+        ["process.start.environment.hint"] = "这个程序启动时使用的环境变量，一行一个 NAME=value。留空表示沿用维克多自身的环境变量。以 # 开头的行会被忽略。自带环境变量启动时，这里要写程序本身，不能写文档或快捷方式。",
         ["process.start.resultVariable.label"] = "结果变量",
         ["process.start.resultVariable.hint"] = "接收进程 id 的变量。",
 
@@ -603,13 +603,13 @@ internal static class ActionStrings
         ["command.run.workingDirectory.label"] = "工作目录",
         ["command.run.workingDirectory.hint"] = "命令在哪个目录下运行。",
         ["command.run.environment.label"] = "环境变量",
-        ["command.run.environment.hint"] = "这条命令运行时使用的环境变量，一行一个 NAME=value。留空表示沿用维克多自己的环境变量。以 # 开头的行会被忽略。",
+        ["command.run.environment.hint"] = "这条命令运行时使用的环境变量，一行一个 NAME=value。留空表示沿用维克多自身的环境变量。以 # 开头的行会被忽略。",
         ["command.run.standardInput.label"] = "标准输入",
-        ["command.run.standardInput.hint"] = "这条命令从标准输入读到的东西。留空表示不给它任何输入。按 UTF-8 发送，里面的 $变量 会替换成那个变量的值。",
+        ["command.run.standardInput.hint"] = "命令从标准输入读取的内容。留空表示不提供任何输入。按 UTF-8 发送，其中的 $变量 会替换为该变量的值。",
         ["command.run.timeoutMs.label"] = "超时",
         ["command.run.timeoutMs.hint"] = "命令最多可以运行多久。",
         ["command.run.streamOutput.label"] = "输出实时写入日志",
-        ["command.run.streamOutput.hint"] = "命令还在跑的时候，它打印的每一行就立刻出现在运行日志里，长时间跑的构建或脚本可以这样看着进度。结果变量里仍然是完整输出。",
+        ["command.run.streamOutput.hint"] = "命令运行期间，它打印的每一行会立即写入运行日志，便于观察耗时较长的构建或脚本的进度。结果变量中仍然是完整输出。",
         ["command.run.outputEncoding.label"] = "输出编码",
         ["command.run.outputEncoding.hint"] = "命令按哪个编码打印。默认按本机自己的代码页读，Windows 自带的程序（cmd.exe、Windows PowerShell、Python）输出到管道时用的就是它；Node.js 这类无论在哪个系统都按 UTF-8 输出的程序，要在这里改成 UTF-8，否则中文会变成问号。",
         ["command.run.outputEncoding.option.system"] = "本机代码页",
@@ -663,7 +663,7 @@ internal static class ActionStrings
         ["system.power.name"] = "电源",
         ["system.power.desc"] = "锁屏、关闭显示器、睡眠、注销、重启或关闭这台电脑。",
         ["system.power.what.label"] = "执行",
-        ["system.power.what.hint"] = "开始菜单电源按钮里的那些事。锁屏和关闭显示器不会有任何损失；注销、重启和关机都会关掉正在运行的程序，没保存的东西会跟着丢。",
+        ["system.power.what.hint"] = "等同于开始菜单中的电源按钮。锁屏和关闭显示器不会造成任何损失；注销、重启和关机会结束正在运行的程序，未保存的内容会随之丢失。",
         ["system.power.what.option.lock"] = "锁屏",
         ["system.power.what.option.monitorOff"] = "关闭显示器",
         ["system.power.what.option.signOut"] = "注销",
@@ -690,22 +690,22 @@ internal static class ActionStrings
         ["system.volume.stepPercent.label"] = "调整幅度",
         ["system.volume.stepPercent.hint"] = "音量调大或调小多少个百分点。被\"调大\"和\"调小\"使用，两端都不会超过 0 和 100。",
         ["system.volume.resultVariable.label"] = "结果变量",
-        ["system.volume.resultVariable.hint"] = "接收调整后音量的变量，0 到 100。只做静音的步骤也会把当前音量记下来。",
+        ["system.volume.resultVariable.hint"] = "接收调整后音量的变量，取值 0 到 100。仅执行静音的步骤也会记录当前音量。",
         ["system.ime.name"] = "输入法",
         ["system.ime.desc"] = "读取最前面那个窗口的键盘布局，或者把它切到另一种布局。",
         ["system.ime.what.label"] = "执行",
-        ["system.ime.what.hint"] = "这里说的都是最前面那个窗口——人正在打字的那个。宏在中文布局下发送西文按键，拿到的是候选词而不是快捷键，所以先切到英文布局往往就是宏能不能用的关键。中文输入法自己的中英开关只能靠按键去关（Windows 把这个状态记在正在打字的那个程序里），发 Ctrl+Space 或 Shift 就是那件事。",
+        ["system.ime.what.hint"] = "这里指的都是当前最前面的窗口，也就是正在输入的那个。宏在中文布局下发送西文按键，得到的是候选词而不是快捷键，因此先切换到英文布局往往是宏能否可用的关键。中文输入法自身的中英切换只能通过按键完成（Windows 把这个状态记在正在输入的那个程序里），发送 Ctrl+Space 或 Shift 即为此事。",
         ["system.ime.what.option.get"] = "当前是哪种布局",
         ["system.ime.what.option.list"] = "列出已安装的布局",
         ["system.ime.what.option.switch"] = "切换到另一种布局",
         ["system.ime.layout.label"] = "布局",
-        ["system.ime.layout.hint"] = "要切换到的布局，被\"切换到另一种布局\"使用。写名字的一部分就能匹配；可选的名字用\"列出已安装的布局\"查出来。这一步会等到窗口真的换过去，所以下一步可以放心按那种语言打字。",
+        ["system.ime.layout.hint"] = "要切换到的键盘布局，供\"切换到另一种布局\"使用。写名称的一部分即可匹配；可选名称可用\"列出已安装的布局\"查询。这一步会等到窗口真正切换完成后才结束，因此下一步即可按该布局输入。",
         ["system.ime.resultVariable.label"] = "结果变量",
         ["system.ime.resultVariable.hint"] = "接收结果的变量：当前布局名，或者可以切换过去的布局列表。",
         ["system.brightness.name"] = "屏幕亮度",
         ["system.brightness.desc"] = "读取或调整屏幕的亮度。",
         ["system.brightness.what.label"] = "执行",
-        ["system.brightness.what.hint"] = "读取亮度、设成某个数值、调大或调小几点。每一台肯回应的屏幕会一起调——这是直接跟显示器通过视频线对话，和显示器上的亮度按钮是同一件事，所以笔记本内置屏或者没有带这个功能的屏幕可能完全没有回应。",
+        ["system.brightness.what.hint"] = "读取亮度、设为指定数值、调大或调小若干点。每台可响应的显示器会一起调整——这是通过视频线与显示器直接通信，与显示器上的亮度按钮是同一件事，因此笔记本内置屏或没有此功能的显示器可能完全没有响应。",
         ["system.brightness.what.option.get"] = "读取",
         ["system.brightness.what.option.set"] = "设为指定值",
         ["system.brightness.what.option.up"] = "调亮",
@@ -765,7 +765,7 @@ internal static class ActionStrings
         ["window.minimize.matchBy.option.class"] = WindowMatchByClass,
 
         ["window.maximize.name"] = "最大化窗口",
-        ["window.maximize.desc"] = "让窗口铺满整个屏幕。",
+        ["window.maximize.desc"] = "将窗口最大化，铺满整个屏幕。",
         ["window.maximize.title.label"] = "窗口",
         ["window.maximize.title.hint"] = WindowTitleHint,
         ["window.maximize.matchBy.label"] = "匹配方式",
@@ -950,14 +950,14 @@ internal static class ActionStrings
         ["input.mouseScroll.amount.label"] = "数量",
         ["input.mouseScroll.amount.hint"] = "滚多远，按上面的单位计算。",
         ["input.mouseScroll.smoothMs.label"] = "平滑时长",
-        ["input.mouseScroll.smoothMs.hint"] = "把这次滚动摊到这么长时间里，分成几小段发送，滚动看起来是滑过去的；填 0 就一次滚完。",
+        ["input.mouseScroll.smoothMs.hint"] = "把这次滚动分摊到这段时间，分若干小段发送，滚动会呈现平滑效果；填 0 表示一次滚完。",
         ["input.mouseScroll.x.label"] = "X",
         ["input.mouseScroll.x.hint"] = "滚动位置的横坐标。",
         ["input.mouseScroll.y.label"] = "Y",
         ["input.mouseScroll.y.hint"] = "滚动位置的纵坐标。",
 
         ["input.mouseDrag.name"] = "鼠标拖拽",
-        ["input.mouseDrag.desc"] = "从一点按住拖到另一点再松开。",
+        ["input.mouseDrag.desc"] = "在起点按下，拖至终点后松开。",
         ["input.mouseDrag.startX.label"] = "起点 X",
         ["input.mouseDrag.startX.hint"] = "拖拽起点的横坐标。",
         ["input.mouseDrag.startY.label"] = "起点 Y",
@@ -972,7 +972,7 @@ internal static class ActionStrings
         ["input.mouseDrag.steps.label"] = "移动步数",
         ["input.mouseDrag.steps.hint"] = "拖拽过程中发送的中间移动事件数量。",
         ["input.mouseDrag.style.label"] = "移动方式",
-        ["input.mouseDrag.style.hint"] = "拖着走的时候鼠标怎么移动。弧线会绕开直线；模拟人手在弧线上再带一点抖动，看起来不像机器画的。",
+        ["input.mouseDrag.style.hint"] = "拖拽过程中鼠标的移动方式。曲线路径会偏离直线；“模拟人手”在曲线基础上叠加轻微抖动，使其不呈现机械感。",
         ["input.mouseDrag.style.option.direct"] = "直线",
         ["input.mouseDrag.style.option.smooth"] = "弧线",
         ["input.mouseDrag.style.option.human"] = "模拟人手",
@@ -1421,10 +1421,10 @@ internal static class ActionStrings
             + "一行单元格，和读表格同一种形状），$变量.text 是同样的内容按行拼成的文本"
             + "（行与行之间换行、单元格之间制表符）。没有表格线也能用，靠的是文字的位置。",
         ["ocr.recognize.preprocess.label"] = "清理画面",
-        ["ocr.recognize.preprocess.hint"] = "读之前先把画面收拾一下：灰度去掉颜色；黑白是灰度"
-            + "再把明暗拉开（分界取整张图自己的平均亮度，所以深色主题和浅色主题一样能用）；"
-            + "放大两倍对付小字；最后一项两样都做。"
-            + "字清楚又不小的时候这项没什么用，只是白花一点时间。",
+        ["ocr.recognize.preprocess.hint"] = "识别前的画面处理：灰度化去掉颜色；黑白在灰度化后"
+            + "再拉开明暗对比（分界值取整幅图的平均亮度，因此深色与浅色主题均可使用）；"
+            + "放大两倍用于较小的文字；最后一项同时执行前两项。"
+            + "文字清晰且大小合适时无需处理，只会略增加耗时。",
         ["ocr.recognize.resultVariable.label"] = "结果变量",
         ["ocr.recognize.resultVariable.hint"] = "接收识别结果的变量，可沿用已有变量名或新建一个。",
 
@@ -1440,18 +1440,18 @@ internal static class ActionStrings
         ["ocr.findText.resultVariable.hint"] = "接收匹配中心点，未找到时为空；$变量名.x、.y、"
             + ".text、.score 是各个部分。score 是识别模型自己的打分，不是百分比，越大越可信。",
         ["ocr.findText.allMatches.label"] = "记录全部命中",
-        ["ocr.findText.allMatches.hint"] = "除了挑中的那一处，还把匹配到几处、分别在哪里记下来："
-            + "$变量名.count 是处数，$变量名.list 每处一个“x,y”，可以直接交给 count()、get() 和 forEach。",
+        ["ocr.findText.allMatches.hint"] = "除选中的那一处之外，还记录匹配数量与各处位置："
+            + "$变量名.count 为匹配数量，$变量名.list 为每处一个“x,y”，可直接用于 count()、get() 和 forEach。",
         ["ocr.findText.minScore.label"] = "最低识别分",
         ["ocr.findText.minScore.hint"] = MinScoreHint,
         ["ocr.findText.content.label"] = "内容",
-        ["ocr.findText.content.hint"] = "把屏幕按全部文字比，还是按数字比：按数字比时，含数字"
-            + "的片段只留下数字本身（货币符号、千位分隔符和旁边的文字都去掉），一个数字也没有"
-            + "的片段直接不要，所以“找 1234.50”不会撞上旁边的文字。",
+        ["ocr.findText.content.hint"] = "与屏幕内容按全部文字比对还是按数字比对：按数字比对时，"
+            + "含数字的片段只保留数字本身（去掉货币符号、千位分隔符及相邻文字），不含数字的"
+            + "片段不参与比对，因此“查找 1234.50”不会误匹配旁边的文字。",
         ["ocr.findText.preprocess.label"] = "清理画面",
-        ["ocr.findText.preprocess.hint"] = "读之前先把画面收拾一下：灰度 / 黑白 / 放大两倍 / "
-            + "放大并黑白。黑白的分界取整张图自己的平均亮度；放大读到的位置会按比例换算回"
-            + "屏幕像素，所以找到的位置仍然能直接点。",
+        ["ocr.findText.preprocess.hint"] = "识别前的画面处理：灰度 / 黑白 / 放大两倍 / "
+            + "放大并黑白。黑白的分界取整幅图的平均亮度；放大后读到的位置会按比例换算回"
+            + "屏幕像素，因此找到的位置仍可直接点击。",
 
         ["ocr.clickText.name"] = "点击文字",
         ["ocr.clickText.desc"] = "在屏幕上找到文字并点击它。",
@@ -1470,8 +1470,8 @@ internal static class ActionStrings
             + "片段只留下数字本身（货币符号、千位分隔符和旁边的文字都去掉），一个数字也没有的"
             + "片段直接不要。",
         ["ocr.clickText.preprocess.label"] = "清理画面",
-        ["ocr.clickText.preprocess.hint"] = "找之前先把画面收拾一下：灰度 / 黑白 / 放大两倍 / "
-            + "放大并黑白。黑白的分界取整张图自己的平均亮度。",
+        ["ocr.clickText.preprocess.hint"] = "识别前的画面处理：灰度 / 黑白 / 放大两倍 / "
+            + "放大并黑白。黑白的分界取整幅图的平均亮度。",
         ["ocr.clickText.button.label"] = "按键",
 
         // ---------------------------------------------------------------------- uia
@@ -1480,7 +1480,7 @@ internal static class ActionStrings
         ["uia.exists.window.label"] = "窗口",
         ["uia.exists.window.hint"] = "可选的窗口标题过滤；留空表示在所有窗口中查找。",
         ["uia.exists.selector.label"] = "选择器",
-        ["uia.exists.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可以点“拾取元素”，直接瞄准屏幕上的控件抓取。",
+        ["uia.exists.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可用“拾取元素”直接在屏幕上拾取控件。",
         ["uia.exists.matchIndex.label"] = "第几个命中",
         ["uia.exists.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要的是第几个。" + MatchIndexHint,
         ["uia.exists.timeoutMs.label"] = "超时",
@@ -1493,7 +1493,7 @@ internal static class ActionStrings
         ["uia.find.window.label"] = "窗口",
         ["uia.find.window.hint"] = "可选的窗口标题过滤；留空表示在所有窗口中查找。",
         ["uia.find.selector.label"] = "选择器",
-        ["uia.find.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可以点“拾取元素”，直接瞄准屏幕上的控件抓取。",
+        ["uia.find.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可用“拾取元素”直接在屏幕上拾取控件。",
         ["uia.find.matchIndex.label"] = "第几个命中",
         ["uia.find.matchIndex.hint"] = MatchIndexHint,
         ["uia.find.allMatches.label"] = "记录全部命中",
@@ -1509,7 +1509,7 @@ internal static class ActionStrings
         ["uia.waitElement.window.label"] = "窗口",
         ["uia.waitElement.window.hint"] = "可选的窗口标题过滤；留空表示在所有窗口中查找。",
         ["uia.waitElement.selector.label"] = "选择器",
-        ["uia.waitElement.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可以点“拾取元素”，直接瞄准屏幕上的控件抓取。",
+        ["uia.waitElement.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可用“拾取元素”直接在屏幕上拾取控件。",
         ["uia.waitElement.matchIndex.label"] = "第几个命中",
         ["uia.waitElement.matchIndex.hint"] =
             "选择器可能匹配到多个元素，这里填要等的是第几个。" + MatchIndexHint,
@@ -1523,7 +1523,7 @@ internal static class ActionStrings
         ["uia.click.window.label"] = "窗口",
         ["uia.click.window.hint"] = "可选的窗口标题过滤；留空表示在所有窗口中查找。",
         ["uia.click.selector.label"] = "选择器",
-        ["uia.click.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可以点“拾取元素”，直接瞄准屏幕上的控件抓取。",
+        ["uia.click.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可用“拾取元素”直接在屏幕上拾取控件。",
         ["uia.click.matchIndex.label"] = "第几个命中",
         ["uia.click.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要点击的是第几个。" + MatchIndexHint,
         ["uia.click.timeoutMs.label"] = "超时",
@@ -1535,7 +1535,7 @@ internal static class ActionStrings
         ["uia.setText.window.label"] = "窗口",
         ["uia.setText.window.hint"] = "可选的窗口标题过滤；留空表示在所有窗口中查找。",
         ["uia.setText.selector.label"] = "选择器",
-        ["uia.setText.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可以点“拾取元素”，直接瞄准屏幕上的控件抓取。",
+        ["uia.setText.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可用“拾取元素”直接在屏幕上拾取控件。",
         ["uia.setText.matchIndex.label"] = "第几个命中",
         ["uia.setText.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要写入的是第几个。" + MatchIndexHint,
         ["uia.setText.text.label"] = "文本",
@@ -1548,7 +1548,7 @@ internal static class ActionStrings
         ["uia.getText.window.label"] = "窗口",
         ["uia.getText.window.hint"] = "可选的窗口标题过滤；留空表示在所有窗口中查找。",
         ["uia.getText.selector.label"] = "选择器",
-        ["uia.getText.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可以点“拾取元素”，直接瞄准屏幕上的控件抓取。",
+        ["uia.getText.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可用“拾取元素”直接在屏幕上拾取控件。",
         ["uia.getText.matchIndex.label"] = "第几个命中",
         ["uia.getText.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要读取的是第几个。" + MatchIndexHint,
         ["uia.getText.resultVariable.label"] = "结果变量",
@@ -1559,7 +1559,7 @@ internal static class ActionStrings
         ["uia.select.window.label"] = "窗口",
         ["uia.select.window.hint"] = "可选的窗口标题过滤；留空表示在所有窗口中查找。",
         ["uia.select.selector.label"] = "选择器",
-        ["uia.select.selector.hint"] = "下拉框、列表或选项卡的选择器。也可以点“拾取元素”，直接瞄准屏幕上的控件抓取。",
+        ["uia.select.selector.hint"] = "下拉框、列表或选项卡的选择器。也可用“拾取元素”直接在屏幕上拾取控件。",
         ["uia.select.matchIndex.label"] = "第几个命中",
         ["uia.select.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
         ["uia.select.item.label"] = "选项文字",
@@ -1572,7 +1572,7 @@ internal static class ActionStrings
         ["uia.check.window.label"] = "窗口",
         ["uia.check.window.hint"] = "可选的窗口标题过滤；留空表示在所有窗口中查找。",
         ["uia.check.selector.label"] = "选择器",
-        ["uia.check.selector.hint"] = "勾选框、开关或单选框的选择器。也可以点“拾取元素”，直接瞄准屏幕上的控件抓取。",
+        ["uia.check.selector.hint"] = "勾选框、开关或单选框的选择器。也可用“拾取元素”直接在屏幕上拾取控件。",
         ["uia.check.matchIndex.label"] = "第几个命中",
         ["uia.check.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
         ["uia.check.state.label"] = "状态",
@@ -1586,7 +1586,7 @@ internal static class ActionStrings
         ["uia.expand.window.label"] = "窗口",
         ["uia.expand.window.hint"] = "可选的窗口标题过滤；留空表示在所有窗口中查找。",
         ["uia.expand.selector.label"] = "选择器",
-        ["uia.expand.selector.hint"] = "要展开或收起的节点选择器。也可以点“拾取元素”，直接瞄准屏幕上的控件抓取。",
+        ["uia.expand.selector.hint"] = "要展开或收起的节点选择器。也可用“拾取元素”直接在屏幕上拾取控件。",
         ["uia.expand.matchIndex.label"] = "第几个命中",
         ["uia.expand.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
         ["uia.expand.state.label"] = "状态",
@@ -1600,7 +1600,7 @@ internal static class ActionStrings
         ["uia.scrollIntoView.window.label"] = "窗口",
         ["uia.scrollIntoView.window.hint"] = "可选的窗口标题过滤；留空表示在所有窗口中查找。",
         ["uia.scrollIntoView.selector.label"] = "选择器",
-        ["uia.scrollIntoView.selector.hint"] = "要滚动到可见的元素选择器。也可以点“拾取元素”，直接瞄准屏幕上的控件抓取。",
+        ["uia.scrollIntoView.selector.hint"] = "要滚动到可见的元素选择器。也可用“拾取元素”直接在屏幕上拾取控件。",
         ["uia.scrollIntoView.matchIndex.label"] = "第几个命中",
         ["uia.scrollIntoView.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
 
@@ -1609,7 +1609,7 @@ internal static class ActionStrings
         ["uia.readTable.window.label"] = "窗口",
         ["uia.readTable.window.hint"] = "可选的窗口标题过滤；留空表示在所有窗口中查找。",
         ["uia.readTable.selector.label"] = "选择器",
-        ["uia.readTable.selector.hint"] = "表格或网格的选择器。也可以点“拾取元素”，直接瞄准屏幕上的控件抓取。",
+        ["uia.readTable.selector.hint"] = "表格或网格的选择器。也可用“拾取元素”直接在屏幕上拾取控件。",
         ["uia.readTable.matchIndex.label"] = "第几个命中",
         ["uia.readTable.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要读取的是第几个。" + MatchIndexHint,
         ["uia.readTable.maxRows.label"] = "读取行数",
@@ -1628,9 +1628,9 @@ internal static class ActionStrings
 
         // ------------------------------------------------------------------ script
         ["script.run.name"] = "运行脚本",
-        ["script.run.desc"] = "用选定的解释器运行一小段脚本，兜住动作目录里没有的情况。",
+        ["script.run.desc"] = "用选定的解释器运行一段脚本，用于处理动作目录未覆盖的情况。",
         ["script.run.language.label"] = "解释器",
-        ["script.run.language.hint"] = "用哪个解释器运行这段脚本。PowerShell 和命令提示符每台 Windows 上都有；Node.js 和 Python 需要先自己装好；自选解释器用来写机器上装的其他程序，比如 dotnet-script。",
+        ["script.run.language.hint"] = "运行这段脚本使用的解释器。PowerShell 与命令提示符每台 Windows 都自带；Node.js 与 Python 需要自行安装；自选解释器用于机器上安装的其他程序，例如 dotnet-script。",
         ["script.run.language.option.powershell"] = "PowerShell",
         ["script.run.language.option.cmd"] = "命令提示符",
         ["script.run.language.option.node"] = "Node.js",
@@ -1652,7 +1652,7 @@ internal static class ActionStrings
         ["script.run.arguments.label"] = "参数",
         ["script.run.arguments.hint"] = "附加在脚本命令行后面的参数。这里也会替换 {{变量名}}。",
         ["script.run.folder.label"] = "工作目录",
-        ["script.run.folder.hint"] = "脚本在哪个目录里运行。留空表示在宏所在目录；那个目录还不存在时，就在维克多自己的工作目录。",
+        ["script.run.folder.hint"] = "脚本在哪个目录中运行。留空表示宏所在目录；该目录不存在时，则使用维克多自身的工作目录。",
         ["script.run.timeoutMs.label"] = "超时",
         ["script.run.timeoutMs.hint"] = "超过这个时长就结束脚本并让这一步失败。",
         ["script.run.resultVariable.label"] = "结果变量",
@@ -1680,7 +1680,7 @@ internal static class ActionStrings
         ["condition.uiaExists.window.label"] = "窗口",
         ["condition.uiaExists.window.hint"] = "可选的窗口标题过滤；留空表示在所有窗口中查找。",
         ["condition.uiaExists.selector.label"] = "选择器",
-        ["condition.uiaExists.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可以点“拾取元素”，直接瞄准屏幕上的控件抓取。",
+        ["condition.uiaExists.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可用“拾取元素”直接在屏幕上拾取控件。",
 
         ["condition.colorEquals.name"] = "颜色相同",
         ["condition.colorEquals.desc"] = "当某个像素的颜色匹配时为真。",
@@ -1732,7 +1732,7 @@ internal static class ActionStrings
         ["condition.uiaNotExists.window.hint"] = "可选的窗口标题过滤；留空表示在所有窗口中查找。",
         ["condition.uiaNotExists.selector.label"] = "选择器",
         ["condition.uiaNotExists.selector.hint"] =
-            "元素选择器，例如 Button[name='Save']。也可以点“拾取元素”，直接瞄准屏幕上的控件抓取。",
+            "元素选择器，例如 Button[name='Save']。也可用“拾取元素”直接在屏幕上拾取控件。",
 
         ["condition.expression.name"] = "布尔表达式",
         ["condition.expression.desc"] = "自己写一段表达式，结果为真时条件成立。",
