@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using Avalonia;
+using WhaleGenie.Core.Devices.Platform;
 
 namespace WhaleGenie;
 
@@ -27,8 +28,15 @@ sealed class Program
         Run(args);
     }
 
-    private static void Run(string[] args) => BuildAvaloniaApp()
-        .StartWithClassicDesktopLifetime(args);
+    private static void Run(string[] args)
+    {
+        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+
+        // A VIIPER server that this program started is closed with it: the user asked for
+        // driver-level input, not for another project's server to keep running after WhaleGenie is
+        // gone. One that was already there when we looked was never ours and is left alone.
+        ViiperServer.Stop();
+    }
 
     /// <summary>
     /// Points assembly and native library lookups at <c>lib</c> when it is there. A source

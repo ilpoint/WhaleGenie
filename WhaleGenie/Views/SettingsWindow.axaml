@@ -8,7 +8,7 @@
         x:Class="WhaleGenie.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
         Title="Settings"
-        Width="480" Height="670"
+        Width="480" Height="720"
         WindowStartupLocation="CenterOwner"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
@@ -82,37 +82,63 @@
             </Button>
         </Grid>
 
-        <StackPanel Grid.Row="1" Name="SettingsPanel" Margin="20,18,20,0">
-            <TextBlock Classes="FieldLabel"
-                       Text="{Binding [Settings.Language], Source={x:Static loc:Strings.Current}}" />
-            <ComboBox Classes="LanguageSelect"
-                      ItemsSource="{Binding Languages}"
-                      SelectedItem="{Binding SelectedLanguage}" />
-            <TextBlock Classes="Muted" Margin="2,7,0,0"
-                       Text="{Binding [Settings.LanguageHint], Source={x:Static loc:Strings.Current}}" />
+        <!--
+          The settings grew a block at a time into a window that is sized by hand, and the wording
+          is longer in one language than in the other. The column scrolls instead: what is below the
+          edge and cannot be scrolled to is text nobody can read.
+        -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Name="SettingsPanel" Margin="20,18,20,0">
+                <TextBlock Classes="FieldLabel"
+                           Text="{Binding [Settings.Language], Source={x:Static loc:Strings.Current}}" />
+                <ComboBox Classes="LanguageSelect"
+                          ItemsSource="{Binding Languages}"
+                          SelectedItem="{Binding SelectedLanguage}" />
+                <TextBlock Classes="Muted" Margin="2,7,0,0"
+                           Text="{Binding [Settings.LanguageHint], Source={x:Static loc:Strings.Current}}" />
 
-            <CheckBox Margin="2,18,0,0" Foreground="#C8C8C8" FontSize="12.5"
-                      IsChecked="{Binding FailureScreenshot}"
-                      Content="{Binding [Settings.FailureScreenshot], Source={x:Static loc:Strings.Current}}" />
-            <TextBlock Classes="Muted" Margin="2,7,0,0" TextWrapping="Wrap"
-                       Text="{Binding [Settings.FailureScreenshotHint], Source={x:Static loc:Strings.Current}}" />
+                <CheckBox Margin="2,18,0,0" Foreground="#C8C8C8" FontSize="12.5"
+                          IsChecked="{Binding FailureScreenshot}"
+                          Content="{Binding [Settings.FailureScreenshot], Source={x:Static loc:Strings.Current}}" />
+                <TextBlock Classes="Muted" Margin="2,7,0,0" TextWrapping="Wrap"
+                           Text="{Binding [Settings.FailureScreenshotHint], Source={x:Static loc:Strings.Current}}" />
 
-            <TextBlock Classes="FieldLabel" Margin="2,18,0,6"
-                       Text="{Binding [Settings.Driver], Source={x:Static loc:Strings.Current}}" />
-            <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap" Foreground="#E0A84A"
-                       Text="{Binding DriverStatus}" IsVisible="{Binding !DriverReady}" />
-            <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap" Foreground="#7BC17B"
-                       Text="{Binding DriverStatus}" IsVisible="{Binding DriverReady}" />
-            <Button Classes="FlatButton" Name="DriverInstallButton" Height="32"
-                    HorizontalAlignment="Left" Margin="2,10,0,0"
-                    Click="OnInstallDriverClicked"
-                    Content="{Binding [Settings.DriverInstall], Source={x:Static loc:Strings.Current}}" />
-            <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
-                       Text="{Binding [Settings.DriverHint], Source={x:Static loc:Strings.Current}}" />
+                <TextBlock Classes="FieldLabel" Margin="2,18,0,6"
+                           Text="{Binding [Settings.Driver], Source={x:Static loc:Strings.Current}}" />
+                <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap" Foreground="#E0A84A"
+                           Text="{Binding DriverStatus}" IsVisible="{Binding !DriverReady}" />
+                <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap" Foreground="#7BC17B"
+                           Text="{Binding DriverStatus}" IsVisible="{Binding DriverReady}" />
+                <Button Classes="FlatButton" Name="DriverInstallButton" Height="32"
+                        HorizontalAlignment="Left" Margin="2,10,0,0"
+                        Click="OnInstallDriverClicked"
+                        Content="{Binding [Settings.DriverInstall], Source={x:Static loc:Strings.Current}}" />
+                <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
+                           Text="{Binding [Settings.DriverHint], Source={x:Static loc:Strings.Current}}" />
 
-            <TextBlock Classes="Muted" Margin="2,16,0,0" TextWrapping="Wrap"
-                       Text="{Binding [Settings.Note], Source={x:Static loc:Strings.Current}}" />
-        </StackPanel>
+                <TextBlock Classes="FieldLabel" Margin="2,18,0,6"
+                           Text="{Binding [Settings.Server], Source={x:Static loc:Strings.Current}}" />
+                <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap" Foreground="#E0A84A"
+                           Text="{Binding ServerStatus}" IsVisible="{Binding !ServerAnswering}" />
+                <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap" Foreground="#7BC17B"
+                           Text="{Binding ServerStatus}" IsVisible="{Binding ServerAnswering}" />
+                <TextBlock Classes="Muted" Margin="2,4,0,0" TextWrapping="Wrap" Foreground="#A8C8E8"
+                           Text="{Binding ViiperPath}" IsVisible="{Binding HasViiperPath}" />
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="2,10,0,0">
+                    <Button Classes="FlatButton" Name="ServerDownloadButton" Height="32"
+                            Click="OnDownloadViiperClicked"
+                            Content="{Binding [Settings.ServerDownload], Source={x:Static loc:Strings.Current}}" />
+                    <Button Classes="FlatButton" Name="ServerChooseButton" Height="32"
+                            Click="OnChooseViiperClicked"
+                            Content="{Binding [Settings.ServerChoose], Source={x:Static loc:Strings.Current}}" />
+                </StackPanel>
+                <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
+                           Text="{Binding [Settings.ServerHint], Source={x:Static loc:Strings.Current}}" />
+
+                <TextBlock Classes="Muted" Margin="2,16,0,0" TextWrapping="Wrap"
+                           Text="{Binding [Settings.Note], Source={x:Static loc:Strings.Current}}" />
+            </StackPanel>
+        </ScrollViewer>
 
         <Button Grid.Row="2" Classes="FlatButton" Height="36" MinWidth="92"
                 HorizontalAlignment="Right" Margin="20,0,20,18" Name="DoneButton"

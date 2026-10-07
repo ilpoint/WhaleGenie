@@ -26,4 +26,10 @@ public static class ProjectLinks
     /// the day after that project released again, and the driver is installed by hand anyway.
     /// </summary>
     public const string DriverDownload = "https://github.com/vadimgrn/usbip-win2/releases/latest";
+
+    /// <summary>
+    /// Where the VIIPER server is fetched from, named the same way and for the same reason. Unlike
+    /// the driver this one is only unzipped, and WhaleGenie starts it from wherever it was unzipped.
+    /// </summary>
+    public const string ViiperDownload = "https://github.com/Alia5/VIIPER/releases/latest";
 }

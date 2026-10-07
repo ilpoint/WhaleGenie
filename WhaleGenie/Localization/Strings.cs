@@ -502,8 +502,24 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.DriverHint"] =
             "Driver-level input makes the target program see real hardware. Install the usbip-win2 "
             + "driver by hand — administrator rights, a brief USB disconnect, possibly a restart — "
-            + "and start the VIIPER server with --api.auto-attach-local-client, or the virtual "
-            + "keyboard and mouse never reach this machine.",
+            + "and that is the only piece that has to be. The server below is started and stopped "
+            + "for you.",
+        ["Settings.Server"] = "VIIPER server",
+        ["Settings.ServerReady"] = "A VIIPER server is answering on this machine.",
+        ["Settings.ServerWillStart"] =
+            "Not running. WhaleGenie starts it when a macro needs driver-level input, and stops it "
+            + "again when it exits.",
+        ["Settings.ServerNotSet"] =
+            "Not running, and no viiper.exe chosen yet: pick the file below, or start the server "
+            + "yourself.",
+        ["Settings.ServerDownload"] = "Download VIIPER...",
+        ["Settings.ServerChoose"] = "Choose viiper.exe...",
+        ["Settings.ServerFilter"] = "Program",
+        ["Settings.ServerHint"] =
+            "VIIPER is another project: its zip is downloaded and unzipped by hand, and where it "
+            + "lands does not matter. Point at viiper.exe once and WhaleGenie runs it with "
+            + "--api.auto-attach-local-client whenever a macro asks for driver-level input. A server "
+            + "that was already running is left alone.",
         ["Settings.Note"] = "Action names and parameter text use the selected language when a window is opened.",
         ["Settings.Close"] = "Close",
 
@@ -626,7 +642,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.NoDriver"] =
             "Driver-level input needs the usbip-win2 driver: the settings window has its download.",
         ["Run.NoDriverServer"] =
-            "Driver-level input cannot reach the VIIPER server on this machine: start it first.",
+            "Driver-level input cannot reach the VIIPER server on this machine: choose viiper.exe "
+            + "in the settings window, or start the server yourself.",
         ["Run.NoDriverAttached"] =
             "Driver-level input is not reaching this machine: it is not using the virtual keyboard "
             + "and mouse. Start the VIIPER server with --api.auto-attach-local-client, and close any "
@@ -1204,8 +1221,19 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.DriverInstall"] = "安装驱动…",
         ["Settings.DriverHint"] =
             "驱动级输入让目标程序把输入当成真实硬件。usbip-win2 驱动要手动安装：需要管理员权限，"
-            + "会短暂断开 USB 设备，可能要求重启。VIIPER 服务端要带 --api.auto-attach-local-client "
-            + "启动，否则虚拟键盘和鼠标挂不到这台机器上。",
+            + "会短暂断开 USB 设备，可能要求重启；只有这一样是非手动不可的，下面的服务端鲸灵自己"
+            + "启动、自己关掉。",
+        ["Settings.Server"] = "VIIPER 服务端",
+        ["Settings.ServerReady"] = "VIIPER 服务端正在应答。",
+        ["Settings.ServerWillStart"] = "还没在运行。宏要用驱动级输入时鲸灵会自己启动它，退出鲸灵时关掉。",
+        ["Settings.ServerNotSet"] = "没在运行，也还没选过 viiper.exe：选一下下面的文件，或者自己把它跑起来。",
+        ["Settings.ServerDownload"] = "下载 VIIPER…",
+        ["Settings.ServerChoose"] = "选择 viiper.exe…",
+        ["Settings.ServerFilter"] = "程序",
+        ["Settings.ServerHint"] =
+            "VIIPER 也是别人的项目：压缩包自己下载、自己解压，解到哪都行。选一次 viiper.exe，以后"
+            + "宏要用驱动级输入时鲸灵会带上 --api.auto-attach-local-client 把它跑起来；本来就在运行"
+            + "的那个不动它。",
         ["Settings.Note"] = "动作名称和参数文本会在窗口打开时按所选语言显示。",
         ["Settings.Close"] = "关闭",
 
@@ -1323,7 +1351,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.NoVariables"] = "这个宏还没有使用变量。",
         ["Run.NoDevice"] = "这台机器暂不支持该操作：{0} 尚未接入。",
         ["Run.NoDriver"] = "驱动级输入需要先装好 usbip-win2 驱动，设置窗口里有下载入口。",
-        ["Run.NoDriverServer"] = "驱动级输入连不上本机的 VIIPER 服务端，请先启动它。",
+        ["Run.NoDriverServer"] =
+            "驱动级输入连不上本机的 VIIPER 服务端：设置窗口里选一次 viiper.exe，或者自己把它跑起来。",
         ["Run.NoDriverAttached"] =
             "驱动级输入没有送达这台机器：系统没有在用这套虚拟键盘和鼠标。"
             + "请让 VIIPER 服务端带上 --api.auto-attach-local-client 启动，并关掉其它正在使用虚拟设备的程序。",

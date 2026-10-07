@@ -44,7 +44,7 @@ public class DriverInputTests
     public void The_panel_says_which_piece_is_still_missing(
         DriverInputState state, string key, bool ready)
     {
-        var viewModel = new SettingsViewModel(() => state);
+        var viewModel = new SettingsViewModel(() => state, () => true);
 
         Assert.Equal(state, viewModel.DriverState);
         Assert.Equal(ready, viewModel.DriverReady);
@@ -104,21 +104,27 @@ public class DriverInputTests
     [Fact]
     public void The_settings_window_is_tall_enough_for_what_it_says()
     {
-        // The panel is one more block in a window that was sized by hand, and the wording is longer
-        // in one language than the other. What is below the window edge is text nobody can read.
+        // The panel is a block at a time in a window that was sized by hand, and the wording is
+        // longer in one language than the other. What matters is that everything it says can be
+        // reached: either it fits, or the window scrolls the column to it.
         Ui.Run(() =>
         {
             var window = new SettingsWindow();
             window.Show();
 
             var panel = window.FindControl<StackPanel>("SettingsPanel")!;
-            var wanted = panel.Children.OfType<Control>()
-                .Sum(child => child.DesiredSize.Height + child.Margin.Top + child.Margin.Bottom);
+            // DesiredSize already carries the child's margins, so adding them again would count the
+            // gaps twice and ask for room the panel never needed.
+            var wanted = panel.Children.OfType<Control>().Sum(child => child.DesiredSize.Height);
 
             var breakdown = string.Join(" | ", panel.Children.OfType<Control>()
-                .Select(child => $"{child.GetType().Name}={child.DesiredSize.Height + child.Margin.Top + child.Margin.Bottom:0}"));
-            Assert.True(wanted <= panel.Bounds.Height,
-                $"the settings panel wants {wanted:0} pixels but is given {panel.Bounds.Height:0}: {breakdown}");
+                .Select(child => $"{child.GetType().Name}={child.DesiredSize.Height:0}"));
+
+            var viewer = panel.Parent as ScrollViewer;
+            var reachable = viewer?.Extent.Height ?? panel.Bounds.Height;
+            Assert.True(wanted <= reachable,
+                $"the settings panel wants {wanted:0} pixels but only {reachable:0} can be reached: "
+                + breakdown);
 
             window.Close();
         });

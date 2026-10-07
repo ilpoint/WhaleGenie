@@ -34,6 +34,15 @@ public static class LocalSettings
     public static void StoreFailureScreenshot(bool value)
         => Write(model => model.FailureScreenshot = value);
 
+    /// <summary>
+    /// Where this machine's copy of viiper.exe is, or empty while nobody has said. WhaleGenie does
+    /// not go looking for another project's program, so this is the only way it hears about one.
+    /// </summary>
+    public static string LoadViiperPath() => Read().ViiperPath;
+
+    /// <summary>Stores that choice. Failures are ignored on purpose.</summary>
+    public static void StoreViiperPath(string path) => Write(model => model.ViiperPath = path);
+
     private static Model Read()
     {
         try
@@ -72,5 +81,7 @@ public static class LocalSettings
         public string Language { get; set; } = nameof(Localization.Language.English);
 
         public bool FailureScreenshot { get; set; } = true;
+
+        public string ViiperPath { get; set; } = string.Empty;
     }
 }

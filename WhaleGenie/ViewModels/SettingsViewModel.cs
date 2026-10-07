@@ -17,18 +17,19 @@ public sealed record LanguageOption(Language Language, string Display)
 public partial class SettingsViewModel : ViewModelBase
 {
     public SettingsViewModel()
-        : this(DriverInput.Check)
+        : this(DriverInput.Check, DriverInput.IsServerAnswering)
     {
     }
 
     /// <summary>
-    /// The same, with the answer about driver-level input handed in, so a check can describe a
+    /// The same, with the answers about driver-level input handed in, so a check can describe a
     /// machine that is not this one instead of asking the registry and the network.
     /// </summary>
-    internal SettingsViewModel(Func<DriverInputState> driverInput)
+    internal SettingsViewModel(Func<DriverInputState> driverInput, Func<bool> serverAnswering)
     {
         SelectedLanguage = Languages.First(option => option.Language == Strings.Current.Language);
         FailureScreenshot = LocalSettings.LoadFailureScreenshot();
+        ViiperPath = LocalSettings.LoadViiperPath();
 
         DriverState = driverInput();
         DriverReady = DriverState == DriverInputState.Ready;
@@ -38,6 +39,8 @@ public partial class SettingsViewModel : ViewModelBase
             DriverInputState.ServerMissing => "Settings.DriverServerMissing",
             _ => "Settings.DriverReady",
         });
+
+        ServerAnswering = serverAnswering();
     }
 
     public IReadOnlyList<LanguageOption> Languages { get; } =
@@ -67,8 +70,35 @@ public partial class SettingsViewModel : ViewModelBase
     /// <summary>The panel's sentence about this machine, in the chosen language.</summary>
     public string DriverStatus { get; }
 
+    /// <summary>
+    /// Whether a VIIPER server is answering right now. Read once with the rest: whether one is
+    /// running is a fact about this moment, and the panel is not a live view.
+    /// </summary>
+    public bool ServerAnswering { get; }
+
+    /// <summary>
+    /// The line above the server's buttons: a server that is up needs nothing, one that is not says
+    /// whether WhaleGenie can start it by itself.
+    /// </summary>
+    public string ServerStatus => Strings.Get(ServerAnswering
+        ? "Settings.ServerReady"
+        : HasViiperPath ? "Settings.ServerWillStart" : "Settings.ServerNotSet");
+
+    /// <summary>Where viiper.exe is, or empty while nobody has chosen one.</summary>
+    [ObservableProperty]
+    public partial string ViiperPath { get; set; }
+
+    public bool HasViiperPath => ViiperPath.Length > 0;
+
     partial void OnSelectedLanguageChanged(LanguageOption value)
         => Strings.Current.Language = value.Language;
+
+    /// <summary>Choosing a file changes both lines the panel shows, so both are announced again.</summary>
+    partial void OnViiperPathChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasViiperPath));
+        OnPropertyChanged(nameof(ServerStatus));
+    }
 
     /// <summary>
     /// Writes the choice down, but only when it really changed: opening the window reads the
