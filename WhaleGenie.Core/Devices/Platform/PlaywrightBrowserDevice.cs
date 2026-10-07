@@ -30,12 +30,22 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// <summary>Guards the list, which a macro's own thread and the editor both reach.</summary>
     private static readonly object OpenedGate = new();
 
+    /// <summary>
+    /// Playwright's own step from an <c>iframe</c> element down into the document inside it. Chained
+    /// selectors do not take it on their own — without this, a click aimed at a frame waits for an
+    /// element of that name in the top document and times out.
+    /// </summary>
+    private const string FrameStep = "internal:control=enter-frame";
+
     private IPlaywright? _playwright;
     private IBrowser? _browser;
     private IPage? _page;
 
     /// <summary>Handed the selector the person clicked, by the page's own script.</summary>
     private TaskCompletionSource<string>? _picked;
+
+    /// <summary>Handed the frame that answered, so the frame can be written into the selector.</summary>
+    private IFrame? _answeredFrame;
 
     /// <summary>Whether the picker's bindings and init script have been installed on this page.</summary>
     private bool _listening;
@@ -161,32 +171,103 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         // to be able to let go of the caller while it is still outstanding.
         var answer = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         _picked = answer;
+        _answeredFrame = null;
         try
         {
             Wait(async () =>
             {
                 if (!_listening)
                 {
-                    // The answer binding is what the page's script answers through; the "still
+                    // The answer binding sits on the context rather than on the page, because a
+                    // pick can land in a frame inside the page: the binding is the only thing that
+                    // says which frame answered, and the frame is part of the selector. The "still
                     // wanted" binding is what the init script asks before putting the picker back
                     // after a navigation, since an init script cannot be removed once added.
-                    await page.ExposeFunctionAsync(
-                        "__whalegeniePicked", (string? selector) => _picked?.TrySetResult(selector ?? string.Empty));
+                    await page.Context.ExposeBindingAsync(
+                        "__whalegeniePicked",
+                        (BindingSource source, string? selector) =>
+                        {
+                            _answeredFrame = source.Frame;
+                            _picked?.TrySetResult(selector ?? string.Empty);
+                        });
                     await page.ExposeFunctionAsync("__whalegenieListening", () => _picked is not null);
                     await page.AddInitScriptAsync(BrowserPickerScript.InitScript(hint));
                     _listening = true;
                 }
 
-                await page.EvaluateAsync(BrowserPickerScript.Source, new { hint });
+                // Every frame gets a picker: a page built out of frames is still one page to the
+                // person looking at it, and a picker that only knew the top document would let a
+                // click that landed in a frame go straight through to the page instead.
+                foreach (var frame in page.Frames)
+                {
+                    try
+                    {
+                        await frame.EvaluateAsync(BrowserPickerScript.Source, new { hint });
+                    }
+                    catch (PlaywrightException) when (frame != page.MainFrame)
+                    {
+                        // A frame can go away between being listed and being armed.
+                    }
+                }
             });
 
-            return answer.Task.Wait(Math.Max(1000, timeoutMs)) ? answer.Task.Result : string.Empty;
+            if (!answer.Task.Wait(Math.Max(1000, timeoutMs)))
+            {
+                return string.Empty;
+            }
+
+            return answer.Task.Result is { Length: > 0 } picked
+                ? InFrame(page, _answeredFrame, picked)
+                : string.Empty;
         }
         finally
         {
             _picked = null;
+            _answeredFrame = null;
             TryStopPicking(page);
         }
+    }
+
+    /// <summary>
+    /// The selector with the frames it sits inside written in front of it, because the click the
+    /// macro makes later is aimed at the whole page rather than at the frame the person pointed in.
+    /// Playwright hands that click on to the next frame at each written-in step, so one string still
+    /// names the element.
+    /// </summary>
+    private static string InFrame(IPage page, IFrame? frame, string selector)
+    {
+        if (frame is null || ReferenceEquals(frame, page.MainFrame))
+        {
+            return selector;
+        }
+
+        try
+        {
+            return Wait(async () => await WayInAsync(frame) + selector);
+        }
+        catch (PlaywrightException)
+        {
+            // The frame went away between the pick and writing it down; the bare selector is the
+            // most that can still be said about the element.
+            return selector;
+        }
+    }
+
+    /// <summary>The way in to a frame: the selector of each frame on the way, outermost first.</summary>
+    private static async Task<string> WayInAsync(IFrame frame)
+    {
+        var way = new List<string>();
+        for (var at = frame; at.ParentFrame is not null; at = at.ParentFrame)
+        {
+            if (await at.FrameElementAsync() is not { } element)
+            {
+                break;
+            }
+
+            way.Insert(0, await element.EvaluateAsync<string>(BrowserPickerScript.FramePath));
+        }
+
+        return string.Concat(way.Select(selector => selector + " >> " + FrameStep + " >> "));
     }
 
     /// <summary>
@@ -195,16 +276,17 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// </summary>
     private static void TryStopPicking(IPage page)
     {
-        try
+        foreach (var frame in page.Frames)
         {
-            Wait(async () => await page.EvaluateAsync(
-                "() => { if (window.__whalegeniePicking) {"
-                + " window.__whalegeniePicking = false;"
-                + " for (const node of document.querySelectorAll('[data-whalegenie-picker]')) { node.remove(); } } }"));
-        }
-        catch (PlaywrightException)
-        {
-            // The page went away while picking, which is one of the ways picking can end.
+            try
+            {
+                Wait(async () => await frame.EvaluateAsync(
+                    "() => { if (typeof window.__whalegenieStop === 'function') { window.__whalegenieStop(); } }"));
+            }
+            catch (PlaywrightException)
+            {
+                // The page went away while picking, which is one of the ways picking can end.
+            }
         }
     }
 

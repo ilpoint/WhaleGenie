@@ -50,20 +50,26 @@ internal static class BrowserPickerScript
           box.style.borderRadius = '2px';
           box.style.display = 'none';
           banner.style.zIndex = '2147483647';
-          banner.style.left = '50%';
-          banner.style.top = '12px';
-          banner.style.transform = 'translateX(-50%)';
-          banner.style.padding = '8px 14px';
+          banner.style.left = '12px';
+          banner.style.bottom = '12px';
+          banner.style.padding = '6px 12px';
           banner.style.borderRadius = '8px';
-          banner.style.background = 'rgba(16,18,22,0.92)';
+          banner.style.background = 'rgba(16,18,22,0.25)';
+          banner.style.border = '1px solid rgba(255,255,255,0.25)';
           banner.style.color = '#FFFFFF';
-          banner.style.font = '13px/1.4 system-ui, "Segoe UI", sans-serif';
-          banner.style.boxShadow = '0 6px 20px rgba(0,0,0,0.35)';
+          banner.style.font = '12px/1.4 system-ui, "Segoe UI", sans-serif';
+          banner.style.textShadow = '0 1px 2px rgba(0,0,0,0.9)';
+          banner.style.backdropFilter = 'blur(2px)';
           banner.style.maxWidth = '80vw';
           banner.style.whiteSpace = 'nowrap';
           banner.textContent = hint;
           root.appendChild(box);
           root.appendChild(banner);
+
+          // The hint has been read by the time somebody has moved the pointer to the element they
+          // want, so it steps back out of the way of the page rather than sitting on it.
+          banner.style.transition = 'opacity 0.8s ease 4s';
+          requestAnimationFrame(() => { banner.style.opacity = '0.15'; });
 
           const escape = (value) =>
             window.CSS && CSS.escape ? CSS.escape(value) : String(value).replace(/["\\]/g, '\\$&');
@@ -144,17 +150,23 @@ internal static class BrowserPickerScript
             return parts.join(' > ');
           };
 
-          const stop = (selector) => {
+          // The listeners go with the picker: a click is answered, or the picker is taken down
+          // unanswered when the wait ends first, and either way nothing may be left behind that
+          // keeps swallowing the page's clicks.
+          const stop = (answer) => {
             window.__whalegeniePicking = false;
             document.removeEventListener('mousemove', onMove, true);
             document.removeEventListener('click', onClick, true);
             document.removeEventListener('keydown', onKey, true);
             box.remove();
             banner.remove();
-            if (typeof window.__whalegeniePicked === 'function') {
-              window.__whalegeniePicked(selector);
+            if (answer !== null && typeof window.__whalegeniePicked === 'function') {
+              window.__whalegeniePicked(answer);
             }
           };
+
+          // What the device calls when the wait ends first, so the page gets its clicks back.
+          window.__whalegenieStop = () => stop(null);
 
           function onMove(event) {
             const element = document.elementFromPoint(event.clientX, event.clientY);
@@ -213,4 +225,60 @@ internal static class BrowserPickerScript
         + " if (typeof window.__whalegenieListening !== 'function') { return; }"
         + " window.__whalegenieListening().then((wanted) => { if (wanted) { go(); } }).catch(() => {});"
         + " })();";
+
+    /// <summary>
+    /// One <c>iframe</c> element to one selector, for writing down which frame a pick happened in.
+    /// </summary>
+    /// <remarks>
+    /// It is the plain half of what <see cref="Source"/> does, on purpose: a frame is named by its
+    /// id, its name, or its place among its brothers, and there is nothing else worth trying on
+    /// one. It is written out separately rather than shared with the picker because the picker has
+    /// to carry its own copy into every document it installs itself in.
+    /// </remarks>
+    internal const string FramePath = """
+        (element) => {
+          const doc = element.ownerDocument;
+          const view = doc.defaultView;
+          const escape = (value) =>
+            view.CSS && view.CSS.escape ? view.CSS.escape(value) : String(value).replace(/["\\]/g, '\\$&');
+          const alone = (selector) => {
+            try {
+              return Boolean(selector) && doc.querySelectorAll(selector).length === 1;
+            } catch (error) {
+              return false;
+            }
+          };
+
+          if (element.id) {
+            const byId = '#' + escape(element.id);
+            if (alone(byId)) {
+              return byId;
+            }
+          }
+
+          const name = element.getAttribute('name');
+          if (name) {
+            const byName = element.tagName.toLowerCase() + '[name="' + escape(name) + '"]';
+            if (alone(byName)) {
+              return byName;
+            }
+          }
+
+          const parts = [];
+          for (let node = element; node && node.nodeType === 1; node = node.parentElement) {
+            const siblings = node.parentElement
+              ? Array.from(node.parentElement.children).filter((child) => child.tagName === node.tagName)
+              : [node];
+            parts.unshift(siblings.length > 1
+              ? node.tagName.toLowerCase() + ':nth-of-type(' + (siblings.indexOf(node) + 1) + ')'
+              : node.tagName.toLowerCase());
+            const candidate = parts.join(' > ');
+            if (alone(candidate)) {
+              return candidate;
+            }
+          }
+
+          return parts.join(' > ');
+        }
+        """;
 }

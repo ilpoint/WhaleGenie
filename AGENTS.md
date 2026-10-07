@@ -242,6 +242,24 @@ WebKit 才需要下载。
   `__whalegenieListening`（"这次拾取还没结束吗"），拾取结束后再跨页就不会重新武装、不会吃掉
   用户的点击。选择器优先 `data-testid` → `#id` → `name` / `aria-label` → 标签路径，每一条都用
   `querySelectorAll` 验过"只挑中一个"才用。
+- **页面里的 frame 也要能拾取。** 页面由 iframe 拼出来是常态，而顶层的 `document` 收不到
+  frame 里的鼠标事件：只装顶层那一份，指针划进 frame 不亮、点下去也不被拦，用户看到的就是
+  "点了没反应、选不中元素"。所以每个 frame 都装一份（`page.Frames` 挨个 `EvaluateAsync`），
+  而回传的选择器要把 frame 写进去——用上下文级的绑定 `ExposeBindingAsync`，因为只有它带着
+  `BindingSource.Frame`，能说清是哪一层答的；再由 `FrameElementAsync()` + `FramePath` 一路
+  往上把每层的 iframe 选择器串起来。
+  **链式选择器自己不会进 frame**：`iframe >> #inner` 实测会在顶层文档里等一个叫 `#inner` 的
+  元素然后超时，必须写成 `#frame >> internal:control=enter-frame >> #inner` 才对——这是
+  `FrameStep` 常量的由来，别当成可以省掉的啰嗦。
+- **拾取结束一定要把监听摘掉，不只是清标记。** `__whalegenieStop` 是脚本交出来的"把选择器
+  收起来"的钩子（摘监听、删高亮），设备在等待结束时对每个 frame 调用它。以前只清
+  `__whalegeniePicking` 和节点、把 `click` 监听留在页面上，于是某个 frame 被武装过却没被点，
+  之后就一直把用户的点击吃掉——多个 frame 时尤其明显，实测过。
+- 拾取期间这个程序自己要让路：置顶摘掉（别的进程的窗口接不了置顶），窗口最小化（否则正好压
+  在要点的元素上），片段结束后再恢复，见 `BrowserPicker.StepAside`。页内那行提示也压到左下、
+  半透明并在几秒后淡到几乎看不见，免得它挡住元素。
+- 拾取页面里的元素这件事真桌面上要手动走一遍，**带 iframe 的页面**（含嵌套和跨域）各点一次，
+  确认点中了要的元素、点下去没被页面自己吃掉，并且拾取完那页的点击恢复正常。
 - **要在宏已经开着的那个页面上拾取，不能另开一个。** 另开的那一个是空的，宏带起来的页面和
   登录状态都不在里面，用户根本选不到东西。所以 `PlaywrightBrowserDevice` 把"有页面的自己"
   记在一张表上（`OpenPage()`），拾取先取这张表里的那一个——宏和编辑器的设备层是两套，但人
