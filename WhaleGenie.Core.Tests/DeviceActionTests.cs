@@ -3687,6 +3687,65 @@ public class DeviceActionTests
         Assert.Contains("browserClick input[name=\"user\"]", devices.Calls);
         Assert.Contains("browserClick #frame >> internal:control=enter-frame >> #inner", devices.Calls);
     }
+
+    [Fact]
+    public async Task A_macro_follows_a_click_into_the_tab_it_opened()
+    {
+        // Sites hand the page the macro came for to a new tab, and left on the old one every step
+        // after the click aims at the wrong page: on a site whose pages look alike, a step finds an
+        // element that happens to match over there and works on it without anything looking wrong.
+        var devices = new FakeDeviceLayer { BrowserTabAddress = "https://example.com/receipt" };
+        var (result, _, _) = await RunAsync(
+        [
+            Step("browser.open", Param("url", "https://example.com")),
+            Step("browser.click", Param("target", "#pay")),
+            Step("browser.switchTab", Param("how", "newest"), Param("index", "1")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("browserSwitchTab Newest 1 ", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_tab_can_be_asked_for_by_number_by_title_or_by_address()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("browser.switchTab", Param("how", "index"), Param("index", "3")),
+            Step("browser.switchTab", Param("how", "title"), Param("match", "收据")),
+            Step("browser.switchTab", Param("how", "url"), Param("match", "example.com/receipt")),
+            // A word the engine does not know reads as "the newest one": the words come from the
+            // action catalogue, so an unknown one is either a file written by hand or a value this
+            // engine is older than, and the newest tab is the one a click leaves behind.
+            Step("browser.switchTab", Param("how", "sideways"), Param("index", "1")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("browserSwitchTab Index 3 ", devices.Calls);
+        Assert.Contains("browserSwitchTab Title 0 收据", devices.Calls);
+        Assert.Contains("browserSwitchTab Address 0 example.com/receipt", devices.Calls);
+        Assert.Contains("browserSwitchTab Newest 1 ", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_tab_the_macro_is_done_with_can_be_closed()
+    {
+        // Closing the tab a click opened is what a macro does with it afterwards, and the browser
+        // itself stays open: the pages the macro still wants are in the tabs next to it.
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("browser.open", Param("url", "https://example.com")),
+            Step("browser.closeTab"),
+            Step("browser.close"),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("browserCloseTab", devices.Calls);
+        Assert.Contains("browserClose", devices.Calls);
+        Assert.Equal(2, devices.Calls.Count(call => call is "browserCloseTab" or "browserClose"));
+    }
 }
 
 /// <summary>
@@ -3902,6 +3961,20 @@ internal sealed class FakeDeviceLayer
     void IBrowserDevice.Click(string selector) => Note($"browserClick {selector}");
 
     void IBrowserDevice.Fill(string selector, string text) => Note($"browserFill {selector} {text}");
+
+    /// <summary>The address the tab a switch moves to is showing, as though it had a page of its own.</summary>
+    public string BrowserTabAddress { get; set; } = string.Empty;
+
+    void IBrowserDevice.SwitchTab(TabChoice choice, int index, string match)
+    {
+        Note($"browserSwitchTab {choice} {index} {match}");
+        if (BrowserTabAddress.Length > 0)
+        {
+            BrowserAddress = BrowserTabAddress;
+        }
+    }
+
+    void IBrowserDevice.CloseTab() => Note("browserCloseTab");
 
     string IBrowserDevice.Text(string selector)
     {

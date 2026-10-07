@@ -357,6 +357,11 @@ public interface ISystemDevice
 /// one is stateful on purpose: a macro says "open this" and then "click that" the way a person
 /// works, so the device keeps the page between steps until the macro closes it.
 /// </summary>
+/// <remarks>
+/// A browser window holds several tabs, and the page a macro means is the one the person is
+/// looking at rather than the first one that was opened. So the device keeps track of which tab it
+/// is on, and the actions that move between tabs are what keeps that from being a guess.
+/// </remarks>
 public interface IBrowserDevice
 {
     /// <summary>
@@ -397,6 +402,22 @@ public interface IBrowserDevice
     string Text(string selector);
 
     /// <summary>
+    /// Moves to another tab of the browser that is open, which is how a macro follows a click that
+    /// opened one: the site hands the interesting page to a new tab, and the macro would otherwise
+    /// go on aiming its steps at the tab it was already on — where the same site often has an
+    /// element that looks just like the one it wants. A tab that cannot be found is refused rather
+    /// than passed over, because every step after it would then act on the wrong page.
+    /// </summary>
+    void SwitchTab(TabChoice choice, int index, string match);
+
+    /// <summary>
+    /// Closes the tab the browser is on and moves to another one, which is what a macro does with
+    /// the tab a click opened once it has read what it came for. Closing the last tab leaves no
+    /// page behind, and the steps after it are refused like any other step with no browser open.
+    /// </summary>
+    void CloseTab();
+
+    /// <summary>
     /// Puts the open page into picking mode and waits for the person to click an element on it,
     /// answering with a selector for what they clicked. An empty answer means they gave up, or
     /// nothing was clicked in time. The page is left the way it was either way.
@@ -407,6 +428,24 @@ public interface IBrowserDevice
 
     /// <summary>Closes the browser and lets go of it, which a macro does when it is done.</summary>
     void Close();
+}
+
+/// <summary>Which tab of the open browser a macro asked to move to.</summary>
+public enum TabChoice
+{
+    /// <summary>
+    /// The one that appeared last, which is where a click that opened a tab leaves the person.
+    /// </summary>
+    Newest,
+
+    /// <summary>By number, counted from the left of the tab strip starting at 1.</summary>
+    Index,
+
+    /// <summary>The first tab whose title contains a piece of text.</summary>
+    Title,
+
+    /// <summary>The first tab whose address contains a piece of text.</summary>
+    Address,
 }
 
 /// <summary>Open windows: finding them, moving them, and closing them.</summary>
@@ -567,6 +606,10 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public void Fill(string selector, string text) => throw Missing("a browser");
 
         public string Text(string selector) => throw Missing("a browser");
+
+        public void SwitchTab(TabChoice choice, int index, string match) => throw Missing("a browser");
+
+        public void CloseTab() => throw Missing("a browser");
 
         public string Pick(string hint, int timeoutMs) => throw Missing("a browser");
 

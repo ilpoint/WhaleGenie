@@ -1765,6 +1765,24 @@ internal static class ActionStrings
         ["browser.readText.resultVariable.label"] = "结果变量",
         ["browser.readText.resultVariable.hint"] = "存文本的变量。",
 
+        ["browser.switchTab.name"] = "切换标签页",
+        ["browser.switchTab.desc"] = "让后面的步骤改用浏览器里的另一个标签页。",
+        ["browser.switchTab.how.label"] = "哪个标签页",
+        ["browser.switchTab.how.hint"] = "后面的步骤在哪个标签页上操作。“最新打开的那个”是最后出现的那一个，"
+            + "点击后新开标签页时留下的就是它；标签页要等点击返回后一小会儿才到浏览器，所以这一步会等它几秒，"
+            + "等不到会报错，而不是留在原地——在长得很像的站点上，留在原地是看不出问题的。",
+        ["browser.switchTab.how.option.newest"] = "最新打开的那个",
+        ["browser.switchTab.how.option.index"] = "第几个",
+        ["browser.switchTab.how.option.title"] = "按标题",
+        ["browser.switchTab.how.option.url"] = "按网址",
+        ["browser.switchTab.index.label"] = "第几个标签页",
+        ["browser.switchTab.index.hint"] = "从标签栏最左边数起，第一个是 1；配合上面的“第几个”使用。",
+        ["browser.switchTab.match.label"] = "标题或网址里包含",
+        ["browser.switchTab.match.hint"] = "标签页的标题（或网址）里要包含的文字；配合上面的“按标题”“按网址”使用。",
+
+        ["browser.closeTab.name"] = "关闭标签页",
+        ["browser.closeTab.desc"] = "关闭浏览器当前所在的标签页，并转到另一个标签页。",
+
         ["browser.close.name"] = "关闭浏览器",
         ["browser.close.desc"] = "关闭宏打开的浏览器。",
 

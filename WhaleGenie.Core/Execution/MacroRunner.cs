@@ -1056,6 +1056,15 @@ public sealed class MacroRunner
                 BrowserReadText(step, depth);
                 return Signal.Normal;
 
+            case "browser.switchTab":
+                BrowserSwitchTab(step, depth);
+                return Signal.Normal;
+
+            case "browser.closeTab":
+                _devices.Browser.CloseTab();
+                Log(LogLevel.Info, depth, step.Type, "Run.ClosedTab");
+                return Signal.Normal;
+
             case "browser.close":
                 _devices.Browser.Close();
                 Log(LogLevel.Info, depth, step.Type, "Run.ClosedBrowser");
@@ -4304,6 +4313,26 @@ public sealed class MacroRunner
         var name = VariableName(step, "resultVariable", "text");
         Variables.Set(name, Value.FromText(text));
         Log(LogLevel.Info, depth, step.Type, "Run.BrowserRead", text.Length, name);
+    }
+
+    /// <summary>
+    /// Moves the macro to another tab of the browser that is open. Many sites hand the page the
+    /// macro came for to a new tab, and the macro would otherwise go on aiming its steps at the tab
+    /// it was on — where, on a site whose pages look alike, a step finds something that matches and
+    /// works on the wrong page without anything looking wrong.
+    /// </summary>
+    private void BrowserSwitchTab(ExecutableStep step, int depth)
+    {
+        var choice = step.Text("how").Trim().ToLowerInvariant() switch
+        {
+            "index" => TabChoice.Index,
+            "title" => TabChoice.Title,
+            "url" or "address" => TabChoice.Address,
+            _ => TabChoice.Newest,
+        };
+
+        _devices.Browser.SwitchTab(choice, Number(step, "index"), Read(step.Text("match")).AsText());
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserTab", _devices.Browser.Url);
     }
 
     /// <summary>

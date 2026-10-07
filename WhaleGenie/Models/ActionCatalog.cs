@@ -2158,6 +2158,38 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "browser.switchTab",
+            Category = ActionCategory.Browser,
+            DisplayName = "Switch Tab",
+            Description = "Moves to another tab of the browser that is open.",
+            Parameters =
+            [
+                Choice("how", "Which tab", ["newest", "index", "title", "url"], "newest",
+                    "Which tab the steps after this one work on. \"The newest one\" is the tab that "
+                    + "appeared last — the one a click leaves behind when it opens a new tab — and "
+                    + "this step waits a few seconds for it, because a tab reaches the browser a "
+                    + "moment after the click that opened it; none turning up is an error rather "
+                    + "than staying where the macro was, which on a site whose pages look alike "
+                    + "would go unnoticed.",
+                    labels: ["The newest one", "By number", "By title", "By address"]),
+                Number("index", "Tab number", 1,
+                    "Which tab, counted from the left of the tab strip starting at 1. Used with "
+                    + "\"by number\" above.", min: 1, max: 50),
+                Text("match", "Title or address holds", "",
+                    "The text the tab's title (or address) has to contain. Used with \"by title\" "
+                    + "and \"by address\" above.", required: false),
+            ],
+        },
+        new()
+        {
+            Key = "browser.closeTab",
+            Category = ActionCategory.Browser,
+            DisplayName = "Close Tab",
+            Description = "Closes the tab the browser is on, and moves to another one.",
+            Parameters = [],
+        },
+        new()
+        {
             Key = "browser.close",
             Category = ActionCategory.Browser,
             DisplayName = "Close Browser",
