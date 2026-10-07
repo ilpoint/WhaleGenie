@@ -1,18 +1,16 @@
-便携版，免安装：解压到一个你放得住的地方，双击 `Viktor.exe` 就能用。
+免安装：放到一个你放得住的地方，双击 `Viktor.exe` 就能用。设置（`settings.json`）和运行
+失败时的截图（`logs` 文件夹）都写在 `Viktor.exe` 旁边，所以整个文件夹拷到哪，设置就跟到哪。
 
-## 先装运行环境
+## 三种包怎么选
 
-Viktor 不自带 .NET 运行环境，机器上需要有 **.NET 10 桌面运行时（Desktop Runtime）**。
-没装的话，双击 `Viktor.exe` 会弹出提示并给出下载地址，装完再开就行。
+| 包 | 需要装什么 | 大小（x64） | 什么时候用 |
+| --- | --- | --- | --- |
+| `Viktor-<版本>-win-x64.zip` | .NET 10 桌面运行时 | 约 89 MB | 体积最小，**推荐**；机器上已经装过运行环境时 |
+| `Viktor-<版本>-win-x64-standalone.zip` | 什么都不用装 | 约 161 MB | 换机器、给别人用；解压出来是一整个文件夹 |
+| `Viktor-<版本>-win-x64-standalone.exe` | 什么都不用装 | 约 133 MB | 只想拷一个文件；第一次启动会把原生库解压到系统临时目录，比文件夹版慢一点 |
 
-下载：<https://dotnet.microsoft.com/download/dotnet/10.0> → Windows → 对应架构 → Desktop Runtime
+框架依赖版没装运行环境时，双击 `Viktor.exe` 会由程序自己弹窗提示并给出下载地址：
+<https://dotnet.microsoft.com/download/dotnet/10.0> → Windows → 对应架构 → Desktop Runtime
 
-## 两个包怎么选
-
-| 包 | 什么时候用 |
-| --- | --- |
-| `Viktor-<版本>-win-x64.zip` | 绝大多数 64 位 Windows，功能完整，**推荐** |
-| `Viktor-<版本>-win-x86.zip` | 32 位 Windows，需要 32 位的 .NET 10 桌面运行时 |
-
-x86 包的已知限制：找图、等图、点图这几个动作依赖的 OpenCV 只提供 64 位原生库，
-所以这几个动作在 32 位包里用不了，其余功能正常。机器装的是 64 位系统就选 x64。
+32 位（`win-x86`）同样是这三种包。已知限制：找图、等图、点图这几个动作依赖的 OpenCV 只提供
+64 位原生库，所以这几个动作在 32 位包里用不了，其余功能正常。机器装的是 64 位系统就选 x64。

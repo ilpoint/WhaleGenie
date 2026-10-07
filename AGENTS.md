@@ -210,4 +210,9 @@ RPA 平台：企业向的能力和明显偏办公文档解析的能力都不做�
 ## 提交与发布
 
 - `master` 是主线，`.github/workflows/ci.yml` 在推送与 PR 上跑格式检查、构建、全部测试。
-- 发布就是打一个 `v` 开头的标签，`.github/workflows/release.yml` 会出 x64 / x86 便携包并挂上 Release。
+- 发布就是打一个 `v` 开头的标签，`.github/workflows/release.yml` 给 x64 / x86 各出三个包：
+  框架依赖的 zip、自带运行时的文件夹 zip、自带运行时的单文件 exe。不想要哪一种，删掉对应那段
+  发布步骤和文件名即可。
+- 程序旁边会多出两样运行期才有的东西，都不进仓库：`settings.json`（设置窗口的选择）和
+  `logs`（失败截图）。路径只在 `Viktor.Execution.AppPaths` 定义一次，由界面把
+  `MacroRunner.FailureFolder` 指过去，引擎自己不猜程序装在哪。
