@@ -914,11 +914,22 @@ public partial class MacroEditorWindow : Window
     /// <summary>Remembers where a press landed, so a plain click never turns into a drag.</summary>
     private void OnStepPointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        var pressed = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed;
+        var onButton = IsOnButton(e.Source);
+        var row = onButton ? null : RowUnder(e.Source);
+
         // A press on a button inside a row belongs to that button: folding a block open, or
         // asking for a step inside one, must not turn into picking the row up as a drag.
-        _pressedRow = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && !IsOnButton(e.Source)
-            ? RowUnder(e.Source)
-            : null;
+        _pressedRow = pressed ? row : null;
+
+        // A press on the empty part of the list — the space after the last row — is the user
+        // saying "none of these", so the selection goes, the way it does in any other list. The
+        // scrollbar is not empty space.
+        if (pressed && row is null && !onButton && !IsOnScrollbar(e.Source))
+        {
+            _viewModel.SetSelection([]);
+        }
+
         _dragOrigin = e.GetPosition(this);
         _draggingSteps = false;
         _dropSlot = -1;
@@ -964,18 +975,22 @@ public partial class MacroEditorWindow : Window
     /// <summary>Drops the block where the marker points.</summary>
     private void OnStepPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        // A press that never turned into a drag belongs to whatever it landed on. Handing the
+        // capture back here would take it off the row button that took it, and a button that loses
+        // its capture on the way up never reports a click — which is how the fold arrow and the
+        // "add a step" button came to do nothing at all.
+        if (!_draggingSteps)
+        {
+            EndStepDrag();
+            return;
+        }
+
         // The state is read and cleared before the capture goes back, because losing the
         // capture asks for the drag to end and would wipe the drop row out from under us.
-        var dropping = _draggingSteps;
         var slot = _dropSlot;
         var into = _dropInto;
         EndStepDrag();
         e.Pointer.Capture(null);
-
-        if (!dropping)
-        {
-            return;
-        }
 
         if (into is not null)
         {
@@ -1106,4 +1121,9 @@ public partial class MacroEditorWindow : Window
     /// <summary>True when the event landed on a button, which handles its own presses.</summary>
     private static bool IsOnButton(object? source)
         => source is Visual visual && visual.FindAncestorOfType<Button>(true) is not null;
+
+    /// <summary>True when the event landed on the list's scrollbar rather than on its rows.</summary>
+    private static bool IsOnScrollbar(object? source)
+        => source is Visual visual
+            && visual.FindAncestorOfType<Avalonia.Controls.Primitives.ScrollBar>(true) is not null;
 }

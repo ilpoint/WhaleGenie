@@ -362,6 +362,81 @@ public class StepTreeTests
     }
 
     [Fact]
+    public void The_buttons_on_a_blocks_rows_do_what_they_say()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var loop = Loop(Step("control.delay"));
+            editor.AddStep(loop);
+            Dispatcher.UIThread.RunJobs();
+
+            // The plus on the block's title line asks for a step to go in there.
+            Click(window, RowButton(window, row => row.IsHead));
+            Dispatcher.UIThread.RunJobs();
+            var picker = Assert.Single(window.OwnedWindows, owned => owned is AddActionWindow);
+            picker.Close(null);
+            Dispatcher.UIThread.RunJobs();
+
+            // The fold arrow closes the block. A click is a press and a release on the same button,
+            // and nothing on the way may take that button's pointer capture off it: a button that
+            // loses the capture on the way up never reports a click at all.
+            Assert.True(loop.IsExpanded);
+            Click(window, RowButton(window, row => row.IsStep));
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(loop.IsExpanded);
+        });
+    }
+
+    [Fact]
+    public void Pressing_the_empty_part_of_the_list_lets_the_selection_go()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var leaf = Step("control.delay");
+            editor.AddStep(leaf);
+            Dispatcher.UIThread.RunJobs();
+
+            editor.SetSelection([leaf]);
+            Assert.Same(leaf, Assert.Single(editor.SelectedSteps));
+
+            // Below the last row there is nothing to pick, so a press there means "none of these".
+            var list = window.GetVisualDescendants().OfType<ListBox>().First();
+            var empty = list.TranslatePoint(
+                new Point(list.Bounds.Width / 2, list.Bounds.Height - 4), window) ?? default;
+            window.MouseDown(empty, MouseButton.Left, RawInputModifiers.LeftMouseButton);
+            window.MouseUp(empty, MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Empty(editor.SelectedSteps);
+        });
+    }
+
+    /// <summary>The visible button a row carries, such as the fold arrow or the one that adds.</summary>
+    private static Button RowButton(Window window, Func<StepRow, bool> match)
+        => window.GetVisualDescendants().OfType<Button>()
+            .Single(button => button.IsEffectivelyVisible && button.Bounds.Width > 0
+                && button.DataContext is StepRow row && match(row));
+
+    private static void Click(Window window, Button button)
+    {
+        var at = Waypoint(window, button, 0.5, 0.5);
+        window.MouseDown(at, MouseButton.Left, RawInputModifiers.LeftMouseButton);
+        window.MouseUp(at, MouseButton.Left);
+    }
+
+    [Fact]
     public void The_edit_button_turns_on_for_a_step_inside_a_block()
     {
         Ui.Run(() =>
