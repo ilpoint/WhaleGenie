@@ -67,7 +67,7 @@ public sealed class ViiperLink : IViiperLink
     public ScreenPoint Cursor => WindowsScreenDevice.CursorPosition();
 
     public void SendKeyboard(byte modifiers, IReadOnlyList<byte> keys)
-        => Wait(_keyboard.SendAsync(new KeyboardInput
+        => Wait(() => _keyboard.SendAsync(new KeyboardInput
         {
             Modifiers = modifiers,
             Count = (byte)keys.Count,
@@ -75,7 +75,7 @@ public sealed class ViiperLink : IViiperLink
         }));
 
     public void SendMouse(byte buttons, short dx, short dy, short wheel, short pan)
-        => Wait(_mouse.SendAsync(new MouseInput
+        => Wait(() => _mouse.SendAsync(new MouseInput
         {
             Buttons = buttons,
             Dx = dx,
@@ -102,19 +102,23 @@ public sealed class ViiperLink : IViiperLink
         var client = new ViiperClient(DriverInput.ServerHost, DriverInput.ServerPort);
         try
         {
-            var existing = Wait(client.BusListAsync()).Buses;
-            var bus = existing.Length > 0 ? existing[0] : Wait(client.BusCreateAsync(null)).BusID;
+            var existing = Wait(() => client.BusListAsync()).Buses;
+            var bus = existing.Length > 0
+                ? existing[0]
+                : Wait(() => client.BusCreateAsync(null)).BusID;
 
-            var keyboard = Wait(client.BusDeviceAddAsync(bus, new DeviceCreateRequest { Type = Keyboard }));
-            var mouse = Wait(client.BusDeviceAddAsync(bus, new DeviceCreateRequest { Type = Mouse }));
+            var keyboard =
+                Wait(() => client.BusDeviceAddAsync(bus, new DeviceCreateRequest { Type = Keyboard }));
+            var mouse =
+                Wait(() => client.BusDeviceAddAsync(bus, new DeviceCreateRequest { Type = Mouse }));
 
             return new ViiperLink(
                 client,
                 bus,
                 keyboard.DevID,
-                Wait(client.ConnectDeviceAsync(bus, keyboard.DevID)),
+                Wait(() => client.ConnectDeviceAsync(bus, keyboard.DevID)),
                 mouse.DevID,
-                Wait(client.ConnectDeviceAsync(bus, mouse.DevID)));
+                Wait(() => client.ConnectDeviceAsync(bus, mouse.DevID)));
         }
         catch (Exception failure) when (failure is not DeviceActionException)
         {
@@ -130,8 +134,11 @@ public sealed class ViiperLink : IViiperLink
     /// </summary>
     public void Dispose()
     {
-        _keyboard.Dispose();
-        _mouse.Dispose();
+        Do(() =>
+        {
+            _keyboard.Dispose();
+            _mouse.Dispose();
+        });
 
         Remove(_keyboardId);
         Remove(_mouseId);
@@ -147,7 +154,7 @@ public sealed class ViiperLink : IViiperLink
     {
         try
         {
-            Wait(_client.BusDeviceRemoveAsync(_bus, device));
+            Wait(() => _client.BusDeviceRemoveAsync(_bus, device));
         }
         catch
         {
@@ -158,9 +165,18 @@ public sealed class ViiperLink : IViiperLink
 
     /// <summary>
     /// Waits for one request. Everything here is a step in a macro, which is a sequential affair
-    /// that asks for results rather than for tasks, so the work is waited out rather than passed on.
+    /// that asks for results rather than for tasks, so the work is waited out rather than passed on
+    /// — but it is waited out on a thread of the pool, because the client's own waiting comes back
+    /// through whatever context the call was made on, and a run started from the editor happens on
+    /// the thread that draws the window: block that one and the client would be waiting for work
+    /// that only the blocked thread could run.
     /// </summary>
-    private static T Wait<T>(Task<T> request) => request.GetAwaiter().GetResult();
+    private static T Wait<T>(Func<Task<T>> request) => Task.Run(request).GetAwaiter().GetResult();
 
-    private static void Wait(Task request) => request.GetAwaiter().GetResult();
+    private static void Wait(Func<Task> request) => Task.Run(request).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// The same again, for a call into the client that comes back on its own rather than as a task.
+    /// </summary>
+    private static void Do(Action work) => Task.Run(work).GetAwaiter().GetResult();
 }
