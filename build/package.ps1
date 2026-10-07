@@ -83,6 +83,11 @@ function New-PortableFolder([string]$Published, [string]$Package) {
     # 原生库自带的调试符号，比程序本身还大（Skia 一份 80 MB），用户用不上。
     Get-ChildItem $app -Recurse -Filter *.pdb | ForEach-Object { $_.Delete() }
 
+    # 自己的许可和第三方说明必须跟着程序走：分发时不给出这两样，等于没写。
+    foreach ($document in @('LICENSE.txt', 'THIRD-PARTY-NOTICES.md')) {
+        Copy-Item -Path (Join-Path $PSScriptRoot "..\$document") -Destination $app
+    }
+
     $moved = @(Get-ChildItem $Published -File |
         Where-Object { $_.Extension -eq '.dll' -and $_.Name -ne 'WhaleGenie.dll' -and -not (Test-HostFile $_.Name) } |
         ForEach-Object { $_.Name })
