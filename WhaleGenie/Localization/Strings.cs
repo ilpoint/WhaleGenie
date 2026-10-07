@@ -116,6 +116,15 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.AlwaysOnTop"] = "Always on Top",
         ["Main.AlwaysOnTopCancel"] = "Stop Staying on Top",
 
+        // ----------------------------------------------------------- notification area
+        ["Tray.Tooltip"] = "WhaleGenie",
+        ["Tray.Show"] = "Show WhaleGenie",
+        ["Tray.Exit"] = "Exit",
+        ["Tray.HiddenTitle"] = "WhaleGenie is still running",
+        ["Tray.HiddenText"] =
+            "It stays in the notification area and keeps its macros ready. Right-click the icon "
+            + "there to exit.",
+
         // ----------------------------------------------------------- macro editor
         ["Editor.Title"] = "Macro Editor",
         ["Editor.NamePlaceholder"] = "Enter a name for your macro..",
@@ -866,6 +875,13 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.MacroRunning"] = "运行中",
         ["Main.AlwaysOnTop"] = "窗口置顶",
         ["Main.AlwaysOnTopCancel"] = "取消置顶",
+
+        // ----------------------------------------------------------- 通知区域
+        ["Tray.Tooltip"] = "鲸灵",
+        ["Tray.Show"] = "显示鲸灵",
+        ["Tray.Exit"] = "退出",
+        ["Tray.HiddenTitle"] = "鲸灵还在运行",
+        ["Tray.HiddenText"] = "它留在通知区域里，宏照常待命。要退出就右键那个图标。",
 
         // ----------------------------------------------------------- macro editor
         ["Editor.Title"] = "宏编辑器",

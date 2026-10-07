@@ -310,6 +310,23 @@ public enum SoundKind
 }
 
 /// <summary>
+/// How a notification looks when it appears: an ordinary note, something worth looking at, or
+/// something that went wrong. The three correspond to the machine's own notification pictures, so
+/// a macro picks a meaning rather than a drawing.
+/// </summary>
+public enum NotificationKind
+{
+    /// <summary>An ordinary note.</summary>
+    Information,
+
+    /// <summary>Something worth looking at.</summary>
+    Warning,
+
+    /// <summary>Something that went wrong.</summary>
+    Error,
+}
+
+/// <summary>
 /// How a program is to be started: what to run, where, and how it should come up. Gathered into
 /// one thing rather than a row of loose arguments, because a call site should not have to be read
 /// twice to tell one switch from another.

@@ -10,6 +10,9 @@ namespace WhaleGenie;
 
 public partial class App : Application
 {
+    /// <summary>The icon this program keeps in the notification area; null when it has none.</summary>
+    private AppTray? _tray;
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -28,10 +31,17 @@ public partial class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow
+            var window = new MainWindow
             {
                 DataContext = new MainViewModel(),
             };
+
+            desktop.MainWindow = window;
+
+            // From here on, the window is put out of the way rather than closed, and the icon in
+            // the notification area is how it comes back and how the program is stopped.
+            _tray = AppTray.Attach(window, desktop);
+            desktop.Exit += (_, _) => _tray?.Dispose();
         }
 
         base.OnFrameworkInitializationCompleted();
