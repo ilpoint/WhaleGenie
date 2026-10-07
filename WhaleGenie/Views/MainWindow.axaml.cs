@@ -239,7 +239,7 @@ public partial class MainWindow : Window
     // -------------------------------------------------------------- macro package
 
     private static FilePickerFileType PackageFileType
-        => new(Strings.Get("Package.Filter")) { Patterns = ["*.vkm"] };
+        => new(Strings.Get("Package.Filter")) { Patterns = [$"*{MacroPackage.Extension}"] };
 
     private async void OnOpenProjectClicked(object? sender, RoutedEventArgs e)
     {

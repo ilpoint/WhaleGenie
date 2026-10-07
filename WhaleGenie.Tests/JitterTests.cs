@@ -164,7 +164,7 @@ public class JitterTests
 
         try
         {
-            var package = Path.Combine(folder, "slack.vkm");
+            var package = Path.Combine(folder, "slack.wgmacro");
             var macro = new MacroItem { Name = "Waits about half a second" };
             macro.Steps.Add(new MacroStep
             {

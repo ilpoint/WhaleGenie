@@ -20,12 +20,17 @@ public sealed class PackageContents
 }
 
 /// <summary>
-/// Reads and writes the <c>.vkm</c> macro package: a zip holding a manifest, a readme,
+/// Reads and writes the <c>.wgmacro</c> macro package: a zip holding a manifest, a readme,
 /// one JSON document per macro and the images those macros reference.
 /// </summary>
 public static class MacroPackage
 {
-    public const string Extension = ".vkm";
+    /// <summary>
+    /// The extension is the program's name, so a package is recognisable as this program's even
+    /// where nothing else says so. The old <c>.vkm</c> comes from a name the project no longer
+    /// uses, and no file in the wild carries it, so there is nothing that reads it back.
+    /// </summary>
+    public const string Extension = ".wgmacro";
     public const string FormatId = "whalegenie.macro.package";
     public const int FormatVersion = 1;
 

@@ -45,9 +45,17 @@ public class PickerTests
     }
 
     [Fact]
+    public void The_macro_package_carries_the_programs_own_extension()
+    {
+        // One name for the program means one extension, and the save dialog builds its filter from
+        // this rather than repeating it, so a rename cannot leave the dialog offering the old one.
+        Assert.Equal(".wgmacro", MacroPackage.Extension);
+    }
+
+    [Fact]
     public void A_taken_picture_lands_beside_the_macro_package()
     {
-        var package = Path.Combine(TempFolder(), "macros", "demo.vkm");
+        var package = Path.Combine(TempFolder(), "macros", "demo.wgmacro");
 
         Assert.Equal(Path.Combine(Path.GetDirectoryName(package)!, "demo.assets"),
             ImageAssets.FolderFor(package));
@@ -203,7 +211,7 @@ public class PickerTests
         var folder = TempFolder();
         try
         {
-            var package = Path.Combine(folder, "demo.vkm");
+            var package = Path.Combine(folder, "demo.wgmacro");
             var assets = ImageAssets.FolderFor(package);
             Directory.CreateDirectory(assets);
 

@@ -48,9 +48,9 @@ dotnet format WhaleGenie.slnx           # 按 .editorconfig 整理格式
 - 每个项目共用的构建属性写在 `Directory.Build.props`，单个项目只留自己特有的部分。
 - 注释写"为什么"，不写"做了什么"；用户能看到的文字一律走文案表，不写死在代码里。
 
-## 宏包（.vkm）
+## 宏包（.wgmacro）
 
-`.vkm` 是一个 zip 容器：
+`.wgmacro` 是一个 zip 容器：
 
 | 内容 | 说明 |
 | --- | --- |
