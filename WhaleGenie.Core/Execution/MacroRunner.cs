@@ -790,6 +790,10 @@ public sealed class MacroRunner
                 PlaySound(step, depth);
                 return Signal.Normal;
 
+            case "system.notify":
+                Notify(step, depth);
+                return Signal.Normal;
+
             case "system.ime":
                 InputMethod(step, depth);
                 return Signal.Normal;
@@ -3455,6 +3459,29 @@ public sealed class MacroRunner
         _devices.System.PlaySound(kind);
         Log(LogLevel.Info, depth, step.Type, "Run.PlayedSound",
             what.Length == 0 ? "default" : what);
+    }
+
+    /// <summary>
+    /// Shows a notification beside the notification area, so a macro that has finished, or gone
+    /// wrong, can say so to somebody who is not looking at the window. The words go through the
+    /// usual reading, so a macro can put a variable in the title or the message.
+    /// </summary>
+    private void Notify(ExecutableStep step, int depth)
+    {
+        var title = Read(step.Text("heading")).AsText();
+        var message = Read(step.Text("message")).AsText();
+        var what = step.Text("what").Trim().ToLowerInvariant();
+
+        var kind = what switch
+        {
+            "" or "information" or "info" => NotificationKind.Information,
+            "warning" => NotificationKind.Warning,
+            "error" => NotificationKind.Error,
+            _ => throw new StepFailure("Run.UnknownNotification", what),
+        };
+
+        _devices.System.Notify(title, message, kind);
+        Log(LogLevel.Info, depth, step.Type, "Run.Notified", what.Length == 0 ? "information" : what);
     }
 
     /// <summary>

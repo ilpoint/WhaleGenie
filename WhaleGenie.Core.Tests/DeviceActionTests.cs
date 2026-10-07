@@ -2825,6 +2825,36 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task The_notify_action_shows_what_the_macro_asked_for()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("system.notify",
+                Param("heading", "Backup"), Param("message", "All files copied."), Param("what", "warning")),
+            Step("system.notify", Param("message", "Done.")),
+        ], devices);
+
+        // A step added and left alone is an ordinary note rather than a warning, and its heading is
+        // the program's own name, which the notification area fills in.
+        Assert.Equal(
+            ["notify Warning [Backup] All files copied.", "notify Information [] Done."],
+            devices.Calls);
+    }
+
+    [Fact]
+    public async Task The_notify_action_refuses_a_kind_it_does_not_know()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("system.notify", Param("message", "Hello"), Param("what", "fanfare"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.UnknownNotification", result.Key);
+        Assert.Empty(devices.Calls);
+    }
+
+    [Fact]
     public async Task The_input_method_action_reads_the_layout_the_focused_window_is_using()
     {
         var devices = new FakeDeviceLayer();
@@ -4191,6 +4221,9 @@ internal sealed class FakeDeviceLayer
     }
 
     void ISystemDevice.PlaySound(SoundKind kind) => Note($"sound {kind}");
+
+    void ISystemDevice.Notify(string title, string text, NotificationKind kind)
+        => Note($"notify {kind} [{title}] {text}");
 
     /// <summary>The layouts the fake says are installed, and which of them is being typed in.</summary>
     public List<string> Layouts { get; } = ["\u4e2d\u6587(\u7b80\u4f53) - \u5fae\u8f6f\u62fc\u97f3", "\u82f1\u8bed(\u7f8e\u56fd)"];

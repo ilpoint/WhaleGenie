@@ -134,6 +134,15 @@ public sealed class WindowsSystemDevice : ISystemDevice
 
     public void PlaySound(SoundKind kind) => WindowsAudio.Play(kind);
 
+    /// <summary>
+    /// Shows a notification from the icon this program keeps in the notification area. That icon
+    /// belongs to the running program rather than to this device, so a program that never put one
+    /// there has nowhere to show it and says so instead of quietly doing nothing.
+    /// </summary>
+    public void Notify(string title, string text, NotificationKind kind)
+        => (WindowsTray.Shared ?? throw new DeviceUnavailableException("somewhere to show notifications"))
+            .Balloon(title, text, kind);
+
     public string InputMethod() => WindowsKeyboard.Current();
 
     public IReadOnlyList<string> InputMethods() => WindowsKeyboard.Installed();

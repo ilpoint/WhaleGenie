@@ -1141,6 +1141,28 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "system.notify",
+            Category = ActionCategory.System,
+            DisplayName = "Notification",
+            Description = "Show a notification beside the notification area.",
+            Parameters =
+            [
+                Text("heading", "Title", "Backup finished",
+                    "The heading of the notification. Leave it empty to head it with the program's "
+                    + "own name.", required: false),
+                Text("message", "Message", "All the files were copied.",
+                    "What the notification says. Variables in it are filled in the way they are "
+                    + "everywhere else, so a macro can report what it just did.",
+                    required: true),
+                Choice("what", "Kind", ["information", "warning", "error"], "information",
+                    "How the notification is marked: an ordinary note, something worth looking at, "
+                    + "or something that went wrong. A machine with its notifications switched off "
+                    + "shows nothing and the step is done either way.",
+                    labels: ["Note", "Warning", "Error"]),
+            ],
+        },
+        new()
+        {
             Key = "system.ime",
             Category = ActionCategory.System,
             DisplayName = "Input Method",

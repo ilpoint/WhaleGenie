@@ -301,6 +301,14 @@ public interface ISystemDevice
     /// </summary>
     void PlaySound(SoundKind kind);
 
+    /// <summary>
+    /// Shows a notification beside the notification area, so a macro can say something happened
+    /// while the window is out of the way. A machine with its notifications switched off shows
+    /// nothing and is left alone; one where the program has nowhere to show it refuses, and the
+    /// step says so.
+    /// </summary>
+    void Notify(string title, string text, NotificationKind kind);
+
     /// <summary>The keyboard layout the focused window is typing in, said the way a person would.</summary>
     string InputMethod();
 
@@ -532,6 +540,9 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public void SetMuted(bool muted) => throw Missing("the sound card");
 
         public void PlaySound(SoundKind kind) => throw Missing("the sound card");
+
+        public void Notify(string title, string text, NotificationKind kind)
+            => throw Missing("somewhere to show notifications");
 
         public string InputMethod() => throw Missing("a keyboard layout");
 
