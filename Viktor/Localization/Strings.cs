@@ -388,12 +388,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.JitterUnit"] = "%",
         ["Add.JitterHint"] = "How far the time may move each run, as a percentage of it.",
         ["Add.JitterRange"] = "Each run: {0} to {1}",
-        ["Add.StepErrorJumps"] = "Send a failure to an anchor",
-        ["Add.StepErrorJumpsHint"] = "One rule per line: the failure it is about, then \"->\" and "
-            + "the anchor to carry on at, or \"=>\" when the handler is to come back to the step "
-            + "after the one that failed. Wildcards work, so *NotFound covers the lot, and \"*\" "
-            + "on its own covers every failure. Lines starting with # are skipped.",
-        ["Add.BadErrorJump"] = "This line does not say where to carry on: {0}",
         ["Add.FormulaPlaceholder"] = "$match.x or $count + 1",
         ["Add.StepSettings"] = "Step settings",
         ["Add.StepComment"] = "Comment",
@@ -701,13 +695,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.MacroNotFound"] = "There is no macro called \"{0}\" in this project.",
         ["Run.MacroTooDeep"] = "The macros call each other too many times over: {0}",
         ["Run.BadMacroArgument"] = "This is not a NAME=value line to pass to the macro: {0}",
-        ["Run.AnchorNotFound"] = "There is no anchor called \"{0}\" to jump to.",
-        ["Run.MissingAnchor"] = "A jump has to say which anchor to carry on at.",
-        ["Run.Jumped"] = "Jumping to \"{0}\".",
-        ["Run.ErrorJump"] = "Step failed with \"{0}\", so this macro carries on at \"{1}\".",
-        ["Run.NoJumpBack"] = "A jump back has nothing to return to: no jump asked to be come "
-            + "back from.",
-        ["Run.JumpBackLost"] = "The place this jump back came from is not running any more.",
         ["Run.MacroBreak"] = "\"{0}\" ended with a break or a continue that had no loop of its own.",
         ["Run.DeviceFailed"] = "Something went wrong outside Viktor: {0}",
         ["Run.Caught"] = "The attempt failed, so the catch steps are running.",
@@ -1019,11 +1006,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.JitterUnit"] = "%",
         ["Add.JitterHint"] = "每次运行时在这个时长上下浮动的比例。",
         ["Add.JitterRange"] = "每次在 {0} – {1} 之间",
-        ["Add.StepErrorJumps"] = "失败时跳到锚点",
-        ["Add.StepErrorJumpsHint"] = "一行一条规则：先是它管哪个失败，然后 “->” 和要继续执行的"
-            + "锚点名；写 “=>” 表示处理段办完要回到失败那一步之后。失败名支持通配，"
-            + "*NotFound 能盖住一批，单独一个 * 盖住所有失败。# 开头的行会跳过。",
-        ["Add.BadErrorJump"] = "这一行没说清楚往哪继续：{0}",
         ["Add.FormulaPlaceholder"] = "$match.x 或 $count + 1",
         ["Add.StepSettings"] = "步骤设置",
         ["Add.StepComment"] = "备注",
@@ -1318,12 +1300,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.MacroNotFound"] = "本项目里没有名为“{0}”的宏。",
         ["Run.MacroTooDeep"] = "宏之间的互相调用层级过深：{0}",
         ["Run.BadMacroArgument"] = "这一行不是传给宏的 NAME=value 写法：{0}",
-        ["Run.AnchorNotFound"] = "没有名为“{0}”的锚点可以跳过去。",
-        ["Run.MissingAnchor"] = "跳转要说清楚去哪个锚点。",
-        ["Run.Jumped"] = "跳转到“{0}”。",
-        ["Run.ErrorJump"] = "这一步以“{0}”失败，本宏改从“{1}”继续。",
-        ["Run.NoJumpBack"] = "跳回没有可以回去的地方：前面没有哪个跳转说过要回来。",
-        ["Run.JumpBackLost"] = "这次跳回要回的地方已经不在运行了。",
         ["Run.MacroBreak"] = "“{0}”以 break / continue 结束，但它自身并没有对应的循环。",
         ["Run.DeviceFailed"] = "维克多之外的组件出错了：{0}",
         ["Run.Caught"] = "尝试失败了，改为执行捕获步骤。",

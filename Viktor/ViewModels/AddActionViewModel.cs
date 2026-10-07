@@ -227,14 +227,6 @@ public partial class AddActionViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(JsonPreview))]
     public partial ActionParameterOption MetaOnError { get; set; }
 
-    /// <summary>
-    /// The step's error rules as they are typed, one to a line. They stay text until the step is
-    /// saved, so a half-written line never has to mean anything in the meantime.
-    /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(JsonPreview))]
-    public partial string MetaErrorJumps { get; set; } = string.Empty;
-
     /// <summary>Choices offered by the failure dropdown.</summary>
     public IReadOnlyList<ActionParameterOption> ErrorChoices { get; } =
     [
@@ -347,11 +339,6 @@ public partial class AddActionViewModel : ViewModelBase
                 return error;
             }
 
-            if (!StepMeta.TryRead(MetaErrorJumps, out _, out var rule))
-            {
-                return Strings.Format("Add.BadErrorJump", rule);
-            }
-
             return MissingParameters() is { Count: > 0 } missing
                 ? Strings.Format("Add.StillNeeded", string.Join(", ", missing))
                 : string.Empty;
@@ -360,21 +347,9 @@ public partial class AddActionViewModel : ViewModelBase
 
     public bool CanSave => SelectedDefinition is not null
         && ScopeError() is null
-        && StepMeta.TryRead(MetaErrorJumps, out _, out _)
         && MissingParameters().Count == 0;
 
     partial void OnSelectedDefinitionChanged(ActionDefinition? value) => BuildParameters(value);
-
-    /// <summary>
-    /// A rule that does not read is a reason not to save, so the two things that say so have to
-    /// be told when the text changes — the same way changing a parameter does.
-    /// </summary>
-    partial void OnMetaErrorJumpsChanged(string value)
-    {
-        OnPropertyChanged(nameof(ValidationMessage));
-        OnPropertyChanged(nameof(CanSave));
-        SaveCommand.NotifyCanExecuteChanged();
-    }
 
     /// <summary>
     /// Chooses an action by its catalogue key. A palette shortcut opens this dialog on the
@@ -535,7 +510,6 @@ public partial class AddActionViewModel : ViewModelBase
         MetaDelayAfter.Load(step.Meta.DelayAfterMs);
         MetaOnError = ErrorChoices.FirstOrDefault(choice =>
             choice.Value == StepMeta.Name(step.Meta.OnError)) ?? ErrorChoices[0];
-        MetaErrorJumps = StepMeta.Text(step.Meta.Jumps);
         MetaRetryBackoff = BackoffChoices.FirstOrDefault(choice =>
             choice.Value == StepMeta.Name(step.Meta.RetryBackoff)) ?? BackoffChoices[0];
 
@@ -907,7 +881,6 @@ public partial class AddActionViewModel : ViewModelBase
             DelayBeforeMs = MetaDelayBefore.Milliseconds,
             DelayAfterMs = MetaDelayAfter.Milliseconds,
             OnError = StepMeta.Action(MetaOnError.Value),
-            Jumps = StepMeta.TryRead(MetaErrorJumps, out var jumps, out _) ? jumps : [],
         },
     };
 
