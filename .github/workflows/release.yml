@@ -25,7 +25,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rid: [win-x64, win-x86]
+        # 只发 64 位：找图找色用的 OpenCV 和浏览器动作用的 Playwright 驱动都只有 64 位一份。
+        rid: [win-x64]
 
     steps:
       - uses: actions/checkout@v4

@@ -109,10 +109,9 @@ git tag v0.01
 git push origin v0.01
 ```
 
-标签推上去之后，工作流会给 `win-x64` 和 `win-x86` 各打两个包——一个要机器上有 .NET 桌面
-运行时，一个自己带着运行环境——自动建好 Release 并把四个包挂上去。标签名同时决定了压缩包的
-名字和 exe 里的版本号，所以只有一处要改；想在网页上发也行：Actions → Release → Run workflow，
-填一个版本号。
+标签推上去之后，工作流会打两个包——一个要机器上有 .NET 桌面运行时，一个自己带着运行环境——
+自动建好 Release 并把两个包挂上去。标签名同时决定了压缩包的名字和 exe 里的版本号，所以只有
+一处要改；想在网页上发也行：Actions → Release → Run workflow，填一个版本号。
 
 建 Release 需要写权限。仓库若把 Actions 的默认权限设成了只读，要在
 Settings → Actions → General → Workflow permissions 里放开一次。
@@ -121,8 +120,11 @@ Settings → Actions → General → Workflow permissions 里放开一次。
 
 | 包 | 自带运行环境 | 体积（x64 打包后 / 解压后） | 什么时候用 |
 | --- | --- | --- | --- |
-| `WhaleGenie-<版本>-win-x64.zip` | 否，要装 .NET 10 桌面运行时 | 63 MB / 145 MB | 体积最小；已经装过运行环境 |
-| `WhaleGenie-<版本>-win-x64-standalone.zip` | 是 | 135 MB / 315 MB | 换机器、给别人，什么都不用装 |
+| `WhaleGenie-<版本>-win-x64.zip` | 否，要装 .NET 10 桌面运行时 | 101 MB / 249 MB | 体积最小；已经装过运行环境 |
+| `WhaleGenie-<版本>-win-x64-standalone.zip` | 是 | 173 MB / 420 MB | 换机器、给别人，什么都不用装 |
+
+解压后那多出来的一大块主要是浏览器动作用的 Playwright 驱动（`WhaleGenie` 文件夹里的
+`.playwright`，约 100 MB），它必须跟 exe 一起走，所以两个包都带着。
 
 不再出单文件包：exe 旁边的那些 dll 单文件版一样要在第一次启动时解压到系统临时目录，
 省下来的只是"拷一个文件"这点方便，却多一种要验的形态。
@@ -154,14 +156,12 @@ JIT 和核心库的，都按"exe 所在目录"找，放进 `lib` 程序连报错
 本地想打同样的包，跑打包脚本就行——工作流里跑的也是它：
 
 ```powershell
-pwsh build/package.ps1 -Tag v0.01                 # x64 / x86 两种包都出
-pwsh build/package.ps1 -Tag v0.01 -Rid win-x64    # 只要 x64
+pwsh build/package.ps1 -Tag v0.01
 ```
 
 产物落在 `dist\`（已忽略）：`WhaleGenie-<标签>-<架构>.zip` 和
 `WhaleGenie-<标签>-<架构>-standalone.zip`。
 
-32 位（`-r win-x86`）两种包都能出，但找图/等图/点图依赖的 OpenCV 只有 64 位原生库，
-这几个动作在 32 位包里不可用；浏览器动作依赖的 Playwright 驱动同样只有 64 位，也一样
-用不了；其余功能正常。面向用户的说明写在 `.github/release-notes.md`，
+只出 64 位（`win-x64`）：找图/等图/点图依赖的 OpenCV 和浏览器动作用到的 Playwright 驱动
+都只有 64 位一份，32 位的包装出来也是坏的，所以不再出。面向用户的说明写在 `.github/release-notes.md`，
 发版时原样作为 Release 说明贴出去。

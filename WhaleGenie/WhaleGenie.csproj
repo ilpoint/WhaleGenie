@@ -3,6 +3,13 @@
     <OutputType>WinExe</OutputType>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <!--
+      只做 64 位。这个程序靠的几样原生库——OpenCV（找图找色）和 Playwright 的驱动（浏览器
+      动作）——都只有 64 位一份，32 位 Windows 上装了也跑不起来。写成 x64 是让这件事在编译
+      时就定下来：真拿到 32 位机器上，Windows 会直接说这个程序跑不了，而不是进去以后在某个
+      动作上莫名其妙地失败。
+    -->
+    <PlatformTarget>x64</PlatformTarget>
+    <!--
       程序叫什么由项目文件的名字决定（WhaleGenie），所以这里只管图标：资源管理器、任务栏和
       窗口左上角那枚鲸鱼。
     -->

@@ -5,6 +5,9 @@
     两种包的内容只差运行时，目录形状是一样的：外层一个 WhaleGenie 文件夹，里面是 exe、
     清单和装 dll 的 lib 文件夹。用户解开压缩包先看到 exe，不用在一堆 dll 里翻。
 
+    只做 64 位：这个程序靠的 OpenCV（找图找色）和 Playwright 驱动（浏览器动作）都只有 64 位
+    一份，32 位的包装上也是坏的，所以不再出。
+
     用法：
         pwsh build/package.ps1 -Tag v0.01
         pwsh build/package.ps1 -Tag v0.01 -Version 0.01 -Rid win-x64
@@ -20,7 +23,7 @@ param(
     # exe 里的版本号，默认就是标签去掉开头的 v；标签带后缀时另填一个。
     [string]$Version,
 
-    [string[]]$Rid = @('win-x64', 'win-x86'),
+    [string[]]$Rid = @('win-x64'),
 
     [string]$OutDir = 'dist'
 )
@@ -37,7 +40,14 @@ $OutDir = Join-Path $PWD $OutDir
 
 # 运行时自己的这几个文件必须在 exe 旁边：宿主是先找 hostpolicy、再找 coreclr、再由
 # coreclr 找 JIT 和核心库的，都按 "exe 所在目录" 找，放进 lib 就找不到，程序连错误
-# 都报不出来。其余 dll 一律进 lib。
+# 都报不出来。其余 dll 一律进 lib —— 除了下面这两个：
+#
+#   WhaleGenie.dll        程序自己的主程序集，宿主按名字找它。
+#   Microsoft.Playwright.dll  Playwright 找驱动的方式是先看 "exe 目录下有没有这个 dll"，
+#                         有就拿 exe 目录去找 .playwright；它一旦被挪进 lib，就会去
+#                         lib\.playwright 找，而驱动在 exe 旁边的 .playwright 里，于是
+#                         解包运行时浏览器动作报 "Driver not found"。开发目录里两者同在
+#                         一层，所以这个问题只在正式包里出现。
 $hostFiles = @(
     'hostfxr.dll'
     'hostpolicy.dll'
@@ -50,6 +60,12 @@ $hostFiles = @(
     'mscordaccore.dll'
     'mscordaccore_amd64_amd64_*.dll'
     'mscordbi.dll'
+)
+
+# 这两个 dll 也留在 exe 旁边，理由见上面那段注释。
+$stayWithExe = @(
+    'WhaleGenie.dll'
+    'Microsoft.Playwright.dll'
 )
 
 function Test-HostFile([string]$Name) {
@@ -89,7 +105,7 @@ function New-PortableFolder([string]$Published, [string]$Package) {
     }
 
     $moved = @(Get-ChildItem $Published -File |
-        Where-Object { $_.Extension -eq '.dll' -and $_.Name -ne 'WhaleGenie.dll' -and -not (Test-HostFile $_.Name) } |
+        Where-Object { $_.Extension -eq '.dll' -and $_.Name -notin $stayWithExe -and -not (Test-HostFile $_.Name) } |
         ForEach-Object { $_.Name })
 
     $deps = Join-Path $app 'WhaleGenie.deps.json'

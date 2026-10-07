@@ -281,14 +281,22 @@ RPA 平台：企业向的能力和明显偏办公文档解析的能力都不做�
 ## 提交与发布
 
 - `master` 是主线，`.github/workflows/ci.yml` 在推送与 PR 上跑格式检查、构建、全部测试。
-- 发布就是打一个 `v` 开头的标签，`.github/workflows/release.yml` 给 x64 / x86 各出两个包：框架
-  依赖的 zip、自带运行时的 zip，都由 `build/package.ps1` 摆好。形态就这两种，不再加：单文件版
-  一样要把运行时解压到系统临时目录，省不了事还多一种要验的东西。
+- 发布就是打一个 `v` 开头的标签，`.github/workflows/release.yml` 出两个包：框架依赖的 zip、
+  自带运行时的 zip，都由 `build/package.ps1` 摆好。形态就这两种，不再加：单文件版一样要把
+  运行时解压到系统临时目录，省不了事还多一种要验的东西。
+- **只做 64 位**。找图找色用的 OpenCV 和浏览器动作用的 Playwright 驱动都只有 64 位一份，
+  32 位平台上的包是坏的，所以不再出；`WhaleGenie/WhaleGenie.csproj` 里 `PlatformTarget` 写死
+  x64，让这件事在编译时就定下来，`build/package.ps1` 的 `-Rid` 也只默认 x64。
 - 两种包都是"一个 `WhaleGenie` 文件夹，exe 在最外层，其余 dll 进 `lib`"。dll 能进子目录靠
   `WhaleGenie/Program.cs` 里的两个解析钩子（托管程序集与原生库）和清单 `WhaleGenie.deps.json` 里一起
   改写的路径，两样缺一不可——`Main` 里不许直接写 Avalonia 的类型，否则编译 `Main` 时就要先
   加载 Avalonia，钩子来不及挂上。宿主自己的十来个文件（`hostfxr`、`coreclr` 等）只能留在 exe
   旁边，这是运行时的规定。
+
+  **`Microsoft.Playwright.dll` 也不能进 `lib`。** Playwright 找驱动的方式是先看"exe 目录下有没有
+  这个 dll"：有，就拿 exe 目录去找 `.playwright`；没有，就退回按程序集自己所在目录找，也就是
+  `lib\.playwright`——那里什么都没有，浏览器动作会在正式包里报 `Driver not found`，而开发目录
+  里两者同层，永远复现不出来。`build/package.ps1` 的 `$stayWithExe` 就是为这个留的。
 - 打包形状在测试里验不了，改 `build/package.ps1`、清单改写或上面那两个钩子之后，要本地跑一次
   脚本、把包解开双击一次，确认窗口起得来，涉及原生库的动作（找图这类）也得走一遍。
 - 程序旁边会多出两样运行期才有的东西，都不进仓库：`settings.json`（设置窗口的选择）和
