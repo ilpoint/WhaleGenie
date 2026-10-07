@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Viktor.Localization;
 using Viktor.Models;
 
@@ -112,6 +113,57 @@ public class LocalizationTests
         });
 
         Assert.Empty(orphans);
+    }
+
+    /// <summary>
+    /// Every word the run reports a failure or a step with is a key the interface has to know, and
+    /// the engine names them as plain string literals — a key nobody wrote down shows up as itself,
+    /// so a timeout reads "Run.Timeout" on screen. The engine's own source is the list of keys, so
+    /// this reads it rather than keeping a second copy that can fall out of step.
+    /// </summary>
+    [Fact]
+    public void Every_word_the_engine_reports_a_run_with_is_written_down()
+    {
+        var words = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var project in new[] { "Viktor.Core", "Viktor" })
+        {
+            var folder = Path.Combine(Repository(), project);
+            foreach (var file in Directory.EnumerateFiles(folder, "*.cs", SearchOption.AllDirectories))
+            {
+                foreach (Match match in Regex.Matches(File.ReadAllText(file), "\"(Run\\.[A-Za-z]+)\""))
+                {
+                    words.Add(match.Groups[1].Value);
+                }
+            }
+        }
+
+        Assert.NotEmpty(words);
+
+        var gaps = words
+            .Where(word => !Strings.English.ContainsKey(word) || !Strings.Chinese.ContainsKey(word))
+            .Order()
+            .ToList();
+
+        Assert.Empty(gaps);
+    }
+
+    /// <summary>
+    /// The repository root, found by walking up from the test binaries until the solution file is
+    /// there. The tests run from inside <c>bin</c>, so the source they read is found rather than
+    /// assumed.
+    /// </summary>
+    private static string Repository()
+    {
+        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
+        {
+            if (File.Exists(Path.Combine(at.FullName, "Viktor.slnx")))
+            {
+                return at.FullName;
+            }
+        }
+
+        throw new InvalidOperationException("Viktor.slnx was not found above the test binaries.");
     }
 
     private static void Wanted(List<string> missing, string key)
