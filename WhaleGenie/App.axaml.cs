@@ -41,7 +41,11 @@ public partial class App : Application
             // From here on, the window is put out of the way rather than closed, and the icon in
             // the notification area is how it comes back and how the program is stopped.
             _tray = AppTray.Attach(window, desktop);
-            desktop.Exit += (_, _) => _tray?.Dispose();
+            desktop.Exit += (_, _) =>
+            {
+                _tray?.Dispose();
+                BrowserPicker.Close();
+            };
         }
 
         base.OnFrameworkInitializationCompleted();

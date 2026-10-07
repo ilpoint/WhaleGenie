@@ -66,9 +66,16 @@ internal static class BrowserPicker
     }
 
     /// <summary>
-    /// Closes the page this picker opened for itself, which the dialog does when it goes away. A
-    /// page the program already had open is left standing: it belongs to the macro that opened it.
+    /// Lets go of the page this picker opened for itself, at the end of the session.
     /// </summary>
+    /// <remarks>
+    /// Deliberately not when a dialog closes. Elements are picked one after another while a macro
+    /// is being written, and taking the page down between them would mean fetching it again — and
+    /// signing in again — for every field. So the page waits for the next pick, and the person can
+    /// close the window whenever they like: a page that is gone is not one the next pick will try
+    /// to use, it opens another. A page the program already had open is left alone in any case; it
+    /// belongs to the macro that opened it.
+    /// </remarks>
     public static void Close()
     {
         _own?.Dispose();

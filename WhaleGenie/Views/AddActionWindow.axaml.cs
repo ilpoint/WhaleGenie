@@ -399,11 +399,10 @@ public partial class AddActionWindow : Window
         }
     }
 
-    /// <summary>The page a pick left open goes away with the dialog that opened it.</summary>
+    /// <summary>Noted so a pick that outlives the dialog does not try to report back to it.</summary>
     protected override void OnClosed(EventArgs e)
     {
         _closed = true;
         base.OnClosed(e);
-        BrowserPicker.Close();
     }
 }

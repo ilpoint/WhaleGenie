@@ -369,7 +369,10 @@ public interface IBrowserDevice
     /// <summary>How the browsers are put on the machine, told to the user when they are missing.</summary>
     string InstallHint { get; }
 
-    /// <summary>Whether a browser is open right now.</summary>
+    /// <summary>
+    /// Whether there is a page to drive right now. It is false again once the window the page was
+    /// in has been closed, whether that was done by this program or by the person using it.
+    /// </summary>
     bool IsOpen { get; }
 
     /// <summary>Starts a browser and opens a page at this address.</summary>

@@ -116,7 +116,12 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         + "\"playwright.ps1 install chromium\" (or firefox / webkit), run from the folder "
         + "WhaleGenie was installed in.";
 
-    public bool IsOpen => _page is not null;
+    /// <summary>
+    /// True while there is a page to drive. A page the person closed themselves is not one: the
+    /// next step that asks for the browser has to open it again rather than be handed a window
+    /// that is no longer there.
+    /// </summary>
+    public bool IsOpen => _page is { IsClosed: false };
 
     /// <summary>True when the browser has no window, so there is nothing on screen to work on.</summary>
     public bool IsHeadless => _headless;
