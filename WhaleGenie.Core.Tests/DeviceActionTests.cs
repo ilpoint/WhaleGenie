@@ -3667,6 +3667,26 @@ public class DeviceActionTests
         Assert.Equal("Run.BrowserMissing", result.Key);
         Assert.DoesNotContain("browserOpen", devices.Calls);
     }
+
+    [Fact]
+    public async Task A_selector_that_was_picked_off_a_page_is_used_as_written()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("browser.click", Param("target", "[data-testid=\"row-2\"]")),
+            Step("browser.click", Param("target", "div > p:nth-of-type(2)")),
+            Step("browser.click", Param("target", "input[name=\"user\"]")),
+            Step("browser.click",
+                Param("target", "#frame >> internal:control=enter-frame >> #inner")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("browserClick [data-testid=\"row-2\"]", devices.Calls);
+        Assert.Contains("browserClick div > p:nth-of-type(2)", devices.Calls);
+        Assert.Contains("browserClick input[name=\"user\"]", devices.Calls);
+        Assert.Contains("browserClick #frame >> internal:control=enter-frame >> #inner", devices.Calls);
+    }
 }
 
 /// <summary>

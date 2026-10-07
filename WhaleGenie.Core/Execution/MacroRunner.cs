@@ -4567,9 +4567,19 @@ public sealed class MacroRunner
         return Value.FromText(Interpolate(trimmed));
     }
 
-    /// <summary>True when the text can only be meant as an expression.</summary>
-    private static bool LooksLikeExpression(string text)
-        => text[0] is '$' or '[' or '(' || text.Contains('(');
+    /// <summary>
+    /// True when the text can only be meant as an expression: it opens with the variable sign, so
+    /// the author was writing a value rather than words.
+    /// </summary>
+    /// <remarks>
+    /// Brackets and parentheses used to count as the same sign, and they are exactly what a
+    /// selector or a path is made of — <c>[data-testid="row-2"]</c>, <c>div &gt; p:nth-of-type(2)</c>,
+    /// <c>C:\Program Files (x86)\a.log</c> — so a value that was plainly one of those came back as
+    /// "not a valid expression" instead of being used. A "$" at the front is the one opening that
+    /// cannot be anything else; a "$" in the middle is left alone, because a written-out dollar
+    /// sign looks like that too.
+    /// </remarks>
+    private static bool LooksLikeExpression(string text) => text[0] == '$';
 
     /// <summary>Replaces every <c>$name</c> that names a known variable with its text.</summary>
     private string Interpolate(string text)

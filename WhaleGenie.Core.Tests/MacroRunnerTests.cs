@@ -1164,6 +1164,25 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task Text_shaped_like_a_selector_or_a_path_stays_text()
+    {
+        var store = Store();
+        var (result, _) = await RunAsync(
+        [
+            Set("selector", "[data-testid=\"row-2\"]"),
+            Set("nth", "div > p:nth-of-type(2)"),
+            Set("path", @"C:\Program Files (x86)\a.log"),
+            Set("bracketed", "Meeting (2) notes"),
+        ], variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("[data-testid=\"row-2\"]", store.Local.Values["selector"].AsText());
+        Assert.Equal("div > p:nth-of-type(2)", store.Local.Values["nth"].AsText());
+        Assert.Equal(@"C:\Program Files (x86)\a.log", store.Local.Values["path"].AsText());
+        Assert.Equal("Meeting (2) notes", store.Local.Values["bracketed"].AsText());
+    }
+
+    [Fact]
     public async Task A_log_step_writes_what_it_is_told()
     {
         var store = Store(("who", 0));
