@@ -19,7 +19,9 @@ namespace Viktor.Core.Devices.Platform;
 /// here and sent again with every key.
 ///
 /// One report at a time: the virtual keyboard and mouse are single pieces of hardware, so two
-/// macros sending at once would type on top of each other.
+/// macros sending at once would type on top of each other. The machine also answers only the pair
+/// that got on the bus first — a second pair stays attached and does nothing — so the program keeps
+/// one pair and shares it out (<see cref="SharedDriverInput"/>).
 /// </remarks>
 public sealed class ViiperInputDevice : IInputDevice, IDisposable
 {

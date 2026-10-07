@@ -10,9 +10,13 @@ namespace Viktor.Core.Devices.Platform;
 /// </summary>
 internal sealed class WindowsInputRouter(IInputDevice front) : IInputRouter, IDisposable
 {
+    private readonly object _gate = new();
+
     private readonly Dictionary<long, MessageInputDevice> _posting = [];
 
     private ViiperInputDevice? _driver;
+
+    private bool _tookDriver;
 
     public IInputDevice For(InputRoute route) => route.Delivery switch
     {
@@ -22,11 +26,27 @@ internal sealed class WindowsInputRouter(IInputDevice front) : IInputRouter, IDi
     };
 
     /// <summary>
-    /// The virtual keyboard and mouse, made once and kept between steps: putting them on the
+    /// The virtual keyboard and mouse, asked for once and kept between steps: putting them on the
     /// machine opens a connection and a pair of devices, and a macro that sends input step after
-    /// step should pay for that once.
+    /// step should pay for that once. The pair itself belongs to the whole program, because the
+    /// machine only answers one — see <see cref="SharedDriverInput"/>.
     /// </summary>
-    private ViiperInputDevice Driver => _driver ??= new ViiperInputDevice();
+    private ViiperInputDevice Driver
+    {
+        get
+        {
+            lock (_gate)
+            {
+                if (_driver is null)
+                {
+                    _driver = SharedDriverInput.Take();
+                    _tookDriver = true;
+                }
+
+                return _driver;
+            }
+        }
+    }
 
     /// <summary>
     /// One posting device per window, kept between steps: a macro that works on the same window
@@ -48,6 +68,20 @@ internal sealed class WindowsInputRouter(IInputDevice front) : IInputRouter, IDi
         return device;
     }
 
-    /// <summary>Takes the virtual devices back off the machine, if any were ever asked for.</summary>
-    public void Dispose() => _driver?.Dispose();
+    /// <summary>Gives back the program's virtual keyboard and mouse, if this ever asked for them.</summary>
+    public void Dispose()
+    {
+        lock (_gate)
+        {
+            _driver = null;
+            if (!_tookDriver)
+            {
+                return;
+            }
+
+            _tookDriver = false;
+        }
+
+        SharedDriverInput.Give();
+    }
 }

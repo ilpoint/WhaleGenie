@@ -14,4 +14,9 @@
     <PackageReference Include="Viiper.Client" Version="0.8.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The engine tests look at how a step's input is routed between the devices. -->
+    <InternalsVisibleTo Include="Viktor.Core.Tests" />
+  </ItemGroup>
+
 </Project>

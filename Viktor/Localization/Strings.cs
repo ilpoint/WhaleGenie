@@ -625,8 +625,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.NoDriverServer"] =
             "Driver-level input cannot reach the VIIPER server on this machine: start it first.",
         ["Run.NoDriverAttached"] =
-            "Driver-level input is not reaching this machine: the virtual keyboard and mouse were "
-            + "not attached. Start the VIIPER server with --api.auto-attach-local-client.",
+            "Driver-level input is not reaching this machine: it is not using the virtual keyboard "
+            + "and mouse. Start the VIIPER server with --api.auto-attach-local-client, and close any "
+            + "other program that is driving virtual devices.",
         ["Run.NoDriverKey"] = "A virtual keyboard has no such key: {0}",
         ["Run.NoDriverTyping"] = "Driver-level input cannot type this character: {0}",
         ["Run.UnknownKey"] = "Viktor does not recognise this key name: {0}",
@@ -1316,8 +1317,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.NoDriver"] = "驱动级输入需要先装好 usbip-win2 驱动，设置窗口里有下载入口。",
         ["Run.NoDriverServer"] = "驱动级输入连不上本机的 VIIPER 服务端，请先启动它。",
         ["Run.NoDriverAttached"] =
-            "驱动级输入没有送达这台机器：虚拟键盘和鼠标没有被挂到系统上。"
-            + "启动 VIIPER 服务端时要带 --api.auto-attach-local-client。",
+            "驱动级输入没有送达这台机器：系统没有在用这套虚拟键盘和鼠标。"
+            + "请让 VIIPER 服务端带上 --api.auto-attach-local-client 启动，并关掉其它正在使用虚拟设备的程序。",
         ["Run.NoDriverKey"] = "虚拟键盘没有这个键：{0}",
         ["Run.NoDriverTyping"] = "驱动级输入打不出这个字符：{0}",
         ["Run.UnknownKey"] = "无法识别这个键名：{0}",
