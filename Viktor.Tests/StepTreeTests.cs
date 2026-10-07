@@ -299,6 +299,150 @@ public class StepTreeTests
     }
 
     [Fact]
+    public void A_macro_read_back_from_a_file_keeps_the_steps_inside_its_blocks()
+    {
+        Ui.Run(() =>
+        {
+            var json = new System.Text.Json.Nodes.JsonObject
+            {
+                ["name"] = "probe",
+                ["steps"] = new System.Text.Json.Nodes.JsonArray(
+                    new System.Text.Json.Nodes.JsonObject
+                    {
+                        ["type"] = "control.repeat",
+                        ["params"] = new System.Text.Json.Nodes.JsonObject
+                        {
+                            ["times"] = 2,
+                            ["body"] = new System.Text.Json.Nodes.JsonArray(
+                                new System.Text.Json.Nodes.JsonObject
+                                {
+                                    ["type"] = "control.delay",
+                                    ["params"] = new System.Text.Json.Nodes.JsonObject { ["ms"] = 250 },
+                                }),
+                        },
+                    }),
+            };
+
+            var loaded = MacroItem.FromJson(json);
+            Assert.Equal("control.delay", loaded.Steps[0].StepLists.Single().Steps[0].Type);
+        });
+    }
+
+    [Fact]
+    public void The_steps_inside_a_block_can_be_edited_at_any_depth()
+    {
+        Ui.Run(() =>
+        {
+            var editor = new MacroEditorViewModel();
+            var deep = Step("control.delay");
+            var middle = Loop(deep);
+            var outer = Loop(middle);
+            editor.AddStep(outer);
+
+            var branch = Step("control.case", Text("values", "a"), Body("body", Step("control.log")));
+            var switchStep = Step("control.switch", Text("value", "$x"),
+                new StepParameter { Name = "cases", Kind = ActionParameterKind.Steps, Steps = [branch] });
+            editor.AddStep(switchStep);
+
+            foreach (var target in new[] { deep, Inside(branch)[0] })
+            {
+                editor.SetSelection([target]);
+                MacroStep? asked = null;
+                void Asked(MacroStep step) => asked = step;
+                editor.EditStepRequested += Asked;
+                editor.EditSelectedCommand.Execute(null);
+                editor.EditStepRequested -= Asked;
+                Assert.Same(target, asked);
+            }
+
+            editor.SetSelection([deep]);
+            editor.ReplaceStep(deep, Step("control.log"));
+            Assert.Equal(["control.log"], Inside(middle).Select(step => step.Type));
+        });
+    }
+
+    [Fact]
+    public void The_edit_button_turns_on_for_a_step_inside_a_block()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var button = window.GetVisualDescendants().OfType<Button>()
+                .First(candidate => candidate.DataContext is MacroAction { Key: "edit" });
+            Assert.False(button.IsEffectivelyEnabled);
+
+            var loop = Loop(Step("control.delay"));
+            editor.AddStep(loop);
+            Dispatcher.UIThread.RunJobs();
+
+            editor.SetSelection([Inside(loop)[0]]);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(button.IsEffectivelyEnabled);
+        });
+    }
+
+    [Fact]
+    public void Double_clicking_a_step_inside_a_block_edits_that_step()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var loop = Loop(Step("input.keyPress", Text("key", "F5")));
+            editor.AddStep(loop);
+            Dispatcher.UIThread.RunJobs();
+
+            var inner = editor.Rows.First(row => row.IsStep && ReferenceEquals(row.Step, Inside(loop)[0]));
+            var item = window.GetVisualDescendants().OfType<ListBoxItem>()
+                .First(box => ReferenceEquals(box.DataContext, inner));
+            var point = item.TranslatePoint(
+                new Point(item.Bounds.Width * 0.3, item.Bounds.Height / 2), window) ?? default;
+
+            window.MouseDown(point, MouseButton.Left, RawInputModifiers.LeftMouseButton);
+            window.MouseUp(point, MouseButton.Left);
+            // The real thing has a gap between the two clicks, so anything the first one queued has
+            // run by the time the second arrives.
+            Dispatcher.UIThread.RunJobs();
+            System.Threading.Thread.Sleep(60);
+            Dispatcher.UIThread.RunJobs();
+            window.MouseDown(point, MouseButton.Left, RawInputModifiers.LeftMouseButton);
+            window.MouseUp(point, MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Same(Inside(loop)[0], Assert.Single(editor.SelectedSteps));
+            Assert.Contains(window.OwnedWindows, owned => owned is AddActionWindow);
+
+            // The dialog has to be about the step that was double-clicked, and what it returns has
+            // to land back inside the block — not on the block that holds it.
+            var dialog = window.OwnedWindows.OfType<AddActionWindow>().Single();
+            var dialogModel = (AddActionViewModel)dialog.DataContext!;
+            Assert.True(dialogModel.IsEditing, "the dialog opened as a new step, not as an edit");
+            Assert.Equal("input.keyPress", dialogModel.SelectedDefinition!.Key);
+
+            // What the step holds has to be on screen, or "editing" it would quietly write the
+            // defaults back over it.
+            Assert.Equal("F5", dialogModel.Parameters.First(parameter => parameter.Definition.Name == "key").Text);
+            dialogModel.Parameters.First(parameter => parameter.Definition.Name == "key").Text = "F6";
+            Assert.True(dialogModel.CanSave, dialogModel.ValidationMessage);
+            dialogModel.SaveCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            var saved = Inside(loop)[0];
+            Assert.Equal("F6", saved.Parameters.First(parameter => parameter.Name == "key").Value);
+        });
+    }
+
+    [Fact]
     public void Picking_a_block_title_picks_the_block_and_highlights_its_own_row()
     {
         Ui.Run(() =>
@@ -312,6 +456,17 @@ public class StepTreeTests
             var loop = Loop(Step("control.delay"));
             editor.AddStep(loop);
             Dispatcher.UIThread.RunJobs();
+
+            // Probe: does a press on the step inside the block pick that step?
+            var inner = editor.Rows.First(row => row.IsStep && ReferenceEquals(row.Step, Inside(loop)[0]));
+            var innerItem = window.GetVisualDescendants().OfType<ListBoxItem>()
+                .First(box => ReferenceEquals(box.DataContext, inner));
+            var innerPoint = innerItem.TranslatePoint(
+                new Point(innerItem.Bounds.Width * 0.3, innerItem.Bounds.Height / 2), window) ?? default;
+            window.MouseDown(innerPoint, MouseButton.Left, RawInputModifiers.LeftMouseButton);
+            window.MouseUp(innerPoint, MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Same(Inside(loop)[0], Assert.Single(editor.SelectedSteps));
 
             var title = editor.Rows.First(row => row.IsHead);
             var item = window.GetVisualDescendants().OfType<ListBoxItem>()
