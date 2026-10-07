@@ -1030,6 +1030,22 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "process.info",
+            Category = ActionCategory.Process,
+            DisplayName = "Program Details",
+            Description = "Read what is known about a running program.",
+            Parameters =
+            [
+                Text("target", "Program", "notepad", "Name of the program, or a process id."),
+                Variable("resultVariable", "Result variable", "process",
+                    "Variable that receives the program's file. $name.id, $name.name, $name.path, "
+                    + "$name.memoryMb and $name.cpuSeconds hold the parts, and the file is empty "
+                    + "when Windows will not say it.",
+                    required: false, namesVariable: true),
+            ],
+        },
+        new()
+        {
             Key = "process.kill",
             Category = ActionCategory.Process,
             DisplayName = "Stop Program",

@@ -271,7 +271,24 @@ public interface IProcessDevice
 
     /// <summary>Runs a program to the end and collects what it printed.</summary>
     CommandResult Run(CommandRequest request);
+
+    /// <summary>
+    /// What is known about one running program, picked by name or by id, or null when there is
+    /// no such program. Whichever name matches first is the one described.
+    /// </summary>
+    ProcessDetails? Details(string target);
 }
+
+/// <summary>
+/// One running program as the macro can see it. <paramref name="Path"/> is empty when Windows
+/// will not say — a program running as another user or at a higher level keeps its file to itself.
+/// </summary>
+public sealed record ProcessDetails(
+    int Id,
+    string Name,
+    string Path,
+    double MemoryMb,
+    double CpuSeconds);
 
 /// <summary>Facts about this machine that are not a file or a device.</summary>
 public interface ISystemDevice
@@ -602,6 +619,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public bool StopById(int id, bool force) => throw Missing("other programs");
 
         public CommandResult Run(CommandRequest request) => throw Missing("command lines");
+
+        public ProcessDetails? Details(string target) => throw Missing("other programs");
 
         public string Info(string field) => throw Missing("system information");
 

@@ -654,6 +654,15 @@ internal static class ActionStrings
         ["process.list.resultVariable.label"] = "结果变量",
         ["process.list.resultVariable.hint"] = "接收名称列表的变量。",
 
+        ["process.info.name"] = "程序信息",
+        ["process.info.desc"] = "读取一个正在运行的程序的信息。",
+        ["process.info.target.label"] = "程序",
+        ["process.info.target.hint"] = "程序名，或进程 id。",
+        ["process.info.resultVariable.label"] = "结果变量",
+        ["process.info.resultVariable.hint"] = "接收程序文件路径的变量。"
+            + "$名字.id、$名字.name、$名字.path、$名字.memoryMb、$名字.cpuSeconds 是各个部分；"
+            + "Windows 不肯说的时候，路径是空的。",
+
         ["process.kill.name"] = "结束程序",
         ["process.kill.desc"] = "关闭一个程序，默认先请它正常退出。",
         ["process.kill.target.label"] = "程序",

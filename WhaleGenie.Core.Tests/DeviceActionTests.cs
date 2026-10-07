@@ -2451,6 +2451,37 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Reading_a_programs_details_fills_the_parts_it_is_broken_into()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Running["notepad"] = [42];
+        var (result, _, store) = await RunAsync(
+            [Step("process.info", Param("target", "notepad"), Param("resultVariable", "note"))],
+            devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(@"C:\fake\notepad.exe", store.Local.Values["note"].AsText());
+        Assert.Equal(@"C:\fake\notepad.exe", store.Local.Values["note.path"].AsText());
+        Assert.Equal(42d, store.Local.Values["note.id"].Number);
+        Assert.Equal("notepad", store.Local.Values["note.name"].AsText());
+        Assert.Equal(12.5d, store.Local.Values["note.memoryMb"].Number);
+        Assert.Equal(3.4d, store.Local.Values["note.cpuSeconds"].Number);
+    }
+
+    [Fact]
+    public async Task Asking_about_a_program_that_is_not_running_fails_the_step()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, store) = await RunAsync(
+            [Step("process.info", Param("target", "ghost"), Param("resultVariable", "info"))],
+            devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.NoSuchProcess", result.Key);
+        Assert.False(store.TryGet("info", out _));
+    }
+
+    [Fact]
     public async Task Stopping_a_program_by_name_counts_what_it_closed()
     {
         var devices = new FakeDeviceLayer();
@@ -4252,6 +4283,14 @@ internal sealed class FakeDeviceLayer
     {
         Note("listPrograms");
         return [.. Running.Keys.OrderBy(name => name, StringComparer.OrdinalIgnoreCase)];
+    }
+
+    ProcessDetails? IProcessDevice.Details(string target)
+    {
+        Note($"processDetails {target}");
+        return Running.TryGetValue(target, out var ids) && ids.Count > 0
+            ? new ProcessDetails(ids[0], target, $@"C:\fake\{target}.exe", 12.5, 3.4)
+            : null;
     }
 
     bool IProcessDevice.HasExited(int id)

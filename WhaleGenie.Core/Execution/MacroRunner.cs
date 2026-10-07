@@ -783,6 +783,10 @@ public sealed class MacroRunner
                 ListPrograms(step, depth);
                 return Signal.Normal;
 
+            case "process.info":
+                ProgramDetails(step, depth);
+                return Signal.Normal;
+
             case "process.kill":
                 StopProgram(step, depth);
                 return Signal.Normal;
@@ -3396,6 +3400,27 @@ public sealed class MacroRunner
         var variable = VariableName(step, "resultVariable", "processes");
         Variables.Set(variable, Value.FromList(programs.Select(Value.FromText)));
         Log(LogLevel.Info, depth, step.Type, "Run.ListedPrograms", programs.Count);
+    }
+
+    /// <summary>
+    /// Reads what is known about one running program into a variable and its parts, the way a
+    /// match stores the place it found. The path is what a macro usually wants: it is how a
+    /// window's program is started again, or told apart from another program of the same name.
+    /// </summary>
+    private void ProgramDetails(ExecutableStep step, int depth)
+    {
+        var target = Read(step.Text("target")).AsText().Trim();
+        var details = _devices.Processes.Details(target)
+            ?? throw new StepFailure("Run.NoSuchProcess", target);
+
+        var name = VariableName(step, "resultVariable", "process");
+        Variables.Set(name, Value.FromText(details.Path));
+        Variables.Set(name + ".id", Value.FromNumber(details.Id));
+        Variables.Set(name + ".name", Value.FromText(details.Name));
+        Variables.Set(name + ".path", Value.FromText(details.Path));
+        Variables.Set(name + ".memoryMb", Value.FromNumber(details.MemoryMb));
+        Variables.Set(name + ".cpuSeconds", Value.FromNumber(details.CpuSeconds));
+        Log(LogLevel.Info, depth, step.Type, "Run.ProgramDetails", details.Name, details.Id);
     }
 
     /// <summary>Closes a program, by name or by process id.</summary>

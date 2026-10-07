@@ -136,6 +136,71 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)];
 
+    public ProcessDetails? Details(string target)
+    {
+        Require();
+
+        var wanted = (target ?? string.Empty).Trim();
+        if (wanted.Length == 0)
+        {
+            return null;
+        }
+
+        // A number is an id, anything else is a program name, which is the same rule the stop
+        // action follows so the two read alike.
+        var id = int.TryParse(wanted, out var parsed)
+            ? parsed
+            : Find(wanted).FirstOrDefault();
+        if (id == 0)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var process = Process.GetProcessById(id);
+            return new ProcessDetails(
+                id,
+                process.ProcessName,
+                Ask(() => process.MainModule?.FileName) ?? string.Empty,
+                Math.Round(process.WorkingSet64 / 1024d / 1024d, 1),
+                Math.Round(Ask(() => process.TotalProcessorTime.TotalSeconds), 1));
+        }
+        catch (Exception error) when (Recoverable(error) || error is ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// One reading Windows may refuse: the file a program was started from, and how much
+    /// processor time it has used, are not given out for a program at another level. A macro
+    /// asking about such a program gets what can be had rather than nothing at all.
+    /// </summary>
+    private static double Ask(Func<double> reading)
+    {
+        try
+        {
+            return reading();
+        }
+        catch (Exception error) when (Recoverable(error) || error is ArgumentException)
+        {
+            return 0;
+        }
+    }
+
+    private static string? Ask(Func<string?> reading)
+    {
+        try
+        {
+            return reading();
+        }
+        catch (Exception error) when (Recoverable(error) || error is ArgumentException)
+        {
+            return null;
+        }
+    }
+
     public bool HasExited(int id)
     {
         Require();
