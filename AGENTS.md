@@ -144,6 +144,12 @@ Avalonia headless 起应用那一步（`Dispatcher.VerifyAccess`，或者顺着 
   和一套 `MacroVariables.Seed()`，`_running` 保证同一个宏不会有第二个实例。
 - **一个工作单元内部可以多线程**：截图、找图 / 找色的算法运算、OCR 这类"算一下"的活，
   框架可以拿多个线程一起算。这是实现细节，改的是快慢，不改宏的语义。
+- **编辑器里"运行"跑出来的那个宏也在后台线程上**（`RunViewModel.RunAsync` 里 `Task.Run`），
+  说给用户听的东西由 `UiThreadRunHost` 搬回界面线程。设备调用是同步的，一个页面等元素能等
+  满 30 秒；搁在界面线程上就是 30 秒不重画的窗口，连窗口里的"停止"都按不动——实测过。
+  `Log` 用 `Post`（顺序不变、不拖慢运行），`BeforeStep` / `Ask` 用 `InvokeAsync` 等结果，
+  因为"下一步停不停、这一步要不要重试"必须先问过界面再往下走。宿主那三个回调因此照旧只在
+  界面线程上被调用，视图模型里的写法一行没改。
 - 理由：宏是**状态驱动的顺序流程**（变量、循环计数、失败处理、日志顺序都建立在"上一步
   做完才有下一步"上）。强行在宏内并行会破坏这个确定性 —— 同一份宏跑两次结果不一样、
   两个分支抢同一套局部变量、两条线同时驱动鼠标 —— 换来的只是"看起来快"，代价是没法排查。
@@ -244,6 +250,11 @@ WebKit 才需要下载。
   这个驱动是给 Edgeless 内核和 Firefox / WebKit 用的，Edge 通道也要它——省不掉。
 - Playwright 的调用是异步的，而且会回到发起调用时的同步上下文，在界面线程上直接等会死等；
   `PlaywrightBrowserDevice` 里所有调用都丢到线程池上等，和 `ViiperLink` 一个做法。
+- **页面动作失败时要带上"当时在哪一页"**（`OnPage` 把 `PlaywrightException` / `TimeoutException`
+  包成 `Run.BrowserFailed`，细节写成"页面地址 — 原始报错"）。最常见的失败是"元素找不到"，而
+  选中的那一刻之后页面变了，那句话单看说明不了什么；带上页面地址，多半一眼就知道是宏被送到
+  了登录页、或者根本不在它以为的那一页，跟选择器没关系。注意 Playwright .NET 的**超时抛的是
+  `System.TimeoutException`**，不是 `PlaywrightException`，只 catch 后者会漏掉最常见的这一类。
 - 页面里的元素不用手写选择器：`IBrowserDevice.Pick(hint, timeoutMs)` 把页面交给一段注入的脚本
   （`BrowserPickerScript`），鼠标划过高亮、点一下就把选择器回传；编辑器在旁边放一个
   "在页面里拾取…"按钮（`BrowserPicker`）。

@@ -153,20 +153,71 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         });
     }
 
-    public void GoTo(string url) => Wait(async () => await Page().GotoAsync(url));
+    public void GoTo(string url) => OnPage(async () => await Page().GotoAsync(url));
 
-    public void Click(string selector) => Wait(async () => await Page().ClickAsync(selector));
+    public void Click(string selector) => OnPage(async () => await Page().ClickAsync(selector));
 
     public void Fill(string selector, string text)
-        => Wait(async () => await Page().FillAsync(selector, text));
+        => OnPage(async () => await Page().FillAsync(selector, text));
 
-    public string Text(string selector) => Wait(async () =>
+    public string Text(string selector) => OnPage(async () =>
     {
         var page = Page();
         return string.IsNullOrWhiteSpace(selector)
             ? await page.InnerTextAsync("body")
             : await page.InnerTextAsync(selector);
     });
+
+    /// <summary>
+    /// Runs one of the page actions, and puts the page into the failure if it cannot be done.
+    /// </summary>
+    /// <remarks>
+    /// "The element was not found" says very little on its own — and it is the failure that turns up
+    /// most, because a page that has changed since the element was picked no longer has it. With the
+    /// page it was looked for on, it usually says the whole thing: the macro was sent to the sign-in
+    /// page, or somewhere else entirely, and the selector was never the problem.
+    /// </remarks>
+    private void OnPage(Func<Task> work)
+    {
+        try
+        {
+            Wait(work);
+        }
+        catch (Exception failure) when (failure is PlaywrightException or TimeoutException)
+        {
+            throw Failed(failure);
+        }
+    }
+
+    private T OnPage<T>(Func<Task<T>> work)
+    {
+        try
+        {
+            return Wait(work);
+        }
+        catch (Exception failure) when (failure is PlaywrightException or TimeoutException)
+        {
+            throw Failed(failure);
+        }
+    }
+
+    private DeviceActionException Failed(Exception failure)
+    {
+        string where;
+        try
+        {
+            where = Url;
+        }
+        catch (PlaywrightException)
+        {
+            // The window is gone, which is what the failure is about; it has nothing to add.
+            where = string.Empty;
+        }
+
+        return new DeviceActionException(
+            "Run.BrowserFailed",
+            where.Length == 0 ? failure.Message : where + " — " + failure.Message);
+    }
 
     public string Pick(string hint, int timeoutMs)
     {

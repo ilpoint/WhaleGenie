@@ -238,11 +238,18 @@ public partial class RunViewModel : ViewModelBase, IRunHost
 
         try
         {
-            await new MacroRunner(_variables, this, _devices, _delayScale, _macros)
+            var runner = new MacroRunner(
+                _variables, new UiThreadRunHost(this), _devices, _delayScale, _macros)
             {
                 FailureScreenshot = LocalSettings.LoadFailureScreenshot(),
                 FailureFolder = AppPaths.Logs,
-            }.RunAsync(_steps, cancellation.Token);
+            };
+
+            // Off the interface thread: a step that talks to a device waits for it right there in
+            // the same call, and a page that has not drawn the element yet is waited on for the
+            // browser's own half-minute. Doing that on the interface thread is half a minute of a
+            // window that will not repaint — and of a stop button that cannot be pressed.
+            await Task.Run(() => runner.RunAsync(_steps, cancellation.Token), cancellation.Token);
         }
         finally
         {

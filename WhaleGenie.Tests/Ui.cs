@@ -35,4 +35,14 @@ internal static class Ui
         => Session.Dispatch(() => Task.FromResult(body()), CancellationToken.None)
             .GetAwaiter()
             .GetResult();
+
+    /// <summary>
+    /// The same, for a check that has to wait. A callback that has to come back to this thread
+    /// cannot be waited on by a check that is holding it, so the waiting itself has to be done
+    /// here rather than inside the body.
+    /// </summary>
+    public static T RunAsync<T>(Func<Task<T>> body)
+        => Session.Dispatch(body, CancellationToken.None)
+            .GetAwaiter()
+            .GetResult();
 }
