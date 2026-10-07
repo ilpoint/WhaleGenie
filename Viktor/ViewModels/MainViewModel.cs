@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Security.Principal;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -11,12 +12,18 @@ public partial class MainViewModel : ViewModelBase
 {
     public MainViewModel()
     {
-        Macros.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasMacros));
+        Macros.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(HasMacros));
+            RefreshVisibleMacros();
+        };
         Localization.Strings.Current.LanguageChanged += () => OnPropertyChanged(nameof(WindowTitle));
     }
 
     [ObservableProperty]
     public partial string SearchText { get; set; } = string.Empty;
+
+    partial void OnSearchTextChanged(string value) => RefreshVisibleMacros();
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SystemLabel))]
@@ -87,7 +94,35 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>Macros shown in the list. Empty until the user adds one.</summary>
     public ObservableCollection<MacroItem> Macros { get; } = [];
 
+    /// <summary>
+    /// What the list actually shows: every macro, or the ones whose name matches what is in the
+    /// search box. The box narrows the view rather than the project, so nothing about the macros
+    /// themselves depends on what is typed there — closing the box puts them all back.
+    /// </summary>
+    public ObservableCollection<MacroItem> VisibleMacros { get; } = [];
+
     public bool HasMacros => Macros.Count > 0;
+
+    /// <summary>True when there are macros but the search left none of them on screen.</summary>
+    public bool HasNoMatch => Macros.Count > 0 && VisibleMacros.Count == 0;
+
+    /// <summary>Puts the macros the search box lets through into the list the window shows.</summary>
+    private void RefreshVisibleMacros()
+    {
+        var wanted = SearchText.Trim();
+        var keeping = wanted.Length == 0
+            ? Macros
+            : Macros.Where(macro =>
+                macro.Name.Contains(wanted, StringComparison.OrdinalIgnoreCase));
+
+        VisibleMacros.Clear();
+        foreach (var macro in keeping.ToList())
+        {
+            VisibleMacros.Add(macro);
+        }
+
+        OnPropertyChanged(nameof(HasNoMatch));
+    }
 
     /// <summary>Adds a macro created in the macro editor and assigns it a display name.</summary>
     public void AddMacro(MacroItem macro)

@@ -283,7 +283,7 @@
                      CornerRadius="4" Padding="10,7" />
 
             <!-- Macro list -->
-            <ItemsControl Grid.Row="1" Name="MacroList" ItemsSource="{Binding Macros}"
+            <ItemsControl Grid.Row="1" Name="MacroList" ItemsSource="{Binding VisibleMacros}"
                           Margin="0,10,0,0">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:MacroItem">
@@ -401,6 +401,12 @@
                            Foreground="#9A9A9A" FontSize="11.5" HorizontalAlignment="Center"
                            TextAlignment="Center" />
             </StackPanel>
+
+            <!-- What the search box did, when there are macros but none of them match -->
+            <TextBlock Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
+                       IsVisible="{Binding HasNoMatch}"
+                       Text="{Binding [Main.NoMatch], Source={x:Static loc:Strings.Current}}"
+                       Foreground="#9A9A9A" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" />
         </Grid>
 
         <!-- ============ Bottom buttons ============ -->
