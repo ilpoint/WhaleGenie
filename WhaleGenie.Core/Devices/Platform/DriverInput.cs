@@ -22,8 +22,8 @@ public enum DriverInputState
 /// <summary>
 /// Driver-level input rests on two pieces WhaleGenie neither ships nor installs by itself: the
 /// usbip-win2 kernel driver and a running VIIPER server. Both belong to their own projects and both
-/// need the user's say-so before they go on the machine, so all WhaleGenie does is look — the settings
-/// window turns that look into "install this" or "run that".
+/// need the user's say-so before they go on the machine, so all this does is look — the settings
+/// window turns that look into "install this", and <see cref="ViiperServer"/> starts the server.
 /// </summary>
 public static class DriverInput
 {
@@ -51,7 +51,7 @@ public static class DriverInput
             return DriverInputState.DriverMissing;
         }
 
-        return ServerListening() ? DriverInputState.Ready : DriverInputState.ServerMissing;
+        return IsServerAnswering() ? DriverInputState.Ready : DriverInputState.ServerMissing;
     }
 
     private static bool DriverInstalled()
@@ -73,7 +73,11 @@ public static class DriverInput
         }
     }
 
-    private static bool ServerListening()
+    /// <summary>
+    /// Whether something is answering where the VIIPER server should be. Whoever asks is usually
+    /// about to start one of its own, so this is what keeps a second server off the machine.
+    /// </summary>
+    public static bool IsServerAnswering()
     {
         // The connect is kept off this thread so the window that asked never waits on a server that
         // is not there, and the timeout is what turns a refusal into a quick "no" instead of

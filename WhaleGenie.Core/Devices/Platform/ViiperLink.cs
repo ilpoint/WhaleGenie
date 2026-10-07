@@ -91,7 +91,17 @@ public sealed class ViiperLink : IViiperLink
     /// </summary>
     public static IViiperLink Open()
     {
-        switch (DriverInput.Check())
+        var state = DriverInput.Check();
+
+        // A server that is not there is the one piece of this that WhaleGenie can deal with by
+        // itself: the settings window says where viiper.exe is, and this starts it. Asking the user
+        // to have launched something first is what made driver-level input look broken.
+        if (state == DriverInputState.ServerMissing && ViiperServer.Ensure())
+        {
+            state = DriverInputState.Ready;
+        }
+
+        switch (state)
         {
             case DriverInputState.DriverMissing:
                 throw new DeviceActionException("Run.NoDriver");
