@@ -57,6 +57,11 @@ Debug 构建会拉 `AvaloniaUI.DiagnosticsSupport`（`Program.cs` 里的 `WithDe
 
 每加一个动作，至少要有一条引擎用例走到它；每加一条用户可见文案，`LocalizationTests` 自动覆盖。
 
+**界面用例偶尔会整套一起红。** 表现是 `Viktor.Tests` 里一百来个用例同时失败，第一处堆栈落在
+Avalonia headless 起应用那一步（`Dispatcher.VerifyAccess`，或者顺着 `ActionCatalog` 的静态
+构造撞在 `Geometry.Parse` 上）。这是无头会话启动时的竞态，不是用例在测的东西，重跑一次就好；
+单独跑 `dotnet test Viktor.Tests` 几乎不会碰上。CI 上碰上就重跑那个 job。
+
 ## 现在做什么
 
 **编排：让宏的结构看得见。** 动作目录已经有一百多个动作，问题从来不是动作不够，而是
