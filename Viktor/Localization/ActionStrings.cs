@@ -192,7 +192,8 @@ internal static class ActionStrings
             + "也可以直接手输变量名、数字或文本。",
         ["control.switch.matchMode.label"] = "比对方式（运算符）",
         ["control.switch.matchMode.hint"] = "决定分支里填的值怎么和上面的值比较：等于、不等于、包含、"
-            + "开头 / 结尾、大于 / 小于、正则，只能从这个下拉框里选。",
+            + "开头 / 结尾、大于 / 小于、正则，只能从这个下拉框里选。选“正则匹配”时，"
+            + "每条分支的分支值就是那条分支的正则表达式。",
         ["control.switch.matchMode.option.equals"] = "等于",
         ["control.switch.matchMode.option.notEquals"] = "不等于",
         ["control.switch.matchMode.option.contains"] = "包含",
@@ -212,7 +213,8 @@ internal static class ActionStrings
         ["control.case.desc"] = "多分支里的一条：它应答哪些值，以及命中后要执行的步骤。",
         ["control.case.values.label"] = "分支值（操作数）",
         ["control.case.values.hint"] = "这条分支应答的值，从下拉列表里选变量或直接手输，用“;”隔开多个；"
-            + "每个值都按上面的比对方式和要比对的值比较。",
+            + "每个值都按上面的比对方式和要比对的值比较。比对方式选了“正则匹配”时，"
+            + "这里填的就是正则表达式。",
         ["control.case.body.label"] = "分支步骤",
         ["control.case.body.hint"] = "这条分支命中时执行的子步骤。",
 
@@ -1780,7 +1782,8 @@ internal static class ActionStrings
         ["condition.compare.operator.label"] = "判断方式",
         ["condition.compare.operator.hint"] = "变量与比较值之间的关系。",
         ["condition.compare.value.label"] = "变量或值",
-        ["condition.compare.value.hint"] = "可从下拉中选择已有变量，也可以直接输入数字或文本；判断“变量存在”时可留空。",
+        ["condition.compare.value.hint"] = "可从下拉中选择已有变量，也可以直接输入数字或文本；判断“变量存在”时可留空；"
+            + "运算符选“正则匹配”时，这里填的就是正则表达式。",
         ["condition.compare.operator.option.equals"] = "等于",
         ["condition.compare.operator.option.notEquals"] = "不等于",
         ["condition.compare.operator.option.greaterThan"] = "大于",
