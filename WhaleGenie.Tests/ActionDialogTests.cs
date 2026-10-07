@@ -306,23 +306,20 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_variable_calculation_picks_its_operands_and_its_operator()
+    public void A_variable_calculation_is_one_expression()
     {
         Ui.Run(() =>
         {
             var viewModel = Open("control.calculate");
-            var left = viewModel.Parameters.First(parameter => parameter.Definition.Name == "left");
-            var right = viewModel.Parameters.First(parameter => parameter.Definition.Name == "right");
-            var op = viewModel.Parameters.First(parameter => parameter.Definition.Name == "operator");
+            var value = viewModel.Parameters.First(parameter => parameter.Definition.Name == "value");
 
-            // An operand is a variable list that can still be typed into; the operator is a fixed
-            // list, which is the whole point of the action: it is one step of arithmetic the user
-            // assembles instead of a formula the user has to write.
-            Assert.True(left.IsVariable);
-            Assert.True(right.IsVariable);
-            Assert.True(op.IsChoice);
-            Assert.Equal("add", op.Definition.DefaultValue);
-            Assert.Contains(op.Choices, choice => choice.Value == "divide");
+            // The operand-and-operator pieces are gone: the whole value is one expression, offered
+            // the live checking and suggestions that storing a value gets, so nothing has to be
+            // assembled by hand.
+            Assert.True(value.IsExpression);
+            Assert.NotEmpty(value.ExpressionSuggestions);
+            Assert.DoesNotContain(viewModel.Parameters,
+                parameter => parameter.Definition.Name is "left" or "right" or "operator");
         });
     }
 

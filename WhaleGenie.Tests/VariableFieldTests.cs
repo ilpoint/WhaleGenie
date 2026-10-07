@@ -62,8 +62,7 @@ public class VariableFieldTests
 
     /// <summary>
     /// Working a value out is an action, not only a field: a macro that has numbers or text to
-    /// put together picks it from the step list like any other step, which is what keeps the user
-    /// from having to write a formula by hand.
+    /// put together picks it from the step list like any other step.
     /// </summary>
     [Fact]
     public void Working_a_value_out_is_offered_as_a_step_of_its_own()
@@ -77,28 +76,25 @@ public class VariableFieldTests
     }
 
     /// <summary>
-    /// Working a value out is an action with three pieces — two operands and an operator — and the
-    /// operands are where the expression editor helps: an operand may itself be a whole value, so
-    /// it may be built rather than spelled out.
+    /// Working a value out is one expression, now that the expression editor exists: the operands
+    /// and the operator they were picked from are gone, and the whole value is offered the builder
+    /// the same way storing a value is.
     /// </summary>
     [Fact]
-    public void A_calculation_operand_can_be_built_with_the_expression_editor()
+    public void A_calculation_is_one_expression_that_can_be_built_with_the_editor()
     {
         Ui.Run(() =>
         {
             var calculate = Open("control.calculate");
 
-            foreach (var operand in new[] { "left", "right" })
-            {
-                var field = Parameter(calculate, operand);
+            var value = Parameter(calculate, "value");
 
-                // Still a variable list that can be typed into, and now buildable as well.
-                Assert.True(field.IsVariable);
-                Assert.True(field.OffersFormula);
-            }
+            Assert.True(value.IsExpression);
+            Assert.NotEmpty(value.ExpressionSuggestions);
 
-            // The operator stays a fixed list: not having to spell it is the point of the action.
-            Assert.True(Parameter(calculate, "operator").IsChoice);
+            // The pieces the expression replaced are gone, not just hidden.
+            Assert.DoesNotContain(calculate.Parameters,
+                parameter => parameter.Definition.Name is "left" or "right" or "operator");
         });
     }
 

@@ -252,7 +252,7 @@ internal static class ActionStrings
         ["control.setVariable.scope.option.global"] = "全局变量（所有宏共享）",
 
         ["control.calculate.name"] = "变量运算",
-        ["control.calculate.desc"] = "用两个操作数和一个运算符算出一个值，存进变量里，不用自己写公式。",
+        ["control.calculate.desc"] = "算出一个公式的结果，存进变量里。",
         ["control.calculate.name.label"] = "结果变量名",
         ["control.calculate.name.hint"] = "算出来的值存在这里。局部变量在这里命名即可；"
             + "全局变量必须先在变量中心创建。",
@@ -260,20 +260,9 @@ internal static class ActionStrings
         ["control.calculate.scope.hint"] = "局部变量只属于本宏，全局变量由所有宏共享。",
         ["control.calculate.scope.option.local"] = "局部变量（仅本宏）",
         ["control.calculate.scope.option.global"] = "全局变量（所有宏共享）",
-        ["control.calculate.left.label"] = "左操作数",
-        ["control.calculate.left.hint"] = "第一个操作数，从下拉列表里选变量或直接手输。它不一定是数字："
-            + "“拼接文本”会把两段文本接在一起。整个操作数也可以点 ƒx 用运算编辑器拼出来。",
-        ["control.calculate.operator.label"] = "运算符",
-        ["control.calculate.operator.hint"] = "要对两个操作数做什么，只能从这个下拉列表里选。",
-        ["control.calculate.operator.option.add"] = "加（+）",
-        ["control.calculate.operator.option.subtract"] = "减（−）",
-        ["control.calculate.operator.option.multiply"] = "乘（×）",
-        ["control.calculate.operator.option.divide"] = "除（÷）",
-        ["control.calculate.operator.option.remainder"] = "取余（%）",
-        ["control.calculate.operator.option.join"] = "拼接文本",
-        ["control.calculate.right.label"] = "右操作数",
-        ["control.calculate.right.hint"] = "第二个操作数，从下拉列表里选变量或直接手输，"
-            + "同样可以点 ƒx 用运算编辑器拼。",
+        ["control.calculate.value.label"] = "表达式",
+        ["control.calculate.value.hint"] = "要算的公式，比如 $count + 1、$total * 0.85，"
+            + "或者 concat($first, \" \", $last)。点 ƒx 用运算编辑器一块块拼出来。",
 
         ["control.listCreate.name"] = "创建列表",
         ["control.listCreate.desc"] = "建立一个列表变量，覆盖它原来的内容。",

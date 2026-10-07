@@ -993,13 +993,13 @@ public class MacroRunnerTests
     }
 
     [Fact]
-    public async Task A_calculation_works_out_the_two_operands_and_stores_the_answer()
+    public async Task A_calculation_works_out_its_expression_and_stores_the_answer()
     {
         var store = Store(("count", 4));
         var (result, _) = await RunAsync(
             [Step("control.calculate",
                 Param("name", "total"), Param("scope", "local"),
-                Param("left", "$count"), Param("operator", "add"), Param("right", "3"))],
+                Param("value", "$count + 3"))],
             variables: store);
 
         Assert.True(result.Succeeded);
@@ -1007,23 +1007,15 @@ public class MacroRunnerTests
     }
 
     [Fact]
-    public async Task A_calculation_offers_subtract_multiply_divide_and_remainder()
+    public async Task A_calculation_reads_the_arithmetic_written_in_the_expression()
     {
         var store = Store(("n", 10), ("m", 3));
         var (result, _) = await RunAsync(
             [
-                Step("control.calculate",
-                    Param("name", "minus"), Param("left", "$n"), Param("operator", "subtract"),
-                    Param("right", "$m")),
-                Step("control.calculate",
-                    Param("name", "times"), Param("left", "$n"), Param("operator", "multiply"),
-                    Param("right", "$m")),
-                Step("control.calculate",
-                    Param("name", "over"), Param("left", "$n"), Param("operator", "divide"),
-                    Param("right", "4")),
-                Step("control.calculate",
-                    Param("name", "left"), Param("left", "$n"), Param("operator", "remainder"),
-                    Param("right", "$m")),
+                Step("control.calculate", Param("name", "minus"), Param("value", "$n - $m")),
+                Step("control.calculate", Param("name", "times"), Param("value", "$n * $m")),
+                Step("control.calculate", Param("name", "over"), Param("value", "$n / 4")),
+                Step("control.calculate", Param("name", "rest"), Param("value", "$n % $m")),
             ],
             variables: store);
 
@@ -1031,7 +1023,7 @@ public class MacroRunnerTests
         Assert.Equal(7, N(store, "minus"));
         Assert.Equal(30, N(store, "times"));
         Assert.Equal(2.5, N(store, "over"));
-        Assert.Equal(1, N(store, "left"));
+        Assert.Equal(1, N(store, "rest"));
     }
 
     [Fact]
@@ -1041,8 +1033,7 @@ public class MacroRunnerTests
         store.Local.SetText("name", "Ada");
         var (result, _) = await RunAsync(
             [Step("control.calculate",
-                Param("name", "greeting"), Param("left", "Hello "),
-                Param("operator", "join"), Param("right", "$name"))],
+                Param("name", "greeting"), Param("value", "\"Hello \" + $name"))],
             variables: store);
 
         Assert.True(result.Succeeded);
@@ -1050,30 +1041,13 @@ public class MacroRunnerTests
     }
 
     [Fact]
-    public async Task A_calculation_operand_may_be_a_formula_of_its_own()
-    {
-        // The editor offers the expression editor for an operand, so an operand may be worked out
-        // where it is written rather than being one value the macro knows.
-        var store = Store(("count", 4));
-        var (result, _) = await RunAsync(
-            [Step("control.calculate",
-                Param("name", "total"), Param("left", "$count + 1"),
-                Param("operator", "multiply"), Param("right", "2"))],
-            variables: store);
-
-        Assert.True(result.Succeeded);
-        Assert.Equal(10, N(store, "total"));
-    }
-
-    [Fact]
-    public async Task Putting_text_together_works_out_an_operand_written_as_a_formula()
+    public async Task A_calculation_may_call_functions_from_its_expression()
     {
         var store = Store(("count", 3));
         store.Local.SetText("name", "Ada");
         var (result, _) = await RunAsync(
             [Step("control.calculate",
-                Param("name", "line"), Param("left", "upper($name)"),
-                Param("operator", "join"), Param("right", "$count"))],
+                Param("name", "line"), Param("value", "concat(upper($name), $count)"))],
             variables: store);
 
         Assert.True(result.Succeeded);
@@ -1083,15 +1057,14 @@ public class MacroRunnerTests
     [Fact]
     public async Task A_calculation_that_divides_by_zero_fails_the_step()
     {
-        var store = Store();
+        var store = Store(("zero", 0));
         var (result, _) = await RunAsync(
             [Step("control.calculate",
-                Param("name", "x"), Param("left", "1"), Param("operator", "divide"),
-                Param("right", "0"))],
+                Param("name", "x"), Param("value", "$zero / 0"))],
             variables: store);
 
         Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.Equal("Run.DivideByZero", result.Key);
+        Assert.Equal("Run.BadExpression", result.Key);
         Assert.False(store.TryGet("x", out _));
     }
 

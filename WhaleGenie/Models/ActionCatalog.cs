@@ -101,18 +101,6 @@ public static class ActionCatalog
         "Greater than", "Greater or equal", "Less than", "Less or equal", "Regex",
     ];
 
-    /// <summary>
-    /// The operators <c>control.calculate</c> offers. They are a fixed list rather than free text
-    /// because the point of the action is to stop the user from having to write an expression:
-    /// the operator is picked, never spelled.
-    /// </summary>
-    private static readonly string[] CalculateOperators =
-        ["add", "subtract", "multiply", "divide", "remainder", "join"];
-
-    /// <summary>English fallback text for <see cref="CalculateOperators"/>; the UI translates it.</summary>
-    private static readonly string[] CalculateOperatorLabels =
-        ["Add (+)", "Subtract (−)", "Multiply (×)", "Divide (÷)", "Remainder (%)", "Join text"];
-
     /// <summary>Every action offered by the "Select Action" dropdown, grouped by category.</summary>
     public static IReadOnlyList<ActionDefinition> Definitions { get; } =
     [
@@ -368,7 +356,7 @@ public static class ActionCatalog
             Key = "control.calculate",
             Category = ActionCategory.Control,
             DisplayName = "Calculate",
-            Description = "Work out one value from two operands and store it in a variable.",
+            Description = "Work out an expression and store the answer in a variable.",
             Parameters =
             [
                 Variable("name", "Variable name", "count",
@@ -378,18 +366,9 @@ public static class ActionCatalog
                 Choice("scope", "Scope", ["local", "global"], "local",
                     "Local values belong to this macro, global values are shared by every macro.",
                     labels: ["Local (this macro)", "Global (shared)"]),
-                Variable("left", "Left operand", "1",
-                    "The first operand, picked from the variable list or typed in. It does not "
-                    + "have to be a number: \"join\" puts two pieces of text together. A whole "
-                    + "operand may be worked out with the expression editor.",
-                    acceptsFormula: true),
-                Choice("operator", "Operator", CalculateOperators, "add",
-                    "What to do with the two operands. The operator is chosen from this list.",
-                    labels: CalculateOperatorLabels),
-                Variable("right", "Right operand", "1",
-                    "The second operand, picked from the variable list or typed in. It may be "
-                    + "worked out with the expression editor the same way.",
-                    acceptsFormula: true),
+                Expression("value", "Expression", "$count + 1",
+                    "A formula to work out, such as $count + 1, $total * 0.85 or concat($first, \" \", $last). "
+                    + "The expression editor writes it piece by piece."),
             ],
         },
         new()
