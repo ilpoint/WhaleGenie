@@ -110,9 +110,8 @@
 
             <!-- ===================== Title bar ===================== -->
             <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="14,10,10,8">
-                <Border Background="#C8401C" CornerRadius="4" Padding="7,3" VerticalAlignment="Center">
-                    <TextBlock Text="VIK" FontSize="11" FontWeight="SemiBold" Foreground="#FFFFFF" />
-                </Border>
+                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform"
+                       VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center"
                            FontSize="13" Foreground="#E8E8E8"
                            Text="{Binding [Run.Title], Source={x:Static loc:Strings.Current}}" />

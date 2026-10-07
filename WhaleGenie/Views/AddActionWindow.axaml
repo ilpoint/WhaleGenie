@@ -576,10 +576,7 @@
         <!-- Title bar -->
         <Grid Grid.Row="0" Background="#202020" ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
-                <Border Background="#C8401C" CornerRadius="4" Padding="4,1" Width="30">
-                    <TextBlock Text="VIK" Foreground="White" FontWeight="Bold" FontSize="9"
-                               HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
+                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
                 <TextBlock Text="{Binding Header}" Foreground="#E8E8E8" FontSize="13"
                            VerticalAlignment="Center" />
             </StackPanel>

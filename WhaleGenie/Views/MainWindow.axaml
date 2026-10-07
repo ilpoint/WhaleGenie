@@ -119,11 +119,8 @@
 
         <!-- ============ Custom title bar ============ -->
         <Grid Grid.Row="0" Background="#202020" ColumnDefinitions="Auto,*,Auto">
-            <Border Background="#C8401C" CornerRadius="4" Margin="8,5" Padding="4,1"
-                    VerticalAlignment="Center" HorizontalAlignment="Left" Width="30">
-                <TextBlock Text="VIK" Foreground="White" FontWeight="Bold" FontSize="9"
-                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-            </Border>
+            <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform"
+                   Margin="8,5" VerticalAlignment="Center" HorizontalAlignment="Left" />
 
             <TextBlock Grid.Column="1" Foreground="#E8E8E8" FontSize="13"
                        Text="{Binding WindowTitle}"
