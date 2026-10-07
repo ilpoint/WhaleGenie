@@ -134,6 +134,58 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_key_the_macro_leaves_down_is_let_go_when_the_run_ends()
+    {
+        var host = new SilentRunHost();
+        var devices = new FakeDeviceLayer();
+
+        var result = await new MacroRunner(new VariableStore(), host, devices)
+            .RunAsync([Step("input.keyDown", Param("key", "Shift"))]);
+
+        Assert.True(result.Succeeded);
+
+        // A key still down when the macro ends would keep shifting everything the user types
+        // afterwards, so the run hands the keyboard back the way it found it.
+        Assert.Equal(["keyDown Shift", "keyUp Shift"], devices.Calls);
+        Assert.Contains(host.Entries, entry => entry.Key == "Run.LetGo");
+    }
+
+    [Fact]
+    public async Task A_button_the_macro_leaves_down_is_let_go_when_the_run_ends()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("input.mouseDown", Param("button", "left"), Param("x", "5"), Param("y", "6"))],
+            devices);
+
+        Assert.True(result.Succeeded);
+
+        // The button is let go where it was pressed: the macro may well have moved on since, and
+        // a release somewhere else would drop whatever the pointer is over now.
+        Assert.Equal(["down left 5 6", "up left 5 6"], devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_failed_run_lets_go_of_what_it_left_held_too()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.keyDown", Param("key", "Ctrl")),
+            Step("input.mouseDown", Param("button", "right"), Param("x", "3"), Param("y", "4")),
+            Step("nope.unknown"),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+
+        // A run that failed is exactly the one that must not leave the keyboard and the mouse
+        // in a state the user cannot see or undo.
+        Assert.Equal(
+            ["keyDown Ctrl", "down right 3 4", "keyUp Ctrl", "up right 3 4"],
+            devices.Calls);
+    }
+
+    [Fact]
     public async Task A_hotkey_reaches_the_keyboard_as_one_chord()
     {
         var (_, devices, _) = await RunAsync(
@@ -360,7 +412,10 @@ public class DeviceActionTests
                 Param("anchorMode", "client"), Param("anchorWindow", "Notepad")),
         ], devices);
 
-        Assert.Equal(["findWindow Notepad", "clientOrigin 1", "down left 1013 537"], devices.Calls);
+        // The button is also let go where it was pressed once the run ends, from the place the
+        // press was read at rather than a fresh reading of where the window is now.
+        Assert.Equal(["findWindow Notepad", "clientOrigin 1", "down left 1013 537", "up left 1013 537"],
+            devices.Calls);
     }
 
     [Fact]

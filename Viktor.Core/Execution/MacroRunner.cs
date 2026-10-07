@@ -45,6 +45,15 @@ public sealed class MacroRunner
 
     private StepFailure? _failure;
 
+    /// <summary>
+    /// The keys and mouse buttons the macro has pressed and not yet let go, with the device each
+    /// was pressed on so it is let go the same way — a key posted at one window has to be released
+    /// at that window, not at whatever has the focus when the run ends.
+    /// </summary>
+    private readonly List<(IInputDevice Device, string Name)> _heldKeys = [];
+
+    private readonly List<(IInputDevice Device, string Button, ScreenPoint Point)> _heldButtons = [];
+
     public MacroRunner(VariableStore variables, IRunHost? host = null, IDeviceLayer? devices = null,
         double delayScale = 1, IMacroLibrary? macros = null)
     {
@@ -145,6 +154,11 @@ public sealed class MacroRunner
         {
             Log(LogLevel.Warn, 0, string.Empty, "Run.Stopped", _executed);
             return new RunResult(RunStatus.Stopped, "Run.Stopped", string.Empty, _executed);
+        }
+        finally
+        {
+            // Whatever the run decided, the machine is handed back the way it was found.
+            LetGoOfHeldInput();
         }
     }
 
@@ -834,11 +848,11 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "input.keyDown":
-                Input(step).KeyDown(step.Text("key"));
+                HoldKey(step);
                 return Signal.Normal;
 
             case "input.keyUp":
-                Input(step).KeyUp(step.Text("key"));
+                LetGoKey(step);
                 return Signal.Normal;
 
             case "input.hotkey":
@@ -870,15 +884,13 @@ public sealed class MacroRunner
 
             case "input.mouseDown":
                 {
-                    var point = Point(step, "x", "y");
-                    Input(step).MouseDown(Button(step), point.X, point.Y);
+                    HoldButton(step);
                     return Signal.Normal;
                 }
 
             case "input.mouseUp":
                 {
-                    var point = Point(step, "x", "y");
-                    Input(step).MouseUp(Button(step), point.X, point.Y);
+                    LetGoButton(step);
                     return Signal.Normal;
                 }
 
@@ -1699,6 +1711,110 @@ public sealed class MacroRunner
     /// front by default, posted at one window when the step names one, or through a driver.
     /// </summary>
     private IInputDevice Input(ExecutableStep step) => _devices.Inputs.For(Route(step));
+
+    /// <summary>Presses a key and remembers it, so the run can let it go if the macro never does.</summary>
+    private void HoldKey(ExecutableStep step)
+    {
+        var device = Input(step);
+        var key = step.Text("key");
+        device.KeyDown(key);
+        if (!_heldKeys.Any(held => Same(held.Device, device) && Same(held.Name, key)))
+        {
+            _heldKeys.Add((device, key));
+        }
+    }
+
+    /// <summary>Releases a key the macro asked to release, and stops counting it as held.</summary>
+    private void LetGoKey(ExecutableStep step)
+    {
+        var device = Input(step);
+        var key = step.Text("key");
+        device.KeyUp(key);
+        _heldKeys.RemoveAll(held => Same(held.Device, device) && Same(held.Name, key));
+    }
+
+    /// <summary>The same, for a mouse button, remembering where it was pressed.</summary>
+    private void HoldButton(ExecutableStep step)
+    {
+        var device = Input(step);
+        var button = Button(step);
+        var point = Point(step, "x", "y");
+        device.MouseDown(button, point.X, point.Y);
+        if (!_heldButtons.Any(held =>
+                Same(held.Device, device) && Same(held.Button, button)))
+        {
+            _heldButtons.Add((device, button, point));
+        }
+    }
+
+    /// <summary>Releases a mouse button the macro asked to release, wherever it is now held.</summary>
+    private void LetGoButton(ExecutableStep step)
+    {
+        var device = Input(step);
+        var button = Button(step);
+        var point = Point(step, "x", "y");
+        device.MouseUp(button, point.X, point.Y);
+        _heldButtons.RemoveAll(held => Same(held.Device, device) && Same(held.Button, button));
+    }
+
+    /// <summary>True when two device handles or two names stand for the same thing.</summary>
+    private static bool Same(IInputDevice device, IInputDevice other) => ReferenceEquals(device, other);
+
+    private static bool Same(string name, string other)
+        => string.Equals(name, other, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Lets go of anything the macro left pressed. A key or a button held down when a run ends
+    /// stays down on the machine until something else takes it up — the user's own typing goes
+    /// to the wrong place and the mouse drags whatever it is over — so this happens however the
+    /// run ended: finished, stopped, failed or cancelled. A release that fails is logged rather
+    /// than raised, because the run already has its answer and a stuck key is not made better by
+    /// throwing.
+    /// </summary>
+    private void LetGoOfHeldInput()
+    {
+        if (_heldKeys.Count == 0 && _heldButtons.Count == 0)
+        {
+            return;
+        }
+
+        var keys = _heldKeys.ToList();
+        var buttons = _heldButtons.ToList();
+        _heldKeys.Clear();
+        _heldButtons.Clear();
+
+        var released = 0;
+        foreach (var (device, key) in keys)
+        {
+            try
+            {
+                device.KeyUp(key);
+                released++;
+            }
+            catch (Exception failure)
+            {
+                Log(LogLevel.Warn, 0, string.Empty, "Run.LetGoFailed", key, failure.Message);
+            }
+        }
+
+        foreach (var (device, button, point) in buttons)
+        {
+            try
+            {
+                device.MouseUp(button, point.X, point.Y);
+                released++;
+            }
+            catch (Exception failure)
+            {
+                Log(LogLevel.Warn, 0, string.Empty, "Run.LetGoFailed", button, failure.Message);
+            }
+        }
+
+        if (released > 0)
+        {
+            Log(LogLevel.Info, 0, string.Empty, "Run.LetGo", released);
+        }
+    }
 
     /// <summary>Where a step wants its input to go. Anything unset means the front window.</summary>
     private InputRoute Route(ExecutableStep step)
