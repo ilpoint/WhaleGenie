@@ -40,8 +40,8 @@ public partial class MainWindow : Window
     /// <summary>Whether the question about unsaved work is on screen, so only one is asked.</summary>
     private bool _askingToSave;
 
-    /// <summary>Writes the unsaved project out while there is something to lose; null until then.</summary>
-    private DispatcherTimer? _recoveryTimer;
+    /// <summary>Writes the unsaved project out as it changes; null until the window is watched.</summary>
+    private RecoveryWriter? _recovery;
 
     /// <summary>
     /// Whether this session put the project into the snapshot. What clears it is what wrote it:
@@ -235,6 +235,8 @@ public partial class MainWindow : Window
     /// </summary>
     private void WatchUnsavedProject(MainViewModel viewModel)
     {
+        _recovery = new RecoveryWriter(() => WriteUnsavedProject(viewModel));
+
         viewModel.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName is nameof(MainViewModel.IsDirty)
@@ -245,17 +247,23 @@ public partial class MainWindow : Window
             }
         };
 
+        // A change that arrives while the list is already unsaved reaches nothing above: the dirty
+        // flag does not move for it, so the snapshot would be left holding the state it had before.
+        viewModel.Changed += (_, _) => KeepUnsavedProject(viewModel);
+
         // The armed state of a macro is written into the package, so a change to it counts, and
         // it moves nothing that would raise a property change on the list itself.
-        viewModel.Macros.CollectionChanged += (_, _) => SyncUnsavedProject(viewModel);
+        viewModel.Macros.CollectionChanged += (_, _) => KeepUnsavedProject(viewModel);
         SyncUnsavedProject(viewModel);
     }
 
+    /// <summary>Writes the project out when it first becomes unsaved, and lets the snapshot go
+    /// when there is nothing left to lose.</summary>
     private void SyncUnsavedProject(MainViewModel viewModel)
     {
         if (!viewModel.HasUnsavedChanges)
         {
-            _recoveryTimer?.Stop();
+            _recovery?.Stop();
 
             // Only take back what this session put there. A snapshot left by the last run is not
             // this window's to drop: the list is empty on every start, and clearing it here would
@@ -270,23 +278,22 @@ public partial class MainWindow : Window
         }
 
         _projectInRecovery = true;
-
-        // The first change is written straight away: waiting a whole turn of the timer for it
-        // would leave the change that followed a long quiet spell the one most likely to be lost.
-        if (_recoveryTimer is null)
-        {
-            WriteUnsavedProject(viewModel);
-        }
-
-        _recoveryTimer ??= NewUnsavedProjectTimer(viewModel);
-        _recoveryTimer.Start();
+        _recovery?.Now();
     }
 
-    private DispatcherTimer NewUnsavedProjectTimer(MainViewModel viewModel)
+    /// <summary>
+    /// Keeps a change that arrived while the list was already unsaved from going unwritten. The
+    /// write itself waits for the changes to pause; what makes the work unsaved was written already.
+    /// </summary>
+    private void KeepUnsavedProject(MainViewModel viewModel)
     {
-        var timer = new DispatcherTimer { Interval = RecoveryStore.Interval };
-        timer.Tick += (_, _) => WriteUnsavedProject(viewModel);
-        return timer;
+        if (!viewModel.HasUnsavedChanges)
+        {
+            return;
+        }
+
+        _projectInRecovery = true;
+        _recovery?.Changed();
     }
 
     private static void WriteUnsavedProject(MainViewModel viewModel)
@@ -333,7 +340,7 @@ public partial class MainWindow : Window
         {
             DetachSystemHotkey();
             StopTriggers();
-            _recoveryTimer?.Stop();
+            _recovery?.Stop();
         };
     }
 

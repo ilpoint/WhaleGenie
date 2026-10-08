@@ -39,8 +39,8 @@ public partial class MacroEditorWindow : Window
     private bool _syncingSelection;
     private bool _closing;
 
-    /// <summary>Writes the macro being edited out while it is not saved; null until there is one.</summary>
-    private DispatcherTimer? _recoveryTimer;
+    /// <summary>Writes the macro being edited out as it changes, while it is not saved.</summary>
+    private readonly RecoveryWriter _recovery;
 
     /// <summary>
     /// Whether this editor put its macro into the snapshot. Only what wrote it takes it back, so
@@ -110,6 +110,7 @@ public partial class MacroEditorWindow : Window
         _editing = existing;
         _assetFolder = ImageAssets.FolderFor(packagePath);
         _viewModel = new MacroEditorViewModel();
+        _recovery = new RecoveryWriter(WriteRecovery);
         if (existing is not null)
         {
             _viewModel.LoadFrom(existing);
@@ -150,6 +151,11 @@ public partial class MacroEditorWindow : Window
                 SyncRecovery();
             }
         };
+
+        // A change that arrives while the macro is already unsaved reaches nothing above: the
+        // dirty flag does not move for it, so the draft would be left holding the state it had
+        // before that change.
+        _viewModel.Changed += (_, _) => KeepRecovery();
 
         // If the editor goes away by any route, the hook has to go with it. There is no point
         // telling the user an empty recording was empty once the editor is gone.
@@ -740,17 +746,25 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        if (_recoveryTimer is null)
-        {
-            _recoveryTimer = new DispatcherTimer { Interval = RecoveryStore.Interval };
-            _recoveryTimer.Tick += (_, _) => WriteRecovery();
+        // The first change is written straight away, so a macro that is pasted in and then lost
+        // to a crash seconds later is not waiting on the clock to be kept.
+        _editorInRecovery = true;
+        _recovery.Now();
+    }
 
-            // The first change is written straight away, so a macro that is pasted in and then
-            // lost to a crash seconds later is not waiting on the timer to be kept.
-            WriteRecovery();
+    /// <summary>
+    /// Keeps a change that arrived while the macro was already unsaved from going unwritten. The
+    /// write waits for the changes to pause; what first made the macro unsaved was written already.
+    /// </summary>
+    private void KeepRecovery()
+    {
+        if (!_viewModel.IsDirty)
+        {
+            return;
         }
 
-        _recoveryTimer.Start();
+        _editorInRecovery = true;
+        _recovery.Changed();
     }
 
     private void WriteRecovery()
@@ -766,7 +780,7 @@ public partial class MacroEditorWindow : Window
 
     private void StopRecovery()
     {
-        _recoveryTimer?.Stop();
+        _recovery.Stop();
 
         // Only take back what this editor wrote: a draft left by a run that stopped is not this
         // window's to drop, since nobody has answered for it yet.

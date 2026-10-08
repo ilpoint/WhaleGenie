@@ -59,22 +59,36 @@ public sealed class RecoveryContents
 /// </remarks>
 public static class RecoveryStore
 {
-    /// <summary>
-    /// How long the unsaved work may sit in memory before it is written out. Short enough that
-    /// losing power costs a few seconds of work at most, long enough that a keystroke is not a
-    /// disk write.
-    /// </summary>
-    public static readonly TimeSpan Interval = TimeSpan.FromSeconds(3);
-
     private static readonly object Gate = new();
 
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
 
     /// <summary>
-    /// Where the snapshot lives: beside the program, with the settings, so the safety net belongs
-    /// to this copy and can be moved out of the way by a check.
+    /// What each part looked like when this run last wrote it, so a part that reads the same as
+    /// what is already in the file is not written again.
     /// </summary>
-    internal static string FilePath { get; set; } = Path.Combine(AppPaths.Root, "recovery.json");
+    private static readonly Dictionary<string, string> Written = [];
+
+    private static string _path = Path.Combine(AppPaths.Root, "recovery.json");
+
+    /// <summary>
+    /// Where the snapshot lives: beside the program, with the settings, so the safety net belongs
+    /// to this copy and can be moved out of the way by a check. Moving it forgets what was written
+    /// to the file it used to point at, which is what a check that gives itself a file of its own
+    /// is counting on.
+    /// </summary>
+    internal static string FilePath
+    {
+        get => _path;
+        set
+        {
+            lock (Gate)
+            {
+                _path = value;
+                Written.Clear();
+            }
+        }
+    }
 
     /// <summary>True when the last run left something behind.</summary>
     public static bool Exists
@@ -91,68 +105,67 @@ public static class RecoveryStore
     /// <summary>Records the macro list, its shared variables and the package it came from.</summary>
     public static void SaveProject(IReadOnlyList<MacroItem> macros,
         IReadOnlyList<VariableDefinition> globals, string? packagePath)
-        => Update(root =>
+    {
+        var entries = new JsonArray();
+        foreach (var macro in macros)
         {
-            var entries = new JsonArray();
-            foreach (var macro in macros)
+            entries.Add(new JsonObject
             {
-                entries.Add(new JsonObject
-                {
-                    ["enabled"] = macro.IsEnabled,
-                    ["document"] = macro.ToJson(),
-                });
-            }
+                ["enabled"] = macro.IsEnabled,
+                ["document"] = macro.ToJson(),
+            });
+        }
 
-            var variables = new JsonArray();
-            foreach (var variable in globals)
+        var variables = new JsonArray();
+        foreach (var variable in globals)
+        {
+            variables.Add(new JsonObject
             {
-                variables.Add(new JsonObject
-                {
-                    ["name"] = variable.Name,
-                    ["type"] = variable.Type,
-                    ["default"] = variable.DefaultValue,
-                    ["description"] = variable.Description,
-                });
-            }
+                ["name"] = variable.Name,
+                ["type"] = variable.Type,
+                ["default"] = variable.DefaultValue,
+                ["description"] = variable.Description,
+            });
+        }
 
-            var project = new JsonObject
-            {
-                ["macros"] = entries,
-                ["variables"] = variables,
-            };
+        var project = new JsonObject
+        {
+            ["macros"] = entries,
+            ["variables"] = variables,
+        };
 
-            if (!string.IsNullOrEmpty(packagePath))
-            {
-                project["package"] = packagePath;
-            }
+        if (!string.IsNullOrEmpty(packagePath))
+        {
+            project["package"] = packagePath;
+        }
 
-            root["project"] = project;
-        });
+        Update("project", project);
+    }
 
     /// <summary>Forgets the macro list, because it is saved or the user let it go.</summary>
-    public static void ClearProject() => Update(root => root.Remove("project"));
+    public static void ClearProject() => Update("project", null);
 
     /// <summary>Records the macro the editor is holding, and what it stands for.</summary>
     public static void SaveEditor(MacroItem macro, string replaces)
-        => Update(root =>
+    {
+        var editor = new JsonObject { ["macro"] = macro.ToJson() };
+        if (!string.IsNullOrEmpty(replaces))
         {
-            var editor = new JsonObject { ["macro"] = macro.ToJson() };
-            if (!string.IsNullOrEmpty(replaces))
-            {
-                editor["replaces"] = replaces;
-            }
+            editor["replaces"] = replaces;
+        }
 
-            root["editor"] = editor;
-        });
+        Update("editor", editor);
+    }
 
     /// <summary>Forgets the editor draft, because the editor closed or handed its macro over.</summary>
-    public static void ClearEditor() => Update(root => root.Remove("editor"));
+    public static void ClearEditor() => Update("editor", null);
 
     /// <summary>Removes the whole snapshot.</summary>
     public static void Clear()
     {
         lock (Gate)
         {
+            Written.Clear();
             Remove();
         }
     }
@@ -242,21 +255,40 @@ public static class RecoveryStore
     }
 
     /// <summary>
-    /// Reads the file, hands the root to <paramref name="change"/>, then writes it back — or
-    /// removes it when both parts are gone. Everything under one lock, so the project writer and
-    /// the editor writer never leave each other a half-read file.
+    /// Puts one part of the snapshot in place, or takes it out when <paramref name="node"/> is
+    /// nothing, and removes the file once neither part is left. Everything under one lock, so the
+    /// project writer and the editor writer never leave each other a half-read file.
+    ///
+    /// A part that reads the same as what this run last wrote is left alone. The file is only
+    /// there to be found after a stop without notice, so writing it again over work that has not
+    /// moved costs a disk write, moves the time it says it was taken, and tells whoever looks at
+    /// the file that work is seconds old when it may be hours old.
     /// </summary>
-    private static void Update(Action<JsonObject> change)
+    private static void Update(string part, JsonObject? node)
     {
         lock (Gate)
         {
             try
             {
+                var text = node?.ToJsonString() ?? string.Empty;
+                if (Written.TryGetValue(part, out var already) && already == text)
+                {
+                    return;
+                }
+
                 var root = ReadRoot() ?? new JsonObject();
-                change(root);
+                if (node is null)
+                {
+                    root.Remove(part);
+                }
+                else
+                {
+                    root[part] = node;
+                }
 
                 if (root["project"] is null && root["editor"] is null)
                 {
+                    Written[part] = text;
                     Remove();
                     return;
                 }
@@ -264,6 +296,7 @@ public static class RecoveryStore
                 root["appVersion"] = AppVersion();
                 root["savedUtc"] = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
                 Write(root);
+                Written[part] = text;
             }
             catch
             {

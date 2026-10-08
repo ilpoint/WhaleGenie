@@ -608,7 +608,7 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         PushUndo();
         DelayScale = clamped;
-        IsDirty = true;
+        MarkDirty();
     }
 
     public string BindKeyDisplay => string.IsNullOrEmpty(BindKey) ? Strings.Get("Editor.NoKey") : BindKey;
@@ -949,7 +949,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
 
         NotifyStepsChanged();
-        IsDirty = true;
+        MarkDirty();
     }
 
     /// <summary>Swaps a step for the edited version returned by the dialog.</summary>
@@ -1716,8 +1716,22 @@ public partial class MacroEditorViewModel : ViewModelBase
                 or nameof(SelectedSteps) or nameof(IsRecording) or nameof(RecordedEvents)
                 or nameof(Problems) or nameof(HasProblems) or nameof(ProblemSummary)))
         {
-            IsDirty = true;
+            MarkDirty();
         }
+    }
+
+    /// <summary>
+    /// Raised for every change to the macro being written, where <see cref="IsDirty"/> only says
+    /// whether there is any unsaved work at all: the snapshot has to hear about the changes that
+    /// arrive while the macro is already unsaved, and the dirty flag does not move for those.
+    /// </summary>
+    public event EventHandler? Changed;
+
+    /// <summary>Notes that the macro being written has moved on.</summary>
+    private void MarkDirty()
+    {
+        IsDirty = true;
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>

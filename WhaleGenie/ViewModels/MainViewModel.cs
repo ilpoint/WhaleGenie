@@ -131,7 +131,7 @@ public partial class MainViewModel : ViewModelBase
         }
 
         Macros.Add(macro);
-        IsDirty = true;
+        MarkDirty();
     }
 
     /// <summary>Swaps an edited macro back into the list, keeping its on/off state.</summary>
@@ -145,28 +145,28 @@ public partial class MainViewModel : ViewModelBase
 
         edited.IsEnabled = original.IsEnabled;
         Macros[index] = edited;
-        IsDirty = true;
+        MarkDirty();
     }
 
     /// <summary>Removes a macro from the list.</summary>
     public void RemoveMacro(MacroItem macro)
     {
         Macros.Remove(macro);
-        IsDirty = true;
+        MarkDirty();
     }
 
     /// <summary>Removes every macro, used by "close all".</summary>
     public void ClearMacros()
     {
         Macros.Clear();
-        IsDirty = true;
+        MarkDirty();
     }
 
     /// <summary>Arms or disarms a macro; the macro list shows the state as a coloured dot.</summary>
     public void ToggleMacro(MacroItem macro)
     {
         macro.IsEnabled = !macro.IsEnabled;
-        IsDirty = true;
+        MarkDirty();
     }
 
     /// <summary>
@@ -187,7 +187,7 @@ public partial class MainViewModel : ViewModelBase
         => !before.SequenceEqual(SharedVariables());
 
     /// <summary>Notes that the shared variables themselves were changed.</summary>
-    public void MarkSharedVariablesChanged() => IsDirty = true;
+    public void MarkSharedVariablesChanged() => MarkDirty();
 
     /// <summary>Writes the macro list and the shared variables to a package file.</summary>
     public void SavePackage(string path)
@@ -257,9 +257,24 @@ public partial class MainViewModel : ViewModelBase
         }
 
         CurrentPath = contents.PackagePath;
-        IsDirty = true;
+        MarkDirty();
     }
 
     [RelayCommand]
     private void ToggleRun() => IsRunning = !IsRunning;
+
+    /// <summary>
+    /// Raised for every change to the work this holds, where <see cref="IsDirty"/> only says
+    /// whether there is any of it: the snapshot keeping up with the work has to hear about the
+    /// changes that arrive while it is already unsaved, and the dirty flag does not move for
+    /// those.
+    /// </summary>
+    public event EventHandler? Changed;
+
+    /// <summary>Notes that the work has moved on.</summary>
+    private void MarkDirty()
+    {
+        IsDirty = true;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
 }
