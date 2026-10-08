@@ -32,9 +32,9 @@ jobs:
         rid: [win-x64]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 
@@ -71,7 +71,7 @@ jobs:
           -Version "${{ steps.version.outputs.version }}"
           -Rid ${{ matrix.rid }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: WhaleGenie-${{ matrix.rid }}
           path: |
@@ -85,9 +85,9 @@ jobs:
 
     steps:
       # 发布说明是仓库里的一份文件，所以这里也要先取下来。
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           path: packages
           merge-multiple: true
