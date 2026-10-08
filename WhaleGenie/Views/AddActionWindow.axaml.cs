@@ -8,7 +8,10 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
+using WhaleGenie.Core.Execution;
+using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
@@ -21,9 +24,21 @@ public partial class AddActionWindow : Window
     /// <summary>Whether the dialog has been dismissed, which can happen while a page is open.</summary>
     private bool _closed;
 
+    private IDeviceLayer? _devices;
+
     public AddActionWindow()
         : this(null, null, null, null, null, null)
     {
+    }
+
+    /// <summary>
+    /// The devices the test button sends through — the real ones unless a check has put its own
+    /// here. Made the first time the button is used, so opening the dialog costs nothing.
+    /// </summary>
+    internal IDeviceLayer Devices
+    {
+        get => _devices ??= new WindowsDeviceLayer();
+        set => _devices = value;
     }
 
     /// <summary>
@@ -284,6 +299,66 @@ public partial class AddActionWindow : Window
             parameter.Choose(value);
         }
     }
+
+    /// <summary>
+    /// Tries the step for real, once, which is the same question the element picker's test asks:
+    /// is this the thing I meant? A key name can be spelled another way and a controller control
+    /// can be the wrong one of a pair, so the answer is to send it and let the user watch — in the
+    /// window they meant it for, which is why the dialog steps aside first, the way picking does.
+    /// </summary>
+    private async void OnTestStep(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel parameter }
+            || DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        if (parameter.CurrentText.Trim().Length == 0)
+        {
+            await ReportTestAsync(Strings.Get("Add.TestFieldEmpty"));
+            return;
+        }
+
+        // The step as it would be saved: what is tried is what was written, settings and all.
+        var step = new[] { viewModel.BuildStep() }.ToExecutable()[0];
+
+        // Out of the way while it is tried, so the key or the control lands on the window that was
+        // meant, which is whatever the user had in mind behind this dialog.
+        var previous = WindowState;
+        WindowState = WindowState.Minimized;
+
+        RunResult outcome;
+        try
+        {
+            // Off the thread that draws the window: a device call can wait on hardware, and the
+            // dialog has to stay able to come back when it is done.
+            outcome = await Task.Run(() => MacroRunner.TryAsync(step, Devices));
+        }
+        finally
+        {
+            // The dialog can be dismissed while the trial runs, and a window on its way out has
+            // nothing left to come back to.
+            if (!_closed)
+            {
+                WindowState = previous == WindowState.Maximized
+                    ? WindowState.Maximized
+                    : WindowState.Normal;
+                Activate();
+            }
+        }
+
+        if (outcome.Status is not RunStatus.Completed && !_closed)
+        {
+            await ReportTestAsync(TrialFailure(outcome));
+        }
+    }
+
+    /// <summary>Why a step could not be tried, in the interface's own words.</summary>
+    private static string TrialFailure(RunResult outcome)
+        => outcome.Detail.Length == 0
+            ? Strings.Get(outcome.Key)
+            : Strings.Format(outcome.Key, outcome.Detail);
 
     /// <summary>Chooses a picture file for an image parameter.</summary>
     private async void OnBrowseImage(object? sender, RoutedEventArgs e)
@@ -558,6 +633,12 @@ public partial class AddActionWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         _closed = true;
+
+        // The devices a trial used go with the dialog, so a controller it put on the machine does
+        // not outlive the window that asked for it.
+        (_devices as IDisposable)?.Dispose();
+        _devices = null;
+
         base.OnClosed(e);
     }
 }

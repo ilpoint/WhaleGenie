@@ -1451,4 +1451,178 @@ public class ActionDialogTests
                 item => item.DataContext is StepParameterViewModel { IsGamepadPad: true });
         });
     }
+
+    // ---------------------------------------------------------------- trying one field
+
+    [Fact]
+    public void A_key_field_can_be_tried_on_the_spot()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("input.keyPress");
+            Dispatcher.UIThread.RunJobs();
+
+            var key = viewModel.Parameters.First(parameter => parameter.Definition.Name == "key");
+            key.Text = "F5";
+
+            var devices = new RecordingDevices();
+            window.Devices = devices;
+
+            TestButton(window, key).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
+            // The step is tried off the thread that draws the window, so what it sent arrives a
+            // moment after the click.
+            Assert.True(await devices.WaitUntil(() => devices.Calls.Count >= 1),
+                "the trial never reached the devices");
+            Assert.Equal("keyPress F5 50", devices.Calls[0]);
+
+            window.Close();
+            return true;
+        });
+    }
+
+    [Fact]
+    public void A_controller_control_can_be_tried_on_the_spot()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("gamepad.button");
+            Dispatcher.UIThread.RunJobs();
+
+            var button = viewModel.Parameters.First(parameter => parameter.Definition.Name == "button");
+            button.Choose("y");
+
+            var devices = new RecordingDevices();
+            window.Devices = devices;
+
+            TestButton(window, button).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
+            // A tap, then the letting go that keeps a tried button from staying down in the game.
+            Assert.True(await devices.WaitUntil(() => devices.Calls.Count >= 3),
+                $"the trial sent {string.Join(", ", devices.Calls)}");
+            Assert.Equal("gamepadButton y True", devices.Calls[0]);
+            Assert.Equal("gamepadButton y False", devices.Calls[1]);
+            Assert.Equal("gamepadRelease", devices.Calls[^1]);
+
+            window.Close();
+            return true;
+        });
+    }
+
+    /// <summary>The "test" button that belongs to one parameter, the way the user finds it.</summary>
+    private static Button TestButton(Window window, StepParameterViewModel parameter)
+        => window.GetVisualDescendants().OfType<Button>()
+            .First(item => item.IsEffectivelyVisible
+                && Equals(item.Content, Strings.Get("Add.TestField"))
+                && ReferenceEquals(item.DataContext, parameter));
+
+    /// <summary>
+    /// A device layer with a notebook behind it: what a trial sent is written down, and everything
+    /// else is refused the way a machine with no devices would refuse it. It is how the test button
+    /// can be checked without a real keyboard, controller or screen being touched.
+    /// </summary>
+    private sealed class RecordingDevices : IDeviceLayer, IInputDevice, IGamepadDevice
+    {
+        public RecordingDevices() => Inputs = new SingleInputRouter(this);
+
+        public List<string> Calls { get; } = [];
+
+        public IInputRouter Inputs { get; }
+
+        public IInputDevice Input => this;
+
+        public IGamepadDevice Gamepad => this;
+
+        public IScreenDevice Screen => NullDeviceLayer.Instance.Screen;
+
+        public IVisionDevice Vision => NullDeviceLayer.Instance.Vision;
+
+        public IOcrDevice Ocr => NullDeviceLayer.Instance.Ocr;
+
+        public IUiDevice Ui => NullDeviceLayer.Instance.Ui;
+
+        public IFileDevice Files => NullDeviceLayer.Instance.Files;
+
+        public IClipboardDevice Clipboard => NullDeviceLayer.Instance.Clipboard;
+
+        public IProcessDevice Processes => NullDeviceLayer.Instance.Processes;
+
+        public ISystemDevice System => NullDeviceLayer.Instance.System;
+
+        public IWindowDevice Windows => NullDeviceLayer.Instance.Windows;
+
+        public IBrowserDevice Browser => NullDeviceLayer.Instance.Browser;
+
+        public ScreenPoint Cursor => new(0, 0);
+
+        public void KeyPress(string key, int holdMs) => Calls.Add($"keyPress {key} {holdMs}");
+
+        public void KeyDown(string key) => Calls.Add($"keyDown {key}");
+
+        public void KeyUp(string key) => Calls.Add($"keyUp {key}");
+
+        public void Hotkey(IReadOnlyList<string> keys, int holdMs) => Calls.Add("hotkey");
+
+        public void TypeText(string text, int intervalMs) => Calls.Add("typeText");
+
+        public void MoveMouse(int x, int y, int durationMs) => Calls.Add("moveMouse");
+
+        public void MoveMouseAlong(IReadOnlyList<ScreenPoint> path, int durationMs)
+            => Calls.Add("moveMouseAlong");
+
+        public void MoveMouseRelative(int dx, int dy, int durationMs)
+            => Calls.Add("moveMouseRelative");
+
+        public void MouseDown(string button, int x, int y) => Calls.Add("mouseDown");
+
+        public void MouseUp(string button, int x, int y) => Calls.Add("mouseUp");
+
+        public void Click(string button, int x, int y, int clicks, int intervalMs) => Calls.Add("click");
+
+        public void Scroll(string direction, int delta, int x, int y) => Calls.Add("scroll");
+
+        public void Drag(string button, int startX, int startY, int endX, int endY, int durationMs,
+            int steps) => Calls.Add("drag");
+
+        public void DragAlong(string button, IReadOnlyList<ScreenPoint> path, int durationMs)
+            => Calls.Add("dragAlong");
+
+        public void Connect() => Calls.Add("gamepadConnect");
+
+        public void Button(string button, bool down) => Calls.Add($"gamepadButton {button} {down}");
+
+        public void Stick(string stick, int x, int y) => Calls.Add($"gamepadStick {stick} {x} {y}");
+
+        public void Trigger(string trigger, int amount)
+            => Calls.Add($"gamepadTrigger {trigger} {amount}");
+
+        public void ReleaseAll() => Calls.Add("gamepadRelease");
+
+        /// <summary>Waits for something to have been sent, so a check can see a click's work.</summary>
+        public async Task<bool> WaitUntil(Func<bool> done)
+        {
+            var step = TimeSpan.FromMilliseconds(25);
+            for (var waited = TimeSpan.Zero; waited < TimeSpan.FromSeconds(10); waited += step)
+            {
+                if (done())
+                {
+                    return true;
+                }
+
+                await Task.Delay(step);
+            }
+
+            return done();
+        }
+    }
 }

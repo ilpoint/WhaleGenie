@@ -61,7 +61,7 @@
                      remembered, and the box stays editable so any of them can still be typed.
                      Beside it the key can be pointed at instead, on a keyboard laid out on
                      screen — a key is found by where it sits, not by what it is called. -->
-                <Grid IsVisible="{Binding IsKey}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                <Grid IsVisible="{Binding IsKey}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                     <AutoCompleteBox Classes="VarInput"
                                      ItemsSource="{Binding KeyChoices}"
                                      Text="{Binding Text}"
@@ -72,6 +72,12 @@
                             Content="{Binding [Add.OpenKeyPad], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenKeyPad" />
+                    <!-- The same question the element picker answers with its test: is this the
+                         thing I meant? For a key that is answered by pressing it once. -->
+                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                            Content="{Binding [Add.TestField], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.TestKeyHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnTestStep" />
                 </Grid>
 
                 <!-- A value that may name variables: the names are offered while it is typed in,
@@ -269,7 +275,7 @@
                               IsChecked="{Binding Flag}"
                               OnContent="" OffContent="" />
 
-                <Grid IsVisible="{Binding IsChoice}" ColumnDefinitions="Auto,Auto" ColumnSpacing="6"
+                <Grid IsVisible="{Binding IsChoice}" ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="6"
                       HorizontalAlignment="Left">
                     <ComboBox Classes="ActionSelect"
                               ItemsSource="{Binding Choices}"
@@ -292,6 +298,11 @@
                             Content="{Binding [Add.OpenGamepad], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.OpenGamepadHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenGamepadPad" />
+                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                            IsVisible="{Binding IsGamepadPad}"
+                            Content="{Binding [Add.TestField], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.TestGamepadHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnTestStep" />
                 </Grid>
 
                 <!-- A variable, which may also be a whole value of its own: an operand of a

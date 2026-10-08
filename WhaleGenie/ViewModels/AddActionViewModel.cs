@@ -947,7 +947,12 @@ public partial class AddActionViewModel : ViewModelBase
             : null;
     }
 
-    private MacroStep BuildStep() => new()
+    /// <summary>
+    /// The step as it would be saved, which is what the dialog's "test" button tries out: what is
+    /// tried has to be what the step says, settings and all, rather than the fields read again
+    /// somewhere else.
+    /// </summary>
+    internal MacroStep BuildStep() => new()
     {
         Type = SelectedDefinition!.Key,
         Parameters = Parameters

@@ -241,6 +241,16 @@ public sealed class Strings : INotifyPropertyChanged
             + "step it belongs to.",
         ["Add.TestElementEmpty"] = "Pick or write a selector first.",
         ["Add.TestElementMissing"] = "Nothing on screen matches this selector right now.",
+
+        // A field that sends something is tested by sending it, which is a thing to be told
+        // rather than surprised by.
+        ["Add.TestField"] = "Test",
+        ["Add.TestKeyHint"] = "Presses this key once, for real, the way the step's own input "
+            + "setting says — so it can be watched landing in the window it is meant for. The "
+            + "dialog steps aside first.",
+        ["Add.TestGamepadHint"] = "Drives the virtual controller once, for real, then lets go of "
+            + "it again. Put the game in front to watch it land.",
+        ["Add.TestFieldEmpty"] = "Write or pick a value first.",
         ["Add.BrowserPickBanner"] =
             "Open the page to work on in the browser, then click the element to use. Esc gives up.",
         ["Add.BrowserPickFailed"] =
@@ -1058,6 +1068,13 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.TestElementHint"] = "在屏幕上高亮这个元素，不用运行宏就能看看有没有选对。",
         ["Add.TestElementEmpty"] = "先拾取或者填写选择器。",
         ["Add.TestElementMissing"] = "现在屏幕上没有匹配这个选择器的元素。",
+
+        // 会真的发出去的东西，测试就是真的发一次——这件事要说清楚，不能让人措手不及。
+        ["Add.TestField"] = "测试",
+        ["Add.TestKeyHint"] = "真的按一次这个键，按这一步自己的输入方式来（前台 / 后台消息 / "
+            + "驱动级），好在目标窗口里看一眼对不对。按之前对话框会让开。",
+        ["Add.TestGamepadHint"] = "真的驱动一次虚拟手柄，随后再松开。要看见效果，游戏得在前台。",
+        ["Add.TestFieldEmpty"] = "先填一个值再测。",
         ["Add.BrowserPickBanner"] = "先在浏览器里打开要操作的页面，再点一下要用的元素；按 Esc 放弃。",
         ["Add.BrowserPickFailed"] = "没能打开页面，或者没能从页面上拾取到元素。",
         ["Element.Title"] = "拾取元素",
