@@ -539,7 +539,8 @@ internal static class ActionStrings
         ["excel.writeSheet.sheet.label"] = "表",
         ["excel.writeSheet.sheet.hint"] = "要写入哪一张表，写表标签上的名字；留空表示第一张表。",
         ["excel.writeSheet.rows.label"] = "行",
-        ["excel.writeSheet.rows.hint"] = "行列表。每一行本身也可以是一个单元格列表；都按读出时的样子写成文本。",
+        ["excel.writeSheet.rows.hint"] = "行列表。每一行本身也可以是一个单元格列表；数字按数字写、"
+            + "真假按真假写，这样一列数字在表里还是数字，而不是看着像数字的文本。",
         ["excel.writeSheet.mode.label"] = "方式",
         ["excel.writeSheet.mode.hint"] = "替换表里原有的内容，或者把行加在已有内容的下面。",
         ["excel.writeSheet.mode.option.replace"] = "替换整张表",

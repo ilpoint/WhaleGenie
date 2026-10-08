@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Threading.Tasks;
+using ClosedXML.Excel;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -1971,8 +1972,8 @@ public class DeviceActionTests
         Assert.Single(rows.Items);
         Assert.Equal("alice", rows.Items[0].Items[0].AsText());
 
-        // A number is a number in the sheet, and comes back as the text of that number.
-        Assert.Equal("30", rows.Items[0].Items[1].AsText());
+        // A number in the sheet is a number here too, not text that looks like one.
+        Assert.Equal(30, rows.Items[0].Items[1].Number);
     }
 
     /// <summary>
@@ -1996,8 +1997,8 @@ public class DeviceActionTests
 
         var row = store.Local.Values["rows"].Items[1];
         Assert.Equal("alice", row.Items[0].AsText());
-        Assert.Equal("42.5", row.Items[1].AsText());
-        Assert.Equal("TRUE", row.Items[2].AsText());
+        Assert.Equal(42.5, row.Items[1].Number);
+        Assert.True(row.Items[2].Flag);
         Assert.Equal("2024-03-05 09:30:00", row.Items[3].AsText());
         Assert.Equal("2024-03-05", row.Items[4].AsText());
     }
@@ -2334,6 +2335,150 @@ public class DeviceActionTests
         }
 
         return name;
+    }
+
+    /// <summary>
+    /// A sheet written the way a real library writes one: a blank row is left out of the file
+    /// altogether rather than written as an empty one, and a formula comes back as the answer it
+    /// worked out. A file built cell by cell by hand never shows either.
+    /// </summary>
+    private static byte[] WrittenBook(Action<IXLWorksheet> fill)
+    {
+        using var stream = new MemoryStream();
+        using (var book = new XLWorkbook())
+        {
+            fill(book.AddWorksheet("Data"));
+            book.SaveAs(stream);
+        }
+
+        return stream.ToArray();
+    }
+
+    /// <summary>
+    /// A gap in a sheet is nothing at all in the file — the rows above and below it are simply not
+    /// next to each other — so what has to be checked is that everything below stays below.
+    /// </summary>
+    [Fact]
+    public async Task A_gap_between_rows_keeps_the_rows_below_it_where_they_were()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["gaps.xlsx"] = WrittenBook(sheet =>
+        {
+            sheet.Cell(1, 1).Value = "top";
+            sheet.Cell(4, 1).Value = "fourth";
+        });
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("excel.readSheet", Param("path", "gaps.xlsx"), Param("sheet", "Data"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+        ], devices);
+
+        var rows = store.Local.Values["rows"].Items;
+        Assert.Equal(4, rows.Count);
+        Assert.Equal("top", rows[0].Items[0].AsText());
+        Assert.Empty(rows[1].Items);
+        Assert.Empty(rows[2].Items);
+        Assert.Equal("fourth", rows[3].Items[0].AsText());
+    }
+
+    [Fact]
+    public async Task A_formula_reads_as_the_answer_it_worked_out()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["sums.xlsx"] = WrittenBook(sheet =>
+        {
+            sheet.Cell(1, 1).FormulaA1 = "1+2";
+            sheet.Cell(1, 2).FormulaA1 = "A1*2";
+        });
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("excel.readSheet", Param("path", "sums.xlsx"), Param("sheet", "Data"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+        ], devices);
+
+        var row = store.Local.Values["rows"].Items[0];
+        Assert.Equal(3, row.Items[0].Number);
+        Assert.Equal(6, row.Items[1].Number);
+    }
+
+    [Fact]
+    public async Task A_time_of_day_reads_as_a_time()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["times.xlsx"] = WrittenBook(
+            sheet => sheet.Cell(1, 1).Value = new TimeSpan(9, 30, 0));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("excel.readSheet", Param("path", "times.xlsx"), Param("sheet", "Data"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+        ], devices);
+
+        Assert.Equal("09:30:00", store.Local.Values["rows"].Items[0].Items[0].AsText());
+    }
+
+    /// <summary>
+    /// What is written has to keep the kind of thing it was: a sheet of numbers that only looks
+    /// like numbers is the failure this feature exists to avoid.
+    /// </summary>
+    [Fact]
+    public async Task Writing_keeps_the_kind_of_thing_each_cell_holds()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["in.xlsx"] = WrittenBook(sheet =>
+        {
+            sheet.Cell(1, 1).Value = "alice";
+            sheet.Cell(1, 2).Value = 42.5;
+            sheet.Cell(1, 3).Value = true;
+            sheet.Cell(1, 4).Value = "007";
+        });
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("excel.readSheet", Param("path", "in.xlsx"), Param("sheet", "Data"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+            Step("excel.writeSheet", Param("path", "out.xlsx"), Param("sheet", "Data"),
+                Param("rows", "$rows"), Param("mode", "replace")),
+            Step("excel.readSheet", Param("path", "out.xlsx"), Param("sheet", "Data"),
+                Param("hasHeader", "false"), Param("resultVariable", "back")),
+        ], devices);
+
+        var row = store.Local.Values["back"].Items[0];
+        Assert.Equal("alice", row.Items[0].AsText());
+        Assert.Equal(42.5, row.Items[1].Number);
+        Assert.True(row.Items[2].Flag);
+
+        // "007" was text in the file and has to still be text here, or it comes back as 7.
+        Assert.Equal("007", row.Items[3].AsText());
+
+        // And the file itself, read by the library that wrote the one we read from: a number in it
+        // has to be a number in the file and not text that ends up with a green corner in Excel.
+        using var check = new XLWorkbook(new MemoryStream(devices.Blobs["out.xlsx"]));
+        var written = check.Worksheet("Data").Row(1);
+        Assert.Equal(XLDataType.Text, written.Cell(1).Value.Type);
+        Assert.Equal(XLDataType.Number, written.Cell(2).Value.Type);
+        Assert.Equal(XLDataType.Boolean, written.Cell(3).Value.Type);
+        Assert.Equal(XLDataType.Text, written.Cell(4).Value.Type);
+    }
+
+    [Fact]
+    public async Task A_sheet_name_excel_would_not_take_stops_the_step_with_a_reason()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["in.csv"] = "a";
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+            Step("excel.writeSheet", Param("path", "bad.xlsx"), Param("sheet", "a/b"),
+                Param("rows", "$rows"), Param("mode", "replace")),
+        ], devices);
+
+        Assert.Equal("Run.BadSheetName", result.Key);
+        Assert.Contains("a/b", result.Detail);
     }
 
     [Fact]

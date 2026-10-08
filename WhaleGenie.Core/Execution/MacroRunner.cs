@@ -2900,7 +2900,7 @@ public sealed class MacroRunner
         var body = skip && rows.Count > 0 ? rows.Skip(1) : rows;
 
         Variables.Set(VariableName(step, "resultVariable", "rows"),
-            Value.FromList(body.Select(row => Value.FromList(row.Select(Value.FromText)))));
+            Value.FromList(body.Select(Value.FromList)));
         Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, rows.Count);
     }
 
@@ -2927,8 +2927,7 @@ public sealed class MacroRunner
     /// One row of a list as the cells of a sheet hold them. A row that is not a list is a single
     /// cell, the way writing a CSV reads it.
     /// </summary>
-    private static IReadOnlyList<string> Cells(Value row)
-        => row.IsList ? [.. row.Items.Select(cell => cell.AsText())] : [row.AsText()];
+    private static IReadOnlyList<Value> Cells(Value row) => row.IsList ? row.Items : [row];
 
     private void SaveVariables(ExecutableStep step, int depth)
     {

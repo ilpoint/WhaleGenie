@@ -797,8 +797,10 @@ public static class ActionCatalog
                     + "else already in it is kept."),
                 Sheet(),
                 Variable("rows", "Rows", "$rows",
-                    "A list of rows. Each row may itself be a list of cells; everything is written "
-                    + "as text, the way it was read.", namesVariable: false),
+                    "A list of rows. Each row may itself be a list of cells. A number is written as "
+                    + "a number and a flag as a flag, so a column of numbers stays a column of "
+                    + "numbers in the sheet rather than text that only looks like one.",
+                    namesVariable: false),
                 Choice("mode", "Mode", ["replace", "append"], "replace",
                     "Replace what the sheet holds, or add the rows below what is already there.",
                     labels: ["Replace the sheet", "Add below the last row"]),
