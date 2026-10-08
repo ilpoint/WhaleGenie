@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -79,6 +80,55 @@ public class VirtualPadTests
 
             Assert.Equal("F5", window.Chosen);
         });
+    }
+
+    [Fact]
+    public void The_keyboard_needs_no_scrolling_and_keeps_the_side_keys_by_the_letters()
+    {
+        Ui.Run(() =>
+        {
+            var window = new VirtualKeyboardWindow();
+            var caps = Controls(window);
+            Dispatcher.UIThread.RunJobs();
+
+            // Everything has to be on screen at once: a page the user has to scroll to find a key
+            // on is a page that hides keys, which is what the widths are chosen for.
+            var view = window.GetVisualDescendants().OfType<ScrollViewer>().First();
+            Assert.True(view.Extent.Width <= view.Viewport.Width,
+                $"content is {view.Extent.Width} wide in a viewport of {view.Viewport.Width}");
+            Assert.True(view.Extent.Height <= view.Viewport.Height,
+                $"content is {view.Extent.Height} tall in a viewport of {view.Viewport.Height}");
+
+            // Backspace and the navigation block are a hand's width apart, not a window's: the two
+            // blocks are laid out with a fixed gap rather than the second one pushed to the edge.
+            var gap = GapAfter(caps, "Backspace", "Insert", window);
+            Assert.InRange(gap, 1, 60);
+        });
+    }
+
+    [Fact]
+    public void Every_cap_is_big_enough_to_read()
+    {
+        Ui.Run(() =>
+        {
+            foreach (var cap in Controls(new VirtualKeyboardWindow()))
+            {
+                Assert.True(cap.FontSize >= 11, $"{cap.Tag} is written at {cap.FontSize}");
+                Assert.True(cap.Height >= 28, $"{cap.Tag} is {cap.Height} tall");
+            }
+        });
+    }
+
+    /// <summary>The empty space between the right edge of one cap and the left edge of another.</summary>
+    private static double GapAfter(List<Button> caps, string left, string right, Visual window)
+    {
+        var first = caps.First(cap => (string?)cap.Tag == left);
+        var start = first.TranslatePoint(default, window);
+        var end = caps.First(cap => (string?)cap.Tag == right).TranslatePoint(default, window);
+
+        Assert.NotNull(start);
+        Assert.NotNull(end);
+        return end!.Value.X - (start!.Value.X + first.Bounds.Width);
     }
 
     [Fact]
