@@ -582,6 +582,15 @@ public sealed class Strings : INotifyPropertyChanged
         ["Package.OpenFailed"] = "This file could not be opened",
         ["Package.SaveFailed"] = "This file could not be saved",
 
+        // ---------------------------------------------------------------- recovery
+        ["Recover.Title"] = "Work from the last run was found",
+        ["Recover.Message"] =
+            "WhaleGenie stopped last time without saving this work:\n\n{0}\n\nBring it back?",
+        ["Recover.Project"] = "- the macro list ({0} macros)",
+        ["Recover.Editor"] = "- the macro that was open in the macro editor",
+        ["Recover.Restore"] = "Recover",
+        ["Recover.Discard"] = "Discard",
+
         // -------------------------------------------------------- variable center
         ["Variable.Title"] = "Variable Center",
         ["Variable.Note"] = "A macro can read system and global variables, and change a global one. "
@@ -1346,6 +1355,14 @@ public sealed class Strings : INotifyPropertyChanged
         ["Package.Filter"] = "鲸灵宏包",
         ["Package.OpenFailed"] = "无法打开该文件",
         ["Package.SaveFailed"] = "无法保存该文件",
+
+        // ---------------------------------------------------------------- recovery
+        ["Recover.Title"] = "发现上次没保存的东西",
+        ["Recover.Message"] = "上次鲸灵是带着下面这些还没保存的东西停下的：\n\n{0}\n\n要把它们找回来吗？",
+        ["Recover.Project"] = "- 宏列表（{0} 个宏）",
+        ["Recover.Editor"] = "- 宏编辑器里那个还没保存的宏",
+        ["Recover.Restore"] = "恢复",
+        ["Recover.Discard"] = "丢弃",
 
         // -------------------------------------------------------- variable center
         ["Variable.Title"] = "变量中心",

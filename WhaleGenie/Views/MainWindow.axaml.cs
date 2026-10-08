@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -38,6 +40,19 @@ public partial class MainWindow : Window
     /// <summary>Whether the question about unsaved work is on screen, so only one is asked.</summary>
     private bool _askingToSave;
 
+    /// <summary>Writes the unsaved project out while there is something to lose; null until then.</summary>
+    private DispatcherTimer? _recoveryTimer;
+
+    /// <summary>
+    /// Whether this session put the project into the snapshot. What clears it is what wrote it:
+    /// the list comes up empty on every start, so clearing "because it is not dirty" at startup
+    /// would throw away the last run's work before the user was even asked about it.
+    /// </summary>
+    private bool _projectInRecovery;
+
+    /// <summary>Whether the question about recovered work is on screen, so only one is asked.</summary>
+    private bool _offeringRecovery;
+
     /// <summary>
     /// The icon in the notification area, or null when this machine has none. It is what tells a
     /// close that leaves the program apart from a close that only puts the window out of the way,
@@ -52,6 +67,12 @@ public partial class MainWindow : Window
     /// </summary>
     internal Func<Task<ConfirmChoice>> AskToSaveProject { get; set; }
 
+    /// <summary>
+    /// Offers back the work a stopped run left behind and reports what the user chose. A property
+    /// for the same reason as <see cref="AskToSaveProject"/>: a check can answer without a dialog.
+    /// </summary>
+    internal Func<RecoveryContents, Task<ConfirmChoice>> AskToRecover { get; set; }
+
     public MainWindow()
     {
         InitializeComponent();
@@ -61,6 +82,13 @@ public partial class MainWindow : Window
             Strings.Get("Main.UnsavedMessage"),
             Strings.Get("Main.UnsavedSave"),
             Strings.Get("Main.UnsavedDiscard"));
+
+        AskToRecover = contents => ConfirmDialog.ShowAsync(this,
+            Strings.Get("Recover.Title"),
+            RecoveryMessage(contents),
+            Strings.Get("Recover.Restore"),
+            Strings.Get("Recover.Discard"),
+            height: 280);
 
         var minimizeButton = this.FindControl<Button>("MinimizeButton");
         if (minimizeButton is not null)
@@ -186,6 +214,11 @@ public partial class MainWindow : Window
                 return;
             }
 
+            // The program is going with nothing carried over: the project was just written out,
+            // or the user said the unsaved work is not wanted, so the snapshot has no business
+            // surviving to be offered back on the next run.
+            RecoveryStore.ClearProject();
+
             _allowClose = true;
             Close();
         }
@@ -193,6 +226,78 @@ public partial class MainWindow : Window
         {
             _askingToSave = false;
         }
+    }
+
+    /// <summary>
+    /// Keeps the recovery snapshot in step with the macro list: written while there is something
+    /// to lose, dropped the moment there is not. A run that ends without notice — a crash, or the
+    /// machine going down — therefore leaves the work somewhere the next run can find it.
+    /// </summary>
+    private void WatchUnsavedProject(MainViewModel viewModel)
+    {
+        viewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is nameof(MainViewModel.IsDirty)
+                or nameof(MainViewModel.HasUnsavedChanges)
+                or nameof(MainViewModel.CurrentPath))
+            {
+                SyncUnsavedProject(viewModel);
+            }
+        };
+
+        // The armed state of a macro is written into the package, so a change to it counts, and
+        // it moves nothing that would raise a property change on the list itself.
+        viewModel.Macros.CollectionChanged += (_, _) => SyncUnsavedProject(viewModel);
+        SyncUnsavedProject(viewModel);
+    }
+
+    private void SyncUnsavedProject(MainViewModel viewModel)
+    {
+        if (!viewModel.HasUnsavedChanges)
+        {
+            _recoveryTimer?.Stop();
+
+            // Only take back what this session put there. A snapshot left by the last run is not
+            // this window's to drop: the list is empty on every start, and clearing it here would
+            // do that before the recovered work had even been offered.
+            if (_projectInRecovery)
+            {
+                _projectInRecovery = false;
+                RecoveryStore.ClearProject();
+            }
+
+            return;
+        }
+
+        _projectInRecovery = true;
+
+        // The first change is written straight away: waiting a whole turn of the timer for it
+        // would leave the change that followed a long quiet spell the one most likely to be lost.
+        if (_recoveryTimer is null)
+        {
+            WriteUnsavedProject(viewModel);
+        }
+
+        _recoveryTimer ??= NewUnsavedProjectTimer(viewModel);
+        _recoveryTimer.Start();
+    }
+
+    private DispatcherTimer NewUnsavedProjectTimer(MainViewModel viewModel)
+    {
+        var timer = new DispatcherTimer { Interval = RecoveryStore.Interval };
+        timer.Tick += (_, _) => WriteUnsavedProject(viewModel);
+        return timer;
+    }
+
+    private static void WriteUnsavedProject(MainViewModel viewModel)
+    {
+        if (!viewModel.HasUnsavedChanges)
+        {
+            return;
+        }
+
+        RecoveryStore.SaveProject([.. viewModel.Macros], [.. VariableCatalog.Globals],
+            viewModel.CurrentPath);
     }
 
     /// <summary>
@@ -223,10 +328,12 @@ public partial class MainWindow : Window
 
         RefreshRunning(viewModel);
         AttachSystemHotkey();
+        WatchUnsavedProject(viewModel);
         Closed += (_, _) =>
         {
             DetachSystemHotkey();
             StopTriggers();
+            _recoveryTimer?.Stop();
         };
     }
 
@@ -353,6 +460,115 @@ public partial class MainWindow : Window
     }
 
     // -------------------------------------------------------------- macro package
+
+    // -------------------------------------------------------------- recovery
+
+    /// <summary>
+    /// Offers back whatever the last run left unsaved. The list comes up empty, so this is the one
+    /// moment the snapshot can be read: the work it holds is not in any package yet. Called once
+    /// when the real application starts, and directly by a check.
+    /// </summary>
+    internal async Task OfferRecoveryAsync()
+    {
+        if (_offeringRecovery || DataContext is not MainViewModel viewModel)
+        {
+            return;
+        }
+
+        if (RecoveryStore.Load() is not { } contents)
+        {
+            return;
+        }
+
+        _offeringRecovery = true;
+        try
+        {
+            switch (await AskToRecover(contents))
+            {
+                case ConfirmChoice.Primary:
+                    await RecoverAsync(viewModel, contents);
+                    break;
+                case ConfirmChoice.Secondary:
+                    // The work is not wanted, so it goes for good rather than being asked about
+                    // again on the next run.
+                    RecoveryStore.Clear();
+                    break;
+                default:
+                    // Put off, not answered: the snapshot stays, so the question comes back.
+                    break;
+            }
+        }
+        finally
+        {
+            _offeringRecovery = false;
+        }
+    }
+
+    private async Task RecoverAsync(MainViewModel viewModel, RecoveryContents contents)
+    {
+        viewModel.RestoreFrom(contents);
+        RefreshRunning(viewModel);
+
+        // An editor that was open is opened again on the macro it was holding, so that work comes
+        // back too and not only the list behind it.
+        if (contents.Editor is { } editor)
+        {
+            await ReopenRecoveredEditorAsync(viewModel, editor);
+        }
+    }
+
+    /// <summary>
+    /// Reopens the editor on a recovered draft. Saving it goes back where it came from — replacing
+    /// the macro it was editing, or joining the list when it was new.
+    /// </summary>
+    private async Task ReopenRecoveredEditorAsync(MainViewModel viewModel, RecoveryEditor editor)
+    {
+        var target = editor.Replaces is { Length: > 0 } name
+            ? viewModel.Macros.FirstOrDefault(macro =>
+                string.Equals(macro.Name, name, StringComparison.OrdinalIgnoreCase))
+            : null;
+
+        var window = new MacroEditorWindow(editor.Macro, [.. viewModel.Macros], viewModel.CurrentPath);
+
+        // Recovered work is unsaved by definition, so closing the editor has to ask about it
+        // rather than let it go without a word.
+        window.MarkUnsaved();
+
+        var edited = await window.ShowDialogOver<MacroItem?>(this);
+        if (edited is null)
+        {
+            return;
+        }
+
+        if (target is null)
+        {
+            viewModel.AddMacro(edited);
+            WriteUnsavedProject(viewModel);
+            return;
+        }
+
+        _triggers?.Stop(target);
+        viewModel.ReplaceMacro(target, edited);
+        RefreshRunning(viewModel);
+        WriteUnsavedProject(viewModel);
+    }
+
+    /// <summary>Says what the snapshot holds, one place at a time, for the question.</summary>
+    private static string RecoveryMessage(RecoveryContents contents)
+    {
+        var found = new List<string>();
+        if (contents.Macros.Count > 0 || contents.PackagePath is not null)
+        {
+            found.Add(Strings.Format("Recover.Project", contents.Macros.Count));
+        }
+
+        if (contents.Editor is not null)
+        {
+            found.Add(Strings.Get("Recover.Editor"));
+        }
+
+        return Strings.Format("Recover.Message", string.Join(Environment.NewLine, found));
+    }
 
     private static FilePickerFileType PackageFileType
         => new(Strings.Get("Package.Filter")) { Patterns = [$"*{MacroPackage.Extension}"] };
@@ -647,6 +863,7 @@ public partial class MainWindow : Window
         if (existing is null)
         {
             viewModel.AddMacro(macro);
+            WriteUnsavedProject(viewModel);
             return;
         }
 
@@ -654,6 +871,10 @@ public partial class MainWindow : Window
         _triggers?.Stop(existing);
         viewModel.ReplaceMacro(existing, macro);
         RefreshRunning(viewModel);
+
+        // The editor has just let its draft go, so the list is the only copy of this macro: it
+        // goes into the snapshot now rather than waiting for the next turn of the timer.
+        WriteUnsavedProject(viewModel);
     }
 
     private async void OnEditMacroClicked(object? sender, RoutedEventArgs e)

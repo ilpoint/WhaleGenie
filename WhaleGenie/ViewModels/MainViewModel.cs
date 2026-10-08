@@ -237,6 +237,29 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Puts the work a stopped run left behind back into the list. It counts as unsaved on
+    /// purpose: a snapshot is what a program that stopped without notice was holding, so the list
+    /// has to keep asking to write it out rather than treating it as something already on disk.
+    /// </summary>
+    public void RestoreFrom(Storage.RecoveryContents contents)
+    {
+        Macros.Clear();
+        foreach (var macro in contents.Macros)
+        {
+            Macros.Add(macro);
+        }
+
+        VariableCatalog.Globals.Clear();
+        foreach (var global in contents.Globals)
+        {
+            VariableCatalog.Globals.Add(global);
+        }
+
+        CurrentPath = contents.PackagePath;
+        IsDirty = true;
+    }
+
     [RelayCommand]
     private void ToggleRun() => IsRunning = !IsRunning;
 }

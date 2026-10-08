@@ -1732,7 +1732,11 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
     }
 
-    private MacroItem BuildMacro()
+    /// <summary>
+    /// Reads the editor into a macro. Internal rather than private so the window can keep the
+    /// work in the recovery snapshot while it is still being written.
+    /// </summary>
+    internal MacroItem BuildMacro()
     {
         // The loop a key trigger uses has nothing to hold on to when the clock does the
         // starting, so a timed macro just says when it runs.

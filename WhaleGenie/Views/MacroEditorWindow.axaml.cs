@@ -39,6 +39,15 @@ public partial class MacroEditorWindow : Window
     private bool _syncingSelection;
     private bool _closing;
 
+    /// <summary>Writes the macro being edited out while it is not saved; null until there is one.</summary>
+    private DispatcherTimer? _recoveryTimer;
+
+    /// <summary>
+    /// Whether this editor put its macro into the snapshot. Only what wrote it takes it back, so
+    /// an editor opened and closed without a word cannot throw away a draft the last run left.
+    /// </summary>
+    private bool _editorInRecovery;
+
     /// <summary>
     /// A key that was just taken as the trigger still sends its release, and a focused button
     /// treats Space on release as a click — which would arm the capture all over again.
@@ -132,9 +141,23 @@ public partial class MacroEditorWindow : Window
         _viewModel.RunMacroRequested += OnRunMacroRequested;
         _viewModel.RecordingChanged += OnRecordingChanged;
 
+        // A macro that has not been saved must not be lost to a crash, so it is written out as
+        // it changes. This window is the only place it can be kept: it is not in the list yet.
+        _viewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(MacroEditorViewModel.IsDirty))
+            {
+                SyncRecovery();
+            }
+        };
+
         // If the editor goes away by any route, the hook has to go with it. There is no point
         // telling the user an empty recording was empty once the editor is gone.
         Closed += (_, _) => StopRecorder(announceEmpty: false);
+
+        // And so does the recovery draft: once this window is gone, its macro either belongs to
+        // the list or was let go, and the next run must not be offered it back.
+        Closed += (_, _) => StopRecovery();
 
         // The keys pressed while a macro is being written or a shortcut bound must not set one off.
         MacroTriggerGate.Enter();
@@ -695,6 +718,62 @@ public partial class MacroEditorWindow : Window
         if (choice == ConfirmChoice.Primary)
         {
             _viewModel.ClearStepsNow();
+        }
+    }
+
+    /// <summary>
+    /// Marks the macro the editor was opened on as not saved. Work recovered from a run that
+    /// stopped without notice is unsaved by definition, so closing the editor has to ask about it
+    /// rather than let it go without a word.
+    /// </summary>
+    internal void MarkUnsaved() => _viewModel.IsDirty = true;
+
+    /// <summary>
+    /// Keeps the macro being written in the recovery snapshot while it has unsaved changes, and
+    /// lets it go once it does not — it was saved into the list, or the user did not want it.
+    /// </summary>
+    private void SyncRecovery()
+    {
+        if (!_viewModel.IsDirty)
+        {
+            StopRecovery();
+            return;
+        }
+
+        if (_recoveryTimer is null)
+        {
+            _recoveryTimer = new DispatcherTimer { Interval = RecoveryStore.Interval };
+            _recoveryTimer.Tick += (_, _) => WriteRecovery();
+
+            // The first change is written straight away, so a macro that is pasted in and then
+            // lost to a crash seconds later is not waiting on the timer to be kept.
+            WriteRecovery();
+        }
+
+        _recoveryTimer.Start();
+    }
+
+    private void WriteRecovery()
+    {
+        if (!_viewModel.IsDirty)
+        {
+            return;
+        }
+
+        RecoveryStore.SaveEditor(_viewModel.BuildMacro(), _editing?.Name ?? string.Empty);
+        _editorInRecovery = true;
+    }
+
+    private void StopRecovery()
+    {
+        _recoveryTimer?.Stop();
+
+        // Only take back what this editor wrote: a draft left by a run that stopped is not this
+        // window's to drop, since nobody has answered for it yet.
+        if (_editorInRecovery)
+        {
+            _editorInRecovery = false;
+            RecoveryStore.ClearEditor();
         }
     }
 

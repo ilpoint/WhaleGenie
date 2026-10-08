@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Execution;
 using WhaleGenie.ViewModels;
@@ -40,6 +41,11 @@ public partial class App : Application
             // is given the icon as well, because the icon's menu is the one close that really
             // leaves — and that is the one time the window has to ask about work that is not saved.
             window.Tray = AppTray.Attach(window, desktop);
+
+            // The list starts empty, so if the last run was stopped without saving, the work it
+            // was holding is offered back here — once the window is up, because it is a dialog.
+            window.Opened += (_, _) => Dispatcher.UIThread.Post(() => _ = window.OfferRecoveryAsync());
+
             desktop.Exit += (_, _) =>
             {
                 window.Tray?.Dispose();
