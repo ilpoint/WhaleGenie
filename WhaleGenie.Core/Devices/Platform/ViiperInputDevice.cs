@@ -23,7 +23,7 @@ namespace WhaleGenie.Core.Devices.Platform;
 /// that got on the bus first — a second pair stays attached and does nothing — so the program keeps
 /// one pair and shares it out (<see cref="SharedDriverInput"/>).
 /// </remarks>
-public sealed class ViiperInputDevice : IInputDevice, IDisposable
+public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposable
 {
     /// <summary>Wheel units in one notch, the amount a wheel normally turns in.</summary>
     private const int Notch = 120;
@@ -77,6 +77,12 @@ public sealed class ViiperInputDevice : IInputDevice, IDisposable
     private byte _modifiers;
     private byte _buttons;
     private long _movedAt;
+
+    /// <summary>The kind of controller on the machine, or null while none has been asked for.</summary>
+    private GamepadKind? _gamepadKind;
+
+    /// <summary>What the controller is doing, kept here because a report is the whole picture of it.</summary>
+    private GamepadState _gamepad = GamepadState.Neutral;
 
     /// <summary>Connects to the server on this machine the first time a step needs it.</summary>
     public ViiperInputDevice()
@@ -336,6 +342,134 @@ public sealed class ViiperInputDevice : IInputDevice, IDisposable
             _link = null;
         }
     }
+
+    /// <summary>
+    /// Puts a controller of this kind on the machine, and lets go of everything a controller of
+    /// another kind was holding: its buttons and axes do not exist on this one.
+    /// </summary>
+    public void Connect(GamepadKind kind)
+    {
+        lock (_gate)
+        {
+            if (_gamepadKind == kind)
+            {
+                return;
+            }
+
+            _gamepadKind = kind;
+            _gamepad = GamepadState.Neutral;
+            Link().ConnectGamepad(kind);
+            PushGamepad();
+        }
+    }
+
+    /// <summary>Holds a controller button down, or lets it up.</summary>
+    public void Button(string button, bool down)
+    {
+        lock (_gate)
+        {
+            var flag = GamepadNames.Button(button)
+                ?? throw new DeviceActionException("Run.UnknownGamepadButton", button);
+
+            BeginGamepad();
+            _gamepad = _gamepad with
+            {
+                Buttons = down ? _gamepad.Buttons | flag : _gamepad.Buttons & ~flag,
+            };
+
+            // A trigger named as a button is the whole pull, or none of it: the pads that report
+            // triggers do it by how far they are pulled rather than by a button of their own.
+            if (flag == GamepadButtons.LeftTrigger)
+            {
+                _gamepad = _gamepad with { LeftTrigger = down ? 100 : 0 };
+            }
+
+            if (flag == GamepadButtons.RightTrigger)
+            {
+                _gamepad = _gamepad with { RightTrigger = down ? 100 : 0 };
+            }
+
+            PushGamepad();
+        }
+    }
+
+    /// <summary>Moves one stick to a whole percent from its centre.</summary>
+    public void Stick(string stick, int x, int y)
+    {
+        lock (_gate)
+        {
+            BeginGamepad();
+            var (sideways, upwards) = (Least(x), Least(y));
+            var which = (stick ?? string.Empty).Trim().ToLowerInvariant();
+
+            _gamepad = which switch
+            {
+                "left" => _gamepad with { LeftX = sideways, LeftY = upwards },
+                "right" => _gamepad with { RightX = sideways, RightY = upwards },
+                _ => throw new DeviceActionException("Run.UnknownGamepadStick", which),
+            };
+
+            PushGamepad();
+        }
+    }
+
+    /// <summary>Pulls one trigger by a whole percent.</summary>
+    public void Trigger(string trigger, int amount)
+    {
+        lock (_gate)
+        {
+            BeginGamepad();
+            var pulled = Math.Clamp(amount, 0, 100);
+            var which = (trigger ?? string.Empty).Trim().ToLowerInvariant();
+
+            _gamepad = which switch
+            {
+                "left" => _gamepad with { LeftTrigger = pulled },
+                "right" => _gamepad with { RightTrigger = pulled },
+                _ => throw new DeviceActionException("Run.UnknownGamepadTrigger", which),
+            };
+
+            PushGamepad();
+        }
+    }
+
+    /// <summary>Lets go of everything, which is what the end of a run leaves behind it.</summary>
+    public void ReleaseAll()
+    {
+        lock (_gate)
+        {
+            if (_gamepadKind is null)
+            {
+                return;
+            }
+
+            _gamepad = GamepadState.Neutral;
+            PushGamepad();
+        }
+    }
+
+    /// <summary>
+    /// Brings a controller up if none has been asked for. A macro that never chose one gets the
+    /// pad Windows games look for, so the steps that drive a controller work on their own.
+    /// </summary>
+    private void BeginGamepad()
+    {
+        if (_gamepadKind is null)
+        {
+            Connect(GamepadKind.Xbox360);
+        }
+    }
+
+    private void PushGamepad()
+    {
+        if (_gamepadKind is { } kind)
+        {
+            Link().SendGamepad(_gamepad);
+        }
+    }
+
+    /// <summary>Keeps a stick axis inside the range a controller understands.</summary>
+    private static int Least(int percent) => Math.Clamp(percent, -100, 100);
 
     private void Hold(string key, bool down)
     {

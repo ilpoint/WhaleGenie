@@ -55,6 +55,12 @@ public sealed class MacroRunner
 
     private readonly List<(IInputDevice Device, string Button, ScreenPoint Point)> _heldButtons = [];
 
+    /// <summary>Whether a controller was driven, so the run lets go of it the way it does a key.</summary>
+    private bool _gamepadUsed;
+
+    /// <summary>How long a controller button stays down when the step asked for no time in particular.</summary>
+    private const int ShortestPressMs = 50;
+
     public MacroRunner(VariableStore variables, IRunHost? host = null, IDeviceLayer? devices = null,
         double delayScale = 1, IMacroLibrary? macros = null)
     {
@@ -936,6 +942,31 @@ public sealed class MacroRunner
                 DragPointer(step);
                 return Signal.Normal;
 
+            // ---------------------------------------------------------------- gamepad
+            case "gamepad.connect":
+                _devices.Gamepad.Connect(GamepadKindOf(step));
+                _gamepadUsed = true;
+                return Signal.Normal;
+
+            case "gamepad.button":
+                await PressGamepadButton(step, token);
+                return Signal.Normal;
+
+            case "gamepad.stick":
+                _devices.Gamepad.Stick(step.Text("stick"), Number(step, "x"), Number(step, "y"));
+                _gamepadUsed = true;
+                return Signal.Normal;
+
+            case "gamepad.trigger":
+                _devices.Gamepad.Trigger(step.Text("trigger"), Number(step, "amount"));
+                _gamepadUsed = true;
+                return Signal.Normal;
+
+            case "gamepad.release":
+                _devices.Gamepad.ReleaseAll();
+                _gamepadUsed = true;
+                return Signal.Normal;
+
             // ----------------------------------------------------------------- vision
             case "vision.capture":
                 Capture(step, depth);
@@ -1815,7 +1846,7 @@ public sealed class MacroRunner
     /// </summary>
     private void LetGoOfHeldInput()
     {
-        if (_heldKeys.Count == 0 && _heldButtons.Count == 0)
+        if (_heldKeys.Count == 0 && _heldButtons.Count == 0 && !_gamepadUsed)
         {
             return;
         }
@@ -1849,6 +1880,22 @@ public sealed class MacroRunner
             catch (Exception failure)
             {
                 Log(LogLevel.Warn, 0, string.Empty, "Run.LetGoFailed", button, failure.Message);
+            }
+        }
+
+        // A controller left holding a button, or a stick pushed over, would keep a game walking
+        // into a wall long after the macro that pushed it has finished.
+        if (_gamepadUsed)
+        {
+            _gamepadUsed = false;
+            try
+            {
+                _devices.Gamepad.ReleaseAll();
+                Log(LogLevel.Info, 0, string.Empty, "Run.GamepadReleased");
+            }
+            catch (Exception failure)
+            {
+                Log(LogLevel.Warn, 0, string.Empty, "Run.GamepadLetGoFailed", failure.Message);
             }
         }
 
@@ -2045,6 +2092,43 @@ public sealed class MacroRunner
             Input(step).KeyPress(key, hold);
         }
     }
+
+    /// <summary>
+    /// Holds a controller button or lets it up, or presses and lets go of it. A tap is what a
+    /// button is normally for, so it is the one that happens when the step does not say; the hold
+    /// is the pause between the press and the release, and a step that asked for none still gets a
+    /// short one, because a report that comes and goes in the same instant is one a game may never
+    /// see.
+    /// </summary>
+    private async Task PressGamepadButton(ExecutableStep step, CancellationToken token)
+    {
+        var device = _devices.Gamepad;
+        var button = step.Text("button");
+        _gamepadUsed = true;
+
+        switch (step.Text("mode").Trim().ToLowerInvariant())
+        {
+            case "down":
+                device.Button(button, true);
+                return;
+            case "up":
+                device.Button(button, false);
+                return;
+        }
+
+        device.Button(button, true);
+        await Pause(Math.Max(Pace(Number(step, "holdMs")), ShortestPressMs), token);
+        device.Button(button, false);
+    }
+
+    /// <summary>The controller a connect step names, with the Xbox pad as the one nobody has to ask for.</summary>
+    private static GamepadKind GamepadKindOf(ExecutableStep step)
+        => step.Text("controller").Trim().ToLowerInvariant() switch
+        {
+            "dualshock4" or "ds4" => GamepadKind.DualShock4,
+            "dualsense" or "ds5" => GamepadKind.DualSense,
+            _ => GamepadKind.Xbox360,
+        };
 
     /// <summary>The same for a combination: it can be sent more than once with a pause between.</summary>
     private async Task SendHotkey(ExecutableStep step, CancellationToken token)

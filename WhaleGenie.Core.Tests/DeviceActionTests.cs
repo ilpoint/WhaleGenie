@@ -3746,6 +3746,70 @@ public class DeviceActionTests
         Assert.Contains("browserClose", devices.Calls);
         Assert.Equal(2, devices.Calls.Count(call => call is "browserCloseTab" or "browserClose"));
     }
+
+    // -------------------------------------------------------------- virtual controller
+
+    [Fact]
+    public async Task The_steps_that_drive_a_controller_reach_the_device()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("gamepad.connect", Param("controller", "dualsense")),
+            Step("gamepad.button", Param("button", "a"), Param("mode", "down")),
+            Step("gamepad.stick", Param("stick", "left"), Param("x", "60"), Param("y", "0")),
+            Step("gamepad.trigger", Param("trigger", "right"), Param("amount", "80")),
+            Step("gamepad.button", Param("button", "a"), Param("mode", "up")),
+            Step("gamepad.release"),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(GamepadKind.DualSense, devices.GamepadKind);
+        Assert.Contains("gamepadButton a True", devices.Calls);
+        Assert.Contains("gamepadStick left 60 0", devices.Calls);
+        Assert.Contains("gamepadTrigger right 80", devices.Calls);
+        Assert.Contains("gamepadButton a False", devices.Calls);
+        Assert.Contains("gamepadRelease", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_tapped_button_is_pressed_and_let_go_of()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("gamepad.button", Param("button", "b"), Param("mode", "tap")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("gamepadButton b True", devices.Calls[0]);
+        Assert.Equal("gamepadButton b False", devices.Calls[1]);
+    }
+
+    [Fact]
+    public async Task A_run_lets_go_of_the_controller_it_was_driving()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("gamepad.button", Param("button", "a"), Param("mode", "down")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+
+        // The release comes after the step that pressed it, so a game is not left walking into
+        // the wall the macro drove it towards.
+        Assert.Equal("gamepadRelease", devices.Calls[^1]);
+    }
+
+    [Fact]
+    public async Task A_run_that_never_touched_a_controller_does_not_release_one()
+    {
+        var devices = new FakeDeviceLayer();
+        var (_, _, _) = await RunAsync([Step("input.keyPress", Param("key", "A"))], devices);
+
+        Assert.DoesNotContain("gamepadRelease", devices.Calls);
+    }
 }
 
 /// <summary>
@@ -3753,8 +3817,9 @@ public class DeviceActionTests
 /// engine can be checked without touching the real keyboard, mouse or screen.
 /// </summary>
 internal sealed class FakeDeviceLayer
-    : IDeviceLayer, IInputDevice, IScreenDevice, IVisionDevice, IOcrDevice, IUiDevice, IFileDevice,
-      IClipboardDevice, IProcessDevice, ISystemDevice, IWindowDevice, IBrowserDevice
+    : IDeviceLayer, IInputDevice, IGamepadDevice, IScreenDevice, IVisionDevice, IOcrDevice,
+      IUiDevice, IFileDevice, IClipboardDevice, IProcessDevice, ISystemDevice, IWindowDevice,
+      IBrowserDevice
 {
     public List<string> Calls { get; } = [];
 
@@ -3909,6 +3974,8 @@ internal sealed class FakeDeviceLayer
 
     IInputDevice IDeviceLayer.Input => this;
 
+    IGamepadDevice IDeviceLayer.Gamepad => this;
+
     IScreenDevice IDeviceLayer.Screen => this;
 
     IVisionDevice IDeviceLayer.Vision => this;
@@ -3998,6 +4065,23 @@ internal sealed class FakeDeviceLayer
     }
 
     public void KeyPress(string key, int holdMs) => Note($"keyPress {key} {holdMs}");
+
+    /// <summary>The kind of controller a connect step asked for.</summary>
+    public GamepadKind? GamepadKind { get; private set; }
+
+    public void Connect(GamepadKind kind)
+    {
+        GamepadKind = kind;
+        Note($"gamepadConnect {kind}");
+    }
+
+    public void Button(string button, bool down) => Note($"gamepadButton {button} {down}");
+
+    public void Stick(string stick, int x, int y) => Note($"gamepadStick {stick} {x} {y}");
+
+    public void Trigger(string trigger, int amount) => Note($"gamepadTrigger {trigger} {amount}");
+
+    public void ReleaseAll() => Note("gamepadRelease");
 
     public void KeyDown(string key) => Note($"keyDown {key}");
 

@@ -5,6 +5,9 @@ using Viiper.Client;
 using Viiper.Client.Devices.Keyboard;
 using Viiper.Client.Devices.Mouse;
 using Viiper.Client.Types;
+using Ds4 = Viiper.Client.Devices.Dualshock4;
+using Dse = Viiper.Client.Devices.Dualsense;
+using Xbox = Viiper.Client.Devices.Xbox360;
 
 namespace WhaleGenie.Core.Devices.Platform;
 
@@ -32,6 +35,18 @@ public interface IViiperLink : IDisposable
     /// and the buttons stay as they are until the next report says otherwise.
     /// </summary>
     void SendMouse(byte buttons, short dx, short dy, short wheel, short pan);
+
+    /// <summary>
+    /// Puts a virtual controller of this kind on the bus, taking down a controller of another kind
+    /// that was there. Asking for the kind that is already there changes nothing.
+    /// </summary>
+    void ConnectGamepad(GamepadKind kind);
+
+    /// <summary>
+    /// Sends the whole picture of the connected controller, which is what a controller report is:
+    /// every button and axis together rather than what changed since last time.
+    /// </summary>
+    void SendGamepad(GamepadState state);
 }
 
 /// <summary>
@@ -46,12 +61,22 @@ public sealed class ViiperLink : IViiperLink
 
     private const string Mouse = "mouse";
 
+    /// <summary>The names the server knows the controllers by.</summary>
+    private const string Xbox360Type = "xbox360";
+
+    private const string DualShock4Type = "dualshock4";
+
+    private const string DualSenseType = "dualsense";
+
     private readonly ViiperClient _client;
     private readonly ViiperDevice _keyboard;
     private readonly ViiperDevice _mouse;
     private readonly uint _bus;
     private readonly string _keyboardId;
     private readonly string _mouseId;
+    private ViiperDevice? _gamepad;
+    private string _gamepadId = string.Empty;
+    private GamepadKind? _gamepadKind;
 
     private ViiperLink(ViiperClient client, uint bus, string keyboardId, ViiperDevice keyboard,
         string mouseId, ViiperDevice mouse)
@@ -83,6 +108,52 @@ public sealed class ViiperLink : IViiperLink
             Wheel = wheel,
             Pan = pan,
         }));
+
+    public void ConnectGamepad(GamepadKind kind)
+    {
+        if (_gamepadKind == kind)
+        {
+            return;
+        }
+
+        // Only one controller is kept: a second one of another kind would sit on the same bus and
+        // Windows would hand the first game it found whichever it noticed first.
+        if (_gamepad is not null)
+        {
+            Do(() => _gamepad.Dispose());
+            Remove(_gamepadId);
+            _gamepad = null;
+            _gamepadKind = null;
+        }
+
+        var added = Wait(() => _client.BusDeviceAddAsync(_bus,
+            new DeviceCreateRequest { Type = ServerType(kind) }));
+
+        _gamepadId = added.DevID;
+        _gamepad = Wait(() => _client.ConnectDeviceAsync(_bus, added.DevID));
+        _gamepadKind = kind;
+    }
+
+    public void SendGamepad(GamepadState state)
+    {
+        if (_gamepad is not { } gamepad || _gamepadKind is not { } kind)
+        {
+            throw new DeviceActionException("Run.NoGamepad");
+        }
+
+        switch (kind)
+        {
+            case GamepadKind.Xbox360:
+                Wait(() => gamepad.SendAsync(ForXbox360(state)));
+                break;
+            case GamepadKind.DualShock4:
+                Wait(() => gamepad.SendAsync(ForDualShock4(state)));
+                break;
+            case GamepadKind.DualSense:
+                Wait(() => gamepad.SendAsync(ForDualSense(state)));
+                break;
+        }
+    }
 
     /// <summary>
     /// Opens a keyboard and a mouse on the server. The devices go on the bus that is already there
@@ -148,10 +219,18 @@ public sealed class ViiperLink : IViiperLink
         {
             _keyboard.Dispose();
             _mouse.Dispose();
+            _gamepad?.Dispose();
         });
 
         Remove(_keyboardId);
         Remove(_mouseId);
+
+        if (_gamepad is not null)
+        {
+            Remove(_gamepadId);
+            _gamepad = null;
+            _gamepadKind = null;
+        }
 
         _client.Dispose();
     }
@@ -172,6 +251,179 @@ public sealed class ViiperLink : IViiperLink
             // failing a run over.
         }
     }
+
+    /// <summary>The name the server knows a controller by.</summary>
+    private static string ServerType(GamepadKind kind) => kind switch
+    {
+        GamepadKind.DualShock4 => DualShock4Type,
+        GamepadKind.DualSense => DualSenseType,
+        _ => Xbox360Type,
+    };
+
+    /// <summary>The controller state written the way an Xbox 360 pad reports it.</summary>
+    private static Xbox.Xbox360Input ForXbox360(GamepadState state)
+    {
+        var held = state.Buttons;
+        var buttons = 0u;
+
+        if ((held & GamepadButtons.A) != 0) buttons |= (uint)Xbox.Button.A;
+        if ((held & GamepadButtons.B) != 0) buttons |= (uint)Xbox.Button.B;
+        if ((held & GamepadButtons.X) != 0) buttons |= (uint)Xbox.Button.X;
+        if ((held & GamepadButtons.Y) != 0) buttons |= (uint)Xbox.Button.Y;
+        if ((held & GamepadButtons.LeftBumper) != 0) buttons |= (uint)Xbox.Button.LShoulder;
+        if ((held & GamepadButtons.RightBumper) != 0) buttons |= (uint)Xbox.Button.RShoulder;
+        if ((held & GamepadButtons.LeftStick) != 0) buttons |= (uint)Xbox.Button.LThumb;
+        if ((held & GamepadButtons.RightStick) != 0) buttons |= (uint)Xbox.Button.RThumb;
+        if ((held & GamepadButtons.Up) != 0) buttons |= (uint)Xbox.Button.DPadUp;
+        if ((held & GamepadButtons.Down) != 0) buttons |= (uint)Xbox.Button.DPadDown;
+        if ((held & GamepadButtons.Left) != 0) buttons |= (uint)Xbox.Button.DPadLeft;
+        if ((held & GamepadButtons.Right) != 0) buttons |= (uint)Xbox.Button.DPadRight;
+        if ((held & GamepadButtons.Start) != 0) buttons |= (uint)Xbox.Button.Start;
+        if ((held & GamepadButtons.Back) != 0) buttons |= (uint)Xbox.Button.Back;
+        if ((held & GamepadButtons.Guide) != 0) buttons |= (uint)Xbox.Button.Guide;
+
+        return new Xbox.Xbox360Input
+        {
+            Buttons = buttons,
+            Lt = Ample(state.LeftTrigger),
+            Rt = Ample(state.RightTrigger),
+            Lx = Lean(state.LeftX),
+            Ly = Lean(state.LeftY),
+            Rx = Lean(state.RightX),
+            Ry = Lean(state.RightY),
+            Reserved = new byte[6],
+        };
+    }
+
+    /// <summary>
+    /// The controller state written the way a DualShock 4 reports it. The stick's Y axis grows
+    /// downwards on this pad where a person reads it upwards, so it is turned round here, and the
+    /// d-pad travels in a nibble of its own rather than with the buttons.
+    /// </summary>
+    private static Ds4.Dualshock4Input ForDualShock4(GamepadState state)
+    {
+        var held = state.Buttons;
+        ushort buttons = 0;
+
+        if ((held & GamepadButtons.A) != 0) buttons |= (ushort)Ds4.Button.Cross;
+        if ((held & GamepadButtons.B) != 0) buttons |= (ushort)Ds4.Button.Circle;
+        if ((held & GamepadButtons.X) != 0) buttons |= (ushort)Ds4.Button.Square;
+        if ((held & GamepadButtons.Y) != 0) buttons |= (ushort)Ds4.Button.Triangle;
+        if ((held & GamepadButtons.LeftBumper) != 0) buttons |= (ushort)Ds4.Button.L1;
+        if ((held & GamepadButtons.RightBumper) != 0) buttons |= (ushort)Ds4.Button.R1;
+        if ((held & GamepadButtons.LeftTrigger) != 0) buttons |= (ushort)Ds4.Button.L2;
+        if ((held & GamepadButtons.RightTrigger) != 0) buttons |= (ushort)Ds4.Button.R2;
+        if ((held & GamepadButtons.LeftStick) != 0) buttons |= (ushort)Ds4.Button.L3;
+        if ((held & GamepadButtons.RightStick) != 0) buttons |= (ushort)Ds4.Button.R3;
+        if ((held & GamepadButtons.Start) != 0) buttons |= (ushort)Ds4.Button.Options;
+        if ((held & GamepadButtons.Back) != 0) buttons |= (ushort)Ds4.Button.Share;
+        if ((held & GamepadButtons.Guide) != 0) buttons |= (ushort)Ds4.Button.PS;
+
+        return new Ds4.Dualshock4Input
+        {
+            Buttons = buttons,
+            Dpad = DPad(held),
+            Sticklx = Lean8(state.LeftX),
+            Stickly = Lean8(-state.LeftY),
+            Stickrx = Lean8(state.RightX),
+            Stickry = Lean8(-state.RightY),
+            Triggerl2 = Ample(state.LeftTrigger),
+            Triggerr2 = Ample(state.RightTrigger),
+            // The touch pad and the motion sensors are not driven by any step yet; a report still
+            // has to say what they are doing, and "untouched, still" is what they are.
+            Touch1x = 0,
+            Touch1y = 0,
+            Touch1active = 0,
+            Touch2x = 0,
+            Touch2y = 0,
+            Touch2active = 0,
+            Gyrox = 0,
+            Gyroy = 0,
+            Gyroz = 0,
+            Accelx = 0,
+            Accely = 0,
+            Accelz = 0,
+        };
+    }
+
+    /// <summary>The same, the way a DualSense reports it.</summary>
+    private static Dse.DualsenseInput ForDualSense(GamepadState state)
+    {
+        var held = state.Buttons;
+        var buttons = 0u;
+
+        if ((held & GamepadButtons.A) != 0) buttons |= (uint)Dse.Button.Cross;
+        if ((held & GamepadButtons.B) != 0) buttons |= (uint)Dse.Button.Circle;
+        if ((held & GamepadButtons.X) != 0) buttons |= (uint)Dse.Button.Square;
+        if ((held & GamepadButtons.Y) != 0) buttons |= (uint)Dse.Button.Triangle;
+        if ((held & GamepadButtons.LeftBumper) != 0) buttons |= (uint)Dse.Button.L1;
+        if ((held & GamepadButtons.RightBumper) != 0) buttons |= (uint)Dse.Button.R1;
+        if ((held & GamepadButtons.LeftTrigger) != 0) buttons |= (uint)Dse.Button.L2;
+        if ((held & GamepadButtons.RightTrigger) != 0) buttons |= (uint)Dse.Button.R2;
+        if ((held & GamepadButtons.LeftStick) != 0) buttons |= (uint)Dse.Button.L3;
+        if ((held & GamepadButtons.RightStick) != 0) buttons |= (uint)Dse.Button.R3;
+        if ((held & GamepadButtons.Start) != 0) buttons |= (uint)Dse.Button.Options;
+        if ((held & GamepadButtons.Back) != 0) buttons |= (uint)Dse.Button.Create;
+        if ((held & GamepadButtons.Guide) != 0) buttons |= (uint)Dse.Button.PS;
+
+        return new Dse.DualsenseInput
+        {
+            Buttons = buttons,
+            Dpad = DPad(held),
+            Sticklx = Lean8(state.LeftX),
+            Stickly = Lean8(-state.LeftY),
+            Stickrx = Lean8(state.RightX),
+            Stickry = Lean8(-state.RightY),
+            Triggerl2 = Ample(state.LeftTrigger),
+            Triggerr2 = Ample(state.RightTrigger),
+            Touch1x = 0,
+            Touch1y = 0,
+            Touch1active = 0,
+            Touch2x = 0,
+            Touch2y = 0,
+            Touch2active = 0,
+            Gyrox = 0,
+            Gyroy = 0,
+            Gyroz = 0,
+            Accelx = 0,
+            Accely = 0,
+            Accelz = 0,
+        };
+    }
+
+    /// <summary>
+    /// The d-pad as a PlayStation pad reports it: one nibble, counting round from up, with 8
+    /// meaning that nothing is pressed. A pair of neighbours reads as the corner between them.
+    /// </summary>
+    private static byte DPad(GamepadButtons held)
+    {
+        var up = (held & GamepadButtons.Up) != 0;
+        var down = (held & GamepadButtons.Down) != 0;
+        var left = (held & GamepadButtons.Left) != 0;
+        var right = (held & GamepadButtons.Right) != 0;
+
+        return (up, down, left, right) switch
+        {
+            (true, _, _, true) => 1,
+            (_, true, _, true) => 3,
+            (_, true, true, _) => 5,
+            (true, _, true, _) => 7,
+            (true, _, _, _) => 0,
+            (_, _, _, true) => 2,
+            (_, true, _, _) => 4,
+            (_, _, true, _) => 6,
+            _ => 8,
+        };
+    }
+
+    /// <summary>A trigger, from untouched to pulled all the way, as a byte.</summary>
+    private static byte Ample(int percent) => (byte)(Math.Clamp(percent, 0, 100) * 255 / 100);
+
+    /// <summary>A stick axis, from the centre, as the wider of the two ranges controllers use.</summary>
+    private static short Lean(int percent) => (short)(Math.Clamp(percent, -100, 100) * 32767 / 100);
+
+    /// <summary>The same, as the narrower range a PlayStation pad uses.</summary>
+    private static sbyte Lean8(int percent) => (sbyte)(Math.Clamp(percent, -100, 100) * 127 / 100);
 
     /// <summary>
     /// Waits for one request. Everything here is a step in a macro, which is a sequential affair

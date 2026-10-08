@@ -506,6 +506,13 @@ public interface IDeviceLayer
     /// </summary>
     IInputRouter Inputs { get; }
 
+    /// <summary>
+    /// The virtual controller a macro drives, which is a device of its own rather than another way
+    /// of sending keyboard and mouse input. A layer with no controller refuses every step that
+    /// asks for one.
+    /// </summary>
+    IGamepadDevice Gamepad { get; }
+
     IScreenDevice Screen { get; }
 
     IVisionDevice Vision { get; }
@@ -564,6 +571,9 @@ public sealed class NullDeviceLayer : IDeviceLayer
     /// <summary>This layer has no second way to send input, so every route is refused alike.</summary>
     public IInputRouter Inputs { get; } = new SingleInputRouter(new Refusal());
 
+    /// <summary>Nothing here can be a controller.</summary>
+    public IGamepadDevice Gamepad => _refusal;
+
     public IScreenDevice Screen => _refusal;
 
     public IVisionDevice Vision => _refusal;
@@ -586,9 +596,20 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
     /// <summary>Answers every request with "not available", naming what was asked for.</summary>
     private sealed class Refusal
-        : IInputDevice, IScreenDevice, IVisionDevice, IOcrDevice, IUiDevice, IFileDevice,
-          IClipboardDevice, IProcessDevice, ISystemDevice, IWindowDevice, IBrowserDevice
+        : IInputDevice, IGamepadDevice, IScreenDevice, IVisionDevice, IOcrDevice, IUiDevice,
+          IFileDevice, IClipboardDevice, IProcessDevice, ISystemDevice, IWindowDevice,
+          IBrowserDevice
     {
+        public void Connect(GamepadKind kind) => throw Missing("a controller");
+
+        public void Button(string button, bool down) => throw Missing("a controller");
+
+        public void Stick(string stick, int x, int y) => throw Missing("a controller");
+
+        public void Trigger(string trigger, int amount) => throw Missing("a controller");
+
+        public void ReleaseAll() => throw Missing("a controller");
+
         public bool Ready(string browser) => throw Missing("a browser");
 
         public string InstallHint => throw Missing("a browser");

@@ -9,6 +9,8 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
 
     private readonly Lazy<IInputRouter> _inputs;
 
+    private readonly Lazy<ViiperInputDevice> _gamepad = new(() => SharedDriverInput.Take());
+
     private readonly Lazy<IScreenDevice> _screen = new(() => new WindowsScreenDevice());
 
     private readonly Lazy<IVisionDevice> _vision = new(() => new OpenCvVisionDevice());
@@ -41,6 +43,13 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
 
     /// <summary>Input sent the way each step asks: in front, to one window, or through a driver.</summary>
     public IInputRouter Inputs => _inputs.Value;
+
+    /// <summary>
+    /// The virtual controller a macro drives. It is one of the devices of the program's virtual
+    /// keyboard and mouse rather than a connection of its own, so a controller and a click are the
+    /// same hardware on the same bus.
+    /// </summary>
+    public IGamepadDevice Gamepad => _gamepad.Value;
 
     public IScreenDevice Screen => _screen.Value;
 
@@ -81,6 +90,11 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
         if (_inputs.IsValueCreated && _inputs.Value is IDisposable inputs)
         {
             inputs.Dispose();
+        }
+
+        if (_gamepad.IsValueCreated)
+        {
+            SharedDriverInput.Give();
         }
 
         if (_ui.IsValueCreated)

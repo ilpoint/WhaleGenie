@@ -337,6 +337,80 @@ public class ViiperInputTests
         return (device, link);
     }
 
+    [Fact]
+    public void A_controller_nobody_asked_for_comes_up_as_the_pad_games_expect()
+    {
+        var link = new FakeLink(0, 0);
+        using var device = new ViiperInputDevice(() => link);
+
+        device.Button("a", true);
+
+        Assert.Equal([GamepadKind.Xbox360], link.Gamepads);
+        Assert.Equal("gamepad A:0,0:0,0:0,0", link.Sent[^1]);
+    }
+
+    [Fact]
+    public void Asking_for_a_controller_puts_that_one_on_the_machine_once()
+    {
+        var link = new FakeLink(0, 0);
+        using var device = new ViiperInputDevice(() => link);
+
+        device.Connect(GamepadKind.DualSense);
+        device.Connect(GamepadKind.DualSense);
+
+        Assert.Equal([GamepadKind.DualSense], link.Gamepads);
+    }
+
+    [Fact]
+    public void A_trigger_named_as_a_button_is_pulled_all_the_way_down()
+    {
+        var link = new FakeLink(0, 0);
+        using var device = new ViiperInputDevice(() => link);
+
+        device.Button("lt", true);
+        Assert.Equal("gamepad LeftTrigger:100,0:0,0:0,0", link.Sent[^1]);
+
+        device.Button("lt", false);
+        Assert.Equal("gamepad None:0,0:0,0:0,0", link.Sent[^1]);
+    }
+
+    [Fact]
+    public void A_stick_and_a_trigger_stay_where_they_were_put()
+    {
+        var link = new FakeLink(0, 0);
+        using var device = new ViiperInputDevice(() => link);
+
+        device.Stick("left", 50, 100);
+        device.Trigger("right", 40);
+
+        // A controller report is the whole picture, so the stick is still pushed in the report
+        // that only changed the trigger.
+        Assert.Equal("gamepad None:0,40:50,100:0,0", link.Sent[^1]);
+    }
+
+    [Fact]
+    public void Letting_go_of_a_controller_puts_everything_back()
+    {
+        var link = new FakeLink(0, 0);
+        using var device = new ViiperInputDevice(() => link);
+
+        device.Button("b", true);
+        device.Stick("right", -100, -50);
+        device.ReleaseAll();
+
+        Assert.Equal("gamepad None:0,0:0,0:0,0", link.Sent[^1]);
+    }
+
+    [Fact]
+    public void A_control_no_controller_has_is_refused()
+    {
+        using var device = new ViiperInputDevice(() => new FakeLink(0, 0));
+
+        Assert.Throws<DeviceActionException>(() => device.Button("turbo", true));
+        Assert.Throws<DeviceActionException>(() => device.Stick("middle", 0, 0));
+        Assert.Throws<DeviceActionException>(() => device.Trigger("both", 0));
+    }
+
     /// <summary>
     /// A link that writes every report down instead of sending it, and moves its own idea of the
     /// pointer by what the reports say — which is what the machine on the other end does. It can be
@@ -347,7 +421,16 @@ public class ViiperInputTests
     {
         public List<string> Sent { get; } = [];
 
+        /// <summary>The controller kinds the gamepad was asked to be, in the order it was asked.</summary>
+        public List<GamepadKind> Gamepads { get; } = [];
+
         public ScreenPoint Cursor { get; private set; } = new(x, y);
+
+        public void ConnectGamepad(GamepadKind kind) => Gamepads.Add(kind);
+
+        public void SendGamepad(GamepadState state)
+            => Sent.Add($"gamepad {state.Buttons}:{state.LeftTrigger},{state.RightTrigger}"
+                + $":{state.LeftX},{state.LeftY}:{state.RightX},{state.RightY}");
 
         public void SendKeyboard(byte modifiers, IReadOnlyList<byte> keys)
             => Sent.Add($"keyboard {modifiers}:{string.Join(".", keys)}");
@@ -378,6 +461,14 @@ public class ViiperInputTests
     private sealed class DeafLink : IViiperLink
     {
         public ScreenPoint Cursor { get; } = new(0, 0);
+
+        public void ConnectGamepad(GamepadKind kind)
+        {
+        }
+
+        public void SendGamepad(GamepadState state)
+        {
+        }
 
         public void SendKeyboard(byte modifiers, IReadOnlyList<byte> keys)
         {

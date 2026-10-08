@@ -1648,6 +1648,80 @@ public static class ActionCatalog
             ],
         },
 
+        // ----------------------------------------------------------------- gamepad
+        new()
+        {
+            Key = "gamepad.connect",
+            Category = ActionCategory.Input,
+            DisplayName = "Connect Controller",
+            Description = "Put a virtual controller on the machine, which the steps after this one "
+                + "press the buttons of. It is the same driver-level input as a virtual keyboard: "
+                + "the usbip-win2 driver and the VIIPER server have to be there.",
+            Parameters =
+            [
+                Controller(),
+            ],
+        },
+        new()
+        {
+            Key = "gamepad.button",
+            Category = ActionCategory.Input,
+            DisplayName = "Controller Button",
+            Description = "Press a button of the virtual controller, hold it down, or let it up. "
+                + "The buttons are named the Xbox way whatever controller is on the machine.",
+            Parameters =
+            [
+                GamepadButton(),
+                Choice("mode", "Action", ["tap", "down", "up"], "tap",
+                    "A tap presses and lets go; hold and let up are for a button that has to stay "
+                    + "down across other steps.",
+                    labels: ["Tap", "Hold down", "Let up"]),
+                Number("holdMs", "Hold", 50, "How long the button stays down when it is tapped."),
+            ],
+        },
+        new()
+        {
+            Key = "gamepad.stick",
+            Category = ActionCategory.Input,
+            DisplayName = "Controller Stick",
+            Description = "Move a stick of the virtual controller, in whole percent from its centre.",
+            Parameters =
+            [
+                Choice("stick", "Stick", ["left", "right"], "left",
+                    labels: ["Left stick", "Right stick"]),
+                Number("x", "X", 0,
+                    "How far sideways: 100 is all the way right, -100 all the way left, 0 centred.",
+                    min: -100, max: 100),
+                Number("y", "Y", 0,
+                    "How far up or down: 100 is all the way up, -100 all the way down, 0 centred.",
+                    min: -100, max: 100),
+            ],
+        },
+        new()
+        {
+            Key = "gamepad.trigger",
+            Category = ActionCategory.Input,
+            DisplayName = "Controller Trigger",
+            Description = "Pull a trigger of the virtual controller, or let it back off.",
+            Parameters =
+            [
+                Choice("trigger", "Trigger", ["left", "right"], "left",
+                    labels: ["Left trigger", "Right trigger"]),
+                Number("amount", "Amount", 100, "How far it is pulled, as a whole percent.",
+                    min: 0, max: 100),
+            ],
+        },
+        new()
+        {
+            Key = "gamepad.release",
+            Category = ActionCategory.Input,
+            DisplayName = "Release Controller",
+            Description = "Let go of every button, stick and trigger of the virtual controller. "
+                + "A run does this by itself when it finishes; this is for a macro that wants to "
+                + "hand the controller back in the middle of what it is doing.",
+            Parameters = [],
+        },
+
         // ----------------------------------------------------------------- vision
         new()
         {
@@ -2690,6 +2764,32 @@ public static class ActionCatalog
     /// <summary>Mouse button picker shared by every input action that clicks.</summary>
     private static ActionParameter Button()
         => Choice("button", "Button", ["left", "right", "middle", "back", "forward"], "left");
+
+    /// <summary>The controller a step puts on the machine before its buttons can be pressed.</summary>
+    private static ActionParameter Controller()
+        => Choice("controller", "Controller", ["xbox360", "dualshock4", "dualsense"], "xbox360",
+            "Which controller the machine is made to see. The Xbox 360 pad is the one games on "
+            + "Windows expect to find; the two PlayStation pads are for a game that only answers "
+            + "one of those.",
+            labels: ["Xbox 360", "DualShock 4", "DualSense"]);
+
+    /// <summary>
+    /// The button of a virtual controller, listed with the names the macro writes. The four
+    /// shoulder controls carry both spellings, because which one a person looks for depends on
+    /// the controller they have in mind.
+    /// </summary>
+    private static ActionParameter GamepadButton()
+        => Choice("button", "Button", [.. GamepadNames.Buttons], "a",
+            "The button to press. They are named the Xbox way whatever controller is connected: "
+            + "the A of an Xbox pad is the Cross of a PlayStation one.",
+            labels:
+            [
+                "A", "B", "X", "Y",
+                "LB (L1)", "RB (R1)", "LT (L2)", "RT (R2)",
+                "LS (L3)", "RS (R3)",
+                "D-pad up", "D-pad down", "D-pad left", "D-pad right",
+                "Start", "Back", "Guide",
+            ]);
 
     /// <summary>
     /// The hint every search-region field shares, so the shape of a region is written once. A
