@@ -91,6 +91,8 @@ dotnet format WhaleGenie.slnx           # 按 .editorconfig 整理格式
 | 选择器（`uia.*`、`condition.uiaExists`） | 拾取元素… | 鼠标移到控件上，蓝色边框圈出它，点击即写入选择器；它所在的窗口会顺手填进窗口过滤 |
 | 颜色 | 放大镜 | 跟随鼠标的取色器，方向键可逐像素微调 |
 | 屏幕区域（x/y/width/height、起点终点、region） | 框选区域 | 在屏幕上拖一个矩形，一次填满整组参数 |
+| 按键（`input.keyPress` / `keyDown` / `keyUp`） | 虚拟键盘 | 弹出画着键盘的一页，点哪个键就填入哪个键名；字段本身也仍然可以手写，或从全部键名里筛 |
+| 手柄控件（`gamepad.*`） | 虚拟手柄 | 弹出画着手柄的一页：按键点在键上，摇杆和扳机点在哪一根上就填哪一侧 |
 
 截屏存下来的图片放在宏包旁边的 `<宏名>.assets` 文件夹里，保存宏包时自动收进 `assets/`；
 项目还没保存过时先放在 `%LOCALAPPDATA%\WhaleGenie\images`。路径的解析与截图落盘都在

@@ -1369,4 +1369,86 @@ public class ActionDialogTests
             yield return second.Definition.Name;
         }
     }
+
+    // -------------------------------------------------------- keys and controller controls
+
+    [Fact]
+    public void A_key_field_offers_the_virtual_keyboard_beside_it()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("input.keyPress");
+            Dispatcher.UIThread.RunJobs();
+
+            // The key can be typed, offered as a name, or pointed at on the keyboard drawn on
+            // screen; the three live on the same line, so the field never looks like it must be
+            // spelled from memory.
+            var field = viewModel.Parameters.First(parameter => parameter.Definition.Name == "key");
+            Assert.True(field.IsKey);
+            Assert.Contains("F5", field.KeyChoices);
+
+            var keyboard = window.GetVisualDescendants().OfType<Button>()
+                .FirstOrDefault(button => button.IsEffectivelyVisible
+                    && Equals(button.Content, Strings.Get("Add.OpenKeyPad")));
+            Assert.NotNull(keyboard);
+            Assert.Same(field, keyboard.DataContext);
+
+            // Nothing else gets it: a plain text field has no keys to point at.
+            viewModel.SelectAction("input.typeText");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Button>()
+                    .Where(button => button.IsEffectivelyVisible),
+                button => button.DataContext is StepParameterViewModel { IsKey: true });
+        });
+    }
+
+    [Fact]
+    public void The_controls_of_a_controller_are_named_on_the_pad_drawn_on_screen()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("gamepad.button");
+            Dispatcher.UIThread.RunJobs();
+
+            var button = viewModel.Parameters.First(parameter => parameter.Definition.Name == "button");
+            Assert.True(button.IsGamepadPad);
+            Assert.False(viewModel.Parameters.First(parameter => parameter.Definition.Name == "mode")
+                .IsGamepadPad);
+
+            var pad = window.GetVisualDescendants().OfType<Button>()
+                .FirstOrDefault(item => item.IsEffectivelyVisible
+                    && Equals(item.Content, Strings.Get("Add.OpenGamepad")));
+            Assert.NotNull(pad);
+            Assert.Same(button, pad.DataContext);
+
+            // What the pad hands back is one of the choices this parameter has, and a control it
+            // does not know is left alone rather than written into the step.
+            button.Choose("y");
+            Assert.Equal("y", Value(viewModel, "button"));
+            button.Choose("both");
+            Assert.Equal("y", Value(viewModel, "button"));
+
+            // A choice that is not a control of a controller — the button of a mouse click — is
+            // picked out of its list and carries no pad.
+            viewModel.SelectAction("input.mouseClick");
+            Dispatcher.UIThread.RunJobs();
+
+            var mouse = viewModel.Parameters.First(parameter => parameter.Definition.Name == "button");
+            Assert.False(mouse.IsGamepadPad);
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Button>()
+                    .Where(item => item.IsEffectivelyVisible),
+                item => item.DataContext is StepParameterViewModel { IsGamepadPad: true });
+        });
+    }
 }

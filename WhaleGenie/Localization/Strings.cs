@@ -189,6 +189,21 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.PickRegion"] = "Pick region",
         ["Add.PickRegionHint"] = "Drag a rectangle on the screen to fill these fields.",
 
+        // ------------------------------------------------ keys and controller controls
+        ["Add.OpenKeyPad"] = "Keyboard",
+        ["Add.OpenKeyPadHint"] = "Click the key on a keyboard laid out on screen.",
+        ["Add.OpenGamepad"] = "Controller",
+        ["Add.OpenGamepadHint"] = "Click the control on a controller laid out on screen.",
+        ["KeyPad.Title"] = "Virtual keyboard",
+        ["KeyPad.Hint"] = "Click a key to write its name into the step. The caps are named the "
+            + "way the step stores them. Esc leaves the field as it was.",
+        ["GamepadPad.Title"] = "Virtual controller",
+        ["GamepadPad.ButtonsHint"] = "Click the button the step should press. The controls are "
+            + "named the Xbox way whatever controller is connected: an Xbox A is the Cross of a "
+            + "PlayStation pad.",
+        ["GamepadPad.StickHint"] = "Click the stick the step should move.",
+        ["GamepadPad.TriggerHint"] = "Click the trigger the step should pull.",
+
         // ------------------------------------------------------- pictures and windows
         ["Add.BrowseImage"] = "Browse…",
         ["Add.BrowseImageHint"] = "Use a picture file that is already on disk.",
@@ -997,6 +1012,20 @@ public sealed class Strings : INotifyPropertyChanged
         ["Region.Size"] = "x {0}  y {1}   宽 {2} × 高 {3}",
         ["Add.PickRegion"] = "框选区域",
         ["Add.PickRegionHint"] = "在屏幕上拖出一个矩形，自动填入这些字段。",
+
+        // ------------------------------------------------ 按键与手柄控件
+        ["Add.OpenKeyPad"] = "虚拟键盘",
+        ["Add.OpenKeyPadHint"] = "在屏幕上摆出来的键盘上点选按键。",
+        ["Add.OpenGamepad"] = "虚拟手柄",
+        ["Add.OpenGamepadHint"] = "在屏幕上摆出来的手柄上点选控件。",
+        ["KeyPad.Title"] = "虚拟键盘",
+        ["KeyPad.Hint"] = "点一个键，把它的名字写进这一步；键上的名字就是这一步存下来的名字。"
+            + "按 Esc 不改动原来的值。",
+        ["GamepadPad.Title"] = "虚拟手柄",
+        ["GamepadPad.ButtonsHint"] = "点这一步要按的键。不管接的是哪种手柄，控件都按 Xbox 的叫法："
+            + "Xbox 的 A 就是 PlayStation 手柄的 ×。",
+        ["GamepadPad.StickHint"] = "点这一步要拨的摇杆。",
+        ["GamepadPad.TriggerHint"] = "点这一步要扣的扳机。",
 
         // ------------------------------------------------------- pictures and windows
         ["Add.BrowseImage"] = "浏览…",

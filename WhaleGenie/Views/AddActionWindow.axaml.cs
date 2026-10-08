@@ -242,6 +242,49 @@ public partial class AddActionWindow : Window
         }
     }
 
+    /// <summary>
+    /// Opens the keyboard drawn on screen and keeps the key whose cap was clicked. A key is a name
+    /// the macro has to spell exactly, so it is taken off a picture of a keyboard rather than out
+    /// of a list of names.
+    /// </summary>
+    private async void OnOpenKeyPad(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel parameter })
+        {
+            return;
+        }
+
+        if (await VirtualKeyboardWindow.PickAsync(this) is { Length: > 0 } key)
+        {
+            parameter.Text = key;
+        }
+    }
+
+    /// <summary>
+    /// Opens the controller drawn on screen and keeps the control that was clicked. Which question
+    /// the pad answers — a button, a stick or a trigger — follows from the parameter it was opened
+    /// from, because that is what the step is asking for.
+    /// </summary>
+    private async void OnOpenGamepadPad(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel parameter })
+        {
+            return;
+        }
+
+        var pick = parameter.Definition.Name switch
+        {
+            "stick" => GamepadPick.Stick,
+            "trigger" => GamepadPick.Trigger,
+            _ => GamepadPick.Button,
+        };
+
+        if (await VirtualGamepadWindow.PickAsync(this, pick) is { Length: > 0 } value)
+        {
+            parameter.Choose(value);
+        }
+    }
+
     /// <summary>Chooses a picture file for an image parameter.</summary>
     private async void OnBrowseImage(object? sender, RoutedEventArgs e)
     {

@@ -58,14 +58,21 @@
                          PlaceholderText="{Binding Placeholder}" />
 
                 <!-- A key: the names are offered from a list so one does not have to be
-                     remembered, and the box stays editable so any of them can still be typed. -->
-                <AutoCompleteBox Classes="VarInput"
-                                 IsVisible="{Binding IsKey}"
-                                 ItemsSource="{Binding KeyChoices}"
-                                 Text="{Binding Text}"
-                                 PlaceholderText="{Binding Placeholder}"
-                                 MinimumPrefixLength="0"
-                                 FilterMode="Contains" />
+                     remembered, and the box stays editable so any of them can still be typed.
+                     Beside it the key can be pointed at instead, on a keyboard laid out on
+                     screen — a key is found by where it sits, not by what it is called. -->
+                <Grid IsVisible="{Binding IsKey}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                    <AutoCompleteBox Classes="VarInput"
+                                     ItemsSource="{Binding KeyChoices}"
+                                     Text="{Binding Text}"
+                                     PlaceholderText="{Binding Placeholder}"
+                                     MinimumPrefixLength="0"
+                                     FilterMode="Contains" />
+                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                            Content="{Binding [Add.OpenKeyPad], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnOpenKeyPad" />
+                </Grid>
 
                 <!-- A value that may name variables: the names are offered while it is typed in,
                      and a whole value may be built with the expression editor. -->
@@ -262,18 +269,30 @@
                               IsChecked="{Binding Flag}"
                               OnContent="" OffContent="" />
 
-                <ComboBox Classes="ActionSelect" IsVisible="{Binding IsChoice}"
-                          ItemsSource="{Binding Choices}"
-                          SelectedItem="{Binding Option}"
-                          IsEnabled="{Binding IsEnabled}"
-                          Width="240" HorizontalAlignment="Left">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="models:ActionParameterOption">
-                            <TextBlock Text="{Binding Display}"
-                                       FontSize="12.5" Foreground="#E8E8E8" />
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
+                <Grid IsVisible="{Binding IsChoice}" ColumnDefinitions="Auto,Auto" ColumnSpacing="6"
+                      HorizontalAlignment="Left">
+                    <ComboBox Classes="ActionSelect"
+                              ItemsSource="{Binding Choices}"
+                              SelectedItem="{Binding Option}"
+                              IsEnabled="{Binding IsEnabled}"
+                              Width="240" HorizontalAlignment="Left">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:ActionParameterOption">
+                                <TextBlock Text="{Binding Display}"
+                                           FontSize="12.5" Foreground="#E8E8E8" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <!-- A control of the virtual controller says which one it is on a pad drawn
+                         on screen, where the button that is meant is in the place the hand
+                         already knows it in. -->
+                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                            IsVisible="{Binding IsGamepadPad}"
+                            Content="{Binding [Add.OpenGamepad], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.OpenGamepadHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnOpenGamepadPad" />
+                </Grid>
 
                 <!-- A variable, which may also be a whole value of its own: an operand of a
                      calculation is written here, and may be built with the expression editor. -->

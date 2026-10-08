@@ -254,6 +254,27 @@ public partial class StepParameterViewModel : ViewModelBase
     public IReadOnlyList<string> KeyChoices => KeyNames.Names;
 
     /// <summary>
+    /// True when this choice is a control of the virtual controller, so the answer can be given by
+    /// clicking the control on a pad drawn on screen as well as by picking it out of the list. The
+    /// action and the parameter are both named because the other choices of those actions — how a
+    /// button is held, how far a trigger is pulled — are not controls of anything.
+    /// </summary>
+    public bool IsGamepadPad => (Definition.OwnerKey, Definition.Name) is
+        ("gamepad.button", "button") or ("gamepad.stick", "stick") or ("gamepad.trigger", "trigger");
+
+    /// <summary>
+    /// Takes one of the choices this parameter offers, which is how the pads write back what was
+    /// clicked. A value this parameter has no choice for is left alone rather than stored.
+    /// </summary>
+    public void Choose(string value)
+    {
+        if (Choices.FirstOrDefault(choice => choice.Value == value) is { } picked)
+        {
+            Option = picked;
+        }
+    }
+
+    /// <summary>
     /// True when the field is offered the variables it may name. A hint that says "written out or
     /// held in a variable" is only honest if the name can be picked instead of remembered, which
     /// is what this drives.

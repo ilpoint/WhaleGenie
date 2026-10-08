@@ -1,0 +1,132 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="380"
+        x:Class="WhaleGenie.Views.VirtualGamepadWindow"
+        Title="WhaleGenie"
+        Width="560" Height="380"
+        MinWidth="480" MinHeight="330"
+        WindowStartupLocation="CenterOwner"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        WindowDecorations="BorderOnly"
+        Background="#232323">
+
+    <Window.Styles>
+        <!-- One control of the controller. Every one of them is named the Xbox way, because that
+             is the one vocabulary the macro writes whatever pad is really connected. -->
+        <Style Selector="Button.Control">
+            <Setter Property="MinWidth" Value="40" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Background" Value="#2E2E2E" />
+            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.Control:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4C4C4C" />
+        </Style>
+        <Style Selector="Button.Control:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#C8401C" />
+        </Style>
+        <!-- A control the step being edited cannot name: a stick is not a button, and only the
+             ones this step is about are worth clicking. -->
+        <Style Selector="Button.Control:disabled">
+            <Setter Property="Foreground" Value="#5A5A5A" />
+        </Style>
+        <Style Selector="Button.Control:disabled /template/ ContentPresenter">
+            <Setter Property="Background" Value="#262626" />
+        </Style>
+
+        <Style Selector="Button.TitleBarButton">
+            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4A4A4A" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="38,*">
+
+        <!-- Title bar -->
+        <Grid Grid.Row="0" Background="#202020" ColumnDefinitions="Auto,*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
+                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
+                <TextBlock Text="{Binding [GamepadPad.Title], Source={x:Static loc:Strings.Current}}"
+                           Foreground="#E8E8E8" FontSize="13" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <Button Grid.Column="2" Classes="TitleBarButton" Name="CloseButton"
+                    Width="30" Height="24" Padding="0" Margin="8,0" VerticalAlignment="Center">
+                <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6"
+                      Data="M 1,1 L 7,7 M 1,7 L 7,1" />
+            </Button>
+        </Grid>
+
+        <StackPanel Grid.Row="1" Margin="16,12,16,16" Spacing="10">
+            <TextBlock Name="Hint" Foreground="#A0A0A0" FontSize="12" TextWrapping="Wrap" />
+
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="20" Margin="0,4,0,0">
+
+                <!-- Left hand: the trigger and bumper over the stick and the d-pad, the way they
+                     sit under the fingers. -->
+                <StackPanel Spacing="8" HorizontalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Button Classes="Control" Content="LT" Tag="lt" Width="84" />
+                        <Button Classes="Control" Content="LB" Tag="lb" Width="84" />
+                    </StackPanel>
+
+                    <Button Classes="Control" Content="LS" Tag="ls" Width="120" Height="52" />
+
+                    <Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto"
+                          ColumnSpacing="4" RowSpacing="4" HorizontalAlignment="Center">
+                        <Button Grid.Column="1" Classes="Control" Content="↑" Tag="up" Width="40" />
+                        <Button Grid.Row="1" Classes="Control" Content="←" Tag="left" Width="40" />
+                        <Button Grid.Row="1" Grid.Column="2" Classes="Control" Content="→" Tag="right" Width="40" />
+                        <Button Grid.Row="2" Grid.Column="1" Classes="Control" Content="↓" Tag="down" Width="40" />
+                    </Grid>
+                </StackPanel>
+
+                <!-- The middle of the pad: the two small buttons either side of the guide. -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                        <Button Classes="Control" Content="Back" Tag="back" Width="58" />
+                        <Button Classes="Control" Content="Start" Tag="start" Width="58" />
+                    </StackPanel>
+                    <Button Classes="Control" Content="Guide" Tag="guide" Width="122"
+                            HorizontalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Right hand: the same arrangement, with the four face buttons and the right
+                     stick in place of the d-pad and the left one. -->
+                <StackPanel Grid.Column="2" Spacing="8" HorizontalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Button Classes="Control" Content="RT" Tag="rt" Width="84" />
+                        <Button Classes="Control" Content="RB" Tag="rb" Width="84" />
+                    </StackPanel>
+
+                    <Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto"
+                          ColumnSpacing="4" RowSpacing="4" HorizontalAlignment="Center">
+                        <Button Grid.Column="1" Classes="Control" Content="Y" Tag="y" Width="40" />
+                        <Button Grid.Row="1" Classes="Control" Content="X" Tag="x" Width="40" />
+                        <Button Grid.Row="1" Grid.Column="2" Classes="Control" Content="B" Tag="b" Width="40" />
+                        <Button Grid.Row="2" Grid.Column="1" Classes="Control" Content="A" Tag="a" Width="40" />
+                    </Grid>
+
+                    <Button Classes="Control" Content="RS" Tag="rs" Width="120" Height="52" />
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </Grid>
+</Window>
