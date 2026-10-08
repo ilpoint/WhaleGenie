@@ -35,6 +35,15 @@ if (-not $Version) {
     $Version = $Tag -replace '^v', ''
 }
 
+# 版本号原样交给 dotnet publish 的 -p:Version：exe 的文件属性、NuGet 的还原都按它来。
+# 一旦它不像版本号（手滑写成 V0.01，或者带中文），还原会当场失败，而 MSBuild 只报
+# "RestoreTask 返回 false but did not log an error"，看不出是哪一步错了，所以在这里先说清楚。
+$rawVersion = $Version
+$Version = $Version -replace '^[vV]', ''
+if ($Version -notmatch '^\d+(\.\d+){0,3}(-[0-9A-Za-z.]+)?$') {
+    throw "版本号 '$rawVersion' 不像版本号，写成 0.01 或 1.2.3 这样的数字。"
+}
+
 $project = Join-Path $PSScriptRoot '..\WhaleGenie\WhaleGenie.csproj'
 $OutDir = Join-Path $PWD $OutDir
 

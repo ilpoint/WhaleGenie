@@ -22,6 +22,9 @@ jobs:
   package:
     # WhaleGenie 要在真实 Windows 桌面上跑，包只能在 Windows 上打。
     runs-on: windows-latest
+    # 标签在下面算一次，交给 release 那一步用（两个 job 不共享步骤，只能这样传）。
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
     strategy:
       fail-fast: false
       matrix:
@@ -37,10 +40,25 @@ jobs:
 
       - name: 算出版本号
         id: version
+        shell: pwsh
         run: |
-          $tag = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME } else { "v${{ inputs.version }}" }
+          # 手动运行时拿到的是人填的版本号，标签推送时拿到的是标签本身。两者都可能是
+          # "v0.01" / "V0.01" / "0.01" —— 前面那层 v 只是标签的样子，先剥掉一层再统一
+          # 补一个小写的 v，免得填了个大写的 V 就得到 "vV0.0.2" 这种标签。
+          $name = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME } else { '${{ inputs.version }}' }
+          $version = $name -replace '^[vV]', ''
+
+          # 版本号原样进 dotnet 的 -p:Version。喂进去一个不像版本号的东西（比如带了一层
+          # v、或者有中文），NuGet 还原会当场失败，而 MSBuild 只报一句 "RestoreTask 返回
+          # false but did not log an error"，看不出是哪一步的错 —— 所以在这里先挡下来。
+          if ($version -notmatch '^\d+(\.\d+){0,3}(-[0-9A-Za-z.]+)?$') {
+            throw "版本号 '$name' 不像版本号，写成 0.01 或 1.2.3 这样的数字。"
+          }
+
+          # 标签推送时用的是推上来的那个标签，不替用户改名；手动运行时才现造一个。
+          $tag = if ($env:GITHUB_REF_TYPE -eq 'tag') { $name } else { "v$version" }
           "tag=$tag" >> $env:GITHUB_OUTPUT
-          "version=$($tag -replace '^v','')" >> $env:GITHUB_OUTPUT
+          "version=$version" >> $env:GITHUB_OUTPUT
 
       # 两种包，差别只在"要不要自己带运行环境"：
       #   框架依赖 —— 最小，机器上装过 .NET 桌面运行时就用它；
@@ -74,22 +92,12 @@ jobs:
           path: packages
           merge-multiple: true
 
-      - name: 算出版本号
-        id: version
-        shell: bash
-        run: |
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            tag="${{ github.ref_name }}"
-          else
-            tag="v${{ inputs.version }}"
-          fi
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-
       - name: 把包放进 Release
         # 已经发过的话补传一次即可，重跑不会因为"Release 已存在"而失败。
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version.outputs.tag }}
+          # 标签只在上面的 package 里算一次，这里直接用结果，免得两处各算各的、算法一改就分叉。
+          TAG: ${{ needs.package.outputs.tag }}
         run: |
           if gh release view "$TAG" > /dev/null 2>&1; then
             gh release upload "$TAG" packages/*.zip --clobber
