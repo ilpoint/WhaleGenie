@@ -3,11 +3,11 @@
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="860" d:DesignHeight="360"
+        mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="460"
         x:Class="WhaleGenie.Views.VirtualKeyboardWindow"
         Title="WhaleGenie"
-        Width="860" Height="360"
-        MinWidth="760" MinHeight="320"
+        Width="1024" Height="460"
+        MinWidth="1000" MinHeight="430"
         WindowStartupLocation="CenterOwner"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
@@ -18,17 +18,21 @@
         <!-- One key of the keyboard. The cap shows the name the step will carry, which is how a
              key reads everywhere else in the program. -->
         <Style Selector="Button.Key">
-            <Setter Property="Width" Value="30" />
-            <Setter Property="Height" Value="30" />
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Background" Value="#2E2E2E" />
             <Setter Property="BorderBrush" Value="#3A3A3A" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Foreground" Value="#E8E8E8" />
-            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <!-- The keys a keyboard keeps off to the side, which need a smaller hand to read. -->
+        <Style Selector="Button.Key.Small">
+            <Setter Property="FontSize" Value="10" />
         </Style>
         <Style Selector="Button.Key:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="#4C4C4C" />
@@ -66,41 +70,42 @@
             </Button>
         </Grid>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Auto">
             <StackPanel Margin="16,12,16,16" Spacing="12">
                 <TextBlock Foreground="#A0A0A0" FontSize="12" TextWrapping="Wrap"
                            Text="{Binding [KeyPad.Hint], Source={x:Static loc:Strings.Current}}" />
 
-                <StackPanel Orientation="Horizontal" Spacing="18"
-                            HorizontalAlignment="Center">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
 
                     <!-- The main block, laid out the way a keyboard is: the function keys above the
                          numbers, then the letters, with the shifting keys at the edges they take on
-                         a real keyboard. -->
-                    <StackPanel Spacing="5">
-                        <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,0,5">
-                            <Button Classes="Key" Content="Esc" Tag="Esc" Width="44" />
-                            <StackPanel Orientation="Horizontal" Spacing="4" Margin="10,0,0,0">
+                         a real keyboard. Every one of those pairs is named with its side, because
+                         that is how a key is written where the side is what matters. -->
+                    <StackPanel Spacing="4">
+                        <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,0,4">
+                            <Button Classes="Key" Content="Esc" Tag="Esc" Width="38" />
+                            <StackPanel Orientation="Horizontal" Spacing="3" Margin="6,0,0,0">
                                 <Button Classes="Key" Content="F1" Tag="F1" />
                                 <Button Classes="Key" Content="F2" Tag="F2" />
                                 <Button Classes="Key" Content="F3" Tag="F3" />
                                 <Button Classes="Key" Content="F4" Tag="F4" />
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Spacing="4" Margin="10,0,0,0">
+                            <StackPanel Orientation="Horizontal" Spacing="3" Margin="6,0,0,0">
                                 <Button Classes="Key" Content="F5" Tag="F5" />
                                 <Button Classes="Key" Content="F6" Tag="F6" />
                                 <Button Classes="Key" Content="F7" Tag="F7" />
                                 <Button Classes="Key" Content="F8" Tag="F8" />
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Spacing="4" Margin="10,0,0,0">
+                            <StackPanel Orientation="Horizontal" Spacing="3" Margin="6,0,0,0">
                                 <Button Classes="Key" Content="F9" Tag="F9" />
                                 <Button Classes="Key" Content="F10" Tag="F10" />
                                 <Button Classes="Key" Content="F11" Tag="F11" />
                                 <Button Classes="Key" Content="F12" Tag="F12" />
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Spacing="4" Margin="10,0,0,0">
-                                <Button Classes="Key" Content="PrtSc" Tag="PrintScreen" Width="46" />
-                                <Button Classes="Key" Content="ScrLk" Tag="ScrollLock" Width="46" />
+                            <StackPanel Orientation="Horizontal" Spacing="4" Margin="6,0,0,0">
+                                <Button Classes="Key Small" Content="PrintScreen" Tag="PrintScreen" Width="62" />
+                                <Button Classes="Key Small" Content="ScrollLock" Tag="ScrollLock" Width="58" />
                                 <Button Classes="Key" Content="Pause" Tag="Pause" Width="46" />
                             </StackPanel>
                         </StackPanel>
@@ -119,11 +124,11 @@
                             <Button Classes="Key" Content="0" Tag="0" />
                             <Button Classes="Key" Content="-" Tag="-" />
                             <Button Classes="Key" Content="=" Tag="=" />
-                            <Button Classes="Key" Content="Backspace" Tag="Backspace" Width="70" />
+                            <Button Classes="Key Small" Content="Backspace" Tag="Backspace" Width="58" />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Spacing="4">
-                            <Button Classes="Key" Content="Tab" Tag="Tab" Width="46" />
+                            <Button Classes="Key" Content="Tab" Tag="Tab" Width="44" />
                             <Button Classes="Key" Content="Q" Tag="Q" />
                             <Button Classes="Key" Content="W" Tag="W" />
                             <Button Classes="Key" Content="E" Tag="E" />
@@ -136,11 +141,11 @@
                             <Button Classes="Key" Content="P" Tag="P" />
                             <Button Classes="Key" Content="[" Tag="[" />
                             <Button Classes="Key" Content="]" Tag="]" />
-                            <Button Classes="Key" Content="\" Tag="\" Width="46" />
+                            <Button Classes="Key" Content="\" Tag="\" Width="44" />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Spacing="4">
-                            <Button Classes="Key" Content="CapsLock" Tag="CapsLock" Width="60" />
+                            <Button Classes="Key Small" Content="CapsLock" Tag="CapsLock" Width="56" />
                             <Button Classes="Key" Content="A" Tag="A" />
                             <Button Classes="Key" Content="S" Tag="S" />
                             <Button Classes="Key" Content="D" Tag="D" />
@@ -152,11 +157,11 @@
                             <Button Classes="Key" Content="L" Tag="L" />
                             <Button Classes="Key" Content=";" Tag=";" />
                             <Button Classes="Key" Content="'" Tag="'" />
-                            <Button Classes="Key" Content="Enter" Tag="Enter" Width="74" />
+                            <Button Classes="Key" Content="Enter" Tag="Enter" Width="70" />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Spacing="4">
-                            <Button Classes="Key" Content="Shift" Tag="Shift" Width="70" />
+                            <Button Classes="Key Small" Content="左Shift" Tag="左Shift" Width="62" />
                             <Button Classes="Key" Content="Z" Tag="Z" />
                             <Button Classes="Key" Content="X" Tag="X" />
                             <Button Classes="Key" Content="C" Tag="C" />
@@ -167,61 +172,113 @@
                             <Button Classes="Key" Content="," Tag="," />
                             <Button Classes="Key" Content="." Tag="." />
                             <Button Classes="Key" Content="/" Tag="/" />
-                            <Button Classes="Key" Content="Shift" Tag="Shift" Width="86" />
+                            <Button Classes="Key Small" Content="右Shift" Tag="右Shift" Width="78" />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Spacing="4">
-                            <Button Classes="Key" Content="Ctrl" Tag="Ctrl" Width="56" />
-                            <Button Classes="Key" Content="Win" Tag="Win" Width="44" />
-                            <Button Classes="Key" Content="Alt" Tag="Alt" Width="44" />
-                            <Button Classes="Key" Content="Space" Tag="Space" Width="196" />
-                            <Button Classes="Key" Content="Alt" Tag="Alt" Width="44" />
-                            <Button Classes="Key" Content="Win" Tag="Win" Width="44" />
-                            <Button Classes="Key" Content="Menu" Tag="ContextMenu" Width="44" />
-                            <Button Classes="Key" Content="Ctrl" Tag="Ctrl" Width="56" />
+                            <Button Classes="Key Small" Content="左Ctrl" Tag="左Ctrl" Width="50" />
+                            <Button Classes="Key Small" Content="左Win" Tag="左Win" Width="38" />
+                            <Button Classes="Key Small" Content="左Alt" Tag="左Alt" Width="38" />
+                            <Button Classes="Key" Content="Space" Tag="Space" Width="180" />
+                            <Button Classes="Key Small" Content="右Alt" Tag="右Alt" Width="38" />
+                            <Button Classes="Key Small" Content="右Win" Tag="右Win" Width="38" />
+                            <Button Classes="Key Small" Content="Menu" Tag="ContextMenu" Width="38" />
+                            <Button Classes="Key Small" Content="右Ctrl" Tag="右Ctrl" Width="50" />
                         </StackPanel>
                     </StackPanel>
 
                     <!-- The keys a keyboard keeps off to the side: the navigation block and the
                          number pad, which are the ones a bare text field is worst at. -->
-                    <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Top"
-                                Margin="0,35,0,0">
-                        <Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="14"
+                                VerticalAlignment="Top" Margin="0,32,0,0">
+                        <Grid ColumnDefinitions="50,50,56" RowDefinitions="28,28,28,28,28"
                               ColumnSpacing="4" RowSpacing="4">
-                            <Button Classes="Key" Content="Insert" Tag="Insert" Width="42" />
-                            <Button Grid.Column="1" Classes="Key" Content="Home" Tag="Home" Width="42" />
-                            <Button Grid.Column="2" Classes="Key" Content="PgUp" Tag="PageUp" Width="42" />
-                            <Button Grid.Row="1" Classes="Key" Content="Delete" Tag="Delete" Width="42" />
-                            <Button Grid.Row="1" Grid.Column="1" Classes="Key" Content="End" Tag="End" Width="42" />
-                            <Button Grid.Row="1" Grid.Column="2" Classes="Key" Content="PgDn" Tag="PageDown" Width="42" />
-                            <Button Grid.Row="3" Grid.Column="1" Classes="Key" Content="↑" Tag="Up" Width="42" />
-                            <Button Grid.Row="4" Classes="Key" Content="←" Tag="Left" Width="42" />
-                            <Button Grid.Row="4" Grid.Column="1" Classes="Key" Content="↓" Tag="Down" Width="42" />
-                            <Button Grid.Row="4" Grid.Column="2" Classes="Key" Content="→" Tag="Right" Width="42" />
+                            <Button Classes="Key Small" Content="Insert" Tag="Insert" Width="50" />
+                            <Button Grid.Column="1" Classes="Key Small" Content="Home" Tag="Home" Width="50" />
+                            <Button Grid.Column="2" Classes="Key Small" Content="PageUp" Tag="PageUp" Width="56" />
+                            <Button Grid.Row="1" Classes="Key Small" Content="Delete" Tag="Delete" Width="50" />
+                            <Button Grid.Row="1" Grid.Column="1" Classes="Key Small" Content="End" Tag="End" Width="50" />
+                            <Button Grid.Row="1" Grid.Column="2" Classes="Key Small" Content="PageDown" Tag="PageDown" Width="56" />
+                            <Button Grid.Row="3" Grid.Column="1" Classes="Key" Content="↑" Tag="Up" Width="50" />
+                            <Button Grid.Row="4" Classes="Key" Content="←" Tag="Left" Width="50" />
+                            <Button Grid.Row="4" Grid.Column="1" Classes="Key" Content="↓" Tag="Down" Width="50" />
+                            <Button Grid.Row="4" Grid.Column="2" Classes="Key" Content="→" Tag="Right" Width="56" />
                         </Grid>
 
-                        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                        <Grid ColumnDefinitions="42,36,36,36" RowDefinitions="28,28,28,28,28"
                               ColumnSpacing="4" RowSpacing="4">
-                            <Button Classes="Key" Content="NumLock" Tag="NumLock" Width="42" />
-                            <Button Grid.Column="1" Classes="Key" Content="/" Tag="NumPadDivide" Width="42" />
-                            <Button Grid.Column="2" Classes="Key" Content="*" Tag="NumPadMultiply" Width="42" />
-                            <Button Grid.Column="3" Classes="Key" Content="-" Tag="NumPadSubtract" Width="42" />
-                            <Button Grid.Row="1" Classes="Key" Content="7" Tag="NumPad7" Width="42" />
-                            <Button Grid.Row="1" Grid.Column="1" Classes="Key" Content="8" Tag="NumPad8" Width="42" />
-                            <Button Grid.Row="1" Grid.Column="2" Classes="Key" Content="9" Tag="NumPad9" Width="42" />
+                            <Button Classes="Key Small" Content="NumLock" Tag="NumLock" Width="42" />
+                            <Button Grid.Column="1" Classes="Key" Content="/" Tag="NumPadDivide" Width="36" />
+                            <Button Grid.Column="2" Classes="Key" Content="*" Tag="NumPadMultiply" Width="36" />
+                            <Button Grid.Column="3" Classes="Key" Content="-" Tag="NumPadSubtract" Width="36" />
+                            <Button Grid.Row="1" Classes="Key" Content="7" Tag="NumPad7" Width="36" />
+                            <Button Grid.Row="1" Grid.Column="1" Classes="Key" Content="8" Tag="NumPad8" Width="36" />
+                            <Button Grid.Row="1" Grid.Column="2" Classes="Key" Content="9" Tag="NumPad9" Width="36" />
                             <Button Grid.Row="1" Grid.Column="3" Grid.RowSpan="2" Classes="Key"
-                                    Content="+" Tag="NumPadAdd" Width="42" Height="64" />
-                            <Button Grid.Row="2" Classes="Key" Content="4" Tag="NumPad4" Width="42" />
-                            <Button Grid.Row="2" Grid.Column="1" Classes="Key" Content="5" Tag="NumPad5" Width="42" />
-                            <Button Grid.Row="2" Grid.Column="2" Classes="Key" Content="6" Tag="NumPad6" Width="42" />
-                            <Button Grid.Row="3" Classes="Key" Content="1" Tag="NumPad1" Width="42" />
-                            <Button Grid.Row="3" Grid.Column="1" Classes="Key" Content="2" Tag="NumPad2" Width="42" />
-                            <Button Grid.Row="3" Grid.Column="2" Classes="Key" Content="3" Tag="NumPad3" Width="42" />
-                            <Button Grid.Row="3" Grid.Column="3" Grid.RowSpan="2" Classes="Key"
-                                    Content="↵" Tag="NumPadEnter" Width="42" Height="64" />
-                            <Button Grid.Row="4" Grid.ColumnSpan="2" Classes="Key" Content="0" Tag="NumPad0" Width="88" />
-                            <Button Grid.Row="4" Grid.Column="2" Classes="Key" Content="." Tag="NumPadDecimal" Width="42" />
+                                    Content="+" Tag="NumPadAdd" Width="36" Height="60" />
+                            <Button Grid.Row="2" Classes="Key" Content="4" Tag="NumPad4" Width="36" />
+                            <Button Grid.Row="2" Grid.Column="1" Classes="Key" Content="5" Tag="NumPad5" Width="36" />
+                            <Button Grid.Row="2" Grid.Column="2" Classes="Key" Content="6" Tag="NumPad6" Width="36" />
+                            <Button Grid.Row="3" Classes="Key" Content="1" Tag="NumPad1" Width="36" />
+                            <Button Grid.Row="3" Grid.Column="1" Classes="Key" Content="2" Tag="NumPad2" Width="36" />
+                            <Button Grid.Row="3" Grid.Column="2" Classes="Key" Content="3" Tag="NumPad3" Width="36" />
+                            <Button Grid.Row="3" Grid.Column="3" Grid.RowSpan="2" Classes="Key Small"
+                                    Content="Enter" Tag="NumPadEnter" Width="36" Height="60" />
+                            <Button Grid.Row="4" Grid.ColumnSpan="2" Classes="Key" Content="0" Tag="NumPad0" Width="76" />
+                            <Button Grid.Row="4" Grid.Column="2" Classes="Key" Content="." Tag="NumPadDecimal" Width="36" />
                         </Grid>
+                    </StackPanel>
+                </Grid>
+
+                <!-- The rest of the keys a keyboard may have. They are laid out in blocks of what
+                     they are for, because these are the ones nobody has a hand-memory of. -->
+                <StackPanel Spacing="4">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <Button Classes="Key Small" Content="F13" Tag="F13" Width="38" />
+                        <Button Classes="Key Small" Content="F14" Tag="F14" Width="38" />
+                        <Button Classes="Key Small" Content="F15" Tag="F15" Width="38" />
+                        <Button Classes="Key Small" Content="F16" Tag="F16" Width="38" />
+                        <Button Classes="Key Small" Content="F17" Tag="F17" Width="38" />
+                        <Button Classes="Key Small" Content="F18" Tag="F18" Width="38" />
+                        <Button Classes="Key Small" Content="F19" Tag="F19" Width="38" />
+                        <Button Classes="Key Small" Content="F20" Tag="F20" Width="38" />
+                        <Button Classes="Key Small" Content="F21" Tag="F21" Width="38" />
+                        <Button Classes="Key Small" Content="F22" Tag="F22" Width="38" />
+                        <Button Classes="Key Small" Content="F23" Tag="F23" Width="38" />
+                        <Button Classes="Key Small" Content="F24" Tag="F24" Width="38" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <Button Classes="Key Small" Content="MediaPrevious" Tag="MediaPrevious" Width="78" />
+                        <Button Classes="Key Small" Content="MediaPlay" Tag="MediaPlay" Width="60" />
+                        <Button Classes="Key Small" Content="MediaStop" Tag="MediaStop" Width="60" />
+                        <Button Classes="Key Small" Content="MediaNext" Tag="MediaNext" Width="60" />
+                        <Button Classes="Key Small" Content="MediaSelect" Tag="MediaSelect" Width="76" />
+                        <Button Classes="Key Small" Content="MediaEject" Tag="MediaEject" Width="68" />
+                        <Border Width="18" />
+                        <Button Classes="Key Small" Content="VolumeMute" Tag="VolumeMute" Width="74" />
+                        <Button Classes="Key Small" Content="VolumeDown" Tag="VolumeDown" Width="74" />
+                        <Button Classes="Key Small" Content="VolumeUp" Tag="VolumeUp" Width="62" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <Button Classes="Key Small" Content="BrowserBack" Tag="BrowserBack" Width="74" />
+                        <Button Classes="Key Small" Content="BrowserForward" Tag="BrowserForward" Width="84" />
+                        <Button Classes="Key Small" Content="BrowserRefresh" Tag="BrowserRefresh" Width="80" />
+                        <Button Classes="Key Small" Content="BrowserStop" Tag="BrowserStop" Width="74" />
+                        <Button Classes="Key Small" Content="BrowserSearch" Tag="BrowserSearch" Width="80" />
+                        <Button Classes="Key Small" Content="BrowserHome" Tag="BrowserHome" Width="76" />
+                        <Button Classes="Key Small" Content="BrowserFavorites" Tag="BrowserFavorites" Width="96" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <Button Classes="Key Small" Content="AppBrowser" Tag="AppBrowser" Width="74" />
+                        <Button Classes="Key Small" Content="AppCalculator" Tag="AppCalculator" Width="86" />
+                        <Button Classes="Key Small" Content="AppMail" Tag="AppMail" Width="58" />
+                        <Border Width="14" />
+                        <Button Classes="Key Small" Content="Help" Tag="Help" Width="44" />
+                        <Button Classes="Key Small" Content="Cancel" Tag="Cancel" Width="54" />
+                        <Button Classes="Key Small" Content="Function" Tag="Function" Width="64" />
                     </StackPanel>
                 </StackPanel>
             </StackPanel>

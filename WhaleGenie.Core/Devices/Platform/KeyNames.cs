@@ -93,8 +93,9 @@ public static class KeyNames
 
     /// <summary>
     /// Every key name a macro may write, in the order a picker reads them, so a key can be chosen
-    /// rather than remembered. The two halves of a modifier are listed once, by the spelling a
-    /// chord uses; the side is only worth naming when a trigger is bound to one of them.
+    /// rather than remembered. A modifier is listed by the spelling a chord uses and again with
+    /// each side named, because both are written by macros: a chord reads better short, while a
+    /// trigger is bound to one particular key and the two shift keys are two different keys.
     /// </summary>
     public static IReadOnlyList<string> Names { get; } = ChooseNames();
 
@@ -108,10 +109,14 @@ public static class KeyNames
                 continue;
             }
 
-            var name = Name(code);
-            if (name.Length > 0 && !names.Contains(name, StringComparer.OrdinalIgnoreCase))
+            // A key that is not a modifier is named the same either way, so the second pass only
+            // ever adds the left and right spellings.
+            foreach (var name in new[] { Name(code), Name(code, sided: true) })
             {
-                names.Add(name);
+                if (name.Length > 0 && !names.Contains(name, StringComparer.OrdinalIgnoreCase))
+                {
+                    names.Add(name);
+                }
             }
         }
 

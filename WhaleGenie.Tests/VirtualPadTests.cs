@@ -46,13 +46,22 @@ public class VirtualPadTests
             foreach (var cap in caps)
             {
                 Assert.NotNull(KeyNames.Resolve((string?)cap.Tag));
+
+                // And it is one of the names the key field offers, so the list and the keyboard
+                // never disagree about what a key is called.
+                Assert.Contains((string)cap.Tag!, KeyNames.Names);
             }
 
             var names = caps.Select(cap => (string)cap.Tag!).ToList();
             foreach (var wanted in new[]
                      {
-                         "A", "5", "F5", "Enter", "Space", "Ctrl", "Shift", "Alt", "Win",
-                         "Up", "Left", "PageDown", "NumPad5", "Esc", "Tab", "Backspace", "Delete",
+                         "A", "5", "F5", "F13", "Enter", "Space", "Up", "Left", "PageDown",
+                         "NumPad5", "Esc", "Tab", "Backspace", "Delete",
+                         "MediaPlay", "VolumeMute", "BrowserBack", "AppCalculator",
+
+                         // A side is part of the name: a trigger is bound to one of the two shift
+                         // keys, so the keyboard writes them apart as well.
+                         "左Ctrl", "右Ctrl", "左Shift", "右Shift", "左Alt", "右Alt", "左Win", "右Win",
                      })
             {
                 Assert.Contains(wanted, names);
