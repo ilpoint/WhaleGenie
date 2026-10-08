@@ -85,6 +85,17 @@ public sealed class LocalFileDevice : IFileDevice
         });
     }
 
+    public byte[] ReadBytes(string path)
+    {
+        var full = Full(path);
+        if (!File.Exists(full))
+        {
+            throw new DeviceActionException("Run.FileNotFound", path);
+        }
+
+        return Attempt(path, () => File.ReadAllBytes(full));
+    }
+
     public void Delete(string path)
     {
         var full = Full(path);

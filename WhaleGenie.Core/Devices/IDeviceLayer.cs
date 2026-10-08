@@ -162,6 +162,12 @@ public interface IFileDevice
     void WriteText(string path, string text, bool append, string encoding);
 
     /// <summary>
+    /// Reads a file whole, as the bytes it is made of. Anything that is not text in any encoding
+    /// comes in this way: a workbook is a zip before it is anything else.
+    /// </summary>
+    byte[] ReadBytes(string path);
+
+    /// <summary>
     /// Writes a file of raw bytes, making the folders on the way when they are missing. Text
     /// actions cannot do this one: a picture is not text in any encoding.
     /// </summary>
@@ -646,6 +652,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public void WriteText(string path, string text, bool append, string encoding)
             => throw Missing("files");
+
+        public byte[] ReadBytes(string path) => throw Missing("files");
 
         public void WriteBytes(string path, byte[] bytes) => throw Missing("files");
 

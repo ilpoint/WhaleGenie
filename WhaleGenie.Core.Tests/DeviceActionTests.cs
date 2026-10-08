@@ -1,7 +1,12 @@
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Threading.Tasks;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Validation;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Variables;
@@ -1921,6 +1926,414 @@ public class DeviceActionTests
         ], devices);
 
         Assert.Equal("a,\"b,c\"", devices.Files["out.csv"]);
+    }
+
+    // ------------------------------------------------------------ spreadsheets
+
+    [Fact]
+    public async Task A_sheet_written_from_rows_reads_back_as_the_same_rows()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["in.csv"] = "name,age\nalice,30\nbob,41";
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+            Step("excel.writeSheet", Param("path", "book.xlsx"), Param("sheet", "Sheet1"),
+                Param("rows", "$rows"), Param("mode", "replace")),
+            Step("excel.readSheet", Param("path", "book.xlsx"), Param("sheet", "Sheet1"),
+                Param("hasHeader", "false"), Param("resultVariable", "back")),
+        ], devices);
+
+        // There was no file to begin with, so the step has to have made one.
+        Assert.True(devices.Blobs.ContainsKey("book.xlsx"));
+
+        var back = store.Local.Values["back"];
+        Assert.Equal(3, back.Items.Count);
+        Assert.Equal("name", back.Items[0].Items[0].AsText());
+        Assert.Equal("41", back.Items[2].Items[1].AsText());
+    }
+
+    [Fact]
+    public async Task Reading_a_sheet_leaves_a_header_out_when_it_is_told_to()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["book.xlsx"] = Book(Tab("Data", ["name", "age"], ["alice", 30]));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("excel.readSheet", Param("path", "book.xlsx"), Param("sheet", "Data"),
+                Param("resultVariable", "rows")),
+        ], devices);
+
+        var rows = store.Local.Values["rows"];
+        Assert.Single(rows.Items);
+        Assert.Equal("alice", rows.Items[0].Items[0].AsText());
+
+        // A number is a number in the sheet, and comes back as the text of that number.
+        Assert.Equal("30", rows.Items[0].Items[1].AsText());
+    }
+
+    /// <summary>
+    /// Whatever kind of thing a cell holds has to come back as something a macro can read. The
+    /// workbook is built by hand, with the format's own library, so what the reader makes of a
+    /// date or a boolean is not the writer's doing in disguise.
+    /// </summary>
+    [Fact]
+    public async Task Reading_a_sheet_gives_back_what_each_cell_holds()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["report.xlsx"] = Book(Tab("Data",
+            ["name", "score", "passed", "when", "day"],
+            ["alice", 42.5, true, new DateTime(2024, 3, 5, 9, 30, 0), new DateTime(2024, 3, 5)]));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("excel.readSheet", Param("path", "report.xlsx"), Param("sheet", "Data"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+        ], devices);
+
+        var row = store.Local.Values["rows"].Items[1];
+        Assert.Equal("alice", row.Items[0].AsText());
+        Assert.Equal("42.5", row.Items[1].AsText());
+        Assert.Equal("TRUE", row.Items[2].AsText());
+        Assert.Equal("2024-03-05 09:30:00", row.Items[3].AsText());
+        Assert.Equal("2024-03-05", row.Items[4].AsText());
+    }
+
+    [Fact]
+    public async Task A_sheet_is_read_by_the_name_on_its_tab()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["two.xlsx"] = Book(Tab("First", ["one"]), Tab("Second", ["two"]));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("excel.readSheet", Param("path", "two.xlsx"), Param("sheet", "Second"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+        ], devices);
+
+        Assert.Equal("two", store.Local.Values["rows"].Items[0].Items[0].AsText());
+    }
+
+    [Fact]
+    public async Task A_sheet_name_left_empty_reads_the_first_sheet()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["two.xlsx"] = Book(Tab("First", ["one"]), Tab("Second", ["two"]));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("excel.readSheet", Param("path", "two.xlsx"), Param("sheet", ""),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+        ], devices);
+
+        Assert.Equal("one", store.Local.Values["rows"].Items[0].Items[0].AsText());
+    }
+
+    /// <summary>
+    /// A sheet that is not there is the mistake a macro makes when a file was renamed or a typo
+    /// slipped in, so the failure has to name the sheets the workbook does have.
+    /// </summary>
+    [Fact]
+    public async Task A_sheet_that_is_not_there_stops_the_step_and_names_the_ones_that_are()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["two.xlsx"] = Book(Tab("First", ["one"]), Tab("Second", ["two"]));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("excel.readSheet", Param("path", "two.xlsx"), Param("sheet", "Third"),
+                Param("resultVariable", "rows")),
+        ], devices);
+
+        Assert.Equal("Run.NoSuchSheet", result.Key);
+        Assert.Contains("Third", result.Detail);
+        Assert.Contains("First", result.Detail);
+        Assert.Contains("Second", result.Detail);
+    }
+
+    [Fact]
+    public async Task A_file_that_is_not_a_workbook_stops_the_step_with_a_reason()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["notes.xlsx"] = [80, 75, 3, 4, 5, 6, 7, 8, 9, 10];
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("excel.readSheet", Param("path", "notes.xlsx"), Param("resultVariable", "rows")),
+        ], devices);
+
+        Assert.Equal("Run.NotAWorkbook", result.Key);
+    }
+
+    /// <summary>
+    /// A workbook usually has more in it than the one table a macro writes, and a step that meant
+    /// to fill in one sheet must not quietly drop the rest of the file.
+    /// </summary>
+    [Fact]
+    public async Task Writing_a_sheet_leaves_the_other_sheets_as_they_were()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["book.xlsx"] = Book(Tab("Data", ["old"]), Tab("Notes", ["keep me"]));
+        devices.Files["in.csv"] = "new";
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+            Step("excel.writeSheet", Param("path", "book.xlsx"), Param("sheet", "Data"),
+                Param("rows", "$rows"), Param("mode", "replace")),
+            Step("excel.readSheet", Param("path", "book.xlsx"), Param("sheet", "Data"),
+                Param("hasHeader", "false"), Param("resultVariable", "data")),
+            Step("excel.readSheet", Param("path", "book.xlsx"), Param("sheet", "Notes"),
+                Param("hasHeader", "false"), Param("resultVariable", "notes")),
+        ], devices);
+
+        var data = store.Local.Values["data"];
+        Assert.Equal("new", Assert.Single(data.Items).Items[0].AsText());
+        Assert.Equal("keep me", store.Local.Values["notes"].Items[0].Items[0].AsText());
+    }
+
+    [Fact]
+    public async Task Writing_a_sheet_again_replaces_it_unless_it_is_told_to_add()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["one.csv"] = "a";
+        devices.Files["two.csv"] = "b";
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "one.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "first")),
+            Step("file.readCsv", Param("path", "two.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "second")),
+            Step("excel.writeSheet", Param("path", "book.xlsx"), Param("sheet", "Sheet1"),
+                Param("rows", "$first"), Param("mode", "replace")),
+            Step("excel.writeSheet", Param("path", "book.xlsx"), Param("sheet", "Sheet1"),
+                Param("rows", "$second"), Param("mode", "replace")),
+            Step("excel.readSheet", Param("path", "book.xlsx"), Param("sheet", "Sheet1"),
+                Param("hasHeader", "false"), Param("resultVariable", "replaced")),
+            Step("excel.writeSheet", Param("path", "book.xlsx"), Param("sheet", "Sheet1"),
+                Param("rows", "$first"), Param("mode", "append")),
+            Step("excel.readSheet", Param("path", "book.xlsx"), Param("sheet", "Sheet1"),
+                Param("hasHeader", "false"), Param("resultVariable", "added")),
+        ], devices);
+
+        Assert.Equal("b", Assert.Single(store.Local.Values["replaced"].Items).Items[0].AsText());
+
+        var added = store.Local.Values["added"].Items;
+        Assert.Equal(2, added.Count);
+        Assert.Equal("b", added[0].Items[0].AsText());
+        Assert.Equal("a", added[1].Items[0].AsText());
+    }
+
+    [Fact]
+    public async Task Writing_makes_the_sheet_it_names_on_a_file_it_has_to_make()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["in.csv"] = "hello";
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+            Step("excel.writeSheet", Param("path", "fresh.xlsx"), Param("sheet", "数据"),
+                Param("rows", "$rows"), Param("mode", "replace")),
+            Step("excel.readSheet", Param("path", "fresh.xlsx"), Param("sheet", "数据"),
+                Param("hasHeader", "false"), Param("resultVariable", "back")),
+        ], devices);
+
+        Assert.Equal("hello", store.Local.Values["back"].Items[0].Items[0].AsText());
+    }
+
+    [Fact]
+    public async Task A_row_from_a_file_reaches_past_column_z()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["wide.xlsx"] = Book(Tab("Data",
+            [.. Enumerable.Range(1, 30).Select(number => (object)$"c{number}")]));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("excel.readSheet", Param("path", "wide.xlsx"), Param("sheet", "Data"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+        ], devices);
+
+        var row = Assert.Single(store.Local.Values["rows"].Items);
+        Assert.Equal(30, row.Items.Count);
+        Assert.Equal("c30", row.Items[29].AsText());
+    }
+
+    [Fact]
+    public async Task A_row_written_past_column_z_keeps_its_columns()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["wide.csv"] = string.Join(",", Enumerable.Range(1, 30).Select(number => $"c{number}"));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "wide.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+            Step("excel.writeSheet", Param("path", "wide.xlsx"), Param("sheet", "Sheet1"),
+                Param("rows", "$rows"), Param("mode", "replace")),
+            Step("excel.readSheet", Param("path", "wide.xlsx"), Param("sheet", "Sheet1"),
+                Param("hasHeader", "false"), Param("resultVariable", "back")),
+        ], devices);
+
+        var row = Assert.Single(store.Local.Values["back"].Items);
+        Assert.Equal(30, row.Items.Count);
+        Assert.Equal("c30", row.Items[29].AsText());
+    }
+
+    /// <summary>
+    /// A file that is not one Excel will open is worse than no file at all, and reading it back
+    /// cannot show that: our own reader hands back whatever our own writer put there. The format's
+    /// own validator is the stand-in for Excel, and opening the file by hand is still the real
+    /// check — this only catches a file that is wrong on its face.
+    /// </summary>
+    [Fact]
+    public async Task The_workbook_a_step_writes_is_one_the_format_accepts()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["in.csv"] = "name,age\nalice,30";
+
+        await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+            Step("excel.writeSheet", Param("path", "book.xlsx"), Param("sheet", "Sheet1"),
+                Param("rows", "$rows"), Param("mode", "replace")),
+        ], devices);
+
+        using var stream = new MemoryStream(devices.Blobs["book.xlsx"]);
+        using var document = SpreadsheetDocument.Open(stream, false);
+        var complaints = new OpenXmlValidator(FileFormatVersions.Office2019)
+            .Validate(document)
+            .Select(bad => $"{bad.Path?.XPath}: {bad.Description}")
+            .ToList();
+
+        Assert.Empty(complaints);
+    }
+
+    /// <summary>
+    /// One sheet of a workbook built by hand: the name on its tab and the rows in it.
+    /// </summary>
+    private static (string Name, object?[][] Rows) Tab(string name, params object?[][] rows)
+        => (name, rows);
+
+    /// <summary>
+    /// A real workbook, written with the format's own library rather than with the code being
+    /// checked. A file written and read by the same piece of code cannot tell a reader that agrees
+    /// with its writer from one that reads what the format says, so the files a reader is tried
+    /// against are made somewhere else. Text goes in the shared table, the way Excel writes it;
+    /// a date goes in as the serial number it is, with a date format on the cell.
+    /// </summary>
+    private static byte[] Book(params (string Name, object?[][] Rows)[] sheets)
+    {
+        var stream = new MemoryStream();
+        using (var document = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook))
+        {
+            var workbook = document.AddWorkbookPart();
+            workbook.Workbook = new Workbook();
+            var tabs = workbook.Workbook.AppendChild(new Sheets());
+
+            var styles = workbook.AddNewPart<WorkbookStylesPart>();
+            styles.Stylesheet = new Stylesheet
+            {
+                CellFormats = new CellFormats(
+                    new CellFormat(),
+                    new CellFormat { NumberFormatId = 14, ApplyNumberFormat = true }),
+            };
+
+            var shared = new SharedStringTable();
+            var id = 1u;
+            foreach (var (name, rows) in sheets)
+            {
+                var part = workbook.AddNewPart<WorksheetPart>();
+                var data = new SheetData();
+                var line = 0u;
+                foreach (var row in rows)
+                {
+                    line++;
+                    var entry = new Row { RowIndex = line };
+                    for (var at = 0; at < row.Length; at++)
+                    {
+                        if (row[at] is { } value)
+                        {
+                            entry.AppendChild(CellAt(at, line, value, shared));
+                        }
+                    }
+
+                    data.AppendChild(entry);
+                }
+
+                part.Worksheet = new Worksheet(data);
+                tabs.Append(new Sheet { Id = workbook.GetIdOfPart(part), SheetId = id, Name = name });
+                id++;
+            }
+
+            if (shared.HasChildren)
+            {
+                workbook.AddNewPart<SharedStringTablePart>().SharedStringTable = shared;
+            }
+
+            workbook.Workbook.Save();
+        }
+
+        return stream.ToArray();
+    }
+
+    /// <summary>One cell of a hand-built workbook, of whatever kind the value is.</summary>
+    private static Cell CellAt(int at, uint line, object value, SharedStringTable shared)
+    {
+        var cell = new Cell { CellReference = $"{Letter(at)}{line}" };
+        switch (value)
+        {
+            case bool flag:
+                cell.DataType = CellValues.Boolean;
+                cell.CellValue = new CellValue(flag ? "1" : "0");
+                break;
+
+            case int whole:
+                cell.DataType = CellValues.Number;
+                cell.CellValue = new CellValue(whole.ToString(CultureInfo.InvariantCulture));
+                break;
+
+            case double number:
+                cell.DataType = CellValues.Number;
+                cell.CellValue = new CellValue(number.ToString(CultureInfo.InvariantCulture));
+                break;
+
+            case DateTime moment:
+                cell.StyleIndex = 1;
+                cell.DataType = CellValues.Number;
+                cell.CellValue = new CellValue(moment.ToOADate().ToString(CultureInfo.InvariantCulture));
+                break;
+
+            default:
+                var text = value.ToString() ?? string.Empty;
+                var index = shared.Elements<SharedStringItem>().Count();
+                shared.AppendChild(new SharedStringItem(new Text(text)));
+                cell.DataType = CellValues.SharedString;
+                cell.CellValue = new CellValue(index.ToString(CultureInfo.InvariantCulture));
+                break;
+        }
+
+        return cell;
+    }
+
+    /// <summary>The Excel name of a column, counted the way the format counts them.</summary>
+    private static string Letter(int index)
+    {
+        var name = string.Empty;
+        for (var at = index; at >= 0; at = (at / 26) - 1)
+        {
+            name = (char)('A' + (at % 26)) + name;
+        }
+
+        return name;
     }
 
     [Fact]
@@ -4312,13 +4725,19 @@ internal sealed class FakeDeviceLayer
     bool IFileDevice.Exists(string path)
     {
         Note($"fileExists {path}");
-        return PathExists || Files.ContainsKey(path);
+        return PathExists || Files.ContainsKey(path) || Blobs.ContainsKey(path);
     }
 
     string IFileDevice.ReadText(string path, string encoding)
     {
         Note($"readFile {path} {encoding}");
         return Files.TryGetValue(path, out var text) ? text : string.Empty;
+    }
+
+    byte[] IFileDevice.ReadBytes(string path)
+    {
+        Note($"readBytes {path}");
+        return Blobs.TryGetValue(path, out var bytes) ? bytes : [];
     }
 
     void IFileDevice.WriteText(string path, string text, bool append, string encoding)

@@ -520,6 +520,31 @@ internal static class ActionStrings
         ["file.loadVariables.path.label"] = "文件",
         ["file.loadVariables.path.hint"] = "要读取的文件。只写文件名时会相对宏文件夹解析。",
 
+        // ------------------------------------------------------------ spreadsheet
+        ["excel.readSheet.name"] = "读取 Excel 表格",
+        ["excel.readSheet.desc"] = "把 Excel 文件里的一张表读进行列表。",
+        ["excel.readSheet.path.label"] = "文件",
+        ["excel.readSheet.path.hint"] = "要读取的 Excel 文件。只写文件名时会相对宏文件夹解析。",
+        ["excel.readSheet.sheet.label"] = "表",
+        ["excel.readSheet.sheet.hint"] = "要读取哪一张表，写表标签上的名字；留空表示第一张表。",
+        ["excel.readSheet.hasHeader.label"] = "首行是表头",
+        ["excel.readSheet.hasHeader.hint"] = "结果中不包含第一行。",
+        ["excel.readSheet.resultVariable.label"] = "结果变量",
+        ["excel.readSheet.resultVariable.hint"] = "接收行列表的变量，每行是一个单元格列表。",
+
+        ["excel.writeSheet.name"] = "写入 Excel 表格",
+        ["excel.writeSheet.desc"] = "把行列表写入 Excel 文件的一张表；文件或表不存在时会新建。",
+        ["excel.writeSheet.path.label"] = "文件",
+        ["excel.writeSheet.path.hint"] = "要写入的 Excel 文件。只写文件名时会相对宏文件夹解析。",
+        ["excel.writeSheet.sheet.label"] = "表",
+        ["excel.writeSheet.sheet.hint"] = "要写入哪一张表，写表标签上的名字；留空表示第一张表。",
+        ["excel.writeSheet.rows.label"] = "行",
+        ["excel.writeSheet.rows.hint"] = "行列表。每一行本身也可以是一个单元格列表；都按读出时的样子写成文本。",
+        ["excel.writeSheet.mode.label"] = "方式",
+        ["excel.writeSheet.mode.hint"] = "替换表里原有的内容，或者把行加在已有内容的下面。",
+        ["excel.writeSheet.mode.option.replace"] = "替换整张表",
+        ["excel.writeSheet.mode.option.append"] = "接着最后一行的下面加",
+
         // ------------------------------------------------------------------- data
         ["data.base64Encode.name"] = "Base64 编码",
         ["data.base64Encode.desc"] = "把文本编码成 Base64，放进 URL 或令牌时常用这种形式。",

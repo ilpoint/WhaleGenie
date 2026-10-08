@@ -42,6 +42,7 @@ dotnet format WhaleGenie.slnx           # 按 .editorconfig 整理格式
 | `Sdcb.SimdPaddleOCR`、`Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny` | 屏幕取字（OCR）：识别库和随包带的中文模型，不联网下载 |
 | `FlaUI.UIA3` | UI Automation：元素的取值、选择、勾选、展开、滚动到可见、读表格 |
 | `Microsoft.Playwright` | 浏览器动作（`browser.*`）：驱动跟着包走，默认开系统自带的 Edge |
+| `DocumentFormat.OpenXml` | 表格文件（`excel.*`）：按文件读写 xlsx，不启动 Excel，用的是这种文件格式自己的库 |
 | `OpenCvSharp5.AvaloniaExtensions` | 没人用它：引擎和界面都没有调用它的 API，它只会把 Avalonia 带进引擎的依赖图 |
 
 这些包各自带进来的原生库（`OpenCvSharpExtern.dll`、`uiohook.dll`、Playwright 的驱动等）
@@ -108,6 +109,17 @@ dotnet format WhaleGenie.slnx           # 按 .editorconfig 整理格式
 
 试的就是**这一步本身**（按关掉对话框后会存下来的那份设置跑），而且只跑这一步：引擎里
 `MacroRunner.TryAsync` 走的是和运行宏同一套代码，跑完把还按着的东西松开。
+
+## 表格文件（Excel）
+
+`excel.readSheet` 把一张 .xlsx 里的表读成行列表，`excel.writeSheet` 把行列表写回去。
+**按文件读写，不启动 Excel，也不操作它的界面**，所以机器上没装 Office 一样能用，也不会
+多出要人关掉的窗口；文件格式自己的解析由 `DocumentFormat.OpenXml` 负责。
+
+几个使用上的约定：表名留空就是第一张表；写的时候文件或表不存在就建，读的时候表不存在会
+报错并列出文件里有哪些表；写只动指定的那一张，文件里别的表原样留着，选"追加"就接在最后
+一行下面。读出来的每个单元格都是文本（日期会变成 `2024-03-05` 这样的日期，而不是它存着的
+`45123`），写进去的也是文本，所以"读 CSV → 写表格"能原样往返。
 
 ## 程序自己的文件放哪儿
 

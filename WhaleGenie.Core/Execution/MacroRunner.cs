@@ -754,6 +754,15 @@ public sealed class MacroRunner
                 LoadVariables(step, depth);
                 return Signal.Normal;
 
+            // -------------------------------------------------------------- spreadsheet
+            case "excel.readSheet":
+                ReadSheet(step, depth);
+                return Signal.Normal;
+
+            case "excel.writeSheet":
+                WriteSheet(step, depth);
+                return Signal.Normal;
+
             // ----------------------------------------------------------------- data
             case "data.base64Encode":
                 EncodeBase64(step, depth);
@@ -2882,6 +2891,44 @@ public sealed class MacroRunner
         _devices.Files.WriteText(path, text, false, EncodingOf(step));
         Log(LogLevel.Info, depth, step.Type, "Run.WroteFile", path, text.Length);
     }
+
+    private void ReadSheet(ExecutableStep step, int depth)
+    {
+        var path = PathOf(step);
+        var rows = Spreadsheet.Read(_devices.Files.ReadBytes(path), step.Text("sheet").Trim());
+        var skip = !string.Equals(step.Text("hasHeader").Trim(), "false", StringComparison.OrdinalIgnoreCase);
+        var body = skip && rows.Count > 0 ? rows.Skip(1) : rows;
+
+        Variables.Set(VariableName(step, "resultVariable", "rows"),
+            Value.FromList(body.Select(row => Value.FromList(row.Select(Value.FromText)))));
+        Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, rows.Count);
+    }
+
+    private void WriteSheet(ExecutableStep step, int depth)
+    {
+        var path = PathOf(step);
+        var rows = Read(step.Text("rows"));
+        if (!rows.IsList)
+        {
+            throw new StepFailure("Run.NotAList", step.Text("rows"));
+        }
+
+        // The file is read first so that everything else it holds — the other sheets, the
+        // formatting, the workbook's own settings — comes back out of it unchanged.
+        var book = _devices.Files.Exists(path) ? _devices.Files.ReadBytes(path) : null;
+        var append = string.Equals(step.Text("mode").Trim(), "append", StringComparison.OrdinalIgnoreCase);
+        var cells = rows.Items.Select(Cells).ToList();
+
+        _devices.Files.WriteBytes(path, Spreadsheet.Write(book, step.Text("sheet").Trim(), cells, append));
+        Log(LogLevel.Info, depth, step.Type, "Run.WroteFile", path, cells.Count);
+    }
+
+    /// <summary>
+    /// One row of a list as the cells of a sheet hold them. A row that is not a list is a single
+    /// cell, the way writing a CSV reads it.
+    /// </summary>
+    private static IReadOnlyList<string> Cells(Value row)
+        => row.IsList ? [.. row.Items.Select(cell => cell.AsText())] : [row.AsText()];
 
     private void SaveVariables(ExecutableStep step, int depth)
     {

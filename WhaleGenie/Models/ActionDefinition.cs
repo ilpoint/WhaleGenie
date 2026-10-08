@@ -8,6 +8,7 @@ public enum ActionCategory
 {
     Control,
     File,
+    Spreadsheet,
     Data,
     Clipboard,
     Process,

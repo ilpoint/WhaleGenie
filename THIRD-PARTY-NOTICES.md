@@ -61,6 +61,10 @@ The icon was scaled and modified from the original.
 - Playwright（Microsoft.Playwright）— Apache-2.0
   <https://github.com/microsoft/playwright-dotnet>
   随包分发的是它的驱动，里面带一份 Node.js；浏览器本体不在这里，见下面「用户自己装的组件」。
+- DocumentFormat.OpenXml（Open XML SDK）— MIT
+  <https://github.com/dotnet/Open-XML-SDK>
+  读写的 .xlsx 就是这个 SDK 认的文件格式；它自己带的 DocumentFormat.OpenXml.Framework
+  和 System.IO.Packaging 同样是 MIT。
 
 ### 运行环境
 

@@ -48,6 +48,9 @@ public static class ActionCatalog
     private static readonly Geometry FileIcon =
         Geometry.Parse("M6,3 H14 L18,7 V21 H6 Z M14,3 V7 H18 M9,12 H15 M9,16 H15");
 
+    private static readonly Geometry SpreadsheetIcon =
+        Geometry.Parse("M5,4 H19 V20 H5 Z M5,9 H19 M5,14 H19 M12,4 V20");
+
     private static readonly Geometry DataIcon =
         Geometry.Parse("M9,4 L6,12 L9,20 M15,4 L18,12 L15,20");
 
@@ -759,6 +762,46 @@ public static class ActionCatalog
             Parameters =
             [
                 FilePath("path", "File", "state.json", "File to read."),
+            ],
+        },
+
+        // ------------------------------------------------------------- spreadsheet
+        new()
+        {
+            Key = "excel.readSheet",
+            Category = ActionCategory.Spreadsheet,
+            DisplayName = "Read Excel Sheet",
+            Description = "Read a sheet of an Excel file into a list of rows.",
+            Parameters =
+            [
+                FilePath("path", "File", "report.xlsx", "The Excel file to read."),
+                Sheet(),
+                Toggle("hasHeader", "First row is a header", true,
+                    "Leave the first row out of the result."),
+                Variable("resultVariable", "Result variable", "rows",
+                    "Variable that receives a list of rows, each a list of cells.",
+                    required: false, namesVariable: true),
+            ],
+        },
+        new()
+        {
+            Key = "excel.writeSheet",
+            Category = ActionCategory.Spreadsheet,
+            DisplayName = "Write Excel Sheet",
+            Description = "Write a list of rows into a sheet of an Excel file, making the file or "
+                + "the sheet when they are not there yet.",
+            Parameters =
+            [
+                FilePath("path", "File", "report.xlsx",
+                    "The Excel file to write. It is made when it is not there, and everything "
+                    + "else already in it is kept."),
+                Sheet(),
+                Variable("rows", "Rows", "$rows",
+                    "A list of rows. Each row may itself be a list of cells; everything is written "
+                    + "as text, the way it was read.", namesVariable: false),
+                Choice("mode", "Mode", ["replace", "append"], "replace",
+                    "Replace what the sheet holds, or add the rows below what is already there.",
+                    labels: ["Replace the sheet", "Add below the last row"]),
             ],
         },
 
@@ -2546,6 +2589,7 @@ public static class ActionCatalog
     {
         ActionCategory.Control => ControlIcon,
         ActionCategory.File => FileIcon,
+        ActionCategory.Spreadsheet => SpreadsheetIcon,
         ActionCategory.Data => DataIcon,
         ActionCategory.Clipboard => ClipboardIcon,
         ActionCategory.Process => ProcessIcon,
@@ -2910,6 +2954,15 @@ public static class ActionCatalog
             Placeholder = placeholder,
             Hint = hint + " A path on its own is taken to be inside the macros folder.",
         };
+
+    /// <summary>
+    /// Which sheet of a workbook a step means, by the name on its tab. A name left empty is the
+    /// first sheet, so a step does not have to know what a workbook calls its sheets in order to
+    /// read the usual one.
+    /// </summary>
+    private static ActionParameter Sheet()
+        => Text("sheet", "Sheet", "Sheet1", required: false,
+            hint: "Which sheet to use, by the name on its tab. Leave empty for the first sheet.");
 
     /// <summary>The character CSV cells are separated by.</summary>
     private static ActionParameter Separator(string name, string label, string defaultValue)
