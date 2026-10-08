@@ -91,6 +91,33 @@ public static class KeyNames
             : null;
     }
 
+    /// <summary>
+    /// Every key name a macro may write, in the order a picker reads them, so a key can be chosen
+    /// rather than remembered. The two halves of a modifier are listed once, by the spelling a
+    /// chord uses; the side is only worth naming when a trigger is bound to one of them.
+    /// </summary>
+    public static IReadOnlyList<string> Names { get; } = ChooseNames();
+
+    private static List<string> ChooseNames()
+    {
+        var names = new List<string>();
+        foreach (var code in Enum.GetValues<KeyCode>())
+        {
+            if (code == KeyCode.VcUndefined)
+            {
+                continue;
+            }
+
+            var name = Name(code);
+            if (name.Length > 0 && !names.Contains(name, StringComparer.OrdinalIgnoreCase))
+            {
+                names.Add(name);
+            }
+        }
+
+        return names;
+    }
+
     /// <summary>Splits a chord such as <c>Ctrl+Shift+S</c> into codes.</summary>
     public static List<KeyCode> ResolveChord(string? chord, out string? unknown)
     {

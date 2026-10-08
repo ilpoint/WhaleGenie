@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
+using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -240,7 +241,17 @@ public partial class StepParameterViewModel : ViewModelBase
     /// element of a page carries the page picker's button, and a field the variables are offered
     /// in has a list of its own over it.
     /// </summary>
-    public bool IsPlainText => IsText && !IsSelector && !IsBrowserTarget && !OffersVariables;
+    public bool IsPlainText => IsText && !IsKey && !IsSelector && !IsBrowserTarget && !OffersVariables;
+
+    /// <summary>
+    /// True when this parameter names a key, which is written in a box the key names are offered
+    /// in: a key has a name a person should not have to remember the spelling of, and the box
+    /// stays editable so one still may be typed.
+    /// </summary>
+    public bool IsKey => Definition.Kind is ActionParameterKind.Key;
+
+    /// <summary>The key names the picker offers, which is every name a macro may write.</summary>
+    public IReadOnlyList<string> KeyChoices => KeyNames.Names;
 
     /// <summary>
     /// True when the field is offered the variables it may name. A hint that says "written out or

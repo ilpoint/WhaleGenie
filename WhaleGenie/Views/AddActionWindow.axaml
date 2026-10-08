@@ -57,6 +57,16 @@
                          IsVisible="{Binding IsPlainText}"
                          PlaceholderText="{Binding Placeholder}" />
 
+                <!-- A key: the names are offered from a list so one does not have to be
+                     remembered, and the box stays editable so any of them can still be typed. -->
+                <AutoCompleteBox Classes="VarInput"
+                                 IsVisible="{Binding IsKey}"
+                                 ItemsSource="{Binding KeyChoices}"
+                                 Text="{Binding Text}"
+                                 PlaceholderText="{Binding Placeholder}"
+                                 MinimumPrefixLength="0"
+                                 FilterMode="Contains" />
+
                 <!-- A value that may name variables: the names are offered while it is typed in,
                      and a whole value may be built with the expression editor. -->
                 <Grid IsVisible="{Binding OffersVariables}" ColumnDefinitions="*,Auto" ColumnSpacing="6">

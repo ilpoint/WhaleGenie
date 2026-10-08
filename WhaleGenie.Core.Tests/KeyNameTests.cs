@@ -28,6 +28,22 @@ public class KeyNameTests
         => Assert.Equal("Shift", KeyNames.Name(code));
 
     [Fact]
+    public void The_list_of_names_holds_every_key_a_picker_offers()
+    {
+        // Every name the picker shows has to be one the engine understands again, or choosing a
+        // key from the list would leave a step that cannot be run.
+        Assert.All(KeyNames.Names, name => Assert.NotNull(KeyNames.Resolve(name)));
+
+        // And the everyday keys are in it, without repeats from the two halves of a modifier.
+        foreach (var wanted in new[] { "Ctrl", "Shift", "Alt", "Win", "A", "5", "F5", "Enter", "Esc", "NumPad5" })
+        {
+            Assert.Contains(wanted, KeyNames.Names);
+        }
+
+        Assert.Equal(KeyNames.Names.Count, KeyNames.Names.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    [Fact]
     public void OtherKeysAreSpelledTheSameEitherWay()
     {
         Assert.Equal("NumPad7", KeyNames.Name(KeyCode.VcNumPad7, sided: true));
