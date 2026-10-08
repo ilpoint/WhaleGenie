@@ -29,6 +29,24 @@ dotnet format WhaleGenie.slnx           # 按 .editorconfig 整理格式
 | `WhaleGenie.Core.Tests` | 引擎的测试，跑在替身设备层上，不碰真实桌面 |
 | `WhaleGenie.Tests` | 界面的测试，跑在 Avalonia 无头平台上 |
 
+## 引擎用到的包
+
+`WhaleGenie.Core` 真正依赖的就这么几个，每个都对应一类碰机器的设备；版本写在
+`WhaleGenie.Core/WhaleGenie.Core.csproj` 里，这里不抄第二遍：
+
+| 包 | 在引擎里干什么 |
+| --- | --- |
+| `SharpHook` | 全局键盘鼠标钩子与注入：热键 / 鼠标按键 / 滚轮这些触发器，`input.*` 的前台路径，录制，以及各种拾取 |
+| `Viiper.Client` | 驱动级输入：连本机 VIIPER 服务端，把按键和指针交给虚拟键鼠对（`input.*` 的"驱动级"） |
+| `OpenCvSharp5.Windows` | 找图、找色、等图这类画面动作：OpenCV 的托管 API（`Cv2`、`Mat`）和它的 Windows 原生库 |
+| `Sdcb.SimdPaddleOCR`、`Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny` | 屏幕取字（OCR）：识别库和随包带的中文模型，不联网下载 |
+| `FlaUI.UIA3` | UI Automation：元素的取值、选择、勾选、展开、滚动到可见、读表格 |
+| `Microsoft.Playwright` | 浏览器动作（`browser.*`）：驱动跟着包走，默认开系统自带的 Edge |
+| `OpenCvSharp5.AvaloniaExtensions` | 没人用它：引擎和界面都没有调用它的 API，它只会把 Avalonia 带进引擎的依赖图 |
+
+这些包各自带进来的原生库（`OpenCvSharpExtern.dll`、`uiohook.dll`、Playwright 的驱动等）
+和许可原文，列在 `THIRD-PARTY-NOTICES.md` 里。
+
 ## 测试怎么分层
 
 1. **纯逻辑**（`WhaleGenie.Core.Tests`）：引擎的每一步、变量与表达式、宏包往返。用替身设备层，
