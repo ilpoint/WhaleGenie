@@ -198,9 +198,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["KeyPad.Hint"] = "Click a key to write its name into the step. The caps are named the "
             + "way the step stores them. Esc leaves the field as it was.",
         ["GamepadPad.Title"] = "Virtual controller",
-        ["GamepadPad.ButtonsHint"] = "Click the button the step should press. The controls are "
-            + "named the Xbox way whatever controller is connected: an Xbox A is the Cross of a "
-            + "PlayStation pad.",
+        ["GamepadPad.ButtonsHint"] = "Click the button the step should press. Every control is "
+            + "named the way it is printed on the pad.",
         ["GamepadPad.StickHint"] = "Click the stick the step should move.",
         ["GamepadPad.TriggerHint"] = "Click the trigger the step should pull.",
 
@@ -1022,8 +1021,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["KeyPad.Hint"] = "点一个键，把它的名字写进这一步；键上的名字就是这一步存下来的名字。"
             + "按 Esc 不改动原来的值。",
         ["GamepadPad.Title"] = "虚拟手柄",
-        ["GamepadPad.ButtonsHint"] = "点这一步要按的键。不管接的是哪种手柄，控件都按 Xbox 的叫法："
-            + "Xbox 的 A 就是 PlayStation 手柄的 ×。",
+        ["GamepadPad.ButtonsHint"] = "点这一步要按的键。每个控件都按手柄上印的名字写。",
         ["GamepadPad.StickHint"] = "点这一步要拨的摇杆。",
         ["GamepadPad.TriggerHint"] = "点这一步要扣的扳机。",
 

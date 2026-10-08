@@ -1076,31 +1076,24 @@ internal static class ActionStrings
         ["input.mouseDrag.style.option.human"] = "模拟人手",
 
         ["gamepad.connect.name"] = "连接虚拟手柄",
-        ["gamepad.connect.desc"] = "在本机接上一只虚拟手柄，后面的步骤就按它的按钮。和虚拟键盘一样属于驱动级输入，"
-            + "需要 usbip-win2 驱动和运行中的 VIIPER 服务端。",
-        ["gamepad.connect.controller.label"] = "手柄类型",
-        ["gamepad.connect.controller.hint"] = "让系统看到哪种手柄。Xbox 360 是 Windows 游戏最常认的那只；"
-            + "另外两只是 PlayStation 手柄，用于只认它们某一款的游戏。",
-        ["gamepad.connect.controller.option.xbox360"] = "Xbox 360",
-        ["gamepad.connect.controller.option.dualshock4"] = "DualShock 4",
-        ["gamepad.connect.controller.option.dualsense"] = "DualSense",
+        ["gamepad.connect.desc"] = "在本机接上一只虚拟手柄（Xbox 360），后面的按键、摇杆、扳机步骤本来就会"
+            + "自己把它接上；这一步用于「游戏只在启动时认一次手柄」的场合。和虚拟键盘一样属于驱动级"
+            + "输入，需要 usbip-win2 驱动和运行中的 VIIPER 服务端。",
 
         ["gamepad.button.name"] = "手柄按键",
-        ["gamepad.button.desc"] = "按下虚拟手柄上的一个按键、按住不放，或者松开。不管接的是哪种手柄，"
-            + "键名都按 Xbox 的叫法写。",
+        ["gamepad.button.desc"] = "按下虚拟手柄上的一个按键、按住不放，或者松开。",
         ["gamepad.button.button.label"] = "按键",
-        ["gamepad.button.button.hint"] = "要按的键。不管接的是哪种手柄都按 Xbox 的叫法写："
-            + "Xbox 的 A 就是 PlayStation 的 ×。",
+        ["gamepad.button.button.hint"] = "要按的键，名字和手柄上印的一致。",
         ["gamepad.button.button.option.a"] = "A 键",
         ["gamepad.button.button.option.b"] = "B 键",
         ["gamepad.button.button.option.x"] = "X 键",
         ["gamepad.button.button.option.y"] = "Y 键",
-        ["gamepad.button.button.option.lb"] = "LB (L1)",
-        ["gamepad.button.button.option.rb"] = "RB (R1)",
-        ["gamepad.button.button.option.lt"] = "LT (L2)",
-        ["gamepad.button.button.option.rt"] = "RT (R2)",
-        ["gamepad.button.button.option.ls"] = "LS (L3)",
-        ["gamepad.button.button.option.rs"] = "RS (R3)",
+        ["gamepad.button.button.option.lb"] = "LB",
+        ["gamepad.button.button.option.rb"] = "RB",
+        ["gamepad.button.button.option.lt"] = "LT",
+        ["gamepad.button.button.option.rt"] = "RT",
+        ["gamepad.button.button.option.ls"] = "LS",
+        ["gamepad.button.button.option.rs"] = "RS",
         ["gamepad.button.button.option.up"] = "方向键上",
         ["gamepad.button.button.option.down"] = "方向键下",
         ["gamepad.button.button.option.left"] = "方向键左",

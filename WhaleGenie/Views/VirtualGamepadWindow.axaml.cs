@@ -24,9 +24,10 @@ internal enum GamepadPick
 }
 
 /// <summary>
-/// A controller drawn on screen, so the button a step presses is pointed at rather than spelled.
-/// The pad is drawn the Xbox way whatever controller the macro connects, because that is the one
-/// vocabulary the macro writes: what is clicked here is the name that goes into the step.
+/// The virtual controller drawn on screen, so the control a step works is pointed at rather than
+/// spelled. It is an Xbox 360 pad, which is the pad the program puts on the machine, so what
+/// stands where a hand would find it — the stick under the left thumb, the four face buttons under
+/// the right — is where the macro's own names for those controls come from.
 /// </summary>
 /// <remarks>
 /// The same pad answers all three questions a gamepad step asks — which button, which stick, which

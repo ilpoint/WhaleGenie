@@ -15,8 +15,8 @@
         Background="#232323">
 
     <Window.Styles>
-        <!-- One control of the controller. Every one of them is named the Xbox way, because that
-             is the one vocabulary the macro writes whatever pad is really connected. -->
+        <!-- One control of the controller, sitting where the hand finds it and carrying the name
+             the step writes for it. -->
         <Style Selector="Button.Control">
             <Setter Property="MinWidth" Value="40" />
             <Setter Property="Height" Value="30" />

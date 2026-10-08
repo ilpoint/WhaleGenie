@@ -338,27 +338,27 @@ public class ViiperInputTests
     }
 
     [Fact]
-    public void A_controller_nobody_asked_for_comes_up_as_the_pad_games_expect()
+    public void A_button_brings_the_controller_up_that_games_look_for()
     {
         var link = new FakeLink(0, 0);
         using var device = new ViiperInputDevice(() => link);
 
         device.Button("a", true);
 
-        Assert.Equal([GamepadKind.Xbox360], link.Gamepads);
+        Assert.Equal(1, link.Gamepads);
         Assert.Equal("gamepad A:0,0:0,0:0,0", link.Sent[^1]);
     }
 
     [Fact]
-    public void Asking_for_a_controller_puts_that_one_on_the_machine_once()
+    public void Asking_for_the_controller_puts_it_on_the_machine_once()
     {
         var link = new FakeLink(0, 0);
         using var device = new ViiperInputDevice(() => link);
 
-        device.Connect(GamepadKind.DualSense);
-        device.Connect(GamepadKind.DualSense);
+        device.Connect();
+        device.Connect();
 
-        Assert.Equal([GamepadKind.DualSense], link.Gamepads);
+        Assert.Equal(1, link.Gamepads);
     }
 
     [Fact]
@@ -421,12 +421,12 @@ public class ViiperInputTests
     {
         public List<string> Sent { get; } = [];
 
-        /// <summary>The controller kinds the gamepad was asked to be, in the order it was asked.</summary>
-        public List<GamepadKind> Gamepads { get; } = [];
+        /// <summary>How many times a controller was put on the bus.</summary>
+        public int Gamepads { get; private set; }
 
         public ScreenPoint Cursor { get; private set; } = new(x, y);
 
-        public void ConnectGamepad(GamepadKind kind) => Gamepads.Add(kind);
+        public void ConnectGamepad() => Gamepads++;
 
         public void SendGamepad(GamepadState state)
             => Sent.Add($"gamepad {state.Buttons}:{state.LeftTrigger},{state.RightTrigger}"
@@ -462,7 +462,7 @@ public class ViiperInputTests
     {
         public ScreenPoint Cursor { get; } = new(0, 0);
 
-        public void ConnectGamepad(GamepadKind kind)
+        public void ConnectGamepad()
         {
         }
 

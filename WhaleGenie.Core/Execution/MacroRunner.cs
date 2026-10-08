@@ -944,7 +944,7 @@ public sealed class MacroRunner
 
             // ---------------------------------------------------------------- gamepad
             case "gamepad.connect":
-                _devices.Gamepad.Connect(GamepadKindOf(step));
+                _devices.Gamepad.Connect();
                 _gamepadUsed = true;
                 return Signal.Normal;
 
@@ -2120,15 +2120,6 @@ public sealed class MacroRunner
         await Pause(Math.Max(Pace(Number(step, "holdMs")), ShortestPressMs), token);
         device.Button(button, false);
     }
-
-    /// <summary>The controller a connect step names, with the Xbox pad as the one nobody has to ask for.</summary>
-    private static GamepadKind GamepadKindOf(ExecutableStep step)
-        => step.Text("controller").Trim().ToLowerInvariant() switch
-        {
-            "dualshock4" or "ds4" => GamepadKind.DualShock4,
-            "dualsense" or "ds5" => GamepadKind.DualSense,
-            _ => GamepadKind.Xbox360,
-        };
 
     /// <summary>The same for a combination: it can be sent more than once with a pause between.</summary>
     private async Task SendHotkey(ExecutableStep step, CancellationToken token)

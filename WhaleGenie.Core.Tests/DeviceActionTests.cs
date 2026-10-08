@@ -3755,7 +3755,7 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer();
         var (result, _, _) = await RunAsync(
         [
-            Step("gamepad.connect", Param("controller", "dualsense")),
+            Step("gamepad.connect"),
             Step("gamepad.button", Param("button", "a"), Param("mode", "down")),
             Step("gamepad.stick", Param("stick", "left"), Param("x", "60"), Param("y", "0")),
             Step("gamepad.trigger", Param("trigger", "right"), Param("amount", "80")),
@@ -3764,7 +3764,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(GamepadKind.DualSense, devices.GamepadKind);
+        Assert.Contains("gamepadConnect", devices.Calls);
         Assert.Contains("gamepadButton a True", devices.Calls);
         Assert.Contains("gamepadStick left 60 0", devices.Calls);
         Assert.Contains("gamepadTrigger right 80", devices.Calls);
@@ -4066,14 +4066,7 @@ internal sealed class FakeDeviceLayer
 
     public void KeyPress(string key, int holdMs) => Note($"keyPress {key} {holdMs}");
 
-    /// <summary>The kind of controller a connect step asked for.</summary>
-    public GamepadKind? GamepadKind { get; private set; }
-
-    public void Connect(GamepadKind kind)
-    {
-        GamepadKind = kind;
-        Note($"gamepadConnect {kind}");
-    }
+    public void Connect() => Note("gamepadConnect");
 
     public void Button(string button, bool down) => Note($"gamepadButton {button} {down}");
 

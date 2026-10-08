@@ -2,25 +2,10 @@ using System;
 
 namespace WhaleGenie.Core.Devices;
 
-/// <summary>Which virtual controller a macro puts on the machine.</summary>
-public enum GamepadKind
-{
-    /// <summary>An Xbox 360 wired controller, the one Windows games expect to find.</summary>
-    Xbox360,
-
-    /// <summary>A DualShock 4, the controller that goes with a PlayStation 4.</summary>
-    DualShock4,
-
-    /// <summary>A DualSense, the controller that goes with a PlayStation 5.</summary>
-    DualSense,
-}
-
 /// <summary>
-/// The buttons of a virtual controller, named the Xbox way whatever controller is really behind
-/// it. The three controllers spell their buttons differently — a DualSense has a Cross and a
-/// Circle where an Xbox pad has an A and a B — and a macro that had to name each one its own way
-/// would stop working the moment the controller changed. So one vocabulary is used everywhere and
-/// each controller's own report is built from it.
+/// The buttons of the virtual controller, named the way they are printed on it: the pad the
+/// program puts on the machine is an Xbox 360 one, which is the controller Windows games look for,
+/// so the names a macro writes are that pad's names. One vocabulary, because it is one pad.
 /// </summary>
 [Flags]
 public enum GamepadButtons
@@ -131,10 +116,10 @@ public static class GamepadNames
 public interface IGamepadDevice
 {
     /// <summary>
-    /// Puts a controller of this kind on the machine, taking down a controller of another kind
-    /// that is already there. The kind is remembered, so the steps after this one do not name it.
+    /// Puts the controller on the machine. Every step that drives one does this for itself, so
+    /// this is for a macro that wants the pad there before a game looks at what is connected.
     /// </summary>
-    void Connect(GamepadKind kind);
+    void Connect();
 
     /// <summary>Holds a button down, or lets it up. The name is one of <see cref="GamepadNames.Buttons"/>.</summary>
     void Button(string button, bool down);

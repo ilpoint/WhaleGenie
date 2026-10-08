@@ -37,7 +37,7 @@ dotnet format WhaleGenie.slnx           # 按 .editorconfig 整理格式
 | 包 | 在引擎里干什么 |
 | --- | --- |
 | `SharpHook` | 全局键盘鼠标钩子与注入：热键 / 鼠标按键 / 滚轮这些触发器，`input.*` 的前台路径，录制，以及各种拾取 |
-| `Viiper.Client` | 驱动级输入：连本机 VIIPER 服务端，把按键和指针交给虚拟键鼠对（`input.*` 的"驱动级"），以及虚拟手柄（`gamepad.*`：Xbox 360 / DualShock 4 / DualSense） |
+| `Viiper.Client` | 驱动级输入：连本机 VIIPER 服务端，把按键和指针交给虚拟键鼠对（`input.*` 的"驱动级"），以及虚拟手柄（`gamepad.*`，一只 Xbox 360） |
 | `OpenCvSharp5.Windows` | 找图、找色、等图这类画面动作：OpenCV 的托管 API（`Cv2`、`Mat`）和它的 Windows 原生库 |
 | `Sdcb.SimdPaddleOCR`、`Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny` | 屏幕取字（OCR）：识别库和随包带的中文模型，不联网下载 |
 | `FlaUI.UIA3` | UI Automation：元素的取值、选择、勾选、展开、滚动到可见、读表格 |

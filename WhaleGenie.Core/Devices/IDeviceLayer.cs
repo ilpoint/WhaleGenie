@@ -600,7 +600,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
           IFileDevice, IClipboardDevice, IProcessDevice, ISystemDevice, IWindowDevice,
           IBrowserDevice
     {
-        public void Connect(GamepadKind kind) => throw Missing("a controller");
+        public void Connect() => throw Missing("a controller");
 
         public void Button(string button, bool down) => throw Missing("a controller");
 

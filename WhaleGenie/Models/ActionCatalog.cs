@@ -1654,13 +1654,12 @@ public static class ActionCatalog
             Key = "gamepad.connect",
             Category = ActionCategory.Input,
             DisplayName = "Connect Controller",
-            Description = "Put a virtual controller on the machine, which the steps after this one "
-                + "press the buttons of. It is the same driver-level input as a virtual keyboard: "
-                + "the usbip-win2 driver and the VIIPER server have to be there.",
-            Parameters =
-            [
-                Controller(),
-            ],
+            Description = "Put the virtual controller — an Xbox 360 pad — on the machine, which "
+                + "the steps after this one press the buttons of. The steps that drive a controller "
+                + "put it there by themselves, so this is for a game that only looks at what is "
+                + "connected when it starts. It is the same driver-level input as a virtual "
+                + "keyboard: the usbip-win2 driver and the VIIPER server have to be there.",
+            Parameters = [],
         },
         new()
         {
@@ -2765,28 +2764,18 @@ public static class ActionCatalog
     private static ActionParameter Button()
         => Choice("button", "Button", ["left", "right", "middle", "back", "forward"], "left");
 
-    /// <summary>The controller a step puts on the machine before its buttons can be pressed.</summary>
-    private static ActionParameter Controller()
-        => Choice("controller", "Controller", ["xbox360", "dualshock4", "dualsense"], "xbox360",
-            "Which controller the machine is made to see. The Xbox 360 pad is the one games on "
-            + "Windows expect to find; the two PlayStation pads are for a game that only answers "
-            + "one of those.",
-            labels: ["Xbox 360", "DualShock 4", "DualSense"]);
-
     /// <summary>
-    /// The button of a virtual controller, listed with the names the macro writes. The four
-    /// shoulder controls carry both spellings, because which one a person looks for depends on
-    /// the controller they have in mind.
+    /// The button of the virtual controller, listed with the names the macro writes, which are the
+    /// ones printed on the pad.
     /// </summary>
     private static ActionParameter GamepadButton()
         => Choice("button", "Button", [.. GamepadNames.Buttons], "a",
-            "The button to press. They are named the Xbox way whatever controller is connected: "
-            + "the A of an Xbox pad is the Cross of a PlayStation one.",
+            "The button to press, named the way it is printed on the pad.",
             labels:
             [
                 "A", "B", "X", "Y",
-                "LB (L1)", "RB (R1)", "LT (L2)", "RT (R2)",
-                "LS (L3)", "RS (R3)",
+                "LB", "RB", "LT", "RT",
+                "LS", "RS",
                 "D-pad up", "D-pad down", "D-pad left", "D-pad right",
                 "Start", "Back", "Guide",
             ]);

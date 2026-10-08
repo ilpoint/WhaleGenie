@@ -78,8 +78,8 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
     private byte _buttons;
     private long _movedAt;
 
-    /// <summary>The kind of controller on the machine, or null while none has been asked for.</summary>
-    private GamepadKind? _gamepadKind;
+    /// <summary>Whether a controller has been put on the machine yet.</summary>
+    private bool _gamepadOn;
 
     /// <summary>What the controller is doing, kept here because a report is the whole picture of it.</summary>
     private GamepadState _gamepad = GamepadState.Neutral;
@@ -344,21 +344,21 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
     }
 
     /// <summary>
-    /// Puts a controller of this kind on the machine, and lets go of everything a controller of
-    /// another kind was holding: its buttons and axes do not exist on this one.
+    /// Puts the controller on the machine, and lets go of everything it was holding: a pad that
+    /// arrives with a button already down is one no game ever pressed.
     /// </summary>
-    public void Connect(GamepadKind kind)
+    public void Connect()
     {
         lock (_gate)
         {
-            if (_gamepadKind == kind)
+            if (_gamepadOn)
             {
                 return;
             }
 
-            _gamepadKind = kind;
             _gamepad = GamepadState.Neutral;
-            Link().ConnectGamepad(kind);
+            Link().ConnectGamepad();
+            _gamepadOn = true;
             PushGamepad();
         }
     }
@@ -438,7 +438,7 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
     {
         lock (_gate)
         {
-            if (_gamepadKind is null)
+            if (!_gamepadOn)
             {
                 return;
             }
@@ -449,20 +449,20 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
     }
 
     /// <summary>
-    /// Brings a controller up if none has been asked for. A macro that never chose one gets the
-    /// pad Windows games look for, so the steps that drive a controller work on their own.
+    /// Brings the controller up if it is not there yet, so a macro that drives one does not have to
+    /// say so first. A macro that does say so puts it on the bus before the game looks.
     /// </summary>
     private void BeginGamepad()
     {
-        if (_gamepadKind is null)
+        if (!_gamepadOn)
         {
-            Connect(GamepadKind.Xbox360);
+            Connect();
         }
     }
 
     private void PushGamepad()
     {
-        if (_gamepadKind is { } kind)
+        if (_gamepadOn)
         {
             Link().SendGamepad(_gamepad);
         }
