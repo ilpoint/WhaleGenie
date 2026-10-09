@@ -788,6 +788,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.DeletedRows"] = "Took {0} row(s) out of {2}, starting at row {1}.",
         ["Run.NoRowsToDelete"] = "There was nothing at row {0} of {1} to take out.",
         ["Run.BadRow"] = "Row {0} is not a row a sheet has: rows are counted from 1.",
+        ["Run.LastVisibleSheet"] = "The last sheet that is on show cannot be hidden: a workbook "
+            + "with nothing showing has no way back from Excel's own window.",
+        ["Run.SheetHidden"] = "The sheet {0} is off the tabs at the bottom.",
+        ["Run.SheetShown"] = "The sheet {0} is back on the tabs at the bottom.",
+        ["Run.CopiedSheet"] = "Copied the sheet {0} into {1}.",
         ["Run.ImageMissing"] = "Not on screen, so {0} was emptied.",
         ["Run.ImageNotFound"] = "Never found the reference image: {0}",
         ["Run.ClickedImage"] = "Clicked the match at {0},{1}",
@@ -1625,6 +1630,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.DeletedRows"] = "已从 {2} 的第 {1} 行起删掉 {0} 行。",
         ["Run.NoRowsToDelete"] = "{1} 里第 {0} 行那里没有行可删。",
         ["Run.BadRow"] = "{0} 不是一个行号：行从 1 数起。",
+        ["Run.LastVisibleSheet"] = "最后一张还显示着的表收不起来："
+            + "一张表都不显示的工作簿，从 Excel 自己的窗口里没有路走回来。",
+        ["Run.SheetHidden"] = "工作表 {0} 已从标签栏收起。",
+        ["Run.SheetShown"] = "工作表 {0} 已放回标签栏。",
+        ["Run.CopiedSheet"] = "已把工作表 {0} 复制进 {1}。",
         ["Run.ImageMissing"] = "屏幕上没有，{0} 已置空。",
         ["Run.ImageNotFound"] = "始终没有找到参考图片：{0}",
         ["Run.ClickedImage"] = "已点击匹配位置 {0},{1}",

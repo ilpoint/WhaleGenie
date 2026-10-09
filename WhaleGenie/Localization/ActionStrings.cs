@@ -755,6 +755,40 @@ internal static class ActionStrings
         ["excel.deleteRows.count.label"] = "删几行",
         ["excel.deleteRows.count.hint"] = "删掉几行。要删的比表里有的多时，就把有的那几行删掉，"
             + "所以清理一块区域的宏不用先知道那块区域有多长。",
+        ["excel.setSheetVisibility.name"] = "显示或隐藏 Excel 工作表",
+        ["excel.setSheetVisibility.desc"] = "把工作表放上标签栏，或者从标签栏上收起来。",
+        ["excel.setSheetVisibility.path.label"] = "文件",
+        ["excel.setSheetVisibility.path.hint"] = "要改的 Excel 文件。只写文件名时会相对宏文件夹解析。",
+        ["excel.setSheetVisibility.sheet.label"] = "表",
+        ["excel.setSheetVisibility.sheet.hint"] = "要收起或放出来的那一张，写表标签上的名字。",
+        ["excel.setSheetVisibility.visibility.label"] = "是否显示",
+        ["excel.setSheetVisibility.visibility.hint"] =
+            "这张表在不在窗口下面的标签栏上。收起来是工作簿把中间过程放一边的写法："
+            + "报表的草稿、查值用的对照表，不必和报表一起摆在屏幕上。"
+            + "最后一张还显示着的表收不起来——一张表都不显示的窗口里，Excel 自己的菜单"
+            + "连「取消隐藏」都不给——所以那一种会被拒绝。",
+        ["excel.setSheetVisibility.visibility.option.hidden"] = "隐藏（从标签栏收起）",
+        ["excel.setSheetVisibility.visibility.option.visible"] = "显示（在标签栏上）",
+        ["excel.setSheetVisibility.visibility.option.veryHidden"] =
+            "深度隐藏（连 Excel 自己的菜单里都不出现）",
+        ["excel.copySheet.name"] = "复制 Excel 工作表",
+        ["excel.copySheet.desc"] = "把一张表复制一份，留在同一个文件里或复制到另一个文件，"
+            + "用新的名字。",
+        ["excel.copySheet.path.label"] = "表的文件",
+        ["excel.copySheet.path.hint"] = "放着要复制的那张表的 Excel 文件。",
+        ["excel.copySheet.sheet.label"] = "表",
+        ["excel.copySheet.sheet.hint"] = "复制哪一张，写表标签上的名字；留空表示第一张表。",
+        ["excel.copySheet.newName.label"] = "复制件的名字",
+        ["excel.copySheet.newName.hint"] = "复制出来的表叫什么。留空就和原来同名，"
+            + "复制到另一个文件时正是这个样子。",
+        ["excel.copySheet.at.label"] = "放在哪里",
+        ["excel.copySheet.at.hint"] = "复制件排在已有工作表的后面，还是排在它们前面。",
+        ["excel.copySheet.at.option.last"] = "排在后面",
+        ["excel.copySheet.at.option.first"] = "排在前面",
+        ["excel.copySheet.into.label"] = "复制到",
+        ["excel.copySheet.into.hint"] = "复制进哪个文件。留空就是留在原来那个文件里。"
+            + "文件不存在时会新建，而复制件带着公式、格式和列宽一起过去——"
+            + "这几样都是「读一张表再写回去」留不住的。",
 
         // ------------------------------------------------------------------- data
         ["data.base64Encode.name"] = "Base64 编码",

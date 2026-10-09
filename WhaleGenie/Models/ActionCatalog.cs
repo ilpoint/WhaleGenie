@@ -1051,6 +1051,58 @@ public static class ActionCatalog
                     + "long the block turned out.", min: 1, max: 1048576),
             ],
         },
+        new()
+        {
+            Key = "excel.setSheetVisibility",
+            Category = ActionCategory.Spreadsheet,
+            DisplayName = "Show or Hide Excel Sheet",
+            Description = "Put a sheet on the tabs along the bottom of the window, or take it off "
+                + "them.",
+            Parameters =
+            [
+                FilePath("path", "File", "report.xlsx", "The Excel file to change.", PathIntent.Read,
+                    "*.xlsx"),
+                Sheet(),
+                Choice("visibility", "Shown", ["hidden", "visible", "veryHidden"], "hidden",
+                    "Whether the sheet is on the tabs along the bottom of the window. Hiding is "
+                    + "how a workbook keeps its working-out out of the way: the draft a report is "
+                    + "built from, or the list it looks values up in. The last sheet that is on "
+                    + "show cannot be hidden — a workbook where nothing shows cannot be unhidden "
+                    + "from Excel's own window — so that one is refused.",
+                    labels:
+                    [
+                        "Hidden, off the tabs",
+                        "Shown, on the tabs",
+                        "Hidden and out of Excel's own menu",
+                    ]),
+            ],
+        },
+        new()
+        {
+            Key = "excel.copySheet",
+            Category = ActionCategory.Spreadsheet,
+            DisplayName = "Copy Excel Sheet",
+            Description = "Put a copy of a sheet into the file it came from or into another one, "
+                + "under a name of its own.",
+            Parameters =
+            [
+                FilePath("path", "Sheet in", "report.xlsx", "The Excel file holding the sheet to "
+                    + "copy.", PathIntent.Read, "*.xlsx"),
+                Sheet(),
+                Text("newName", "Name of the copy", "2026-02",
+                    "What the copy is called. Leave it empty for a copy called what the sheet it "
+                    + "came from is called, which is what copying into another file wants."),
+                Choice("at", "Where it goes", ["last", "first"], "last",
+                    "Whether the copy sits behind the sheets that are there or in front of them.",
+                    labels: ["Behind them", "In front of them"], advanced: true),
+                FilePath("into", "Copy into", "2026-02.xlsx",
+                    "The file to copy the sheet into. Leave it empty to keep the copy in the file "
+                    + "the sheet came from. A file that is not there yet is made, and the copy "
+                    + "carries the formulas, the formats and the widths with it — none of which "
+                    + "survive reading a table and writing it back.",
+                    PathIntent.Write, "*.xlsx"),
+            ],
+        },
 
         // -------------------------------------------------------------------- data
         new()

@@ -43,20 +43,28 @@ public class SheetWriteTests
         };
     }
 
-    /// <summary>Reads the whole sheet back as it sits, names and all, so cells can be counted.</summary>
-    private static ExecutableStep Read(bool asText = false) => new()
+    /// <summary>Reads a whole sheet back as it sits, names and all, so cells can be counted.</summary>
+    private static ExecutableStep Read(bool asText = false, string sheet = "Sheet1") => new()
     {
         Type = "excel.readSheet",
         Parameters =
         [
             Param("path", "book.xlsx"),
-            Param("sheet", "Sheet1"),
+            Param("sheet", sheet),
             Param("hasHeader", "false"),
             Param("maxRows", "0"),
             Param("asText", asText ? "true" : "false"),
             Param("resultVariable", "back"),
         ],
     };
+
+    /// <summary>One of the actions about the sheet itself: the workbook, then what the step says.</summary>
+    private static ExecutableStep OnSheet(string type, params ExecutableParameter[] parameters)
+        => new() { Type = type, Parameters = [Param("path", "book.xlsx"), .. parameters] };
+
+    /// <summary>The workbook as it sits on the fake machine, which is where the sheet itself is read.</summary>
+    private static XLWorkbook Book(FakeDeviceLayer devices, string path = "book.xlsx")
+        => new(new MemoryStream(devices.Blobs[path]));
 
     private static async Task<RunResult> RunAsync(VariableStore store, FakeDeviceLayer devices,
         params ExecutableStep[] steps)
@@ -505,5 +513,128 @@ public class SheetWriteTests
         Assert.Equal(XLAlignmentHorizontalValues.Center, page.Cell(1, 1).Style.Alignment.Horizontal);
         Assert.True(page.Cell(1, 1).Style.Alignment.WrapText);
         Assert.Equal(30, page.Column(1).Width);
+    }
+
+    [Fact]
+    public async Task A_sheet_can_be_taken_off_the_tabs_and_put_back_on_them()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+
+        var hid = await RunAsync(store, devices,
+            Write(Param("rows", "a"), Param("sheet", "A")),
+            Write(Param("rows", "b"), Param("sheet", "B")),
+            OnSheet("excel.setSheetVisibility", Param("sheet", "B"), Param("visibility", "hidden")));
+
+        Assert.True(hid.Succeeded, hid.Key + " " + hid.Detail);
+        using (var book = Book(devices))
+        {
+            Assert.Equal(XLWorksheetVisibility.Hidden, book.Worksheet("B").Visibility);
+            Assert.Equal(XLWorksheetVisibility.Visible, book.Worksheet("A").Visibility);
+        }
+
+        var shown = await RunAsync(store, devices,
+            OnSheet("excel.setSheetVisibility", Param("sheet", "B"), Param("visibility", "visible")));
+
+        Assert.True(shown.Succeeded, shown.Key + " " + shown.Detail);
+        using var after = Book(devices);
+        Assert.Equal(XLWorksheetVisibility.Visible, after.Worksheet("B").Visibility);
+    }
+
+    [Fact]
+    public async Task The_last_sheet_that_is_on_show_is_not_taken_off_the_tabs()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "a")),
+            OnSheet("excel.setSheetVisibility", Param("visibility", "veryHidden")));
+
+        // Nothing on show is a workbook nobody can unhide from Excel's own menu.
+        Assert.Equal("Run.LastVisibleSheet", result.Key);
+    }
+
+    [Fact]
+    public async Task A_sheet_is_copied_under_a_name_of_its_own()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "a"), Param("sheet", "一月")),
+            OnSheet("excel.copySheet", Param("sheet", "一月"), Param("newName", "二月")),
+            Read(sheet: "二月"));
+
+        Assert.True(result.Succeeded, result.Key + " " + result.Detail);
+        Assert.Equal("a", Assert.Single(Rows(store, "back"))[0].AsText());
+
+        // Both sheets, the copy behind the one it came from and holding what that one holds.
+        using var book = Book(devices);
+        Assert.Equal(["一月", "二月"], book.Worksheets.Select(page => page.Name));
+        Assert.Equal("a", book.Worksheet("一月").Cell(1, 1).GetString());
+    }
+
+    [Fact]
+    public async Task A_copy_can_be_put_in_front_of_the_sheets_that_are_there()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "a"), Param("sheet", "一月")),
+            OnSheet("excel.copySheet", Param("sheet", "一月"), Param("newName", "零月"),
+                Param("at", "first")));
+
+        Assert.True(result.Succeeded, result.Key + " " + result.Detail);
+        using var book = Book(devices);
+        Assert.Equal(["零月", "一月"], book.Worksheets.Select(page => page.Name));
+    }
+
+    [Fact]
+    public async Task A_sheet_is_copied_into_another_file_that_is_not_there_yet()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "a")),
+            OnSheet("excel.copySheet", Param("sheet", "Sheet1"), Param("into", "other.xlsx")),
+            new ExecutableStep
+            {
+                Type = "excel.readSheet",
+                Parameters =
+                [
+                    Param("path", "other.xlsx"),
+                    Param("sheet", "Sheet1"),
+                    Param("hasHeader", "false"),
+                    Param("maxRows", "0"),
+                    Param("resultVariable", "moved"),
+                ],
+            });
+
+        Assert.True(result.Succeeded, result.Key + " " + result.Detail);
+        Assert.Equal("a", store.Local.Values["moved"].Items[0].Items[0].AsText());
+
+        // The empty name keeps the sheet's own, which is what copying a template into a new file
+        // wants; the file it came from still holds the one sheet it had.
+        using var target = Book(devices, "other.xlsx");
+        Assert.Equal(["Sheet1"], target.Worksheets.Select(page => page.Name));
+        using var source = Book(devices);
+        Assert.Equal(["Sheet1"], source.Worksheets.Select(page => page.Name));
+    }
+
+    [Fact]
+    public async Task A_copy_under_a_name_the_workbook_already_has_is_refused()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "a"), Param("sheet", "A")),
+            Write(Param("rows", "b"), Param("sheet", "B")),
+            OnSheet("excel.copySheet", Param("sheet", "A"), Param("newName", "B")));
+
+        Assert.Equal("Run.SheetNameTaken", result.Key);
     }
 }

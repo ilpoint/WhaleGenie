@@ -880,6 +880,14 @@ public sealed class MacroRunner
                 DeleteRows(step, depth);
                 return Signal.Normal;
 
+            case "excel.setSheetVisibility":
+                SetSheetVisibility(step, depth);
+                return Signal.Normal;
+
+            case "excel.copySheet":
+                CopySheet(step, depth);
+                return Signal.Normal;
+
             // ----------------------------------------------------------------- data
             case "data.base64Encode":
                 EncodeBase64(step, depth);
@@ -3639,6 +3647,58 @@ public sealed class MacroRunner
 
         _devices.Files.WriteBytes(path, written);
         Log(LogLevel.Info, depth, step.Type, "Run.DeletedRows", removed, at, sheet);
+    }
+
+    /// <summary>Shows a sheet or takes it off the tabs, and says which of the two it did.</summary>
+    private void SetSheetVisibility(ExecutableStep step, int depth)
+    {
+        var path = PathOf(step);
+        var sheet = step.Text("sheet").Trim();
+        var how = step.Text("visibility").Trim().ToLowerInvariant() switch
+        {
+            "visible" => Spreadsheet.SheetVisibility.Shown,
+            "veryhidden" => Spreadsheet.SheetVisibility.VeryHidden,
+            _ => Spreadsheet.SheetVisibility.Hidden,
+        };
+
+        _devices.Files.WriteBytes(path, Spreadsheet.SetSheetVisibility(
+            _devices.Files.ReadBytes(path), sheet, how));
+
+        if (how == Spreadsheet.SheetVisibility.Shown)
+        {
+            Log(LogLevel.Info, depth, step.Type, "Run.SheetShown", sheet);
+            return;
+        }
+
+        Log(LogLevel.Info, depth, step.Type, "Run.SheetHidden", sheet);
+    }
+
+    /// <summary>
+    /// Copies a sheet, either into the file it came from or into another one. A target file that is
+    /// not there is made, which is how a template becomes a report: the copy carries the formulas,
+    /// the formats and the widths along with the values, none of which reading a table and writing
+    /// it back keeps.
+    /// </summary>
+    private void CopySheet(ExecutableStep step, int depth)
+    {
+        var path = PathOf(step);
+        var into = PathOf(step, "into").Trim();
+        var sheet = step.Text("sheet").Trim();
+        var name = step.Text("newName").Trim();
+        var first = string.Equals(step.Text("at").Trim(), "first", StringComparison.OrdinalIgnoreCase);
+
+        // Leaving the target empty is the same file, and so is naming it: the copy of a sheet is
+        // most often the next month's sheet of the same workbook.
+        var here = into.Length == 0 || string.Equals(into, path, StringComparison.OrdinalIgnoreCase);
+        var source = _devices.Files.ReadBytes(path);
+        var (written, called) = Spreadsheet.CopySheet(
+            source,
+            here ? source
+                : _devices.Files.Exists(into) ? _devices.Files.ReadBytes(into) : null,
+            sheet, name, first);
+
+        _devices.Files.WriteBytes(here ? path : into, written);
+        Log(LogLevel.Info, depth, step.Type, "Run.CopiedSheet", called, here ? path : into);
     }
 
     /// <summary>

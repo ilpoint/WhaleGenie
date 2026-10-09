@@ -369,6 +369,69 @@ public static class Spreadsheet
     }
 
     /// <summary>
+    /// Shows a sheet or takes it off the tabs along the bottom. Hiding is how a workbook keeps its
+    /// working-out out of the way: the draft a report is built from, or the list the report looks
+    /// values up in, does not have to be on screen beside the report.
+    /// </summary>
+    /// <remarks>
+    /// The last sheet that is on show never goes: a workbook whose sheets are all hidden is one
+    /// nobody can unhide from Excel's own window — the menu that would do it is only offered when
+    /// something is showing — so the step is refused rather than leaving a file that looks broken.
+    /// </remarks>
+    public static byte[] SetSheetVisibility(byte[] book, string sheet, SheetVisibility how)
+    {
+        using var document = Open(book);
+        var page = Find(document, sheet) ?? throw NoSuchSheet(document, sheet);
+        var showing = document.Worksheets.Count(other =>
+            other.Visibility == XLWorksheetVisibility.Visible);
+        if (how != SheetVisibility.Shown && page.Visibility == XLWorksheetVisibility.Visible
+            && showing <= 1)
+        {
+            throw new DeviceActionException("Run.LastVisibleSheet", page.Name);
+        }
+
+        page.Visibility = how switch
+        {
+            SheetVisibility.Hidden => XLWorksheetVisibility.Hidden,
+            SheetVisibility.VeryHidden => XLWorksheetVisibility.VeryHidden,
+            _ => XLWorksheetVisibility.Visible,
+        };
+
+        return Save(document);
+    }
+
+    /// <summary>
+    /// Puts a copy of a sheet into a workbook, with a name of its own: last month's sheet is the
+    /// shape this month's is filled into, and a template is the same thing between files.
+    /// </summary>
+    /// <param name="source">The workbook the sheet comes from.</param>
+    /// <param name="into">
+    /// The workbook the copy goes into, or <c>null</c> for a new one. The same bytes as
+    /// <paramref name="source"/> when the copy stays in the file it came from.
+    /// </param>
+    /// <param name="sheet">Which sheet to copy, or the first one when the name is empty.</param>
+    /// <param name="name">What the copy is called, or the name it came from when nothing is said.</param>
+    /// <param name="first">Whether the copy goes in front of the other sheets rather than behind them.</param>
+    /// <returns>The workbook the copy went into, and the name it took.</returns>
+    public static (byte[] Book, string Called) CopySheet(byte[] source, byte[]? into, string sheet,
+        string name, bool first)
+    {
+        using var from = Open(source);
+        var page = Find(from, sheet) ?? throw NoSuchSheet(from, sheet);
+        var called = name.Length > 0 ? name : page.Name;
+
+        using var document = into is null ? new XLWorkbook() : Open(into);
+        if (Find(document, called) is not null)
+        {
+            throw new DeviceActionException("Run.SheetNameTaken", called);
+        }
+
+        var copy = page.CopyTo(document, called);
+        copy.Position = first ? 1 : document.Worksheets.Count;
+        return (Save(document), called);
+    }
+
+    /// <summary>
     /// Takes rows out and brings what is under them up. Deleting rows a sheet does not hold is not
     /// a failure: "clear yesterday's lines" runs on a sheet that may hold none of them.
     /// </summary>
@@ -655,6 +718,19 @@ public static class Spreadsheet
         Left,
         Center,
         Right,
+    }
+
+    /// <summary>Whether a sheet is on the tabs along the bottom of the window.</summary>
+    public enum SheetVisibility
+    {
+        /// <summary>On the tabs, which is where every sheet starts.</summary>
+        Shown,
+
+        /// <summary>Off the tabs, put back from Excel's own menu.</summary>
+        Hidden,
+
+        /// <summary>Off the tabs and out of that menu, so only code can put it back.</summary>
+        VeryHidden,
     }
 
     /// <summary>The sheet a name stands for, or nothing when the workbook has no such sheet.</summary>

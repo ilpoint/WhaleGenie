@@ -149,6 +149,13 @@ dotnet format WhaleGenie.slnx           # 按 .editorconfig 整理格式
 在日期格式的格子里也是这么做的），认不出来的文字仍是文字。同一处还有文字对齐（`alignment`）、
 单元格内折行（`wrapText`）和固定列宽（`columnWidth`，0 表示不动）。
 
+工作表也归几个动作管：列出（`excel.listSheets`）、新建（`excel.addSheet`）、改名
+（`excel.renameSheet`）、删除（`excel.deleteSheet`，最后一张不动）和显示或隐藏
+（`excel.setSheetVisibility`，最后一张还显示着的表收不起来——一张表都不显示的工作簿，从 Excel
+自己的窗口里没有路走回来）。`excel.copySheet` 把一整张表复制一份：复制件带着公式、格式和列宽，
+留在同一个文件里或复制进另一个文件（那个文件不存在就新建），所以"拿上个月的报表当这个月的
+模板"是一步。
+
 **旧版 .xls（2007 年以前 Excel 的写法）打不开。** 它是另一种格式（OLE 容器里的一串记录），
 不是 `.xlsx` 那种 zip，报错会明白说清：在 Excel 里另存为 `.xlsx`，再用那一份。
 
