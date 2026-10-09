@@ -42,16 +42,17 @@ internal static class SampleFiles
         foreach (var file in Directory.EnumerateFiles(Folder))
         {
             var name = Path.GetFileName(file);
-            if (Path.GetExtension(name) is ".xlsx" or ".xls")
+            // Only the text samples are read: the folder is somebody's own, and it holds workbooks
+            // and macro packages beside the files these checks ask for — bytes that are not text
+            // would be decoded into variables nothing reads.
+            if (Path.GetExtension(name) is not (".csv" or ".json" or ".txt"))
             {
-                devices.Blobs[name] = File.ReadAllBytes(file);
+                continue;
             }
-            else
-            {
-                // Decoded with the reader's own rules rather than with a second guess written here:
-                // a file whose encoding the reader gets wrong has to fail in the check.
-                devices.Files[name] = TextEncoding.Read(File.ReadAllBytes(file), string.Empty);
-            }
+
+            // Decoded with the reader's own rules rather than with a second guess written here:
+            // a file whose encoding the reader gets wrong has to fail in the check.
+            devices.Files[name] = TextEncoding.Read(File.ReadAllBytes(file), string.Empty);
         }
 
         var store = new VariableStore();

@@ -61,16 +61,6 @@ The icon was scaled and modified from the original.
 - Playwright（Microsoft.Playwright）— Apache-2.0
   <https://github.com/microsoft/playwright-dotnet>
   随包分发的是它的驱动，里面带一份 Node.js；浏览器本体不在这里，见下面「用户自己装的组件」。
-- ClosedXML — MIT
-  <https://github.com/ClosedXML/ClosedXML>
-  它管的 .xlsx 就是 Open XML 格式，底下建在微软的 Open XML SDK 上：
-  DocumentFormat.OpenXml、DocumentFormat.OpenXml.Framework — MIT
-  <https://github.com/dotnet/Open-XML-SDK>
-  它带进来的 ClosedXML.Parser（<https://github.com/ClosedXML/ClosedXML.Parser>）、
-  ExcelNumberFormat（<https://github.com/andersnm/ExcelNumberFormat>）、
-  RBush.Signed（<https://github.com/viceroypenguin/RBush>）— MIT
-  SixLabors.Fonts — Apache-2.0
-  <https://github.com/SixLabors/Fonts>
 - CsvHelper — Apache-2.0 与 MS-PL 双许可
   <https://github.com/JoshClose/CsvHelper>
   读写的都是带分隔符的文本文件（`file.readCsv` / `file.writeCsv`）：引号、单元格里的换行、
