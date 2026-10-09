@@ -36,7 +36,19 @@ public static class Spreadsheet
     /// Which sheet to read. An empty name means the first one, which is the one a person looking
     /// at the file sees first.
     /// </param>
-    public static IReadOnlyList<IReadOnlyList<Value>> Read(byte[] book, string sheet)
+    /// <param name="range">
+    /// Which cells to read, as a person writes them in the name box: <c>B2:D40</c>, or <c>B2</c> for
+    /// everything from that cell down and to the right. Nothing means the sheet's used cells, and
+    /// those are read a row at a time as wide as the row really is; a range that was written out is
+    /// read as wide as it was asked for, because that is what was asked for.
+    /// </param>
+    /// <param name="asText">
+    /// Read what each cell shows rather than what it holds. A phone number, a date or a column of
+    /// money is often stored one way and shown another, and this is the setting for a macro that
+    /// wants the thing the person looking at the sheet sees.
+    /// </param>
+    public static IReadOnlyList<IReadOnlyList<Value>> Read(byte[] book, string sheet, string range,
+        bool asText)
     {
         using var stream = new MemoryStream(book);
         using var document = Open(stream);
@@ -55,15 +67,17 @@ public static class Spreadsheet
             return rows;
         }
 
-        if (page.RangeUsed() is not { } used)
+        var used = page.RangeUsed();
+        if (Area(page, range, used) is not { } area)
         {
             return rows;
         }
 
-        foreach (var line in used.Rows())
+        var written = range.Trim().Length > 0;
+        foreach (var line in area.Rows())
         {
-            var cells = line.Cells().Select(Held).ToList();
-            while (cells.Count > 0 && cells[^1].AsText().Length == 0)
+            var cells = line.Cells().Select(cell => Held(cell, asText)).ToList();
+            while (!written && cells.Count > 0 && cells[^1].AsText().Length == 0)
             {
                 cells.RemoveAt(cells.Count - 1);
             }
@@ -75,6 +89,44 @@ public static class Spreadsheet
     }
 
     /// <summary>
+    /// The cells a written range names, or nothing when there is nothing to read. A range with no
+    /// colon is the cell reading starts at: what a macro author means by <c>B2</c> is not the one
+    /// cell, it is everything from there down and to the right, and the used cells say where that
+    /// ends.
+    /// </summary>
+    private static IXLRange? Area(IXLWorksheet page, string range, IXLRange? used)
+    {
+        var written = range.Trim();
+        if (written.Length == 0)
+        {
+            return used;
+        }
+
+        try
+        {
+            if (written.Contains(':'))
+            {
+                var halves = written.Split(':');
+                if (halves.Length == 2 && halves[1].Trim().Length == 0)
+                {
+                    // "B2:" is "from B2 on", which only a used sheet can say the end of.
+                    return used is null ? null : page.Range(page.Cell(halves[0].Trim()), used.LastCell());
+                }
+
+                return page.Range(written);
+            }
+
+            return used is null ? null : page.Range(page.Cell(written), used.LastCell());
+        }
+        catch (Exception refused) when (refused is not DeviceActionException)
+        {
+            // The name box's own words, handed back as a step that named cells the format has no
+            // such place for: "A1:Z" or "row 3" is a name to fix, not a broken file.
+            throw new DeviceActionException("Run.BadCellRange", written);
+        }
+    }
+
+    /// <summary>
     /// The rows written into one sheet, handed back as the bytes of a workbook. Starting from
     /// nothing makes a new workbook; starting from the bytes of one keeps everything else that is
     /// in it and only touches the sheet that was asked for.
@@ -82,12 +134,16 @@ public static class Spreadsheet
     /// <param name="book">The workbook to change, or <c>null</c> when there is no file yet.</param>
     /// <param name="sheet">Which sheet to write, or the first one when the name is empty.</param>
     /// <param name="rows">The rows to write, each a list of cells.</param>
-    /// <param name="append">
-    /// Add the rows below what the sheet already holds instead of replacing it, which is how a
-    /// macro keeps a log in a sheet across runs.
+    /// <param name="mode">Where the rows go, and what happens to what the sheet already holds.</param>
+    /// <param name="startCell">The cell the first row starts at, as <c>B2</c>.</param>
+    /// <param name="formulas">
+    /// Write a cell holding text that begins with <c>=</c> as a formula, the way Excel does when
+    /// somebody types one. Off means every cell is written as the text or the number it is.
     /// </param>
+    /// <param name="autoFit">Widen the columns to show what was written.</param>
     public static byte[] Write(byte[]? book, string sheet,
-        IReadOnlyList<IReadOnlyList<Value>> rows, bool append)
+        IReadOnlyList<IReadOnlyList<Value>> rows, SheetWriteMode mode, string startCell,
+        bool formulas, bool autoFit)
     {
         using var document = book is null ? new XLWorkbook() : Open(new MemoryStream(book));
 
@@ -95,7 +151,7 @@ public static class Spreadsheet
         // wants its table to go should not need a second step to put the sheet there, and no other
         // action adds one.
         var page = Find(document, sheet) ?? Add(document, sheet);
-        if (!append)
+        if (mode == SheetWriteMode.Replace)
         {
             // The contents go and the rest of the sheet stays: a header somebody coloured in is
             // still there afterwards, and a macro that only meant to replace the data has not
@@ -103,15 +159,26 @@ public static class Spreadsheet
             page.Clear(XLClearOptions.Contents);
         }
 
-        var at = append ? (page.LastRowUsed()?.RowNumber() ?? 0) + 1 : 1;
+        var corner = mode == SheetWriteMode.Append
+            ? new CellRef(1, (page.LastRowUsed()?.RowNumber() ?? 0) + 1)
+            : Place(page, startCell);
+
         foreach (var row in rows)
         {
             for (var column = 0; column < row.Count; column++)
             {
-                Put(page.Cell(at, column + 1), row[column]);
+                Put(page.Cell(corner.Row, corner.Column + column), row[column], formulas);
             }
 
-            at++;
+            corner = corner with { Row = corner.Row + 1 };
+        }
+
+        if (autoFit)
+        {
+            foreach (var column in page.ColumnsUsed())
+            {
+                column.AdjustToContents();
+            }
         }
 
         using var written = new MemoryStream();
@@ -119,21 +186,118 @@ public static class Spreadsheet
         return written.ToArray();
     }
 
-    /// <summary>What one cell holds, in the kind of value the engine works with.</summary>
-    private static Value Held(IXLCell cell) => cell.Value.Type switch
-    {
-        XLDataType.Boolean => Value.FromBool(cell.Value.GetBoolean()),
-        XLDataType.Number => Value.FromNumber(cell.Value.GetNumber()),
-        XLDataType.DateTime => Value.FromText(Moment(cell.Value.GetDateTime())),
-        XLDataType.TimeSpan => Value.FromText(
-            cell.Value.GetTimeSpan().ToString(@"hh\:mm\:ss", CultureInfo.InvariantCulture)),
+    /// <summary>Where writing goes, as a place on the grid rather than as a name.</summary>
+    private readonly record struct CellRef(int Column, int Row);
 
-        // An error cell has no value to read, only what it says: #DIV/0! and the like, which is
-        // what the person looking at the sheet sees and what a macro comparing against it expects.
-        XLDataType.Error => Value.FromText(cell.GetFormattedString()),
-        XLDataType.Text => Value.FromText(cell.Value.GetText()),
-        _ => Value.FromText(string.Empty),
-    };
+    /// <summary>The cell a written place names, or the top left corner when none was named.</summary>
+    private static CellRef Place(IXLWorksheet page, string startCell)
+    {
+        var written = startCell.Trim();
+        if (written.Length == 0)
+        {
+            return new CellRef(1, 1);
+        }
+
+        try
+        {
+            var cell = page.Cell(written);
+            return new CellRef(cell.Address.ColumnNumber, cell.Address.RowNumber);
+        }
+        catch (Exception refused) when (refused is not DeviceActionException)
+        {
+            throw new DeviceActionException("Run.BadCellRange", written);
+        }
+    }
+
+    /// <summary>The names of the sheets, in the order they sit along the bottom of the window.</summary>
+    public static IReadOnlyList<string> Sheets(byte[] book)
+    {
+        using var document = Open(new MemoryStream(book));
+        return [.. document.Worksheets.Select(page => page.Name)];
+    }
+
+    /// <summary>
+    /// Adds an empty sheet, handing back the workbook and whether one had to be made. A name that
+    /// is already there is left alone rather than made twice: "open today's sheet" is a step a
+    /// macro runs every morning, and the morning it runs twice must not be the morning it stops.
+    /// </summary>
+    public static (byte[] Book, bool Added) AddSheet(byte[]? book, string sheet)
+    {
+        using var document = book is null ? new XLWorkbook() : Open(new MemoryStream(book));
+        if (Find(document, sheet) is not null)
+        {
+            return (Save(document), false);
+        }
+
+        Add(document, sheet);
+        return (Save(document), true);
+    }
+
+    /// <summary>
+    /// Takes a sheet out of a workbook, with everything in it. The last sheet is never removed:
+    /// a workbook with no sheets is not something Excel will open, so the step is refused instead
+    /// of the file being written that way.
+    /// </summary>
+    public static byte[] DeleteSheet(byte[] book, string sheet)
+    {
+        using var document = Open(new MemoryStream(book));
+        var page = Find(document, sheet) ?? throw NoSuchSheet(document, sheet);
+        if (document.Worksheets.Count <= 1)
+        {
+            throw new DeviceActionException("Run.LastSheet");
+        }
+
+        page.Delete();
+        return Save(document);
+    }
+
+    /// <summary>Puts another name on a sheet, and writes nothing when the name is already taken.</summary>
+    public static byte[] RenameSheet(byte[] book, string sheet, string name)
+    {
+        using var document = Open(new MemoryStream(book));
+        var page = Find(document, sheet) ?? throw NoSuchSheet(document, sheet);
+        if (Find(document, name) is { } taken && !ReferenceEquals(taken, page))
+        {
+            throw new DeviceActionException("Run.SheetNameTaken", name);
+        }
+
+        try
+        {
+            page.Name = name.Length == 0 ? page.Name : name;
+        }
+        catch (ArgumentException)
+        {
+            // Excel's own rules for a sheet name: no []:*?/\ and no more than 31 characters.
+            throw new DeviceActionException("Run.BadSheetName", name);
+        }
+
+        return Save(document);
+    }
+
+    private static byte[] Save(XLWorkbook document)
+    {
+        using var written = new MemoryStream();
+        document.SaveAs(written);
+        return written.ToArray();
+    }
+
+    /// <summary>What one cell holds, in the kind of value the engine works with.</summary>
+    private static Value Held(IXLCell cell, bool asText) => asText
+        ? Value.FromText(cell.GetFormattedString())
+        : cell.Value.Type switch
+        {
+            XLDataType.Boolean => Value.FromBool(cell.Value.GetBoolean()),
+            XLDataType.Number => Value.FromNumber(cell.Value.GetNumber()),
+            XLDataType.DateTime => Value.FromText(Moment(cell.Value.GetDateTime())),
+            XLDataType.TimeSpan => Value.FromText(
+                cell.Value.GetTimeSpan().ToString(@"hh\:mm\:ss", CultureInfo.InvariantCulture)),
+
+            // An error cell has no value to read, only what it says: #DIV/0! and the like, which is
+            // what the person looking at the sheet sees and what a macro comparing against it expects.
+            XLDataType.Error => Value.FromText(cell.GetFormattedString()),
+            XLDataType.Text => Value.FromText(cell.Value.GetText()),
+            _ => Value.FromText(string.Empty),
+        };
 
     /// <summary>
     /// A date as text. A sheet has no date kind of its own as far as a macro is concerned, and the
@@ -146,7 +310,7 @@ public static class Spreadsheet
             : moment.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
 
     /// <summary>Puts one cell's value into a sheet, as the kind of thing it is.</summary>
-    private static void Put(IXLCell cell, Value value)
+    private static void Put(IXLCell cell, Value value, bool formulas)
     {
         switch (value.Kind)
         {
@@ -161,6 +325,11 @@ public static class Spreadsheet
                 // one piece of text; a nested table would need a shape a sheet cannot guess.
                 cell.Value = value.AsText();
                 break;
+            case ValueKind.Text when formulas && value.Text.StartsWith('=') && value.Text.Length > 1:
+                // Without the "=", which is the sign that says "this is a formula" rather than part
+                // of the formula itself.
+                cell.FormulaA1 = value.Text[1..];
+                break;
             default:
                 if (value.Text.Length > 0)
                 {
@@ -169,6 +338,19 @@ public static class Spreadsheet
 
                 break;
         }
+    }
+
+    /// <summary>How the rows a step writes go into the sheet.</summary>
+    public enum SheetWriteMode
+    {
+        /// <summary>Clear the sheet's contents, then write from the starting cell.</summary>
+        Replace,
+
+        /// <summary>Write over the cells from the starting cell on, leaving the rest as it was.</summary>
+        Insert,
+
+        /// <summary>Write below the last row the sheet holds.</summary>
+        Append,
     }
 
     /// <summary>The sheet a name stands for, or nothing when the workbook has no such sheet.</summary>

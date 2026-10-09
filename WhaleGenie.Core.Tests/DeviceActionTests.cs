@@ -2734,6 +2734,266 @@ public class DeviceActionTests
         Assert.Contains("a/b", result.Detail);
     }
 
+    /// <summary>Three columns by three rows, which is what the range checks measure.</summary>
+    private static byte[] Table() => WrittenBook(sheet =>
+    {
+        sheet.Cell(1, 1).Value = "name";
+        sheet.Cell(1, 2).Value = "age";
+        sheet.Cell(1, 3).Value = "city";
+        sheet.Cell(2, 1).Value = "alice";
+        sheet.Cell(2, 2).Value = 30;
+        sheet.Cell(2, 3).Value = "rome";
+        sheet.Cell(3, 1).Value = "bob";
+        sheet.Cell(3, 2).Value = 41;
+        sheet.Cell(3, 3).Value = "oslo";
+    });
+
+    [Fact]
+    public async Task Reading_a_range_reads_exactly_that_rectangle()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["table.xlsx"] = Table();
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("excel.readSheet", Param("path", "table.xlsx"), Param("sheet", "Data"),
+                Param("range", "B2:C3"), Param("hasHeader", "false"),
+                Param("resultVariable", "rows")),
+        ], devices);
+
+        var rows = store.Local.Values["rows"].Items;
+        Assert.Equal(2, rows.Count);
+        Assert.Equal("30", rows[0].Items[0].AsText());
+        Assert.Equal("rome", rows[0].Items[1].AsText());
+        Assert.Equal("oslo", rows[1].Items[1].AsText());
+    }
+
+    /// <summary>
+    /// A range with no end to it is what a person means by "from this cell on", and the sheet's own
+    /// used cells say where that stops.
+    /// </summary>
+    [Fact]
+    public async Task Reading_from_a_cell_on_takes_the_rest_of_the_sheet()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["table.xlsx"] = Table();
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("excel.readSheet", Param("path", "table.xlsx"), Param("sheet", "Data"),
+                Param("range", "B2"), Param("hasHeader", "false"), Param("maxRows", "1"),
+                Param("resultVariable", "rows")),
+        ], devices);
+
+        var row = Assert.Single(store.Local.Values["rows"].Items);
+        Assert.Equal(2, row.Items.Count);
+        Assert.Equal("30", row.Items[0].AsText());
+        Assert.Equal("rome", row.Items[1].AsText());
+    }
+
+    [Fact]
+    public async Task Reading_a_range_hands_back_the_names_it_was_told_the_header_holds()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["table.xlsx"] = Table();
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("excel.readSheet", Param("path", "table.xlsx"), Param("sheet", "Data"),
+                Param("range", "A1:C3"), Param("hasHeader", "true"),
+                Param("headerVariable", "columns"), Param("resultVariable", "rows")),
+        ], devices);
+
+        var columns = store.Local.Values["columns"].Items;
+        Assert.Equal(["name", "age", "city"], columns.Select(cell => cell.AsText()));
+        Assert.Equal(2, store.Local.Values["rows"].Items.Count);
+    }
+
+    [Fact]
+    public async Task A_cell_can_be_read_as_the_text_it_shows_instead_of_what_it_holds()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["shown.xlsx"] = WrittenBook(sheet =>
+        {
+            sheet.Cell(1, 1).Value = 42;
+            sheet.Cell(1, 1).Style.NumberFormat.Format = "0000";
+        });
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("excel.readSheet", Param("path", "shown.xlsx"), Param("sheet", "Data"),
+                Param("hasHeader", "false"), Param("resultVariable", "held")),
+            Step("excel.readSheet", Param("path", "shown.xlsx"), Param("sheet", "Data"),
+                Param("hasHeader", "false"), Param("asText", "true"),
+                Param("resultVariable", "shown")),
+        ], devices);
+
+        Assert.Equal(42, store.Local.Values["held"].Items[0].Items[0].Number);
+        Assert.Equal("0042", store.Local.Values["shown"].Items[0].Items[0].AsText());
+    }
+
+    /// <summary>
+    /// Writing from a named cell is how a macro fills in a sheet that is already laid out: the
+    /// rows go where it was told, and the rest of the sheet is not touched.
+    /// </summary>
+    [Fact]
+    public async Task Writing_from_a_cell_leaves_the_rest_of_the_sheet_alone()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["report.xlsx"] = WrittenBook(sheet =>
+        {
+            sheet.Cell(1, 1).Value = "keep me";
+            sheet.Cell(5, 5).Value = "and me";
+        });
+        devices.Files["in.csv"] = "filled";
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+            Step("excel.writeSheet", Param("path", "report.xlsx"), Param("sheet", "Data"),
+                Param("rows", "$rows"), Param("mode", "insert"), Param("startCell", "B2")),
+            Step("excel.readSheet", Param("path", "report.xlsx"), Param("sheet", "Data"),
+                Param("range", "A1:B2"), Param("hasHeader", "false"), Param("resultVariable", "back")),
+        ], devices);
+
+        var rows = store.Local.Values["back"].Items;
+        Assert.Equal("keep me", rows[0].Items[0].AsText());
+        Assert.Equal("filled", rows[1].Items[1].AsText());
+
+        using var check = new XLWorkbook(new MemoryStream(devices.Blobs["report.xlsx"]));
+        Assert.Equal("and me", check.Worksheet("Data").Cell(5, 5).GetString());
+    }
+
+    [Fact]
+    public async Task Text_that_starts_with_an_equals_sign_can_be_written_as_a_formula()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["in.csv"] = "=SUM(A1:B1)";
+
+        await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+            Step("excel.writeSheet", Param("path", "worked.xlsx"), Param("sheet", "Data"),
+                Param("rows", "$rows"), Param("mode", "replace")),
+            Step("excel.writeSheet", Param("path", "plain.xlsx"), Param("sheet", "Data"),
+                Param("rows", "$rows"), Param("mode", "replace"), Param("formula", "false")),
+        ], devices);
+
+        using var worked = new XLWorkbook(new MemoryStream(devices.Blobs["worked.xlsx"]));
+        Assert.Equal("SUM(A1:B1)", worked.Worksheet("Data").Cell(1, 1).FormulaA1);
+
+        // Told not to, the same text is written as the text it is: a macro that read a sheet and
+        // writes it back has not turned one of its cells into a live formula.
+        using var plain = new XLWorkbook(new MemoryStream(devices.Blobs["plain.xlsx"]));
+        var cell = plain.Worksheet("Data").Cell(1, 1);
+        Assert.Equal(string.Empty, cell.FormulaA1);
+        Assert.Equal("=SUM(A1:B1)", cell.GetString());
+    }
+
+    [Fact]
+    public async Task The_columns_can_be_widened_to_show_what_was_written()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["in.csv"] = "a long piece of text that no default column shows";
+
+        await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+            Step("excel.writeSheet", Param("path", "wide.xlsx"), Param("sheet", "Data"),
+                Param("rows", "$rows"), Param("mode", "replace"), Param("autoFit", "true")),
+        ], devices);
+
+        using var check = new XLWorkbook(new MemoryStream(devices.Blobs["wide.xlsx"]));
+        Assert.True(check.Worksheet("Data").Column(1).Width > 20,
+            $"the column should have been widened, it is {check.Worksheet("Data").Column(1).Width}");
+    }
+
+    [Fact]
+    public async Task The_sheets_of_a_workbook_are_listed_in_the_order_they_sit_in()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["book.xlsx"] = Book(Tab("Data", ["a"]), Tab("Notes", ["b"]));
+
+        var (_, _, store) = await RunAsync(
+            [Step("excel.listSheets", Param("path", "book.xlsx"), Param("resultVariable", "sheets"))],
+            devices);
+
+        Assert.Equal(["Data", "Notes"],
+            store.Local.Values["sheets"].Items.Select(name => name.AsText()));
+    }
+
+    /// <summary>
+    /// A macro that opens "today" runs every day, and some days somebody runs it twice: the second
+    /// run must find the sheet already there rather than fail or make a second one.
+    /// </summary>
+    [Fact]
+    public async Task Adding_a_sheet_makes_it_once_and_the_second_go_leaves_it_alone()
+    {
+        var devices = new FakeDeviceLayer();
+        var host = new SilentRunHost();
+
+        var result = await new MacroRunner(new VariableStore(), host, devices).RunAsync(
+        [
+            Step("excel.addSheet", Param("path", "log.xlsx"), Param("sheet", "Today")),
+            Step("excel.addSheet", Param("path", "log.xlsx"), Param("sheet", "Today")),
+            Step("excel.listSheets", Param("path", "log.xlsx"), Param("resultVariable", "sheets")),
+        ]);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(host.Entries, entry => entry.Key == "Run.AddedSheet");
+        Assert.Contains(host.Entries, entry => entry.Key == "Run.SheetAlreadyThere");
+    }
+
+    [Fact]
+    public async Task A_sheet_can_be_renamed_but_not_to_a_name_that_is_taken()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["book.xlsx"] = Book(Tab("Data", ["a"]), Tab("Notes", ["b"]));
+
+        var (result, _, _) = await RunAsync(
+            [Step("excel.renameSheet", Param("path", "book.xlsx"), Param("sheet", "Data"),
+                Param("newName", "Notes"))], devices);
+
+        Assert.Equal("Run.SheetNameTaken", result.Key);
+
+        var (renamed, _, store) = await RunAsync(
+        [
+            Step("excel.renameSheet", Param("path", "book.xlsx"), Param("sheet", "Data"),
+                Param("newName", "March")),
+            Step("excel.listSheets", Param("path", "book.xlsx"), Param("resultVariable", "sheets")),
+        ], devices);
+
+        Assert.True(renamed.Succeeded);
+        Assert.Equal(["March", "Notes"],
+            store.Local.Values["sheets"].Items.Select(name => name.AsText()));
+    }
+
+    [Fact]
+    public async Task A_sheet_can_be_deleted_but_never_the_last_one()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Blobs["book.xlsx"] = Book(Tab("Data", ["a"]), Tab("Notes", ["b"]));
+
+        var (dropped, _, store) = await RunAsync(
+        [
+            Step("excel.deleteSheet", Param("path", "book.xlsx"), Param("sheet", "Notes")),
+            Step("excel.listSheets", Param("path", "book.xlsx"), Param("resultVariable", "sheets")),
+        ], devices);
+
+        Assert.True(dropped.Succeeded);
+        Assert.Equal(["Data"], store.Local.Values["sheets"].Items.Select(name => name.AsText()));
+
+        // A workbook with no sheets in it is not one Excel will open, so the step is refused
+        // instead of the file being written that way.
+        var (last, _, _) = await RunAsync(
+            [Step("excel.deleteSheet", Param("path", "book.xlsx"), Param("sheet", "Data"))], devices);
+
+        Assert.Equal("Run.LastSheet", last.Key);
+    }
+
     [Fact]
     public async Task Saving_and_loading_variables_round_trips_them()
     {

@@ -562,8 +562,21 @@ internal static class ActionStrings
         ["excel.readSheet.path.hint"] = "要读取的 Excel 文件。只写文件名时会相对宏文件夹解析。",
         ["excel.readSheet.sheet.label"] = "表",
         ["excel.readSheet.sheet.hint"] = "要读取哪一张表，写表标签上的名字；留空表示第一张表。",
+        ["excel.readSheet.range.label"] = "单元格范围",
+        ["excel.readSheet.range.hint"] =
+            "要读哪一块，按名称框里的写法写：B2:D40，或者只写 B2 表示从这一格往右往下直到有内容的地方。"
+            + "留空表示读这张表用到的全部单元格。",
         ["excel.readSheet.hasHeader.label"] = "首行是表头",
-        ["excel.readSheet.hasHeader.hint"] = "结果中不包含第一行。",
+        ["excel.readSheet.hasHeader.hint"] = "结果中不包含第一行，第一行的名字存到下面的变量里。",
+        ["excel.readSheet.headerVariable.label"] = "列名变量",
+        ["excel.readSheet.headerVariable.hint"] =
+            "接收表头那一行的列名，按列的顺序排列，宏靠它认出哪一列是要的那一列。不填就不存。",
+        ["excel.readSheet.maxRows.label"] = "最多读几行",
+        ["excel.readSheet.maxRows.hint"] = "最多读取这么多行，0 表示从这里一直读到末尾。",
+        ["excel.readSheet.asText.label"] = "读显示出来的文字",
+        ["excel.readSheet.asText.hint"] =
+            "读单元格显示出来的文字，而不是它存的值。看表的人看到的是什么，宏就拿到什么："
+            + "带前导零的号码、日期、货币都靠这个。",
         ["excel.readSheet.resultVariable.label"] = "结果变量",
         ["excel.readSheet.resultVariable.hint"] = "接收行列表的变量，每行是一个单元格列表。",
 
@@ -577,9 +590,54 @@ internal static class ActionStrings
         ["excel.writeSheet.rows.hint"] = "行列表。每一行本身也可以是一个单元格列表；数字按数字写、"
             + "真假按真假写，这样一列数字在表里还是数字，而不是看着像数字的文本。",
         ["excel.writeSheet.mode.label"] = "方式",
-        ["excel.writeSheet.mode.hint"] = "替换表里原有的内容，或者把行加在已有内容的下面。",
-        ["excel.writeSheet.mode.option.replace"] = "替换整张表",
-        ["excel.writeSheet.mode.option.append"] = "接着最后一行的下面加",
+        ["excel.writeSheet.mode.hint"] =
+            "表里已有的内容怎么办：清空再写、从起始单元格开始覆盖（其余保留），"
+            + "或者接在最后一行的下面。追加是宏跨次运行记流水账的写法。",
+        ["excel.writeSheet.mode.option.replace"] = "清空这张表",
+        ["excel.writeSheet.mode.option.insert"] = "从起始单元格开始覆盖",
+        ["excel.writeSheet.mode.option.append"] = "接在最后一行下面",
+        ["excel.writeSheet.startCell.label"] = "起始单元格",
+        ["excel.writeSheet.startCell.hint"] =
+            "第一行从哪一格开始写，比如 B2。追加时不用：追加永远落在最后一行的下面。",
+        ["excel.writeSheet.formula.label"] = "以 = 开头的文字写成公式",
+        ["excel.writeSheet.formula.hint"] =
+            "单元格里以 = 开头的文字按公式写入，和人在 Excel 里手打一个公式一样。"
+            + "不想这样（要原样写入这段文字）就取消勾选。",
+        ["excel.writeSheet.autoFit.label"] = "自动列宽",
+        ["excel.writeSheet.autoFit.hint"] = "把用到的每一列调宽到能显示下里面的内容。",
+
+        ["excel.listSheets.name"] = "列出 Excel 工作表",
+        ["excel.listSheets.desc"] = "读出 Excel 文件里所有工作表的名字。",
+        ["excel.listSheets.path.label"] = "文件",
+        ["excel.listSheets.path.hint"] = "要读取的 Excel 文件。只写文件名时会相对宏文件夹解析。",
+        ["excel.listSheets.resultVariable.label"] = "结果变量",
+        ["excel.listSheets.resultVariable.hint"] =
+            "接收工作表名字的变量，顺序和窗口底部那些标签一致。",
+
+        ["excel.addSheet.name"] = "新建 Excel 工作表",
+        ["excel.addSheet.desc"] = "在 Excel 文件末尾新建一张空表；文件不存在时会新建文件。",
+        ["excel.addSheet.path.label"] = "文件",
+        ["excel.addSheet.path.hint"] = "要改的 Excel 文件。只写文件名时会相对宏文件夹解析。",
+        ["excel.addSheet.sheet.label"] = "表",
+        ["excel.addSheet.sheet.hint"] =
+            "要新建的表名。已经有同名的表就不动它：每天开一次“今天”的宏，多跑一次不该算失败。",
+
+        ["excel.deleteSheet.name"] = "删除 Excel 工作表",
+        ["excel.deleteSheet.desc"] = "把 Excel 文件里的一张表连内容一起删掉。",
+        ["excel.deleteSheet.path.label"] = "文件",
+        ["excel.deleteSheet.path.hint"] = "要改的 Excel 文件。只写文件名时会相对宏文件夹解析。",
+        ["excel.deleteSheet.sheet.label"] = "表",
+        ["excel.deleteSheet.sheet.hint"] =
+            "要删掉哪一张表。最后一张表删不了：没有工作表的文件 Excel 打不开。",
+
+        ["excel.renameSheet.name"] = "重命名 Excel 工作表",
+        ["excel.renameSheet.desc"] = "给 Excel 文件里的一张表换个名字。",
+        ["excel.renameSheet.path.label"] = "文件",
+        ["excel.renameSheet.path.hint"] = "要改的 Excel 文件。只写文件名时会相对宏文件夹解析。",
+        ["excel.renameSheet.sheet.label"] = "表",
+        ["excel.renameSheet.sheet.hint"] = "要改名的那一张表，写现在的名字。",
+        ["excel.renameSheet.newName.label"] = "新名字",
+        ["excel.renameSheet.newName.hint"] = "这张表改成什么名字。",
 
         // ------------------------------------------------------------------- data
         ["data.base64Encode.name"] = "Base64 编码",

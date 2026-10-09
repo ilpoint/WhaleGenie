@@ -806,8 +806,23 @@ public static class ActionCatalog
             [
                 FilePath("path", "File", "report.xlsx", "The Excel file to read."),
                 Sheet(),
+                Text("range", "Cells", "B2:D40", required: false,
+                    hint: "Which cells to read, written the way the name box writes them: B2:D40, "
+                        + "or B2 for everything from that cell down and to the right. Leave empty "
+                        + "for every cell the sheet uses."),
                 Toggle("hasHeader", "First row is a header", true,
-                    "Leave the first row out of the result."),
+                    "Leave the first row out of the result, and keep what it says in the names "
+                    + "variable below."),
+                Variable("headerVariable", "Column names variable", "columns",
+                    "Variable that receives the names in the header row, in column order, which is "
+                    + "how a macro finds the column it wants. Leave empty for none.",
+                    required: false, namesVariable: true),
+                Number("maxRows", "At most rows", 0,
+                    "Read this many rows at most. 0 reads every row from there on.", max: 1000000),
+                Toggle("asText", "Read what the cells show", false,
+                    "Read the text each cell shows rather than the value it holds, which is what "
+                    + "somebody looking at the sheet reads: a phone number that shows leading "
+                    + "zeros, a date, a column of money."),
                 Variable("resultVariable", "Result variable", "rows",
                     "Variable that receives a list of rows, each a list of cells.",
                     required: false, namesVariable: true),
@@ -831,9 +846,71 @@ public static class ActionCatalog
                     + "a number and a flag as a flag, so a column of numbers stays a column of "
                     + "numbers in the sheet rather than text that only looks like one.",
                     namesVariable: false),
-                Choice("mode", "Mode", ["replace", "append"], "replace",
-                    "Replace what the sheet holds, or add the rows below what is already there.",
-                    labels: ["Replace the sheet", "Add below the last row"]),
+                Choice("mode", "Mode", ["replace", "insert", "append"], "replace",
+                    "What happens to what the sheet already holds: clear it and write, write over "
+                    + "the cells from the starting cell on and leave the rest, or add below the "
+                    + "last row. Append is how a macro keeps a log in a sheet across runs.",
+                    labels: ["Clear the sheet", "Write over from the cell on", "Add below the last row"]),
+                Text("startCell", "Start at cell", "A1", required: false, defaultValue: "A1",
+                    hint: "The cell the first row starts at, as B2. Appending ignores it: adding "
+                        + "always lands below the last row."),
+                Toggle("formula", "Text starting with = is a formula", true,
+                    "Write a cell that begins with = as a formula, the way Excel does when somebody "
+                    + "types one. Turn it off to write such text as it stands."),
+                Toggle("autoFit", "Widen the columns", false,
+                    "Make each used column wide enough to show what is in it."),
+            ],
+        },
+        new()
+        {
+            Key = "excel.listSheets",
+            Category = ActionCategory.Spreadsheet,
+            DisplayName = "List Excel Sheets",
+            Description = "Read the names of the sheets in an Excel file.",
+            Parameters =
+            [
+                FilePath("path", "File", "report.xlsx", "The Excel file to read."),
+                Variable("resultVariable", "Result variable", "sheets",
+                    "Variable that receives the sheet names, in the order they sit along the "
+                    + "bottom of the window.", namesVariable: true, defaultValue: "sheets"),
+            ],
+        },
+        new()
+        {
+            Key = "excel.addSheet",
+            Category = ActionCategory.Spreadsheet,
+            DisplayName = "Add Excel Sheet",
+            Description = "Put an empty sheet at the end of an Excel file, making the file when it "
+                + "is not there yet.",
+            Parameters =
+            [
+                FilePath("path", "File", "report.xlsx", "The Excel file to change."),
+                Sheet(),
+            ],
+        },
+        new()
+        {
+            Key = "excel.deleteSheet",
+            Category = ActionCategory.Spreadsheet,
+            DisplayName = "Delete Excel Sheet",
+            Description = "Take a sheet out of an Excel file, with everything in it.",
+            Parameters =
+            [
+                FilePath("path", "File", "report.xlsx", "The Excel file to change."),
+                Sheet(),
+            ],
+        },
+        new()
+        {
+            Key = "excel.renameSheet",
+            Category = ActionCategory.Spreadsheet,
+            DisplayName = "Rename Excel Sheet",
+            Description = "Put another name on a sheet of an Excel file.",
+            Parameters =
+            [
+                FilePath("path", "File", "report.xlsx", "The Excel file to change."),
+                Sheet(),
+                Text("newName", "New name", "Data", "The name the sheet takes."),
             ],
         },
 

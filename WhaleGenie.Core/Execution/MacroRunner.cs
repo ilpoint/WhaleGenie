@@ -763,6 +763,22 @@ public sealed class MacroRunner
                 WriteSheet(step, depth);
                 return Signal.Normal;
 
+            case "excel.listSheets":
+                ListSheets(step, depth);
+                return Signal.Normal;
+
+            case "excel.addSheet":
+                AddSheet(step, depth);
+                return Signal.Normal;
+
+            case "excel.deleteSheet":
+                DeleteSheet(step, depth);
+                return Signal.Normal;
+
+            case "excel.renameSheet":
+                RenameSheet(step, depth);
+                return Signal.Normal;
+
             // ----------------------------------------------------------------- data
             case "data.base64Encode":
                 EncodeBase64(step, depth);
@@ -3045,13 +3061,29 @@ public sealed class MacroRunner
     private void ReadSheet(ExecutableStep step, int depth)
     {
         var path = PathOf(step);
-        var rows = Spreadsheet.Read(_devices.Files.ReadBytes(path), step.Text("sheet").Trim());
-        var skip = !string.Equals(step.Text("hasHeader").Trim(), "false", StringComparison.OrdinalIgnoreCase);
-        var body = skip && rows.Count > 0 ? rows.Skip(1) : rows;
+        var rows = Spreadsheet.Read(_devices.Files.ReadBytes(path), step.Text("sheet").Trim(),
+            step.Text("range").Trim(), Flag(step, "asText", false));
 
-        Variables.Set(VariableName(step, "resultVariable", "rows"),
-            Value.FromList(body.Select(Value.FromList)));
-        Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, rows.Count);
+        var header = Flag(step, "hasHeader", true) ? rows.FirstOrDefault() : null;
+        var body = header is null ? rows : rows.Skip(1);
+
+        var limit = Number(step, "maxRows");
+        if (limit > 0)
+        {
+            body = body.Take(limit);
+        }
+
+        var picked = body.Select(Value.FromList).ToList();
+        Variables.Set(VariableName(step, "resultVariable", "rows"), Value.FromList(picked));
+
+        var names = step.Text("headerVariable").Trim();
+        if (names.Length > 0)
+        {
+            Variables.Set(names, Value.FromList(
+                (header ?? []).Select(cell => Value.FromText(cell.AsText()))));
+        }
+
+        Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, picked.Count);
     }
 
     private void WriteSheet(ExecutableStep step, int depth)
@@ -3066,11 +3098,74 @@ public sealed class MacroRunner
         // The file is read first so that everything else it holds — the other sheets, the
         // formatting, the workbook's own settings — comes back out of it unchanged.
         var book = _devices.Files.Exists(path) ? _devices.Files.ReadBytes(path) : null;
-        var append = string.Equals(step.Text("mode").Trim(), "append", StringComparison.OrdinalIgnoreCase);
         var cells = rows.Items.Select(Cells).ToList();
 
-        _devices.Files.WriteBytes(path, Spreadsheet.Write(book, step.Text("sheet").Trim(), cells, append));
+        _devices.Files.WriteBytes(path, Spreadsheet.Write(book, step.Text("sheet").Trim(), cells,
+            Place(step), step.Text("startCell").Trim(),
+            Flag(step, "formula", true), Flag(step, "autoFit", false)));
         Log(LogLevel.Info, depth, step.Type, "Run.WroteFile", path, cells.Count);
+    }
+
+    /// <summary>Where the step said the rows go, and what happens to what is already there.</summary>
+    private static Spreadsheet.SheetWriteMode Place(ExecutableStep step)
+        => step.Text("mode").Trim().ToLowerInvariant() switch
+        {
+            "append" => Spreadsheet.SheetWriteMode.Append,
+            "insert" or "overwrite" => Spreadsheet.SheetWriteMode.Insert,
+            _ => Spreadsheet.SheetWriteMode.Replace,
+        };
+
+    /// <summary>The sheets a workbook holds, by the names on their tabs.</summary>
+    private void ListSheets(ExecutableStep step, int depth)
+    {
+        var path = PathOf(step);
+        var names = Spreadsheet.Sheets(_devices.Files.ReadBytes(path));
+
+        Variables.Set(VariableName(step, "resultVariable", "sheets"),
+            Value.FromList(names.Select(Value.FromText)));
+        Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, names.Count);
+    }
+
+    /// <summary>
+    /// Puts an empty sheet into a workbook, unless one with that name is in it already — a macro
+    /// that opens "today" every morning runs more than once on the mornings somebody is watching.
+    /// </summary>
+    private void AddSheet(ExecutableStep step, int depth)
+    {
+        var path = PathOf(step);
+        var name = step.Text("sheet").Trim();
+        var book = _devices.Files.Exists(path) ? _devices.Files.ReadBytes(path) : null;
+
+        var (written, added) = Spreadsheet.AddSheet(book, name);
+        if (!added)
+        {
+            Log(LogLevel.Info, depth, step.Type, "Run.SheetAlreadyThere", name);
+            return;
+        }
+
+        _devices.Files.WriteBytes(path, written);
+        Log(LogLevel.Info, depth, step.Type, "Run.AddedSheet", name);
+    }
+
+    private void DeleteSheet(ExecutableStep step, int depth)
+    {
+        var path = PathOf(step);
+        var name = step.Text("sheet").Trim();
+
+        _devices.Files.WriteBytes(path, Spreadsheet.DeleteSheet(
+            _devices.Files.ReadBytes(path), name));
+        Log(LogLevel.Info, depth, step.Type, "Run.DeletedSheet", name);
+    }
+
+    private void RenameSheet(ExecutableStep step, int depth)
+    {
+        var path = PathOf(step);
+        var name = step.Text("sheet").Trim();
+        var wanted = step.Text("newName").Trim();
+
+        _devices.Files.WriteBytes(path, Spreadsheet.RenameSheet(
+            _devices.Files.ReadBytes(path), name, wanted));
+        Log(LogLevel.Info, depth, step.Type, "Run.RenamedSheet", name, wanted);
     }
 
     /// <summary>
