@@ -2209,6 +2209,94 @@ public class DeviceActionTests
         Assert.Equal("\"a\",\"b\"\n\"c\",\"d\"\n", devices.Files["unix.csv"]);
     }
 
+    [Fact]
+    public async Task An_empty_csv_cell_is_left_empty_unless_it_is_asked_to_be_shown()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["in.csv"] = "a,,c";
+
+        await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+            Step("file.writeCsv", Param("path", "bare.csv"), Param("rows", "$rows"),
+                Param("separator", "comma")),
+            Step("file.writeCsv", Param("path", "shown.csv"), Param("rows", "$rows"),
+                Param("separator", "comma"), Param("emptyCells", "quoted")),
+            Step("file.readCsv", Param("path", "shown.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "back")),
+        ], devices);
+
+        // Both are a cell holding nothing; the second one is for the reader that wants to see a
+        // cell there, and it reads back as the same empty cell.
+        Assert.Equal("a,,c\r\n", devices.Files["bare.csv"]);
+        Assert.Equal("a,\"\",c\r\n", devices.Files["shown.csv"]);
+    }
+
+    /// <summary>
+    /// A CSV somebody else's program keeps gets columns of its own, and adding to it has to follow
+    /// the names in its first line rather than counts of cells.
+    /// </summary>
+    [Fact]
+    public async Task Adding_to_a_csv_by_name_puts_each_cell_under_the_column_that_has_its_name()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["log.csv"] = "日期,订单号,金额\r\n2026-01-05,A123,120\r\n";
+        devices.Files["in.csv"] = "B456,80";
+
+        await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+            Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$rows"),
+                Param("header", "订单号,金额"), Param("separator", "comma"),
+                Param("mode", "append"), Param("align", "true")),
+        ], devices);
+
+        // The date column is the file's own and this step knows nothing about it: it stays empty
+        // in the new line rather than taking the order number.
+        Assert.Equal("日期,订单号,金额\r\n2026-01-05,A123,120\r\n,B456,80\r\n",
+            devices.Files["log.csv"]);
+    }
+
+    [Fact]
+    public async Task A_csv_column_name_the_file_has_not_got_is_reported()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["log.csv"] = "日期,订单号\r\n2026-01-05,A123\r\n";
+        devices.Files["in.csv"] = "1";
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+            Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$rows"),
+                Param("header", "总价"), Param("separator", "comma"),
+                Param("mode", "append"), Param("align", "true")),
+        ], devices);
+
+        Assert.Equal("Run.NoSuchColumn", result.Key);
+    }
+
+    [Fact]
+    public async Task A_csv_cell_added_by_name_needs_a_name_of_its_own()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["log.csv"] = "日期,订单号\r\n2026-01-05,A123\r\n";
+        devices.Files["in.csv"] = "A1,2";
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+            Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$rows"),
+                Param("header", "订单号"), Param("separator", "comma"),
+                Param("mode", "append"), Param("align", "true")),
+        ], devices);
+
+        Assert.Equal("Run.AlignNeedsNames", result.Key);
+    }
+
     // ------------------------------------------------------------ spreadsheets
 
     [Fact]

@@ -3267,14 +3267,63 @@ public sealed class MacroRunner
             table.Add(header);
         }
 
-        table.AddRange(rows.Items.Select(row => (IReadOnlyList<string>)
-            [.. Cells(row).Select(cell => cell.AsText())]));
+        // Adding by name is for the file somebody else's program keeps: the names in its first line
+        // say which column is which, and the names of this step's cells say where each one goes, so
+        // a column the file has and this step knows nothing about does not shift the rest along.
+        var standing = Flag(step, "align", false) && append && _devices.Files.Exists(path)
+            ? Standing(path, separator, step)
+            : [];
+
+        table.AddRange(rows.Items.Select(row => standing.Count > 0
+            ? Placed(Cells(row), standing, header)
+            : (IReadOnlyList<string>)[.. Cells(row).Select(cell => cell.AsText())]));
 
         var text = DelimitedFile.Write(table, separator.ToString(), LineEnding(step),
-            Flag(step, "quoteAll", false));
+            Flag(step, "quoteAll", false),
+            string.Equals(step.Text("emptyCells").Trim(), "quoted", StringComparison.OrdinalIgnoreCase));
         _devices.Files.WriteText(path, text, append, EncodingOf(step));
         Log(LogLevel.Info, depth, step.Type, "Run.WroteFile", path, table.Count);
     }
+
+    /// <summary>
+    /// The names the file already has, which is the line a log names its columns on. A file with
+    /// nothing in it has no names, and adding to it is then an ordinary add.
+    /// </summary>
+    private IReadOnlyList<string> Standing(string path, char separator, ExecutableStep step)
+    {
+        var rows = DelimitedFile.Read(_devices.Files.ReadText(path, EncodingOf(step)),
+            separator.ToString(), skipBlankLines: false, trim: false);
+
+        return rows.Count == 0 ? [] : rows[0];
+    }
+
+    /// <summary>
+    /// One row of a CSV put where the file's own names say it goes. A cell the file has no column
+    /// for, and a row with more cells than there are names for them, are both said out loud: the
+    /// alternative is a value landing in whatever column happens to be tenth.
+    /// </summary>
+    private static IReadOnlyList<string> Placed(IReadOnlyList<Value> cells,
+        IReadOnlyList<string> standing, IReadOnlyList<string> names)
+    {
+        if (names.Count < cells.Count)
+        {
+            throw new StepFailure("Run.AlignNeedsNames",
+                cells.Count.ToString(CultureInfo.InvariantCulture));
+        }
+
+        var line = new string[standing.Count];
+        Array.Fill(line, string.Empty);
+        for (var at = 0; at < cells.Count; at++)
+        {
+            line[ColumnOf(standing, names[at])] = cells[at].AsText();
+        }
+
+        return line;
+    }
+
+    /// <summary>The reading of a name for a table whose names came back as plain text, as a CSV's do.</summary>
+    private static int ColumnOf(IReadOnlyList<string> names, string wanted)
+        => ColumnOf([.. names.Select(Value.FromText)], wanted);
 
     /// <summary>
     /// The names to put above the data: a list variable, or the names written out on one line the

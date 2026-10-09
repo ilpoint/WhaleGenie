@@ -785,6 +785,13 @@ public static class ActionCatalog
                 Choice("mode", "Mode", ["replace", "append"], "replace",
                     "Write the file from the start, or add these rows below what is already in it.",
                     labels: ["Replace the file", "Add below the last row"]),
+                Toggle("align", "Put each value under the column with that name", false,
+                    "Adding to a file that already holds a table: put every cell under the column "
+                    + "whose name in the first line is the name this step gives that cell, rather "
+                    + "than in the same place across the row. That is what keeps a column the file "
+                    + "has and this step knows nothing about from shifting everything after it. The "
+                    + "names of this step's cells come from the header row above, and a name the "
+                    + "file has not got is reported rather than guessed at."),
                 Choice("lineEnding", "Line ending", ["windows", "unix"], "windows",
                     "Which characters end a line: CRLF, which Windows writes, or LF, which "
                     + "everything else does.",
@@ -792,6 +799,11 @@ public static class ActionCatalog
                 Toggle("quoteAll", "Quote every cell", false,
                     "Put quotes around every cell rather than only around the ones that need them. "
                     + "Some programs insist on it."),
+                Choice("emptyCells", "Empty cells", ["bare", "quoted"], "bare",
+                    "How a cell holding nothing is written: as an empty place between two "
+                    + "separators, or as two quotes. Both read back as an empty cell, and the "
+                    + "quotes are for the program that wants to see a cell there.",
+                    labels: ["Nothing between the separators", "Two quotes"], advanced: true),
                 Encoding(),
             ],
         },

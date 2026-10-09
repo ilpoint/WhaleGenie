@@ -560,12 +560,22 @@ internal static class ActionStrings
         ["file.writeCsv.mode.hint"] = "从头写这个文件，还是把这几行接在文件已有的内容后面。",
         ["file.writeCsv.mode.option.replace"] = "覆盖整个文件",
         ["file.writeCsv.mode.option.append"] = "接在最后一行后面",
+        ["file.writeCsv.align.label"] = "按列名放进同名的列",
+        ["file.writeCsv.align.hint"] =
+            "往一个已经有表格的文件里追加时：每个单元格放进第一行里同名的那一列，"
+            + "而不是每行放在同一个位置上。这样文件里有、这一步没写的列不会把后面的内容挤错位。"
+            + "这些名字来自上面那一栏表头，文件里没有那个名字时就说出来，而不是随手塞进某一列。",
         ["file.writeCsv.lineEnding.label"] = "换行符",
         ["file.writeCsv.lineEnding.hint"] = "一行以什么字符结束：CRLF 是 Windows 的写法，LF 是其他平台的。",
         ["file.writeCsv.lineEnding.option.windows"] = "Windows (CRLF)",
         ["file.writeCsv.lineEnding.option.unix"] = "Unix (LF)",
         ["file.writeCsv.quoteAll.label"] = "每个单元格都加引号",
         ["file.writeCsv.quoteAll.hint"] = "只给需要加引号的单元格加，还是全部都加。有些程序只认全部都加的。",
+        ["file.writeCsv.emptyCells.label"] = "空单元格写成",
+        ["file.writeCsv.emptyCells.hint"] = "什么都没有的单元格怎么写：两个分隔符之间留空，"
+            + "还是写成两个引号。两种读回来都是空单元格，引号是给非要看见一个格子的程序用的。",
+        ["file.writeCsv.emptyCells.option.bare"] = "两个分隔符之间留空",
+        ["file.writeCsv.emptyCells.option.quoted"] = "写成两个引号",
         ["file.writeCsv.encoding.label"] = "编码",
         ["file.writeCsv.encoding.hint"] = EncodingHintText,
         ["file.writeCsv.encoding.option.utf8"] = EncodingUtf8,

@@ -67,7 +67,7 @@ public static class DelimitedFile
 
     /// <summary>The text of a file holding those rows.</summary>
     public static string Write(IReadOnlyList<IReadOnlyList<string>> rows, string separator,
-        string lineEnding, bool quoteAll)
+        string lineEnding, bool quoteAll, bool quoteEmpty)
     {
         var configuration = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
@@ -81,10 +81,13 @@ public static class DelimitedFile
             InjectionOptions = InjectionOptions.None,
         };
 
-        if (quoteAll)
-        {
-            configuration.ShouldQuote = _ => true;
-        }
+        // The library's own rule is about what has to be quoted to survive a reader — the separator,
+        // a quote, a line break, a space at either end — and it leaves an empty cell bare. That is
+        // the right answer for most readers and the wrong one for the reader that insists on seeing
+        // a cell there, so it is the one part of the rule a step can overrule.
+        var survives = configuration.ShouldQuote;
+        configuration.ShouldQuote = args => quoteAll
+            || (args.Field is { Length: > 0 } ? survives(args) : quoteEmpty);
 
         var text = new StringBuilder();
         using (var writer = new StringWriter(text, CultureInfo.InvariantCulture))
