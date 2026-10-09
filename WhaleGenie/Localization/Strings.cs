@@ -746,6 +746,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.ScreenNotStable"] = "The screen was still changing after {0} ms.",
         ["Run.ImageFound"] = "Found, saved to {0}: {1}",
         ["Run.BadCellRange"] = "That is not a place in a sheet: {0}",
+        ["Run.OldFormatReadOnly"] = "This is a workbook in the old .xls format, which WhaleGenie "
+            + "can read but not write. Save it as .xlsx and change that one.",
         ["Run.LastSheet"] = "A workbook keeps at least one sheet, so this one cannot go.",
         ["Run.SheetNameTaken"] = "The workbook already has a sheet called {0}.",
         ["Run.AddedSheet"] = "Added the sheet {0}.",
@@ -1552,6 +1554,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.ScreenNotStable"] = "等了 {0} 毫秒画面仍在变化。",
         ["Run.ImageFound"] = "已找到，保存到 {0}：{1}",
         ["Run.BadCellRange"] = "这不是表格里的一处位置：{0}",
+        ["Run.OldFormatReadOnly"] = "这是旧版 .xls 工作簿：鲸灵能读，不能改。"
+            + "在 Excel 里另存为 .xlsx，改那一份。",
         ["Run.LastSheet"] = "一个工作簿至少要留一张表，所以这一张删不掉。",
         ["Run.SheetNameTaken"] = "文件里已经有一张叫 {0} 的表。",
         ["Run.AddedSheet"] = "已新建工作表 {0}。",

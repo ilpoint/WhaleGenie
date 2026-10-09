@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using ClosedXML.Excel;
+using ExcelDataReader;
 using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Core.Devices;
@@ -49,6 +51,12 @@ public static class Spreadsheet
     /// </param>
     public static IReadOnlyList<IReadOnlyList<Value>> Read(byte[] book, string sheet, string range,
         bool asText)
+        => Old(book)
+            ? ReadOld(book, sheet, range)
+            : ReadModern(book, sheet, range, asText);
+
+    private static IReadOnlyList<IReadOnlyList<Value>> ReadModern(byte[] book, string sheet,
+        string range, bool asText)
     {
         using var stream = new MemoryStream(book);
         using var document = Open(stream);
@@ -211,6 +219,9 @@ public static class Spreadsheet
 
     /// <summary>The names of the sheets, in the order they sit along the bottom of the window.</summary>
     public static IReadOnlyList<string> Sheets(byte[] book)
+        => Old(book) ? OldSheets(book) : ModernSheets(book);
+
+    private static IReadOnlyList<string> ModernSheets(byte[] book)
     {
         using var document = Open(new MemoryStream(book));
         return [.. document.Worksheets.Select(page => page.Name)];
@@ -223,6 +234,11 @@ public static class Spreadsheet
     /// </summary>
     public static (byte[] Book, bool Added) AddSheet(byte[]? book, string sheet)
     {
+        if (book is not null && Old(book))
+        {
+            throw OldFormatReadOnly();
+        }
+
         using var document = book is null ? new XLWorkbook() : Open(new MemoryStream(book));
         if (Find(document, sheet) is not null)
         {
@@ -240,6 +256,11 @@ public static class Spreadsheet
     /// </summary>
     public static byte[] DeleteSheet(byte[] book, string sheet)
     {
+        if (Old(book))
+        {
+            throw OldFormatReadOnly();
+        }
+
         using var document = Open(new MemoryStream(book));
         var page = Find(document, sheet) ?? throw NoSuchSheet(document, sheet);
         if (document.Worksheets.Count <= 1)
@@ -254,6 +275,11 @@ public static class Spreadsheet
     /// <summary>Puts another name on a sheet, and writes nothing when the name is already taken.</summary>
     public static byte[] RenameSheet(byte[] book, string sheet, string name)
     {
+        if (Old(book))
+        {
+            throw OldFormatReadOnly();
+        }
+
         using var document = Open(new MemoryStream(book));
         var page = Find(document, sheet) ?? throw NoSuchSheet(document, sheet);
         if (Find(document, name) is { } taken && !ReferenceEquals(taken, page))
@@ -375,6 +401,187 @@ public static class Spreadsheet
             throw new DeviceActionException("Run.BadSheetName", wanted);
         }
     }
+
+    // -------------------------------------------------------------- the old format
+
+    /// <summary>
+    /// Whether a file is the format Excel wrote before 2007: an OLE container of records rather
+    /// than a zip of XML, which is a shape ClosedXML does not read at all. What decides is the
+    /// bytes rather than the name the step gave the file — a macro that says <c>.xls</c> and hands
+    /// over something else is a thing that happens, and the bytes are the honest answer.
+    /// </summary>
+    private static bool Old(byte[] book)
+        => book.Length >= 8 && book[0] == 0xD0 && book[1] == 0xCF
+            && book[2] == 0x11 && book[3] == 0xE0;
+
+    /// <summary>
+    /// The rows of an old workbook, read by the reader for that format (ExcelDataReader). Reading
+    /// is all that is on offer: files like this are what people have left over from an older
+    /// Office, and what a macro does with one is read it — a step that asks to write one is told
+    /// what to do instead rather than handed a file nobody can open.
+    /// </summary>
+    private static IReadOnlyList<IReadOnlyList<Value>> ReadOld(byte[] book, string sheet,
+        string range)
+    {
+        Register();
+        var names = OldSheets(book);
+        if (sheet.Length > 0 && !names.Contains(sheet, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new DeviceActionException("Run.NoSuchSheet",
+                $"{sheet} (this workbook has: {string.Join(", ", names)})");
+        }
+
+        var wanted = sheet.Length > 0 ? sheet : names[0];
+        var corner = Corner(range);
+        var rows = new List<IReadOnlyList<Value>>();
+
+        using var stream = new MemoryStream(book);
+        using var reader = ExcelReaderFactory.CreateReader(stream);
+        do
+        {
+            if (!reader.Name.Equals(wanted, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var line = 0;
+            while (reader.Read())
+            {
+                line++;
+                if (line < corner.Top)
+                {
+                    continue;
+                }
+
+                if (corner.Bottom > 0 && line > corner.Bottom)
+                {
+                    break;
+                }
+
+                var last = corner.Right > 0 ? corner.Right : reader.FieldCount;
+                var cells = new List<Value>();
+                for (var column = corner.Left; column <= last; column++)
+                {
+                    cells.Add(OldCell(reader, column));
+                }
+
+                // A written range is read as wide as it was asked for, the same as the modern
+                // reader reads one; a row nobody bounded is read as wide as the row really is.
+                if (corner.Right == 0)
+                {
+                    while (cells.Count > 0 && cells[^1].AsText().Length == 0)
+                    {
+                        cells.RemoveAt(cells.Count - 1);
+                    }
+                }
+
+                rows.Add(cells);
+            }
+
+            break;
+        }
+        while (reader.NextResult());
+
+        return rows;
+    }
+
+    /// <summary>The names of the sheets of an old workbook, in the order they sit in.</summary>
+    private static IReadOnlyList<string> OldSheets(byte[] book)
+    {
+        Register();
+        var names = new List<string>();
+        using var reader = ExcelReaderFactory.CreateReader(new MemoryStream(book));
+        do
+        {
+            names.Add(reader.Name);
+        }
+        while (reader.NextResult());
+
+        return names;
+    }
+
+    /// <summary>What one cell of an old workbook holds, in the kind of value the engine works with.</summary>
+    private static Value OldCell(IExcelDataReader reader, int column) => column > reader.FieldCount
+        ? Value.FromText(string.Empty)
+        : reader.GetValue(column - 1) switch
+        {
+            null => Value.FromText(string.Empty),
+            double number => Value.FromNumber(number),
+            bool flag => Value.FromBool(flag),
+            DateTime moment => Value.FromText(Moment(moment)),
+            TimeSpan span => Value.FromText(span.ToString(@"hh\:mm\:ss", CultureInfo.InvariantCulture)),
+
+            // Anything else the reader hands over — the text of an error cell, most of all — comes
+            // through as what it says, which is what the person looking at the sheet sees.
+            var other => Value.FromText(other.ToString() ?? string.Empty),
+        };
+
+    /// <summary>Where a written range starts and stops, as the numbers of the grid.</summary>
+    private readonly record struct Bounds(int Left, int Top, int Right, int Bottom);
+
+    /// <summary>
+    /// A range written the way the name box writes one, as numbers: a zero on the right or at the
+    /// bottom means "as far as the sheet goes", which is what a range naming only its start means.
+    /// </summary>
+    private static Bounds Corner(string range)
+    {
+        var written = range.Trim();
+        if (written.Length == 0)
+        {
+            return new Bounds(1, 1, 0, 0);
+        }
+
+        var halves = written.Split(':');
+        var first = Grid(halves[0]);
+        if (halves.Length == 1 || halves[1].Trim().Length == 0)
+        {
+            return new Bounds(first.Column, first.Row, 0, 0);
+        }
+
+        var second = Grid(halves[1]);
+        return new Bounds(first.Column, first.Row, second.Column, second.Row);
+    }
+
+    /// <summary>One end of a range, from the letters and the number a person writes it with.</summary>
+    private static CellRef Grid(string written)
+    {
+        var text = written.Trim().Replace("$", string.Empty, StringComparison.Ordinal);
+        var letters = new string([.. text.TakeWhile(char.IsLetter)]);
+        var digits = new string([.. text.SkipWhile(char.IsLetter)]);
+        if (letters.Length == 0
+            || digits.Length == 0
+            || !int.TryParse(digits, NumberStyles.Integer, CultureInfo.InvariantCulture, out var row))
+        {
+            throw new DeviceActionException("Run.BadCellRange", written);
+        }
+
+        var column = 0;
+        foreach (var letter in letters.ToUpperInvariant())
+        {
+            if (letter is < 'A' or > 'Z')
+            {
+                throw new DeviceActionException("Run.BadCellRange", written);
+            }
+
+            column = (column * 26) + (letter - 'A' + 1);
+        }
+
+        return new CellRef(column, row);
+    }
+
+    /// <summary>
+    /// Registers the code pages an old file's text may be written in. They are the machine's own —
+    /// GBK on a Chinese Windows — and the runtime leaves them out until it is asked for them.
+    /// </summary>
+    private static void Register()
+        => Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+    /// <summary>
+    /// Says an old workbook cannot be changed. Reading one is what a macro does with the files left
+    /// over from an older Office, and writing one would mean a second library that can write that
+    /// format; "save it as .xlsx" is one click for whoever has the file.
+    /// </summary>
+    private static DeviceActionException OldFormatReadOnly() => new("Run.OldFormatReadOnly");
 
     /// <summary>
     /// Opens a workbook, or says the file is not one. What the format's reader says about a file

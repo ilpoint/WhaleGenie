@@ -75,6 +75,11 @@ The icon was scaled and modified from the original.
   <https://github.com/JoshClose/CsvHelper>
   读写的都是带分隔符的文本文件（`file.readCsv` / `file.writeCsv`）：引号、单元格里的换行、
   文件末尾不完整的行这些细节都归它管。
+- ExcelDataReader — MIT
+  <https://github.com/ExcelDataReader/ExcelDataReader>
+  读的是 2007 年以前 Excel 写的 .xls（OLE 容器里的一串记录），`ClosedXML` 完全不认这种格式。
+  它带进来的 System.Text.Encoding.CodePages（<https://github.com/dotnet/runtime>）— MIT，
+  用来认出旧文件里的文字用的是哪个代码页。
 
 ### 运行环境
 
