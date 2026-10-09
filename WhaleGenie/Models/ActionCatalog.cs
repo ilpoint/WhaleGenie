@@ -675,11 +675,40 @@ public static class ActionCatalog
             Parameters =
             [
                 FilePath("folder", "Folder", ".", "Folder to look in.", PathIntent.Folder),
-                Text("pattern", "Pattern", "*.txt", "Which files to collect, for example *.txt."),
+                Text("pattern", "Pattern", "*.txt",
+                    "Which files to collect. Wildcards work, and a semi-colon asks for several at "
+                    + "once, for example *.txt; report?.xlsx.",
+                    acceptsVariables: true),
                 Toggle("recurse", "Include subfolders"),
+                Choice("sortBy", "Order", ["name", "modified", "created", "size", "extension"],
+                    "name",
+                    "What to put the files in order by. Files that agree are ordered by name, so "
+                    + "the same folder comes out in the same order on every run.",
+                    labels: ["Name", "Last modified", "Created", "Size", "Extension"]),
+                Toggle("descending", "The other way round", false,
+                    "Newest, largest or Z to A first instead of the plain order."),
                 Variable("resultVariable", "Result variable", "files",
                     "Variable that receives the list of full paths.", required: false,
                     namesVariable: true),
+                Number("depth", "How deep", 0,
+                    "How many folders deep to look while subfolders are included. Zero is as deep "
+                    + "as they go.", min: 0m, max: 64m, advanced: true),
+                Number("withinCount", "Changed in the last", 0,
+                    "Keep only the files that changed in the last so many minutes, hours or days, "
+                    + "which is how a macro asks for \"what changed today\". Zero keeps every file.",
+                    min: 0m, max: 100_000m, advanced: true),
+                Choice("withinUnit", "Unit", ["minutes", "hours", "days"], "days",
+                    "What the number above counts in.",
+                    labels: ["Minutes", "Hours", "Days"], advanced: true),
+                Number("minKb", "At least this big", 0,
+                    "Keep only the files of this many kilobytes or more. Zero keeps every size.",
+                    min: 0m, max: 1_000_000m, advanced: true),
+                Number("maxKb", "At most this big", 0,
+                    "Keep only the files of this many kilobytes or less. Zero keeps every size.",
+                    min: 0m, max: 1_000_000m, advanced: true),
+                Toggle("relative", "Paths inside the folder", false,
+                    "Give each file as the path it has inside the folder that was listed, rather "
+                    + "than the whole path on the disk.", advanced: true),
             ],
         },
         new()
@@ -3260,7 +3289,7 @@ public static class ActionCatalog
         };
 
     private static ActionParameter Toggle(string name, string label, bool defaultValue = false,
-        string hint = "")
+        string hint = "", bool advanced = false)
         => new()
         {
             Name = name,
@@ -3268,6 +3297,7 @@ public static class ActionCatalog
             Kind = ActionParameterKind.Bool,
             Hint = hint,
             DefaultValue = defaultValue ? "true" : "false",
+            Advanced = advanced,
         };
 
     private static ActionParameter Choice(string name, string label, string[] options,

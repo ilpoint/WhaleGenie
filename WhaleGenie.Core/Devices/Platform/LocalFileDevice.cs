@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.IO.Enumeration;
 
 namespace WhaleGenie.Core.Devices.Platform;
 
@@ -260,7 +261,8 @@ public sealed class LocalFileDevice : IFileDevice
         });
     }
 
-    public IReadOnlyList<string> List(string folder, string pattern, bool recurse)
+    public IReadOnlyList<FileEntry> List(string folder, IReadOnlyList<string> patterns, bool recurse,
+        int depth)
     {
         var full = Full(folder);
         if (!Directory.Exists(full))
@@ -268,9 +270,44 @@ public sealed class LocalFileDevice : IFileDevice
             throw new DeviceActionException("Run.FolderNotFound", folder);
         }
 
-        var search = string.IsNullOrWhiteSpace(pattern) ? "*" : pattern;
-        var option = recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-        return Attempt(folder, () => Directory.GetFiles(full, search, option));
+        var wanted = patterns.Count == 0 ? ["*"] : patterns;
+        var found = Attempt(folder, () =>
+        {
+            var entries = new List<FileEntry>();
+            Walk(new DirectoryInfo(full), wanted, recurse ? depth : 0, entries);
+            return (IReadOnlyList<FileEntry>)entries;
+        });
+
+        // The same file can answer to two filters (`*.txt` and `report*`), and a macro that loops
+        // over the list must not do the same thing twice.
+        return [.. found.DistinctBy(entry => entry.Path, StringComparer.OrdinalIgnoreCase)];
+    }
+
+    /// <summary>
+    /// Collects the files of one folder, then of the folders under it while <paramref name="left"/>
+    /// still allows it: zero is this folder alone, and anything below zero is no end to it.
+    /// </summary>
+    private static void Walk(DirectoryInfo folder, IReadOnlyList<string> patterns, int left,
+        List<FileEntry> into)
+    {
+        foreach (var file in folder.EnumerateFiles())
+        {
+            if (patterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, file.Name)))
+            {
+                into.Add(new FileEntry(file.FullName, file.Name, file.DirectoryName ?? "",
+                    file.Length, file.CreationTime, file.LastWriteTime, file.LastAccessTime));
+            }
+        }
+
+        if (left == 0)
+        {
+            return;
+        }
+
+        foreach (var child in folder.EnumerateDirectories())
+        {
+            Walk(child, patterns, left < 0 ? left : left - 1, into);
+        }
     }
 
     /// <summary>Where a path points: inside the macros folder unless it is a full path.</summary>

@@ -1986,7 +1986,97 @@ public class DeviceActionTests
         Assert.True(files.IsList);
         Assert.Equal(2, files.Items.Count);
         Assert.Equal(@"C:\fake\b.txt", files.Items[1].AsText());
-        Assert.Contains(@"listFiles . *.txt True", devices.Calls);
+        Assert.Contains(@"listFiles . *.txt True -1", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_listing_can_ask_for_what_changed_recently()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.FolderEntries.Add(@"C:\fake\today.txt");
+        devices.FolderEntries.Add(@"C:\fake\last_month.txt");
+        devices.FileFacts[@"C:\fake\today.txt"] = (12, DateTimeOffset.Now.AddHours(-2));
+        devices.FileFacts[@"C:\fake\last_month.txt"] = (12, DateTimeOffset.Now.AddDays(-30));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.listFiles", Param("folder", "."), Param("pattern", "*"),
+                Param("withinCount", "1"), Param("withinUnit", "days"),
+                Param("resultVariable", "files")),
+        ], devices);
+
+        var files = store.Local.Values["files"];
+        Assert.Single(files.Items);
+        Assert.Equal(@"C:\fake\today.txt", files.Items[0].AsText());
+    }
+
+    [Fact]
+    public async Task A_listing_can_be_ordered_and_weeded_by_size()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.FolderEntries.Add(@"C:\fake\small.txt");
+        devices.FolderEntries.Add(@"C:\fake\big.txt");
+        devices.FileFacts[@"C:\fake\small.txt"] = (100, DateTimeOffset.Now);
+        devices.FileFacts[@"C:\fake\big.txt"] = (5_000_000, DateTimeOffset.Now);
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.listFiles", Param("folder", "."), Param("pattern", "*"),
+                Param("sortBy", "size"), Param("descending", "true"),
+                Param("minKb", "2"), Param("resultVariable", "files")),
+        ], devices);
+
+        var files = store.Local.Values["files"];
+        Assert.Single(files.Items);
+        Assert.Equal(@"C:\fake\big.txt", files.Items[0].AsText());
+
+        var (_, _, notSorted) = await RunAsync(
+        [
+            Step("file.listFiles", Param("folder", "."), Param("pattern", "*"),
+                Param("sortBy", "size"), Param("resultVariable", "files")),
+        ], devices);
+
+        Assert.Equal(@"C:\fake\small.txt", notSorted.Local.Values["files"].Items[0].AsText());
+    }
+
+    [Fact]
+    public async Task A_listing_can_be_given_as_paths_inside_the_folder()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.FolderEntries.Add(@"G:\fake\reports\a.txt");
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.listFiles", Param("folder", "reports"), Param("pattern", "*"),
+                Param("relative", "true"), Param("resultVariable", "files")),
+        ], devices);
+
+        Assert.Equal("a.txt", store.Local.Values["files"].Items[0].AsText());
+    }
+
+    [Fact]
+    public async Task A_listing_looks_no_deeper_than_it_was_told_to()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("file.listFiles", Param("folder", "."), Param("pattern", "*"),
+                Param("recurse", "true"), Param("depth", "2"), Param("resultVariable", "files")),
+        ], devices);
+
+        Assert.Contains(@"listFiles . * True 2", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_listing_can_ask_for_several_kinds_of_file_at_once()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("file.listFiles", Param("folder", "."), Param("pattern", "*.txt; report?.csv"),
+                Param("resultVariable", "files")),
+        ], devices);
+
+        Assert.Contains(@"listFiles . *.txt;report?.csv False 0", devices.Calls);
     }
 
     [Fact]
@@ -5212,6 +5302,12 @@ internal sealed class FakeDeviceLayer
     /// <summary>What listing a folder gives back.</summary>
     public List<string> FolderEntries { get; } = [];
 
+    /// <summary>
+    /// What each listed file says about itself. A file nothing is said about is empty and as old
+    /// as the epoch, so a step that sorts or weeds by these is the only thing under test.
+    /// </summary>
+    public Dictionary<string, (long Size, DateTimeOffset Modified)> FileFacts { get; } = new();
+
     /// <summary>What <see cref="Exists"/> reports.</summary>
     public bool PathExists { get; set; }
 
@@ -5641,10 +5737,22 @@ internal sealed class FakeDeviceLayer
         }
     }
 
-    IReadOnlyList<string> IFileDevice.List(string folder, string pattern, bool recurse)
+    IReadOnlyList<FileEntry> IFileDevice.List(string folder, IReadOnlyList<string> patterns,
+        bool recurse, int depth)
     {
-        Note($"listFiles {folder} {pattern} {recurse}");
-        return FolderEntries;
+        Note($"listFiles {folder} {string.Join(";", patterns)} {recurse} {depth}");
+        return
+        [
+            .. FolderEntries.Select(path =>
+            {
+                var facts = FileFacts.TryGetValue(path, out var known)
+                    ? known
+                    : (Size: 0L, Modified: DateTimeOffset.UnixEpoch);
+                return new FileEntry(path, Path.GetFileName(path),
+                    Path.GetDirectoryName(path) ?? "", facts.Size, facts.Modified, facts.Modified,
+                    facts.Modified);
+            }),
+        ];
     }
 
     void IFileDevice.CreateFolder(string path)

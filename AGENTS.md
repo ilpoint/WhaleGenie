@@ -555,8 +555,12 @@ CSV 的程序，所以不做成写出去的默认值。
 
 路径字段的事见上，下面只记参数本身。
 
-- [ ] `file.listFiles` 缺按时间 / 大小筛、按修改时间排序、要相对路径还是全路径、递归深度
-      → 做不成「今天改过的文件」（表达不出来）。
+- [x] `file.listFiles` 能挑、能排、能限深度了：`pattern` 用分号一次写多个（`*.txt; report?.xlsx`）、
+      `sortBy` 五个排序依据加 `descending`、`withinCount` + `withinUnit` 按修改时间筛
+      （「今天改过的文件」就是这么问的）、`minKb` / `maxKb` 按大小筛、`depth` 限几层、
+      `relative` 要文件夹里的路径。设备层的 `List` 因此交回 `FileEntry`（大小与三个时间），
+      筛选与排序在引擎里做。**刻意与 PAD 不同的一处**：没有「不排序」这一档，默认按名称 ——
+      宏每次跑出来必须是同一个顺序。
 - [x] `file.delete` 有"删到回收站"了（`toRecycleBin`）：勾上交给 Windows 外壳送进回收站，
       删错了能找回来（日志也分开记 `Run.RecycledFile`）；不勾照旧直接删，已有的宏行为不变。
 - [ ] `file.copy` / `file.move` 只认单个文件（没有整目录）、重名只有"覆盖 / 不覆盖"两档

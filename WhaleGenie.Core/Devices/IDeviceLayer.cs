@@ -210,9 +210,25 @@ public interface IFileDevice
     /// </summary>
     void Move(string from, string to, bool overwrite);
 
-    /// <summary>The files in a folder, as full paths.</summary>
-    IReadOnlyList<string> List(string folder, string pattern, bool recurse);
+    /// <summary>
+    /// The files in a folder. Each one comes with what it takes to sort and weed them: a macro
+    /// asking for "what changed today" turns that question into fields rather than a second look
+    /// at the disk. <paramref name="patterns"/> are file-name wildcards; <paramref name="depth"/>
+    /// is how many folders deep to go, where zero is the folder itself and below zero is no end
+    /// to it.
+    /// </summary>
+    IReadOnlyList<FileEntry> List(string folder, IReadOnlyList<string> patterns, bool recurse, int depth);
 }
+
+/// <summary>One file a folder listing turned up, with what it says about itself.</summary>
+public sealed record FileEntry(
+    string Path,
+    string Name,
+    string Folder,
+    long Size,
+    DateTimeOffset Created,
+    DateTimeOffset Modified,
+    DateTimeOffset Accessed);
 
 /// <summary>The clipboard: the text something last copied, and a way to put text there.</summary>
 public interface IClipboardDevice
@@ -674,7 +690,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public void Zip(string folder, string to) => throw Missing("files");
 
-        public IReadOnlyList<string> List(string folder, string pattern, bool recurse) => throw Missing("files");
+        public IReadOnlyList<FileEntry> List(string folder, IReadOnlyList<string> patterns, bool recurse,
+            int depth) => throw Missing("files");
 
         public int ChangeCount => throw Missing("the clipboard");
 

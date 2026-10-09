@@ -3169,11 +3169,76 @@ public sealed class MacroRunner
     {
         var folder = PathOf(step, "folder");
         var recurse = Flag(step, "recurse", false);
-        var files = _devices.Files.List(folder, step.Text("pattern").Trim(), recurse);
+        // A filter said with a semi-colon is several filters, the way the action this is modelled
+        // on reads it: *.txt; *.csv is one question, not two steps.
+        var patterns = step.Text("pattern")
+            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var levels = Number(step, "depth");
+        var files = _devices.Files.List(folder, patterns, recurse,
+            recurse ? (levels <= 0 ? -1 : levels) : 0);
+
+        var since = ChangedSince(step);
+        var smallest = Number(step, "minKb") * 1024L;
+        var largest = Number(step, "maxKb") * 1024L;
+        var kept = files.Where(entry =>
+            (since is null || entry.Modified >= since)
+            && (smallest <= 0 || entry.Size >= smallest)
+            && (largest <= 0 || entry.Size <= largest));
+
+        // A listing a macro loops over is the same listing on every run, so the folder's own order
+        // is never the answer: an order is always asked for, and the name settles the ties.
+        var ordered = InOrder(kept, step.Text("sortBy").Trim(), Flag(step, "descending", false));
+        var root = Flag(step, "relative", false) ? _devices.Files.Resolve(folder) : "";
+        var paths = ordered
+            .Select(entry => root.Length == 0 ? entry.Path : Path.GetRelativePath(root, entry.Path))
+            .ToList();
 
         Variables.Set(VariableName(step, "resultVariable", "files"),
-            Value.FromList(files.Select(Value.FromText)));
-        Log(LogLevel.Info, depth, step.Type, "Run.ListedFiles", folder, files.Count);
+            Value.FromList(paths.Select(Value.FromText)));
+        Log(LogLevel.Info, depth, step.Type, "Run.ListedFiles", folder, paths.Count);
+    }
+
+    /// <summary>
+    /// The earliest a listing reaches back to. Nothing said is every file, which is what a step
+    /// that only wants what is in a folder expects.
+    /// </summary>
+    private DateTimeOffset? ChangedSince(ExecutableStep step)
+    {
+        var count = Number(step, "withinCount");
+        if (count <= 0)
+        {
+            return null;
+        }
+
+        var back = step.Text("withinUnit").Trim().ToLowerInvariant() switch
+        {
+            "minutes" => TimeSpan.FromMinutes(count),
+            "hours" => TimeSpan.FromHours(count),
+            _ => TimeSpan.FromDays(count),
+        };
+
+        return DateTimeOffset.Now - back;
+    }
+
+    /// <summary>
+    /// Puts a folder listing in the order asked for, falling back to the name so that two files
+    /// agreeing on the key still come out the same way every run.
+    /// </summary>
+    private static IEnumerable<FileEntry> InOrder(IEnumerable<FileEntry> files, string key,
+        bool descending)
+    {
+        var ordered = key.ToLowerInvariant() switch
+        {
+            "size" => files.OrderBy(entry => entry.Size),
+            "modified" => files.OrderBy(entry => entry.Modified),
+            "created" => files.OrderBy(entry => entry.Created),
+            "extension" => files.OrderBy(entry => Path.GetExtension(entry.Name),
+                StringComparer.OrdinalIgnoreCase),
+            _ => files.OrderBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase),
+        };
+
+        var byName = ordered.ThenBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase);
+        return descending ? byName.Reverse() : byName;
     }
 
     private void ReadJson(ExecutableStep step, int depth)
