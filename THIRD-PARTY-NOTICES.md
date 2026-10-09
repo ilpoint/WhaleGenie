@@ -78,8 +78,7 @@ The icon was scaled and modified from the original.
 - ExcelDataReader — MIT
   <https://github.com/ExcelDataReader/ExcelDataReader>
   读的是 2007 年以前 Excel 写的 .xls（OLE 容器里的一串记录），`ClosedXML` 完全不认这种格式。
-  它带进来的 System.Text.Encoding.CodePages（<https://github.com/dotnet/runtime>）— MIT，
-  用来认出旧文件里的文字用的是哪个代码页。
+  它在这个目标框架下不依赖任何别的包，就是一个托管 dll。
 
 ### 运行环境
 
