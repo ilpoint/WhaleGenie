@@ -54,7 +54,8 @@ internal static class ActionStrings
     private const string EncodingHintText =
         "文件里的文字按什么编码变成字节。UTF-8 是现在通用的写法；带 BOM 的是记事本默认保存的样子；"
         + "GBK 是中文 Windows 自己写文本文件用的编码；UTF-16 是一些老 Windows 程序认的。"
-        + "读取时如果文件开头有 BOM，会以 BOM 为准。";
+        + "读取时如果文件开头有 BOM，会以 BOM 为准；没有 BOM 又根本不是 UTF-8 的，按本机代码页读"
+        + "（中文 Windows 是 GBK），别的机器导出的 CSV 因此也能直接读。";
 
     private const string EncodingUtf8 = "UTF-8";
     private const string EncodingUtf8Bom = "UTF-8（带 BOM）";

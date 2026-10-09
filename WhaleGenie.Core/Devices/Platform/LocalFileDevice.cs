@@ -38,10 +38,10 @@ public sealed class LocalFileDevice : IFileDevice
             throw new DeviceActionException("Run.FileNotFound", path);
         }
 
-        // The encoding named is the one used to read, but a file that starts with a byte-order
-        // mark still wins: a mark says what the file is, whatever the step guessed.
-        var text = TextEncoding.Resolve(encoding);
-        return Attempt(path, () => File.ReadAllText(full, text));
+        // The bytes are read whole rather than handed to a reader with an encoding on it, because
+        // which encoding they are in is a question about the bytes. A file with no mark that cannot
+        // be UTF-8 is this machine's own code page, and only looking at the bytes can say so.
+        return Attempt(path, () => TextEncoding.Read(File.ReadAllBytes(full), encoding));
     }
 
     public void WriteText(string path, string text, bool append, string encoding)

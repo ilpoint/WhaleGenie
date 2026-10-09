@@ -25,6 +25,17 @@ public static class TextEncoding
     /// <summary>The code page a Chinese Windows writes its own text files in.</summary>
     private const int CodePageGbk = 936;
 
+    /// <summary>The code page of plain UTF-8, which is what everything new is written in.</summary>
+    private const int CodePageUtf8 = 65001;
+
+    /// <summary>
+    /// UTF-8 that refuses what it cannot read, which is how the bytes of a file are asked whether
+    /// they are UTF-8 at all. The ordinary one hands back a question mark for every byte it cannot
+    /// make sense of, which is exactly the answer that must not be settled for here.
+    /// </summary>
+    private static readonly UTF8Encoding Strict = new(encoderShouldEmitUTF8Identifier: false,
+        throwOnInvalidBytes: true);
+
     /// <summary>
     /// Registers the code pages a machine's own files may be written in. This is a static
     /// constructor rather than a field initializer on purpose: the runtime is allowed to leave a
@@ -65,6 +76,79 @@ public static class TextEncoding
                 return SystemCodePage();
             default:
                 return new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        }
+    }
+
+    /// <summary>
+    /// The text of a file's bytes, read the way a person opening the file would: a byte-order mark
+    /// says what the file is and beats whatever the step named, because a mark is something the
+    /// file itself says. With no mark, UTF-8 is what is tried first, and bytes that cannot be UTF-8
+    /// at all are read in this machine's own code page.
+    /// </summary>
+    /// <remarks>
+    /// That last step is the one that matters. A Chinese Excel writes a CSV in GBK, and reading
+    /// those bytes as UTF-8 turns every character into a question mark — a file nothing can be done
+    /// with, rather than one that reads slightly wrong. The bytes have to be looked at to know, and
+    /// they can only be looked at here.
+    /// </remarks>
+    public static string Read(byte[] bytes, string name)
+    {
+        if (Mark(bytes) is { } mark)
+        {
+            return mark.Text.GetString(bytes, mark.Length, bytes.Length - mark.Length);
+        }
+
+        var named = Resolve(name);
+        if (named.CodePage != CodePageUtf8)
+        {
+            return named.GetString(bytes);
+        }
+
+        return Utf8(bytes) ? named.GetString(bytes) : SystemCodePage().GetString(bytes);
+    }
+
+    /// <summary>
+    /// The mark at the front of the bytes and how long it is, or nothing when there is none. Which
+    /// marks are looked for is the list the runtime itself looks for when it reads a file.
+    /// </summary>
+    private static (Encoding Text, int Length)? Mark(byte[] bytes)
+    {
+        if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
+        {
+            return (new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), 3);
+        }
+
+        if (bytes.Length >= 4 && bytes[0] == 0xFF && bytes[1] == 0xFE && bytes[2] == 0 && bytes[3] == 0)
+        {
+            return (new UTF32Encoding(bigEndian: false, byteOrderMark: true), 4);
+        }
+
+        if (bytes.Length >= 4 && bytes[0] == 0 && bytes[1] == 0 && bytes[2] == 0xFE && bytes[3] == 0xFF)
+        {
+            return (new UTF32Encoding(bigEndian: true, byteOrderMark: true), 4);
+        }
+
+        if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE)
+        {
+            return (new UnicodeEncoding(bigEndian: false, byteOrderMark: true), 2);
+        }
+
+        return bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF
+            ? (new UnicodeEncoding(bigEndian: true, byteOrderMark: true), 2)
+            : null;
+    }
+
+    /// <summary>Whether these bytes are UTF-8, asked by decoding them and seeing if it goes.</summary>
+    private static bool Utf8(byte[] bytes)
+    {
+        try
+        {
+            Strict.GetString(bytes);
+            return true;
+        }
+        catch (DecoderFallbackException)
+        {
+            return false;
         }
     }
 

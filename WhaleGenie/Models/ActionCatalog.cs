@@ -3129,7 +3129,10 @@ public static class ActionCatalog
         => Choice("encoding", "Encoding", [.. TextEncoding.Names], TextEncoding.Default,
             "How the file's text is turned into bytes. UTF-8 is what everything new uses; UTF-8 "
             + "with a mark is what Notepad writes; GBK is what a Chinese Windows writes its own "
-            + "text files in; UTF-16 is what some older Windows programs expect.",
+            + "text files in; UTF-16 is what some older Windows programs expect. Reading follows "
+            + "the mark at the front of the file when it has one, and reads bytes that are not "
+            + "UTF-8 at all in this machine's own code page — which is how a CSV another machine "
+            + "exported still reads.",
             labels: ["UTF-8", "UTF-8 with BOM", "GBK (Chinese)", "UTF-16"]);
 
     /// <summary>How OCR text searches compare their match.</summary>
