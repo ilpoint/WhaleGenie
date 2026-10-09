@@ -10,7 +10,8 @@ namespace WhaleGenie.Core.Tests;
 /// <summary>
 /// Writing a table by its column names rather than by counting columns, and writing the small
 /// pieces a sheet is made of — one cell, one column of plain values — without building a table
-/// around them first. Reading is the other half of this and lives in <c>SheetColumnsTests</c>.
+/// around them first, plus making room for rows and taking them out. Reading is the other half of
+/// this and lives in <c>SheetColumnsTests</c>.
 /// </summary>
 public class SheetWriteTests
 {
@@ -58,6 +59,19 @@ public class SheetWriteTests
     private static async Task<RunResult> RunAsync(VariableStore store, FakeDeviceLayer devices,
         params ExecutableStep[] steps)
         => await new MacroRunner(store, new SilentRunHost(), devices).RunAsync(steps);
+
+    /// <summary>One of the row actions, which both take a sheet, a row and how many rows.</summary>
+    private static ExecutableStep Rows(string type, int at, int count) => new()
+    {
+        Type = type,
+        Parameters =
+        [
+            Param("path", "book.xlsx"),
+            Param("sheet", "Sheet1"),
+            Param("at", $"{at}"),
+            Param("count", $"{count}"),
+        ],
+    };
 
     private static IReadOnlyList<IReadOnlyList<Value>> Rows(VariableStore store, string name)
         => [.. store.Local.Values[name].Items.Select(row => (IReadOnlyList<Value>)row.Items)];
@@ -277,5 +291,117 @@ public class SheetWriteTests
         Assert.Equal(["订单号", "金额"], back[2].Select(cell => cell.AsText()));
         Assert.Equal("A1", back[3][0].AsText());
         Assert.Equal(10, back[3][1].AsNumber());
+    }
+
+    [Fact]
+    public async Task Inserting_rows_makes_room_and_moves_the_rest_down()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+        store.Local.Set("lines", Value.FromList(
+        [
+            Value.FromList([Value.FromText("a")]),
+            Value.FromList([Value.FromText("b")]),
+            Value.FromList([Value.FromText("c")]),
+        ]));
+
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "$lines")),
+            Rows("excel.insertRows", 2, 1),
+            Read());
+
+        Assert.True(result.Succeeded, result.Key + " " + result.Detail);
+
+        // A blank row where the second one was, and the two under it one row further down.
+        var back = Rows(store, "back");
+        Assert.Equal(4, back.Count);
+        Assert.Equal("a", back[0][0].AsText());
+        Assert.Empty(back[1]);
+        Assert.Equal("b", back[2][0].AsText());
+        Assert.Equal("c", back[3][0].AsText());
+    }
+
+    [Fact]
+    public async Task Deleting_rows_takes_them_out_and_brings_the_rest_up()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+        store.Local.Set("lines", Value.FromList(
+        [
+            Value.FromList([Value.FromText("a")]),
+            Value.FromList([Value.FromText("b")]),
+            Value.FromList([Value.FromText("c")]),
+            Value.FromList([Value.FromText("d")]),
+        ]));
+
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "$lines")),
+            Rows("excel.deleteRows", 2, 2),
+            Read());
+
+        Assert.True(result.Succeeded, result.Key + " " + result.Detail);
+        Assert.Equal(["a", "d"], Rows(store, "back").Select(row => row[0].AsText()));
+    }
+
+    [Fact]
+    public async Task Deleting_more_rows_than_the_sheet_holds_takes_out_the_ones_it_does()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+        store.Local.Set("lines", Value.FromList(
+        [
+            Value.FromList([Value.FromText("a")]),
+            Value.FromList([Value.FromText("b")]),
+        ]));
+
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "$lines")),
+            Rows("excel.deleteRows", 10, 5),
+            Read());
+
+        // Nothing there to take out is the same thing as a sheet that had already been cleared, so
+        // a macro that clears a block runs again without stopping.
+        Assert.True(result.Succeeded, result.Key + " " + result.Detail);
+        Assert.Equal(["a", "b"], Rows(store, "back").Select(row => row[0].AsText()));
+    }
+
+    [Fact]
+    public async Task A_row_number_a_sheet_has_not_got_is_reported()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+
+        var wrong = await RunAsync(store, devices,
+            Write(Param("rows", "a")),
+            Rows("excel.insertRows", 0, 1));
+        Assert.Equal("Run.BadRow", wrong.Key);
+
+        var none = await RunAsync(store, devices,
+            Write(Param("rows", "a")),
+            Rows("excel.deleteRows", 1, 0));
+        Assert.Equal("Run.BadRow", none.Key);
+    }
+
+    [Fact]
+    public async Task Rows_go_into_the_sheet_the_step_names_and_a_sheet_that_is_not_there_is_reported()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "a")),
+            new ExecutableStep
+            {
+                Type = "excel.insertRows",
+                Parameters =
+                [
+                    Param("path", "book.xlsx"),
+                    Param("sheet", "Nope"),
+                    Param("at", "1"),
+                    Param("count", "1"),
+                ],
+            });
+
+        Assert.Equal("Run.NoSuchSheet", result.Key);
     }
 }

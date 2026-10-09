@@ -989,6 +989,45 @@ public static class ActionCatalog
                 Text("newName", "New name", "Data", "The name the sheet takes."),
             ],
         },
+        new()
+        {
+            Key = "excel.insertRows",
+            Category = ActionCategory.Spreadsheet,
+            DisplayName = "Insert Excel Rows",
+            Description = "Make room for rows in a sheet, pushing everything under them down.",
+            Parameters =
+            [
+                FilePath("path", "File", "report.xlsx", "The Excel file to change.", PathIntent.Read,
+                    "*.xlsx"),
+                Sheet(),
+                Number("at", "Above row", 1,
+                    "The rows go in above this one, and the rows already there from this one down "
+                    + "move down: inserting in front of row five is what makes room for a line that "
+                    + "belongs there.", min: 1, max: 1048576),
+                Number("count", "How many rows", 1, "How many rows to make room for.",
+                    min: 1, max: 1048576),
+            ],
+        },
+        new()
+        {
+            Key = "excel.deleteRows",
+            Category = ActionCategory.Spreadsheet,
+            DisplayName = "Delete Excel Rows",
+            Description = "Take rows out of a sheet, bringing everything under them up.",
+            Parameters =
+            [
+                FilePath("path", "File", "report.xlsx", "The Excel file to change.", PathIntent.Read,
+                    "*.xlsx"),
+                Sheet(),
+                Number("at", "From row", 1,
+                    "The first row to take out. This row and the ones under it go; the rows after "
+                    + "them move up, and the columns are not touched.", min: 1, max: 1048576),
+                Number("count", "How many rows", 1,
+                    "How many rows to take out. Asking for more than the sheet holds takes out the "
+                    + "ones it does hold, so a macro that clears a block does not have to know how "
+                    + "long the block turned out.", min: 1, max: 1048576),
+            ],
+        },
 
         // -------------------------------------------------------------------- data
         new()

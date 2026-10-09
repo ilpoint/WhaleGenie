@@ -872,6 +872,14 @@ public sealed class MacroRunner
                 RenameSheet(step, depth);
                 return Signal.Normal;
 
+            case "excel.insertRows":
+                InsertRows(step, depth);
+                return Signal.Normal;
+
+            case "excel.deleteRows":
+                DeleteRows(step, depth);
+                return Signal.Normal;
+
             // ----------------------------------------------------------------- data
             case "data.base64Encode":
                 EncodeBase64(step, depth);
@@ -3553,6 +3561,41 @@ public sealed class MacroRunner
         _devices.Files.WriteBytes(path, Spreadsheet.RenameSheet(
             _devices.Files.ReadBytes(path), name, wanted));
         Log(LogLevel.Info, depth, step.Type, "Run.RenamedSheet", name, wanted);
+    }
+
+    /// <summary>
+    /// Makes room for rows in a sheet. This is the half of "put this line in before the fifth row"
+    /// that moves everything else: the write that follows fills the room in.
+    /// </summary>
+    private void InsertRows(ExecutableStep step, int depth)
+    {
+        var path = PathOf(step);
+        var sheet = step.Text("sheet").Trim();
+        var at = Number(step, "at");
+        var count = Number(step, "count");
+
+        _devices.Files.WriteBytes(path, Spreadsheet.InsertRows(
+            _devices.Files.ReadBytes(path), sheet, at, count));
+        Log(LogLevel.Info, depth, step.Type, "Run.InsertedRows", count, at, sheet);
+    }
+
+    private void DeleteRows(ExecutableStep step, int depth)
+    {
+        var path = PathOf(step);
+        var sheet = step.Text("sheet").Trim();
+        var at = Number(step, "at");
+        var count = Number(step, "count");
+
+        var (written, removed) = Spreadsheet.DeleteRows(
+            _devices.Files.ReadBytes(path), sheet, at, count);
+        if (removed == 0)
+        {
+            Log(LogLevel.Info, depth, step.Type, "Run.NoRowsToDelete", at, sheet);
+            return;
+        }
+
+        _devices.Files.WriteBytes(path, written);
+        Log(LogLevel.Info, depth, step.Type, "Run.DeletedRows", removed, at, sheet);
     }
 
     /// <summary>

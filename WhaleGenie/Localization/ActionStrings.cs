@@ -712,6 +712,29 @@ internal static class ActionStrings
         ["excel.renameSheet.sheet.hint"] = "要改名的那一张表，写现在的名字。",
         ["excel.renameSheet.newName.label"] = "新名字",
         ["excel.renameSheet.newName.hint"] = "这张表改成什么名字。",
+        ["excel.insertRows.name"] = "插入 Excel 行",
+        ["excel.insertRows.desc"] = "在工作表里腾出几行，下面的内容整体往下挪。",
+        ["excel.insertRows.path.label"] = "文件",
+        ["excel.insertRows.path.hint"] = "要改的 Excel 文件。只写文件名时会相对宏文件夹解析。",
+        ["excel.insertRows.sheet.label"] = "表",
+        ["excel.insertRows.sheet.hint"] = "在哪一张表里腾位置，写表标签上的名字；留空表示第一张表。",
+        ["excel.insertRows.at.label"] = "在这一行前面",
+        ["excel.insertRows.at.hint"] = "新行插在这一行的前面，这张表里从这一行起的行往下挪："
+            + "「在第 5 行前面插一行」就是这个意思。",
+        ["excel.insertRows.count.label"] = "插几行",
+        ["excel.insertRows.count.hint"] = "腾出几行的位置。",
+        ["excel.deleteRows.name"] = "删除 Excel 行",
+        ["excel.deleteRows.desc"] = "把工作表里的几行删掉，下面的内容整体往上补。",
+        ["excel.deleteRows.path.label"] = "文件",
+        ["excel.deleteRows.path.hint"] = "要改的 Excel 文件。只写文件名时会相对宏文件夹解析。",
+        ["excel.deleteRows.sheet.label"] = "表",
+        ["excel.deleteRows.sheet.hint"] = "在哪一张表里删，写表标签上的名字；留空表示第一张表。",
+        ["excel.deleteRows.at.label"] = "从第几行开始",
+        ["excel.deleteRows.at.hint"] = "删掉的第一行。这一行和它下面的一起走，后面的行往上补，"
+            + "列不受影响。",
+        ["excel.deleteRows.count.label"] = "删几行",
+        ["excel.deleteRows.count.hint"] = "删掉几行。要删的比表里有的多时，就把有的那几行删掉，"
+            + "所以清理一块区域的宏不用先知道那块区域有多长。",
 
         // ------------------------------------------------------------------- data
         ["data.base64Encode.name"] = "Base64 编码",

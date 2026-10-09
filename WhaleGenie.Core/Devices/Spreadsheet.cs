@@ -367,6 +367,72 @@ public static class Spreadsheet
         return Save(document);
     }
 
+    /// <summary>
+    /// Makes room for rows by pushing what is under them down. An inserted row holds nothing, so
+    /// this is one half of "put this line in before the fifth row": the write that comes after it
+    /// fills the space in, and the row it pushes down is exactly why the insert is its own step
+    /// rather than a setting on writing.
+    /// </summary>
+    public static byte[] InsertRows(byte[] book, string sheet, int at, int count)
+    {
+        using var document = Open(book);
+        var page = Find(document, sheet) ?? throw NoSuchSheet(document, sheet);
+        var (first, _) = Rows(at, count);
+
+        // Every row shows up whatever is in it, so a row past the end of the table is still a row
+        // the file has: inserting there is what a macro does to make room at the bottom.
+        page.Row(first).InsertRowsAbove(count);
+        return Save(document);
+    }
+
+    /// <summary>
+    /// Takes rows out and brings what is under them up. Deleting rows a sheet does not hold is not
+    /// a failure: "clear yesterday's lines" runs on a sheet that may hold none of them.
+    /// </summary>
+    /// <returns>The workbook, and how many rows there were to take out.</returns>
+    public static (byte[] Book, int Removed) DeleteRows(byte[] book, string sheet, int at, int count)
+    {
+        using var document = Open(book);
+        var page = Find(document, sheet) ?? throw NoSuchSheet(document, sheet);
+        var (first, last) = Rows(at, count);
+
+        // Asking for more rows than the sheet holds takes out the ones it does hold: a loop that
+        // clears a block does not have to know how big the block ended up being.
+        var removed = Math.Min(last, page.LastRowUsed()?.RowNumber() ?? 0) - first + 1;
+        if (removed <= 0)
+        {
+            return (book, 0);
+        }
+
+        page.Rows(first, first + removed - 1).Delete();
+        return (Save(document), removed);
+    }
+
+    /// <summary>
+    /// The rows a step named, as the first and the last of them. A row a sheet has not got is a
+    /// step to fix rather than a file to write: rows are counted from one and a sheet stops long
+    /// before the millionth, and everything past the last one is filled in the same way.
+    /// </summary>
+    private static (int First, int Last) Rows(int at, int count)
+    {
+        if (at < 1 || at > LastRow)
+        {
+            throw new DeviceActionException("Run.BadRow",
+                at.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (count < 1)
+        {
+            throw new DeviceActionException("Run.BadRow",
+                count.ToString(CultureInfo.InvariantCulture));
+        }
+
+        return (at, Math.Min(at + count - 1, LastRow));
+    }
+
+    /// <summary>The last row a sheet has, which is the format's own limit rather than a choice.</summary>
+    private const int LastRow = 1048576;
+
     private static byte[] Save(XLWorkbook document)
     {
         using var written = new MemoryStream();
