@@ -605,6 +605,32 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Watching_one_pixel_goes_on_when_it_shows_the_colour()
+    {
+        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0xFF, 0x00, 0x00) };
+        var host = new SilentRunHost();
+
+        var result = await new MacroRunner(new VariableStore(), host, devices).RunAsync(
+            [Step("vision.waitColor", Param("x", "5"), Param("y", "6"), Param("color", "#FF0000"),
+                Param("tolerance", "5"), Param("timeoutMs", "200"))]);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(host.Entries, entry => entry.Key == "Run.SawColor");
+    }
+
+    [Fact]
+    public async Task Watching_one_pixel_that_stays_the_wrong_colour_gives_up()
+    {
+        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0x00, 0x00, 0x00) };
+
+        var (result, _, _) = await RunAsync(
+            [Step("vision.waitColor", Param("x", "5"), Param("y", "6"), Param("color", "#FFFFFF"),
+                Param("tolerance", "1"), Param("timeoutMs", "20"))], devices);
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
     public async Task The_second_place_a_colour_shows_is_the_one_a_step_can_take()
     {
         var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#000000,#FF0000") };
@@ -3803,6 +3829,16 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Minimizing_a_window_uses_its_handle()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        await RunAsync([Step("window.minimize", Param("title", "Notepad"))], devices);
+
+        Assert.Contains("minimizeWindow 21", devices.Calls);
+    }
+
+    [Fact]
     public async Task Moving_a_window_passes_the_place_and_the_size()
     {
         var devices = new FakeDeviceLayer();
@@ -4152,6 +4188,38 @@ public class DeviceActionTests
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.MissingCondition", result.Key);
+    }
+
+    /// <summary>
+    /// The random chance is a roll of the dice, so the two ends are what can be said about it: a
+    /// hundred per cent always holds and never waits, and none always runs out of time.
+    /// </summary>
+    [Fact]
+    public async Task A_random_chance_of_a_hundred_always_holds_and_of_none_never_does()
+    {
+        var (certain, _, certainStore) = await RunAsync(
+        [
+            Step("control.waitUntil",
+                When("condition", Step("condition.randomChance", Param("percent", "100"))),
+                Param("timeoutMs", "200"), Param("pollMs", "10"), Param("onTimeout", "stop"),
+                Param("elapsedVariable", "certainly")),
+        ]);
+
+        Assert.True(certain.Succeeded);
+        Assert.True(certainStore.Local.Values["certainly"].AsNumber() < 50,
+            "a certainty holds the first time it is asked, so there is nothing to wait for");
+
+        var (never, _, store) = await RunAsync(
+        [
+            Step("control.waitUntil",
+                When("condition", Step("condition.randomChance", Param("percent", "0"))),
+                Param("timeoutMs", "80"), Param("pollMs", "10"), Param("onTimeout", "continue"),
+                Param("elapsedVariable", "never")),
+        ]);
+
+        Assert.True(never.Succeeded);
+        Assert.True(store.Local.Values["never"].AsNumber() >= 80,
+            "a chance of none never comes up, so the whole time has to be waited out");
     }
 
     // ------------------------------------------------------------ mouse routes

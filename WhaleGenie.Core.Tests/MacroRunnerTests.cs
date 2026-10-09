@@ -1153,6 +1153,25 @@ public class MacroRunnerTests
         Assert.Equal("a, b, c", store.Local.Values["names"].AsText());
     }
 
+    /// <summary>
+    /// Emptying a list is not the same as dropping the variable: a macro that clears a list and
+    /// then adds to it again would otherwise be adding to nothing.
+    /// </summary>
+    [Fact]
+    public async Task Clearing_a_list_empties_it_and_leaves_the_variable_in_place()
+    {
+        var store = Store();
+        store.Local.Set("names", Value.FromList(new[] { Value.FromText("a"), Value.FromText("b") }));
+
+        var (result, _) = await RunAsync(
+            [Step("control.listClear", Param("name", "names"))], variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.True(store.Local.Values["names"].IsList);
+        Assert.Empty(store.Local.Values["names"].Items);
+        Assert.Equal(string.Empty, store.Local.Values["names"].AsText());
+    }
+
     [Fact]
     public async Task A_value_written_as_an_expression_has_to_work()
     {
@@ -1429,6 +1448,28 @@ public class MacroRunnerTests
 
         // The macro keeps its own numbers: the factor is only bent in while it runs.
         Assert.Equal("250", wait.Text("ms"));
+    }
+
+    /// <summary>
+    /// A random wait is the same idea as slack on a written wait, but the two ends are the
+    /// macro author's: it never comes back before the short one, and it is not the same wait every
+    /// time, which is the whole point of it.
+    /// </summary>
+    [Fact]
+    public async Task A_random_wait_lands_between_the_two_numbers_it_was_given()
+    {
+        var step = Step("control.delayRandom", Param("minMs", "30"), Param("maxMs", "300"));
+
+        var waits = new List<double>();
+        for (var round = 0; round < 5; round++)
+        {
+            waits.Add(await TimeAsync([step], 1));
+        }
+
+        Assert.All(waits, taken => Assert.True(taken >= 25, $"waited {taken:0}ms, before the short end"));
+        Assert.All(waits, taken => Assert.True(taken <= 3000, $"waited {taken:0}ms, past the long end"));
+        Assert.True(waits.Max() - waits.Min() > 20,
+            $"every wait came out about the same: {string.Join(", ", waits.Select(w => w.ToString("0")))}");
     }
 
     [Fact]
