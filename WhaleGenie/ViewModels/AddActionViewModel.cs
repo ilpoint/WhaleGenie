@@ -99,6 +99,13 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>How many actions the "recently used" group holds at most.</summary>
     private const int RecentLimit = 8;
 
+    /// <summary>
+    /// The name of the step this dialog was opened on. Editing a step must not rename it: the
+    /// macro may already point at it — a condition watching whether it succeeded, a result
+    /// variable carrying its name — so the dialog hands the same name back.
+    /// </summary>
+    private string _editingId = string.Empty;
+
     /// <summary>Key of the group that holds those, which is not a category.</summary>
     private const string RecentGroup = "recent";
 
@@ -159,6 +166,15 @@ public partial class AddActionViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(Header))]
     [NotifyPropertyChangedFor(nameof(CommitLabel))]
     public partial bool IsEditing { get; set; }
+
+    /// <summary>
+    /// The name of the step being edited, or empty while a new step is being written: a new step is
+    /// named when it joins the list, because that is where the names already in use are known.
+    /// </summary>
+    public string StepId => _editingId;
+
+    /// <summary>True while there is a name to show, which is the case only for an existing step.</summary>
+    public bool HasStepId => _editingId.Length > 0;
 
     /// <summary>
     /// The windows on the desktop, so a position picked off the screen can be stored the way a
@@ -567,6 +583,9 @@ public partial class AddActionViewModel : ViewModelBase
     public void LoadFrom(MacroStep step)
     {
         IsEditing = true;
+        _editingId = step.Id;
+        OnPropertyChanged(nameof(StepId));
+        OnPropertyChanged(nameof(HasStepId));
         SelectedDefinition = ActionCatalog.Find(step.Type);
 
         foreach (var editor in Parameters)
@@ -955,6 +974,7 @@ public partial class AddActionViewModel : ViewModelBase
     internal MacroStep BuildStep() => new()
     {
         Type = SelectedDefinition!.Key,
+        Id = _editingId,
         Parameters = Parameters
             .Where(parameter => parameter.IsIncluded)
             .Select(parameter => parameter.ToStepParameter())

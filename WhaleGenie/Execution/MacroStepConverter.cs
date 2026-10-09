@@ -9,8 +9,10 @@ namespace WhaleGenie.Execution;
 public static class MacroStepConverter
 {
     /// <summary>
-    /// Builds the runnable tree. Every step gets an identity on the way, which is what the
-    /// debugger uses for breakpoints and for highlighting the step that is running.
+    /// Builds the runnable tree. A step keeps the name the macro file gave it, so a breakpoint, the
+    /// row a run lights up, and the result variable a condition watches are all the same step; a
+    /// step that has no name yet — one built by a run started from an unsaved edit — is given one
+    /// here, because the engine has nothing else to tell two steps apart by.
     /// </summary>
     public static IReadOnlyList<ExecutableStep> ToExecutable(this IEnumerable<MacroStep> steps)
     {
@@ -21,7 +23,7 @@ public static class MacroStepConverter
     private static ExecutableStep Convert(MacroStep step, Counter counter) => new()
     {
         Type = step.Type,
-        Id = "s" + counter.Next(),
+        Id = step.Id.Length > 0 ? step.Id : "s" + counter.Next(),
         Meta = step.Meta,
         Parameters = [.. step.Parameters.Select(parameter => Convert(parameter, counter))],
     };

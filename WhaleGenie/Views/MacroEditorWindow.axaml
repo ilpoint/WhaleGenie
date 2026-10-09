@@ -875,6 +875,7 @@
                                   <Border Classes="StepRow" Classes.problem="{Binding HasProblem}"
                                           Opacity="{Binding RowOpacity}"
                                           Margin="{Binding Indent}"
+                                          ToolTip.Tip="{Binding IdHint}"
                                           IsVisible="{Binding IsStep}">
                                       <StackPanel Orientation="Horizontal" Spacing="6">
                                           <Button Classes="RowButton" IsVisible="{Binding CanFold}"
@@ -895,6 +896,13 @@
                                                           IsVisible="{Binding IsSkipped}">
                                                       <TextBlock Text="{Binding SkipLabel}" FontSize="10.5"
                                                                  Foreground="#D8B36A" />
+                                                  </Border>
+                                                  <Border Background="#2C3A46" CornerRadius="3" Padding="5,0"
+                                                          VerticalAlignment="Center"
+                                                          IsVisible="{Binding HasId}">
+                                                      <TextBlock Text="{Binding Id}" FontSize="10.5"
+                                                                 FontFamily="Consolas,Menlo,monospace"
+                                                                 Foreground="#8FB3D9" />
                                                   </Border>
                                               </StackPanel>
                                               <TextBlock Text="{Binding Detail}" Classes="Muted"

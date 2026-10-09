@@ -299,6 +299,8 @@ public sealed class Strings : INotifyPropertyChanged
         // two different places on the list.
         ["Editor.BlockEnd"] = "end of {0}",
         ["Editor.Fold"] = "Fold the steps inside",
+        ["Editor.StepIdHint"] = "Step name {0} — a result variable and a condition point at this "
+            + "step by it.",
         ["Editor.Unfold"] = "Show the steps inside",
         ["Editor.AddInside"] = "Add a sub-step at the end of this list",
         ["Editor.NoStepsHint"] = "Use Add new action above to pick an action and fill in its parameters.",
@@ -470,6 +472,10 @@ public sealed class Strings : INotifyPropertyChanged
             + "no step handled counts as this block failing.",
         ["Add.StepComment"] = "Comment",
         ["Add.StepCommentHint"] = "A note shown under the step in the list",
+        ["Add.StepId"] = "Step name",
+        ["Add.StepIdHint"] = "The name this step goes by, written into the macro file. A result "
+            + "variable carries it and a condition points at the step with it.",
+        ["Add.StepIdCopy"] = "Copy",
         ["Add.StepTimeout"] = "Timeout",
         ["Add.StepTimeoutHint"] = "Only the step's own running time is counted: the pauses before "
             + "and after it and the waits between retries are not. 0 means no limit. A block's "
@@ -1131,6 +1137,7 @@ public sealed class Strings : INotifyPropertyChanged
         // 块的两端。有了它们，“在循环里”和“在循环后面”才是列表上两个不同的位置。
         ["Editor.BlockEnd"] = "{0} 结束",
         ["Editor.Fold"] = "收起里面的步骤",
+        ["Editor.StepIdHint"] = "步骤名称 {0}——结果变量和条件用它指这一步。",
         ["Editor.Unfold"] = "展开里面的步骤",
         ["Editor.AddInside"] = "在这一块的末尾添加子步骤",
         ["Editor.NoStepsHint"] = "点击上方的“添加新动作”，选择动作并填写参数。",
@@ -1301,6 +1308,9 @@ public sealed class Strings : INotifyPropertyChanged
             + "失败后的处理均按这里的设置执行。",
         ["Add.StepComment"] = "备注",
         ["Add.StepCommentHint"] = "显示在步骤下方的备注",
+        ["Add.StepId"] = "步骤名称",
+        ["Add.StepIdHint"] = "这一步的名字，写进宏文件。结果变量会带上它，条件用它指这一步。",
+        ["Add.StepIdCopy"] = "复制",
         ["Add.StepTimeout"] = "超时",
         ["Add.StepTimeoutHint"] = "只计算这一步自身的执行时间：执行前、执行后的延迟与重试之间的"
             + "等待都不计入；0 表示不限。块上的超时覆盖整段，因此包含子步骤的等待。",

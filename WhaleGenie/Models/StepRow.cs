@@ -70,6 +70,18 @@ public sealed class StepRow
     /// <summary>True on a step the check has something to say about.</summary>
     public bool HasProblem => Problem.Length > 0;
 
+    /// <summary>
+    /// The short name this step goes by, shown on its row: it is what a result variable and a
+    /// condition call the step, so it has to be readable off the list rather than hunted for.
+    /// </summary>
+    public string Id => Step.Id;
+
+    /// <summary>True when the step has a name to show yet — steps gain one when they are added.</summary>
+    public bool HasId => IsStep && Step.Id.Length > 0;
+
+    /// <summary>What hovering the name says: what it is for, and how to use it.</summary>
+    public string IdHint => HasId && IsStep ? Strings.Format("Editor.StepIdHint", Step.Id) : string.Empty;
+
     /// <summary>True on a step that holds steps of its own, so it offers a fold arrow.</summary>
     public bool CanFold => IsStep && Step.HasChildren;
 

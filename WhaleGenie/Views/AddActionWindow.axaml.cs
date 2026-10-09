@@ -360,6 +360,26 @@ public partial class AddActionWindow : Window
             ? Strings.Get(outcome.Key)
             : Strings.Format(outcome.Key, outcome.Detail);
 
+    /// <summary>
+    /// Puts the step's name on the clipboard. It is a name people write down — into a condition, a
+    /// message, a note to whoever reads the macro next — and typing four characters off a screen is
+    /// where they get it wrong.
+    /// </summary>
+    private async void OnCopyStepId(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not AddActionViewModel { HasStepId: true } viewModel)
+        {
+            return;
+        }
+
+        if (Clipboard is { } clipboard)
+        {
+            var transfer = new DataTransfer();
+            transfer.Add(DataTransferItem.CreateText(viewModel.StepId));
+            await clipboard.SetDataAsync(transfer);
+        }
+    }
+
     /// <summary>Chooses a picture file for an image parameter.</summary>
     private async void OnBrowseImage(object? sender, RoutedEventArgs e)
     {

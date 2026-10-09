@@ -860,6 +860,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
 
         list.Insert(Math.Clamp(index, 0, list.Count), group);
+        StepIds.Settle(Steps);
         RestoreSelection([group]);
         NotifyStepsChanged();
     }
@@ -926,6 +927,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         _insertAt = null;
         list.Insert(Math.Clamp(index, 0, list.Count), step);
 
+        StepIds.Settle(Steps);
         ShowInside(list);
         RestoreSelection([step]);
         NotifyStepsChanged();
@@ -948,6 +950,7 @@ public partial class MacroEditorViewModel : ViewModelBase
             Steps.Add(step);
         }
 
+        StepIds.Settle(Steps);
         NotifyStepsChanged();
         MarkDirty();
     }
@@ -998,6 +1001,10 @@ public partial class MacroEditorViewModel : ViewModelBase
             list.Insert(Math.Clamp(index + offset, 0, list.Count), copies[offset]);
         }
 
+        // A paste is a copy, and two steps sharing a name share the variable it fills in and the
+        // row a run lights up; a name that is free in this macro is kept, so pasting from another
+        // macro leaves the steps as they were.
+        StepIds.Settle(Steps);
         ShowInside(list);
         RestoreSelection(copies);
         NotifyStepsChanged();
@@ -1117,6 +1124,11 @@ public partial class MacroEditorViewModel : ViewModelBase
             {
                 Steps.Add(step);
             }
+
+            // A macro written before steps had names, or one edited by hand outside the program,
+            // arrives with none or with the same one twice; both are settled here, once, rather
+            // than defended against in every place that reads a step's name.
+            StepIds.Settle(Steps);
         }
         finally
         {
@@ -1145,6 +1157,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     private static MacroStep Clone(MacroStep step) => new()
     {
         Type = step.Type,
+        Id = step.Id,
         Parameters = step.Parameters.Select(Clone).ToList(),
         Meta = step.Meta,
         IsExpanded = step.IsExpanded,

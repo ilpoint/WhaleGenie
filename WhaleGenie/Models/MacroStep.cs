@@ -113,6 +113,14 @@ public class MacroStep : INotifyPropertyChanged
     /// <summary>Fully qualified action key, for example <c>input.keyPress</c>.</summary>
     public required string Type { get; init; }
 
+    /// <summary>
+    /// The short name this step is known by, written into the macro file so that it survives
+    /// saving: a result variable carries it, a condition points at it, and a run reports the step
+    /// under it. Empty on steps that have never been saved since ids were introduced, which is
+    /// what <see cref="StepIds.Settle"/> fills in when the macro is opened.
+    /// </summary>
+    public string Id { get; internal set; } = string.Empty;
+
     public List<StepParameter> Parameters { get; init; } = [];
 
     /// <summary>
@@ -351,6 +359,13 @@ public class MacroStep : INotifyPropertyChanged
             ["params"] = parameters,
         };
 
+        // Written only when there is one, so a step edited by hand or saved by an older build
+        // still round-trips exactly as it was.
+        if (Id.Length > 0)
+        {
+            node["id"] = Id;
+        }
+
         // How much a length of time may move is written beside the parameters rather than inside
         // them, so a step saved before this existed still reads back exactly as it was.
         var jitter = new JsonObject();
@@ -378,6 +393,7 @@ public class MacroStep : INotifyPropertyChanged
         var step = new MacroStep
         {
             Type = node["type"]?.GetValue<string>() ?? string.Empty,
+            Id = node["id"]?.GetValue<string>()?.Trim() ?? string.Empty,
             Meta = StepMeta.FromJson(node["meta"] as JsonObject),
         };
 
