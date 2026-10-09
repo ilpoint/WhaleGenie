@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using WhaleGenie.Localization;
 
@@ -178,6 +179,33 @@ public class ActionParameter
     /// Variable Center uses it to spot a name a macro uses but nothing defines.
     /// </summary>
     public bool NamesVariable { get; init; }
+
+    /// <summary>
+    /// True when the field holds the name of a variable this step **creates**, rather than one it
+    /// reads. Those are the names that have to be told apart from each other: two steps writing
+    /// into the same name is a mistake nobody sees, so such a field is filled in with a name that
+    /// carries the step's own name.
+    /// </summary>
+    public bool IsOutputVariable => OutputNames.Contains(Name);
+
+    /// <summary>
+    /// The parameter names that hold a value the step leaves behind. Written down rather than
+    /// asked of the engine, because what an action does with a field is not something the catalogue
+    /// declares — and the set is small and stable: <c>resultVariable</c> and the handful of others
+    /// that were split off from it to say what the value is.
+    /// </summary>
+    private static readonly HashSet<string> OutputNames = new(StringComparer.Ordinal)
+    {
+        "resultVariable",
+        "headerVariable",
+        "columnsVariable",
+        "errorVariable",
+        "elapsedVariable",
+        "exitCodeVariable",
+        "saveTo",
+        "itemVariable",
+        "indexVariable",
+    };
 
     /// <summary>
     /// True when the text may name variables, so the editor offers them while the field is typed

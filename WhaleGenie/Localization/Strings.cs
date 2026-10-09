@@ -487,6 +487,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.BrowseSaveTitle"] = "Choose where {0} goes",
         ["Add.BrowseFolderTitle"] = "Choose a folder",
         ["Add.AllFiles"] = "All files",
+        ["Add.NameTaken"] = "{0} is already used by another variable. Two steps writing into one "
+            + "name overwrite each other, so this one wants a name of its own.",
+        ["Add.NameMakeUnique"] = "New name",
+        ["Add.NameMakeUniqueHint"] = "Put a number after the name so nothing else is using it.",
         ["Add.StepTimeout"] = "Timeout",
         ["Add.StepTimeoutHint"] = "Only the step's own running time is counted: the pauses before "
             + "and after it and the waits between retries are not. 0 means no limit. A block's "
@@ -1335,6 +1339,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.BrowseSaveTitle"] = "选择「{0}」写到哪",
         ["Add.BrowseFolderTitle"] = "选择文件夹",
         ["Add.AllFiles"] = "所有文件",
+        ["Add.NameTaken"] = "「{0}」已经被另一个变量占用。两步写进同一个名字会互相覆盖，这里的"
+            + "结果变量应该有自己的名字。",
+        ["Add.NameMakeUnique"] = "换个名字",
+        ["Add.NameMakeUniqueHint"] = "在名字后面加一个编号，避开已经被占用的名字。",
         ["Add.StepTimeout"] = "超时",
         ["Add.StepTimeoutHint"] = "只计算这一步自身的执行时间：执行前、执行后的延迟与重试之间的"
             + "等待都不计入；0 表示不限。块上的超时覆盖整段，因此包含子步骤的等待。",

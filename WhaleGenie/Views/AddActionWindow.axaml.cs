@@ -48,11 +48,11 @@ public partial class AddActionWindow : Window
     public AddActionWindow(MacroStep? existing, IReadOnlyList<ActionDefinition>? actions = null,
         IReadOnlyList<string>? variables = null, IReadOnlyList<string>? macros = null,
         string? presetKey = null, string? assetFolder = null,
-        IReadOnlyList<ActionParameterOption>? steps = null)
+        IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
     {
         InitializeComponent();
 
-        var viewModel = new AddActionViewModel(actions, variables, macros, steps);
+        var viewModel = new AddActionViewModel(actions, variables, macros, steps, newStepId);
         viewModel.AssetFolder = assetFolder ?? string.Empty;
 
         // Picking a position has to know where the window a step is anchored to sits right now,
@@ -121,7 +121,8 @@ public partial class AddActionWindow : Window
         var variables = (DataContext as AddActionViewModel)?.CollectVariables();
         var assets = (DataContext as AddActionViewModel)?.AssetFolder;
         var steps = (DataContext as AddActionViewModel)?.StepChoices;
-        var dialog = new AddActionWindow(null, list.Catalog, variables, null, null, assets, steps);
+        var dialog = new AddActionWindow(null, list.Catalog, variables, null, null, assets, steps,
+            FreeStepId(steps));
         var step = await dialog.ShowDialogOver<MacroStep?>(this);
 
         if (step is not null)
@@ -129,6 +130,15 @@ public partial class AddActionWindow : Window
             list.AddStep(step);
         }
     }
+
+    /// <summary>
+    /// A name for a step that is being added from inside another dialog. The editor settles the
+    /// whole tree when the outer step joins the list, so a name drawn from the ones already in the
+    /// macro is one it will keep — which is what the variables this step creates are named after.
+    /// </summary>
+    private static string FreeStepId(IReadOnlyList<ActionParameterOption>? steps)
+        => StepIds.Next(new HashSet<string>(
+            (steps ?? []).Select(option => option.Value), StringComparer.OrdinalIgnoreCase));
 
     /// <summary>Opens a picker for an existing nested step and swaps in the result.</summary>
     private async void OnNestedEditRequested(MacroStep step)
@@ -460,6 +470,19 @@ public partial class AddActionWindow : Window
         });
 
         return folders.Count > 0 ? folders[0].TryGetLocalPath() ?? string.Empty : string.Empty;
+    }
+
+    /// <summary>
+    /// Gives a result variable a name nothing else is using, by putting a number after the one it
+    /// has. It is what the line under such a field offers, so noticing a clash and doing something
+    /// about it is one click rather than a rewrite of the name.
+    /// </summary>
+    private void OnMakeNameUnique(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepParameterViewModel parameter })
+        {
+            parameter.MakeNameUnique();
+        }
     }
 
     /// <summary>Chooses a picture file for an image parameter.</summary>

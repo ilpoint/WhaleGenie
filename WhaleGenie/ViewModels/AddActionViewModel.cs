@@ -42,7 +42,7 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>Creates the dialog, optionally restricted to a catalogue subset.</summary>
     public AddActionViewModel(IReadOnlyList<ActionDefinition>? actions,
         IReadOnlyList<string>? variables = null, IReadOnlyList<string>? macros = null,
-        IReadOnlyList<ActionParameterOption>? steps = null)
+        IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
     {
         // Steps, not the whole catalogue: a condition says what has to be true and only means
         // something inside an if, a while or a wait, so it is not something to add as a step.
@@ -50,6 +50,11 @@ public partial class AddActionViewModel : ViewModelBase
         _variables = variables ?? [];
         _macros = macros ?? [];
         StepChoices = steps ?? [];
+
+        // A step being written has a name already, so the fields that create variables can carry it.
+        // The editor hands one in for a new step; an existing step brings its own when it is loaded.
+        _editingId = newStepId ?? string.Empty;
+        _isNewStep = _editingId.Length > 0;
         // A step that fails is usually a surprise the macro cannot have planned for, so a new one
         // starts by stopping and asking rather than bringing the whole run down on its own.
         MetaOnError = ErrorChoices.First(choice => choice.Value == StepMeta.Name(StepErrorAction.AskUser));
@@ -114,6 +119,13 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     private string _editingId = string.Empty;
 
+    /// <summary>
+    /// True while the step being written is not in the list yet. Its name is minted before the
+    /// dialog opens so the fields that create variables can carry it, and it is only for such a
+    /// step that those names follow the note: a variable a macro already uses keeps its name.
+    /// </summary>
+    private bool _isNewStep;
+
     /// <summary>Key of the group that holds those, which is not a category.</summary>
     private const string RecentGroup = "recent";
 
@@ -176,12 +188,11 @@ public partial class AddActionViewModel : ViewModelBase
     public partial bool IsEditing { get; set; }
 
     /// <summary>
-    /// The name of the step being edited, or empty while a new step is being written: a new step is
-    /// named when it joins the list, because that is where the names already in use are known.
+    /// The name the step goes by — the one it already has, or the one it is about to be given.
     /// </summary>
     public string StepId => _editingId;
 
-    /// <summary>True while there is a name to show, which is the case only for an existing step.</summary>
+    /// <summary>True while there is a name to show.</summary>
     public bool HasStepId => _editingId.Length > 0;
 
     /// <summary>
@@ -649,6 +660,7 @@ public partial class AddActionViewModel : ViewModelBase
     public void LoadFrom(MacroStep step)
     {
         IsEditing = true;
+        _isNewStep = false;
         _editingId = step.Id;
         OnPropertyChanged(nameof(StepId));
         OnPropertyChanged(nameof(HasStepId));
@@ -723,6 +735,7 @@ public partial class AddActionViewModel : ViewModelBase
 
             MarkCoordinates();
             MarkRegion();
+            SuggestOutputNames();
         }
 
         // A different action starts folded, whatever the one before it had open.
@@ -982,6 +995,38 @@ public partial class AddActionViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanSave));
         SaveCommand.NotifyCanExecuteChanged();
     }
+
+    /// <summary>
+    /// Fills in the name of every variable this step creates, and keeps doing it while the note is
+    /// being written. A name of its own means two steps of the same action do not quietly write
+    /// into the same variable, which is the one mistake in this dialog that shows up much later and
+    /// somewhere else.
+    /// </summary>
+    private void SuggestOutputNames()
+    {
+        if (!_isNewStep || SelectedDefinition is not { } definition)
+        {
+            return;
+        }
+
+        var wanted = VariableNames.ForStep(MetaComment, definition.LocalName, _editingId);
+        var taken = new HashSet<string>(CollectVariables(), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var field in Parameters.Where(parameter => parameter.IsOutputVariable))
+        {
+            field.SuggestName(VariableNames.Free(wanted, taken));
+
+            // The next field of this same step has to steer clear of this one as well, or a step
+            // with two results would give them one name between them.
+            if (field.CurrentText.Trim() is { Length: > 0 } named)
+            {
+                taken.Add(named);
+            }
+        }
+    }
+
+    /// <summary>The note is part of the name, so the name has to keep up with it.</summary>
+    partial void OnMetaCommentChanged(string value) => SuggestOutputNames();
 
     /// <summary>Refreshes what a change to a step-settings length of time affects.</summary>
     private void OnSettingChanged(object? sender, PropertyChangedEventArgs e)

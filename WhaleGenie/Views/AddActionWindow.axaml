@@ -432,6 +432,19 @@
                 <TextBlock Classes="Muted" Text="{Binding Hint}"
                            IsVisible="{Binding HasHint}"
                            TextWrapping="Wrap" Margin="2,5,0,0" />
+
+                <!-- A name the step creates that something else already holds: two steps writing
+                     into one variable is a mistake nobody sees, so it is said here with the one
+                     answer that always works next to it. -->
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6" Margin="2,5,0,0"
+                      IsVisible="{Binding IsNameTaken}">
+                    <TextBlock Classes="Muted" Text="{Binding NameWarning}" TextWrapping="Wrap"
+                               Foreground="#D8B36A" VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Classes="FlatButton" Height="26" Padding="9,0"
+                            Content="{Binding [Add.NameMakeUnique], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.NameMakeUniqueHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnMakeNameUnique" />
+                </Grid>
             </StackPanel>
         </DataTemplate>
 

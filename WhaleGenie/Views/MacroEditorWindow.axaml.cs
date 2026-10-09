@@ -610,7 +610,7 @@ public partial class MacroEditorWindow : Window
         // A list may only take certain kinds of step — a switch's branches, a condition — so the
         // dialog is opened with the choices the place the step is going allows.
         var dialog = new AddActionWindow(null, _viewModel.InsertChoices, _viewModel.CollectVariables(),
-            MacroNames(), null, _assetFolder, _viewModel.StepChoices());
+            MacroNames(), null, _assetFolder, _viewModel.StepChoices(), _viewModel.NewStepId());
         var step = await dialog.ShowDialogOver<MacroStep?>(this);
 
         if (step is not null)
@@ -623,7 +623,7 @@ public partial class MacroEditorWindow : Window
     private async void OnRunMacroRequested()
     {
         var dialog = new AddActionWindow(null, null, _viewModel.CollectVariables(), MacroNames(),
-            "control.runMacro", _assetFolder, _viewModel.StepChoices());
+            "control.runMacro", _assetFolder, _viewModel.StepChoices(), _viewModel.NewStepId());
         var step = await dialog.ShowDialogOver<MacroStep?>(this);
 
         if (step is not null)

@@ -21,6 +21,9 @@ public partial class StepParameterViewModel : ViewModelBase
     private string _assetFolder = string.Empty;
     private DurationUnit _unit = DurationUnit.Catalog[0];
 
+    /// <summary>The name the dialog suggested last, so a name the user typed can be told apart.</summary>
+    private string _suggested = string.Empty;
+
     public StepParameterViewModel(ActionParameter definition, IReadOnlyList<string>? variables = null,
         IReadOnlyList<string>? macros = null, IReadOnlyList<ActionParameterOption>? steps = null)
     {
@@ -486,6 +489,68 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </summary>
     public bool IsPath => Definition.PathIntent is not PathIntent.None;
 
+    /// <summary>
+    /// True when this field names a variable the step creates. Such a field is filled in with a
+    /// name of its own rather than left as "output", so two steps of the same action do not write
+    /// into each other.
+    /// </summary>
+    public bool IsOutputVariable => Definition.IsOutputVariable;
+
+    /// <summary>True once the user has typed a name of their own into this field.</summary>
+    public bool IsNameChanged { get; private set; }
+
+    /// <summary>
+    /// True when the name this field holds is already in use somewhere the macro can see, which is
+    /// how two steps end up writing into one variable.
+    /// </summary>
+    public bool IsNameTaken => IsOutputVariable
+        && CurrentText.Trim().Length > 0
+        && Variables.Contains(CurrentText.Trim(), StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>What the line under such a field says when its name is already taken.</summary>
+    public string NameWarning => IsNameTaken
+        ? Strings.Format("Add.NameTaken", CurrentText.Trim())
+        : string.Empty;
+
+    /// <summary>
+    /// Writes the suggested name, unless the user has already chosen one. Called again whenever the
+    /// note changes, so the name follows the note for as long as nobody has touched it.
+    /// </summary>
+    public void SuggestName(string name)
+    {
+        if (!IsOutputVariable || IsNameChanged || name.Length == 0 || Text == name)
+        {
+            return;
+        }
+
+        // Written down before the text moves: the change handler tells a name the dialog chose
+        // from one the user typed by comparing the two.
+        _suggested = name;
+        Text = name;
+    }
+
+    /// <summary>Gives the field a free name of its own, next to the one that was taken.</summary>
+    public void MakeNameUnique()
+    {
+        var wanted = CurrentText.Trim();
+        if (wanted.Length == 0)
+        {
+            return;
+        }
+
+        var free = VariableNames.Free(wanted, Variables);
+        if (free == wanted)
+        {
+            return;
+        }
+
+        IsNameChanged = true;
+        _suggested = free;
+        Text = free;
+        OnPropertyChanged(nameof(IsNameTaken));
+        OnPropertyChanged(nameof(NameWarning));
+    }
+
     /// <summary>What the button beside the field should say.</summary>
     public string PathButton => Definition.PathIntent switch
     {
@@ -612,6 +677,19 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Re-checks an expression as it is typed, so the editor can show the outcome.</summary>
     partial void OnTextChanged(string value)
     {
+        // A name the dialog did not suggest is one the user chose, and it stops following the note
+        // from then on: a name that kept moving while it was being written would be no name at all.
+        if (IsOutputVariable && !string.Equals(value, _suggested, StringComparison.Ordinal))
+        {
+            IsNameChanged = true;
+        }
+
+        if (IsOutputVariable)
+        {
+            OnPropertyChanged(nameof(IsNameTaken));
+            OnPropertyChanged(nameof(NameWarning));
+        }
+
         if (IsImage)
         {
             RefreshThumbnail();

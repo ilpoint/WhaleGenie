@@ -1155,6 +1155,46 @@ public partial class MacroEditorViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// A name for a step that is not in the list yet. The name is handed to the dialog while the
+    /// step is being written, so the variables it creates can carry it — and it is drawn from the
+    /// names this macro already uses, so the name the dialog shows is the name the step will keep.
+    /// </summary>
+    public string NewStepId() => StepIds.Next(AllIds());
+
+    /// <summary>Every name in use anywhere in this macro, nested steps and conditions included.</summary>
+    private HashSet<string> AllIds()
+    {
+        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var step in Steps)
+        {
+            Collect(step);
+        }
+
+        return taken;
+
+        void Collect(MacroStep step)
+        {
+            if (step.Id.Length > 0)
+            {
+                taken.Add(step.Id);
+            }
+
+            foreach (var parameter in step.Parameters)
+            {
+                foreach (var child in parameter.Steps)
+                {
+                    Collect(child);
+                }
+
+                if (parameter.Condition is not null)
+                {
+                    Collect(parameter.Condition);
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// The steps of the macro being written, which is what a step that has to point at another one
     /// picks from. Conditions are left out: they are asked by the step they belong to rather than
     /// run, so they never have an ending of their own to ask about.
