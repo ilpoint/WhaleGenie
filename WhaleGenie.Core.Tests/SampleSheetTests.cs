@@ -81,56 +81,19 @@ public class SampleSheetTests
     }
 
     /// <summary>
-    /// The old binary format, which is what an export from an older Office looks like. It is not
-    /// something the reader for .xlsx can open at all, so without a reader of its own the file is
-    /// simply a file this program refuses — and "my spreadsheet is not a spreadsheet" is the worst
-    /// kind of answer for somebody who just wants to add up a column.
+    /// The old binary format, which is what an export from an older Office looks like: an OLE
+    /// container of records rather than a zip of XML, so nothing that reads .xlsx can open it. What
+    /// the step gets back has to say which format it is — the person holding the file can act on
+    /// "save it as .xlsx", and cannot act on "this is not a workbook".
     /// </summary>
     [RealSampleFact("sample1.xls")]
-    public async Task A_workbook_in_the_old_format_is_read_too()
+    public async Task A_workbook_in_the_old_format_is_told_apart_from_a_file_that_is_not_one()
     {
         var run = await SampleFiles.RunAsync(
             SampleFiles.Step("excel.listSheets", SampleFiles.Param("path", "sample1.xls"),
-                SampleFiles.Param("resultVariable", "sheets")),
-            SampleFiles.Step("excel.readSheet", SampleFiles.Param("path", "sample1.xls"),
-                SampleFiles.Param("sheet", "Sheet1"), SampleFiles.Param("hasHeader", "true"),
-                SampleFiles.Param("headerVariable", "columns"),
-                SampleFiles.Param("resultVariable", "rows")));
+                SampleFiles.Param("resultVariable", "sheets")));
 
-        Assert.True(run.Result.Succeeded, run.Result.Detail);
-
-        Assert.Equal(["Sheet1"], run.Texts("sheets"));
-
-        // The file's own first column has no name above it — the row above the names holds that
-        // column's first value instead, which is what a real sheet laid out by hand looks like.
-        var columns = run.Texts("columns");
-        Assert.Equal("First Name", columns[1]);
-        Assert.Equal("Id", columns[7]);
-
-        var rows = run.Rows("rows");
-        Assert.Equal(50, rows.Count);
-        Assert.Equal("Dulce", rows[0][1].AsText());
-        Assert.Equal("United States", rows[0][4].AsText());
-        Assert.Equal(32, rows[0][5].AsNumber());
-    }
-
-    [RealSampleFact("sample1.xls")]
-    public async Task Part_of_a_workbook_in_the_old_format_can_be_read_on_its_own()
-    {
-        var run = await SampleFiles.RunAsync(
-            SampleFiles.Step("excel.readSheet", SampleFiles.Param("path", "sample1.xls"),
-                SampleFiles.Param("sheet", "Sheet1"), SampleFiles.Param("range", "C2:E3"),
-                SampleFiles.Param("hasHeader", "false"),
-                SampleFiles.Param("resultVariable", "rows")));
-
-        Assert.True(run.Result.Succeeded, run.Result.Detail);
-
-        var rows = run.Rows("rows");
-        Assert.Equal(2, rows.Count);
-        Assert.Equal(3, rows[0].Count);
-        Assert.Equal("Abril", rows[0][0].AsText());
-        Assert.Equal("Female", rows[0][1].AsText());
-        Assert.Equal("United States", rows[0][2].AsText());
+        Assert.Equal("Run.OldFormatReadOnly", run.Result.Key);
     }
 
     [RealSampleFact("sample1.xls")]
@@ -140,8 +103,8 @@ public class SampleSheetTests
             SampleFiles.Step("excel.addSheet", SampleFiles.Param("path", "sample1.xls"),
                 SampleFiles.Param("sheet", "Extra")));
 
-        // Not "this is not a workbook" — it is one, and it is one this program can read. What it
-        // cannot do is write it, and the answer says which file to make instead.
+        // The same sentence, for the same reason: it is a workbook, just one this program does not
+        // open, and what the reader can do about it is save it the other way.
         Assert.Equal("Run.OldFormatReadOnly", run.Result.Key);
     }
 

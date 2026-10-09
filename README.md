@@ -43,7 +43,6 @@ dotnet format WhaleGenie.slnx           # 按 .editorconfig 整理格式
 | `FlaUI.UIA3` | UI Automation：元素的取值、选择、勾选、展开、滚动到可见、读表格 |
 | `Microsoft.Playwright` | 浏览器动作（`browser.*`）：驱动跟着包走，默认开系统自带的 Edge |
 | `ClosedXML` | 表格文件（`excel.*`）：按文件读写 xlsx，不启动 Excel。zip / XML / 共享字符串表 / 数字格式 / 公式结果 / 日期体系都归它管，它自己建在 `DocumentFormat.OpenXml`（Open XML SDK）上 |
-| `ExcelDataReader` | 旧版 .xls（2007 年以前 Excel 的写法）：`excel.*` 能读它，不能写它 |
 | `CsvHelper` | 带分隔符的文本文件（`file.readCsv` / `file.writeCsv`）：引号、单元格里的换行、行尾、空行这些细节归它管。自己拆字符串在这些地方都会悄悄读错 |
 | `OpenCvSharp5.AvaloniaExtensions` | 没人用它：引擎和界面都没有调用它的 API，它只会把 Avalonia 带进引擎的依赖图 |
 
@@ -131,9 +130,8 @@ dotnet format WhaleGenie.slnx           # 按 .editorconfig 整理格式
 读表格时列名是单独一份（`headerVariable`），写回去时用"表头行"（`header`）把它写在数据上面
 就行，默认不写；选"追加"时表里已经有内容就不再写一遍，所以流水账只有一个表头。
 
-**旧版 .xls（2007 年以前 Excel 的写法）能读，不能写。** 它是另一种格式，`ClosedXML` 完全不
-认，所以里面另有一个读它的库；读出来的单元格和 .xlsx 一样按种类给，范围、表头、工作表列表
-都照常。改它不行 —— 在 Excel 里另存为 .xlsx 再改那一份，报错里就是这么说的。
+**旧版 .xls（2007 年以前 Excel 的写法）打不开。** 它是另一种格式（OLE 容器里的一串记录），
+不是 `.xlsx` 那种 zip，报错会明白说清：在 Excel 里另存为 `.xlsx`，再用那一份。
 
 ## 程序自己的文件放哪儿
 
