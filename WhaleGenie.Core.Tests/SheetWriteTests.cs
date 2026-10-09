@@ -637,4 +637,80 @@ public class SheetWriteTests
 
         Assert.Equal("Run.SheetNameTaken", result.Key);
     }
+
+    [Fact]
+    public async Task A_block_of_cells_is_copied_with_what_it_holds_and_what_it_shows()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+
+        // A number shown as 0000: the value and the format are two different things, and a copy
+        // that kept only the value would come out as a plain number.
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "120"), Param("numberFormat", "0000")),
+            OnSheet("excel.copyRange", Param("range", "A1"), Param("targetCell", "A5")),
+            Read(asText: true));
+
+        Assert.True(result.Succeeded, result.Key + " " + result.Detail);
+        var back = Rows(store, "back");
+        Assert.Equal("0120", back[0][0].AsText());
+        Assert.Equal("0120", back[4][0].AsText());
+    }
+
+    [Fact]
+    public async Task A_block_of_cells_is_copied_onto_the_sheet_the_step_names()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "a"), Param("sheet", "A")),
+            Write(Param("rows", "b"), Param("sheet", "B")),
+            OnSheet("excel.copyRange", Param("sheet", "A"), Param("range", "A1"),
+                Param("targetSheet", "B"), Param("targetCell", "B2")),
+            Read(sheet: "B"));
+
+        Assert.True(result.Succeeded, result.Key + " " + result.Detail);
+        var back = Rows(store, "back");
+        Assert.Equal("b", back[0][0].AsText());
+        Assert.Equal("a", back[1][1].AsText());
+    }
+
+    [Fact]
+    public async Task A_copied_formula_follows_its_block_the_way_excel_moves_one()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+        store.Local.Set("lines", Value.FromList(
+        [
+            Value.FromList([Value.FromNumber(1)]),
+            Value.FromList([Value.FromNumber(2)]),
+        ]));
+
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "$lines")),
+            Write(Param("rows", "=A1+A2"), Param("mode", "insert"), Param("startCell", "B1"),
+                Param("formula", "true")),
+            OnSheet("excel.copyRange", Param("range", "B1"), Param("targetCell", "C1")));
+
+        Assert.True(result.Succeeded, result.Key + " " + result.Detail);
+
+        // One column to the right, one column further right in what it adds up: the copy refers to
+        // the cells beside it, not to the cells beside where it came from.
+        using var book = Book(devices);
+        Assert.Equal("B1+B2", book.Worksheet("Sheet1").Cell(1, 3).FormulaA1);
+    }
+
+    [Fact]
+    public async Task A_range_that_is_not_a_range_is_reported()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "a")),
+            OnSheet("excel.copyRange", Param("range", "")));
+
+        Assert.Equal("Run.BadCellRange", result.Key);
+    }
 }

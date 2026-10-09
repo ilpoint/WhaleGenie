@@ -1115,6 +1115,27 @@ public static class ActionCatalog
                     PathIntent.Write, "*.xlsx"),
             ],
         },
+        new()
+        {
+            Key = "excel.copyRange",
+            Category = ActionCategory.Spreadsheet,
+            DisplayName = "Copy Excel Range",
+            Description = "Put a block of cells somewhere else in the same file, as it stands.",
+            Parameters =
+            [
+                FilePath("path", "File", "report.xlsx", "The Excel file to change.", PathIntent.Read,
+                    "*.xlsx"),
+                Sheet(),
+                Text("range", "Cells", "B2:D40",
+                    "The block to copy, written the way the name box writes it: B2:D40. What each "
+                    + "cell holds, what it is shown as and its formula go with it, and a formula's "
+                    + "references move with the block the way Excel moves them."),
+                Text("targetSheet", "Into sheet", "Sheet2", required: false,
+                    hint: "Which sheet the block goes to. Leave it empty for the sheet it came from."),
+                Text("targetCell", "At cell", "A1", required: false, defaultValue: "A1",
+                    hint: "The cell the top left corner of the block lands on, as B2."),
+            ],
+        },
 
         // -------------------------------------------------------------------- data
         new()

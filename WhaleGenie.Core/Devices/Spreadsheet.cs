@@ -327,6 +327,39 @@ public static class Spreadsheet
         return Save(document);
     }
 
+    /// <summary>
+    /// Puts a block of cells somewhere else, as it stands: what each cell holds, what it is shown
+    /// as, and its formula go with it, which is what copying a block means in a spreadsheet. A
+    /// formula's own relative references move with the block the way Excel moves them — the library
+    /// does that part — so the copy refers to the cells beside it rather than to the cells beside
+    /// where it came from.
+    /// </summary>
+    /// <param name="book">The workbook to change.</param>
+    /// <param name="sheet">Which sheet the block is on, or the first one when the name is empty.</param>
+    /// <param name="range">The block, written the way the name box writes it, as <c>B2:D40</c>.</param>
+    /// <param name="into">Which sheet the block goes to, or the first one when the name is empty.</param>
+    /// <param name="at">The cell the top left corner of the block lands on, as <c>A1</c>.</param>
+    public static byte[] CopyRange(byte[] book, string sheet, string range, string into, string at)
+    {
+        using var document = Open(book);
+        var page = Find(document, sheet) ?? throw NoSuchSheet(document, sheet);
+        var target = Find(document, into) ?? throw NoSuchSheet(document, into);
+        var corner = Place(target, at);
+
+        try
+        {
+            page.Range(range.Trim()).CopyTo(target.Cell(corner.Row, corner.Column));
+        }
+        catch (Exception refused) when (refused is not DeviceActionException)
+        {
+            // The name box's own words, handed back as a step that named cells the format has no
+            // such place for: an empty block or "row 3" is a name to fix, not a broken file.
+            throw new DeviceActionException("Run.BadCellRange", range.Trim());
+        }
+
+        return Save(document);
+    }
+
     /// <summary>Puts another name on a sheet, and writes nothing when the name is already taken.</summary>
     public static byte[] RenameSheet(byte[] book, string sheet, string name)
     {

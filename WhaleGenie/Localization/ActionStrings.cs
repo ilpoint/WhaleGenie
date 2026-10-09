@@ -799,6 +799,21 @@ internal static class ActionStrings
         ["excel.copySheet.into.hint"] = "复制进哪个文件。留空就是留在原来那个文件里。"
             + "文件不存在时会新建，而复制件带着公式、格式和列宽一起过去——"
             + "这几样都是「读一张表再写回去」留不住的。",
+        ["excel.copyRange.name"] = "复制 Excel 单元格区域",
+        ["excel.copyRange.desc"] = "把一块单元格照原样搬到同一个文件的别处。",
+        ["excel.copyRange.path.label"] = "文件",
+        ["excel.copyRange.path.hint"] = "要改的 Excel 文件。只写文件名时会相对宏文件夹解析。",
+        ["excel.copyRange.sheet.label"] = "表",
+        ["excel.copyRange.sheet.hint"] = "要复制的那一块在哪一张表上，写表标签上的名字；"
+            + "留空表示第一张表。",
+        ["excel.copyRange.range.label"] = "单元格区域",
+        ["excel.copyRange.range.hint"] = "要复制的范围，按名称框的写法：B2:D40。"
+            + "单元格里的值、显示格式和公式一起跟过去，公式里的相对引用也跟着这一块走，"
+            + "和 Excel 里挪一块是一样的。",
+        ["excel.copyRange.targetSheet.label"] = "复制到哪张表",
+        ["excel.copyRange.targetSheet.hint"] = "这一块搬到哪一张表上。留空就是搬回它原来那张表。",
+        ["excel.copyRange.targetCell.label"] = "从哪一格开始",
+        ["excel.copyRange.targetCell.hint"] = "这一块的左上角落在哪一格，比如 B2。",
 
         // ------------------------------------------------------------------- data
         ["data.base64Encode.name"] = "Base64 编码",

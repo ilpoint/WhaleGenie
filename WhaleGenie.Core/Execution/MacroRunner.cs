@@ -888,6 +888,10 @@ public sealed class MacroRunner
                 CopySheet(step, depth);
                 return Signal.Normal;
 
+            case "excel.copyRange":
+                CopyRange(step, depth);
+                return Signal.Normal;
+
             // ----------------------------------------------------------------- data
             case "data.base64Encode":
                 EncodeBase64(step, depth);
@@ -3437,14 +3441,21 @@ public sealed class MacroRunner
     /// </summary>
     private IReadOnlyList<string> Formats(ExecutableStep step, int columns)
     {
-        var written = Read(step.Text("numberFormat"));
-        if (written.Kind is ValueKind.List)
+        var text = step.Text("numberFormat").Trim();
+        if (text.Length == 0)
         {
-            return [.. written.Items.Select(item => item.AsText())];
+            return [];
         }
 
-        var one = written.AsText();
-        return one.Length == 0 ? [] : [.. Enumerable.Repeat(one, columns)];
+        // A format is text and never maths: "0000" is four zeroes to Excel — the format that shows a
+        // number four digits wide — and the number nothing to anything reading it as arithmetic. So
+        // the same rule as everywhere else has to be turned right round here: only a value that is
+        // named, with a $ or as a variable that exists, is read as one.
+        var named = text.StartsWith('$') || Variables.TryGet(text, out _);
+        var written = named ? Read(text) : Value.FromText(text);
+        return written.IsList
+            ? [.. written.Items.Select(item => item.AsText())]
+            : [.. Enumerable.Repeat(written.AsText(), columns)];
     }
 
     /// <summary>Where the step said the written text sits, by the words the picker offers.</summary>
@@ -3748,6 +3759,25 @@ public sealed class MacroRunner
 
         _devices.Files.WriteBytes(here ? path : into, written);
         Log(LogLevel.Info, depth, step.Type, "Run.CopiedSheet", called, here ? path : into);
+    }
+
+    /// <summary>
+    /// Copies a block of cells somewhere else in the same file. The destination sheet is the one the
+    /// block came from unless the step names another: "put this block over there" is most often
+    /// about the same table.
+    /// </summary>
+    private void CopyRange(ExecutableStep step, int depth)
+    {
+        var path = PathOf(step);
+        var sheet = step.Text("sheet").Trim();
+        var range = step.Text("range").Trim();
+        var target = step.Text("targetSheet").Trim();
+        var at = step.Text("targetCell").Trim();
+
+        _devices.Files.WriteBytes(path, Spreadsheet.CopyRange(
+            _devices.Files.ReadBytes(path), sheet, range,
+            target.Length > 0 ? target : sheet, at.Length > 0 ? at : "A1"));
+        Log(LogLevel.Info, depth, step.Type, "Run.CopiedRange", range, at);
     }
 
     /// <summary>
