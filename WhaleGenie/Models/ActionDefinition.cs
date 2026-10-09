@@ -118,7 +118,7 @@ public class ActionParameter
 
     /// <summary>
     /// The kinds of file the dialog should show first, as a semicolon-separated list of patterns
-    /// such as <c>*.xlsx</c>. Empty means every file, which is what a field that accepts anything
+    /// such as <c>*.csv</c>. Empty means every file, which is what a field that accepts anything
     /// gets.
     /// </summary>
     public string PathFilter { get; init; } = string.Empty;

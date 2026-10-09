@@ -33,7 +33,7 @@ public class VariableWallTests
             Name = name,
             Scope = VariableScope.Local,
             Description = Strings.Get("VarWall.Outcome"),
-            Source = "读订单表 · 读取 Excel 表格 · k3f9",
+            Source = "读订单表 · 读取 CSV · k3f9",
             IsStepResult = true,
         };
 
@@ -134,7 +134,7 @@ public class VariableWallTests
     {
         var step = new MacroStep
         {
-            Type = "excel.readSheet",
+            Type = "file.readCsv",
             Id = "k3f9",
             Parameters =
             [
