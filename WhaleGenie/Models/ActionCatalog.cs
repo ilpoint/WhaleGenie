@@ -1923,6 +1923,34 @@ public static class ActionCatalog
                     namesVariable: true, defaultValue: "match"),
             ],
         },
+        new()
+        {
+            Key = "vision.waitStable",
+            Category = ActionCategory.Vision,
+            DisplayName = "Wait for Screen to Settle",
+            Description = "Wait until the screen stops changing, so the step after it works on a "
+                + "picture that is not still being drawn.",
+            Parameters =
+            [
+                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
+                ..Anchor(),
+                Number("quietMs", "Hold still for", 500,
+                    "How long the area has to stay unchanged before the step goes on. A page that "
+                    + "is still filling in, or an animation still running, keeps this from being "
+                    + "reached."),
+                Number("tolerance", "Tolerance %", 5,
+                    "How far a pixel may drift and still count as the same pixel. Raise it for a "
+                    + "picture with noise or a slow fade in it.", max: 100, advanced: true),
+                Number("changedPercent", "Allowed change %", 0.1m,
+                    "How much of the area may move and still count as still. A spinner turning, a "
+                    + "list scrolling or a progress bar filling moves more than this.",
+                    max: 100, advanced: true),
+                Number("timeoutMs", "Timeout", 10000, "Give up after this long."),
+                Number("intervalMs", "Interval", 100,
+                    "How often the area is looked at. Shorter notices the screen moving sooner; "
+                    + "longer costs less while the wait runs.", min: 1, advanced: true),
+            ],
+        },
 
         // -------------------------------------------------------------------- ocr
         new()

@@ -635,6 +635,67 @@ public class DeviceActionTests
         Assert.Equal("0,0, 2,0", store.Local.Values["spot.list"].AsText());
     }
 
+    [Fact]
+    public async Task Waiting_for_a_still_picture_goes_on_once_the_screen_stops_moving()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#000000") };
+        var frames = new Queue<ImageFrame>([Picture("#FFFFFF"), Picture("#00FF00")]);
+        devices.Next = () => frames.Count > 1 ? frames.Dequeue() : frames.Peek();
+
+        var host = new SilentRunHost();
+        var result = await new MacroRunner(new VariableStore(), host, devices).RunAsync(
+            [Step("vision.waitStable", Param("quietMs", "0"), Param("intervalMs", "1"), Param("timeoutMs", "5000"))]);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(host.Entries, entry => entry.Key == "Run.FrameStill");
+
+        // Four looks: the picture the wait opened on, the two the screen moved through, and the one
+        // that shows it has stopped. The quiet stretch was nothing, so there was nothing left to
+        // wait for rather than a fixed pause.
+        Assert.Equal(4, devices.Calls.Count(call => call.StartsWith("capture", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task A_screen_that_never_holds_still_fails_the_step()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#000000") };
+        var moving = true;
+        devices.Next = () =>
+        {
+            moving = !moving;
+            return Picture(moving ? "#FF0000" : "#0000FF");
+        };
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.waitStable", Param("quietMs", "50"), Param("intervalMs", "5"),
+                Param("timeoutMs", "60")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+    }
+
+    /// <summary>
+    /// A picture with a little noise on it, or one that fades slowly, is still a picture that is
+    /// not being drawn any more: what counts as a change is the caller's tolerance, not any
+    /// difference at all.
+    /// </summary>
+    [Fact]
+    public async Task A_picture_that_only_drifts_a_little_is_still_a_picture()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#808080") };
+        var frames = new Queue<ImageFrame>([Picture("#838383")]);
+        devices.Next = () => frames.Count > 0 ? frames.Dequeue() : Picture("#838383");
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.waitStable", Param("quietMs", "0"), Param("intervalMs", "1"),
+                Param("tolerance", "5"), Param("timeoutMs", "100")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+    }
+
     /// <summary>Hits are counted the way a person counts them on screen, not the order they came back in.</summary>
     [Fact]
     public async Task A_picture_can_be_taken_by_its_place_on_the_screen()
@@ -4745,13 +4806,29 @@ internal sealed class FakeDeviceLayer
     public ImageFrame Capture(int x, int y, int width, int height)
     {
         Note($"capture {x} {y} {width} {height}");
-        return Display is { } display
+        var picture = Display is { } display
             ? ScreenCut(display, x, y, width, height)
             : new ImageFrame(width, height, new byte[width * height * 4]);
+
+        // A screen that moves between two captures is what waiting for the picture to settle is
+        // about, so a check writes what the screen does next.
+        if (Next is { } next)
+        {
+            Display = next();
+        }
+
+        return picture;
     }
 
     /// <summary>What the pretend screen shows: a capture cuts the rectangle asked for out of it.</summary>
     public ImageFrame? Display { get; set; }
+
+    /// <summary>
+    /// What the pretend screen shows next, asked after every capture, for the checks that need a
+    /// picture that moves: one that moves twice and then holds, or one that never holds at all.
+    /// Nothing here leaves the screen as it was.
+    /// </summary>
+    public Func<ImageFrame>? Next { get; set; }
 
     public ImageFrame? Load(string path)
     {

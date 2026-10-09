@@ -1038,6 +1038,10 @@ public sealed class MacroRunner
                 await FindColor(step, depth, token);
                 return Signal.Normal;
 
+            case "vision.waitStable":
+                await WaitStable(step, depth, token);
+                return Signal.Normal;
+
             case "vision.findImage":
                 LookFor(step, depth);
                 return Signal.Normal;
@@ -2428,6 +2432,80 @@ public sealed class MacroRunner
 
         hits.Sort(Reading);
         return hits;
+    }
+
+    /// <summary>
+    /// Waits for the picture to hold still: the screen counts as settled once every watched area
+    /// has stayed within the tolerance of the frame that started the wait for a whole quiet
+    /// stretch. A fixed pause is what this replaces, and it is wrong in both directions — too
+    /// short and the step after it works on half a picture, too long and every run pays for the
+    /// slowest case.
+    /// </summary>
+    private async Task WaitStable(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var tolerance = Read(step.Text("tolerance")).AsNumber();
+        var allowed = Read(step.Text("changedPercent")).AsNumber() / 100;
+        var quiet = Math.Max(0, Number(step, "quietMs"));
+        var timeout = Math.Max(1, Number(step, "timeoutMs"));
+        var interval = Math.Max(1, Number(step, "intervalMs"));
+
+        var started = Stopwatch.GetTimestamp();
+        long Elapsed() => (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+
+        var anchor = SearchAreas(step);
+        var since = Elapsed();
+
+        while (true)
+        {
+            await Pause(interval, token);
+            var now = SearchAreas(step);
+            if (Still(anchor, now, tolerance, allowed))
+            {
+                if (Elapsed() - since >= quiet)
+                {
+                    Log(LogLevel.Info, depth, step.Type, "Run.FrameStill", Elapsed());
+                    return;
+                }
+            }
+            else
+            {
+                // Counted from this frame on: what has to hold still for the quiet stretch is not
+                // the picture the wait opened on, which may have been another screen altogether,
+                // but the picture the screen has just arrived at.
+                anchor = now;
+                since = Elapsed();
+            }
+
+            if (Elapsed() >= timeout)
+            {
+                throw new StepFailure("Run.ScreenNotStable",
+                    timeout.ToString(CultureInfo.InvariantCulture));
+            }
+        }
+    }
+
+    /// <summary>
+    /// True when every watched area is the picture it is compared against, as far as the step is
+    /// willing to say so: no more of it than the step allows may have moved by more than its
+    /// colour tolerance.
+    /// </summary>
+    private static bool Still(IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> before,
+        IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> after, double tolerance, double allowed)
+    {
+        if (before.Count != after.Count)
+        {
+            return false;
+        }
+
+        for (var index = 0; index < before.Count; index++)
+        {
+            if (ImageFrame.ChangedShare(before[index].Frame, after[index].Frame, tolerance) > allowed)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>Looks once and writes where the picture was, or an empty value when it was not.</summary>

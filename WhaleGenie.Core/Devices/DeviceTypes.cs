@@ -71,6 +71,53 @@ public sealed record ImageFrame(int Width, int Height, byte[] Bgra)
             return new PixelColor(Bgra[offset + 2], Bgra[offset + 1], Bgra[offset]);
         }
     }
+
+    /// <summary>
+    /// How much of the picture moved between two frames of the same area: the share of pixels
+    /// whose colour is more than <paramref name="tolerancePercent"/> away from what it was, from 0
+    /// for a picture that did not move at all to 1 for one that changed everywhere. Two frames of
+    /// different sizes are nothing like each other, so that is 1.
+    /// </summary>
+    /// <remarks>
+    /// The whole point of a tolerance is that a cursor blinking or a video playing quietly is not
+    /// what a macro means by "the screen moved", so a count of every pixel that differs at all
+    /// would answer the wrong question. What is counted is pixels that differ by more than the
+    /// caller is willing to call the same colour.
+    /// </remarks>
+    public static double ChangedShare(ImageFrame before, ImageFrame after, double tolerancePercent)
+    {
+        if (before.Width != after.Width || before.Height != after.Height)
+        {
+            return 1;
+        }
+
+        var pixels = (long)before.Width * before.Height;
+        if (pixels <= 0)
+        {
+            return 0;
+        }
+
+        // Compared squared, which is the same question without the square root: how far apart the
+        // colour channels are, against how far the caller allows them to be.
+        var left = before.Bgra;
+        var right = after.Bgra;
+        var limit = Math.Max(0, tolerancePercent) / 100 * 255;
+        var allowed = 3 * limit * limit;
+
+        long changed = 0;
+        for (long offset = 0; offset + 3 < left.Length && offset + 3 < right.Length; offset += 4)
+        {
+            double blue = left[offset] - right[offset];
+            double green = left[offset + 1] - right[offset + 1];
+            double red = left[offset + 2] - right[offset + 2];
+            if ((blue * blue) + (green * green) + (red * red) > allowed)
+            {
+                changed++;
+            }
+        }
+
+        return (double)changed / pixels;
+    }
 }
 
 /// <summary>Where a reference image was found, and how well it matched.</summary>
