@@ -133,34 +133,9 @@ public static class Spreadsheet
     /// <param name="book">The workbook to change, or <c>null</c> when there is no file yet.</param>
     /// <param name="sheet">Which sheet to write, or the first one when the name is empty.</param>
     /// <param name="rows">The rows to write, each a list of cells.</param>
-    /// <param name="header">
-    /// Column names to put above the rows, or nothing when the table has none. Reading a sheet
-    /// hands the names back beside the rows rather than inside them, so writing one back needs a
-    /// place to say where they go; adding to a sheet that already holds something does not write
-    /// them again, and that is what keeps a log from growing a second header.
-    /// </param>
-    /// <param name="mode">Where the rows go, and what happens to what the sheet already holds.</param>
-    /// <param name="startCell">The cell the first row starts at, as <c>B2</c>.</param>
-    /// <param name="formulas">
-    /// Write a cell holding text that begins with <c>=</c> as a formula, the way Excel does when
-    /// somebody types one. Off means every cell is written as the text or the number it is.
-    /// </param>
-    /// <param name="autoFit">Widen the columns to show what was written.</param>
-    /// <param name="align">
-    /// Put each value in the column whose name above it is the name this step gives that value,
-    /// rather than at the same place across every row. The names the sheet already holds are read
-    /// from <paramref name="headerRow"/> before anything is written — a replace clears the very row
-    /// they sit on — because a sheet somebody else maintains is one whose columns sit in an order
-    /// of their own, and reading its table and writing it back has to follow the names rather than
-    /// the positions. A sheet with no names yet takes the rows in the order they were written.
-    /// </param>
-    /// <param name="headerRow">
-    /// Which row of the sheet holds the column names, counted from the top. Only used when the
-    /// values are aligned by name.
-    /// </param>
+    /// <param name="how">Where the rows go and what the cells they land in look like afterwards.</param>
     public static byte[] Write(byte[]? book, string sheet,
-        IReadOnlyList<IReadOnlyList<Value>> rows, IReadOnlyList<Value>? header, SheetWriteMode mode,
-        string startCell, bool formulas, bool autoFit, bool align, int headerRow)
+        IReadOnlyList<IReadOnlyList<Value>> rows, SheetWrite how)
     {
         using var document = book is null ? new XLWorkbook() : Open(book);
 
@@ -173,18 +148,18 @@ public static class Spreadsheet
         // The names the sheet already holds have to be read before the contents go, and every cell
         // that is written needs one of them: without a name there is no column to put a value in,
         // and guessing a position is exactly what aligning by name was asked not to do.
-        var standing = align ? Names(page, headerRow) : [];
+        var standing = how.Align ? Names(page, how.HeaderRow) : [];
         if (standing.Count > 0)
         {
             var widest = rows.Count == 0 ? 0 : rows.Max(row => row.Count);
-            if (header is null || header.Count < widest)
+            if (how.Header is null || how.Header.Count < widest)
             {
                 throw new DeviceActionException("Run.AlignNeedsNames",
                     widest.ToString(CultureInfo.InvariantCulture));
             }
         }
 
-        if (mode == SheetWriteMode.Replace)
+        if (how.Mode == SheetWriteMode.Replace)
         {
             // The contents go and the rest of the sheet stays: a header somebody coloured in is
             // still there afterwards, and a macro that only meant to replace the data has not
@@ -197,25 +172,26 @@ public static class Spreadsheet
             {
                 if (standing[at].Length > 0)
                 {
-                    Put(page.Cell(headerRow, at + 1), Value.FromText(standing[at]), formulas: false);
+                    Put(page.Cell(how.HeaderRow, at + 1), Value.FromText(standing[at]),
+                        formulas: false, Format(how, at));
                 }
             }
         }
 
         IReadOnlyList<IReadOnlyList<Value>> lines =
-            header is { Count: > 0 } && (mode != SheetWriteMode.Append || !held)
+            how.Header is { Count: > 0 } && (how.Mode != SheetWriteMode.Append || !held)
                 && standing.Count == 0
-                ? [header, .. rows]
+                ? [how.Header, .. rows]
                 : rows;
 
-        var corner = mode switch
+        var corner = how.Mode switch
         {
             SheetWriteMode.Append => new CellRef(1, (page.LastRowUsed()?.RowNumber() ?? 0) + 1),
 
             // A replace that keeps the names writes nothing above the data: the row it starts on is
             // the one under them.
-            SheetWriteMode.Replace when standing.Count > 0 => new CellRef(1, headerRow + 1),
-            _ => Place(page, startCell),
+            SheetWriteMode.Replace when standing.Count > 0 => new CellRef(1, how.HeaderRow + 1),
+            _ => Place(page, how.StartCell),
         };
 
         foreach (var row in lines)
@@ -225,17 +201,24 @@ public static class Spreadsheet
                 // Aligned, the column comes from the name rather than from where the value sits in
                 // its row, so the starting cell only says which row this goes on.
                 var at = standing.Count > 0
-                    ? Named(standing, header![column].AsText().Trim()) + 1
+                    ? Named(standing, how.Header![column].AsText().Trim()) + 1
                     : corner.Column + column;
-                Put(page.Cell(corner.Row, at), row[column], formulas);
+                var cell = page.Cell(corner.Row, at);
+                Put(cell, row[column], how.Formulas, Format(how, column));
+                Dress(cell, column, how);
             }
 
             corner = corner with { Row = corner.Row + 1 };
         }
 
-        if (autoFit)
+        foreach (var column in page.ColumnsUsed())
         {
-            foreach (var column in page.ColumnsUsed())
+            if (how.Width > 0)
+            {
+                column.Width = how.Width;
+            }
+
+            if (how.AutoFit)
             {
                 column.AdjustToContents();
             }
@@ -469,7 +452,7 @@ public static class Spreadsheet
             : moment.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
 
     /// <summary>Puts one cell's value into a sheet, as the kind of thing it is.</summary>
-    private static void Put(IXLCell cell, Value value, bool formulas)
+    private static void Put(IXLCell cell, Value value, bool formulas, string format)
     {
         switch (value.Kind)
         {
@@ -483,6 +466,14 @@ public static class Spreadsheet
                 // A list is one item per line, the way it is written wherever else a list becomes
                 // one piece of text; a nested table would need a shape a sheet cannot guess.
                 cell.Value = value.AsText();
+                break;
+
+            // A column shown as a date has to hold dates, or the format has nothing to show: what a
+            // macro reads back from a date column is the day as text, and writing that text into a
+            // date column is the one place where reading it as a date is what was meant. Excel does
+            // the same with what somebody types into a cell that is already formatted as a date.
+            case ValueKind.Text when IsMoment(format) && Moment(value.Text, out var moment):
+                cell.Value = moment;
                 break;
             case ValueKind.Text when formulas && value.Text.StartsWith('=') && value.Text.Length > 1:
                 // Without the "=", which is the sign that says "this is a formula" rather than part
@@ -499,6 +490,79 @@ public static class Spreadsheet
         }
     }
 
+    /// <summary>The format named for one written column, or nothing when that column has none.</summary>
+    private static string Format(SheetWrite how, int column)
+        => column < how.Formats.Count ? how.Formats[column] : string.Empty;
+
+    /// <summary>
+    /// Whether a format shows a day or a time rather than a plain number. Excel's format codes are
+    /// letters — y, m, d, h, s — and nothing else in a format is: a number is made of # and 0, a
+    /// share is %, and text is @ or a word in quotes, which is why the quotes are stepped over.
+    /// </summary>
+    private static bool IsMoment(string format)
+    {
+        var moment = false;
+        var quoted = false;
+        for (var at = 0; at < format.Length; at++)
+        {
+            if (format[at] == '"')
+            {
+                quoted = !quoted;
+                continue;
+            }
+
+            if (format[at] == '\\')
+            {
+                // The character after a backslash is the character itself, letter or not.
+                at++;
+                continue;
+            }
+
+            if (!quoted && char.ToUpperInvariant(format[at]) is 'Y' or 'M' or 'D' or 'H' or 'S')
+            {
+                moment = true;
+            }
+        }
+
+        return moment;
+    }
+
+    /// <summary>
+    /// Whether a written cell holds a date. Both readings are tried because a date is written the
+    /// way the file's own culture writes it when the day and the month could be either way round.
+    /// </summary>
+    private static bool Moment(string text, out DateTime moment)
+        => DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out moment)
+            || DateTime.TryParse(text, CultureInfo.CurrentCulture, DateTimeStyles.None, out moment);
+
+    /// <summary>
+    /// Puts on a written cell the things the step asked for: what its column is shown as, where the
+    /// text sits in that column, and whether it may spill onto more than one line. A cell whose
+    /// column was not named keeps looking exactly like the cell it was.
+    /// </summary>
+    private static void Dress(IXLCell cell, int column, SheetWrite how)
+    {
+        if (column < how.Formats.Count && how.Formats[column].Length > 0)
+        {
+            cell.Style.NumberFormat.Format = how.Formats[column];
+        }
+
+        if (how.AlignText != SheetTextAlign.Leave)
+        {
+            cell.Style.Alignment.Horizontal = how.AlignText switch
+            {
+                SheetTextAlign.Left => XLAlignmentHorizontalValues.Left,
+                SheetTextAlign.Center => XLAlignmentHorizontalValues.Center,
+                _ => XLAlignmentHorizontalValues.Right,
+            };
+        }
+
+        if (how.WrapText)
+        {
+            cell.Style.Alignment.WrapText = true;
+        }
+    }
+
     /// <summary>How the rows a step writes go into the sheet.</summary>
     public enum SheetWriteMode
     {
@@ -510,6 +574,87 @@ public static class Spreadsheet
 
         /// <summary>Write below the last row the sheet holds.</summary>
         Append,
+    }
+
+    /// <summary>
+    /// How a step wants its rows written down: where they go, what happens to what the sheet already
+    /// holds, and what the cells they land in look like afterwards. One place rather than a dozen
+    /// arguments, because half of these are optional and in a list of arguments the order they came
+    /// in says nothing about which is which.
+    /// </summary>
+    public sealed record SheetWrite
+    {
+        /// <summary>
+        /// Column names to put above the rows, or nothing when the table has none. Reading a sheet
+        /// hands the names back beside the rows rather than inside them, so writing one back needs a
+        /// place to say where they go; adding to a sheet that already holds something does not write
+        /// them again, and that is what keeps a log from growing a second header.
+        /// </summary>
+        public IReadOnlyList<Value>? Header { get; init; }
+
+        /// <summary>Where the rows go, and what happens to what the sheet already holds.</summary>
+        public SheetWriteMode Mode { get; init; } = SheetWriteMode.Replace;
+
+        /// <summary>The cell the first row starts at, as <c>B2</c>.</summary>
+        public string StartCell { get; init; } = "A1";
+
+        /// <summary>
+        /// Write a cell holding text that begins with <c>=</c> as a formula, the way Excel does when
+        /// somebody types one. Off means every cell is written as the text or the number it is.
+        /// </summary>
+        public bool Formulas { get; init; }
+
+        /// <summary>
+        /// Put each value in the column whose name above it is the name this step gives that value,
+        /// rather than at the same place across every row. The names the sheet already holds are read
+        /// from <see cref="HeaderRow"/> before anything is written — a replace clears the very row
+        /// they sit on — because a sheet somebody else maintains is one whose columns sit in an order
+        /// of their own, and reading its table and writing it back has to follow the names rather
+        /// than the positions. A sheet with no names yet takes the rows in the order they were
+        /// written.
+        /// </summary>
+        public bool Align { get; init; }
+
+        /// <summary>
+        /// Which row of the sheet holds the column names, counted from the top. Only used when the
+        /// values are put in by column name.
+        /// </summary>
+        public int HeaderRow { get; init; } = 1;
+
+        /// <summary>
+        /// What each column of the written rows is shown as, in Excel's own words for a number
+        /// format: <c>yyyy-mm-dd</c> for a date, <c>#,##0.00</c> for money, <c>0%</c> for a share,
+        /// <c>@</c> to hold text as text. One per column, counted from the left of what this step
+        /// writes; a column past the end of the list keeps whatever it had, so an empty list leaves
+        /// every cell as it is.
+        /// </summary>
+        public IReadOnlyList<string> Formats { get; init; } = [];
+
+        /// <summary>Where the text of the written cells sits across their column.</summary>
+        public SheetTextAlign AlignText { get; init; }
+
+        /// <summary>Let a written cell show its text on more than one line.</summary>
+        public bool WrapText { get; init; }
+
+        /// <summary>
+        /// How wide each written column is made, or 0 to leave the widths alone. The automatic width
+        /// is asked for after this, so it is the one that wins when both are set.
+        /// </summary>
+        public double Width { get; init; }
+
+        /// <summary>Widen the columns to show what was written.</summary>
+        public bool AutoFit { get; init; }
+    }
+
+    /// <summary>Where a written cell's text sits across its column.</summary>
+    public enum SheetTextAlign
+    {
+        /// <summary>The alignment the cell already has.</summary>
+        Leave,
+
+        Left,
+        Center,
+        Right,
     }
 
     /// <summary>The sheet a name stands for, or nothing when the workbook has no such sheet.</summary>

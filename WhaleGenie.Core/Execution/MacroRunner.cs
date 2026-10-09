@@ -3350,12 +3350,55 @@ public sealed class MacroRunner
             ? names.Items
             : names.AsText().Length > 0 ? [names] : null;
 
+        // A single format is what every written column is shown as, so it is stretched over the
+        // widest of them; a list is one per column, the way a list of column names is.
+        var widest = Math.Max(header?.Count ?? 0,
+            cells.Count == 0 ? 0 : cells.Max(row => row.Count));
+
         _devices.Files.WriteBytes(path, Spreadsheet.Write(book, step.Text("sheet").Trim(), cells,
-            header, Place(step), step.Text("startCell").Trim(),
-            Flag(step, "formula", true), Flag(step, "autoFit", false),
-            Flag(step, "align", false), Math.Max(1, Number(step, "headerRow"))));
+            new Spreadsheet.SheetWrite
+            {
+                Header = header,
+                Mode = Place(step),
+                StartCell = step.Text("startCell").Trim(),
+                Formulas = Flag(step, "formula", true),
+                AutoFit = Flag(step, "autoFit", false),
+                Align = Flag(step, "align", false),
+                HeaderRow = Math.Max(1, Number(step, "headerRow")),
+                Formats = Formats(step, widest),
+                AlignText = Alignment(step),
+                WrapText = Flag(step, "wrapText", false),
+                Width = Number(step, "columnWidth"),
+            }));
         Log(LogLevel.Info, depth, step.Type, "Run.WroteFile", path, cells.Count);
     }
+
+    /// <summary>
+    /// What each written column is shown as. A list is one format per column; a single one is the
+    /// format for all of them, which is why the two are told apart by the kind of value rather than
+    /// by punctuation — a comma-separated line cannot be read back out of "#,##0.00".
+    /// </summary>
+    private IReadOnlyList<string> Formats(ExecutableStep step, int columns)
+    {
+        var written = Read(step.Text("numberFormat"));
+        if (written.Kind is ValueKind.List)
+        {
+            return [.. written.Items.Select(item => item.AsText())];
+        }
+
+        var one = written.AsText();
+        return one.Length == 0 ? [] : [.. Enumerable.Repeat(one, columns)];
+    }
+
+    /// <summary>Where the step said the written text sits, by the words the picker offers.</summary>
+    private static Spreadsheet.SheetTextAlign Alignment(ExecutableStep step)
+        => step.Text("alignment").Trim().ToLowerInvariant() switch
+        {
+            "left" => Spreadsheet.SheetTextAlign.Left,
+            "center" => Spreadsheet.SheetTextAlign.Center,
+            "right" => Spreadsheet.SheetTextAlign.Right,
+            _ => Spreadsheet.SheetTextAlign.Leave,
+        };
 
     /// <summary>Where the step said the rows go, and what happens to what is already there.</summary>
     private static Spreadsheet.SheetWriteMode Place(ExecutableStep step)

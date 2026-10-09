@@ -679,6 +679,26 @@ internal static class ActionStrings
             + "不想这样（要原样写入这段文字）就取消勾选。",
         ["excel.writeSheet.autoFit.label"] = "自动列宽",
         ["excel.writeSheet.autoFit.hint"] = "把用到的每一列调宽到能显示下里面的内容。",
+        ["excel.writeSheet.numberFormat.label"] = "显示成",
+        ["excel.writeSheet.numberFormat.hint"] =
+            "写进去的每一列显示成什么样子，写法与 Excel 的格式一致：日期用 yyyy-mm-dd、"
+            + "金额用 #,##0.00、百分比用 0.00%、@ 用来把看着像数字的文字留成文字。"
+            + "一列一个，从这一步写进去的第一列数起，写成一个列表（和表头行一样）；"
+            + "只写一个就是所有写进去的列都用它，没写格式的列保持原样。",
+        ["excel.writeSheet.alignment.label"] = "文字对齐",
+        ["excel.writeSheet.alignment.hint"] =
+            "写进去的文字在这一列里靠哪边：不动、靠左、居中、靠右。"
+            + "数字写进表里本来就在右边、文字在左边，这一栏是给「表头居中」那种要求用的。",
+        ["excel.writeSheet.alignment.option.leave"] = "不动",
+        ["excel.writeSheet.alignment.option.left"] = "靠左",
+        ["excel.writeSheet.alignment.option.center"] = "居中",
+        ["excel.writeSheet.alignment.option.right"] = "靠右",
+        ["excel.writeSheet.wrapText.label"] = "文字折行显示",
+        ["excel.writeSheet.wrapText.hint"] = "单元格里的文字比列宽长时，在格子里折成几行显示，"
+            + "而不是溢出到旁边的格子上。",
+        ["excel.writeSheet.columnWidth.label"] = "列宽设为",
+        ["excel.writeSheet.columnWidth.hint"] = "这一步写到的列调成多宽，0 表示不动列宽。"
+            + "自动列宽排在这一条后面，两条都填时以自动列宽为准。",
 
         ["excel.listSheets.name"] = "列出 Excel 工作表",
         ["excel.listSheets.desc"] = "读出 Excel 文件里所有工作表的名字。",

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using ClosedXML.Excel;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
@@ -43,7 +44,7 @@ public class SheetWriteTests
     }
 
     /// <summary>Reads the whole sheet back as it sits, names and all, so cells can be counted.</summary>
-    private static ExecutableStep Read() => new()
+    private static ExecutableStep Read(bool asText = false) => new()
     {
         Type = "excel.readSheet",
         Parameters =
@@ -52,6 +53,7 @@ public class SheetWriteTests
             Param("sheet", "Sheet1"),
             Param("hasHeader", "false"),
             Param("maxRows", "0"),
+            Param("asText", asText ? "true" : "false"),
             Param("resultVariable", "back"),
         ],
     };
@@ -403,5 +405,105 @@ public class SheetWriteTests
             });
 
         Assert.Equal("Run.NoSuchSheet", result.Key);
+    }
+
+    [Fact]
+    public async Task A_column_shown_as_a_date_holds_dates()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+        store.Local.Set("lines", Value.FromList(
+        [
+            Value.FromList([Value.FromText("2026-01-05")]),
+            Value.FromList([Value.FromText("2026-01-06")]),
+        ]));
+
+        // The format is the other way round from the text that is written: a cell that only held
+        // the text "2026-01-05" would show it back word for word.
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "$lines"), Param("numberFormat", "mm/dd/yyyy")),
+            Read(asText: true));
+
+        Assert.True(result.Succeeded, result.Key + " " + result.Detail);
+        Assert.Equal(["01/05/2026", "01/06/2026"],
+            Rows(store, "back").Select(row => row[0].AsText()));
+    }
+
+    [Fact]
+    public async Task Text_that_is_not_a_date_is_left_alone_in_a_date_column()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+        store.Local.Set("lines", Value.FromList(
+        [
+            Value.FromList([Value.FromText("订单-1")]),
+            Value.FromList([Value.FromText("2026-01-05")]),
+        ]));
+
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "$lines"), Param("numberFormat", "yyyy-mm-dd")),
+            Read(asText: true));
+
+        // One is not a day and stays the text it is; the other is a day and comes back as one.
+        Assert.True(result.Succeeded, result.Key + " " + result.Detail);
+        Assert.Equal(["订单-1", "2026-01-05"],
+            Rows(store, "back").Select(row => row[0].AsText()));
+    }
+
+    [Fact]
+    public async Task A_money_column_is_shown_with_its_decimals()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+        store.Local.Set("amounts", Value.FromList([Value.FromNumber(120.5)]));
+
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "$amounts"), Param("numberFormat", "#,##0.00")),
+            Read(asText: true));
+
+        Assert.True(result.Succeeded, result.Key + " " + result.Detail);
+        Assert.Equal("120.50", Assert.Single(Assert.Single(Rows(store, "back"))).AsText());
+    }
+
+    [Fact]
+    public async Task A_format_can_be_given_for_each_column_on_its_own()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+        store.Local.Set("lines", Value.FromList(
+        [
+            Value.FromList([Value.FromText("2026-01-05"), Value.FromNumber(120.5)]),
+        ]));
+        store.Local.Set("formats", Value.FromList(
+            [Value.FromText("yyyy-mm-dd"), Value.FromText("#,##0.00")]));
+
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "$lines"), Param("numberFormat", "$formats")),
+            Read(asText: true));
+
+        Assert.True(result.Succeeded, result.Key + " " + result.Detail);
+        var row = Assert.Single(Rows(store, "back"));
+        Assert.Equal("2026-01-05", row[0].AsText());
+        Assert.Equal("120.50", row[1].AsText());
+    }
+
+    [Fact]
+    public async Task Where_the_text_sits_and_how_wide_the_column_is_reach_the_file()
+    {
+        var store = new VariableStore();
+        var devices = new FakeDeviceLayer();
+
+        var result = await RunAsync(store, devices,
+            Write(Param("rows", "标题"), Param("alignment", "center"), Param("wrapText", "true"),
+                Param("columnWidth", "30")));
+
+        Assert.True(result.Succeeded, result.Key + " " + result.Detail);
+
+        // None of these can be seen by reading the cells back, so the file itself is asked.
+        using var book = new XLWorkbook(new MemoryStream(devices.Blobs["book.xlsx"]));
+        var page = book.Worksheet("Sheet1");
+        Assert.Equal(XLAlignmentHorizontalValues.Center, page.Cell(1, 1).Style.Alignment.Horizontal);
+        Assert.True(page.Cell(1, 1).Style.Alignment.WrapText);
+        Assert.Equal(30, page.Column(1).Width);
     }
 }

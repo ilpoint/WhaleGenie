@@ -931,6 +931,29 @@ public static class ActionCatalog
                     + "types one. Turn it off to write such text as it stands."),
                 Toggle("autoFit", "Widen the columns", false,
                     "Make each used column wide enough to show what is in it."),
+                Variable("numberFormat", "Shown as", "yyyy-mm-dd",
+                    "What each written column is shown as, written the way Excel writes a format: "
+                    + "yyyy-mm-dd for a date, #,##0.00 for money, 0.00% for a share, @ to keep a "
+                    + "text that looks like a number as text. One per column, counted from the left "
+                    + "of what this step writes, given as a list the way the header row is; a single "
+                    + "one is the format of every column written, and a column without a format is "
+                    + "left exactly as it was.",
+                    required: false, namesVariable: false),
+                Choice("alignment", "Where the text sits", ["leave", "left", "center", "right"],
+                    "leave",
+                    "Where what is written sits across its column: leave it alone, pushed to the "
+                    + "left, centred, or pushed to the right. Numbers written into a sheet are "
+                    + "already put on the right and text on the left, so this is for the report "
+                    + "that wants its headings centred.",
+                    labels: ["Leave it alone", "Left", "Centred", "Right"], advanced: true),
+                Toggle("wrapText", "Let text wrap onto more than one line", false,
+                    "Show a cell whose text is longer than its column on more than one line inside "
+                    + "the cell rather than letting it run over the neighbours."),
+                Number("columnWidth", "Make the columns this wide", 0,
+                    "How wide the columns this step writes are made, or 0 to leave their width "
+                    + "alone. Asking to widen the columns to fit comes after this, so it is the one "
+                    + "that wins when both are set.",
+                    min: 0, max: 255, advanced: true),
             ],
         },
         new()
