@@ -479,6 +479,21 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </summary>
     public bool IsStepChoice => Definition.Kind is ActionParameterKind.Step;
 
+    /// <summary>
+    /// True when the value is a path, so the dialog can offer the file or folder that is already
+    /// on the machine instead of making the user spell it out — a path with spaces and Chinese in
+    /// it is not something anybody wants to type twice.
+    /// </summary>
+    public bool IsPath => Definition.PathIntent is not PathIntent.None;
+
+    /// <summary>What the button beside the field should say.</summary>
+    public string PathButton => Definition.PathIntent switch
+    {
+        PathIntent.Write => Strings.Get("Add.BrowseSave"),
+        PathIntent.Folder => Strings.Get("Add.BrowseFolder"),
+        _ => Strings.Get("Add.BrowseOpen"),
+    };
+
     /// <summary>True when this parameter is edited with the nested step editor.</summary>
     public bool IsNested => List is not null;
 

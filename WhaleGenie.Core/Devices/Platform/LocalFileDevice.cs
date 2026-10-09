@@ -12,11 +12,18 @@ namespace WhaleGenie.Core.Devices.Platform;
 /// </summary>
 public sealed class LocalFileDevice : IFileDevice
 {
+    /// <summary>
+    /// Where a path a macro writes on its own is looked for when nothing else is said. The
+    /// interface asks here too, so a path picked out of a dialog is stored the same way one typed
+    /// by hand would be read.
+    /// </summary>
+    public static string DefaultBaseFolder { get; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "WhaleGenie");
+
     public LocalFileDevice(string? baseFolder = null)
     {
         BaseFolder = string.IsNullOrWhiteSpace(baseFolder)
-            ? Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "WhaleGenie")
+            ? DefaultBaseFolder
             : baseFolder;
     }
 

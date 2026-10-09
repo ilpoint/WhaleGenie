@@ -491,7 +491,7 @@ public static class ActionCatalog
             Description = "Read a text file into a variable.",
             Parameters =
             [
-                FilePath("path", "File", "notes.txt", "File to read."),
+                FilePath("path", "File", "notes.txt", "File to read.", PathIntent.Read),
                 Encoding(),
                 Variable("resultVariable", "Result variable", "text",
                     "Variable that receives the contents.", required: false, namesVariable: true),
@@ -505,7 +505,7 @@ public static class ActionCatalog
             Description = "Write text to a file, replacing it or adding to the end.",
             Parameters =
             [
-                FilePath("path", "File", "notes.txt", "File to write."),
+                FilePath("path", "File", "notes.txt", "File to write.", PathIntent.Write),
                 Multiline("text", "Text", "Text to write.", "", required: false),
                 Choice("mode", "Mode", ["overwrite", "append"], "overwrite",
                     "Replace the file, or add to what is already there.",
@@ -521,7 +521,7 @@ public static class ActionCatalog
             Description = "Add one line to a log file, creating the file when it is not there.",
             Parameters =
             [
-                FilePath("path", "File", "log.txt", "The log file the line is added to."),
+                FilePath("path", "File", "log.txt", "The log file the line is added to.", PathIntent.Write),
                 Text("text", "Line", "Finished the run",
                     "What the line says. Variables are filled in the way they are everywhere else. "
                     + "The line ends with a line break, so the next one starts on a new line.",
@@ -539,7 +539,7 @@ public static class ActionCatalog
             Description = "Check whether a file or folder is there.",
             Parameters =
             [
-                FilePath("path", "File", "notes.txt", "File or folder to look for."),
+                FilePath("path", "File", "notes.txt", "File or folder to look for.", PathIntent.Read),
                 Variable("resultVariable", "Result variable", "exists",
                     "Variable that receives true or false.", required: false, namesVariable: true),
             ],
@@ -552,7 +552,7 @@ public static class ActionCatalog
             Description = "Remove a file.",
             Parameters =
             [
-                FilePath("path", "File", "old.txt", "File to remove."),
+                FilePath("path", "File", "old.txt", "File to remove.", PathIntent.Read),
             ],
         },
         new()
@@ -563,8 +563,8 @@ public static class ActionCatalog
             Description = "Copy a file to another place.",
             Parameters =
             [
-                FilePath("from", "From", "report.csv", "File to copy."),
-                FilePath("to", "To", @"backup\report.csv", "Where the copy goes."),
+                FilePath("from", "From", "report.csv", "File to copy.", PathIntent.Read),
+                FilePath("to", "To", @"backup\report.csv", "Where the copy goes.", PathIntent.Write),
                 Toggle("overwrite", "Overwrite", true, "Replace the copy when it is already there."),
             ],
         },
@@ -576,8 +576,8 @@ public static class ActionCatalog
             Description = "Move a file to another place, or rename it in the same folder.",
             Parameters =
             [
-                FilePath("from", "From", "report.csv", "File to move."),
-                FilePath("to", "To", @"archive\report.csv", "Where it goes, name and all."),
+                FilePath("from", "From", "report.csv", "File to move.", PathIntent.Read),
+                FilePath("to", "To", @"archive\report.csv", "Where it goes, name and all.", PathIntent.Write),
                 Toggle("overwrite", "Overwrite", true, "Replace the file when it is already there."),
             ],
         },
@@ -589,7 +589,7 @@ public static class ActionCatalog
             Description = "Make a folder, along with any folders above it that are missing.",
             Parameters =
             [
-                FilePath("path", "Folder", @"output\reports", "Folder to make."),
+                FilePath("path", "Folder", @"output\reports", "Folder to make.", PathIntent.Folder),
             ],
         },
         new()
@@ -613,7 +613,7 @@ public static class ActionCatalog
                         "The temporary folder", "The macros folder",
                     ]),
                 FilePath("path", "Path", @"reports\day.csv",
-                    "The path to work on. The two folder answers ignore it."),
+                    "The path to work on. The two folder answers ignore it.", PathIntent.Read),
                 Text("name", "Name", "report.csv", required: false,
                     hint: "The second half of a join. Only \"join folder and name\" uses it."),
                 Variable("resultVariable", "Result variable", "path",
@@ -628,8 +628,10 @@ public static class ActionCatalog
             Description = "Unpack a zip file into a folder.",
             Parameters =
             [
-                FilePath("from", "Zip file", "download.zip", "Zip file to unpack."),
-                FilePath("folder", "Into folder", @"unpacked", "Folder the contents come out in."),
+                FilePath("from", "Zip file", "download.zip", "Zip file to unpack.", PathIntent.Read,
+                    "*.zip"),
+                FilePath("folder", "Into folder", @"unpacked", "Folder the contents come out in.",
+                    PathIntent.Folder),
                 Toggle("overwrite", "Overwrite", true,
                     "Replace files that are already there."),
             ],
@@ -642,9 +644,10 @@ public static class ActionCatalog
             Description = "Pack a folder into a zip file.",
             Parameters =
             [
-                FilePath("folder", "Folder", @"reports", "Folder to pack."),
+                FilePath("folder", "Folder", @"reports", "Folder to pack.", PathIntent.Folder),
                 FilePath("to", "Zip file", "reports.zip",
-                    "Zip file to write. One that is already there is replaced."),
+                    "Zip file to write. One that is already there is replaced.", PathIntent.Write,
+                    "*.zip"),
             ],
         },
         new()
@@ -655,7 +658,7 @@ public static class ActionCatalog
             Description = "Remove a folder, and everything inside it when it is asked to.",
             Parameters =
             [
-                FilePath("path", "Folder", @"output\old", "Folder to remove."),
+                FilePath("path", "Folder", @"output\old", "Folder to remove.", PathIntent.Folder),
                 Toggle("recurse", "Delete what is inside", false,
                     "A folder that still holds something is left alone unless this is on."),
             ],
@@ -668,7 +671,7 @@ public static class ActionCatalog
             Description = "Collect the files in a folder into a list.",
             Parameters =
             [
-                FilePath("folder", "Folder", ".", "Folder to look in."),
+                FilePath("folder", "Folder", ".", "Folder to look in.", PathIntent.Folder),
                 Text("pattern", "Pattern", "*.txt", "Which files to collect, for example *.txt."),
                 Toggle("recurse", "Include subfolders"),
                 Variable("resultVariable", "Result variable", "files",
@@ -684,7 +687,8 @@ public static class ActionCatalog
             Description = "Read a value out of a JSON file.",
             Parameters =
             [
-                FilePath("path", "File", "config.json", "JSON file to read."),
+                FilePath("path", "File", "config.json", "JSON file to read.", PathIntent.Read,
+                    "*.json"),
                 Text("query", "Where", "server.name",
                     "Path to the value, such as server.name or items[0].id. "
                     + "Leave empty for the whole file."),
@@ -700,7 +704,8 @@ public static class ActionCatalog
             Description = "Set a value in a JSON file, keeping the rest of the file.",
             Parameters =
             [
-                FilePath("path", "File", "config.json", "JSON file to update."),
+                FilePath("path", "File", "config.json", "JSON file to update.", PathIntent.Write,
+                    "*.json"),
                 Text("query", "Where", "server.name",
                     "Path to the value. Missing objects on the way are created."),
                 Text("value", "Value", "", "Value to store.", required: false),
@@ -714,7 +719,7 @@ public static class ActionCatalog
             Description = "Read a CSV file into a list of rows.",
             Parameters =
             [
-                FilePath("path", "File", "rows.csv", "CSV file to read."),
+                FilePath("path", "File", "rows.csv", "CSV file to read.", PathIntent.Read, "*.csv"),
                 Encoding(),
                 ..Separator("auto", mayBeAutomatic: true),
                 Toggle("hasHeader", "First row is a header", true,
@@ -747,7 +752,8 @@ public static class ActionCatalog
             Description = "Write a list of rows to a CSV file.",
             Parameters =
             [
-                FilePath("path", "File", "rows.csv", "CSV file to write."),
+                FilePath("path", "File", "rows.csv", "CSV file to write.", PathIntent.Write,
+                    "*.csv"),
                 Variable("rows", "Rows", "$rows",
                     "A list of rows. Each row may itself be a list of cells.", namesVariable: false),
                 Variable("header", "Header row", "$columns",
@@ -778,7 +784,8 @@ public static class ActionCatalog
             Description = "Write variables to a JSON file, so the next run can pick them up.",
             Parameters =
             [
-                FilePath("path", "File", "state.json", "File to write."),
+                FilePath("path", "File", "state.json", "File to write.", PathIntent.Write,
+                    "*.json"),
                 Text("names", "Which", "",
                     "Names to save, separated by commas. Leave empty for every local and "
                     + "shared variable.", required: false),
@@ -792,7 +799,7 @@ public static class ActionCatalog
             Description = "Read variables back from a file saved by Save Variables.",
             Parameters =
             [
-                FilePath("path", "File", "state.json", "File to read."),
+                FilePath("path", "File", "state.json", "File to read.", PathIntent.Read, "*.json"),
             ],
         },
 
@@ -805,7 +812,8 @@ public static class ActionCatalog
             Description = "Read a sheet of an Excel file into a list of rows.",
             Parameters =
             [
-                FilePath("path", "File", "report.xlsx", "The Excel file to read."),
+                FilePath("path", "File", "report.xlsx", "The Excel file to read.", PathIntent.Read,
+                    "*.xlsx"),
                 Sheet(),
                 Text("range", "Cells", "B2:D40", required: false,
                     hint: "Which cells to read, written the way the name box writes them: B2:D40, "
@@ -840,7 +848,7 @@ public static class ActionCatalog
             [
                 FilePath("path", "File", "report.xlsx",
                     "The Excel file to write. It is made when it is not there, and everything "
-                    + "else already in it is kept."),
+                    + "else already in it is kept.", PathIntent.Write, "*.xlsx"),
                 Sheet(),
                 Variable("rows", "Rows", "$rows",
                     "A list of rows. Each row may itself be a list of cells. A number is written as "
@@ -876,7 +884,8 @@ public static class ActionCatalog
             Description = "Read the names of the sheets in an Excel file.",
             Parameters =
             [
-                FilePath("path", "File", "report.xlsx", "The Excel file to read."),
+                FilePath("path", "File", "report.xlsx", "The Excel file to read.", PathIntent.Read,
+                    "*.xlsx"),
                 Variable("resultVariable", "Result variable", "sheets",
                     "Variable that receives the sheet names, in the order they sit along the "
                     + "bottom of the window.", namesVariable: true, defaultValue: "sheets"),
@@ -891,7 +900,8 @@ public static class ActionCatalog
                 + "is not there yet.",
             Parameters =
             [
-                FilePath("path", "File", "report.xlsx", "The Excel file to change."),
+                FilePath("path", "File", "report.xlsx", "The Excel file to change.", PathIntent.Read,
+                    "*.xlsx"),
                 Sheet(),
             ],
         },
@@ -903,7 +913,8 @@ public static class ActionCatalog
             Description = "Take a sheet out of an Excel file, with everything in it.",
             Parameters =
             [
-                FilePath("path", "File", "report.xlsx", "The Excel file to change."),
+                FilePath("path", "File", "report.xlsx", "The Excel file to change.", PathIntent.Read,
+                    "*.xlsx"),
                 Sheet(),
             ],
         },
@@ -915,7 +926,8 @@ public static class ActionCatalog
             Description = "Put another name on a sheet of an Excel file.",
             Parameters =
             [
-                FilePath("path", "File", "report.xlsx", "The Excel file to change."),
+                FilePath("path", "File", "report.xlsx", "The Excel file to change.", PathIntent.Read,
+                    "*.xlsx"),
                 Sheet(),
                 Text("newName", "New name", "Data", "The name the sheet takes."),
             ],
@@ -1113,10 +1125,11 @@ public static class ActionCatalog
             Description = "Start another program, optionally without showing its window.",
             Parameters =
             [
-                Text("file", "Program", "notepad.exe", "The program to start."),
+                PickablePath("file", "Program", "notepad.exe", "The program to start.",
+                    PathIntent.Read, "*.exe;*.com;*.bat;*.cmd"),
                 Text("arguments", "Arguments", "", "What to pass to the program.", required: false),
-                Text("workingDirectory", "Working folder", "",
-                    "Folder to start the program in.", required: false),
+                PickablePath("workingDirectory", "Working folder", "",
+                    "Folder to start the program in.", PathIntent.Folder, required: false),
                 Toggle("hidden", "Hidden window", true,
                     "Start the program without showing its window."),
                 Toggle("runAsAdmin", "Run as administrator", false,
@@ -1226,11 +1239,12 @@ public static class ActionCatalog
             Description = "Run a command line and collect what it printed.",
             Parameters =
             [
-                Text("file", "Command", "cmd.exe", "The program to run, such as cmd.exe."),
+                PickablePath("file", "Command", "cmd.exe", "The program to run, such as cmd.exe.",
+                    PathIntent.Read, "*.exe;*.com;*.bat;*.cmd"),
                 Text("arguments", "Arguments", "/c dir",
                     "What to pass to the command.", required: false),
-                Text("workingDirectory", "Working folder", "",
-                    "Folder to run the command in.", required: false),
+                PickablePath("workingDirectory", "Working folder", "",
+                    "Folder to run the command in.", PathIntent.Folder, required: false),
                 Multiline("environment", "Environment variables",
                     "One NAME=value per line for the command to run with. Leave it empty to run "
                     + "it with WhaleGenie's own environment. Lines starting with # are skipped.",
@@ -2499,9 +2513,10 @@ public static class ActionCatalog
                 Text("arguments", "Arguments", "first second", required: false,
                     hint: "Extra arguments for the script's command line. {{name}} is filled in "
                           + "here as well.", foreign: true),
-                Text("folder", "Working folder", required: false,
-                    hint: "The folder the script runs in. Leave it empty to run it in the macros "
-                          + "folder, or wherever WhaleGenie is when that folder is not there yet."),
+                PickablePath("folder", "Working folder", string.Empty,
+                    "The folder the script runs in. Leave it empty to run it in the macros folder, "
+                    + "or wherever WhaleGenie is when that folder is not there yet.",
+                    PathIntent.Folder, required: false),
                 Number("timeoutMs", "Timeout", 60000,
                     "Stop the script and fail the step after this long."),
                 Variable("resultVariable", "Result variable", "output",
@@ -2704,7 +2719,7 @@ public static class ActionCatalog
             [
                 FilePath("path", "Path", @"C:\data\report.csv",
                     "The file or the folder that has to be there. What is at that path is not "
-                    + "looked at, only whether anything is."),
+                    + "looked at, only whether anything is.", PathIntent.Read),
             ],
         },
         new()
@@ -2999,6 +3014,25 @@ public static class ActionCatalog
             Hint = hint,
         };
 
+    /// <summary>
+    /// A program or a folder the machine can hand over from a dialog of its own. It is written in
+    /// a plain box rather than a variable field because what goes there is an ordinary path, and
+    /// the macros-folder wording of <see cref="FilePath"/> would be wrong for a program.
+    /// </summary>
+    private static ActionParameter PickablePath(string name, string label, string placeholder,
+        string hint, PathIntent intent, string filter = "", bool required = true)
+        => new()
+        {
+            Name = name,
+            Label = label,
+            Kind = ActionParameterKind.Text,
+            Placeholder = placeholder,
+            Hint = hint,
+            Required = required,
+            PathIntent = intent,
+            PathFilter = filter,
+        };
+
     private static ActionParameter Number(string name, string label, decimal defaultValue,
         string hint = "", decimal min = 0m, decimal max = StepMeta.LongestPauseMs,
         bool advanced = false)
@@ -3224,8 +3258,12 @@ public static class ActionCatalog
             + "200 ms to have somewhere to bend.",
             labels: ["Straight line", "Bent path", "Hand-like"]);
 
-    /// <summary>A file or folder path, which may be written as an expression.</summary>
-    private static ActionParameter FilePath(string name, string label, string placeholder, string hint)
+    /// <summary>
+    /// A file or folder path, which may be written as an expression. The intent decides which
+    /// dialog the button beside the field opens, and the filter which files it shows first.
+    /// </summary>
+    private static ActionParameter FilePath(string name, string label, string placeholder, string hint,
+        PathIntent intent, string filter = "")
         => new()
         {
             Name = name,
@@ -3233,6 +3271,8 @@ public static class ActionCatalog
             Kind = ActionParameterKind.Variable,
             Placeholder = placeholder,
             Hint = hint + " A path on its own is taken to be inside the macros folder.",
+            PathIntent = intent,
+            PathFilter = filter,
         };
 
     /// <summary>

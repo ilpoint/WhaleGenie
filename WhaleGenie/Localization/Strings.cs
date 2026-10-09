@@ -477,6 +477,16 @@ public sealed class Strings : INotifyPropertyChanged
             + "variable carries it and a condition points at the step with it.",
         ["Add.StepIdCopy"] = "Copy",
         ["Add.StepNotInMacro"] = "Not in this macro: {0}",
+        ["Add.BrowseOpen"] = "Browse…",
+        ["Add.BrowseSave"] = "Choose file…",
+        ["Add.BrowseFolder"] = "Choose folder…",
+        ["Add.BrowsePathHint"] = "Pick the file or folder from this machine instead of typing it. "
+            + "What sits inside the macros folder is stored as a path relative to it, so the macro "
+            + "keeps working when the folder is moved; anything else is stored in full.",
+        ["Add.BrowseOpenTitle"] = "Choose a file for {0}",
+        ["Add.BrowseSaveTitle"] = "Choose where {0} goes",
+        ["Add.BrowseFolderTitle"] = "Choose a folder",
+        ["Add.AllFiles"] = "All files",
         ["Add.StepTimeout"] = "Timeout",
         ["Add.StepTimeoutHint"] = "Only the step's own running time is counted: the pauses before "
             + "and after it and the waits between retries are not. 0 means no limit. A block's "
@@ -1316,6 +1326,15 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.StepIdHint"] = "这一步的名字，写进宏文件。结果变量会带上它，条件用它指这一步。",
         ["Add.StepIdCopy"] = "复制",
         ["Add.StepNotInMacro"] = "不在这个宏里：{0}",
+        ["Add.BrowseOpen"] = "浏览…",
+        ["Add.BrowseSave"] = "选择文件…",
+        ["Add.BrowseFolder"] = "选择文件夹…",
+        ["Add.BrowsePathHint"] = "直接从这台机器上挑文件或文件夹，不必手打。落在宏文件夹里的按"
+            + "相对路径存，整个文件夹搬走也照样找得到；其余的存完整路径。",
+        ["Add.BrowseOpenTitle"] = "为「{0}」选择文件",
+        ["Add.BrowseSaveTitle"] = "选择「{0}」写到哪",
+        ["Add.BrowseFolderTitle"] = "选择文件夹",
+        ["Add.AllFiles"] = "所有文件",
         ["Add.StepTimeout"] = "超时",
         ["Add.StepTimeoutHint"] = "只计算这一步自身的执行时间：执行前、执行后的延迟与重试之间的"
             + "等待都不计入；0 表示不限。块上的超时覆盖整段，因此包含子步骤的等待。",

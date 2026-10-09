@@ -383,6 +383,85 @@ public partial class AddActionWindow : Window
         }
     }
 
+    /// <summary>
+    /// Picks the file or folder a path field is about, with the dialog that suits which way the
+    /// path is going: reading, writing, or a folder. What comes back is stored the way the engine
+    /// will read it — relative when it is inside the macros folder, in full otherwise.
+    /// </summary>
+    private async void OnBrowsePath(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel parameter })
+        {
+            return;
+        }
+
+        var filters = Filter(parameter.Definition.PathFilter);
+        var picked = parameter.Definition.PathIntent switch
+        {
+            PathIntent.Write => await PickToWrite(parameter, filters),
+            PathIntent.Folder => await PickFolder(),
+            _ => await PickToRead(parameter, filters),
+        };
+
+        if (picked is { Length: > 0 })
+        {
+            parameter.Text = MacroPaths.ForMacro(picked);
+        }
+    }
+
+    /// <summary>The kinds of file a field is about, as dialog filters, or none for any file.</summary>
+    private static IReadOnlyList<FilePickerFileType> Filter(string patterns)
+    {
+        if (patterns.Length == 0)
+        {
+            return [];
+        }
+
+        var wanted = patterns.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return
+        [
+            new FilePickerFileType(string.Join(" / ", wanted)) { Patterns = wanted },
+            new FilePickerFileType(Strings.Get("Add.AllFiles")) { Patterns = ["*.*"] },
+        ];
+    }
+
+    private async Task<string> PickToRead(StepParameterViewModel parameter,
+        IReadOnlyList<FilePickerFileType> filters)
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = Strings.Format("Add.BrowseOpenTitle", parameter.Definition.LocalLabel),
+            AllowMultiple = false,
+            FileTypeFilter = filters,
+        });
+
+        return files.Count > 0 ? files[0].TryGetLocalPath() ?? string.Empty : string.Empty;
+    }
+
+    private async Task<string> PickToWrite(StepParameterViewModel parameter,
+        IReadOnlyList<FilePickerFileType> filters)
+    {
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = Strings.Format("Add.BrowseSaveTitle", parameter.Definition.LocalLabel),
+            SuggestedFileName = parameter.Text.Trim(),
+            FileTypeChoices = filters,
+        });
+
+        return file?.TryGetLocalPath() ?? string.Empty;
+    }
+
+    private async Task<string> PickFolder()
+    {
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = Strings.Get("Add.BrowseFolderTitle"),
+            AllowMultiple = false,
+        });
+
+        return folders.Count > 0 ? folders[0].TryGetLocalPath() ?? string.Empty : string.Empty;
+    }
+
     /// <summary>Chooses a picture file for an image parameter.</summary>
     private async void OnBrowseImage(object? sender, RoutedEventArgs e)
     {

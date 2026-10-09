@@ -73,6 +73,26 @@ public enum ActionParameterKind
 /// the value written to JSON together with the text shown for it.</summary>
 public sealed record ActionParameterOption(string Value, string Display);
 
+/// <summary>
+/// What a file dialog is being opened for. A path field is typed by hand like any other value —
+/// a macro may well build one out of variables — but it is also the one kind of value the machine
+/// can offer a list of, and the list is different depending on which way the file is going.
+/// </summary>
+public enum PathIntent
+{
+    /// <summary>Not a path: no dialog is offered.</summary>
+    None,
+
+    /// <summary>A file that is already there, chosen with the open dialog.</summary>
+    Read,
+
+    /// <summary>A file to write, chosen with the save dialog so a new name can be given to it.</summary>
+    Write,
+
+    /// <summary>A folder, chosen with the folder dialog.</summary>
+    Folder,
+}
+
 /// <summary>Describes one parameter of a catalogued action.</summary>
 public class ActionParameter
 {
@@ -81,6 +101,19 @@ public class ActionParameter
 
     /// <summary>Label shown next to the editor.</summary>
     public required string Label { get; init; }
+
+    /// <summary>
+    /// Which file dialog the field beside this one offers, or <see cref="PathIntent.None"/> when
+    /// the value is not a path at all.
+    /// </summary>
+    public PathIntent PathIntent { get; init; }
+
+    /// <summary>
+    /// The kinds of file the dialog should show first, as a semicolon-separated list of patterns
+    /// such as <c>*.xlsx</c>. Empty means every file, which is what a field that accepts anything
+    /// gets.
+    /// </summary>
+    public string PathFilter { get; init; } = string.Empty;
 
     /// <summary>Fully qualified key of the action this parameter belongs to.</summary>
     internal string OwnerKey { get; set; } = string.Empty;

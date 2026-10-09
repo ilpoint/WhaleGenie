@@ -53,9 +53,16 @@
             <StackPanel>
                 <TextBlock Classes="FieldLabel" Text="{Binding Label}" />
 
-                <TextBox Classes="ParamInput" Text="{Binding Text}"
-                         IsVisible="{Binding IsPlainText}"
-                         PlaceholderText="{Binding Placeholder}" />
+                <Grid IsVisible="{Binding IsPlainText}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                    <TextBox Classes="ParamInput" Text="{Binding Text}"
+                             PlaceholderText="{Binding Placeholder}" />
+                    <!-- A path is the one value the machine can offer a list of. -->
+                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                            IsVisible="{Binding IsPath}"
+                            Content="{Binding PathButton}"
+                            ToolTip.Tip="{Binding [Add.BrowsePathHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnBrowsePath" />
+                </Grid>
 
                 <!-- A key: the names are offered from a list so one does not have to be
                      remembered, and the box stays editable so any of them can still be typed.
@@ -329,11 +336,18 @@
                                      PlaceholderText="{Binding Placeholder}"
                                      MinimumPrefixLength="0"
                                      FilterMode="Contains" />
-                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
-                            IsVisible="{Binding OffersFormula}"
-                            Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
-                            ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
-                            Click="OnOpenExpressionBuilder" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                        <Button Classes="FlatButton" Height="33" Padding="11,0"
+                                IsVisible="{Binding OffersFormula}"
+                                Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
+                                Click="OnOpenExpressionBuilder" />
+                        <Button Classes="FlatButton" Height="33" Padding="11,0"
+                                IsVisible="{Binding IsPath}"
+                                Content="{Binding PathButton}"
+                                ToolTip.Tip="{Binding [Add.BrowsePathHint], Source={x:Static loc:Strings.Current}}"
+                                Click="OnBrowsePath" />
+                    </StackPanel>
                 </Grid>
 
                 <AutoCompleteBox Classes="VarInput" IsVisible="{Binding IsMacro}"
