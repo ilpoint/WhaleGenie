@@ -103,6 +103,17 @@
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Padding" Value="14" />
         </Style>
+
+        <Style Selector="Button.LookThumb">
+            <Setter Property="Background" Value="#141414" />
+            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="1" />
+        </Style>
+        <Style Selector="Button.LookThumb:pointerover /template/ ContentPresenter">
+            <Setter Property="BorderBrush" Value="#C8A165" />
+        </Style>
     </Window.Styles>
 
     <Border Background="#232323" CornerRadius="8">
@@ -165,7 +176,7 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:RunStepViewModel">
                                             <Border Classes="RunRow" Classes.current="{Binding IsCurrent}">
-                                                <Grid ColumnDefinitions="24,*">
+                                                <Grid ColumnDefinitions="24,*,Auto">
                                                     <Button Classes="Breakpoint" Classes.on="{Binding HasBreakpoint}"
                                                             VerticalAlignment="Center"
                                                             ToolTip.Tip="{Binding Label}"
@@ -177,6 +188,17 @@
                                                         <TextBlock Text="{Binding Detail}" Classes="Muted"
                                                                    TextWrapping="Wrap" />
                                                     </StackPanel>
+                                                    <!-- What this step last looked at. Clicking it
+                                                         opens the picture with its marks on. -->
+                                                    <Button Grid.Column="2" Classes="LookThumb"
+                                                            IsVisible="{Binding HasLook}"
+                                                            VerticalAlignment="Center" Margin="8,0,0,0"
+                                                            ToolTip.Tip="{Binding [Run.OpenLook], Source={x:Static loc:Strings.Current}}"
+                                                            Command="{Binding $parent[ItemsControl].((vm:RunViewModel)DataContext).OpenLookCommand}"
+                                                            CommandParameter="{Binding}">
+                                                        <Image Source="{Binding Thumbnail}" Width="56"
+                                                               Height="34" Stretch="UniformToFill" />
+                                                    </Button>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>

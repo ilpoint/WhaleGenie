@@ -32,8 +32,13 @@ public partial class RunWindow : Window
         Title = Strings.Get("Run.Title");
 
         viewModel.CloseRequested += Close;
+        viewModel.LookRequested += look => LookWindow.Show(look, this);
         Closing += (_, _) => viewModel.StopCommand.Execute(null);
-        Closed += (_, _) => viewModel.ReleaseDevices();
+        Closed += (_, _) =>
+        {
+            viewModel.ReleaseDevices();
+            viewModel.ReleaseLooks();
+        };
         MacroTriggerGate.Enter();
         Closed += (_, _) => MacroTriggerGate.Exit();
 

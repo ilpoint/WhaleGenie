@@ -6,6 +6,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
@@ -15,6 +17,7 @@ using WhaleGenie.Core.Variables;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Storage;
 
 namespace WhaleGenie.ViewModels;
 
@@ -38,6 +41,18 @@ public partial class RunStepViewModel : ObservableObject
 
     [ObservableProperty]
     public partial bool IsCurrent { get; set; }
+
+    /// <summary>True once this step has something to show for itself: what it last looked at.</summary>
+    [ObservableProperty]
+    public partial bool HasLook { get; set; }
+
+    /// <summary>
+    /// The picture this step last looked at, small. It is what makes a run readable after the
+    /// fact: a log line says a picture was found, and this says what the screen looked like when
+    /// that was decided.
+    /// </summary>
+    [ObservableProperty]
+    public partial Bitmap? Thumbnail { get; set; }
 }
 
 /// <summary>One line of the run log, already translated.</summary>
@@ -71,8 +86,19 @@ public sealed record StepOutcome(string Name, string Label, string Value)
 /// and lets the user watch it one step at a time. It is the runner's host, so the engine
 /// asks it to pause between steps and to hand a failure to the user.
 /// </summary>
-public partial class RunViewModel : ViewModelBase, IRunHost
+public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 {
+    /// <summary>
+    /// How many looks the window keeps, and how much of them it is willing to hold. A macro that
+    /// loops over a search would otherwise collect one picture per step until the window closed;
+    /// the ones kept are the newest, which are the ones a person is looking at.
+    /// </summary>
+    private const int KeptLooks = 30;
+    private const long KeptBytes = 128L * 1024 * 1024;
+
+    /// <summary>The looks still held, newest last, with the step each belongs to.</summary>
+    private readonly List<(string StepId, StepLook Look, long Bytes)> _looks = [];
+
     private readonly IReadOnlyList<ExecutableStep> _steps;
     private readonly VariableStore _variables;
     private readonly IDeviceLayer _devices;
@@ -268,7 +294,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost
         try
         {
             var runner = new MacroRunner(
-                _variables, new UiThreadRunHost(this), _devices, _delayScale, _macros)
+                _variables, new UiThreadRunHost(this), _devices, _delayScale, _macros, this)
             {
                 FailureScreenshot = LocalSettings.LoadFailureScreenshot(),
                 FailureFolder = AppPaths.Logs,
@@ -348,6 +374,88 @@ public partial class RunViewModel : ViewModelBase, IRunHost
             entry.Level,
             new Thickness(entry.Depth * 14, 0, 0, 0),
             text));
+    }
+
+    /// <summary>
+    /// Takes what a step saw and puts it on that step's row. Called from the thread the run is on,
+    /// so the picture is handed to the window's own thread before anything is done with it.
+    /// </summary>
+    public void Look(StepLook look)
+        => Dispatcher.UIThread.Post(() => Keep(look));
+
+    /// <summary>Opens one step's picture, which is the whole of what it saw rather than a thumbnail.</summary>
+    public event Action<StepLook>? LookRequested;
+
+    /// <summary>The whole of what a step last saw, or null when it has looked at nothing.</summary>
+    public StepLook? LookOf(string stepId)
+        => _looks.LastOrDefault(kept => kept.StepId == stepId).Look;
+
+    private void Keep(StepLook look)
+    {
+        var bytes = (long)look.Frame.Width * look.Frame.Height * 4
+            + (look.Needle is { } needle ? (long)needle.Width * needle.Height * 4 : 0);
+
+        _looks.Add((look.StepId, look, bytes));
+
+        // Newest first out of the door: the picture a person wants is the one the run has just
+        // made, and a macro that loops over a search makes one every time round.
+        while (_looks.Count > KeptLooks || _looks.Sum(kept => kept.Bytes) > KeptBytes)
+        {
+            var gone = _looks[0].StepId;
+            _looks.RemoveAt(0);
+            Forget(gone);
+        }
+
+        if (Steps.FirstOrDefault(step => step.Id == look.StepId) is { } row)
+        {
+            var small = look.Frame.IsEmpty ? null : ImageAssets.ToBitmap(look.Frame);
+            var previous = row.Thumbnail;
+            row.Thumbnail = small;
+            row.HasLook = small is not null;
+            previous?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Takes a step's picture off its row, once the run has let that picture go. Keeping the
+    /// thumbnail of a look that is no longer held would put the memory back without the picture.
+    /// </summary>
+    private void Forget(string stepId)
+    {
+        if (_looks.Any(kept => kept.StepId == stepId))
+        {
+            return;
+        }
+
+        if (Steps.FirstOrDefault(step => step.Id == stepId) is { } row)
+        {
+            var previous = row.Thumbnail;
+            row.Thumbnail = null;
+            row.HasLook = false;
+            previous?.Dispose();
+        }
+    }
+
+    /// <summary>Lets go of the pictures the run kept, which the window does when it goes away.</summary>
+    public void ReleaseLooks()
+    {
+        foreach (var step in Steps)
+        {
+            step.Thumbnail?.Dispose();
+            step.Thumbnail = null;
+        }
+
+        _looks.Clear();
+    }
+
+    /// <summary>Asks for the picture of one step to be opened.</summary>
+    [RelayCommand]
+    private void OpenLook(RunStepViewModel? step)
+    {
+        if (step is not null && LookOf(step.Id) is { } look)
+        {
+            LookRequested?.Invoke(look);
+        }
     }
 
     private string? CurrentId

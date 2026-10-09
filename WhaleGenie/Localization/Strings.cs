@@ -226,6 +226,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Look.Outcome.Pixel"] = "This is what is around the pixel being watched.",
         ["Look.Needed"] = "  It needed {0}.",
         ["Run.NotALookingStep"] = "This step does not look at the screen, so there is nothing to try.",
+        ["Run.OpenLook"] = "See what this step looked at",
 
         // ------------------------------------------------ keys and controller controls
         ["Add.OpenKeyPad"] = "Keyboard",
@@ -1149,6 +1150,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Look.Outcome.Pixel"] = "这是所看像素周围的样子。",
         ["Look.Needed"] = "　需要 {0}。",
         ["Run.NotALookingStep"] = "这一步不看屏幕，没有可以试找的东西。",
+        ["Run.OpenLook"] = "看这一步看到了什么",
 
         // ------------------------------------------------ 按键与手柄控件
         ["Add.OpenKeyPad"] = "虚拟键盘",
