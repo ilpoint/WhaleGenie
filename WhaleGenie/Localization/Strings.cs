@@ -719,6 +719,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.AskTitle"] = "A step failed",
         ["Run.AskComment"] = "Your note on this step: {0}",
         ["Run.NoVariables"] = "This macro does not use any variables yet.",
+        ["Run.StepOutcomes"] = "Step results ({0})",
         ["Run.NoDevice"] = "This machine cannot do that: {0} is not connected.",
         ["Run.NoDriver"] =
             "Driver-level input needs the usbip-win2 driver: the settings window has its download.",
@@ -1534,6 +1535,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.AskTitle"] = "步骤执行失败",
         ["Run.AskComment"] = "步骤备注：{0}",
         ["Run.NoVariables"] = "这个宏还没有使用变量。",
+        ["Run.StepOutcomes"] = "步骤结果（{0}）",
         ["Run.NoDevice"] = "这台机器暂不支持该操作：{0} 尚未接入。",
         ["Run.NoDriver"] = "驱动级输入需要先装好 usbip-win2 驱动，设置窗口里有下载入口。",
         ["Run.NoDriverServer"] =

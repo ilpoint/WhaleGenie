@@ -162,6 +162,7 @@ public sealed class MacroRunner
         _loops = 0;
         _failure = null;
         _images.Clear();
+        PrepareOutcomes(steps);
         Log(LogLevel.Info, 0, string.Empty, "Run.Start", steps.Count);
         if (Math.Abs(DelayScale - 1) > 0.001)
         {
@@ -274,6 +275,89 @@ public sealed class MacroRunner
         Failed,
     }
 
+    /// <summary>
+    /// How the name of a step's outcome is built: <c>k3f9</c> is answered by
+    /// <c>step.k3f9.outcome</c>. It travels as a name the run reads rather than as something the
+    /// interface keeps, because a macro that asks about a step has to mean the same thing however
+    /// the macro was started.
+    /// </summary>
+    private const string OutcomePrefix = "step.";
+
+    /// <summary>The other end of an outcome's name.</summary>
+    private const string OutcomeSuffix = ".outcome";
+
+    /// <summary>
+    /// Where the outcome of the step with this name is written. Anything that lists the run's own
+    /// values asks here rather than spelling the name out a second time.
+    /// </summary>
+    public static string OutcomeName(string stepId) => OutcomePrefix + stepId + OutcomeSuffix;
+
+    /// <summary>
+    /// True when a value is a step's outcome rather than something the macro made for itself. A
+    /// macro of any length leaves one of these behind for every step, so a list that showed them
+    /// all mixed in with the macro's own values would be mostly outcomes.
+    /// </summary>
+    public static bool IsOutcomeName(string name)
+        => name.StartsWith(OutcomePrefix, StringComparison.Ordinal)
+           && name.EndsWith(OutcomeSuffix, StringComparison.Ordinal);
+
+    /// <summary>This step did what it was asked to.</summary>
+    private const string OutcomeOk = "ok";
+
+    /// <summary>This step did not work, whether it stopped the run or its rule let the run go on.</summary>
+    private const string OutcomeFailed = "failed";
+
+    /// <summary>This step was not carried out: switched off, or the run never reached it.</summary>
+    private const string OutcomeSkipped = "skipped";
+
+    /// <summary>
+    /// Says "not carried out yet" for every step of a macro before any of it runs, so a step the
+    /// run never got to can be told apart from a name that is not a step at all — a condition
+    /// about a step further down has nothing to read otherwise, and nothing reads the same as a
+    /// name typed wrong.
+    /// </summary>
+    /// <remarks>
+    /// Conditions are left out on purpose, and so are the steps inside them: a condition is not a
+    /// step of the macro, it belongs to the step it is written on, so it has no ending of its own
+    /// and a name for it could only ever answer "not carried out".
+    ///
+    /// A called macro is prepared too, on the values it was given: its steps are not in the
+    /// caller's list, and its names have no business in the caller's scope.
+    /// </remarks>
+    private void PrepareOutcomes(IReadOnlyList<ExecutableStep> steps)
+    {
+        foreach (var step in steps)
+        {
+            if (IsCondition(step))
+            {
+                continue;
+            }
+
+            WriteOutcome(step, OutcomeSkipped);
+            foreach (var parameter in step.Parameters)
+            {
+                PrepareOutcomes(parameter.Steps);
+            }
+        }
+    }
+
+    /// <summary>A condition rather than a step: it is worked out by the step it is written on.</summary>
+    private static bool IsCondition(ExecutableStep step)
+        => step.Type.StartsWith("condition.", StringComparison.Ordinal);
+
+    /// <summary>Writes down how one step ended, for the conditions written after it.</summary>
+    private void WriteOutcome(ExecutableStep step, string outcome)
+    {
+        // A step without a name cannot be pointed at, so there is nothing to write. The editor
+        // gives every step one; this is for a macro built by hand around the engine.
+        if (step.Id.Length == 0)
+        {
+            return;
+        }
+
+        Variables.Set(OutcomeName(step.Id), Value.FromText(outcome));
+    }
+
     /// <summary>What the failure rule decided for one step.</summary>
     private enum Decision
     {
@@ -335,6 +419,7 @@ public sealed class MacroRunner
 
         var caller = Variables.SwapLocal(called);
         _callDepth++;
+        PrepareOutcomes(steps);
 
         // The called macro starts outside every loop, whatever the caller is inside. A break in
         // there belongs to a loop of its own or to nothing; it must never reach out and cut a
@@ -502,15 +587,11 @@ public sealed class MacroRunner
                         continue;
                     }
 
-                    return decided switch
-                    {
-                        Decision.Skip => Signal.Normal,
-                        Decision.NextIteration => Signal.Continue,
-                        _ => Signal.Failed,
-                    };
+                    return StepFailed(step, decided);
                 }
 
                 await Pause(Pace(step.Meta.DelayAfterMs), token);
+                WriteOutcome(step, OutcomeOk);
                 return signal;
             }
             catch (StepFailure) when (attempt < step.Meta.RetryCount)
@@ -526,17 +607,29 @@ public sealed class MacroRunner
                 var decision = await Decide(step, token);
                 if (decision is not Decision.Retry)
                 {
-                    return decision switch
-                    {
-                        Decision.Skip => Signal.Normal,
-                        Decision.NextIteration => Signal.Continue,
-                        _ => Signal.Failed,
-                    };
+                    return StepFailed(step, decision);
                 }
 
                 await Pause(RetryPause(step, attempt + 1), token);
             }
         }
+    }
+
+    /// <summary>
+    /// The step is over and it did not work: writes that down and hands back what its failure rule
+    /// decided the run should do next. Both the failure that arrived as a signal from the steps
+    /// inside this one and the one that arrived as an exception come through here, so a condition
+    /// written after a step always has an answer by the time it is asked.
+    /// </summary>
+    private Signal StepFailed(ExecutableStep step, Decision decided)
+    {
+        WriteOutcome(step, OutcomeFailed);
+        return decided switch
+        {
+            Decision.Skip => Signal.Normal,
+            Decision.NextIteration => Signal.Continue,
+            _ => Signal.Failed,
+        };
     }
 
     /// <summary>
@@ -1422,7 +1515,13 @@ public sealed class MacroRunner
             {
                 if (CaseMatches(value, wanted, mode))
                 {
-                    return await RunSteps(branch.Children("body"), depth + 1, token);
+                    var signal = await RunSteps(branch.Children("body"), depth + 1, token);
+
+                    // A branch is a block of the macro like any other, so it says how it went
+                    // too. It is run from here rather than through the walk, which is why it has
+                    // to be written down by hand.
+                    WriteOutcome(branch, signal is Signal.Failed ? OutcomeFailed : OutcomeOk);
+                    return signal;
                 }
             }
         }

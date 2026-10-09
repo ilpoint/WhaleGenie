@@ -209,6 +209,31 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+
+                                <!-- One of these for every step of the macro, so it stays folded away. -->
+                                <Button Classes="FlatButton" Margin="0,10,0,6" Height="24" Padding="10,0"
+                                        FontSize="11.5" HorizontalAlignment="Left"
+                                        IsVisible="{Binding HasStepOutcomes}"
+                                        Content="{Binding StepOutcomeHeader}"
+                                        Command="{Binding ToggleStepOutcomesCommand}" />
+                                <ItemsControl ItemsSource="{Binding StepOutcomes}"
+                                              IsVisible="{Binding ShowStepOutcomes}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:StepOutcome">
+                                            <Grid ColumnDefinitions="150,*,60" Margin="0,0,0,3"
+                                                  ToolTip.Tip="{Binding Name}">
+                                                <TextBlock Text="{Binding Label}" FontSize="11.5"
+                                                           Foreground="#CFCFCF"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="11.5"
+                                                           Foreground="#8FB3D9"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="2" Text="{Binding Value}" FontSize="11.5"
+                                                           Foreground="{Binding Color}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
                         </ScrollViewer>
                     </Border>

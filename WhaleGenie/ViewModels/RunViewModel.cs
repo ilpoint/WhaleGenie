@@ -55,6 +55,17 @@ public sealed record RunLineViewModel(string Time, LogLevel Level, Thickness Ind
 /// <summary>One variable the run can see.</summary>
 public sealed record WatchedVariable(string Name, string Scope, string Value);
 
+/// <summary>How one step of the macro went, for the list beside the variables.</summary>
+public sealed record StepOutcome(string Name, string Label, string Value)
+{
+    public string Color => Value switch
+    {
+        "failed" => "#E06C75",
+        "ok" => "#8CC98C",
+        _ => "#9A9A9A",
+    };
+}
+
 /// <summary>
 /// Backs the run window: it drives a <see cref="MacroRunner"/>, shows what the macro did,
 /// and lets the user watch it one step at a time. It is the runner's host, so the engine
@@ -117,6 +128,24 @@ public partial class RunViewModel : ViewModelBase, IRunHost
 
     /// <summary>What the variables hold right now.</summary>
     public ObservableCollection<WatchedVariable> Variables { get; } = [];
+
+    /// <summary>
+    /// How each step went. Kept apart from the macro's own values, and folded away by default: a
+    /// macro has one of these for every step of it, so a list that mixed them in would bury the
+    /// few values the user is actually watching.
+    /// </summary>
+    public ObservableCollection<StepOutcome> StepOutcomes { get; } = [];
+
+    public bool HasStepOutcomes => StepOutcomes.Count > 0;
+
+    /// <summary>The heading over the folded-away list, with the number of steps behind it.</summary>
+    public string StepOutcomeHeader => Strings.Format("Run.StepOutcomes", StepOutcomes.Count);
+
+    [ObservableProperty]
+    public partial bool ShowStepOutcomes { get; set; }
+
+    [RelayCommand]
+    private void ToggleStepOutcomes() => ShowStepOutcomes = !ShowStepOutcomes;
 
     public bool HasVariables => Variables.Count > 0;
 
@@ -404,7 +433,34 @@ public partial class RunViewModel : ViewModelBase, IRunHost
             Variables.Add(row);
         }
 
+        RefreshStepOutcomes();
         OnPropertyChanged(nameof(HasVariables));
+    }
+
+    /// <summary>
+    /// Reads back how each step went. Only the steps of this macro are asked about, and a step
+    /// counts as answered only once the run has written something for it: before the run starts
+    /// the list is empty rather than a column of "nothing yet".
+    /// </summary>
+    private void RefreshStepOutcomes()
+    {
+        StepOutcomes.Clear();
+        foreach (var step in Steps)
+        {
+            if (step.Id.Length == 0)
+            {
+                continue;
+            }
+
+            var name = MacroRunner.OutcomeName(step.Id);
+            if (_variables.Local.TryGet(name, out var value))
+            {
+                StepOutcomes.Add(new StepOutcome(name, step.Label, value.AsText()));
+            }
+        }
+
+        OnPropertyChanged(nameof(HasStepOutcomes));
+        OnPropertyChanged(nameof(StepOutcomeHeader));
     }
 
     private int Rank(string name) => _variables.Local.Contains(name) ? 0
