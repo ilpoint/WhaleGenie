@@ -492,6 +492,19 @@ public static class ActionCatalog
             Parameters =
             [
                 FilePath("path", "File", "notes.txt", "File to read.", PathIntent.Read),
+                Choice("storeAs", "Store as", ["text", "lines"], "text",
+                    "Keep the file as one piece of text, or hand each line over as an item of a "
+                    + "list, which is what looping over a file of names or paths wants.",
+                    labels: ["One piece of text", "One item per line"]),
+                Number("limit", "Only the first", 0,
+                    "Read only this many lines. Zero reads the whole file, which a big file of "
+                    + "lines to pick a few out of does not want.", min: 0m, max: 1_000_000m,
+                    advanced: true),
+                Toggle("skipBlankLines", "Leave out blank lines", false,
+                    "Drop the empty lines, so a list of names with a blank line in the middle is "
+                    + "just the names.", advanced: true),
+                Toggle("trim", "Trim each line", false,
+                    "Take the spaces off both ends of every line.", advanced: true),
                 Encoding(),
                 Variable("resultVariable", "Result variable", "text",
                     "Variable that receives the contents.", required: false, namesVariable: true),

@@ -3033,8 +3033,56 @@ public sealed class MacroRunner
     {
         var path = PathOf(step);
         var text = _devices.Files.ReadText(path, EncodingOf(step));
-        Variables.Set(VariableName(step, "resultVariable", "text"), Value.FromText(text));
-        Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, text.Length);
+        var name = VariableName(step, "resultVariable", "text");
+        var limit = Number(step, "limit");
+        var lines = string.Equals(step.Text("storeAs").Trim(), "lines",
+            StringComparison.OrdinalIgnoreCase);
+
+        if (!lines && limit <= 0)
+        {
+            // What a step that says nothing does, unchanged: the file's text, whole and as it is.
+            Variables.Set(name, Value.FromText(text));
+            Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, text.Length);
+            return;
+        }
+
+        var wanted = Lines(text, Flag(step, "skipBlankLines", false), Flag(step, "trim", false));
+        if (limit > 0 && wanted.Count > limit)
+        {
+            wanted = [.. wanted.Take(limit)];
+        }
+
+        Variables.Set(name, lines
+            ? Value.FromList(wanted.Select(Value.FromText))
+            : Value.FromText(string.Join(Environment.NewLine, wanted)));
+        Log(LogLevel.Info, depth, step.Type, "Run.ReadFileLines", path, wanted.Count);
+    }
+
+    /// <summary>
+    /// A text cut into lines the way every editor cuts one: all three ways of ending a line count,
+    /// and the break at the very end of the file does not leave an empty line behind it.
+    /// </summary>
+    private static List<string> Lines(string text, bool skipBlank, bool trim)
+    {
+        var lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n').ToList();
+        if (lines.Count > 0 && lines[^1].Length == 0)
+        {
+            lines.RemoveAt(lines.Count - 1);
+        }
+
+        var kept = new List<string>(lines.Count);
+        foreach (var line in lines)
+        {
+            var one = trim ? line.Trim() : line;
+            if (skipBlank && one.Length == 0)
+            {
+                continue;
+            }
+
+            kept.Add(one);
+        }
+
+        return kept;
     }
 
     private void WriteTextFile(ExecutableStep step, int depth)

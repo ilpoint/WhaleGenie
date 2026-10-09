@@ -1705,6 +1705,55 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_text_file_can_be_read_one_line_at_a_time()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["names.txt"] = "alpha\r\nbeta\ngamma\r";
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.readText", Param("path", "names.txt"), Param("storeAs", "lines"),
+                Param("resultVariable", "names")),
+        ], devices);
+
+        var names = store.Local.Values["names"];
+        Assert.True(names.IsList);
+        Assert.Equal(["alpha", "beta", "gamma"], names.Items.Select(item => item.AsText()));
+    }
+
+    [Fact]
+    public async Task Blank_lines_and_padding_can_be_left_out_of_a_line_list()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["names.txt"] = "alpha\n\n  beta  \n";
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.readText", Param("path", "names.txt"), Param("storeAs", "lines"),
+                Param("skipBlankLines", "true"), Param("trim", "true"),
+                Param("resultVariable", "names")),
+        ], devices);
+
+        Assert.Equal(["alpha", "beta"],
+            store.Local.Values["names"].Items.Select(item => item.AsText()));
+    }
+
+    [Fact]
+    public async Task A_text_file_can_be_read_up_to_a_line()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["names.txt"] = "alpha\nbeta\ngamma\n";
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.readText", Param("path", "names.txt"), Param("limit", "2"),
+                Param("resultVariable", "head")),
+        ], devices);
+
+        // Two lines of a text, kept as text: this is how a macro peeks at the top of a file it has
+        // no intention of reading whole.
+        Assert.Equal("alpha" + Environment.NewLine + "beta",
+            store.Local.Values["head"].AsText());
+    }
+
+    [Fact]
     public async Task Reading_a_text_file_without_a_name_uses_a_default()
     {
         var devices = new FakeDeviceLayer();
