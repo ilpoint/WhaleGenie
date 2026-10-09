@@ -47,11 +47,12 @@ public partial class AddActionWindow : Window
     /// </summary>
     public AddActionWindow(MacroStep? existing, IReadOnlyList<ActionDefinition>? actions = null,
         IReadOnlyList<string>? variables = null, IReadOnlyList<string>? macros = null,
-        string? presetKey = null, string? assetFolder = null)
+        string? presetKey = null, string? assetFolder = null,
+        IReadOnlyList<ActionParameterOption>? steps = null)
     {
         InitializeComponent();
 
-        var viewModel = new AddActionViewModel(actions, variables, macros);
+        var viewModel = new AddActionViewModel(actions, variables, macros, steps);
         viewModel.AssetFolder = assetFolder ?? string.Empty;
 
         // Picking a position has to know where the window a step is anchored to sits right now,
@@ -119,7 +120,8 @@ public partial class AddActionWindow : Window
     {
         var variables = (DataContext as AddActionViewModel)?.CollectVariables();
         var assets = (DataContext as AddActionViewModel)?.AssetFolder;
-        var dialog = new AddActionWindow(null, list.Catalog, variables, null, null, assets);
+        var steps = (DataContext as AddActionViewModel)?.StepChoices;
+        var dialog = new AddActionWindow(null, list.Catalog, variables, null, null, assets, steps);
         var step = await dialog.ShowDialogOver<MacroStep?>(this);
 
         if (step is not null)
@@ -133,7 +135,8 @@ public partial class AddActionWindow : Window
     {
         var variables = (DataContext as AddActionViewModel)?.CollectVariables();
         var assets = (DataContext as AddActionViewModel)?.AssetFolder;
-        var dialog = new AddActionWindow(step, null, variables, null, null, assets);
+        var steps = (DataContext as AddActionViewModel)?.StepChoices;
+        var dialog = new AddActionWindow(step, null, variables, null, null, assets, steps);
         var edited = await dialog.ShowDialogOver<MacroStep?>(this);
 
         if (edited is null || DataContext is not AddActionViewModel viewModel)

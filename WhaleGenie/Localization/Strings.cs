@@ -476,6 +476,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.StepIdHint"] = "The name this step goes by, written into the macro file. A result "
             + "variable carries it and a condition points at the step with it.",
         ["Add.StepIdCopy"] = "Copy",
+        ["Add.StepNotInMacro"] = "Not in this macro: {0}",
         ["Add.StepTimeout"] = "Timeout",
         ["Add.StepTimeoutHint"] = "Only the step's own running time is counted: the pauses before "
             + "and after it and the waits between retries are not. 0 means no limit. A block's "
@@ -720,6 +721,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.AskComment"] = "Your note on this step: {0}",
         ["Run.NoVariables"] = "This macro does not use any variables yet.",
         ["Run.StepOutcomes"] = "Step results ({0})",
+        ["Run.MissingStep"] = "This condition does not say which step it is about.",
+        ["Run.NoSuchStep"] = "There is no step called {0} in this macro.",
         ["Run.NoDevice"] = "This machine cannot do that: {0} is not connected.",
         ["Run.NoDriver"] =
             "Driver-level input needs the usbip-win2 driver: the settings window has its download.",
@@ -1312,6 +1315,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.StepId"] = "步骤名称",
         ["Add.StepIdHint"] = "这一步的名字，写进宏文件。结果变量会带上它，条件用它指这一步。",
         ["Add.StepIdCopy"] = "复制",
+        ["Add.StepNotInMacro"] = "不在这个宏里：{0}",
         ["Add.StepTimeout"] = "超时",
         ["Add.StepTimeoutHint"] = "只计算这一步自身的执行时间：执行前、执行后的延迟与重试之间的"
             + "等待都不计入；0 表示不限。块上的超时覆盖整段，因此包含子步骤的等待。",
@@ -1536,6 +1540,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.AskComment"] = "步骤备注：{0}",
         ["Run.NoVariables"] = "这个宏还没有使用变量。",
         ["Run.StepOutcomes"] = "步骤结果（{0}）",
+        ["Run.MissingStep"] = "这个条件没有指明要问哪一步。",
+        ["Run.NoSuchStep"] = "这个宏里没有叫 {0} 的步骤。",
         ["Run.NoDevice"] = "这台机器暂不支持该操作：{0} 尚未接入。",
         ["Run.NoDriver"] = "驱动级输入需要先装好 usbip-win2 驱动，设置窗口里有下载入口。",
         ["Run.NoDriverServer"] =

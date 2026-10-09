@@ -453,7 +453,7 @@ internal static class FunctionLibrary
     /// 09:30" means, and an empty argument is now, so a date function that is handed
     /// nothing still does something sensible instead of refusing to run.
     /// </summary>
-    private static DateTimeOffset Moment(string text)
+    public static DateTimeOffset Moment(string text)
     {
         var trimmed = text.Trim();
         if (trimmed.Length == 0)

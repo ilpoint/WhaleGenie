@@ -22,11 +22,12 @@ public partial class StepParameterViewModel : ViewModelBase
     private DurationUnit _unit = DurationUnit.Catalog[0];
 
     public StepParameterViewModel(ActionParameter definition, IReadOnlyList<string>? variables = null,
-        IReadOnlyList<string>? macros = null)
+        IReadOnlyList<string>? macros = null, IReadOnlyList<ActionParameterOption>? steps = null)
     {
         Definition = definition;
         Variables = variables ?? [];
         Macros = macros ?? [];
+        Steps = steps ?? [];
         DurationUnits = DurationUnit.Localized();
         _unit = DurationUnits[0];
 
@@ -50,12 +51,21 @@ public partial class StepParameterViewModel : ViewModelBase
         ExpressionSuggestions = suggestions;
         Text = definition.DefaultValue;
         Flag = string.Equals(definition.DefaultValue, "true", StringComparison.OrdinalIgnoreCase);
-        Choices = [.. definition.OptionChoices.Select(choice => choice with
-        {
-            Display = Strings.Get($"{definition.OwnerKey}.{definition.Name}.option.{choice.Value}",
-                choice.Display),
-        })];
-        Option = PickInitialOption(Choices, definition.DefaultValue);
+        // A step name is picked from the steps of the macro rather than from the catalogue, so
+        // those choices come in from the editor; every other choice is the catalogue's own.
+        Choices = definition.Kind is ActionParameterKind.Step
+            ? [.. Steps]
+            : [.. definition.OptionChoices.Select(choice => choice with
+            {
+                Display = Strings.Get($"{definition.OwnerKey}.{definition.Name}.option.{choice.Value}",
+                    choice.Display),
+            })];
+        // A step has no first choice: picking one would quietly point the step at whichever step
+        // of the macro happens to be listed first, and a wrong condition that never says so is
+        // worse than one that asks to be filled in.
+        Option = definition.Kind is ActionParameterKind.Step
+            ? Choices.FirstOrDefault(choice => choice.Value == definition.DefaultValue)
+            : PickInitialOption(Choices, definition.DefaultValue);
         IsEnabled = string.IsNullOrEmpty(definition.EnabledBySibling);
 
         if (decimal.TryParse(definition.DefaultValue, NumberStyles.Number, CultureInfo.InvariantCulture,
@@ -112,6 +122,9 @@ public partial class StepParameterViewModel : ViewModelBase
 
     /// <summary>Macro names offered while editing an <see cref="ActionParameterKind.Macro"/>.</summary>
     public IReadOnlyList<string> Macros { get; }
+
+    /// <summary>Steps of the macro offered while editing an <see cref="ActionParameterKind.Step"/>.</summary>
+    public IReadOnlyList<ActionParameterOption> Steps { get; }
 
     /// <summary>Units offered beside a length-of-time box, labelled in the interface language.</summary>
     public IReadOnlyList<DurationUnit> DurationUnits { get; }
@@ -459,6 +472,13 @@ public partial class StepParameterViewModel : ViewModelBase
 
     public bool IsChoice => Definition.Kind is ActionParameterKind.Choice;
 
+    /// <summary>
+    /// True when this parameter names a step of this macro. It is picked from a list rather than
+    /// typed, because the name is four characters nobody should have to copy by eye, and it is
+    /// shown with the note and the action it belongs to, which is how the user recognises it.
+    /// </summary>
+    public bool IsStepChoice => Definition.Kind is ActionParameterKind.Step;
+
     /// <summary>True when this parameter is edited with the nested step editor.</summary>
     public bool IsNested => List is not null;
 
@@ -507,8 +527,12 @@ public partial class StepParameterViewModel : ViewModelBase
         _ => string.Equals(CurrentText.Trim(), Definition.DefaultValue, StringComparison.Ordinal),
     };
 
-    /// <summary>Choices offered by a <see cref="ActionParameterKind.Choice"/> editor.</summary>
-    public IReadOnlyList<ActionParameterOption> Choices { get; }
+    /// <summary>
+    /// Choices offered by a <see cref="ActionParameterKind.Choice"/> editor, and the steps offered
+    /// by a <see cref="ActionParameterKind.Step"/> one. It is a list rather than a fixed set because
+    /// a step name that is not in the macro any more still has to be shown.
+    /// </summary>
+    public List<ActionParameterOption> Choices { get; }
 
     /// <summary>The bottom of the number box, in whichever unit the box is showing.</summary>
     public decimal Minimum => Definition.Minimum / _unit.Factor;
@@ -662,7 +686,7 @@ public partial class StepParameterViewModel : ViewModelBase
                 ? Milliseconds.ToString("0.####", CultureInfo.InvariantCulture)
                 : (NumberValue ?? 0m).ToString(CultureInfo.InvariantCulture),
         ActionParameterKind.Bool => Flag ? "true" : "false",
-        ActionParameterKind.Choice => Option?.Value ?? string.Empty,
+        ActionParameterKind.Choice or ActionParameterKind.Step => Option?.Value ?? string.Empty,
         _ => Text ?? string.Empty,
     };
 
@@ -727,6 +751,22 @@ public partial class StepParameterViewModel : ViewModelBase
                 break;
             case ActionParameterKind.Choice:
                 Option = Choices.FirstOrDefault(choice => choice.Value == raw) ?? Choices.FirstOrDefault();
+                break;
+            case ActionParameterKind.Step:
+                {
+                    // A name that is not one of the macro's steps — pointing at a step that has
+                    // since been deleted, or written by hand into the file — is kept and shown as
+                    // itself, rather than being quietly swapped for whichever step is first.
+                    var step = Choices.FirstOrDefault(choice => choice.Value == raw);
+                    if (step is null && raw.Length > 0)
+                    {
+                        step = new ActionParameterOption(raw, Strings.Format("Add.StepNotInMacro", raw));
+                        Choices.Add(step);
+                    }
+
+                    Option = step;
+                }
+
                 break;
             default:
                 Text = raw;

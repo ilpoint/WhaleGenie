@@ -2662,6 +2662,124 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "condition.stepResult",
+            Category = ActionCategory.Condition,
+            DisplayName = "Step Result",
+            Description = "Asks how one step of this macro ended up.",
+            Parameters =
+            [
+                PickStep("step", "Step",
+                    "The step to ask about. Every step of this macro is offered by its note, its "
+                    + "action and its name; a step the run has not reached yet answers \"not "
+                    + "reached\" rather than \"no\"."),
+                Choice("expected", "Should have", ["ok", "failed", "skipped"], "ok",
+                    "How that step should have ended: it did what it was asked to, it failed, or "
+                    + "the run never got to it.",
+                    labels: ["Succeeded", "Failed", "Not reached"]),
+            ],
+        },
+        new()
+        {
+            Key = "condition.listContains",
+            Category = ActionCategory.Condition,
+            DisplayName = "List Contains",
+            Description = "True when a list holds a value.",
+            Parameters =
+            [
+                Variable("list", "List", "$items",
+                    "The list to look in. Write it out as a;b;c, or name a variable holding one "
+                    + "with $items."),
+                Variable("value", "Value", "1",
+                    "The value that has to be in the list. A number is compared as a number, so "
+                    + "1 finds 1.0, and text is compared without caring about case."),
+            ],
+        },
+        new()
+        {
+            Key = "condition.pathExists",
+            Category = ActionCategory.Condition,
+            DisplayName = "File or Folder Exists",
+            Description = "True when there is a file or a folder at a path.",
+            Parameters =
+            [
+                FilePath("path", "Path", @"C:\data\report.csv",
+                    "The file or the folder that has to be there. What is at that path is not "
+                    + "looked at, only whether anything is."),
+            ],
+        },
+        new()
+        {
+            Key = "condition.processRunning",
+            Category = ActionCategory.Condition,
+            DisplayName = "Program Running",
+            Description = "True when a program is running.",
+            Parameters =
+            [
+                Text("name", "Program", "notepad",
+                    "The program's name, as it is written in Task Manager and without the "
+                    + "\".exe\": notepad, chrome, excel.",
+                    acceptsVariables: true),
+            ],
+        },
+        new()
+        {
+            Key = "condition.windowExists",
+            Category = ActionCategory.Condition,
+            DisplayName = "Window Exists",
+            Description = "True when a window is open.",
+            Parameters =
+            [
+                Choice("match", "Look at", ["title", "process"], "title",
+                    "Whether the value is looked for in the window's title, which is what is "
+                    + "written on it, or in the name of the program that owns it.",
+                    labels: ["The title", "The program"]),
+                Text("value", "Window", "Untitled - Notepad",
+                    "Part of it is enough, and case does not matter. Leave it empty to ask "
+                    + "whether any window at all is open.",
+                    required: false, acceptsVariables: true),
+            ],
+        },
+        new()
+        {
+            Key = "condition.valueInRange",
+            Category = ActionCategory.Condition,
+            DisplayName = "Value In Range",
+            Description = "True when a value sits between two other values.",
+            Parameters =
+            [
+                Variable("value", "Value", "$count",
+                    "The value to place on the number line."),
+                Variable("min", "Lowest", "1",
+                    "One end of the range. Either end may be written first."),
+                Variable("max", "Highest", "10",
+                    "The other end of the range. Both ends count as inside, so a range of 1 to "
+                    + "10 holds 1 and 10."),
+            ],
+        },
+        new()
+        {
+            Key = "condition.dateCompare",
+            Category = ActionCategory.Condition,
+            DisplayName = "Date Comparison",
+            Description = "Compares two dates, times or both.",
+            Parameters =
+            [
+                Variable("left", "Date", "$sys.dateTime",
+                    "The date or time to place. Name a variable such as $sys.dateTime, write a date "
+                    + "such as 2026-01-31 or 09:30, or work one out with today().",
+                    acceptsFormula: true),
+                Choice("operator", "Compare", ["before", "after", "same", "sameDay"], "after",
+                    "How the first date stands against the second. \"The same day\" ignores the "
+                    + "time of day, which is what asking whether something has happened today "
+                    + "needs.",
+                    labels: ["Is before", "Is after", "Is exactly", "Is the same day"]),
+                Variable("right", "Against", "2026-01-01",
+                    "The date it is compared against, written the same ways.",
+                    acceptsFormula: true),
+            ],
+        },
+        new()
+        {
             Key = "condition.group",
             Category = ActionCategory.Condition,
             DisplayName = "Logic Group",
@@ -2865,6 +2983,20 @@ public static class ActionCatalog
             NamesVariable = namesVariable,
             DefaultValue = defaultValue,
             AcceptsFormula = acceptsFormula,
+        };
+
+    /// <summary>
+    /// A step of the macro being written, chosen from the steps that are in it. The choices are not
+    /// the catalogue's — only the editor knows what is in the macro — so the dialog fills them in
+    /// from the editor's own list, by the note, the action and the step's name.
+    /// </summary>
+    private static ActionParameter PickStep(string name, string label, string hint)
+        => new()
+        {
+            Name = name,
+            Label = label,
+            Kind = ActionParameterKind.Step,
+            Hint = hint,
         };
 
     private static ActionParameter Number(string name, string label, decimal defaultValue,

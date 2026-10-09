@@ -61,6 +61,12 @@ public enum ActionParameterKind
 
     /// <summary>Name of another macro in the project, offered from a list while staying editable.</summary>
     Macro,
+
+    /// <summary>
+    /// The name of a step of this macro, chosen from the steps that are in it. The value written
+    /// is the step's name and nothing else, because that is what the run knows a step by.
+    /// </summary>
+    Step,
 }
 
 /// <summary>One choice of a <see cref="ActionParameterKind.Choice"/> parameter:

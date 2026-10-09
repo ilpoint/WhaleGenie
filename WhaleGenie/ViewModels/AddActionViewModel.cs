@@ -41,13 +41,15 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>Creates the dialog, optionally restricted to a catalogue subset.</summary>
     public AddActionViewModel(IReadOnlyList<ActionDefinition>? actions,
-        IReadOnlyList<string>? variables = null, IReadOnlyList<string>? macros = null)
+        IReadOnlyList<string>? variables = null, IReadOnlyList<string>? macros = null,
+        IReadOnlyList<ActionParameterOption>? steps = null)
     {
         // Steps, not the whole catalogue: a condition says what has to be true and only means
         // something inside an if, a while or a wait, so it is not something to add as a step.
         AvailableActions = actions ?? ActionCatalog.RunnableActions;
         _variables = variables ?? [];
         _macros = macros ?? [];
+        StepChoices = steps ?? [];
         // A step that fails is usually a surprise the macro cannot have planned for, so a new one
         // starts by stopping and asking rather than bringing the whole run down on its own.
         MetaOnError = ErrorChoices.First(choice => choice.Value == StepMeta.Name(StepErrorAction.AskUser));
@@ -69,6 +71,12 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>Everything the "Select Action" dropdown offers.</summary>
     public IReadOnlyList<ActionDefinition> AvailableActions { get; }
+
+    /// <summary>
+    /// The steps of the macro being written, which is what a field naming a step picks from. The
+    /// dialog is handed them because only the editor knows what is in the macro.
+    /// </summary>
+    public IReadOnlyList<ActionParameterOption> StepChoices { get; }
 
     /// <summary>What the picker's search box holds. Blank shows the whole catalogue.</summary>
     [ObservableProperty]
@@ -579,6 +587,64 @@ public partial class AddActionViewModel : ViewModelBase
         return [.. names];
     }
 
+    /// <summary>
+    /// The steps a field of this action may point at. The step being edited is left out: a step
+    /// that asks about its own ending would always be asking before it has one, and the answer
+    /// would be "not reached" every time.
+    /// </summary>
+    /// <remarks>
+    /// Steps added to a block from inside this dialog count too, the same way the variables a step
+    /// creates for itself do: they are steps of the macro the user has just written, and a
+    /// condition written beside them is entitled to name one.
+    /// </remarks>
+    private IReadOnlyList<ActionParameterOption> StepsOfferedTo(ActionDefinition definition)
+    {
+        if (definition.Parameters.All(parameter => parameter.Kind is not ActionParameterKind.Step))
+        {
+            return [];
+        }
+
+        var choices = new List<ActionParameterOption>(StepChoices);
+        foreach (var parameter in Parameters)
+        {
+            foreach (var step in parameter.List?.Steps ?? [])
+            {
+                Gather(choices, step);
+            }
+        }
+
+        // Two blocks holding a step of the same name would offer it twice; the list is built from
+        // names here and there is only one step per name in a macro.
+        return
+        [
+            .. choices
+                .GroupBy(choice => choice.Value, StringComparer.Ordinal)
+                .Select(group => group.First())
+                .Where(choice => choice.Value != _editingId),
+        ];
+    }
+
+    /// <summary>Adds one step and everything written inside it to the list being built.</summary>
+    private static void Gather(List<ActionParameterOption> choices, MacroStep step)
+    {
+        if (!step.IsCondition && step.Id.Length > 0)
+        {
+            choices.Add(new ActionParameterOption(step.Id, step.PickerLabel));
+        }
+
+        foreach (var child in step.Parameters.SelectMany(parameter => parameter.Steps))
+        {
+            Gather(choices, child);
+        }
+
+        foreach (var condition in step.Parameters
+                     .Where(parameter => parameter.Condition is not null)
+                     .Select(parameter => parameter.Condition!))
+        {
+            Gather(choices, condition);
+        }
+    }
+
     /// <summary>Fills the dialog from an existing step so it can be edited.</summary>
     public void LoadFrom(MacroStep step)
     {
@@ -637,10 +703,11 @@ public partial class AddActionViewModel : ViewModelBase
         if (definition is not null)
         {
             var variables = CollectVariables();
+            var steps = StepsOfferedTo(definition);
 
             foreach (var parameter in definition.Parameters)
             {
-                var editor = new StepParameterViewModel(parameter, variables, _macros);
+                var editor = new StepParameterViewModel(parameter, variables, _macros, steps);
                 editor.AssetFolder = _assetFolder;
                 editor.PropertyChanged += OnParameterChanged;
 

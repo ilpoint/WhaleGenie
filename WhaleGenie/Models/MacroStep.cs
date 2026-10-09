@@ -225,6 +225,13 @@ public class MacroStep : INotifyPropertyChanged
     /// <summary>True when the macro skips this step.</summary>
     public bool IsSkipped => !Meta.IsEnabled;
 
+    /// <summary>
+    /// True when this is a condition rather than a step of the macro. A condition says what has to
+    /// be true and is asked by the step it belongs to, so it never runs on its own and has no
+    /// ending of its own for anything to ask about.
+    /// </summary>
+    public bool IsCondition => Type.StartsWith("condition.", StringComparison.Ordinal);
+
     /// <summary>Marker drawn on a step the macro will skip.</summary>
     public string SkipLabel => Strings.Get("Editor.StepDisabled");
 
@@ -239,6 +246,15 @@ public class MacroStep : INotifyPropertyChanged
 
     /// <summary>Human readable name, falling back to the raw key when it is unknown.</summary>
     public string DisplayName => Definition?.LocalName ?? Type;
+
+    /// <summary>
+    /// This step named the way anything that has to point at one names it: the note the user wrote,
+    /// the action it is, and the short name it goes by. The note comes first because that is the
+    /// one part that says what the step is for; the name is last because that is what a condition
+    /// stores. Whichever parts are empty are left out rather than leaving a gap.
+    /// </summary>
+    public string PickerLabel => string.Join(" · ",
+        new[] { Comment, DisplayName, Id }.Where(part => part.Length > 0));
 
     /// <summary>Action key plus the parameters that have a value, shown under the name.</summary>
     public string Detail

@@ -1154,6 +1154,43 @@ public partial class MacroEditorViewModel : ViewModelBase
         return VariableCatalog.Names(locals);
     }
 
+    /// <summary>
+    /// The steps of the macro being written, which is what a step that has to point at another one
+    /// picks from. Conditions are left out: they are asked by the step they belong to rather than
+    /// run, so they never have an ending of their own to ask about.
+    /// </summary>
+    public IReadOnlyList<ActionParameterOption> StepChoices()
+    {
+        var choices = new List<ActionParameterOption>();
+        foreach (var step in Steps)
+        {
+            Collect(choices, step);
+        }
+
+        return choices;
+
+        static void Collect(List<ActionParameterOption> choices, MacroStep step)
+        {
+            if (!step.IsCondition && step.Id.Length > 0)
+            {
+                choices.Add(new ActionParameterOption(step.Id, step.PickerLabel));
+            }
+
+            foreach (var parameter in step.Parameters)
+            {
+                foreach (var child in parameter.Steps)
+                {
+                    Collect(choices, child);
+                }
+
+                if (parameter.Condition is not null)
+                {
+                    Collect(choices, parameter.Condition);
+                }
+            }
+        }
+    }
+
     private static MacroStep Clone(MacroStep step) => new()
     {
         Type = step.Type,

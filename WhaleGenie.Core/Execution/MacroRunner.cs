@@ -1692,6 +1692,27 @@ public sealed class MacroRunner
             case "condition.expression":
                 return Read(condition.Text("expression")).AsBool();
 
+            case "condition.stepResult":
+                return StepResult(condition);
+
+            case "condition.listContains":
+                return ListHolds(condition);
+
+            case "condition.pathExists":
+                return _devices.Files.Exists(Read(condition.Text("path")).AsText());
+
+            case "condition.processRunning":
+                return _devices.Processes.Find(Read(condition.Text("name")).AsText()).Count > 0;
+
+            case "condition.windowExists":
+                return WindowThere(condition);
+
+            case "condition.valueInRange":
+                return InRange(condition);
+
+            case "condition.dateCompare":
+                return DatesCompared(condition);
+
             case "condition.colorEquals":
                 {
                     var target = PixelColor.Parse(condition.Text("color"));
@@ -1705,6 +1726,117 @@ public sealed class MacroRunner
                 Log(LogLevel.Warn, depth, condition.Type, "Run.UnknownCondition", condition.Type);
                 return false;
         }
+    }
+
+    /// <summary>
+    /// Whether one step of the macro ended up doing what a condition says it should have. The
+    /// answer is read from the step's outcome, which the run writes as it goes — so a step the run
+    /// has not reached yet answers "not reached" rather than "no", and a condition about a step
+    /// that is not in the macro at all is a mistake rather than a quiet false.
+    /// </summary>
+    private bool StepResult(ExecutableStep condition)
+    {
+        var id = condition.Text("step").Trim();
+        if (id.Length == 0)
+        {
+            throw new StepFailure("Run.MissingStep");
+        }
+
+        var expected = condition.Text("expected").Trim();
+        if (!Variables.TryGet(OutcomeName(id), out var outcome))
+        {
+            throw new StepFailure("Run.NoSuchStep", id);
+        }
+
+        return string.Equals(outcome.AsText().Trim(), expected, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Whether a list holds a value. The list is read the way every other list field is, so it can
+    /// be written out or named by a variable holding one; the value is compared the way an
+    /// equality test compares, so "1" finds 1 and text is not told apart by case.
+    /// </summary>
+    private bool ListHolds(ExecutableStep condition)
+    {
+        if (!ListText.TryParse(condition.Text("list"), Variables, out var items, out var error))
+        {
+            throw new StepFailure("Run.BadList", error?.Detail ?? condition.Text("list"));
+        }
+
+        var wanted = Read(condition.Text("value"));
+        return items.Any(item => item.NumericEquals(wanted)
+            || string.Equals(item.AsText(), wanted.AsText(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Whether a window answering to a title or to a program's name is open. An empty value means
+    /// "any window at all", which is how a macro waits for something to come up without knowing
+    /// what Windows will call it.
+    /// </summary>
+    private bool WindowThere(ExecutableStep condition)
+    {
+        var value = Read(condition.Text("value")).AsText().Trim();
+        var match = string.Equals(condition.Text("match").Trim(), "process",
+            StringComparison.OrdinalIgnoreCase)
+            ? WindowMatch.Process
+            : WindowMatch.Title;
+
+        return _devices.Windows.Find(value, match) is not null;
+    }
+
+    /// <summary>
+    /// Whether a value sits between two others. Both ends count as inside, so a range of 1 to 10
+    /// holds 1 and 10 — a range written with its ends included is what a number line looks like,
+    /// and the hint says so where the macro is written.
+    /// </summary>
+    private bool InRange(ExecutableStep condition)
+    {
+        var value = Read(condition.Text("value")).AsNumber();
+        var low = Read(condition.Text("min")).AsNumber();
+        var high = Read(condition.Text("max")).AsNumber();
+        return value >= Math.Min(low, high) && value <= Math.Max(low, high);
+    }
+
+    /// <summary>
+    /// Whether one date is before, after or the same as another. Both sides are read the way every
+    /// date function reads one, so <c>$sys.dateTime</c>, <c>2026-01-01</c> and <c>$today()</c> all
+    /// work; "the same day" ignores the time of day, which is what "has this run today already"
+    /// needs and what comparing two timestamps cannot answer.
+    /// </summary>
+    private bool DatesCompared(ExecutableStep condition)
+    {
+        var left = FunctionLibrary.Moment(DateText(condition.Text("left")));
+        var right = FunctionLibrary.Moment(DateText(condition.Text("right")));
+        return condition.Text("operator").Trim().ToLowerInvariant() switch
+        {
+            "before" => left < right,
+            "after" => left > right,
+            "sameday" => left.Date == right.Date,
+            _ => left == right,
+        };
+    }
+
+    /// <summary>
+    /// Reads one side of a date comparison. A date written out is taken as written: 2026-01-31 is
+    /// that day and not the arithmetic 2026 minus 1 minus 31, which is what every other value field
+    /// would make of it — and a date that quietly turned into 1994 would be a bug nobody could see.
+    /// A name, a <c>$name</c> or something plainly worked out, such as <c>today()</c>, is read the
+    /// way every other value is.
+    /// </summary>
+    private string DateText(string text)
+    {
+        var trimmed = text.Trim();
+        if (trimmed.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        if (trimmed.StartsWith('$') || trimmed.Contains('('))
+        {
+            return Read(trimmed).AsText();
+        }
+
+        return Variables.TryGet(trimmed, out var named) ? named.AsText() : trimmed;
     }
 
     /// <summary>True when a reference picture is somewhere in a condition's search areas.</summary>

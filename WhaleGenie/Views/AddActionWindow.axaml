@@ -307,6 +307,21 @@
 
                 <!-- A variable, which may also be a whole value of its own: an operand of a
                      calculation is written here, and may be built with the expression editor. -->
+                <!-- A step of this macro, which is picked out of the steps that are in it: the name
+                     is four characters that nobody should have to copy by eye, and the note and the
+                     action beside it are how the user tells one step from another. -->
+                <ComboBox Classes="ActionSelect" IsVisible="{Binding IsStepChoice}"
+                          ItemsSource="{Binding Choices}"
+                          SelectedItem="{Binding Option}"
+                          Width="360" HorizontalAlignment="Left">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:ActionParameterOption">
+                            <TextBlock Text="{Binding Display}"
+                                       FontSize="12.5" Foreground="#E8E8E8" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
                 <Grid IsVisible="{Binding IsVariable}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
                     <AutoCompleteBox Classes="VarInput"
                                      ItemsSource="{Binding Variables}"

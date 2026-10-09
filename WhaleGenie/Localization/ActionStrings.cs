@@ -2131,6 +2131,74 @@ internal static class ActionStrings
         ["condition.compare.operator.option.exists"] = "变量存在",
         ["condition.compare.operator.option.regexMatch"] = "正则匹配",
 
+        ["condition.stepResult.name"] = "步骤结果",
+        ["condition.stepResult.desc"] = "判断本宏里某一步跑完的结果。",
+        ["condition.stepResult.step.label"] = "步骤",
+        ["condition.stepResult.step.hint"] =
+            "要问的那一步；候选项是本宏里的每一步，按备注、动作和步骤名称列出。还没轮到的那一步"
+            + "答的是“没跑到”，不是“否”。",
+        ["condition.stepResult.expected.label"] = "结果应当是",
+        ["condition.stepResult.expected.hint"] = "这一步跑完应当是什么结果：做成了、失败了，还是根本没轮到。",
+        ["condition.stepResult.expected.option.ok"] = "成功",
+        ["condition.stepResult.expected.option.failed"] = "失败",
+        ["condition.stepResult.expected.option.skipped"] = "没跑到",
+
+        ["condition.listContains.name"] = "列表包含",
+        ["condition.listContains.desc"] = "列表里有某个值时成立。",
+        ["condition.listContains.list.label"] = "列表",
+        ["condition.listContains.list.hint"] =
+            "要查找的列表：直接写成 a;b;c，或者用 $items 指定一个装着列表的变量。",
+        ["condition.listContains.value.label"] = "要找的值",
+        ["condition.listContains.value.hint"] =
+            "必须出现在列表里的值。数字按数字比，1 能找到 1.0；文本比较不分大小写。",
+
+        ["condition.pathExists.name"] = "文件或文件夹存在",
+        ["condition.pathExists.desc"] = "路径上有文件或文件夹时成立。",
+        ["condition.pathExists.path.label"] = "路径",
+        ["condition.pathExists.path.hint"] =
+            "必须存在的文件或文件夹。这里只看那个位置上有没有东西，不看它是什么。",
+
+        ["condition.processRunning.name"] = "进程正在运行",
+        ["condition.processRunning.desc"] = "某个程序正在运行时成立。",
+        ["condition.processRunning.name.label"] = "程序",
+        ["condition.processRunning.name.hint"] =
+            "程序名，按任务管理器里的写法且不带 .exe：notepad、chrome、excel。",
+
+        ["condition.windowExists.name"] = "窗口存在",
+        ["condition.windowExists.desc"] = "某个窗口打开着时成立。",
+        ["condition.windowExists.match.label"] = "比什么",
+        ["condition.windowExists.match.hint"] = "在窗口标题里找，还是在拥有它的程序名里找。",
+        ["condition.windowExists.match.option.title"] = "标题",
+        ["condition.windowExists.match.option.process"] = "程序名",
+        ["condition.windowExists.value.label"] = "窗口",
+        ["condition.windowExists.value.hint"] =
+            "写出其中一段即可，大小写不敏感；留空则表示“有没有任何窗口”。",
+
+        ["condition.valueInRange.name"] = "值在区间内",
+        ["condition.valueInRange.desc"] = "一个值落在另外两个值之间时成立。",
+        ["condition.valueInRange.value.label"] = "值",
+        ["condition.valueInRange.value.hint"] = "要放到数轴上的值。",
+        ["condition.valueInRange.min.label"] = "下限",
+        ["condition.valueInRange.min.hint"] = "区间的一端，两端谁先写都可以。",
+        ["condition.valueInRange.max.label"] = "上限",
+        ["condition.valueInRange.max.hint"] = "区间的另一端。两端都算在内，所以 1 到 10 里包含 1 和 10。",
+
+        ["condition.dateCompare.name"] = "日期比较",
+        ["condition.dateCompare.desc"] = "比较两个日期、时间或两者。",
+        ["condition.dateCompare.left.label"] = "日期",
+        ["condition.dateCompare.left.hint"] =
+            "要摆在前面的日期或时间：填变量名如 $sys.dateTime，直接写 2026-01-31 或 09:30，"
+            + "也可以用 today() 现算一个。写出来的日期按字面理解，不会当成减法。",
+        ["condition.dateCompare.operator.label"] = "比较方式",
+        ["condition.dateCompare.operator.hint"] =
+            "第一个日期相对第二个日期的位置。“同一天”不看具体时刻，用来问某件事今天做过没有。",
+        ["condition.dateCompare.operator.option.before"] = "早于",
+        ["condition.dateCompare.operator.option.after"] = "晚于",
+        ["condition.dateCompare.operator.option.same"] = "正好等于",
+        ["condition.dateCompare.operator.option.sameDay"] = "是同一天",
+        ["condition.dateCompare.right.label"] = "比较对象",
+        ["condition.dateCompare.right.hint"] = "拿来做比较的日期，写法与上面一样。",
+
         ["condition.group.name"] = "条件组",
         ["condition.group.desc"] = "用“与 / 或 / 非”把多个条件组合在一起：与＝全部满足，或＝任一满足，非＝全部不满足。",
         ["condition.group.op.label"] = "逻辑",
