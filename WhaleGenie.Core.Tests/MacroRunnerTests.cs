@@ -1139,6 +1139,42 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task One_position_of_a_list_can_be_changed_without_touching_the_others()
+    {
+        var store = Store();
+        store.Local.Set("names", Value.FromList(
+            new[] { Value.FromText("a"), Value.FromText("b"), Value.FromText("c") }));
+
+        var (result, _) = await RunAsync(
+            [
+                Step("control.listSet", Param("name", "names"), Param("index", "1"),
+                    Param("value", "B")),
+                Step("control.listSet", Param("name", "names"), Param("index", "-1"),
+                    Param("value", "C")),
+            ],
+            variables: store);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("a, B, C", store.Local.Values["names"].AsText());
+    }
+
+    [Fact]
+    public async Task Changing_a_position_the_list_has_not_got_stops_the_step()
+    {
+        // Quietly doing nothing would leave the file the macro is about to write unchanged, and
+        // nothing in the log would say why.
+        var store = Store();
+        store.Local.Set("names", Value.FromList(new[] { Value.FromText("a") }));
+
+        var (result, _) = await RunAsync(
+            [Step("control.listSet", Param("name", "names"), Param("index", "4"),
+                Param("value", "z"))],
+            variables: store);
+
+        Assert.Equal("Run.IndexOutOfRange", result.Key);
+    }
+
+    [Fact]
     public async Task A_list_change_through_a_variable_keeps_the_values_in_order()
     {
         var store = Store();

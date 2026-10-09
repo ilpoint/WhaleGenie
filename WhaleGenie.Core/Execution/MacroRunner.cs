@@ -761,6 +761,7 @@ public sealed class MacroRunner
 
             case "control.listAdd":
             case "control.listInsert":
+            case "control.listSet":
             case "control.listRemoveAt":
             case "control.listClear":
                 ChangeList(step, depth);
@@ -2004,6 +2005,9 @@ public sealed class MacroRunner
                 break;
             case "control.listInsert":
                 items.Insert(Math.Clamp(Number(step, "index"), 0, items.Count), Read(step.Text("value")));
+                break;
+            case "control.listSet":
+                items[Index(step, items.Count)] = Read(step.Text("value"));
                 break;
             case "control.listRemoveAt":
                 items.RemoveAt(Index(step, items.Count));

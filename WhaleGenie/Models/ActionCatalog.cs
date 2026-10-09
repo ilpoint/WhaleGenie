@@ -436,6 +436,21 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "control.listSet",
+            Category = ActionCategory.Control,
+            DisplayName = "Change One Item Of A List",
+            Description = "Put another value in one position of a list, leaving the rest alone.",
+            Parameters =
+            [
+                Variable("name", "List variable", "names", "The list the macro sees.", namesVariable: true),
+                Expression("index", "Index", "0",
+                    "Position to change, counted from 0; -1 is the last item. A position the list "
+                    + "has not got stops the step rather than quietly doing nothing."),
+                Expression("value", "Value", "$item", "Value put at that position."),
+            ],
+        },
+        new()
+        {
             Key = "control.listClear",
             Category = ActionCategory.Control,
             DisplayName = "Clear List",

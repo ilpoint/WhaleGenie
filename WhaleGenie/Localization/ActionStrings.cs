@@ -299,6 +299,17 @@ internal static class ActionStrings
         ["control.listRemoveAt.index.label"] = "位置",
         ["control.listRemoveAt.index.hint"] = "要移除的位置；-1 表示最后一项。",
 
+        ["control.listSet.name"] = "列表改一项",
+        ["control.listSet.desc"] = "把列表某一项换成别的值，其他项不动。",
+        ["control.listSet.name.label"] = "列表变量",
+        ["control.listSet.name.hint"] = "宏当前可见的列表。",
+        ["control.listSet.index.label"] = "位置",
+        ["control.listSet.index.hint"] =
+            "要换掉的位置，从 0 数起；-1 表示最后一项。列表没有这个位置时会停下报错，"
+            + "而不是当作没事发生。",
+        ["control.listSet.value.label"] = "值",
+        ["control.listSet.value.hint"] = "放进这个位置的值。",
+
         ["control.listClear.name"] = "清空列表",
         ["control.listClear.desc"] = "清空列表内容，变量本身保留。",
         ["control.listClear.name.label"] = "列表变量",

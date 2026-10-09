@@ -2256,6 +2256,26 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task One_value_of_a_csv_can_be_changed_and_written_back()
+    {
+        // What "change one cell of a CSV" comes to now that there are cells to point at: read the
+        // column, change the item at that position, write the column back.
+        var devices = new FakeDeviceLayer();
+        devices.Files["names.csv"] = "alice\r\nbob\r\ncarol";
+
+        await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "names.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("shape", "values"), Param("resultVariable", "names")),
+            Step("control.listSet", Param("name", "names"), Param("index", "1"), Param("value", "Betty")),
+            Step("file.writeCsv", Param("path", "out.csv"), Param("rows", "$names"),
+                Param("separator", "comma")),
+        ], devices);
+
+        Assert.Equal("alice\nBetty\ncarol", devices.Files["out.csv"].Replace("\r\n", "\n").TrimEnd('\n'));
+    }
+
+    [Fact]
     public async Task Writing_csv_quotes_the_cells_that_need_it()
     {
         var devices = new FakeDeviceLayer();
