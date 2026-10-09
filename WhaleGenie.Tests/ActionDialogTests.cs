@@ -1373,6 +1373,48 @@ public class ActionDialogTests
     // -------------------------------------------------------- keys and controller controls
 
     [Fact]
+    public void A_hotkey_is_built_a_key_at_a_time_from_the_keyboard_on_screen()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("input.hotkey");
+            Dispatcher.UIThread.RunJobs();
+
+            // The combination is written in one box with the keyboard beside it, and what the
+            // keyboard hands back joins what is written: Ctrl+Shift+S is put together one key at a
+            // time, so a key that replaced the rest would throw away the two already picked.
+            var keys = viewModel.Parameters.First(parameter => parameter.Definition.Name == "keys");
+            Assert.True(keys.IsKeys);
+            Assert.False(keys.IsKey);
+
+            var keyboard = window.GetVisualDescendants().OfType<Button>()
+                .FirstOrDefault(button => button.IsEffectivelyVisible
+                    && Equals(button.Content, Strings.Get("Add.OpenKeyPad")));
+            Assert.NotNull(keyboard);
+            Assert.Same(keys, keyboard.DataContext);
+
+            // The sides are named apart on the drawn keyboard, so a combination can say which
+            // Ctrl or Shift it means — the same names the trigger bindings use.
+            keys.AddKey("左Ctrl");
+            keys.AddKey("左Shift");
+            keys.AddKey("S");
+            Assert.Equal("左Ctrl+左Shift+S", keys.CurrentText);
+
+            // A single key field is the one that is replaced, and it stays that way.
+            viewModel.SelectAction("input.keyPress");
+            Dispatcher.UIThread.RunJobs();
+            var single = viewModel.Parameters.First(parameter => parameter.Definition.Name == "key");
+            Assert.True(single.IsKey);
+            Assert.False(single.IsKeys);
+        });
+    }
+
+    [Fact]
     public void A_key_field_offers_the_virtual_keyboard_beside_it()
     {
         Ui.Run(() =>

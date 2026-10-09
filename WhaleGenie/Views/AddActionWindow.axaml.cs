@@ -310,7 +310,16 @@ public partial class AddActionWindow : Window
 
         if (await VirtualKeyboardWindow.PickAsync(this) is { Length: > 0 } key)
         {
-            parameter.Text = key;
+            // A combination is put together a key at a time, so the key that was clicked joins
+            // what is written; a field holding one key has nothing to join and is set outright.
+            if (parameter.IsKeys)
+            {
+                parameter.AddKey(key);
+            }
+            else
+            {
+                parameter.Text = key;
+            }
         }
     }
 

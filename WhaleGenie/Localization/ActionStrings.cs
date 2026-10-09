@@ -1308,7 +1308,9 @@ internal static class ActionStrings
         ["input.hotkey.name"] = "组合键",
         ["input.hotkey.desc"] = "按下组合键，例如 Ctrl+Shift+S。",
         ["input.hotkey.keys.label"] = "按键组合",
-        ["input.hotkey.keys.hint"] = "用 + 连接，同时按下。",
+        ["input.hotkey.keys.hint"] = "用 + 连接，同时按下。旁边的「键盘」可以在画出来的键盘上"
+            + "一个个点出来，不用凭记忆打名字：左右两个 Ctrl、左右两个 Shift 是分开写的，"
+            + "机器分得清它们。",
         ["input.hotkey.holdMs.label"] = "按住时长",
         ["input.hotkey.holdMs.hint"] = "组合键保持按下的时长。",
         ["input.hotkey.repeat.label"] = "重复次数",

@@ -256,7 +256,7 @@ public partial class StepParameterViewModel : ViewModelBase
     public bool ShowExpressionSuccess => !HasExpressionError && ExpressionMessage.Length > 0;
 
     public bool IsText => Definition.Kind
-        is ActionParameterKind.Text or ActionParameterKind.Key;
+        is ActionParameterKind.Text or ActionParameterKind.Key or ActionParameterKind.Keys;
 
     /// <summary>
     /// True when the parameter is written in a plain one-line field with nothing beside it. A
@@ -264,7 +264,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// element of a page carries the page picker's button, and a field the variables are offered
     /// in has a list of its own over it.
     /// </summary>
-    public bool IsPlainText => IsText && !IsKey && !IsSelector && !IsBrowserTarget && !OffersVariables;
+    public bool IsPlainText => IsText && !IsKeyField && !IsSelector && !IsBrowserTarget && !OffersVariables;
 
     /// <summary>
     /// True when this parameter names a key, which is written in a box the key names are offered
@@ -272,6 +272,27 @@ public partial class StepParameterViewModel : ViewModelBase
     /// stays editable so one still may be typed.
     /// </summary>
     public bool IsKey => Definition.Kind is ActionParameterKind.Key;
+
+    /// <summary>
+    /// True when the parameter is a combination of keys rather than one key. The keyboard drawn on
+    /// screen answers the same question either way; what differs is what is done with the key it
+    /// hands back, and the view asks this to know which.
+    /// </summary>
+    public bool IsKeys => Definition.Kind is ActionParameterKind.Keys;
+
+    /// <summary>True when a key is written here, whether on its own or joined to others.</summary>
+    public bool IsKeyField => IsKey || IsKeys;
+
+    /// <summary>
+    /// Adds a key to what is written, which is how a combination gets built: what is there stays
+    /// and the new key is joined to it with a plus, the way the engine reads one. A field with
+    /// nothing in it yet takes the key on its own, so a combination never starts with a plus.
+    /// </summary>
+    public void AddKey(string key)
+    {
+        var held = Text.Trim();
+        Text = held.Length == 0 ? key : held + "+" + key;
+    }
 
     /// <summary>The key names the picker offers, which is every name a macro may write.</summary>
     public IReadOnlyList<string> KeyChoices => KeyNames.Names;

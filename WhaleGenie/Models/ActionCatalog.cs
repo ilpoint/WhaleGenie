@@ -1913,7 +1913,10 @@ public static class ActionCatalog
             Description = "Press a key combination such as Ctrl+Shift+S.",
             Parameters =
             [
-                Text("keys", "Keys", "Ctrl+Shift+S", "Keys joined with + and pressed together."),
+                KeyChord("keys", "Keys",
+                    "Keys joined with + and pressed together. Take them off the keyboard drawn on "
+                    + "screen to be sure of the spelling: the two Ctrl keys and the two Shift keys "
+                    + "are named apart, and the machine tells them apart."),
                 Number("holdMs", "Hold", 50, "How long the combination stays down."),
                 Number("repeat", "Repeat", 1, "How many times to send the combination.", min: 1),
                 Number("intervalMs", "Interval", 0, "Pause between repeated presses."),
@@ -3343,6 +3346,22 @@ public static class ActionCatalog
             Placeholder = "e.g. F5",
             Hint = hint,
             Required = required,
+        };
+
+    /// <summary>
+    /// The keys of a combination, such as Ctrl+Shift+S. One box holds them all, and the keyboard
+    /// drawn on screen adds to it a key at a time — a combination written from memory is a
+    /// combination spelled wrong, and this is the spelling the step has to get right.
+    /// </summary>
+    private static ActionParameter KeyChord(string name, string label, string hint = "")
+        => new()
+        {
+            Name = name,
+            Label = label,
+            Kind = ActionParameterKind.Keys,
+            Placeholder = "Ctrl+Shift+S",
+            Hint = hint,
+            Required = true,
         };
 
     private static ActionParameter ColorPick(string name, string label, string defaultValue = "#000000",

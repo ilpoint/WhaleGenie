@@ -68,6 +68,14 @@ public enum ActionParameterKind
     /// is the step's name and nothing else, because that is what the run knows a step by.
     /// </summary>
     Step,
+
+    /// <summary>
+    /// A combination of keys — Ctrl+Shift+S — written in a box one is typed into, with the keyboard
+    /// drawn on screen behind a button. It differs from <see cref="Key"/> in what that keyboard does
+    /// with the key it hands back: a combination is put together a key at a time, so the key joins
+    /// what is written instead of standing in its place.
+    /// </summary>
+    Keys,
 }
 
 /// <summary>One choice of a <see cref="ActionParameterKind.Choice"/> parameter:

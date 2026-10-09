@@ -87,6 +87,22 @@
                             Click="OnTestStep" />
                 </Grid>
 
+                <!-- A combination of keys is written in a plain box: the keyboard behind the button
+                     hands one key back at a time and it is added to what is already there, because
+                     a combination is built up rather than chosen whole. -->
+                <Grid IsVisible="{Binding IsKeys}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                    <TextBox Classes="ParamInput" Text="{Binding Text}"
+                             PlaceholderText="{Binding Placeholder}" />
+                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                            Content="{Binding [Add.OpenKeyPad], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnOpenKeyPad" />
+                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                            Content="{Binding [Add.TestField], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.TestKeyHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnTestStep" />
+                </Grid>
+
                 <!-- A value that may name variables: the names are offered while it is typed in,
                      and a whole value may be built with the expression editor. -->
                 <Grid IsVisible="{Binding OffersVariables}" ColumnDefinitions="*,Auto,Auto"
