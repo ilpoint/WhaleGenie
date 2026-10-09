@@ -152,7 +152,8 @@ public class VariableFieldTests
     {
         // The whole catalogue is handed in, the way the dialog's own checks do it, so a condition
         // and a hidden action can be opened too.
-        var viewModel = new AddActionViewModel(ActionCatalog.Definitions, ["count", "name"], []);
+        var viewModel = new AddActionViewModel(ActionCatalog.Definitions,
+            VariableChoicesForChecks.Named("count", "name"), []);
         viewModel.SelectAction(key);
         return viewModel;
     }

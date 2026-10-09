@@ -21,7 +21,7 @@ public class ActionDialogTests
     private static AddActionViewModel Open(string key)
     {
         var window = new AddActionWindow(null, ActionCatalog.Definitions,
-            ["match.x", "match.y", "spot"], []);
+            VariableChoicesForChecks.Named("match.x", "match.y", "spot"), []);
 
         window.Show();
         Dispatcher.UIThread.RunJobs();
@@ -72,7 +72,7 @@ public class ActionDialogTests
                 saved!.Parameters.First(parameter => parameter.Name == "x").Value);
 
             var reopened = new AddActionWindow(saved, ActionCatalog.Definitions,
-                ["match.x"], []);
+                VariableChoicesForChecks.Named("match.x"), []);
             reopened.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -642,7 +642,7 @@ public class ActionDialogTests
 
             Assert.True(result.IsVariable);
             Assert.Equal("match", result.Text);
-            Assert.Contains("match.x", result.Variables);
+            Assert.Contains("match.x", result.Variables.Select(choice => choice.Name));
         });
     }
 

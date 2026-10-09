@@ -530,6 +530,25 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.ExpressionBuilder"] = "Operators…",
         ["Add.ExpressionBuilderHint"] = "Open the expression builder: every operator is a button "
             + "and the variables in scope are a list, so nothing has to be typed from memory.",
+        ["Add.VariablePicker"] = "Variables",
+        ["Add.VariablePickerHint"] = "Pick one of the variables the macro can read and put its name "
+            + "in at the cursor.",
+        ["VarPicker.Title"] = "Pick a variable",
+        ["VarPicker.Help"] = "Click a variable to put it in the field, and hover over one to see "
+            + "what it is, what it holds and which step left it there.",
+        ["VarWall.All"] = "All",
+        ["VarWall.AllHint"] = "Every variable this macro can read.",
+        ["VarWall.Local"] = "This macro",
+        ["VarWall.LocalHint"] = "The ones this macro makes for itself: what its steps leave behind.",
+        ["VarWall.Global"] = "Shared",
+        ["VarWall.GlobalHint"] = "Created in the Variable Center, and the same for every macro.",
+        ["VarWall.System"] = "WhaleGenie",
+        ["VarWall.SystemHint"] = "Provided by WhaleGenie: the date, the mouse, the clipboard.",
+        ["VarWall.StepResult"] = "Step results",
+        ["VarWall.StepResultHint"] = "What a step's run came to: ok, failed or skipped.",
+        ["VarWall.Pick"] = "Hover over a button to see what that variable is.",
+        ["VarWall.Empty"] = "There is nothing in this group yet — try another button above.",
+        ["VarWall.Outcome"] = "What this step came to: ok, failed or skipped.",
         ["ExprBuilder.Title"] = "Expression builder",
         ["ExprBuilder.Help"] = "Click an operator or a variable to add it at the cursor, or edit "
             + "the expression directly. Hover over an operator to see what it does, and watch the "
@@ -1395,6 +1414,24 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.ExpressionBuilder"] = "运算编辑器…",
         ["Add.ExpressionBuilderHint"] = "打开运算编辑器：所有运算符都做成按钮，可用变量做成下拉列表，"
             + "不用凭记忆手写。",
+        ["Add.VariablePicker"] = "变量",
+        ["Add.VariablePickerHint"] = "从宏能读到的变量里挑一个，把名字插到光标处。",
+        ["VarPicker.Title"] = "选择变量",
+        ["VarPicker.Help"] = "点一个变量就插进字段里；悬浮在按钮上能看见它是什么、装什么、"
+            + "是哪一步留下的。",
+        ["VarWall.All"] = "全部",
+        ["VarWall.AllHint"] = "这个宏能读到的一切变量。",
+        ["VarWall.Local"] = "本宏",
+        ["VarWall.LocalHint"] = "这个宏自己造的变量：它的步骤留下来的那些。",
+        ["VarWall.Global"] = "共享",
+        ["VarWall.GlobalHint"] = "在变量中心创建的共享变量，每个宏看到的都一样。",
+        ["VarWall.System"] = "鲸灵自带",
+        ["VarWall.SystemHint"] = "鲸灵自己提供的：日期、鼠标位置、剪贴板这些。",
+        ["VarWall.StepResult"] = "步骤结局",
+        ["VarWall.StepResultHint"] = "某一步跑完的结局：ok / failed / skipped。",
+        ["VarWall.Pick"] = "鼠标停在按钮上就能看见那个变量是什么。",
+        ["VarWall.Empty"] = "这一类现在还没有变量，点上面别的按钮看看。",
+        ["VarWall.Outcome"] = "这一步跑完的结局：ok / failed / skipped。",
         ["ExprBuilder.Title"] = "运算编辑器",
         ["ExprBuilder.Help"] = "点运算符或变量即可插入到光标处，也可以直接改下面的表达式。"
             + "鼠标停在运算符上会说明它的作用；输入框下方会显示它算出来的结果。",

@@ -13,7 +13,7 @@ namespace WhaleGenie.Tests;
 public class OutputNameTests
 {
     private static AddActionViewModel Open(string key, string stepId, out AddActionWindow window,
-        IReadOnlyList<string>? variables = null)
+        IReadOnlyList<VariableChoice>? variables = null)
     {
         window = new AddActionWindow(null, ActionCatalog.Definitions, variables ?? [], [],
             null, null, null, stepId);
@@ -104,7 +104,7 @@ public class OutputNameTests
             var action = ActionCatalog.Find("file.readText")!.LocalName;
             var taken = VariableNames.ForStep(string.Empty, action, "k3f9");
             var viewModel = Open("file.readText", "k3f9", out var window,
-                variables: [taken]);
+                variables: VariableChoicesForChecks.Named(taken));
             var result = Field(viewModel, "resultVariable");
 
             // The name the dialog hands out steers clear of what is already there; the clash the

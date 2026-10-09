@@ -89,7 +89,8 @@
 
                 <!-- A value that may name variables: the names are offered while it is typed in,
                      and a whole value may be built with the expression editor. -->
-                <Grid IsVisible="{Binding OffersVariables}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                <Grid IsVisible="{Binding OffersVariables}" ColumnDefinitions="*,Auto,Auto"
+                      ColumnSpacing="6">
                     <AutoCompleteBox Classes="VarInput"
                                      ItemsSource="{Binding ExpressionSuggestions}"
                                      Text="{Binding Text}"
@@ -101,6 +102,10 @@
                             Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenExpressionBuilder" />
+                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                            Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnPickVariable" />
                 </Grid>
 
                 <!-- A UI Automation selector: written out by hand, or taken off the screen by
@@ -347,6 +352,10 @@
                                 Content="{Binding PathButton}"
                                 ToolTip.Tip="{Binding [Add.BrowsePathHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnBrowsePath" />
+                        <Button Classes="FlatButton" Height="33" Padding="11,0"
+                                Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
+                                Click="OnPickVariable" />
                     </StackPanel>
                 </Grid>
 

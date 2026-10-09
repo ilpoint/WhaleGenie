@@ -2,6 +2,7 @@ using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using WhaleGenie.Localization;
+using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
@@ -9,10 +10,15 @@ namespace WhaleGenie.Tests;
 
 /// <summary>
 /// The expression builder is there to stop a formula being written from memory: every operator is
-/// a button and every variable is a list. These read back what it would put in front of the user.
+/// a button and every variable is a button too. These read back what it would put in front of the
+/// user.
 /// </summary>
 public class ExpressionBuilderTests
 {
+    /// <summary>Variables of the macro's own, which is what a field is usually filled in from.</summary>
+    private static IReadOnlyList<VariableChoice> Variables(params string[] names)
+        => VariableChoicesForChecks.Named(names);
+
     [Fact]
     public void The_builder_lists_every_operator_the_language_reads()
     {
@@ -57,16 +63,15 @@ public class ExpressionBuilderTests
     }
 
     [Fact]
-    public void The_builder_writes_a_chosen_variable_with_its_dollar_sign()
+    public void The_builder_offers_a_button_for_every_variable_the_macro_knows()
     {
         Ui.Run(() =>
         {
-            var viewModel = new ExpressionBuilderViewModel("$count + 1", ["count", "name"])
-            {
-                Variable = "name",
-            };
+            var viewModel = new ExpressionBuilderViewModel("$count + 1", Variables("count", "name"));
+            var tokens = viewModel.Wall.Shown.Select(choice => choice.Token).ToList();
 
-            Assert.Equal("$name", viewModel.VariableToken);
+            Assert.Contains("$count", tokens);
+            Assert.Contains("$name", tokens);
         });
     }
 
@@ -76,7 +81,7 @@ public class ExpressionBuilderTests
         Ui.Run(() =>
         {
             var window = new ExpressionBuilderWindow(
-                new ExpressionBuilderViewModel("$count + 1", ["count"]));
+                new ExpressionBuilderViewModel("$count + 1", Variables("count")));
             window.Show();
             Dispatcher.UIThread.RunJobs();
 

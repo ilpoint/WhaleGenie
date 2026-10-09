@@ -50,7 +50,7 @@ Debug 构建会拉 `AvaloniaUI.DiagnosticsSupport`（`Program.cs` 里的 `WithDe
 | --- | --- | --- |
 | 纯逻辑 | `WhaleGenie.Core.Tests` | 引擎的每一步、变量与表达式、宏包往返。跑在替身设备层上，断言"引擎要求了什么" |
 | 界面 | `WhaleGenie.Tests` | 参数成型、触发器比对、卡片显示、文案完整性、编辑器里真的发鼠标和按键的无头用例（`Ui.Run(...)`） |
-| 手动 | — | 真实输入、抓屏取色、UIA 拾取、页面拾取、录制、窗口布局 |
+| 手动 | — | 真实输入、抓屏取色、UIA 拾取、页面拾取、录制、窗口布局，以及按钮墙这类"手感"（变量墙的筛选与悬浮详情、虚拟键盘页面的宽度与键距） |
 
 每加一个动作，至少要有一条引擎用例走到它；每加一条用户可见文案，`LocalizationTests` 自动覆盖。
 
@@ -502,18 +502,23 @@ CSV 的程序，所以不做成写出去的默认值。
 - [x] **结果变量**（56 处）：默认值写死成 `output` / `rows` / `exists`，两条"读工作表"都落进
       同一个名字就互相覆盖，而用户看不出为什么 → 表达不出来。现在按 `<备注>_<动作名>_<ID>` 自动
       命名（`VariableNames`），备注改了名字跟着改、手改过就不再跟，重名行内提示并给一个「换个名字」。
-- [ ] **变量 / 表达式字段**：候选只在打字时出现（`AutoCompleteBox`），没有「变量」按钮；
-      运算选择器（`ExpressionBuilderWindow`）是"下拉 + 插入"。要按钮墙 + 局部 / 全局 / 系统 /
-      步骤结果四个筛选 + 悬浮详情，按钮直接插到光标处。
+- [x] **变量 / 表达式字段**：字段旁一枚「变量」按钮 → `VariablePickerWindow`（小窗口，按
+      `DialogWindow` 的规矩），点中的名字**插到光标处**（`StepParameterViewModel.InsertVariable`）；
+      运算编辑器里的变量区换成了同一面墙（`Views/VariableWall.axaml` + `VariableWallViewModel`）：
+      全部 / 本宏 / 共享 / 鲸灵自带 / 步骤结局五个筛选（默认"本宏"）、悬浮看详情（`ToolTip` 加
+      按钮下面一行）、一个按钮就是一次插入。
+      **变量行是结构化的**（`Models/VariableChoices.cs`）：名字、作用域、类型、说明、来源步骤、
+      是不是步骤结局；由 `VariableChoices.For(Steps)` 从宏的步骤树（含块里的子步骤）加
+      `VariableCatalog` 组装，所以选择器里能看见"是哪一步、干什么用的"，不再是光秃秃一个名字。
 - [ ] **该多选的还是文本框**：`file.saveVariables.names`（要写哪些变量，手打逗号分隔）、
       `window.list.filter`（按什么筛）都是纯文本，候选明明就在手上 → 别扭。
 
-#### 表格（`excel.*`，六个动作）
+#### 表格（`excel.*`，十一个动作）
 
 已经做到"不启动 Office 读写 xlsx"，缺的是**按列办事**，而按列办事才是日常。
 
-- [ ] `excel.readSheet` 缺：按列名取一整列、按内容找行、只读某几列 → 做不成「读『金额』这一列」，
-      用户只能自己数第几列，列一挪宏就错（表达不出来）。
+- [x] `excel.readSheet`：按列名取一整列（`columns` / `shape`）、按内容找行（`matchColumn` /
+      `matchValue` / `matchMode`）、表头在第几行（`headerRow`）——`ce3536a` 那次做的，清单当时漏划。
 - [x] `excel.writeSheet`：**按列名对齐写入**（`align` + `headerRow`，目标表已有的名字决定每列落在
       哪，只写其中几列不动别的列）、**写单个单元格 / 一块区域**（一个值就是一个单元格，一串值
       就是一列）。插入与删除行单独列在下面。

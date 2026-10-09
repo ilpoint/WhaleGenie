@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
@@ -26,6 +27,9 @@ public partial class ExpressionBuilderWindow : Window
         Title = viewModel.Header;
         viewModel.CloseRequested += Close;
 
+        // The wall knows which variable was picked; the box is the window's, and so is the caret.
+        viewModel.Wall.Chosen += InsertAtCursor;
+
         var closeButton = this.FindControl<Button>("CloseButton");
         if (closeButton is not null)
         {
@@ -40,7 +44,7 @@ public partial class ExpressionBuilderWindow : Window
     /// reports the finished expression, or null when it was dismissed.
     /// </summary>
     public static Task<string?> ShowFor(Window owner, string expression,
-        IReadOnlyList<string> variables)
+        IReadOnlyList<VariableChoice> variables)
         => new ExpressionBuilderWindow(new ExpressionBuilderViewModel(expression, variables))
             .ShowDialogOver<string?>(owner);
 
@@ -50,15 +54,6 @@ public partial class ExpressionBuilderWindow : Window
         if (sender is Control { DataContext: ExpressionOperator item })
         {
             InsertAtCursor(item.Insert);
-        }
-    }
-
-    /// <summary>Drops the chosen variable in, written the way an expression reads it.</summary>
-    private void OnInsertVariable(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is ExpressionBuilderViewModel { VariableToken.Length: > 0 } viewModel)
-        {
-            InsertAtCursor(viewModel.VariableToken);
         }
     }
 

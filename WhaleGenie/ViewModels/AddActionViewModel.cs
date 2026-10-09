@@ -21,7 +21,7 @@ namespace WhaleGenie.ViewModels;
 /// </summary>
 public partial class AddActionViewModel : ViewModelBase
 {
-    private readonly IReadOnlyList<string> _variables;
+    private readonly IReadOnlyList<VariableChoice> _variables;
     private readonly IReadOnlyList<string> _macros;
     private string _assetFolder = string.Empty;
 
@@ -41,7 +41,7 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>Creates the dialog, optionally restricted to a catalogue subset.</summary>
     public AddActionViewModel(IReadOnlyList<ActionDefinition>? actions,
-        IReadOnlyList<string>? variables = null, IReadOnlyList<string>? macros = null,
+        IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<string>? macros = null,
         IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
     {
         // Steps, not the whole catalogue: a condition says what has to be true and only means
@@ -577,25 +577,18 @@ public partial class AddActionViewModel : ViewModelBase
     /// Variable names the pickers offer: the ones the editor already knows about plus
     /// any created by nested steps added in this dialog.
     /// </summary>
-    public IReadOnlyList<string> CollectVariables()
+    public IReadOnlyList<VariableChoice> CollectVariables()
     {
-        var names = new SortedSet<string>(_variables, StringComparer.OrdinalIgnoreCase);
+        // Steps added to a block inside this very dialog count the same way the ones already in the
+        // macro do: they are steps the user has just written, and a field beside them may name what
+        // they leave behind.
+        var nested = Parameters
+            .SelectMany(parameter => parameter.List?.Steps ?? [])
+            .ToList();
 
-        foreach (var parameter in Parameters)
-        {
-            var nested = parameter.List?.Steps;
-            if (nested is null)
-            {
-                continue;
-            }
-
-            foreach (var step in nested)
-            {
-                step.CollectVariables(names);
-            }
-        }
-
-        return [.. names];
+        return nested.Count == 0
+            ? _variables
+            : VariableChoices.Merge(_variables, VariableChoices.For(nested));
     }
 
     /// <summary>
@@ -1010,7 +1003,8 @@ public partial class AddActionViewModel : ViewModelBase
         }
 
         var wanted = VariableNames.ForStep(MetaComment, definition.LocalName, _editingId);
-        var taken = new HashSet<string>(CollectVariables(), StringComparer.OrdinalIgnoreCase);
+        var taken = new HashSet<string>(
+            CollectVariables().Select(choice => choice.Name), StringComparer.OrdinalIgnoreCase);
 
         foreach (var field in Parameters.Where(parameter => parameter.IsOutputVariable))
         {

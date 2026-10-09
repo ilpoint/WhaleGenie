@@ -1,0 +1,92 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WhaleGenie.ViewModels"
+             xmlns:models="using:WhaleGenie.Models"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="240"
+             x:Class="WhaleGenie.Views.VariableWall"
+             x:DataType="vm:VariableWallViewModel">
+
+    <Design.DataContext>
+        <vm:VariableWallViewModel />
+    </Design.DataContext>
+
+    <UserControl.Styles>
+        <!-- Which group of variables is on show: painted like a switch rather than a menu, because
+             the list under it changes as soon as one is pressed. -->
+        <Style Selector="ListBox.Filters ListBoxItem">
+            <Setter Property="Background" Value="#333333" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="11,3" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+        </Style>
+        <Style Selector="ListBox.Filters ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#454545" />
+        </Style>
+        <Style Selector="ListBox.Filters ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#C8401C" />
+        </Style>
+
+        <Style Selector="Button.VarButton">
+            <Setter Property="Background" Value="#2E2E2E" />
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.VarButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#454545" />
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Spacing="8">
+        <ListBox Classes="Filters" ItemsSource="{Binding Filters}"
+                 SelectedItem="{Binding SelectedFilter}" SelectionMode="Single"
+                 Background="Transparent" BorderThickness="0" Padding="0">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:VariableFilter">
+                    <TextBlock Text="{Binding Label}" FontSize="12" Foreground="#E8E8E8"
+                               ToolTip.Tip="{Binding Hint}" />
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- The variables themselves: one button each, so the wall is something to point at rather
+             than a name to type. Hovering one puts everything about it on the line below. -->
+        <ScrollViewer MaxHeight="196" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Shown}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:VariableChoice">
+                        <Button Classes="VarButton" Margin="0,0,6,6" Content="{Binding Token}"
+                                Click="OnChoose"
+                                PointerEntered="OnLooking" PointerExited="OnUnlooked">
+                            <ToolTip.Tip>
+                                <TextBlock Text="{Binding Details}" TextWrapping="Wrap"
+                                           MaxWidth="340" FontSize="12" />
+                            </ToolTip.Tip>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <TextBlock Text="{Binding Details}" TextWrapping="Wrap" FontSize="11.5"
+                   Foreground="#9A9A9A" MinHeight="32" MaxHeight="60" />
+    </StackPanel>
+</UserControl>

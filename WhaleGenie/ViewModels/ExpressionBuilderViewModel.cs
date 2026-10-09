@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Localization;
+using WhaleGenie.Models;
 
 namespace WhaleGenie.ViewModels;
 
@@ -21,10 +23,11 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     {
     }
 
-    public ExpressionBuilderViewModel(string expression, IReadOnlyList<string> variables)
+    public ExpressionBuilderViewModel(string expression, IReadOnlyList<VariableChoice> variables)
     {
         Variables = variables;
-        _known = new KnownVariables(variables);
+        _known = new KnownVariables([.. variables.Select(choice => choice.Name)]);
+        Wall = new VariableWallViewModel(variables);
         Operators = BuildOperators();
         Expression = expression ?? string.Empty;
     }
@@ -49,16 +52,15 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// <summary>Every operator the expression language reads, each written the way it is inserted.</summary>
     public IReadOnlyList<ExpressionOperator> Operators { get; }
 
-    /// <summary>Names offered to drop into the expression, always written with their dollar sign.</summary>
-    public IReadOnlyList<string> Variables { get; }
+    /// <summary>Every variable the macro can read, with what a person choosing one needs to know.</summary>
+    public IReadOnlyList<VariableChoice> Variables { get; }
+
+    /// <summary>The wall of variable buttons, which drops the one that was picked in at the caret.</summary>
+    public VariableWallViewModel Wall { get; }
 
     /// <summary>The expression being written. The window keeps the caret so buttons insert where it is.</summary>
     [ObservableProperty]
     public partial string Expression { get; set; } = string.Empty;
-
-    /// <summary>The variable the list is pointing at, waiting to be added.</summary>
-    [ObservableProperty]
-    public partial string? Variable { get; set; }
 
     /// <summary>What the line under the box shows: the result, why it fails, or nothing yet.</summary>
     [ObservableProperty]
@@ -77,12 +79,7 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// <summary>True while the line under the box is worth showing in green.</summary>
     public bool ShowOk => !HasError && Message.Length > 0;
 
-    /// <summary>The text a variable button drops in, dollar sign and all.</summary>
-    public string VariableToken => Variable is { Length: > 0 } name ? "$" + name : string.Empty;
-
     partial void OnExpressionChanged(string value) => Recheck();
-
-    partial void OnVariableChanged(string? value) => OnPropertyChanged(nameof(VariableToken));
 
     [RelayCommand]
     private void Confirm() => CloseRequested?.Invoke(Expression);

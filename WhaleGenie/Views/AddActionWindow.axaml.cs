@@ -46,7 +46,7 @@ public partial class AddActionWindow : Window
     /// restricted to a catalogue subset, such as the condition actions.
     /// </summary>
     public AddActionWindow(MacroStep? existing, IReadOnlyList<ActionDefinition>? actions = null,
-        IReadOnlyList<string>? variables = null, IReadOnlyList<string>? macros = null,
+        IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<string>? macros = null,
         string? presetKey = null, string? assetFolder = null,
         IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
     {
@@ -233,6 +233,32 @@ public partial class AddActionWindow : Window
         {
             parameter.Text = built;
         }
+    }
+
+    /// <summary>
+    /// Opens the variable picker on the field that asked for it. A field that can name a variable
+    /// should never need the name typed out of memory, and the name goes in where the caret is: a
+    /// field is often a piece of text with a variable beside it rather than only a variable.
+    /// </summary>
+    private async void OnPickVariable(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel parameter } button
+            || DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        if (await VariablePickerWindow.ShowFor(this, viewModel.CollectVariables())
+            is not { Length: > 0 } picked)
+        {
+            return;
+        }
+
+        // The caret belongs to the box beside the button, which is the row's own field: the box
+        // holds one value per row, so the one on this row is the one that was being filled in.
+        var caret = button.FindAncestorOfType<Grid>(true)?.GetVisualDescendants()
+            .OfType<AutoCompleteBox>().FirstOrDefault()?.CaretIndex;
+        parameter.InsertVariable(picked, caret ?? (parameter.Text ?? string.Empty).Length);
     }
 
     /// <summary>Folds one group of the action picker open or shut.</summary>

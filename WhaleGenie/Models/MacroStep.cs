@@ -349,8 +349,12 @@ public class MacroStep : INotifyPropertyChanged
         }
     }
 
-    /// <summary>True when the parameter creates a variable rather than referencing one.</summary>
-    private bool DefinesVariable(StepParameter parameter) => parameter.Name switch
+    /// <summary>
+    /// True when the parameter creates a variable rather than referencing one. The names are the
+    /// ones the engine writes those variables under, so this is the one list of them: a picker that
+    /// offered anything else would offer a name no run ever makes.
+    /// </summary>
+    public bool DefinesVariable(StepParameter parameter) => parameter.Name switch
     {
         "itemVariable" or "indexVariable" or "resultVariable" or "errorVariable"
             or "exitCodeVariable" or "saveTo" => true,

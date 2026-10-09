@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
+        xmlns:views="using:WhaleGenie.Views"
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -162,19 +163,10 @@
 
                 <TextBlock Classes="FieldLabel" Margin="2,16,0,6"
                            Text="{Binding VariablesHeader}" />
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                    <ComboBox Classes="OpSelect" HorizontalAlignment="Stretch"
-                              ItemsSource="{Binding Variables}"
-                              SelectedItem="{Binding Variable}">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding}" FontSize="12.5" Foreground="#E8E8E8" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                    <Button Grid.Column="1" Classes="FlatButton" Height="32" Padding="14,0"
-                            Content="{Binding InsertLabel}" Click="OnInsertVariable" />
-                </Grid>
+                <!-- The variables read as the same wall of buttons the picker beside a field shows:
+                     one click drops the name in at the caret, and hovering one says what it is. A
+                     list behind a dropdown made the reader open it, read a name, and hope. -->
+                <views:VariableWall DataContext="{Binding Wall}" />
             </StackPanel>
         </ScrollViewer>
 

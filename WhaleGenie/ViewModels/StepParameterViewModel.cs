@@ -24,11 +24,13 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>The name the dialog suggested last, so a name the user typed can be told apart.</summary>
     private string _suggested = string.Empty;
 
-    public StepParameterViewModel(ActionParameter definition, IReadOnlyList<string>? variables = null,
+    public StepParameterViewModel(ActionParameter definition,
+        IReadOnlyList<VariableChoice>? variables = null,
         IReadOnlyList<string>? macros = null, IReadOnlyList<ActionParameterOption>? steps = null)
     {
         Definition = definition;
         Variables = variables ?? [];
+        Named = [.. Variables.Select(choice => choice.Name)];
         Macros = macros ?? [];
         Steps = steps ?? [];
         DurationUnits = DurationUnit.Localized();
@@ -44,7 +46,7 @@ public partial class StepParameterViewModel : ViewModelBase
         var suggestions = new List<string>();
         if (knowsFunctions || definition.AcceptsVariables)
         {
-            suggestions.AddRange(Variables.Select(name => "$" + name));
+            suggestions.AddRange(Named.Select(name => "$" + name));
             if (knowsFunctions)
             {
                 suggestions.AddRange(Expression.Functions.Select(function => function.Name + "("));
@@ -120,8 +122,13 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Nested editor, set when this parameter holds steps or a condition.</summary>
     public StepListEditorViewModel? List { get; }
 
-    /// <summary>Variable names offered while editing a <see cref="ActionParameterKind.Variable"/>.</summary>
-    public IReadOnlyList<string> Variables { get; }
+    /// <summary>
+    /// Variables offered while editing a field that may name one, with what choosing one takes.
+    /// </summary>
+    public IReadOnlyList<VariableChoice> Variables { get; }
+
+    /// <summary>The names on their own, which is what the expression reader and the checks use.</summary>
+    private IReadOnlyList<string> Named { get; }
 
     /// <summary>Macro names offered while editing an <see cref="ActionParameterKind.Macro"/>.</summary>
     public IReadOnlyList<string> Macros { get; }
@@ -505,7 +512,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </summary>
     public bool IsNameTaken => IsOutputVariable
         && CurrentText.Trim().Length > 0
-        && Variables.Contains(CurrentText.Trim(), StringComparer.OrdinalIgnoreCase);
+        && Named.Contains(CurrentText.Trim(), StringComparer.OrdinalIgnoreCase);
 
     /// <summary>What the line under such a field says when its name is already taken.</summary>
     public string NameWarning => IsNameTaken
@@ -529,6 +536,17 @@ public partial class StepParameterViewModel : ViewModelBase
         Text = name;
     }
 
+    /// <summary>
+    /// Puts a chosen variable into the field at the caret. A field that is being built out of
+    /// several pieces — a folder, a slash and a name — is why this is not simply an append.
+    /// </summary>
+    public void InsertVariable(string token, int caret)
+    {
+        var current = Text ?? string.Empty;
+        var at = Math.Clamp(caret, 0, current.Length);
+        Text = current[..at] + token + current[at..];
+    }
+
     /// <summary>Gives the field a free name of its own, next to the one that was taken.</summary>
     public void MakeNameUnique()
     {
@@ -538,7 +556,7 @@ public partial class StepParameterViewModel : ViewModelBase
             return;
         }
 
-        var free = VariableNames.Free(wanted, Variables);
+        var free = VariableNames.Free(wanted, Named);
         if (free == wanted)
         {
             return;
@@ -756,7 +774,7 @@ public partial class StepParameterViewModel : ViewModelBase
             return;
         }
 
-        if (!Expression.TryEvaluate(source, new KnownVariables(Variables), out var value, out var error))
+        if (!Expression.TryEvaluate(source, new KnownVariables(Named), out var value, out var error))
         {
             HasExpressionError = true;
             ExpressionMessage = ExpressionText.Describe(error!);

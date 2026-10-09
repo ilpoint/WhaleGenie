@@ -17,7 +17,8 @@ public class VariableWarningTests
     {
         Ui.Run(() =>
         {
-            var viewModel = new AddActionViewModel(ActionCatalog.Definitions, ["count"], []);
+            var viewModel = new AddActionViewModel(ActionCatalog.Definitions,
+                VariableChoicesForChecks.Named("count"), []);
 
             // Nothing picked yet is the state the dialog opens in, and nobody has done anything
             // wrong, so the line is a plain note.

@@ -1141,18 +1141,12 @@ public partial class MacroEditorViewModel : ViewModelBase
         IsDirty = false;
     }
 
-    /// <summary>Variables created by the steps built so far, offered by variable pickers.</summary>
-    public IReadOnlyList<string> CollectVariables()
-    {
-        var locals = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var step in Steps)
-        {
-            step.CollectVariables(locals);
-        }
-
-        // System and global variables can be read here too, so the pickers offer them.
-        return VariableCatalog.Names(locals);
-    }
+    /// <summary>
+    /// Variables the pickers offer: the ones this macro makes for itself, the shared ones the
+    /// Variable Center defines, the ones WhaleGenie provides, and the ending every step leaves
+    /// behind — each with what a person choosing one needs to know about it.
+    /// </summary>
+    public IReadOnlyList<VariableChoice> CollectVariables() => VariableChoices.For(Steps);
 
     /// <summary>
     /// A name for a step that is not in the list yet. The name is handed to the dialog while the
