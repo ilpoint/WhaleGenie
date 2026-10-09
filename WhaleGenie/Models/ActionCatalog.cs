@@ -489,10 +489,12 @@ public static class ActionCatalog
             Parameters =
             [
                 FilePath("path", "File", "notes.txt", "File to read.", PathIntent.Read),
+                Variable("resultVariable", "Result variable", "text",
+                    "Variable that receives the contents.", required: false, namesVariable: true),
                 Choice("storeAs", "Store as", ["text", "lines"], "text",
                     "Keep the file as one piece of text, or hand each line over as an item of a "
                     + "list, which is what looping over a file of names or paths wants.",
-                    labels: ["One piece of text", "One item per line"]),
+                    labels: ["One piece of text", "One item per line"], advanced: true),
                 Number("limit", "Only the first", 0,
                     "Read only this many lines. Zero reads the whole file, which a big file of "
                     + "lines to pick a few out of does not want.", min: 0m, max: 1_000_000m,
@@ -503,8 +505,6 @@ public static class ActionCatalog
                 Toggle("trim", "Trim each line", false,
                     "Take the spaces off both ends of every line.", advanced: true),
                 Encoding(),
-                Variable("resultVariable", "Result variable", "text",
-                    "Variable that receives the contents.", required: false, namesVariable: true),
             ],
         },
         new()
@@ -694,16 +694,17 @@ public static class ActionCatalog
                     + "once, for example *.txt; report?.xlsx.",
                     acceptsVariables: true),
                 Toggle("recurse", "Include subfolders"),
+                Variable("resultVariable", "Result variable", "files",
+                    "Variable that receives the list of full paths.", required: false,
+                    namesVariable: true),
                 Choice("sortBy", "Order", ["name", "modified", "created", "size", "extension"],
                     "name",
                     "What to put the files in order by. Files that agree are ordered by name, so "
                     + "the same folder comes out in the same order on every run.",
-                    labels: ["Name", "Last modified", "Created", "Size", "Extension"]),
+                    labels: ["Name", "Last modified", "Created", "Size", "Extension"],
+                    advanced: true),
                 Toggle("descending", "The other way round", false,
-                    "Newest, largest or Z to A first instead of the plain order."),
-                Variable("resultVariable", "Result variable", "files",
-                    "Variable that receives the list of full paths.", required: false,
-                    namesVariable: true),
+                    "Newest, largest or Z to A first instead of the plain order.", advanced: true),
                 Number("depth", "How deep", 0,
                     "How many folders deep to look while subfolders are included. Zero is as deep "
                     + "as they go.", min: 0m, max: 64m, advanced: true),
@@ -766,34 +767,14 @@ public static class ActionCatalog
             Parameters =
             [
                 FilePath("path", "File", "rows.csv", "CSV file to read.", PathIntent.Read, "*.csv"),
-                Encoding(),
-                ..Separator("auto", mayBeAutomatic: true),
                 Toggle("hasHeader", "First row is a header", true,
                     "Leave the first row out of the result, and keep what it says in the names "
                     + "variable below."),
-                Variable("headerVariable", "Column names variable", "columns",
-                    "Variable that receives the names in the header row, in column order, which is "
-                    + "how a macro finds the column it wants. Leave empty for none.",
-                    required: false, namesVariable: true),
-                Toggle("skipBlankLines", "Skip blank lines", true,
-                    "Drop lines that hold nothing. A file written by another program often ends "
-                    + "with one, and it would otherwise read as a row of one empty cell."),
-                Number("startRow", "Start at row", 1,
-                    "The line of the file to start at, counted from 1. When the first row is a "
-                    + "header, the header is this line.", min: 1),
-                Number("maxRows", "At most rows", 0,
-                    "Read this many rows at most. 0 reads every row from there on.", max: 1000000),
-                Toggle("trim", "Trim spaces", false,
-                    "Drop spaces around each cell, which a file written by hand often has."),
                 Text("columns", "Only these columns", "金额, 日期", required: false,
                     hint: "The columns to keep, written the way they are named in the header or as "
                         + "the letter they sit under: 金额, or B, or 金额,B. Each row comes back with "
                         + "those columns and no others, in the order written here. Leave empty for "
                         + "every column."),
-                Choice("shape", "Result shape", ["rows", "values"], "rows",
-                    "A list of rows, or — when exactly one column was named above — the values of "
-                    + "that column as one plain list, ready to walk through or add up.",
-                    labels: ["One list per row", "The values of one column"], advanced: true),
                 Text("matchColumn", "Only rows where", "订单号", required: false,
                     hint: "Read just the rows whose cell in this column is the value below; the "
                         + "column is named the same way. Leave empty to read every row."),
@@ -801,12 +782,35 @@ public static class ActionCatalog
                     hint: "The value those rows hold. Written out, or named as a variable with "
                         + "$name.",
                     acceptsVariables: true),
-                Choice("matchMode", "Matches", MatchModes, "equals",
-                    "How the cell is compared against the value: exactly, or parts of it.",
-                    labels: MatchModeLabels, advanced: true),
                 Variable("resultVariable", "Result variable", "rows",
                     "Variable that receives a list of rows, each a list of cells.",
                     required: false, namesVariable: true),
+                Encoding(),
+                ..Separator("auto", mayBeAutomatic: true),
+                Variable("headerVariable", "Column names variable", "columns",
+                    "Variable that receives the names in the header row, in column order, which is "
+                    + "how a macro finds the column it wants. Leave empty for none.",
+                    required: false, namesVariable: true, advanced: true),
+                Toggle("skipBlankLines", "Skip blank lines", true,
+                    "Drop lines that hold nothing. A file written by another program often ends "
+                    + "with one, and it would otherwise read as a row of one empty cell.",
+                    advanced: true),
+                Number("startRow", "Start at row", 1,
+                    "The line of the file to start at, counted from 1. When the first row is a "
+                    + "header, the header is this line.", min: 1, advanced: true),
+                Number("maxRows", "At most rows", 0,
+                    "Read this many rows at most. 0 reads every row from there on.", max: 1000000,
+                    advanced: true),
+                Toggle("trim", "Trim spaces", false,
+                    "Drop spaces around each cell, which a file written by hand often has.",
+                    advanced: true),
+                Choice("shape", "Result shape", ["rows", "values"], "rows",
+                    "A list of rows, or — when exactly one column was named above — the values of "
+                    + "that column as one plain list, ready to walk through or add up.",
+                    labels: ["One list per row", "The values of one column"], advanced: true),
+                Choice("matchMode", "Matches", MatchModes, "equals",
+                    "How the cell is compared against the value: exactly, or parts of it.",
+                    labels: MatchModeLabels, advanced: true),
             ],
         },
         new()
@@ -827,7 +831,6 @@ public static class ActionCatalog
                     + "yet writes it; adding to one that already is does not, so a log keeps one "
                     + "header at the top. Leave it empty for a table with nothing above it.",
                     required: false),
-                ..Separator("comma"),
                 Choice("mode", "Mode", ["replace", "append"], "replace",
                     "Write the file from the start, or add these rows below what is already in it.",
                     labels: ["Replace the file", "Add below the last row"]),
@@ -838,13 +841,14 @@ public static class ActionCatalog
                     + "has and this step knows nothing about from shifting everything after it. The "
                     + "names of this step's cells come from the header row above, and a name the "
                     + "file has not got is reported rather than guessed at."),
+                ..Separator("comma"),
                 Choice("lineEnding", "Line ending", ["windows", "unix"], "windows",
                     "Which characters end a line: CRLF, which Windows writes, or LF, which "
                     + "everything else does.",
                     labels: ["Windows (CRLF)", "Unix (LF)"], advanced: true),
                 Toggle("quoteAll", "Quote every cell", false,
                     "Put quotes around every cell rather than only around the ones that need them. "
-                    + "Some programs insist on it."),
+                    + "Some programs insist on it.", advanced: true),
                 Choice("emptyCells", "Empty cells", ["bare", "quoted"], "bare",
                     "How a cell holding nothing is written: as an empty place between two "
                     + "separators, or as two quotes. Both read back as an empty cell, and the "
@@ -2937,7 +2941,7 @@ public static class ActionCatalog
     /// <summary>Name of a variable, edited with a suggestion list.</summary>
     private static ActionParameter Variable(string name, string label, string placeholder, string hint,
         bool required = true, bool namesVariable = false, string defaultValue = "",
-        bool acceptsFormula = false)
+        bool acceptsFormula = false, bool advanced = false)
         => new()
         {
             Name = name,
@@ -2949,6 +2953,7 @@ public static class ActionCatalog
             NamesVariable = namesVariable,
             DefaultValue = defaultValue,
             AcceptsFormula = acceptsFormula,
+            Advanced = advanced,
         };
 
     /// <summary>
@@ -3270,10 +3275,12 @@ public static class ActionCatalog
             "The character between two cells.",
             labels: mayBeAutomatic
                 ? ["Work it out (auto)", "Comma ,", "Semicolon ;", "Tab", "Vertical bar |", "Space"]
-                : ["Comma ,", "Semicolon ;", "Tab", "Vertical bar |", "Space"]),
+                : ["Comma ,", "Semicolon ;", "Tab", "Vertical bar |", "Space"],
+            advanced: true),
         Text("separatorText", "Or this character", required: false, defaultValue: "",
             hint: "Fill this in for a character the list does not have, such as : or #, and it is "
-                + "used instead of the one chosen above. Leave it empty for the chosen one."),
+                + "used instead of the one chosen above. Leave it empty for the chosen one.",
+            advanced: true),
     ];
 
     /// <summary>
@@ -3289,7 +3296,7 @@ public static class ActionCatalog
             + "the mark at the front of the file when it has one, and reads bytes that are not "
             + "UTF-8 at all in this machine's own code page — which is how a CSV another machine "
             + "exported still reads.",
-            labels: ["UTF-8", "UTF-8 with BOM", "GBK (Chinese)", "UTF-16"]);
+            labels: ["UTF-8", "UTF-8 with BOM", "GBK (Chinese)", "UTF-16"], advanced: true);
 
     /// <summary>How OCR text searches compare their match.</summary>
     private static ActionParameter TextMatch()

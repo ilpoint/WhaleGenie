@@ -1171,6 +1171,38 @@ public class ActionDialogTests
     }
 
     [Fact]
+    public void A_file_step_reads_in_the_order_the_job_is_done_in()
+    {
+        Ui.Run(() =>
+        {
+            // Which file, which part of it, where the answer or the data goes — and then the
+            // knobs. Filling a step in is answering those questions in that order, so the dialog
+            // asks them in that order and keeps the rest behind the fold.
+            var reading = Open("file.readCsv");
+            Assert.Equal(
+                ["path", "hasHeader", "columns", "matchColumn", "matchValue", "resultVariable"],
+                reading.Rows.SelectMany(Names).ToList());
+
+            var folded = reading.AdvancedRows.SelectMany(Names).ToList();
+            Assert.Contains("encoding", folded);
+            Assert.Contains("separator", folded);
+            Assert.Contains("headerVariable", folded);
+            Assert.Contains("trim", folded);
+
+            var writing = Open("file.writeCsv");
+            Assert.Equal(["path", "rows", "header", "mode", "align"],
+                writing.Rows.SelectMany(Names).ToList());
+
+            var listing = Open("file.listFiles");
+            Assert.Equal(["folder", "pattern", "recurse", "resultVariable"],
+                listing.Rows.SelectMany(Names).ToList());
+
+            var text = Open("file.readText");
+            Assert.Equal(["path", "resultVariable"], text.Rows.SelectMany(Names).ToList());
+        });
+    }
+
+    [Fact]
     public void The_action_picker_opens_as_searchable_groups_rather_than_one_long_list()
     {
         Ui.Run(() =>
