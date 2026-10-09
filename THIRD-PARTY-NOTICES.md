@@ -71,6 +71,10 @@ The icon was scaled and modified from the original.
   RBush.Signed（<https://github.com/viceroypenguin/RBush>）— MIT
   SixLabors.Fonts — Apache-2.0
   <https://github.com/SixLabors/Fonts>
+- CsvHelper — Apache-2.0 与 MS-PL 双许可
+  <https://github.com/JoshClose/CsvHelper>
+  读写的都是带分隔符的文本文件（`file.readCsv` / `file.writeCsv`）：引号、单元格里的换行、
+  文件末尾不完整的行这些细节都归它管。
 
 ### 运行环境
 

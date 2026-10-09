@@ -2945,30 +2945,102 @@ public sealed class MacroRunner
     private void ReadCsv(ExecutableStep step, int depth)
     {
         var path = PathOf(step);
-        var rows = SplitCsv(
-            _devices.Files.ReadText(path, EncodingOf(step)), Separator(step.Text("separator")));
-        var skip = !string.Equals(step.Text("hasHeader").Trim(), "false", StringComparison.OrdinalIgnoreCase);
-        var body = skip && rows.Count > 0 ? rows.Skip(1) : rows;
+        var rows = DelimitedFile.Read(
+            _devices.Files.ReadText(path, EncodingOf(step)),
+            Separator(step).ToString(),
+            Flag(step, "skipBlankLines", true),
+            Flag(step, "trim", false));
 
-        Variables.Set(VariableName(step, "resultVariable", "rows"),
-            Value.FromList(body.Select(row => Value.FromList(row.Select(Value.FromText)))));
-        Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, rows.Count);
+        // The line the step starts at is the line the header is on, when there is one: "start at
+        // row 3" is where reading begins, and everything else follows from there.
+        var wanted = rows.Skip(Math.Max(1, Number(step, "startRow")) - 1);
+        var header = Flag(step, "hasHeader", true) ? wanted.FirstOrDefault() : null;
+        var body = header is null ? wanted : wanted.Skip(1);
+
+        var limit = Number(step, "maxRows");
+        if (limit > 0)
+        {
+            body = body.Take(limit);
+        }
+
+        var picked = body
+            .Select(row => Value.FromList(row.Select(Value.FromText)))
+            .ToList();
+        Variables.Set(VariableName(step, "resultVariable", "rows"), Value.FromList(picked));
+
+        // Which column holds what is the first thing a macro has to work out about somebody else's
+        // file, and the names are the only place that is written down.
+        var names = step.Text("headerVariable").Trim();
+        if (names.Length > 0)
+        {
+            Variables.Set(names, Value.FromList((header ?? []).Select(Value.FromText)));
+        }
+
+        Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, picked.Count);
     }
 
     private void WriteCsv(ExecutableStep step, int depth)
     {
         var path = PathOf(step);
-        var separator = Separator(step.Text("separator"));
+        var separator = Separator(step);
         var rows = Read(step.Text("rows"));
         if (!rows.IsList)
         {
             throw new StepFailure("Run.NotAList", step.Text("rows"));
         }
 
-        var text = string.Join(Environment.NewLine, rows.Items.Select(row => CsvRow(row, separator)));
-        _devices.Files.WriteText(path, text, false, EncodingOf(step));
-        Log(LogLevel.Info, depth, step.Type, "Run.WroteFile", path, text.Length);
+        var append = string.Equals(step.Text("mode").Trim(), "append", StringComparison.OrdinalIgnoreCase);
+        var table = new List<IReadOnlyList<string>>();
+
+        // Appending to a file that is not there yet is the first line of a log, so the header goes
+        // in with it; appending to one that is already there would leave a second header in the
+        // middle of the data, which is the one thing nobody wants.
+        var header = Header(step, separator);
+        if (header.Count > 0 && (!append || !_devices.Files.Exists(path)))
+        {
+            table.Add(header);
+        }
+
+        table.AddRange(rows.Items.Select(row => (IReadOnlyList<string>)
+            [.. Cells(row).Select(cell => cell.AsText())]));
+
+        var text = DelimitedFile.Write(table, separator.ToString(), LineEnding(step),
+            Flag(step, "quoteAll", false));
+        _devices.Files.WriteText(path, text, append, EncodingOf(step));
+        Log(LogLevel.Info, depth, step.Type, "Run.WroteFile", path, table.Count);
     }
+
+    /// <summary>
+    /// The names to put above the data: a list variable, or the names written out on one line the
+    /// way a row of the file would be. Nothing asked for is no names at all.
+    /// </summary>
+    private IReadOnlyList<string> Header(ExecutableStep step, char separator)
+    {
+        var text = step.Text("header").Trim();
+        if (text.Length == 0)
+        {
+            return [];
+        }
+
+        var value = Read(text);
+        if (value.IsList)
+        {
+            return [.. value.Items.Select(item => item.AsText())];
+        }
+
+        var written = value.AsText();
+        return written.Length == 0
+            ? []
+            : [.. written.Split(separator, StringSplitOptions.TrimEntries)];
+    }
+
+    /// <summary>Which characters end a line, as the step asked for them.</summary>
+    private static string LineEnding(ExecutableStep step)
+        => step.Text("lineEnding").Trim().ToLowerInvariant() switch
+        {
+            "unix" or "lf" or "\\n" => "\n",
+            _ => "\r\n",
+        };
 
     private void ReadSheet(ExecutableStep step, int depth)
     {
@@ -3256,94 +3328,29 @@ public sealed class MacroRunner
     };
 
     /// <summary>The character between two CSV cells.</summary>
-    private static char Separator(string text) => text.Trim().ToLowerInvariant() switch
-    {
-        "semicolon" or ";" => ';',
-        "tab" or "\\t" => '\t',
-        "pipe" or "|" => '|',
-        _ => ',',
-    };
+    /// <summary>
+    /// The character between two cells: the one written beside the picker when there is one, and
+    /// otherwise the one that was picked.
+    /// </summary>
+    private static char Separator(ExecutableStep step)
+        => Separator(step.Text("separatorText").Trim().Length > 0
+            ? step.Text("separatorText")
+            : step.Text("separator"));
 
     /// <summary>
-    /// Splits CSV text into rows of cells, honouring quoted cells, doubled quotes inside them
-    /// and line breaks that are part of a cell.
+    /// The character between two cells: one of the names the picker offers, or the character
+    /// itself for the files a program writes with something else in between.
     /// </summary>
-    private static List<List<string>> SplitCsv(string text, char separator)
+    private static char Separator(string text) => text.Trim() switch
     {
-        var rows = new List<List<string>>();
-        var row = new List<string>();
-        var cell = new StringBuilder();
-        var quoted = false;
-
-        for (var index = 0; index < text.Length; index++)
-        {
-            var character = text[index];
-
-            if (quoted)
-            {
-                if (character != '"')
-                {
-                    cell.Append(character);
-                }
-                else if (index + 1 < text.Length && text[index + 1] == '"')
-                {
-                    cell.Append('"');
-                    index++;
-                }
-                else
-                {
-                    quoted = false;
-                }
-
-                continue;
-            }
-
-            switch (character)
-            {
-                case '"':
-                    quoted = true;
-                    break;
-                case '\r':
-                    break;
-                case '\n':
-                    row.Add(cell.ToString());
-                    cell.Clear();
-                    rows.Add(row);
-                    row = [];
-                    break;
-                default:
-                    if (character == separator)
-                    {
-                        row.Add(cell.ToString());
-                        cell.Clear();
-                    }
-                    else
-                    {
-                        cell.Append(character);
-                    }
-
-                    break;
-            }
-        }
-
-        if (cell.Length > 0 || row.Count > 0)
-        {
-            row.Add(cell.ToString());
-            rows.Add(row);
-        }
-
-        return rows;
-    }
-
-    private static string CsvRow(Value row, char separator)
-        => row.IsList
-            ? string.Join(separator, row.Items.Select(cell => CsvCell(cell.AsText(), separator)))
-            : CsvCell(row.AsText(), separator);
-
-    private static string CsvCell(string text, char separator)
-        => text.Contains(separator) || text.Contains('"') || text.Contains('\n') || text.Contains('\r')
-            ? "\"" + text.Replace("\"", "\"\"") + "\""
-            : text;
+        "semicolon" or ";" => ';',
+        "tab" or "\\t" or "\t" => '\t',
+        "pipe" or "|" => '|',
+        "space" or " " => ' ',
+        "comma" or "," or "" => ',',
+        var written when written.Length == 1 => written[0],
+        _ => ',',
+    };
 
     // ------------------------------------------------------------------ clipboard
 

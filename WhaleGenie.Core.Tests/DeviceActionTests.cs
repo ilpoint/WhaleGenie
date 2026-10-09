@@ -2013,7 +2013,173 @@ public class DeviceActionTests
                 Param("separator", "comma")),
         ], devices);
 
-        Assert.Equal("a,\"b,c\"", devices.Files["out.csv"]);
+        // The cell holding the separator comes back out quoted, and the file ends its last line
+        // the way every writer ends one: with a line terminator, rather than a line left hanging.
+        Assert.Equal("a,\"b,c\"\r\n", devices.Files["out.csv"]);
+    }
+
+    [Fact]
+    public async Task Reading_csv_can_hand_back_the_names_in_the_header()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["rows.csv"] = "name,age\r\nalice,30";
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "rows.csv"), Param("separator", "comma"),
+                Param("hasHeader", "true"), Param("headerVariable", "columns"),
+                Param("resultVariable", "rows")),
+        ], devices);
+
+        var columns = store.Local.Values["columns"].Items;
+        Assert.Equal(2, columns.Count);
+        Assert.Equal("name", columns[0].AsText());
+        Assert.Equal("age", columns[1].AsText());
+
+        // The names are handed back and the row they were written on is still left out of the
+        // data, which is what the header setting promises.
+        Assert.Single(store.Local.Values["rows"].Items);
+    }
+
+    [Fact]
+    public async Task Reading_csv_can_start_further_down_the_file_and_stop_early()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["big.csv"] = "a,1\r\nb,2\r\nc,3\r\nd,4";
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "big.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("startRow", "2"), Param("maxRows", "2"),
+                Param("resultVariable", "rows")),
+        ], devices);
+
+        var rows = store.Local.Values["rows"].Items;
+        Assert.Equal(2, rows.Count);
+        Assert.Equal("b", rows[0].Items[0].AsText());
+        Assert.Equal("c", rows[1].Items[0].AsText());
+    }
+
+    [Fact]
+    public async Task Reading_csv_leaves_out_the_blank_lines_a_file_ends_with()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["rows.csv"] = "a,b\r\n\r\nc,d\r\n\r\n";
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "rows.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "kept")),
+            Step("file.readCsv", Param("path", "rows.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("skipBlankLines", "false"),
+                Param("resultVariable", "every")),
+        ], devices);
+
+        Assert.Equal(2, store.Local.Values["kept"].Items.Count);
+        Assert.Equal(4, store.Local.Values["every"].Items.Count);
+    }
+
+    [Fact]
+    public async Task Reading_csv_can_use_a_character_the_picker_does_not_offer()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["odd.csv"] = "a#b#c";
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "odd.csv"), Param("separator", "comma"),
+                Param("separatorText", "#"), Param("hasHeader", "false"),
+                Param("resultVariable", "rows")),
+        ], devices);
+
+        var row = Assert.Single(store.Local.Values["rows"].Items);
+        Assert.Equal(3, row.Items.Count);
+        Assert.Equal("c", row.Items[2].AsText());
+    }
+
+    [Fact]
+    public async Task Reading_csv_can_trim_the_spaces_around_a_cell()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["padded.csv"] = "a , b";
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "padded.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("trim", "true"), Param("resultVariable", "rows")),
+        ], devices);
+
+        var row = Assert.Single(store.Local.Values["rows"].Items);
+        Assert.Equal("a", row.Items[0].AsText());
+        Assert.Equal("b", row.Items[1].AsText());
+    }
+
+    /// <summary>
+    /// A log is the reason adding to a CSV matters: the first run makes the file and its header,
+    /// and every run after it adds rows under the same header.
+    /// </summary>
+    [Fact]
+    public async Task Adding_to_a_csv_writes_the_header_once_and_the_rows_after_it()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["first.csv"] = "alice,30";
+        devices.Files["second.csv"] = "bob,41";
+
+        await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "first.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "first")),
+            Step("file.readCsv", Param("path", "second.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "second")),
+            Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$first"),
+                Param("header", "name,age"), Param("separator", "comma"),
+                Param("mode", "append")),
+            Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$second"),
+                Param("header", "name,age"), Param("separator", "comma"),
+                Param("mode", "append")),
+        ], devices);
+
+        Assert.Equal("name,age\r\nalice,30\r\nbob,41\r\n", devices.Files["log.csv"]);
+    }
+
+    /// <summary>
+    /// A cell is a cell: text that begins with a character a spreadsheet would read as a formula
+    /// is written exactly as the macro held it. Escaping those changes the bytes of a file the step
+    /// was asked to write, and the file may well be going to something that is not a spreadsheet.
+    /// </summary>
+    [Fact]
+    public async Task A_csv_cell_that_looks_like_a_formula_is_written_as_it_stands()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["in.csv"] = "=SUM(A1),@mine,-1";
+
+        await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+            Step("file.writeCsv", Param("path", "out.csv"), Param("rows", "$rows"),
+                Param("separator", "comma")),
+        ], devices);
+
+        Assert.Equal("=SUM(A1),@mine,-1\r\n", devices.Files["out.csv"]);
+    }
+
+    [Fact]
+    public async Task Writing_csv_can_end_its_lines_and_quote_every_cell_the_way_it_was_told()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["in.csv"] = "a,b\r\nc,d";
+
+        await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+            Step("file.writeCsv", Param("path", "unix.csv"), Param("rows", "$rows"),
+                Param("separator", "comma"), Param("lineEnding", "unix"),
+                Param("quoteAll", "true")),
+        ], devices);
+
+        Assert.Equal("\"a\",\"b\"\n\"c\",\"d\"\n", devices.Files["unix.csv"]);
     }
 
     // ------------------------------------------------------------ spreadsheets

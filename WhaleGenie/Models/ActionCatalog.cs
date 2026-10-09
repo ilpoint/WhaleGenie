@@ -716,9 +716,24 @@ public static class ActionCatalog
             [
                 FilePath("path", "File", "rows.csv", "CSV file to read."),
                 Encoding(),
-                Separator("separator", "Separator", "comma"),
+                ..Separator("comma"),
                 Toggle("hasHeader", "First row is a header", true,
-                    "Leave the first row out of the result."),
+                    "Leave the first row out of the result, and keep what it says in the names "
+                    + "variable below."),
+                Variable("headerVariable", "Column names variable", "columns",
+                    "Variable that receives the names in the header row, in column order, which is "
+                    + "how a macro finds the column it wants. Leave empty for none.",
+                    required: false, namesVariable: true),
+                Toggle("skipBlankLines", "Skip blank lines", true,
+                    "Drop lines that hold nothing. A file written by another program often ends "
+                    + "with one, and it would otherwise read as a row of one empty cell."),
+                Number("startRow", "Start at row", 1,
+                    "The line of the file to start at, counted from 1. When the first row is a "
+                    + "header, the header is this line.", min: 1),
+                Number("maxRows", "At most rows", 0,
+                    "Read this many rows at most. 0 reads every row from there on.", max: 1000000),
+                Toggle("trim", "Trim spaces", false,
+                    "Drop spaces around each cell, which a file written by hand often has."),
                 Variable("resultVariable", "Result variable", "rows",
                     "Variable that receives a list of rows, each a list of cells.",
                     required: false, namesVariable: true),
@@ -735,7 +750,22 @@ public static class ActionCatalog
                 FilePath("path", "File", "rows.csv", "CSV file to write."),
                 Variable("rows", "Rows", "$rows",
                     "A list of rows. Each row may itself be a list of cells.", namesVariable: false),
-                Separator("separator", "Separator", "comma"),
+                Variable("header", "Header row", "$columns",
+                    "Column names to put above the data: a list, or the names written out on one "
+                    + "line with the separator between them. Adding to a file that is not there "
+                    + "yet writes it; adding to one that already is does not, so a log keeps one "
+                    + "header at the top.", required: false),
+                ..Separator("comma"),
+                Choice("mode", "Mode", ["replace", "append"], "replace",
+                    "Write the file from the start, or add these rows below what is already in it.",
+                    labels: ["Replace the file", "Add below the last row"]),
+                Choice("lineEnding", "Line ending", ["windows", "unix"], "windows",
+                    "Which characters end a line: CRLF, which Windows writes, or LF, which "
+                    + "everything else does.",
+                    labels: ["Windows (CRLF)", "Unix (LF)"], advanced: true),
+                Toggle("quoteAll", "Quote every cell", false,
+                    "Put quotes around every cell rather than only around the ones that need them. "
+                    + "Some programs insist on it."),
                 Encoding(),
             ],
         },
@@ -2994,11 +3024,20 @@ public static class ActionCatalog
         => Text("sheet", "Sheet", "Sheet1", required: false,
             hint: "Which sheet to use, by the name on its tab. Leave empty for the first sheet.");
 
-    /// <summary>The character CSV cells are separated by.</summary>
-    private static ActionParameter Separator(string name, string label, string defaultValue)
-        => Choice(name, label, ["comma", "semicolon", "tab", "pipe"], defaultValue,
+    /// <summary>
+    /// The character CSV cells are separated by. The picker holds the ones that actually turn up in
+    /// files, and the field beside it is for the rest: a program that writes something unusual in
+    /// between the cells is not a reason for the macro author to be stuck.
+    /// </summary>
+    private static ActionParameter[] Separator(string defaultValue) =>
+    [
+        Choice("separator", "Separator", ["comma", "semicolon", "tab", "pipe", "space"], defaultValue,
             "The character between two cells.",
-            labels: ["Comma ,", "Semicolon ;", "Tab", "Vertical bar |"]);
+            labels: ["Comma ,", "Semicolon ;", "Tab", "Vertical bar |", "Space"]),
+        Text("separatorText", "Or this character", required: false, defaultValue: "",
+            hint: "Fill this in for a character the list does not have, such as : or #, and it is "
+                + "used instead of the one chosen above. Leave it empty for the chosen one."),
+    ];
 
     /// <summary>
     /// How the text of a file is turned into bytes, shared by the actions that read or write text.

@@ -43,6 +43,7 @@ dotnet format WhaleGenie.slnx           # 按 .editorconfig 整理格式
 | `FlaUI.UIA3` | UI Automation：元素的取值、选择、勾选、展开、滚动到可见、读表格 |
 | `Microsoft.Playwright` | 浏览器动作（`browser.*`）：驱动跟着包走，默认开系统自带的 Edge |
 | `ClosedXML` | 表格文件（`excel.*`）：按文件读写 xlsx，不启动 Excel。zip / XML / 共享字符串表 / 数字格式 / 公式结果 / 日期体系都归它管，它自己建在 `DocumentFormat.OpenXml`（Open XML SDK）上 |
+| `CsvHelper` | 带分隔符的文本文件（`file.readCsv` / `file.writeCsv`）：引号、单元格里的换行、行尾、空行这些细节归它管。自己拆字符串在这些地方都会悄悄读错 |
 | `OpenCvSharp5.AvaloniaExtensions` | 没人用它：引擎和界面都没有调用它的 API，它只会把 Avalonia 带进引擎的依赖图 |
 
 这些包各自带进来的原生库（`OpenCvSharpExtern.dll`、`uiohook.dll`、Playwright 的驱动等）
