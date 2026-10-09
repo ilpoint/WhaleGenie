@@ -1461,6 +1461,10 @@ internal static class ActionStrings
         ["gamepad.button.mode.option.up"] = "松开",
         ["gamepad.button.holdMs.label"] = "按住时长",
         ["gamepad.button.holdMs.hint"] = "点按时按键保持按下的时长。",
+        ["gamepad.button.repeat.label"] = "连按次数",
+        ["gamepad.button.repeat.hint"] = "点按几次；连按就是一次接一次地按，中间隔下面的时长。",
+        ["gamepad.button.intervalMs.label"] = "连按间隔",
+        ["gamepad.button.intervalMs.hint"] = "两次连按之间停多久。",
 
         ["gamepad.stick.name"] = "手柄摇杆",
         ["gamepad.stick.desc"] = "把虚拟手柄的一根摇杆拨开，写的是偏离中心百分之多少。",

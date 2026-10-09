@@ -2419,7 +2419,8 @@ public sealed class MacroRunner
     /// button is normally for, so it is the one that happens when the step does not say; the hold
     /// is the pause between the press and the release, and a step that asked for none still gets a
     /// short one, because a report that comes and goes in the same instant is one a game may never
-    /// see.
+    /// see. Tapping several times is the same question the key actions answer with repeat and
+    /// interval, so it is answered the same way here: one pause between taps, none before the first.
     /// </summary>
     private async Task PressGamepadButton(ExecutableStep step, CancellationToken token)
     {
@@ -2437,9 +2438,22 @@ public sealed class MacroRunner
                 return;
         }
 
-        device.Button(button, true);
-        await Pause(Math.Max(Pace(Number(step, "holdMs")), ShortestPressMs), token);
-        device.Button(button, false);
+        var hold = Math.Max(Pace(Number(step, "holdMs")), ShortestPressMs);
+        var repeats = Math.Max(1, Number(step, "repeat"));
+        var interval = Pace(Number(step, "intervalMs"));
+
+        for (var count = 0; count < repeats; count++)
+        {
+            token.ThrowIfCancellationRequested();
+            if (count > 0)
+            {
+                await Pause(interval, token);
+            }
+
+            device.Button(button, true);
+            await Pause(hold, token);
+            device.Button(button, false);
+        }
     }
 
     /// <summary>The same for a combination: it can be sent more than once with a pause between.</summary>

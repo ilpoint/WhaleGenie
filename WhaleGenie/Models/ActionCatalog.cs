@@ -2105,6 +2105,8 @@ public static class ActionCatalog
                     + "down across other steps.",
                     labels: ["Tap", "Hold down", "Let up"]),
                 Number("holdMs", "Hold", 50, "How long the button stays down when it is tapped."),
+                Number("repeat", "Repeat", 1, "How many times to tap the button.", min: 1),
+                Number("intervalMs", "Interval", 0, "Pause between repeated taps."),
             ],
         },
         new()

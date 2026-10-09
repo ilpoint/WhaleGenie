@@ -5248,6 +5248,26 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_button_can_be_tapped_several_times_in_a_row()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("gamepad.button", Param("button", "a"), Param("mode", "tap"),
+                Param("repeat", "3"), Param("intervalMs", "10")),
+        ], devices);
+
+        // Three taps are three presses and three releases, in that order, with nothing held down
+        // in between: a repeat that stayed pressed would be one long press to the game.
+        Assert.True(result.Succeeded);
+        Assert.Equal(
+            ["gamepadButton a True", "gamepadButton a False",
+             "gamepadButton a True", "gamepadButton a False",
+             "gamepadButton a True", "gamepadButton a False"],
+            devices.Calls.Where(call => call.StartsWith("gamepadButton", StringComparison.Ordinal)));
+    }
+
+    [Fact]
     public async Task A_run_lets_go_of_the_controller_it_was_driving()
     {
         var devices = new FakeDeviceLayer();
