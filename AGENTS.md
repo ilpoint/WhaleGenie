@@ -616,9 +616,16 @@ CSV 的程序，所以不做成写出去的默认值。
 
 #### 浏览器（`browser.*`，八个动作）
 
+**2026-10-10 又对着 `ActionCatalog` 和 `PlaywrightBrowserDevice` 核了一遍这一节**：
+
 - [ ] 只有点击 / 填写 / 读文本：没有"下拉选择"、"勾选"、"悬停"、"按键"、"等待元素"、
       "读属性（href / value）"、"上传文件" → 做不成「在下拉里选一项」（表达不出来）。
-- [ ] `browser.fill` 没有"先清空"这一档（有些页面是追加进去的）→ 别扭。
+      **这是清单上剩下最大的一块**，而 Playwright 那边的 API 都是现成的（`SelectOptionAsync` /
+      `CheckAsync` / `HoverAsync` / `PressAsync` / `WaitForSelectorAsync` / `GetAttributeAsync` /
+      `SetInputFilesAsync`），缺的只是把它们包成动作。
+- ~~`browser.fill` 没有"先清空"这一档~~ **这一条写反了**：`FillAsync` 本来就是把格子里的东西
+      清掉再填，所以"先清空"已经是它的行为。真正缺的是反过来那一档 —— **不清空，接着往下打**
+      （`PressSequentiallyAsync`），搜索框的联想、验证码那种要的是这个。
 - [ ] 没有超时参数：一律 Playwright 默认的三十秒，等不到就是三十秒 → 别扭。
 
 #### 其余分类（只补致命缺口）
