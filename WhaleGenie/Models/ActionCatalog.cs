@@ -510,6 +510,10 @@ public static class ActionCatalog
                 Choice("mode", "Mode", ["overwrite", "append"], "overwrite",
                     "Replace the file, or add to what is already there.",
                     labels: ["Replace it", "Add to the end"]),
+                Choice("newline", "Line break", ["none", "end", "start"], "none",
+                    "Whether to put a line break around the text: none, one after it, or — when "
+                    + "adding to a file whose last line never ended — one in front of it.",
+                    labels: ["None", "After the text", "In front of the text when it is needed"]),
                 Encoding(),
             ],
         },

@@ -566,7 +566,10 @@ CSV 的程序，所以不做成写出去的默认值。
 - [ ] `file.copy` / `file.move` 只认单个文件（没有整目录）、重名只有"覆盖 / 不覆盖"两档
       → 做不成「重名时自动编号」（别扭）。
 - [ ] `file.readText` 缺按行读成列表、只读前 N 行 → 别扭。
-- [ ] `file.writeText` 的追加没有"先写一个换行"这一档，写日志要自己记得带上 → 别扭。
+- [x] `file.writeText` 有一档换行（`newline`：不加 / 写完换一行 / 追加时上一行没结束就先补一行），
+      默认不加，所以老宏写出来的文件一个字节都没变；`file.appendLog` 照同一条规矩来 ——
+      文件最后一行没结束时先补一个换行，新的一行不会挤在上一行后面。设备层多一个
+      `HasOpenLine`（只看文件末尾那几个字节，不解码整份文件）。
 - `file.exists` / `file.path`（含扩展名 / 不含扩展名的名字都有）/ `file.zip` / `file.unzip` /
   `file.createFolder` / `file.deleteFolder` / `file.readJson` / `file.writeJson` /
   `file.appendLog` / `file.saveVariables` / `file.loadVariables` 核过，参数够用。

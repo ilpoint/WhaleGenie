@@ -3042,8 +3042,22 @@ public sealed class MacroRunner
         var path = PathOf(step);
         var text = Read(step.Text("text")).AsText();
         var append = string.Equals(step.Text("mode").Trim(), "append", StringComparison.OrdinalIgnoreCase);
+        var encoding = EncodingOf(step);
+        var newline = step.Text("newline").Trim().ToLowerInvariant();
 
-        _devices.Files.WriteText(path, text, append, EncodingOf(step));
+        if (newline == "end")
+        {
+            text += Environment.NewLine;
+        }
+        else if (newline == "start" && append && _devices.Files.HasOpenLine(path, encoding))
+        {
+            // Adding to a file is how a macro keeps a log or grows a list, and "a line of its own"
+            // is the whole point: without this the new text lands on the end of the last line, which
+            // is a mistake nobody sees until the file is read back.
+            text = Environment.NewLine + text;
+        }
+
+        _devices.Files.WriteText(path, text, append, encoding);
         Log(LogLevel.Info, depth, step.Type, append ? "Run.AppendedFile" : "Run.WroteFile", path, text.Length);
     }
 
@@ -3055,6 +3069,7 @@ public sealed class MacroRunner
     private void AppendLog(ExecutableStep step, int depth)
     {
         var path = PathOf(step);
+        var encoding = EncodingOf(step);
         var line = Read(step.Text("text")).AsText();
         if (Flag(step, "timestamp", true))
         {
@@ -3062,7 +3077,11 @@ public sealed class MacroRunner
                 + " " + line;
         }
 
-        _devices.Files.WriteText(path, line + Environment.NewLine, append: true, EncodingOf(step));
+        // The action promises one line, so a file whose last line was never closed — written by
+        // something else, or by a run that was interrupted halfway — gets a break of its own first.
+        // A file that is not there yet has no open line, so its first line is not pushed down.
+        var lead = _devices.Files.HasOpenLine(path, encoding) ? Environment.NewLine : string.Empty;
+        _devices.Files.WriteText(path, lead + line + Environment.NewLine, append: true, encoding);
         Log(LogLevel.Info, depth, step.Type, "Run.AppendedFile", path, line.Length);
     }
 

@@ -1752,6 +1752,66 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Writing_text_can_leave_a_line_break_after_it()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("file.writeText", Param("path", "notes.txt"), Param("text", "done"),
+                Param("newline", "end")),
+        ], devices);
+
+        Assert.Equal("done" + Environment.NewLine, devices.Files["notes.txt"]);
+    }
+
+    [Fact]
+    public async Task Adding_to_a_file_that_never_ended_its_line_starts_a_new_one()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["list.txt"] = "first";
+        await RunAsync(
+        [
+            Step("file.writeText", Param("path", "list.txt"), Param("text", "second"),
+                Param("mode", "append"), Param("newline", "start")),
+            Step("file.writeText", Param("path", "list.txt"), Param("text", "third"),
+                Param("mode", "append"), Param("newline", "start")),
+        ], devices);
+
+        // The second line gets a break in front of it because the file had none, and the third
+        // does not because the second one left one behind.
+        Assert.Equal("first" + Environment.NewLine + "second" + Environment.NewLine + "third",
+            devices.Files["list.txt"]);
+    }
+
+    [Fact]
+    public async Task Adding_to_a_file_that_is_not_there_yet_does_not_open_with_a_blank_line()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("file.writeText", Param("path", "fresh.txt"), Param("text", "first"),
+                Param("mode", "append"), Param("newline", "start")),
+        ], devices);
+
+        Assert.Equal("first", devices.Files["fresh.txt"]);
+    }
+
+    [Fact]
+    public async Task A_log_line_never_lands_on_the_end_of_the_last_one()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["log.txt"] = "half a line";
+        await RunAsync(
+        [
+            Step("file.appendLog", Param("path", "log.txt"), Param("text", "second"),
+                Param("timestamp", "false")),
+        ], devices);
+
+        Assert.Equal("half a line" + Environment.NewLine + "second" + Environment.NewLine,
+            devices.Files["log.txt"]);
+    }
+
+    [Fact]
     public async Task A_log_line_is_added_to_the_end_of_the_file()
     {
         var devices = new FakeDeviceLayer();
@@ -5694,6 +5754,14 @@ internal sealed class FakeDeviceLayer
         {
             Files[path] = text;
         }
+    }
+
+    bool IFileDevice.HasOpenLine(string path, string encoding)
+    {
+        Note($"openLine {path}");
+        return Files.TryGetValue(path, out var text)
+            && text.Length > 0
+            && text[^1] is not ('\n' or '\r');
     }
 
     void IFileDevice.WriteBytes(string path, byte[] bytes)

@@ -348,6 +348,12 @@ internal static class ActionStrings
         ["file.writeText.mode.hint"] = "替换原文件，或追加到已有内容后面。",
         ["file.writeText.mode.option.overwrite"] = "替换原内容",
         ["file.writeText.mode.option.append"] = "追加到末尾",
+        ["file.writeText.newline.label"] = "换行",
+        ["file.writeText.newline.hint"] = "文本前后的换行：不加、写完之后再换一行，或追加时"
+            + "若文件最后一行还没结束就先补一个换行，让新内容从新的一行开始。",
+        ["file.writeText.newline.option.none"] = "不加",
+        ["file.writeText.newline.option.end"] = "写完换一行",
+        ["file.writeText.newline.option.start"] = "追加前先换一行（上一行没结束时）",
         ["file.writeText.encoding.label"] = "编码",
         ["file.writeText.encoding.hint"] = EncodingHintText,
         ["file.writeText.encoding.option.utf8"] = EncodingUtf8,
@@ -360,7 +366,8 @@ internal static class ActionStrings
         ["file.appendLog.path.label"] = "日志文件",
         ["file.appendLog.path.hint"] = "要写入的日志文件。只写文件名时会相对宏文件夹解析。",
         ["file.appendLog.text.label"] = "这一行",
-        ["file.appendLog.text.hint"] = "这一行写什么。变量会照常填进去，末尾自动换行，下一条从新的一行开始。",
+        ["file.appendLog.text.hint"] = "这一行写什么。变量会照常填进去，末尾自动换行，下一条从新的一行开始；"
+            + "文件最后一行还没结束时，会先补一个换行，不会挤在上一行后面。",
         ["file.appendLog.timestamp.label"] = "前面写上时间",
         ["file.appendLog.timestamp.hint"] = "在每行前面写上日期和时间，事后翻日志才看得出先后。",
 

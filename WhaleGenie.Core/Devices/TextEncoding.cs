@@ -28,6 +28,19 @@ public static class TextEncoding
     /// <summary>The code page of plain UTF-8, which is what everything new is written in.</summary>
     private const int CodePageUtf8 = 65001;
 
+    /// <summary>The code page of UTF-16 little endian, which is what the editor's <c>utf16</c> is.</summary>
+    private const int CodePageUtf16Le = 1200;
+
+    /// <summary>And the code page of UTF-16 big endian, in case a name ever asks for it.</summary>
+    private const int CodePageUtf16Be = 1201;
+
+    /// <summary>
+    /// Whether a name stands for two bytes to the character. It is the one thing about an encoding
+    /// that a look at the end of a file has to know: there a line break is two bytes, 0A 00, rather
+    /// than the single 0A every other encoding the editor offers writes.
+    /// </summary>
+    public static bool Wide(string name) => Resolve(name).CodePage is CodePageUtf16Le or CodePageUtf16Be;
+
     /// <summary>
     /// UTF-8 that refuses what it cannot read, which is how the bytes of a file are asked whether
     /// they are UTF-8 at all. The ordinary one hands back a question mark for every byte it cannot

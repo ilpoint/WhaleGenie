@@ -77,6 +77,42 @@ public sealed class LocalFileDevice : IFileDevice
         });
     }
 
+    public bool HasOpenLine(string path, string encoding)
+    {
+        var full = Full(path);
+        if (!File.Exists(full))
+        {
+            return false;
+        }
+
+        return Attempt(path, () =>
+        {
+            using var file = File.OpenRead(full);
+            if (file.Length == 0)
+            {
+                return false;
+            }
+
+            // The question is about the end of the file, so only the end is read: the file could be
+            // a log with a year of lines in it. It is answered from the bytes rather than by decoding
+            // them, because the tail can begin in the middle of a character, and a decoder handed
+            // those bytes takes the break for the second half of the one before it — measured, on a
+            // file ending in 世界 followed by a break. Every encoding the editor offers spells the
+            // break itself in ASCII, in two bytes when the encoding is a wide one.
+            var take = (int)Math.Min(8, file.Length);
+            file.Seek(-take, SeekOrigin.End);
+            var tail = new byte[take];
+            file.ReadExactly(tail);
+
+            if (TextEncoding.Wide(encoding))
+            {
+                return take < 2 || tail[^1] != 0x00 || tail[^2] is not (0x0A or 0x0D);
+            }
+
+            return tail[^1] is not (0x0A or 0x0D);
+        });
+    }
+
     public void WriteBytes(string path, byte[] bytes)
     {
         var full = Full(path);

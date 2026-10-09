@@ -162,6 +162,14 @@ public interface IFileDevice
     void WriteText(string path, string text, bool append, string encoding);
 
     /// <summary>
+    /// Whether the file's last line is still open: something is written there and it does not end
+    /// in a line break, so whatever comes next has to put one there first to get a line of its own.
+    /// A file that is missing, or empty, has no open line — its first line must not be pushed down
+    /// by a blank one.
+    /// </summary>
+    bool HasOpenLine(string path, string encoding);
+
+    /// <summary>
     /// Reads a file whole, as the bytes it is made of. Anything that is not text in any encoding
     /// comes in this way: a workbook is a zip before it is anything else.
     /// </summary>
@@ -671,6 +679,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public void WriteText(string path, string text, bool append, string encoding)
             => throw Missing("files");
+
+        public bool HasOpenLine(string path, string encoding) => throw Missing("files");
 
         public byte[] ReadBytes(string path) => throw Missing("files");
 
