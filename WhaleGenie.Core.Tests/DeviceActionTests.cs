@@ -1929,18 +1929,18 @@ public class DeviceActionTests
     }
 
     [Fact]
-    public async Task Copying_a_file_passes_both_paths_and_the_overwrite_flag()
+    public async Task Copying_a_file_passes_both_paths_to_the_device()
     {
         var devices = new FakeDeviceLayer();
         devices.Files["a.txt"] = "data";
         await RunAsync(
         [
             Step("file.copy", Param("from", "a.txt"), Param("to", "b.txt"),
-                Param("overwrite", "false")),
+                Param("ifExists", "overwrite")),
         ], devices);
 
         Assert.Equal("data", devices.Files["b.txt"]);
-        Assert.Contains("copyFile a.txt b.txt False", devices.Calls);
+        Assert.Contains("copyFile a.txt b.txt", devices.Calls);
     }
 
     [Fact]
@@ -1951,30 +1951,52 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("file.move", Param("from", "report.csv"), Param("to", @"archive\old.csv"),
-                Param("overwrite", "true")),
+                Param("ifExists", "overwrite")),
         ], devices);
 
         // A move is a rename as much as it is a change of folder: the old name is gone.
         Assert.True(result.Succeeded);
         Assert.Equal("rows", devices.Files[@"archive\old.csv"]);
         Assert.False(devices.Files.ContainsKey("report.csv"));
-        Assert.Contains(@"moveFile report.csv archive\old.csv True", devices.Calls);
+        Assert.Contains(@"moveFile report.csv archive\old.csv", devices.Calls);
     }
 
     [Fact]
-    public async Task Moving_onto_a_file_can_be_refused()
+    public async Task A_move_can_leave_a_file_that_is_already_there_alone()
     {
-        var devices = new FakeDeviceLayer { TargetExists = true };
+        var devices = new FakeDeviceLayer();
         devices.Files["report.csv"] = "rows";
+        devices.Files["taken.csv"] = "keep me";
         var (result, _, _) = await RunAsync(
         [
             Step("file.move", Param("from", "report.csv"), Param("to", "taken.csv"),
-                Param("overwrite", "false")),
+                Param("ifExists", "skip")),
         ], devices);
 
-        Assert.False(result.Succeeded);
-        Assert.Equal("Run.FileExists", result.Key);
+        // Nothing was moved and nothing was overwritten: the file that was there is still there,
+        // and the one that was to go there has not gone anywhere.
+        Assert.True(result.Succeeded);
+        Assert.Equal("keep me", devices.Files["taken.csv"]);
         Assert.Equal("rows", devices.Files["report.csv"]);
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("moveFile", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_copy_can_be_given_a_number_of_its_own_beside_a_taken_name()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["report.csv"] = "new";
+        devices.Files[@"backup\report.csv"] = "old";
+        devices.Files[@"backup\report (2).csv"] = "older";
+        await RunAsync(
+        [
+            Step("file.copy", Param("from", "report.csv"), Param("to", @"backup\report.csv"),
+                Param("ifExists", "unique")),
+        ], devices);
+
+        Assert.Equal("old", devices.Files[@"backup\report.csv"]);
+        Assert.Equal("older", devices.Files[@"backup\report (2).csv"]);
+        Assert.Equal("new", devices.Files[@"backup\report (3).csv"]);
     }
 
     [Fact]
@@ -5399,9 +5421,6 @@ internal sealed class FakeDeviceLayer
     /// <summary>The pretend files of raw bytes on disk, keyed by the path they were written to.</summary>
     public Dictionary<string, byte[]> Blobs { get; } = [];
 
-    /// <summary>When set, every copy reports the target already there and refuses to overwrite.</summary>
-    public bool TargetExists { get; set; }
-
     /// <summary>The folders the fake has been told about, by name.</summary>
     public List<string> Folders { get; } = [];
 
@@ -5825,13 +5844,9 @@ internal sealed class FakeDeviceLayer
         Files.Remove(path);
     }
 
-    void IFileDevice.Copy(string from, string to, bool overwrite)
+    void IFileDevice.Copy(string from, string to)
     {
-        Note($"copyFile {from} {to} {overwrite}");
-        if (TargetExists && !overwrite)
-        {
-            throw new DeviceActionException("Run.FileExists", to);
-        }
+        Note($"copyFile {from} {to}");
 
         if (Files.TryGetValue(from, out var text))
         {
@@ -5839,13 +5854,9 @@ internal sealed class FakeDeviceLayer
         }
     }
 
-    void IFileDevice.Move(string from, string to, bool overwrite)
+    void IFileDevice.Move(string from, string to)
     {
-        Note($"moveFile {from} {to} {overwrite}");
-        if (TargetExists && !overwrite)
-        {
-            throw new DeviceActionException("Run.FileExists", to);
-        }
+        Note($"moveFile {from} {to}");
 
         if (Files.TryGetValue(from, out var text))
         {

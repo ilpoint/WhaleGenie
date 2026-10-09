@@ -187,8 +187,12 @@ public interface IFileDevice
     /// </summary>
     void Delete(string path, bool toRecycleBin);
 
-    /// <summary>Copies a file.</summary>
-    void Copy(string from, string to, bool overwrite);
+    /// <summary>
+    /// Copies a file onto the target, replacing whatever is there. Whether replacing it is what
+    /// the macro wanted is the step's own question, and it has been asked by the time this is
+    /// called — the answer decides whether this is called at all.
+    /// </summary>
+    void Copy(string from, string to);
 
     /// <summary>Makes a folder, along with any folders above it that are not there yet.</summary>
     void CreateFolder(string path);
@@ -216,7 +220,7 @@ public interface IFileDevice
     /// Moves a file to another place, renaming it when the new name is in the same folder. A
     /// move across drives is a copy and a delete underneath, which is why it can take a while.
     /// </summary>
-    void Move(string from, string to, bool overwrite);
+    void Move(string from, string to);
 
     /// <summary>
     /// The files in a folder. Each one comes with what it takes to sort and weed them: a macro
@@ -688,9 +692,9 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public void Delete(string path, bool toRecycleBin) => throw Missing("files");
 
-        public void Copy(string from, string to, bool overwrite) => throw Missing("files");
+        public void Copy(string from, string to) => throw Missing("files");
 
-        public void Move(string from, string to, bool overwrite) => throw Missing("files");
+        public void Move(string from, string to) => throw Missing("files");
 
         public void CreateFolder(string path) => throw Missing("files");
 

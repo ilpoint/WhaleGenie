@@ -585,7 +585,7 @@ public static class ActionCatalog
             [
                 FilePath("from", "From", "report.csv", "File to copy.", PathIntent.Read),
                 FilePath("to", "To", @"backup\report.csv", "Where the copy goes.", PathIntent.Write),
-                Toggle("overwrite", "Overwrite", true, "Replace the copy when it is already there."),
+                IfExists(),
             ],
         },
         new()
@@ -598,7 +598,7 @@ public static class ActionCatalog
             [
                 FilePath("from", "From", "report.csv", "File to move.", PathIntent.Read),
                 FilePath("to", "To", @"archive\report.csv", "Where it goes, name and all.", PathIntent.Write),
-                Toggle("overwrite", "Overwrite", true, "Replace the file when it is already there."),
+                IfExists(),
             ],
         },
         new()
@@ -3537,6 +3537,18 @@ public static class ActionCatalog
     private static ActionParameter Sheet()
         => Text("sheet", "Sheet", "Sheet1", required: false,
             hint: "Which sheet to use, by the name on its tab. Leave empty for the first sheet.");
+
+    /// <summary>
+    /// What to do when the file a step is about to write is already there. It is the same question
+    /// for a copy and for a move, and in both the middle answer — leave what is there alone — is
+    /// what a person would do rather than overrule the file that is already there.
+    /// </summary>
+    private static ActionParameter IfExists()
+        => Choice("ifExists", "If it is already there",
+            ["overwrite", "skip", "unique"], "overwrite",
+            "What to do when a file of that name is already there: put this one over it, leave the "
+            + "one that is there alone, or give the new one a number of its own (report (2).csv).",
+            labels: ["Replace it", "Leave it alone", "Give the new one a number"]);
 
     /// <summary>
     /// The character CSV cells are separated by. The picker holds the ones that actually turn up in

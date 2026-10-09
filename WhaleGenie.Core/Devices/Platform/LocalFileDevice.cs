@@ -168,7 +168,7 @@ public sealed class LocalFileDevice : IFileDevice
         });
     }
 
-    public void Copy(string from, string to, bool overwrite)
+    public void Copy(string from, string to)
     {
         var source = Full(from);
         if (!File.Exists(source))
@@ -177,11 +177,6 @@ public sealed class LocalFileDevice : IFileDevice
         }
 
         var target = Full(to);
-        if (!overwrite && File.Exists(target))
-        {
-            throw new DeviceActionException("Run.FileExists", to);
-        }
-
         Attempt(from, () =>
         {
             var folder = Path.GetDirectoryName(target);
@@ -190,7 +185,7 @@ public sealed class LocalFileDevice : IFileDevice
                 Directory.CreateDirectory(folder);
             }
 
-            File.Copy(source, target, overwrite);
+            File.Copy(source, target, overwrite: true);
             return true;
         });
     }
@@ -270,7 +265,7 @@ public sealed class LocalFileDevice : IFileDevice
         });
     }
 
-    public void Move(string from, string to, bool overwrite)
+    public void Move(string from, string to)
     {
         var source = Full(from);
         if (!File.Exists(source))
@@ -279,11 +274,6 @@ public sealed class LocalFileDevice : IFileDevice
         }
 
         var target = Full(to);
-        if (!overwrite && File.Exists(target))
-        {
-            throw new DeviceActionException("Run.FileExists", to);
-        }
-
         Attempt(from, () =>
         {
             var folder = Path.GetDirectoryName(target);
@@ -292,7 +282,7 @@ public sealed class LocalFileDevice : IFileDevice
                 Directory.CreateDirectory(folder);
             }
 
-            File.Move(source, target, overwrite);
+            File.Move(source, target, overwrite: true);
             return true;
         });
     }

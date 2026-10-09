@@ -3153,21 +3153,79 @@ public sealed class MacroRunner
     private void CopyFile(ExecutableStep step, int depth)
     {
         var from = PathOf(step, "from");
-        var to = PathOf(step, "to");
-        var overwrite = !string.Equals(step.Text("overwrite").Trim(), "false", StringComparison.OrdinalIgnoreCase);
+        var (to, go) = Landing(step, PathOf(step, "to"));
+        if (!go)
+        {
+            Log(LogLevel.Info, depth, step.Type, "Run.FileLeftAlone", to);
+            return;
+        }
 
-        _devices.Files.Copy(from, to, overwrite);
+        _devices.Files.Copy(from, to);
         Log(LogLevel.Info, depth, step.Type, "Run.CopiedFile", from, to);
     }
 
     private void MoveFile(ExecutableStep step, int depth)
     {
         var from = PathOf(step, "from");
-        var to = PathOf(step, "to");
-        var overwrite = !string.Equals(step.Text("overwrite").Trim(), "false", StringComparison.OrdinalIgnoreCase);
+        var (to, go) = Landing(step, PathOf(step, "to"));
+        if (!go)
+        {
+            Log(LogLevel.Info, depth, step.Type, "Run.FileLeftAlone", to);
+            return;
+        }
 
-        _devices.Files.Move(from, to, overwrite);
+        _devices.Files.Move(from, to);
         Log(LogLevel.Info, depth, step.Type, "Run.MovedFile", from, to);
+    }
+
+    /// <summary>
+    /// Where a copy or a move is to land, and what to do about a file already sitting there: put
+    /// this one over it, leave the one that is there alone, or give the new one a number of its own
+    /// beside it. Whether the name is taken is a question only the machine can answer.
+    /// </summary>
+    private (string To, bool Go) Landing(ExecutableStep step, string to)
+    {
+        var choice = step.Text("ifExists").Trim().ToLowerInvariant();
+        if (choice.Length == 0)
+        {
+            // A step written while this was a yes/no question only ever said whether to overwrite.
+            // It is read as what it said rather than as the new default, because "do not put that
+            // over my file" must not quietly turn into "put that over my file" for anyone.
+            choice = Flag(step, "overwrite", true) ? "overwrite" : "skip";
+        }
+
+        if (!_devices.Files.Exists(to))
+        {
+            return (to, true);
+        }
+
+        return choice switch
+        {
+            "skip" => (to, false),
+            "unique" => (Beside(to), true),
+            _ => (to, true),
+        };
+    }
+
+    /// <summary>
+    /// A free name next to a taken one — report (2).csv, then report (3).csv — which is the way
+    /// Windows itself gives a second file a name of its own.
+    /// </summary>
+    private string Beside(string path)
+    {
+        var folder = Path.GetDirectoryName(path) ?? string.Empty;
+        var stem = Path.GetFileNameWithoutExtension(path);
+        var extension = Path.GetExtension(path);
+        for (var number = 2; number < 10_000; number++)
+        {
+            var candidate = Path.Combine(folder, $"{stem} ({number}){extension}");
+            if (!_devices.Files.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new StepFailure("Run.NoFreeName", path);
     }
 
     private void CreateFolder(ExecutableStep step, int depth)

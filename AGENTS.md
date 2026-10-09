@@ -563,8 +563,13 @@ CSV 的程序，所以不做成写出去的默认值。
       宏每次跑出来必须是同一个顺序。
 - [x] `file.delete` 有"删到回收站"了（`toRecycleBin`）：勾上交给 Windows 外壳送进回收站，
       删错了能找回来（日志也分开记 `Run.RecycledFile`）；不勾照旧直接删，已有的宏行为不变。
-- [ ] `file.copy` / `file.move` 只认单个文件（没有整目录）、重名只有"覆盖 / 不覆盖"两档
-      → 做不成「重名时自动编号」（别扭）。
+- [x] `file.copy` / `file.move` 的重名从"覆盖 / 不覆盖"两档改成三档 `ifExists`：替换它 /
+      留着它（这一步什么也不做）/ 给新文件编号（`report (2).csv`，Windows 自己也是这么编号的）。
+      顺带把决定权收上来：设备层的 `Copy` / `Move` 不再自己判断要不要覆盖，所以"不覆盖就报错"、
+      `Run.FileExists` 和调用点那个 `overwrite` 参数一起删掉了。老步骤里的 `overwrite=false`
+      仍然读成"留着它"，不会因为换了问法就去覆盖别人的文件。
+- [ ] `file.copy` / `file.move` 还不认整个文件夹。PAD 那边这是单独两条动作（Copy folder(s) /
+      Move folder(s)），一次搬一批，所以这里也照单独动作做，排在后面。
 - [x] `file.readText` 能读成列表了（`storeAs`：一段文本 / 一行一项），`limit` 只读前几行，
       `skipBlankLines` / `trim` 收拾每一行：三种换行（CRLF / LF / 单独 CR）都认，文件末尾那个
       换行不会多出一项空的；只要前几行又不要列表时，那几行按本机换行拼回一段文本。

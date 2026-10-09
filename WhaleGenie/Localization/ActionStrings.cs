@@ -403,8 +403,12 @@ internal static class ActionStrings
         ["file.copy.from.hint"] = "要复制的文件。只写文件名时会相对宏文件夹解析。",
         ["file.copy.to.label"] = "目标",
         ["file.copy.to.hint"] = "副本要放到哪里。只写文件名时会相对宏文件夹解析。",
-        ["file.copy.overwrite.label"] = "覆盖",
-        ["file.copy.overwrite.hint"] = "目标已存在时是否替换。",
+        ["file.copy.ifExists.label"] = "目标已存在时",
+        ["file.copy.ifExists.hint"] = "同名文件已经在那里时怎么办：替换它、留着它（这一步什么也不做），"
+            + "或给新文件一个自己的编号（report (2).csv）。",
+        ["file.copy.ifExists.option.overwrite"] = "替换它",
+        ["file.copy.ifExists.option.skip"] = "留着它，什么也不做",
+        ["file.copy.ifExists.option.unique"] = "给新文件编号",
 
         ["file.move.name"] = "移动 / 重命名文件",
         ["file.move.desc"] = "把文件移到别处，同名目录里换个名字就是重命名。",
@@ -412,8 +416,12 @@ internal static class ActionStrings
         ["file.move.from.hint"] = "要移动的文件。只写文件名时会相对宏文件夹解析。",
         ["file.move.to.label"] = "目标",
         ["file.move.to.hint"] = "移到哪里，连文件名一起写。只写文件名时会相对宏文件夹解析。",
-        ["file.move.overwrite.label"] = "覆盖",
-        ["file.move.overwrite.hint"] = "目标已存在时是否替换。",
+        ["file.move.ifExists.label"] = "目标已存在时",
+        ["file.move.ifExists.hint"] = "同名文件已经在那里时怎么办：替换它、留着它（这一步什么也不做），"
+            + "或给移过来的文件一个自己的编号（report (2).csv）。",
+        ["file.move.ifExists.option.overwrite"] = "替换它",
+        ["file.move.ifExists.option.skip"] = "留着它，什么也不做",
+        ["file.move.ifExists.option.unique"] = "给移过来的文件编号",
 
         ["file.createFolder.name"] = "新建文件夹",
         ["file.createFolder.desc"] = "创建文件夹，上面缺的目录会一起建出来。",
