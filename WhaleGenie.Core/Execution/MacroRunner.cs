@@ -3210,20 +3210,23 @@ public sealed class MacroRunner
             body = body.Take(limit);
         }
 
-        var picked = body
-            .Select(row => Value.FromList(row.Select(Value.FromText)))
-            .ToList();
-        Variables.Set(VariableName(step, "resultVariable", "rows"), Value.FromList(picked));
+        // A CSV cell is text: a file that holds 1,234 or 2026-01-31 says nothing about whether that
+        // is a number or a date, and guessing would be a macro quietly working on the wrong thing.
+        var table = Narrow(step,
+            header?.Select(Value.FromText).ToList(),
+            body.Select(row => (IReadOnlyList<Value>)[.. row.Select(Value.FromText)]));
+        Variables.Set(VariableName(step, "resultVariable", "rows"), Shaped(step, table, path));
 
         // Which column holds what is the first thing a macro has to work out about somebody else's
         // file, and the names are the only place that is written down.
         var names = step.Text("headerVariable").Trim();
         if (names.Length > 0)
         {
-            Variables.Set(names, Value.FromList((header ?? []).Select(Value.FromText)));
+            Variables.Set(names, Value.FromList(
+                (table.Header ?? []).Select(cell => Value.FromText(cell.AsText()))));
         }
 
-        Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, picked.Count);
+        Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, table.Rows.Count);
     }
 
     private void WriteCsv(ExecutableStep step, int depth)
@@ -3295,8 +3298,12 @@ public sealed class MacroRunner
         var rows = Spreadsheet.Read(_devices.Files.ReadBytes(path), step.Text("sheet").Trim(),
             step.Text("range").Trim(), Flag(step, "asText", false));
 
-        var header = Flag(step, "hasHeader", true) ? rows.FirstOrDefault() : null;
-        var body = header is null ? rows : rows.Skip(1);
+        // A table often sits under a title or a couple of blank rows, so where the names are is
+        // something the step says rather than something the first row is assumed to be.
+        var headerAt = Flag(step, "hasHeader", true) ? Math.Max(1, Number(step, "headerRow")) : 0;
+        var top = rows.Skip(headerAt > 0 ? headerAt - 1 : 0).ToList();
+        var header = headerAt > 0 ? top.FirstOrDefault() : null;
+        var body = headerAt > 0 ? top.Skip(1) : top;
 
         var limit = Number(step, "maxRows");
         if (limit > 0)
@@ -3304,17 +3311,17 @@ public sealed class MacroRunner
             body = body.Take(limit);
         }
 
-        var picked = body.Select(Value.FromList).ToList();
-        Variables.Set(VariableName(step, "resultVariable", "rows"), Value.FromList(picked));
+        var table = Narrow(step, header, body);
+        Variables.Set(VariableName(step, "resultVariable", "rows"), Shaped(step, table, path));
 
         var names = step.Text("headerVariable").Trim();
         if (names.Length > 0)
         {
             Variables.Set(names, Value.FromList(
-                (header ?? []).Select(cell => Value.FromText(cell.AsText()))));
+                (table.Header ?? []).Select(cell => Value.FromText(cell.AsText()))));
         }
 
-        Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, picked.Count);
+        Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, table.Rows.Count);
     }
 
     private void WriteSheet(ExecutableStep step, int depth)
@@ -3349,6 +3356,150 @@ public sealed class MacroRunner
             "insert" or "overwrite" => Spreadsheet.SheetWriteMode.Insert,
             _ => Spreadsheet.SheetWriteMode.Replace,
         };
+
+    /// <summary>
+    /// One table a step read: the names above the columns, when the table has them, and the rows
+    /// under them.
+    /// </summary>
+    private sealed record Table(IReadOnlyList<Value>? Header, IReadOnlyList<IReadOnlyList<Value>> Rows);
+
+    /// <summary>
+    /// The part of a table the step asked for: the rows that match, and then the columns it named.
+    /// Shared by the sheet and the CSV so that reading either of them takes the same words and
+    /// means the same thing — a macro that is pointed at the other file format should not have to
+    /// be rewritten.
+    /// </summary>
+    private Table Narrow(ExecutableStep step, IReadOnlyList<Value>? header,
+        IEnumerable<IReadOnlyList<Value>> body)
+    {
+        var match = ColumnOf(step, header, "matchColumn");
+        var wanted = Read(step.Text("matchValue"));
+        var mode = step.Text("matchMode");
+
+        // Which rows to keep is worked out before the columns are taken off, because the column a
+        // row is matched on need not be one of the columns that come back.
+        var rows = body
+            .Where(row => match < 0 || CaseMatches(Cell(row, match), wanted.AsText(), mode))
+            .ToList();
+
+        var keep = Kept(step, header);
+        if (keep.Count == 0)
+        {
+            return new Table(header, rows);
+        }
+
+        return new Table(
+            header is null ? null : Project(header, keep),
+            [.. rows.Select(row => Project(row, keep))]);
+    }
+
+    /// <summary>
+    /// What the result variable holds. A list of rows is what a table is; a plain list of one
+    /// column's values is what a macro walks through or adds up, and making that jump through a
+    /// one-cell row first is the difference between reading a column and reading a table.
+    /// </summary>
+    private Value Shaped(ExecutableStep step, Table table, string path)
+    {
+        if (!string.Equals(step.Text("shape").Trim(), "values", StringComparison.OrdinalIgnoreCase))
+        {
+            return Value.FromList([.. table.Rows.Select(Value.FromList)]);
+        }
+
+        var width = table.Header?.Count ?? table.Rows.FirstOrDefault()?.Count ?? 0;
+        if (width > 1)
+        {
+            throw new StepFailure("Run.OneColumnOnly", path);
+        }
+
+        return Value.FromList([.. table.Rows.Select(row => Cell(row, 0))]);
+    }
+
+    /// <summary>The columns a step named, in the order it named them; empty means all of them.</summary>
+    private IReadOnlyList<int> Kept(ExecutableStep step, IReadOnlyList<Value>? header)
+    {
+        var wanted = step.Text("columns").Trim();
+        if (wanted.Length == 0)
+        {
+            return [];
+        }
+
+        return
+        [
+            .. wanted
+                .Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(name => ColumnOf(header, name)),
+        ];
+    }
+
+    /// <summary>Which column a step named with one of its own fields, or -1 when it named none.</summary>
+    private int ColumnOf(ExecutableStep step, IReadOnlyList<Value>? header, string parameter)
+    {
+        var name = step.Text(parameter).Trim();
+        return name.Length == 0 ? -1 : ColumnOf(header, name);
+    }
+
+    /// <summary>
+    /// Which column a step means: the name written above it when the table has names, or the way a
+    /// person writes a column — <c>B</c>, or <c>3</c> for the third one. A name the table does not
+    /// have is a step asking for the wrong thing, and says so rather than reading the wrong column.
+    /// </summary>
+    private static int ColumnOf(IReadOnlyList<Value>? header, string wanted)
+    {
+        var written = wanted.Trim();
+        if (header is not null)
+        {
+            for (var at = 0; at < header.Count; at++)
+            {
+                if (string.Equals(header[at].AsText().Trim(), written, StringComparison.OrdinalIgnoreCase))
+                {
+                    return at;
+                }
+            }
+        }
+
+        if (Letters(written) is { } letter)
+        {
+            return letter;
+        }
+
+        if (int.TryParse(written, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number)
+            && number >= 1)
+        {
+            return number - 1;
+        }
+
+        throw new StepFailure("Run.NoSuchColumn", written);
+    }
+
+    /// <summary>The place a column letter names, counted from zero, or null when it is not letters.</summary>
+    private static int? Letters(string text)
+    {
+        if (text.Length == 0 || text.Length > 3)
+        {
+            return null;
+        }
+
+        var place = 0;
+        foreach (var character in text.ToUpperInvariant())
+        {
+            if (character is < 'A' or > 'Z')
+            {
+                return null;
+            }
+
+            place = place * 26 + (character - 'A' + 1);
+        }
+
+        return place - 1;
+    }
+
+    /// <summary>The cell in one column of a row, or an empty one when the row stops before it.</summary>
+    private static Value Cell(IReadOnlyList<Value> row, int at)
+        => at >= 0 && at < row.Count ? row[at] : Value.FromText(string.Empty);
+
+    /// <summary>One row of a table, with only the named columns left in it and in that order.</summary>
+    private static IReadOnlyList<Value> Project(IReadOnlyList<Value> row, IReadOnlyList<int> keep)
+        => [.. keep.Select(at => Cell(row, at))];
 
     /// <summary>The sheets a workbook holds, by the names on their tabs.</summary>
     private void ListSheets(ExecutableStep step, int depth)

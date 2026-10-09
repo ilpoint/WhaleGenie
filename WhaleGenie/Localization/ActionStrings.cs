@@ -501,6 +501,32 @@ internal static class ActionStrings
         ["file.readCsv.maxRows.hint"] = "最多读取这么多行，0 表示从这里一直读到文件末尾。",
         ["file.readCsv.trim.label"] = "去掉空格",
         ["file.readCsv.trim.hint"] = "把每个单元格两端的空格去掉，手写的文件里常有。",
+        ["file.readCsv.columns.label"] = "只读这几列",
+        ["file.readCsv.columns.hint"] =
+            "要保留的列，按表头里的名字写，或者按它所在的字母写：金额、B、金额,B。每一行只留这几列，"
+            + "顺序按这里写的来；留空表示所有列。",
+        ["file.readCsv.shape.label"] = "结果形状",
+        ["file.readCsv.shape.hint"] =
+            "给出行列表，或者在只点名了一列时，直接给出那一列的值（一个普通列表，可以直接遍历或求和）。",
+        ["file.readCsv.shape.option.rows"] = "每行一个列表",
+        ["file.readCsv.shape.option.values"] = "一列的值",
+        ["file.readCsv.matchColumn.label"] = "只读这些行",
+        ["file.readCsv.matchColumn.hint"] =
+            "只读这一列的单元格等于下面那个值的行；列名写法与上面一样。留空表示每一行都读。",
+        ["file.readCsv.matchValue.label"] = "等于",
+        ["file.readCsv.matchValue.hint"] = "这些行里那个单元格要等于的值，也可以写成 $变量。",
+        ["file.readCsv.matchMode.label"] = "匹配方式",
+        ["file.readCsv.matchMode.hint"] = "单元格与这个值怎么比：完全相等，还是比其中一段。",
+        ["file.readCsv.matchMode.option.equals"] = "等于",
+        ["file.readCsv.matchMode.option.notEquals"] = "不等于",
+        ["file.readCsv.matchMode.option.contains"] = "包含",
+        ["file.readCsv.matchMode.option.startsWith"] = "以…开头",
+        ["file.readCsv.matchMode.option.endsWith"] = "以…结尾",
+        ["file.readCsv.matchMode.option.greaterThan"] = "大于",
+        ["file.readCsv.matchMode.option.greaterOrEqual"] = "大于等于",
+        ["file.readCsv.matchMode.option.lessThan"] = "小于",
+        ["file.readCsv.matchMode.option.lessOrEqual"] = "小于等于",
+        ["file.readCsv.matchMode.option.regex"] = "正则匹配",
         ["file.readCsv.resultVariable.label"] = "结果变量",
         ["file.readCsv.resultVariable.hint"] = "接收行列表的变量，每行是一个单元格列表。",
         ["file.readCsv.encoding.label"] = "编码",
@@ -570,13 +596,43 @@ internal static class ActionStrings
         ["excel.readSheet.range.hint"] =
             "要读哪一块，按名称框里的写法写：B2:D40，或者只写 B2 表示从这一格往右往下直到有内容的地方。"
             + "留空表示读这张表用到的全部单元格。",
+        ["excel.readSheet.columns.label"] = "只读这几列",
+        ["excel.readSheet.columns.hint"] =
+            "要保留的列，按表头里的名字写，或者按它所在的字母写：金额、B、金额,B。每一行只留这几列，"
+            + "顺序按这里写的来；留空表示所有列。",
         ["excel.readSheet.hasHeader.label"] = "首行是表头",
         ["excel.readSheet.hasHeader.hint"] = "结果中不包含第一行，第一行的名字存到下面的变量里。",
+        ["excel.readSheet.headerRow.label"] = "表头在第几行",
+        ["excel.readSheet.headerRow.hint"] =
+            "表头在第几行，从读到的第一行数起。报表上面常有标题或空行，那种表的表头在第二、第三行，"
+            + "上面的行不会被当成数据。只有勾了「首行是表头」才用得到。",
         ["excel.readSheet.headerVariable.label"] = "列名变量",
         ["excel.readSheet.headerVariable.hint"] =
             "接收表头那一行的列名，按列的顺序排列，宏靠它认出哪一列是要的那一列。不填就不存。",
         ["excel.readSheet.maxRows.label"] = "最多读几行",
         ["excel.readSheet.maxRows.hint"] = "最多读取这么多行，0 表示从这里一直读到末尾。",
+        ["excel.readSheet.shape.label"] = "结果形状",
+        ["excel.readSheet.shape.hint"] =
+            "给出行列表，或者在只点名了一列时，直接给出那一列的值（一个普通列表，可以直接遍历或求和）。",
+        ["excel.readSheet.shape.option.rows"] = "每行一个列表",
+        ["excel.readSheet.shape.option.values"] = "一列的值",
+        ["excel.readSheet.matchColumn.label"] = "只读这些行",
+        ["excel.readSheet.matchColumn.hint"] =
+            "只读这一列的单元格等于下面那个值的行；列名写法与上面一样。留空表示每一行都读。",
+        ["excel.readSheet.matchValue.label"] = "等于",
+        ["excel.readSheet.matchValue.hint"] = "这些行里那个单元格要等于的值，也可以写成 $变量。",
+        ["excel.readSheet.matchMode.label"] = "匹配方式",
+        ["excel.readSheet.matchMode.hint"] = "单元格与这个值怎么比：完全相等，还是比其中一段。",
+        ["excel.readSheet.matchMode.option.equals"] = "等于",
+        ["excel.readSheet.matchMode.option.notEquals"] = "不等于",
+        ["excel.readSheet.matchMode.option.contains"] = "包含",
+        ["excel.readSheet.matchMode.option.startsWith"] = "以…开头",
+        ["excel.readSheet.matchMode.option.endsWith"] = "以…结尾",
+        ["excel.readSheet.matchMode.option.greaterThan"] = "大于",
+        ["excel.readSheet.matchMode.option.greaterOrEqual"] = "大于等于",
+        ["excel.readSheet.matchMode.option.lessThan"] = "小于",
+        ["excel.readSheet.matchMode.option.lessOrEqual"] = "小于等于",
+        ["excel.readSheet.matchMode.option.regex"] = "正则匹配",
         ["excel.readSheet.asText.label"] = "读显示出来的文字",
         ["excel.readSheet.asText.hint"] =
             "读单元格显示出来的文字，而不是它存的值。看表的人看到的是什么，宏就拿到什么："

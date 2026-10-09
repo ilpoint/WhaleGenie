@@ -739,6 +739,25 @@ public static class ActionCatalog
                     "Read this many rows at most. 0 reads every row from there on.", max: 1000000),
                 Toggle("trim", "Trim spaces", false,
                     "Drop spaces around each cell, which a file written by hand often has."),
+                Text("columns", "Only these columns", "金额, 日期", required: false,
+                    hint: "The columns to keep, written the way they are named in the header or as "
+                        + "the letter they sit under: 金额, or B, or 金额,B. Each row comes back with "
+                        + "those columns and no others, in the order written here. Leave empty for "
+                        + "every column."),
+                Choice("shape", "Result shape", ["rows", "values"], "rows",
+                    "A list of rows, or — when exactly one column was named above — the values of "
+                    + "that column as one plain list, ready to walk through or add up.",
+                    labels: ["One list per row", "The values of one column"], advanced: true),
+                Text("matchColumn", "Only rows where", "订单号", required: false,
+                    hint: "Read just the rows whose cell in this column is the value below; the "
+                        + "column is named the same way. Leave empty to read every row."),
+                Text("matchValue", "Is", "A123", required: false,
+                    hint: "The value those rows hold. Written out, or named as a variable with "
+                        + "$name.",
+                    acceptsVariables: true),
+                Choice("matchMode", "Matches", MatchModes, "equals",
+                    "How the cell is compared against the value: exactly, or parts of it.",
+                    labels: MatchModeLabels, advanced: true),
                 Variable("resultVariable", "Result variable", "rows",
                     "Variable that receives a list of rows, each a list of cells.",
                     required: false, namesVariable: true),
@@ -819,15 +838,39 @@ public static class ActionCatalog
                     hint: "Which cells to read, written the way the name box writes them: B2:D40, "
                         + "or B2 for everything from that cell down and to the right. Leave empty "
                         + "for every cell the sheet uses."),
+                Text("columns", "Only these columns", "金额, 日期", required: false,
+                    hint: "The columns to keep, written the way they are named in the header or as "
+                        + "the letter they sit under: 金额, or B, or 金额,B. Each row comes back with "
+                        + "those columns and no others, in the order written here. Leave empty for "
+                        + "every column."),
                 Toggle("hasHeader", "First row is a header", true,
                     "Leave the first row out of the result, and keep what it says in the names "
                     + "variable below."),
+                Number("headerRow", "Header row", 1,
+                    "Which row holds the column names, counted from the first row that was read. A "
+                    + "report with a title above its table usually has it on the second or third "
+                    + "row; everything above it is left out. Only used when the first row is a "
+                    + "header.", min: 1, advanced: true),
                 Variable("headerVariable", "Column names variable", "columns",
                     "Variable that receives the names in the header row, in column order, which is "
                     + "how a macro finds the column it wants. Leave empty for none.",
                     required: false, namesVariable: true),
                 Number("maxRows", "At most rows", 0,
                     "Read this many rows at most. 0 reads every row from there on.", max: 1000000),
+                Choice("shape", "Result shape", ["rows", "values"], "rows",
+                    "A list of rows, or — when exactly one column was named above — the values of "
+                    + "that column as one plain list, ready to walk through or add up.",
+                    labels: ["One list per row", "The values of one column"], advanced: true),
+                Text("matchColumn", "Only rows where", "订单号", required: false,
+                    hint: "Read just the rows whose cell in this column is the value below; the "
+                        + "column is named the same way. Leave empty to read every row."),
+                Text("matchValue", "Is", "A123", required: false,
+                    hint: "The value those rows hold. Written out, or named as a variable with "
+                        + "$name.",
+                    acceptsVariables: true),
+                Choice("matchMode", "Matches", MatchModes, "equals",
+                    "How the cell is compared against the value: exactly, or parts of it.",
+                    labels: MatchModeLabels, advanced: true),
                 Toggle("asText", "Read what the cells show", false,
                     "Read the text each cell shows rather than the value it holds, which is what "
                     + "somebody looking at the sheet reads: a phone number that shows leading "

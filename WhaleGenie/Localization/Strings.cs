@@ -737,6 +737,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.StepOutcomes"] = "Step results ({0})",
         ["Run.MissingStep"] = "This condition does not say which step it is about.",
         ["Run.NoSuchStep"] = "There is no step called {0} in this macro.",
+        ["Run.NoSuchColumn"] = "This table has no column called {0}: write the name from the "
+            + "header row, or the letter the column sits under.",
+        ["Run.OneColumnOnly"] = "Asking for a column's values to be one plain list needs exactly "
+            + "one column, and this step asked for more than one ({0}).",
         ["Run.NoDevice"] = "This machine cannot do that: {0} is not connected.",
         ["Run.NoDriver"] =
             "Driver-level input needs the usbip-win2 driver: the settings window has its download.",
@@ -1569,6 +1573,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.StepOutcomes"] = "步骤结果（{0}）",
         ["Run.MissingStep"] = "这个条件没有指明要问哪一步。",
         ["Run.NoSuchStep"] = "这个宏里没有叫 {0} 的步骤。",
+        ["Run.NoSuchColumn"] = "这张表里没有叫 {0} 的列：写表头里的名字，或者写这一列所在的字母。",
+        ["Run.OneColumnOnly"] = "把一列的值做成一个普通列表，只能点名一列，这一步点了不止一列（{0}）。",
         ["Run.NoDevice"] = "这台机器暂不支持该操作：{0} 尚未接入。",
         ["Run.NoDriver"] = "驱动级输入需要先装好 usbip-win2 驱动，设置窗口里有下载入口。",
         ["Run.NoDriverServer"] =
