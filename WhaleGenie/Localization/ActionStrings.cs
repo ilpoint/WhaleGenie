@@ -647,12 +647,22 @@ internal static class ActionStrings
         ["excel.writeSheet.sheet.label"] = "表",
         ["excel.writeSheet.sheet.hint"] = "要写入哪一张表，写表标签上的名字；留空表示第一张表。",
         ["excel.writeSheet.rows.label"] = "行",
-        ["excel.writeSheet.rows.hint"] = "行列表。每一行本身也可以是一个单元格列表；数字按数字写、"
-            + "真假按真假写，这样一列数字在表里还是数字，而不是看着像数字的文本。",
+        ["excel.writeSheet.rows.hint"] = "要写的表：一个行列表，每一行本身是一个单元格列表。"
+            + "一串普通值就是一行一个值，读一列的时候交回来的正是这个样子；单个值就是一个单元格。"
+            + "数字按数字写、真假按真假写，这样一列数字在表里还是数字，而不是看着像数字的文本。",
         ["excel.writeSheet.header.label"] = "表头行",
         ["excel.writeSheet.header.hint"] =
             "写在数据上面的列名：一个列表，也就是读表格时把表头收进的那个变量。"
             + "追加到已经有内容的表里时不重复写，所以流水账只有一个表头。留空就是不写表头。",
+        ["excel.writeSheet.align.label"] = "按列名放进同名的列",
+        ["excel.writeSheet.align.hint"] =
+            "每个单元格放进表里同名的那一列，而不是每行放在同一个位置上。"
+            + "这些名字来自上面那一栏表头，表里已有的名字决定每一列落在哪："
+            + "这样就能往一张列序不同的表里填，也能只写其中几列，不用去数第几列。"
+            + "表里还没有列名时就照写的顺序放。",
+        ["excel.writeSheet.headerRow.label"] = "列名在第几行",
+        ["excel.writeSheet.headerRow.hint"] = "表里放列名的是第几行，从最上面一行数起。"
+            + "只在按列名放的时候用得到。",
         ["excel.writeSheet.mode.label"] = "方式",
         ["excel.writeSheet.mode.hint"] =
             "表里已有的内容怎么办：清空再写、从起始单元格开始覆盖（其余保留），"

@@ -894,8 +894,10 @@ public static class ActionCatalog
                     + "else already in it is kept.", PathIntent.Write, "*.xlsx"),
                 Sheet(),
                 Variable("rows", "Rows", "$rows",
-                    "A list of rows. Each row may itself be a list of cells. A number is written as "
-                    + "a number and a flag as a flag, so a column of numbers stays a column of "
+                    "The table to write: a list of rows, each of them a list of cells. A list of "
+                    + "plain values is one value per row, which is how a column comes back from "
+                    + "reading one, and a single value is a single cell. A number is written as a "
+                    + "number and a flag as a flag, so a column of numbers stays a column of "
                     + "numbers in the sheet rather than text that only looks like one.",
                     namesVariable: false),
                 Variable("header", "Header row", "$columns",
@@ -904,6 +906,18 @@ public static class ActionCatalog
                     + "that already holds something does not write them again, so a log keeps one "
                     + "header at the top. Leave it empty for a table with nothing above it.",
                     required: false),
+                Toggle("align", "Put each value under the column with that name", false,
+                    "Write every cell into the column whose name above it matches the name this "
+                    + "step gives that cell, instead of into the same place across the row. The "
+                    + "names of this step's cells come from the header row above, and the names the "
+                    + "sheet already holds decide where each one goes: that is what lets a macro "
+                    + "fill in a sheet whose columns sit in another order, or write only some of "
+                    + "its columns, without counting columns. A sheet that has no names yet takes "
+                    + "the rows in the order they are written in."),
+                Number("headerRow", "The names are on row", 1,
+                    "Which row of the sheet holds the column names, counted from the top. Only "
+                    + "used when the values are put in by column name.",
+                    min: 1, max: 1048576, advanced: true),
                 Choice("mode", "Mode", ["replace", "insert", "append"], "replace",
                     "What happens to what the sheet already holds: clear it and write, write over "
                     + "the cells from the starting cell on and leave the rest, or add below the "

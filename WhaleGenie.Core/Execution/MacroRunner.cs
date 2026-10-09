@@ -3328,23 +3328,24 @@ public sealed class MacroRunner
     {
         var path = PathOf(step);
         var rows = Read(step.Text("rows"));
-        if (!rows.IsList)
-        {
-            throw new StepFailure("Run.NotAList", step.Text("rows"));
-        }
+
+        // One value is one cell and a row of plain values is a column of cells: "put this number in
+        // that cell" is something a macro does all the time, and making it build a list holding one
+        // list holding one first would be the writer telling the author how to think.
+        var cells = rows.IsList ? rows.Items.Select(Cells).ToList() : [Cells(rows)];
 
         // The file is read first so that everything else it holds — the other sheets, the
         // formatting, the workbook's own settings — comes back out of it unchanged.
         var book = _devices.Files.Exists(path) ? _devices.Files.ReadBytes(path) : null;
-        var cells = rows.Items.Select(Cells).ToList();
         var names = Read(step.Text("header"));
-        IReadOnlyList<Value> header = names.IsList
+        IReadOnlyList<Value>? header = names.IsList
             ? names.Items
-            : names.AsText().Length > 0 ? [names] : [];
+            : names.AsText().Length > 0 ? [names] : null;
 
         _devices.Files.WriteBytes(path, Spreadsheet.Write(book, step.Text("sheet").Trim(), cells,
             header, Place(step), step.Text("startCell").Trim(),
-            Flag(step, "formula", true), Flag(step, "autoFit", false)));
+            Flag(step, "formula", true), Flag(step, "autoFit", false),
+            Flag(step, "align", false), Math.Max(1, Number(step, "headerRow"))));
         Log(LogLevel.Info, depth, step.Type, "Run.WroteFile", path, cells.Count);
     }
 

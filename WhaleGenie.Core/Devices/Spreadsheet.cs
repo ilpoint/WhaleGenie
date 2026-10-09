@@ -146,9 +146,21 @@ public static class Spreadsheet
     /// somebody types one. Off means every cell is written as the text or the number it is.
     /// </param>
     /// <param name="autoFit">Widen the columns to show what was written.</param>
+    /// <param name="align">
+    /// Put each value in the column whose name above it is the name this step gives that value,
+    /// rather than at the same place across every row. The names the sheet already holds are read
+    /// from <paramref name="headerRow"/> before anything is written — a replace clears the very row
+    /// they sit on — because a sheet somebody else maintains is one whose columns sit in an order
+    /// of their own, and reading its table and writing it back has to follow the names rather than
+    /// the positions. A sheet with no names yet takes the rows in the order they were written.
+    /// </param>
+    /// <param name="headerRow">
+    /// Which row of the sheet holds the column names, counted from the top. Only used when the
+    /// values are aligned by name.
+    /// </param>
     public static byte[] Write(byte[]? book, string sheet,
         IReadOnlyList<IReadOnlyList<Value>> rows, IReadOnlyList<Value>? header, SheetWriteMode mode,
-        string startCell, bool formulas, bool autoFit)
+        string startCell, bool formulas, bool autoFit, bool align, int headerRow)
     {
         using var document = book is null ? new XLWorkbook() : Open(book);
 
@@ -157,28 +169,65 @@ public static class Spreadsheet
         // action adds one.
         var page = Find(document, sheet) ?? Add(document, sheet);
         var held = page.RangeUsed() is not null;
+
+        // The names the sheet already holds have to be read before the contents go, and every cell
+        // that is written needs one of them: without a name there is no column to put a value in,
+        // and guessing a position is exactly what aligning by name was asked not to do.
+        var standing = align ? Names(page, headerRow) : [];
+        if (standing.Count > 0)
+        {
+            var widest = rows.Count == 0 ? 0 : rows.Max(row => row.Count);
+            if (header is null || header.Count < widest)
+            {
+                throw new DeviceActionException("Run.AlignNeedsNames",
+                    widest.ToString(CultureInfo.InvariantCulture));
+            }
+        }
+
         if (mode == SheetWriteMode.Replace)
         {
             // The contents go and the rest of the sheet stays: a header somebody coloured in is
             // still there afterwards, and a macro that only meant to replace the data has not
             // quietly thrown away the shape of the sheet.
             page.Clear(XLClearOptions.Contents);
+
+            // The row of names is part of that shape, so a replace that cleared it puts it back
+            // before the data goes under it.
+            for (var at = 0; at < standing.Count; at++)
+            {
+                if (standing[at].Length > 0)
+                {
+                    Put(page.Cell(headerRow, at + 1), Value.FromText(standing[at]), formulas: false);
+                }
+            }
         }
 
         IReadOnlyList<IReadOnlyList<Value>> lines =
             header is { Count: > 0 } && (mode != SheetWriteMode.Append || !held)
+                && standing.Count == 0
                 ? [header, .. rows]
                 : rows;
 
-        var corner = mode == SheetWriteMode.Append
-            ? new CellRef(1, (page.LastRowUsed()?.RowNumber() ?? 0) + 1)
-            : Place(page, startCell);
+        var corner = mode switch
+        {
+            SheetWriteMode.Append => new CellRef(1, (page.LastRowUsed()?.RowNumber() ?? 0) + 1),
+
+            // A replace that keeps the names writes nothing above the data: the row it starts on is
+            // the one under them.
+            SheetWriteMode.Replace when standing.Count > 0 => new CellRef(1, headerRow + 1),
+            _ => Place(page, startCell),
+        };
 
         foreach (var row in lines)
         {
             for (var column = 0; column < row.Count; column++)
             {
-                Put(page.Cell(corner.Row, corner.Column + column), row[column], formulas);
+                // Aligned, the column comes from the name rather than from where the value sits in
+                // its row, so the starting cell only says which row this goes on.
+                var at = standing.Count > 0
+                    ? Named(standing, header![column].AsText().Trim()) + 1
+                    : corner.Column + column;
+                Put(page.Cell(corner.Row, at), row[column], formulas);
             }
 
             corner = corner with { Row = corner.Row + 1 };
@@ -199,6 +248,39 @@ public static class Spreadsheet
 
     /// <summary>Where writing goes, as a place on the grid rather than as a name.</summary>
     private readonly record struct CellRef(int Column, int Row);
+
+    /// <summary>
+    /// The names a row holds, from the first column on, with an empty name for every column nobody
+    /// named. The gaps are kept because they are places too: a value whose name sits after one of
+    /// them belongs to the column the name is in, not to the one next to the last name.
+    /// </summary>
+    private static IReadOnlyList<string> Names(IXLWorksheet page, int row)
+    {
+        if (row < 1)
+        {
+            return [];
+        }
+
+        var line = page.Row(row);
+        var last = line.LastCellUsed()?.Address.ColumnNumber ?? 0;
+        return last == 0
+            ? []
+            : [.. Enumerable.Range(1, last).Select(at => line.Cell(at).GetString().Trim())];
+    }
+
+    /// <summary>Which column a name sits above, counted from zero, or a step naming a column that is not there.</summary>
+    private static int Named(IReadOnlyList<string> names, string wanted)
+    {
+        for (var at = 0; at < names.Count; at++)
+        {
+            if (string.Equals(names[at], wanted, StringComparison.OrdinalIgnoreCase))
+            {
+                return at;
+            }
+        }
+
+        throw new DeviceActionException("Run.NoSuchColumn", wanted);
+    }
 
     /// <summary>The cell a written place names, or the top left corner when none was named.</summary>
     private static CellRef Place(IXLWorksheet page, string startCell)
