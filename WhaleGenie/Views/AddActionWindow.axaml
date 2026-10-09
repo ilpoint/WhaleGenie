@@ -506,6 +506,13 @@
                             ToolTip.Tip="{Binding [Add.LookOnceHint], Source={x:Static loc:Strings.Current}}"
                             Content="{Binding [Add.LookOnce], Source={x:Static loc:Strings.Current}}"
                             Click="OnLookOnce" />
+                    <!-- Where the click should land, picked on the reference picture itself. -->
+                    <Button Classes="FlatButton" Height="30" Padding="10,0"
+                            HorizontalAlignment="Left"
+                            IsVisible="{Binding ShowsOffsetPick}"
+                            ToolTip.Tip="{Binding [Add.PickOffsetHint], Source={x:Static loc:Strings.Current}}"
+                            Content="{Binding [Add.PickOffset], Source={x:Static loc:Strings.Current}}"
+                            Click="OnPickOffset" />
                 </StackPanel>
             </Grid>
         </DataTemplate>

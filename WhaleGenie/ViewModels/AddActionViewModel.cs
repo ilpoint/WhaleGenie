@@ -729,6 +729,7 @@ public partial class AddActionViewModel : ViewModelBase
             MarkCoordinates();
             MarkRegion();
             MarkLook();
+            MarkOffset();
             SuggestOutputNames();
         }
 
@@ -815,6 +816,35 @@ public partial class AddActionViewModel : ViewModelBase
 
         StepParameterViewModel? Named(params string[] names)
             => Parameters.FirstOrDefault(parameter => names.Contains(parameter.Definition.Name));
+    }
+
+    /// <summary>
+    /// Notes the offset of an action that clicks a picture, so the two halves sit on one line and
+    /// that line carries the button that picks the point on the picture. An action that clicks
+    /// writing has an offset too, but no picture to point at, and gets no button.
+    /// </summary>
+    private void MarkOffset()
+    {
+        var x = Parameters.FirstOrDefault(parameter => parameter.Definition.Name == "offsetX");
+        var y = Parameters.FirstOrDefault(parameter => parameter.Definition.Name == "offsetY");
+        if (x is null || y is null || Parameters.All(parameter => parameter.Definition.Name != "image"))
+        {
+            return;
+        }
+
+        x.IsRowPair = true;
+        y.IsRowPair = true;
+        x.IsOffsetAnchor = true;
+    }
+
+    /// <summary>
+    /// Writes where a click should land, counted from the middle of the picture the step looks for:
+    /// what the point picked on that picture comes to.
+    /// </summary>
+    public void ApplyOffset(int offsetX, int offsetY)
+    {
+        Parameter("offsetX")?.SetNumber(offsetX);
+        Parameter("offsetY")?.SetNumber(offsetY);
     }
 
     /// <summary>

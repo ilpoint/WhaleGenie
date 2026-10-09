@@ -442,6 +442,13 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </summary>
     public bool IsLookAnchor { get; set; }
 
+    /// <summary>
+    /// True on the parameter whose line carries the button that picks a click point on the
+    /// reference picture. Set by the dialog on the first half of the offset of an action that
+    /// looks for a picture, which is the only place there is something to point at.
+    /// </summary>
+    public bool IsOffsetAnchor { get; set; }
+
     public bool IsMultiline => Definition.Kind is ActionParameterKind.MultilineText;
 
     public bool IsNumber => Definition.Kind is ActionParameterKind.Number;

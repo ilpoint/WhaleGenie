@@ -437,6 +437,54 @@ public partial class AddActionWindow : Window
     }
 
     /// <summary>
+    /// Picks where this step's click should land, on the picture it looks for: clicking the middle
+    /// of a found picture is wrong whenever the thing to hit sits beside it, and working the offset
+    /// out in the head is the kind of arithmetic a person gets wrong quietly.
+    /// </summary>
+    private async void OnPickOffset(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        var field = viewModel.Parameters
+            .FirstOrDefault(parameter => parameter.Definition.Name == "image");
+
+        // The picture may be held in a variable the run has not made yet, and there is nothing to
+        // point at before one is chosen.
+        var path = field is null ? null : ImageAssets.Resolve(field.CurrentText, field.AssetFolder);
+        if (path is null)
+        {
+            await ReportTestAsync(Strings.Get("Add.PickOffsetNeedsImage"));
+            return;
+        }
+
+        ImageFrame? picture;
+        try
+        {
+            picture = await Task.Run(() => Devices.Vision.Load(path));
+        }
+        catch (Exception error)
+        {
+            await ReportTestAsync(error.Message);
+            return;
+        }
+
+        if (picture is null || picture.IsEmpty)
+        {
+            await ReportTestAsync(Strings.Format("Add.PickOffsetNeedsImage"));
+            return;
+        }
+
+        var offset = await OffsetPickerWindow.PickAsync(this, picture, Strings.Get("Offset.Title"));
+        if (offset is { } point)
+        {
+            viewModel.ApplyOffset(point.X, point.Y);
+        }
+    }
+
+    /// <summary>
     /// Puts the step's name on the clipboard. It is a name people write down — into a condition, a
     /// message, a note to whoever reads the macro next — and typing four characters off a screen is
     /// where they get it wrong.

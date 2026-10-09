@@ -24,6 +24,9 @@ public sealed class ParameterRowViewModel
     /// <summary>True when this line carries the button that tries this step's looking out.</summary>
     public bool ShowsLook => First.IsLookAnchor;
 
+    /// <summary>True when this line carries the button that picks a click point on the picture.</summary>
+    public bool ShowsOffsetPick => First.IsOffsetAnchor;
+
     /// <summary>True when the line says a position can be taken from the pointer with Alt + X.</summary>
     public bool ShowsPositionHint => HasSecond && First.IsCoordinate;
 

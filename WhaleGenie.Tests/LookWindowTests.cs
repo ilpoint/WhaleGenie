@@ -116,4 +116,66 @@ public class LookWindowTests
         Assert.Equal(LookGeometry.LargestZoom, LookGeometry.Step(LookGeometry.LargestZoom, true));
         Assert.Equal(LookGeometry.SmallestZoom, LookGeometry.Step(LookGeometry.SmallestZoom, false));
     }
+
+    /// <summary>
+    /// The click point a step uses is measured from the middle of the picture: that is where a
+    /// click lands when the step asks for no offset, and where a picked point has to be counted
+    /// from for the numbers to mean what the field says.
+    /// </summary>
+    [Theory]
+    [InlineData(40, 20, 35, 5, 15, -5)]
+    [InlineData(40, 20, 20, 10, 0, 0)]
+    [InlineData(41, 21, 0, 0, -20, -10)]
+    public void A_point_on_the_picture_becomes_an_offset_from_its_middle(
+        int width, int height, int x, int y, int offsetX, int offsetY)
+    {
+        var offset = LookGeometry.Offset(width, height, new ScreenPoint(x, y));
+
+        Assert.Equal(new ScreenPoint(offsetX, offsetY), offset);
+    }
+
+    [Fact]
+    public void Clicking_outside_the_picture_is_a_click_at_its_edge()
+    {
+        // Drawn four times its size, a click on the far corner is still inside the picture.
+        Assert.Equal(new ScreenPoint(9, 4), LookGeometry.Inside(10, 5, 4, 38, 18));
+        Assert.Equal(new ScreenPoint(9, 4), LookGeometry.Inside(10, 5, 4, 400, 400));
+        Assert.Equal(new ScreenPoint(0, 0), LookGeometry.Inside(10, 5, 4, -50, -50));
+    }
+
+    /// <summary>
+    /// The offset is only worth picking on an action that looks for a picture: a step that clicks
+    /// writing has an offset too, but there is nothing to point at.
+    /// </summary>
+    [Theory]
+    [InlineData("vision.clickImage", true)]
+    [InlineData("ocr.clickText", false)]
+    [InlineData("input.mouseClick", false)]
+    public void Picking_a_click_point_is_offered_where_there_is_a_picture_to_point_at(
+        string key, bool offered)
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(null, ActionCatalog.Definitions,
+                VariableChoicesForChecks.Named("match"), []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction(key);
+            Dispatcher.UIThread.RunJobs();
+
+            var pickers = viewModel.Rows.Concat(viewModel.AdvancedRows)
+                .Where(row => row.ShowsOffsetPick)
+                .ToList();
+
+            Assert.Equal(offered ? 1 : 0, pickers.Count);
+            if (offered)
+            {
+                // The two halves of the offset sit on the one line the button is under.
+                Assert.Equal("offsetX", pickers[0].First.Definition.Name);
+                Assert.Equal("offsetY", pickers[0].Second?.Definition.Name);
+            }
+        });
+    }
 }

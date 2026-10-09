@@ -1,0 +1,86 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="560"
+        x:Class="WhaleGenie.Views.OffsetPickerWindow"
+        Title="WhaleGenie"
+        Width="600" Height="560"
+        MinWidth="440" MinHeight="380"
+        WindowStartupLocation="CenterOwner"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        WindowDecorations="BorderOnly"
+        Background="#232323">
+
+    <Window.Styles>
+        <Style Selector="TextBlock.Muted">
+            <Setter Property="Foreground" Value="#9A9A9A" />
+            <Setter Property="FontSize" Value="11.5" />
+        </Style>
+        <Style Selector="Button.TitleBarButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#D0D0D0" />
+            <Setter Property="Width" Value="42" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3A3A3A" />
+        </Style>
+        <Style Selector="Button.PrimaryButton">
+            <Setter Property="Background" Value="#C8401C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#D94C25" />
+        </Style>
+    </Window.Styles>
+
+    <Border Background="#232323" CornerRadius="8">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+            <!-- title bar -->
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="14,8,10,8">
+                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform"
+                       VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center"
+                           FontSize="13" Foreground="#E8E8E8"
+                           Text="{Binding [Offset.Title], Source={x:Static loc:Strings.Current}}" />
+                <Button Grid.Column="2" Classes="TitleBarButton" Content="✕" Click="OnCancel" />
+            </Grid>
+
+            <StackPanel Grid.Row="1" Margin="16,0,16,10" Spacing="3">
+                <TextBlock Classes="Muted" TextWrapping="Wrap"
+                           Text="{Binding [Offset.Hint], Source={x:Static loc:Strings.Current}}" />
+                <TextBlock Name="PointText" FontSize="12" Foreground="#E0B080" />
+            </StackPanel>
+
+            <Border Grid.Row="2" Background="#141414" CornerRadius="6" Margin="16,0,16,10"
+                    ClipToBounds="True">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Auto">
+                    <Canvas Name="Board" Background="#141414" HorizontalAlignment="Left"
+                            VerticalAlignment="Top" PointerPressed="OnPickPoint" />
+                </ScrollViewer>
+            </Border>
+
+            <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="16,0,16,14">
+                <TextBlock Name="Status" VerticalAlignment="Center" FontSize="11.5"
+                           Foreground="#9A9A9A" TextWrapping="Wrap" />
+                <Button Grid.Column="1" Classes="PrimaryButton" IsEnabled="False" Name="Confirm"
+                        Content="{Binding [Common.Ok], Source={x:Static loc:Strings.Current}}"
+                        Click="OnConfirm" />
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

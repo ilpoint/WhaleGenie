@@ -39,6 +39,22 @@ internal static class LookGeometry
         closer ? zoom * 1.25 : zoom / 1.25, SmallestZoom, LargestZoom);
 
     /// <summary>
+    /// Where a point on the drawn picture falls in the picture's own pixels, kept inside the
+    /// picture: a click past the edge is a click at the edge, not a position that is not there.
+    /// </summary>
+    public static ScreenPoint Inside(int width, int height, double zoom, double x, double y)
+        => new(
+            Math.Clamp((int)Math.Round(x / zoom), 0, Math.Max(0, width - 1)),
+            Math.Clamp((int)Math.Round(y / zoom), 0, Math.Max(0, height - 1)));
+
+    /// <summary>
+    /// The offset a point picked on a picture stands for: how far it is from the middle, which is
+    /// where a click lands when the step asks for no offset at all.
+    /// </summary>
+    public static ScreenPoint Offset(int width, int height, ScreenPoint point)
+        => new(point.X - (width / 2), point.Y - (height / 2));
+
+    /// <summary>
     /// Where a mark sits on the canvas. The mark is in screen pixels and the picture has a corner
     /// of its own on the screen, so the two have to be subtracted before the zoom goes on.
     /// </summary>

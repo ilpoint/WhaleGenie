@@ -191,6 +191,17 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.LookOnce"] = "Try looking",
         ["Add.LookOnceHint"] = "Look once the way this step will, and show what turned up. "
             + "Nothing is clicked and nothing is pressed.",
+        ["Add.PickOffset"] = "Pick the click point…",
+        ["Add.PickOffsetHint"] = "Point at the spot to click on the reference picture; the offset "
+            + "from its middle is filled in for you.",
+        ["Add.PickOffsetNeedsImage"] = "Choose the reference picture first, then pick the point on it.",
+
+        // ------------------------------------------------------------- click point
+        ["Offset.Title"] = "Where to click",
+        ["Offset.Hint"] = "Click the spot to click, on the picture the step looks for. The orange "
+            + "ring is the middle of the match, which is what an offset of nothing clicks.",
+        ["Offset.Point"] = "Offset {0}, {1}",
+        ["Offset.Zoom"] = "Drawn at {0}% so the point can be aimed at by eye.",
 
         // ------------------------------------------------------------- what a step saw
         ["Look.Title"] = "What the step saw",
@@ -1105,6 +1116,15 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.LookOnce"] = "试找一下",
         ["Add.LookOnceHint"] = "按这一步将要用的方式找一次，把看到的画面和分数显示出来。"
             + "不点击、不按键、不动变量。",
+        ["Add.PickOffset"] = "选偏移点…",
+        ["Add.PickOffsetHint"] = "在参考图上点出要点的位置，自动算出相对图中心的偏移。",
+        ["Add.PickOffsetNeedsImage"] = "先选好参考图，再在图上点位置。",
+
+        // ------------------------------------------------------------- 点击位置
+        ["Offset.Title"] = "点在哪里",
+        ["Offset.Hint"] = "在参考图上点出要点的位置。橙色圈是命中框的中心，偏移为 0 时点的就是它。",
+        ["Offset.Point"] = "偏移 {0}, {1}",
+        ["Offset.Zoom"] = "放大到 {0}% 显示，方便用眼睛瞄准。",
 
         // ------------------------------------------------------------- 这一步看到了什么
         ["Look.Title"] = "这一步看到了什么",
