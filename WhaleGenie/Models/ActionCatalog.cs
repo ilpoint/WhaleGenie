@@ -553,6 +553,9 @@ public static class ActionCatalog
             Parameters =
             [
                 FilePath("path", "File", "old.txt", "File to remove.", PathIntent.Read),
+                Toggle("toRecycleBin", "To recycle bin", false,
+                    "Put the file in the recycle bin, where it can still be put back, "
+                    + "instead of removing it for good."),
             ],
         },
         new()

@@ -3077,8 +3077,10 @@ public sealed class MacroRunner
     private void DeleteFile(ExecutableStep step, int depth)
     {
         var path = PathOf(step);
-        _devices.Files.Delete(path);
-        Log(LogLevel.Info, depth, step.Type, "Run.DeletedFile", path);
+        var recycle = Flag(step, "toRecycleBin", false);
+        _devices.Files.Delete(path, recycle);
+        Log(LogLevel.Info, depth, step.Type,
+            recycle ? "Run.RecycledFile" : "Run.DeletedFile", path);
     }
 
     private void CopyFile(ExecutableStep step, int depth)
@@ -5376,7 +5378,7 @@ public sealed class MacroRunner
             // as the interpreter needs it. A tidy-up that fails is not worth failing the step over.
             try
             {
-                _devices.Files.Delete(path);
+                _devices.Files.Delete(path, false);
             }
             catch (Exception)
             {

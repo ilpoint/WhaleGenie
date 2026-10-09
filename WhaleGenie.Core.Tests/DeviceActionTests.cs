@@ -1804,7 +1804,19 @@ public class DeviceActionTests
         await RunAsync([Step("file.delete", Param("path", "old.txt"))], devices);
 
         Assert.DoesNotContain("old.txt", devices.Files.Keys);
-        Assert.Contains("deleteFile old.txt", devices.Calls);
+        Assert.Contains("deleteFile old.txt False", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_file_can_be_put_in_the_recycle_bin_instead_of_removed_for_good()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["old.txt"] = "x";
+        await RunAsync(
+            [Step("file.delete", Param("path", "old.txt"), Param("toRecycleBin", "true"))],
+            devices);
+
+        Assert.Contains("deleteFile old.txt True", devices.Calls);
     }
 
     [Fact]
@@ -5594,9 +5606,9 @@ internal sealed class FakeDeviceLayer
         Blobs[path] = bytes;
     }
 
-    void IFileDevice.Delete(string path)
+    void IFileDevice.Delete(string path, bool toRecycleBin)
     {
-        Note($"deleteFile {path}");
+        Note($"deleteFile {path} {toRecycleBin}");
         Files.Remove(path);
     }
 

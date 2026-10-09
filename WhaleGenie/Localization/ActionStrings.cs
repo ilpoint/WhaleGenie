@@ -375,6 +375,8 @@ internal static class ActionStrings
         ["file.delete.desc"] = "删除一个文件。",
         ["file.delete.path.label"] = "文件",
         ["file.delete.path.hint"] = "要删除的文件。只写文件名时会相对宏文件夹解析。",
+        ["file.delete.toRecycleBin.label"] = "放进回收站",
+        ["file.delete.toRecycleBin.hint"] = "勾选后不彻底删除，文件会留在回收站里，还能找回来。",
 
         ["file.copy.name"] = "复制文件",
         ["file.copy.desc"] = "把文件复制到另一个位置。",

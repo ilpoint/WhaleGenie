@@ -173,8 +173,11 @@ public interface IFileDevice
     /// </summary>
     void WriteBytes(string path, byte[] bytes);
 
-    /// <summary>Removes a file.</summary>
-    void Delete(string path);
+    /// <summary>
+    /// Removes a file. A file sent to the recycle bin is still there to be put back, which is what
+    /// a delete driven by a written-down macro usually wants.
+    /// </summary>
+    void Delete(string path, bool toRecycleBin);
 
     /// <summary>Copies a file.</summary>
     void Copy(string from, string to, bool overwrite);
@@ -657,7 +660,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public void WriteBytes(string path, byte[] bytes) => throw Missing("files");
 
-        public void Delete(string path) => throw Missing("files");
+        public void Delete(string path, bool toRecycleBin) => throw Missing("files");
 
         public void Copy(string from, string to, bool overwrite) => throw Missing("files");
 

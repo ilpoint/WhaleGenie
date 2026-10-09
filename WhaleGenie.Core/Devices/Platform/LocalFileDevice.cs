@@ -103,7 +103,7 @@ public sealed class LocalFileDevice : IFileDevice
         return Attempt(path, () => File.ReadAllBytes(full));
     }
 
-    public void Delete(string path)
+    public void Delete(string path, bool toRecycleBin)
     {
         var full = Full(path);
         if (!File.Exists(full))
@@ -113,7 +113,20 @@ public sealed class LocalFileDevice : IFileDevice
 
         Attempt(path, () =>
         {
-            File.Delete(full);
+            if (toRecycleBin)
+            {
+                // The Windows shell does this, and the shell puts the file where the Recycle Bin
+                // picks it up: a macro that deletes the wrong thing can be undone by a person,
+                // which is worth more than the byte-for-byte speed of File.Delete.
+                Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(full,
+                    Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                    Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+            }
+            else
+            {
+                File.Delete(full);
+            }
+
             return true;
         });
     }
