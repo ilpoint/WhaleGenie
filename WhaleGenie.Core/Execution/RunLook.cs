@@ -81,6 +81,13 @@ public sealed record StepLook
     /// <summary>What the step was after, as the user wrote it: a picture, a colour, some writing.</summary>
     public string Looking { get; init; } = string.Empty;
 
+    /// <summary>
+    /// The score a hit had to reach to count, in the same units as the marks carry, or null when
+    /// the step was not asking for a score at all. It is what turns "the best was 0.62" into "the
+    /// best was 0.62 and it needed 0.9".
+    /// </summary>
+    public double? Minimum { get; init; }
+
     /// <summary>The reference picture itself, for the steps that looked for one.</summary>
     public ImageFrame? Needle { get; init; }
 
@@ -98,3 +105,10 @@ public interface IRunLooks
 {
     void Look(StepLook look);
 }
+
+/// <summary>
+/// What came of looking once: the look itself, or the message key and its detail saying why the
+/// looking could not be done at all. The key travels as a key the way every other run failure
+/// does, because the engine has no language.
+/// </summary>
+public sealed record LookOutcome(StepLook? Look, string Key = "", string Detail = "");

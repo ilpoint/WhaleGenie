@@ -409,6 +409,34 @@ public partial class AddActionWindow : Window
             : Strings.Format(outcome.Key, outcome.Detail);
 
     /// <summary>
+    /// Looks at the screen the way this step would and shows what turned up, without doing anything
+    /// about it. A step that clicks is the reason this exists: trying <c>vision.clickImage</c> for
+    /// real clicks on whatever the user has on screen, so what is tried is the looking.
+    /// </summary>
+    private async void OnLookOnce(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        // The step as it would be saved, so what is looked at is what was written.
+        var step = new[] { viewModel.BuildStep() }.ToExecutable()[0];
+
+        // Off the thread that draws the window: reading the screen and matching a picture can take
+        // a moment, and the dialog has to stay able to come back when it is done.
+        var outcome = await Task.Run(() => MacroRunner.LookOnce(step, Devices));
+        if (outcome.Look is null)
+        {
+            await ReportTestAsync(TrialFailure(
+                new RunResult(RunStatus.Failed, outcome.Key, outcome.Detail, 0)));
+            return;
+        }
+
+        LookWindow.Show(outcome.Look, this);
+    }
+
+    /// <summary>
     /// Puts the step's name on the clipboard. It is a name people write down — into a condition, a
     /// message, a note to whoever reads the macro next — and typing four characters off a screen is
     /// where they get it wrong.

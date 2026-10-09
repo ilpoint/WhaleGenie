@@ -728,6 +728,7 @@ public partial class AddActionViewModel : ViewModelBase
 
             MarkCoordinates();
             MarkRegion();
+            MarkLook();
             SuggestOutputNames();
         }
 
@@ -790,6 +791,30 @@ public partial class AddActionViewModel : ViewModelBase
 
         x.IsCoordinate = true;
         y.IsCoordinate = true;
+    }
+
+    /// <summary>
+    /// Notes the parameter that says what this step is looking for, so its line can carry the
+    /// button that looks once and shows what turned up. Only the actions that look at the screen
+    /// get it: on the others there is nothing to try.
+    /// </summary>
+    private void MarkLook()
+    {
+        if (SelectedDefinition is null || !MacroRunner.CanLook(SelectedDefinition.Key))
+        {
+            return;
+        }
+
+        // What the step is looking for comes first; a step that looks at a rectangle rather than
+        // for a thing has only the rectangle to hang it on.
+        var wanted = Named("image", "color", "region", "text") ?? Named("window", "x");
+        if (wanted is not null)
+        {
+            wanted.IsLookAnchor = true;
+        }
+
+        StepParameterViewModel? Named(params string[] names)
+            => Parameters.FirstOrDefault(parameter => names.Contains(parameter.Definition.Name));
     }
 
     /// <summary>

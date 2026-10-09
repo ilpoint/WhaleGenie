@@ -498,6 +498,14 @@
                             ToolTip.Tip="{Binding [Add.PickRegionHint], Source={x:Static loc:Strings.Current}}"
                             Content="{Binding [Add.PickRegion], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickRegion" />
+                    <!-- Looks once, without doing anything about it: a step that clicks is tried
+                         by looking, never by clicking. -->
+                    <Button Classes="FlatButton" Height="30" Padding="10,0"
+                            HorizontalAlignment="Left"
+                            IsVisible="{Binding ShowsLook}"
+                            ToolTip.Tip="{Binding [Add.LookOnceHint], Source={x:Static loc:Strings.Current}}"
+                            Content="{Binding [Add.LookOnce], Source={x:Static loc:Strings.Current}}"
+                            Click="OnLookOnce" />
                 </StackPanel>
             </Grid>
         </DataTemplate>

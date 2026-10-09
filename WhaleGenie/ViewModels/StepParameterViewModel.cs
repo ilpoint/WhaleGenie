@@ -435,6 +435,13 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </summary>
     public bool IsRegionAnchor { get; set; }
 
+    /// <summary>
+    /// True on the parameter whose line carries the button that tries this step's looking out.
+    /// Set by the dialog on the field that says what the step is looking for — the picture, the
+    /// colour, the area, the writing — and only for the actions that look at the screen.
+    /// </summary>
+    public bool IsLookAnchor { get; set; }
+
     public bool IsMultiline => Definition.Kind is ActionParameterKind.MultilineText;
 
     public bool IsNumber => Definition.Kind is ActionParameterKind.Number;

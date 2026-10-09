@@ -77,7 +77,7 @@ public static class ImageAssets
     /// Copies a frame into a bitmap. The alpha byte a screen capture leaves behind is set to
     /// fully opaque, otherwise the picture would save as something invisible.
     /// </summary>
-    private static WriteableBitmap ToBitmap(ImageFrame frame)
+    public static WriteableBitmap ToBitmap(ImageFrame frame)
     {
         var pixels = new byte[frame.Width * frame.Height * 4];
         Buffer.BlockCopy(frame.Bgra, 0, pixels, 0, pixels.Length);

@@ -1,0 +1,168 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1060" d:DesignHeight="720"
+        x:Class="WhaleGenie.Views.LookWindow"
+        Title="WhaleGenie"
+        Width="1060" Height="720"
+        MinWidth="760" MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        WindowDecorations="BorderOnly"
+        Background="#232323">
+
+    <Window.Styles>
+        <Style Selector="TextBlock.Muted">
+            <Setter Property="Foreground" Value="#9A9A9A" />
+            <Setter Property="FontSize" Value="11.5" />
+        </Style>
+        <Style Selector="TextBlock.SectionHeader">
+            <Setter Property="Foreground" Value="#E4E4E4" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+
+        <Style Selector="Button.TitleBarButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#D0D0D0" />
+            <Setter Property="Width" Value="42" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3A3A3A" />
+        </Style>
+
+        <Style Selector="Button.FlatButton">
+            <Setter Property="Background" Value="#404040" />
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4C4C4C" />
+        </Style>
+
+        <Style Selector="Button.PrimaryButton">
+            <Setter Property="Background" Value="#C8401C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#D94C25" />
+        </Style>
+
+        <Style Selector="Border.Panel">
+            <Setter Property="Background" Value="#292929" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
+
+        <Style Selector="Border.MarkRow">
+            <Setter Property="Background" Value="#2A2A2A" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="Border.MarkRow.chosen">
+            <Setter Property="BorderBrush" Value="#3FBF5F" />
+        </Style>
+    </Window.Styles>
+
+    <Border Background="#232323" CornerRadius="8">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+            <!-- title bar -->
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="14,8,10,8">
+                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform"
+                       VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="13"
+                           Foreground="#E8E8E8" TextWrapping="NoWrap"
+                           Text="{Binding [Look.Title], Source={x:Static loc:Strings.Current}}" />
+                <Button Grid.Column="2" Classes="TitleBarButton" Content="✕"
+                        Click="OnClose" />
+            </Grid>
+
+            <!-- what the step was after, and how it went -->
+            <Border Grid.Row="1" Background="#1E1E1E" CornerRadius="6" Margin="14,0,14,10"
+                    Padding="12,10">
+                <Grid ColumnDefinitions="Auto,*">
+                    <Border Grid.Column="0" Background="#141414" CornerRadius="4" Padding="4"
+                            Margin="0,0,12,0" VerticalAlignment="Center" IsVisible="False"
+                            Name="NeedleFrame">
+                        <Image Name="NeedleShot" MaxHeight="52" MaxWidth="140"
+                               Stretch="Uniform"
+                               RenderOptions.BitmapInterpolationMode="None" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                        <TextBlock Name="StepLine" FontSize="13" Foreground="#E8E8E8"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Name="LookingLine" FontSize="12" Foreground="#B4B4B4"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Name="OutcomeLine" FontSize="12" Foreground="#E0B080"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Name="NoteLine" FontSize="12" Foreground="#BFE3BF"
+                                   TextWrapping="Wrap" IsVisible="False" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- the picture, and one row per mark -->
+            <Grid Grid.Row="2" ColumnDefinitions="*,320" Margin="14,0,14,10">
+                <Border Grid.Column="0" Classes="Panel" Padding="10">
+                    <ScrollViewer Name="Scroll" HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto">
+                        <Canvas Name="Board" Background="#141414"
+                                HorizontalAlignment="Left" VerticalAlignment="Top" />
+                    </ScrollViewer>
+                </Border>
+
+                <Border Grid.Column="1" Classes="Panel" Margin="10,0,0,0">
+                    <Grid RowDefinitions="Auto,*">
+                        <TextBlock Grid.Row="0" Classes="SectionHeader"
+                                   Text="{Binding [Look.Marks], Source={x:Static loc:Strings.Current}}" />
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <StackPanel Name="Marks" Spacing="0" />
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- zoom, and saving the picture -->
+            <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto" Margin="14,0,14,12">
+                <Button Grid.Column="0" Classes="FlatButton" Content="−" Width="34"
+                        Click="OnZoomOut" />
+                <TextBlock Grid.Column="1" Name="ZoomText" MinWidth="54" Margin="8,0"
+                           VerticalAlignment="Center" FontSize="12" Foreground="#B4B4B4"
+                           TextAlignment="Center" />
+                <Button Grid.Column="2" Classes="FlatButton" Content="+" Width="34"
+                        Click="OnZoomIn" />
+                <Button Grid.Column="3" Classes="FlatButton" Margin="8,0,0,0"
+                        Click="OnZoomFit"
+                        Content="{Binding [Look.ZoomFit], Source={x:Static loc:Strings.Current}}" />
+                <TextBlock Grid.Column="4" Name="Status" Margin="14,0,10,0"
+                           VerticalAlignment="Center" FontSize="12" Foreground="#BFE3BF"
+                           TextTrimming="CharacterEllipsis" />
+                <Button Grid.Column="5" Classes="PrimaryButton"
+                        Click="OnSave"
+                        Content="{Binding [Look.Save], Source={x:Static loc:Strings.Current}}" />
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

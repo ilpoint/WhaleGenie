@@ -69,6 +69,7 @@ public class RunLookTests
         Assert.Equal(0.95, look.Boxes[1].Match.Score);
         Assert.Equal(2, look.ChosenIndex);
         Assert.NotNull(look.Needle);
+        Assert.Equal(0.9, look.Minimum);
     }
 
     [Fact]
@@ -210,6 +211,7 @@ public class RunLookTests
         Assert.Equal("Cancel", look.Boxes[2].Label);
         Assert.Equal(LookRole.Candidate, look.Boxes[2].Role);
         Assert.Equal(2, look.ChosenIndex);
+        Assert.Equal(0, look.Minimum);
     }
 
     [Fact]
@@ -278,5 +280,54 @@ public class RunLookTests
         await Run(step, devices, looks);
 
         Assert.Empty(looks.Seen);
+    }
+
+    [Fact]
+    public void Trying_the_looking_of_a_clicking_step_clicks_nothing()
+    {
+        var devices = Screen(match: new ImageMatch(0.9, new ScreenPoint(30, 40), new ScreenSize(2, 2)));
+        var step = Step("vision.clickImage", Param("image", @"C:\images\ok.png"),
+            Param("confidence", "90"), Param("offsetX", "3"), Param("offsetY", "-2"),
+            Param("timeoutMs", "0"), Param("button", "left"), Param("resultVariable", "match"));
+
+        var outcome = MacroRunner.LookOnce(step, devices);
+
+        Assert.NotNull(outcome.Look);
+        var look = outcome.Look!;
+        Assert.Equal(LookKind.Template, look.Kind);
+        Assert.Equal(LookRole.Hit, look.Boxes[1].Role);
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("click ", StringComparison.Ordinal));
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("keyPress", StringComparison.Ordinal));
+
+        // No aiming mark: nothing was acted on, so there is nowhere the step went.
+        Assert.DoesNotContain(look.Boxes, box => box.Role == LookRole.Target);
+    }
+
+    [Fact]
+    public void A_step_that_does_not_look_at_the_screen_has_nothing_to_try()
+    {
+        var outcome = MacroRunner.LookOnce(Step("control.setVariable", Param("name", "n")),
+            Screen());
+
+        Assert.Null(outcome.Look);
+        Assert.Equal("Run.NotALookingStep", outcome.Key);
+        Assert.True(MacroRunner.CanLook("vision.findImage"));
+        Assert.False(MacroRunner.CanLook("clipboard.writeImage"));
+    }
+
+    [Fact]
+    public void Trying_the_looking_of_a_wait_does_not_wait()
+    {
+        var devices = Screen();
+        var step = Step("vision.waitImage", Param("image", @"C:\images\ok.png"),
+            Param("confidence", "90"), Param("timeoutMs", "60000"), Param("intervalMs", "10"),
+            Param("resultVariable", "match"));
+
+        var outcome = MacroRunner.LookOnce(step, devices);
+
+        Assert.NotNull(outcome.Look);
+        var look = outcome.Look!;
+        Assert.Equal(0, look.ChosenIndex);
+        Assert.Equal(1, devices.Searches);
     }
 }
