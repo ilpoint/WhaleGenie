@@ -474,7 +474,10 @@ internal static class ActionStrings
         ["file.readCsv.path.label"] = "文件",
         ["file.readCsv.path.hint"] = "要读取的 CSV 文件。只写文件名时会相对宏文件夹解析。",
         ["file.readCsv.separator.label"] = "分隔符",
-        ["file.readCsv.separator.hint"] = "两个单元格之间的字符。",
+        ["file.readCsv.separator.hint"] =
+            "两个单元格之间的字符。自动识别会自己看文件的第一行——文本文件里没有任何地方写着"
+            + "它用的是什么字符，而写它的那个程序挑的往往不是读它的这个程序会挑的。",
+        ["file.readCsv.separator.option.auto"] = "自动识别",
         ["file.readCsv.separator.option.comma"] = "逗号 ,",
         ["file.readCsv.separator.option.semicolon"] = "分号 ;",
         ["file.readCsv.separator.option.tab"] = "制表符",

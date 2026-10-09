@@ -27,13 +27,21 @@ namespace WhaleGenie.Core.Devices;
 /// </remarks>
 public static class DelimitedFile
 {
-    /// <summary>The rows of a file, each a list of the cells in it.</summary>
+    /// <summary>
+    /// The rows of a file, each a list of the cells in it. The separator is either the character
+    /// itself (or one of the names <see cref="Named"/> knows), or <c>auto</c>, which works it out
+    /// from the file: nothing in a text file says which character it used, and the one the program
+    /// that wrote it picked is rarely the one the program after it would have picked.
+    /// </summary>
     public static IReadOnlyList<IReadOnlyList<string>> Read(string text, string separator,
         bool skipBlankLines, bool trim)
     {
+        var automatic = Automatic(separator);
         var configuration = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
-            Delimiter = separator,
+            Delimiter = automatic ? "," : Named(separator),
+            DetectDelimiter = automatic,
+            DetectDelimiterValues = [",", ";", "\t", "|"],
 
             // The header is the step's business, not the reader's: whether the first line holds
             // names is something the macro author says, and what they are is a list to hand back.
@@ -63,7 +71,7 @@ public static class DelimitedFile
     {
         var configuration = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
-            Delimiter = separator,
+            Delimiter = Named(separator),
             HasHeaderRecord = false,
             NewLine = lineEnding,
 
@@ -97,4 +105,24 @@ public static class DelimitedFile
 
         return text.ToString();
     }
+
+    /// <summary>True when the step asked for the separator to be worked out from the file.</summary>
+    public static bool Automatic(string written)
+        => written.Trim().Equals("auto", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The character a step means by the name it wrote, or the one character it wrote out itself.
+    /// A comma is what a file with no other answer is, and it is also what <c>auto</c> falls back
+    /// to when nothing in the file settles the question.
+    /// </summary>
+    public static string Named(string written) => written.Trim() switch
+    {
+        "semicolon" or ";" => ";",
+        "tab" or "\\t" or "\t" => "\t",
+        "pipe" or "|" => "|",
+        "space" or " " => " ",
+        "comma" or "," or "" or "auto" => ",",
+        var literal when literal.Length == 1 => literal,
+        _ => ",",
+    };
 }

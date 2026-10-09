@@ -716,7 +716,7 @@ public static class ActionCatalog
             [
                 FilePath("path", "File", "rows.csv", "CSV file to read."),
                 Encoding(),
-                ..Separator("comma"),
+                ..Separator("auto", mayBeAutomatic: true),
                 Toggle("hasHeader", "First row is a header", true,
                     "Leave the first row out of the result, and keep what it says in the names "
                     + "variable below."),
@@ -3110,11 +3110,17 @@ public static class ActionCatalog
     /// files, and the field beside it is for the rest: a program that writes something unusual in
     /// between the cells is not a reason for the macro author to be stuck.
     /// </summary>
-    private static ActionParameter[] Separator(string defaultValue) =>
+    private static ActionParameter[] Separator(string defaultValue, bool mayBeAutomatic = false) =>
     [
-        Choice("separator", "Separator", ["comma", "semicolon", "tab", "pipe", "space"], defaultValue,
+        Choice("separator", "Separator",
+            mayBeAutomatic
+                ? ["auto", "comma", "semicolon", "tab", "pipe", "space"]
+                : ["comma", "semicolon", "tab", "pipe", "space"],
+            defaultValue,
             "The character between two cells.",
-            labels: ["Comma ,", "Semicolon ;", "Tab", "Vertical bar |", "Space"]),
+            labels: mayBeAutomatic
+                ? ["Work it out (auto)", "Comma ,", "Semicolon ;", "Tab", "Vertical bar |", "Space"]
+                : ["Comma ,", "Semicolon ;", "Tab", "Vertical bar |", "Space"]),
         Text("separatorText", "Or this character", required: false, defaultValue: "",
             hint: "Fill this in for a character the list does not have, such as : or #, and it is "
                 + "used instead of the one chosen above. Leave it empty for the chosen one."),

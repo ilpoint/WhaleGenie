@@ -2963,7 +2963,7 @@ public sealed class MacroRunner
         var path = PathOf(step);
         var rows = DelimitedFile.Read(
             _devices.Files.ReadText(path, EncodingOf(step)),
-            Separator(step).ToString(),
+            Separator(step),
             Flag(step, "skipBlankLines", true),
             Flag(step, "trim", false));
 
@@ -2998,7 +2998,7 @@ public sealed class MacroRunner
     private void WriteCsv(ExecutableStep step, int depth)
     {
         var path = PathOf(step);
-        var separator = Separator(step);
+        var separator = DelimitedFile.Named(Separator(step))[0];
         var rows = Read(step.Text("rows"));
         if (!rows.IsList)
         {
@@ -3424,28 +3424,14 @@ public sealed class MacroRunner
 
     /// <summary>The character between two CSV cells.</summary>
     /// <summary>
-    /// The character between two cells: the one written beside the picker when there is one, and
-    /// otherwise the one that was picked.
+    /// What the step said separates its cells: the character written beside the picker when there
+    /// is one, and otherwise the one that was picked — which may be <c>auto</c>, and then the file
+    /// itself decides.
     /// </summary>
-    private static char Separator(ExecutableStep step)
-        => Separator(step.Text("separatorText").Trim().Length > 0
+    private static string Separator(ExecutableStep step)
+        => step.Text("separatorText").Trim().Length > 0
             ? step.Text("separatorText")
-            : step.Text("separator"));
-
-    /// <summary>
-    /// The character between two cells: one of the names the picker offers, or the character
-    /// itself for the files a program writes with something else in between.
-    /// </summary>
-    private static char Separator(string text) => text.Trim() switch
-    {
-        "semicolon" or ";" => ';',
-        "tab" or "\\t" or "\t" => '\t',
-        "pipe" or "|" => '|',
-        "space" or " " => ' ',
-        "comma" or "," or "" => ',',
-        var written when written.Length == 1 => written[0],
-        _ => ',',
-    };
+            : step.Text("separator");
 
     // ------------------------------------------------------------------ clipboard
 
