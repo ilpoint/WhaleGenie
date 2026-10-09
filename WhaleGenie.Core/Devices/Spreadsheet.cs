@@ -142,6 +142,12 @@ public static class Spreadsheet
     /// <param name="book">The workbook to change, or <c>null</c> when there is no file yet.</param>
     /// <param name="sheet">Which sheet to write, or the first one when the name is empty.</param>
     /// <param name="rows">The rows to write, each a list of cells.</param>
+    /// <param name="header">
+    /// Column names to put above the rows, or nothing when the table has none. Reading a sheet
+    /// hands the names back beside the rows rather than inside them, so writing one back needs a
+    /// place to say where they go; adding to a sheet that already holds something does not write
+    /// them again, and that is what keeps a log from growing a second header.
+    /// </param>
     /// <param name="mode">Where the rows go, and what happens to what the sheet already holds.</param>
     /// <param name="startCell">The cell the first row starts at, as <c>B2</c>.</param>
     /// <param name="formulas">
@@ -150,15 +156,21 @@ public static class Spreadsheet
     /// </param>
     /// <param name="autoFit">Widen the columns to show what was written.</param>
     public static byte[] Write(byte[]? book, string sheet,
-        IReadOnlyList<IReadOnlyList<Value>> rows, SheetWriteMode mode, string startCell,
-        bool formulas, bool autoFit)
+        IReadOnlyList<IReadOnlyList<Value>> rows, IReadOnlyList<Value>? header, SheetWriteMode mode,
+        string startCell, bool formulas, bool autoFit)
     {
+        if (book is not null && Old(book))
+        {
+            throw OldFormatReadOnly();
+        }
+
         using var document = book is null ? new XLWorkbook() : Open(new MemoryStream(book));
 
         // A sheet the step names is made when the workbook has no such sheet: writing where a macro
         // wants its table to go should not need a second step to put the sheet there, and no other
         // action adds one.
         var page = Find(document, sheet) ?? Add(document, sheet);
+        var held = page.RangeUsed() is not null;
         if (mode == SheetWriteMode.Replace)
         {
             // The contents go and the rest of the sheet stays: a header somebody coloured in is
@@ -167,11 +179,16 @@ public static class Spreadsheet
             page.Clear(XLClearOptions.Contents);
         }
 
+        IReadOnlyList<IReadOnlyList<Value>> lines =
+            header is { Count: > 0 } && (mode != SheetWriteMode.Append || !held)
+                ? [header, .. rows]
+                : rows;
+
         var corner = mode == SheetWriteMode.Append
             ? new CellRef(1, (page.LastRowUsed()?.RowNumber() ?? 0) + 1)
             : Place(page, startCell);
 
-        foreach (var row in rows)
+        foreach (var row in lines)
         {
             for (var column = 0; column < row.Count; column++)
             {

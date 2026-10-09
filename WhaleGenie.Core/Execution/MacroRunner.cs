@@ -3099,9 +3099,13 @@ public sealed class MacroRunner
         // formatting, the workbook's own settings — comes back out of it unchanged.
         var book = _devices.Files.Exists(path) ? _devices.Files.ReadBytes(path) : null;
         var cells = rows.Items.Select(Cells).ToList();
+        var names = Read(step.Text("header"));
+        IReadOnlyList<Value> header = names.IsList
+            ? names.Items
+            : names.AsText().Length > 0 ? [names] : [];
 
         _devices.Files.WriteBytes(path, Spreadsheet.Write(book, step.Text("sheet").Trim(), cells,
-            Place(step), step.Text("startCell").Trim(),
+            header, Place(step), step.Text("startCell").Trim(),
             Flag(step, "formula", true), Flag(step, "autoFit", false)));
         Log(LogLevel.Info, depth, step.Type, "Run.WroteFile", path, cells.Count);
     }

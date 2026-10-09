@@ -593,6 +593,10 @@ internal static class ActionStrings
         ["excel.writeSheet.rows.label"] = "行",
         ["excel.writeSheet.rows.hint"] = "行列表。每一行本身也可以是一个单元格列表；数字按数字写、"
             + "真假按真假写，这样一列数字在表里还是数字，而不是看着像数字的文本。",
+        ["excel.writeSheet.header.label"] = "表头行",
+        ["excel.writeSheet.header.hint"] =
+            "写在数据上面的列名：一个列表，也就是读表格时把表头收进的那个变量。"
+            + "追加到已经有内容的表里时不重复写，所以流水账只有一个表头。留空就是不写表头。",
         ["excel.writeSheet.mode.label"] = "方式",
         ["excel.writeSheet.mode.hint"] =
             "表里已有的内容怎么办：清空再写、从起始单元格开始覆盖（其余保留），"

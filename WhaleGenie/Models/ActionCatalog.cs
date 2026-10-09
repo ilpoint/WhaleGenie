@@ -754,7 +754,8 @@ public static class ActionCatalog
                     "Column names to put above the data: a list, or the names written out on one "
                     + "line with the separator between them. Adding to a file that is not there "
                     + "yet writes it; adding to one that already is does not, so a log keeps one "
-                    + "header at the top.", required: false),
+                    + "header at the top. Leave it empty for a table with nothing above it.",
+                    required: false),
                 ..Separator("comma"),
                 Choice("mode", "Mode", ["replace", "append"], "replace",
                     "Write the file from the start, or add these rows below what is already in it.",
@@ -846,6 +847,12 @@ public static class ActionCatalog
                     + "a number and a flag as a flag, so a column of numbers stays a column of "
                     + "numbers in the sheet rather than text that only looks like one.",
                     namesVariable: false),
+                Variable("header", "Header row", "$columns",
+                    "Column names to put above the rows: a list, as the action that read the table "
+                    + "hands back when a variable is named for the header row. Adding to a sheet "
+                    + "that already holds something does not write them again, so a log keeps one "
+                    + "header at the top. Leave it empty for a table with nothing above it.",
+                    required: false),
                 Choice("mode", "Mode", ["replace", "insert", "append"], "replace",
                     "What happens to what the sheet already holds: clear it and write, write over "
                     + "the cells from the starting cell on and leave the rest, or add below the "
