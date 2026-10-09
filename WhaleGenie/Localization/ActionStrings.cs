@@ -1912,6 +1912,10 @@ internal static class ActionStrings
         ["uia.readTable.maxRows.hint"] =
             "最多读取前多少行数据。整行都是空的会被跳过——放列标题的那一行、有些表格底部留着"
             + "用来输入新记录的空白行，都不是数据。",
+        ["uia.readTable.columnsVariable.label"] = "列名变量",
+        ["uia.readTable.columnsVariable.hint"] =
+            "接收列名，按列的顺序排列，宏靠它认出要读的是哪一列。表格自己把列名放在单独一条上，"
+            + "它不算一行数据，所以单独给。不填就不存。",
         ["uia.readTable.resultVariable.label"] = "结果变量",
         ["uia.readTable.resultVariable.hint"] =
             "用来接收表格内容的变量：$变量 是一个“每行一项”的列表，每一项又是一行单元格的列表，"

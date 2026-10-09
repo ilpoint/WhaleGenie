@@ -4602,12 +4602,21 @@ public sealed class MacroRunner
         // A step with no row limit at all still gets one, the same default the editor shows, so a
         // table nobody bounded cannot be read forever.
         var limit = Math.Clamp(OptionalNumber(step, "maxRows", DefaultRows), 1, MaxRows);
-        var rows = _devices.Ui.ReadTable(Query(step), limit);
+        var table = _devices.Ui.ReadTable(Query(step), limit);
 
         var name = VariableName(step, "resultVariable", "table");
         Variables.Set(name, Value.FromList(
-            rows.Select(row => Value.FromList(row.Select(Value.FromText)))));
-        Log(LogLevel.Info, depth, step.Type, "Run.ReadTable", name, rows.Count);
+            table.Rows.Select(row => Value.FromList(row.Select(Value.FromText)))));
+
+        // The names a table keeps above its data are the only place that says which column is
+        // which, and they are not a row of it.
+        var titles = step.Text("columnsVariable").Trim();
+        if (titles.Length > 0)
+        {
+            Variables.Set(titles, Value.FromList(table.Columns.Select(Value.FromText)));
+        }
+
+        Log(LogLevel.Info, depth, step.Type, "Run.ReadTable", name, table.Rows.Count);
     }
 
     /// <summary>The most rows one step reads, so a grid that keeps growing cannot fill memory.</summary>

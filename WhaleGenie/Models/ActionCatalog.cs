@@ -2313,6 +2313,10 @@ public static class ActionCatalog
                     + "nothing at all — the strip the column titles live in, and the empty row "
                     + "some grids keep at the bottom for typing a new one in — are left out.",
                     min: 1, max: 10000, advanced: true),
+                Variable("columnsVariable", "Column names variable", "columns",
+                    "Variable that receives the names of the columns, in column order, which is how "
+                    + "a macro finds the column it wants. Leave empty for none.",
+                    required: false, namesVariable: true),
                 Variable("resultVariable", "Result variable", "table",
                     "Variable that receives the rows. $name holds a list of rows, and every row is "
                     + "a list of cells, the same shape the CSV reader gives back.",

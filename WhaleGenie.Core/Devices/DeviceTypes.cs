@@ -266,6 +266,18 @@ public sealed record UiQuery(
 /// One element of the desktop's UI Automation tree, read where the pointer was. This is what the
 /// element picker needs to write a selector a macro can use again.
 /// </summary>
+/// <summary>
+/// What a table handed back: the names of its columns, and the rows of data under them. A grid
+/// keeps the names in a strip of its own rather than in a row, which is why they come back
+/// separately — a macro that has to know which column holds what reads them, and one that only
+/// wants the data is not handed a row that is not data.
+/// </summary>
+public sealed record UiTable(IReadOnlyList<string> Columns, IReadOnlyList<IReadOnlyList<string>> Rows)
+{
+    /// <summary>A table with nothing in it.</summary>
+    public static UiTable Empty { get; } = new([], []);
+}
+
 public sealed record UiElementInfo(
     string Name,
     string AutomationId,

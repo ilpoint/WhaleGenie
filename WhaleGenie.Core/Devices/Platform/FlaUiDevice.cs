@@ -160,7 +160,7 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         return element.Name ?? string.Empty;
     }
 
-    public IReadOnlyList<IReadOnlyList<string>> ReadTable(UiQuery query, int limit)
+    public UiTable ReadTable(UiQuery query, int limit)
     {
         Require();
         var element = Find(query) ?? throw new DeviceActionException("Run.ElementNotFound", Describe(query));
@@ -172,31 +172,44 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
             // its own rows and columns rather than leaving them to be guessed at.
             if (element.ControlType == ControlType.DataGrid)
             {
-                return [.. Rows(element.AsDataGridView().Rows.Select(RowText), rows)];
+                var view = element.AsDataGridView();
+                return new UiTable(Titles(view.Header), [.. Rows(view.Rows.Select(RowText), rows)]);
             }
 
             if (element.Patterns.Grid.IsSupported)
             {
-                return [.. Rows(element.AsGrid().Rows.Select(RowText), rows)];
+                var grid = element.AsGrid();
+                return new UiTable(Titles(grid.Header), [.. Rows(grid.Rows.Select(RowText), rows)]);
             }
 
             // Nothing that calls itself a table: the rows are then whatever looks like one, and
             // each cell is read off the controls inside that row.
             var condition = element.ConditionFactory.ByControlType(ControlType.DataItem);
-            return
+            return new UiTable([],
             [
                 .. Rows(
                     element.FindAllDescendants(condition)
                         .Select(row => (IReadOnlyList<string>)
                             [.. row.FindAllChildren().Select(TextOf)]),
                     rows),
-            ];
+            ]);
         }
         catch (Exception error) when (Recoverable(error))
         {
             throw new DeviceActionException("Run.ElementNotATable", Describe(query));
         }
     }
+
+    /// <summary>
+    /// The names of a grid's columns, which it keeps in a strip of its own. A table with no such
+    /// strip hands back nothing rather than failing: the data is still there to read.
+    /// </summary>
+    private static IReadOnlyList<string> Titles(GridHeader? header)
+        => header is null ? [] : [.. header.Columns.Select(item => item.Text ?? string.Empty)];
+
+    /// <summary>The names of a grid view's columns, on a WinForms grid.</summary>
+    private static IReadOnlyList<string> Titles(DataGridViewHeader? header)
+        => header is null ? [] : [.. header.Columns.Select(item => item.Text ?? string.Empty)];
 
     /// <summary>The text of one row of a grid, one entry per cell.</summary>
     private static IReadOnlyList<string> RowText(DataGridViewRow row)

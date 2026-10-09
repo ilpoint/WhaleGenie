@@ -137,7 +137,7 @@ public interface IUiDevice
     /// Reads a table or a grid into rows of cell text, at most <paramref name="limit"/> rows.
     /// A list whose rows are rows rather than a real table reads the same way, one entry per row.
     /// </summary>
-    IReadOnlyList<IReadOnlyList<string>> ReadTable(UiQuery query, int limit);
+    UiTable ReadTable(UiQuery query, int limit);
 }
 
 /// <summary>Files on disk.</summary>
@@ -833,8 +833,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public bool ScrollIntoView(UiQuery query) => throw Missing("UI Automation");
 
-        public IReadOnlyList<IReadOnlyList<string>> ReadTable(UiQuery query, int limit)
-            => throw Missing("UI Automation");
+        public UiTable ReadTable(UiQuery query, int limit) => throw Missing("UI Automation");
 
         private static DeviceUnavailableException Missing(string capability) => new(capability);
     }

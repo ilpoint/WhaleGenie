@@ -1562,6 +1562,33 @@ public class DeviceActionTests
         Assert.Equal(2, store.Local.Values["people"].Items.Count);
     }
 
+    /// <summary>
+    /// A table keeps the names of its columns in a strip of its own, which is not a row of data.
+    /// They are the only place that says which column is which, so they are handed over separately
+    /// rather than left inside the rows or dropped along with the empty ones.
+    /// </summary>
+    [Fact]
+    public async Task Reading_a_table_can_hand_back_the_names_of_its_columns()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Columns.AddRange(["Name", "Age"]);
+        devices.Table.Add(["Ann", "31"]);
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("uia.readTable", Param("selector", "Table[automationId='people']"),
+                Param("columnsVariable", "titles"), Param("resultVariable", "people")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(["Name", "Age"],
+            store.Local.Values["titles"].Items.Select(cell => cell.AsText()));
+
+        // And the row that was read is the data, with no title strip left over in it.
+        var table = store.Local.Values["people"];
+        Assert.Equal("Ann", Assert.Single(table.Items).Items[0].AsText());
+    }
+
     [Fact]
     public async Task Coordinates_can_be_measured_from_a_control()
     {
@@ -5432,11 +5459,15 @@ internal sealed class FakeDeviceLayer
     /// <summary>What reading a table answers: one array of cells per row.</summary>
     public List<string[]> Table { get; } = [];
 
-    public IReadOnlyList<IReadOnlyList<string>> ReadTable(UiQuery query, int limit)
+    public UiTable ReadTable(UiQuery query, int limit)
     {
         Note($"readTable {query.Name}#{query.Index} take {limit}");
-        return [.. Table.Take(Math.Max(1, limit)).Select(row => (IReadOnlyList<string>)row)];
+        return new UiTable([.. Columns],
+            [.. Table.Take(Math.Max(1, limit)).Select(row => (IReadOnlyList<string>)row)]);
     }
+
+    /// <summary>What reading a table answers about the names of its columns.</summary>
+    public List<string> Columns { get; } = [];
 
     bool IFileDevice.Exists(string path)
     {

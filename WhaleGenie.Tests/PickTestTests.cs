@@ -94,6 +94,6 @@ public class PickTestTests
 
         public bool ScrollIntoView(UiQuery query) => found;
 
-        public IReadOnlyList<IReadOnlyList<string>> ReadTable(UiQuery query, int limit) => [];
+        public UiTable ReadTable(UiQuery query, int limit) => UiTable.Empty;
     }
 }

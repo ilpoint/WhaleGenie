@@ -629,7 +629,7 @@ public class ActionDialogTests
 
         public bool ScrollIntoView(UiQuery query) => true;
 
-        public IReadOnlyList<IReadOnlyList<string>> ReadTable(UiQuery query, int limit) => [];
+        public UiTable ReadTable(UiQuery query, int limit) => UiTable.Empty;
     }
     [Fact]
     public void A_vision_result_is_a_variable_the_macro_already_knows()
