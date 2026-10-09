@@ -31,9 +31,28 @@ public sealed class MacroRunner
     private readonly IRunHost _host;
     private readonly IDeviceLayer _devices;
     private readonly IMacroLibrary _macros;
+    private readonly IRunLooks? _looks;
 
     /// <summary>Pictures captured during the run, kept under the name they were saved to.</summary>
     private readonly Dictionary<string, ImageFrame> _images = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// What the step going on right now has just seen, kept until the step is done so that one
+    /// step hands over one look however many times it had to look to get there.
+    /// </summary>
+    private StepLook? _saw;
+
+    /// <summary>The areas the last reading of the screen was taken from, so a look can draw them.</summary>
+    private IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> _read = [];
+
+    /// <summary>
+    /// Reference pictures read from disk, kept beside the time the file was last written. A macro
+    /// that looks for the same picture in a loop — or every two hundred milliseconds while it
+    /// waits — reads and decodes it once instead of every time round. A picture that has been
+    /// changed on disk no longer matches the stamp and is read again.
+    /// </summary>
+    private readonly Dictionary<string, (DateTime Written, ImageFrame Frame)> _references =
+        new(StringComparer.OrdinalIgnoreCase);
 
     private int _executed;
     private int _callDepth;
@@ -68,12 +87,13 @@ public sealed class MacroRunner
     private const int TrialWatchMs = 300;
 
     public MacroRunner(VariableStore variables, IRunHost? host = null, IDeviceLayer? devices = null,
-        double delayScale = 1, IMacroLibrary? macros = null)
+        double delayScale = 1, IMacroLibrary? macros = null, IRunLooks? looks = null)
     {
         Variables = variables;
         _host = host ?? new SilentRunHost();
         _devices = devices ?? NullDeviceLayer.Instance;
         _macros = macros ?? EmptyMacroLibrary.Instance;
+        _looks = looks;
         DelayScale = Clamp(delayScale);
     }
 
@@ -133,9 +153,9 @@ public sealed class MacroRunner
     /// would stay down in the game long after the dialog was closed.
     /// </remarks>
     public static async Task<RunResult> TryAsync(ExecutableStep step, IDeviceLayer devices,
-        CancellationToken token = default)
+        CancellationToken token = default, IRunLooks? looks = null)
     {
-        var runner = new MacroRunner(new VariableStore(), devices: devices);
+        var runner = new MacroRunner(new VariableStore(), devices: devices, looks: looks);
         try
         {
             await runner.ExecuteChecked(step, 0, token);
@@ -1104,23 +1124,23 @@ public sealed class MacroRunner
 
             // ----------------------------------------------------------------- vision
             case "vision.capture":
-                Capture(step, depth);
+                Watching(() => Capture(step, depth));
                 return Signal.Normal;
 
             case "vision.captureWindow":
-                CaptureWindow(step, depth);
+                Watching(() => CaptureWindow(step, depth));
                 return Signal.Normal;
 
             case "vision.getPixel":
-                GetPixel(step, depth);
+                Watching(() => GetPixel(step, depth));
                 return Signal.Normal;
 
             case "vision.waitColor":
-                await WaitColor(step, depth, token);
+                await Watching(() => WaitColor(step, depth, token));
                 return Signal.Normal;
 
             case "vision.findColor":
-                await FindColor(step, depth, token);
+                await Watching(() => FindColor(step, depth, token));
                 return Signal.Normal;
 
             case "vision.waitStable":
@@ -1128,28 +1148,28 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "vision.findImage":
-                LookFor(step, depth);
+                Watching(() => LookFor(step, depth));
                 return Signal.Normal;
 
             case "vision.waitImage":
-                await WaitForImage(step, depth, token);
+                await Watching(() => WaitForImage(step, depth, token));
                 return Signal.Normal;
 
             case "vision.clickImage":
-                await ClickImage(step, depth, token);
+                await Watching(() => ClickImage(step, depth, token));
                 return Signal.Normal;
 
             // -------------------------------------------------------------------- ocr
             case "ocr.recognize":
-                Recognize(step, depth);
+                Watching(() => Recognize(step, depth));
                 return Signal.Normal;
 
             case "ocr.findText":
-                FindText(step, depth);
+                Watching(() => FindText(step, depth));
                 return Signal.Normal;
 
             case "ocr.clickText":
-                await ClickText(step, depth, token);
+                await Watching(() => ClickText(step, depth, token));
                 return Signal.Normal;
 
             // -------------------------------------------------------------------- uia
@@ -2253,9 +2273,13 @@ public sealed class MacroRunner
     /// <summary>The colour of the pixel a step points at, counted from wherever it anchors.</summary>
     private PixelColor PixelAt(ExecutableStep step)
     {
-        var corner = Place(step, Number(step, "x"), Number(step, "y"));
+        var corner = PixelPoint(step);
         return _devices.Screen.PixelAt(corner.X, corner.Y);
     }
+
+    /// <summary>Where the pixel a step watches sits on the screen, window anchoring and all.</summary>
+    private ScreenPoint PixelPoint(ExecutableStep step)
+        => Place(step, Number(step, "x"), Number(step, "y"));
 
     /// <summary>
     /// Where a mouse action lands. An empty position means "wherever the pointer already is",
@@ -2510,6 +2534,195 @@ public sealed class MacroRunner
         }
     }
 
+    // -------------------------------------------------------------------- looks
+
+    /// <summary>
+    /// Runs one step that looks at the screen and hands over what it saw, whatever came of it: the
+    /// look of a step that found nothing is the one worth having.
+    /// </summary>
+    private void Watching(Action body)
+    {
+        _saw = null;
+        try
+        {
+            body();
+        }
+        finally
+        {
+            Show();
+        }
+    }
+
+    /// <summary>The same, for a step that has to wait for what it is looking at.</summary>
+    private async Task Watching(Func<Task> body)
+    {
+        _saw = null;
+        try
+        {
+            await body();
+        }
+        finally
+        {
+            Show();
+        }
+    }
+
+    /// <summary>Hands the look over to whoever is watching, and forgets it.</summary>
+    private void Show()
+    {
+        var look = _saw;
+        _saw = null;
+        if (_looks is null || look is null)
+        {
+            return;
+        }
+
+        _looks.Look(look);
+    }
+
+    /// <summary>
+    /// How the marks are built, and what sort of looking this was. Nothing is built when nobody is
+    /// watching: a picture of every step of a run nobody is looking at is work for nothing, and a
+    /// step that waits would build one every two hundred milliseconds.
+    /// </summary>
+    private void Saw(ExecutableStep step, LookKind kind, ImageFrame frame, ScreenPoint origin,
+        IReadOnlyList<LookBox> boxes, int chosen, string looking = "", ImageFrame? needle = null,
+        string? note = null)
+    {
+        if (_looks is null)
+        {
+            return;
+        }
+
+        _saw = new StepLook
+        {
+            StepId = step.Id,
+            StepType = step.Type,
+            Kind = kind,
+            Frame = frame,
+            Origin = origin,
+            Boxes = boxes,
+            ChosenIndex = chosen,
+            Looking = looking,
+            Needle = needle,
+            Note = note,
+        };
+    }
+
+    /// <summary>
+    /// What a step that looked for something saw: the areas it searched, every place the thing was
+    /// found, and the one it went with. Several areas are put together into one picture so that
+    /// every mark has somewhere to sit.
+    /// </summary>
+    private void SawSearch(ExecutableStep step, LookKind kind,
+        IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas,
+        IReadOnlyList<(ImageMatch Match, string? Label)> found, int chosen, string looking = "",
+        ImageFrame? needle = null)
+    {
+        if (_looks is null)
+        {
+            return;
+        }
+
+        var (frame, origin) = Picture(areas);
+        Saw(step, kind, frame, origin, Marks(areas, found, chosen),
+            chosen == 0 ? 0 : areas.Count + chosen, looking, needle);
+    }
+
+    /// <summary>
+    /// Adds where a step has just acted to the look it took to get there, so a step that clicked
+    /// the wrong place can be seen rather than guessed at.
+    /// </summary>
+    private void Aim(ScreenPoint point)
+    {
+        if (_looks is null || _saw is null)
+        {
+            return;
+        }
+
+        var boxes = new List<LookBox>(_saw.Boxes)
+        {
+            new(new ImageMatch(1, point, new ScreenSize(1, 1)), LookRole.Target),
+        };
+
+        _saw = _saw with { Boxes = boxes, ChosenIndex = boxes.Count };
+    }
+
+    /// <summary>
+    /// A look at a single pixel: a square of screen around it with the pixel itself marked, which
+    /// is what a step watching for a colour has to show for itself.
+    /// </summary>
+    private void SawPixel(ExecutableStep step, ScreenPoint point, string looking)
+    {
+        if (_looks is null)
+        {
+            return;
+        }
+
+        var size = _devices.Screen.PrimarySize;
+        var left = Math.Clamp(point.X - Neighbourhood, 0, Math.Max(0, size.Width - 1));
+        var top = Math.Clamp(point.Y - Neighbourhood, 0, Math.Max(0, size.Height - 1));
+        var right = Math.Clamp(point.X + Neighbourhood + 1, left + 1, size.Width);
+        var bottom = Math.Clamp(point.Y + Neighbourhood + 1, top + 1, size.Height);
+
+        var frame = _devices.Screen.Capture(left, top, right - left, bottom - top);
+        var origin = new ScreenPoint(left, top);
+        Saw(step, LookKind.Pixel, frame, origin,
+            [
+                new(new ImageMatch(1, origin, new ScreenSize(frame.Width, frame.Height)), LookRole.Area),
+                new(new ImageMatch(1, point, new ScreenSize(1, 1)), LookRole.Target),
+            ],
+            2, looking);
+    }
+
+    /// <summary>How far around a watched pixel the look reaches, so the pixel has some context.</summary>
+    private const int Neighbourhood = 60;
+
+    /// <summary>The marks for a look: where it looked, and everything that was found there.</summary>
+    private static List<LookBox> Marks(
+        IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas,
+        IReadOnlyList<(ImageMatch Match, string? Label)> found, int chosen)
+    {
+        var marks = new List<LookBox>();
+        foreach (var (area, origin) in areas)
+        {
+            marks.Add(new LookBox(
+                new ImageMatch(0, origin, new ScreenSize(area.Width, area.Height)), LookRole.Area));
+        }
+
+        for (var index = 0; index < found.Count; index++)
+        {
+            marks.Add(new LookBox(
+                found[index].Match,
+                index + 1 == chosen ? LookRole.Hit : LookRole.Candidate,
+                found[index].Label));
+        }
+
+        return marks;
+    }
+
+    /// <summary>
+    /// The picture to draw a step's marks on: the single area it looked at, or the whole of what
+    /// it looked at when there are several. The second is taken off the screen again, so it only
+    /// happens when someone is watching.
+    /// </summary>
+    private (ImageFrame Frame, ScreenPoint Origin) Picture(
+        IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas)
+    {
+        if (areas.Count == 1)
+        {
+            return areas[0];
+        }
+
+        var size = _devices.Screen.PrimarySize;
+        var left = Math.Clamp(areas.Min(area => area.Origin.X), 0, Math.Max(0, size.Width - 1));
+        var top = Math.Clamp(areas.Min(area => area.Origin.Y), 0, Math.Max(0, size.Height - 1));
+        var right = Math.Clamp(areas.Max(area => area.Origin.X + area.Frame.Width), left + 1, size.Width);
+        var bottom = Math.Clamp(areas.Max(area => area.Origin.Y + area.Frame.Height), top + 1, size.Height);
+
+        return (_devices.Screen.Capture(left, top, right - left, bottom - top), new ScreenPoint(left, top));
+    }
+
     /// <summary>Copies a region of the screen into a variable the macro can look at again.</summary>
     private void Capture(ExecutableStep step, int depth)
     {
@@ -2556,6 +2769,9 @@ public sealed class MacroRunner
         Variables.Set(name + ".y", Value.FromNumber(corner.Y));
         Variables.Set(name + ".width", Value.FromNumber(frame.Width));
         Variables.Set(name + ".height", Value.FromNumber(frame.Height));
+        Saw(step, LookKind.Capture, frame, corner,
+            [new LookBox(new ImageMatch(0, corner, new ScreenSize(frame.Width, frame.Height)), LookRole.Area)],
+            1, name);
         Log(LogLevel.Info, depth, step.Type, "Run.Capture", name, $"{frame.Width}x{frame.Height}");
     }
 
@@ -2567,12 +2783,14 @@ public sealed class MacroRunner
             name = "color";
         }
 
-        var colour = PixelAt(step);
+        var point = PixelPoint(step);
+        var colour = _devices.Screen.PixelAt(point.X, point.Y);
         var asHex = !string.Equals(step.Text("asHex").Trim(), "false", StringComparison.OrdinalIgnoreCase);
         Variables.Set(name, asHex
             ? Value.FromText(colour.ToHex())
             : Value.FromNumber((colour.R) | (colour.G << 8) | (colour.B << 16)));
 
+        SawPixel(step, point, colour.ToHex());
         Log(LogLevel.Info, depth, step.Type, "Run.Set", name, colour.ToHex());
     }
 
@@ -2584,8 +2802,10 @@ public sealed class MacroRunner
 
         // The corner is looked up again on every check, so a wait that watches a window keeps
         // watching the same spot inside it even if the window is moved while the macro waits.
+        var point = PixelPoint(step);
         var seen = await WaitForFlagAsync(
             () => PixelAt(step).Matches(target, tolerance), timeout, 50, token);
+        SawPixel(step, point, target.ToHex());
         if (!seen)
         {
             throw new StepFailure("Run.WaitColorTimeout", target.ToHex());
@@ -2658,8 +2878,9 @@ public sealed class MacroRunner
     private List<ImageMatch> Scan(ExecutableStep step, PixelColor target, double tolerance)
     {
         var wanted = Wanted(step);
+        var areas = SearchAreas(step);
         var hits = new List<ImageMatch>();
-        foreach (var (area, origin) in SearchAreas(step))
+        foreach (var (area, origin) in areas)
         {
             foreach (var point in PixelSearch.Find(area, target, tolerance, wanted))
             {
@@ -2671,6 +2892,8 @@ public sealed class MacroRunner
         }
 
         hits.Sort(Reading);
+        SawSearch(step, LookKind.Colour, areas, [.. hits.Select(hit => (hit, (string?)null))],
+            WentWith(hits, step), target.ToHex());
         return hits;
     }
 
@@ -2788,6 +3011,7 @@ public sealed class MacroRunner
 
         var x = found.Match.Center.X + Number(step, "offsetX");
         var y = found.Match.Center.Y + Number(step, "offsetY");
+        Aim(new ScreenPoint(x, y));
         Input(step).Click(Button(step), x, y, 1, 0);
         Log(LogLevel.Info, depth, step.Type, "Run.ClickedImage", x, y);
     }
@@ -2810,8 +3034,9 @@ public sealed class MacroRunner
         }
 
         var wanted = Wanted(step);
+        var areas = SearchAreas(step);
         var hits = new List<ImageMatch>();
-        foreach (var (area, origin) in SearchAreas(step))
+        foreach (var (area, origin) in areas)
         {
             foreach (var found in _devices.Vision.FindAll(area, needle, confidence, wanted))
             {
@@ -2823,6 +3048,8 @@ public sealed class MacroRunner
         }
 
         hits.Sort(Reading);
+        SawSearch(step, LookKind.Template, areas, [.. hits.Select(hit => (hit, (string?)null))],
+            WentWith(hits, step), step.Text("image"), needle);
         return hits;
     }
 
@@ -2858,6 +3085,16 @@ public sealed class MacroRunner
     {
         var index = Index(step, "matchIndex", 1);
         return index <= hits.Count ? hits[index - 1] : null;
+    }
+
+    /// <summary>
+    /// Which of the hits a step went with, counted from one, or zero when there are not that many
+    /// to choose from.
+    /// </summary>
+    private int WentWith(IReadOnlyList<ImageMatch> hits, ExecutableStep step)
+    {
+        var index = Index(step, "matchIndex", 1);
+        return index <= hits.Count ? index : 0;
     }
 
     /// <summary>
@@ -2920,8 +3157,43 @@ public sealed class MacroRunner
             return captured;
         }
 
-        // Otherwise it is a file, either written out or held in a variable.
-        return _devices.Vision.Load(Read(text).AsText()) ?? throw new StepFailure("Run.MissingImage", text);
+        // Otherwise it is a file, either written out or held in a variable. The picture is kept
+        // beside the time the file was last written: a macro that looks for the same picture
+        // again — in a loop, or every time it polls while it waits — uses the one it already has
+        // instead of reading and decoding the file again.
+        var path = Read(text).AsText();
+        var written = Written(path);
+        if (written is { } stamp
+            && _references.TryGetValue(path, out var kept)
+            && kept.Written == stamp)
+        {
+            return kept.Frame;
+        }
+
+        var picture = _devices.Vision.Load(path) ?? throw new StepFailure("Run.MissingImage", text);
+        if (written is not null)
+        {
+            _references[path] = (written.Value, picture);
+        }
+
+        return picture;
+    }
+
+    /// <summary>
+    /// When a file was last written, or null when it cannot be asked — a picture held in a
+    /// variable, or a path this run has no business reading. Nothing is kept for those.
+    /// </summary>
+    private static DateTime? Written(string path)
+    {
+        try
+        {
+            return File.Exists(path) ? File.GetLastWriteTimeUtc(path) : null;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException
+            or ArgumentException or NotSupportedException or System.Security.SecurityException)
+        {
+            return null;
+        }
     }
 
     /// <summary>
@@ -4775,12 +5047,16 @@ public sealed class MacroRunner
 
     /// <summary>
     /// Reads the text in a step's search areas, with the positions in screen coordinates. Several
-    /// areas are read one after another and what they hold is handed back together.
+    /// areas are read one after another and what they hold is handed back together, and the areas
+    /// themselves are kept so that a look at this reading can draw where it was taken from.
     /// </summary>
     private IReadOnlyList<TextSpan> ReadSpans(ExecutableStep step)
     {
+        var areas = SearchAreas(step);
+        _read = areas;
+
         var spans = new List<TextSpan>();
-        foreach (var (area, origin) in SearchAreas(step))
+        foreach (var (area, origin) in areas)
         {
             spans.AddRange(ReadFrame(step, area).Select(span => span with
             {
@@ -4834,6 +5110,8 @@ public sealed class MacroRunner
 
         var spans = ReadFrame(step, area);
         var text = string.Join(' ', spans.Select(span => span.Text));
+        Saw(step, LookKind.Text, area, corner, Marks([(area, corner)], TextMarks(spans, corner), 0), 0,
+            note: text);
 
         var name = step.Text("resultVariable").Trim();
         if (name.Length == 0)
@@ -4865,7 +5143,29 @@ public sealed class MacroRunner
     {
         var wanted = Read(step.Text("text")).AsText();
         var mode = step.Text("matchMode");
-        var hits = TextHits(step, wanted, mode);
+
+        // Every reading is kept, not only the ones the step is willing to act on: a look that
+        // shows what the model made of the screen is what tells a step that found nothing whether
+        // the writing was missing or the reading was.
+        var readings = ReadSpans(step);
+        var hits = new List<TextSpan>();
+        var chosen = 0;
+        for (var index = 0; index < readings.Count; index++)
+        {
+            if (!Sure(step, readings[index]) || !Matches(readings[index].Text, wanted, mode))
+            {
+                continue;
+            }
+
+            hits.Add(readings[index]);
+            if (chosen == 0)
+            {
+                chosen = index + 1;
+            }
+        }
+
+        SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen, wanted);
+
         var span = hits.Count > 0 ? hits[0] : null;
 
         var name = step.Text("resultVariable").Trim();
@@ -4892,18 +5192,23 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// Every place the wanted text was read, in the order the screen was read, without the
-    /// readings the step said it would not trust. The score compared here is the reading model's
-    /// own and has no fixed range, so a step that leaves the lowest score at zero takes whatever
-    /// was read.
+    /// The first place the wanted text was read that the step is willing to act on, looked for in
+    /// readings that are handed in rather than read again — the caller needs them for the look it
+    /// is going to make anyway.
     /// </summary>
-    private List<TextSpan> TextHits(ExecutableStep step, string wanted, string mode)
-        => [.. ReadSpans(step).Where(candidate => Sure(step, candidate) && Matches(candidate.Text, wanted, mode))];
-
-    /// <summary>The first place the wanted text was read that the step is willing to act on.</summary>
-    private TextSpan? TextHit(ExecutableStep step, string wanted, string mode)
-        => ReadSpans(step).FirstOrDefault(candidate =>
+    private TextSpan? TextHit(IReadOnlyList<TextSpan> readings, ExecutableStep step, string wanted,
+        string mode)
+        => readings.FirstOrDefault(candidate =>
             Sure(step, candidate) && Matches(candidate.Text, wanted, mode));
+
+    /// <summary>What one reading of the screen reads as a mark: the writing, with its own score.</summary>
+    private static List<(ImageMatch Match, string? Label)> TextMarks(
+        IReadOnlyList<TextSpan> spans, ScreenPoint origin)
+        => [.. spans.Select(span => (
+            new ImageMatch(span.Confidence,
+                new ScreenPoint(span.Location.X + origin.X, span.Location.Y + origin.Y),
+                span.Size),
+            (string?)span.Text))];
 
     private bool Sure(ExecutableStep step, TextSpan candidate)
         => candidate.Confidence >= Number(step, "minScore");
@@ -4914,9 +5219,32 @@ public sealed class MacroRunner
         var mode = step.Text("matchMode");
         var timeout = Math.Max(0, Number(step, "timeoutMs"));
 
+        // The readings of the last look are kept, so the look handed over at the end is of the
+        // screen as it was when the step gave up or found what it wanted.
+        IReadOnlyList<TextSpan> readings = [];
+        var chosen = 0;
+
+        TextSpan? Look()
+        {
+            readings = ReadSpans(step);
+            chosen = 0;
+            var found = TextHit(readings, step, wanted, mode);
+            for (var index = 0; found is not null && index < readings.Count; index++)
+            {
+                if (readings[index] == found)
+                {
+                    chosen = index + 1;
+                    break;
+                }
+            }
+
+            return found;
+        }
+
         var span = await WaitForValueAsync(
-            () => TextHit(step, wanted, mode),
+            Look,
             timeout, 200, token);
+        SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen, wanted);
         if (span is null)
         {
             throw new StepFailure("Run.TextNotFound", wanted);
@@ -4924,6 +5252,7 @@ public sealed class MacroRunner
 
         var x = span.Center.X + Number(step, "offsetX");
         var y = span.Center.Y + Number(step, "offsetY");
+        Aim(new ScreenPoint(x, y));
         Input(step).Click(Button(step), x, y, 1, 0);
         Log(LogLevel.Info, depth, step.Type, "Run.ClickedText", wanted, $"{x},{y}");
     }
