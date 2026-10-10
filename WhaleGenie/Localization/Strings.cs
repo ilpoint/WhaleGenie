@@ -221,9 +221,13 @@ public sealed class Strings : INotifyPropertyChanged
             + "gap.",
         ["Add.KeyRunMilliseconds"] = "ms",
         ["Add.KeyRunEmpty"] = "The run has no presses yet.",
-        ["Add.LookOnce"] = "Try looking",
-        ["Add.LookOnceHint"] = "Look once the way this step will, and show what turned up. "
-            + "Nothing is clicked and nothing is pressed.",
+        ["Add.RunStep"] = "Run",
+        ["Add.Running"] = "Running…",
+        ["Add.RunStepHint"] = "Do this step once, the way it is written. A step that looks at the "
+            + "screen only looks, and shows what it found.",
+        ["Add.RanStep"] = "Ran {0}.",
+        ["Add.RunPowerTitle"] = "Run this step",
+        ["Add.RunPowerMessage"] = "This step signs out, sleeps or shuts the machine down. Run it now?",
         ["Add.PickOffset"] = "Pick the click point…",
         ["Add.PickOffsetHint"] = "Point at the spot to click on the reference picture; the offset "
             + "from its middle is filled in for you.",
@@ -1196,9 +1200,13 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.KeyRunGapHint"] = "这一次按完之后等多久，留空就用整个序列的间隔。",
         ["Add.KeyRunMilliseconds"] = "毫秒",
         ["Add.KeyRunEmpty"] = "还没有任何一次按键。",
-        ["Add.LookOnce"] = "试找一下",
-        ["Add.LookOnceHint"] = "按这一步将要用的方式找一次，把看到的画面和分数显示出来。"
-            + "不点击、不按键、不动变量。",
+        ["Add.RunStep"] = "运行",
+        ["Add.Running"] = "正在运行…",
+        ["Add.RunStepHint"] = "按现在写的样子把这一步跑一次。要看屏幕的动作只找不点，"
+            + "找到什么直接显示出来。",
+        ["Add.RanStep"] = "已运行 {0}。",
+        ["Add.RunPowerTitle"] = "运行这一步",
+        ["Add.RunPowerMessage"] = "这一步会注销、睡眠或关闭这台机器。现在运行吗？",
         ["Add.PickOffset"] = "选偏移点…",
         ["Add.PickOffsetHint"] = "在参考图上点出要点的位置，自动算出相对图中心的偏移。",
         ["Add.PickOffsetNeedsImage"] = "先选好参考图，再在图上点位置。",

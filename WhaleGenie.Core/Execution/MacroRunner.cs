@@ -141,21 +141,26 @@ public sealed class MacroRunner
 
     /// <summary>
     /// Does one step for real, on its own, and reports how it went. This is the "test" button
-    /// beside a field in the action dialog: the step is written, and the question is whether it
-    /// really does what the user meant — a key spelled another way, a control that is not the one
-    /// they had in mind — which is answered by sending it once and letting them watch.
+    /// beside a field in the action dialog, and the "run" button the dialog itself carries: the step
+    /// is written, and the question is whether it really does what the user meant — a key spelled
+    /// another way, a control that is not the one they had in mind — which is answered by sending it
+    /// once and letting them watch.
     /// </summary>
     /// <remarks>
     /// The step goes through the same code a run puts it through, so what is tried is what would
     /// happen: where the input is delivered, how long a control is held, which device answers.
     /// Nothing else of the macro runs, and whatever the step leaves held is let go of a moment
     /// later, because the end of a run is not here to do it — a button tried out and left down
-    /// would stay down in the game long after the dialog was closed.
+    /// would stay down in the game long after the dialog was closed. The macros and the variables a
+    /// caller hands in are the ones the step is run with, so a step calling another macro or reading
+    /// a system variable behaves here the way it will in the run.
     /// </remarks>
     public static async Task<RunResult> TryAsync(ExecutableStep step, IDeviceLayer devices,
-        CancellationToken token = default, IRunLooks? looks = null)
+        CancellationToken token = default, IRunLooks? looks = null, IMacroLibrary? macros = null,
+        VariableStore? variables = null)
     {
-        var runner = new MacroRunner(new VariableStore(), devices: devices, looks: looks);
+        var runner = new MacroRunner(variables ?? new VariableStore(), devices: devices, looks: looks,
+            macros: macros);
         try
         {
             await runner.ExecuteChecked(step, 0, token);

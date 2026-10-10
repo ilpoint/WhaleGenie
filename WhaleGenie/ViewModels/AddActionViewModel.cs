@@ -250,6 +250,8 @@ public partial class AddActionViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(Description))]
     [NotifyPropertyChangedFor(nameof(SelectedActionName))]
     [NotifyPropertyChangedFor(nameof(IsBlock))]
+    [NotifyPropertyChangedFor(nameof(ShowsRun))]
+    [NotifyPropertyChangedFor(nameof(CanRun))]
     public partial ActionDefinition? SelectedDefinition { get; set; }
 
     /// <summary>
@@ -481,6 +483,39 @@ public partial class AddActionViewModel : ViewModelBase
     public bool CanSave => SelectedDefinition is not null
         && ScopeError() is null
         && MissingParameters().Count == 0;
+
+    /// <summary>
+    /// True when this step can be run on its own from the dialog. A condition is not a step of the
+    /// macro, so there is nothing to run; a step that is still missing something is not the step the
+    /// user means yet.
+    /// </summary>
+    public bool CanRun => ShowsRun && CanSave;
+
+    /// <summary>True when what is being edited is something a run can do at all.</summary>
+    public bool ShowsRun => SelectedDefinition is not null
+        && SelectedDefinition.Category is not ActionCategory.Condition;
+
+    /// <summary>
+    /// True while the step is out on the machine. The button says so and stops taking clicks: a
+    /// second press while the first is still going would send everything twice.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RunLabel))]
+    public partial bool IsRunning { get; set; }
+
+    /// <summary>What the run button says, which is that it is busy while the step is out.</summary>
+    public string RunLabel => Strings.Get(IsRunning ? "Add.Running" : "Add.RunStep");
+
+    /// <summary>
+    /// What the last run did. A step that quietly does nothing looks the same as one that was never
+    /// run, so what happened is said under the form.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasRunStatus))]
+    public partial string RunStatus { get; set; } = string.Empty;
+
+    /// <summary>True while there is something to say about the last run.</summary>
+    public bool HasRunStatus => RunStatus.Length > 0;
 
     partial void OnSelectedDefinitionChanged(ActionDefinition? value)
     {
@@ -832,7 +867,6 @@ public partial class AddActionViewModel : ViewModelBase
 
             MarkCoordinates();
             MarkRegion();
-            MarkLook();
             MarkOffset();
             SuggestOutputNames();
         }
@@ -966,30 +1000,6 @@ public partial class AddActionViewModel : ViewModelBase
 
         x.IsCoordinate = true;
         y.IsCoordinate = true;
-    }
-
-    /// <summary>
-    /// Notes the parameter that says what this step is looking for, so its line can carry the
-    /// button that looks once and shows what turned up. Only the actions that look at the screen
-    /// get it: on the others there is nothing to try.
-    /// </summary>
-    private void MarkLook()
-    {
-        if (SelectedDefinition is null || !MacroRunner.CanLook(SelectedDefinition.Key))
-        {
-            return;
-        }
-
-        // What the step is looking for comes first; a step that looks at a rectangle rather than
-        // for a thing has only the rectangle to hang it on.
-        var wanted = Named("image", "color", "region", "text") ?? Named("window", "x");
-        if (wanted is not null)
-        {
-            wanted.IsLookAnchor = true;
-        }
-
-        StepParameterViewModel? Named(params string[] names)
-            => Parameters.FirstOrDefault(parameter => names.Contains(parameter.Definition.Name));
     }
 
     /// <summary>
@@ -1234,6 +1244,7 @@ public partial class AddActionViewModel : ViewModelBase
         OnPropertyChanged(nameof(ValidationMessage));
         OnPropertyChanged(nameof(ValidationIsProblem));
         OnPropertyChanged(nameof(CanSave));
+        OnPropertyChanged(nameof(CanRun));
         SaveCommand.NotifyCanExecuteChanged();
     }
 

@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
@@ -24,6 +25,9 @@ public partial class AddActionWindow : Window
     /// <summary>Whether the dialog has been dismissed, which can happen while a page is open.</summary>
     private bool _closed;
 
+    /// <summary>The clock that takes a "ran it" line away again, while one is running.</summary>
+    private DispatcherTimer? _runTimer;
+
     private IDeviceLayer? _devices;
 
     public AddActionWindow()
@@ -40,6 +44,13 @@ public partial class AddActionWindow : Window
         get => _devices ??= new WindowsDeviceLayer();
         set => _devices = value;
     }
+
+    /// <summary>
+    /// The macros a run started here may call, handed in by the editor. A step that calls another
+    /// macro is run the same way it will be in a run, rather than failing for want of a library the
+    /// dialog was never given.
+    /// </summary>
+    internal IMacroLibrary? Macros { get; set; }
 
     /// <summary>
     /// Opens the dialog, optionally preloaded with a step being edited and optionally
@@ -547,20 +558,45 @@ public partial class AddActionWindow : Window
             : Strings.Format(outcome.Key, outcome.Detail);
 
     /// <summary>
-    /// Looks at the screen the way this step would and shows what turned up, without doing anything
-    /// about it. A step that clicks is the reason this exists: trying <c>vision.clickImage</c> for
-    /// real clicks on whatever the user has on screen, so what is tried is the looking.
+    /// Runs the step being written, once, without closing the dialog or going into a run. What it
+    /// does follows from what the step is: a step that looks at the screen only looks and shows what
+    /// turned up — trying <c>vision.clickImage</c> for real would click on whatever the user has on
+    /// screen — and every other step is sent for real, the same way the field's own test sends it.
     /// </summary>
-    private async void OnLookOnce(object? sender, RoutedEventArgs e)
+    private async void OnRunStep(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not AddActionViewModel viewModel)
+        if (DataContext is not AddActionViewModel viewModel || viewModel.IsRunning || !viewModel.CanRun)
         {
             return;
         }
 
-        // The step as it would be saved, so what is looked at is what was written.
+        // The step as it would be saved, so what is run is what was written.
         var step = new[] { viewModel.BuildStep() }.ToExecutable()[0];
 
+        // Some steps put the machine out of use. A debug button is one click, and one click should
+        // not sign the user out or shut their machine down without being asked.
+        if (PutsTheMachineOut(viewModel)
+            && await ConfirmDialog.ShowAsync(this, Strings.Get("Add.RunPowerTitle"),
+                Strings.Get("Add.RunPowerMessage"), Strings.Get("Common.Ok")) is not ConfirmChoice.Primary)
+        {
+            return;
+        }
+
+        if (MacroRunner.CanLook(step.Type))
+        {
+            await RunLookingAsync(step);
+            return;
+        }
+
+        await RunForRealAsync(viewModel, step);
+    }
+
+    /// <summary>
+    /// Looks at the screen the way the step would and shows what turned up, without doing anything
+    /// about it: no click, no key, no variable written.
+    /// </summary>
+    private async Task RunLookingAsync(ExecutableStep step)
+    {
         // Off the thread that draws the window: reading the screen and matching a picture can take
         // a moment, and the dialog has to stay able to come back when it is done.
         var outcome = await Task.Run(() => MacroRunner.LookOnce(step, Devices));
@@ -572,6 +608,88 @@ public partial class AddActionWindow : Window
         }
 
         LookWindow.Show(outcome.Look, this);
+    }
+
+    /// <summary>
+    /// Sends the step for real, the way a run would. Input steps are sent with the dialog out of the
+    /// way, because a key or a click lands on whatever is in front, and the window in front of the
+    /// window the user meant would be this dialog.
+    /// </summary>
+    private async Task RunForRealAsync(AddActionViewModel viewModel, ExecutableStep step)
+    {
+        var movesTheWindow = viewModel.SelectedDefinition?.Category is ActionCategory.Input;
+        var previous = WindowState;
+        if (movesTheWindow)
+        {
+            WindowState = WindowState.Minimized;
+        }
+
+        viewModel.IsRunning = true;
+        RunResult outcome;
+        try
+        {
+            // Off the thread that draws the window: a device call can wait on hardware, and the
+            // dialog has to stay able to come back when it is done.
+            outcome = await Task.Run(() => MacroRunner.TryAsync(step, Devices,
+                variables: MacroVariables.Seed(), macros: Macros));
+        }
+        finally
+        {
+            viewModel.IsRunning = false;
+
+            // The dialog can be dismissed while the run is going, and a window on its way out has
+            // nothing left to come back to.
+            if (movesTheWindow && !_closed)
+            {
+                WindowState = previous == WindowState.Maximized
+                    ? WindowState.Maximized
+                    : WindowState.Normal;
+                Activate();
+            }
+        }
+
+        if (outcome.Status is not RunStatus.Completed)
+        {
+            if (!_closed)
+            {
+                await ReportTestAsync(TrialFailure(outcome));
+            }
+
+            return;
+        }
+
+        Say(Strings.Format("Add.RanStep", viewModel.SelectedActionName));
+    }
+
+    /// <summary>
+    /// Whether running this step signs the user out or stops the machine. A power step that only
+    /// locks the screen or turns the monitor off costs nothing, so it is not asked about.
+    /// </summary>
+    private static bool PutsTheMachineOut(AddActionViewModel viewModel)
+        => viewModel.SelectedDefinition?.Key is "system.power"
+            && viewModel.Parameters
+                .FirstOrDefault(parameter => parameter.Definition.Name == "what")
+                ?.CurrentText.Trim() is "signOut" or "sleep" or "hibernate" or "restart" or "shutDown";
+
+    /// <summary>Says what a run did, under the form, until the next thing the user does.</summary>
+    private void Say(string message)
+    {
+        if (DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.RunStatus = message;
+
+        _runTimer?.Stop();
+        _runTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
+        _runTimer.Tick += (_, _) =>
+        {
+            _runTimer?.Stop();
+            _runTimer = null;
+            viewModel.RunStatus = string.Empty;
+        };
+        _runTimer.Start();
     }
 
     /// <summary>

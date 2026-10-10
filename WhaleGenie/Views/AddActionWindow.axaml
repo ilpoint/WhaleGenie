@@ -688,14 +688,6 @@
                             ToolTip.Tip="{Binding [Add.PickRegionHint], Source={x:Static loc:Strings.Current}}"
                             Content="{Binding [Add.PickRegion], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickRegion" />
-                    <!-- Looks once, without doing anything about it: a step that clicks is tried
-                         by looking, never by clicking. -->
-                    <Button Classes="FlatButton" Height="30" Padding="10,0"
-                            HorizontalAlignment="Left"
-                            IsVisible="{Binding ShowsLook}"
-                            ToolTip.Tip="{Binding [Add.LookOnceHint], Source={x:Static loc:Strings.Current}}"
-                            Content="{Binding [Add.LookOnce], Source={x:Static loc:Strings.Current}}"
-                            Click="OnLookOnce" />
                     <!-- Where the click should land, picked on the reference picture itself. -->
                     <Button Classes="FlatButton" Height="30" Padding="10,0"
                             HorizontalAlignment="Left"
@@ -968,6 +960,25 @@
         <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="#4A4A4A" />
         </Style>
+
+        <!-- A named button in the title bar, for the one thing the dialog can do besides hand the
+             step back: run it. It is wider than the window buttons because it says what it is. -->
+        <Style Selector="Button.TitleBarAction">
+            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.TitleBarAction:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4A4A4A" />
+        </Style>
+        <Style Selector="Button.TitleBarAction:disabled /template/ ContentPresenter">
+            <Setter Property="Background" Value="#242424" />
+        </Style>
     </Window.Styles>
 
     <Grid RowDefinitions="38,*">
@@ -981,6 +992,15 @@
             </StackPanel>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0" VerticalAlignment="Center">
+                <!-- Runs the step being written, without leaving the macro and going into a run:
+                     that is the question the dialog is open to answer, and closing it to ask loses
+                     the half-written step on the way. -->
+                <Button Classes="TitleBarAction" Name="RunButton"
+                        Content="{Binding RunLabel}"
+                        IsVisible="{Binding ShowsRun}"
+                        IsEnabled="{Binding CanRun}"
+                        ToolTip.Tip="{Binding [Add.RunStepHint], Source={x:Static loc:Strings.Current}}"
+                        Click="OnRunStep" />
                 <Button Classes="TitleBarButton" Name="MinimizeButton">
                     <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6" Data="M 0,5 H 8" />
                 </Button>
@@ -1221,13 +1241,20 @@
             <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" Margin="4,12,4,0">
                 <!-- Nothing picked yet is not a mistake, so it stays quiet; anything else is a
                      reason the step cannot be saved and is said in red, where it is hard to miss. -->
-                <TextBlock Grid.Column="0" Classes="Muted" VerticalAlignment="Center"
-                           TextWrapping="Wrap" Text="{Binding ValidationMessage}"
-                           IsVisible="{Binding !ValidationIsProblem}" />
-                <TextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="#E06C75"
-                           FontWeight="SemiBold" TextWrapping="Wrap"
-                           Text="{Binding ValidationMessage}"
-                           IsVisible="{Binding ValidationIsProblem}" />
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="3">
+                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                               Text="{Binding ValidationMessage}"
+                               IsVisible="{Binding !ValidationIsProblem}" />
+                    <TextBlock VerticalAlignment="Center" Foreground="#E06C75"
+                               FontWeight="SemiBold" TextWrapping="Wrap"
+                               Text="{Binding ValidationMessage}"
+                               IsVisible="{Binding ValidationIsProblem}" />
+                    <!-- What the last run did, so a step that is meant to do something visible and
+                         a step that did nothing can be told apart. -->
+                    <TextBlock Foreground="#7FC97F" TextWrapping="Wrap"
+                               Text="{Binding RunStatus}"
+                               IsVisible="{Binding HasRunStatus}" />
+                </StackPanel>
                 <Button Grid.Column="1" Classes="FlatButton" Height="38" MinWidth="92"
                         Content="{Binding [Add.Cancel], Source={x:Static loc:Strings.Current}}"
                         Margin="8,0,0,0" Command="{Binding CancelCommand}" />

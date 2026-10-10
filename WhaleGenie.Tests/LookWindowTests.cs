@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
@@ -19,26 +20,13 @@ namespace WhaleGenie.Tests;
 public class LookWindowTests
 {
     /// <summary>
-    /// The button that tries the looking out belongs on the line that says what the step is
-    /// looking for, and only on the actions that look at the screen: a picture a step copies
-    /// elsewhere is not something to try looking for.
+    /// The dialog carries one button that runs the step being written, so a step can be tried
+    /// without closing the macro and going into a run. It is there for the steps a run can do — a
+    /// condition is not a step of the macro, so there is nothing to run — and it waits until the
+    /// step is complete, because half a step is not the step the user means yet.
     /// </summary>
-    [Theory]
-    [InlineData("vision.findImage", "image")]
-    [InlineData("vision.waitImage", "image")]
-    [InlineData("vision.clickImage", "image")]
-    [InlineData("vision.findColor", "color")]
-    [InlineData("vision.waitColor", "color")]
-    [InlineData("vision.capture", "x")]
-    [InlineData("vision.getPixel", "x")]
-    [InlineData("ocr.recognize", "x")]
-    [InlineData("ocr.findText", "text")]
-    [InlineData("ocr.clickText", "text")]
-    [InlineData("clipboard.writeImage", "")]
-    [InlineData("window.activate", "")]
-    [InlineData("input.mouseClick", "")]
-    public void The_button_that_tries_the_looking_out_sits_on_what_is_being_looked_for(
-        string key, string expected)
+    [Fact]
+    public void The_dialog_runs_the_step_it_is_editing()
     {
         Ui.Run(() =>
         {
@@ -48,22 +36,38 @@ public class LookWindowTests
             Dispatcher.UIThread.RunJobs();
 
             var viewModel = (AddActionViewModel)window.DataContext!;
-            viewModel.SelectAction(key);
+            Assert.False(viewModel.ShowsRun);
+
+            viewModel.SelectAction("input.keyPress");
             Dispatcher.UIThread.RunJobs();
+            Assert.True(viewModel.ShowsRun);
 
-            var rows = viewModel.Rows.Concat(viewModel.AdvancedRows)
-                .Where(row => row.ShowsLook)
-                .ToList();
+            // The key is still empty, which is a step that would send nothing.
+            Assert.False(viewModel.CanRun);
+            Assert.False(FindRunButton(window).IsEnabled);
 
-            if (expected.Length == 0)
-            {
-                Assert.Empty(rows);
-                return;
-            }
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "key").Text = "F5";
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(viewModel.CanRun);
+            Assert.True(FindRunButton(window).IsEnabled);
+            Assert.Equal(Strings.Get("Add.RunStep"), FindRunButton(window).Content);
 
-            Assert.Equal(expected, Assert.Single(rows).First.Definition.Name);
+            // A condition is asked about rather than done, so there is nothing to run.
+            viewModel.SelectAction("condition.imageExists");
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(viewModel.ShowsRun);
+            Assert.False(viewModel.CanRun);
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Button>()
+                    .Where(button => button.IsEffectivelyVisible),
+                button => Equals(button.Content, Strings.Get("Add.RunStep")));
         });
     }
+
+    /// <summary>The dialog's run button, found the way a user finds it: by what it says.</summary>
+    private static Button FindRunButton(Window window)
+        => window.GetVisualDescendants().OfType<Button>().Single(button =>
+            button.IsEffectivelyVisible
+            && Equals(button.Content, Strings.Get("Add.RunStep")));
 
     [Fact]
     public void A_mark_is_placed_inside_the_picture_the_step_looked_at()

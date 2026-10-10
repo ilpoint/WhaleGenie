@@ -33,9 +33,6 @@ public sealed class ParameterRowViewModel
     /// <summary>True when this line carries the button that picks a whole screen region.</summary>
     public bool IsRegionAnchor => First.IsRegionAnchor;
 
-    /// <summary>True when this line carries the button that tries this step's looking out.</summary>
-    public bool ShowsLook => First.IsLookAnchor;
-
     /// <summary>True when this line carries the button that picks a click point on the picture.</summary>
     public bool ShowsOffsetPick => First.IsOffsetAnchor;
 

@@ -605,13 +605,6 @@ public partial class StepParameterViewModel : ViewModelBase
     public bool IsRegionAnchor { get; set; }
 
     /// <summary>
-    /// True on the parameter whose line carries the button that tries this step's looking out.
-    /// Set by the dialog on the field that says what the step is looking for — the picture, the
-    /// colour, the area, the writing — and only for the actions that look at the screen.
-    /// </summary>
-    public bool IsLookAnchor { get; set; }
-
-    /// <summary>
     /// True on the parameter whose line carries the button that picks a click point on the
     /// reference picture. Set by the dialog on the first half of the offset of an action that
     /// looks for a picture, which is the only place there is something to point at.
