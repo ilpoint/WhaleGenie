@@ -625,17 +625,14 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                     }
 
                     break;
-                // A list parameter keeps its values in rows, and a row may name the variable that
-                // says where to look — a picture an earlier Capture took, most often.
-                case ActionParameterKind.Region:
-                    foreach (var value in parameter.Rows.SelectMany(row => row.Columns.Values))
+                default:
+                    // A list parameter keeps its values in rows, and a row may name the variable
+                    // that says where to look — a picture an earlier Capture took, most often.
+                    foreach (var value in parameter.IsRowList ? parameter.RowValues : [parameter.Value])
                     {
                         Note(value, defined, names);
                     }
 
-                    break;
-                default:
-                    Note(parameter.Value, defined, names);
                     break;
             }
         }

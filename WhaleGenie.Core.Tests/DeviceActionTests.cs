@@ -44,6 +44,21 @@ public class DeviceActionTests
         params IReadOnlyDictionary<string, string>[] rows)
         => new() { Name = name, Rows = rows };
 
+    /// <summary>
+    /// The pictures a step looks for, written the way the dialog writes them: one row each, tried
+    /// in the order they are listed.
+    /// </summary>
+    private static ExecutableParameter Pictures(params string[] written)
+        => new()
+        {
+            Name = "image",
+            Rows = [.. written.Select(text => (IReadOnlyDictionary<string, string>)
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["image"] = text,
+                })],
+        };
+
     /// <summary>One press of a key run, with its own hold or gap where it has one.</summary>
     private static IReadOnlyDictionary<string, string> Press(string keys, int? holdMs = null,
         int? gapMs = null)
@@ -673,7 +688,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("vision.findImage", Param("image", "ok.png"), Region((10, 20, 30, 40)),
+            Step("vision.findImage", Pictures("ok.png"), Region((10, 20, 30, 40)),
                 Param("anchorMode", "window"), Param("anchorWindow", "Notepad"),
                 Param("resultVariable", "where")),
         ], devices);
@@ -893,7 +908,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("vision.findImage", Param("image", "ok.png"), Param("matchIndex", "2"),
+            Step("vision.findImage", Pictures("ok.png"), Param("matchIndex", "2"),
                 Param("allMatches", "true"), Param("resultVariable", "where")),
         ], devices);
 
@@ -916,7 +931,7 @@ public class DeviceActionTests
 
         var (_, _, _) = await RunAsync(
         [
-            Step("vision.findImage", Param("image", "ok.png"), Param("confidence", "88"),
+            Step("vision.findImage", Pictures("ok.png"), Param("confidence", "88"),
                 Param("algorithm", "feature"), Param("ignoreColor", "#00FF00"),
                 Param("minFeatures", "12"),
                 Param("resultVariable", "where")),
@@ -952,9 +967,9 @@ public class DeviceActionTests
         var (_, _, _) = await RunAsync(
         [
             written.Length == 0
-                ? Step("vision.findImage", Param("image", "ok.png"),
+                ? Step("vision.findImage", Pictures("ok.png"),
                     Param("resultVariable", "where"))
-                : Step("vision.findImage", Param("image", "ok.png"),
+                : Step("vision.findImage", Pictures("ok.png"),
                     Param("algorithm", written), Param("resultVariable", "where")),
         ], devices);
 
@@ -971,7 +986,7 @@ public class DeviceActionTests
         };
 
         var (_, _, _) = await RunAsync(
-            [Step("vision.findImage", Param("image", "ok.png"), Param("resultVariable", "where"))],
+            [Step("vision.findImage", Pictures("ok.png"), Param("resultVariable", "where"))],
             devices);
 
         var query = Assert.Single(devices.Queries);
@@ -995,7 +1010,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("vision.findImage", Param("image", "ok.png"), Param("orderBy", "score"),
+            Step("vision.findImage", Pictures("ok.png"), Param("orderBy", "score"),
                 Param("allMatches", "true"), Param("resultVariable", "where")),
         ], devices);
 
@@ -1017,7 +1032,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("vision.findImage", Param("image", "ok.png"), Param("orderBy", "area"),
+            Step("vision.findImage", Pictures("ok.png"), Param("orderBy", "area"),
                 Param("allMatches", "true"), Param("resultVariable", "where")),
         ], devices);
 
@@ -1106,7 +1121,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("vision.findImage", Param("image", "ok.png"), Param("orderBy", "random"),
+            Step("vision.findImage", Pictures("ok.png"), Param("orderBy", "random"),
                 Param("matchIndex", "3"), Param("resultVariable", "where")),
         ], devices);
 
@@ -1122,7 +1137,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("vision.findImage", Param("image", "ok.png"),
+            Step("vision.findImage", Pictures("ok.png"),
                 Region((0, 0, 10, 10), (100, 100, 10, 10)),
                 Param("matchIndex", "2"), Param("resultVariable", "where")),
         ], devices);
@@ -1144,8 +1159,8 @@ public class DeviceActionTests
             Spans = [new TextSpan("Ready", new ScreenPoint(1, 1), new ScreenSize(1, 1), 0.9)],
         };
 
-        Assert.True(await Holds(gone, Step("condition.imageNotExists", Param("image", "ok.png"))));
-        Assert.False(await Holds(there, Step("condition.imageNotExists", Param("image", "ok.png"))));
+        Assert.True(await Holds(gone, Step("condition.imageNotExists", Pictures("ok.png"))));
+        Assert.False(await Holds(there, Step("condition.imageNotExists", Pictures("ok.png"))));
         Assert.True(await Holds(gone, Step("condition.textNotExists", Param("text", "Ready"))));
         Assert.False(await Holds(there, Step("condition.textNotExists", Param("text", "Ready"))));
         Assert.True(await Holds(gone, Step("condition.uiaNotExists", Param("selector", "Button"))));
@@ -1328,7 +1343,7 @@ public class DeviceActionTests
         [
             Step("vision.capture", Param("x", "0"), Param("y", "0"), Param("width", "10"),
                 Param("height", "10"), Param("saveTo", "shot")),
-            Step("vision.findImage", Param("image", "shot"), Param("confidence", "90"),
+            Step("vision.findImage", Pictures("shot"), Param("confidence", "90"),
                 Param("region", ""), Param("resultVariable", "where")),
         ], devices);
 
@@ -1351,7 +1366,7 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("vision.waitImage", Param("image", "anything.png"), Param("confidence", "90"),
+            Step("vision.waitImage", Pictures("anything.png"), Param("confidence", "90"),
                 Param("timeoutMs", "2000"), Param("intervalMs", "1"), Param("resultVariable", "spot")),
         ], devices);
 
@@ -1371,7 +1386,7 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("vision.waitImage", Param("image", "anything.png"), Param("confidence", "90"),
+            Step("vision.waitImage", Pictures("anything.png"), Param("confidence", "90"),
                 Param("timeoutMs", "20"), Param("intervalMs", "1"), Param("resultVariable", "spot")),
         ], devices);
 
@@ -1392,7 +1407,7 @@ public class DeviceActionTests
         [
             Step("control.if",
                 When("condition", Step("condition.imageExists",
-                    Param("image", "a.png"), Param("confidence", "90"), Param("region", ""))),
+                    Pictures("a.png"), Param("confidence", "90"), Param("region", ""))),
                 Body("then", Step("control.setVariable", Param("name", "seen"), Param("value", "yes"))),
                 Body("else", Step("control.setVariable", Param("name", "seen"), Param("value", "no")))),
         ], devices);
@@ -1411,7 +1426,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("vision.findImage", Param("image", "a.png"), Param("confidence", "90"),
+            Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
                 Region((10, 20, 30, 40)), Param("resultVariable", "where")),
         ], devices);
 
@@ -4408,7 +4423,7 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("vision.findImage", Param("image", "a.png"), Param("confidence", "90"),
+            Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
                 Param("region", ""), Param("resultVariable", "where")),
         ], devices);
 
@@ -4429,7 +4444,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("control.setVariable", Param("name", "where.x"), Param("value", "999")),
-            Step("vision.findImage", Param("image", "a.png"), Param("confidence", "90"),
+            Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
                 Param("region", ""), Param("resultVariable", "where")),
         ], devices);
 
@@ -4450,7 +4465,7 @@ public class DeviceActionTests
         [
             Step("vision.capture", Param("x", "0"), Param("y", "0"), Param("width", "10"),
                 Param("height", "10"), Param("saveTo", "shot")),
-            Step("vision.findImage", Param("image", "$shot"), Param("confidence", "90"),
+            Step("vision.findImage", Pictures("$shot"), Param("confidence", "90"),
                 Param("region", ""), Param("resultVariable", "where")),
         ], devices);
 
@@ -4480,7 +4495,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("control.setVariable", Param("name", "box"), Param("value", "10,20,30,40")),
-            Step("vision.findImage", Param("image", "a.png"), Param("confidence", "90"),
+            Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
                 RegionFrom("$box"), Param("resultVariable", "where")),
         ], devices);
 
@@ -4505,7 +4520,7 @@ public class DeviceActionTests
         [
             Step("vision.capture", Param("x", "0"), Param("y", "0"), Param("width", "2"),
                 Param("height", "1"), Param("saveTo", "shot")),
-            Step("vision.findImage", Param("image", "a.png"), Param("confidence", "90"),
+            Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
                 RegionFrom("$shot"), Param("resultVariable", "where")),
         ], devices);
 
@@ -4529,7 +4544,7 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("vision.findImage", Param("image", "a.png"), Param("confidence", "90"),
+            Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
                 Region((10, 20, 0, 40)), Param("resultVariable", "where")),
         ], devices);
 
@@ -4583,7 +4598,7 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("vision.findImage", Param("image", "a.png"), Param("confidence", "90"),
+            Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
                 Param("region", ""), Param("resultVariable", "where")),
             Step("input.mouseMove", Param("x", "$where.x + 3"), Param("y", "$where.y"),
                 Param("durationMs", "0")),
@@ -4630,7 +4645,7 @@ public class DeviceActionTests
         [
             Step("control.waitUntil",
                 When("condition", Step("condition.imageExists",
-                    Param("image", "a.png"), Param("confidence", "90"), Param("region", ""))),
+                    Pictures("a.png"), Param("confidence", "90"), Param("region", ""))),
                 Param("timeoutMs", "2000"), Param("pollMs", "10"), Param("onTimeout", "stop")),
         ], devices);
 
@@ -5444,8 +5459,14 @@ internal sealed class FakeDeviceLayer
     public ImageFrame? Load(string path)
     {
         Note($"load {path}");
-        return Loaded;
+        return Pictures.TryGetValue(path, out var picture) ? picture : Loaded;
     }
+
+    /// <summary>
+    /// What each reference picture is read as, by path, for the checks that need two of them to
+    /// stand for different things. A path that is not in here is read as <see cref="Loaded"/>.
+    /// </summary>
+    public Dictionary<string, ImageFrame> Pictures { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     public IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle, VisionQuery query)
     {
@@ -5453,9 +5474,15 @@ internal sealed class FakeDeviceLayer
         Queries.Add(query);
         Note($"findAll {needle.Width}x{needle.Height} {query.ConfidencePercent:0} {query.Algorithm}");
 
-        IEnumerable<ImageMatch> hits = Matches.Count > 0 ? Matches : Match is null ? [] : [Match];
+        // A check that needs one reference picture to turn up and another not to says so here; the
+        // rest of the time every picture is answered the way the one <see cref="Match"/> is.
+        var hits = PictureAnswers?.Invoke(needle, query)
+            ?? (Matches.Count > 0 ? Matches : Match is null ? [] : [Match]);
         return Searches >= MatchAfter ? [.. hits.Take(query.Limit)] : [];
     }
+
+    /// <summary>What the screen answers for one reference picture, when they have to differ.</summary>
+    public Func<ImageFrame, VisionQuery, IReadOnlyList<ImageMatch>>? PictureAnswers { get; set; }
 
     /// <summary>Every search asked for, so a check can see how the step was read.</summary>
     public List<VisionQuery> Queries { get; } = [];

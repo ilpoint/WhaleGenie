@@ -349,17 +349,16 @@ public partial class VariableCenterViewModel : ViewModelBase
                         }
 
                         break;
-                    // A list parameter keeps its values in rows: whichever of them names a variable
-                    // is one the macro reads, the same as any plain field that starts with a "$".
-                    case ActionParameterKind.Region:
-                        foreach (var value in parameter.Rows.SelectMany(row => row.Columns.Values))
+                    default:
+                        // A list parameter keeps its values in rows: whichever of them names a
+                        // variable is one the macro reads, the same as any plain field that starts
+                        // with a "$".
+                        foreach (var value in
+                            parameter.IsRowList ? parameter.RowValues : [parameter.Value])
                         {
                             Plain(step, parameter, value);
                         }
 
-                        break;
-                    default:
-                        Plain(step, parameter, parameter.Value);
                         break;
                 }
             }

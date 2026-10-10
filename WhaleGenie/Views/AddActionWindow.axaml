@@ -289,6 +289,54 @@
                     </Border>
                 </StackPanel>
 
+                <!-- The pictures a search looks for: one row each, tried in the order they are
+                     listed. A thing that is drawn differently from one screen to the next is
+                     several pictures rather than several branches. -->
+                <StackPanel IsVisible="{Binding IsImageList}" Spacing="7">
+                    <ItemsControl ItemsSource="{Binding Pictures}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ImageRowViewModel">
+                                <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="6"
+                                      Margin="0,0,0,4">
+                                    <Border Grid.Column="0" Width="54" Height="34"
+                                            Background="#1A1A1A" BorderBrush="#3A3A3A"
+                                            BorderThickness="1" CornerRadius="4" Padding="2">
+                                        <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
+                                    </Border>
+                                    <TextBox Grid.Column="1" Classes="ParamInput" Text="{Binding Text}"
+                                             PlaceholderText="{Binding Placeholder}" />
+                                    <Button Grid.Column="2" Classes="FlatButton" Height="33"
+                                            Padding="11,0"
+                                            Content="{Binding [Add.BrowseImage], Source={x:Static loc:Strings.Current}}"
+                                            ToolTip.Tip="{Binding [Add.BrowseImageHint], Source={x:Static loc:Strings.Current}}"
+                                            Click="OnBrowseImageRow" />
+                                    <Button Grid.Column="3" Classes="FlatButton" Height="33"
+                                            Padding="11,0"
+                                            Content="{Binding [Add.CaptureImage], Source={x:Static loc:Strings.Current}}"
+                                            ToolTip.Tip="{Binding [Add.CaptureImageHint], Source={x:Static loc:Strings.Current}}"
+                                            Click="OnCaptureImageRow" />
+                                    <Button Grid.Column="4" Classes="FlatButton" Height="33"
+                                            Padding="11,0"
+                                            Content="{Binding [Add.ImageRemove], Source={x:Static loc:Strings.Current}}"
+                                            ToolTip.Tip="{Binding [Add.ImageRemoveHint], Source={x:Static loc:Strings.Current}}"
+                                            Command="{Binding RemoveCommand}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                        <Button Classes="FlatButton" Height="30" Padding="10,0"
+                                Content="{Binding [Add.ImageAdd], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.ImageAddHint], Source={x:Static loc:Strings.Current}}"
+                                Click="OnAddImageRow" />
+                        <TextBlock Grid.Column="1" Classes="Muted" VerticalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding [Add.ImageEmpty], Source={x:Static loc:Strings.Current}}"
+                                   IsVisible="{Binding !HasPictures}" />
+                    </Grid>
+                </StackPanel>
+
                 <!-- A window, which the picker fills in from what is open right now. -->
                 <Grid IsVisible="{Binding IsWindow}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
                     <TextBox Classes="ParamInput" Text="{Binding Text}"

@@ -91,6 +91,15 @@ public sealed record StepLook
     /// <summary>The reference picture itself, for the steps that looked for one.</summary>
     public ImageFrame? Needle { get; init; }
 
+    /// <summary>
+    /// Which of the pictures the step looked for this is, counted from one, together with how many
+    /// it listed. Zero for both when the step was not looking for a picture at all, and 1 of 1 for
+    /// the steps that hold a single one. What it answers is "which of the three was it".
+    /// </summary>
+    public int PictureNumber { get; init; }
+
+    public int PictureCount { get; init; }
+
     /// <summary>Anything else about this look worth saying, such as the writing that was read.</summary>
     public string? Note { get; init; }
 }

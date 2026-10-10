@@ -225,6 +225,58 @@ public partial class AddActionWindow : Window
         }
     }
 
+    /// <summary>Adds an empty row to the pictures a search looks for.</summary>
+    private void OnAddImageRow(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepParameterViewModel parameter })
+        {
+            parameter.AddPicture();
+        }
+    }
+
+    /// <summary>Chooses a picture file for one row of a search's list of them.</summary>
+    private async void OnBrowseImageRow(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: ImageRowViewModel row })
+        {
+            return;
+        }
+
+        if (await PickPictureAsync() is { Length: > 0 } path)
+        {
+            row.Text = path;
+        }
+    }
+
+    /// <summary>
+    /// Drags a rectangle on the screen and keeps it as a picture inside the macro project, which is
+    /// how a reference picture is normally made.
+    /// </summary>
+    private async void OnCaptureImageRow(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: ImageRowViewModel row }
+            || DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        if (await RegionPickerWindow.PickAsync(this) is not { } region)
+        {
+            return;
+        }
+
+        try
+        {
+            row.Text = ImageAssets.Capture(new WindowsScreenDevice(),
+                region.X, region.Y, region.Width, region.Height, viewModel.AssetFolder);
+        }
+        catch (Exception)
+        {
+            await ConfirmDialog.ShowAsync(this, Strings.Get("Add.CaptureImage"),
+                Strings.Get("Add.ImageFailed"), Strings.Get("Common.Ok"), showCancel: false);
+        }
+    }
+
     /// <summary>
     /// Opens the keyboard drawn on screen for one press of a key run, and joins the key whose cap
     /// was clicked to that press. The key already there stays, because a combination of several
@@ -506,7 +558,7 @@ public partial class AddActionWindow : Window
 
         // The picture may be held in a variable the run has not made yet, and there is nothing to
         // point at before one is chosen.
-        var path = field is null ? null : ImageAssets.Resolve(field.CurrentText, field.AssetFolder);
+        var path = field is null ? null : ImageAssets.Resolve(field.PictureText, field.AssetFolder);
         if (path is null)
         {
             await ReportTestAsync(Strings.Get("Add.PickOffsetNeedsImage"));
@@ -657,6 +709,15 @@ public partial class AddActionWindow : Window
             return;
         }
 
+        if (await PickPictureAsync() is { Length: > 0 } path)
+        {
+            parameter.Text = path;
+        }
+    }
+
+    /// <summary>Asks for one picture file, whichever field wanted one.</summary>
+    private async Task<string> PickPictureAsync()
+    {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = Strings.Get("Add.BrowseImageTitle"),
@@ -670,10 +731,7 @@ public partial class AddActionWindow : Window
             ],
         });
 
-        if (files.Count > 0 && files[0].TryGetLocalPath() is { Length: > 0 } path)
-        {
-            parameter.Text = path;
-        }
+        return files.Count > 0 ? files[0].TryGetLocalPath() ?? string.Empty : string.Empty;
     }
 
     /// <summary>

@@ -26,8 +26,12 @@ public class PickerTests
             .Distinct()
             .ToList());
 
-        // The four actions that look for a reference picture on screen.
-        Assert.Equal([ActionParameterKind.Image], kinds);
+        // The actions that look for a reference picture on screen list several of them, so a step
+        // covers a thing that is drawn differently from one screen to the next; the one action that
+        // puts a picture on the clipboard has a single picture, and nothing to try a second one for.
+        Assert.Equal(
+            [ActionParameterKind.Image, ActionParameterKind.Images],
+            kinds.OrderBy(parameter => parameter).ToList());
     }
 
     [Fact]
@@ -97,14 +101,18 @@ public class PickerTests
 
             // Nothing is shown until the field names a file that exists, so a half typed path
             // never draws a broken preview.
-            Assert.True(parameter.IsImage);
-            Assert.False(parameter.HasThumbnail);
+            Assert.True(parameter.IsImageList);
+            Assert.False(parameter.HasPictures);
 
-            parameter.Text = "no-such-picture.png";
-            Assert.False(parameter.HasThumbnail);
+            parameter.AddPicture();
+            Assert.True(parameter.HasPictures);
+            Assert.False(parameter.Pictures[0].HasThumbnail);
 
-            parameter.Text = string.Empty;
-            Assert.False(parameter.HasThumbnail);
+            parameter.Pictures[0].Text = "no-such-picture.png";
+            Assert.False(parameter.Pictures[0].HasThumbnail);
+
+            parameter.Pictures[0].Text = string.Empty;
+            Assert.False(parameter.Pictures[0].HasThumbnail);
         });
     }
 
@@ -120,8 +128,14 @@ public class PickerTests
                 var model = Assert.IsType<AddActionViewModel>(dialog.DataContext);
 
                 Assert.Equal(folder, model.AssetFolder);
-                Assert.All(model.Parameters.Where(parameter => parameter.IsImage),
+                Assert.All(model.Parameters.Where(parameter => parameter.IsImage || parameter.IsImageList),
                     parameter => Assert.Equal(folder, parameter.AssetFolder));
+
+                // A picture added to the list after the dialog opened is looked up beside the
+                // package too, not in whatever folder the program happens to start in.
+                var pictures = model.Parameters.First(parameter => parameter.IsImageList);
+                pictures.AddPicture();
+                Assert.Equal(folder, pictures.Pictures[0].AssetFolder);
             }
             finally
             {
@@ -227,8 +241,11 @@ public class PickerTests
                     new StepParameter
                     {
                         Name = "image",
-                        Kind = ActionParameterKind.Image,
-                        Value = picture,
+                        Kind = ActionParameterKind.Images,
+                        Rows =
+                        [
+                            StepParameterRow.Of("image", picture),
+                        ],
                     },
                 ],
             });
@@ -247,7 +264,7 @@ public class PickerTests
             var step = Assert.Single(Assert.Single(loaded.Macros).Steps);
             var image = Assert.Single(step.Parameters, parameter => parameter.Name == "image");
 
-            Assert.Equal(picture, ImageAssets.Resolve(image.Value, assets));
+            Assert.Equal(picture, ImageAssets.Resolve(image.Rows[0].Text("image"), assets));
             Assert.True(File.Exists(picture));
         }
         finally

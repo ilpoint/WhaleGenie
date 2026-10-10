@@ -40,6 +40,14 @@ public enum ActionParameterKind
     Image,
 
     /// <summary>
+    /// Several pictures the action looks for, edited as one row each. A search tries them in the
+    /// order they are listed and goes with the first one that turns up, which is how one step
+    /// covers a thing that is drawn differently from one screen to the next — a button whose
+    /// caption changed, the same icon at another size — without the macro branching on it.
+    /// </summary>
+    Images,
+
+    /// <summary>
     /// The places on the screen to look at, edited as a list of rectangles that can be dragged out
     /// one by one: two halves of a screen are two rows rather than one line of punctuation.
     /// </summary>

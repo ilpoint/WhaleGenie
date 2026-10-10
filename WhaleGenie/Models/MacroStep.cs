@@ -37,10 +37,23 @@ public class StepParameter
 
     /// <summary>
     /// The rows of a parameter that holds a list of them, filled in when <see cref="Kind"/> is
-    /// <see cref="ActionParameterKind.Region"/>. What the columns of a row mean belongs to the
+    /// <see cref="ActionParameterKind.Region"/>, <see cref="ActionParameterKind.KeySequence"/> or
+    /// <see cref="ActionParameterKind.Images"/>. What the columns of a row mean belongs to the
     /// action, so this holds the names and what they say rather than a shape of its own.
     /// </summary>
     public List<StepParameterRow> Rows { get; init; } = [];
+
+    /// <summary>
+    /// True when the value is a list of rows rather than one thing. Those are the parameters whose
+    /// value is written in the file as an array of objects, and what a reader makes of one depends
+    /// on the action rather than on the shape: every place a step looks is a name it has to have,
+    /// while every press of a key run is only itself.
+    /// </summary>
+    public bool IsRowList => Kind is ActionParameterKind.Region
+        or ActionParameterKind.KeySequence or ActionParameterKind.Images;
+
+    /// <summary>Everything written in the rows of a list parameter, by row.</summary>
+    public IEnumerable<string> RowValues => Rows.SelectMany(row => row.Columns.Values);
 
     /// <summary>Chosen condition, filled in when <see cref="Kind"/> is <see cref="ActionParameterKind.Condition"/>.</summary>
     public MacroStep? Condition { get; init; }
@@ -55,7 +68,8 @@ public class StepParameter
         ActionParameterKind.Bool => JsonValue.Create(
             string.Equals(Value, "true", StringComparison.OrdinalIgnoreCase)),
         ActionParameterKind.Steps => BuildArray(Steps),
-        ActionParameterKind.Region or ActionParameterKind.KeySequence => RowsJson(),
+        ActionParameterKind.Region or ActionParameterKind.KeySequence
+            or ActionParameterKind.Images => RowsJson(),
         ActionParameterKind.Condition => Condition?.ToJson(),
         _ => JsonValue.Create(Value),
     };
@@ -103,12 +117,12 @@ public class StepParameter
         return node switch
         {
             JsonArray rows when definition?.Kind is ActionParameterKind.Region
-                or ActionParameterKind.KeySequence => new StepParameter
-            {
-                Name = name,
-                Kind = definition!.Kind,
-                Rows = [.. rows.OfType<JsonObject>().Select(Row)],
-            },
+                or ActionParameterKind.KeySequence or ActionParameterKind.Images => new StepParameter
+                {
+                    Name = name,
+                    Kind = definition!.Kind,
+                    Rows = [.. rows.OfType<JsonObject>().Select(Row)],
+                },
             JsonArray array => new StepParameter
             {
                 Name = name,
@@ -369,8 +383,12 @@ public class MacroStep : INotifyPropertyChanged
                     case ActionParameterKind.KeySequence when parameter.Rows.Count > 0:
                         parts.Add($"{label} = {Strings.Format("Editor.KeyCount", parameter.Rows.Count)}");
                         break;
+                    case ActionParameterKind.Images when parameter.Rows.Count > 0:
+                        parts.Add($"{label} = {Strings.Format("Editor.PictureCount", parameter.Rows.Count)}");
+                        break;
                     case ActionParameterKind.Steps or ActionParameterKind.Condition
-                        or ActionParameterKind.Region or ActionParameterKind.KeySequence:
+                        or ActionParameterKind.Region or ActionParameterKind.KeySequence
+                        or ActionParameterKind.Images:
                         break;
                     default:
                         if (!string.IsNullOrWhiteSpace(parameter.Value))

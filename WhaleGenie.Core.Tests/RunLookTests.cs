@@ -31,12 +31,27 @@ public class RunLookTests
         => new() { Name = name, Text = text };
 
     /// <summary>
+    /// The pictures a step looks for, written the way the dialog writes them: one row each, tried
+    /// in the order they are listed.
+    /// </summary>
+    private static ExecutableParameter Pictures(params string[] written)
+        => new()
+        {
+            Name = "image",
+            Rows = [.. written.Select(text => (IReadOnlyDictionary<string, string>)
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["image"] = text,
+                })],
+        };
+
+    /// <summary>
     /// A step that looks for a picture, with the places to look given the way the dialog gives
     /// them: one row per rectangle.
     /// </summary>
     private static ExecutableStep Find(string image = @"C:\images\ok.png",
         params (int X, int Y, int Width, int Height)[] regions)
-        => Step("vision.findImage", Param("image", image), Param("confidence", "90"),
+        => Step("vision.findImage", Pictures(image), Param("confidence", "90"),
             new ExecutableParameter
             {
                 Name = "region",
@@ -124,12 +139,67 @@ public class RunLookTests
         Assert.Equal(LookRole.Area, Assert.Single(look.Boxes).Role);
     }
 
+    /// <summary>
+    /// A step may list several reference pictures — the same button drawn differently from one
+    /// screen to the next — and the first one that turns up is the one it goes with.
+    /// </summary>
+    [Fact]
+    public async Task Each_reference_picture_is_tried_in_turn_until_one_turns_up()
+    {
+        var first = new ImageFrame(3, 3, new byte[36]);
+        var second = new ImageFrame(4, 4, new byte[64]);
+        var devices = Screen();
+        devices.Pictures[@"C:\images\first.png"] = first;
+        devices.Pictures[@"C:\images\second.png"] = second;
+        devices.PictureAnswers = (needle, _) => needle.Width == second.Width
+            ? [new ImageMatch(0.95, new ScreenPoint(30, 40), new ScreenSize(2, 2))]
+            : [];
+
+        var looks = new Watched();
+        var step = Step("vision.findImage", Pictures(@"C:\images\first.png", @"C:\images\second.png"),
+            Param("confidence", "90"), Param("resultVariable", "match"));
+
+        var result = await Run(step, devices, looks);
+
+        Assert.Equal(RunStatus.Completed, result.Status);
+        Assert.Equal(2, devices.Queries.Count);
+        var look = Assert.Single(looks.Seen);
+        Assert.Equal(2, look.PictureNumber);
+        Assert.Equal(2, look.PictureCount);
+        Assert.Equal(@"C:\images\second.png", look.Looking);
+
+        // The picture that turned up is the one shown beside the answer, so the window says which
+        // of the several was the one that matched.
+        Assert.Equal(second, look.Needle);
+        Assert.Equal(LookRole.Hit, look.Boxes[^1].Role);
+        Assert.Equal(new ScreenPoint(30, 40), look.Boxes[^1].Match.Location);
+    }
+
+    /// <summary>
+    /// A picture that is listed but not filled in is one there is nothing to look for, and a step
+    /// that lists none at all cannot look for anything — it says so rather than searching for
+    /// whatever it happens to have.
+    /// </summary>
+    [Fact]
+    public async Task A_search_with_no_reference_picture_says_what_is_missing()
+    {
+        var devices = Screen();
+        var step = Step("vision.findImage", Pictures("  "), Param("confidence", "90"),
+            Param("resultVariable", "match"));
+
+        var result = await Run(step, devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.MissingImage", result.Key);
+        Assert.Empty(devices.Queries);
+    }
+
     [Fact]
     public async Task A_wait_that_ran_out_hands_over_the_look_it_gave_up_on()
     {
         var devices = Screen();
         var looks = new Watched();
-        var step = Step("vision.waitImage", Param("image", @"C:\images\ok.png"),
+        var step = Step("vision.waitImage", Pictures(@"C:\images\ok.png"),
             Param("confidence", "90"), Param("timeoutMs", "60"), Param("intervalMs", "10"),
             Param("resultVariable", "match"));
 
@@ -190,7 +260,7 @@ public class RunLookTests
     {
         var devices = Screen(match: new ImageMatch(0.9, new ScreenPoint(30, 40), new ScreenSize(2, 2)));
         var looks = new Watched();
-        var step = Step("vision.clickImage", Param("image", @"C:\images\ok.png"),
+        var step = Step("vision.clickImage", Pictures(@"C:\images\ok.png"),
             Param("confidence", "90"), Param("offsetX", "3"), Param("offsetY", "-2"),
             Param("timeoutMs", "0"), Param("button", "left"));
 
@@ -304,7 +374,7 @@ public class RunLookTests
     public void Trying_the_looking_of_a_clicking_step_clicks_nothing()
     {
         var devices = Screen(match: new ImageMatch(0.9, new ScreenPoint(30, 40), new ScreenSize(2, 2)));
-        var step = Step("vision.clickImage", Param("image", @"C:\images\ok.png"),
+        var step = Step("vision.clickImage", Pictures(@"C:\images\ok.png"),
             Param("confidence", "90"), Param("offsetX", "3"), Param("offsetY", "-2"),
             Param("timeoutMs", "0"), Param("button", "left"), Param("resultVariable", "match"));
 
@@ -337,7 +407,7 @@ public class RunLookTests
     public void Trying_the_looking_of_a_wait_does_not_wait()
     {
         var devices = Screen();
-        var step = Step("vision.waitImage", Param("image", @"C:\images\ok.png"),
+        var step = Step("vision.waitImage", Pictures(@"C:\images\ok.png"),
             Param("confidence", "90"), Param("timeoutMs", "60000"), Param("intervalMs", "10"),
             Param("resultVariable", "match"));
 

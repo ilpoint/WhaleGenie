@@ -201,8 +201,8 @@ public class ActionDialogTests
                     Strings.Format("Common.OptionalSuffix", ignore.Definition.LocalLabel),
                     ignore.Label);
 
-                viewModel.Parameters.First(parameter => parameter.Definition.Name == "image").Text =
-                    @"C:\images\ok.png";
+                viewModel.Parameters.First(parameter => parameter.Definition.Name == "image")
+                    .AddPicture(new ImageRowViewModel { Text = @"C:\images\ok.png" });
 
                 Assert.True(viewModel.CanSave, $"{key}: {viewModel.ValidationMessage}");
             }

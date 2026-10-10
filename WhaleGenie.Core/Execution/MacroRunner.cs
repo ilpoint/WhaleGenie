@@ -2828,7 +2828,7 @@ public sealed class MacroRunner
     /// </summary>
     private void Saw(ExecutableStep step, LookKind kind, ImageFrame frame, ScreenPoint origin,
         IReadOnlyList<LookBox> boxes, int chosen, string looking = "", ImageFrame? needle = null,
-        string? note = null, double? minimum = null)
+        string? note = null, double? minimum = null, int picture = 0, int pictures = 0)
     {
         if (_looks is null)
         {
@@ -2848,6 +2848,8 @@ public sealed class MacroRunner
             Needle = needle,
             Note = note,
             Minimum = minimum,
+            PictureNumber = picture,
+            PictureCount = pictures,
         };
     }
 
@@ -2859,7 +2861,7 @@ public sealed class MacroRunner
     private void SawSearch(ExecutableStep step, LookKind kind,
         IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas,
         IReadOnlyList<(ImageMatch Match, string? Label)> found, int chosen, string looking = "",
-        ImageFrame? needle = null, double? minimum = null)
+        ImageFrame? needle = null, double? minimum = null, int picture = 0, int pictures = 0)
     {
         if (_looks is null)
         {
@@ -2868,7 +2870,7 @@ public sealed class MacroRunner
 
         var (frame, origin) = Picture(areas);
         Saw(step, kind, frame, origin, Marks(areas, found, chosen),
-            chosen == 0 ? 0 : areas.Count + chosen, looking, needle, null, minimum);
+            chosen == 0 ? 0 : areas.Count + chosen, looking, needle, null, minimum, picture, pictures);
     }
 
     /// <summary>
@@ -3254,7 +3256,7 @@ public sealed class MacroRunner
     private async Task WaitForImage(ExecutableStep step, int depth, CancellationToken token)
     {
         var found = await HitsUntil(step, token)
-                    ?? throw new StepFailure("Run.ImageNotFound", step.Text("image"));
+                    ?? throw new StepFailure("Run.ImageNotFound", Written(step.Rows("image")));
 
         var name = VariableName(step, "resultVariable", "match");
         StoreMatch(name, found.Match.Center, found.Match.Size, found.Match.Score);
@@ -3266,7 +3268,7 @@ public sealed class MacroRunner
     private async Task ClickImage(ExecutableStep step, int depth, CancellationToken token)
     {
         var found = await HitsUntil(step, token)
-                    ?? throw new StepFailure("Run.ImageNotFound", step.Text("image"));
+                    ?? throw new StepFailure("Run.ImageNotFound", Written(step.Rows("image")));
 
         var x = found.Match.Center.X + Number(step, "offsetX");
         var y = found.Match.Center.Y + Number(step, "offsetY");
@@ -3282,29 +3284,47 @@ public sealed class MacroRunner
     /// Every place the reference picture appears in the search areas, in screen coordinates and in
     /// reading order: down the screen first, then across. That is the order a person counts them in
     /// when looking at a screenshot, which is what "the third one" has to mean to be useful.
+    /// The pictures the step lists are tried in turn and the first one that turns up is the one the
+    /// step goes with; the hits of that one picture are what "the third one" then counts.
     /// </summary>
     private List<ImageMatch> Hits(ExecutableStep step)
     {
-        var needle = Reference(step);
         var query = SearchQuery(step);
         var areas = SearchAreas(step);
-        var hits = new List<ImageMatch>();
-        foreach (var (area, origin) in areas)
+        var wanted = References(step);
+
+        for (var number = 0; number < wanted.Count; number++)
         {
-            foreach (var found in _devices.Vision.FindAll(area, needle, query))
+            var hits = new List<ImageMatch>();
+            foreach (var (area, origin) in areas)
             {
-                hits.Add(found with
+                foreach (var found in _devices.Vision.FindAll(area, wanted[number].Frame, query))
                 {
-                    Location = new ScreenPoint(found.Location.X + origin.X, found.Location.Y + origin.Y),
-                });
+                    hits.Add(found with
+                    {
+                        Location = new ScreenPoint(
+                            found.Location.X + origin.X, found.Location.Y + origin.Y),
+                    });
+                }
             }
+
+            if (hits.Count == 0)
+            {
+                continue;
+            }
+
+            Sorted(hits, step);
+            SawSearch(step, LookKind.Template, areas, [.. hits.Select(hit => (hit, (string?)null))],
+                WentWith(hits, step), wanted[number].Name, wanted[number].Frame,
+                query.ConfidencePercent / 100, number + 1, wanted.Count);
+            return hits;
         }
 
-        Sorted(hits, step);
-        SawSearch(step, LookKind.Template, areas, [.. hits.Select(hit => (hit, (string?)null))],
-            WentWith(hits, step), step.Text("image"), needle,
-            query.ConfidencePercent / 100);
-        return hits;
+        // Nothing turned up anywhere. The look is handed over for the first picture rather than for
+        // none: what the window has to show then is what was being looked for and where.
+        SawSearch(step, LookKind.Template, areas, [], 0, wanted[0].Name, wanted[0].Frame,
+            query.ConfidencePercent / 100, 1, wanted.Count);
+        return [];
     }
 
     /// <summary>
@@ -3510,7 +3530,31 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// The reference picture to look for: something an earlier Capture saved, or a file on disk.
+    /// The pictures a step looks for, in the order it listed them. A picture the step did not fill
+    /// in is left out rather than looked for; a step that lists none is a step that cannot look for
+    /// anything, and says so.
+    /// </summary>
+    private IReadOnlyList<WantedPicture> References(ExecutableStep step)
+    {
+        var wanted = new List<WantedPicture>();
+        foreach (var row in step.Rows("image"))
+        {
+            var written = row.TryGetValue("image", out var text) ? text.Trim() : string.Empty;
+            if (written.Length > 0)
+            {
+                wanted.Add(new WantedPicture(written, Picture(written)));
+            }
+        }
+
+        return wanted.Count > 0 ? wanted : throw new StepFailure("Run.MissingImage", string.Empty);
+    }
+
+    /// <summary>One reference picture of a step: how the step wrote it down, and the picture itself.</summary>
+    private sealed record WantedPicture(string Name, ImageFrame Frame);
+
+    /// <summary>
+    /// The one reference picture a step names, for the steps that hold a single one rather than a
+    /// list: something an earlier Capture saved, or a file on disk.
     /// </summary>
     private ImageFrame Reference(ExecutableStep step)
     {
@@ -3520,6 +3564,17 @@ public sealed class MacroRunner
             throw new StepFailure("Run.MissingImage", string.Empty);
         }
 
+        return Picture(text);
+    }
+
+    /// <summary>
+    /// A picture the step wrote down: what an earlier Capture saved, or a file on disk. The picture
+    /// is kept beside the time the file was last written, so a macro that looks for the same picture
+    /// again — in a loop, or every time it polls while it waits — uses the one it already has
+    /// instead of reading and decoding the file again.
+    /// </summary>
+    private ImageFrame Picture(string text)
+    {
         // A picture an earlier Capture saved, named with or without the dollar sign so it reads
         // the same as every other field a variable can go in.
         var named = text.StartsWith('$') ? text[1..].Trim() : text;
@@ -3528,10 +3583,7 @@ public sealed class MacroRunner
             return captured;
         }
 
-        // Otherwise it is a file, either written out or held in a variable. The picture is kept
-        // beside the time the file was last written: a macro that looks for the same picture
-        // again — in a loop, or every time it polls while it waits — uses the one it already has
-        // instead of reading and decoding the file again.
+        // Otherwise it is a file, either written out or held in a variable.
         var path = Read(text).AsText();
         var written = Written(path);
         if (written is { } stamp

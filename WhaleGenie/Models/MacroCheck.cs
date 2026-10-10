@@ -170,10 +170,9 @@ public static class MacroCheck
 
         // A list parameter keeps its values in rows, and every one of them is read like a plain
         // field: a row naming a picture a Capture took is a name the macro has to have defined.
-        if (parameter.Kind is ActionParameterKind.Region)
+        if (parameter.IsRowList)
         {
-            return [.. parameter.Rows
-                .SelectMany(row => row.Columns.Values)
+            return [.. parameter.RowValues
                 .Select(value => value.Trim())
                 .Where(value => value.StartsWith('$'))
                 .SelectMany(Expression.ReferencedNames)];

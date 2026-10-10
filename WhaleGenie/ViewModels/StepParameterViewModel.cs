@@ -443,6 +443,45 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>True when this parameter is a picture the action looks for on screen.</summary>
     public bool IsImage => Definition.Kind is ActionParameterKind.Image;
 
+    /// <summary>
+    /// The pictures this step looks for, when it looks for more than one: one row each, tried in
+    /// the order they are listed.
+    /// </summary>
+    public ObservableCollection<ImageRowViewModel> Pictures { get; } = [];
+
+    /// <summary>True when this parameter holds several pictures rather than one.</summary>
+    public bool IsImageList => Definition.Kind is ActionParameterKind.Images;
+
+    /// <summary>True while the list holds at least one picture.</summary>
+    public bool HasPictures => Pictures.Count > 0;
+
+    /// <summary>
+    /// The picture this field points at, whichever way it holds it: the one value of a single
+    /// picture field, or the first picture of a list of them. Empty when nothing is filled in.
+    /// </summary>
+    public string PictureText => IsImageList
+        ? Pictures.FirstOrDefault(picture => !string.IsNullOrWhiteSpace(picture.Text))?.Text.Trim()
+            ?? string.Empty
+        : CurrentText.Trim();
+
+    /// <summary>Puts another picture at the end of the list, for the user to fill in.</summary>
+    public void AddPicture(ImageRowViewModel? row = null)
+    {
+        var added = row ?? new ImageRowViewModel();
+        added.Take = RemovePicture;
+        added.Placeholder = Definition.Placeholder;
+        added.AssetFolder = _assetFolder;
+        Pictures.Add(added);
+        OnPropertyChanged(nameof(HasPictures));
+    }
+
+    /// <summary>Takes one picture out of the list.</summary>
+    public void RemovePicture(ImageRowViewModel row)
+    {
+        Pictures.Remove(row);
+        OnPropertyChanged(nameof(HasPictures));
+    }
+
     /// <summary>True when this parameter names a window, which the window picker can fill in.</summary>
     public bool IsWindow => Definition.Kind is ActionParameterKind.Window;
 
@@ -462,6 +501,10 @@ public partial class StepParameterViewModel : ViewModelBase
 
             _assetFolder = value;
             RefreshThumbnail();
+            foreach (var picture in Pictures)
+            {
+                picture.AssetFolder = value;
+            }
         }
     }
 
@@ -780,6 +823,9 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         ActionParameterKind.Bool => false,
         ActionParameterKind.Steps or ActionParameterKind.Condition => !HasNestedSteps,
+        // A list of pictures is filled in when it holds a picture: a row that is there but says
+        // nothing is not a picture, and a step that looks for one of those would look for nothing.
+        ActionParameterKind.Images => !Pictures.Any(picture => !string.IsNullOrWhiteSpace(picture.Text)),
         _ => string.IsNullOrWhiteSpace(CurrentText),
     };
 
@@ -793,6 +839,7 @@ public partial class StepParameterViewModel : ViewModelBase
         ActionParameterKind.Steps or ActionParameterKind.Condition => HasNestedSteps,
         ActionParameterKind.Region => Regions.Count > 0,
         ActionParameterKind.KeySequence => KeyRows.Any(row => row.ToRow().Columns.Count > 0),
+        ActionParameterKind.Images => Pictures.Any(picture => !string.IsNullOrWhiteSpace(picture.Text)),
         _ => Definition.Required || !string.IsNullOrWhiteSpace(CurrentText),
     };
 
@@ -942,11 +989,13 @@ public partial class StepParameterViewModel : ViewModelBase
         Steps = Definition.Kind is ActionParameterKind.Steps
             ? List?.Steps.ToList() ?? []
             : [],
-        Rows = Definition.Kind is ActionParameterKind.Region
-            ? [.. Regions.Select(row => row.ToRow())]
-            : Definition.Kind is ActionParameterKind.KeySequence
-                ? [.. KeyRows.Select(row => row.ToRow())]
-            : [],
+        Rows = Definition.Kind switch
+        {
+            ActionParameterKind.Region => [.. Regions.Select(row => row.ToRow())],
+            ActionParameterKind.KeySequence => [.. KeyRows.Select(row => row.ToRow())],
+            ActionParameterKind.Images => [.. Pictures.Select(picture => picture.ToRow())],
+            _ => [],
+        },
         Condition = Definition.Kind is ActionParameterKind.Condition
             ? List?.Steps.FirstOrDefault()
             : null,
@@ -978,6 +1027,17 @@ public partial class StepParameterViewModel : ViewModelBase
             foreach (var row in stored.Rows)
             {
                 AddKeyRow(KeyRowViewModel.From(row));
+            }
+
+            return;
+        }
+
+        if (Definition.Kind is ActionParameterKind.Images)
+        {
+            Pictures.Clear();
+            foreach (var row in stored.Rows)
+            {
+                AddPicture(ImageRowViewModel.From(row));
             }
 
             return;

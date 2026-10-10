@@ -100,9 +100,14 @@ public partial class LookWindow : Window
         var action = ActionCatalog.Find(look.StepType)?.LocalName ?? look.StepType;
         Set("StepLine", Strings.Format("Look.Step", action, look.StepId));
 
+        // Which of several pictures the step went with is part of what it was looking for: a step
+        // that lists three of them and found the second one is telling the user something the name
+        // of that one alone does not.
         Set("LookingLine", look.Looking.Length == 0
             ? string.Empty
-            : Strings.Format("Look.Looking", look.Looking));
+            : look.PictureCount > 1
+                ? Strings.Format("Look.Picture", look.PictureNumber, look.PictureCount, look.Looking)
+                : Strings.Format("Look.Looking", look.Looking));
 
         Set("OutcomeLine", Outcome(look));
 

@@ -1943,8 +1943,10 @@ public static class ActionCatalog
             Description = "Look for a reference image on screen.",
             Parameters =
             [
-                Image("image", "Image file", @"C:\images\ok.png",
-                   "Reference image: a file path, or the variable a Capture step saved ($shot)."),
+                Images("image", "Reference pictures", @"C:\images\ok.png",
+                   "The pictures to look for, one row each, tried in the order they are listed; the "
+                   + "first one that turns up is the one the step goes with. A row is a file path or "
+                   + "the variable a Capture step saved ($shot)."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 MatchAlgorithm(),
                 SkipColour(),
@@ -1969,8 +1971,9 @@ public static class ActionCatalog
             Description = "Wait until a reference image appears on screen.",
             Parameters =
             [
-                Image("image", "Image file", @"C:\images\ok.png",
-                    "Reference image to wait for: a file path, or the variable a Capture saved."),
+                Images("image", "Reference pictures", @"C:\images\ok.png",
+                    "The pictures to wait for, one row each, tried in the order they are listed. A "
+                    + "row is a file path or the variable a Capture step saved ($shot)."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 MatchAlgorithm(),
                 SkipColour(),
@@ -1994,7 +1997,9 @@ public static class ActionCatalog
             Description = "Find a reference image on screen and click it.",
             Parameters =
             [
-                Image("image", "Image file", @"C:\images\ok.png"),
+                Images("image", "Reference pictures", @"C:\images\ok.png",
+                    "The pictures to look for, one row each, tried in the order they are listed; the "
+                    + "first one that turns up is the one that gets clicked."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 MatchAlgorithm(),
                 SkipColour(),
@@ -2567,7 +2572,9 @@ public static class ActionCatalog
             Description = "True when a reference image is on screen.",
             Parameters =
             [
-                Image("image", "Image file", @"C:\images\ok.png"),
+                Images("image", "Reference pictures", @"C:\images\ok.png",
+                    "The pictures to look for, one row each, tried in the order they are listed; the "
+                    + "condition is true as soon as one of them turns up."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 Region(),
                 ..Anchor(),
@@ -2581,7 +2588,9 @@ public static class ActionCatalog
             Description = "True when a reference image is not on screen.",
             Parameters =
             [
-                Image("image", "Image file", @"C:\images\ok.png"),
+                Images("image", "Reference pictures", @"C:\images\ok.png",
+                    "The pictures to look for, one row each, tried in the order they are listed; the "
+                    + "condition is true only when none of them turns up."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 Region(),
                 ..Anchor(),
@@ -3169,6 +3178,23 @@ public static class ActionCatalog
             Name = name,
             Label = label,
             Kind = ActionParameterKind.Image,
+            Placeholder = placeholder,
+            Hint = hint,
+            Required = true,
+        };
+
+    /// <summary>
+    /// The pictures an action looks for on screen, one row each. A search tries them in the order
+    /// they are listed and goes with the first one that turns up, so one step covers a thing that
+    /// is drawn differently from one screen to the next instead of needing a branch for each.
+    /// </summary>
+    private static ActionParameter Images(string name, string label, string placeholder = "",
+        string hint = "")
+        => new()
+        {
+            Name = name,
+            Label = label,
+            Kind = ActionParameterKind.Images,
             Placeholder = placeholder,
             Hint = hint,
             Required = true,

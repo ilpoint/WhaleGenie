@@ -28,8 +28,8 @@ public class RunLookTests
                     new StepParameter
                     {
                         Name = "image",
-                        Kind = ActionParameterKind.Image,
-                        Value = @"C:\images\ok.png",
+                        Kind = ActionParameterKind.Images,
+                        Rows = [StepParameterRow.Of("image", @"C:\images\ok.png")],
                     },
                     new StepParameter
                     {
