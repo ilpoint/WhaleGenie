@@ -1274,7 +1274,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.Equal("Game", store.Local.Values["match.window"].AsText());
-        Assert.Equal("gdi", store.Local.Values["match.method"].AsText());
+        Assert.Equal("graphicsCapture", store.Local.Values["match.method"].AsText());
     }
 
     /// <summary>
@@ -1414,6 +1414,79 @@ public class DeviceActionTests
         ], devices);
 
         Assert.Equal(2, devices.Captures.Count);
+    }
+
+    /// <summary>
+    /// A step that names a gap between two looks is held to it when it runs again, which is what a
+    /// step inside a loop does: it reads the same place on every pass, and the gap is what stops it
+    /// reading faster than the macro can use.
+    /// </summary>
+    [Fact]
+    public async Task A_step_that_names_a_gap_between_looks_waits_it_out()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(1, 1), new ScreenSize(1, 1)));
+
+        var started = Stopwatch.GetTimestamp();
+        await RunAsync(
+        [
+            Step("control.repeat", Param("times", "3"), Body("body",
+                Step("vision.findImage", Pictures("ok.png"), Param("confidence", "90"),
+                    Param("intervalMs", "200"), Param("resultVariable", "match")))),
+        ], devices);
+
+        var took = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+        Assert.True(took >= 390, $"three looks 200 ms apart take at least 400 ms, took {took:0}");
+    }
+
+    /// <summary>
+    /// A step that waits for something looks again as often as it says: the gap is the wait's own
+    /// rhythm, so a wait of three looks 60 ms apart cannot come back before 120 ms have gone.
+    /// </summary>
+    [Fact]
+    public async Task A_wait_looks_again_as_often_as_the_step_says()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Loaded = new ImageFrame(2, 2, new byte[16]),
+            Match = new ImageMatch(0.95, new ScreenPoint(1, 1), new ScreenSize(2, 2)),
+            MatchAfter = 3,
+        };
+
+        var started = Stopwatch.GetTimestamp();
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.waitImage", Pictures("anything.png"), Param("confidence", "90"),
+                Param("timeoutMs", "5000"), Param("intervalMs", "60"),
+                Param("resultVariable", "spot")),
+        ], devices);
+
+        var took = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+        Assert.True(result.Succeeded);
+        Assert.Equal("2,2", store.Local.Values["spot"].AsText());
+        Assert.Equal(3, devices.Searches);
+        Assert.True(took >= 110, $"three looks 60 ms apart take at least 120 ms, took {took:0}");
+    }
+
+    /// <summary>
+    /// A wait that says nothing about how often to look keeps the rhythm it has always had: waiting
+    /// for a colour looks fifty times a second, so a wait of 160 ms looks a handful of times rather
+    /// than as often as the machine can.
+    /// </summary>
+    [Fact]
+    public async Task A_wait_without_a_gap_of_its_own_keeps_the_one_it_had()
+    {
+        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0xFF, 0xFF, 0xFF) };
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.waitColor", Param("x", "0"), Param("y", "0"), Param("color", "#000000"),
+                Param("timeoutMs", "160")),
+        ], devices);
+
+        Assert.Equal("Run.WaitColorTimeout", result.Key);
+        var looked = devices.Calls.Count(call => call == "pixel 0 0");
+        Assert.InRange(looked, 3, 8);
     }
 
     /// <summary>The negative conditions are their own actions, so "wait until it is gone" can be written.</summary>
@@ -5752,8 +5825,12 @@ internal sealed class FakeDeviceLayer
             Display = next();
         }
 
+        // What a real machine answers an automatic request with: the window itself when a window
+        // was named, and the pixels of the desktop when it was not.
         return new ScreenShot(picture, new ScreenPoint(request.X, request.Y),
-            request.Method == CaptureMethod.Auto ? CaptureMethod.Gdi : request.Method);
+            request.Method != CaptureMethod.Auto
+                ? request.Method
+                : request.Window == 0 ? CaptureMethod.Gdi : CaptureMethod.GraphicsCapture);
     }
 
     /// <summary>

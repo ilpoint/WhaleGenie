@@ -1921,6 +1921,7 @@ public static class ActionCatalog
                 Number("height", "Height", 100, "Region height in pixels.", min: 1),
                 ..Anchor(withElement: true),
                 ..Capture(),
+                LookGap(0),
                 Variable("saveTo", "Save to variable", "shot",
                     "Variable that receives the captured image. $name.x, $name.y, $name.width and "
                     + "$name.height hold the rectangle it covered, so a later step can search it.",
@@ -1937,6 +1938,7 @@ public static class ActionCatalog
             [
                 ..WindowTarget(),
                 ..WindowCapture(),
+                LookGap(0),
                 Variable("saveTo", "Save to variable", "shot",
                     "Variable that receives the captured image. $name.x, $name.y, $name.width and "
                     + "$name.height hold the rectangle it covered, so a later step can search it.",
@@ -1957,6 +1959,7 @@ public static class ActionCatalog
                    + "the variable a Capture step saved ($shot)."),
                 Region(),
                 ..Capture(),
+                LookGap(0),
                 Number("confidence", "Similarity %", 90,
                     "How alike the picture on screen has to be, from 0 to 100 per cent; the default "
                     + "is 90. Raise it to accept fewer false matches, lower it when the screen is "
@@ -1988,6 +1991,7 @@ public static class ActionCatalog
                     + "row is a file path or the variable a Capture step saved ($shot)."),
                 Region(),
                 ..Capture(),
+                LookPoll(200),
                 Number("confidence", "Similarity %", 90,
                     "How alike the picture on screen has to be, from 0 to 100 per cent; the default "
                     + "is 90.", max: 100),
@@ -2000,9 +2004,6 @@ public static class ActionCatalog
                 MatchOrder(pixelsOnly: true),
                 ..Anchor(),
                 MatchIndex(pixelsOnly: true),
-                Number("intervalMs", "How often to look", 200,
-                    "How often the screen is looked at while waiting, in milliseconds; the default "
-                    + "is 200.", advanced: true),
                 Variable("resultVariable", "Result variable", "match",
                     "Variable that receives the match centre. $name.x, $name.y and $name.score "
                     + "hold the parts.", namesVariable: true, defaultValue: "match"),
@@ -2038,6 +2039,7 @@ public static class ActionCatalog
                 MatchOrder(pixelsOnly: true),
                 ..Anchor(),
                 MatchIndex(pixelsOnly: true),
+                LookPoll(200),
             ],
         },
         new()
@@ -2052,6 +2054,7 @@ public static class ActionCatalog
                 Number("y", "Y", 0, "Screen row to sample."),
                 ..Anchor(),
                 ..Capture(),
+                LookGap(0),
                 Variable("resultVariable", "Result variable", "color",
                     "Variable that receives the colour.", namesVariable: true, defaultValue: "color"),
                 Toggle("asHex", "Store as hex", true, "Store #RRGGBB instead of raw colour channels."),
@@ -2074,6 +2077,7 @@ public static class ActionCatalog
                     + "default is 5000."),
                 ..Anchor(),
                 ..Capture(),
+                LookPoll(50),
             ],
         },
         new()
@@ -2096,9 +2100,7 @@ public static class ActionCatalog
                 MatchIndex(),
                 AllMatches(),
                 ..Anchor(),
-                Number("intervalMs", "How often to look", 200,
-                    "How often the screen is looked at while waiting, in milliseconds; the default "
-                    + "is 200.", advanced: true),
+                LookPoll(200),
                 Variable("resultVariable", "Result variable", "match",
                     "Variable that receives where the colour was found, empty when it was not. "
                     + "$name.x, $name.y and $name.score hold the parts, and $name.count and "
@@ -2134,10 +2136,7 @@ public static class ActionCatalog
                 Number("timeoutMs", "Give up after", 10000,
                     "How long to wait for the picture to settle, in milliseconds; the default is "
                     + "10000. Reached, the step fails.", advanced: true),
-                Number("intervalMs", "Interval", 100,
-                    "How often the area is looked at, in milliseconds; the default is 100. Shorter "
-                    + "notices the screen moving sooner, longer costs less while the wait runs.",
-                    min: 1, advanced: true),
+                LookPoll(100),
             ],
         },
 
@@ -2162,6 +2161,7 @@ public static class ActionCatalog
                     + "$name.text holds the whole lot as text, one line per row."),
                 ..Anchor(),
                 ..Capture(),
+                LookGap(0),
                 Preprocess(advanced: true),
                 ColourFilter(advanced: true),
                 ColourTolerance(advanced: true),
@@ -2183,6 +2183,7 @@ public static class ActionCatalog
                 Text("text", "Text to find", "Save", "Text to look for."),
                 Region(),
                 ..Capture(),
+                LookGap(0),
                 TextMatch(),
                 Content(),
                 ..Anchor(),
@@ -2224,6 +2225,7 @@ public static class ActionCatalog
                     "How long to wait for the text to turn up before giving up, in milliseconds; "
                     + "the default is 5000."),
                 ..Anchor(),
+                LookPoll(200),
                 Preprocess(advanced: true),
                 ColourFilter(advanced: true),
                 ColourTolerance(advanced: true),
@@ -2625,6 +2627,7 @@ public static class ActionCatalog
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 Region(),
                 ..Capture(),
+                LookGap(0),
                 ..Anchor(),
             ],
         },
@@ -2642,6 +2645,7 @@ public static class ActionCatalog
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 Region(),
                 ..Capture(),
+                LookGap(0),
                 ..Anchor(),
             ],
         },
@@ -2656,6 +2660,7 @@ public static class ActionCatalog
                 Text("text", "Text", "Ready"),
                 Region(),
                 ..Capture(),
+                LookGap(0),
                 ..Anchor(),
                 TextMatch(),
             ],
@@ -2671,6 +2676,7 @@ public static class ActionCatalog
                 Text("text", "Text", "Ready"),
                 Region(),
                 ..Capture(),
+                LookGap(0),
                 ..Anchor(),
                 TextMatch(),
             ],
@@ -2711,6 +2717,7 @@ public static class ActionCatalog
                 Number("y", "Y", 0, "Screen row to compare."),
                 ..Anchor(),
                 ..Capture(),
+                LookGap(0),
                 ColorPick("color", "Colour", "#000000"),
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100, advanced: true),
             ],
@@ -2732,6 +2739,7 @@ public static class ActionCatalog
                     labels: ["Every point", "Any point"]),
                 ..Anchor(),
                 ..Capture(),
+                LookGap(0),
             ],
         },
         new()
@@ -3428,6 +3436,38 @@ public static class ActionCatalog
             + "and again. The first reading with this allowed takes the whole window or the whole "
             + "screen, which is what the readings after it save.",
             min: 0, max: 60000, advanced: true);
+
+    /// <summary>
+    /// How long a step that looks at the screen leaves between two looks. A step that looks once —
+    /// or a condition, which is asked for its answer as often as a block feels like asking — reads
+    /// the same place every pass of a loop, and most of those readings are of a picture that has
+    /// not changed; the number written here is the least time between two of them.
+    /// </summary>
+    private static ActionParameter LookGap(decimal defaultMs)
+        => Number("intervalMs", "Time between looks", defaultMs,
+            "The least time this step leaves between two looks at the screen, in milliseconds, from "
+            + $"0 to 60000; the default is {Written(defaultMs)}, which looks again as soon as the "
+            + "step is asked to. Writing a gap is worth it when the step sits inside a loop, where a "
+            + "step that reads the same place on every pass spends most of its time reading a "
+            + "picture that has not changed. Seven milliseconds is about 144 looks a second.",
+            min: 0, max: 60000, advanced: true);
+
+    /// <summary>
+    /// The same field for a step that waits for something to turn up: there it is how often the
+    /// screen is looked at while the step waits, which is the same question — how many looks a
+    /// second the macro spends — asked of a step that has its own clock.
+    /// </summary>
+    private static ActionParameter LookPoll(decimal defaultMs)
+        => Number("intervalMs", "Time between looks", defaultMs,
+            "How often the screen is looked at while this step waits for something to turn up, in "
+            + $"milliseconds, from 0 to 60000; the default is {Written(defaultMs)}, and 0 looks again "
+            + "as soon as the look before it is done. Raise it when waiting should cost less, lower "
+            + "it when what the step watches is only there for a moment. Seven milliseconds is "
+            + "about 144 looks a second.",
+            min: 0, max: 60000, advanced: true);
+
+    /// <summary>A number as the hint writes it, however the file was written.</summary>
+    private static string Written(decimal value) => value.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
     /// A colour of the reference picture that takes no part in the comparing, shared by the picture

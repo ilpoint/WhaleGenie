@@ -64,6 +64,16 @@ public sealed class MacroRunner
         (ImageFrame Frame, ScreenPoint Origin, CaptureMethod Method, long TakenAt)> _frames = [];
 
     /// <summary>
+    /// When each step last looked at the screen, for the steps that say how long to leave between
+    /// two looks. A step that reads the same place on every pass of a loop spends most of its time
+    /// reading a picture that has not changed, and this is what keeps it from asking the machine
+    /// for more looks than the macro can use. A step is recognised by the identity written into the
+    /// file where it has one, and by itself where it has none, which is what makes the same step in
+    /// a loop the same step here.
+    /// </summary>
+    private readonly Dictionary<object, long> _looked = [];
+
+    /// <summary>
     /// Reference pictures read from disk, kept beside the time the file was last written. A macro
     /// that looks for the same picture in a loop — or every two hundred milliseconds while it
     /// waits — reads and decodes it once instead of every time round. A picture that has been
@@ -206,6 +216,7 @@ public sealed class MacroRunner
         _failure = null;
         _images.Clear();
         _frames.Clear();
+        _looked.Clear();
         PrepareOutcomes(steps);
         Log(LogLevel.Info, 0, string.Empty, "Run.Start", steps.Count);
         if (Math.Abs(DelayScale - 1) > 0.001)
@@ -1155,51 +1166,63 @@ public sealed class MacroRunner
 
             // ----------------------------------------------------------------- vision
             case "vision.capture":
+                await Gate(step, token);
                 Watching(() => Capture(step, depth));
                 return Signal.Normal;
 
             case "vision.captureWindow":
+                await Gate(step, token);
                 Watching(() => CaptureWindow(step, depth));
                 return Signal.Normal;
 
             case "vision.getPixel":
+                await Gate(step, token);
                 Watching(() => GetPixel(step, depth));
                 return Signal.Normal;
 
             case "vision.waitColor":
+                await Gate(step, token);
                 await Watching(() => WaitColor(step, depth, token));
                 return Signal.Normal;
 
             case "vision.findColor":
+                await Gate(step, token);
                 await Watching(() => FindColor(step, depth, token));
                 return Signal.Normal;
 
             case "vision.waitStable":
+                await Gate(step, token);
                 await WaitStable(step, depth, token);
                 return Signal.Normal;
 
             case "vision.findImage":
+                await Gate(step, token);
                 Watching(() => LookFor(step, depth));
                 return Signal.Normal;
 
             case "vision.waitImage":
+                await Gate(step, token);
                 await Watching(() => WaitForImage(step, depth, token));
                 return Signal.Normal;
 
             case "vision.clickImage":
+                await Gate(step, token);
                 await Watching(() => ClickImage(step, depth, token));
                 return Signal.Normal;
 
             // -------------------------------------------------------------------- ocr
             case "ocr.recognize":
+                await Gate(step, token);
                 Watching(() => Recognize(step, depth));
                 return Signal.Normal;
 
             case "ocr.findText":
+                await Gate(step, token);
                 Watching(() => FindText(step, depth));
                 return Signal.Normal;
 
             case "ocr.clickText":
+                await Gate(step, token);
                 await Watching(() => ClickText(step, depth, token));
                 return Signal.Normal;
 
@@ -1689,9 +1712,25 @@ public sealed class MacroRunner
     /// can be asked again and again without holding anything up — which is what the wait block
     /// does with it.
     /// </summary>
+    /// <summary>
+    /// Whether a condition's answer comes from the screen, and so from a look at it. The six that do
+    /// are the ones whose own "how often the screen is looked at" counts, the same field the vision
+    /// steps carry.
+    /// </summary>
+    private static bool LooksAtScreen(string conditionType) => conditionType is
+        "condition.imageExists" or "condition.imageNotExists"
+        or "condition.textExists" or "condition.textNotExists"
+        or "condition.colorEquals" or "condition.colorsMatch";
+
     private bool Check(ExecutableStep condition, int depth, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+        if (LooksAtScreen(condition.Type))
+        {
+            // A condition about the screen is asked again on every pass of whatever block holds it,
+            // so it is the same reading of the screen as a step's and leaves the same gap.
+            GateNow(condition, token);
+        }
 
         switch (condition.Type)
         {
@@ -3156,8 +3195,9 @@ public sealed class MacroRunner
         // The corner is looked up again on every check, so a wait that watches a window keeps
         // watching the same spot inside it even if the window is moved while the macro waits.
         var (point, window) = Spot(step);
+        var interval = Math.Max(1, OptionalNumber(step, "intervalMs", 50));
         var seen = await WaitForFlagAsync(
-            () => PixelAt(step).Matches(target, tolerance), timeout, 50, token);
+            () => PixelAt(step).Matches(target, tolerance), timeout, interval, token);
         SawPixel(step, point, target.ToHex(), window);
         if (!seen)
         {
@@ -3214,11 +3254,7 @@ public sealed class MacroRunner
             return hits;
         }
 
-        var interval = Number(step, "intervalMs");
-        if (interval <= 0)
-        {
-            interval = 200;
-        }
+        var interval = Math.Max(1, OptionalNumber(step, "intervalMs", 200));
 
         // The areas are captured again on every pass, so a wait keeps watching a window that is
         // moving rather than the place it used to be.
@@ -3266,7 +3302,7 @@ public sealed class MacroRunner
         var allowed = Read(step.Text("changedPercent")).AsNumber() / 100;
         var quiet = Math.Max(0, Number(step, "quietMs"));
         var timeout = Math.Max(1, Number(step, "timeoutMs"));
-        var interval = Math.Max(1, Number(step, "intervalMs"));
+        var interval = Math.Max(1, OptionalNumber(step, "intervalMs", 100));
 
         var started = Stopwatch.GetTimestamp();
         long Elapsed() => (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
@@ -3546,11 +3582,7 @@ public sealed class MacroRunner
     private async Task<Found?> HitsUntil(ExecutableStep step, CancellationToken token)
     {
         var timeout = Math.Max(0, Number(step, "timeoutMs"));
-        var interval = Number(step, "intervalMs");
-        if (interval <= 0)
-        {
-            interval = 200;
-        }
+        var interval = Math.Max(1, OptionalNumber(step, "intervalMs", 200));
 
         Found? Enough()
         {
@@ -3983,6 +4015,59 @@ public sealed class MacroRunner
         _takenWindow = window?.Title ?? string.Empty;
         _takenMethod = method;
     }
+
+    /// <summary>
+    /// Waits out however much of this step's gap is left and notes the look. Every step that reads
+    /// the screen comes through here, so a step held to a gap is held to it whichever way it reads.
+    /// </summary>
+    private async Task Gate(ExecutableStep step, CancellationToken token)
+    {
+        var left = Until(step);
+        if (left > 0)
+        {
+            await Pause(left, token);
+        }
+
+        Looked(step);
+    }
+
+    /// <summary>
+    /// The same wait for a condition, which is asked for its answer rather than awaited, so there
+    /// is nothing to hand back to while the gap runs out.
+    /// </summary>
+    private void GateNow(ExecutableStep step, CancellationToken token)
+    {
+        var left = Until(step);
+        while (left > 0)
+        {
+            token.ThrowIfCancellationRequested();
+            var nap = Math.Min(left, 20);
+            Thread.Sleep(nap);
+            left -= nap;
+        }
+
+        Looked(step);
+    }
+
+    /// <summary>
+    /// How long this step still has to wait before it may look: nothing when it has never looked or
+    /// leaves no gap at all.
+    /// </summary>
+    private int Until(ExecutableStep step)
+    {
+        var interval = Math.Max(0, Number(step, "intervalMs"));
+        if (interval <= 0 || !_looked.TryGetValue(Key(step), out var last))
+        {
+            return 0;
+        }
+
+        return Math.Max(0, interval - (int)Stopwatch.GetElapsedTime(last).TotalMilliseconds);
+    }
+
+    /// <summary>Notes that a step is looking now, which is what the step after it is measured from.</summary>
+    private void Looked(ExecutableStep step) => _looked[Key(step)] = Stopwatch.GetTimestamp();
+
+    private static object Key(ExecutableStep step) => step.Id.Length > 0 ? step.Id : step;
 
     // --------------------------------------------------------------------- files
 
@@ -6106,7 +6191,7 @@ public sealed class MacroRunner
 
         var span = await WaitForValueAsync(
             Look,
-            timeout, 200, token);
+            timeout, Math.Max(1, OptionalNumber(step, "intervalMs", 200)), token);
         SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen, wanted,
             minimum: Number(step, "minScore"));
         if (span is null)

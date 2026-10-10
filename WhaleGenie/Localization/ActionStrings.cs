@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace WhaleGenie.Localization;
 
@@ -82,6 +83,25 @@ internal static class ActionStrings
         + "填一个毫秒数，则同一来源（同一个窗口，或桌面）上不超过这个时长的画面会被直接复用，"
         + "连续查同一个地方时不必一次次读屏幕。开启复用后第一次读的是整个窗口或整块屏幕，"
         + "省下来的是它后面那几次。";
+
+    /// <summary>
+    /// The label and the two hints every step that looks at the screen shares for how long it leaves
+    /// between two looks. One field, because both readings answer one question — how many times a
+    /// second the macro reads the screen; two hints, because a wait spends that number as its own
+    /// clock while a step that looks once is only held to it.
+    /// </summary>
+    private const string LookIntervalLabel = "查看间隔";
+
+    private const string LookGapHint =
+        "同一步骤两次看屏幕之间至少隔多久，单位毫秒，0–60000，默认 0，也就是轮到它就立刻看。"
+        + "这一步多半写在循环里：每圈都读同一个地方时，读得比用得上的还快，多出来的那几次都是白花的。"
+        + "7 毫秒约等于每秒 144 次。";
+
+    private static string LookPollHint(int defaultMs)
+        => "等待期间多久看一次屏幕，单位毫秒，0–60000，默认 "
+           + defaultMs.ToString(CultureInfo.InvariantCulture)
+           + "，填 0 表示上一次看完了立刻再看。等得起就调大，省下的是机器的开销；"
+           + "要看的东西一闪而过就调小。7 毫秒约等于每秒 144 次。";
 
     /// <summary>The hint every window action shares for the text it recognises a window by.</summary>
     private const string WindowTitleHint =
@@ -1832,8 +1852,6 @@ internal static class ActionStrings
         ["vision.findColor.timeoutMs.label"] = "等待上限",
         ["vision.findColor.timeoutMs.hint"] =
             "0 表示只找一次，找不到就把结果留空；填了数字就等它出现，一直不出现算失败。",
-        ["vision.findColor.intervalMs.label"] = "查看间隔",
-        ["vision.findColor.intervalMs.hint"] = "等待时两次查找之间的间隔。",
         ["vision.findColor.resultVariable.label"] = "结果变量",
         ["vision.findColor.resultVariable.hint"] =
             "接收找到的位置，没找到时为空；$变量名.x、.y、.score 是各个部分，"
@@ -1859,8 +1877,6 @@ internal static class ActionStrings
             "整块区域里最多有多少比例的像素在动还算静止。转圈、滚动、进度条都超过这个数。",
         ["vision.waitStable.timeoutMs.label"] = "超时",
         ["vision.waitStable.timeoutMs.hint"] = "等这么久还不动就失败，交给外面的块重试或跳过。",
-        ["vision.waitStable.intervalMs.label"] = "间隔",
-        ["vision.waitStable.intervalMs.hint"] = "两次查看之间的间隔。",
         ["vision.waitStable.anchorMode.label"] = "坐标基准",
         ["vision.waitStable.anchorMode.hint"] = AnchorModeHint,
         ["vision.waitStable.anchorMode.option.screen"] = "屏幕像素",
@@ -1938,8 +1954,6 @@ internal static class ActionStrings
         ["vision.waitImage.confidence.hint"] = "要求的最低匹配度。",
         ["vision.waitImage.timeoutMs.label"] = "等待上限",
         ["vision.waitImage.timeoutMs.hint"] = "超过这个时长就放弃。",
-        ["vision.waitImage.intervalMs.label"] = "查看间隔",
-        ["vision.waitImage.intervalMs.hint"] = "两次检测之间的间隔。",
         ["vision.waitImage.resultVariable.label"] = "结果变量",
 
         ["vision.clickImage.name"] = "点击图片",
@@ -2606,6 +2620,44 @@ internal static class ActionStrings
         ["condition.colorEquals.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
         ["condition.colorsMatch.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
         ["condition.colorsMatch.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+
+        // ------------------------------------------- 查看间隔（等待类拿它当轮询，其余的当下限）
+        ["vision.capture.intervalMs.label"] = LookIntervalLabel,
+        ["vision.capture.intervalMs.hint"] = LookGapHint,
+        ["vision.captureWindow.intervalMs.label"] = LookIntervalLabel,
+        ["vision.captureWindow.intervalMs.hint"] = LookGapHint,
+        ["vision.findImage.intervalMs.label"] = LookIntervalLabel,
+        ["vision.findImage.intervalMs.hint"] = LookGapHint,
+        ["vision.waitImage.intervalMs.label"] = LookIntervalLabel,
+        ["vision.waitImage.intervalMs.hint"] = LookPollHint(200),
+        ["vision.clickImage.intervalMs.label"] = LookIntervalLabel,
+        ["vision.clickImage.intervalMs.hint"] = LookPollHint(200),
+        ["vision.getPixel.intervalMs.label"] = LookIntervalLabel,
+        ["vision.getPixel.intervalMs.hint"] = LookGapHint,
+        ["vision.waitColor.intervalMs.label"] = LookIntervalLabel,
+        ["vision.waitColor.intervalMs.hint"] = LookPollHint(50),
+        ["vision.findColor.intervalMs.label"] = LookIntervalLabel,
+        ["vision.findColor.intervalMs.hint"] = LookPollHint(200),
+        ["vision.waitStable.intervalMs.label"] = LookIntervalLabel,
+        ["vision.waitStable.intervalMs.hint"] = LookPollHint(100),
+        ["ocr.recognize.intervalMs.label"] = LookIntervalLabel,
+        ["ocr.recognize.intervalMs.hint"] = LookGapHint,
+        ["ocr.findText.intervalMs.label"] = LookIntervalLabel,
+        ["ocr.findText.intervalMs.hint"] = LookGapHint,
+        ["ocr.clickText.intervalMs.label"] = LookIntervalLabel,
+        ["ocr.clickText.intervalMs.hint"] = LookPollHint(200),
+        ["condition.imageExists.intervalMs.label"] = LookIntervalLabel,
+        ["condition.imageExists.intervalMs.hint"] = LookGapHint,
+        ["condition.imageNotExists.intervalMs.label"] = LookIntervalLabel,
+        ["condition.imageNotExists.intervalMs.hint"] = LookGapHint,
+        ["condition.textExists.intervalMs.label"] = LookIntervalLabel,
+        ["condition.textExists.intervalMs.hint"] = LookGapHint,
+        ["condition.textNotExists.intervalMs.label"] = LookIntervalLabel,
+        ["condition.textNotExists.intervalMs.hint"] = LookGapHint,
+        ["condition.colorEquals.intervalMs.label"] = LookIntervalLabel,
+        ["condition.colorEquals.intervalMs.hint"] = LookGapHint,
+        ["condition.colorsMatch.intervalMs.label"] = LookIntervalLabel,
+        ["condition.colorsMatch.intervalMs.hint"] = LookGapHint,
 
         // ------------------------------------------------- 下拉选项（每个动作各一份键）
         // 鼠标按键在八个动作里出现，措辞必须一致，否则同一个下拉框换个动作就变样。

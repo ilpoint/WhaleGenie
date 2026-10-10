@@ -95,16 +95,21 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         }
 
         var window = Geometry(request.Window);
-        return request.Method switch
+        return request.Method == CaptureMethod.Auto
+            ? Auto(request, window)
+            : One(request.Method, request, window);
+    }
+
+    /// <summary>Reads the rectangle the one way that was named, without falling back to another.</summary>
+    private ScreenShot One(CaptureMethod method, ScreenCaptureRequest request, WindowGeometry window)
+        => method switch
         {
             CaptureMethod.PrintWindow => PrintWindow(request, window),
             CaptureMethod.GraphicsCapture => Graphics(request, window),
             CaptureMethod.GraphicsCaptureDesktop => ThroughTheDisplay(request),
-            CaptureMethod.Gdi => new ScreenShot(Copy(request.X, request.Y, request.Width,
-                request.Height), new ScreenPoint(request.X, request.Y), CaptureMethod.Gdi),
-            _ => Auto(request, window),
+            _ => new ScreenShot(Copy(request.X, request.Y, request.Width, request.Height),
+                new ScreenPoint(request.X, request.Y), CaptureMethod.Gdi),
         };
-    }
 
     /// <summary>
     /// A request that does not name a window: the desktop, read by the means asked for. Naming a
@@ -128,11 +133,12 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
     /// </summary>
     private ScreenShot Auto(ScreenCaptureRequest request, WindowGeometry window)
     {
-        if (_graphics.Value.Available)
+        var ways = Automatic(_graphics.Value.Available);
+        foreach (var way in ways[..^1])
         {
             try
             {
-                return Graphics(request, window);
+                return One(way, request, window);
             }
             catch (DeviceActionException)
             {
@@ -141,18 +147,20 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
             }
         }
 
-        try
-        {
-            return PrintWindow(request, window);
-        }
-        catch (DeviceActionException)
-        {
-            // Last of all, the pixels that are on the screen. A window that is covered gives the
-            // covering window's picture, which is wrong but is what a person would see.
-            return new ScreenShot(Copy(request.X, request.Y, request.Width, request.Height),
-                new ScreenPoint(request.X, request.Y), CaptureMethod.Gdi);
-        }
+        // The last way is tried without a way out of it: reading the pixels on the screen is the
+        // one that always answers something, and a failure there is the failure of the step.
+        return One(ways[^1], request, window);
     }
+
+    /// <summary>
+    /// The ways the automatic choice tries for a window, best first. Written out as a list rather
+    /// than folded into the trying, so that the order — what each way finds against what it costs —
+    /// can be read and checked on its own.
+    /// </summary>
+    internal static CaptureMethod[] Automatic(bool graphicsAvailable)
+        => graphicsAvailable
+            ? [CaptureMethod.GraphicsCapture, CaptureMethod.PrintWindow, CaptureMethod.Gdi]
+            : [CaptureMethod.PrintWindow, CaptureMethod.Gdi];
 
     /// <summary>
     /// One window read through graphics capture, in its own coordinates. What comes back is the

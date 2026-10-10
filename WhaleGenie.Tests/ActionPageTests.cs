@@ -65,6 +65,78 @@ public class ActionPageTests
     }
 
     /// <summary>
+    /// The three fields that say how a step reads the screen — where the picture comes from, how old
+    /// a picture it will accept, and how long it leaves between two looks — belong together on the
+    /// advanced page, because the answers almost every macro wants are the defaults.
+    /// </summary>
+    [Fact]
+    public void How_a_step_reads_the_screen_is_on_the_advanced_page()
+    {
+        var misplaced = new List<string>();
+        var about = new[] { "captureMode", "frameMaxAgeMs", "intervalMs" };
+
+        foreach (var action in Ui.Run(() => ActionCatalog.RunnableActions.ToList()))
+        {
+            var basic = On(action, viewModel => viewModel.Rows);
+            var advanced = On(action, viewModel => viewModel.AdvancedRows);
+            var output = On(action, viewModel => viewModel.OutputRows);
+            if (!basic.Concat(advanced).Concat(output).Contains("captureMode", StringComparer.Ordinal))
+            {
+                continue;
+            }
+
+            foreach (var name in about)
+            {
+                if (!advanced.Contains(name, StringComparer.Ordinal))
+                {
+                    misplaced.Add($"{action.Key}: {name}");
+                }
+            }
+        }
+
+        Assert.Empty(misplaced);
+    }
+
+    /// <summary>
+    /// The step that is about one window offers only the ways a window can be read, because the ways
+    /// of reading the desktop are not answers to the question it asks.
+    /// </summary>
+    [Fact]
+    public void The_capture_window_step_offers_only_the_ways_a_window_is_read()
+    {
+        var offered = Ui.Run(() => ActionCatalog.Definitions
+            .First(definition => definition.Key == "vision.captureWindow")
+            .Parameters.First(parameter => parameter.Name == "captureMode")
+            .OptionChoices.Select(choice => choice.Value).ToList());
+
+        Assert.Equal(["auto", "printWindow", "graphicsCapture"], offered);
+    }
+
+    /// <summary>
+    /// The rhythm a step that waits for the screen looks at it with is the one it had before the
+    /// field existed, so a macro that says nothing about it behaves the way it always has.
+    /// </summary>
+    [Theory]
+    [InlineData("vision.waitColor", "50")]
+    [InlineData("vision.waitStable", "100")]
+    [InlineData("vision.waitImage", "200")]
+    [InlineData("vision.findColor", "200")]
+    [InlineData("vision.clickImage", "200")]
+    [InlineData("ocr.clickText", "200")]
+    [InlineData("vision.findImage", "0")]
+    [InlineData("condition.imageExists", "0")]
+    public void A_step_that_looks_at_the_screen_keeps_the_rhythm_it_had(string action, string intervalMs)
+    {
+        var field = Ui.Run(() => ActionCatalog.Definitions
+            .First(definition => definition.Key == action)
+            .Parameters.First(parameter => parameter.Name == "intervalMs"));
+
+        Assert.Equal(intervalMs, field.DefaultValue);
+        Assert.Equal(0m, field.Minimum);
+        Assert.Equal(60000m, field.Maximum);
+    }
+
+    /// <summary>
     /// Which window a step works on, and how that window is recognised, is what the step is rather
     /// than how it does it: a window named wrongly is a step that quietly does nothing, so all three
     /// parts of the name are read on the basic page.
