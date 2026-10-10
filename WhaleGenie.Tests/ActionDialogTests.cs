@@ -168,6 +168,26 @@ public class ActionDialogTests
         });
     }
 
+    /// <summary>
+    /// A colour is found one pixel at a time, so every hit a colour search reports is the same
+    /// size and asking for "the biggest one" could not change the answer. Offering it would be a
+    /// choice that does nothing.
+    /// </summary>
+    [Fact]
+    public void A_colour_search_is_not_offered_the_biggest_hit()
+    {
+        Ui.Run(() =>
+        {
+            var order = Open("vision.findColor").Parameters
+                .First(parameter => parameter.Definition.Name == "orderBy");
+            Assert.Equal(["reading", "score", "random"], order.Definition.Options);
+
+            var picture = Open("vision.findImage").Parameters
+                .First(parameter => parameter.Definition.Name == "orderBy");
+            Assert.Contains("area", picture.Definition.Options);
+        });
+    }
+
     [Fact]
     public void Finding_an_image_offers_which_hit_and_whether_to_record_them_all()
     {

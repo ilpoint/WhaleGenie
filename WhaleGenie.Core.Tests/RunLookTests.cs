@@ -176,6 +176,45 @@ public class RunLookTests
     }
 
     /// <summary>
+    /// "The third one" counts the hits of the picture that turned up: a picture that was not there
+    /// contributes nothing to the count, so listing several does not shift which hit a step takes.
+    /// </summary>
+    [Fact]
+    public async Task Which_hit_is_taken_is_counted_inside_the_picture_that_turned_up()
+    {
+        var first = new ImageFrame(3, 3, new byte[36]);
+        var second = new ImageFrame(4, 4, new byte[64]);
+        var devices = Screen();
+        devices.Pictures[@"C:\images\first.png"] = first;
+        devices.Pictures[@"C:\images\second.png"] = second;
+        devices.PictureAnswers = (needle, _) => needle.Width == second.Width
+            ?
+            [
+                new ImageMatch(0.95, new ScreenPoint(10, 10), new ScreenSize(2, 2)),
+                new ImageMatch(0.95, new ScreenPoint(10, 20), new ScreenSize(2, 2)),
+                new ImageMatch(0.95, new ScreenPoint(10, 30), new ScreenSize(2, 2)),
+            ]
+            : [];
+
+        var looks = new Watched();
+        var step = Step("vision.findImage", Pictures(@"C:\images\first.png", @"C:\images\second.png"),
+            Param("confidence", "90"), Param("matchIndex", "3"), Param("resultVariable", "match"));
+
+        var result = await Run(step, devices, looks);
+
+        Assert.Equal(RunStatus.Completed, result.Status);
+        var look = Assert.Single(looks.Seen);
+        Assert.Equal(2, look.PictureNumber);
+
+        // "The third one" counts the hits of the picture that turned up. The picture tried before
+        // it had none, so its turn contributes nothing to the count; the mark taken is the third
+        // of the second picture's three hits.
+        Assert.Equal(3, look.Boxes.Count(box => box.Role is LookRole.Hit or LookRole.Candidate));
+        Assert.Equal(LookRole.Hit, look.Boxes[^1].Role);
+        Assert.Equal(new ScreenPoint(10, 30), look.Boxes[^1].Match.Location);
+    }
+
+    /// <summary>
     /// A picture that is listed but not filled in is one there is nothing to look for, and a step
     /// that lists none at all cannot look for anything — it says so rather than searching for
     /// whatever it happens to have.
