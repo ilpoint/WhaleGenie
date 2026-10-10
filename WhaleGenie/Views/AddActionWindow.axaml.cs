@@ -28,6 +28,15 @@ public partial class AddActionWindow : Window
     /// <summary>The clock that takes a "ran it" line away again, while one is running.</summary>
     private DispatcherTimer? _runTimer;
 
+    /// <summary>
+    /// The keyboard drawn on screen, kept while the dialog is up. A combination is built a key at a
+    /// time, so the window stays open and takes the next cap instead of being opened again for it.
+    /// </summary>
+    private VirtualKeyboardWindow? _keyPad;
+
+    /// <summary>Where the keyboard is writing at the moment: the field or the row that asked for it.</summary>
+    private Action<string>? _keyTarget;
+
     private IDeviceLayer? _devices;
 
     public AddActionWindow()
@@ -312,21 +321,72 @@ public partial class AddActionWindow : Window
     }
 
     /// <summary>
-    /// Opens the keyboard drawn on screen for one press of a key run, and joins the key whose cap
-    /// was clicked to that press. The key already there stays, because a combination of several
-    /// keys is built a key at a time.
+    /// Points the keyboard drawn on screen at one press of a key run. The keys already there stay,
+    /// because a combination of several keys is built a key at a time.
     /// </summary>
-    private async void OnPickKeyRow(object? sender, RoutedEventArgs e)
+    private void OnPickKeyRow(object? sender, RoutedEventArgs e)
     {
-        if (sender is not Control { DataContext: KeyRowViewModel row })
+        if (sender is Control { DataContext: KeyRowViewModel row })
         {
-            return;
+            OpenKeyPad(Strings.Format("Add.KeyRunPress", row.Number), row.AddKey);
+        }
+    }
+
+    /// <summary>
+    /// Points the keyboard at the field whose button was clicked: one key is set outright, a
+    /// combination is joined to what is already there.
+    /// </summary>
+    private void OpenKeyPadFor(StepParameterViewModel parameter)
+        => OpenKeyPad(parameter.Definition.LocalLabel, key =>
+        {
+            if (parameter.IsKeys)
+            {
+                parameter.AddKey(key);
+            }
+            else
+            {
+                parameter.Text = key;
+            }
+        });
+
+    /// <summary>
+    /// Shows the keyboard drawn on screen, or points the one already up at something else. A key is
+    /// a name the macro has to spell exactly, and a combination is built a key at a time, so the
+    /// window takes one cap after another instead of being opened again for each of them.
+    /// </summary>
+    private void OpenKeyPad(string filling, Action<string> write)
+    {
+        _keyTarget = write;
+
+        if (_keyPad is null)
+        {
+            _keyPad = new VirtualKeyboardWindow();
+            _keyPad.KeyChosen += OnKeyChosen;
+            _keyPad.Closed += (_, _) => ForgetKeyPad();
         }
 
-        if (await VirtualKeyboardWindow.PickAsync(this) is { Length: > 0 } key)
+        _keyPad.Filling = filling;
+        if (_keyPad.IsVisible)
         {
-            row.AddKey(key);
+            _keyPad.Activate();
         }
+        else
+        {
+            _keyPad.ShowOver(this);
+        }
+    }
+
+    /// <summary>A cap was clicked: the key goes into whatever the keyboard was pointed at.</summary>
+    private void OnKeyChosen(string key) => _keyTarget?.Invoke(key);
+
+    /// <summary>
+    /// The keyboard is gone. What it was writing into goes with it, so a later click cannot land in
+    /// a field the user has since left.
+    /// </summary>
+    private void ForgetKeyPad()
+    {
+        _keyPad = null;
+        _keyTarget = null;
     }
 
     /// <summary>
@@ -450,25 +510,11 @@ public partial class AddActionWindow : Window
     /// the macro has to spell exactly, so it is taken off a picture of a keyboard rather than out
     /// of a list of names.
     /// </summary>
-    private async void OnOpenKeyPad(object? sender, RoutedEventArgs e)
+    private void OnOpenKeyPad(object? sender, RoutedEventArgs e)
     {
-        if (sender is not Control { DataContext: StepParameterViewModel parameter })
+        if (sender is Control { DataContext: StepParameterViewModel parameter })
         {
-            return;
-        }
-
-        if (await VirtualKeyboardWindow.PickAsync(this) is { Length: > 0 } key)
-        {
-            // A combination is put together a key at a time, so the key that was clicked joins
-            // what is written; a field holding one key has nothing to join and is set outright.
-            if (parameter.IsKeys)
-            {
-                parameter.AddKey(key);
-            }
-            else
-            {
-                parameter.Text = key;
-            }
+            OpenKeyPadFor(parameter);
         }
     }
 

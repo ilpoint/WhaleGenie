@@ -53,6 +53,21 @@
         <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="#4A4A4A" />
         </Style>
+
+        <!-- A named button in the title bar, for finishing rather than dismissing. -->
+        <Style Selector="Button.TitleBarAction">
+            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.TitleBarAction:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4A4A4A" />
+        </Style>
     </Window.Styles>
 
     <Grid RowDefinitions="38,*">
@@ -65,20 +80,32 @@
                            Foreground="#E8E8E8" FontSize="13" VerticalAlignment="Center" />
             </StackPanel>
 
-            <Button Grid.Column="2" Classes="TitleBarButton" Name="CloseButton"
-                    Width="30" Height="24" Padding="0" Margin="8,0" VerticalAlignment="Center">
-                <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6"
-                      Data="M 1,1 L 7,7 M 1,7 L 7,1" />
-            </Button>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0"
+                        VerticalAlignment="Center">
+                <!-- The keyboard stays up while a combination is built, so it needs a word for
+                     "this is the combination I meant", which is not the same as closing it away. -->
+                <Button Classes="TitleBarAction" Name="DoneButton"
+                        Content="{Binding [KeyPad.Done], Source={x:Static loc:Strings.Current}}" />
+                <Button Classes="TitleBarButton" Name="CloseButton"
+                        Width="30" Height="24" Padding="0" VerticalAlignment="Center">
+                    <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6"
+                          Data="M 1,1 L 7,7 M 1,7 L 7,1" />
+                </Button>
+            </StackPanel>
         </Grid>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Auto">
             <StackPanel Margin="16,12,16,16" Spacing="12" HorizontalAlignment="Center">
-                <!-- The hint wraps inside a width of its own, so a long sentence never widens the
-                     keyboard it is sitting above. -->
-                <TextBlock Foreground="#A0A0A0" FontSize="12" TextWrapping="Wrap" MaxWidth="900"
-                           Text="{Binding [KeyPad.Hint], Source={x:Static loc:Strings.Current}}" />
+                <!-- What the keys are being written into, and how the window is used. Both wrap
+                     inside a width of their own, so a long sentence never widens the keyboard it is
+                     sitting above. -->
+                <StackPanel Spacing="4" MaxWidth="900">
+                    <TextBlock Name="FillingLine" Foreground="#7FC97F" FontSize="12.5"
+                               TextWrapping="Wrap" />
+                    <TextBlock Foreground="#A0A0A0" FontSize="12" TextWrapping="Wrap"
+                               Text="{Binding [KeyPad.Hint], Source={x:Static loc:Strings.Current}}" />
+                </StackPanel>
 
                 <!-- The two blocks sit the distance apart they do on a keyboard, by a fixed gap
                      rather than by the width of the window: a hand that has finished with

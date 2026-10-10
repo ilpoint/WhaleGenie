@@ -26,6 +26,12 @@ public partial class KeyRowViewModel : ViewModelBase
     public partial decimal? GapMs { get; set; }
 
     /// <summary>
+    /// Which press of the run this is, counting from one. The run numbers its rows as they change,
+    /// and the keyboard says which of them it is writing into.
+    /// </summary>
+    public int Number { get; set; }
+
+    /// <summary>
     /// What takes this row out of the run it is in. The run belongs to the parameter, so the row is
     /// told what to call rather than knowing where it is.
     /// </summary>
@@ -61,8 +67,8 @@ public partial class KeyRowViewModel : ViewModelBase
     public static KeyRowViewModel From(StepParameterRow row) => new()
     {
         Keys = row.Text("keys"),
-        HoldMs = Number(row, "holdMs"),
-        GapMs = Number(row, "gapMs"),
+        HoldMs = ReadNumber(row, "holdMs"),
+        GapMs = ReadNumber(row, "gapMs"),
     };
 
     private static void Keep(StepParameterRow row, string column, decimal? value)
@@ -73,7 +79,7 @@ public partial class KeyRowViewModel : ViewModelBase
         }
     }
 
-    private static decimal? Number(StepParameterRow row, string column)
+    private static decimal? ReadNumber(StepParameterRow row, string column)
         => decimal.TryParse(row.Text(column), NumberStyles.Number, CultureInfo.InvariantCulture,
             out var number)
                 ? number

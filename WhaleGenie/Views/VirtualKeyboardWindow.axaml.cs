@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -17,14 +16,14 @@ namespace WhaleGenie.Views;
 /// </summary>
 /// <remarks>
 /// The caps are named the way the step writes them, so what is read here is what the macro stores.
-/// The layout is a keyboard's, not a list: a key is found by where it sits. Escape backs out of
-/// the picker, and a click on the cap marked Esc takes that key instead, which is why the two are
-/// told apart rather than both meaning "cancel".
+/// The layout is a keyboard's, not a list: a key is found by where it sits. Escape closes the
+/// window, and a click on the cap marked Esc writes that key instead, which is why the two are told
+/// apart rather than both meaning "cancel". The window stays up and hands over one key at a time,
+/// because a combination is built a key at a time: a picker that closed on the first cap would mean
+/// opening it again for every key after it.
 /// </remarks>
 public partial class VirtualKeyboardWindow : Window
 {
-    private bool _done;
-
     public VirtualKeyboardWindow()
     {
         InitializeComponent();
@@ -34,19 +33,40 @@ public partial class VirtualKeyboardWindow : Window
         var closeButton = this.FindControl<Button>("CloseButton");
         if (closeButton is not null)
         {
-            closeButton.Click += (_, _) => Take(null);
+            closeButton.Click += (_, _) => Close();
+        }
+
+        var doneButton = this.FindControl<Button>("DoneButton");
+        if (doneButton is not null)
+        {
+            doneButton.Click += (_, _) => Close();
         }
 
         // Tunnelling, so Escape is caught before a focused key consumes it.
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
     }
 
-    /// <summary>The name of the key that was clicked, or null when the picker was left alone.</summary>
-    internal string? Chosen { get; private set; }
+    /// <summary>Raised with the name of each key whose cap is clicked, while the window stays open.</summary>
+    public event Action<string>? KeyChosen;
 
-    /// <summary>Shows the keyboard over <paramref name="owner"/> and reports the key picked.</summary>
-    public static Task<string?> PickAsync(Window owner)
-        => new VirtualKeyboardWindow().ShowDialogOver<string?>(owner);
+    /// <summary>
+    /// What the keys are being written into, said on the window. A keyboard that keeps taking clicks
+    /// has to say where they are going, or the user has to remember which field asked for it.
+    /// </summary>
+    public string Filling
+    {
+        get => _filling;
+        set
+        {
+            _filling = value;
+            if (this.FindControl<TextBlock>("FillingLine") is { } line)
+            {
+                line.Text = Strings.Format("KeyPad.Filling", value);
+            }
+        }
+    }
+
+    private string _filling = string.Empty;
 
     protected override void OnOpened(EventArgs e)
     {
@@ -67,7 +87,7 @@ public partial class VirtualKeyboardWindow : Window
     {
         if (sender is Control { Tag: string name })
         {
-            Take(name);
+            KeyChosen?.Invoke(name);
         }
     }
 
@@ -81,19 +101,7 @@ public partial class VirtualKeyboardWindow : Window
         // The key pressed to get out of the picker is not the key being picked: taking Esc is done
         // by clicking the cap that says so.
         e.Handled = true;
-        Take(null);
-    }
-
-    private void Take(string? name)
-    {
-        if (_done)
-        {
-            return;
-        }
-
-        _done = true;
-        Chosen = name;
-        Close(name);
+        Close();
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)

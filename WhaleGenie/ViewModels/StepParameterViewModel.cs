@@ -179,6 +179,7 @@ public partial class StepParameterViewModel : ViewModelBase
         added.Take = RemoveKeyRow;
         added.PropertyChanged += OnKeyRowChanged;
         KeyRows.Add(added);
+        Number(KeyRows);
         OnPropertyChanged(nameof(HasKeyRows));
     }
 
@@ -187,7 +188,17 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         row.PropertyChanged -= OnKeyRowChanged;
         KeyRows.Remove(row);
+        Number(KeyRows);
         OnPropertyChanged(nameof(HasKeyRows));
+    }
+
+    /// <summary>Numbers the presses of a run from one, which is what the keyboard calls them.</summary>
+    private static void Number(IReadOnlyList<KeyRowViewModel> rows)
+    {
+        for (var index = 0; index < rows.Count; index++)
+        {
+            rows[index].Number = index + 1;
+        }
     }
 
     /// <summary>

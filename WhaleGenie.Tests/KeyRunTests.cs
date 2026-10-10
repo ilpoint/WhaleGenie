@@ -198,6 +198,50 @@ public class KeyRunTests
         });
     }
 
+    /// <summary>
+    /// The keyboard stays up and writes into the press it was pointed at, one key after another: a
+    /// combination is built a key at a time, and opening the window again for each of them is the
+    /// same as spelling the key names out of memory.
+    /// </summary>
+    [Fact]
+    public void The_keyboard_keeps_writing_into_the_press_it_was_pointed_at()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(null, ActionCatalog.Definitions,
+                VariableChoicesForChecks.Named("count"), []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("input.keySequence");
+            Dispatcher.UIThread.RunJobs();
+
+            var run = Run(viewModel);
+            run.AddKeyRow();
+            Dispatcher.UIThread.RunJobs();
+
+            FindButton(window, run.KeyRows[0], Strings.Get("Add.OpenKeyPad"))
+                .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            var pad = window.OwnedWindows.OfType<VirtualKeyboardWindow>().Single();
+            Assert.Equal(Strings.Format("Add.KeyRunPress", 1), pad.Filling);
+
+            Cap(pad, "左Ctrl");
+            Cap(pad, "A");
+
+            Assert.Equal("左Ctrl+A", run.KeyRows[0].Keys);
+            Assert.True(pad.IsVisible);
+        });
+    }
+
+    /// <summary>Clicks one cap of the keyboard drawn on screen, the way a user finds it: by its name.</summary>
+    private static void Cap(VirtualKeyboardWindow pad, string name)
+        => pad.GetVisualDescendants().OfType<Button>()
+            .First(cap => (string?)cap.Tag == name)
+            .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
     private static Button FindButton(Window window, object? data, string content)
         => window.GetVisualDescendants().OfType<Button>().Single(candidate =>
             candidate.IsEffectivelyVisible

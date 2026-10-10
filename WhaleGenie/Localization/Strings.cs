@@ -221,6 +221,7 @@ public sealed class Strings : INotifyPropertyChanged
             + "gap.",
         ["Add.KeyRunMilliseconds"] = "ms",
         ["Add.KeyRunEmpty"] = "The run has no presses yet.",
+        ["Add.KeyRunPress"] = "press {0} of the run",
         ["Add.RunStep"] = "Run",
         ["Add.Running"] = "Running…",
         ["Add.RunStepHint"] = "Do this step once, the way it is written. A step that looks at the "
@@ -279,7 +280,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.OpenGamepadHint"] = "Click the control on a controller laid out on screen.",
         ["KeyPad.Title"] = "Virtual keyboard",
         ["KeyPad.Hint"] = "Click a key to write its name into the step. The caps are named the "
-            + "way the step stores them. Esc leaves the field as it was.",
+            + "way the step stores them. Keep clicking to add the next key of a combination, and "
+            + "close the window when it is written.",
+        ["KeyPad.Filling"] = "Writing into {0}",
+        ["KeyPad.Done"] = "Done",
         ["GamepadPad.Title"] = "Virtual controller",
         ["GamepadPad.ButtonsHint"] = "Click the button the step should press. Every control is "
             + "named the way it is printed on the pad.",
@@ -1200,6 +1204,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.KeyRunGapHint"] = "这一次按完之后等多久，留空就用整个序列的间隔。",
         ["Add.KeyRunMilliseconds"] = "毫秒",
         ["Add.KeyRunEmpty"] = "还没有任何一次按键。",
+        ["Add.KeyRunPress"] = "序列的第 {0} 次按键",
         ["Add.RunStep"] = "运行",
         ["Add.Running"] = "正在运行…",
         ["Add.RunStepHint"] = "按现在写的样子把这一步跑一次。要看屏幕的动作只找不点，"
@@ -1255,7 +1260,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.OpenGamepadHint"] = "在屏幕上摆出来的手柄上点选控件。",
         ["KeyPad.Title"] = "虚拟键盘",
         ["KeyPad.Hint"] = "点一个键，把它的名字写进这一步；键上的名字就是这一步存下来的名字。"
-            + "按 Esc 不改动原来的值。",
+            + "可以接着点下一个键拼组合键，写完关掉这个窗口。",
+        ["KeyPad.Filling"] = "正在填入 {0}",
+        ["KeyPad.Done"] = "完成",
         ["GamepadPad.Title"] = "虚拟手柄",
         ["GamepadPad.ButtonsHint"] = "点这一步要按的键。每个控件都按手柄上印的名字写。",
         ["GamepadPad.StickHint"] = "点这一步要拨的摇杆。",

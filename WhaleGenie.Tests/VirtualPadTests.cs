@@ -71,14 +71,21 @@ public class VirtualPadTests
     }
 
     [Fact]
-    public void Clicking_a_key_hands_that_key_back()
+    public void Clicking_a_key_hands_that_key_back_and_leaves_the_window_up()
     {
         Ui.Run(() =>
         {
             var window = new VirtualKeyboardWindow();
-            Click(Controls(window).First(cap => (string?)cap.Tag == "F5"));
+            var taken = new List<string>();
+            window.KeyChosen += taken.Add;
 
-            Assert.Equal("F5", window.Chosen);
+            Click(Controls(window).First(cap => (string?)cap.Tag == "F5"));
+            Click(Controls(window).First(cap => (string?)cap.Tag == "左Ctrl"));
+
+            // A combination is built a key at a time, so the window takes the next cap instead of
+            // closing and being opened again for it.
+            Assert.Equal(["F5", "左Ctrl"], taken);
+            Assert.True(window.IsVisible);
         });
     }
 
@@ -132,18 +139,22 @@ public class VirtualPadTests
     }
 
     [Fact]
-    public void Escape_backs_out_without_picking_the_key_it_is_pressed_on()
+    public void Escape_closes_without_taking_the_key_it_is_pressed_on()
     {
         Ui.Run(() =>
         {
             var window = new VirtualKeyboardWindow();
+            var taken = new List<string>();
+            window.KeyChosen += taken.Add;
             Controls(window);
 
             // The key pressed to get out is not the key being picked: taking Esc is done by
             // clicking the cap that says so.
             window.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape });
+            Dispatcher.UIThread.RunJobs();
 
-            Assert.Null(window.Chosen);
+            Assert.Empty(taken);
+            Assert.False(window.IsVisible);
         });
     }
 
