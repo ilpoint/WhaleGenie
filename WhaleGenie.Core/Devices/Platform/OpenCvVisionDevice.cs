@@ -4,9 +4,22 @@ using OpenCvSharp;
 
 namespace WhaleGenie.Core.Devices.Platform;
 
-/// <summary>Looks for a reference picture on screen by template matching.</summary>
+/// <summary>Looks for a reference picture on screen, either pixel for pixel or by its features.</summary>
 public sealed class OpenCvVisionDevice : IVisionDevice
 {
+    /// <summary>
+    /// How far a colour may be from the one to leave out of the comparing and still count as it.
+    /// A colour taken off a screenshot with the picker comes back through a screen that dithers,
+    /// so "the same colour" is never quite the same number twice.
+    /// </summary>
+    private const double SkippedColour = 0.1;
+
+    /// <summary>
+    /// How much better one pair of features has to be than the next best pair for the same feature
+    /// before it is believed. Below this a feature looks like it matched by luck.
+    /// </summary>
+    private const double FeatureRatio = 0.75;
+
     public ImageFrame? Load(string path)
     {
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
@@ -32,39 +45,68 @@ public sealed class OpenCvVisionDevice : IVisionDevice
         }
     }
 
-    public ImageMatch? Find(ImageFrame haystack, ImageFrame needle, double confidencePercent)
-        => FindAll(haystack, needle, confidencePercent, 1).FirstOrDefault();
-
-    public IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle,
-        double confidencePercent, int limit)
+    public IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle, VisionQuery query)
     {
         var found = new List<ImageMatch>();
-        if (haystack.IsEmpty || needle.IsEmpty || limit <= 0)
+        if (haystack.IsEmpty || needle.IsEmpty || query.Limit <= 0)
         {
             return found;
         }
 
         try
         {
-            using var hay = Bgr(haystack);
-            using var pin = Bgr(needle);
+            return query.Algorithm is MatchAlgorithm.Feature
+                ? ByFeature(haystack, needle, query)
+                : ByTemplate(haystack, needle, query);
+        }
+        catch (Exception error) when (error is OpenCVException or DllNotFoundException)
+        {
+            throw new DeviceUnavailableException("image matching");
+        }
+    }
+
+    /// <summary>
+    /// Looks for the reference picture by comparing the two pictures pixel for pixel, and reports
+    /// every place it was found. The whole map of scores is worked out once, and then the best
+    /// place is taken out of it and the next best is read off the same map: a reference picture the
+    /// size of the area cannot overlap itself, so blanking the patch a hit covers is enough to move
+    /// on to a different place.
+    /// </summary>
+    private static List<ImageMatch> ByTemplate(ImageFrame haystack, ImageFrame needle,
+        VisionQuery query)
+    {
+        var found = new List<ImageMatch>();
+        using (var hay = Bgr(haystack))
+        using (var pin = Bgr(needle))
+        {
             if (pin.Width > hay.Width || pin.Height > hay.Height)
             {
                 return found;
             }
 
             using var result = new Mat();
-            Cv2.MatchTemplate(hay, pin, result, TemplateMatchModes.CCoeffNormed);
-
-            // The whole map is scored once, then the best place is taken out of it and the next
-            // best is read off the same map. A template the size of the reference cannot overlap
-            // itself, so blanking the patch it covers is enough to move on to a different place.
-            var size = new ScreenSize(pin.Width, pin.Height);
-            while (found.Count < limit)
+            var exact = query.Method is MatchMethod.Difference;
+            if (query.Skip is { } skip)
             {
-                Cv2.MinMaxLoc(result, out _, out var best, out _, out var where);
-                var score = Math.Clamp(best, -1, 1);
-                if (score * 100 < confidencePercent)
+                using var mask = Left(needle, skip);
+                Cv2.MatchTemplate(hay, pin, result, Mode(query.Method), mask);
+            }
+            else
+            {
+                Cv2.MatchTemplate(hay, pin, result, Mode(query.Method));
+            }
+
+            var size = new ScreenSize(pin.Width, pin.Height);
+            while (found.Count < query.Limit)
+            {
+                Cv2.MinMaxLoc(result, out var low, out var high, out var lowAt, out var highAt);
+
+                // A square difference is the distance between the pictures rather than how alike
+                // they are: the smallest one is the best, and it is read out the other way round so
+                // that a macro's confidence means "bigger is surer" whichever way was chosen.
+                var where = exact ? lowAt : highAt;
+                var score = exact ? 1 - low : Math.Clamp(high, -1, 1);
+                if (score * 100 < query.ConfidencePercent)
                 {
                     break;
                 }
@@ -75,10 +117,123 @@ public sealed class OpenCvVisionDevice : IVisionDevice
 
             return found;
         }
-        catch (Exception error) when (error is OpenCVException or DllNotFoundException)
+    }
+
+    /// <summary>
+    /// Looks for the reference picture by its features: what stands out in it is found in both
+    /// pictures and paired up. That is slower than comparing pixel for pixel, and it finds the
+    /// thing when it is drawn at another size or has something small changed about it — which is
+    /// what a macro wants when the game's own scale is not the one the reference was taken at.
+    /// </summary>
+    private static List<ImageMatch> ByFeature(ImageFrame haystack, ImageFrame needle,
+        VisionQuery query)
+    {
+        var found = new List<ImageMatch>();
+        using var hay = Gray(haystack);
+        using var pin = Gray(needle);
+
+        using var finder = SIFT.Create();
+        using var wantedParts = new Mat();
+        using var foundParts = new Mat();
+
+        // An empty mask is how every part of the picture is taken into account.
+        using var everywhere = new Mat();
+        finder.DetectAndCompute(pin, everywhere, out var wanted, wantedParts);
+        finder.DetectAndCompute(hay, everywhere, out var spots, foundParts);
+
+        if (wanted.Length < query.MinFeatures || spots.Length < query.MinFeatures
+            || wantedParts.Empty() || foundParts.Empty())
         {
-            throw new DeviceUnavailableException("image matching");
+            return found;
         }
+
+        using var matcher = new BFMatcher(NormTypes.L2);
+        var pairs = matcher.KnnMatch(wantedParts, foundParts, 2);
+
+        // A pair is only believed when it is clearly better than the next best one for the same
+        // feature. Without that test most of the pairs are only together because there was nothing
+        // better for them, which is how a search finds things that are not there.
+        var good = new List<DMatch>();
+        foreach (var pair in pairs)
+        {
+            if (pair.Length == 2 && pair[0].Distance < FeatureRatio * pair[1].Distance)
+            {
+                good.Add(pair[0]);
+            }
+        }
+
+        if (good.Count < query.MinFeatures)
+        {
+            return found;
+        }
+
+        // Where the whole of it landed, taken as the middle of what each pair says: the reference
+        // feature sits at one place in the reference picture and another in the area, and the
+        // difference between the two is where the picture has to be for that pair to be right.
+        var across = new double[good.Count];
+        var down = new double[good.Count];
+        for (var index = 0; index < good.Count; index++)
+        {
+            across[index] = spots[good[index].TrainIdx].Pt.X - wanted[good[index].QueryIdx].Pt.X;
+            down[index] = spots[good[index].TrainIdx].Pt.Y - wanted[good[index].QueryIdx].Pt.Y;
+        }
+
+        Array.Sort(across);
+        Array.Sort(down);
+        var left = Math.Clamp((int)Math.Round(Middle(across)), 0,
+            Math.Max(0, haystack.Width - needle.Width));
+        var top = Math.Clamp((int)Math.Round(Middle(down)), 0,
+            Math.Max(0, haystack.Height - needle.Height));
+
+        // How much of the reference picture's own detail was found again, as a fraction: a
+        // measurement of how much of it was recognised rather than a percentage of certainty.
+        found.Add(new ImageMatch(
+            (double)good.Count / wanted.Length,
+            new ScreenPoint(left, top),
+            new ScreenSize(needle.Width, needle.Height)));
+        return found;
+    }
+
+    /// <summary>The middle value of a sorted list, which one wild pair cannot move.</summary>
+    private static double Middle(double[] sorted) => sorted[sorted.Length / 2];
+
+    /// <summary>The OpenCV way of comparing two pictures that the step asked for.</summary>
+    private static TemplateMatchModes Mode(MatchMethod method) => method switch
+    {
+        MatchMethod.Correlated => TemplateMatchModes.CCorrNormed,
+        MatchMethod.Difference => TemplateMatchModes.SqDiffNormed,
+        _ => TemplateMatchModes.CCoeffNormed,
+    };
+
+    /// <summary>
+    /// Which pixels of the reference picture take part in the comparing: everything except the
+    /// colour the step said to leave out, which is how a step ignores a part of the picture that
+    /// keeps changing — a number over a button, a bar that fills up.
+    /// </summary>
+    private static Mat Left(ImageFrame needle, PixelColor skip)
+    {
+        using var pin = Bgr(needle);
+        using var near = new Mat(pin.Rows, pin.Cols, pin.Type(),
+            new Scalar(skip.B, skip.G, skip.R));
+        using var out1 = new Mat();
+
+        // Everything that is the colour to leave out is marked out of the mask, and everything
+        // else keeps full weight.
+        using var hit = new Mat();
+        Cv2.InRange(pin, near, near, hit);
+        Cv2.BitwiseNot(hit, out1);
+        return out1.Clone();
+    }
+
+    /// <summary>Copies a frame into the one channel layout features are found in.</summary>
+    private static Mat Gray(ImageFrame frame)
+    {
+        using var four = new Mat(frame.Height, frame.Width, MatType.CV_8UC4);
+        Marshal.Copy(frame.Bgra, 0, four.Data, frame.Bgra.Length);
+
+        var gray = new Mat();
+        Cv2.CvtColor(four, gray, ColorConversionCodes.BGRA2GRAY);
+        return gray;
     }
 
     /// <summary>Blanks out the patch one hit covers, so the next look lands somewhere else.</summary>

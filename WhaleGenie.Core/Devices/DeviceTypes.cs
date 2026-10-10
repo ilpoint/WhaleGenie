@@ -127,6 +127,65 @@ public sealed record ImageMatch(double Score, ScreenPoint Location, ScreenSize S
     public ScreenPoint Center => new(Location.X + (Size.Width / 2), Location.Y + (Size.Height / 2));
 }
 
+/// <summary>How a reference picture is looked for.</summary>
+public enum MatchAlgorithm
+{
+    /// <summary>Comparing the pictures pixel for pixel: quick, and exact about where.</summary>
+    Template,
+
+    /// <summary>
+    /// Pairing up the features found in both pictures: slower, and it still finds the thing when
+    /// it is drawn at another size or has something small changed about it.
+    /// </summary>
+    Feature,
+}
+
+/// <summary>How two pictures are compared when one is looked for inside another.</summary>
+public enum MatchMethod
+{
+    /// <summary>
+    /// Normalised correlation: the area may come out brighter or darker overall and it still
+    /// matches, which is what a macro usually wants.
+    /// </summary>
+    Normed,
+
+    /// <summary>
+    /// Normalised cross correlation, which does not take the brightness out first: steadier for a
+    /// very small reference picture, where there is little to average.
+    /// </summary>
+    Correlated,
+
+    /// <summary>
+    /// Normalised square difference read the other way round: what it wants is a pixel for pixel
+    /// copy. A flat coloured icon or a screenshot of a dialog is the case for it.
+    /// </summary>
+    Difference,
+}
+
+/// <summary>What order the hits are handed back in, which is what "the third one" means.</summary>
+public enum MatchOrder
+{
+    /// <summary>Down the screen first and then across, the order a person counts them in.</summary>
+    Reading,
+
+    /// <summary>The surest first, wherever on the screen it is.</summary>
+    Score,
+
+    /// <summary>
+    /// Shuffled, for a macro that must not always take the same one of several.
+    /// </summary>
+    Random,
+}
+
+/// <summary>One search asked for: how it is done, how sure it has to be, and what to leave out.</summary>
+public sealed record VisionQuery(
+    MatchAlgorithm Algorithm = MatchAlgorithm.Template,
+    MatchMethod Method = MatchMethod.Normed,
+    double ConfidencePercent = 90,
+    int MinFeatures = 6,
+    PixelColor? Skip = null,
+    int Limit = 1);
+
 /// <summary>
 /// One piece of text found on screen. The confidence is the reading model's own score rather than
 /// a percentage: it is the average, over the characters it read, of how far ahead the model's best

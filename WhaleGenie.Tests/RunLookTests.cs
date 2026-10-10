@@ -161,11 +161,7 @@ public class RunLookTests
 
         public ImageFrame? Load(string path) => new(4, 4, new byte[64]);
 
-        public ImageMatch? Find(ImageFrame haystack, ImageFrame needle, double confidencePercent)
-            => new(0.95, new ScreenPoint(10, 12), new ScreenSize(4, 4));
-
-        public IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle,
-            double confidencePercent, int limit)
+        public IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle, VisionQuery query)
             => [new(0.95, new ScreenPoint(10, 12), new ScreenSize(4, 4))];
     }
 }

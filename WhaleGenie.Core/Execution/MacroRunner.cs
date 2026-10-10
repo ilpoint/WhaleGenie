@@ -3033,10 +3033,13 @@ public sealed class MacroRunner
     {
         var wanted = Wanted(step);
         var areas = SearchAreas(step);
+        // Asked for by score, the pixels closest to the colour are the hits; the rest of the time
+        // the first ones read left to right and top to bottom are, which is the cheaper walk.
+        var surest = OrderOf(step) is MatchOrder.Score;
         var hits = new List<ImageMatch>();
         foreach (var (area, origin) in areas)
         {
-            foreach (var point in PixelSearch.Find(area, target, tolerance, wanted))
+            foreach (var point in PixelSearch.Find(area, target, tolerance, wanted, surest))
             {
                 hits.Add(new ImageMatch(
                     1 - area[point.X, point.Y].DistanceTo(target),
@@ -3045,7 +3048,7 @@ public sealed class MacroRunner
             }
         }
 
-        hits.Sort(Reading);
+        Sorted(hits, step);
         SawSearch(step, LookKind.Colour, areas, [.. hits.Select(hit => (hit, (string?)null))],
             WentWith(hits, step), target.ToHex());
         return hits;
@@ -3181,18 +3184,12 @@ public sealed class MacroRunner
     private List<ImageMatch> Hits(ExecutableStep step)
     {
         var needle = Reference(step);
-        var confidence = Number(step, "confidence");
-        if (confidence <= 0)
-        {
-            confidence = 90;
-        }
-
-        var wanted = Wanted(step);
+        var query = SearchQuery(step);
         var areas = SearchAreas(step);
         var hits = new List<ImageMatch>();
         foreach (var (area, origin) in areas)
         {
-            foreach (var found in _devices.Vision.FindAll(area, needle, confidence, wanted))
+            foreach (var found in _devices.Vision.FindAll(area, needle, query))
             {
                 hits.Add(found with
                 {
@@ -3201,10 +3198,115 @@ public sealed class MacroRunner
             }
         }
 
-        hits.Sort(Reading);
+        Sorted(hits, step);
         SawSearch(step, LookKind.Template, areas, [.. hits.Select(hit => (hit, (string?)null))],
-            WentWith(hits, step), step.Text("image"), needle, confidence / 100d);
+            WentWith(hits, step), step.Text("image"), needle,
+            // Features are counted rather than scored, so there is no number a score is compared
+            // against to show beside them.
+            query.Algorithm is MatchAlgorithm.Feature ? null : query.ConfidencePercent / 100);
         return hits;
+    }
+
+    /// <summary>
+    /// How a step asked for a picture to be looked for: which way, how sure, what to leave out of
+    /// the comparing, and how many hits it wants.
+    /// </summary>
+    private VisionQuery SearchQuery(ExecutableStep step)
+    {
+        var confidence = Number(step, "confidence");
+        if (confidence <= 0)
+        {
+            confidence = 90;
+        }
+
+        var features = Number(step, "minFeatures");
+        var skip = step.Text("ignoreColor").Trim();
+
+        return new VisionQuery(
+            AlgorithmOf(step.Text("algorithm")),
+            MethodOf(step.Text("method")),
+            confidence,
+            features > 0 ? features : 6,
+            skip.Length == 0 ? null : PixelColor.Parse(skip),
+            Wanted(step));
+    }
+
+    /// <summary>The way a step asked for a picture to be looked for, as written in its field.</summary>
+    private static MatchAlgorithm AlgorithmOf(string written) => written.Trim().ToLowerInvariant() switch
+    {
+        "feature" => MatchAlgorithm.Feature,
+        _ => MatchAlgorithm.Template,
+    };
+
+    /// <summary>How a step asked for two pictures to be compared, as written in its field.</summary>
+    private static MatchMethod MethodOf(string written) => written.Trim().ToLowerInvariant() switch
+    {
+        "correlated" => MatchMethod.Correlated,
+        "difference" => MatchMethod.Difference,
+        _ => MatchMethod.Normed,
+    };
+
+    /// <summary>What order a step asked its hits to be counted in, as written in its field.</summary>
+    private static MatchOrder OrderOf(ExecutableStep step) => step.Text("orderBy").Trim()
+        .ToLowerInvariant() switch
+    {
+        "score" => MatchOrder.Score,
+        "random" => MatchOrder.Random,
+        _ => MatchOrder.Reading,
+    };
+
+    /// <summary>
+    /// The hits in the order the step wants to count them in, which is what "the third one" means.
+    /// Reading order is how a person counts them; by score is for a macro that wants the surest one
+    /// wherever it is on the screen; shuffled is for one that must not always take the same one.
+    /// </summary>
+    private static void Sorted(List<ImageMatch> hits, ExecutableStep step)
+    {
+        switch (OrderOf(step))
+        {
+            case MatchOrder.Score:
+                hits.Sort((left, right) => right.Score.CompareTo(left.Score));
+                break;
+
+            case MatchOrder.Random:
+                Shuffle(hits);
+                break;
+
+            default:
+                hits.Sort(Reading);
+                break;
+        }
+    }
+
+    /// <summary>The same for what was read off the screen: a reading of writing is a hit as well.</summary>
+    private static void Sorted(List<TextSpan> spans, ExecutableStep step)
+    {
+        switch (OrderOf(step))
+        {
+            case MatchOrder.Score:
+                spans.Sort((left, right) => right.Confidence.CompareTo(left.Confidence));
+                break;
+
+            case MatchOrder.Random:
+                Shuffle(spans);
+                break;
+
+            default:
+                // Reading order is the order the readings came back in: the reading model hands
+                // them over in the order they appear on the screen, and re-sorting them by position
+                // would break up a line whose words sit at slightly different heights.
+                break;
+        }
+    }
+
+    /// <summary>Shuffles in place, so a macro that takes the first of several does not always take the same one.</summary>
+    private static void Shuffle<T>(IList<T> items)
+    {
+        for (var index = items.Count - 1; index > 0; index--)
+        {
+            var other = Random.Shared.Next(index + 1);
+            (items[index], items[other]) = (items[other], items[index]);
+        }
     }
 
     /// <summary>The hits a wait ended on: the whole set and the one the step asked for.</summary>
@@ -5218,6 +5320,7 @@ public sealed class MacroRunner
             }));
         }
 
+        Sorted(spans, step);
         return spans;
     }
 

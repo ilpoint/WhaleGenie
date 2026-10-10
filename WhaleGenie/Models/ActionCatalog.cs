@@ -1911,6 +1911,11 @@ public static class ActionCatalog
                 Image("image", "Image file", @"C:\images\ok.png",
                    "Reference image: a file path, or the variable a Capture step saved ($shot)."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
+                MatchAlgorithm(),
+                MatchMethod(),
+                SkipColour(),
+                MinFeatures(),
+                MatchOrder(),
                 Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
                 ..Anchor(),
                 MatchIndex(),
@@ -1933,6 +1938,11 @@ public static class ActionCatalog
                 Image("image", "Image file", @"C:\images\ok.png",
                     "Reference image to wait for: a file path, or the variable a Capture saved."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
+                MatchAlgorithm(),
+                MatchMethod(),
+                SkipColour(),
+                MinFeatures(),
+                MatchOrder(),
                 Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
                 ..Anchor(),
                 MatchIndex(),
@@ -1953,6 +1963,11 @@ public static class ActionCatalog
             [
                 Image("image", "Image file", @"C:\images\ok.png"),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
+                MatchAlgorithm(),
+                MatchMethod(),
+                SkipColour(),
+                MinFeatures(),
+                MatchOrder(),
                 Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
                 ..Anchor(),
                 MatchIndex(),
@@ -2008,6 +2023,7 @@ public static class ActionCatalog
                 Number("matchIndex", "Match number", 1,
                     "Which hit to use, counted from the top left: down the screen first, then "
                     + "across. 1 is the first one.", min: 1, max: 200),
+                MatchOrder(),
                 AllMatches(),
                 Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
                 ..Anchor(),
@@ -2093,6 +2109,7 @@ public static class ActionCatalog
                 Content(),
                 Preprocess(),
                 MinScore(),
+                MatchOrder(),
                 AllMatches(),
                 Variable("resultVariable", "Result variable", "match",
                     "Variable that receives the match centre, empty when the text was not found. "
@@ -2116,6 +2133,7 @@ public static class ActionCatalog
                 Content(),
                 Preprocess(),
                 MinScore(),
+                MatchOrder(),
                 Number("offsetX", "Offset X", 0, "Pixels added to the match centre.",
                     min: -100000m, advanced: true),
                 Number("offsetY", "Offset Y", 0, min: -100000m, advanced: true),
@@ -3141,8 +3159,60 @@ public static class ActionCatalog
     /// </summary>
     private static ActionParameter MatchIndex()
         => Number("matchIndex", "Match number", 1,
-            "Which hit to use, counted from the top left: down the screen first, then across. "
-            + "1 is the first one.", min: 1, max: 200, advanced: true);
+            "Which hit to use, counted in the order below. By default that is down the screen "
+            + "first and then across, the way a person counts them. 1 is the first one.",
+            min: 1, max: 200, advanced: true);
+
+    /// <summary>
+    /// How a reference picture is looked for, shared by the picture finders. Matching is the quick
+    /// and exact one; features are for a picture that is drawn at another size or slightly changed.
+    /// </summary>
+    private static ActionParameter MatchAlgorithm()
+        => Choice("algorithm", "How to look", ["template", "feature"], "template",
+            "How the reference picture is looked for. Matching compares the two pictures pixel for "
+            + "pixel: quick, and exact about where it was found. Features pairs up what stands out "
+            + "in both: slower, and it still finds the thing when it is drawn at another size or "
+            + "has something small changed about it — the case for a game that does not run at the "
+            + "size the picture was taken at.",
+            labels: ["Matching", "Features"], advanced: true);
+
+    /// <summary>How the two pictures are compared, shared by the picture finders.</summary>
+    private static ActionParameter MatchMethod()
+        => Choice("method", "Comparing", ["normed", "correlated", "difference"], "normed",
+            "How the two pictures are compared. Normalised takes the brightness out first, so an "
+            + "area that has gone brighter or darker still matches. Correlated does not, which is "
+            + "steadier for a very small picture. Difference wants a pixel for pixel copy, which is "
+            + "what a flat coloured icon or a screenshot of a dialog wants.",
+            labels: ["Normalised", "Correlated", "Pixel for pixel"], advanced: true);
+
+    /// <summary>
+    /// A colour of the reference picture that takes no part in the comparing, shared by the picture
+    /// finders: how a step ignores the part of a picture that keeps changing.
+    /// </summary>
+    private static ActionParameter SkipColour()
+        => ColorPick("ignoreColor", "Ignore this colour", string.Empty,
+            "Pixels of the reference picture that are this colour, or close to it, are left out of "
+            + "the comparing. It is for a part of the picture that keeps changing — a number over a "
+            + "button, a bar that fills up. Leave it empty to compare the whole picture.");
+
+    /// <summary>How many pairs of features have to line up, for the finders that look by features.</summary>
+    private static ActionParameter MinFeatures()
+        => Number("minFeatures", "Least feature pairs", 6,
+            "Only used when looking by features: how many pairs have to line up before the picture "
+            + "counts as found. More is stricter. Six is a good start.",
+            min: 1, max: 500, advanced: true);
+
+    /// <summary>
+    /// What order the hits are counted in, shared by everything that finds more than one: a colour
+    /// in an area, a picture on the screen, a line of writing.
+    /// </summary>
+    private static ActionParameter MatchOrder()
+        => Choice("orderBy", "Count them in", ["reading", "score", "random"], "reading",
+            "What order the hits are counted in, which is what the match number counts. Reading is "
+            + "down the screen first and then across, the way a person counts them. Score takes the "
+            + "surest one wherever it is on the screen. Random shuffles them, for a step that must "
+            + "not always take the same one of several.",
+            labels: ["Reading order", "Surest first", "Shuffled"], advanced: true);
 
     /// <summary>
     /// Whether a step records the whole set of hits as well as the one it picked, shared by the

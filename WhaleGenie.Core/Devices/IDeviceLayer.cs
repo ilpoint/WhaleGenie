@@ -73,16 +73,14 @@ public interface IVisionDevice
     /// <summary>Reads a reference image from disk, or null when the file cannot be read.</summary>
     ImageFrame? Load(string path);
 
-    /// <summary>The best place <paramref name="needle"/> appears in <paramref name="haystack"/>.</summary>
-    ImageMatch? Find(ImageFrame haystack, ImageFrame needle, double confidencePercent);
-
     /// <summary>
-    /// Every place <paramref name="needle"/> appears in <paramref name="haystack"/>, best first and
-    /// at most <paramref name="limit"/> of them. Two hits closer together than the reference picture
-    /// count as one, because they are the same thing seen twice.
+    /// Every place <paramref name="needle"/> appears in <paramref name="haystack"/>, surest first
+    /// and at most <see cref="VisionQuery.Limit"/> of them, looked for the way the query asks. Two
+    /// hits closer together than the reference picture count as one, because they are the same
+    /// thing seen twice. Looking by features answers with one place at most: what those pairs say
+    /// is where the whole of it landed, not where every one of them is.
     /// </summary>
-    IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle,
-        double confidencePercent, int limit);
+    IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle, VisionQuery query);
 }
 
 /// <summary>Reading text off the screen.</summary>
@@ -838,11 +836,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public ImageFrame? Load(string path) => throw Missing("image matching");
 
-        public ImageMatch? Find(ImageFrame haystack, ImageFrame needle, double confidencePercent)
-            => throw Missing("image matching");
-
         public IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle,
-            double confidencePercent, int limit) => throw Missing("image matching");
+            VisionQuery query) => throw Missing("image matching");
 
         public IReadOnlyList<TextSpan> Recognize(ImageFrame frame, string language) => throw Missing("text recognition");
 

@@ -737,6 +737,141 @@ public class DeviceActionTests
         Assert.Equal("50,5, 10,10, 30,40", store.Local.Values["where.list"].AsText());
     }
 
+    /// <summary>
+    /// A game drawn at a size the reference picture was not taken at is found by its features, so
+    /// what the step asked for has to reach the device rather than being guessed at.
+    /// </summary>
+    [Fact]
+    public async Task How_a_picture_is_looked_for_reaches_the_device()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Match = new ImageMatch(0.97, new ScreenPoint(1, 2), new ScreenSize(3, 3)),
+        };
+
+        var (_, _, _) = await RunAsync(
+        [
+            Step("vision.findImage", Param("image", "ok.png"), Param("confidence", "88"),
+                Param("algorithm", "feature"), Param("method", "difference"),
+                Param("ignoreColor", "#00FF00"), Param("minFeatures", "12"),
+                Param("resultVariable", "where")),
+        ], devices);
+
+        var query = Assert.Single(devices.Queries);
+        Assert.Equal(MatchAlgorithm.Feature, query.Algorithm);
+        Assert.Equal(MatchMethod.Difference, query.Method);
+        Assert.Equal(88d, query.ConfidencePercent);
+        Assert.Equal(12, query.MinFeatures);
+        Assert.Equal(new PixelColor(0x00, 0xFF, 0x00), query.Skip);
+        Assert.Equal(1, query.Limit);
+    }
+
+    /// <summary>Left alone, a search is done the way every macro did it before the fields existed.</summary>
+    [Fact]
+    public async Task A_picture_search_left_alone_is_still_a_plain_matching_search()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Match = new ImageMatch(0.97, new ScreenPoint(1, 2), new ScreenSize(3, 3)),
+        };
+
+        var (_, _, _) = await RunAsync(
+            [Step("vision.findImage", Param("image", "ok.png"), Param("resultVariable", "where"))],
+            devices);
+
+        var query = Assert.Single(devices.Queries);
+        Assert.Equal(MatchAlgorithm.Template, query.Algorithm);
+        Assert.Equal(MatchMethod.Normed, query.Method);
+        Assert.Equal(90d, query.ConfidencePercent);
+        Assert.Equal(6, query.MinFeatures);
+        Assert.Null(query.Skip);
+    }
+
+    /// <summary>
+    /// The surest place is not always the first one in reading order, so a step that wants the one
+    /// that looks most like the picture has to be able to ask for it.
+    /// </summary>
+    [Fact]
+    public async Task The_surest_picture_can_be_the_one_taken()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Matches.Add(new ImageMatch(0.91, new ScreenPoint(50, 5), new ScreenSize(1, 1)));
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(1, 1)));
+        devices.Matches.Add(new ImageMatch(0.95, new ScreenPoint(10, 10), new ScreenSize(1, 1)));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Param("image", "ok.png"), Param("orderBy", "score"),
+                Param("allMatches", "true"), Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.Equal("30,40", store.Local.Values["where"].AsText());
+        Assert.Equal("30,40, 10,10, 50,5", store.Local.Values["where.list"].AsText());
+    }
+
+    /// <summary>
+    /// A colour search looked at by score keeps the pixel closest to the colour asked for, even when
+    /// that pixel is not the first one the area is walked over.
+    /// </summary>
+    [Fact]
+    public async Task The_pixel_closest_to_the_colour_is_the_one_taken()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#F00000,#FF0000,#FB0000") };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("vision.findColor", Param("color", "#FF0000"), Param("tolerance", "10"),
+                Param("orderBy", "score"), Param("region", "0,0,3,1"),
+                Param("resultVariable", "spot")),
+        ], devices);
+
+        Assert.Equal("1,0", store.Local.Values["spot"].AsText());
+    }
+
+    /// <summary>Read off the screen, the surest reading is the one a step can act on.</summary>
+    [Fact]
+    public async Task The_surest_reading_can_be_the_one_taken()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans =
+            [
+                new TextSpan("Continue", new ScreenPoint(10, 10), new ScreenSize(30, 8), 12),
+                new TextSpan("Continue", new ScreenPoint(10, 60), new ScreenSize(30, 8), 38),
+            ],
+        };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("ocr.findText", Param("text", "Continue"), Param("matchMode", "equals"),
+                Param("orderBy", "score"), Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.Equal("25,64", store.Local.Values["where"].AsText());
+    }
+
+    /// <summary>
+    /// Shuffled, a step that has to pick one of several does not keep picking the same one; whatever
+    /// it picks is still one of the places the picture was found.
+    /// </summary>
+    [Fact]
+    public async Task A_shuffled_search_hands_back_one_of_the_places_it_found()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(10, 10), new ScreenSize(1, 1)));
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(20, 20), new ScreenSize(1, 1)));
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 30), new ScreenSize(1, 1)));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Param("image", "ok.png"), Param("orderBy", "random"),
+                Param("matchIndex", "3"), Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.Contains(store.Local.Values["where"].AsText(),
+            new[] { "10,10", "20,20", "30,30" });
+    }
+
     [Fact]
     public async Task A_search_can_watch_two_regions_at_once()
     {
@@ -959,7 +1094,7 @@ public class DeviceActionTests
         Assert.Equal("<image 10x10>", store.Local.Values["shot"].AsText());
         Assert.Equal("8,9", store.Local.Values["where"].AsText());
         Assert.Contains("capture 0 0 10 10", devices.Calls);
-        Assert.Contains("findAll 10x10 90", devices.Calls);
+        Assert.Contains("findAll 10x10 90 Template/Normed", devices.Calls);
     }
 
     [Fact]
@@ -3961,7 +4096,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Contains("findAll 10x10 90", devices.Calls);
+        Assert.Contains("findAll 10x10 90 Template/Normed", devices.Calls);
     }
 
     [Fact]
@@ -4904,22 +5039,18 @@ internal sealed class FakeDeviceLayer
         return Loaded;
     }
 
-    public ImageMatch? Find(ImageFrame haystack, ImageFrame needle, double confidencePercent)
+    public IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle, VisionQuery query)
     {
         Searches++;
-        Note($"find {needle.Width}x{needle.Height} {confidencePercent:0}");
-        return Searches >= MatchAfter ? Match : null;
-    }
-
-    public IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle,
-        double confidencePercent, int limit)
-    {
-        Searches++;
-        Note($"findAll {needle.Width}x{needle.Height} {confidencePercent:0}");
+        Queries.Add(query);
+        Note($"findAll {needle.Width}x{needle.Height} {query.ConfidencePercent:0} {query.Algorithm}/{query.Method}");
 
         IEnumerable<ImageMatch> hits = Matches.Count > 0 ? Matches : Match is null ? [] : [Match];
-        return Searches >= MatchAfter ? [.. hits.Take(limit)] : [];
+        return Searches >= MatchAfter ? [.. hits.Take(query.Limit)] : [];
     }
+
+    /// <summary>Every search asked for, so a check can see how the step was read.</summary>
+    public List<VisionQuery> Queries { get; } = [];
 
     public IReadOnlyList<TextSpan> Recognize(ImageFrame frame, string language)
     {
