@@ -55,7 +55,7 @@ public class StepParameter
         ActionParameterKind.Bool => JsonValue.Create(
             string.Equals(Value, "true", StringComparison.OrdinalIgnoreCase)),
         ActionParameterKind.Steps => BuildArray(Steps),
-        ActionParameterKind.Region => RowsJson(),
+        ActionParameterKind.Region or ActionParameterKind.KeySequence => RowsJson(),
         ActionParameterKind.Condition => Condition?.ToJson(),
         _ => JsonValue.Create(Value),
     };
@@ -102,10 +102,11 @@ public class StepParameter
 
         return node switch
         {
-            JsonArray rows when definition?.Kind is ActionParameterKind.Region => new StepParameter
+            JsonArray rows when definition?.Kind is ActionParameterKind.Region
+                or ActionParameterKind.KeySequence => new StepParameter
             {
                 Name = name,
-                Kind = ActionParameterKind.Region,
+                Kind = definition!.Kind,
                 Rows = [.. rows.OfType<JsonObject>().Select(Row)],
             },
             JsonArray array => new StepParameter

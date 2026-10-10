@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
@@ -86,6 +87,36 @@ public class KeyRunTests
             Assert.Equal("Ctrl+A", parameter.KeyRows[0].Keys);
             Assert.Null(parameter.KeyRows[0].HoldMs);
             Assert.Equal(30m, parameter.KeyRows[1].HoldMs);
+        });
+    }
+
+    /// <summary>
+    /// The run is the one part of a step that is a list, so it goes into the macro file as a list of
+    /// rows and has to come back out of it the same way: a run that is only in the editor is a run
+    /// the user loses the moment the macro is saved and opened again.
+    /// </summary>
+    [Fact]
+    public void A_run_survives_the_macro_file()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.keySequence");
+            var run = Run(viewModel);
+            run.AddKeyRow(new KeyRowViewModel { Keys = "Ctrl+A" });
+            run.AddKeyRow(new KeyRowViewModel { Keys = "B", HoldMs = 30m });
+
+            MacroStep? saved = null;
+            viewModel.CloseRequested += step => saved = step;
+            viewModel.SaveCommand.Execute(null);
+
+            var written = saved!.ToJson().ToJsonString();
+            var back = MacroStep.FromJson((JsonObject)JsonNode.Parse(written)!);
+            var rows = back.Parameters.First(parameter => parameter.Name == "keys").Rows;
+
+            Assert.Equal(2, rows.Count);
+            Assert.Equal("Ctrl+A", rows[0].Text("keys"));
+            Assert.Equal("B", rows[1].Text("keys"));
+            Assert.Equal("30", rows[1].Text("holdMs"));
         });
     }
 
