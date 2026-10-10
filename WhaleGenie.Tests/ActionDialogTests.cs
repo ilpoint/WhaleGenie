@@ -1196,9 +1196,13 @@ public class ActionDialogTests
 
             // Which hit to take and what the search is measured from are worth having and not worth
             // showing on every step; how alike the picture has to be is part of what the step is.
+            // The colour of the reference picture that keeps changing and the whole set of hits are
+            // knobs of that same kind: a step that leaves them alone wants the default.
             Assert.Contains("confidence", visible);
             Assert.Contains("matchIndex", folded);
             Assert.Contains("anchorMode", folded);
+            Assert.Contains("ignoreColor", folded);
+            Assert.Contains("allMatches", folded);
 
             // What the step is about stays in front.
             Assert.Contains("image", visible);

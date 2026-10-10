@@ -3182,7 +3182,7 @@ public static class ActionCatalog
         };
 
     private static ActionParameter ColorPick(string name, string label, string defaultValue = "#000000",
-        string hint = "", bool required = true)
+        string hint = "", bool required = true, bool advanced = false)
         => new()
         {
             Name = name,
@@ -3191,6 +3191,7 @@ public static class ActionCatalog
             DefaultValue = defaultValue,
             Hint = hint,
             Required = required,
+            Advanced = advanced,
         };
 
     /// <summary>
@@ -3341,7 +3342,7 @@ public static class ActionCatalog
             "Pixels of the reference picture that are this colour take no part in the comparing. "
             + "For a part of the picture that keeps changing, such as a number over a button or a "
             + "progress bar. Empty compares the whole picture, which is the default.",
-            required: false);
+            required: false, advanced: true);
 
     /// <summary>How many pairs of features have to line up, for the finders that look by features.</summary>
     private static ActionParameter MinFeatures()
@@ -3383,6 +3384,7 @@ public static class ActionCatalog
             "Records every hit as well as the one that was taken: $name.count is how many, and "
             + "$name.list holds one \"x,y\" per hit, ready for count(), get() and forEach. Switched "
             + "off, only the one that was taken is recorded.",
+            advanced: true,
             onlyWith: pixelsOnly ? PixelWays() : null);
 
     /// <summary>
