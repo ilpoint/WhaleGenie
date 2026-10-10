@@ -245,6 +245,13 @@ public sealed class Strings : INotifyPropertyChanged
         ["Look.Title"] = "What the step saw",
         ["Look.Step"] = "{0}  ·  step {1}",
         ["Look.Looking"] = "Looking for: {0}",
+        ["Look.Where"] = "Read from {0}, taken with {1}.",
+        ["Look.Source.desktop"] = "the desktop",
+        ["Look.Source.window"] = "the window {0}",
+        ["Look.Way.gdi"] = "GDI",
+        ["Look.Way.printWindow"] = "PrintWindow",
+        ["Look.Way.graphicsCapture"] = "graphics capture",
+        ["Look.Way.graphicsCaptureDesktop"] = "graphics capture of the display",
         ["Look.Picture"] = "Looking for reference picture {0} of {1}: {2}",
         ["Look.Note"] = "Read as: {0}",
         ["Look.Marks"] = "Marks",
@@ -891,6 +898,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.PixelOutsideScreen"] = "That pixel is not on the screen: {0}",
         ["Run.EmptyRegion"] = "That is not a usable screen region: {0}",
         ["Run.CaptureFailed"] = "The screen region could not be copied: {0}",
+        ["Run.NoCaptureWindow"] =
+            "This step reads a window and names none: {0}. Its coordinates have to be counted from a "
+            + "window, or its way of taking a picture has to be one that reads the desktop.",
+        ["Run.NoGraphicsCapture"] =
+            "This window could not be read with graphics capture: {0}. Letting the window draw "
+            + "itself, or reading the desktop, is the other way round it.",
         ["Run.BadRegion"] = "A search region reads as x,y,width,height: {0}",
         ["Run.BadPoints"] = "Every point of a colour comparison reads as x,y,#RRGGBB: {0}",
         ["Run.BadPattern"] = "That is not a usable match pattern: {0}",
@@ -1235,6 +1248,13 @@ public sealed class Strings : INotifyPropertyChanged
         ["Look.Step"] = "{0}　·　步骤 {1}",
         ["Look.Looking"] = "在找：{0}",
         ["Look.Picture"] = "参考图 {0}/{1}：{2}",
+        ["Look.Where"] = "取自{0}，取景方式：{1}。",
+        ["Look.Source.desktop"] = "桌面",
+        ["Look.Source.window"] = "窗口「{0}」",
+        ["Look.Way.gdi"] = "GDI",
+        ["Look.Way.printWindow"] = "PrintWindow",
+        ["Look.Way.graphicsCapture"] = "图形捕获",
+        ["Look.Way.graphicsCaptureDesktop"] = "整屏图形捕获",
         ["Look.Note"] = "读到的文字：{0}",
         ["Look.Marks"] = "标记",
         ["Look.ZoomFit"] = "适应窗口",
@@ -1827,6 +1847,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.PixelOutsideScreen"] = "这个坐标不在屏幕上：{0}",
         ["Run.EmptyRegion"] = "这不是一个可用的屏幕区域：{0}",
         ["Run.CaptureFailed"] = "这块屏幕区域无法复制：{0}",
+        ["Run.NoCaptureWindow"] =
+            "这一步要取窗口的画面，却没有指定窗口：{0}。把坐标基准选在某个窗口上，"
+            + "或者换成读桌面的抓屏方式。",
+        ["Run.NoGraphicsCapture"] =
+            "用图形捕获取不到这个窗口的画面：{0}。可以改成让窗口自己画，或者读桌面。",
         ["Run.BadRegion"] = "搜索区域要写成 x,y,宽,高 的形式：{0}",
         ["Run.BadPoints"] = "多点比色里的每个点要写成 x,y,#RRGGBB 的形式：{0}",
         ["Run.BadPattern"] = "这不是一个可用的匹配模式：{0}",

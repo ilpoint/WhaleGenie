@@ -149,12 +149,53 @@ public enum CaptureMethod
 }
 
 /// <summary>
+/// The names the ways of taking a picture go by, in the one place they are spelled: a step's field
+/// holds one of them, a result says one back, and a look says which one it was really taken with.
+/// </summary>
+public static class CaptureMethodNames
+{
+    /// <summary>The ways a region of the screen can be asked for, in the order they are offered.</summary>
+    public static IReadOnlyList<string> All { get; } =
+    [
+        "auto", "gdi", "printWindow", "graphicsCapture", "graphicsCaptureDesktop",
+    ];
+
+    /// <summary>
+    /// What one way is written as, or empty for the automatic choice — which is a question rather
+    /// than a way of taking a picture, and is never the answer to one.
+    /// </summary>
+    public static string Written(CaptureMethod method) => method switch
+    {
+        CaptureMethod.Gdi => "gdi",
+        CaptureMethod.PrintWindow => "printWindow",
+        CaptureMethod.GraphicsCapture => "graphicsCapture",
+        CaptureMethod.GraphicsCaptureDesktop => "graphicsCaptureDesktop",
+        _ => string.Empty,
+    };
+
+    /// <summary>
+    /// The way a written name stands for. Anything that is not one of them is the automatic choice,
+    /// so a half-written step looks at something rather than at nothing.
+    /// </summary>
+    public static CaptureMethod Read(string? written) => (written ?? string.Empty).Trim() switch
+    {
+        "gdi" => CaptureMethod.Gdi,
+        "printwindow" => CaptureMethod.PrintWindow,
+        "graphicscapture" => CaptureMethod.GraphicsCapture,
+        "graphicscapturedesktop" => CaptureMethod.GraphicsCaptureDesktop,
+        _ => CaptureMethod.Auto,
+    };
+}
+
+/// <summary>
 /// A picture that was taken, and where its top left corner sits on the screen. The two travel
 /// together because the picture is not always the rectangle that was asked for — a window read
 /// through graphics capture is its own size, at its own corner — and everything the run does with
-/// the picture afterwards is in screen pixels.
+/// the picture afterwards is in screen pixels. Which way it was taken is beside them, because
+/// "automatic" is a question rather than an answer, and a step that came out wrong is worth being
+/// able to ask what it was really read with.
 /// </summary>
-public readonly record struct ScreenShot(ImageFrame Frame, ScreenPoint Origin);
+public readonly record struct ScreenShot(ImageFrame Frame, ScreenPoint Origin, CaptureMethod Method);
 
 /// <summary>
 /// One region to read, and where its pixels should come from. The rectangle is in screen pixels,

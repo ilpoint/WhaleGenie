@@ -1920,6 +1920,7 @@ public static class ActionCatalog
                 Number("width", "Width", 100, "Region width in pixels.", min: 1),
                 Number("height", "Height", 100, "Region height in pixels.", min: 1),
                 ..Anchor(withElement: true),
+                CaptureMode(),
                 Variable("saveTo", "Save to variable", "shot",
                     "Variable that receives the captured image. $name.x, $name.y, $name.width and "
                     + "$name.height hold the rectangle it covered, so a later step can search it.",
@@ -1935,6 +1936,7 @@ public static class ActionCatalog
             Parameters =
             [
                 ..WindowTarget(),
+                WindowCaptureMode(),
                 Variable("saveTo", "Save to variable", "shot",
                     "Variable that receives the captured image. $name.x, $name.y, $name.width and "
                     + "$name.height hold the rectangle it covered, so a later step can search it.",
@@ -1954,6 +1956,7 @@ public static class ActionCatalog
                    + "first one that turns up is the one the step goes with. A row is a file path or "
                    + "the variable a Capture step saved ($shot)."),
                 Region(),
+                CaptureMode(),
                 Number("confidence", "Similarity %", 90,
                     "How alike the picture on screen has to be, from 0 to 100 per cent; the default "
                     + "is 90. Raise it to accept fewer false matches, lower it when the screen is "
@@ -1984,6 +1987,7 @@ public static class ActionCatalog
                     "The pictures to wait for, one row each, tried in the order they are listed. A "
                     + "row is a file path or the variable a Capture step saved ($shot)."),
                 Region(),
+                CaptureMode(),
                 Number("confidence", "Similarity %", 90,
                     "How alike the picture on screen has to be, from 0 to 100 per cent; the default "
                     + "is 90.", max: 100),
@@ -2016,6 +2020,7 @@ public static class ActionCatalog
                     "The pictures to look for, one row each, tried in the order they are listed; the "
                     + "first one that turns up is the one that gets clicked."),
                 Region(),
+                CaptureMode(),
                 Number("confidence", "Similarity %", 90,
                     "How alike the picture on screen has to be, from 0 to 100 per cent; the default "
                     + "is 90.", max: 100),
@@ -2046,6 +2051,7 @@ public static class ActionCatalog
                 Number("x", "X", 0, "Screen column to sample."),
                 Number("y", "Y", 0, "Screen row to sample."),
                 ..Anchor(),
+                CaptureMode(),
                 Variable("resultVariable", "Result variable", "color",
                     "Variable that receives the colour.", namesVariable: true, defaultValue: "color"),
                 Toggle("asHex", "Store as hex", true, "Store #RRGGBB instead of raw colour channels."),
@@ -2067,6 +2073,7 @@ public static class ActionCatalog
                     "How long to wait for the pixel to show that colour, in milliseconds; the "
                     + "default is 5000."),
                 ..Anchor(),
+                CaptureMode(),
             ],
         },
         new()
@@ -2080,6 +2087,7 @@ public static class ActionCatalog
                 ColorPick("color", "Colour", "#000000", "Colour to look for."),
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100),
                 Region(),
+                CaptureMode(),
                 Number("timeoutMs", "Wait up to", 0,
                     "0, the default, looks once and leaves the result empty when the colour is not "
                     + "there. Any other number waits that many milliseconds and fails when the "
@@ -2109,6 +2117,7 @@ public static class ActionCatalog
             [
                 Region(),
                 ..Anchor(),
+                CaptureMode(),
                 Number("quietMs", "Hold still for", 500,
                     "How long the area has to stay unchanged before the step goes on. A page that "
                     + "is still filling in, or an animation still running, keeps this from being "
@@ -2152,6 +2161,7 @@ public static class ActionCatalog
                     + "cells — the same shape as reading a table through UI Automation — and "
                     + "$name.text holds the whole lot as text, one line per row."),
                 ..Anchor(),
+                CaptureMode(),
                 Preprocess(advanced: true),
                 ColourFilter(advanced: true),
                 ColourTolerance(advanced: true),
@@ -2172,6 +2182,7 @@ public static class ActionCatalog
             [
                 Text("text", "Text to find", "Save", "Text to look for."),
                 Region(),
+                CaptureMode(),
                 TextMatch(),
                 Content(),
                 ..Anchor(),
@@ -2202,6 +2213,7 @@ public static class ActionCatalog
             [
                 Text("text", "Text to find", "Save"),
                 Region(),
+                CaptureMode(),
                 TextMatch(),
                 Content(),
                 Button(),
@@ -2612,6 +2624,7 @@ public static class ActionCatalog
                     + "condition is true as soon as one of them turns up."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 Region(),
+                CaptureMode(),
                 ..Anchor(),
             ],
         },
@@ -2628,6 +2641,7 @@ public static class ActionCatalog
                     + "condition is true only when none of them turns up."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 Region(),
+                CaptureMode(),
                 ..Anchor(),
             ],
         },
@@ -2641,6 +2655,7 @@ public static class ActionCatalog
             [
                 Text("text", "Text", "Ready"),
                 Region(),
+                CaptureMode(),
                 ..Anchor(),
                 TextMatch(),
             ],
@@ -2655,6 +2670,7 @@ public static class ActionCatalog
             [
                 Text("text", "Text", "Ready"),
                 Region(),
+                CaptureMode(),
                 ..Anchor(),
                 TextMatch(),
             ],
@@ -2694,6 +2710,7 @@ public static class ActionCatalog
                 Number("x", "X", 0, "Screen column to compare."),
                 Number("y", "Y", 0, "Screen row to compare."),
                 ..Anchor(),
+                CaptureMode(),
                 ColorPick("color", "Colour", "#000000"),
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100, advanced: true),
             ],
@@ -2714,6 +2731,7 @@ public static class ActionCatalog
                     "Whether every point has to match or one is enough.",
                     labels: ["Every point", "Any point"]),
                 ..Anchor(),
+                CaptureMode(),
             ],
         },
         new()
@@ -3344,6 +3362,48 @@ public static class ActionCatalog
             + "in both pictures, so it still finds the thing at another size: slower, and it reports "
             + "a single hit.",
             labels: ["Normalised", "Correlated", "Pixel for pixel", "Features"], advanced: true);
+
+    /// <summary>
+    /// How the picture a step looks at is taken, shared by every step that looks at the screen.
+    /// The desktop can be copied out of it, or a window read as the window itself shows it, which
+    /// is what still finds a game another window is covering.
+    /// </summary>
+    private static ActionParameter CaptureMode()
+        => Choice("captureMode", "How the picture is taken",
+            ["auto", "gdi", "printWindow", "graphicsCapture", "graphicsCaptureDesktop"], "auto",
+            "Where the pixels come from and how they are taken. Automatic, the default, reads the "
+            + "desktop the way a macro always has and a window through graphics capture, falling "
+            + "back on the window drawing itself where this machine has none. Desktop (GDI) is the "
+            + "cheapest and needs nothing of the graphics card, but a window read this way comes "
+            + "out as whatever is on top of it. Window (PrintWindow) asks the window to draw "
+            + "itself, which most windows do, and gives the whole window with its title bar. "
+            + "Window (graphics capture) reads what the window shows, so a game another window is "
+            + "covering still comes out; it needs Windows 10 2004 or later. Whole screen (graphics "
+            + "capture) reads the display itself, which is what a game drawing in exclusive full "
+            + "screen needs. A window way needs the step to count its coordinates from a window.",
+            labels:
+            [
+                "Automatic", "Desktop (GDI)", "Window (PrintWindow)", "Window (graphics capture)",
+                "Whole screen (graphics capture)",
+            ],
+            advanced: true);
+
+    /// <summary>
+    /// The same for the step that is about one window: the two ways of reading a window and the
+    /// automatic choice between them, without the ways that name the desktop, which a step that
+    /// captures a window has no use for.
+    /// </summary>
+    private static ActionParameter WindowCaptureMode()
+        => Choice("captureMode", "How the picture is taken",
+            ["auto", "printWindow", "graphicsCapture"], "auto",
+            "How the window is read. Automatic, the default, reads it through graphics capture and "
+            + "falls back on the window drawing itself where this machine has none. Window "
+            + "(PrintWindow) asks the window to draw itself, which most windows do, and gives the "
+            + "whole window with its title bar. Window (graphics capture) reads what the window "
+            + "shows even when another window covers it, and gives the part the window draws in "
+            + "without the title bar; it needs Windows 10 2004 or later.",
+            labels: ["Automatic", "Window (PrintWindow)", "Window (graphics capture)"],
+            advanced: true);
 
     /// <summary>
     /// A colour of the reference picture that takes no part in the comparing, shared by the picture

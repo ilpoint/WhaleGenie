@@ -678,7 +678,9 @@ public class DeviceActionTests
                 Param("resultVariable", "tone")),
         ], devices);
 
-        Assert.Equal(["findWindow Notepad", "clientOrigin 1", "pixel 1007 528"], devices.Calls);
+        // A pixel counted from a window is read out of a picture of that window, so a window that
+        // another window covers still gives its own colour rather than the covering one's.
+        Assert.Equal(["findWindow Notepad", "clientOrigin 1", "capture 1007 528 1 1"], devices.Calls);
     }
 
     [Fact]
@@ -1146,6 +1148,193 @@ public class DeviceActionTests
         Assert.Contains("capture 0 0 10 10", devices.Calls);
         Assert.Contains("capture 100 100 10 10", devices.Calls);
         Assert.Equal("102,103", store.Local.Values["where"].AsText());
+    }
+
+    /// <summary>
+    /// One window to look through, standing in for a game the macro counts its pixels from.
+    /// </summary>
+    private static FakeDeviceLayer WithWindow(long handle = 4, string title = "Game",
+        int x = 100, int y = 50, int width = 400, int height = 300,
+        int clientX = 108, int clientY = 81)
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(handle, title, new ScreenPoint(x, y),
+            new ScreenSize(width, height), false, false));
+        devices.ClientOrigins[handle] = new ScreenPoint(clientX, clientY);
+        return devices;
+    }
+
+    /// <summary>
+    /// What the fields of a step come to as one request for a picture: which rectangle, out of the
+    /// window its coordinates are counted from, and by the way it named. Everything the steps do
+    /// with the screen goes through this one call, so it is where the fields have to be right.
+    /// </summary>
+    [Fact]
+    public async Task A_picture_is_asked_for_from_the_window_the_step_counts_from()
+    {
+        var devices = WithWindow();
+
+        await RunAsync(
+        [
+            Step("vision.capture", Param("x", "10"), Param("y", "20"), Param("width", "30"),
+                Param("height", "40"), Param("anchorMode", "client"),
+                Param("anchorWindow", "Game"), Param("saveTo", "shot")),
+        ], devices);
+
+        var asked = Assert.Single(devices.Captures);
+        Assert.Equal((118, 101, 30, 40), (asked.X, asked.Y, asked.Width, asked.Height));
+        Assert.Equal(4, asked.Window);
+        Assert.Equal(CaptureMethod.Auto, asked.Method);
+    }
+
+    /// <summary>
+    /// The way a step names travels with the request as it was written: "automatic" is a question
+    /// the device answers, and anything that reads as none of the ways asks the same question.
+    /// </summary>
+    [Theory]
+    [InlineData("gdi", CaptureMethod.Gdi)]
+    [InlineData("printWindow", CaptureMethod.PrintWindow)]
+    [InlineData("graphicsCapture", CaptureMethod.GraphicsCapture)]
+    [InlineData("graphicsCaptureDesktop", CaptureMethod.GraphicsCaptureDesktop)]
+    [InlineData("", CaptureMethod.Auto)]
+    [InlineData("nonsense", CaptureMethod.Auto)]
+    public async Task The_way_of_taking_the_picture_travels_with_the_request(string written,
+        CaptureMethod expected)
+    {
+        var devices = WithWindow();
+
+        await RunAsync(
+        [
+            Step("vision.capture", Param("x", "1"), Param("y", "1"), Param("width", "2"),
+                Param("height", "2"), Param("anchorMode", "client"),
+                Param("anchorWindow", "Game"), Param("captureMode", written),
+                Param("saveTo", "shot")),
+        ], devices);
+
+        Assert.Equal(expected, Assert.Single(devices.Captures).Method);
+    }
+
+    /// <summary>
+    /// A way of reading a window, asked for without a window being named, is a mistake in the step
+    /// rather than something about the machine, and is said instead of quietly read off the desktop.
+    /// </summary>
+    [Fact]
+    public async Task A_window_way_without_a_window_is_refused()
+    {
+        var devices = new FakeDeviceLayer();
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.capture", Param("x", "0"), Param("y", "0"), Param("width", "10"),
+                Param("height", "10"), Param("captureMode", "graphicsCapture"),
+                Param("saveTo", "shot")),
+        ], devices);
+
+        Assert.Equal("Run.NoCaptureWindow", result.Key);
+        Assert.Empty(devices.Captures);
+    }
+
+    /// <summary>
+    /// A step with nowhere written down looks at the whole of what it is about: the window its
+    /// coordinates are counted from when it names one, and the desktop when it does not.
+    /// </summary>
+    [Fact]
+    public async Task A_step_with_nowhere_to_look_reads_the_whole_window_it_counts_from()
+    {
+        var devices = WithWindow(handle: 9);
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(1, 1), new ScreenSize(1, 1)));
+
+        await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Param("confidence", "90"),
+                Param("anchorMode", "window"), Param("anchorWindow", "Game"),
+                Param("resultVariable", "match")),
+        ], devices);
+
+        var asked = Assert.Single(devices.Captures);
+        Assert.Equal(9, asked.Window);
+        Assert.Equal((100, 50, 400, 300), (asked.X, asked.Y, asked.Width, asked.Height));
+    }
+
+    /// <summary>
+    /// A result says which window the picture came out of and how it was taken, because a step that
+    /// found nothing is answered by asking whether it was even looking at the right window.
+    /// </summary>
+    [Fact]
+    public async Task A_result_says_which_window_it_came_from()
+    {
+        var devices = WithWindow();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(3, 4), new ScreenSize(2, 2)));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Param("confidence", "90"),
+                Param("anchorMode", "client"), Param("anchorWindow", "Game"),
+                Param("resultVariable", "match")),
+        ], devices);
+
+        Assert.Equal("Game", store.Local.Values["match.window"].AsText());
+        Assert.Equal("gdi", store.Local.Values["match.method"].AsText());
+    }
+
+    /// <summary>
+    /// A step that found nothing empties the window and the way along with the rest of the match, so
+    /// a step inside a loop never reads what the pass before it was looking at.
+    /// </summary>
+    [Fact]
+    public async Task A_step_that_found_nothing_empties_the_window_it_read()
+    {
+        var devices = WithWindow();
+        devices.Match = null;
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Param("confidence", "90"),
+                Param("anchorMode", "client"), Param("anchorWindow", "Game"),
+                Param("resultVariable", "match")),
+        ], devices);
+
+        Assert.Equal(string.Empty, store.Local.Values["match.window"].AsText());
+        Assert.Equal(string.Empty, store.Local.Values["match.method"].AsText());
+    }
+
+    /// <summary>
+    /// A pixel counted from a window comes out of a picture of that window, so a window another
+    /// window covers still gives its own colour; a pixel counted from the screen is read straight
+    /// off the screen, which is a fraction of the cost.
+    /// </summary>
+    [Fact]
+    public async Task A_pixel_counted_from_a_window_comes_out_of_a_picture_of_it()
+    {
+        var devices = WithWindow(clientX: 200, clientY: 100);
+
+        await RunAsync(
+        [
+            Step("vision.getPixel", Param("x", "5"), Param("y", "6"),
+                Param("anchorMode", "client"), Param("anchorWindow", "Game"),
+                Param("resultVariable", "color")),
+        ], devices);
+
+        Assert.DoesNotContain(devices.Calls,
+            call => call.StartsWith("pixel ", StringComparison.Ordinal));
+        var asked = Assert.Single(devices.Captures);
+        Assert.Equal((205, 106, 1, 1), (asked.X, asked.Y, asked.Width, asked.Height));
+        Assert.Equal(4, asked.Window);
+    }
+
+    [Fact]
+    public async Task A_pixel_counted_from_the_screen_is_read_off_the_screen()
+    {
+        var devices = new FakeDeviceLayer();
+
+        await RunAsync(
+        [
+            Step("vision.getPixel", Param("x", "5"), Param("y", "6"),
+                Param("resultVariable", "color")),
+        ], devices);
+
+        Assert.Contains("pixel 5 6", devices.Calls);
+        Assert.Empty(devices.Captures);
     }
 
     /// <summary>The negative conditions are their own actions, so "wait until it is gone" can be written.</summary>
@@ -5484,7 +5673,8 @@ internal sealed class FakeDeviceLayer
             Display = next();
         }
 
-        return new ScreenShot(picture, new ScreenPoint(request.X, request.Y));
+        return new ScreenShot(picture, new ScreenPoint(request.X, request.Y),
+            request.Method == CaptureMethod.Auto ? CaptureMethod.Gdi : request.Method);
     }
 
     /// <summary>

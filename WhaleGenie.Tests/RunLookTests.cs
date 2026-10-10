@@ -161,7 +161,8 @@ public class RunLookTests
 
         public ScreenShot Capture(ScreenCaptureRequest request)
             => new(new ImageFrame(request.Width, request.Height,
-                new byte[request.Width * request.Height * 4]), new ScreenPoint(request.X, request.Y));
+                new byte[request.Width * request.Height * 4]), new ScreenPoint(request.X, request.Y),
+                request.Method == CaptureMethod.Auto ? CaptureMethod.Gdi : request.Method);
 
         public ImageFrame? Load(string path) => new(4, 4, new byte[64]);
 

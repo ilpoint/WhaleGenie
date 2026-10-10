@@ -11,6 +11,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -111,11 +112,14 @@ public partial class LookWindow : Window
         // Which of several pictures the step went with is part of what it was looking for: a step
         // that lists three of them and found the second one is telling the user something the name
         // of that one alone does not.
-        Set("LookingLine", look.Looking.Length == 0
+        var looking = look.Looking.Length == 0
             ? string.Empty
             : look.PictureCount > 1
                 ? Strings.Format("Look.Picture", look.PictureNumber, look.PictureCount, look.Looking)
-                : Strings.Format("Look.Looking", look.Looking));
+                : Strings.Format("Look.Looking", look.Looking);
+
+        Set("LookingLine", string.Join(" · ",
+            new[] { looking, Where(look) }.Where(part => part.Length > 0)));
 
         Set("OutcomeLine", Outcome(look));
 
@@ -141,6 +145,26 @@ public partial class LookWindow : Window
         {
             block.Text = text;
         }
+    }
+
+    /// <summary>
+    /// Which window the picture came out of and how it was taken, beside what the step was after.
+    /// A step that found nothing is answered by this line: it says whether the step was reading the
+    /// right window at all, which the picture underneath it cannot say on its own.
+    /// </summary>
+    private static string Where(StepLook look)
+    {
+        if (look.Method == CaptureMethod.Auto)
+        {
+            return string.Empty;
+        }
+
+        var source = look.Source.Length == 0
+            ? Strings.Get("Look.Source.desktop")
+            : Strings.Format("Look.Source.window", look.Source);
+
+        return Strings.Format("Look.Where", source,
+            Strings.Get("Look.Way." + CaptureMethodNames.Written(look.Method)));
     }
 
     /// <summary>

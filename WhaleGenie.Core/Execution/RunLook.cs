@@ -102,6 +102,16 @@ public sealed record StepLook
 
     /// <summary>Anything else about this look worth saying, such as the writing that was read.</summary>
     public string? Note { get; init; }
+
+    /// <summary>
+    /// The window the picture was read out of, or empty when it came from the desktop. A step that
+    /// looked at the wrong window — or at a window that is not there any more — is answered by
+    /// seeing which window it was really reading.
+    /// </summary>
+    public string Source { get; init; } = string.Empty;
+
+    /// <summary>Which way the picture was taken, once "automatic" has been answered.</summary>
+    public CaptureMethod Method { get; init; } = CaptureMethod.Auto;
 }
 
 /// <summary>Where steps hand over what they saw, for a debugger to draw.</summary>

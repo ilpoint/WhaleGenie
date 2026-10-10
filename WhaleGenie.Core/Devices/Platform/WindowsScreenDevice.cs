@@ -101,7 +101,7 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
             CaptureMethod.GraphicsCapture => Graphics(request, window),
             CaptureMethod.GraphicsCaptureDesktop => ThroughTheDisplay(request),
             CaptureMethod.Gdi => new ScreenShot(Copy(request.X, request.Y, request.Width,
-                request.Height), new ScreenPoint(request.X, request.Y)),
+                request.Height), new ScreenPoint(request.X, request.Y), CaptureMethod.Gdi),
             _ => Auto(request, window),
         };
     }
@@ -114,10 +114,10 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
     private ScreenShot Horizontal(ScreenCaptureRequest request) => request.Method switch
     {
         CaptureMethod.PrintWindow or CaptureMethod.GraphicsCapture
-            => throw new DeviceActionException("Run.NoCaptureWindow"),
+            => throw new DeviceActionException("Run.NoCaptureWindow", Written(request)),
         CaptureMethod.GraphicsCaptureDesktop => ThroughTheDisplay(request),
         _ => new ScreenShot(Copy(request.X, request.Y, request.Width, request.Height),
-            new ScreenPoint(request.X, request.Y)),
+            new ScreenPoint(request.X, request.Y), CaptureMethod.Gdi),
     };
 
     /// <summary>
@@ -150,7 +150,7 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
             // Last of all, the pixels that are on the screen. A window that is covered gives the
             // covering window's picture, which is wrong but is what a person would see.
             return new ScreenShot(Copy(request.X, request.Y, request.Width, request.Height),
-                new ScreenPoint(request.X, request.Y));
+                new ScreenPoint(request.X, request.Y), CaptureMethod.Gdi);
         }
     }
 
@@ -165,7 +165,7 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         var content = window.Content;
         var frame = _graphics.Value.Window(request.Window, 0, 0, content.Size.Width,
             content.Size.Height);
-        return Crop(frame, content.Location, request);
+        return Crop(frame, content.Location, request, CaptureMethod.GraphicsCapture);
     }
 
     /// <summary>One display read through graphics capture, in the display's own coordinates.</summary>
@@ -182,7 +182,8 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         }
 
         var frame = _graphics.Value.Desktop(left, top, right - left, bottom - top);
-        return new ScreenShot(frame, new ScreenPoint(left, top));
+        return new ScreenShot(frame, new ScreenPoint(left, top),
+            CaptureMethod.GraphicsCaptureDesktop);
     }
 
     /// <summary>
@@ -240,7 +241,7 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
             }
 
             return Crop(new ImageFrame(whole.Size.Width, whole.Size.Height, pixels),
-                whole.Location, request);
+                whole.Location, request, CaptureMethod.PrintWindow);
         }
         finally
         {
@@ -255,7 +256,7 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
     /// what is left of it sits, so a macro aiming at it still lands in the right place.
     /// </summary>
     private static ScreenShot Crop(ImageFrame whole, ScreenPoint origin,
-        ScreenCaptureRequest request)
+        ScreenCaptureRequest request, CaptureMethod method)
     {
         var left = Math.Max(0, request.X - origin.X);
         var top = Math.Max(0, request.Y - origin.Y);
@@ -268,7 +269,7 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
 
         if (left == 0 && top == 0 && right == whole.Width && bottom == whole.Height)
         {
-            return new ScreenShot(whole, origin);
+            return new ScreenShot(whole, origin, method);
         }
 
         var width = right - left;
@@ -281,7 +282,7 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         }
 
         return new ScreenShot(new ImageFrame(width, height, pixels),
-            new ScreenPoint(origin.X + left, origin.Y + top));
+            new ScreenPoint(origin.X + left, origin.Y + top), method);
     }
 
     /// <summary>Where one window sits, inside and out, in screen pixels.</summary>

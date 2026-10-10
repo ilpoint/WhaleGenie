@@ -251,7 +251,7 @@ public class RunLookTests
     }
 
     [Fact]
-    public async Task What_was_searched_is_put_together_into_one_picture_only_when_someone_is_watching()
+    public async Task What_was_searched_is_put_together_into_one_picture()
     {
         var quiet = Screen(match: new ImageMatch(0.9, new ScreenPoint(1, 1), new ScreenSize(2, 2)));
         var watched = Screen(match: new ImageMatch(0.9, new ScreenPoint(1, 1), new ScreenSize(2, 2)));
@@ -260,8 +260,10 @@ public class RunLookTests
         await Run(Find(regions: [(10, 20, 30, 40), (50, 10, 30, 40)]), quiet);
         await Run(Find(regions: [(10, 20, 30, 40), (50, 10, 30, 40)]), watched, looks);
 
-        Assert.DoesNotContain("capture 10 10 70 50", quiet.Calls);
-        Assert.Contains("capture 10 10 70 50", watched.Calls);
+        // The picture the marks are drawn on is laid out of the areas themselves, so a step reads
+        // each of them once and once only whether or not anybody is watching.
+        Assert.Equal(2, quiet.Calls.Count(call => call.StartsWith("capture ", StringComparison.Ordinal)));
+        Assert.Equal(2, watched.Calls.Count(call => call.StartsWith("capture ", StringComparison.Ordinal)));
 
         var look = Assert.Single(looks.Seen);
         Assert.Equal(new ScreenPoint(10, 10), look.Origin);

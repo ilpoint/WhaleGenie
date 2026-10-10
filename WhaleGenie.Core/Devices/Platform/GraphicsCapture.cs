@@ -169,7 +169,8 @@ internal sealed class GraphicsCapture : IDisposable
         if (!service.IsAvailable)
         {
             _unavailable = true;
-            throw new DeviceActionException("Run.NoGraphicsCapture");
+            throw new DeviceActionException("Run.NoGraphicsCapture",
+                "this machine has none (Windows 10 2004 or later and a Direct3D 11 device)");
         }
 
         return service;
