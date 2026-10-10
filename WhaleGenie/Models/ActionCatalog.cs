@@ -159,7 +159,7 @@ public static class ActionCatalog
                     + "element on screen, or a comparison between variables."),
                 Number("timeoutMs", "Timeout", 10000, "Give up after this long."),
                 Number("pollMs", "Check every", 200, "How long to wait between two checks.",
-                    min: 10m, max: 60000m),
+                    min: 10m, max: 60000m, advanced: true),
                 Choice("onTimeout", "If it never holds", ["stop", "continue"], "stop",
                     "What the macro does when the time runs out.",
                     labels: ["Stop the macro", "Carry on with the next step"]),
@@ -178,7 +178,7 @@ public static class ActionCatalog
             Parameters =
             [
                 Number("times", "Times", 10, "How many iterations to run.", min: 1),
-                Number("intervalMs", "Interval", 0, "Pause between iterations."),
+                Number("intervalMs", "Interval", 0, "Pause between iterations.", advanced: true),
                 Steps("body", "Body steps", "Steps that run once per iteration."),
             ],
         },
@@ -214,7 +214,8 @@ public static class ActionCatalog
                     hint: "Optional variable that receives which round this is, counted from 0 in "
                           + "the order the items are walked in. Leave it empty to keep the round "
                           + "number out of the variables."),
-                Toggle("reverse", "Reverse order", false, "Iterate from the last item to the first."),
+                Toggle("reverse", "Reverse order", false, "Iterate from the last item to the first.",
+                    advanced: true),
                 Steps("body", "Body steps", "Steps that run once per item."),
             ],
         },
@@ -233,8 +234,9 @@ public static class ActionCatalog
                     + "times.", min: -1000000),
                 Number("step", "Step", 1,
                     "What the counter is increased by each round. A negative step counts down; "
-                    + "0 means \"count upwards, or downwards when From is above To\".", min: -1000000),
-                Number("intervalMs", "Interval", 0, "Pause between rounds."),
+                    + "0 means \"count upwards, or downwards when From is above To\".", min: -1000000,
+                    advanced: true),
+                Number("intervalMs", "Interval", 0, "Pause between rounds.", advanced: true),
                 Variable("variable", "Counter variable", "i",
                     "Variable that receives the value of this round.",
                     namesVariable: true, defaultValue: "i"),
