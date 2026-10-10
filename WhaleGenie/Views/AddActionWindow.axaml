@@ -1,3 +1,7 @@
+<!-- What this opens at is up to the desktop that holds it, and so is whether it stands beside the
+     macro editor or over it: see DialogSize. MinWidth is the narrowest that leaves those fields
+     readable, which is narrower than the size it opens at on a desktop with less room than it
+     would like — standing beside the editor is worth the tighter columns. -->
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
@@ -12,7 +16,7 @@
         x:DataType="vm:AddActionViewModel"
         Title="Add Action"
         Width="1024" Height="800"
-        MinWidth="900" MinHeight="560"
+        MinWidth="800" MinHeight="560"
         WindowStartupLocation="CenterOwner"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"

@@ -163,23 +163,49 @@ public partial class AddActionWindow : Window
     /// Opens at a size the desktop can hold. The four pages are read comfortably in a thousand
     /// pixels of width, but a 1366-wide laptop has less than that to give once the window is kept
     /// clear of its edges — so the size wanted is trimmed to the room there is rather than the
-    /// dialog hanging off the screen.
+    /// dialog hanging off the screen. And it stands beside the window it was opened from wherever
+    /// the desktop has room for it: a step is written with the list it is going into in sight, not
+    /// with that list covered up.
     /// </summary>
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
 
-        var screen = (Owner is { } owner ? Screens.ScreenFromWindow(owner) : null) ?? Screens.Primary;
+        var owner = Owner;
+        var screen = (owner is not null ? Screens.ScreenFromWindow(owner) : null) ?? Screens.Primary;
         if (screen is null)
         {
             return;
         }
 
         var scale = screen.Scaling > 0 ? screen.Scaling : 1;
+        var desktop = (X: screen.WorkingArea.X / scale, Y: screen.WorkingArea.Y / scale,
+            Width: screen.WorkingArea.Width / scale, Height: screen.WorkingArea.Height / scale);
         var (width, height) = DialogSize.Fit(
-            screen.WorkingArea.Width / scale, screen.WorkingArea.Height / scale);
+            desktop.Width, desktop.Height);
+
+        if (owner is Window editor
+            && DialogSize.Beside(EditorRect(editor), desktop, height) is { } beside)
+        {
+            Width = beside.Width;
+            Height = height;
+            Position = new PixelPoint(
+                (int)Math.Round(beside.X * scale), (int)Math.Round(beside.Y * scale));
+            return;
+        }
+
         Width = width;
         Height = height;
+    }
+
+    /// <summary>
+    /// The window this one was opened from, as a rectangle in the same units as the desktop it is
+    /// measured against. That window is the macro editor: it is what the form stands beside.
+    /// </summary>
+    private static (double X, double Y, double Width, double Height) EditorRect(Window owner)
+    {
+        var scale = owner.RenderScaling > 0 ? owner.RenderScaling : 1;
+        return (owner.Position.X / scale, owner.Position.Y / scale, owner.Bounds.Width, owner.Bounds.Height);
     }
 
     /// <summary>Opens the dropdown of a variable picker that has something to offer.</summary>
