@@ -486,12 +486,23 @@ public partial class LookWindow : Window
     /// window happens to be zoomed to: the point of saving it is to show somebody else what was
     /// seen, and a picture shrunk to fit a window is not that.
     /// </summary>
-    private async void OnSave(object? sender, RoutedEventArgs e)
+    private void OnSave(object? sender, RoutedEventArgs e)
+        => SaveWith(title: "Look.SaveTitle", name: "look-" + _look.StepId, marks: true);
+
+    /// <summary>
+    /// Writes the picture out as it came off the screen, without a single mark on it. What a step
+    /// looked at is also what somebody cuts a fresh reference picture out of, and marks drawn over
+    /// it would come along into the template and make it match only itself.
+    /// </summary>
+    private void OnSaveRaw(object? sender, RoutedEventArgs e)
+        => SaveWith(title: "Look.SaveRawTitle", name: "screen-" + _look.StepId, marks: false);
+
+    private async void SaveWith(string title, string name, bool marks)
     {
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = Strings.Get("Look.SaveTitle"),
-            SuggestedFileName = "look-" + _look.StepId + ".png",
+            Title = Strings.Get(title),
+            SuggestedFileName = name + ".png",
             FileTypeChoices =
             [
                 new FilePickerFileType(Strings.Get("Look.SaveFilter")) { Patterns = ["*.png"] },
@@ -506,7 +517,7 @@ public partial class LookWindow : Window
 
         try
         {
-            Save(path);
+            Save(path, marks);
             SetStatus(Strings.Format("Look.Saved", path));
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
@@ -523,11 +534,11 @@ public partial class LookWindow : Window
         }
     }
 
-    private void Save(string path)
+    private void Save(string path, bool marks)
     {
         var width = Math.Max(1, _look.Frame.Width);
         var height = Math.Max(1, _look.Frame.Height);
-        var board = Marked(1);
+        var board = SavedBoard(1, marks);
         board.Width = width;
         board.Height = height;
         board.Measure(new Size(width, height));
@@ -541,25 +552,17 @@ public partial class LookWindow : Window
     }
 
     /// <summary>
-    /// The picture with every mark on it, built fresh: what is on screen is one instance of it and
-    /// this is another, because a control cannot hang in two places at once.
+    /// The picture as a saved file gets it — with every mark drawn over it, or bare. Built fresh
+    /// each time: what is on screen is one instance of it and this is another, because a control
+    /// cannot hang in two places at once.
     /// </summary>
-    private Canvas Marked(double zoom)
+    internal Canvas SavedBoard(double zoom, bool marks)
     {
         var board = new Canvas { Background = new SolidColorBrush(Color.Parse("#141414")) };
-        if (_frame is not null)
+        Picture(board, zoom);
+        if (!marks)
         {
-            var picture = new Image
-            {
-                Source = _frame,
-                Width = _look.Frame.Width * zoom,
-                Height = _look.Frame.Height * zoom,
-                Stretch = Stretch.Fill,
-            };
-
-            Canvas.SetLeft(picture, 0);
-            Canvas.SetTop(picture, 0);
-            board.Children.Add(picture);
+            return board;
         }
 
         for (var index = 0; index < _look.Boxes.Count; index++)
@@ -575,5 +578,25 @@ public partial class LookWindow : Window
         }
 
         return board;
+    }
+
+    private void Picture(Canvas board, double zoom)
+    {
+        if (_frame is null)
+        {
+            return;
+        }
+
+        var picture = new Image
+        {
+            Source = _frame,
+            Width = _look.Frame.Width * zoom,
+            Height = _look.Frame.Height * zoom,
+            Stretch = Stretch.Fill,
+        };
+
+        Canvas.SetLeft(picture, 0);
+        Canvas.SetTop(picture, 0);
+        board.Children.Add(picture);
     }
 }

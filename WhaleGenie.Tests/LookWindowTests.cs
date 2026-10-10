@@ -1,6 +1,8 @@
+using Avalonia.Controls;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -69,6 +71,44 @@ public class LookWindowTests
 
         Assert.Equal(new LookRect(30, 50, 20, 10), place);
     }
+
+    /// <summary>
+    /// Two things are worth saving off this window and they are not the same thing: the picture
+    /// with the marks on it, to show somebody what was seen, and the picture without them, to cut
+    /// a fresh reference picture out of — marks drawn on a template come along into it and make it
+    /// match only itself.
+    /// </summary>
+    [Fact]
+    public void The_picture_can_be_saved_with_or_without_the_marks_on_it()
+    {
+        Ui.Run(() =>
+        {
+            var window = new LookWindow(Found());
+
+            Assert.Equal(Strings.Get("Look.Save"), window.FindControl<Button>("SaveMarked")?.Content);
+            Assert.Equal(Strings.Get("Look.SaveRaw"), window.FindControl<Button>("SaveRaw")?.Content);
+
+            // The picture itself, and the one mark the step went with.
+            Assert.Equal(2, window.SavedBoard(1, marks: true).Children.Count);
+            Assert.Single(window.SavedBoard(1, marks: false).Children);
+        });
+    }
+
+    /// <summary>A step that found its picture, so the window has a mark to draw over it.</summary>
+    private static StepLook Found() => new()
+    {
+        StepId = "k3f9",
+        StepType = "vision.findImage",
+        Kind = LookKind.Template,
+        Frame = new ImageFrame(20, 12, new byte[20 * 12 * 4]),
+        Origin = new ScreenPoint(0, 0),
+        Looking = "ok.png",
+        Boxes =
+        [
+            new LookBox(new ImageMatch(0.97, new ScreenPoint(4, 3), new ScreenSize(6, 4)), LookRole.Hit),
+        ],
+        ChosenIndex = 1,
+    };
 
     [Fact]
     public void The_zoom_is_applied_to_the_mark_as_well_as_to_the_picture()

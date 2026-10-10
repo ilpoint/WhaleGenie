@@ -145,7 +145,7 @@
             </Grid>
 
             <!-- zoom, and saving the picture -->
-            <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto" Margin="14,0,14,12">
+            <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" Margin="14,0,14,12">
                 <Button Grid.Column="0" Classes="FlatButton" Content="−" Width="34"
                         Click="OnZoomOut" />
                 <TextBlock Grid.Column="1" Name="ZoomText" MinWidth="54" Margin="8,0"
@@ -159,7 +159,10 @@
                 <TextBlock Grid.Column="4" Name="Status" Margin="14,0,10,0"
                            VerticalAlignment="Center" FontSize="12" Foreground="#BFE3BF"
                            TextTrimming="CharacterEllipsis" />
-                <Button Grid.Column="5" Classes="PrimaryButton"
+                <Button Grid.Column="5" Name="SaveRaw" Classes="FlatButton" Margin="0,0,8,0"
+                        Click="OnSaveRaw"
+                        Content="{Binding [Look.SaveRaw], Source={x:Static loc:Strings.Current}}" />
+                <Button Grid.Column="6" Name="SaveMarked" Classes="PrimaryButton"
                         Click="OnSave"
                         Content="{Binding [Look.Save], Source={x:Static loc:Strings.Current}}" />
             </Grid>
