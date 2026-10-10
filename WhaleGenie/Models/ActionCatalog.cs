@@ -2043,7 +2043,7 @@ public static class ActionCatalog
                 Number("y", "Y", 0, "Screen row to watch."),
                 ..Anchor(),
                 ColorPick("color", "Colour", "#000000", "Colour the pixel has to show."),
-                Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100, advanced: true),
+                Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100, advanced: true),
                 Number("timeoutMs", "Timeout", 5000, "Give up after this long."),
             ],
         },
@@ -2056,7 +2056,7 @@ public static class ActionCatalog
             Parameters =
             [
                 ColorPick("color", "Colour", "#000000", "Colour to look for."),
-                Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100, advanced: true),
+                Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100, advanced: true),
                 Number("matchIndex", "Match number", 1,
                     "Which hit to use, counted from the top left: down the screen first, then "
                     + "across. 1 is the first one.", min: 1, max: 200),
@@ -2660,7 +2660,7 @@ public static class ActionCatalog
                 Number("y", "Y", 0, "Screen row to compare."),
                 ..Anchor(),
                 ColorPick("color", "Colour", "#000000"),
-                Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100, advanced: true),
+                Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100, advanced: true),
             ],
         },
         new()
@@ -2674,7 +2674,7 @@ public static class ActionCatalog
                 Multiline("points", "Points",
                     "One x,y,#RRGGBB per point, separated by a semicolon or a new line.",
                     "100,200,#FF0000; 300,400,#00FF00"),
-                Number("tolerance", "Tolerance %", 5, "Allowed colour difference.", max: 100, advanced: true),
+                Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100, advanced: true),
                 Choice("mode", "Mode", ["all", "any"], "all",
                     "Whether every point has to match or one is enough.",
                     labels: ["Every point", "Any point"]),
@@ -3260,11 +3260,11 @@ public static class ActionCatalog
     /// region may hold several rectangles, which is how one step looks in two windows at once.
     /// </summary>
     private const string RegionHint =
-        "Optional: the places on the screen to look at, one row each, so two halves of a screen are "
-        + "two rows. Drag a rectangle with “pick region”, or type the four numbers. A row may "
-        + "instead name a variable: one holding a picture an earlier Capture took, which is then "
-        + "searched inside, or one holding a rectangle written as x,y,width,height. Leave it empty "
-        + "to search the whole screen.";
+        "Where to look: one row per place, and there may be several. A row is x, y, width and "
+        + "height, dragged out with “pick region” or typed in; a row may also name a variable, "
+        + "either one holding a picture an earlier Capture took, which is searched inside, or one "
+        + "holding a rectangle written as x,y,width,height. Empty searches the whole screen, which "
+        + "is the default.";
 
     /// <summary>
     /// The three ways that compare the two pictures pixel for pixel. They are the ones a search can
@@ -3285,8 +3285,8 @@ public static class ActionCatalog
     /// </summary>
     private static ActionParameter MatchIndex(bool pixelsOnly = false)
         => Number("matchIndex", "Match number", 1,
-            "Which hit to use, counted in the order below. By default that is down the screen "
-            + "first and then across, the way a person counts them. 1 is the first one.",
+            "Which of the hits to use, numbered the way “count them in” says, from 1. The default "
+            + "is 1. More hits than were found is treated as finding nothing.",
             min: 1, max: 200, advanced: true, onlyWith: pixelsOnly ? PixelWays() : null);
 
     /// <summary>
@@ -3298,11 +3298,12 @@ public static class ActionCatalog
     private static ActionParameter MatchAlgorithm()
         => Choice("algorithm", "Recognition algorithm",
             ["normed", "correlated", "difference", "feature"], "normed",
-            "How the reference picture is looked for. Normalised takes the brightness out first, so "
-            + "an area that has gone brighter or darker still matches. Correlated does not, which "
-            + "is steadier for a very small picture. Pixel for pixel wants a copy, which is what a "
-            + "flat icon or a screenshot of a dialog is. Features pairs up what stands out in both "
-            + "pictures: slower, and it still finds the thing when it is drawn at another size.",
+            "How the reference picture is recognised. Normalised, the default, takes the brightness "
+            + "out first, so an area that has gone brighter or darker still matches. Correlated "
+            + "does not, which is steadier for a very small picture. Pixel for pixel wants a copy, "
+            + "which a flat icon or a screenshot of a dialog is. Features pairs up what stands out "
+            + "in both pictures, so it still finds the thing at another size: slower, and it reports "
+            + "a single hit.",
             labels: ["Normalised", "Correlated", "Pixel for pixel", "Features"], advanced: true);
 
     /// <summary>
@@ -3310,17 +3311,17 @@ public static class ActionCatalog
     /// finders: how a step ignores the part of a picture that keeps changing.
     /// </summary>
     private static ActionParameter SkipColour()
-        => ColorPick("ignoreColor", "Ignore this colour", string.Empty,
-            "Pixels of the reference picture that are this colour, or close to it, are left out of "
-            + "the comparing. It is for a part of the picture that keeps changing — a number over a "
-            + "button, a bar that fills up. Leave it empty to compare the whole picture.",
+        => ColorPick("ignoreColor", "Colour to ignore", string.Empty,
+            "Pixels of the reference picture that are this colour take no part in the comparing. "
+            + "For a part of the picture that keeps changing, such as a number over a button or a "
+            + "progress bar. Empty compares the whole picture, which is the default.",
             required: false);
 
     /// <summary>How many pairs of features have to line up, for the finders that look by features.</summary>
     private static ActionParameter MinFeatures()
         => Number("minFeatures", "Least feature pairs", 6,
-            "Only used when looking by features: how many pairs have to line up before the picture "
-            + "counts as found. More is stricter. Six is a good start.",
+            "Only used when the algorithm is features: how many pairs have to line up before the "
+            + "picture counts as found. From 1 to 500, more is stricter; the default is 6.",
             min: 1, max: 500, advanced: true, onlyWith: ["feature"]);
 
     /// <summary>
@@ -3331,19 +3332,18 @@ public static class ActionCatalog
     /// </summary>
     private static ActionParameter MatchOrder(bool bySize = true, bool pixelsOnly = false) => bySize
         ? Choice("orderBy", "Count them in", ["reading", "score", "area", "random"], "reading",
-            "What order the hits are counted in, which is what the match number counts. Reading is "
-            + "down the screen first and then across, the way a person counts them. Score takes the "
-            + "surest one wherever it is on the screen. Size takes the biggest box first, which is "
-            + "how a step asks for the whole banner rather than a piece of it when looking by "
-            + "features or reading writing. Random shuffles them, for a step that must not always "
-            + "take the same one of several.",
+            "What order the hits are numbered in, which is what the match number counts. Reading, "
+            + "the default, is down the screen first and then across. Score takes the surest one "
+            + "wherever it is. Size takes the biggest box first, which is how a step asks for a "
+            + "whole banner rather than a piece of it. Random shuffles them, for a step that must "
+            + "not always take the same one of several.",
             labels: ["Reading order", "Surest first", "Biggest first", "Shuffled"], advanced: true,
             onlyWith: pixelsOnly ? PixelWays() : null)
         : Choice("orderBy", "Count them in", ["reading", "score", "random"], "reading",
-            "What order the hits are counted in, which is what the match number counts. Reading is "
-            + "down the screen first and then across, the way a person counts them. Score takes the "
-            + "surest — the pixel closest to the colour — wherever it is on the screen. Random "
-            + "shuffles them, for a step that must not always take the same one of several.",
+            "What order the hits are numbered in, which is what the match number counts. Reading, "
+            + "the default, is down the screen first and then across. Score takes the pixel closest "
+            + "to the colour, wherever it is. Random shuffles them, for a step that must not always "
+            + "take the same one of several.",
             labels: ["Reading order", "Surest first", "Shuffled"], advanced: true,
             onlyWith: pixelsOnly ? PixelWays() : null);
 
@@ -3354,8 +3354,9 @@ public static class ActionCatalog
     /// </summary>
     private static ActionParameter AllMatches(bool pixelsOnly = false)
         => Toggle("allMatches", "Record every match", false,
-            "Also record how many places matched and where they all are: $name.count is the number "
-            + "and $name.list holds one \"x,y\" per hit, ready for count(), get() and forEach.",
+            "Records every hit as well as the one that was taken: $name.count is how many, and "
+            + "$name.list holds one \"x,y\" per hit, ready for count(), get() and forEach. Switched "
+            + "off, only the one that was taken is recorded.",
             onlyWith: pixelsOnly ? PixelWays() : null);
 
     /// <summary>
@@ -3528,9 +3529,9 @@ public static class ActionCatalog
     /// </summary>
     private static ActionParameter Content()
         => Choice("content", "Content", ["text", "digits"], "text",
-            "All of the text, or only the numbers: a piece that holds a number keeps the number "
-            + "itself, and the money sign, the thousands separators and the label around it are "
-            + "dropped. A piece with no digit in it is not a number and is left out.");
+            "What a piece of writing is kept as. Text keeps all of it. Digits keeps the number out "
+            + "of it and drops the currency sign, the thousands separators and the label around it; "
+            + "a piece with no digit in it is left out.");
 
     /// <summary>
     /// Whether a step wants the picture tidied up before it is read. Small, low-contrast writing on
@@ -3538,12 +3539,12 @@ public static class ActionCatalog
     /// but cost a moment.
     /// </summary>
     private static ActionParameter Preprocess()
-        => Choice("preprocess", "Clean the picture up", [.. WhaleGenie.Core.Devices.OcrPreprocess.Recipes],
+        => Choice("preprocess", "Picture cleanup", [.. WhaleGenie.Core.Devices.OcrPreprocess.Recipes],
             "none",
-            "Tidy the picture up before reading it: grey takes the colour out, black and white is "
-            + "grey with light and dark pushed apart — the cut is the picture's own average, so a "
-            + "dark screen works as well as a light one — and twice as big helps with small writing. "
-            + "The last one does both.");
+            "What is done to the picture before it is read, no change by default. Grey takes the "
+            + "colour out; black and white pushes light and dark apart around the picture's own "
+            + "average, so a dark screen works as well as a light one; twice as big helps with "
+            + "small writing; the last one does both.");
 
     /// <summary>
     /// The score below which a step will not act on a reading, shared by the two OCR actions that
@@ -3553,10 +3554,11 @@ public static class ActionCatalog
     /// with something to go on. Zero, the default, keeps every reading.
     /// </summary>
     private static ActionParameter MinScore()
-        => Number("minScore", "Lowest score", 0,
-            "Leave a reading out when the model was less sure of it than this. Measured on a "
-            + "real screen: clean writing scores around 40, writing too blurred to read around "
-            + "24, and rubbish read off a busy background around 16. 0 keeps everything.",
+        => Number("minScore", "Lowest reading score", 0,
+            "A reading is left out when the model was less sure of it than this. The score is the "
+            + "model's own, not a percentage and with no fixed range; measured on a real screen, "
+            + "clean writing scores around 40, writing too blurred to read around 24 and rubbish "
+            + "off a busy background around 16. 0 keeps every reading, which is the default.",
             advanced: true);
 
     /// <summary>
@@ -3566,10 +3568,10 @@ public static class ActionCatalog
     /// </summary>
     private static ActionParameter Expected()
         => Text("expected", "Must read like", required: false, placeholder: "^HP \\d+/\\d+$",
-            hint: "Optional pattern the whole reading has to fit, on top of looking for the text "
-            + "above. It is what tells a screen of the same word apart from the one line the macro "
-            + "wants — a level, an amount, a count: HP 120/300 is found by ^HP \\d+/\\d+$ while "
-            + "HP full is left alone. Written as a regular expression, the same as the 'pattern' "
+            hint: "Optional pattern the whole reading has to fit, on top of containing the text "
+            + "looked for; nothing is required of it by default. It is how one line is told apart "
+            + "from a screen full of the same word: HP 120/300 is found by ^HP \\d+/\\d+$ while "
+            + "HP is full is left alone. Written as a regular expression, the same as the 'pattern' "
             + "match mode uses.");
 
     /// <summary>
@@ -3586,9 +3588,8 @@ public static class ActionCatalog
             Placeholder = "l00 = 100",
             Required = false,
             Advanced = true,
-            Hint = "Optional, one correction per line written as what the model read = what it "
-                + "says. A model that keeps misreading a stylised font is a known mistake, so "
-                + "writing it down here is what keeps the macro working: l00 = 100, O = 0. The "
+            Hint = "Optional corrections, one per line, written as what the model read = what it "
+                + "says: l00 = 100, O = 0. For a model that keeps misreading a stylised font. The "
                 + "reading is put right before anything is compared against it.",
         };
 
@@ -3602,15 +3603,15 @@ public static class ActionCatalog
         => new()
         {
             Name = "colorFilter",
-            Label = "Writing is this colour",
+            Label = "Colour of the writing",
             Kind = ActionParameterKind.Color,
             DefaultValue = string.Empty,
             Required = false,
             Advanced = true,
-            Hint = "Optional. Writing on a screen with an outline, a shadow or a picture behind it "
-                + "reads badly, because the model is handed all of it. Give the colour the writing "
-                + "is in and everything that is not that colour — outline, shadow, background — "
-                + "is thrown away before reading. Empty reads the picture as it is.",
+            Hint = "Optional colour of the writing. Given one, everything that is not that colour "
+                + "— outline, shadow, background — is thrown away before the picture is read. For "
+                + "writing that has an outline or sits on a picture. Empty reads the picture as it "
+                + "is, which is the default.",
         };
 
     /// <summary>How far a pixel may be from the writing's colour and still count as writing.</summary>
@@ -3624,8 +3625,9 @@ public static class ActionCatalog
             Minimum = 0m,
             Maximum = 100m,
             Advanced = true,
-            Hint = "How far a pixel may be from the writing's colour and still count as writing. "
-                + "Raise it for writing drawn with a gradient or with anti-aliased edges.",
+            Hint = "How far a pixel may be from the writing's colour and still count as writing, "
+                + "from 0 to 100 per cent, 10 by default. Raise it for writing drawn with a "
+                + "gradient or with anti-aliased edges.",
         };
 
     /// <summary>A window title, filled in from the windows that are open by the window picker.</summary>

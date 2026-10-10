@@ -28,14 +28,14 @@ internal static class ActionStrings
     /// picker, written once for the same reason the input-mode hint is.
     /// </summary>
     private const string AnchorModeHint =
-        "这一步的坐标从哪里量起。屏幕＝桌面上的像素位置，也是以前所有宏的写法；"
-        + "窗口左上角＝从目标窗口外框的左上角算起；窗口客户区＝从窗口边框里面算起。"
-        + "后两种会让这一步跟着窗口走，窗口移动或缩放之后仍然落在窗口里的同一个位置。";
+        "这一步的坐标从哪儿量起，默认屏幕像素。屏幕像素＝桌面上的位置；窗口左上角＝从目标窗口"
+        + "外框的左上角算起；窗口客户区＝从窗口边框内侧算起。选后两种时这一步跟着窗口走："
+        + "窗口移动或缩放之后，坐标仍落在窗口里的同一处。";
 
     /// <summary>The matching hint for the window those coordinates are measured from.</summary>
     private const string AnchorWindowHint =
-        "坐标从哪个窗口量起，填标题的一部分即可。留空表示运行时最前面那个窗口；"
-        + "选“屏幕像素”时用不到它。";
+        "坐标基准选窗口时才用：这个窗口的标题，填一部分即可，不区分大小写。"
+        + "留空表示运行时最前面的那个窗口。";
 
     /// <summary>The hint every window action shares for the text it recognises a window by.</summary>
     private const string WindowTitleHint =
@@ -67,75 +67,77 @@ internal static class ActionStrings
     /// written once for the same reason the coordinate-origin hint is.
     /// </summary>
     private const string AnchorElementHint =
-        "坐标从这个控件量起，例如 Button[name='Save']，可以点“拾取元素”直接从屏幕上抓；"
-        + "这一步每次运行都会重新找它，控件移动之后数字仍然落在它身上。"
-        + "选其他坐标基准时用不到它。";
+        "坐标基准选界面元素时才用：这个元素的写法，例如 Button[name='Save']，可以用"
+        + "“拾取元素”从屏幕上取。每次运行时都会重新找它，元素移动之后坐标仍落在它身上。";
 
     /// <summary>The hint every search-region field shares, in the wording the English one uses.</summary>
     private const string RegionHintText =
-        "可选，格式 x,y,width,height，也可写成 $变量；一次要看几块区域就用分号隔开，每块都会搜；"
-        + "留空表示全屏搜索。";
+        "搜索范围，一行一块，可以填多块。每行填 x、y、宽、高四个数字，或用“框选”拖出来；"
+        + "一行也可以填变量：图片变量（在前一步截取的那张图上搜索）或写成 x,y,宽,高 的矩形"
+        + "变量。留空表示整个屏幕（默认）。";
 
     /// <summary>The hint the "which hit" fields share.</summary>
-    private const string MatchIndexHint = "按下面的顺序数第几个命中，1 是第一个。";
+    private const string MatchIndexHint =
+        "“命中排序”里的第几个，从 1 开始，默认 1。超出命中数量时这一步按没找到处理。";
 
     /// <summary>The hint every "which way to recognise the picture" picker shares.</summary>
     private const string MatchAlgorithmHint =
-        "参考图用哪种方式识别。归一化相关先去明暗再比对，画面整体变亮变暗也认得出，默认用它；"
-        + "相关不先去明暗，参考图很小时更稳；逐像素要求两处一模一样，纯色图标或对话框截图用它；"
-        + "特征比对把两边明显的特征点配对，图被放大缩小或有小改动时也认得出，代价是慢一些，"
-        + "且只返回一个命中。";
+        "参考图用哪种方式识别，默认归一化相关。归一化相关：先抵消整体明暗再比对，画面变亮变暗"
+        + "仍认得出。相关：不抵消明暗，参考图很小时更稳。逐像素：要求两处几乎一样，纯色图标、"
+        + "对话框截图适用。特征比对：把两边明显的特征点配对，画面缩放或有小改动也认得出，"
+        + "速度较慢，且只返回一个命中。";
 
     /// <summary>The hint the "leave this colour out" fields share.</summary>
     private const string IgnoreColourHint =
-        "参考图里这个颜色（以及接近它的颜色）不参与比对。用在图上会一直变的那一块："
-        + "按钮上的数字、会走动的进度条。留空表示整张图都参与。";
+        "参考图里这个颜色不参与比对，用于参考图中会变化的部分，例如按钮上的数字、会走动的进度条。"
+        + "留空表示整张图都参与（默认）。";
 
     /// <summary>The hint the "least feature pairs" fields share.</summary>
     private const string MinFeaturesHint =
-        "只在用“特征比对”找图时有用：要配对上多少对特征点才算找到，越多越严，6 是个不错的起点。";
+        "只在识别算法选“特征比对”时有效。要配对上多少对特征点才算找到，1–500，越大越严格，"
+        + "默认 6。";
 
     /// <summary>The hint every "what order the hits are counted in" picker shares.</summary>
     private const string MatchOrderHint =
-        "命中按什么顺序数，也就是“第几个命中”数的是哪一个。阅读顺序是先往下再往右，人平时数的"
-        + "顺序；分数最高是哪里最像就用哪里；面积最大是先用最大的那个框，按特征找图或读文字时"
-        + "用它挑整块的而不是一角；随机打乱，用在不能每次都挑同一个的步骤上。";
+        "命中按什么顺序编号，也就是“第几个命中”数的是哪一个，默认阅读顺序。阅读顺序：先向下"
+        + "再向右。分数最高：最像的那一个优先。面积最大：框最大的那一个优先。随机：打乱，"
+        + "用于不希望每次都挑同一个的场景。";
 
     /// <summary>
     /// The same for the colour finders, whose hits are all one pixel: they are not offered a
     /// "biggest first", so their hint must not talk about one.
     /// </summary>
     private const string MatchOrderColourHint =
-        "命中按什么顺序数，也就是“第几个命中”数的是哪一个。阅读顺序是先往下再往右，人平时数的"
-        + "顺序；分数最高是先用离目标颜色最近的那个像素；随机打乱，用在不能每次都挑同一个的"
-        + "步骤上。";
+        "命中按什么顺序编号，也就是“第几个命中”数的是哪一个，默认阅读顺序。阅读顺序：先向下"
+        + "再向右。分数最高：离目标颜色最近的那个像素优先。随机：打乱，用于不希望每次都挑"
+        + "同一个的场景。";
 
     /// <summary>The hint the three reading actions share for the shape a reading has to have.</summary>
     private const string ExpectedHint =
-        "可选。除了要找的文字之外，整段读到的内容还要符合这个写法 —— 满屏都是同一个词的时候，"
-        + "靠它挑出真正要的那一行：等级、数量、比分。“HP 120/300”用 ^HP \\d+/\\d+$ 找得到，"
-        + "“HP 已满”不会误中。写法和“匹配方式”里的正则一样。";
+        "可选的正则：整段读取既要含上面要查找的文字，又要符合这个写法才算命中，默认不限制。"
+        + "用于一屏里出现多个相同字样、只认其中一行的场合，例如 HP 120/300 用 ^HP \\d+/\\d+$ 找得到，"
+        + "HP 已满 不会误中。写法与“匹配方式”里的正则相同。";
 
     /// <summary>The hint the three reading actions share for their corrections list.</summary>
     private const string FixTextHint =
-        "可选，一行一条，写成“模型读到的 = 它其实是”。模型老是认错某种字体是已知的毛病，"
-        + "把它写在这里就是让宏继续能用的办法：l00 = 100、O = 0。识别结果会先按这里改好，"
-        + "再拿去比对。";
+        "可选的纠错表：一行一条，写成“模型读到的 = 实际内容”，例如 l00 = 100、O = 0。"
+        + "用于识别模型固定读错某种字体的场合；读取结果先按这张表改正，再参与比对。";
 
     /// <summary>The hint the three reading actions share for the colour the writing is in.</summary>
     private const string ColourFilterHint =
-        "可选。带描边、带阴影、压在画面上的文字很难读 —— 因为模型拿到的是整块画面。"
-        + "填上文字本身的颜色，不是这个颜色的东西（描边、阴影、背景）在识别前就被丢掉。"
-        + "留空表示画面原样送进去。";
+        "可选的文字颜色。填上以后，识别前先把不是这个颜色的像素丢掉，用于带描边、带阴影或压在"
+        + "画面上的文字。留空表示画面原样送去识别（默认）。";
 
     /// <summary>The hint the three reading actions share for how far off that colour may be.</summary>
     private const string ColourToleranceHint =
-        "像素距离文字颜色多远还算文字。文字带渐变或有抗锯齿边缘时把它调大。";
+        "像素与文字颜色的距离在这个范围内仍算文字，0–100，默认 10。文字带渐变或有抗锯齿边缘时"
+        + "调大。";
 
     /// <summary>The hint the "record every match" switches share.</summary>
     private const string AllMatchesHint =
-        "勾上以后把命中的数量和位置都记下来：$变量名.count 是数量，$变量名.list 是每次命中的 “x,y”，"
-        + "可以配合 count()、get()、forEach 使用。";
+        "勾选后除了选中的那一个，还把命中的数量与每个命中都记下来：$变量名.count 是数量，"
+        + "$变量名.list 是每条命中的 “x,y”，可配合 count()、get()、forEach 使用。"
+        + "不勾选时只记录选中的那一个。";
 
     /// <summary>
     /// The hint the two text-searching actions share for their lowest-score field. The numbers
@@ -143,9 +145,9 @@ internal static class ActionStrings
     /// model's own and has no range a user could otherwise guess.
     /// </summary>
     private const string MinScoreHint =
-        "识别分低于这个数就不要这次读取。识别分是识别模型自己的打分，不是百分比，也没有固定"
-        + "上下限。实机参考：清楚的文字大约 40 分，糊到快认不出的字大约 24 分，"
-        + "花花背景上的乱码大约 16 分。填 0 表示全都接受（默认）。";
+        "识别分低于这个数的读取直接丢弃。识别分是识别模型自己的打分，不是百分比，也没有固定"
+        + "上下限。实机参考：清晰的文字约 40，模糊到快认不出约 24，花背景上的乱码约 16。"
+        + "填 0 表示全部接受（默认）。";
 
     internal static readonly Dictionary<string, string> Chinese = new()
     {
@@ -1635,7 +1637,7 @@ internal static class ActionStrings
         ["vision.findImage.algorithm.option.correlated"] = "相关",
         ["vision.findImage.algorithm.option.difference"] = "逐像素",
         ["vision.findImage.algorithm.option.feature"] = "特征比对",
-        ["vision.findImage.ignoreColor.label"] = "忽略这个颜色",
+        ["vision.findImage.ignoreColor.label"] = "忽略的颜色",
         ["vision.findImage.ignoreColor.hint"] = IgnoreColourHint,
         ["vision.findImage.minFeatures.label"] = "最少特征对数",
         ["vision.findImage.minFeatures.hint"] = MinFeaturesHint,
@@ -1656,7 +1658,7 @@ internal static class ActionStrings
         ["vision.waitImage.algorithm.option.correlated"] = "相关",
         ["vision.waitImage.algorithm.option.difference"] = "逐像素",
         ["vision.waitImage.algorithm.option.feature"] = "特征比对",
-        ["vision.waitImage.ignoreColor.label"] = "忽略这个颜色",
+        ["vision.waitImage.ignoreColor.label"] = "忽略的颜色",
         ["vision.waitImage.ignoreColor.hint"] = IgnoreColourHint,
         ["vision.waitImage.minFeatures.label"] = "最少特征对数",
         ["vision.waitImage.minFeatures.hint"] = MinFeaturesHint,
@@ -1686,7 +1688,7 @@ internal static class ActionStrings
         ["vision.clickImage.algorithm.option.correlated"] = "相关",
         ["vision.clickImage.algorithm.option.difference"] = "逐像素",
         ["vision.clickImage.algorithm.option.feature"] = "特征比对",
-        ["vision.clickImage.ignoreColor.label"] = "忽略这个颜色",
+        ["vision.clickImage.ignoreColor.label"] = "忽略的颜色",
         ["vision.clickImage.ignoreColor.hint"] = IgnoreColourHint,
         ["vision.clickImage.minFeatures.label"] = "最少特征对数",
         ["vision.clickImage.minFeatures.hint"] = MinFeaturesHint,
@@ -1709,9 +1711,9 @@ internal static class ActionStrings
         ["vision.findColor.name"] = "查找颜色",
         ["vision.findColor.desc"] = "在屏幕的一块区域里找某个颜色。",
         ["vision.findColor.color.label"] = "颜色",
-        ["vision.findColor.color.hint"] = "要找的颜色。",
+        ["vision.findColor.color.hint"] = "要找的颜色，默认 #000000。",
         ["vision.findColor.tolerance.label"] = "容差 %",
-        ["vision.findColor.tolerance.hint"] = "允许的颜色偏差。",
+        ["vision.findColor.tolerance.hint"] = "允许的颜色偏差，0–100（百分比），默认 5。",
         ["vision.findColor.matchIndex.label"] = "第几个命中",
         ["vision.findColor.matchIndex.hint"] = MatchIndexHint,
         ["vision.findColor.orderBy.label"] = "命中排序",
@@ -1745,9 +1747,9 @@ internal static class ActionStrings
         ["vision.waitStable.region.label"] = "搜索区域",
         ["vision.waitStable.region.hint"] = RegionHintText,
         ["vision.waitStable.quietMs.label"] = "静止多久",
-        ["vision.waitStable.quietMs.hint"] = "画面一直不变这么久之后才往下走。",
+        ["vision.waitStable.quietMs.hint"] = "画面一直不变这么久（毫秒）之后才往下走，默认 500。",
         ["vision.waitStable.tolerance.label"] = "容差 %",
-        ["vision.waitStable.tolerance.hint"] = "像素颜色差多少以内还算同一个像素。",
+        ["vision.waitStable.tolerance.hint"] = "像素颜色差多少以内还算同一个像素，0–100（百分比），默认 5。",
         ["vision.waitStable.changedPercent.label"] = "允许变化 %",
         ["vision.waitStable.changedPercent.hint"] =
             "整块区域里最多有多少比例的像素在动还算静止。转圈、滚动、进度条都超过这个数。",
@@ -1863,7 +1865,7 @@ internal static class ActionStrings
         ["vision.waitColor.color.label"] = "颜色",
         ["vision.waitColor.color.hint"] = "像素需要显示的颜色。",
         ["vision.waitColor.tolerance.label"] = "容差 %",
-        ["vision.waitColor.tolerance.hint"] = "允许的颜色偏差。",
+        ["vision.waitColor.tolerance.hint"] = "允许的颜色偏差，0–100（百分比），默认 5。",
         ["vision.waitColor.timeoutMs.label"] = "超时",
         ["vision.waitColor.timeoutMs.hint"] = "超过这个时长就放弃。",
 
@@ -1879,7 +1881,7 @@ internal static class ActionStrings
         ["ocr.recognize.height.label"] = "高度",
         ["ocr.recognize.height.hint"] = "区域高度（像素）。",
         ["ocr.recognize.language.label"] = "语言",
-        ["ocr.recognize.content.label"] = "内容",
+        ["ocr.recognize.content.label"] = "读取内容",
         ["ocr.recognize.content.hint"] = "读全部文字，还是只读数字：只读数字时，含数字的片段"
             + "只留下数字本身（货币符号、千位分隔符和旁边的文字都去掉），一个数字也没有的片段"
             + "直接不要。全角数字按普通数字读。",
@@ -1887,16 +1889,16 @@ internal static class ActionStrings
         ["ocr.recognize.table.hint"] = "按屏幕上的位置分行分列：$变量是表格（每行一项、每项"
             + "一行单元格，和读表格同一种形状），$变量.text 是同样的内容按行拼成的文本"
             + "（行与行之间换行、单元格之间制表符）。没有表格线也能用，靠的是文字的位置。",
-        ["ocr.recognize.preprocess.label"] = "清理画面",
+        ["ocr.recognize.preprocess.label"] = "画面预处理",
         ["ocr.recognize.preprocess.hint"] = "识别前的画面处理：灰度化去掉颜色；黑白在灰度化后"
             + "再拉开明暗对比（分界值取整幅图的平均亮度，因此深色与浅色主题均可使用）；"
             + "放大两倍用于较小的文字；最后一项同时执行前两项。"
             + "文字清晰且大小合适时无需处理，只会略增加耗时。",
-        ["ocr.recognize.colorFilter.label"] = "文字是这个颜色",
+        ["ocr.recognize.colorFilter.label"] = "文字颜色",
         ["ocr.recognize.colorFilter.hint"] = ColourFilterHint,
         ["ocr.recognize.colorTolerance.label"] = "颜色容差 %",
         ["ocr.recognize.colorTolerance.hint"] = ColourToleranceHint,
-        ["ocr.recognize.fixText.label"] = "纠错",
+        ["ocr.recognize.fixText.label"] = "纠错表",
         ["ocr.recognize.fixText.hint"] = FixTextHint,
         ["ocr.recognize.resultVariable.label"] = "结果变量",
         ["ocr.recognize.resultVariable.hint"] = "接收识别结果的变量，可沿用已有变量名或新建一个。",
@@ -1909,7 +1911,7 @@ internal static class ActionStrings
         ["ocr.findText.region.hint"] = RegionHintText,
         ["ocr.findText.matchMode.label"] = "匹配方式",
         ["ocr.findText.matchMode.hint"] = "识别结果与搜索文字的比较方式。",
-        ["ocr.findText.expected.label"] = "还必须是这个写法",
+        ["ocr.findText.expected.label"] = "整段须匹配",
         ["ocr.findText.expected.hint"] = ExpectedHint,
         ["ocr.findText.resultVariable.label"] = "结果变量",
         ["ocr.findText.resultVariable.hint"] = "接收匹配中心点，未找到时为空；$变量名.x、.y、"
@@ -1925,19 +1927,19 @@ internal static class ActionStrings
         ["ocr.findText.orderBy.option.score"] = "分数最高",
         ["ocr.findText.orderBy.option.area"] = "面积最大",
         ["ocr.findText.orderBy.option.random"] = "随机",
-        ["ocr.findText.content.label"] = "内容",
+        ["ocr.findText.content.label"] = "读取内容",
         ["ocr.findText.content.hint"] = "与屏幕内容按全部文字比对还是按数字比对：按数字比对时，"
             + "含数字的片段只保留数字本身（去掉货币符号、千位分隔符及相邻文字），不含数字的"
             + "片段不参与比对，因此“查找 1234.50”不会误匹配旁边的文字。",
-        ["ocr.findText.preprocess.label"] = "清理画面",
+        ["ocr.findText.preprocess.label"] = "画面预处理",
         ["ocr.findText.preprocess.hint"] = "识别前的画面处理：灰度 / 黑白 / 放大两倍 / "
             + "放大并黑白。黑白的分界取整幅图的平均亮度；放大后读到的位置会按比例换算回"
             + "屏幕像素，因此找到的位置仍可直接点击。",
-        ["ocr.findText.colorFilter.label"] = "文字是这个颜色",
+        ["ocr.findText.colorFilter.label"] = "文字颜色",
         ["ocr.findText.colorFilter.hint"] = ColourFilterHint,
         ["ocr.findText.colorTolerance.label"] = "颜色容差 %",
         ["ocr.findText.colorTolerance.hint"] = ColourToleranceHint,
-        ["ocr.findText.fixText.label"] = "纠错",
+        ["ocr.findText.fixText.label"] = "纠错表",
         ["ocr.findText.fixText.hint"] = FixTextHint,
 
         ["ocr.clickText.name"] = "点击文字",
@@ -1945,7 +1947,7 @@ internal static class ActionStrings
         ["ocr.clickText.text.label"] = "要查找的文字",
         ["ocr.clickText.matchMode.label"] = "匹配方式",
         ["ocr.clickText.matchMode.hint"] = "识别结果与搜索文字的比较方式。",
-        ["ocr.clickText.expected.label"] = "还必须是这个写法",
+        ["ocr.clickText.expected.label"] = "整段须匹配",
         ["ocr.clickText.expected.hint"] = ExpectedHint,
         ["ocr.clickText.offsetX.label"] = "横向偏移",
         ["ocr.clickText.offsetX.hint"] = "在匹配中心基础上水平偏移的像素。",
@@ -1960,18 +1962,18 @@ internal static class ActionStrings
         ["ocr.clickText.orderBy.option.score"] = "分数最高",
         ["ocr.clickText.orderBy.option.area"] = "面积最大",
         ["ocr.clickText.orderBy.option.random"] = "随机",
-        ["ocr.clickText.content.label"] = "内容",
+        ["ocr.clickText.content.label"] = "读取内容",
         ["ocr.clickText.content.hint"] = "把屏幕按全部文字找，还是按数字找：按数字找时，含数字的"
             + "片段只留下数字本身（货币符号、千位分隔符和旁边的文字都去掉），一个数字也没有的"
             + "片段直接不要。",
-        ["ocr.clickText.preprocess.label"] = "清理画面",
+        ["ocr.clickText.preprocess.label"] = "画面预处理",
         ["ocr.clickText.preprocess.hint"] = "识别前的画面处理：灰度 / 黑白 / 放大两倍 / "
             + "放大并黑白。黑白的分界取整幅图的平均亮度。",
-        ["ocr.clickText.colorFilter.label"] = "文字是这个颜色",
+        ["ocr.clickText.colorFilter.label"] = "文字颜色",
         ["ocr.clickText.colorFilter.hint"] = ColourFilterHint,
         ["ocr.clickText.colorTolerance.label"] = "颜色容差 %",
         ["ocr.clickText.colorTolerance.hint"] = ColourToleranceHint,
-        ["ocr.clickText.fixText.label"] = "纠错",
+        ["ocr.clickText.fixText.label"] = "纠错表",
         ["ocr.clickText.fixText.hint"] = FixTextHint,
         ["ocr.clickText.button.label"] = "按键",
 
