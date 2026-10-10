@@ -4,6 +4,7 @@
         xmlns:models="using:WhaleGenie.Models"
         xmlns:conv="using:WhaleGenie.Converters"
         xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:views="using:WhaleGenie.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="800"
@@ -29,7 +30,7 @@
         <!-- One length of time in the step settings: the number plus the unit it is written in. -->
         <DataTemplate x:Key="DurationSetting" x:DataType="vm:DurationSettingViewModel">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                <NumericUpDown Value="{Binding Value}"
+                <views:NumberBox Value="{Binding Value}"
                                Minimum="{Binding Minimum}"
                                Maximum="{Binding Maximum}"
                                Increment="1" FormatString="0.###"
@@ -162,7 +163,7 @@
                 <!-- A number is dialled in with the spinner or written as an expression. -->
                 <Grid IsVisible="{Binding IsNumber}" ColumnDefinitions="*,Auto,Auto,Auto,Auto"
                       ColumnSpacing="6">
-                    <NumericUpDown IsVisible="{Binding IsNumberValue}"
+                    <views:NumberBox IsVisible="{Binding IsNumberValue}"
                                    Value="{Binding NumberValue}"
                                    Minimum="{Binding Minimum}"
                                    Maximum="{Binding Maximum}"
@@ -200,7 +201,7 @@
                                 ToolTip.Tip="{Binding [Add.JitterHint], Source={x:Static loc:Strings.Current}}">
                         <TextBlock Classes="Muted" VerticalAlignment="Center"
                                    Text="{Binding [Add.JitterSign], Source={x:Static loc:Strings.Current}}" />
-                        <NumericUpDown Name="JitterBox" Width="76" Increment="5" FormatString="0.##"
+                        <views:NumberBox Name="JitterBox" Width="76" Increment="5" FormatString="0.##"
                                        Minimum="0" Maximum="100" VerticalAlignment="Center"
                                        Value="{Binding JitterPercent}" />
                         <TextBlock Classes="Muted" VerticalAlignment="Center"
@@ -354,37 +355,38 @@
                     <ItemsControl ItemsSource="{Binding Regions}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:RegionRowViewModel">
-                                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto,Auto"
-                                      ColumnSpacing="6" Margin="0,0,0,4">
-                                    <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal"
-                                                Spacing="6" IsVisible="{Binding IsWritten}">
+                                <!-- A rectangle and the buttons that go with it wrap rather than run
+                                     off the side: four numbers with their labels are the widest thing
+                                     the page holds, and the window may be as narrow as 900. -->
+                                <WrapPanel Margin="0,0,0,6">
+                                    <StackPanel Orientation="Horizontal"
+                                                Spacing="6" Margin="0,0,12,0"
+                                                IsVisible="{Binding IsWritten}">
                                         <TextBlock Classes="Muted" VerticalAlignment="Center"
                                                    Text="{Binding [Add.RegionX], Source={x:Static loc:Strings.Current}}" />
-                                        <NumericUpDown Width="88" FormatString="0"
+                                        <views:NumberBox Width="88" FormatString="0"
                                                        Value="{Binding X}" />
                                         <TextBlock Classes="Muted" VerticalAlignment="Center"
                                                    Text="{Binding [Add.RegionY], Source={x:Static loc:Strings.Current}}" />
-                                        <NumericUpDown Width="88" FormatString="0"
+                                        <views:NumberBox Width="88" FormatString="0"
                                                        Value="{Binding Y}" />
                                         <TextBlock Classes="Muted" VerticalAlignment="Center"
                                                    Text="{Binding [Add.RegionWidth], Source={x:Static loc:Strings.Current}}" />
-                                        <NumericUpDown Width="88" FormatString="0"
+                                        <views:NumberBox Width="88" FormatString="0"
                                                        Value="{Binding Width}" />
                                         <TextBlock Classes="Muted" VerticalAlignment="Center"
                                                    Text="{Binding [Add.RegionHeight], Source={x:Static loc:Strings.Current}}" />
-                                        <NumericUpDown Width="88" FormatString="0"
+                                        <views:NumberBox Width="88" FormatString="0"
                                                        Value="{Binding Height}" />
                                     </StackPanel>
 
-                                    <TextBox Grid.Row="0" Grid.Column="0" Classes="ParamInput"
+                                    <TextBox Width="280" Classes="ParamInput" Margin="0,0,12,0"
                                              IsVisible="{Binding IsFromVariable}"
                                              Text="{Binding Named}"
                                              PlaceholderText="{Binding [Add.RegionVariablePlaceholder], Source={x:Static loc:Strings.Current}}"
                                              ToolTip.Tip="{Binding [Add.RegionVariableHint], Source={x:Static loc:Strings.Current}}" />
 
-                                    <StackPanel Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2"
-                                                Orientation="Horizontal" Spacing="6"
-                                                HorizontalAlignment="Right">
+                                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,12,0">
                                         <Button Classes="FlatButton" Height="33" Padding="11,0"
                                                 IsVisible="{Binding IsFromVariable}"
                                                 Content="{Binding [Add.RegionNumbers], Source={x:Static loc:Strings.Current}}"
@@ -402,12 +404,12 @@
                                                 Click="OnPickRegionRow" />
                                     </StackPanel>
 
-                                    <Button Grid.Row="1" Grid.Column="3" Classes="FlatButton"
-                                            Height="26" Padding="9,0" HorizontalAlignment="Right"
+                                    <Button Classes="FlatButton"
+                                            Height="26" Padding="9,0"
                                             Content="{Binding [Add.RegionRemove], Source={x:Static loc:Strings.Current}}"
                                             ToolTip.Tip="{Binding [Add.RegionRemoveHint], Source={x:Static loc:Strings.Current}}"
                                             Command="{Binding RemoveCommand}" />
-                                </Grid>
+                                </WrapPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -429,10 +431,12 @@
                     <ItemsControl ItemsSource="{Binding KeyRows}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:KeyRowViewModel">
-                                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,Auto,Auto,Auto"
-                                      ColumnSpacing="6" Margin="0,0,0,4">
-                                    <Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="*,Auto"
-                                          ColumnSpacing="6">
+                                <!-- The keys of one press, then its beat and the button that takes it
+                                     out. It wraps for the same reason a region does: a row that ran
+                                     off the side would put the numbers under the buttons. -->
+                                <WrapPanel Margin="0,0,0,6">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6"
+                                          Width="280" Margin="0,0,12,0">
                                         <TextBox Classes="ParamInput" Text="{Binding Keys}"
                                                  PlaceholderText="Ctrl+A"
                                                  ToolTip.Tip="{Binding [Add.KeyRunKeyHint], Source={x:Static loc:Strings.Current}}" />
@@ -442,34 +446,32 @@
                                                 Click="OnPickKeyRow" />
                                     </Grid>
 
-                                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal"
-                                                Spacing="5">
+                                    <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,12,0">
                                         <TextBlock Classes="Muted" VerticalAlignment="Center"
                                                    Text="{Binding [Add.KeyRunHold], Source={x:Static loc:Strings.Current}}" />
-                                        <NumericUpDown Width="92" FormatString="0"
+                                        <views:NumberBox Width="84" FormatString="0"
                                                        Value="{Binding HoldMs}"
                                                        ToolTip.Tip="{Binding [Add.KeyRunHoldHint], Source={x:Static loc:Strings.Current}}" />
                                     </StackPanel>
 
-                                    <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal"
-                                                Spacing="5">
+                                    <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,12,0">
                                         <TextBlock Classes="Muted" VerticalAlignment="Center"
                                                    Text="{Binding [Add.KeyRunGap], Source={x:Static loc:Strings.Current}}" />
-                                        <NumericUpDown Width="92" FormatString="0"
+                                        <views:NumberBox Width="84" FormatString="0"
                                                        Value="{Binding GapMs}"
                                                        ToolTip.Tip="{Binding [Add.KeyRunGapHint], Source={x:Static loc:Strings.Current}}" />
                                     </StackPanel>
 
-                                    <TextBlock Grid.Row="0" Grid.Column="3" Classes="Muted"
+                                    <TextBlock Classes="Muted" Margin="0,0,12,0"
                                                VerticalAlignment="Center"
                                                Text="{Binding [Add.KeyRunMilliseconds], Source={x:Static loc:Strings.Current}}" />
 
-                                    <Button Grid.Row="0" Grid.Column="4" Classes="FlatButton"
+                                    <Button Classes="FlatButton"
                                             Height="26" Padding="9,0" VerticalAlignment="Center"
                                             Content="{Binding [Add.KeyRunRemove], Source={x:Static loc:Strings.Current}}"
                                             ToolTip.Tip="{Binding [Add.KeyRunRemoveHint], Source={x:Static loc:Strings.Current}}"
                                             Command="{Binding RemoveCommand}" />
-                                </Grid>
+                                </WrapPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -1128,7 +1130,7 @@
                                 <StackPanel Grid.Column="1">
                                     <TextBlock Classes="FieldLabel"
                                                Text="{Binding [Add.StepRetry], Source={x:Static loc:Strings.Current}}" />
-                                    <NumericUpDown Value="{Binding MetaRetryCount}" Minimum="0" Maximum="20"
+                                    <views:NumberBox Value="{Binding MetaRetryCount}" Minimum="0" Maximum="20"
                                                    Increment="1" FormatString="0"
                                                    Width="150" HorizontalAlignment="Left" />
                                 </StackPanel>
