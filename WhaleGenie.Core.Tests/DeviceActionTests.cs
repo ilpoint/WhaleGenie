@@ -917,18 +917,48 @@ public class DeviceActionTests
         var (_, _, _) = await RunAsync(
         [
             Step("vision.findImage", Param("image", "ok.png"), Param("confidence", "88"),
-                Param("algorithm", "feature"), Param("method", "difference"),
-                Param("ignoreColor", "#00FF00"), Param("minFeatures", "12"),
+                Param("algorithm", "feature"), Param("ignoreColor", "#00FF00"),
+                Param("minFeatures", "12"),
                 Param("resultVariable", "where")),
         ], devices);
 
         var query = Assert.Single(devices.Queries);
         Assert.Equal(MatchAlgorithm.Feature, query.Algorithm);
-        Assert.Equal(MatchMethod.Difference, query.Method);
         Assert.Equal(88d, query.ConfidencePercent);
         Assert.Equal(12, query.MinFeatures);
         Assert.Equal(new PixelColor(0x00, 0xFF, 0x00), query.Skip);
         Assert.Equal(1, query.Limit);
+    }
+
+    /// <summary>
+    /// One picker answers both "which way" and "comparing what", so each of its values has to arrive
+    /// as itself: a step that says "pixel for pixel" is not a step that says "normalised". A step
+    /// that says nothing is the usual one.
+    /// </summary>
+    [Theory]
+    [InlineData("normed", MatchAlgorithm.Normed)]
+    [InlineData("correlated", MatchAlgorithm.Correlated)]
+    [InlineData("difference", MatchAlgorithm.Difference)]
+    [InlineData("feature", MatchAlgorithm.Feature)]
+    [InlineData("", MatchAlgorithm.Normed)]
+    public async Task The_recognition_algorithm_reaches_the_device(string written,
+        MatchAlgorithm expected)
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Match = new ImageMatch(0.97, new ScreenPoint(1, 2), new ScreenSize(3, 3)),
+        };
+
+        var (_, _, _) = await RunAsync(
+        [
+            written.Length == 0
+                ? Step("vision.findImage", Param("image", "ok.png"),
+                    Param("resultVariable", "where"))
+                : Step("vision.findImage", Param("image", "ok.png"),
+                    Param("algorithm", written), Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.Equal(expected, Assert.Single(devices.Queries).Algorithm);
     }
 
     /// <summary>Left alone, a search is done the way every macro did it before the fields existed.</summary>
@@ -945,8 +975,7 @@ public class DeviceActionTests
             devices);
 
         var query = Assert.Single(devices.Queries);
-        Assert.Equal(MatchAlgorithm.Template, query.Algorithm);
-        Assert.Equal(MatchMethod.Normed, query.Method);
+        Assert.Equal(MatchAlgorithm.Normed, query.Algorithm);
         Assert.Equal(90d, query.ConfidencePercent);
         Assert.Equal(6, query.MinFeatures);
         Assert.Null(query.Skip);
@@ -1307,7 +1336,7 @@ public class DeviceActionTests
         Assert.Equal("<image 10x10>", store.Local.Values["shot"].AsText());
         Assert.Equal("8,9", store.Local.Values["where"].AsText());
         Assert.Contains("capture 0 0 10 10", devices.Calls);
-        Assert.Contains("findAll 10x10 90 Template/Normed", devices.Calls);
+        Assert.Contains("findAll 10x10 90 Normed", devices.Calls);
     }
 
     [Fact]
@@ -4426,7 +4455,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Contains("findAll 10x10 90 Template/Normed", devices.Calls);
+        Assert.Contains("findAll 10x10 90 Normed", devices.Calls);
     }
 
     [Fact]
@@ -5422,7 +5451,7 @@ internal sealed class FakeDeviceLayer
     {
         Searches++;
         Queries.Add(query);
-        Note($"findAll {needle.Width}x{needle.Height} {query.ConfidencePercent:0} {query.Algorithm}/{query.Method}");
+        Note($"findAll {needle.Width}x{needle.Height} {query.ConfidencePercent:0} {query.Algorithm}");
 
         IEnumerable<ImageMatch> hits = Matches.Count > 0 ? Matches : Match is null ? [] : [Match];
         return Searches >= MatchAfter ? [.. hits.Take(query.Limit)] : [];

@@ -85,15 +85,15 @@ public sealed class OpenCvVisionDevice : IVisionDevice
             }
 
             using var result = new Mat();
-            var exact = query.Method is MatchMethod.Difference;
+            var exact = query.Algorithm is MatchAlgorithm.Difference;
             if (query.Skip is { } skip)
             {
                 using var mask = Left(needle, skip);
-                Cv2.MatchTemplate(hay, pin, result, Mode(query.Method), mask);
+                Cv2.MatchTemplate(hay, pin, result, Mode(query.Algorithm), mask);
             }
             else
             {
-                Cv2.MatchTemplate(hay, pin, result, Mode(query.Method));
+                Cv2.MatchTemplate(hay, pin, result, Mode(query.Algorithm));
             }
 
             var size = new ScreenSize(pin.Width, pin.Height);
@@ -136,9 +136,13 @@ public sealed class OpenCvVisionDevice : IVisionDevice
         using var wantedParts = new Mat();
         using var foundParts = new Mat();
 
-        // An empty mask is how every part of the picture is taken into account.
+        // The part of the reference picture a step asked to leave out is left out here too: a
+        // number that keeps changing would otherwise be paired up on the strength of whatever it
+        // happens to say this time, which is how a search finds things that are not there. An empty
+        // mask is how every part of the picture is taken into account.
+        using var mask = query.Skip is { } leaveOut ? Left(needle, leaveOut) : new Mat();
         using var everywhere = new Mat();
-        finder.DetectAndCompute(pin, everywhere, out var wanted, wantedParts);
+        finder.DetectAndCompute(pin, mask, out var wanted, wantedParts);
         finder.DetectAndCompute(hay, everywhere, out var spots, foundParts);
 
         if (wanted.Length < query.MinFeatures || spots.Length < query.MinFeatures
@@ -186,10 +190,16 @@ public sealed class OpenCvVisionDevice : IVisionDevice
             Math.Max(0, haystack.Height - needle.Height));
 
         // How much of the reference picture's own detail was found again, as a fraction: a
-        // measurement of how much of it was recognised rather than a percentage of certainty.
-        found.Add(new ImageMatch(
-            (double)good.Count / wanted.Length,
-            new ScreenPoint(left, top),
+        // measurement of how much of it was recognised rather than a percentage of certainty. It
+        // is on the same scale as a pixel comparison's score, so one confidence number means the
+        // same thing whichever way the picture is looked for.
+        var score = (double)good.Count / wanted.Length;
+        if (score * 100 < query.ConfidencePercent)
+        {
+            return found;
+        }
+
+        found.Add(new ImageMatch(score, new ScreenPoint(left, top),
             new ScreenSize(needle.Width, needle.Height)));
         return found;
     }
@@ -198,10 +208,10 @@ public sealed class OpenCvVisionDevice : IVisionDevice
     private static double Middle(double[] sorted) => sorted[sorted.Length / 2];
 
     /// <summary>The OpenCV way of comparing two pictures that the step asked for.</summary>
-    private static TemplateMatchModes Mode(MatchMethod method) => method switch
+    private static TemplateMatchModes Mode(MatchAlgorithm algorithm) => algorithm switch
     {
-        MatchMethod.Correlated => TemplateMatchModes.CCorrNormed,
-        MatchMethod.Difference => TemplateMatchModes.SqDiffNormed,
+        MatchAlgorithm.Correlated => TemplateMatchModes.CCorrNormed,
+        MatchAlgorithm.Difference => TemplateMatchModes.SqDiffNormed,
         _ => TemplateMatchModes.CCoeffNormed,
     };
 

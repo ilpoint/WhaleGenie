@@ -3303,9 +3303,7 @@ public sealed class MacroRunner
         Sorted(hits, step);
         SawSearch(step, LookKind.Template, areas, [.. hits.Select(hit => (hit, (string?)null))],
             WentWith(hits, step), step.Text("image"), needle,
-            // Features are counted rather than scored, so there is no number a score is compared
-            // against to show beside them.
-            query.Algorithm is MatchAlgorithm.Feature ? null : query.ConfidencePercent / 100);
+            query.ConfidencePercent / 100);
         return hits;
     }
 
@@ -3326,26 +3324,23 @@ public sealed class MacroRunner
 
         return new VisionQuery(
             AlgorithmOf(step.Text("algorithm")),
-            MethodOf(step.Text("method")),
             confidence,
             features > 0 ? features : 6,
             skip.Length == 0 ? null : PixelColor.Parse(skip),
             Wanted(step));
     }
 
-    /// <summary>The way a step asked for a picture to be looked for, as written in its field.</summary>
-    private static MatchAlgorithm AlgorithmOf(string written) => written.Trim().ToLowerInvariant() switch
+    /// <summary>
+    /// How a step asked for a picture to be looked for, as written in its field. One field answers
+    /// both "which way" and "comparing what", because those were never two questions.
+    /// </summary>
+    private static MatchAlgorithm AlgorithmOf(string written) => written.Trim().ToLowerInvariant()
+        switch
     {
+        "correlated" => MatchAlgorithm.Correlated,
+        "difference" => MatchAlgorithm.Difference,
         "feature" => MatchAlgorithm.Feature,
-        _ => MatchAlgorithm.Template,
-    };
-
-    /// <summary>How a step asked for two pictures to be compared, as written in its field.</summary>
-    private static MatchMethod MethodOf(string written) => written.Trim().ToLowerInvariant() switch
-    {
-        "correlated" => MatchMethod.Correlated,
-        "difference" => MatchMethod.Difference,
-        _ => MatchMethod.Normed,
+        _ => MatchAlgorithm.Normed,
     };
 
     /// <summary>What order a step asked its hits to be counted in, as written in its field.</summary>

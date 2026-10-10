@@ -79,16 +79,12 @@ internal static class ActionStrings
     /// <summary>The hint the "which hit" fields share.</summary>
     private const string MatchIndexHint = "按下面的顺序数第几个命中，1 是第一个。";
 
-    /// <summary>The hint every "how to look for the picture" picker shares.</summary>
+    /// <summary>The hint every "which way to recognise the picture" picker shares.</summary>
     private const string MatchAlgorithmHint =
-        "参考图怎么找。像素比对把两张图逐像素比一遍：快，位置也准。特征比对把两边明显的"
-        + "特征点配对：慢一些，但图被放大缩小、或者有小改动时也认得出 —— 画面没按参考图的"
-        + "分辨率跑的游戏用这个。";
-
-    /// <summary>The hint every "how the two pictures are compared" picker shares.</summary>
-    private const string MatchMethodHint =
-        "两张图怎么比。归一化先把明暗去掉，所以整块区域变亮变暗也认得出，多数时候用它；"
-        + "相关不先去明暗，参考图很小时更稳；逐像素要求一模一样，纯色图标、对话框截图用这个。";
+        "参考图用哪种方式识别。归一化相关先去明暗再比对，画面整体变亮变暗也认得出，默认用它；"
+        + "相关不先去明暗，参考图很小时更稳；逐像素要求两处一模一样，纯色图标或对话框截图用它；"
+        + "特征比对把两边明显的特征点配对，图被放大缩小或有小改动时也认得出，代价是慢一些，"
+        + "且只返回一个命中。";
 
     /// <summary>The hint the "leave this colour out" fields share.</summary>
     private const string IgnoreColourHint =
@@ -104,6 +100,15 @@ internal static class ActionStrings
         "命中按什么顺序数，也就是“第几个命中”数的是哪一个。阅读顺序是先往下再往右，人平时数的"
         + "顺序；分数最高是哪里最像就用哪里；面积最大是先用最大的那个框，按特征找图或读文字时"
         + "用它挑整块的而不是一角；随机打乱，用在不能每次都挑同一个的步骤上。";
+
+    /// <summary>
+    /// The same for the colour finders, whose hits are all one pixel: they are not offered a
+    /// "biggest first", so their hint must not talk about one.
+    /// </summary>
+    private const string MatchOrderColourHint =
+        "命中按什么顺序数，也就是“第几个命中”数的是哪一个。阅读顺序是先往下再往右，人平时数的"
+        + "顺序；分数最高是先用离目标颜色最近的那个像素；随机打乱，用在不能每次都挑同一个的"
+        + "步骤上。";
 
     /// <summary>The hint the three reading actions share for the shape a reading has to have.</summary>
     private const string ExpectedHint =
@@ -1624,15 +1629,12 @@ internal static class ActionStrings
 
         // ------------------------------------- 找图 / 找色做厚：多命中、多区域、多点比色
         // 识别算法：找图那三个动作共用一组文案。
-        ["vision.findImage.algorithm.label"] = "找图方式",
+        ["vision.findImage.algorithm.label"] = "识别算法",
         ["vision.findImage.algorithm.hint"] = MatchAlgorithmHint,
-        ["vision.findImage.algorithm.option.template"] = "像素比对",
+        ["vision.findImage.algorithm.option.normed"] = "归一化相关",
+        ["vision.findImage.algorithm.option.correlated"] = "相关",
+        ["vision.findImage.algorithm.option.difference"] = "逐像素",
         ["vision.findImage.algorithm.option.feature"] = "特征比对",
-        ["vision.findImage.method.label"] = "比对方式",
-        ["vision.findImage.method.hint"] = MatchMethodHint,
-        ["vision.findImage.method.option.normed"] = "归一化相关",
-        ["vision.findImage.method.option.correlated"] = "相关",
-        ["vision.findImage.method.option.difference"] = "逐像素",
         ["vision.findImage.ignoreColor.label"] = "忽略这个颜色",
         ["vision.findImage.ignoreColor.hint"] = IgnoreColourHint,
         ["vision.findImage.minFeatures.label"] = "最少特征对数",
@@ -1648,15 +1650,12 @@ internal static class ActionStrings
         ["vision.findImage.allMatches.label"] = "记录全部命中",
         ["vision.findImage.allMatches.hint"] = AllMatchesHint,
 
-        ["vision.waitImage.algorithm.label"] = "找图方式",
+        ["vision.waitImage.algorithm.label"] = "识别算法",
         ["vision.waitImage.algorithm.hint"] = MatchAlgorithmHint,
-        ["vision.waitImage.algorithm.option.template"] = "像素比对",
+        ["vision.waitImage.algorithm.option.normed"] = "归一化相关",
+        ["vision.waitImage.algorithm.option.correlated"] = "相关",
+        ["vision.waitImage.algorithm.option.difference"] = "逐像素",
         ["vision.waitImage.algorithm.option.feature"] = "特征比对",
-        ["vision.waitImage.method.label"] = "比对方式",
-        ["vision.waitImage.method.hint"] = MatchMethodHint,
-        ["vision.waitImage.method.option.normed"] = "归一化相关",
-        ["vision.waitImage.method.option.correlated"] = "相关",
-        ["vision.waitImage.method.option.difference"] = "逐像素",
         ["vision.waitImage.ignoreColor.label"] = "忽略这个颜色",
         ["vision.waitImage.ignoreColor.hint"] = IgnoreColourHint,
         ["vision.waitImage.minFeatures.label"] = "最少特征对数",
@@ -1681,15 +1680,12 @@ internal static class ActionStrings
 
         ["vision.clickImage.region.label"] = "搜索区域",
         ["vision.clickImage.region.hint"] = RegionHintText,
-        ["vision.clickImage.algorithm.label"] = "找图方式",
+        ["vision.clickImage.algorithm.label"] = "识别算法",
         ["vision.clickImage.algorithm.hint"] = MatchAlgorithmHint,
-        ["vision.clickImage.algorithm.option.template"] = "像素比对",
+        ["vision.clickImage.algorithm.option.normed"] = "归一化相关",
+        ["vision.clickImage.algorithm.option.correlated"] = "相关",
+        ["vision.clickImage.algorithm.option.difference"] = "逐像素",
         ["vision.clickImage.algorithm.option.feature"] = "特征比对",
-        ["vision.clickImage.method.label"] = "比对方式",
-        ["vision.clickImage.method.hint"] = MatchMethodHint,
-        ["vision.clickImage.method.option.normed"] = "归一化相关",
-        ["vision.clickImage.method.option.correlated"] = "相关",
-        ["vision.clickImage.method.option.difference"] = "逐像素",
         ["vision.clickImage.ignoreColor.label"] = "忽略这个颜色",
         ["vision.clickImage.ignoreColor.hint"] = IgnoreColourHint,
         ["vision.clickImage.minFeatures.label"] = "最少特征对数",
@@ -1719,10 +1715,9 @@ internal static class ActionStrings
         ["vision.findColor.matchIndex.label"] = "第几个命中",
         ["vision.findColor.matchIndex.hint"] = MatchIndexHint,
         ["vision.findColor.orderBy.label"] = "命中排序",
-        ["vision.findColor.orderBy.hint"] = MatchOrderHint,
+        ["vision.findColor.orderBy.hint"] = MatchOrderColourHint,
         ["vision.findColor.orderBy.option.reading"] = "阅读顺序",
         ["vision.findColor.orderBy.option.score"] = "分数最高",
-        ["vision.findColor.orderBy.option.area"] = "面积最大",
         ["vision.findColor.orderBy.option.random"] = "随机",
         ["vision.findColor.allMatches.label"] = "记录全部命中",
         ["vision.findColor.allMatches.hint"] = AllMatchesHint,

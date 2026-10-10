@@ -1947,7 +1947,6 @@ public static class ActionCatalog
                    "Reference image: a file path, or the variable a Capture step saved ($shot)."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 MatchAlgorithm(),
-                MatchMethod(),
                 SkipColour(),
                 MinFeatures(),
                 MatchOrder(),
@@ -1974,7 +1973,6 @@ public static class ActionCatalog
                     "Reference image to wait for: a file path, or the variable a Capture saved."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 MatchAlgorithm(),
-                MatchMethod(),
                 SkipColour(),
                 MinFeatures(),
                 MatchOrder(),
@@ -1999,7 +1997,6 @@ public static class ActionCatalog
                 Image("image", "Image file", @"C:\images\ok.png"),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 MatchAlgorithm(),
-                MatchMethod(),
                 SkipColour(),
                 MinFeatures(),
                 MatchOrder(),
@@ -2058,7 +2055,7 @@ public static class ActionCatalog
                 Number("matchIndex", "Match number", 1,
                     "Which hit to use, counted from the top left: down the screen first, then "
                     + "across. 1 is the first one.", min: 1, max: 200),
-                MatchOrder(),
+                MatchOrder(bySize: false),
                 AllMatches(),
                 Region(),
                 ..Anchor(),
@@ -3248,26 +3245,20 @@ public static class ActionCatalog
             min: 1, max: 200, advanced: true);
 
     /// <summary>
-    /// How a reference picture is looked for, shared by the picture finders. Matching is the quick
-    /// and exact one; features are for a picture that is drawn at another size or slightly changed.
+    /// How a reference picture is looked for, shared by the picture finders. It is one list because
+    /// the three ways of comparing two pictures pixel for pixel and the one way of pairing up their
+    /// features answer the same question: a step that pairs up features never compares pixels, so
+    /// two pickers would leave one of them doing nothing.
     /// </summary>
     private static ActionParameter MatchAlgorithm()
-        => Choice("algorithm", "How to look", ["template", "feature"], "template",
-            "How the reference picture is looked for. Matching compares the two pictures pixel for "
-            + "pixel: quick, and exact about where it was found. Features pairs up what stands out "
-            + "in both: slower, and it still finds the thing when it is drawn at another size or "
-            + "has something small changed about it — the case for a game that does not run at the "
-            + "size the picture was taken at.",
-            labels: ["Matching", "Features"], advanced: true);
-
-    /// <summary>How the two pictures are compared, shared by the picture finders.</summary>
-    private static ActionParameter MatchMethod()
-        => Choice("method", "Comparing", ["normed", "correlated", "difference"], "normed",
-            "How the two pictures are compared. Normalised takes the brightness out first, so an "
-            + "area that has gone brighter or darker still matches. Correlated does not, which is "
-            + "steadier for a very small picture. Difference wants a pixel for pixel copy, which is "
-            + "what a flat coloured icon or a screenshot of a dialog wants.",
-            labels: ["Normalised", "Correlated", "Pixel for pixel"], advanced: true);
+        => Choice("algorithm", "Recognition algorithm",
+            ["normed", "correlated", "difference", "feature"], "normed",
+            "How the reference picture is looked for. Normalised takes the brightness out first, so "
+            + "an area that has gone brighter or darker still matches. Correlated does not, which "
+            + "is steadier for a very small picture. Pixel for pixel wants a copy, which is what a "
+            + "flat icon or a screenshot of a dialog is. Features pairs up what stands out in both "
+            + "pictures: slower, and it still finds the thing when it is drawn at another size.",
+            labels: ["Normalised", "Correlated", "Pixel for pixel", "Features"], advanced: true);
 
     /// <summary>
     /// A colour of the reference picture that takes no part in the comparing, shared by the picture
@@ -3289,17 +3280,25 @@ public static class ActionCatalog
 
     /// <summary>
     /// What order the hits are counted in, shared by everything that finds more than one: a colour
-    /// in an area, a picture on the screen, a line of writing.
+    /// in an area, a picture on the screen, a line of writing. Counting by size is offered only to
+    /// the finders whose hits can be different sizes — a colour hit is one pixel, so every hit a
+    /// colour search reports is the same size and the choice could not change the answer.
     /// </summary>
-    private static ActionParameter MatchOrder()
-        => Choice("orderBy", "Count them in", ["reading", "score", "area", "random"], "reading",
+    private static ActionParameter MatchOrder(bool bySize = true) => bySize
+        ? Choice("orderBy", "Count them in", ["reading", "score", "area", "random"], "reading",
             "What order the hits are counted in, which is what the match number counts. Reading is "
             + "down the screen first and then across, the way a person counts them. Score takes the "
             + "surest one wherever it is on the screen. Size takes the biggest box first, which is "
             + "how a step asks for the whole banner rather than a piece of it when looking by "
             + "features or reading writing. Random shuffles them, for a step that must not always "
             + "take the same one of several.",
-            labels: ["Reading order", "Surest first", "Biggest first", "Shuffled"], advanced: true);
+            labels: ["Reading order", "Surest first", "Biggest first", "Shuffled"], advanced: true)
+        : Choice("orderBy", "Count them in", ["reading", "score", "random"], "reading",
+            "What order the hits are counted in, which is what the match number counts. Reading is "
+            + "down the screen first and then across, the way a person counts them. Score takes the "
+            + "surest — the pixel closest to the colour — wherever it is on the screen. Random "
+            + "shuffles them, for a step that must not always take the same one of several.",
+            labels: ["Reading order", "Surest first", "Shuffled"], advanced: true);
 
     /// <summary>
     /// Whether a step records the whole set of hits as well as the one it picked, shared by the

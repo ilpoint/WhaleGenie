@@ -127,21 +127,13 @@ public sealed record ImageMatch(double Score, ScreenPoint Location, ScreenSize S
     public ScreenPoint Center => new(Location.X + (Size.Width / 2), Location.Y + (Size.Height / 2));
 }
 
-/// <summary>How a reference picture is looked for.</summary>
+/// <summary>
+/// How a reference picture is looked for. The three ways of comparing two pictures pixel for pixel
+/// and the one way of pairing up their features are one list rather than two settings, because
+/// they answer one question — and because a step that pairs up features has no use for which way
+/// pixels are compared, so offering both would leave one of them doing nothing.
+/// </summary>
 public enum MatchAlgorithm
-{
-    /// <summary>Comparing the pictures pixel for pixel: quick, and exact about where.</summary>
-    Template,
-
-    /// <summary>
-    /// Pairing up the features found in both pictures: slower, and it still finds the thing when
-    /// it is drawn at another size or has something small changed about it.
-    /// </summary>
-    Feature,
-}
-
-/// <summary>How two pictures are compared when one is looked for inside another.</summary>
-public enum MatchMethod
 {
     /// <summary>
     /// Normalised correlation: the area may come out brighter or darker overall and it still
@@ -160,6 +152,12 @@ public enum MatchMethod
     /// copy. A flat coloured icon or a screenshot of a dialog is the case for it.
     /// </summary>
     Difference,
+
+    /// <summary>
+    /// Pairing up the features found in both pictures: slower, and it still finds the thing when
+    /// it is drawn at another size or has something small changed about it.
+    /// </summary>
+    Feature,
 }
 
 /// <summary>What order the hits are handed back in, which is what "the third one" means.</summary>
@@ -186,8 +184,7 @@ public enum MatchOrder
 
 /// <summary>One search asked for: how it is done, how sure it has to be, and what to leave out.</summary>
 public sealed record VisionQuery(
-    MatchAlgorithm Algorithm = MatchAlgorithm.Template,
-    MatchMethod Method = MatchMethod.Normed,
+    MatchAlgorithm Algorithm = MatchAlgorithm.Normed,
     double ConfidencePercent = 90,
     int MinFeatures = 6,
     PixelColor? Skip = null,

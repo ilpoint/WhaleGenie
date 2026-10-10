@@ -1199,6 +1199,34 @@ public class ActionDialogTests
         });
     }
 
+    /// <summary>
+    /// One picker answers both "which way" and "comparing what". Offering two lists left a step
+    /// able to say "pair up the features, comparing pixel for pixel", which is a sentence with no
+    /// meaning — and whichever half lost was silently doing nothing.
+    /// </summary>
+    [Fact]
+    public void Recognising_a_picture_is_one_choice_of_four()
+    {
+        Ui.Run(() =>
+        {
+            foreach (var key in new[] { "vision.findImage", "vision.waitImage", "vision.clickImage" })
+            {
+                var viewModel = Open(key);
+                var folded = viewModel.AdvancedRows.SelectMany(Names).ToList();
+
+                Assert.Contains("algorithm", folded);
+                Assert.DoesNotContain("method", folded);
+
+                var algorithm = viewModel.Parameters
+                    .First(parameter => parameter.Definition.Name == "algorithm");
+
+                Assert.Equal(["normed", "correlated", "difference", "feature"],
+                    algorithm.Definition.Options);
+                Assert.Equal(4, algorithm.Definition.OptionLabels.Count);
+            }
+        });
+    }
+
     [Fact]
     public void A_file_step_reads_in_the_order_the_job_is_done_in()
     {
