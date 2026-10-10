@@ -104,6 +104,28 @@ internal static class ActionStrings
         "命中按什么顺序数，也就是“第几个命中”数的是哪一个。阅读顺序是先往下再往右，人平时数的"
         + "顺序；分数最高是哪里最像就用哪里；随机打乱，用在不能每次都挑同一个的步骤上。";
 
+    /// <summary>The hint the three reading actions share for the shape a reading has to have.</summary>
+    private const string ExpectedHint =
+        "可选。除了要找的文字之外，整段读到的内容还要符合这个写法 —— 满屏都是同一个词的时候，"
+        + "靠它挑出真正要的那一行：等级、数量、比分。“HP 120/300”用 ^HP \\d+/\\d+$ 找得到，"
+        + "“HP 已满”不会误中。写法和“匹配方式”里的正则一样。";
+
+    /// <summary>The hint the three reading actions share for their corrections list.</summary>
+    private const string FixTextHint =
+        "可选，一行一条，写成“模型读到的 = 它其实是”。模型老是认错某种字体是已知的毛病，"
+        + "把它写在这里就是让宏继续能用的办法：l00 = 100、O = 0。识别结果会先按这里改好，"
+        + "再拿去比对。";
+
+    /// <summary>The hint the three reading actions share for the colour the writing is in.</summary>
+    private const string ColourFilterHint =
+        "可选。带描边、带阴影、压在画面上的文字很难读 —— 因为模型拿到的是整块画面。"
+        + "填上文字本身的颜色，不是这个颜色的东西（描边、阴影、背景）在识别前就被丢掉。"
+        + "留空表示画面原样送进去。";
+
+    /// <summary>The hint the three reading actions share for how far off that colour may be.</summary>
+    private const string ColourToleranceHint =
+        "像素距离文字颜色多远还算文字。文字带渐变或有抗锯齿边缘时把它调大。";
+
     /// <summary>The hint the "record every match" switches share.</summary>
     private const string AllMatchesHint =
         "勾上以后把命中的数量和位置都记下来：$变量名.count 是数量，$变量名.list 是每次命中的 “x,y”，"
@@ -1835,6 +1857,12 @@ internal static class ActionStrings
             + "再拉开明暗对比（分界值取整幅图的平均亮度，因此深色与浅色主题均可使用）；"
             + "放大两倍用于较小的文字；最后一项同时执行前两项。"
             + "文字清晰且大小合适时无需处理，只会略增加耗时。",
+        ["ocr.recognize.colorFilter.label"] = "文字是这个颜色",
+        ["ocr.recognize.colorFilter.hint"] = ColourFilterHint,
+        ["ocr.recognize.colorTolerance.label"] = "颜色容差 %",
+        ["ocr.recognize.colorTolerance.hint"] = ColourToleranceHint,
+        ["ocr.recognize.fixText.label"] = "纠错",
+        ["ocr.recognize.fixText.hint"] = FixTextHint,
         ["ocr.recognize.resultVariable.label"] = "结果变量",
         ["ocr.recognize.resultVariable.hint"] = "接收识别结果的变量，可沿用已有变量名或新建一个。",
 
@@ -1846,6 +1874,8 @@ internal static class ActionStrings
         ["ocr.findText.region.hint"] = RegionHintText,
         ["ocr.findText.matchMode.label"] = "匹配方式",
         ["ocr.findText.matchMode.hint"] = "识别结果与搜索文字的比较方式。",
+        ["ocr.findText.expected.label"] = "还必须是这个写法",
+        ["ocr.findText.expected.hint"] = ExpectedHint,
         ["ocr.findText.resultVariable.label"] = "结果变量",
         ["ocr.findText.resultVariable.hint"] = "接收匹配中心点，未找到时为空；$变量名.x、.y、"
             + ".text、.score 是各个部分。score 是识别模型自己的打分，不是百分比，越大越可信。",
@@ -1867,12 +1897,20 @@ internal static class ActionStrings
         ["ocr.findText.preprocess.hint"] = "识别前的画面处理：灰度 / 黑白 / 放大两倍 / "
             + "放大并黑白。黑白的分界取整幅图的平均亮度；放大后读到的位置会按比例换算回"
             + "屏幕像素，因此找到的位置仍可直接点击。",
+        ["ocr.findText.colorFilter.label"] = "文字是这个颜色",
+        ["ocr.findText.colorFilter.hint"] = ColourFilterHint,
+        ["ocr.findText.colorTolerance.label"] = "颜色容差 %",
+        ["ocr.findText.colorTolerance.hint"] = ColourToleranceHint,
+        ["ocr.findText.fixText.label"] = "纠错",
+        ["ocr.findText.fixText.hint"] = FixTextHint,
 
         ["ocr.clickText.name"] = "点击文字",
         ["ocr.clickText.desc"] = "在屏幕上找到文字并点击它。",
         ["ocr.clickText.text.label"] = "要查找的文字",
         ["ocr.clickText.matchMode.label"] = "匹配方式",
         ["ocr.clickText.matchMode.hint"] = "识别结果与搜索文字的比较方式。",
+        ["ocr.clickText.expected.label"] = "还必须是这个写法",
+        ["ocr.clickText.expected.hint"] = ExpectedHint,
         ["ocr.clickText.offsetX.label"] = "横向偏移",
         ["ocr.clickText.offsetX.hint"] = "在匹配中心基础上水平偏移的像素。",
         ["ocr.clickText.offsetY.label"] = "纵向偏移",
@@ -1892,6 +1930,12 @@ internal static class ActionStrings
         ["ocr.clickText.preprocess.label"] = "清理画面",
         ["ocr.clickText.preprocess.hint"] = "识别前的画面处理：灰度 / 黑白 / 放大两倍 / "
             + "放大并黑白。黑白的分界取整幅图的平均亮度。",
+        ["ocr.clickText.colorFilter.label"] = "文字是这个颜色",
+        ["ocr.clickText.colorFilter.hint"] = ColourFilterHint,
+        ["ocr.clickText.colorTolerance.label"] = "颜色容差 %",
+        ["ocr.clickText.colorTolerance.hint"] = ColourToleranceHint,
+        ["ocr.clickText.fixText.label"] = "纠错",
+        ["ocr.clickText.fixText.hint"] = FixTextHint,
         ["ocr.clickText.button.label"] = "按键",
 
         // ---------------------------------------------------------------------- uia

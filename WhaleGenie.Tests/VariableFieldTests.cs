@@ -130,6 +130,10 @@ public class VariableFieldTests
             "file.saveVariables.names", "system.environment.name", "script.run.script"];
         string[] multiline = ["control.runMacro.arguments", "command.run.standardInput"];
 
+        // The shape a reading has to fit is a pattern rather than a value: the dollar signs its hint
+        // uses are the ends of a regular expression, not the start of a variable name.
+        string[] aPattern = ["ocr.findText.expected", "ocr.clickText.expected"];
+
         var gaps = Ui.Run(() => ActionCatalog.Definitions
             .SelectMany(definition => definition.Parameters.Select(parameter => (definition.Key, parameter)))
             .Where(row => row.parameter.Kind
@@ -138,7 +142,8 @@ public class VariableFieldTests
                 || row.parameter.Hint.Contains('$'))
             .Where(row => !row.parameter.AcceptsVariables && !row.parameter.AcceptsFormula)
             .Select(row => $"{row.Key}.{row.parameter.Name}")
-            .Where(key => !notAValue.Contains(key) && !multiline.Contains(key))
+            .Where(key => !notAValue.Contains(key) && !multiline.Contains(key)
+                && !aPattern.Contains(key))
             .Order()
             .ToList());
 

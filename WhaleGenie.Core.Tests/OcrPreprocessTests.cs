@@ -96,6 +96,37 @@ public class OcrPreprocessTests
         Assert.Equal(ImageFrame.Empty, OcrPreprocess.Greyscale(ImageFrame.Empty));
         Assert.Equal(ImageFrame.Empty, OcrPreprocess.Binarize(ImageFrame.Empty));
         Assert.Equal(ImageFrame.Empty, OcrPreprocess.Upscale(ImageFrame.Empty, 2));
+        Assert.Equal(ImageFrame.Empty,
+            OcrPreprocess.ByColour(ImageFrame.Empty, new PixelColor(255, 255, 255), 10));
+    }
+
+    /// <summary>
+    /// Writing drawn over a picture is where the reading model is handed too much; keeping only the
+    /// colour the writing is in is what hands it the writing. What is kept stays as bright as it
+    /// was, because a model reads edges better than a flat silhouette.
+    /// </summary>
+    [Fact]
+    public void Only_the_colour_the_writing_is_in_is_kept()
+    {
+        var frame = Frame(width: 4, height: 1,
+            (255, 255, 255),  // the writing
+            (200, 200, 200),  // the same writing, a shade off: still writing
+            (0, 90, 200),     // the picture behind it
+            (0, 0, 0));       // the outline round the writing
+
+        var writing = OcrPreprocess.ByColour(frame, new PixelColor(255, 255, 255), 25);
+
+        // The writing keeps its own brightness; the picture behind it and the outline are both
+        // flattened to one flat white, which leaves the model nothing to read but the writing.
+        Assert.Equal(255, writing[0, 0].R);
+        Assert.Equal(200, writing[1, 0].R);
+        Assert.Equal(255, writing[2, 0].R);
+        Assert.Equal(255, writing[3, 0].R);
+
+        // Nothing is thrown away but the colour: the writing stays where it was on the screen, so
+        // the positions that come back are still screen positions.
+        Assert.Equal(4, writing.Width);
+        Assert.Equal(1, writing.Height);
     }
 
     /// <summary>A frame built out of the colours a test hands in, one pixel each.</summary>

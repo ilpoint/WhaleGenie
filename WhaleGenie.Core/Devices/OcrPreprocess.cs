@@ -137,6 +137,37 @@ public static class OcrPreprocess
         return new ImageFrame(width, height, pixels);
     }
 
+    /// <summary>
+    /// The picture reduced to the writing of one colour: everything close to that colour is left
+    /// as it is and everything else is turned into one flat white. Writing that is drawn with an
+    /// outline, with a shadow, or over a picture is where this is the difference between the model
+    /// reading the numbers and reading nothing — MAA's "colour filter" does the same thing.
+    /// </summary>
+    public static ImageFrame ByColour(ImageFrame frame, PixelColor colour, double tolerancePercent)
+    {
+        if (frame.IsEmpty)
+        {
+            return frame;
+        }
+
+        var pixels = new byte[frame.Width * frame.Height * 4];
+        for (var at = 0; at + 3 < frame.Bgra.Length && at + 3 < pixels.Length; at += 4)
+        {
+            var pixel = new PixelColor(frame.Bgra[at + 2], frame.Bgra[at + 1], frame.Bgra[at]);
+            var writing = pixel.Matches(colour, tolerancePercent);
+
+            // What is left of the writing keeps its own brightness rather than being flattened to
+            // black: a model reads writing with its edges intact better than a hard silhouette.
+            var value = writing ? Luminance(pixel.B, pixel.G, pixel.R) : (byte)255;
+            pixels[at] = value;
+            pixels[at + 1] = value;
+            pixels[at + 2] = value;
+            pixels[at + 3] = frame.Bgra[at + 3];
+        }
+
+        return new ImageFrame(frame.Width, frame.Height, pixels);
+    }
+
     /// <summary>How bright a pixel looks to the eye, from its blue, green and red parts.</summary>
     private static byte Luminance(byte blue, byte green, byte red)
         => (byte)Math.Clamp((int)Math.Round(0.114 * blue + 0.587 * green + 0.299 * red), 0, 255);

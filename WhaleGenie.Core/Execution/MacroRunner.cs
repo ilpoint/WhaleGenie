@@ -5331,8 +5331,10 @@ public sealed class MacroRunner
     /// </summary>
     private IReadOnlyList<TextSpan> ReadFrame(ExecutableStep step, ImageFrame frame)
     {
-        var (prepared, scale) = OcrPreprocess.Apply(frame, step.Text("preprocess"));
-        var spans = Wanted(step, _devices.Ocr.Recognize(prepared, Language(step)));
+        var (prepared, scale) = OcrPreprocess.Apply(Isolated(step, frame), step.Text("preprocess"));
+        var readings = _devices.Ocr.Recognize(prepared, Language(step))
+            .Select(span => span with { Text = Corrected(step, span.Text) });
+        var spans = Wanted(step, [.. readings]);
 
         if (scale == 1)
         {
@@ -5348,6 +5350,47 @@ public sealed class MacroRunner
 
     /// <summary>A measurement taken from a picture that was made bigger, put back to screen pixels.</summary>
     private static int Smaller(int value, double scale) => (int)Math.Round(value / scale);
+
+    /// <summary>
+    /// The picture with everything that is not the writing thrown away, when the step said what
+    /// colour the writing is in. Writing drawn with an outline or over a picture is where the model
+    /// is handed too much to read; leaving only the writing is what makes it readable.
+    /// </summary>
+    private ImageFrame Isolated(ExecutableStep step, ImageFrame frame)
+    {
+        var colour = step.Text("colorFilter").Trim();
+        return colour.Length == 0
+            ? frame
+            : OcrPreprocess.ByColour(frame, PixelColor.Parse(colour), Number(step, "colorTolerance"));
+    }
+
+    /// <summary>
+    /// The reading with the step's own corrections applied, written one to a line as what the model
+    /// read = what it says. A model that keeps misreading a stylised font is a mistake the user can
+    /// see and write down, and writing it down here is what keeps the macro working.
+    /// </summary>
+    private static string Corrected(ExecutableStep step, string text)
+    {
+        var corrections = step.Text("fixText");
+        if (text.Length == 0 || corrections.Trim().Length == 0)
+        {
+            return text;
+        }
+
+        var fixedUp = text;
+        foreach (var line in corrections.Split('\n'))
+        {
+            var pair = line.Split('=', 2);
+            if (pair.Length != 2 || pair[0].Trim().Length == 0)
+            {
+                continue;
+            }
+
+            fixedUp = fixedUp.Replace(pair[0].Trim(), pair[1].Trim(), StringComparison.Ordinal);
+        }
+
+        return fixedUp;
+    }
 
     /// <summary>
     /// The rectangle a reading step reads: where it starts on screen, the picture taken of it, and
@@ -5373,7 +5416,7 @@ public sealed class MacroRunner
         var chosen = 0;
         for (var index = 0; index < readings.Count; index++)
         {
-            if (!Sure(step, readings[index]) || !Matches(readings[index].Text, wanted, mode))
+            if (!Sure(step, readings[index]) || !ActsOn(step, readings[index].Text, wanted, mode))
             {
                 continue;
             }
@@ -5386,6 +5429,37 @@ public sealed class MacroRunner
         }
 
         return (hits, chosen);
+    }
+
+    /// <summary>
+    /// Whether a reading is one the step would act on: it says what was asked for, and it has the
+    /// shape the step asked for. The shape is what narrows a screen full of the same word down to
+    /// the one line a macro wants — a level, an amount, a count — where looking for the word alone
+    /// would take the first line that happens to say it.
+    /// </summary>
+    private bool ActsOn(ExecutableStep step, string text, string wanted, string mode)
+    {
+        if (!Matches(text, wanted, mode))
+        {
+            return false;
+        }
+
+        var shape = step.Text("expected").Trim();
+        if (shape.Length == 0)
+        {
+            return true;
+        }
+
+        try
+        {
+            return Regex.IsMatch(text, shape, RegexOptions.IgnoreCase);
+        }
+        catch (ArgumentException)
+        {
+            // A pattern the machine cannot read is the macro's problem to see, not a stack trace to
+            // puzzle over, so it comes back as a failed step.
+            throw new StepFailure("Run.BadPattern", shape);
+        }
     }
 
     /// <summary>
@@ -5478,7 +5552,7 @@ public sealed class MacroRunner
     private TextSpan? TextHit(IReadOnlyList<TextSpan> readings, ExecutableStep step, string wanted,
         string mode)
         => readings.FirstOrDefault(candidate =>
-            Sure(step, candidate) && Matches(candidate.Text, wanted, mode));
+            Sure(step, candidate) && ActsOn(step, candidate.Text, wanted, mode));
 
     /// <summary>What one reading of the screen reads as a mark: the writing, with its own score.</summary>
     private static List<(ImageMatch Match, string? Label)> TextMarks(

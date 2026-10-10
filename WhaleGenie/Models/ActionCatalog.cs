@@ -2088,6 +2088,9 @@ public static class ActionCatalog
                     + "cells — the same shape as reading a table through UI Automation — and "
                     + "$name.text holds the whole lot as text, one line per row."),
                 Preprocess(),
+                ColourFilter(),
+                ColourTolerance(),
+                FixText(),
                 Variable("resultVariable", "Result variable", "text",
                     "Variable that receives the recognised text, or the rows of cells when the step "
                     + "reads a table. $name.text is the writing either way.",
@@ -2103,11 +2106,15 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("text", "Text to find", "Save", "Text to look for."),
+                Expected(),
                 Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
                 ..Anchor(),
                 TextMatch(),
                 Content(),
                 Preprocess(),
+                ColourFilter(),
+                ColourTolerance(),
+                FixText(),
                 MinScore(),
                 MatchOrder(),
                 AllMatches(),
@@ -2129,9 +2136,13 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("text", "Text to find", "Save"),
+                Expected(),
                 TextMatch(),
                 Content(),
                 Preprocess(),
+                ColourFilter(),
+                ColourTolerance(),
+                FixText(),
                 MinScore(),
                 MatchOrder(),
                 Number("offsetX", "Offset X", 0, "Pixels added to the match centre.",
@@ -3424,6 +3435,75 @@ public static class ActionCatalog
             + "real screen: clean writing scores around 40, writing too blurred to read around "
             + "24, and rubbish read off a busy background around 16. 0 keeps everything.",
             advanced: true);
+
+    /// <summary>
+    /// The writing a step is looking for, written as a pattern rather than as the exact words.
+    /// Shared by the two OCR actions that search, because what it does is narrow the search down,
+    /// not change how the screen is read.
+    /// </summary>
+    private static ActionParameter Expected()
+        => Text("expected", "Must read like", required: false, placeholder: "^HP \\d+/\\d+$",
+            hint: "Optional pattern the whole reading has to fit, on top of looking for the text "
+            + "above. It is what tells a screen of the same word apart from the one line the macro "
+            + "wants — a level, an amount, a count: HP 120/300 is found by ^HP \\d+/\\d+$ while "
+            + "HP full is left alone. Written as a regular expression, the same as the 'pattern' "
+            + "match mode uses.");
+
+    /// <summary>
+    /// A reading the step wants put right before anything is compared against it. Shared by the
+    /// three actions that read the screen with OCR, because a model that misreads a stylised font
+    /// misreads it for all of them.
+    /// </summary>
+    private static ActionParameter FixText()
+        => new()
+        {
+            Name = "fixText",
+            Label = "Corrections",
+            Kind = ActionParameterKind.MultilineText,
+            Placeholder = "l00 = 100",
+            Required = false,
+            Advanced = true,
+            Hint = "Optional, one correction per line written as what the model read = what it "
+                + "says. A model that keeps misreading a stylised font is a known mistake, so "
+                + "writing it down here is what keeps the macro working: l00 = 100, O = 0. The "
+                + "reading is put right before anything is compared against it.",
+        };
+
+    /// <summary>
+    /// The colour the writing is in, for the screen where the writing has an outline, a shadow or a
+    /// picture behind it: everything that is not that colour is thrown away before reading, which
+    /// is the difference between a model reading the numbers off a health bar and reading nothing.
+    /// Shared by the three actions that read the screen with OCR.
+    /// </summary>
+    private static ActionParameter ColourFilter()
+        => new()
+        {
+            Name = "colorFilter",
+            Label = "Writing is this colour",
+            Kind = ActionParameterKind.Color,
+            DefaultValue = string.Empty,
+            Required = false,
+            Advanced = true,
+            Hint = "Optional. Writing on a screen with an outline, a shadow or a picture behind it "
+                + "reads badly, because the model is handed all of it. Give the colour the writing "
+                + "is in and everything that is not that colour — outline, shadow, background — "
+                + "is thrown away before reading. Empty reads the picture as it is.",
+        };
+
+    /// <summary>How far a pixel may be from the writing's colour and still count as writing.</summary>
+    private static ActionParameter ColourTolerance()
+        => new()
+        {
+            Name = "colorTolerance",
+            Label = "Colour tolerance %",
+            Kind = ActionParameterKind.Number,
+            DefaultValue = "10",
+            Minimum = 0m,
+            Maximum = 100m,
+            Advanced = true,
+            Hint = "How far a pixel may be from the writing's colour and still count as writing. "
+                + "Raise it for writing drawn with a gradient or with anti-aliased edges.",
+        };
 
     /// <summary>A window title, filled in from the windows that are open by the window picker.</summary>
     private static ActionParameter Window(string name = "window",

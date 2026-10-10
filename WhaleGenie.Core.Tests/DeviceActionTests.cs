@@ -1284,6 +1284,123 @@ public class DeviceActionTests
         Assert.Equal("20,14", store.Local.Values["any"].AsText());
     }
 
+    /// <summary>
+    /// A screen full of the same word is narrowed down by the shape the reading has to have: the
+    /// level and not the label, the amount and not the heading.
+    /// </summary>
+    [Fact]
+    public async Task A_text_search_can_insist_on_the_shape_of_what_it_finds()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans =
+            [
+                new TextSpan("HP full", new ScreenPoint(0, 0), new ScreenSize(40, 8), 40),
+                new TextSpan("HP 120/300", new ScreenPoint(0, 20), new ScreenSize(40, 8), 40),
+            ],
+        };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("ocr.findText", Param("text", "HP"), Param("expected", @"^HP \d+/\d+$"),
+                Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.Equal("20,24", store.Local.Values["where"].AsText());
+    }
+
+    /// <summary>A pattern nothing can read is the macro's own mistake, so it is said in a sentence.</summary>
+    [Fact]
+    public async Task A_shape_that_makes_no_sense_fails_the_step_with_a_sentence()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans = [new TextSpan("HP 120/300", new ScreenPoint(0, 0), new ScreenSize(40, 8), 40)],
+        };
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("ocr.findText", Param("text", "HP"), Param("expected", @"HP (\d+"),
+                Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.BadPattern", result.Key);
+    }
+
+    /// <summary>
+    /// A model that keeps misreading the same thing is a mistake the user can see; writing it down
+    /// on the step is what keeps a macro working without a screen that reads cleanly.
+    /// </summary>
+    [Fact]
+    public async Task A_reading_the_model_keeps_getting_wrong_can_be_put_right()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans = [new TextSpan("G0LD l00", new ScreenPoint(0, 0), new ScreenSize(40, 8), 40)],
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("ocr.findText", Param("text", "GOLD 100"), Param("matchMode", "exact"),
+                Param("fixText", "G0LD = GOLD\nl00 = 100"), Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("20,4", store.Local.Values["where"].AsText());
+        Assert.Equal("GOLD 100", store.Local.Values["where.text"].AsText());
+    }
+
+    /// <summary>
+    /// Writing drawn with an outline or over a picture is where the model is handed too much:
+    /// saying what colour the writing is in hands it the writing.
+    /// </summary>
+    [Fact]
+    public async Task Writing_can_be_handed_over_in_its_own_colour_alone()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Display = Picture("#FFFFFF,#00FF00"),
+            Spans = [new TextSpan("42", new ScreenPoint(0, 0), new ScreenSize(2, 1), 40)],
+        };
+
+        var (_, _, _) = await RunAsync(
+        [
+            Step("ocr.recognize", Param("x", "0"), Param("y", "0"), Param("width", "2"),
+                Param("height", "1"), Param("colorFilter", "#FFFFFF"),
+                Param("colorTolerance", "10"), Param("resultVariable", "text")),
+        ], devices);
+
+        var handed = Assert.Single(devices.OcrPictures);
+
+        // The green pixel is not the writing, so it arrives flat white; the white one is.
+        Assert.Equal(255, handed[0, 0].R);
+        Assert.Equal(255, handed[1, 0].R);
+        Assert.Equal(255, handed[1, 0].G);
+        Assert.Equal(255, handed[1, 0].B);
+    }
+
+    /// <summary>Left empty, the picture reaches the reading model exactly as it was captured.</summary>
+    [Fact]
+    public async Task Without_a_colour_asked_for_the_picture_is_read_as_it_is()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Display = Picture("#FFFFFF,#00FF00"),
+            Spans = [new TextSpan("42", new ScreenPoint(0, 0), new ScreenSize(2, 1), 40)],
+        };
+
+        var (_, _, _) = await RunAsync(
+        [
+            Step("ocr.recognize", Param("x", "0"), Param("y", "0"), Param("width", "2"),
+                Param("height", "1"), Param("resultVariable", "text")),
+        ], devices);
+
+        var handed = Assert.Single(devices.OcrPictures);
+        Assert.Equal(0, handed[1, 0].R);
+        Assert.Equal(255, handed[1, 0].G);
+    }
+
     [Fact]
     public async Task A_text_search_can_record_every_place_the_text_was_read()
     {
@@ -5056,11 +5173,15 @@ internal sealed class FakeDeviceLayer
     {
         Note($"ocr {language}");
         OcrFrames.Add((frame.Width, frame.Height));
+        OcrPictures.Add(frame);
         return Spans;
     }
 
     /// <summary>The sizes of the pictures the OCR was handed, so a test can see what was read.</summary>
     public List<(int Width, int Height)> OcrFrames { get; } = [];
+
+    /// <summary>The pictures themselves, for a test that is about what was handed over to read.</summary>
+    public List<ImageFrame> OcrPictures { get; } = [];
 
     public bool Exists(UiQuery query, int timeoutMs)
     {
