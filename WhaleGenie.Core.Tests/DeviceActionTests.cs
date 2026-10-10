@@ -1215,6 +1215,36 @@ public class DeviceActionTests
     }
 
     /// <summary>
+    /// A rectangle counted from a window's own corner is turned into the screen pixels the device
+    /// is asked for, and what a step that named no means gets back says where the picture came
+    /// from: the pixels of the desktop when the source is the desktop, and the window itself when
+    /// the source is a window.
+    /// </summary>
+    [Fact]
+    public async Task A_rectangle_counted_from_a_window_is_asked_for_where_the_window_is()
+    {
+        var devices = WithWindow(x: 100, y: 50);
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("vision.capture", Param("x", "7"), Param("y", "9"), Param("width", "10"),
+                Param("height", "10"), Param("anchorMode", "window"),
+                Param("anchorWindow", "Game"), Param("saveTo", "fromWindow")),
+            Step("vision.capture", Param("x", "7"), Param("y", "9"), Param("width", "10"),
+                Param("height", "10"), Param("saveTo", "fromScreen")),
+        ], devices);
+
+        Assert.Equal((107, 59, 10, 10),
+            (devices.Captures[0].X, devices.Captures[0].Y, devices.Captures[0].Width,
+                devices.Captures[0].Height));
+        Assert.Equal(4, devices.Captures[0].Window);
+        Assert.Equal(0, devices.Captures[1].Window);
+
+        Assert.Equal("graphicsCapture", store.Local.Values["fromWindow.method"].AsText());
+        Assert.Equal("gdi", store.Local.Values["fromScreen.method"].AsText());
+    }
+
+    /// <summary>
     /// A way of reading a window, asked for without a window being named, is a mistake in the step
     /// rather than something about the machine, and is said instead of quietly read off the desktop.
     /// </summary>
@@ -1232,6 +1262,28 @@ public class DeviceActionTests
 
         Assert.Equal("Run.NoCaptureWindow", result.Key);
         Assert.Empty(devices.Captures);
+    }
+
+    /// <summary>
+    /// A way of reading a window that this machine cannot do is reported with the key the interface
+    /// knows, rather than the step being answered by some other way behind its back: a step that
+    /// named a way gets that way, or it gets a failure.
+    /// </summary>
+    [Fact]
+    public async Task A_way_the_machine_cannot_do_is_reported_rather_than_swapped_for_another()
+    {
+        var devices = WithWindow();
+        devices.Refusal = new DeviceActionException("Run.NoGraphicsCapture", "this machine has none");
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.capture", Param("x", "0"), Param("y", "0"), Param("width", "10"),
+                Param("height", "10"), Param("anchorMode", "client"), Param("anchorWindow", "Game"),
+                Param("captureMode", "graphicsCapture"), Param("saveTo", "shot")),
+        ], devices);
+
+        Assert.Equal("Run.NoGraphicsCapture", result.Key);
+        Assert.Equal("this machine has none", result.Detail);
     }
 
     /// <summary>
