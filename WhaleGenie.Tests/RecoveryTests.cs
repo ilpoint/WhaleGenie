@@ -187,6 +187,57 @@ public class RecoveryTests
         }));
     }
 
+    /// <summary>
+    /// The window is announced again every time it comes back from the notification area, and the
+    /// macro editor sends it there for the whole time it is open. What the snapshot holds by then is
+    /// the work this run is already showing, so the question about the last run belongs to the start
+    /// of this one and must not be asked a second time.
+    /// </summary>
+    [Fact]
+    public void Coming_back_from_the_notification_area_does_not_ask_about_the_last_run_again()
+    {
+        InOwnFile(path =>
+        {
+            Ui.RunAsync(async () =>
+            {
+                RecoveryStore.SaveProject([Named("login")], [], null);
+
+                var asked = 0;
+                var window = new MainWindow
+                {
+                    DataContext = new MainViewModel(),
+                    AskToRecover = _ =>
+                    {
+                        asked++;
+                        return Task.FromResult(ConfirmChoice.Cancel);
+                    },
+                };
+
+                // The way the program wires it: the question goes up once the window is on screen.
+                window.Opened += (_, _) =>
+                    Dispatcher.UIThread.Post(() => _ = window.OfferRecoveryAsync());
+                window.Show();
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal(1, asked);
+
+                // The question was put off rather than answered, so the work it is about stays
+                // where it is.
+                Assert.True(File.Exists(path));
+
+                window.Hide();
+                Dispatcher.UIThread.RunJobs();
+                window.Show();
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.Equal(1, asked);
+
+                window.Close();
+                Dispatcher.UIThread.RunJobs();
+                return true;
+            });
+        });
+    }
+
     [Fact]
     public void A_snapshot_that_cannot_be_read_is_not_offered()
     {

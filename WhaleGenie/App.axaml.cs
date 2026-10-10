@@ -44,6 +44,8 @@ public partial class App : Application
 
             // The list starts empty, so if the last run was stopped without saving, the work it
             // was holding is offered back here — once the window is up, because it is a dialog.
+            // The window asks about it only once in the whole run: it is announced again every time
+            // it comes back from the notification area, and that is not the last run.
             window.Opened += (_, _) => Dispatcher.UIThread.Post(() => _ = window.OfferRecoveryAsync());
 
             desktop.Exit += (_, _) =>

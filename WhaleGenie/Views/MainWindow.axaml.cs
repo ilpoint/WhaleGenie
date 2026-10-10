@@ -56,8 +56,13 @@ public partial class MainWindow : Window
     /// </summary>
     private bool _projectInRecovery;
 
-    /// <summary>Whether the question about recovered work is on screen, so only one is asked.</summary>
-    private bool _offeringRecovery;
+    /// <summary>
+    /// Whether this run has already put the question about work the last one left behind. The
+    /// window is announced again every time it comes back from the notification area, which it does
+    /// whenever the macro editor closes, and what the snapshot holds by then is the work this run is
+    /// already showing rather than the leftovers the question is about.
+    /// </summary>
+    private bool _recoveryOffered;
 
     /// <summary>
     /// The icon in the notification area, or null when this machine has none. It is what tells a
@@ -478,42 +483,36 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// Offers back whatever the last run left unsaved. The list comes up empty, so this is the one
-    /// moment the snapshot can be read: the work it holds is not in any package yet. Called once
-    /// when the real application starts, and directly by a check.
+    /// moment the snapshot can be read: the work it holds is not in any package yet. It is asked
+    /// once for the whole run — when the real application starts, and directly by a check.
     /// </summary>
     internal async Task OfferRecoveryAsync()
     {
-        if (_offeringRecovery || DataContext is not MainViewModel viewModel)
+        if (_recoveryOffered || DataContext is not MainViewModel viewModel)
         {
             return;
         }
+
+        _recoveryOffered = true;
 
         if (RecoveryStore.Load() is not { } contents)
         {
             return;
         }
 
-        _offeringRecovery = true;
-        try
+        switch (await AskToRecover(contents))
         {
-            switch (await AskToRecover(contents))
-            {
-                case ConfirmChoice.Primary:
-                    Recover(viewModel, contents);
-                    break;
-                case ConfirmChoice.Secondary:
-                    // The work is not wanted, so it goes for good rather than being asked about
-                    // again on the next run.
-                    RecoveryStore.Clear();
-                    break;
-                default:
-                    // Put off, not answered: the snapshot stays, so the question comes back.
-                    break;
-            }
-        }
-        finally
-        {
-            _offeringRecovery = false;
+            case ConfirmChoice.Primary:
+                Recover(viewModel, contents);
+                break;
+            case ConfirmChoice.Secondary:
+                // The work is not wanted, so it goes for good rather than being asked about
+                // again on the next run.
+                RecoveryStore.Clear();
+                break;
+            default:
+                // Put off, not answered: the snapshot stays, so the next run asks again.
+                break;
         }
     }
 
