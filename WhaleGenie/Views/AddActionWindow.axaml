@@ -658,7 +658,13 @@
              under it, laid out as a grid of cards. -->
         <DataTemplate x:Key="ActionGroup" x:DataType="vm:ActionGroupViewModel">
             <StackPanel Margin="0,0,0,2">
-                <Button Classes="GroupToggle" Click="OnToggleActionGroup">
+                <!-- A heading that only divides the picker into parts: it says what the parts are
+                     for and holds nothing itself. -->
+                <TextBlock Classes="SectionHeader" Text="{Binding Title}"
+                           IsVisible="{Binding IsSection}" />
+
+                <Button Classes="GroupToggle" Click="OnToggleActionGroup"
+                        IsVisible="{Binding HasActions}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Path Width="10" Height="8" Stretch="Uniform" Stroke="#9A9A9A"
                               StrokeThickness="1.6" Data="{Binding Caret}" VerticalAlignment="Center" />
@@ -701,6 +707,15 @@
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="HorizontalAlignment" Value="Center" />
             <Setter Property="Margin" Value="0,16,0,9" />
+        </Style>
+
+        <!-- A heading that divides the picker in two, rather than a group of actions: it is read
+             on the way past, so it is quieter and smaller than a group heading. -->
+        <Style Selector="TextBlock.SectionHeader">
+            <Setter Property="Foreground" Value="#9A9A9A" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="2,16,0,6" />
         </Style>
         <Style Selector="TextBlock.FieldLabel">
             <Setter Property="Foreground" Value="#C8C8C8" />

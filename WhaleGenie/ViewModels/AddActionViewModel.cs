@@ -132,6 +132,31 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>Key of the group that holds the blocks, which is not a category either.</summary>
     private const string BlockGroup = "blocks";
 
+    /// <summary>Key of the heading that divides the picker into what a game macro reaches for and the rest.</summary>
+    private const string GameSection = "section.game";
+
+    /// <summary>Key of the heading that holds the categories a game macro seldom reaches for.</summary>
+    private const string FurtherSection = "section.further";
+
+    /// <summary>
+    /// The categories a game macro is written out of, in the order the picker lists them: what the
+    /// screen shows, what it says, what the hands do, then the things around the game — its window,
+    /// the processes running, the machine, the data the macro keeps and any script it calls. The
+    /// categories left over are the ones an office macro reaches for instead of a game one.
+    /// </summary>
+    private static readonly ActionCategory[] GameOrder =
+    [
+        ActionCategory.Vision,
+        ActionCategory.Ocr,
+        ActionCategory.Input,
+        ActionCategory.Control,
+        ActionCategory.Window,
+        ActionCategory.Process,
+        ActionCategory.System,
+        ActionCategory.Data,
+        ActionCategory.Script,
+    ];
+
     /// <summary>
     /// The order the blocks are listed in: the run in order, the four repeats, then the branch,
     /// the many-way branch and the tidy-up. This is the order a task is built in, and it puts the
@@ -516,16 +541,45 @@ public partial class AddActionViewModel : ViewModelBase
                 blocks, searching || _openedGroups.Contains(BlockGroup), Strings.Get("Add.BlocksNote"));
         }
 
-        foreach (var category in matching.Where(action => !HoldsSteps(action))
-                     .GroupBy(action => action.Category)
-                     .OrderBy(group => (int)group.Key))
+        // The categories are then read in two parts, because "what a game macro reaches for" and
+        // "everything else" are the two halves a macro author actually looks through: the
+        // categories themselves stay the headings inside them, so nothing has to be hunted for in
+        // one long list of a hundred cards.
+        var categories = matching.Where(action => !HoldsSteps(action))
+            .GroupBy(action => action.Category)
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<ActionDefinition>)[.. group]);
+
+        var forGames = GameOrder.Where(categories.ContainsKey).ToList();
+        if (forGames.Count > 0)
         {
-            var key = category.Key.ToString();
-            Group(key, CategoryName(category.Key), ActionCatalog.IconFor(category.Key), [.. category],
-                searching || _openedGroups.Contains(key));
+            Section(GameSection, Strings.Get("Add.GameSection"), Strings.Get("Add.GameSectionNote"));
+            foreach (var category in forGames)
+            {
+                Category(category, categories[category], searching);
+            }
+        }
+
+        var further = categories.Keys.Where(category => !GameOrder.Contains(category))
+            .OrderBy(category => (int)category)
+            .ToList();
+        if (further.Count > 0)
+        {
+            Section(FurtherSection, Strings.Get("Add.FurtherSection"),
+                Strings.Get("Add.FurtherSectionNote"));
+            foreach (var category in further)
+            {
+                Category(category, categories[category], searching);
+            }
         }
 
         OnPropertyChanged(nameof(HasNoActionMatch));
+
+        void Category(ActionCategory category, IReadOnlyList<ActionDefinition> actions, bool open)
+        {
+            var key = category.ToString();
+            Group(key, CategoryName(category), ActionCatalog.IconFor(category), actions,
+                open || _openedGroups.Contains(key));
+        }
     }
 
     /// <summary>
@@ -547,6 +601,11 @@ public partial class AddActionViewModel : ViewModelBase
     private void Group(string key, string title, Geometry? icon,
         IReadOnlyList<ActionDefinition> actions, bool open, string note = "")
         => ActionGroups.Add(new ActionGroupViewModel(key, title, icon, actions, open, note));
+
+    /// <summary>Adds a heading that divides the picker into parts rather than holding actions.</summary>
+    private void Section(string key, string title, string note)
+        => ActionGroups.Add(new ActionGroupViewModel(key, title, null, [], open: false, note,
+            section: true));
 
     /// <summary>True when an action answers to what has been typed: its key, name or description.</summary>
     private static bool Matches(ActionDefinition action, string search)

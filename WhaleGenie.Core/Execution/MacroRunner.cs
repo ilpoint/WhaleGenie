@@ -3871,14 +3871,6 @@ public sealed class MacroRunner
     private (string To, bool Go) Landing(ExecutableStep step, string to)
     {
         var choice = step.Text("ifExists").Trim().ToLowerInvariant();
-        if (choice.Length == 0)
-        {
-            // A step written while this was a yes/no question only ever said whether to overwrite.
-            // It is read as what it said rather than as the new default, because "do not put that
-            // over my file" must not quietly turn into "put that over my file" for anyone.
-            choice = Flag(step, "overwrite", true) ? "overwrite" : "skip";
-        }
-
         if (!_devices.Files.Exists(to))
         {
             return (to, true);

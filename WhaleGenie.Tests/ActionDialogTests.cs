@@ -1228,9 +1228,19 @@ public class ActionDialogTests
                 blocks.Actions.Select(action => action.Key));
             Assert.True(blocks.HasNote);
 
+            // The categories are read in two parts: what a game macro reaches for, then the rest.
+            // The headings that divide them hold no actions of their own, so they are told apart
+            // from the groups by that.
+            var sections = viewModel.ActionGroups.Where(group => group.IsSection).ToList();
+            Assert.Equal(["section.game", "section.further"],
+                sections.Select(section => section.Key));
+            Assert.All(sections, section => Assert.Empty(section.Actions));
+            Assert.All(sections, section => Assert.True(section.HasNote));
+
             // Everything else stays a group a category, and no block is left behind in one.
             var groups = viewModel.ActionGroups
-                .Where(group => group.Key is not "recent" and not "blocks").ToList();
+                .Where(group => group.HasActions && group.Key is not "recent" and not "blocks")
+                .ToList();
             Assert.Equal(
                 viewModel.AvailableActions.Select(action => action.Category.ToString())
                     .Distinct().Order().ToList(),
@@ -1248,6 +1258,18 @@ public class ActionDialogTests
             Assert.All(groups, group => Assert.False(group.IsOpen));
             Assert.All(groups, group => Assert.NotEmpty(group.Actions));
             Assert.NotEmpty(blocks.Actions);
+
+            // The first part lists the categories a game macro is written out of, in the order
+            // they are reached for: what the screen shows and says, then the hands, then the
+            // things around the game.
+            var forGames = viewModel.ActionGroups
+                .SkipWhile(group => group.Key != "section.game")
+                .Skip(1)
+                .TakeWhile(group => !group.IsSection)
+                .Select(group => group.Key)
+                .ToList();
+            Assert.Equal(["Vision", "Ocr", "Input", "Control", "Window", "Process", "System",
+                "Data", "Script"], forGames);
 
             var search = window.GetVisualDescendants().OfType<TextBox>()
                 .First(box => Equals(box.PlaceholderText, Strings.Get("Add.SearchAction")));
@@ -1285,7 +1307,8 @@ public class ActionDialogTests
                     || action.LocalDescription.Contains(term, StringComparison.OrdinalIgnoreCase)));
 
                 // A search has already done the narrowing, so everything left is open to read.
-                Assert.All(viewModel.ActionGroups, group => Assert.True(group.IsOpen, group.Key));
+                Assert.All(viewModel.ActionGroups.Where(group => group.HasActions),
+                    group => Assert.True(group.IsOpen, group.Key));
             }
 
             // Something no action answers to empties the picker and says so, rather than

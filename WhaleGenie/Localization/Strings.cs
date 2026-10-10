@@ -509,6 +509,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.AdvancedHide"] = "Hide advanced options",
         ["Add.ActionGroup"] = "{0} ({1})",
         ["Add.RecentlyUsed"] = "Recently used",
+        ["Add.GameSection"] = "For game macros",
+        ["Add.GameSectionNote"] = "What a game macro is written out of: what the screen shows, "
+            + "what it says, what the hands do, and the things around the game.",
+        ["Add.FurtherSection"] = "Further out",
+        ["Add.FurtherSectionNote"] = "The rest: windows in other programs, pages, the clipboard "
+            + "and files.",
         ["Add.Blocks"] = "Blocks",
         ["Add.BlocksNote"] = "These are the shapes a task is built from: what the run does when it "
             + "reaches them. The trigger's \"repeat while held\" is a separate setting: it starts "
@@ -1445,6 +1451,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.AdvancedHide"] = "收起高级选项",
         ["Add.ActionGroup"] = "{0}（{1}）",
         ["Add.RecentlyUsed"] = "最近使用",
+        ["Add.GameSection"] = "游戏常用",
+        ["Add.GameSectionNote"] = "写游戏宏用得最多的几组：画面能看到什么、上面写着什么、"
+            + "手上要做什么，以及游戏周边的那些东西。",
+        ["Add.FurtherSection"] = "进阶",
+        ["Add.FurtherSectionNote"] = "其余几组：别的程序里的窗口、网页、剪贴板和文件。",
         ["Add.Blocks"] = "流程块",
         ["Add.BlocksNote"] = "这些是构成任务流程的骨架：宏执行到此处会按它的设置运行。触发方式中的"
             + "“按住期间循环（长按）”与此无关，那是指整个宏反复重新执行。",

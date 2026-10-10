@@ -14,7 +14,7 @@ namespace WhaleGenie.ViewModels;
 public partial class ActionGroupViewModel : ViewModelBase
 {
     public ActionGroupViewModel(string key, string title, Geometry? icon,
-        IReadOnlyList<ActionDefinition> actions, bool open, string note = "")
+        IReadOnlyList<ActionDefinition> actions, bool open, string note = "", bool section = false)
     {
         Key = key;
         Title = title;
@@ -22,12 +22,23 @@ public partial class ActionGroupViewModel : ViewModelBase
         Actions = actions;
         IsOpen = open;
         Note = note;
+        IsSection = section;
     }
 
     /// <summary>Identifies the group, so a folded state can be found again after a search.</summary>
     public string Key { get; }
 
     public string Title { get; }
+
+    /// <summary>
+    /// True on a heading that only divides the picker into parts — what a game macro reaches for,
+    /// and everything else — rather than holding actions of its own. Such a heading is written
+    /// smaller, cannot be folded, and never counts as a group of the catalogue.
+    /// </summary>
+    public bool IsSection { get; }
+
+    /// <summary>True on the headings that actually hold actions.</summary>
+    public bool HasActions => !IsSection;
 
     /// <summary>The mark the category is drawn with, when it has one.</summary>
     public Geometry? Icon { get; }
