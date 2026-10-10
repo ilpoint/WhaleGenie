@@ -236,6 +236,49 @@ public class KeyRunTests
         });
     }
 
+    /// <summary>
+    /// The keyboard is a window of its own: it is put away on its own, and asking for it again
+    /// brings the same one back rather than opening a second. An owned window has no taskbar button,
+    /// so the way back has to be the button that asked for it in the first place.
+    /// </summary>
+    [Fact]
+    public void The_keyboard_window_is_put_away_and_brought_back_on_its_own()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(null, ActionCatalog.Definitions,
+                VariableChoicesForChecks.Named("count"), []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("input.keySequence");
+            Dispatcher.UIThread.RunJobs();
+
+            var run = Run(viewModel);
+            run.AddKeyRow();
+            Dispatcher.UIThread.RunJobs();
+
+            var ask = FindButton(window, run.KeyRows[0], Strings.Get("Add.OpenKeyPad"));
+            ask.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            var pad = window.OwnedWindows.OfType<VirtualKeyboardWindow>().Single();
+            pad.GetVisualDescendants().OfType<Button>()
+                .Single(button => button.Name == "MinimizeButton")
+                .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(WindowState.Minimized, pad.WindowState);
+
+            ask.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(WindowState.Normal, pad.WindowState);
+            Assert.Same(pad, window.OwnedWindows.OfType<VirtualKeyboardWindow>().Single());
+        });
+    }
+
     /// <summary>Clicks one cap of the keyboard drawn on screen, the way a user finds it: by its name.</summary>
     private static void Cap(VirtualKeyboardWindow pad, string name)
         => pad.GetVisualDescendants().OfType<Button>()

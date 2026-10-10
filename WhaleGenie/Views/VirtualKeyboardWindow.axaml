@@ -86,6 +86,12 @@
                      "this is the combination I meant", which is not the same as closing it away. -->
                 <Button Classes="TitleBarAction" Name="DoneButton"
                         Content="{Binding [KeyPad.Done], Source={x:Static loc:Strings.Current}}" />
+                <!-- Each window is put away on its own: the keyboard covers whatever the keys are
+                     being read off, and putting it away leaves the add-action window as it was. -->
+                <Button Classes="TitleBarButton" Name="MinimizeButton"
+                        Width="30" Height="24" Padding="0" VerticalAlignment="Center">
+                    <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6" Data="M 0,5 H 8" />
+                </Button>
                 <Button Classes="TitleBarButton" Name="CloseButton"
                         Width="30" Height="24" Padding="0" VerticalAlignment="Center">
                     <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6"

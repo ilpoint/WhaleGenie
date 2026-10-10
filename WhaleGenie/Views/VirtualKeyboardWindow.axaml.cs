@@ -36,6 +36,14 @@ public partial class VirtualKeyboardWindow : Window
             closeButton.Click += (_, _) => Close();
         }
 
+        // The keyboard covers the picture the keys are being read off, so it is put away on its own
+        // rather than taken down: the keys it has already written stay where they are.
+        var minimizeButton = this.FindControl<Button>("MinimizeButton");
+        if (minimizeButton is not null)
+        {
+            minimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
+        }
+
         var doneButton = this.FindControl<Button>("DoneButton");
         if (doneButton is not null)
         {

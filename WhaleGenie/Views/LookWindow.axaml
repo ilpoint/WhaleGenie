@@ -101,6 +101,12 @@
                     <Button Name="FullScreen" Classes="TitleBarButton" Padding="10,0"
                             Click="OnToggleFullScreen"
                             ToolTip.Tip="{Binding [Look.FullScreenHint], Source={x:Static loc:Strings.Current}}" />
+                    <!-- Putting this one away leaves the screen behind it free, which is how what was
+                         found is compared with what is really there. -->
+                    <Button Classes="TitleBarButton" Name="MinimizeButton" Click="OnMinimize">
+                        <Path Width="11" Height="11" Stroke="#D0D0D0" StrokeThickness="1.4"
+                              Data="M 0,5 H 10" />
+                    </Button>
                     <Button Classes="TitleBarButton" Content="✕"
                         Click="OnClose" />
                 </StackPanel>

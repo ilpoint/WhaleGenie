@@ -48,6 +48,14 @@ public partial class RunWindow : Window
             closeButton.Click += (_, _) => Close();
         }
 
+        // A run keeps going while its window is out of the way, so this one is put away on its own
+        // and brought back from the taskbar when the log is wanted again.
+        var minimizeButton = this.FindControl<Button>("MinimizeButton");
+        if (minimizeButton is not null)
+        {
+            minimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
+        }
+
         // Keep the newest log line in view, so a long run stays readable without scrolling.
         var logScroll = this.FindControl<ScrollViewer>("LogScroll");
         if (logScroll is not null)

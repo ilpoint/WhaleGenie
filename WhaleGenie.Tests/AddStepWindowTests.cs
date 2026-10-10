@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Avalonia.Controls;
 using Avalonia.Threading;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -88,6 +89,26 @@ public class AddStepWindowTests
 
             window.BeginStep(null);
             Assert.Equal("t7wq", Form(window).StepId);
+        });
+    }
+
+    [Fact]
+    public void The_window_that_was_put_away_comes_back_when_a_step_is_asked_for()
+    {
+        Ui.Run(() =>
+        {
+            var (window, editor, picker) = OpenEditor();
+
+            // An owned window has no taskbar button of its own, so the way back to one is asking for
+            // what it is for: another step.
+            picker.WindowState = WindowState.Minimized;
+            Dispatcher.UIThread.RunJobs();
+
+            editor.NewStepCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(WindowState.Normal, picker.WindowState);
+            Assert.Same(picker, window.OwnedWindows.OfType<AddActionWindow>().Single());
         });
     }
 

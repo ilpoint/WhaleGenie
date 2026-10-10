@@ -663,6 +663,13 @@ public partial class MacroEditorWindow : Window
             window.EditStep(editing);
         }
 
+        // An owned window has no taskbar button of its own, so asking for a step is what says the
+        // window is wanted again: one that was put away comes back rather than staying out of reach.
+        if (window.WindowState == WindowState.Minimized)
+        {
+            window.WindowState = WindowState.Normal;
+        }
+
         window.Activate();
     }
 

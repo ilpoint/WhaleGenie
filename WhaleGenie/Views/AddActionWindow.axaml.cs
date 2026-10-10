@@ -474,7 +474,13 @@ public partial class AddActionWindow : Window
         }
 
         _keyPad.Filling = filling;
-        if (_keyPad.IsVisible)
+        // Put away a moment ago and asked for again: it is brought back rather than opened twice.
+        if (_keyPad.WindowState == WindowState.Minimized)
+        {
+            _keyPad.WindowState = WindowState.Normal;
+            _keyPad.Activate();
+        }
+        else if (_keyPad.IsVisible)
         {
             _keyPad.Activate();
         }

@@ -458,6 +458,23 @@ public partial class LookWindow : Window
     private void OnClose(object? sender, RoutedEventArgs e) => Close();
 
     /// <summary>
+    /// Puts the window away without closing it, so what was found can be held up against the screen
+    /// it came from and read again afterwards.
+    /// </summary>
+    private void OnMinimize(object? sender, RoutedEventArgs e)
+    {
+        // A window filling the screen has no title bar to come back to, so it is put back to its
+        // normal size first; minimizing straight out of full screen leaves a taskbar button that
+        // restores it full screen with nothing to close it with.
+        if (WindowState == WindowState.FullScreen)
+        {
+            ToggleFullScreen();
+        }
+
+        WindowState = WindowState.Minimized;
+    }
+
+    /// <summary>
     /// Whether the window fills the screen, which is how a reference picture and a screenful of
     /// hits are read: a window shrunk to fit a monitor shows neither at its own size.
     /// </summary>
