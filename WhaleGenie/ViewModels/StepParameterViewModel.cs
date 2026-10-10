@@ -208,6 +208,36 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </summary>
     public bool IsEnabled { get; private set; } = true;
 
+    /// <summary>
+    /// False while the field this one follows says something it does not answer to. A field that
+    /// does not apply is not drawn and is not written into the step: one of the ways of recognising
+    /// a picture reports a single hit, so counting the hits and choosing which one are questions
+    /// with nothing behind them there.
+    /// </summary>
+    public bool IsApplicable { get; private set; } = true;
+
+    /// <summary>
+    /// Recomputes <see cref="IsApplicable"/> from what the field it follows says, and reports
+    /// whether that changed anything — the dialog counts its rows from this.
+    /// </summary>
+    public bool UpdateApplicability(string? followed)
+    {
+        var applies = Definition.AppliesWhen.Length == 0
+            || (followed is not null && Definition.AppliesWhenValues.Contains(
+                followed.Trim(), StringComparer.OrdinalIgnoreCase));
+
+        if (applies == IsApplicable)
+        {
+            return false;
+        }
+
+        IsApplicable = applies;
+        OnPropertyChanged(nameof(IsApplicable));
+        OnPropertyChanged(nameof(IsMissing));
+        OnPropertyChanged(nameof(IsIncluded));
+        return true;
+    }
+
     [ObservableProperty]
     public partial string Text { get; set; }
 
@@ -746,7 +776,7 @@ public partial class StepParameterViewModel : ViewModelBase
     public string FormulaPlaceholder => Strings.Get("Add.FormulaPlaceholder");
 
     /// <summary>True when a required parameter is still empty, which blocks saving.</summary>
-    public bool IsMissing => IsEnabled && Definition.Required && Definition.Kind switch
+    public bool IsMissing => IsEnabled && IsApplicable && Definition.Required && Definition.Kind switch
     {
         ActionParameterKind.Bool => false,
         ActionParameterKind.Steps or ActionParameterKind.Condition => !HasNestedSteps,
@@ -758,7 +788,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// A list of places to look at is there when it holds a place: an empty one means the whole
     /// screen, which is what the step does when the list is not written down at all.
     /// </remarks>
-    public bool IsIncluded => IsEnabled && Definition.Kind switch
+    public bool IsIncluded => IsEnabled && IsApplicable && Definition.Kind switch
     {
         ActionParameterKind.Steps or ActionParameterKind.Condition => HasNestedSteps,
         ActionParameterKind.Region => Regions.Count > 0,

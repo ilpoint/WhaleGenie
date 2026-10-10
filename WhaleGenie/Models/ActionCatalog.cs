@@ -1949,11 +1949,11 @@ public static class ActionCatalog
                 MatchAlgorithm(),
                 SkipColour(),
                 MinFeatures(),
-                MatchOrder(),
+                MatchOrder(pixelsOnly: true),
                 Region(),
                 ..Anchor(),
-                MatchIndex(),
-                AllMatches(),
+                MatchIndex(pixelsOnly: true),
+                AllMatches(pixelsOnly: true),
                 Variable("resultVariable", "Result variable", "match",
                     "Variable that receives the match centre, empty when nothing was found. "
                     + "$name.x, $name.y, $name.width, $name.height and $name.score hold the parts, "
@@ -1975,10 +1975,10 @@ public static class ActionCatalog
                 MatchAlgorithm(),
                 SkipColour(),
                 MinFeatures(),
-                MatchOrder(),
+                MatchOrder(pixelsOnly: true),
                 Region(),
                 ..Anchor(),
-                MatchIndex(),
+                MatchIndex(pixelsOnly: true),
                 Number("timeoutMs", "Timeout", 5000, "Give up after this long."),
                 Number("intervalMs", "Interval", 200, "Delay between checks."),
                 Variable("resultVariable", "Result variable", "match",
@@ -1999,10 +1999,10 @@ public static class ActionCatalog
                 MatchAlgorithm(),
                 SkipColour(),
                 MinFeatures(),
-                MatchOrder(),
+                MatchOrder(pixelsOnly: true),
                 Region(),
                 ..Anchor(),
-                MatchIndex(),
+                MatchIndex(pixelsOnly: true),
                 Number("offsetX", "Offset X", 0, "Pixels added to the match centre.",
                     min: -100000m, advanced: true),
                 Number("offsetY", "Offset Y", 0, min: -100000m, advanced: true),
@@ -3067,7 +3067,7 @@ public static class ActionCatalog
 
     private static ActionParameter Number(string name, string label, decimal defaultValue,
         string hint = "", decimal min = 0m, decimal max = StepMeta.LongestPauseMs,
-        bool advanced = false)
+        bool advanced = false, string[]? onlyWith = null)
         => new()
         {
             Name = name,
@@ -3082,10 +3082,12 @@ public static class ActionCatalog
             // length of time is simply never named that way.
             IsDuration = name == "ms" || name.EndsWith("Ms", StringComparison.Ordinal),
             Advanced = advanced,
+            AppliesWhen = onlyWith is null ? string.Empty : "algorithm",
+            AppliesWhenValues = onlyWith ?? [],
         };
 
     private static ActionParameter Toggle(string name, string label, bool defaultValue = false,
-        string hint = "", bool advanced = false)
+        string hint = "", bool advanced = false, string[]? onlyWith = null)
         => new()
         {
             Name = name,
@@ -3094,11 +3096,13 @@ public static class ActionCatalog
             Hint = hint,
             DefaultValue = defaultValue ? "true" : "false",
             Advanced = advanced,
+            AppliesWhen = onlyWith is null ? string.Empty : "algorithm",
+            AppliesWhenValues = onlyWith ?? [],
         };
 
     private static ActionParameter Choice(string name, string label, string[] options,
         string defaultValue, string hint = "", string[]? labels = null,
-        string enabledBySibling = "", bool advanced = false)
+        string enabledBySibling = "", bool advanced = false, string[]? onlyWith = null)
         => new()
         {
             Name = name,
@@ -3110,6 +3114,8 @@ public static class ActionCatalog
             Hint = hint,
             EnabledBySibling = enabledBySibling,
             Advanced = advanced,
+            AppliesWhen = onlyWith is null ? string.Empty : "algorithm",
+            AppliesWhenValues = onlyWith ?? [],
         };
 
     private static ActionParameter KeyBind(string name, string label, string hint = "",
@@ -3235,14 +3241,27 @@ public static class ActionCatalog
         + "to search the whole screen.";
 
     /// <summary>
+    /// The three ways that compare the two pictures pixel for pixel. They are the ones a search can
+    /// come back with several hits from, so the questions about a second or third hit belong to
+    /// them and to nothing else.
+    /// </summary>
+    /// <remarks>
+    /// A method rather than a field on purpose: the catalogue is a static field initializer, and
+    /// static fields are built in the order they are written, so a field declared below it would
+    /// still be null by the time these entries are built — which is a gate that silently does
+    /// nothing.
+    /// </remarks>
+    private static string[] PixelWays() => ["normed", "correlated", "difference"];
+
+    /// <summary>
     /// Which of several hits a step means, shared by the actions that can find more than one. Hits
     /// are counted from the top left, the order a person counts them in on a screenshot.
     /// </summary>
-    private static ActionParameter MatchIndex()
+    private static ActionParameter MatchIndex(bool pixelsOnly = false)
         => Number("matchIndex", "Match number", 1,
             "Which hit to use, counted in the order below. By default that is down the screen "
             + "first and then across, the way a person counts them. 1 is the first one.",
-            min: 1, max: 200, advanced: true);
+            min: 1, max: 200, advanced: true, onlyWith: pixelsOnly ? PixelWays() : null);
 
     /// <summary>
     /// How a reference picture is looked for, shared by the picture finders. It is one list because
@@ -3276,7 +3295,7 @@ public static class ActionCatalog
         => Number("minFeatures", "Least feature pairs", 6,
             "Only used when looking by features: how many pairs have to line up before the picture "
             + "counts as found. More is stricter. Six is a good start.",
-            min: 1, max: 500, advanced: true);
+            min: 1, max: 500, advanced: true, onlyWith: ["feature"]);
 
     /// <summary>
     /// What order the hits are counted in, shared by everything that finds more than one: a colour
@@ -3284,7 +3303,7 @@ public static class ActionCatalog
     /// the finders whose hits can be different sizes — a colour hit is one pixel, so every hit a
     /// colour search reports is the same size and the choice could not change the answer.
     /// </summary>
-    private static ActionParameter MatchOrder(bool bySize = true) => bySize
+    private static ActionParameter MatchOrder(bool bySize = true, bool pixelsOnly = false) => bySize
         ? Choice("orderBy", "Count them in", ["reading", "score", "area", "random"], "reading",
             "What order the hits are counted in, which is what the match number counts. Reading is "
             + "down the screen first and then across, the way a person counts them. Score takes the "
@@ -3292,23 +3311,26 @@ public static class ActionCatalog
             + "how a step asks for the whole banner rather than a piece of it when looking by "
             + "features or reading writing. Random shuffles them, for a step that must not always "
             + "take the same one of several.",
-            labels: ["Reading order", "Surest first", "Biggest first", "Shuffled"], advanced: true)
+            labels: ["Reading order", "Surest first", "Biggest first", "Shuffled"], advanced: true,
+            onlyWith: pixelsOnly ? PixelWays() : null)
         : Choice("orderBy", "Count them in", ["reading", "score", "random"], "reading",
             "What order the hits are counted in, which is what the match number counts. Reading is "
             + "down the screen first and then across, the way a person counts them. Score takes the "
             + "surest — the pixel closest to the colour — wherever it is on the screen. Random "
             + "shuffles them, for a step that must not always take the same one of several.",
-            labels: ["Reading order", "Surest first", "Shuffled"], advanced: true);
+            labels: ["Reading order", "Surest first", "Shuffled"], advanced: true,
+            onlyWith: pixelsOnly ? PixelWays() : null);
 
     /// <summary>
     /// Whether a step records the whole set of hits as well as the one it picked, shared by the
     /// finders that can report more than one. The list is what lets a macro walk every place
     /// something turned up.
     /// </summary>
-    private static ActionParameter AllMatches()
+    private static ActionParameter AllMatches(bool pixelsOnly = false)
         => Toggle("allMatches", "Record every match", false,
             "Also record how many places matched and where they all are: $name.count is the number "
-            + "and $name.list holds one \"x,y\" per hit, ready for count(), get() and forEach.");
+            + "and $name.list holds one \"x,y\" per hit, ready for count(), get() and forEach.",
+            onlyWith: pixelsOnly ? PixelWays() : null);
 
     /// <summary>
     /// How a step's input is sent, shared by every action that presses a key or a mouse button.

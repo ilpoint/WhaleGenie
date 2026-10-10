@@ -195,6 +195,22 @@ public class ActionParameter
     public string EnabledBySibling { get; init; } = string.Empty;
 
     /// <summary>
+    /// Name of a sibling field this one follows: it only takes part in the step while that field
+    /// says one of <see cref="AppliesWhenValues"/>. Empty means it always takes part.
+    /// </summary>
+    /// <remarks>
+    /// This is not the same question as <see cref="Advanced"/>. A folded field is one that is worth
+    /// having and not worth showing; a field whose answer nothing reads is not worth showing at all,
+    /// and leaving it on the form is how a step comes to look broken — the ways of recognising a
+    /// picture ask different questions, and "which hit" has no answer when the way chosen returns
+    /// a single one.
+    /// </remarks>
+    public string AppliesWhen { get; init; } = string.Empty;
+
+    /// <summary>The values of the field named by <see cref="AppliesWhen"/> this field belongs to.</summary>
+    public IReadOnlyList<string> AppliesWhenValues { get; init; } = [];
+
+    /// <summary>
     /// True when the value always names a variable rather than holding a literal. The
     /// Variable Center uses it to spot a name a macro uses but nothing defines.
     /// </summary>

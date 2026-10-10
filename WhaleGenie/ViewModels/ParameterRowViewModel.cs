@@ -18,6 +18,12 @@ public sealed class ParameterRowViewModel
 
     public bool HasSecond => Second is not null;
 
+    /// <summary>
+    /// False while what this line asks about is not a question for the way the step is set up.
+    /// Such a line is not drawn at all, rather than being drawn with nothing behind it.
+    /// </summary>
+    public bool IsApplicable => First.IsApplicable;
+
     /// <summary>True when this line carries the button that picks a whole screen region.</summary>
     public bool IsRegionAnchor => First.IsRegionAnchor;
 

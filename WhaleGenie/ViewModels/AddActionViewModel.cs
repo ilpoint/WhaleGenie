@@ -265,7 +265,7 @@ public partial class AddActionViewModel : ViewModelBase
     public ObservableCollection<ParameterRowViewModel> AdvancedRows { get; } = [];
 
     /// <summary>True when this action has settings behind the fold.</summary>
-    public bool HasAdvanced => AdvancedRows.Count > 0;
+    public bool HasAdvanced => AdvancedRows.Any(row => row.IsApplicable);
 
     /// <summary>
     /// True while the folded settings are on screen. A step that already uses one opens with them
@@ -278,14 +278,15 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>Text of the fold's button, which says how many settings are behind it.</summary>
     public string AdvancedLabel => Strings.Format(
-        ShowAdvanced ? "Add.AdvancedHide" : "Add.AdvancedShow", AdvancedRows.Count);
+        ShowAdvanced ? "Add.AdvancedHide" : "Add.AdvancedShow",
+        AdvancedRows.Count(row => row.IsApplicable));
 
     /// <summary>The mark on that button, pointing the way the fold will go.</summary>
     public Geometry AdvancedCaret => ShowAdvanced ? Carets.Open : Carets.Shut;
 
     public bool HasSelection => SelectedDefinition is not null;
 
-    public bool HasParameters => Parameters.Count > 0;
+    public bool HasParameters => Rows.Any(row => row.IsApplicable);
 
     /// <summary>Note shown under the step in the editor's list.</summary>
     [ObservableProperty]
@@ -1074,17 +1075,37 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     private void RefreshGates()
     {
+        var rows = 0;
         foreach (var editor in Parameters)
         {
-            var siblingName = editor.Definition.EnabledBySibling;
-            if (siblingName.Length == 0)
+            if (editor.Definition.EnabledBySibling is { Length: > 0 } siblingName)
             {
-                continue;
+                var sibling = Parameters.FirstOrDefault(parameter =>
+                    parameter.Definition.Name == siblingName);
+                editor.UpdateGate(sibling?.List?.Steps.Count ?? 0);
             }
 
-            var sibling = Parameters.FirstOrDefault(parameter =>
-                parameter.Definition.Name == siblingName);
-            editor.UpdateGate(sibling?.List?.Steps.Count ?? 0);
+            // What a field follows is a value rather than a count: the ways of recognising a
+            // picture ask different questions, and a question nothing reads is not drawn.
+            if (editor.Definition.AppliesWhen is { Length: > 0 } followedBy)
+            {
+                var followed = Parameters.FirstOrDefault(parameter =>
+                    parameter.Definition.Name == followedBy);
+
+                if (editor.UpdateApplicability(followed?.CurrentText))
+                {
+                    rows++;
+                }
+            }
+        }
+
+        // The fold counts the fields behind it, and those fields can come and go, so what it says
+        // has to be read again rather than left as it was when the action was chosen.
+        if (rows > 0)
+        {
+            OnPropertyChanged(nameof(HasAdvanced));
+            OnPropertyChanged(nameof(AdvancedLabel));
+            OnPropertyChanged(nameof(HasParameters));
         }
     }
 

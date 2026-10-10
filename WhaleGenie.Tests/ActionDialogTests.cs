@@ -585,6 +585,13 @@ public class ActionDialogTests
     }
 
     /// <summary>Turns the coordinate picker of a dialog onto a named window.</summary>
+    private static void Choose(AddActionViewModel viewModel, string name, string value)
+    {
+        var choice = viewModel.Parameters.First(parameter => parameter.Definition.Name == name);
+        choice.Option = choice.Choices.First(option => option.Value == value);
+    }
+
+    /// <summary>Turns the coordinate picker of a dialog onto a named window.</summary>
     private static void Anchor(AddActionViewModel viewModel, string mode)
     {
         var choice = viewModel.Parameters
@@ -1200,9 +1207,87 @@ public class ActionDialogTests
     }
 
     /// <summary>
-    /// One picker answers both "which way" and "comparing what". Offering two lists left a step
-    /// able to say "pair up the features, comparing pixel for pixel", which is a sentence with no
-    /// meaning — and whichever half lost was silently doing nothing.
+    /// Pairing up features comes back with one hit, so counting the hits, choosing which one and
+    /// recording the whole set have nothing behind them there. Those lines leave the form while
+    /// that way is chosen and come back with the values that were typed into them: a field that
+    /// stays and does nothing is how a form comes to look broken.
+    /// </summary>
+    [Fact]
+    public void The_questions_only_a_pixel_search_can_answer_come_and_go_with_the_way()
+    {
+        Ui.Run(() =>
+        {
+            foreach (var key in new[] { "vision.findImage", "vision.waitImage", "vision.clickImage" })
+            {
+                var viewModel = Open(key);
+                var index = viewModel.Parameters
+                    .First(parameter => parameter.Definition.Name == "matchIndex");
+
+                index.NumberValue = 3;
+
+                // Pairing up features: only "least feature pairs" has anything to answer to.
+                Choose(viewModel, "algorithm", "feature");
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.True(Shown(viewModel, "minFeatures"), key);
+                Assert.False(Shown(viewModel, "matchIndex"), key);
+                Assert.False(Shown(viewModel, "orderBy"), key);
+                Assert.False(Shown(viewModel, "allMatches"), key);
+
+                // Back to a pixel comparison, and what was typed is still there.
+                Choose(viewModel, "algorithm", "correlated");
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.True(Shown(viewModel, "matchIndex"), key);
+                Assert.True(Shown(viewModel, "orderBy"), key);
+                Assert.False(Shown(viewModel, "minFeatures"), key);
+                Assert.Equal("3", index.CurrentText);
+            }
+        });
+    }
+
+    /// <summary>Whether a line of the form is drawn at all.</summary>
+    private static bool Shown(AddActionViewModel viewModel, string name)
+        => viewModel.Rows.Concat(viewModel.AdvancedRows)
+            .Any(row => Names(row).Contains(name) && row.IsApplicable);
+
+    /// <summary>
+    /// What the step is saved as carries only the questions the way it was set up asks: a step that
+    /// pairs up features has no room for "the third hit", not even the default one.
+    /// </summary>
+    [Fact]
+    public void A_step_saves_only_the_fields_its_way_asks_about()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("vision.findImage");
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "image").Text =
+                @"C:\images\ok.png";
+            viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "matchIndex").NumberValue = 3;
+            viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "allMatches").Flag = true;
+            Choose(viewModel, "algorithm", "feature");
+            Dispatcher.UIThread.RunJobs();
+
+            MacroStep? saved = null;
+            viewModel.CloseRequested += step => saved = step;
+            viewModel.SaveCommand.Execute(null);
+
+            Assert.NotNull(saved);
+            var names = saved!.Parameters.Select(parameter => parameter.Name).ToList();
+
+            Assert.DoesNotContain("matchIndex", names);
+            Assert.DoesNotContain("allMatches", names);
+            Assert.DoesNotContain("orderBy", names);
+            Assert.Contains("algorithm", names);
+        });
+    }
+
+    /// <summary>
+    /// One picker answers both "which way" and "comparing what". Two lists let a step say "pair up
+    /// the features, comparing pixel for pixel", which is a sentence with nothing behind it — and
+    /// whichever half lost was the half doing nothing.
     /// </summary>
     [Fact]
     public void Recognising_a_picture_is_one_choice_of_four()

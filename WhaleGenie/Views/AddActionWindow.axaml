@@ -613,7 +613,10 @@
         <!-- One line of the parameter list. The two halves of a position share a line, and both
              the ordinary parameters and the folded-away ones are laid out with it. -->
         <DataTemplate x:Key="ParameterRowEditor" x:DataType="vm:ParameterRowViewModel">
+            <!-- A line whose question the step's own settings do not ask is not drawn: a field
+                 that is there and does nothing is worse than one that is not there. -->
             <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*"
+                  IsVisible="{Binding IsApplicable}"
                   ColumnSpacing="16" Margin="0,0,0,14">
                 <ContentControl Grid.Row="0" Grid.Column="0"
                                 Grid.ColumnSpan="{Binding FirstSpan}"
