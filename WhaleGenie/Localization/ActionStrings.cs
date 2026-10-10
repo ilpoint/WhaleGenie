@@ -102,7 +102,8 @@ internal static class ActionStrings
     /// <summary>The hint every "what order the hits are counted in" picker shares.</summary>
     private const string MatchOrderHint =
         "命中按什么顺序数，也就是“第几个命中”数的是哪一个。阅读顺序是先往下再往右，人平时数的"
-        + "顺序；分数最高是哪里最像就用哪里；随机打乱，用在不能每次都挑同一个的步骤上。";
+        + "顺序；分数最高是哪里最像就用哪里；面积最大是先用最大的那个框，按特征找图或读文字时"
+        + "用它挑整块的而不是一角；随机打乱，用在不能每次都挑同一个的步骤上。";
 
     /// <summary>The hint the three reading actions share for the shape a reading has to have.</summary>
     private const string ExpectedHint =
@@ -1640,6 +1641,7 @@ internal static class ActionStrings
         ["vision.findImage.orderBy.hint"] = MatchOrderHint,
         ["vision.findImage.orderBy.option.reading"] = "阅读顺序",
         ["vision.findImage.orderBy.option.score"] = "分数最高",
+        ["vision.findImage.orderBy.option.area"] = "面积最大",
         ["vision.findImage.orderBy.option.random"] = "随机",
         ["vision.findImage.matchIndex.label"] = "第几个命中",
         ["vision.findImage.matchIndex.hint"] = MatchIndexHint,
@@ -1663,6 +1665,7 @@ internal static class ActionStrings
         ["vision.waitImage.orderBy.hint"] = MatchOrderHint,
         ["vision.waitImage.orderBy.option.reading"] = "阅读顺序",
         ["vision.waitImage.orderBy.option.score"] = "分数最高",
+        ["vision.waitImage.orderBy.option.area"] = "面积最大",
         ["vision.waitImage.orderBy.option.random"] = "随机",
         ["vision.waitImage.region.label"] = "搜索区域",
         ["vision.waitImage.region.hint"] = RegionHintText,
@@ -1695,6 +1698,7 @@ internal static class ActionStrings
         ["vision.clickImage.orderBy.hint"] = MatchOrderHint,
         ["vision.clickImage.orderBy.option.reading"] = "阅读顺序",
         ["vision.clickImage.orderBy.option.score"] = "分数最高",
+        ["vision.clickImage.orderBy.option.area"] = "面积最大",
         ["vision.clickImage.orderBy.option.random"] = "随机",
         ["vision.clickImage.matchIndex.label"] = "第几个命中",
         ["vision.clickImage.matchIndex.hint"] = MatchIndexHint,
@@ -1718,6 +1722,7 @@ internal static class ActionStrings
         ["vision.findColor.orderBy.hint"] = MatchOrderHint,
         ["vision.findColor.orderBy.option.reading"] = "阅读顺序",
         ["vision.findColor.orderBy.option.score"] = "分数最高",
+        ["vision.findColor.orderBy.option.area"] = "面积最大",
         ["vision.findColor.orderBy.option.random"] = "随机",
         ["vision.findColor.allMatches.label"] = "记录全部命中",
         ["vision.findColor.allMatches.hint"] = AllMatchesHint,
@@ -1923,6 +1928,7 @@ internal static class ActionStrings
         ["ocr.findText.orderBy.hint"] = MatchOrderHint,
         ["ocr.findText.orderBy.option.reading"] = "阅读顺序",
         ["ocr.findText.orderBy.option.score"] = "分数最高",
+        ["ocr.findText.orderBy.option.area"] = "面积最大",
         ["ocr.findText.orderBy.option.random"] = "随机",
         ["ocr.findText.content.label"] = "内容",
         ["ocr.findText.content.hint"] = "与屏幕内容按全部文字比对还是按数字比对：按数字比对时，"
@@ -1957,6 +1963,7 @@ internal static class ActionStrings
         ["ocr.clickText.orderBy.hint"] = MatchOrderHint,
         ["ocr.clickText.orderBy.option.reading"] = "阅读顺序",
         ["ocr.clickText.orderBy.option.score"] = "分数最高",
+        ["ocr.clickText.orderBy.option.area"] = "面积最大",
         ["ocr.clickText.orderBy.option.random"] = "随机",
         ["ocr.clickText.content.label"] = "内容",
         ["ocr.clickText.content.hint"] = "把屏幕按全部文字找，还是按数字找：按数字找时，含数字的"

@@ -3290,12 +3290,14 @@ public static class ActionCatalog
     /// in an area, a picture on the screen, a line of writing.
     /// </summary>
     private static ActionParameter MatchOrder()
-        => Choice("orderBy", "Count them in", ["reading", "score", "random"], "reading",
+        => Choice("orderBy", "Count them in", ["reading", "score", "area", "random"], "reading",
             "What order the hits are counted in, which is what the match number counts. Reading is "
             + "down the screen first and then across, the way a person counts them. Score takes the "
-            + "surest one wherever it is on the screen. Random shuffles them, for a step that must "
-            + "not always take the same one of several.",
-            labels: ["Reading order", "Surest first", "Shuffled"], advanced: true);
+            + "surest one wherever it is on the screen. Size takes the biggest box first, which is "
+            + "how a step asks for the whole banner rather than a piece of it when looking by "
+            + "features or reading writing. Random shuffles them, for a step that must not always "
+            + "take the same one of several.",
+            labels: ["Reading order", "Surest first", "Biggest first", "Shuffled"], advanced: true);
 
     /// <summary>
     /// Whether a step records the whole set of hits as well as the one it picked, shared by the

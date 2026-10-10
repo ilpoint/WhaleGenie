@@ -3353,6 +3353,7 @@ public sealed class MacroRunner
         .ToLowerInvariant() switch
     {
         "score" => MatchOrder.Score,
+        "area" => MatchOrder.Area,
         "random" => MatchOrder.Random,
         _ => MatchOrder.Reading,
     };
@@ -3360,7 +3361,8 @@ public sealed class MacroRunner
     /// <summary>
     /// The hits in the order the step wants to count them in, which is what "the third one" means.
     /// Reading order is how a person counts them; by score is for a macro that wants the surest one
-    /// wherever it is on the screen; shuffled is for one that must not always take the same one.
+    /// wherever it is on the screen; by area is for one that wants the whole of something rather
+    /// than a piece of it; shuffled is for one that must not always take the same one.
     /// </summary>
     private static void Sorted(List<ImageMatch> hits, ExecutableStep step)
     {
@@ -3368,6 +3370,10 @@ public sealed class MacroRunner
         {
             case MatchOrder.Score:
                 hits.Sort((left, right) => right.Score.CompareTo(left.Score));
+                break;
+
+            case MatchOrder.Area:
+                hits.Sort((left, right) => Box(right).CompareTo(Box(left)));
                 break;
 
             case MatchOrder.Random:
@@ -3389,6 +3395,10 @@ public sealed class MacroRunner
                 spans.Sort((left, right) => right.Confidence.CompareTo(left.Confidence));
                 break;
 
+            case MatchOrder.Area:
+                spans.Sort((left, right) => Box(right.Size).CompareTo(Box(left.Size)));
+                break;
+
             case MatchOrder.Random:
                 Shuffle(spans);
                 break;
@@ -3400,6 +3410,14 @@ public sealed class MacroRunner
                 break;
         }
     }
+
+    /// <summary>
+    /// How much room a hit takes up, which is what "the biggest one" counts. An area of nothing is
+    /// possible: a colour hit is one pixel and a reading of no characters has no width.
+    /// </summary>
+    private static long Box(ImageMatch hit) => Box(hit.Size);
+
+    private static long Box(ScreenSize size) => (long)size.Width * size.Height;
 
     /// <summary>Shuffles in place, so a macro that takes the first of several does not always take the same one.</summary>
     private static void Shuffle<T>(IList<T> items)

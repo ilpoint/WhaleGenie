@@ -975,6 +975,28 @@ public class DeviceActionTests
     }
 
     /// <summary>
+    /// Looked for by features a picture comes back at whatever size it was drawn at, so the biggest
+    /// box is how a step says "the whole banner, not a piece of it".
+    /// </summary>
+    [Fact]
+    public async Task The_biggest_picture_can_be_the_one_taken()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(50, 5), new ScreenSize(4, 4)));
+        devices.Matches.Add(new ImageMatch(0.91, new ScreenPoint(10, 10), new ScreenSize(120, 40)));
+        devices.Matches.Add(new ImageMatch(0.95, new ScreenPoint(30, 70), new ScreenSize(40, 20)));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Param("image", "ok.png"), Param("orderBy", "area"),
+                Param("allMatches", "true"), Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.Equal("70,30", store.Local.Values["where"].AsText());
+        Assert.Equal("70,30, 50,80, 52,7", store.Local.Values["where.list"].AsText());
+    }
+
+    /// <summary>
     /// A colour search looked at by score keeps the pixel closest to the colour asked for, even when
     /// that pixel is not the first one the area is walked over.
     /// </summary>
@@ -1013,6 +1035,32 @@ public class DeviceActionTests
         ], devices);
 
         Assert.Equal("25,64", store.Local.Values["where"].AsText());
+    }
+
+    /// <summary>
+    /// The model hands a line and the words on it back separately, so reading a whole line rather
+    /// than one word off it is the biggest box as well.
+    /// </summary>
+    [Fact]
+    public async Task The_widest_reading_can_be_the_one_taken()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans =
+            [
+                new TextSpan("Ready", new ScreenPoint(10, 10), new ScreenSize(30, 8), 30),
+                new TextSpan("Ready to go", new ScreenPoint(100, 90), new ScreenSize(80, 8), 30),
+            ],
+        };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("ocr.findText", Param("text", "Ready"), Param("matchMode", "contains"),
+                Param("orderBy", "area"),
+                Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.Equal("140,94", store.Local.Values["where"].AsText());
     }
 
     /// <summary>

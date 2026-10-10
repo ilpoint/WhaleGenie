@@ -172,6 +172,13 @@ public enum MatchOrder
     Score,
 
     /// <summary>
+    /// The biggest box first. A picture looked for by features comes back at whatever size it was
+    /// drawn at, and a reading of writing can be a whole line or one word, so the biggest one is
+    /// how a step says "the whole banner, not a piece of it".
+    /// </summary>
+    Area,
+
+    /// <summary>
     /// Shuffled, for a macro that must not always take the same one of several.
     /// </summary>
     Random,
