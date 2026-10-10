@@ -34,6 +34,7 @@ public static class MacroStepConverter
         Text = parameter.Value,
         Jitter = parameter.Jitter,
         Steps = [.. parameter.Steps.Select(step => Convert(step, counter))],
+        Rows = [.. parameter.Rows.Select(row => (IReadOnlyDictionary<string, string>)row.Columns)],
         Condition = parameter.Condition is null ? null : Convert(parameter.Condition, counter),
     };
 

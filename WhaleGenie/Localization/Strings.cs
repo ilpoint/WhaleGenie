@@ -188,6 +188,21 @@ public sealed class Strings : INotifyPropertyChanged
         ["Region.Size"] = "x {0}  y {1}   {2} × {3}",
         ["Add.PickRegion"] = "Pick region",
         ["Add.PickRegionHint"] = "Drag a rectangle on the screen to fill these fields.",
+        ["Add.RegionAdd"] = "Add a region",
+        ["Add.RegionRemove"] = "Remove",
+        ["Add.RegionRemoveHint"] = "Take this region out of the list.",
+        ["Add.RegionNumbers"] = "Four numbers",
+        ["Add.RegionNumbersHint"] = "Say where to look with x, y, width and height.",
+        ["Add.RegionVariable"] = "From a variable",
+        ["Add.RegionVariableHint"] = "Let a variable say where to look: one holding a picture an "
+            + "earlier Capture took, which is then searched inside, or one holding a rectangle "
+            + "written as x,y,width,height.",
+        ["Add.RegionVariablePlaceholder"] = "$shot",
+        ["Add.RegionX"] = "X",
+        ["Add.RegionY"] = "Y",
+        ["Add.RegionWidth"] = "Width",
+        ["Add.RegionHeight"] = "Height",
+        ["Add.RegionEmpty"] = "Looking at the whole screen.",
         ["Add.LookOnce"] = "Try looking",
         ["Add.LookOnceHint"] = "Look once the way this step will, and show what turned up. "
             + "Nothing is clicked and nothing is pressed.",
@@ -338,6 +353,7 @@ public sealed class Strings : INotifyPropertyChanged
         // two different places on the list.
         ["Editor.BlockEnd"] = "end of {0}",
         ["Editor.Fold"] = "Fold the steps inside",
+        ["Editor.RegionCount"] = "{0} region(s)",
         ["Editor.StepIdHint"] = "Step name {0} — a result variable and a condition point at this "
             + "step by it.",
         ["Editor.Unfold"] = "Show the steps inside",
@@ -1114,6 +1130,20 @@ public sealed class Strings : INotifyPropertyChanged
         ["Region.Size"] = "x {0}  y {1}   宽 {2} × 高 {3}",
         ["Add.PickRegion"] = "框选区域",
         ["Add.PickRegionHint"] = "在屏幕上拖出一个矩形，自动填入这些字段。",
+        ["Add.RegionAdd"] = "加一条区域",
+        ["Add.RegionRemove"] = "删除",
+        ["Add.RegionRemoveHint"] = "把这一条从列表里去掉了。",
+        ["Add.RegionNumbers"] = "四个数字",
+        ["Add.RegionNumbersHint"] = "用 x、y、宽、高说明看哪里。",
+        ["Add.RegionVariable"] = "用变量",
+        ["Add.RegionVariableHint"] = "改由变量说明看哪里：截图动作存的图片变量（会在那张图里找），"
+            + "或装着 x,y,宽,高 的变量。",
+        ["Add.RegionVariablePlaceholder"] = "$shot",
+        ["Add.RegionX"] = "X",
+        ["Add.RegionY"] = "Y",
+        ["Add.RegionWidth"] = "宽",
+        ["Add.RegionHeight"] = "高",
+        ["Add.RegionEmpty"] = "没填就是看整个屏幕。",
         ["Add.LookOnce"] = "试找一下",
         ["Add.LookOnceHint"] = "按这一步将要用的方式找一次，把看到的画面和分数显示出来。"
             + "不点击、不按键、不动变量。",
@@ -1246,6 +1276,7 @@ public sealed class Strings : INotifyPropertyChanged
         // 块的两端。有了它们，“在循环里”和“在循环后面”才是列表上两个不同的位置。
         ["Editor.BlockEnd"] = "{0} 结束",
         ["Editor.Fold"] = "收起里面的步骤",
+        ["Editor.RegionCount"] = "{0} 处",
         ["Editor.StepIdHint"] = "步骤名称 {0}——结果变量和条件用它指这一步。",
         ["Editor.Unfold"] = "展开里面的步骤",
         ["Editor.AddInside"] = "在这一块的末尾添加子步骤",

@@ -24,6 +24,31 @@ public class DeviceActionTests
     private static ExecutableParameter Body(string name, params ExecutableStep[] steps)
         => new() { Name = name, Steps = steps };
 
+    /// <summary>
+    /// Where a step looks, written the way the dialog writes it: one row per rectangle, each row
+    /// saying where its corners are by column name.
+    /// </summary>
+    private static ExecutableParameter Region(params (int X, int Y, int Width, int Height)[] rectangles)
+        => new() { Name = "region", Rows = [.. rectangles.Select(Rectangle)] };
+
+    /// <summary>A search region that names a variable instead of giving numbers.</summary>
+    private static ExecutableParameter RegionFrom(string named)
+        => new()
+        {
+            Name = "region",
+            Rows = [new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["text"] = named }],
+        };
+
+    private static IReadOnlyDictionary<string, string> Rectangle(
+        (int X, int Y, int Width, int Height) rectangle)
+        => new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["x"] = rectangle.X.ToString(CultureInfo.InvariantCulture),
+            ["y"] = rectangle.Y.ToString(CultureInfo.InvariantCulture),
+            ["width"] = rectangle.Width.ToString(CultureInfo.InvariantCulture),
+            ["height"] = rectangle.Height.ToString(CultureInfo.InvariantCulture),
+        };
+
     private static ExecutableParameter When(string name, ExecutableStep step)
         => new() { Name = name, Condition = step };
 
@@ -508,7 +533,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("vision.findImage", Param("image", "ok.png"), Param("region", "10,20,30,40"),
+            Step("vision.findImage", Param("image", "ok.png"), Region((10, 20, 30, 40)),
                 Param("anchorMode", "window"), Param("anchorWindow", "Notepad"),
                 Param("resultVariable", "where")),
         ], devices);
@@ -563,7 +588,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.findColor", Param("color", "#FF0000"), Param("tolerance", "1"),
-                Param("region", "0,0,2,2"), Param("resultVariable", "spot")),
+                Region((0, 0, 2, 2)), Param("resultVariable", "spot")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -633,7 +658,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.findColor", Param("color", "#FF0000"), Param("tolerance", "1"),
-                Param("matchIndex", "2"), Param("region", "0,0,3,1"),
+                Param("matchIndex", "2"), Region((0, 0, 3, 1)),
                 Param("resultVariable", "spot")),
         ], devices);
 
@@ -648,7 +673,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.findColor", Param("color", "#FF0000"), Param("tolerance", "1"),
-                Param("allMatches", "true"), Param("region", "0,0,3,1"),
+                Param("allMatches", "true"), Region((0, 0, 3, 1)),
                 Param("resultVariable", "spot")),
         ], devices);
 
@@ -821,7 +846,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.findColor", Param("color", "#FF0000"), Param("tolerance", "10"),
-                Param("orderBy", "score"), Param("region", "0,0,3,1"),
+                Param("orderBy", "score"), Region((0, 0, 3, 1)),
                 Param("resultVariable", "spot")),
         ], devices);
 
@@ -881,7 +906,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.findImage", Param("image", "ok.png"),
-                Param("region", "0,0,10,10; 100,100,10,10"),
+                Region((0, 0, 10, 10), (100, 100, 10, 10)),
                 Param("matchIndex", "2"), Param("resultVariable", "where")),
         ], devices);
 
@@ -1170,7 +1195,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.findImage", Param("image", "a.png"), Param("confidence", "90"),
-                Param("region", "10,20,30,40"), Param("resultVariable", "where")),
+                Region((10, 20, 30, 40)), Param("resultVariable", "where")),
         ], devices);
 
         // The match is reported in screen coordinates, not in region coordinates.
@@ -4239,11 +4264,60 @@ public class DeviceActionTests
         [
             Step("control.setVariable", Param("name", "box"), Param("value", "10,20,30,40")),
             Step("vision.findImage", Param("image", "a.png"), Param("confidence", "90"),
-                Param("region", "$box"), Param("resultVariable", "where")),
+                RegionFrom("$box"), Param("resultVariable", "where")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Contains("capture 10 20 30 40", devices.Calls);
+    }
+
+    /// <summary>
+    /// A picture taken earlier can be the place a step looks in, so the screen is grabbed once and
+    /// looked at as often as the macro likes rather than again for every search.
+    /// </summary>
+    [Fact]
+    public async Task A_picture_taken_earlier_can_be_searched_inside()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Display = Picture("#000000,#FF0000"),
+            Match = new ImageMatch(0.99, new ScreenPoint(1, 0), new ScreenSize(1, 1)),
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.capture", Param("x", "0"), Param("y", "0"), Param("width", "2"),
+                Param("height", "1"), Param("saveTo", "shot")),
+            Step("vision.findImage", Param("image", "a.png"), Param("confidence", "90"),
+                RegionFrom("$shot"), Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+
+        // The screen was grabbed for the capture and not again for the search: what was searched is
+        // the picture the capture left behind.
+        Assert.Single(devices.Calls, call => call.StartsWith("capture", StringComparison.Ordinal));
+        Assert.Equal("1,0", store.Local.Values["where"].AsText());
+    }
+
+    /// <summary>A place to look that cannot be read is said in a sentence rather than guessed at.</summary>
+    [Fact]
+    public async Task A_region_that_makes_no_sense_fails_the_step_with_a_sentence()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Loaded = new ImageFrame(2, 2, new byte[16]),
+            Match = new ImageMatch(0.99, new ScreenPoint(0, 0), new ScreenSize(2, 2)),
+        };
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findImage", Param("image", "a.png"), Param("confidence", "90"),
+                Region((10, 20, 0, 40)), Param("resultVariable", "where")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.BadRegion", result.Key);
     }
 
     [Fact]

@@ -40,6 +40,12 @@ public enum ActionParameterKind
     Image,
 
     /// <summary>
+    /// The places on the screen to look at, edited as a list of rectangles that can be dragged out
+    /// one by one: two halves of a screen are two rows rather than one line of punctuation.
+    /// </summary>
+    Region,
+
+    /// <summary>
     /// The title of a window, edited with free text and the window picker.
     /// </summary>
     Window,

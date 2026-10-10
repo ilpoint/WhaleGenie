@@ -1916,7 +1916,7 @@ public static class ActionCatalog
                 SkipColour(),
                 MinFeatures(),
                 MatchOrder(),
-                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
+                Region(),
                 ..Anchor(),
                 MatchIndex(),
                 AllMatches(),
@@ -1943,7 +1943,7 @@ public static class ActionCatalog
                 SkipColour(),
                 MinFeatures(),
                 MatchOrder(),
-                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
+                Region(),
                 ..Anchor(),
                 MatchIndex(),
                 Number("timeoutMs", "Timeout", 5000, "Give up after this long."),
@@ -1968,7 +1968,7 @@ public static class ActionCatalog
                 SkipColour(),
                 MinFeatures(),
                 MatchOrder(),
-                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
+                Region(),
                 ..Anchor(),
                 MatchIndex(),
                 Number("offsetX", "Offset X", 0, "Pixels added to the match centre.",
@@ -2025,7 +2025,7 @@ public static class ActionCatalog
                     + "across. 1 is the first one.", min: 1, max: 200),
                 MatchOrder(),
                 AllMatches(),
-                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
+                Region(),
                 ..Anchor(),
                 Number("timeoutMs", "Timeout", 0,
                     "0 looks once and leaves the result empty when the colour is not there. "
@@ -2047,7 +2047,7 @@ public static class ActionCatalog
                 + "picture that is not still being drawn.",
             Parameters =
             [
-                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
+                Region(),
                 ..Anchor(),
                 Number("quietMs", "Hold still for", 500,
                     "How long the area has to stay unchanged before the step goes on. A page that "
@@ -2107,7 +2107,7 @@ public static class ActionCatalog
             [
                 Text("text", "Text to find", "Save", "Text to look for."),
                 Expected(),
-                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
+                Region(),
                 ..Anchor(),
                 TextMatch(),
                 Content(),
@@ -2537,7 +2537,7 @@ public static class ActionCatalog
             [
                 Image("image", "Image file", @"C:\images\ok.png"),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
-                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
+                Region(),
                 ..Anchor(),
             ],
         },
@@ -2551,7 +2551,7 @@ public static class ActionCatalog
             [
                 Image("image", "Image file", @"C:\images\ok.png"),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
-                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
+                Region(),
                 ..Anchor(),
             ],
         },
@@ -2564,7 +2564,7 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("text", "Text", "Ready"),
-                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
+                Region(),
                 ..Anchor(),
                 TextMatch(),
             ],
@@ -2578,7 +2578,7 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("text", "Text", "Ready"),
-                Text("region", "Search region", required: false, hint: RegionHint, acceptsVariables: true),
+                Region(),
                 ..Anchor(),
                 TextMatch(),
             ],
@@ -3135,6 +3135,21 @@ public static class ActionCatalog
             Required = true,
         };
 
+    /// <summary>
+    /// The places on the screen an action looks at. It is a list rather than a line of text so that
+    /// a rectangle can be dragged out on the screen instead of spelled out in numbers, and so that
+    /// looking at two halves of a screen reads as two things rather than as punctuation.
+    /// </summary>
+    private static ActionParameter Region()
+        => new()
+        {
+            Name = "region",
+            Label = "Search region",
+            Kind = ActionParameterKind.Region,
+            Hint = RegionHint,
+            Required = false,
+        };
+
     /// <summary>Mouse button picker shared by every input action that clicks.</summary>
     private static ActionParameter Button()
         => Choice("button", "Button", ["left", "right", "middle", "back", "forward"], "left");
@@ -3160,9 +3175,11 @@ public static class ActionCatalog
     /// region may hold several rectangles, which is how one step looks in two windows at once.
     /// </summary>
     private const string RegionHint =
-        "Optional x,y,width,height limit, written out or held in a variable. Several rectangles may "
-        + "be listed, separated by a semicolon, and every one of them is searched. Leave empty to "
-        + "search the whole screen.";
+        "Optional: the places on the screen to look at, one row each, so two halves of a screen are "
+        + "two rows. Drag a rectangle with “pick region”, or type the four numbers. A row may "
+        + "instead name a variable: one holding a picture an earlier Capture took, which is then "
+        + "searched inside, or one holding a rectangle written as x,y,width,height. Leave it empty "
+        + "to search the whole screen.";
 
     /// <summary>
     /// Which of several hits a step means, shared by the actions that can find more than one. Hits

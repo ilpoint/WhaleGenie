@@ -35,6 +35,13 @@ public class StepParameter
     /// <summary>Child steps, filled in when <see cref="Kind"/> is <see cref="ActionParameterKind.Steps"/>.</summary>
     public List<MacroStep> Steps { get; init; } = [];
 
+    /// <summary>
+    /// The rows of a parameter that holds a list of them, filled in when <see cref="Kind"/> is
+    /// <see cref="ActionParameterKind.Region"/>. What the columns of a row mean belongs to the
+    /// action, so this holds the names and what they say rather than a shape of its own.
+    /// </summary>
+    public List<StepParameterRow> Rows { get; init; } = [];
+
     /// <summary>Chosen condition, filled in when <see cref="Kind"/> is <see cref="ActionParameterKind.Condition"/>.</summary>
     public MacroStep? Condition { get; init; }
 
@@ -48,9 +55,43 @@ public class StepParameter
         ActionParameterKind.Bool => JsonValue.Create(
             string.Equals(Value, "true", StringComparison.OrdinalIgnoreCase)),
         ActionParameterKind.Steps => BuildArray(Steps),
+        ActionParameterKind.Region => RowsJson(),
         ActionParameterKind.Condition => Condition?.ToJson(),
         _ => JsonValue.Create(Value),
     };
+
+    /// <summary>
+    /// The rows as a JSON array with one object per row and one member per column. A column that
+    /// says a number is written as one, so the file reads the way the field was filled in, and a
+    /// column that says nothing is left out rather than written down as nothing.
+    /// </summary>
+    private JsonArray RowsJson()
+    {
+        var array = new JsonArray();
+        foreach (var row in Rows)
+        {
+            var written = new JsonObject();
+            foreach (var (column, value) in row.Columns)
+            {
+                if (value.Length == 0)
+                {
+                    continue;
+                }
+
+                written[column] = decimal.TryParse(value, NumberStyles.Number,
+                    CultureInfo.InvariantCulture, out var number)
+                        ? JsonValue.Create(number)
+                        : JsonValue.Create(value);
+            }
+
+            if (written.Count > 0)
+            {
+                array.Add(written);
+            }
+        }
+
+        return array;
+    }
 
     /// <summary>Rebuilds a parameter from the JSON node written by <see cref="ToJson"/>.</summary>
     public static StepParameter FromJson(string name, JsonNode? node, ActionDefinition? owner,
@@ -61,6 +102,12 @@ public class StepParameter
 
         return node switch
         {
+            JsonArray rows when definition?.Kind is ActionParameterKind.Region => new StepParameter
+            {
+                Name = name,
+                Kind = ActionParameterKind.Region,
+                Rows = [.. rows.OfType<JsonObject>().Select(Row)],
+            },
             JsonArray array => new StepParameter
             {
                 Name = name,
@@ -81,6 +128,21 @@ public class StepParameter
                 Jitter = jitter,
             },
         };
+    }
+
+    /// <summary>One row of a list parameter, read back out of the object it was written as.</summary>
+    private static StepParameterRow Row(JsonObject written)
+    {
+        var row = new StepParameterRow();
+        foreach (var (column, value) in written)
+        {
+            if (value is not null)
+            {
+                row.Columns[column] = ReadValue(value);
+            }
+        }
+
+        return row;
     }
 
     /// <summary>Reads a scalar node back as the text the editors work with.</summary>
@@ -105,6 +167,33 @@ public class StepParameter
 
         return array;
     }
+}
+
+/// <summary>
+/// One row of a parameter that holds a list of rows, such as the regions a search looks in: what
+/// each of the row's columns says, by name. Which columns there are and what they mean belongs to
+/// the action, so a row is written down as it is rather than as a shape of its own — the same row
+/// therefore serves a search region and, later, a chord of a key sequence.
+/// </summary>
+public class StepParameterRow
+{
+    /// <summary>What each column of this row says, by column name.</summary>
+    public Dictionary<string, string> Columns { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>What a column says, or nothing when the row has no such column.</summary>
+    public string Text(string column) => Columns.TryGetValue(column, out var value) ? value : string.Empty;
+
+    /// <summary>A row that says one thing in one column, which is how a named region is written.</summary>
+    public static StepParameterRow Of(string column, string value) => new()
+    {
+        Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [column] = value },
+    };
+
+    /// <summary>A copy, so a duplicated step does not share its rows with the step it came from.</summary>
+    public StepParameterRow Copy() => new()
+    {
+        Columns = new Dictionary<string, string>(Columns, StringComparer.OrdinalIgnoreCase),
+    };
 }
 
 /// <summary>A single step of a macro, saved as one node of the macro's JSON tree.</summary>
@@ -272,6 +361,9 @@ public class MacroStep : INotifyPropertyChanged
                         break;
                     case ActionParameterKind.Condition when parameter.Condition is not null:
                         parts.Add($"{label} = {parameter.Condition.DisplayName}");
+                        break;
+                    case ActionParameterKind.Region when parameter.Rows.Count > 0:
+                        parts.Add($"{label} = {Strings.Format("Editor.RegionCount", parameter.Rows.Count)}");
                         break;
                     case ActionParameterKind.Steps or ActionParameterKind.Condition:
                         break;

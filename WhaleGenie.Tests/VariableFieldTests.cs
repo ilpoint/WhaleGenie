@@ -34,7 +34,7 @@ public class VariableFieldTests
     }
 
     [Fact]
-    public void A_search_region_offers_the_variables_it_says_it_may_hold()
+    public void A_search_region_is_a_list_of_places_rather_than_a_line_of_punctuation()
     {
         Ui.Run(() =>
         {
@@ -47,15 +47,31 @@ public class VariableFieldTests
             {
                 var region = Parameter(Open(key), "region");
 
-                Assert.True(region.OffersVariables, $"{key} stopped offering its variables");
+                Assert.True(region.IsRegion, $"{key}'s search region is not a list of places");
                 Assert.False(region.IsPlainText, $"{key}'s region went back to a plain box");
-                Assert.False(region.OffersFormula, $"{key}'s region is not a formula field");
-                Assert.NotEmpty(region.ExpressionSuggestions);
 
-                // A region is filled in rather than worked out, so it is offered names and not the
-                // expression functions: a function written there would be taken literally.
-                Assert.DoesNotContain(region.ExpressionSuggestions,
-                    entry => entry.EndsWith('('));
+                // One row is one place to look, and a place is either four numbers or a variable
+                // that says where to look — a picture taken earlier, most often.
+                Assert.False(region.HasRegions, $"{key} starts with somewhere to look");
+                region.AddRegion();
+                Assert.Single(region.Regions);
+                Assert.True(region.HasRegions);
+                Assert.Empty(region.Regions[0].ToRow().Columns);
+
+                // What the region picker dragged out lands in the row that asked for it.
+                region.Regions[0].Put(10, 20, 30, 40);
+                Assert.Equal("10", region.Regions[0].ToRow().Text("x"));
+                Assert.Equal("20", region.Regions[0].ToRow().Text("y"));
+                Assert.Equal("30", region.Regions[0].ToRow().Text("width"));
+                Assert.Equal("40", region.Regions[0].ToRow().Text("height"));
+
+                region.AddRegion(new RegionRowViewModel { IsFromVariable = true, Named = "$shot" });
+                Assert.Equal(2, region.Regions.Count);
+                Assert.Equal("$shot", region.Regions[1].ToRow().Text("text"));
+
+                region.RemoveRegion(region.Regions[0]);
+                Assert.Single(region.Regions);
+                Assert.Equal("$shot", region.Regions[0].ToRow().Text("text"));
             }
         });
     }

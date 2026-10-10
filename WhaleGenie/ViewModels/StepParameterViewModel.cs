@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using Avalonia.Media.Imaging;
@@ -121,6 +122,34 @@ public partial class StepParameterViewModel : ViewModelBase
 
     /// <summary>Nested editor, set when this parameter holds steps or a condition.</summary>
     public StepListEditorViewModel? List { get; }
+
+    /// <summary>
+    /// The places this step looks at, when it is one that searches: one row per rectangle, which
+    /// the region picker fills in from a drag on the screen.
+    /// </summary>
+    public ObservableCollection<RegionRowViewModel> Regions { get; } = [];
+
+    /// <summary>True when this parameter is a list of the places to search.</summary>
+    public bool IsRegion => Definition.Kind is ActionParameterKind.Region;
+
+    /// <summary>True while the step has nowhere in particular to look, which is the whole screen.</summary>
+    public bool HasRegions => Regions.Count > 0;
+
+    /// <summary>Puts a place to look at at the end of the list, for the user to fill in.</summary>
+    public void AddRegion(RegionRowViewModel? row = null)
+    {
+        var added = row ?? new RegionRowViewModel();
+        added.Take = RemoveRegion;
+        Regions.Add(added);
+        OnPropertyChanged(nameof(HasRegions));
+    }
+
+    /// <summary>Takes one place to look at out of the list.</summary>
+    public void RemoveRegion(RegionRowViewModel row)
+    {
+        Regions.Remove(row);
+        OnPropertyChanged(nameof(HasRegions));
+    }
 
     /// <summary>
     /// Variables offered while editing a field that may name one, with what choosing one takes.
@@ -697,9 +726,14 @@ public partial class StepParameterViewModel : ViewModelBase
     };
 
     /// <summary>Optional parameters left blank are dropped from the saved node.</summary>
+    /// <remarks>
+    /// A list of places to look at is there when it holds a place: an empty one means the whole
+    /// screen, which is what the step does when the list is not written down at all.
+    /// </remarks>
     public bool IsIncluded => IsEnabled && Definition.Kind switch
     {
         ActionParameterKind.Steps or ActionParameterKind.Condition => HasNestedSteps,
+        ActionParameterKind.Region => Regions.Count > 0,
         _ => Definition.Required || !string.IsNullOrWhiteSpace(CurrentText),
     };
 
@@ -849,6 +883,9 @@ public partial class StepParameterViewModel : ViewModelBase
         Steps = Definition.Kind is ActionParameterKind.Steps
             ? List?.Steps.ToList() ?? []
             : [],
+        Rows = Definition.Kind is ActionParameterKind.Region
+            ? [.. Regions.Select(row => row.ToRow())]
+            : [],
         Condition = Definition.Kind is ActionParameterKind.Condition
             ? List?.Steps.FirstOrDefault()
             : null,
@@ -860,6 +897,17 @@ public partial class StepParameterViewModel : ViewModelBase
         if (Definition.Kind is ActionParameterKind.Steps)
         {
             List?.Load(stored.Steps);
+            return;
+        }
+
+        if (Definition.Kind is ActionParameterKind.Region)
+        {
+            Regions.Clear();
+            foreach (var row in stored.Rows)
+            {
+                AddRegion(RegionRowViewModel.From(row));
+            }
+
             return;
         }
 

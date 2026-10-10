@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -29,9 +30,26 @@ public class RunLookTests
     private static ExecutableParameter Param(string name, string text = "")
         => new() { Name = name, Text = text };
 
-    private static ExecutableStep Find(string image = @"C:\images\ok.png", string region = "")
+    /// <summary>
+    /// A step that looks for a picture, with the places to look given the way the dialog gives
+    /// them: one row per rectangle.
+    /// </summary>
+    private static ExecutableStep Find(string image = @"C:\images\ok.png",
+        params (int X, int Y, int Width, int Height)[] regions)
         => Step("vision.findImage", Param("image", image), Param("confidence", "90"),
-            Param("region", region), Param("resultVariable", "match"));
+            new ExecutableParameter
+            {
+                Name = "region",
+                Rows = [.. regions.Select(region => (IReadOnlyDictionary<string, string>)
+                    new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["x"] = region.X.ToString(CultureInfo.InvariantCulture),
+                        ["y"] = region.Y.ToString(CultureInfo.InvariantCulture),
+                        ["width"] = region.Width.ToString(CultureInfo.InvariantCulture),
+                        ["height"] = region.Height.ToString(CultureInfo.InvariantCulture),
+                    })],
+            },
+            Param("resultVariable", "match"));
 
     private static FakeDeviceLayer Screen(int width = 200, int height = 100,
         ImageMatch? match = null)
@@ -78,7 +96,7 @@ public class RunLookTests
         var devices = Screen(match: new ImageMatch(0.9, new ScreenPoint(5, 6), new ScreenSize(2, 2)));
         var looks = new Watched();
 
-        await Run(Find(region: "10,20,50,40"), devices, looks);
+        await Run(Find(regions: [(10, 20, 50, 40)]), devices, looks);
 
         var look = Assert.Single(looks.Seen);
         Assert.Equal(new ScreenPoint(10, 20), look.Origin);
@@ -130,8 +148,8 @@ public class RunLookTests
         var watched = Screen(match: new ImageMatch(0.9, new ScreenPoint(1, 1), new ScreenSize(2, 2)));
         var looks = new Watched();
 
-        await Run(Find(region: "10,20,30,40; 50,10,30,40"), quiet);
-        await Run(Find(region: "10,20,30,40; 50,10,30,40"), watched, looks);
+        await Run(Find(regions: [(10, 20, 30, 40), (50, 10, 30, 40)]), quiet);
+        await Run(Find(regions: [(10, 20, 30, 40), (50, 10, 30, 40)]), watched, looks);
 
         Assert.DoesNotContain("capture 10 10 70 50", quiet.Calls);
         Assert.Contains("capture 10 10 70 50", watched.Calls);

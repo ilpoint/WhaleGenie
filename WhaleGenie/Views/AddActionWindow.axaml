@@ -299,6 +299,81 @@
                             Click="OnPickWindow" />
                 </Grid>
 
+                <!-- Where a step looks: one row per rectangle, so looking at two halves of a
+                     screen reads as two things, and each row can be dragged out on the screen
+                     instead of spelled out as numbers. -->
+                <StackPanel IsVisible="{Binding IsRegion}" Spacing="7">
+                    <ItemsControl ItemsSource="{Binding Regions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RegionRowViewModel">
+                                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto,Auto"
+                                      ColumnSpacing="6" Margin="0,0,0,4">
+                                    <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal"
+                                                Spacing="6" IsVisible="{Binding IsWritten}">
+                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                                   Text="{Binding [Add.RegionX], Source={x:Static loc:Strings.Current}}" />
+                                        <NumericUpDown Width="88" FormatString="0"
+                                                       Value="{Binding X}" />
+                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                                   Text="{Binding [Add.RegionY], Source={x:Static loc:Strings.Current}}" />
+                                        <NumericUpDown Width="88" FormatString="0"
+                                                       Value="{Binding Y}" />
+                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                                   Text="{Binding [Add.RegionWidth], Source={x:Static loc:Strings.Current}}" />
+                                        <NumericUpDown Width="88" FormatString="0"
+                                                       Value="{Binding Width}" />
+                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                                   Text="{Binding [Add.RegionHeight], Source={x:Static loc:Strings.Current}}" />
+                                        <NumericUpDown Width="88" FormatString="0"
+                                                       Value="{Binding Height}" />
+                                    </StackPanel>
+
+                                    <TextBox Grid.Row="0" Grid.Column="0" Classes="ParamInput"
+                                             IsVisible="{Binding IsFromVariable}"
+                                             Text="{Binding Named}"
+                                             PlaceholderText="{Binding [Add.RegionVariablePlaceholder], Source={x:Static loc:Strings.Current}}"
+                                             ToolTip.Tip="{Binding [Add.RegionVariableHint], Source={x:Static loc:Strings.Current}}" />
+
+                                    <StackPanel Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2"
+                                                Orientation="Horizontal" Spacing="6"
+                                                HorizontalAlignment="Right">
+                                        <Button Classes="FlatButton" Height="33" Padding="11,0"
+                                                IsVisible="{Binding IsFromVariable}"
+                                                Content="{Binding [Add.RegionNumbers], Source={x:Static loc:Strings.Current}}"
+                                                ToolTip.Tip="{Binding [Add.RegionNumbersHint], Source={x:Static loc:Strings.Current}}"
+                                                Command="{Binding UseNumbersCommand}" />
+                                        <Button Classes="FlatButton" Height="33" Padding="11,0"
+                                                IsVisible="{Binding IsWritten}"
+                                                Content="{Binding [Add.RegionVariable], Source={x:Static loc:Strings.Current}}"
+                                                ToolTip.Tip="{Binding [Add.RegionVariableHint], Source={x:Static loc:Strings.Current}}"
+                                                Command="{Binding UseVariableCommand}" />
+                                        <Button Classes="FlatButton" Height="33" Padding="11,0"
+                                                IsVisible="{Binding IsWritten}"
+                                                Content="{Binding [Add.PickRegion], Source={x:Static loc:Strings.Current}}"
+                                                ToolTip.Tip="{Binding [Add.PickRegionHint], Source={x:Static loc:Strings.Current}}"
+                                                Click="OnPickRegionRow" />
+                                    </StackPanel>
+
+                                    <Button Grid.Row="1" Grid.Column="3" Classes="FlatButton"
+                                            Height="26" Padding="9,0" HorizontalAlignment="Right"
+                                            Content="{Binding [Add.RegionRemove], Source={x:Static loc:Strings.Current}}"
+                                            ToolTip.Tip="{Binding [Add.RegionRemoveHint], Source={x:Static loc:Strings.Current}}"
+                                            Command="{Binding RemoveCommand}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                        <Button Classes="FlatButton" Height="30" Padding="10,0"
+                                Content="{Binding [Add.RegionAdd], Source={x:Static loc:Strings.Current}}"
+                                Click="OnAddRegionRow" />
+                        <TextBlock Grid.Column="1" Classes="Muted" VerticalAlignment="Center"
+                                   Text="{Binding [Add.RegionEmpty], Source={x:Static loc:Strings.Current}}"
+                                   IsVisible="{Binding !HasRegions}" />
+                    </Grid>
+                </StackPanel>
+
                 <ToggleSwitch IsVisible="{Binding IsBool}"
                               IsChecked="{Binding Flag}"
                               OnContent="" OffContent="" />

@@ -24,6 +24,13 @@ public sealed class ExecutableParameter
     /// <summary>Child steps, for a parameter that holds a list of them.</summary>
     public IReadOnlyList<ExecutableStep> Steps { get; init; } = [];
 
+    /// <summary>
+    /// Rows of a parameter that holds a list of them, for example the rectangles a search looks
+    /// in: what each column of one row says, by name. What the columns are is the action's own
+    /// business, so this carries the names and the values and nothing else.
+    /// </summary>
+    public IReadOnlyList<IReadOnlyDictionary<string, string>> Rows { get; init; } = [];
+
     /// <summary>Child step, for a parameter that holds a single condition.</summary>
     public ExecutableStep? Condition { get; init; }
 }
@@ -48,6 +55,10 @@ public sealed class ExecutableStep
 
     /// <summary>The child steps held by a named parameter.</summary>
     public IReadOnlyList<ExecutableStep> Children(string name) => Parameter(name)?.Steps ?? [];
+
+    /// <summary>The rows held by a named parameter, or nothing when it holds none.</summary>
+    public IReadOnlyList<IReadOnlyDictionary<string, string>> Rows(string name)
+        => Parameter(name)?.Rows ?? [];
 
     /// <summary>The condition held by a named parameter.</summary>
     public ExecutableStep? Condition(string name) => Parameter(name)?.Condition;

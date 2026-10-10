@@ -168,6 +168,17 @@ public static class MacroCheck
             return Expression.ReferencedNames(parameter.Value);
         }
 
+        // A list parameter keeps its values in rows, and every one of them is read like a plain
+        // field: a row naming a picture a Capture took is a name the macro has to have defined.
+        if (parameter.Kind is ActionParameterKind.Region)
+        {
+            return [.. parameter.Rows
+                .SelectMany(row => row.Columns.Values)
+                .Select(value => value.Trim())
+                .Where(value => value.StartsWith('$'))
+                .SelectMany(Expression.ReferencedNames)];
+        }
+
         var text = parameter.Value.Trim();
         return text.StartsWith('$') ? Expression.ReferencedNames(text) : [];
     }

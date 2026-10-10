@@ -349,53 +349,70 @@ public partial class VariableCenterViewModel : ViewModelBase
                         }
 
                         break;
-                    default:
-                        var text = parameter.Value.Trim();
-                        if (text.Length == 0)
+                    // A list parameter keeps its values in rows: whichever of them names a variable
+                    // is one the macro reads, the same as any plain field that starts with a "$".
+                    case ActionParameterKind.Region:
+                        foreach (var value in parameter.Rows.SelectMany(row => row.Columns.Values))
                         {
-                            break;
-                        }
-
-                        // An expression can read several variables anywhere inside it, so
-                        // every name it mentions counts, not just a leading "$name".
-                        if (parameter.Kind is ActionParameterKind.Expression)
-                        {
-                            foreach (var reference in Expression.ReferencedNames(text))
-                            {
-                                names.Add(reference);
-                            }
-
-                            break;
-                        }
-
-                        if (text.StartsWith('$'))
-                        {
-                            var reference = text[1..].Trim();
-                            if (reference.Length > 0)
-                            {
-                                names.Add(reference);
-                            }
-
-                            break;
-                        }
-
-                        if (known.Contains(text))
-                        {
-                            names.Add(text);
-                            break;
-                        }
-
-                        // A parameter that always names a variable can point at a name
-                        // nothing defines, which is worth showing while debugging.
-                        var declares = step.Definition?.Parameters
-                            .FirstOrDefault(candidate => candidate.Name == parameter.Name)?.NamesVariable;
-                        if (declares == true)
-                        {
-                            names.Add(text);
+                            Plain(step, parameter, value);
                         }
 
                         break;
+                    default:
+                        Plain(step, parameter, parameter.Value);
+                        break;
                 }
+            }
+        }
+
+        /// <summary>
+        /// One value the macro reads: a whole-value expression may name several variables anywhere
+        /// inside it, a plain field names one when it starts with a "$", and a field that always
+        /// names a variable counts even when nothing defines it — which is worth showing while
+        /// debugging.
+        /// </summary>
+        void Plain(MacroStep step, StepParameter parameter, string value)
+        {
+            var text = value.Trim();
+            if (text.Length == 0)
+            {
+                return;
+            }
+
+            if (parameter.Kind is ActionParameterKind.Expression)
+            {
+                foreach (var reference in Expression.ReferencedNames(text))
+                {
+                    names.Add(reference);
+                }
+
+                return;
+            }
+
+            if (text.StartsWith('$'))
+            {
+                var reference = text[1..].Trim();
+                if (reference.Length > 0)
+                {
+                    names.Add(reference);
+                }
+
+                return;
+            }
+
+            if (known.Contains(text))
+            {
+                names.Add(text);
+                return;
+            }
+
+            // A parameter that always names a variable can point at a name nothing defines, which
+            // is worth showing while debugging.
+            var declares = step.Definition?.Parameters
+                .FirstOrDefault(candidate => candidate.Name == parameter.Name)?.NamesVariable;
+            if (declares == true)
+            {
+                names.Add(text);
             }
         }
     }

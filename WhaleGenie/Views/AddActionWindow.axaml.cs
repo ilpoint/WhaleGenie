@@ -207,6 +207,32 @@ public partial class AddActionWindow : Window
         }
     }
 
+    /// <summary>Adds an empty place to look at to a step's list of them.</summary>
+    private void OnAddRegionRow(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepParameterViewModel parameter })
+        {
+            parameter.AddRegion();
+        }
+    }
+
+    /// <summary>
+    /// Drags a rectangle out on the screen and writes it into the row that asked for it, which is
+    /// how a region is given without the four numbers being read off a ruler.
+    /// </summary>
+    private async void OnPickRegionRow(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: RegionRowViewModel row })
+        {
+            return;
+        }
+
+        if (await RegionPickerWindow.PickAsync(this) is { } picked)
+        {
+            row.Put(picked.X, picked.Y, picked.Width, picked.Height);
+        }
+    }
+
     /// <summary>Switches a number between the spinner and an expression such as $match.x.</summary>
     private void OnToggleNumberFormula(object? sender, RoutedEventArgs e)
     {

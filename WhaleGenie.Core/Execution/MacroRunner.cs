@@ -3453,39 +3453,101 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// The places to search: the whole screen unless the step names rectangles, each of which may be
-    /// counted from a window's corner when the step says so.
+    /// The places to search: the whole screen unless the step names regions, each of which may be
+    /// counted from a window's corner when the step says so. One row of the step's region is either
+    /// a rectangle written out — which is what the region picker fills in — or the name of a
+    /// variable, which is how a rectangle or a picture taken earlier gets to be searched.
     /// </summary>
     private IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> SearchAreas(ExecutableStep step)
     {
-        // The rectangles may be written out, held in a variable, or built from several of them.
-        // They are only interpolated: the commas would stop an expression at the first number.
-        var text = Interpolate(step.Text("region")).Trim();
-        if (text.Length == 0)
+        var rows = step.Rows("region");
+        if (rows.Count == 0)
         {
             var size = _devices.Screen.PrimarySize;
             return [(_devices.Screen.Capture(0, 0, size.Width, size.Height), new ScreenPoint(0, 0))];
         }
 
-        // Several rectangles are separated by a semicolon or a line break, so one step can look at
-        // two windows, or at two halves of one, without the macro having to become two steps.
         var areas = new List<(ImageFrame, ScreenPoint)>();
-        foreach (var rectangle in text.Split([';', '\n', '\r'],
-                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        foreach (var row in rows)
         {
-            areas.Add(Area(step, rectangle));
+            areas.AddRange(Areas(step, row));
         }
 
         if (areas.Count == 0)
         {
-            throw new StepFailure("Run.BadRegion", text);
+            throw new StepFailure("Run.BadRegion", Written(rows));
         }
 
         return areas;
     }
 
-    /// <summary>One written rectangle, captured where on the screen it says.</summary>
-    private (ImageFrame Frame, ScreenPoint Origin) Area(ExecutableStep step, string rectangle)
+    /// <summary>What the regions of a step say, for a failure that has to show what it could not read.</summary>
+    private static string Written(IReadOnlyList<IReadOnlyDictionary<string, string>> rows)
+        => string.Join("; ", rows.Select(row => string.Join(',', row.Values)));
+
+    /// <summary>
+    /// What one region of a step comes to. A rectangle written out says where it is; a region that
+    /// names something looks the name up, which is how a picture an earlier Capture took is
+    /// searched — the screen is grabbed once and looked at as often as the macro likes — and how a
+    /// rectangle held in a variable gets to be used.
+    /// </summary>
+    private IEnumerable<(ImageFrame Frame, ScreenPoint Origin)> Areas(ExecutableStep step,
+        IReadOnlyDictionary<string, string> row)
+    {
+        if (!row.TryGetValue("text", out var written))
+        {
+            yield return Rectangle(step, row);
+            yield break;
+        }
+
+        // A picture taken earlier is looked up by the name the step wrote rather than through the
+        // variables: what a variable holds is a note about the picture, and it is the picture
+        // itself that is searched.
+        var raw = written.Trim();
+        var name = raw.StartsWith('$') ? raw[1..].Trim() : raw;
+        if (_images.TryGetValue(name, out var picture))
+        {
+            yield return (picture, new ScreenPoint(0, 0));
+            yield break;
+        }
+
+        // Anything else is a rectangle, written out or held in a variable. It is only interpolated
+        // rather than read as a whole expression: the commas of a written rectangle would stop an
+        // expression at its first number.
+        var named = Interpolate(raw).Trim();
+
+        // Several rectangles are separated by a semicolon or a line break, so a variable holding a
+        // list of them goes on working the way it always did.
+        foreach (var rectangle in named.Split([';', '\n', '\r'],
+                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            yield return Written(step, rectangle);
+        }
+    }
+
+    /// <summary>One region written as four numbers, captured where on the screen it says.</summary>
+    private (ImageFrame Frame, ScreenPoint Origin) Rectangle(ExecutableStep step,
+        IReadOnlyDictionary<string, string> row)
+    {
+        var x = Cell(row, "x");
+        var y = Cell(row, "y");
+        var width = Cell(row, "width");
+        var height = Cell(row, "height");
+        if (width <= 0 || height <= 0)
+        {
+            throw new StepFailure("Run.BadRegion", Written([row]));
+        }
+
+        return Capture(step, x, y, width, height);
+    }
+
+    /// <summary>One number of a region row, as its field was filled in.</summary>
+    private int Cell(IReadOnlyDictionary<string, string> row, string column)
+        => (int)Math.Round(Read(row.TryGetValue(column, out var written) ? written : string.Empty)
+            .AsNumber());
+
+    /// <summary>One written rectangle, such as one a variable holds.</summary>
+    private (ImageFrame Frame, ScreenPoint Origin) Written(ExecutableStep step, string rectangle)
     {
         var parts = rectangle.Split(',', StringSplitOptions.TrimEntries);
         if (parts.Length != 4
@@ -3499,9 +3561,17 @@ public sealed class MacroRunner
             throw new StepFailure("Run.BadRegion", rectangle);
         }
 
-        // A window-anchored rectangle is counted from that window's corner, and the origin handed
-        // back is the one on screen, so the positions read out of the picture are pixels the rest
-        // of the macro can click on.
+        return Capture(step, x, y, width, height);
+    }
+
+    /// <summary>
+    /// The picture taken of one rectangle. A window-anchored rectangle is counted from that
+    /// window's corner, and the origin handed back is the one on screen, so the positions read out
+    /// of the picture are pixels the rest of the macro can click on.
+    /// </summary>
+    private (ImageFrame Frame, ScreenPoint Origin) Capture(ExecutableStep step, int x, int y,
+        int width, int height)
+    {
         var corner = Place(step, x, y);
         return (_devices.Screen.Capture(corner.X, corner.Y, width, height), corner);
     }
