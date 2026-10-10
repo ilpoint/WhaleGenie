@@ -95,8 +95,15 @@
                 <TextBlock Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="13"
                            Foreground="#E8E8E8" TextWrapping="NoWrap"
                            Text="{Binding [Look.Title], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="2" Classes="TitleBarButton" Content="✕"
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
+                    <!-- A reference picture is read at its own size, and a whole screen of hits does
+                         not fit in a window; this is the answer to both. -->
+                    <Button Name="FullScreen" Classes="TitleBarButton" Padding="10,0"
+                            Click="OnToggleFullScreen"
+                            ToolTip.Tip="{Binding [Look.FullScreenHint], Source={x:Static loc:Strings.Current}}" />
+                    <Button Classes="TitleBarButton" Content="✕"
                         Click="OnClose" />
+                </StackPanel>
             </Grid>
 
             <!-- what the step was after, and how it went -->

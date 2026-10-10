@@ -1,4 +1,6 @@
 using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
@@ -109,6 +111,72 @@ public class LookWindowTests
         ],
         ChosenIndex = 1,
     };
+
+    /// <summary>
+    /// A wide picture is shown shrunk to fit, and goes back and forth between that and the size its
+    /// pixels really are, which is what double-clicking it does.
+    /// </summary>
+    [Fact]
+    public void Double_clicking_the_picture_goes_between_its_real_size_and_fitting()
+    {
+        Ui.Run(() =>
+        {
+            var wide = Found() with
+            {
+                Frame = new ImageFrame(4000, 8, new byte[4000 * 8 * 4]),
+            };
+
+            var window = new LookWindow(wide);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var fitted = window.FindControl<TextBlock>("ZoomText")!.Text;
+            Assert.NotEqual("100%", fitted);
+
+            window.ToggleRealSize();
+            Assert.Equal("100%", window.FindControl<TextBlock>("ZoomText")!.Text);
+
+            // Back to the size that fits. It is the fit worked out again rather than the number
+            // from before, because the room the picture has is not the same once it is that big:
+            // a scrollbar takes some of it.
+            window.ToggleRealSize();
+            Assert.NotEqual("100%", window.FindControl<TextBlock>("ZoomText")!.Text);
+        });
+    }
+
+    /// <summary>
+    /// A picture is read at its own size, and a screenful of hits does not fit in a window: the
+    /// window fills the screen and comes back, by the button and by F11, and Esc goes back to the
+    /// window before it closes it.
+    /// </summary>
+    [Fact]
+    public void The_window_fills_the_screen_and_comes_back()
+    {
+        Ui.Run(() =>
+        {
+            var window = new LookWindow(Found());
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var button = window.FindControl<Button>("FullScreen")!;
+            Assert.Equal(Strings.Get("Look.FullScreen"), button.Content);
+
+            window.KeyPressQwerty(PhysicalKey.F11, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(WindowState.FullScreen, window.WindowState);
+            Assert.Equal(Strings.Get("Look.FullScreenExit"), button.Content);
+
+            // Esc is the way back before it is the way out: the full screen is what just happened.
+            window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(WindowState.Normal, window.WindowState);
+            Assert.True(window.IsVisible);
+
+            window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(window.IsVisible);
+        });
+    }
 
     [Fact]
     public void The_zoom_is_applied_to_the_mark_as_well_as_to_the_picture()

@@ -66,8 +66,16 @@ public partial class LookWindow : Window
 
         Title = Strings.Get("Look.Title");
         FillHeader(look);
+        ShowFullScreenLabel();
         Zoom(Fit(), false);
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
+
+        // Double-clicking the picture is the zoom everybody already knows from a viewer: it goes
+        // between the size the pixels really are and the size that fits the window.
+        if (_board is not null)
+        {
+            _board.PointerPressed += OnPicturePressed;
+        }
     }
 
     /// <summary>
@@ -449,19 +457,77 @@ public partial class LookWindow : Window
 
     private void OnClose(object? sender, RoutedEventArgs e) => Close();
 
+    /// <summary>
+    /// Whether the window fills the screen, which is how a reference picture and a screenful of
+    /// hits are read: a window shrunk to fit a monitor shows neither at its own size.
+    /// </summary>
+    private void OnToggleFullScreen(object? sender, RoutedEventArgs e) => ToggleFullScreen();
+
+    private void ToggleFullScreen()
+    {
+        WindowState = WindowState == WindowState.FullScreen
+            ? WindowState.Normal
+            : WindowState.FullScreen;
+        ShowFullScreenLabel();
+    }
+
+    /// <summary>The button says what it will do next, so there is nothing to remember.</summary>
+    private void ShowFullScreenLabel()
+    {
+        if (this.FindControl<Button>("FullScreen") is { } button)
+        {
+            button.Content = Strings.Get(WindowState == WindowState.FullScreen
+                ? "Look.FullScreenExit"
+                : "Look.FullScreen");
+        }
+    }
+
     private void OnZoomIn(object? sender, RoutedEventArgs e) => Zoom(LookGeometry.Step(_zoom, true), true);
 
     private void OnZoomOut(object? sender, RoutedEventArgs e) => Zoom(LookGeometry.Step(_zoom, false), true);
 
     private void OnZoomFit(object? sender, RoutedEventArgs e) => Zoom(Fit(), false);
 
+    /// <summary>Double-clicking the picture goes between its real size and the size that fits.</summary>
+    private void OnPicturePressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.ClickCount < 2)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        ToggleRealSize();
+    }
+
+    /// <summary>
+    /// Switches the picture between the size its pixels really are and the size that fits the room
+    /// there is for it, which is what double-clicking the picture does.
+    /// </summary>
+    public void ToggleRealSize() => Zoom(Math.Abs(_zoom - 1) < 0.001 ? Fit() : 1, false);
+
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
         switch (e.Key)
         {
+            // Esc leaves the full screen before it leaves the window: the two are one key because
+            // filling the screen is the last thing that happened, and that is what one wants undone.
             case Key.Escape:
                 e.Handled = true;
-                Close();
+                if (WindowState == WindowState.FullScreen)
+                {
+                    ToggleFullScreen();
+                }
+                else
+                {
+                    Close();
+                }
+
+                break;
+
+            case Key.F11:
+                e.Handled = true;
+                ToggleFullScreen();
                 break;
 
             case Key.OemPlus:
