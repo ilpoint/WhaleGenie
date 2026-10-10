@@ -1648,21 +1648,20 @@ public static class ActionCatalog
                 KeySequence(),
                 ..Delivery(),
                 Number("holdMs", "Hold each one for", 50,
-                    "How long every combination of the run stays down. A row may say its own.",
-                    advanced: true),
+                    "How long every combination of the run stays down. A row may say its own."),
                 Number("gapMs", "Gap between them", 120,
                     "How long the run waits between one combination and the next. This is the beat "
                     + "of the combo, and it is the part a game notices: too short and the presses "
                     + "run into one another, too long and they stop being a combo. A row may say "
                     + "its own, and the give beside this box is what keeps the beat from being the "
-                    + "same number every time a macro plays it.", advanced: true),
+                    + "same number every time a macro plays it."),
                 Number("afterMs", "Pause afterwards", 0,
                     "How long to wait after the last combination before the next step runs.",
                     advanced: true),
                 Number("repeat", "Play the run again", 1, "How many times to play the whole run.",
-                    min: 1, advanced: true),
+                    min: 1),
                 Number("intervalMs", "Between runs", 0,
-                    "Pause between one playing of the run and the next.", advanced: true),
+                    "Pause between one playing of the run and the next."),
             ],
         },
         new()
@@ -1795,7 +1794,7 @@ public static class ActionCatalog
                 Number("smoothMs", "Smooth", 0,
                     "Spread the scroll over this many milliseconds instead of sending it in one " +
                     "jump, so an application that animates its scrolling can follow. 0 sends it " +
-                    "all at once."),
+                    "all at once.", advanced: true),
                 Number("x", "X", 0, "Screen column to scroll at."),
                 Number("y", "Y", 0, "Screen row to scroll at."),
                 ..Anchor(withElement: true),
@@ -1819,7 +1818,9 @@ public static class ActionCatalog
                 ..Anchor(withElement: true),
                 Button(),
                 Number("durationMs", "Duration", 300, "How long the drag takes."),
-                Number("steps", "Move steps", 20, "Intermediate move events sent while dragging.", min: 1),
+                Number("steps", "Move steps", 20,
+                    "Intermediate move events sent while dragging, 20 by default.", min: 1,
+                    advanced: true),
                 Movement(),
                 ..Delivery(),
             ],
