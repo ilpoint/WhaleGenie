@@ -1071,11 +1071,12 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "input.mouseDoubleClick":
-                {
-                    var point = Point(step, "x", "y");
-                    Input(step).Click(Button(step), point.X, point.Y, 2, 0);
-                    return Signal.Normal;
-                }
+                await DoubleClickMouse(step, token);
+                return Signal.Normal;
+
+            case "input.keySequence":
+                await SendKeySequence(step, depth, token);
+                return Signal.Normal;
 
             case "input.mouseDown":
                 {
@@ -2511,7 +2512,72 @@ public sealed class MacroRunner
     }
 
     private static IReadOnlyList<string> Keys(ExecutableStep step)
-        => [.. step.Text("keys").Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
+        => Chord(step.Text("keys"));
+
+    /// <summary>The keys of one written combination, such as the Ctrl+Shift+S a row of a sequence holds.</summary>
+    private static IReadOnlyList<string> Chord(string written)
+        => [.. written.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
+
+    /// <summary>
+    /// Sends a run of combinations in order, one row after another, the way a macro plays out a
+    /// combo. Each row is held together for its own moment and then the run waits out the beat
+    /// before the next one — the gaps are what make a run read as separate presses rather than as
+    /// one long hold, and they are the part of a combo a game notices. A row may carry its own hold
+    /// and its own gap, because a combination with one beat of its own is the rule rather than the
+    /// exception; the whole run may be played again with a pause between.
+    /// </summary>
+    private async Task SendKeySequence(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var rows = step.Rows("keys");
+        var hold = Number(step, "holdMs");
+        var gap = Number(step, "gapMs");
+        var after = Pace(Number(step, "afterMs"));
+        var runs = Math.Max(1, Number(step, "repeat"));
+        var interval = Pace(Number(step, "intervalMs"));
+        var presses = 0;
+
+        for (var run = 0; run < runs; run++)
+        {
+            token.ThrowIfCancellationRequested();
+            if (run > 0)
+            {
+                await Pause(interval, token);
+            }
+
+            for (var index = 0; index < rows.Count; index++)
+            {
+                token.ThrowIfCancellationRequested();
+                var keys = Chord(Column(rows[index], "keys"));
+                if (keys.Count == 0)
+                {
+                    // A row that was added and never filled in is left out rather than sent as a
+                    // press of nothing.
+                    continue;
+                }
+
+                Input(step).Hotkey(keys, Pace(Cell(rows[index], "holdMs", hold)));
+                presses++;
+
+                // The beat is between the presses; there is nothing to wait for after the last one.
+                if (index < rows.Count - 1)
+                {
+                    await Pause(Pace(Cell(rows[index], "gapMs", gap)), token);
+                }
+            }
+
+            if (after > 0)
+            {
+                await Pause(after, token);
+            }
+        }
+
+        if (presses == 0)
+        {
+            throw new StepFailure("Run.NoKeys", string.Empty);
+        }
+
+        Log(LogLevel.Info, depth, step.Type, "Run.KeysSent", presses);
+    }
 
     /// <summary>
     /// Presses a key, over again when the step asks for more than one. The pause goes between the
@@ -2620,28 +2686,39 @@ public sealed class MacroRunner
         var amount = Math.Max(1, Number(step, "amount"));
         var total = pixels ? amount : amount * WheelNotch;
         var smooth = Pace(Number(step, "smoothMs"));
+        var repeats = Math.Max(1, Number(step, "repeat"));
+        var interval = Pace(Number(step, "intervalMs"));
 
-        if (smooth <= 0)
-        {
-            Input(step).Scroll(direction, total, point.X, point.Y);
-            return;
-        }
-
-        // One event per 15 ms is about 66 a second: roughly the fastest an application would
-        // draw its scrolling at, and never more events than there are units to send.
-        var events = Math.Clamp(smooth / 15, 1, total);
-        var share = total / events;
-        var extra = total % events;
-
-        for (var index = 0; index < events; index++)
+        for (var count = 0; count < repeats; count++)
         {
             token.ThrowIfCancellationRequested();
-            if (index > 0)
+            if (count > 0)
             {
-                await Pause(smooth / events, token);
+                await Pause(interval, token);
             }
 
-            Input(step).Scroll(direction, share + (index < extra ? 1 : 0), point.X, point.Y);
+            if (smooth <= 0)
+            {
+                Input(step).Scroll(direction, total, point.X, point.Y);
+                continue;
+            }
+
+            // One event per 15 ms is about 66 a second: roughly the fastest an application would
+            // draw its scrolling at, and never more events than there are units to send.
+            var events = Math.Clamp(smooth / 15, 1, total);
+            var share = total / events;
+            var extra = total % events;
+
+            for (var index = 0; index < events; index++)
+            {
+                token.ThrowIfCancellationRequested();
+                if (index > 0)
+                {
+                    await Pause(smooth / events, token);
+                }
+
+                Input(step).Scroll(direction, share + (index < extra ? 1 : 0), point.X, point.Y);
+            }
         }
     }
 
@@ -2649,7 +2726,7 @@ public sealed class MacroRunner
     {
         var point = Point(step, "x", "y");
         var button = Button(step);
-        var clicks = Math.Max(1, Number(step, "clicks"));
+        var clicks = Math.Max(1, Number(step, "repeat"));
         var interval = Pace(Number(step, "intervalMs"));
         var hold = Pace(Number(step, "holdMs"));
 
@@ -2670,6 +2747,31 @@ public sealed class MacroRunner
             Input(step).MouseDown(button, point.X, point.Y);
             await Pause(hold, token);
             Input(step).MouseUp(button, point.X, point.Y);
+        }
+    }
+
+    /// <summary>
+    /// Double clicks the mouse: two presses in quick succession, which is what tells the machine a
+    /// double click from two single ones. The step may ask for several of them in a row with a
+    /// pause between, which is the same question the other input steps answer with repeat and
+    /// interval; there is no hold, because holding the button is what makes it stop being a double
+    /// click.
+    /// </summary>
+    private async Task DoubleClickMouse(ExecutableStep step, CancellationToken token)
+    {
+        var point = Point(step, "x", "y");
+        var repeats = Math.Max(1, Number(step, "repeat"));
+        var interval = Pace(Number(step, "intervalMs"));
+
+        for (var count = 0; count < repeats; count++)
+        {
+            token.ThrowIfCancellationRequested();
+            if (count > 0)
+            {
+                await Pause(interval, token);
+            }
+
+            Input(step).Click(Button(step), point.X, point.Y, 2, 0);
         }
     }
 
@@ -3541,10 +3643,22 @@ public sealed class MacroRunner
         return Capture(step, x, y, width, height);
     }
 
-    /// <summary>One number of a region row, as its field was filled in.</summary>
+    /// <summary>What a row of a list parameter says in one column, or nothing when it has none.</summary>
+    private static string Column(IReadOnlyDictionary<string, string> row, string column)
+        => row.TryGetValue(column, out var written) ? written : string.Empty;
+
+    /// <summary>One number of a row of a list parameter, as its field was filled in.</summary>
     private int Cell(IReadOnlyDictionary<string, string> row, string column)
-        => (int)Math.Round(Read(row.TryGetValue(column, out var written) ? written : string.Empty)
-            .AsNumber());
+        => (int)Math.Round(Read(Column(row, column)).AsNumber());
+
+    /// <summary>
+    /// One number of a row that may be left empty, where empty means the run's own value: a row
+    /// only has to spell out the hold or the gap that is not the one everywhere else.
+    /// </summary>
+    private int Cell(IReadOnlyDictionary<string, string> row, string column, int fallback)
+        => Column(row, column).Trim().Length > 0
+            ? (int)Math.Round(Read(Column(row, column)).AsNumber())
+            : fallback;
 
     /// <summary>One written rectangle, such as one a variable holds.</summary>
     private (ImageFrame Frame, ScreenPoint Origin) Written(ExecutableStep step, string rectangle)

@@ -374,6 +374,68 @@
                     </Grid>
                 </StackPanel>
 
+                <!-- A run of key combinations: one row per press, in the order they are sent. A
+                     combo is a sequence of presses whose beat is part of what it is, so the run is
+                     a list rather than one long line of keys. -->
+                <StackPanel IsVisible="{Binding IsKeySequence}" Spacing="7">
+                    <ItemsControl ItemsSource="{Binding KeyRows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:KeyRowViewModel">
+                                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,Auto,Auto,Auto"
+                                      ColumnSpacing="6" Margin="0,0,0,4">
+                                    <Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="*,Auto"
+                                          ColumnSpacing="6">
+                                        <TextBox Classes="ParamInput" Text="{Binding Keys}"
+                                                 PlaceholderText="Ctrl+A"
+                                                 ToolTip.Tip="{Binding [Add.KeyRunKeyHint], Source={x:Static loc:Strings.Current}}" />
+                                        <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                                                Content="{Binding [Add.OpenKeyPad], Source={x:Static loc:Strings.Current}}"
+                                                ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
+                                                Click="OnPickKeyRow" />
+                                    </Grid>
+
+                                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal"
+                                                Spacing="5">
+                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                                   Text="{Binding [Add.KeyRunHold], Source={x:Static loc:Strings.Current}}" />
+                                        <NumericUpDown Width="92" FormatString="0"
+                                                       Value="{Binding HoldMs}"
+                                                       ToolTip.Tip="{Binding [Add.KeyRunHoldHint], Source={x:Static loc:Strings.Current}}" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal"
+                                                Spacing="5">
+                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                                   Text="{Binding [Add.KeyRunGap], Source={x:Static loc:Strings.Current}}" />
+                                        <NumericUpDown Width="92" FormatString="0"
+                                                       Value="{Binding GapMs}"
+                                                       ToolTip.Tip="{Binding [Add.KeyRunGapHint], Source={x:Static loc:Strings.Current}}" />
+                                    </StackPanel>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="3" Classes="Muted"
+                                               VerticalAlignment="Center"
+                                               Text="{Binding [Add.KeyRunMilliseconds], Source={x:Static loc:Strings.Current}}" />
+
+                                    <Button Grid.Row="0" Grid.Column="4" Classes="FlatButton"
+                                            Height="26" Padding="9,0" VerticalAlignment="Center"
+                                            Content="{Binding [Add.KeyRunRemove], Source={x:Static loc:Strings.Current}}"
+                                            ToolTip.Tip="{Binding [Add.KeyRunRemoveHint], Source={x:Static loc:Strings.Current}}"
+                                            Command="{Binding RemoveCommand}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                        <Button Classes="FlatButton" Height="30" Padding="10,0"
+                                Content="{Binding [Add.KeyRunAdd], Source={x:Static loc:Strings.Current}}"
+                                Click="OnAddKeyRow" />
+                        <TextBlock Grid.Column="1" Classes="Muted" VerticalAlignment="Center"
+                                   Text="{Binding [Add.KeyRunEmpty], Source={x:Static loc:Strings.Current}}"
+                                   IsVisible="{Binding !HasKeyRows}" />
+                    </Grid>
+                </StackPanel>
+
                 <ToggleSwitch IsVisible="{Binding IsBool}"
                               IsChecked="{Binding Flag}"
                               OnContent="" OffContent="" />

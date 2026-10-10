@@ -365,7 +365,11 @@ public class MacroStep : INotifyPropertyChanged
                     case ActionParameterKind.Region when parameter.Rows.Count > 0:
                         parts.Add($"{label} = {Strings.Format("Editor.RegionCount", parameter.Rows.Count)}");
                         break;
-                    case ActionParameterKind.Steps or ActionParameterKind.Condition:
+                    case ActionParameterKind.KeySequence when parameter.Rows.Count > 0:
+                        parts.Add($"{label} = {Strings.Format("Editor.KeyCount", parameter.Rows.Count)}");
+                        break;
+                    case ActionParameterKind.Steps or ActionParameterKind.Condition
+                        or ActionParameterKind.Region or ActionParameterKind.KeySequence:
                         break;
                     default:
                         if (!string.IsNullOrWhiteSpace(parameter.Value))

@@ -216,6 +216,33 @@ public partial class AddActionWindow : Window
         }
     }
 
+    /// <summary>Adds another press to a key run.</summary>
+    private void OnAddKeyRow(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepParameterViewModel parameter })
+        {
+            parameter.AddKeyRow();
+        }
+    }
+
+    /// <summary>
+    /// Opens the keyboard drawn on screen for one press of a key run, and joins the key whose cap
+    /// was clicked to that press. The key already there stays, because a combination of several
+    /// keys is built a key at a time.
+    /// </summary>
+    private async void OnPickKeyRow(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: KeyRowViewModel row })
+        {
+            return;
+        }
+
+        if (await VirtualKeyboardWindow.PickAsync(this) is { Length: > 0 } key)
+        {
+            row.AddKey(key);
+        }
+    }
+
     /// <summary>
     /// Drags a rectangle out on the screen and writes it into the row that asked for it, which is
     /// how a region is given without the four numbers being read off a ruler.

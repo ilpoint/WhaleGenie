@@ -81,6 +81,13 @@ public enum ActionParameterKind
     /// what is written instead of standing in its place.
     /// </summary>
     Keys,
+
+    /// <summary>
+    /// A run of combinations, edited as one row each: what the macro presses in order, with a row's
+    /// own hold and gap where the beat differs from the rest of the run. A row holding nothing but
+    /// empty numbers is left out of the run rather than pressed as an empty combination.
+    /// </summary>
+    KeySequence,
 }
 
 /// <summary>One choice of a <see cref="ActionParameterKind.Choice"/> parameter:

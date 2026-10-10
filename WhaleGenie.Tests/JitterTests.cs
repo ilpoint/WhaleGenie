@@ -61,7 +61,7 @@ public class JitterTests
             Assert.All(boxes, box => Assert.Null(box.Value));
 
             // A count is not a length of time: "click 3 times" means three times.
-            Assert.False(Editor(viewModel, "clicks").IsDuration);
+            Assert.False(Editor(viewModel, "repeat").IsDuration);
         });
     }
 

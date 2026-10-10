@@ -1638,6 +1638,35 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "input.keySequence",
+            Category = ActionCategory.Input,
+            DisplayName = "Key Sequence",
+            Description = "Send a run of key combinations in order, the way a game plays out a "
+                + "combo.",
+            Parameters =
+            [
+                KeySequence(),
+                ..Delivery(),
+                Number("holdMs", "Hold each one for", 50,
+                    "How long every combination of the run stays down. A row may say its own.",
+                    advanced: true),
+                Number("gapMs", "Gap between them", 120,
+                    "How long the run waits between one combination and the next. This is the beat "
+                    + "of the combo, and it is the part a game notices: too short and the presses "
+                    + "run into one another, too long and they stop being a combo. A row may say "
+                    + "its own, and the give beside this box is what keeps the beat from being the "
+                    + "same number every time a macro plays it.", advanced: true),
+                Number("afterMs", "Pause afterwards", 0,
+                    "How long to wait after the last combination before the next step runs.",
+                    advanced: true),
+                Number("repeat", "Play the run again", 1, "How many times to play the whole run.",
+                    min: 1, advanced: true),
+                Number("intervalMs", "Between runs", 0,
+                    "Pause between one playing of the run and the next.", advanced: true),
+            ],
+        },
+        new()
+        {
             Key = "input.typeText",
             Category = ActionCategory.Input,
             DisplayName = "Type Text",
@@ -1692,11 +1721,11 @@ public static class ActionCatalog
                 Number("x", "X", 0, "Screen column to click."),
                 Number("y", "Y", 0, "Screen row to click."),
                 ..Anchor(withElement: true),
-                Number("clicks", "Clicks", 1, "How many clicks to send.", min: 1),
-                Number("intervalMs", "Interval", 0, "Pause between repeated clicks."),
                 Number("holdMs", "Hold", 0,
                     "How long the button stays down before it is released. 0 sends a normal "
                     + "quick click; a longer hold is for buttons that only answer a press-and-hold."),
+                Number("repeat", "Repeat", 1, "How many clicks to send.", min: 1),
+                Number("intervalMs", "Interval", 0, "Pause between repeated clicks."),
                 ..Delivery(),
             ],
         },
@@ -1712,6 +1741,10 @@ public static class ActionCatalog
                 Number("x", "X", 0, "Screen column to click."),
                 Number("y", "Y", 0, "Screen row to click."),
                 ..Anchor(withElement: true),
+                Number("repeat", "Repeat", 1,
+                    "How many double clicks to send. 1 is the one a double click usually means.",
+                    min: 1),
+                Number("intervalMs", "Interval", 0, "Pause between repeated double clicks."),
                 ..Delivery(),
             ],
         },
@@ -1766,6 +1799,8 @@ public static class ActionCatalog
                 Number("x", "X", 0, "Screen column to scroll at."),
                 Number("y", "Y", 0, "Screen row to scroll at."),
                 ..Anchor(withElement: true),
+                Number("repeat", "Repeat", 1, "How many times to send that much scrolling.", min: 1),
+                Number("intervalMs", "Interval", 0, "Pause between repeated scrolls."),
                 ..Delivery(),
             ],
         },
@@ -3148,6 +3183,26 @@ public static class ActionCatalog
             Kind = ActionParameterKind.Region,
             Hint = RegionHint,
             Required = false,
+        };
+
+    /// <summary>
+    /// A run of key combinations: one row per combination, in the order they are pressed. It is a
+    /// list rather than one long line of keys because a combo is a sequence of presses, and the
+    /// gap between them is part of what it is.
+    /// </summary>
+    private static ActionParameter KeySequence()
+        => new()
+        {
+            Name = "keys",
+            Label = "The run",
+            Kind = ActionParameterKind.KeySequence,
+            Required = true,
+            Hint = "One row per combination, pressed in the order they are listed. Take the keys off "
+                + "the keyboard drawn on screen to be sure of the spelling: the two Ctrl keys and "
+                + "the two Shift keys are named apart, and the machine tells them apart. A row may "
+                + "say how long its own combination is held and how long to wait after it, for the "
+                + "one place where the beat is not the same as everywhere else; leave those empty "
+                + "to use the run's own.",
         };
 
     /// <summary>Mouse button picker shared by every input action that clicks.</summary>

@@ -1163,6 +1163,25 @@ internal static class ActionStrings
         ["input.typeText.intervalMs.label"] = "间隔",
         ["input.typeText.intervalMs.hint"] = "每个字符之间的间隔。",
 
+        ["input.keySequence.name"] = "按键序列",
+        ["input.keySequence.desc"] = "按顺序发出一串组合键，像游戏里打一套连招那样。",
+        ["input.keySequence.keys.label"] = "序列",
+        ["input.keySequence.keys.hint"] = "一行一个组合，按列表顺序发送。按键用旁边画出来的"
+            + "键盘点选，拼写不会错（左右 Ctrl、左右 Shift 名字不同，机器也分得开）。某一行的"
+            + "按住时长或间隔与整体不一样时，就在那一行里单独填；留空表示用整个序列的值。",
+        ["input.keySequence.holdMs.label"] = "每个组合按住",
+        ["input.keySequence.holdMs.hint"] = "序列里每个组合保持按下的时长；某一行可以在行内另填。",
+        ["input.keySequence.gapMs.label"] = "组合之间的间隔",
+        ["input.keySequence.gapMs.hint"] = "一个组合与下一个之间等多久 —— 这是连招的节奏，也是"
+            + "游戏最能察觉的地方：太短几次按键连成一片，太长就不像一套连招了。某一行可以在行内"
+            + "另填；想让间隔每次都不一样，用这个框旁边的 ±（每次运行上下浮动的比例）。",
+        ["input.keySequence.afterMs.label"] = "整串之后停顿",
+        ["input.keySequence.afterMs.hint"] = "最后一个组合发完，再等多久才走下一步。",
+        ["input.keySequence.repeat.label"] = "整串再来几遍",
+        ["input.keySequence.repeat.hint"] = "整个序列连着发几遍。",
+        ["input.keySequence.intervalMs.label"] = "每遍之间",
+        ["input.keySequence.intervalMs.hint"] = "两遍序列之间的等待时间。",
+
         ["input.mouseMove.name"] = "鼠标移动到",
         ["input.mouseMove.desc"] = "把光标移动到屏幕上的指定位置。",
         ["input.mouseMove.x.label"] = "X",
@@ -1198,8 +1217,8 @@ internal static class ActionStrings
         ["input.mouseClick.x.hint"] = "点击位置的横坐标。",
         ["input.mouseClick.y.label"] = "Y",
         ["input.mouseClick.y.hint"] = "点击位置的纵坐标。",
-        ["input.mouseClick.clicks.label"] = "点击次数",
-        ["input.mouseClick.clicks.hint"] = "一共发送几次点击。",
+        ["input.mouseClick.repeat.label"] = "重复次数",
+        ["input.mouseClick.repeat.hint"] = "一共发送几次点击。",
         ["input.mouseClick.intervalMs.label"] = "间隔",
         ["input.mouseClick.intervalMs.hint"] = "连续点击之间的间隔。",
         ["input.mouseClick.holdMs.label"] = "按住时长",
@@ -1212,6 +1231,10 @@ internal static class ActionStrings
         ["input.mouseDoubleClick.x.hint"] = "双击位置的横坐标。",
         ["input.mouseDoubleClick.y.label"] = "Y",
         ["input.mouseDoubleClick.y.hint"] = "双击位置的纵坐标。",
+        ["input.mouseDoubleClick.repeat.label"] = "重复次数",
+        ["input.mouseDoubleClick.repeat.hint"] = "连着双击几次；一般填 1，也就是一次双击。",
+        ["input.mouseDoubleClick.intervalMs.label"] = "间隔",
+        ["input.mouseDoubleClick.intervalMs.hint"] = "两次双击之间的等待时间。",
 
         ["input.mouseDown.name"] = "按下鼠标",
         ["input.mouseDown.desc"] = "保持按住鼠标按键，直到对应的“松开鼠标”步骤。",
@@ -1244,6 +1267,10 @@ internal static class ActionStrings
         ["input.mouseScroll.x.hint"] = "滚动位置的横坐标。",
         ["input.mouseScroll.y.label"] = "Y",
         ["input.mouseScroll.y.hint"] = "滚动位置的纵坐标。",
+        ["input.mouseScroll.repeat.label"] = "重复次数",
+        ["input.mouseScroll.repeat.hint"] = "这么大的滚动量发几次。",
+        ["input.mouseScroll.intervalMs.label"] = "间隔",
+        ["input.mouseScroll.intervalMs.hint"] = "两次滚动之间的等待时间。",
 
         ["input.mouseDrag.name"] = "鼠标拖拽",
         ["input.mouseDrag.desc"] = "在起点按下，拖至终点后松开。",
@@ -1334,6 +1361,14 @@ internal static class ActionStrings
         ["input.keyPress.inputMode.option.driver"] = "驱动级",
         ["input.keyPress.targetWindow.label"] = "目标窗口",
         ["input.keyPress.targetWindow.hint"] = TargetWindowHint,
+
+        ["input.keySequence.inputMode.label"] = "输入方式",
+        ["input.keySequence.inputMode.hint"] = InputModeHint,
+        ["input.keySequence.inputMode.option.foreground"] = "前台",
+        ["input.keySequence.inputMode.option.background"] = "后台消息",
+        ["input.keySequence.inputMode.option.driver"] = "驱动级",
+        ["input.keySequence.targetWindow.label"] = "目标窗口",
+        ["input.keySequence.targetWindow.hint"] = TargetWindowHint,
 
         ["input.keyDown.inputMode.label"] = "输入方式",
         ["input.keyDown.inputMode.hint"] = InputModeHint,

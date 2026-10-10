@@ -39,6 +39,33 @@ public class DeviceActionTests
             Rows = [new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["text"] = named }],
         };
 
+    /// <summary>A parameter that holds a list of rows: the places to look, the presses of a run.</summary>
+    private static ExecutableParameter Rows(string name,
+        params IReadOnlyDictionary<string, string>[] rows)
+        => new() { Name = name, Rows = rows };
+
+    /// <summary>One press of a key run, with its own hold or gap where it has one.</summary>
+    private static IReadOnlyDictionary<string, string> Press(string keys, int? holdMs = null,
+        int? gapMs = null)
+    {
+        var row = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["keys"] = keys,
+        };
+
+        if (holdMs is { } hold)
+        {
+            row["holdMs"] = hold.ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (gapMs is { } gap)
+        {
+            row["gapMs"] = gap.ToString(CultureInfo.InvariantCulture);
+        }
+
+        return row;
+    }
+
     private static IReadOnlyDictionary<string, string> Rectangle(
         (int X, int Y, int Width, int Height) rectangle)
         => new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -313,7 +340,7 @@ public class DeviceActionTests
         [
             Step("input.mouseClick",
                 Param("button", "right"), Param("x", "100"), Param("y", "200"),
-                Param("clicks", "2"), Param("intervalMs", "40")),
+                Param("repeat", "2"), Param("intervalMs", "40")),
         ]);
 
         Assert.Equal(["click right 100 200 2 40"], devices.Calls);
@@ -336,7 +363,7 @@ public class DeviceActionTests
         var (result, devices, _) = await RunAsync(
         [
             Step("input.mouseClick", Param("button", "left"), Param("x", "4"), Param("y", "5"),
-                Param("clicks", "2"), Param("intervalMs", "0"), Param("holdMs", "1")),
+                Param("repeat", "2"), Param("intervalMs", "0"), Param("holdMs", "1")),
         ]);
 
         // A hold has to be a press and a release of its own, because the device's click is a tap.
@@ -354,6 +381,119 @@ public class DeviceActionTests
         ]);
 
         Assert.Equal(["click left 10 20 2 0"], devices.Calls);
+    }
+
+    /// <summary>
+    /// A run of combinations goes out in the order it is written, which is what makes a combo a
+    /// combo rather than a single press of several keys.
+    /// </summary>
+    [Fact]
+    public async Task A_key_run_sends_its_combinations_in_the_order_they_are_written()
+    {
+        var (result, devices, _) = await RunAsync(
+        [
+            Step("input.keySequence",
+                Rows("keys", Press("Ctrl+A"), Press("B"), Press("Shift+Del")),
+                Param("holdMs", "10"), Param("gapMs", "0")),
+        ]);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(["hotkey Ctrl|A 10", "hotkey B 10", "hotkey Shift|Del 10"], devices.Calls);
+    }
+
+    /// <summary>
+    /// The beat of a run is the gap between one press and the next, and a row may have a beat of
+    /// its own. There is nothing to wait for after the last press.
+    /// </summary>
+    [Fact]
+    public async Task A_key_run_waits_between_presses_and_not_after_the_last()
+    {
+        var started = Stopwatch.GetTimestamp();
+
+        var (result, devices, _) = await RunAsync(
+        [
+            Step("input.keySequence",
+                Rows("keys", Press("A"), Press("B", holdMs: 30)),
+                Param("holdMs", "5"), Param("gapMs", "120")),
+        ]);
+
+        var waited = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(["hotkey A 5", "hotkey B 30"], devices.Calls);
+
+        // One gap of 120ms: two of them would be past 240, and none at all would be under 90.
+        Assert.InRange(waited, 90, 220);
+    }
+
+    /// <summary>A row that says its own gap is the one place where the beat is not the run's.</summary>
+    [Fact]
+    public async Task A_row_of_a_key_run_can_have_a_beat_of_its_own()
+    {
+        var started = Stopwatch.GetTimestamp();
+
+        var (result, devices, _) = await RunAsync(
+        [
+            Step("input.keySequence",
+                Rows("keys", Press("A", gapMs: 0), Press("B"), Press("C")),
+                Param("holdMs", "5"), Param("gapMs", "150")),
+        ]);
+
+        var waited = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(["hotkey A 5", "hotkey B 5", "hotkey C 5"], devices.Calls);
+
+        // The first row asked for no beat after it, so the run waited the run's own gap only once.
+        Assert.InRange(waited, 100, 260);
+    }
+
+    [Fact]
+    public async Task A_key_run_can_be_played_more_than_once()
+    {
+        var (result, devices, _) = await RunAsync(
+        [
+            Step("input.keySequence", Rows("keys", Press("A"), Press("B")),
+                Param("holdMs", "1"), Param("gapMs", "0"), Param("repeat", "2")),
+        ]);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(["hotkey A 1", "hotkey B 1", "hotkey A 1", "hotkey B 1"], devices.Calls);
+    }
+
+    /// <summary>A run with nothing in it is the macro's own mistake, so it is said in a sentence.</summary>
+    [Fact]
+    public async Task A_key_run_with_no_presses_says_so()
+    {
+        var (result, _, _) = await RunAsync(
+            [Step("input.keySequence", Rows("keys"), Param("gapMs", "0"))]);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.NoKeys", result.Key);
+    }
+
+    [Fact]
+    public async Task A_double_click_can_be_sent_more_than_once()
+    {
+        var (_, devices, _) = await RunAsync(
+        [
+            Step("input.mouseDoubleClick", Param("button", "left"), Param("x", "3"), Param("y", "4"),
+                Param("repeat", "2"), Param("intervalMs", "0")),
+        ]);
+
+        Assert.Equal(["click left 3 4 2 0", "click left 3 4 2 0"], devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_scroll_can_be_sent_more_than_once()
+    {
+        var (_, devices, _) = await RunAsync(
+        [
+            Step("input.mouseScroll", Param("direction", "down"), Param("amount", "3"),
+                Param("x", "1"), Param("y", "2"), Param("repeat", "2"), Param("intervalMs", "0")),
+        ]);
+
+        Assert.Equal(["scroll down 360 1 2", "scroll down 360 1 2"], devices.Calls);
     }
 
     [Fact]

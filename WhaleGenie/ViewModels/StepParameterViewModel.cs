@@ -135,6 +135,18 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>True while the step has nowhere in particular to look, which is the whole screen.</summary>
     public bool HasRegions => Regions.Count > 0;
 
+    /// <summary>
+    /// The presses of a key run, when this parameter is one: what the macro sends in order, each
+    /// row a combination with an optional hold and gap of its own.
+    /// </summary>
+    public ObservableCollection<KeyRowViewModel> KeyRows { get; } = [];
+
+    /// <summary>True when this parameter is a run of key combinations.</summary>
+    public bool IsKeySequence => Definition.Kind is ActionParameterKind.KeySequence;
+
+    /// <summary>True while the run has presses in it.</summary>
+    public bool HasKeyRows => KeyRows.Count > 0;
+
     /// <summary>Puts a place to look at at the end of the list, for the user to fill in.</summary>
     public void AddRegion(RegionRowViewModel? row = null)
     {
@@ -149,6 +161,22 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         Regions.Remove(row);
         OnPropertyChanged(nameof(HasRegions));
+    }
+
+    /// <summary>Puts another press at the end of the run.</summary>
+    public void AddKeyRow(KeyRowViewModel? row = null)
+    {
+        var added = row ?? new KeyRowViewModel();
+        added.Take = RemoveKeyRow;
+        KeyRows.Add(added);
+        OnPropertyChanged(nameof(HasKeyRows));
+    }
+
+    /// <summary>Takes one press out of the run.</summary>
+    public void RemoveKeyRow(KeyRowViewModel row)
+    {
+        KeyRows.Remove(row);
+        OnPropertyChanged(nameof(HasKeyRows));
     }
 
     /// <summary>
@@ -734,6 +762,7 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         ActionParameterKind.Steps or ActionParameterKind.Condition => HasNestedSteps,
         ActionParameterKind.Region => Regions.Count > 0,
+        ActionParameterKind.KeySequence => KeyRows.Any(row => row.ToRow().Columns.Count > 0),
         _ => Definition.Required || !string.IsNullOrWhiteSpace(CurrentText),
     };
 
@@ -885,6 +914,8 @@ public partial class StepParameterViewModel : ViewModelBase
             : [],
         Rows = Definition.Kind is ActionParameterKind.Region
             ? [.. Regions.Select(row => row.ToRow())]
+            : Definition.Kind is ActionParameterKind.KeySequence
+                ? [.. KeyRows.Select(row => row.ToRow())]
             : [],
         Condition = Definition.Kind is ActionParameterKind.Condition
             ? List?.Steps.FirstOrDefault()
@@ -906,6 +937,17 @@ public partial class StepParameterViewModel : ViewModelBase
             foreach (var row in stored.Rows)
             {
                 AddRegion(RegionRowViewModel.From(row));
+            }
+
+            return;
+        }
+
+        if (Definition.Kind is ActionParameterKind.KeySequence)
+        {
+            KeyRows.Clear();
+            foreach (var row in stored.Rows)
+            {
+                AddKeyRow(KeyRowViewModel.From(row));
             }
 
             return;
