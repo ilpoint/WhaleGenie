@@ -98,6 +98,90 @@ public class ReferencePictureTests
         });
     }
 
+    /// <summary>
+    /// The pictures are tried in the order they are listed, so the list can be rearranged — and the
+    /// order that was chosen is the order the step is saved with.
+    /// </summary>
+    [Fact]
+    public void A_picture_can_be_moved_up_the_list_and_stays_there()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("vision.findImage");
+            var pictures = Pictures(viewModel);
+            pictures.AddPicture(new ImageRowViewModel { Text = "first.png" });
+            pictures.AddPicture(new ImageRowViewModel { Text = "second.png" });
+            pictures.AddPicture(new ImageRowViewModel { Text = "third.png" });
+
+            // What the buttons lead to: the last picture is tried before the other two.
+            var last = pictures.Pictures[^1];
+            pictures.MovePicture(last, -1);
+            pictures.MovePicture(last, -1);
+
+            MacroStep? saved = null;
+            viewModel.CloseRequested += step => saved = step;
+            viewModel.SaveCommand.Execute(null);
+
+            var rows = Assert.Single(new[] { saved! }.ToExecutable()).Rows("image");
+            Assert.Equal(["third.png", "first.png", "second.png"],
+                rows.Select(row => row["image"]));
+        });
+    }
+
+    /// <summary>
+    /// The two ends of the list have nowhere to move to, and say so rather than doing nothing when
+    /// the button is pressed.
+    /// </summary>
+    [Fact]
+    public void The_ends_of_the_list_say_they_cannot_move_further()
+    {
+        Ui.Run(() =>
+        {
+            var pictures = Pictures(Open("vision.findImage"));
+            pictures.AddPicture(new ImageRowViewModel { Text = "one.png" });
+            pictures.AddPicture(new ImageRowViewModel { Text = "two.png" });
+
+            Assert.False(pictures.Pictures[0].CanMoveUp);
+            Assert.True(pictures.Pictures[0].CanMoveDown);
+            Assert.True(pictures.Pictures[1].CanMoveUp);
+            Assert.False(pictures.Pictures[1].CanMoveDown);
+
+            // And a row that is removed leaves the one beside it as the new end.
+            pictures.RemovePicture(pictures.Pictures[0]);
+            Assert.False(pictures.Pictures[0].CanMoveUp);
+            Assert.False(pictures.Pictures[0].CanMoveDown);
+        });
+    }
+
+    [Fact]
+    public void The_button_on_a_row_moves_that_row()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(null, ActionCatalog.Definitions,
+                VariableChoicesForChecks.Named("shot"), []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("vision.findImage");
+            Dispatcher.UIThread.RunJobs();
+
+            var pictures = Pictures(viewModel);
+            pictures.AddPicture(new ImageRowViewModel { Text = "first.png" });
+            pictures.AddPicture(new ImageRowViewModel { Text = "second.png" });
+            Dispatcher.UIThread.RunJobs();
+
+            var second = pictures.Pictures[1];
+            var up = FindButton(window, second, Strings.Get("Add.ImageMoveUp"));
+            up.Command!.Execute(up.CommandParameter);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(["second.png", "first.png"],
+                pictures.Pictures.Select(picture => picture.Text));
+        });
+    }
+
     [Fact]
     public void The_dialog_adds_and_removes_a_picture()
     {

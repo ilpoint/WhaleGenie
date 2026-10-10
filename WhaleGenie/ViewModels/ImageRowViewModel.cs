@@ -29,6 +29,24 @@ public partial class ImageRowViewModel : ViewModelBase
     public Action<ImageRowViewModel>? Take { get; set; }
 
     /// <summary>
+    /// What moves this row one place up or down the list, the way -1 and 1 say. The list owns the
+    /// order, so the row says which way and the list does the moving. The order is not decoration:
+    /// the pictures are tried in the order they are listed and the first one that turns up is the
+    /// one the step goes with, so this is how a user says which picture to try first.
+    /// </summary>
+    public Action<ImageRowViewModel, int>? Move { get; set; }
+
+    /// <summary>True while there is another picture above this one.</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(MoveUpCommand))]
+    public partial bool CanMoveUp { get; set; }
+
+    /// <summary>True while there is another picture below this one.</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(MoveDownCommand))]
+    public partial bool CanMoveDown { get; set; }
+
+    /// <summary>
     /// Where pictures live while this dialog is open: beside the macro package when it has a path,
     /// and WhaleGenie's own folder otherwise. A relative picture value is looked up here.
     /// </summary>
@@ -89,6 +107,14 @@ public partial class ImageRowViewModel : ViewModelBase
     /// <summary>Takes this picture out of the list.</summary>
     [RelayCommand]
     private void Remove() => Take?.Invoke(this);
+
+    /// <summary>Puts this picture one place nearer the top of the list.</summary>
+    [RelayCommand(CanExecute = nameof(CanMoveUp))]
+    private void MoveUp() => Move?.Invoke(this, -1);
+
+    /// <summary>Puts this picture one place nearer the bottom of the list.</summary>
+    [RelayCommand(CanExecute = nameof(CanMoveDown))]
+    private void MoveDown() => Move?.Invoke(this, 1);
 
     /// <summary>This row the way the step stores it: one picture, under the column the engine reads.</summary>
     public StepParameterRow ToRow() => StepParameterRow.Of("image", Text.Trim());

@@ -297,7 +297,7 @@
                     <ItemsControl ItemsSource="{Binding Pictures}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:ImageRowViewModel">
-                                <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="6"
+                                <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6"
                                       Margin="0,0,0,4">
                                     <Border Grid.Column="0" Width="54" Height="34"
                                             Background="#1A1A1A" BorderBrush="#3A3A3A"
@@ -317,6 +317,16 @@
                                             ToolTip.Tip="{Binding [Add.CaptureImageHint], Source={x:Static loc:Strings.Current}}"
                                             Click="OnCaptureImageRow" />
                                     <Button Grid.Column="4" Classes="FlatButton" Height="33"
+                                            Padding="9,0"
+                                            Content="{Binding [Add.ImageMoveUp], Source={x:Static loc:Strings.Current}}"
+                                            ToolTip.Tip="{Binding [Add.ImageMoveUpHint], Source={x:Static loc:Strings.Current}}"
+                                            Command="{Binding MoveUpCommand}" />
+                                    <Button Grid.Column="5" Classes="FlatButton" Height="33"
+                                            Padding="9,0"
+                                            Content="{Binding [Add.ImageMoveDown], Source={x:Static loc:Strings.Current}}"
+                                            ToolTip.Tip="{Binding [Add.ImageMoveDownHint], Source={x:Static loc:Strings.Current}}"
+                                            Command="{Binding MoveDownCommand}" />
+                                    <Button Grid.Column="6" Classes="FlatButton" Height="33"
                                             Padding="11,0"
                                             Content="{Binding [Add.ImageRemove], Source={x:Static loc:Strings.Current}}"
                                             ToolTip.Tip="{Binding [Add.ImageRemoveHint], Source={x:Static loc:Strings.Current}}"

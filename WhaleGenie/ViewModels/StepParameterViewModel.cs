@@ -509,10 +509,12 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         var added = row ?? new ImageRowViewModel();
         added.Take = RemovePicture;
+        added.Move = MovePicture;
         added.Placeholder = Definition.Placeholder;
         added.AssetFolder = _assetFolder;
         added.PropertyChanged += OnPictureChanged;
         Pictures.Add(added);
+        RefreshEnds();
         OnPropertyChanged(nameof(HasPictures));
     }
 
@@ -521,7 +523,39 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         row.PropertyChanged -= OnPictureChanged;
         Pictures.Remove(row);
+        RefreshEnds();
         OnPropertyChanged(nameof(HasPictures));
+    }
+
+    /// <summary>
+    /// Moves one picture one place up or down the list, the way the row's own buttons ask for. The
+    /// order the pictures are listed in is the order the step tries them in, so this is the one
+    /// thing a user changes about a list that is already written.
+    /// </summary>
+    public void MovePicture(ImageRowViewModel row, int by)
+    {
+        var at = Pictures.IndexOf(row);
+        var to = at + by;
+        if (at < 0 || to < 0 || to >= Pictures.Count)
+        {
+            return;
+        }
+
+        Pictures.Move(at, to);
+        RefreshEnds();
+    }
+
+    /// <summary>
+    /// Says which rows have somewhere to move to, so the button at either end of the list is dimmed
+    /// rather than doing nothing when it is pressed.
+    /// </summary>
+    private void RefreshEnds()
+    {
+        for (var index = 0; index < Pictures.Count; index++)
+        {
+            Pictures[index].CanMoveUp = index > 0;
+            Pictures[index].CanMoveDown = index < Pictures.Count - 1;
+        }
     }
 
     /// <summary>

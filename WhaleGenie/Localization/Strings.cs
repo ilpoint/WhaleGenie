@@ -205,6 +205,14 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.RegionEmpty"] = "Looking at the whole screen.",
         ["Add.ImageAdd"] = "Add a picture",
         ["Add.ImageAddHint"] = "Look for one more picture, tried after the ones already listed.",
+        ["Add.ImageMoveUp"] = "Move up",
+        ["Add.ImageMoveUpHint"] =
+            "Try this picture one place earlier. The pictures are tried in the order they are "
+            + "listed, and the first one that turns up is the one the step goes with.",
+        ["Add.ImageMoveDown"] = "Move down",
+        ["Add.ImageMoveDownHint"] =
+            "Try this picture one place later, for when another picture should be the one looked "
+            + "for first.",
         ["Add.ImageRemove"] = "Remove",
         ["Add.ImageRemoveHint"] = "Take this picture out of the list.",
         ["Add.ImageEmpty"] = "No picture yet: a search with an empty list has nothing to look for.",
@@ -1211,6 +1219,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.RegionEmpty"] = "没填就是看整个屏幕。",
         ["Add.ImageAdd"] = "加一张",
         ["Add.ImageAddHint"] = "再找一张图，排在已经列出的后面。",
+        ["Add.ImageMoveUp"] = "上移",
+        ["Add.ImageMoveUpHint"] =
+            "把这张图往前提一位。图片按列出的顺序依次尝试，先认出来的那张就是这一步用的那张。",
+        ["Add.ImageMoveDown"] = "下移",
+        ["Add.ImageMoveDownHint"] = "把这张图往后挪一位，用在另一张更应该先认的时候。",
         ["Add.ImageRemove"] = "删除",
         ["Add.ImageRemoveHint"] = "把这张图从列表里去掉。",
         ["Add.ImageEmpty"] = "还没有参考图；列表空着就没有可找的东西。",
