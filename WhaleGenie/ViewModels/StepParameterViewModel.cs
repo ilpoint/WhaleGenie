@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using Avalonia.Media.Imaging;
@@ -471,6 +472,7 @@ public partial class StepParameterViewModel : ViewModelBase
         added.Take = RemovePicture;
         added.Placeholder = Definition.Placeholder;
         added.AssetFolder = _assetFolder;
+        added.PropertyChanged += OnPictureChanged;
         Pictures.Add(added);
         OnPropertyChanged(nameof(HasPictures));
     }
@@ -478,9 +480,18 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Takes one picture out of the list.</summary>
     public void RemovePicture(ImageRowViewModel row)
     {
+        row.PropertyChanged -= OnPictureChanged;
         Pictures.Remove(row);
         OnPropertyChanged(nameof(HasPictures));
     }
+
+    /// <summary>
+    /// What one row of the list says is what this field says. The dialog follows this field rather
+    /// than its rows, so a name typed into a row has to be reported as a change here — otherwise
+    /// the step would go on looking unsaved and the picture would go on looking unfilled.
+    /// </summary>
+    private void OnPictureChanged(object? sender, PropertyChangedEventArgs e)
+        => OnPropertyChanged(nameof(HasPictures));
 
     /// <summary>True when this parameter names a window, which the window picker can fill in.</summary>
     public bool IsWindow => Definition.Kind is ActionParameterKind.Window;
@@ -787,6 +798,11 @@ public partial class StepParameterViewModel : ViewModelBase
         ActionParameterKind.Choice => string.Equals(Option?.Value ?? string.Empty,
             Definition.DefaultValue, StringComparison.Ordinal),
         ActionParameterKind.Steps or ActionParameterKind.Condition => List?.Steps.Count is null or 0,
+        // A list of them is at its default when it is empty: what such a field holds is not in its
+        // text, so reading the text alone would call a filled-in list of pictures untouched.
+        ActionParameterKind.Region => Regions.Count == 0,
+        ActionParameterKind.KeySequence => KeyRows.Count == 0,
+        ActionParameterKind.Images => Pictures.Count == 0,
         _ => string.Equals(CurrentText.Trim(), Definition.DefaultValue, StringComparison.Ordinal),
     };
 

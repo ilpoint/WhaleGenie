@@ -6,12 +6,12 @@
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="700"
+        mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="800"
         x:Class="WhaleGenie.Views.AddActionWindow"
         x:DataType="vm:AddActionViewModel"
         Title="Add Action"
-        Width="600" Height="700"
-        MinWidth="540" MinHeight="520"
+        Width="1024" Height="800"
+        MinWidth="900" MinHeight="560"
         WindowStartupLocation="CenterOwner"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
@@ -739,10 +739,11 @@
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="models:ActionDefinition">
-                            <Button Classes="ActionCard" Click="OnPickAction"
-                                    ToolTip.Tip="{Binding LocalDescription}">
-                                <TextBlock Text="{Binding LocalName}" FontSize="12" />
+                        <DataTemplate x:DataType="vm:ActionCardViewModel">
+                            <Button Classes="ActionCard" Classes.selected="{Binding IsSelected}"
+                                    Click="OnPickAction"
+                                    ToolTip.Tip="{Binding Definition.LocalDescription}">
+                                <TextBlock Text="{Binding Definition.LocalName}" FontSize="12" />
                             </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -842,6 +843,33 @@
         </Style>
         <Style Selector="Button.ActionCard:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="#3C3C3C" />
+        </Style>
+
+        <!-- The one the dialog is about reads as chosen, so the list on the left always says what
+             the fields on the right are fields of. -->
+        <Style Selector="Button.ActionCard.selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3A2A22" />
+            <Setter Property="BorderBrush" Value="#C8401C" />
+        </Style>
+
+        <!-- One page of a step's settings. -->
+        <Style Selector="Button.PageTab">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Foreground" Value="#C8C8C8" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Height" Value="32" />
+        </Style>
+        <Style Selector="Button.PageTab:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2E2E2E" />
+        </Style>
+        <Style Selector="Button.PageTab.selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3A3A3A" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#C8401C" />
         </Style>
 
         <Style Selector="TextBox.ParamInput">
@@ -961,71 +989,72 @@
         </Grid>
 
         <Grid Grid.Row="1" RowDefinitions="*,Auto" Margin="14">
-            <ScrollViewer Grid.Row="0" Padding="4,2,10,8" VerticalScrollBarVisibility="Auto">
-                <StackPanel>
+            <Grid Grid.Row="0" ColumnDefinitions="320,*">
+
+                <!-- Which action. Always on screen rather than folded away once one is chosen:
+                 changing one's mind is then a click, and the fields beside it never move. -->
+                <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*" Margin="0,0,6,0">
                     <TextBlock Classes="FieldLabel"
                                Text="{Binding [Add.SelectAction], Source={x:Static loc:Strings.Current}}" />
 
                     <!-- The catalogue is well over a hundred actions, so it is read as a search box
                          over short groups rather than one long dropdown. -->
-                    <StackPanel IsVisible="{Binding IsPickerOpen}">
-                        <TextBox Classes="ParamInput" Text="{Binding ActionSearch}"
-                                 AutomationProperties.Name="Search actions"
-                                 PlaceholderText="{Binding [Add.SearchAction], Source={x:Static loc:Strings.Current}}" />
+                    <TextBox Grid.Row="1" Classes="ParamInput" Text="{Binding ActionSearch}"
+                             AutomationProperties.Name="Search actions"
+                             PlaceholderText="{Binding [Add.SearchAction], Source={x:Static loc:Strings.Current}}" />
 
-                        <TextBlock Classes="Muted" Margin="2,8,0,0" TextWrapping="Wrap"
-                                   IsVisible="{Binding HasNoActionMatch}"
-                                   Text="{Binding [Add.NoActionFound], Source={x:Static loc:Strings.Current}}" />
+                    <ScrollViewer Grid.Row="2" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock Classes="Muted" Margin="2,0,0,6" TextWrapping="Wrap"
+                                       IsVisible="{Binding HasNoActionMatch}"
+                                       Text="{Binding [Add.NoActionFound], Source={x:Static loc:Strings.Current}}" />
 
-                        <ScrollViewer MaxHeight="196" Margin="0,8,0,0"
-                                      VerticalScrollBarVisibility="Auto">
                             <ItemsControl ItemsSource="{Binding ActionGroups}"
                                           ItemTemplate="{StaticResource ActionGroup}" />
-                        </ScrollViewer>
-                    </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
 
-                    <!-- Once an action is chosen the picker folds down to the one line that names
-                         it, which gives the fields the room they need. -->
-                    <Grid IsVisible="{Binding !IsPickerOpen}" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <TextBlock Text="{Binding SelectedActionTitle}" FontSize="12.5"
-                                   Foreground="#E8E8E8" VerticalAlignment="Center"
-                                   TextTrimming="CharacterEllipsis" />
-                        <Button Grid.Column="1" Classes="FlatButton" Height="30" Padding="12,0"
-                                Command="{Binding OpenPickerCommand}"
-                                Content="{Binding [Add.ChangeAction], Source={x:Static loc:Strings.Current}}" />
-                    </Grid>
-
-                    <StackPanel Margin="2,10,0,0" Spacing="3">
-                        <!-- The key is worth reading while the picker is open; once it is folded the
-                             line above already names the action, and saying it twice is noise. -->
-                        <TextBlock Text="{Binding SelectedKey}" FontSize="12.5" Foreground="#E8E8E8"
-                                   IsVisible="{Binding IsPickerOpen}" />
+                <!-- What the step is, and how it is set up: a page at a time, so a form of a dozen
+                     fields is not one wall of them. -->
+                <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="16,0,0,0">
+                    <StackPanel Grid.Row="0" Spacing="3" Margin="2,0,0,12">
+                        <TextBlock Text="{Binding SelectedActionName}" FontSize="15"
+                                   Foreground="#F0F0F0" />
+                        <TextBlock Text="{Binding SelectedKey}" FontSize="12" Foreground="#9A9A9A" />
                         <TextBlock Classes="Muted" Text="{Binding Description}" TextWrapping="Wrap" />
                     </StackPanel>
 
-                    <Border Classes="GroupBox" IsVisible="{Binding HasSelection}">
-                        <StackPanel>
-                            <!-- Settings worth having but not worth showing on every step: where the
-                                 input is sent, what a position is measured from. They stay folded
-                                 so an action with a dozen parameters is not a wall of fields. The fold
-                                 sits on the heading, not under the fields, because an action with that
-                                 many parameters pushes anything below the list out of sight. -->
-                            <Grid MinHeight="30" Margin="0,10,0,10" ColumnDefinitions="*,Auto">
-                                <TextBlock Classes="GroupHeader" Margin="0"
-                                           VerticalAlignment="Center"
-                                           Text="{Binding [Add.Parameters], Source={x:Static loc:Strings.Current}}" />
-                                <Button Grid.Column="1" Classes="Disclosure" VerticalAlignment="Center"
-                                        IsVisible="{Binding HasAdvanced}"
-                                        Command="{Binding ToggleAdvancedCommand}">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Path Width="10" Height="10" Stretch="Uniform" StrokeThickness="1.6"
-                                              Stroke="#C8A165" Data="{Binding AdvancedCaret}"
-                                              VerticalAlignment="Center" />
-                                        <TextBlock Text="{Binding AdvancedLabel}" VerticalAlignment="Center" />
+                    <ItemsControl Grid.Row="1" ItemsSource="{Binding Pages}" Margin="0,0,0,4">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="4" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ActionPageViewModel">
+                                <!-- A page holding something that is not the value it starts on
+                                     carries a mark, so a step that behaves unusually says so from
+                                     the tab rather than only on the page it is on. -->
+                                <Button Classes="PageTab" Classes.selected="{Binding IsOpen}"
+                                        IsVisible="{Binding IsPresent}" Click="OnSelectPage">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+                                        <Ellipse Width="6" Height="6" Fill="#E0A030"
+                                                 VerticalAlignment="Center"
+                                                 IsVisible="{Binding HasDot}" />
                                     </StackPanel>
                                 </Button>
-                            </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
 
+                    <ScrollViewer Grid.Row="2" Padding="4,2,10,8" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+
+                    <!-- What the step is: what it looks for, where, how soon, and what it does. -->
+                    <Border Classes="GroupBox" IsVisible="{Binding OnBase}">
+                        <StackPanel>
                             <!-- A block's settings are about the block, not about one thing the run
                                  does, and the two levels are what make a failure answerable at the
                                  level it belongs to. -->
@@ -1036,20 +1065,34 @@
                             <ItemsControl ItemsSource="{Binding Rows}"
                                           ItemTemplate="{StaticResource ParameterRowEditor}" />
 
-                            <ItemsControl ItemsSource="{Binding AdvancedRows}"
-                                          IsVisible="{Binding ShowAdvanced}"
-                                          ItemTemplate="{StaticResource ParameterRowEditor}" />
-
                             <TextBlock Classes="Muted" IsVisible="{Binding !HasParameters}"
                                        Text="{Binding [Add.NoParameters], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
                     </Border>
 
-                    <Border Classes="GroupBox">
+                    <!-- How the step does it: the ways of recognising things, the tuning, the
+                         format. Nothing here is needed to say what the step is, so it is on a page
+                         of its own rather than in the way of the usual few fields. -->
+                    <Border Classes="GroupBox" IsVisible="{Binding OnAdvanced}">
                         <StackPanel>
-                            <TextBlock Classes="GroupHeader" Margin="0,12,0,10"
-                                       Text="{Binding [Add.StepSettings], Source={x:Static loc:Strings.Current}}" />
+                            <ItemsControl ItemsSource="{Binding AdvancedRows}"
+                                          ItemTemplate="{StaticResource ParameterRowEditor}" />
+                        </StackPanel>
+                    </Border>
 
+                    <!-- Where the step leaves its answer. These are names rather than settings: the
+                         variable a later step reads the result out of. -->
+                    <Border Classes="GroupBox" IsVisible="{Binding OnOutput}">
+                        <StackPanel>
+                            <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="2,0,0,8"
+                                       Text="{Binding [Add.Page.OutputHint], Source={x:Static loc:Strings.Current}}" />
+                            <ItemsControl ItemsSource="{Binding OutputRows}"
+                                          ItemTemplate="{StaticResource ParameterRowEditor}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Classes="GroupBox" IsVisible="{Binding OnOther}">
+                        <StackPanel>
                             <TextBlock Classes="FieldLabel"
                                        Text="{Binding [Add.StepComment], Source={x:Static loc:Strings.Current}}" />
                             <TextBox Classes="ParamInput" Text="{Binding MetaComment}"
@@ -1156,19 +1199,21 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Classes="GroupBox">
+                    <Border Classes="GroupBox" IsVisible="{Binding OnOther}">
                         <StackPanel>
                             <TextBlock Classes="GroupHeader" Margin="0,12,0,10"
                                        Text="{Binding [Add.JsonNode], Source={x:Static loc:Strings.Current}}" />
                             <TextBox Classes="JsonPreview" Text="{Binding JsonPreview, Mode=OneWay}"
                                      IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
-                                     Height="150"
+                                     MinHeight="150" MaxHeight="360"
                                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
                                      ScrollViewer.VerticalScrollBarVisibility="Auto" />
                         </StackPanel>
                     </Border>
                 </StackPanel>
             </ScrollViewer>
+                </Grid>
+            </Grid>
 
             <!-- Save / cancel -->
             <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" Margin="4,12,4,0">

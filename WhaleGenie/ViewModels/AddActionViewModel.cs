@@ -71,6 +71,18 @@ public partial class AddActionViewModel : ViewModelBase
             setting.PropertyChanged += OnSettingChanged;
         }
 
+        foreach (var (key, title) in new[]
+                 {
+                     (BasePage, "Add.Page.Base"),
+                     (AdvancedPage, "Add.Page.Advanced"),
+                     (OutputPage, "Add.Page.Output"),
+                     (OtherPage, "Add.Page.Other"),
+                 })
+        {
+            Pages.Add(new ActionPageViewModel { Key = key, Title = Strings.Get(title) });
+        }
+
+        Page = Pages[0];
         RebuildActions();
     }
 
@@ -92,13 +104,6 @@ public partial class AddActionViewModel : ViewModelBase
     /// category.
     /// </summary>
     public ObservableCollection<ActionGroupViewModel> ActionGroups { get; } = [];
-
-    /// <summary>
-    /// True while the picker itself is on screen. Choosing an action folds it down to one line, so
-    /// the fields it is about to fill are not pushed off the bottom of the dialog.
-    /// </summary>
-    [ObservableProperty]
-    public partial bool IsPickerOpen { get; set; } = true;
 
     /// <summary>True when the search box has hidden everything, so the picker can say so.</summary>
     public bool HasNoActionMatch => ActionGroups.Count == 0;
@@ -177,10 +182,9 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>Groups the user opened by hand, so a search does not fold them back up.</summary>
     private readonly HashSet<string> _openedGroups = new(StringComparer.Ordinal);
 
-    /// <summary>The action being built, on the line the folded-away picker leaves behind.</summary>
-    public string SelectedActionTitle => SelectedDefinition is null
-        ? Strings.Get("Add.NoSelection")
-        : SelectedDefinition.Key + " · " + SelectedDefinition.LocalName;
+    /// <summary>The name of the action being built, over the fields it needs.</summary>
+    public string SelectedActionName => SelectedDefinition?.LocalName
+        ?? Strings.Get("Add.NoSelection");
 
     /// <summary>
     /// Where a picture taken from the screen is saved while this dialog is open, and where a
@@ -244,7 +248,7 @@ public partial class AddActionViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(HasSelection))]
     [NotifyPropertyChangedFor(nameof(SelectedKey))]
     [NotifyPropertyChangedFor(nameof(Description))]
-    [NotifyPropertyChangedFor(nameof(SelectedActionTitle))]
+    [NotifyPropertyChangedFor(nameof(SelectedActionName))]
     [NotifyPropertyChangedFor(nameof(IsBlock))]
     public partial ActionDefinition? SelectedDefinition { get; set; }
 
@@ -258,31 +262,59 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>Editors for the selected action, rebuilt whenever the selection changes.</summary>
     public ObservableCollection<StepParameterViewModel> Parameters { get; } = [];
 
+    /// <summary>
+    /// The four pages a step is edited on, in the order they are read. A step of a dozen fields is
+    /// the reason they exist: which page a field belongs on is decided by the catalogued parameter
+    /// rather than here, and this only says which page is open.
+    /// </summary>
+    public ObservableCollection<ActionPageViewModel> Pages { get; } = [];
+
+    /// <summary>Key of the page that holds what the step is: what it looks for, where, how soon.</summary>
+    public const string BasePage = "base";
+
+    /// <summary>Key of the page that holds the settings only a different approach needs.</summary>
+    public const string AdvancedPage = "advanced";
+
+    /// <summary>Key of the page that holds the names this step leaves its answer under.</summary>
+    public const string OutputPage = "output";
+
+    /// <summary>Key of the page that holds the settings every step has, and the JSON it comes to.</summary>
+    public const string OtherPage = "other";
+
+    /// <summary>The page on screen.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(OnBase))]
+    [NotifyPropertyChangedFor(nameof(OnAdvanced))]
+    [NotifyPropertyChangedFor(nameof(OnOutput))]
+    [NotifyPropertyChangedFor(nameof(OnOther))]
+    public partial ActionPageViewModel? Page { get; set; }
+
+    /// <summary>True while the page about what the step is is the one on screen.</summary>
+    public bool OnBase => Page?.Key == BasePage;
+
+    /// <summary>True while the page of settings for another approach is on screen.</summary>
+    public bool OnAdvanced => Page?.Key == AdvancedPage;
+
+    /// <summary>True while the page of result names is on screen.</summary>
+    public bool OnOutput => Page?.Key == OutputPage;
+
+    /// <summary>True while the page of step settings and the JSON is on screen.</summary>
+    public bool OnOther => Page?.Key == OtherPage;
+
     /// <summary>The parameters as the dialog shows them, with a position's x and y on one line.</summary>
     public ObservableCollection<ParameterRowViewModel> Rows { get; } = [];
 
-    /// <summary>The settings the dialog keeps folded away until they are asked for.</summary>
+    /// <summary>The settings whose answer is "how this step does it", as another list of lines.</summary>
     public ObservableCollection<ParameterRowViewModel> AdvancedRows { get; } = [];
 
-    /// <summary>True when this action has settings behind the fold.</summary>
+    /// <summary>The variables this step leaves its answer in, which are asked for on their own page.</summary>
+    public ObservableCollection<ParameterRowViewModel> OutputRows { get; } = [];
+
+    /// <summary>True when this action has settings that belong on the advanced page.</summary>
     public bool HasAdvanced => AdvancedRows.Any(row => row.IsApplicable);
 
-    /// <summary>
-    /// True while the folded settings are on screen. A step that already uses one opens with them
-    /// showing, so the reason it behaves unusually is never hidden from the person editing it.
-    /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(AdvancedLabel))]
-    [NotifyPropertyChangedFor(nameof(AdvancedCaret))]
-    public partial bool ShowAdvanced { get; set; }
-
-    /// <summary>Text of the fold's button, which says how many settings are behind it.</summary>
-    public string AdvancedLabel => Strings.Format(
-        ShowAdvanced ? "Add.AdvancedHide" : "Add.AdvancedShow",
-        AdvancedRows.Count(row => row.IsApplicable));
-
-    /// <summary>The mark on that button, pointing the way the fold will go.</summary>
-    public Geometry AdvancedCaret => ShowAdvanced ? Carets.Open : Carets.Shut;
+    /// <summary>True when this action writes anything into a variable.</summary>
+    public bool HasOutput => OutputRows.Any(row => row.IsApplicable);
 
     public bool HasSelection => SelectedDefinition is not null;
 
@@ -453,10 +485,23 @@ public partial class AddActionViewModel : ViewModelBase
     partial void OnSelectedDefinitionChanged(ActionDefinition? value)
     {
         BuildParameters(value);
+        MarkChosen();
         // Choosing an action is what turns "pick one first" into a real answer, so whether the line
         // is a problem changes here as well as when a parameter is filled in.
         OnPropertyChanged(nameof(ValidationMessage));
         OnPropertyChanged(nameof(ValidationIsProblem));
+    }
+
+    /// <summary>
+    /// Marks the card of the action being built, so the list on the left always says what the
+    /// fields on the right are fields of.
+    /// </summary>
+    private void MarkChosen()
+    {
+        foreach (var card in ActionGroups.SelectMany(group => group.Actions))
+        {
+            card.IsSelected = card.Key == SelectedDefinition?.Key;
+        }
     }
 
     /// <summary>
@@ -471,15 +516,6 @@ public partial class AddActionViewModel : ViewModelBase
         }
 
         SelectedDefinition = definition;
-        IsPickerOpen = false;
-    }
-
-    /// <summary>Reopens the picker on the line the folded-away one left behind.</summary>
-    [RelayCommand]
-    private void OpenPicker()
-    {
-        ActionSearch = string.Empty;
-        IsPickerOpen = true;
     }
 
     /// <summary>Folds a group open or shut and remembers which way it went.</summary>
@@ -601,7 +637,19 @@ public partial class AddActionViewModel : ViewModelBase
 
     private void Group(string key, string title, Geometry? icon,
         IReadOnlyList<ActionDefinition> actions, bool open, string note = "")
-        => ActionGroups.Add(new ActionGroupViewModel(key, title, icon, actions, open, note));
+        => ActionGroups.Add(new ActionGroupViewModel(key, title, icon, Cards(actions), open, note));
+
+    /// <summary>
+    /// The actions as the cards the picker shows, with the one being edited already marked. The
+    /// mark is put on here rather than on the entry, because the catalogue is shared by every
+    /// dialog while what is being built belongs to this one.
+    /// </summary>
+    private IReadOnlyList<ActionCardViewModel> Cards(IReadOnlyList<ActionDefinition> actions)
+        => [.. actions.Select(action => new ActionCardViewModel
+        {
+            Definition = action,
+            IsSelected = action.Key == SelectedDefinition?.Key,
+        })];
 
     /// <summary>Adds a heading that divides the picker into parts rather than holding actions.</summary>
     private void Section(string key, string title, string note)
@@ -740,13 +788,9 @@ public partial class AddActionViewModel : ViewModelBase
         MetaRetryBackoff = BackoffChoices.FirstOrDefault(choice =>
             choice.Value == StepMeta.Name(step.Meta.RetryBackoff)) ?? BackoffChoices[0];
 
-        // A step that already uses one of the folded settings opens with them in view, so the
-        // reason it behaves unusually is not hidden under a fold the user has to know about.
-        ShowAdvanced = Parameters.Any(parameter => parameter.IsAdvanced && !parameter.IsDefault);
-
-        // A step being edited already has its action, so the picker folds down to the line that
-        // names it and the whole dialog is about the fields.
-        IsPickerOpen = false;
+        // The step opens on the page that was changed, so the reason it behaves unusually is the
+        // first thing on screen rather than something to go looking for.
+        OpenFirstPage();
     }
 
     private void BuildParameters(ActionDefinition? definition)
@@ -793,27 +837,30 @@ public partial class AddActionViewModel : ViewModelBase
             SuggestOutputNames();
         }
 
-        // A different action starts folded, whatever the one before it had open.
-        ShowAdvanced = false;
-
         BuildRows();
+        OpenFirstPage();
         OnParameterChanged(this, new PropertyChangedEventArgs(nameof(Parameters)));
     }
 
     /// <summary>
-    /// Lays the parameters out a line at a time, keeping the two halves of a screen position
-    /// together so x and y sit side by side.
+    /// Lays the parameters out over their pages, a line at a time, keeping the two halves of a
+    /// screen position together so x and y sit side by side. Which page a field belongs on is
+    /// decided here from the field itself: a name a step leaves its answer under is asked for on a
+    /// page of its own, because that is a different question from what the step is.
     /// </summary>
     private void BuildRows()
     {
         Rows.Clear();
         AdvancedRows.Clear();
+        OutputRows.Clear();
 
-        FillRows(Parameters.Where(parameter => !parameter.IsAdvanced), Rows);
-        FillRows(Parameters.Where(parameter => parameter.IsAdvanced), AdvancedRows);
+        FillRows(Parameters.Where(parameter => !parameter.Definition.IsOutputVariable
+            && !parameter.IsAdvanced), Rows);
+        FillRows(Parameters.Where(parameter => !parameter.Definition.IsOutputVariable
+            && parameter.IsAdvanced), AdvancedRows);
+        FillRows(Parameters.Where(parameter => parameter.Definition.IsOutputVariable), OutputRows);
 
-        OnPropertyChanged(nameof(HasAdvanced));
-        OnPropertyChanged(nameof(AdvancedLabel));
+        RefreshPages();
     }
 
     private static void FillRows(IEnumerable<StepParameterViewModel> parameters,
@@ -835,6 +882,73 @@ public partial class AddActionViewModel : ViewModelBase
 
             rows.Add(new ParameterRowViewModel(current));
         }
+    }
+
+    /// <summary>The lines of one page, which is what its mark and its presence are read from.</summary>
+    private IReadOnlyList<ParameterRowViewModel> RowsOf(string key) => key switch
+    {
+        BasePage => Rows,
+        AdvancedPage => AdvancedRows,
+        OutputPage => OutputRows,
+        _ => [],
+    };
+
+    /// <summary>
+    /// Says which pages there is anything to show on, and which of them holds something that is not
+    /// the value it starts on. A page of a step's own fields with nothing on it is not shown at all,
+    /// and a page holding a changed value carries a mark on its tab.
+    /// </summary>
+    private void RefreshPages()
+    {
+        foreach (var page in Pages)
+        {
+            // The page of step settings is about the step rather than about the action, so it is
+            // there whatever the action is; the three that hold an action's fields are not.
+            var rows = RowsOf(page.Key);
+            page.IsPresent = page.Key == OtherPage || rows.Any(row => row.IsApplicable);
+            page.HasDot = page.Key is AdvancedPage or OutputPage
+                && rows.Any(row => row.IsApplicable && !row.IsDefault);
+        }
+
+        // A page can empty out while it is the one open — the questions about which hit to take
+        // disappear when the way of recognising a picture changes — and something has to be on
+        // screen, so the step moves to a page that is still there.
+        if (Page is { IsPresent: false })
+        {
+            OpenFirstPage();
+        }
+
+        OnPropertyChanged(nameof(HasAdvanced));
+        OnPropertyChanged(nameof(HasOutput));
+    }
+
+    /// <summary>
+    /// Puts the step on the page worth reading first: for a step that already exists, the first one
+    /// holding something that is not the value it starts on, so what makes it unusual is what is on
+    /// screen; otherwise the first page that asks anything at all. A step being written has nothing
+    /// worth jumping to — the names it leaves its answer under were filled in a moment ago — so it
+    /// opens on what the step is.
+    /// </summary>
+    private void OpenFirstPage()
+    {
+        var present = Pages.Where(page => page.IsPresent).ToList();
+        var filled = _isNewStep || !IsEditing
+            ? null
+            : present.FirstOrDefault(page => page.Key != OtherPage
+                && RowsOf(page.Key).Any(row => row.IsApplicable && !row.IsDefault));
+
+        Select(filled ?? present.FirstOrDefault() ?? Pages[0]);
+    }
+
+    /// <summary>Opens one page, which is what clicking its tab does.</summary>
+    public void Select(ActionPageViewModel page)
+    {
+        foreach (var candidate in Pages)
+        {
+            candidate.IsOpen = ReferenceEquals(candidate, page);
+        }
+
+        Page = page;
     }
 
     /// <summary>
@@ -1099,13 +1213,11 @@ public partial class AddActionViewModel : ViewModelBase
             }
         }
 
-        // The fold counts the fields behind it, and those fields can come and go, so what it says
-        // has to be read again rather than left as it was when the action was chosen.
+        // Which page holds what can come and go with what a field says, so the pages are read
+        // again rather than left as they were when the action was chosen.
         if (rows > 0)
         {
-            OnPropertyChanged(nameof(HasAdvanced));
-            OnPropertyChanged(nameof(AdvancedLabel));
-            OnPropertyChanged(nameof(HasParameters));
+            RefreshPages();
         }
     }
 
@@ -1116,6 +1228,7 @@ public partial class AddActionViewModel : ViewModelBase
     private void OnParameterChanged(object? sender, PropertyChangedEventArgs e)
     {
         RefreshGates();
+        RefreshPages();
         OnPropertyChanged(nameof(HasParameters));
         OnPropertyChanged(nameof(JsonPreview));
         OnPropertyChanged(nameof(ValidationMessage));
@@ -1236,10 +1349,6 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>Reads a whole-number box that may be left empty, counting an empty one as zero.</summary>
     private static int Whole(decimal? value) => value is null ? 0 : Math.Max(0, (int)value.Value);
-
-    /// <summary>Opens and closes the settings the dialog keeps folded away.</summary>
-    [RelayCommand]
-    private void ToggleAdvanced() => ShowAdvanced = !ShowAdvanced;
 
     [RelayCommand(CanExecute = nameof(CanSave))]
     private void Save()

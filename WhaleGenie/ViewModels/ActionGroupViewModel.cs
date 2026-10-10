@@ -14,7 +14,7 @@ namespace WhaleGenie.ViewModels;
 public partial class ActionGroupViewModel : ViewModelBase
 {
     public ActionGroupViewModel(string key, string title, Geometry? icon,
-        IReadOnlyList<ActionDefinition> actions, bool open, string note = "", bool section = false)
+        IReadOnlyList<ActionCardViewModel> actions, bool open, string note = "", bool section = false)
     {
         Key = key;
         Title = title;
@@ -45,7 +45,7 @@ public partial class ActionGroupViewModel : ViewModelBase
 
     public bool HasIcon => Icon is not null;
 
-    public IReadOnlyList<ActionDefinition> Actions { get; }
+    public IReadOnlyList<ActionCardViewModel> Actions { get; }
 
     /// <summary>
     /// A sentence the group says about itself, shown under its heading. Only the block group has

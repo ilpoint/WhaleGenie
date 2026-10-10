@@ -101,6 +101,29 @@ public partial class AddActionWindow : Window
 
     private void OnVariablePickerPressed(object? sender, PointerPressedEventArgs e) => OpenCandidates(e.Source);
 
+    /// <summary>
+    /// Opens at a size the desktop can hold. The four pages are read comfortably in a thousand
+    /// pixels of width, but a 1366-wide laptop has less than that to give once the window is kept
+    /// clear of its edges — so the size wanted is trimmed to the room there is rather than the
+    /// dialog hanging off the screen.
+    /// </summary>
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+
+        var screen = (Owner is { } owner ? Screens.ScreenFromWindow(owner) : null) ?? Screens.Primary;
+        if (screen is null)
+        {
+            return;
+        }
+
+        var scale = screen.Scaling > 0 ? screen.Scaling : 1;
+        var (width, height) = DialogSize.Fit(
+            screen.WorkingArea.Width / scale, screen.WorkingArea.Height / scale);
+        Width = width;
+        Height = height;
+    }
+
     /// <summary>Opens the dropdown of a variable picker that has something to offer.</summary>
     private static void OpenCandidates(object? source)
     {
@@ -379,10 +402,20 @@ public partial class AddActionWindow : Window
     /// <summary>Chooses the action whose card was clicked.</summary>
     private void OnPickAction(object? sender, RoutedEventArgs e)
     {
-        if (sender is Control { DataContext: ActionDefinition definition }
+        if (sender is Control { DataContext: ActionCardViewModel card }
             && DataContext is AddActionViewModel viewModel)
         {
-            viewModel.SelectAction(definition.Key);
+            viewModel.SelectAction(card.Key);
+        }
+    }
+
+    /// <summary>Opens the page whose tab was clicked.</summary>
+    private void OnSelectPage(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: ActionPageViewModel page }
+            && DataContext is AddActionViewModel viewModel)
+        {
+            viewModel.Select(page);
         }
     }
 

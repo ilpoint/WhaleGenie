@@ -24,6 +24,12 @@ public sealed class ParameterRowViewModel
     /// </summary>
     public bool IsApplicable => First.IsApplicable;
 
+    /// <summary>
+    /// True while both halves of the line still hold what they started with, which is what the
+    /// mark on a page's tab is read from: a page holding a changed value is worth pointing at.
+    /// </summary>
+    public bool IsDefault => First.IsDefault && (Second?.IsDefault ?? true);
+
     /// <summary>True when this line carries the button that picks a whole screen region.</summary>
     public bool IsRegionAnchor => First.IsRegionAnchor;
 

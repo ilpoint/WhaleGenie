@@ -996,6 +996,10 @@ public class ActionDialogTests
             Assert.Equal(0, unitBox.SelectedIndex);
 
             // The step settings carry the same choice, so a long timeout is written the same way.
+            // They live on a page of their own, so that page is the one opened to read them.
+            viewModel.Select(viewModel.Pages.First(page => page.Key == AddActionViewModel.OtherPage));
+            Dispatcher.UIThread.RunJobs();
+
             var settingBox = window.GetVisualDescendants().OfType<ComboBox>()
                 .First(box => ReferenceEquals(box.DataContext, viewModel.MetaTimeout));
             Assert.Same(viewModel.MetaTimeout.Units, settingBox.ItemsSource);
@@ -1051,7 +1055,7 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_step_with_nothing_unusual_keeps_its_folded_settings_shut()
+    public void The_pages_hold_the_fields_a_step_is_read_a_part_at_a_time()
     {
         Ui.Run(() =>
         {
@@ -1063,25 +1067,23 @@ public class ActionDialogTests
             viewModel.SelectAction("input.mouseMove");
             Dispatcher.UIThread.RunJobs();
 
-            // x and y share a line, so four fields read as three lines while the fold holds the
-            // rest: what the coordinates are measured from, and where the input is sent.
+            // x and y share a line, so four fields read as three lines while the advanced page
+            // holds the rest: what the coordinates are measured from, and where the input is sent.
             Assert.Equal(3, viewModel.Rows.Count);
             Assert.Equal(5, viewModel.AdvancedRows.Count);
-            Assert.False(viewModel.ShowAdvanced);
+            Assert.True(viewModel.OnBase);
 
-            var fold = window.GetVisualDescendants().OfType<Button>()
-                .First(button => button.Classes.Contains("Disclosure"));
-            Assert.True(fold.IsVisible);
-
-            fold.Command?.Execute(fold.CommandParameter);
-            Dispatcher.UIThread.RunJobs();
-
-            Assert.True(viewModel.ShowAdvanced);
+            // The pages are opened by their own tabs rather than by a fold, so a step's settings
+            // are read in the parts they come in.
+            var advanced = viewModel.Pages.First(page => page.Key == AddActionViewModel.AdvancedPage);
+            Assert.True(advanced.IsPresent);
+            viewModel.Select(advanced);
+            Assert.True(viewModel.OnAdvanced);
         });
     }
 
     [Fact]
-    public void The_fold_sits_on_the_heading_so_a_full_box_of_fields_cannot_push_it_away()
+    public void The_pages_sit_above_the_fields_so_a_full_box_of_them_cannot_push_them_away()
     {
         Ui.Run(() =>
         {
@@ -1089,22 +1091,20 @@ public class ActionDialogTests
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
-            // Six fields, which is what used to push the fold below the bottom edge of the
-            // dialog and leave a step that has folded settings with no way to reach them.
+            // Six fields, which is what used to push the fold below the bottom edge of the dialog
+            // and leave a step with settings no one could reach.
             var viewModel = (AddActionViewModel)window.DataContext!;
             viewModel.SelectAction("input.mouseClick");
             Dispatcher.UIThread.RunJobs();
 
-            var fold = window.GetVisualDescendants().OfType<Button>()
-                .First(button => button.Classes.Contains("Disclosure"));
-            Assert.True(fold.IsVisible);
+            var tab = window.GetVisualDescendants().OfType<Button>()
+                .First(button => button.Classes.Contains("PageTab") && button.IsEffectivelyVisible);
 
-            var corner = fold.TranslatePoint(default, window);
+            var corner = tab.TranslatePoint(default, window);
             Assert.NotNull(corner);
 
-            // The fold belongs to the heading of the box, so it reads above every field rather
-            // than under the last of them, where a full box of fields used to leave it off the
-            // bottom edge with no way to reach the settings behind it.
+            // The pages are above the fields rather than under the last of them, which is where a
+            // long form used to leave the settings behind them off the bottom edge.
             var fields = window.GetVisualDescendants().OfType<Control>()
                 .Where(control => control.DataContext is StepParameterViewModel
                     && control.IsEffectivelyVisible)
@@ -1114,13 +1114,13 @@ public class ActionDialogTests
 
             Assert.NotEmpty(fields);
             Assert.All(fields, field => Assert.True(field.Y > corner!.Value.Y,
-                $"the fold at {corner} is not above the field at {field}"));
-            Assert.InRange(corner!.Value.Y + fold.Bounds.Height, 0, window.Bounds.Height);
+                $"the pages at {corner} are not above the field at {field}"));
+            Assert.InRange(corner!.Value.Y + tab.Bounds.Height, 0, window.Bounds.Height);
         });
     }
 
     [Fact]
-    public void A_step_that_uses_a_folded_setting_opens_with_it_showing()
+    public void A_step_that_changed_an_advanced_setting_opens_on_that_page()
     {
         Ui.Run(() =>
         {
@@ -1130,7 +1130,6 @@ public class ActionDialogTests
                 Type = "input.keyPress",
                 Parameters =
                 [
-                    new StepParameter { Name = "key", Kind = ActionParameterKind.Key, Value = "F5" },
                     new StepParameter
                     {
                         Name = "inputMode",
@@ -1140,14 +1139,16 @@ public class ActionDialogTests
                 ],
             });
 
-            // A step that posts its input somewhere is doing something unusual, so the reason is
-            // put in front of the user rather than left under the fold.
-            Assert.True(viewModel.ShowAdvanced);
+            // A step that posts its input somewhere is doing something unusual, so that is the page
+            // it opens on rather than something to go looking for.
+            Assert.True(viewModel.OnAdvanced);
+            Assert.True(viewModel.Pages.First(page =>
+                page.Key == AddActionViewModel.AdvancedPage).HasDot);
         });
     }
 
     [Fact]
-    public void A_step_that_says_nothing_about_the_folded_settings_opens_with_them_shut()
+    public void A_step_that_says_nothing_unusual_opens_on_what_the_step_is()
     {
         Ui.Run(() =>
         {
@@ -1161,7 +1162,7 @@ public class ActionDialogTests
                 ],
             });
 
-            Assert.False(viewModel.ShowAdvanced);
+            Assert.True(viewModel.OnBase);
         });
     }
 
@@ -1322,25 +1323,32 @@ public class ActionDialogTests
             // asks them in that order and keeps the rest behind the fold.
             var reading = Open("file.readCsv");
             Assert.Equal(
-                ["path", "hasHeader", "columns", "matchColumn", "matchValue", "resultVariable"],
+                ["path", "hasHeader", "columns", "matchColumn", "matchValue"],
                 reading.Rows.SelectMany(Names).ToList());
 
             var folded = reading.AdvancedRows.SelectMany(Names).ToList();
             Assert.Contains("encoding", folded);
             Assert.Contains("separator", folded);
-            Assert.Contains("headerVariable", folded);
             Assert.Contains("trim", folded);
+
+            // The names the step leaves its answer under are asked for on a page of their own: they
+            // are not part of what the step is, they are how the rest of the macro reaches it.
+            Assert.Equal(["resultVariable", "headerVariable"],
+                reading.OutputRows.SelectMany(Names).ToList());
 
             var writing = Open("file.writeCsv");
             Assert.Equal(["path", "rows", "header", "mode", "align"],
                 writing.Rows.SelectMany(Names).ToList());
+            Assert.Empty(writing.OutputRows);
 
             var listing = Open("file.listFiles");
-            Assert.Equal(["folder", "pattern", "recurse", "resultVariable"],
+            Assert.Equal(["folder", "pattern", "recurse"],
                 listing.Rows.SelectMany(Names).ToList());
+            Assert.Equal(["resultVariable"], listing.OutputRows.SelectMany(Names).ToList());
 
             var text = Open("file.readText");
-            Assert.Equal(["path", "resultVariable"], text.Rows.SelectMany(Names).ToList());
+            Assert.Equal(["path"], text.Rows.SelectMany(Names).ToList());
+            Assert.Equal(["resultVariable"], text.OutputRows.SelectMany(Names).ToList());
         });
     }
 
@@ -1354,8 +1362,15 @@ public class ActionDialogTests
             Dispatcher.UIThread.RunJobs();
 
             var viewModel = (AddActionViewModel)window.DataContext!;
-            Assert.True(viewModel.IsPickerOpen);
             Assert.Empty(viewModel.ActionSearch);
+
+            // The list of actions is on screen the whole time the dialog is, rather than folded
+            // away once one is chosen: changing one's mind is a click and nothing moves. The
+            // groups start shut, so what is on screen is the box and the headings.
+            var headings = window.GetVisualDescendants().OfType<Button>()
+                .Where(button => button.Classes.Contains("GroupToggle") && button.IsEffectivelyVisible)
+                .ToList();
+            Assert.NotEmpty(headings);
 
             // The blocks are lifted out of the categories and listed together, in the order a
             // task is built in: the four things that all "repeat" only read as different from
@@ -1388,9 +1403,9 @@ public class ActionDialogTests
                     .Distinct().Order().ToList(),
                 groups.Select(group => group.Key).Order().ToList());
             Assert.All(groups, group => Assert.All(group.Actions,
-                action => Assert.Equal(action.Category.ToString(), group.Key)));
+                card => Assert.Equal(card.Definition.Category.ToString(), group.Key)));
             Assert.All(groups.SelectMany(group => group.Actions), action => Assert.DoesNotContain(
-                action.Parameters,
+                action.Definition.Parameters,
                 parameter => parameter.Kind is ActionParameterKind.Steps && !parameter.ConditionsOnly));
 
             // Over a hundred actions read as a dozen shut headings until one of them is opened or
@@ -1429,7 +1444,6 @@ public class ActionDialogTests
         Ui.Run(() =>
         {
             var viewModel = Open("input.mouseMove");
-            viewModel.OpenPickerCommand.Execute(null);
 
             // Something written in any of the three things a search reads — the key, the name the
             // card shows, what the action does — finds the action. The name is asked for in
@@ -1442,11 +1456,12 @@ public class ActionDialogTests
 
                 var found = viewModel.ActionGroups.SelectMany(group => group.Actions).ToList();
                 Assert.NotEmpty(found);
-                Assert.Contains(target, found);
+                Assert.Contains(found, card => ReferenceEquals(card.Definition, target));
                 Assert.All(found, action => Assert.True(
                     action.Key.Contains(term, StringComparison.OrdinalIgnoreCase)
-                    || action.LocalName.Contains(term, StringComparison.OrdinalIgnoreCase)
-                    || action.LocalDescription.Contains(term, StringComparison.OrdinalIgnoreCase)));
+                    || action.Definition.LocalName.Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || action.Definition.LocalDescription.Contains(
+                        term, StringComparison.OrdinalIgnoreCase)));
 
                 // A search has already done the narrowing, so everything left is open to read.
                 Assert.All(viewModel.ActionGroups.Where(group => group.HasActions),
@@ -1463,7 +1478,7 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void Choosing_an_action_folds_the_picker_down_to_the_line_that_names_it()
+    public void Choosing_an_action_marks_its_card_and_fills_the_fields_beside_it()
     {
         Ui.Run(() =>
         {
@@ -1473,7 +1488,7 @@ public class ActionDialogTests
 
             var viewModel = (AddActionViewModel)window.DataContext!;
 
-            // The picker opens with its groups folded, so the card for one action is only on
+            // The list opens with its groups folded, so the card for one action is only on
             // screen once something has narrowed the list to it — searching for its key does
             // that, and searching is also what opens the groups that hold the matches. Looking
             // for the card without searching would only work while a case that runs first has
@@ -1481,29 +1496,22 @@ public class ActionDialogTests
             viewModel.ActionSearch = "mouseMove";
             Dispatcher.UIThread.RunJobs();
 
-            // Clicking a card in the picker is the same thing as choosing that action.
+            // Clicking a card in the list is the same thing as choosing that action.
             var card = window.GetVisualDescendants().OfType<Button>()
                 .First(button => button.Classes.Contains("ActionCard")
-                    && button.DataContext is ActionDefinition { Key: "input.mouseMove" });
+                    && button.DataContext is ActionCardViewModel { Key: "input.mouseMove" });
             card.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal("input.mouseMove", viewModel.SelectedDefinition!.Key);
-            Assert.False(viewModel.IsPickerOpen);
-            Assert.Contains(viewModel.SelectedDefinition.LocalName, viewModel.SelectedActionTitle);
+            Assert.Contains(viewModel.SelectedDefinition.LocalName, viewModel.SelectedActionName);
 
-            // The search box and the groups step out of the way and leave the fields the room.
+            // The card that is being built reads as chosen, and the search box and the groups stay
+            // where they are: the list is one of the two halves of the dialog, not a question that
+            // has been answered and folded away.
+            Assert.True(((ActionCardViewModel)card.DataContext!).IsSelected);
             var search = window.GetVisualDescendants().OfType<TextBox>()
                 .First(box => Equals(box.PlaceholderText, Strings.Get("Add.SearchAction")));
-            Assert.False(search.IsEffectivelyVisible);
-
-            viewModel.OpenPickerCommand.Execute(null);
-            Dispatcher.UIThread.RunJobs();
-
-            // Asking for another action brings the picker back with the search box emptied, so
-            // the previous search is not still in the way.
-            Assert.True(viewModel.IsPickerOpen);
-            Assert.Empty(viewModel.ActionSearch);
             Assert.True(search.IsEffectivelyVisible);
         });
     }
