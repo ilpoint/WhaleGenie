@@ -63,8 +63,16 @@ public interface IScreenDevice
     /// <summary>The colour of one pixel.</summary>
     PixelColor PixelAt(int x, int y);
 
-    /// <summary>Copies a region of the desktop.</summary>
+    /// <summary>Copies a region of the desktop, the way this machine reads it by itself.</summary>
     ImageFrame Capture(int x, int y, int width, int height);
+
+    /// <summary>
+    /// Copies a region of the screen, taking the pixels from the place and by the means the
+    /// request names, and saying where the picture it hands back sits. A request that names a
+    /// window is answered with what the window shows — which a covering window does not change —
+    /// and one that does not is answered with the desktop.
+    /// </summary>
+    ScreenShot Capture(ScreenCaptureRequest request);
 }
 
 /// <summary>Looking for a picture on screen.</summary>
@@ -837,6 +845,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public PixelColor PixelAt(int x, int y) => throw Missing("the screen");
 
         public ImageFrame Capture(int x, int y, int width, int height) => throw Missing("the screen");
+
+        public ScreenShot Capture(ScreenCaptureRequest request) => throw Missing("the screen");
 
         public ImageFrame? Load(string path) => throw Missing("image matching");
 

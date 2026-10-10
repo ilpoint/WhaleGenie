@@ -120,6 +120,63 @@ public sealed record ImageFrame(int Width, int Height, byte[] Bgra)
     }
 }
 
+/// <summary>
+/// How a picture of part of the screen is taken. The desktop can be read the way a macro always
+/// has; a window can be asked to draw itself, or read through the same machinery that composes it
+/// on screen, which is what still finds a game that another window is covering. The two are not
+/// interchangeable: the first is cheapest and needs nothing of the graphics card, the second works
+/// when nothing of the window is visible.
+/// </summary>
+public enum CaptureMethod
+{
+    /// <summary>
+    /// Whatever suits the source: the desktop through GDI, a window through graphics capture and
+    /// then, if this machine has none, by asking the window to draw itself.
+    /// </summary>
+    Auto,
+
+    /// <summary>The desktop, copied out of it by GDI. This is what a macro has always done.</summary>
+    Gdi,
+
+    /// <summary>A window, asked to draw itself into a picture of our own.</summary>
+    PrintWindow,
+
+    /// <summary>A window, read the way the screen shows it, so a covering window changes nothing.</summary>
+    GraphicsCapture,
+
+    /// <summary>The desktop, read the way the screen shows it.</summary>
+    GraphicsCaptureDesktop,
+}
+
+/// <summary>
+/// A picture that was taken, and where its top left corner sits on the screen. The two travel
+/// together because the picture is not always the rectangle that was asked for — a window read
+/// through graphics capture is its own size, at its own corner — and everything the run does with
+/// the picture afterwards is in screen pixels.
+/// </summary>
+public readonly record struct ScreenShot(ImageFrame Frame, ScreenPoint Origin);
+
+/// <summary>
+/// One region to read, and where its pixels should come from. The rectangle is in screen pixels,
+/// the way every other coordinate a macro writes is; naming a window only says where to reach for
+/// those pixels, and turning the two into each other is the device's business rather than the
+/// macro's.
+/// </summary>
+public sealed record ScreenCaptureRequest(
+    int X,
+    int Y,
+    int Width,
+    int Height,
+    CaptureMethod Method = CaptureMethod.Auto,
+    long Window = 0)
+{
+    /// <summary>True when the pixels are to come from a window rather than from the desktop.</summary>
+    public bool IsWindow => Window != 0;
+
+    /// <summary>The same rectangle, moved, which is how a search area is placed inside a picture.</summary>
+    public ScreenCaptureRequest At(int x, int y) => this with { X = x, Y = y };
+}
+
 /// <summary>Where a reference image was found, and how well it matched.</summary>
 public sealed record ImageMatch(double Score, ScreenPoint Location, ScreenSize Size)
 {

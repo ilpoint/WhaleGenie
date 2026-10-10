@@ -5467,11 +5467,15 @@ internal sealed class FakeDeviceLayer
     }
 
     public ImageFrame Capture(int x, int y, int width, int height)
+        => Capture(new ScreenCaptureRequest(x, y, width, height)).Frame;
+
+    public ScreenShot Capture(ScreenCaptureRequest request)
     {
-        Note($"capture {x} {y} {width} {height}");
+        Captures.Add(request);
+        Note($"capture {request.X} {request.Y} {request.Width} {request.Height}");
         var picture = Display is { } display
-            ? ScreenCut(display, x, y, width, height)
-            : new ImageFrame(width, height, new byte[width * height * 4]);
+            ? ScreenCut(display, request.X, request.Y, request.Width, request.Height)
+            : new ImageFrame(request.Width, request.Height, new byte[request.Width * request.Height * 4]);
 
         // A screen that moves between two captures is what waiting for the picture to settle is
         // about, so a check writes what the screen does next.
@@ -5480,8 +5484,15 @@ internal sealed class FakeDeviceLayer
             Display = next();
         }
 
-        return picture;
+        return new ScreenShot(picture, new ScreenPoint(request.X, request.Y));
     }
+
+    /// <summary>
+    /// Every reading of the screen that was asked for, in the order it was asked: which pixels,
+    /// from where, and by which means. A check reads this to see how a step's fields were turned
+    /// into a request rather than only that something was captured.
+    /// </summary>
+    public List<ScreenCaptureRequest> Captures { get; } = [];
 
     /// <summary>What the pretend screen shows: a capture cuts the rectangle asked for out of it.</summary>
     public ImageFrame? Display { get; set; }

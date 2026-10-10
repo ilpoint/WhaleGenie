@@ -97,6 +97,13 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
             SharedDriverInput.Give();
         }
 
+        // Reading a window through graphics capture opens a graphics device of its own; a run that
+        // only ever read the desktop has nothing here.
+        if (_screen.IsValueCreated && _screen.Value is IDisposable screen)
+        {
+            screen.Dispose();
+        }
+
         if (_ui.IsValueCreated)
         {
             _ui.Value.Dispose();

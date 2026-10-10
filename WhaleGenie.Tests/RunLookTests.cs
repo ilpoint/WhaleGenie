@@ -159,6 +159,10 @@ public class RunLookTests
         public ImageFrame Capture(int x, int y, int width, int height)
             => new(width, height, new byte[width * height * 4]);
 
+        public ScreenShot Capture(ScreenCaptureRequest request)
+            => new(new ImageFrame(request.Width, request.Height,
+                new byte[request.Width * request.Height * 4]), new ScreenPoint(request.X, request.Y));
+
         public ImageFrame? Load(string path) => new(4, 4, new byte[64]);
 
         public IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle, VisionQuery query)
