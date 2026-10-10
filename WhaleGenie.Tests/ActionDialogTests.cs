@@ -1194,10 +1194,9 @@ public class ActionDialogTests
             var visible = viewModel.Rows.SelectMany(Names).ToList();
             var folded = viewModel.AdvancedRows.SelectMany(Names).ToList();
 
-            // How sure a match has to be, which hit to take and what the search is measured from
-            // are worth having and not worth showing on every step.
-            Assert.DoesNotContain("confidence", visible);
-            Assert.Contains("confidence", folded);
+            // Which hit to take and what the search is measured from are worth having and not worth
+            // showing on every step; how alike the picture has to be is part of what the step is.
+            Assert.Contains("confidence", visible);
             Assert.Contains("matchIndex", folded);
             Assert.Contains("anchorMode", folded);
 

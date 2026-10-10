@@ -1947,12 +1947,15 @@ public static class ActionCatalog
                    "The pictures to look for, one row each, tried in the order they are listed; the "
                    + "first one that turns up is the one the step goes with. A row is a file path or "
                    + "the variable a Capture step saved ($shot)."),
-                Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
+                Region(),
+                Number("confidence", "Similarity %", 90,
+                    "How alike the picture on screen has to be, from 0 to 100 per cent; the default "
+                    + "is 90. Raise it to accept fewer false matches, lower it when the screen is "
+                    + "drawn a little differently.", max: 100),
                 MatchAlgorithm(),
                 SkipColour(),
                 MinFeatures(),
                 MatchOrder(pixelsOnly: true),
-                Region(),
                 ..Anchor(),
                 MatchIndex(pixelsOnly: true),
                 AllMatches(pixelsOnly: true),
@@ -1974,16 +1977,22 @@ public static class ActionCatalog
                 Images("image", "Reference pictures", @"C:\images\ok.png",
                     "The pictures to wait for, one row each, tried in the order they are listed. A "
                     + "row is a file path or the variable a Capture step saved ($shot)."),
-                Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
+                Region(),
+                Number("confidence", "Similarity %", 90,
+                    "How alike the picture on screen has to be, from 0 to 100 per cent; the default "
+                    + "is 90.", max: 100),
+                Number("timeoutMs", "Wait up to", 5000,
+                    "How long to wait for one of the pictures to turn up, in milliseconds; the "
+                    + "default is 5000."),
                 MatchAlgorithm(),
                 SkipColour(),
                 MinFeatures(),
                 MatchOrder(pixelsOnly: true),
-                Region(),
                 ..Anchor(),
                 MatchIndex(pixelsOnly: true),
-                Number("timeoutMs", "Timeout", 5000, "Give up after this long."),
-                Number("intervalMs", "Interval", 200, "Delay between checks."),
+                Number("intervalMs", "How often to look", 200,
+                    "How often the screen is looked at while waiting, in milliseconds; the default "
+                    + "is 200.", advanced: true),
                 Variable("resultVariable", "Result variable", "match",
                     "Variable that receives the match centre. $name.x, $name.y and $name.score "
                     + "hold the parts.", namesVariable: true, defaultValue: "match"),
@@ -2000,19 +2009,24 @@ public static class ActionCatalog
                 Images("image", "Reference pictures", @"C:\images\ok.png",
                     "The pictures to look for, one row each, tried in the order they are listed; the "
                     + "first one that turns up is the one that gets clicked."),
-                Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
+                Region(),
+                Number("confidence", "Similarity %", 90,
+                    "How alike the picture on screen has to be, from 0 to 100 per cent; the default "
+                    + "is 90.", max: 100),
+                Button(),
+                Number("offsetX", "Offset X", 0,
+                    "Pixels added to the middle of the match before clicking. 0, the default, clicks "
+                    + "the middle.", min: -100000m),
+                Number("offsetY", "Offset Y", 0, min: -100000m),
+                Number("timeoutMs", "Wait up to", 5000,
+                    "How long to wait for one of the pictures to turn up before giving up, in "
+                    + "milliseconds; the default is 5000."),
                 MatchAlgorithm(),
                 SkipColour(),
                 MinFeatures(),
                 MatchOrder(pixelsOnly: true),
-                Region(),
                 ..Anchor(),
                 MatchIndex(pixelsOnly: true),
-                Number("offsetX", "Offset X", 0, "Pixels added to the match centre.",
-                    min: -100000m, advanced: true),
-                Number("offsetY", "Offset Y", 0, min: -100000m, advanced: true),
-                Number("timeoutMs", "Timeout", 5000, "Wait this long for the image before giving up."),
-                Button(),
             ],
         },
         new()
@@ -2041,10 +2055,12 @@ public static class ActionCatalog
             [
                 Number("x", "X", 0, "Screen column to watch."),
                 Number("y", "Y", 0, "Screen row to watch."),
-                ..Anchor(),
                 ColorPick("color", "Colour", "#000000", "Colour the pixel has to show."),
-                Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100, advanced: true),
-                Number("timeoutMs", "Timeout", 5000, "Give up after this long."),
+                Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100),
+                Number("timeoutMs", "Wait up to", 5000,
+                    "How long to wait for the pixel to show that colour, in milliseconds; the "
+                    + "default is 5000."),
+                ..Anchor(),
             ],
         },
         new()
@@ -2056,18 +2072,19 @@ public static class ActionCatalog
             Parameters =
             [
                 ColorPick("color", "Colour", "#000000", "Colour to look for."),
-                Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100, advanced: true),
-                Number("matchIndex", "Match number", 1,
-                    "Which hit to use, counted from the top left: down the screen first, then "
-                    + "across. 1 is the first one.", min: 1, max: 200),
-                MatchOrder(bySize: false),
-                AllMatches(),
+                Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100),
                 Region(),
+                Number("timeoutMs", "Wait up to", 0,
+                    "0, the default, looks once and leaves the result empty when the colour is not "
+                    + "there. Any other number waits that many milliseconds and fails when the "
+                    + "colour never turns up."),
+                MatchOrder(bySize: false),
+                MatchIndex(),
+                AllMatches(),
                 ..Anchor(),
-                Number("timeoutMs", "Timeout", 0,
-                    "0 looks once and leaves the result empty when the colour is not there. "
-                    + "A number waits that long for it and fails when it never turns up."),
-                Number("intervalMs", "Interval", 200, "Delay between checks while waiting."),
+                Number("intervalMs", "How often to look", 200,
+                    "How often the screen is looked at while waiting, in milliseconds; the default "
+                    + "is 200.", advanced: true),
                 Variable("resultVariable", "Result variable", "match",
                     "Variable that receives where the colour was found, empty when it was not. "
                     + "$name.x, $name.y and $name.score hold the parts, and $name.count and "
@@ -2089,18 +2106,23 @@ public static class ActionCatalog
                 Number("quietMs", "Hold still for", 500,
                     "How long the area has to stay unchanged before the step goes on. A page that "
                     + "is still filling in, or an animation still running, keeps this from being "
-                    + "reached."),
+                    + "reached. In milliseconds; the default is 500."),
                 Number("tolerance", "Tolerance %", 5,
                     "How far a pixel may drift and still count as the same pixel. Raise it for a "
-                    + "picture with noise or a slow fade in it.", max: 100, advanced: true),
+                    + "picture with noise or a slow fade in it. From 0 to 100 per cent, 5 by "
+                    + "default.", max: 100, advanced: true),
                 Number("changedPercent", "Allowed change %", 0.1m,
                     "How much of the area may move and still count as still. A spinner turning, a "
-                    + "list scrolling or a progress bar filling moves more than this.",
+                    + "list scrolling or a progress bar filling moves more than this. From 0 to 100 "
+                    + "per cent, 0.1 by default.",
                     max: 100, advanced: true),
-                Number("timeoutMs", "Timeout", 10000, "Give up after this long."),
+                Number("timeoutMs", "Give up after", 10000,
+                    "How long to wait for the picture to settle, in milliseconds; the default is "
+                    + "10000. Reached, the step fails.", advanced: true),
                 Number("intervalMs", "Interval", 100,
-                    "How often the area is looked at. Shorter notices the screen moving sooner; "
-                    + "longer costs less while the wait runs.", min: 1, advanced: true),
+                    "How often the area is looked at, in milliseconds; the default is 100. Shorter "
+                    + "notices the screen moving sooner, longer costs less while the wait runs.",
+                    min: 1, advanced: true),
             ],
         },
 
@@ -2117,17 +2139,17 @@ public static class ActionCatalog
                 Number("y", "Y", 0, "Region origin row."),
                 Number("width", "Width", 400, "Region width in pixels.", min: 1),
                 Number("height", "Height", 120, "Region height in pixels.", min: 1),
-                ..Anchor(),
-                Choice("language", "Language", ["auto", "en", "zh"], "auto"),
+                Choice("language", "Language", ["auto", "en", "zh"], "auto", advanced: true),
                 Content(),
                 Toggle("table", "Read as a table", false,
                     "Keep the lines and columns the writing was read in: the variable holds rows of "
                     + "cells — the same shape as reading a table through UI Automation — and "
                     + "$name.text holds the whole lot as text, one line per row."),
-                Preprocess(),
-                ColourFilter(),
-                ColourTolerance(),
-                FixText(),
+                ..Anchor(),
+                Preprocess(advanced: true),
+                ColourFilter(advanced: true),
+                ColourTolerance(advanced: true),
+                FixText(advanced: true),
                 Variable("resultVariable", "Result variable", "text",
                     "Variable that receives the recognised text, or the rows of cells when the step "
                     + "reads a table. $name.text is the writing either way.",
@@ -2143,15 +2165,15 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("text", "Text to find", "Save", "Text to look for."),
-                Expected(),
                 Region(),
-                ..Anchor(),
                 TextMatch(),
                 Content(),
-                Preprocess(),
-                ColourFilter(),
-                ColourTolerance(),
-                FixText(),
+                ..Anchor(),
+                Preprocess(advanced: true),
+                ColourFilter(advanced: true),
+                ColourTolerance(advanced: true),
+                FixText(advanced: true),
+                Expected(),
                 MinScore(),
                 MatchOrder(),
                 AllMatches(),
@@ -2173,20 +2195,24 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("text", "Text to find", "Save"),
-                Expected(),
+                Region(),
                 TextMatch(),
                 Content(),
-                Preprocess(),
-                ColourFilter(),
-                ColourTolerance(),
-                FixText(),
+                Button(),
+                Number("offsetX", "Offset X", 0, "Pixels added to the match centre.",
+                    min: -100000m),
+                Number("offsetY", "Offset Y", 0, min: -100000m),
+                Number("timeoutMs", "Wait up to", 5000,
+                    "How long to wait for the text to turn up before giving up, in milliseconds; "
+                    + "the default is 5000."),
+                ..Anchor(),
+                Preprocess(advanced: true),
+                ColourFilter(advanced: true),
+                ColourTolerance(advanced: true),
+                FixText(advanced: true),
+                Expected(),
                 MinScore(),
                 MatchOrder(),
-                Number("offsetX", "Offset X", 0, "Pixels added to the match centre.",
-                    min: -100000m, advanced: true),
-                Number("offsetY", "Offset Y", 0, min: -100000m, advanced: true),
-                Number("timeoutMs", "Timeout", 5000, "Wait this long for the text before giving up."),
-                Button(),
             ],
         },
 
@@ -3538,13 +3564,14 @@ public static class ActionCatalog
     /// a busy background is where this pays off; on clean writing of a decent size it does nothing
     /// but cost a moment.
     /// </summary>
-    private static ActionParameter Preprocess()
+    private static ActionParameter Preprocess(bool advanced = false)
         => Choice("preprocess", "Picture cleanup", [.. WhaleGenie.Core.Devices.OcrPreprocess.Recipes],
             "none",
             "What is done to the picture before it is read, no change by default. Grey takes the "
             + "colour out; black and white pushes light and dark apart around the picture's own "
             + "average, so a dark screen works as well as a light one; twice as big helps with "
-            + "small writing; the last one does both.");
+            + "small writing; the last one does both.",
+            advanced: advanced);
 
     /// <summary>
     /// The score below which a step will not act on a reading, shared by the two OCR actions that
@@ -3566,8 +3593,9 @@ public static class ActionCatalog
     /// Shared by the two OCR actions that search, because what it does is narrow the search down,
     /// not change how the screen is read.
     /// </summary>
-    private static ActionParameter Expected()
+    private static ActionParameter Expected(bool advanced = true)
         => Text("expected", "Must read like", required: false, placeholder: "^HP \\d+/\\d+$",
+            advanced: advanced,
             hint: "Optional pattern the whole reading has to fit, on top of containing the text "
             + "looked for; nothing is required of it by default. It is how one line is told apart "
             + "from a screen full of the same word: HP 120/300 is found by ^HP \\d+/\\d+$ while "
@@ -3579,7 +3607,7 @@ public static class ActionCatalog
     /// three actions that read the screen with OCR, because a model that misreads a stylised font
     /// misreads it for all of them.
     /// </summary>
-    private static ActionParameter FixText()
+    private static ActionParameter FixText(bool advanced = false)
         => new()
         {
             Name = "fixText",
@@ -3587,7 +3615,7 @@ public static class ActionCatalog
             Kind = ActionParameterKind.MultilineText,
             Placeholder = "l00 = 100",
             Required = false,
-            Advanced = true,
+            Advanced = advanced,
             Hint = "Optional corrections, one per line, written as what the model read = what it "
                 + "says: l00 = 100, O = 0. For a model that keeps misreading a stylised font. The "
                 + "reading is put right before anything is compared against it.",
@@ -3599,7 +3627,7 @@ public static class ActionCatalog
     /// is the difference between a model reading the numbers off a health bar and reading nothing.
     /// Shared by the three actions that read the screen with OCR.
     /// </summary>
-    private static ActionParameter ColourFilter()
+    private static ActionParameter ColourFilter(bool advanced = false)
         => new()
         {
             Name = "colorFilter",
@@ -3607,7 +3635,7 @@ public static class ActionCatalog
             Kind = ActionParameterKind.Color,
             DefaultValue = string.Empty,
             Required = false,
-            Advanced = true,
+            Advanced = advanced,
             Hint = "Optional colour of the writing. Given one, everything that is not that colour "
                 + "— outline, shadow, background — is thrown away before the picture is read. For "
                 + "writing that has an outline or sits on a picture. Empty reads the picture as it "
@@ -3615,7 +3643,7 @@ public static class ActionCatalog
         };
 
     /// <summary>How far a pixel may be from the writing's colour and still count as writing.</summary>
-    private static ActionParameter ColourTolerance()
+    private static ActionParameter ColourTolerance(bool advanced = false)
         => new()
         {
             Name = "colorTolerance",
@@ -3624,7 +3652,7 @@ public static class ActionCatalog
             DefaultValue = "10",
             Minimum = 0m,
             Maximum = 100m,
-            Advanced = true,
+            Advanced = advanced,
             Hint = "How far a pixel may be from the writing's colour and still count as writing, "
                 + "from 0 to 100 per cent, 10 by default. Raise it for writing drawn with a "
                 + "gradient or with anti-aliased edges.",
