@@ -148,11 +148,18 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>True while the run has presses in it.</summary>
     public bool HasKeyRows => KeyRows.Count > 0;
 
+    /// <summary>
+    /// True when the run holds a press. A row that is there but says nothing is not one, so a run
+    /// counts as filled in when it holds keys rather than rows.
+    /// </summary>
+    private bool HasKeyPress => KeyRows.Any(row => row.ToRow().Columns.Count > 0);
+
     /// <summary>Puts a place to look at at the end of the list, for the user to fill in.</summary>
     public void AddRegion(RegionRowViewModel? row = null)
     {
         var added = row ?? new RegionRowViewModel();
         added.Take = RemoveRegion;
+        added.PropertyChanged += OnRegionChanged;
         Regions.Add(added);
         OnPropertyChanged(nameof(HasRegions));
     }
@@ -160,6 +167,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Takes one place to look at out of the list.</summary>
     public void RemoveRegion(RegionRowViewModel row)
     {
+        row.PropertyChanged -= OnRegionChanged;
         Regions.Remove(row);
         OnPropertyChanged(nameof(HasRegions));
     }
@@ -169,6 +177,7 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         var added = row ?? new KeyRowViewModel();
         added.Take = RemoveKeyRow;
+        added.PropertyChanged += OnKeyRowChanged;
         KeyRows.Add(added);
         OnPropertyChanged(nameof(HasKeyRows));
     }
@@ -176,8 +185,27 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Takes one press out of the run.</summary>
     public void RemoveKeyRow(KeyRowViewModel row)
     {
+        row.PropertyChanged -= OnKeyRowChanged;
         KeyRows.Remove(row);
         OnPropertyChanged(nameof(HasKeyRows));
+    }
+
+    /// <summary>
+    /// What one press of the run says is what this field says. The dialog follows the field rather
+    /// than its rows, so a key written into a row has to be reported as a change here — otherwise a
+    /// run that is filled in goes on being called empty, and the step cannot be saved.
+    /// </summary>
+    private void OnKeyRowChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(IsMissing));
+        OnPropertyChanged(nameof(IsIncluded));
+    }
+
+    /// <summary>The same for a place to look at: the four numbers typed into a row are this field's value.</summary>
+    private void OnRegionChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(IsMissing));
+        OnPropertyChanged(nameof(IsIncluded));
     }
 
     /// <summary>
@@ -801,7 +829,7 @@ public partial class StepParameterViewModel : ViewModelBase
         // A list of them is at its default when it is empty: what such a field holds is not in its
         // text, so reading the text alone would call a filled-in list of pictures untouched.
         ActionParameterKind.Region => Regions.Count == 0,
-        ActionParameterKind.KeySequence => KeyRows.Count == 0,
+        ActionParameterKind.KeySequence => !HasKeyPress,
         ActionParameterKind.Images => Pictures.Count == 0,
         _ => string.Equals(CurrentText.Trim(), Definition.DefaultValue, StringComparison.Ordinal),
     };
@@ -842,6 +870,10 @@ public partial class StepParameterViewModel : ViewModelBase
         // A list of pictures is filled in when it holds a picture: a row that is there but says
         // nothing is not a picture, and a step that looks for one of those would look for nothing.
         ActionParameterKind.Images => !Pictures.Any(picture => !string.IsNullOrWhiteSpace(picture.Text)),
+        // The other lists are read the same way: what they hold is in their rows rather than in the
+        // field's text, so judging them by the text alone would call a filled-in run of keys empty.
+        ActionParameterKind.KeySequence => !HasKeyPress,
+        ActionParameterKind.Region => Regions.Count == 0,
         _ => string.IsNullOrWhiteSpace(CurrentText),
     };
 
@@ -854,7 +886,7 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         ActionParameterKind.Steps or ActionParameterKind.Condition => HasNestedSteps,
         ActionParameterKind.Region => Regions.Count > 0,
-        ActionParameterKind.KeySequence => KeyRows.Any(row => row.ToRow().Columns.Count > 0),
+        ActionParameterKind.KeySequence => HasKeyPress,
         ActionParameterKind.Images => Pictures.Any(picture => !string.IsNullOrWhiteSpace(picture.Text)),
         _ => Definition.Required || !string.IsNullOrWhiteSpace(CurrentText),
     };

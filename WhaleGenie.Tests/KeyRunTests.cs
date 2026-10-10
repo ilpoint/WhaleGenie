@@ -147,6 +147,57 @@ public class KeyRunTests
         });
     }
 
+    /// <summary>
+    /// A run is what the step sends, so the step is ready to save once the run holds a press. The
+    /// field is required and holds no text of its own — reading it as text would call every run
+    /// empty and leave the step unsaveable however many presses were written into it.
+    /// </summary>
+    [Fact]
+    public void A_run_is_ready_to_save_once_it_holds_a_press()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.keySequence");
+            var run = Run(viewModel);
+
+            // A row that is there but says nothing is not a press yet.
+            run.AddKeyRow();
+            Assert.False(viewModel.CanSave);
+            Assert.NotEqual(string.Empty, viewModel.ValidationMessage);
+
+            run.KeyRows[0].AddKey("F5");
+            Assert.True(viewModel.CanSave);
+            Assert.Equal(string.Empty, viewModel.ValidationMessage);
+
+            // Taking the last press out leaves nothing to send, which is missing again.
+            run.RemoveKeyRow(run.KeyRows[0]);
+            Assert.False(viewModel.CanSave);
+            Assert.NotEqual(string.Empty, viewModel.ValidationMessage);
+        });
+    }
+
+    /// <summary>
+    /// A beat written into a row is part of what the step says, so the dialog has to hear about it:
+    /// the row is not where the dialog is looking, the field is.
+    /// </summary>
+    [Fact]
+    public void A_beat_written_into_a_row_reaches_the_step()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.keySequence");
+            var run = Run(viewModel);
+            run.AddKeyRow(new KeyRowViewModel { Keys = "Ctrl+A" });
+
+            // The run's own hold is a field of the step and is written either way; what is checked
+            // here is the hold of one row, which only reaches the step once the row says it.
+            Assert.DoesNotContain("\"holdMs\": 31", viewModel.JsonPreview);
+
+            run.KeyRows[0].HoldMs = 31m;
+            Assert.Contains("\"holdMs\": 31", viewModel.JsonPreview);
+        });
+    }
+
     private static Button FindButton(Window window, object? data, string content)
         => window.GetVisualDescendants().OfType<Button>().Single(candidate =>
             candidate.IsEffectivelyVisible
