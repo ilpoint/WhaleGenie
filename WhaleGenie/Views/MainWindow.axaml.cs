@@ -828,13 +828,14 @@ public partial class MainWindow : Window
     /// <summary>
     /// Opens the macro editor on a macro: one from the list, a new one (<paramref name="editing"/> is
     /// null), or a draft recovered from a run that stopped without notice. What that macro replaces
-    /// when it is saved is <paramref name="existing"/>, which is null for a new one.
+    /// when it is saved is <paramref name="existing"/>, which is null for a new one. It answers the
+    /// editor back so that a check can write in it; nothing else reads that.
     /// </summary>
-    private void OpenEditor(MacroItem? editing, MacroItem? existing, bool draft)
+    internal MacroEditorWindow? OpenEditor(MacroItem? editing, MacroItem? existing, bool draft)
     {
         if (DataContext is not MainViewModel viewModel)
         {
-            return;
+            return null;
         }
 
         // Two editors on one macro would each hand back their own version and the last one closed
@@ -842,7 +843,7 @@ public partial class MainWindow : Window
         if (_editor is { } open)
         {
             open.Activate();
-            return;
+            return open;
         }
 
         // The package path is what a picture taken from the screen is stored beside.
@@ -863,6 +864,7 @@ public partial class MainWindow : Window
         // is minimized. It steps aside for the while instead, and the icon brings it back.
         editor.SteppedAside = Tray?.StepAside() ?? false;
         editor.ShowAsPeer(this);
+        return editor;
     }
 
     /// <summary>
@@ -890,6 +892,16 @@ public partial class MainWindow : Window
             return;
         }
 
+        // An editor opened on a macro and brought back saying the same thing is not a change, and
+        // must not leave the project with something to save: opening a macro to read it and closing
+        // the editor again would otherwise write a snapshot, and the next run would offer back work
+        // that was never edited — while the window is away in the notification area, with nothing
+        // on screen to say there is anything unsaved.
+        if (Same(existing, macro))
+        {
+            return;
+        }
+
         // The edited macro replaces the one the trigger may be running.
         _triggers?.Stop(existing);
         viewModel.ReplaceMacro(existing, macro);
@@ -899,6 +911,15 @@ public partial class MainWindow : Window
         // goes into the snapshot now rather than waiting for the next turn of the timer.
         WriteUnsavedProject(viewModel);
     }
+
+    /// <summary>
+    /// Whether the editor brought back the very same macro. The editor builds the macro again as it
+    /// hands it over, so this is a question about what the macro says rather than about which object
+    /// it is; two macros that read the same are written to the package the same way.
+    /// </summary>
+    private static bool Same(MacroItem one, MacroItem other)
+        => string.Equals(one.ToJson().ToJsonString(), other.ToJson().ToJsonString(),
+            StringComparison.Ordinal);
 
     private void OnEditMacroClicked(object? sender, RoutedEventArgs e)
     {
