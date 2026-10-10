@@ -177,7 +177,8 @@ public static class CaptureMethodNames
     /// The way a written name stands for. Anything that is not one of them is the automatic choice,
     /// so a half-written step looks at something rather than at nothing.
     /// </summary>
-    public static CaptureMethod Read(string? written) => (written ?? string.Empty).Trim() switch
+    public static CaptureMethod Read(string? written) => (written ?? string.Empty)
+        .Trim().ToLowerInvariant() switch
     {
         "gdi" => CaptureMethod.Gdi,
         "printwindow" => CaptureMethod.PrintWindow,

@@ -71,6 +71,18 @@ internal static class ActionStrings
 
     private const string CaptureGraphicsDesktop = "整屏（图形捕获）";
 
+    /// <summary>
+    /// The label and hint every step that looks at the screen shares for how old a picture it will
+    /// accept, written once for the same reason the capture picker is.
+    /// </summary>
+    private const string FrameMaxAgeLabel = "接受多久以内的画面";
+
+    private const string FrameMaxAgeHint =
+        "这一步接受的画面可以有多旧，单位毫秒，0–60000，默认 0。0 表示每次都重新读屏幕；"
+        + "填一个毫秒数，则同一来源（同一个窗口，或桌面）上不超过这个时长的画面会被直接复用，"
+        + "连续查同一个地方时不必一次次读屏幕。开启复用后第一次读的是整个窗口或整块屏幕，"
+        + "省下来的是它后面那几次。";
+
     /// <summary>The hint every window action shares for the text it recognises a window by.</summary>
     private const string WindowTitleHint =
         "窗口靠这段文字认出：它和「匹配方式」选中的那一部分按「比较方式」比较，不区分大小写。留空表示最前面"
@@ -2556,6 +2568,44 @@ internal static class ActionStrings
         ["condition.colorEquals.captureMode.hint"] = CaptureModeHint,
         ["condition.colorsMatch.captureMode.label"] = CaptureModeLabel,
         ["condition.colorsMatch.captureMode.hint"] = CaptureModeHint,
+
+        // --------------------------------------------------- 画面复用（看屏幕的步骤也都有这一个字段）
+        ["vision.capture.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["vision.capture.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["vision.captureWindow.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["vision.captureWindow.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["vision.findImage.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["vision.findImage.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["vision.waitImage.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["vision.waitImage.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["vision.clickImage.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["vision.clickImage.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["vision.getPixel.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["vision.getPixel.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["vision.waitColor.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["vision.waitColor.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["vision.findColor.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["vision.findColor.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["vision.waitStable.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["vision.waitStable.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["ocr.recognize.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["ocr.recognize.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["ocr.findText.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["ocr.findText.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["ocr.clickText.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["ocr.clickText.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["condition.imageExists.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["condition.imageExists.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["condition.imageNotExists.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["condition.imageNotExists.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["condition.textExists.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["condition.textExists.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["condition.textNotExists.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["condition.textNotExists.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["condition.colorEquals.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["condition.colorEquals.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["condition.colorsMatch.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["condition.colorsMatch.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
 
         // ------------------------------------------------- 下拉选项（每个动作各一份键）
         // 鼠标按键在八个动作里出现，措辞必须一致，否则同一个下拉框换个动作就变样。

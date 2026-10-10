@@ -1920,7 +1920,7 @@ public static class ActionCatalog
                 Number("width", "Width", 100, "Region width in pixels.", min: 1),
                 Number("height", "Height", 100, "Region height in pixels.", min: 1),
                 ..Anchor(withElement: true),
-                CaptureMode(),
+                ..Capture(),
                 Variable("saveTo", "Save to variable", "shot",
                     "Variable that receives the captured image. $name.x, $name.y, $name.width and "
                     + "$name.height hold the rectangle it covered, so a later step can search it.",
@@ -1936,7 +1936,7 @@ public static class ActionCatalog
             Parameters =
             [
                 ..WindowTarget(),
-                WindowCaptureMode(),
+                ..WindowCapture(),
                 Variable("saveTo", "Save to variable", "shot",
                     "Variable that receives the captured image. $name.x, $name.y, $name.width and "
                     + "$name.height hold the rectangle it covered, so a later step can search it.",
@@ -1956,7 +1956,7 @@ public static class ActionCatalog
                    + "first one that turns up is the one the step goes with. A row is a file path or "
                    + "the variable a Capture step saved ($shot)."),
                 Region(),
-                CaptureMode(),
+                ..Capture(),
                 Number("confidence", "Similarity %", 90,
                     "How alike the picture on screen has to be, from 0 to 100 per cent; the default "
                     + "is 90. Raise it to accept fewer false matches, lower it when the screen is "
@@ -1987,7 +1987,7 @@ public static class ActionCatalog
                     "The pictures to wait for, one row each, tried in the order they are listed. A "
                     + "row is a file path or the variable a Capture step saved ($shot)."),
                 Region(),
-                CaptureMode(),
+                ..Capture(),
                 Number("confidence", "Similarity %", 90,
                     "How alike the picture on screen has to be, from 0 to 100 per cent; the default "
                     + "is 90.", max: 100),
@@ -2020,7 +2020,7 @@ public static class ActionCatalog
                     "The pictures to look for, one row each, tried in the order they are listed; the "
                     + "first one that turns up is the one that gets clicked."),
                 Region(),
-                CaptureMode(),
+                ..Capture(),
                 Number("confidence", "Similarity %", 90,
                     "How alike the picture on screen has to be, from 0 to 100 per cent; the default "
                     + "is 90.", max: 100),
@@ -2051,7 +2051,7 @@ public static class ActionCatalog
                 Number("x", "X", 0, "Screen column to sample."),
                 Number("y", "Y", 0, "Screen row to sample."),
                 ..Anchor(),
-                CaptureMode(),
+                ..Capture(),
                 Variable("resultVariable", "Result variable", "color",
                     "Variable that receives the colour.", namesVariable: true, defaultValue: "color"),
                 Toggle("asHex", "Store as hex", true, "Store #RRGGBB instead of raw colour channels."),
@@ -2073,7 +2073,7 @@ public static class ActionCatalog
                     "How long to wait for the pixel to show that colour, in milliseconds; the "
                     + "default is 5000."),
                 ..Anchor(),
-                CaptureMode(),
+                ..Capture(),
             ],
         },
         new()
@@ -2087,7 +2087,7 @@ public static class ActionCatalog
                 ColorPick("color", "Colour", "#000000", "Colour to look for."),
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100),
                 Region(),
-                CaptureMode(),
+                ..Capture(),
                 Number("timeoutMs", "Wait up to", 0,
                     "0, the default, looks once and leaves the result empty when the colour is not "
                     + "there. Any other number waits that many milliseconds and fails when the "
@@ -2117,7 +2117,7 @@ public static class ActionCatalog
             [
                 Region(),
                 ..Anchor(),
-                CaptureMode(),
+                ..Capture(),
                 Number("quietMs", "Hold still for", 500,
                     "How long the area has to stay unchanged before the step goes on. A page that "
                     + "is still filling in, or an animation still running, keeps this from being "
@@ -2161,7 +2161,7 @@ public static class ActionCatalog
                     + "cells — the same shape as reading a table through UI Automation — and "
                     + "$name.text holds the whole lot as text, one line per row."),
                 ..Anchor(),
-                CaptureMode(),
+                ..Capture(),
                 Preprocess(advanced: true),
                 ColourFilter(advanced: true),
                 ColourTolerance(advanced: true),
@@ -2182,7 +2182,7 @@ public static class ActionCatalog
             [
                 Text("text", "Text to find", "Save", "Text to look for."),
                 Region(),
-                CaptureMode(),
+                ..Capture(),
                 TextMatch(),
                 Content(),
                 ..Anchor(),
@@ -2213,7 +2213,7 @@ public static class ActionCatalog
             [
                 Text("text", "Text to find", "Save"),
                 Region(),
-                CaptureMode(),
+                ..Capture(),
                 TextMatch(),
                 Content(),
                 Button(),
@@ -2624,7 +2624,7 @@ public static class ActionCatalog
                     + "condition is true as soon as one of them turns up."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 Region(),
-                CaptureMode(),
+                ..Capture(),
                 ..Anchor(),
             ],
         },
@@ -2641,7 +2641,7 @@ public static class ActionCatalog
                     + "condition is true only when none of them turns up."),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 Region(),
-                CaptureMode(),
+                ..Capture(),
                 ..Anchor(),
             ],
         },
@@ -2655,7 +2655,7 @@ public static class ActionCatalog
             [
                 Text("text", "Text", "Ready"),
                 Region(),
-                CaptureMode(),
+                ..Capture(),
                 ..Anchor(),
                 TextMatch(),
             ],
@@ -2670,7 +2670,7 @@ public static class ActionCatalog
             [
                 Text("text", "Text", "Ready"),
                 Region(),
-                CaptureMode(),
+                ..Capture(),
                 ..Anchor(),
                 TextMatch(),
             ],
@@ -2710,7 +2710,7 @@ public static class ActionCatalog
                 Number("x", "X", 0, "Screen column to compare."),
                 Number("y", "Y", 0, "Screen row to compare."),
                 ..Anchor(),
-                CaptureMode(),
+                ..Capture(),
                 ColorPick("color", "Colour", "#000000"),
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100, advanced: true),
             ],
@@ -2731,7 +2731,7 @@ public static class ActionCatalog
                     "Whether every point has to match or one is enough.",
                     labels: ["Every point", "Any point"]),
                 ..Anchor(),
-                CaptureMode(),
+                ..Capture(),
             ],
         },
         new()
@@ -3368,6 +3368,15 @@ public static class ActionCatalog
     /// The desktop can be copied out of it, or a window read as the window itself shows it, which
     /// is what still finds a game another window is covering.
     /// </summary>
+    /// <remarks>
+    /// Spread into the parameter list rather than written out in each of the eighteen steps, because
+    /// the two fields answer one question between them — what this step reads, and how fresh it has
+    /// to be — and a step that reads a window must not be able to have one without the other.
+    /// </remarks>
+    private static ActionParameter[] Capture() => [CaptureMode(), FrameMaxAge()];
+
+    private static ActionParameter[] WindowCapture() => [WindowCaptureMode(), FrameMaxAge()];
+
     private static ActionParameter CaptureMode()
         => Choice("captureMode", "How the picture is taken",
             ["auto", "gdi", "printWindow", "graphicsCapture", "graphicsCaptureDesktop"], "auto",
@@ -3404,6 +3413,21 @@ public static class ActionCatalog
             + "without the title bar; it needs Windows 10 2004 or later.",
             labels: ["Automatic", "Window (PrintWindow)", "Window (graphics capture)"],
             advanced: true);
+
+    /// <summary>
+    /// How long a picture a step reads may have been taken already, shared by every step that looks
+    /// at the screen: what makes a macro that looks at the same window several times in a row read
+    /// it once instead.
+    /// </summary>
+    private static ActionParameter FrameMaxAge()
+        => Number("frameMaxAgeMs", "Accept a picture up to", 0,
+            "How old a picture this step will accept, in milliseconds, from 0 to 60000; the default "
+            + "is 0, which reads the screen every time. A step that allows a picture taken within "
+            + "the last few milliseconds is handed one an earlier step took of the same window, or "
+            + "of the screen, so looking at the same place again and again does not read it again "
+            + "and again. The first reading with this allowed takes the whole window or the whole "
+            + "screen, which is what the readings after it save.",
+            min: 0, max: 60000, advanced: true);
 
     /// <summary>
     /// A colour of the reference picture that takes no part in the comparing, shared by the picture

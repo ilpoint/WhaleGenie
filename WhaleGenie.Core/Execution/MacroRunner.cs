@@ -55,6 +55,15 @@ public sealed class MacroRunner
     private CaptureMethod? _takenMethod;
 
     /// <summary>
+    /// The last picture taken of each source, for the steps that say a picture a little older will
+    /// do. A macro that looks at the same window several times in a row then reads it once, which is
+    /// what a per-second budget of looks is really about. It lives for one run: what a macro sees is
+    /// what it saw while it was running, and the next run starts by looking again.
+    /// </summary>
+    private readonly Dictionary<(long Source, CaptureMethod Method),
+        (ImageFrame Frame, ScreenPoint Origin, CaptureMethod Method, long TakenAt)> _frames = [];
+
+    /// <summary>
     /// Reference pictures read from disk, kept beside the time the file was last written. A macro
     /// that looks for the same picture in a loop — or every two hundred milliseconds while it
     /// waits — reads and decodes it once instead of every time round. A picture that has been
@@ -196,6 +205,7 @@ public sealed class MacroRunner
         _loops = 0;
         _failure = null;
         _images.Clear();
+        _frames.Clear();
         PrepareOutcomes(steps);
         Log(LogLevel.Info, 0, string.Empty, "Run.Start", steps.Count);
         if (Math.Abs(DelayScale - 1) > 0.001)
@@ -3872,12 +3882,106 @@ public sealed class MacroRunner
             throw new StepFailure("Run.NoCaptureWindow", step.Text("captureMode").Trim());
         }
 
-        var shot = _devices.Screen.Capture(new ScreenCaptureRequest(x, y, width, height,
-            method, window?.Handle ?? 0));
+        var source = window?.Handle ?? 0;
+        var age = Math.Max(0, Number(step, "frameMaxAgeMs"));
+        if (age == 0)
+        {
+            // Nothing already taken is old enough to do, so the rectangle asked for is the rectangle
+            // read: this is the reading a macro has always done, at the cost it has always had.
+            var exact = _devices.Screen.Capture(new ScreenCaptureRequest(x, y, width, height,
+                method, source));
+            Taken(window, exact.Method);
+            return exact;
+        }
 
+        var key = Reused(source, method);
+        var now = Stopwatch.GetTimestamp();
+        if (_frames.TryGetValue(key, out var kept)
+            && Stopwatch.GetElapsedTime(kept.TakenAt, now).TotalMilliseconds <= age
+            && Covers(kept.Frame, kept.Origin, x, y, width, height))
+        {
+            Taken(window, kept.Method);
+            return Cut(kept.Frame, kept.Origin, x, y, width, height, kept.Method);
+        }
+
+        // The whole of what the step is reading, so that the next step wanting another part of it
+        // is served without reading the screen again: asking for one rectangle costs more than that
+        // rectangle, and asking for the whole source is what makes the next look free.
+        var whole = Whole(method, window);
+        _frames[key] = (whole.Frame, whole.Origin, whole.Method, now);
+        Taken(window, whole.Method);
+        return Cut(whole.Frame, whole.Origin, x, y, width, height, whole.Method);
+    }
+
+    /// <summary>
+    /// Which pictures are worth keeping for a second look: one to each source, one to each way of
+    /// reading it. Two steps reading the same window the same way see the same picture, and a step
+    /// reading it another way gets its own — a window copied off the screen and a window read as the
+    /// window itself shows it are not the same pixels.
+    /// </summary>
+    private static (long Source, CaptureMethod Method) Reused(long source, CaptureMethod method)
+        => (source, method == CaptureMethod.Auto
+            ? source == 0 ? CaptureMethod.Gdi : CaptureMethod.GraphicsCapture
+            : method);
+
+    /// <summary>The whole of what a step reads from: the window, or the screen.</summary>
+    private ScreenShot Whole(CaptureMethod method, WindowInfo? window)
+    {
+        if (window is null || method == CaptureMethod.GraphicsCaptureDesktop)
+        {
+            var size = _devices.Screen.PrimarySize;
+            return _devices.Screen.Capture(
+                new ScreenCaptureRequest(0, 0, size.Width, size.Height, method));
+        }
+
+        return _devices.Screen.Capture(new ScreenCaptureRequest(window.Location.X, window.Location.Y,
+            window.Size.Width, window.Size.Height, method, window.Handle));
+    }
+
+    /// <summary>True when a picture taken whole covers the rectangle a step is asking for.</summary>
+    private static bool Covers(ImageFrame frame, ScreenPoint origin, int x, int y, int width,
+        int height)
+        => x >= origin.X && y >= origin.Y
+           && x + width <= origin.X + frame.Width && y + height <= origin.Y + frame.Height;
+
+    /// <summary>
+    /// The part of a picture taken whole that a step asked for. A rectangle reaching past the
+    /// picture is cut down to what is there, the way a window read as itself is, and one altogether
+    /// outside the picture is nothing to look at.
+    /// </summary>
+    private static ScreenShot Cut(ImageFrame whole, ScreenPoint origin, int x, int y, int width,
+        int height, CaptureMethod method)
+    {
+        if (origin.X == x && origin.Y == y && whole.Width == width && whole.Height == height)
+        {
+            return new ScreenShot(whole, origin, method);
+        }
+
+        var left = Math.Max(0, x - origin.X);
+        var top = Math.Max(0, y - origin.Y);
+        var right = Math.Min(whole.Width, x - origin.X + width);
+        var bottom = Math.Min(whole.Height, y - origin.Y + height);
+        if (right <= left || bottom <= top)
+        {
+            throw new StepFailure("Run.EmptyRegion", $"{x},{y} {width}x{height}");
+        }
+
+        var kept = new byte[(long)(right - left) * (bottom - top) * 4];
+        for (var row = 0; row < bottom - top; row++)
+        {
+            Array.Copy(whole.Bgra, ((long)(top + row) * whole.Width + left) * 4, kept,
+                (long)row * (right - left) * 4, (right - left) * 4);
+        }
+
+        return new ScreenShot(new ImageFrame(right - left, bottom - top, kept),
+            new ScreenPoint(origin.X + left, origin.Y + top), method);
+    }
+
+    /// <summary>Notes what the picture a step is about to be given was taken of.</summary>
+    private void Taken(WindowInfo? window, CaptureMethod method)
+    {
         _takenWindow = window?.Title ?? string.Empty;
-        _takenMethod = shot.Method;
-        return shot;
+        _takenMethod = method;
     }
 
     // --------------------------------------------------------------------- files

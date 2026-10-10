@@ -1337,6 +1337,85 @@ public class DeviceActionTests
         Assert.Empty(devices.Captures);
     }
 
+    /// <summary>
+    /// A step that will accept a picture a little older is handed the one an earlier step took of
+    /// the same screen, so looking at the same place again and again reads it once. The first such
+    /// step reads the whole screen, which is what makes the readings after it free.
+    /// </summary>
+    [Fact]
+    public async Task A_step_may_be_given_the_picture_an_earlier_step_took()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("vision.capture", Param("x", "10"), Param("y", "10"), Param("width", "20"),
+                Param("height", "20"), Param("frameMaxAgeMs", "200"), Param("saveTo", "shot")),
+            Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
+                Param("confidence", "90"), Param("frameMaxAgeMs", "200"),
+                Param("resultVariable", "match")),
+        ], devices);
+
+        // One reading of the screen between them: the whole of it, because a picture that is to be
+        // used again has to hold whatever the next step asks for.
+        var asked = Assert.Single(devices.Captures);
+        Assert.Equal((0, 0, 100, 50), (asked.X, asked.Y, asked.Width, asked.Height));
+
+        // Both steps were answered out of that one picture, cut where each of them asked.
+        Assert.Equal("10", store.Local.Values["shot.x"].AsText());
+        Assert.Equal("10", store.Local.Values["shot.y"].AsText());
+        Assert.Equal("32,8", store.Local.Values["match"].AsText());
+    }
+
+    /// <summary>
+    /// A step that will not accept an older picture reads the screen for itself, however recently
+    /// an earlier step read it.
+    /// </summary>
+    [Fact]
+    public async Task A_step_that_accepts_no_older_picture_reads_the_screen_again()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
+
+        await RunAsync(
+        [
+            Step("vision.capture", Param("x", "10"), Param("y", "10"), Param("width", "20"),
+                Param("height", "20"), Param("frameMaxAgeMs", "200"), Param("saveTo", "shot")),
+            Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
+                Param("confidence", "90"), Param("resultVariable", "match")),
+        ], devices);
+
+        Assert.Equal(2, devices.Captures.Count);
+        Assert.Equal((0, 0, 100, 50), (devices.Captures[0].X, devices.Captures[0].Y,
+            devices.Captures[0].Width, devices.Captures[0].Height));
+        Assert.Equal((30, 5, 10, 10), (devices.Captures[1].X, devices.Captures[1].Y,
+            devices.Captures[1].Width, devices.Captures[1].Height));
+    }
+
+    /// <summary>
+    /// A picture that has been sitting there longer than the step allows is taken again, so a macro
+    /// waiting for something to change still sees it change.
+    /// </summary>
+    [Fact]
+    public async Task A_picture_older_than_the_step_allows_is_taken_again()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(2, 3), new ScreenSize(1, 1)));
+
+        await RunAsync(
+        [
+            Step("vision.capture", Param("x", "10"), Param("y", "10"), Param("width", "20"),
+                Param("height", "20"), Param("frameMaxAgeMs", "20"), Param("saveTo", "shot")),
+            Step("control.delay", Param("ms", "60")),
+            Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
+                Param("confidence", "90"), Param("frameMaxAgeMs", "20"),
+                Param("resultVariable", "match")),
+        ], devices);
+
+        Assert.Equal(2, devices.Captures.Count);
+    }
+
     /// <summary>The negative conditions are their own actions, so "wait until it is gone" can be written.</summary>
     [Fact]
     public async Task The_negative_conditions_say_the_opposite_of_the_plain_ones()
