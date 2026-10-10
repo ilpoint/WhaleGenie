@@ -1481,7 +1481,7 @@ public static class ActionCatalog
             Key = "window.activate",
             Category = ActionCategory.Window,
             DisplayName = "Activate Window",
-            Description = "Bring a window to the front, restoring it first if it was shrunk.",
+            Description = "Bring the window to the front, restoring it first if it is minimized.",
             Parameters =
             [
                 ..WindowTarget(),
@@ -1492,7 +1492,7 @@ public static class ActionCatalog
             Key = "window.minimize",
             Category = ActionCategory.Window,
             DisplayName = "Minimize Window",
-            Description = "Shrink a window down to the taskbar.",
+            Description = "Minimize the window to the taskbar.",
             Parameters =
             [
                 ..WindowTarget(),
@@ -1503,7 +1503,7 @@ public static class ActionCatalog
             Key = "window.maximize",
             Category = ActionCategory.Window,
             DisplayName = "Maximize Window",
-            Description = "Make a window fill the screen.",
+            Description = "Maximize the window so it fills the screen.",
             Parameters =
             [
                 ..WindowTarget(),
@@ -1514,7 +1514,7 @@ public static class ActionCatalog
             Key = "window.restore",
             Category = ActionCategory.Window,
             DisplayName = "Restore Window",
-            Description = "Put a shrunk or full-screen window back to its normal size.",
+            Description = "Put a minimized or maximized window back to its normal size.",
             Parameters =
             [
                 ..WindowTarget(),
@@ -1525,7 +1525,8 @@ public static class ActionCatalog
             Key = "window.move",
             Category = ActionCategory.Window,
             DisplayName = "Move Window",
-            Description = "Move a window and give it a new size.",
+            Description = "Move the window to the given position and give it the given size, in "
+                + "screen pixels.",
             Parameters =
             [
                 ..WindowTarget(),
@@ -1551,15 +1552,16 @@ public static class ActionCatalog
             Key = "window.list",
             Category = ActionCategory.Window,
             DisplayName = "List Windows",
-            Description = "Collect the titles of the open windows, or of the ones that match, "
-                + "into a list.",
+            Description = "Collect the titles of the open windows into a list, or of the ones that "
+                + "match the filter.",
             Parameters =
             [
                 Text("filter", "Filter", "notepad",
                     "Keep only the windows whose title, process or class contains this text. "
                     + "Leave it empty for every window.", required: false),
                 Choice("filterBy", "Filter by", ["title", "process", "class"], "title",
-                    "Which part of a window the filter text is compared with.", advanced: true),
+                    "Which part of a window the filter text is compared with. This one is always "
+                    + "matched as \"contains\".", advanced: true),
                 Variable("resultVariable", "Result variable", "windows",
                     "Variable that receives the list of titles.", required: false, namesVariable: true),
             ],
@@ -3698,17 +3700,20 @@ public static class ActionCatalog
             Label = "Match text",
             Kind = ActionParameterKind.Window,
             Placeholder = "Notepad",
-            Hint = "The text the window is recognised by, compared with the part chosen below and "
-                   + "ignoring case. Leave it empty for the window in front.",
+            Hint = "The text the window is recognised by. It is compared with the part chosen by "
+                   + "\"Match by\", the way \"Compare\" says, ignoring case. Leave it empty for the "
+                   + "window in front.",
             Required = false,
         },
         Choice("matchBy", "Match by", ["title", "process", "class"], "title",
-            "Which part of a window the text above is compared with: its title, the name of the "
-            + "program that owns it, or the window class that program registered.",
+            "Which part of a window the match text is compared with: its title, the name of the "
+            + "program that owns it, or the window class that program registered. Change it when "
+            + "the title moves with the document or the language.",
             labels: ["Title", "Process name", "Window class"]),
         Choice("compareBy", "Compare", ["contains", "startsWith", "regex"], "contains",
-            "How the text is held up against that part: contained in it, the start of it, or a "
-            + "regular expression matched against it.",
+            "How the match text is compared with that part: contained in it, the start of it, or a "
+            + "regular expression matched against it. Use a pattern when the title carries "
+            + "something that changes from run to run.",
             labels: ["Contains", "Starts with", "Regular expression"]),
     ];
 

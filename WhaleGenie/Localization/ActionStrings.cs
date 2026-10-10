@@ -39,12 +39,13 @@ internal static class ActionStrings
 
     /// <summary>The hint every window action shares for the text it recognises a window by.</summary>
     private const string WindowTitleHint =
-        "靠什么认出这个窗口，不区分大小写。留空表示最前面那个窗口。";
+        "窗口靠这段文字认出：它和「匹配方式」选中的那一部分按「比较方式」比较，不区分大小写。留空表示最前面"
+        + "那个窗口。";
 
     /// <summary>The matching hint for the part of a window that text is compared with.</summary>
     private const string WindowMatchByHint =
-        "上面的文字和窗口的哪一部分比较。标题是标题栏上看到的字；进程名是拥有这个窗口的程序名"
-        + "（不含 .exe），标题换了它也不变；窗口类名是程序注册的那一类窗口，比如记事本都是 Notepad。";
+        "「匹配内容」和窗口的哪一部分比较：标题是标题栏上的字；进程名是拥有这个窗口的程序名（不含 .exe）；"
+        + "窗口类名是程序注册的那一类窗口（记事本都是 Notepad）。标题随文档名或界面语言变化时改用它。";
 
     private const string WindowMatchByTitle = "标题";
     private const string WindowMatchByProcess = "进程名";
@@ -55,8 +56,8 @@ internal static class ActionStrings
 
     /// <summary>The comparing hint the window actions share.</summary>
     private const string WindowCompareHint =
-        "上面的文字和窗口那一部分怎么比较。包含：那部分里出现这段文字就算匹配；开头是：必须从这段文字开始；"
-        + "正则：把这段文字当正则表达式去匹配。";
+        "「匹配内容」怎么和那一部分比较。包含：那部分里出现这段文字就算匹配；开头是：那部分从这段文字开头；"
+        + "正则：把这段文字当正则表达式，标题每轮都变时用它。";
 
     private const string WindowCompareContains = "包含";
     private const string WindowCompareStartsWith = "开头是";
@@ -1026,7 +1027,7 @@ internal static class ActionStrings
 
         // ------------------------------------------------------------------ window
         ["window.exists.name"] = "窗口是否存在",
-        ["window.exists.desc"] = "检查某个标题的窗口是否已经打开。",
+        ["window.exists.desc"] = "检查当前有没有符合匹配内容的窗口。",
         ["window.exists.title.label"] = WindowMatchTextLabel,
         ["window.exists.title.hint"] = WindowTitleHint,
         ["window.exists.matchBy.label"] = "匹配方式",
@@ -1043,7 +1044,7 @@ internal static class ActionStrings
         ["window.exists.resultVariable.hint"] = "接收 true 或 false 的变量。",
 
         ["window.waitFor.name"] = "等待窗口",
-        ["window.waitFor.desc"] = "等待某个标题的窗口出现。",
+        ["window.waitFor.desc"] = "等到符合匹配内容的窗口出现为止，超过给定时间算失败。",
         ["window.waitFor.title.label"] = WindowMatchTextLabel,
         ["window.waitFor.title.hint"] = WindowTitleHint,
         ["window.waitFor.matchBy.label"] = "匹配方式",
@@ -1062,7 +1063,7 @@ internal static class ActionStrings
         ["window.waitFor.resultVariable.hint"] = "接收该窗口标题的变量。",
 
         ["window.activate.name"] = "激活窗口",
-        ["window.activate.desc"] = "把窗口调到最前，若已最小化则先恢复。",
+        ["window.activate.desc"] = "把符合匹配内容的窗口调到最前，已最小化时先恢复。",
         ["window.activate.title.label"] = WindowMatchTextLabel,
         ["window.activate.title.hint"] = WindowTitleHint,
         ["window.activate.matchBy.label"] = "匹配方式",
@@ -1077,7 +1078,7 @@ internal static class ActionStrings
         ["window.activate.compareBy.option.regex"] = WindowCompareRegex,
 
         ["window.minimize.name"] = "最小化窗口",
-        ["window.minimize.desc"] = "把窗口最小化到任务栏。",
+        ["window.minimize.desc"] = "把符合匹配内容的窗口最小化到任务栏。",
         ["window.minimize.title.label"] = WindowMatchTextLabel,
         ["window.minimize.title.hint"] = WindowTitleHint,
         ["window.minimize.matchBy.label"] = "匹配方式",
@@ -1092,7 +1093,7 @@ internal static class ActionStrings
         ["window.minimize.compareBy.option.regex"] = WindowCompareRegex,
 
         ["window.maximize.name"] = "最大化窗口",
-        ["window.maximize.desc"] = "将窗口最大化，铺满整个屏幕。",
+        ["window.maximize.desc"] = "把符合匹配内容的窗口最大化，铺满整个屏幕。",
         ["window.maximize.title.label"] = WindowMatchTextLabel,
         ["window.maximize.title.hint"] = WindowTitleHint,
         ["window.maximize.matchBy.label"] = "匹配方式",
@@ -1107,7 +1108,7 @@ internal static class ActionStrings
         ["window.maximize.compareBy.option.regex"] = WindowCompareRegex,
 
         ["window.restore.name"] = "还原窗口",
-        ["window.restore.desc"] = "把最小化或最大化的窗口恢复成正常大小。",
+        ["window.restore.desc"] = "把符合匹配内容的窗口从最小化或最大化恢复成正常大小。",
         ["window.restore.title.label"] = WindowMatchTextLabel,
         ["window.restore.title.hint"] = WindowTitleHint,
         ["window.restore.matchBy.label"] = "匹配方式",
@@ -1122,7 +1123,7 @@ internal static class ActionStrings
         ["window.restore.compareBy.option.regex"] = WindowCompareRegex,
 
         ["window.move.name"] = "移动窗口",
-        ["window.move.desc"] = "移动窗口并给它一个新的大小。",
+        ["window.move.desc"] = "把符合匹配内容的窗口移到指定位置，并改成指定大小。",
         ["window.move.title.label"] = WindowMatchTextLabel,
         ["window.move.title.hint"] = WindowTitleHint,
         ["window.move.matchBy.label"] = "匹配方式",
@@ -1136,16 +1137,16 @@ internal static class ActionStrings
         ["window.move.compareBy.option.startsWith"] = WindowCompareStartsWith,
         ["window.move.compareBy.option.regex"] = WindowCompareRegex,
         ["window.move.x.label"] = "X",
-        ["window.move.x.hint"] = "左边缘的屏幕横坐标。",
+        ["window.move.x.hint"] = "窗口左边缘的屏幕横坐标，单位像素。",
         ["window.move.y.label"] = "Y",
-        ["window.move.y.hint"] = "上边缘的屏幕纵坐标。",
+        ["window.move.y.hint"] = "窗口上边缘的屏幕纵坐标，单位像素。",
         ["window.move.width.label"] = "宽度",
-        ["window.move.width.hint"] = "新的宽度，单位像素。",
+        ["window.move.width.hint"] = "窗口的新宽度，单位像素。",
         ["window.move.height.label"] = "高度",
-        ["window.move.height.hint"] = "新的高度，单位像素。",
+        ["window.move.height.hint"] = "窗口的新高度，单位像素。",
 
         ["window.close.name"] = "关闭窗口",
-        ["window.close.desc"] = "请求关闭窗口，相当于点击关闭按钮。",
+        ["window.close.desc"] = "请求符合匹配内容的窗口关闭，相当于点它的关闭按钮。",
         ["window.close.title.label"] = WindowMatchTextLabel,
         ["window.close.title.hint"] = WindowTitleHint,
         ["window.close.matchBy.label"] = "匹配方式",
@@ -1160,11 +1161,11 @@ internal static class ActionStrings
         ["window.close.compareBy.option.regex"] = WindowCompareRegex,
 
         ["window.list.name"] = "列出窗口",
-        ["window.list.desc"] = "把打开的窗口标题收集成列表，也可以只留符合条件的那些。",
+        ["window.list.desc"] = "把当前打开的窗口标题收集成一个列表，可以只留符合筛选条件的那些。",
         ["window.list.filter.label"] = "筛选文字",
-        ["window.list.filter.hint"] = "只保留标题、进程名或窗口类名里含有这段文字的窗口。留空表示全部。",
+        ["window.list.filter.hint"] = "只保留标题、进程名或窗口类名里含有这段文字的窗口。留空表示不过滤。",
         ["window.list.filterBy.label"] = "按什么筛选",
-        ["window.list.filterBy.hint"] = "筛选文字和窗口的哪一部分比较。",
+        ["window.list.filterBy.hint"] = "筛选文字和窗口的哪一部分比较。这一项只按包含匹配。",
         ["window.list.filterBy.option.title"] = WindowMatchByTitle,
         ["window.list.filterBy.option.process"] = WindowMatchByProcess,
         ["window.list.filterBy.option.class"] = WindowMatchByClass,
@@ -1172,7 +1173,7 @@ internal static class ActionStrings
         ["window.list.resultVariable.hint"] = "接收标题列表的变量。",
 
         ["window.info.name"] = "窗口信息",
-        ["window.info.desc"] = "把窗口的位置和大小读进变量。",
+        ["window.info.desc"] = "读取符合匹配内容的窗口的位置和大小。",
         ["window.info.title.label"] = WindowMatchTextLabel,
         ["window.info.title.hint"] = WindowTitleHint,
         ["window.info.matchBy.label"] = "匹配方式",
