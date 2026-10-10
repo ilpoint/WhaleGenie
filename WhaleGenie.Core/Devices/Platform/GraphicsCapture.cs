@@ -48,7 +48,18 @@ internal sealed class GraphicsCapture : IDisposable
                 PixelFormat = PixelFormat.Bgra32,
             };
 
-            return Read(Session(handle, region), keeping: true);
+            try
+            {
+                return Read(Session(handle, region), keeping: true);
+            }
+            catch (DeviceActionException)
+            {
+                // A session that was opened before the window was minimised and shown again cannot
+                // deliver any more, and a macro watching a game that the user alt-tabbed away from
+                // should not fail a step over it. The failed reading let go of that session, so
+                // this opens one now; a second failure is the window's own and is reported.
+                return Read(Session(handle, region), keeping: true);
+            }
         });
 
     /// <summary>The whole of one display, in that display's own coordinates.</summary>
