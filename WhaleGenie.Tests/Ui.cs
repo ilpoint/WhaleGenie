@@ -1,4 +1,6 @@
+using System.Runtime.CompilerServices;
 using Avalonia.Headless;
+using WhaleGenie.Models;
 
 // The headless session is one thread carrying one Avalonia application. Two test classes that
 // start at the same time race to set that up, and the one that loses is told its own dispatcher
@@ -45,4 +47,18 @@ internal static class Ui
         => Session.Dispatch(body, CancellationToken.None)
             .GetAwaiter()
             .GetResult();
+}
+
+/// <summary>
+/// The session is started as the assembly is loaded rather than by whichever check happens to run
+/// first, and the action catalogue is read once here as well. Reading the catalogue parses its icons
+/// through Avalonia's drawing platform, and only the session's own thread has one: a check that
+/// reads the catalogue first from its own thread is told the platform is missing, and that failure
+/// then sticks to the type for every check after it — a hundred of them at once. Which order the
+/// checks run in should not decide whether they can see the catalogue at all.
+/// </summary>
+internal static class SessionStartsFirst
+{
+    [ModuleInitializer]
+    internal static void Start() => Ui.Run(() => ActionCatalog.Definitions.Count);
 }
