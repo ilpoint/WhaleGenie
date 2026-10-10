@@ -1214,24 +1214,24 @@ public static class ActionCatalog
                 Multiline("environment", "Environment variables",
                     "One NAME=value per line for the command to run with. Leave it empty to run "
                     + "it with WhaleGenie's own environment. Lines starting with # are skipped.",
-                    "LANG=zh_CN.UTF-8", required: false),
+                    "LANG=zh_CN.UTF-8", required: false, advanced: true),
                 Multiline("standardInput", "Standard input",
                     "What the command reads on its standard input. Leave it empty to give the "
                     + "command nothing to read. Sent as UTF-8, and $name is replaced by what that "
                     + "variable holds.",
-                    "first line\nsecond line", required: false),
+                    "first line\nsecond line", required: false, advanced: true),
                 Number("timeoutMs", "Timeout", 30000, "How long the command may run."),
                 Toggle("streamOutput", "Write output to the log as it arrives", false,
                     "Put every line the command prints into the run log while it is still running, "
                     + "which is how a long build or script can be watched. The result variable still "
-                    + "holds the whole output."),
+                    + "holds the whole output.", advanced: true),
                 Choice("outputEncoding", "Output encoding", ["system", "utf8", "utf16"], "system",
                     "The code page the command prints in. Left as it is, its output is read in this "
                     + "machine's own, which is what the programs Windows ships with — cmd.exe, "
                     + "Windows PowerShell, Python — write in when they are not talking to a screen. "
                     + "A program that prints UTF-8 whichever machine it is on, Node.js for one, "
                     + "needs to be read that way instead.",
-                    labels: ["This machine's", "UTF-8", "UTF-16"]),
+                    labels: ["This machine's", "UTF-8", "UTF-16"], advanced: true),
                 Variable("resultVariable", "Result variable", "output",
                     "Variable that receives what the command printed.",
                     required: false, namesVariable: true),
@@ -2553,22 +2553,25 @@ public static class ActionCatalog
                     "Which interpreter runs the script. PowerShell and Command Prompt are on every "
                     + "Windows machine; Node and Python have to be installed first; another "
                     + "program is for anything else the machine has, such as dotnet-script.",
-                    labels: ["PowerShell", "Command Prompt", "Node.js", "Python", "Another program"]),
+                    labels: ["PowerShell", "Command Prompt", "Node.js", "Python", "Another program"],
+                    advanced: true),
                 Text("interpreter", "Interpreter command", "dotnet-script", required: false,
                     hint: "The program that runs the script, with any flags of its own in front, "
                           + "used with \"another program\" above. The script's path goes after it, "
                           + "the way it would be typed on a command line. A path with spaces in it "
-                          + "goes in quotes."),
+                          + "goes in quotes.",
+                    advanced: true),
                 Text("extension", "Script file ending", ".csx", required: false,
                     hint: "The file name ending that program reads, such as .csx for dotnet-script "
-                          + "or .vbs for cscript. Only used with \"another program\" above."),
+                          + "or .vbs for cscript. Only used with \"another program\" above.",
+                    advanced: true),
                 Choice("encoding", "Script file encoding", ["auto", .. TextEncoding.Names], "auto",
                     "How the interpreter's copy of the script is written. Left to decide for "
                     + "itself, PowerShell gets a byte-order mark and the rest do not, which is what "
                     + "each of them reads correctly; a program that reads the system code page "
                     + "instead, cscript for one, needs GBK to read Chinese text.",
                     labels: ["As the interpreter expects", "UTF-8", "UTF-8 with BOM",
-                        "GBK (Chinese)", "UTF-16"]),
+                        "GBK (Chinese)", "UTF-16"], advanced: true),
                 Multiline("script", "Script",
                     "The script itself. {{name}} is replaced by what the variable name holds "
                     + "before the script runs, which is how a macro value gets in; everything the "
@@ -2580,7 +2583,7 @@ public static class ActionCatalog
                 PickablePath("folder", "Working folder", string.Empty,
                     "The folder the script runs in. Leave it empty to run it in the macros folder, "
                     + "or wherever WhaleGenie is when that folder is not there yet.",
-                    PathIntent.Folder, required: false),
+                    PathIntent.Folder, required: false, advanced: true),
                 Number("timeoutMs", "Timeout", 60000,
                     "Stop the script and fail the step after this long."),
                 Variable("resultVariable", "Result variable", "output",
@@ -2974,7 +2977,7 @@ public static class ActionCatalog
         };
 
     private static ActionParameter Multiline(string name, string label, string hint = "",
-        string placeholder = "", bool required = true, bool foreign = false)
+        string placeholder = "", bool required = true, bool foreign = false, bool advanced = false)
         => new()
         {
             Name = name,
@@ -2984,6 +2987,7 @@ public static class ActionCatalog
             Placeholder = placeholder,
             Required = required,
             ForeignText = foreign,
+            Advanced = advanced,
         };
 
     /// <summary>
@@ -3088,7 +3092,8 @@ public static class ActionCatalog
     /// the macros-folder wording of <see cref="FilePath"/> would be wrong for a program.
     /// </summary>
     private static ActionParameter PickablePath(string name, string label, string placeholder,
-        string hint, PathIntent intent, string filter = "", bool required = true)
+        string hint, PathIntent intent, string filter = "", bool required = true,
+        bool advanced = false)
         => new()
         {
             Name = name,
@@ -3099,6 +3104,7 @@ public static class ActionCatalog
             Required = required,
             PathIntent = intent,
             PathFilter = filter,
+            Advanced = advanced,
         };
 
     private static ActionParameter Number(string name, string label, decimal defaultValue,
