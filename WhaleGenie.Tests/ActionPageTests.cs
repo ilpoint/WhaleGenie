@@ -65,6 +65,33 @@ public class ActionPageTests
     }
 
     /// <summary>
+    /// Which window a step works on, and how that window is recognised, is what the step is rather
+    /// than how it does it: a window named wrongly is a step that quietly does nothing, so all three
+    /// parts of the name are read on the basic page.
+    /// </summary>
+    [Fact]
+    public void How_a_window_is_recognised_is_on_the_basic_page()
+    {
+        var misplaced = new List<string>();
+
+        foreach (var action in Ui.Run(() => ActionCatalog.RunnableActions.ToList()))
+        {
+            var basic = On(action, viewModel => viewModel.Rows);
+            var advanced = On(action, viewModel => viewModel.AdvancedRows);
+            if (!basic.Concat(advanced).Contains("compareBy", StringComparer.Ordinal))
+            {
+                continue;
+            }
+
+            misplaced.AddRange(new[] { "title", "matchBy", "compareBy" }
+                .Where(name => !basic.Contains(name, StringComparer.Ordinal))
+                .Select(name => $"{action.Key}: {name}"));
+        }
+
+        Assert.Empty(misplaced);
+    }
+
+    /// <summary>
     /// The page about the names a step leaves behind holds those names and nothing else: a field
     /// whose name is the answer belongs there, and a field naming a variable it reads does not —
     /// that one is part of what the step is.

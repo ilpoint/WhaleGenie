@@ -3695,16 +3695,21 @@ public static class ActionCatalog
         new()
         {
             Name = "title",
-            Label = "Window",
+            Label = "Match text",
             Kind = ActionParameterKind.Window,
             Placeholder = "Notepad",
-            Hint = "What to recognise the window by, matched without regard to case. "
-                   + "Leave empty for the window in front.",
+            Hint = "The text the window is recognised by, compared with the part chosen below and "
+                   + "ignoring case. Leave it empty for the window in front.",
             Required = false,
         },
         Choice("matchBy", "Match by", ["title", "process", "class"], "title",
             "Which part of a window the text above is compared with: its title, the name of the "
-            + "program that owns it, or the window class that program registered.", advanced: true),
+            + "program that owns it, or the window class that program registered.",
+            labels: ["Title", "Process name", "Window class"]),
+        Choice("compareBy", "Compare", ["contains", "startsWith", "regex"], "contains",
+            "How the text is held up against that part: contained in it, the start of it, or a "
+            + "regular expression matched against it.",
+            labels: ["Contains", "Starts with", "Regular expression"]),
     ];
 
     /// <summary>Name of another macro in the project, chosen from a list while staying editable.</summary>

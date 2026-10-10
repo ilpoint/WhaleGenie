@@ -304,7 +304,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.PickWindow"] = "Pick window…",
         ["Add.PickWindowHint"] = "Choose one of the windows that are open now.",
         ["WindowPicker.Title"] = "Pick a window",
-        ["WindowPicker.Filter"] = "Filter by title or program",
+        ["WindowPicker.Filter"] = "Filter by title, program or class",
         ["WindowPicker.Refresh"] = "Refresh",
         ["WindowPicker.RefreshHint"] = "Look at the open windows again.",
         ["WindowPicker.Empty"] = "No open windows were found.",
@@ -314,8 +314,13 @@ public sealed class Strings : INotifyPropertyChanged
         ["WindowPicker.Normal"] = "normal",
         ["WindowPicker.Size"] = "{0} × {1}",
         ["WindowPicker.Choose"] = "Use this window",
-        ["WindowPicker.Hint"] = "Only part of the title is stored, so the macro still finds the "
-                                + "window when the document name changes.",
+        ["WindowPicker.Hint.Title"] = "What is taken is the title. A title changes with the document "
+                                      + "and the language, so shortening it is usually what a macro "
+                                      + "wants.",
+        ["WindowPicker.Hint.Process"] = "What is taken is the program name. It does not change with "
+                                        + "the document, so a window is found whatever it is called.",
+        ["WindowPicker.Hint.Class"] = "What is taken is the window class. It does not change with the "
+                                      + "document or the language.",
         ["Add.PickElement"] = "Pick element…",
         ["Add.PickElementHint"] = "Point at a control on screen and click it to write its selector.",
         ["Add.PickBrowserElement"] = "Pick on the page…",
@@ -1283,7 +1288,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.PickWindow"] = "拾取窗口…",
         ["Add.PickWindowHint"] = "从当前打开的窗口里选一个。",
         ["WindowPicker.Title"] = "拾取窗口",
-        ["WindowPicker.Filter"] = "按标题或程序筛选",
+        ["WindowPicker.Filter"] = "按标题、程序或类名筛选",
         ["WindowPicker.Refresh"] = "刷新",
         ["WindowPicker.RefreshHint"] = "重新读取当前打开的窗口。",
         ["WindowPicker.Empty"] = "没有找到打开的窗口。",
@@ -1293,7 +1298,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["WindowPicker.Normal"] = "正常大小",
         ["WindowPicker.Size"] = "{0} × {1}",
         ["WindowPicker.Choose"] = "使用这个窗口",
-        ["WindowPicker.Hint"] = "只保存标题的一部分，所以文档名变了以后宏仍然能找到这个窗口。",
+        ["WindowPicker.Hint.Title"] = "取走的是标题。标题会随文档名和界面语言变化，所以一般只取其中一段。",
+        ["WindowPicker.Hint.Process"] = "取走的是进程名。它不随文档名变化，窗口标题怎么改都能找到。",
+        ["WindowPicker.Hint.Class"] = "取走的是窗口类名。它不随文档名和界面语言变化。",
         ["Add.PickElement"] = "拾取元素…",
         ["Add.PickElementHint"] = "把鼠标移到屏幕上的控件并点击，即可写入它的选择器。",
         ["Add.PickBrowserElement"] = "在页面里拾取…",

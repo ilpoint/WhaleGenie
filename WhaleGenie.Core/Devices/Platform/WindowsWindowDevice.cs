@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace WhaleGenie.Core.Devices.Platform;
 
@@ -24,7 +25,8 @@ public sealed class WindowsWindowDevice : IWindowDevice
         return EveryWindow();
     }
 
-    public WindowInfo? Find(string value, WindowMatch match)
+    public WindowInfo? Find(string value, WindowMatch match,
+        WindowCompare compare = WindowCompare.Contains)
     {
         Require();
 
@@ -40,7 +42,7 @@ public sealed class WindowsWindowDevice : IWindowDevice
 
         foreach (var window in windows)
         {
-            if (Matches(window, wanted, match))
+            if (Matches(window, wanted, match, compare))
             {
                 return window;
             }
@@ -52,21 +54,24 @@ public sealed class WindowsWindowDevice : IWindowDevice
     /// <summary>
     /// Whether one window answers to the value a step wrote. Title is the cheap one, since the
     /// listing already holds it; a process name costs a lookup per window, so it is only paid for
-    /// when a step actually asks to match that way.
+    /// when a step actually asks to match that way. A pattern the machine cannot read comes back
+    /// as <see cref="ArgumentException"/>, which is the run's to report.
     /// </summary>
-    private bool Matches(WindowInfo window, string wanted, WindowMatch match)
+    private bool Matches(WindowInfo window, string wanted, WindowMatch match, WindowCompare compare)
     {
-        if (match is WindowMatch.Title)
+        var text = match switch
         {
-            return window.Title.Contains(wanted, StringComparison.OrdinalIgnoreCase);
-        }
+            WindowMatch.Process => ProcessOf(window.Handle),
+            WindowMatch.ClassName => ClassOf(window.Handle),
+            _ => window.Title,
+        };
 
-        if (match is WindowMatch.Process)
+        return compare switch
         {
-            return ProcessOf(window.Handle).Contains(wanted, StringComparison.OrdinalIgnoreCase);
-        }
-
-        return ClassOf(window.Handle).Contains(wanted, StringComparison.OrdinalIgnoreCase);
+            WindowCompare.StartsWith => text.StartsWith(wanted, StringComparison.OrdinalIgnoreCase),
+            WindowCompare.Regex => Regex.IsMatch(text, wanted, RegexOptions.IgnoreCase),
+            _ => text.Contains(wanted, StringComparison.OrdinalIgnoreCase),
+        };
     }
 
     public string ProcessOf(long handle) => ProcessName(handle);

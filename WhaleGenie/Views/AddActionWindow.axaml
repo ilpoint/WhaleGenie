@@ -339,13 +339,17 @@
                 </StackPanel>
 
                 <!-- A window, which the picker fills in from what is open right now. -->
-                <Grid IsVisible="{Binding IsWindow}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                <Grid IsVisible="{Binding IsWindow}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                     <TextBox Classes="ParamInput" Text="{Binding Text}"
                              PlaceholderText="{Binding Placeholder}" />
                     <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
                             Content="{Binding [Add.PickWindow], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.PickWindowHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickWindow" />
+                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                            Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnPickVariable" />
                 </Grid>
 
                 <!-- Where a step looks: one row per rectangle, so looking at two halves of a
@@ -1077,6 +1081,16 @@
                     <!-- What the step is: what it looks for, where, how soon, and what it does. -->
                     <Border Classes="GroupBox" IsVisible="{Binding OnBase}">
                         <StackPanel>
+                            <!-- Every step may carry a note, and a note is part of what the step
+                                 is, so it is the first line here rather than something to go
+                                 looking for. -->
+                            <StackPanel Margin="0,0,0,12" IsVisible="{Binding HasSelection}">
+                                <TextBlock Classes="FieldLabel"
+                                           Text="{Binding [Add.StepComment], Source={x:Static loc:Strings.Current}}" />
+                                <TextBox Classes="ParamInput" Text="{Binding MetaComment}"
+                                         PlaceholderText="{Binding [Add.StepCommentHint], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+
                             <!-- A block's settings are about the block, not about one thing the run
                                  does, and the two levels are what make a failure answerable at the
                                  level it belongs to. -->
@@ -1115,15 +1129,10 @@
 
                     <Border Classes="GroupBox" IsVisible="{Binding OnOther}">
                         <StackPanel>
-                            <TextBlock Classes="FieldLabel"
-                                       Text="{Binding [Add.StepComment], Source={x:Static loc:Strings.Current}}" />
-                            <TextBox Classes="ParamInput" Text="{Binding MetaComment}"
-                                     PlaceholderText="{Binding [Add.StepCommentHint], Source={x:Static loc:Strings.Current}}" />
-
                             <!-- The name this step goes by. It is what a condition and a result
                                  variable point at, so it is shown where the step is edited rather
                                  than only in the file. -->
-                            <StackPanel Margin="0,12,0,0" IsVisible="{Binding HasStepId}">
+                            <StackPanel IsVisible="{Binding HasStepId}">
                                 <TextBlock Classes="FieldLabel"
                                            Text="{Binding [Add.StepId], Source={x:Static loc:Strings.Current}}" />
                                 <StackPanel Orientation="Horizontal" Spacing="8">

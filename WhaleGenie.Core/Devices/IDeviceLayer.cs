@@ -491,10 +491,13 @@ public interface IWindowDevice
 
     /// <summary>
     /// The first window that matches <paramref name="value"/> the way <paramref name="match"/>
-    /// says, ignoring case, or null when nothing does. An empty value matches the frontmost
-    /// window, whichever of the three it is asked to look at.
+    /// and <paramref name="compare"/> say, ignoring case, or null when nothing does. An empty value
+    /// matches the frontmost window, whichever of the three parts it is asked to look at. A
+    /// <paramref name="compare"/> of <see cref="WindowCompare.Regex"/> with a pattern the machine
+    /// cannot read throws <see cref="ArgumentException"/>, which the run turns into a failed step.
     /// </summary>
-    WindowInfo? Find(string value, WindowMatch match);
+    WindowInfo? Find(string value, WindowMatch match,
+        WindowCompare compare = WindowCompare.Contains);
 
     /// <summary>
     /// The name of the program that owns a window, without the ".exe", or an empty string when the
@@ -774,7 +777,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
         // that take no such argument.
         IReadOnlyList<WindowInfo> IWindowDevice.List() => throw Missing("windows");
 
-        WindowInfo? IWindowDevice.Find(string value, WindowMatch match) => throw Missing("windows");
+        WindowInfo? IWindowDevice.Find(string value, WindowMatch match, WindowCompare compare)
+            => throw Missing("windows");
 
         string IWindowDevice.ProcessOf(long handle) => throw Missing("windows");
 

@@ -1,3 +1,6 @@
+using System;
+using System.IO;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -18,6 +21,42 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class ActionDialogTests
 {
+    /// <summary>
+    /// A note is part of what a step is rather than one of its settings, so it is written on the
+    /// basic page, first, where every step of every action has it.
+    /// </summary>
+    [Fact]
+    public void The_note_of_a_step_is_written_on_the_basic_page()
+    {
+        var markup = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
+            "AddActionWindow.axaml"));
+
+        Assert.Contains("MetaComment", Page(markup, "OnBase"), StringComparison.Ordinal);
+        Assert.DoesNotContain("MetaComment", Page(markup, "OnOther"), StringComparison.Ordinal);
+    }
+
+    /// <summary>The markup of one page of the form: its marker up to the end of its box.</summary>
+    private static string Page(string markup, string page)
+    {
+        var start = markup.IndexOf($"IsVisible=\"{{Binding {page}}}\"", StringComparison.Ordinal);
+        Assert.True(start >= 0, $"the form has no {page} page");
+        return markup[start..markup.IndexOf("</Border>", start, StringComparison.Ordinal)];
+    }
+
+    /// <summary>The repository root, found by walking up from the test binaries.</summary>
+    private static string Repository()
+    {
+        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
+        {
+            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
+            {
+                return at.FullName;
+            }
+        }
+
+        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
+    }
+
     private static AddActionViewModel Open(string key)
     {
         var window = new AddActionWindow(null, ActionCatalog.Definitions,
@@ -633,7 +672,7 @@ public class ActionDialogTests
 
         public IReadOnlyList<WindowInfo> List() => [Notepad];
 
-        public WindowInfo? Find(string value, WindowMatch match)
+        public WindowInfo? Find(string value, WindowMatch match, WindowCompare compare)
             => Notepad.Title.Contains(value, StringComparison.OrdinalIgnoreCase) ? Notepad : null;
 
         public string ProcessOf(long handle) => "notepad";

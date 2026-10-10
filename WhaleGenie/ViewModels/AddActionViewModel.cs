@@ -676,6 +676,20 @@ public partial class AddActionViewModel : ViewModelBase
         SelectedDefinition = definition;
     }
 
+    /// <summary>
+    /// Which part of a window the action compares its text with, which is what the window picker has
+    /// to take away from here: a class picked while the step compares titles would match nothing. A
+    /// step that says nothing about it reads titles, the way it always did.
+    /// </summary>
+    public WindowMatch WindowMatchFor()
+        => Parameters.FirstOrDefault(row => row.Definition.Name == "matchBy")?.CurrentText
+            .Trim().ToLowerInvariant() switch
+        {
+            "process" => WindowMatch.Process,
+            "class" => WindowMatch.ClassName,
+            _ => WindowMatch.Title,
+        };
+
     /// <summary>Folds a group open or shut and remembers which way it went.</summary>
     public void ToggleGroup(ActionGroupViewModel group)
     {

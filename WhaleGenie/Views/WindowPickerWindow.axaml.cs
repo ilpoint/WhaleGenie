@@ -2,13 +2,15 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
 /// <summary>
-/// Lists the windows that are open so one can be pointed at by name. A macro matches a window
-/// by part of its title, so the picker handles the exact title over and leaves it editable.
+/// Lists the windows that are open so one can be pointed at by name. A macro compares its text with
+/// one part of a window, so the picker is opened for that part and hands that part back, leaving it
+/// editable: a title that changes with the document has to be shortened by hand.
 /// </summary>
 public partial class WindowPickerWindow : Window
 {
@@ -45,12 +47,15 @@ public partial class WindowPickerWindow : Window
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
     }
 
-    /// <summary>The title the picker was closed with, or null when nothing was taken.</summary>
+    /// <summary>The text the picker was closed with, or null when nothing was taken.</summary>
     internal string? Chosen { get; private set; }
 
-    /// <summary>Shows the picker over <paramref name="owner"/> and reports the title that was picked.</summary>
-    public static Task<string?> PickAsync(Window owner)
-        => new WindowPickerWindow().ShowDialogOver<string?>(owner);
+    /// <summary>
+    /// Shows the picker over <paramref name="owner"/> and reports the part of the window that was
+    /// picked, taken from whichever part <paramref name="match"/> names.
+    /// </summary>
+    public static Task<string?> PickAsync(Window owner, WindowMatch match = WindowMatch.Title)
+        => new WindowPickerWindow(new WindowPickerViewModel(null, match)).ShowDialogOver<string?>(owner);
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {

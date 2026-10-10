@@ -2,6 +2,7 @@ using System.IO.Compression;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Threading;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
@@ -149,8 +150,8 @@ public class PickerTests
     {
         var model = new WindowPickerViewModel(
         [
-            new WindowEntry(1, "Untitled - Notepad", "notepad", "800 × 600 · normal"),
-            new WindowEntry(2, "Report.docx - Word", "WINWORD", "1024 × 768 · maximized"),
+            new WindowEntry(1, "Untitled - Notepad", "notepad", "Notepad", "800 × 600 · normal"),
+            new WindowEntry(2, "Report.docx - Word", "WINWORD", "OpusApp", "1024 × 768 · maximized"),
         ]);
 
         Assert.Equal(2, model.Windows.Count);
@@ -171,6 +172,55 @@ public class PickerTests
     }
 
     [Fact]
+    public void The_dialog_opens_the_picker_for_the_part_the_step_compares_with()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = new AddActionViewModel(ActionCatalog.Definitions, [], []);
+            viewModel.SelectAction("window.exists");
+
+            // A step that says nothing about it reads titles, and the picker takes a title.
+            Assert.Equal(WindowMatch.Title, viewModel.WindowMatchFor());
+
+            var matchBy = viewModel.Parameters.First(parameter => parameter.Definition.Name == "matchBy");
+            matchBy.Option = matchBy.Choices.First(choice => choice.Value == "process");
+            Assert.Equal(WindowMatch.Process, viewModel.WindowMatchFor());
+
+            matchBy.Option = matchBy.Choices.First(choice => choice.Value == "class");
+            Assert.Equal(WindowMatch.ClassName, viewModel.WindowMatchFor());
+        });
+    }
+
+    [Fact]
+    public void The_picker_takes_the_part_of_the_window_it_was_opened_for()
+    {
+        Ui.Run(() =>
+        {
+            IReadOnlyList<WindowEntry> open =
+                [new WindowEntry(1, "Untitled - Notepad", "notepad", "Notepad", "800 × 600 · normal")];
+
+            // The field the picker is opened from decides which part is taken, so what comes back
+            // can be written straight into it and compared the same way at run time.
+            foreach (var (match, wanted) in new (WindowMatch, string)[]
+                     {
+                         (WindowMatch.Title, "Untitled - Notepad"),
+                         (WindowMatch.Process, "notepad"),
+                         (WindowMatch.ClassName, "Notepad"),
+                     })
+            {
+                var window = new WindowPickerWindow(new WindowPickerViewModel(open, match));
+                window.Show();
+                Dispatcher.UIThread.RunJobs();
+
+                window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.Equal(wanted, window.Chosen);
+            }
+        });
+    }
+
+    [Fact]
     public void An_empty_desktop_says_it_has_nothing_to_offer()
     {
         var model = new WindowPickerViewModel([]);
@@ -185,7 +235,7 @@ public class PickerTests
         Ui.Run(() =>
         {
             var model = new WindowPickerViewModel(
-                [new WindowEntry(1, "Untitled - Notepad", "notepad", "800 × 600 · normal")]);
+                [new WindowEntry(1, "Untitled - Notepad", "notepad", "Notepad", "800 × 600 · normal")]);
             var window = new WindowPickerWindow(model);
 
             window.Show();
@@ -205,7 +255,7 @@ public class PickerTests
         Ui.Run(() =>
         {
             var model = new WindowPickerViewModel(
-                [new WindowEntry(1, "Untitled - Notepad", "notepad", "800 × 600 · normal")]);
+                [new WindowEntry(1, "Untitled - Notepad", "notepad", "Notepad", "800 × 600 · normal")]);
             var window = new WindowPickerWindow(model);
 
             window.Show();

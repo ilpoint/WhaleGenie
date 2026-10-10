@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
@@ -4213,6 +4214,42 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_window_is_compared_with_its_text_the_way_the_step_says()
+    {
+        var devices = WithAWindow();
+        var (_, _, store) = await RunAsync(
+        [
+            // The one window is called "Notepad - notes.txt".
+            Step("window.exists", Param("title", "notepad"), Param("compareBy", "startsWith"),
+                Param("resultVariable", "fromStart")),
+            Step("window.exists", Param("title", "notes"), Param("compareBy", "startsWith"),
+                Param("resultVariable", "notFromStart")),
+            Step("window.exists", Param("title", "notes\\.txt$"), Param("compareBy", "regex"),
+                Param("resultVariable", "byPattern")),
+            Step("window.exists", Param("title", "notes"), Param("resultVariable", "byText")),
+        ], devices);
+
+        Assert.True(store.Local.Values["fromStart"].Flag);
+        Assert.False(store.Local.Values["notFromStart"].Flag);
+        Assert.True(store.Local.Values["byPattern"].Flag);
+        Assert.True(store.Local.Values["byText"].Flag);
+    }
+
+    [Fact]
+    public async Task A_window_pattern_that_cannot_be_read_fails_the_step()
+    {
+        var devices = WithAWindow();
+        devices.WindowFacts[1] = ("notepad", "Notepad");
+        var (result, _, _) = await RunAsync(
+        [
+            Step("window.exists", Param("title", "notes("), Param("compareBy", "regex"),
+                Param("resultVariable", "found")),
+        ], devices);
+
+        Assert.Equal("Run.BadPattern", result.Key);
+    }
+
+    [Fact]
     public async Task A_window_that_matches_by_nothing_is_not_found()
     {
         var devices = WithAWindow();
@@ -5989,7 +6026,7 @@ internal sealed class FakeDeviceLayer
         return [.. Windows];
     }
 
-    WindowInfo? IWindowDevice.Find(string value, WindowMatch match)
+    WindowInfo? IWindowDevice.Find(string value, WindowMatch match, WindowCompare compare)
     {
         Note($"findWindow {value}");
         _windowReads++;
@@ -6007,15 +6044,16 @@ internal sealed class FakeDeviceLayer
             return Windows.Count > 0 ? Windows[0] : null;
         }
 
-        return Windows.FirstOrDefault(window => Answers(window, wanted, match));
+        return Windows.FirstOrDefault(window => Answers(window, wanted, match, compare));
     }
 
     /// <summary>
     /// Whether a fake window answers to a value. A title is always there; the process name and the
     /// class name have to be handed in through <see cref="WindowFacts"/>, the way the real device
-    /// has to look them up.
+    /// has to look them up. The comparing is the device's job, so it is done the same three ways
+    /// here as the real one does it.
     /// </summary>
-    private bool Answers(WindowInfo window, string wanted, WindowMatch match)
+    private bool Answers(WindowInfo window, string wanted, WindowMatch match, WindowCompare compare)
     {
         var text = match switch
         {
@@ -6024,7 +6062,12 @@ internal sealed class FakeDeviceLayer
             _ => window.Title,
         };
 
-        return text.Contains(wanted, StringComparison.OrdinalIgnoreCase);
+        return compare switch
+        {
+            WindowCompare.StartsWith => text.StartsWith(wanted, StringComparison.OrdinalIgnoreCase),
+            WindowCompare.Regex => Regex.IsMatch(text, wanted, RegexOptions.IgnoreCase),
+            _ => text.Contains(wanted, StringComparison.OrdinalIgnoreCase),
+        };
     }
 
     private (string Process, string ClassName) Facts(WindowInfo window)

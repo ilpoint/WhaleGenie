@@ -499,6 +499,23 @@ public enum WindowMatch
 }
 
 /// <summary>
+/// How the text a step wrote is held up against the part of the window it named. "Contains" is what
+/// a person means when they type part of a title; a regular expression is for the windows whose
+/// titles carry something that changes from run to run.
+/// </summary>
+public enum WindowCompare
+{
+    /// <summary>The part holds the text, ignoring case.</summary>
+    Contains,
+
+    /// <summary>The part begins with the text, ignoring case.</summary>
+    StartsWith,
+
+    /// <summary>The text is a regular expression matched against the part, ignoring case.</summary>
+    Regex,
+}
+
+/// <summary>
 /// An open top-level window: what it is called, where it sits, and whether it is shrunk or
 /// filling the screen. The handle is what the window actions are carried out on.
 /// </summary>

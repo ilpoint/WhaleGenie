@@ -5509,7 +5509,19 @@ public sealed class MacroRunner
 
     /// <summary>The same, for the steps that report rather than fail when no window matches.</summary>
     private WindowInfo? Lookup(ExecutableStep step)
-        => _devices.Windows.Find(WindowText(step), WindowMatchOf(step.Text("matchBy")));
+    {
+        try
+        {
+            return _devices.Windows.Find(WindowText(step), WindowMatchOf(step.Text("matchBy")),
+                WindowCompareOf(step.Text("compareBy")));
+        }
+        catch (ArgumentException)
+        {
+            // A pattern the machine cannot read is the macro's problem to see, not a stack trace to
+            // puzzle over, so it comes back as a failed step.
+            throw new StepFailure("Run.BadPattern", WindowText(step));
+        }
+    }
 
     /// <summary>What a step wrote into its window field, with the variables in it resolved.</summary>
     private string WindowText(ExecutableStep step) => Read(step.Text("title")).AsText().Trim();
@@ -5519,6 +5531,17 @@ public sealed class MacroRunner
         "process" => WindowMatch.Process,
         "class" => WindowMatch.ClassName,
         _ => WindowMatch.Title,
+    };
+
+    /// <summary>
+    /// How the text is held up against the part of the window it named. Anything unrecognised reads
+    /// as "contains", which is what a macro written before there was a choice meant.
+    /// </summary>
+    private static WindowCompare WindowCompareOf(string text) => text.Trim().ToLowerInvariant() switch
+    {
+        "startswith" => WindowCompare.StartsWith,
+        "regex" => WindowCompare.Regex,
+        _ => WindowCompare.Contains,
     };
 
     /// <summary>

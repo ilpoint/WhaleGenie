@@ -141,7 +141,7 @@
         <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" Margin="16,12,16,16" ColumnSpacing="8">
             <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" FontSize="11.5"
                        Foreground="#9A9A9A" MaxWidth="280"
-                       Text="{Binding [WindowPicker.Hint], Source={x:Static loc:Strings.Current}}" />
+                       Text="{Binding MatchHint}" />
             <Button Grid.Column="1" Classes="FlatButton" Height="36" MinWidth="92"
                     Content="{Binding [Add.Cancel], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding CancelCommand}" />
