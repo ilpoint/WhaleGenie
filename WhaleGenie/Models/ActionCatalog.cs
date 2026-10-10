@@ -1558,7 +1558,7 @@ public static class ActionCatalog
                     "Keep only the windows whose title, process or class contains this text. "
                     + "Leave it empty for every window.", required: false),
                 Choice("filterBy", "Filter by", ["title", "process", "class"], "title",
-                    "Which part of a window the filter text is compared with."),
+                    "Which part of a window the filter text is compared with.", advanced: true),
                 Variable("resultVariable", "Result variable", "windows",
                     "Variable that receives the list of titles.", required: false, namesVariable: true),
             ],
@@ -2269,7 +2269,7 @@ public static class ActionCatalog
                 Selector(),
                 MatchIndex(),
                 Number("timeoutMs", "Timeout", 10000, "Give up after this long."),
-                Number("pollMs", "Check every", 200, "Delay between checks."),
+                Number("pollMs", "Check every", 200, "Delay between checks.", advanced: true),
             ],
         },
         new()
@@ -2443,7 +2443,7 @@ public static class ActionCatalog
                     required: false),
                 Toggle("headless", "Hidden window", false,
                     "Open the browser without showing it. A page kept off the screen is quicker, "
-                    + "but nothing can be watched while the macro runs."),
+                    + "but nothing can be watched while the macro runs.", advanced: true),
             ],
         },
         new()
@@ -3703,7 +3703,7 @@ public static class ActionCatalog
         },
         Choice("matchBy", "Match by", ["title", "process", "class"], "title",
             "Which part of a window the text above is compared with: its title, the name of the "
-            + "program that owns it, or the window class that program registered."),
+            + "program that owns it, or the window class that program registered.", advanced: true),
     ];
 
     /// <summary>Name of another macro in the project, chosen from a list while staying editable.</summary>
