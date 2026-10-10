@@ -3144,7 +3144,7 @@ public static class ActionCatalog
         };
 
     private static ActionParameter ColorPick(string name, string label, string defaultValue = "#000000",
-        string hint = "")
+        string hint = "", bool required = true)
         => new()
         {
             Name = name,
@@ -3152,6 +3152,7 @@ public static class ActionCatalog
             Kind = ActionParameterKind.Color,
             DefaultValue = defaultValue,
             Hint = hint,
+            Required = required,
         };
 
     /// <summary>
@@ -3276,7 +3277,8 @@ public static class ActionCatalog
         => ColorPick("ignoreColor", "Ignore this colour", string.Empty,
             "Pixels of the reference picture that are this colour, or close to it, are left out of "
             + "the comparing. It is for a part of the picture that keeps changing — a number over a "
-            + "button, a bar that fills up. Leave it empty to compare the whole picture.");
+            + "button, a bar that fills up. Leave it empty to compare the whole picture.",
+            required: false);
 
     /// <summary>How many pairs of features have to line up, for the finders that look by features.</summary>
     private static ActionParameter MinFeatures()

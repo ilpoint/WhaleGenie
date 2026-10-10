@@ -180,6 +180,35 @@ public class ActionDialogTests
         });
     }
 
+    /// <summary>
+    /// Looking for a picture is complete once the picture is named. "Ignore this colour" answers a
+    /// question most steps never ask, so leaving it empty is not a mistake — it is what a step that
+    /// does not care about it looks like, and the label says so. Treating it as still to be filled
+    /// in left all three picture finders unsavable, which is what this holds shut.
+    /// </summary>
+    [Fact]
+    public void Naming_the_picture_is_enough_to_save_a_look()
+    {
+        Ui.Run(() =>
+        {
+            foreach (var key in new[] { "vision.findImage", "vision.waitImage", "vision.clickImage" })
+            {
+                var viewModel = Open(key);
+                var ignore = viewModel.Parameters
+                    .First(parameter => parameter.Definition.Name == "ignoreColor");
+
+                Assert.Equal(
+                    Strings.Format("Common.OptionalSuffix", ignore.Definition.LocalLabel),
+                    ignore.Label);
+
+                viewModel.Parameters.First(parameter => parameter.Definition.Name == "image").Text =
+                    @"C:\images\ok.png";
+
+                Assert.True(viewModel.CanSave, $"{key}: {viewModel.ValidationMessage}");
+            }
+        });
+    }
+
     [Fact]
     public void A_condition_can_be_written_as_an_expression()
     {
