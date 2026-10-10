@@ -58,6 +58,12 @@ The icon was scaled and modified from the original.
   <https://github.com/FlaUI/FlaUI>
 - Interop.UIAutomationClient — MIT
   <https://github.com/Roemer/UIAutomation-Interop>
+- Zaya.Screenshot（Zaya.Screenshot、Zaya.Screenshot.Impl.Windows，以及它带的 Zaya.Primitives、
+  Zaya.Logging、Microsoft.Extensions.DependencyInjection.Abstractions、Microsoft.Windows.CsWinRT）
+  — MIT
+  <https://github.com/shtrasser-dev/Zaya.Screenshot>
+  窗口画面获取用它：Windows Graphics Capture 与 Direct3D 11 把窗口自己画的内容取出来，
+  窗口被压住或开在后台时也取得到。
 - Playwright（Microsoft.Playwright）— Apache-2.0
   <https://github.com/microsoft/playwright-dotnet>
   随包分发的是它的驱动，里面带一份 Node.js；浏览器本体不在这里，见下面「用户自己装的组件」。

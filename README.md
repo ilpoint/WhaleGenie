@@ -6,8 +6,11 @@ Windows 上的宏自动化工具，面向**游戏宏**：把键盘、鼠标、�
 
 ## 需要什么
 
-- Windows 10 / 11（x64）
+- Windows 10 2004（内部版本 19041）/ 11（x64）
 - .NET SDK，版本按 `global.json` 固定（当前 `10.0.400`，允许同一条功能带内的更新）
+
+2004 是"窗口（图形捕获）"这条抓屏方式的下限：更早的 Windows 上没有它，那些动作会自动退回
+另外两种抓屏方式（见「识别结果窗口」一节的抓屏方式说明），程序本身照常运行。
 
 ## 常用命令
 
@@ -44,6 +47,7 @@ dotnet format WhaleGenie.slnx           # 按 .editorconfig 整理格式
 | `FlaUI.UIA3` | UI Automation：元素的取值、选择、勾选、展开、滚动到可见、读表格 |
 | `Microsoft.Playwright` | 浏览器动作（`browser.*`）：驱动跟着包走，默认开系统自带的 Edge |
 | `CsvHelper` | 带分隔符的文本文件（`file.readCsv` / `file.writeCsv`）：引号、单元格里的换行、行尾、空行这些细节归它管。自己拆字符串在这些地方都会悄悄读错 |
+| `Zaya.Screenshot`、`Zaya.Screenshot.Impl.Windows` | 窗口画面获取：窗口被别的窗口压住或开在后台时，抓屏方式的"窗口（图形捕获）"靠它取到画面 |
 | `OpenCvSharp5.AvaloniaExtensions` | 没人用它：引擎和界面都没有调用它的 API，它只会把 Avalonia 带进引擎的依赖图 |
 
 这些包各自带进来的原生库（`OpenCvSharpExtern.dll`、`uiohook.dll`、Playwright 的驱动等）

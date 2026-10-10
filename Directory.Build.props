@@ -5,7 +5,14 @@
     own csproj, so this file stays short enough to read.
   -->
   <PropertyGroup>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <!--
+      The Windows version in the target framework is what makes the type library for
+      Windows.Graphics.Capture available, and the capture actions need it to read a window that
+      another window is covering. It is a ceiling on the API the build may use, not a floor on
+      where the program runs: a machine older than this one has no graphics capture, so those
+      actions fall back to the other ways of reading the screen. See WindowsScreenDevice.
+    -->
+    <TargetFramework>net10.0-windows10.0.19041</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
 
