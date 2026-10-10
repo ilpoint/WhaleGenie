@@ -135,6 +135,7 @@ public partial class MacroEditorWindow : Window
         _viewModel.CloseRequested += macro =>
         {
             _closing = true;
+            Result = macro;
             Close(macro);
         };
         _viewModel.AddStepRequested += OnAddStepRequested;
@@ -787,6 +788,19 @@ public partial class MacroEditorWindow : Window
     /// rather than let it go without a word.
     /// </summary>
     internal void MarkUnsaved() => _viewModel.IsDirty = true;
+
+    /// <summary>
+    /// The macro the editor finished with, or null when it was let go. The editor is not a dialog —
+    /// the main list steps aside while it is up rather than waiting on it — so what it ends with is
+    /// read from here as it closes.
+    /// </summary>
+    internal MacroItem? Result { get; private set; }
+
+    /// <summary>
+    /// True when the main list went into the notification area to make room for this editor, which
+    /// is what says whether it comes back when the editor is done.
+    /// </summary>
+    internal bool SteppedAside { get; set; }
 
     /// <summary>
     /// Keeps the macro being written in the recovery snapshot while it has unsaved changes, and

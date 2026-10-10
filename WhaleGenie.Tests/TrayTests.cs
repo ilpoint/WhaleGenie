@@ -47,6 +47,39 @@ public class TrayTests
     }
 
     [Fact]
+    public void A_window_that_stepped_aside_says_whether_it_went_and_comes_back()
+    {
+        Ui.Run(() =>
+        {
+            var window = new Window();
+            window.Show();
+
+            var area = new FakeArea();
+            var tray = new AppTray(window, area, () => { });
+
+            // The window is on screen, so it goes and says so.
+            Assert.True(tray.StepAside());
+            Assert.False(window.IsVisible);
+
+            // Asked again while it is away, it says it was already out of the way: the caller must
+            // not bring back a window the user put there themselves.
+            Assert.False(tray.StepAside());
+
+            tray.ComeBack();
+            Assert.True(window.IsVisible);
+
+            // Back already, so coming back does nothing rather than jumping the window to the front.
+            window.WindowState = WindowState.Minimized;
+            Assert.False(window.IsVisible);
+            tray.ComeBack();
+            Assert.True(window.IsVisible);
+
+            tray.Dispose();
+            window.Close();
+        });
+    }
+
+    [Fact]
     public void Closing_the_window_hides_it_rather_than_ending_the_program()
     {
         Ui.Run(() =>

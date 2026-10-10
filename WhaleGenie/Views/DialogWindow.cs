@@ -39,6 +39,18 @@ internal static class DialogWindow
     }
 
     /// <summary>
+    /// Shows a window beside <paramref name="owner"/> rather than under it: the pin is still
+    /// matched, but the window is not owned, so the owner going away does not take it with it. The
+    /// macro editor is the one that needs this — the main window steps aside into the notification
+    /// area while a macro is being written, and an owned window would go with it.
+    /// </summary>
+    public static void ShowAsPeer(this Window window, Window owner)
+    {
+        Pin(window, owner);
+        window.Show();
+    }
+
+    /// <summary>
     /// Matches a window's pin to the owner's. Only ever turns the pin on: a picker pins itself on
     /// purpose, and opening one from an ordinary window must not undo that.
     /// </summary>

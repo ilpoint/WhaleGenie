@@ -34,6 +34,57 @@ public class MacroEditorTests
     }
 
     [Fact]
+    public void The_macro_the_editor_ends_with_is_read_from_the_window()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = Open();
+            Assert.Null(window.Result);
+
+            viewModel.SaveCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            // The list is not waiting on the editor — it steps aside instead — so what the editor
+            // ends with has to be readable from the window as it closes.
+            Assert.NotNull(window.Result);
+            Assert.Equal("probe", window.Result!.Name);
+
+            var letGo = new MacroEditorWindow(new MacroItem { Name = "other" }, []);
+            letGo.Show();
+            Dispatcher.UIThread.RunJobs();
+            letGo.Close(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Null(letGo.Result);
+        });
+    }
+
+    [Fact]
+    public void The_editor_is_not_a_child_of_the_window_it_was_opened_from()
+    {
+        Ui.Run(() =>
+        {
+            var list = new Window();
+            list.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var (window, _) = Open();
+            window.ShowAsPeer(list);
+            Dispatcher.UIThread.RunJobs();
+
+            // Not owned, so the list going out of the way does not take the editor with it; it
+            // still matches the list's pin, so a pinned list does not end up over it.
+            Assert.Empty(list.OwnedWindows);
+            Assert.True(window.IsVisible);
+
+            list.Topmost = true;
+            var pinned = new Window();
+            pinned.ShowAsPeer(list);
+            Assert.True(pinned.Topmost);
+        });
+    }
+
+    [Fact]
     public void Binding_the_space_key_does_not_arm_the_capture_again()
     {
         Ui.Run(() =>

@@ -249,6 +249,31 @@ public sealed class AppTray : IDisposable
             Strings.Get("Tray.HiddenTitle"), Strings.Get("Tray.HiddenText"), NotificationKind.Information);
     }
 
+    /// <summary>
+    /// Puts the window out of the way for a while, and says whether it went. It is the same thing
+    /// the icon does, so the way back is the one the user already knows; whoever asked for the room
+    /// brings it back with <see cref="ComeBack"/> once that is over.
+    /// </summary>
+    public bool StepAside()
+    {
+        if (!_window.IsVisible)
+        {
+            return false;
+        }
+
+        Hide();
+        return true;
+    }
+
+    /// <summary>Brings back a window that stepped aside, unless it is already back.</summary>
+    public void ComeBack()
+    {
+        if (!_window.IsVisible)
+        {
+            Restore();
+        }
+    }
+
     private void Restore()
     {
         _window.Show();

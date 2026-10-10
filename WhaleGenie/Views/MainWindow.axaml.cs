@@ -28,6 +28,12 @@ public partial class MainWindow : Window
     /// <summary>Runs the macros the list is waiting for; null until the window is open.</summary>
     private MacroTriggerService? _triggers;
 
+    /// <summary>
+    /// The macro editor on screen, or null while there is none. One at a time, because two of them
+    /// on one macro would hand back two versions of it and the last one closed would win.
+    /// </summary>
+    private MacroEditorWindow? _editor;
+
     /// <summary>Whether the pin on the menu bar is holding the window above the other windows.</summary>
     private bool _alwaysOnTop;
 
@@ -105,7 +111,7 @@ public partial class MainWindow : Window
         var addMacroButton = this.FindControl<Button>("AddMacroButton");
         if (addMacroButton is not null)
         {
-            addMacroButton.Click += async (_, _) => await ShowMacroEditorAsync();
+            addMacroButton.Click += (_, _) => OpenEditor(null, null, draft: false);
         }
 
         // Clicking a macro card arms or disarms it; the card buttons opt out below.
@@ -493,7 +499,7 @@ public partial class MainWindow : Window
             switch (await AskToRecover(contents))
             {
                 case ConfirmChoice.Primary:
-                    await RecoverAsync(viewModel, contents);
+                    Recover(viewModel, contents);
                     break;
                 case ConfirmChoice.Secondary:
                     // The work is not wanted, so it goes for good rather than being asked about
@@ -511,7 +517,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task RecoverAsync(MainViewModel viewModel, RecoveryContents contents)
+    private void Recover(MainViewModel viewModel, RecoveryContents contents)
     {
         viewModel.RestoreFrom(contents);
         RefreshRunning(viewModel);
@@ -520,44 +526,13 @@ public partial class MainWindow : Window
         // back too and not only the list behind it.
         if (contents.Editor is { } editor)
         {
-            await ReopenRecoveredEditorAsync(viewModel, editor);
+            var target = editor.Replaces is { Length: > 0 } name
+                ? viewModel.Macros.FirstOrDefault(macro =>
+                    string.Equals(macro.Name, name, StringComparison.OrdinalIgnoreCase))
+                : null;
+
+            OpenEditor(editor.Macro, target, draft: true);
         }
-    }
-
-    /// <summary>
-    /// Reopens the editor on a recovered draft. Saving it goes back where it came from — replacing
-    /// the macro it was editing, or joining the list when it was new.
-    /// </summary>
-    private async Task ReopenRecoveredEditorAsync(MainViewModel viewModel, RecoveryEditor editor)
-    {
-        var target = editor.Replaces is { Length: > 0 } name
-            ? viewModel.Macros.FirstOrDefault(macro =>
-                string.Equals(macro.Name, name, StringComparison.OrdinalIgnoreCase))
-            : null;
-
-        var window = new MacroEditorWindow(editor.Macro, [.. viewModel.Macros], viewModel.CurrentPath);
-
-        // Recovered work is unsaved by definition, so closing the editor has to ask about it
-        // rather than let it go without a word.
-        window.MarkUnsaved();
-
-        var edited = await window.ShowDialogOver<MacroItem?>(this);
-        if (edited is null)
-        {
-            return;
-        }
-
-        if (target is null)
-        {
-            viewModel.AddMacro(edited);
-            WriteUnsavedProject(viewModel);
-            return;
-        }
-
-        _triggers?.Stop(target);
-        viewModel.ReplaceMacro(target, edited);
-        RefreshRunning(viewModel);
-        WriteUnsavedProject(viewModel);
     }
 
     /// <summary>Says what the snapshot holds, one place at a time, for the question.</summary>
@@ -850,19 +825,60 @@ public partial class MainWindow : Window
         await dialog.ShowDialogOver(this);
     }
 
-    /// <summary>Opens the macro editor, either for a new macro or for an existing one.</summary>
-    private async Task ShowMacroEditorAsync(MacroItem? existing = null)
+    /// <summary>
+    /// Opens the macro editor on a macro: one from the list, a new one (<paramref name="editing"/> is
+    /// null), or a draft recovered from a run that stopped without notice. What that macro replaces
+    /// when it is saved is <paramref name="existing"/>, which is null for a new one.
+    /// </summary>
+    private void OpenEditor(MacroItem? editing, MacroItem? existing, bool draft)
     {
         if (DataContext is not MainViewModel viewModel)
         {
             return;
         }
 
-        // The package path is what a picture taken from the screen is stored beside.
-        var editor = new MacroEditorWindow(existing, [.. viewModel.Macros], viewModel.CurrentPath);
-        var macro = await editor.ShowDialogOver<MacroItem?>(this);
+        // Two editors on one macro would each hand back their own version and the last one closed
+        // would win, so the editor already open is the one wanted; it is brought to the front.
+        if (_editor is { } open)
+        {
+            open.Activate();
+            return;
+        }
 
-        if (macro is null)
+        // The package path is what a picture taken from the screen is stored beside.
+        var editor = new MacroEditorWindow(editing, [.. viewModel.Macros], viewModel.CurrentPath);
+
+        // Recovered work is unsaved by definition, so closing that editor has to ask about it rather
+        // than let it go without a word.
+        if (draft)
+        {
+            editor.MarkUnsaved();
+        }
+
+        _editor = editor;
+        editor.Closed += (_, _) => OnEditorClosed(editor, existing, viewModel);
+
+        // The list is what the editor was opened from, and on a screen with a game on it the list is
+        // one more thing in the way and one more window that takes the editor down with it when it
+        // is minimized. It steps aside for the while instead, and the icon brings it back.
+        editor.SteppedAside = Tray?.StepAside() ?? false;
+        editor.ShowAsPeer(this);
+    }
+
+    /// <summary>
+    /// Takes what the editor ended with: the macro joins the list, or the one that was edited
+    /// replaces it. Then the list comes back, unless the user is on their way out of the program.
+    /// </summary>
+    private void OnEditorClosed(MacroEditorWindow editor, MacroItem? existing, MainViewModel viewModel)
+    {
+        _editor = null;
+
+        if (editor.SteppedAside && !(Tray?.IsLeaving ?? false))
+        {
+            Tray?.ComeBack();
+        }
+
+        if (editor.Result is not { } macro)
         {
             return;
         }
@@ -884,13 +900,13 @@ public partial class MainWindow : Window
         WriteUnsavedProject(viewModel);
     }
 
-    private async void OnEditMacroClicked(object? sender, RoutedEventArgs e)
+    private void OnEditMacroClicked(object? sender, RoutedEventArgs e)
     {
         e.Handled = true;
 
         if (sender is Control { DataContext: MacroItem macro })
         {
-            await ShowMacroEditorAsync(macro);
+            OpenEditor(macro, macro, draft: false);
         }
     }
 

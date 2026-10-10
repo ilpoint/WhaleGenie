@@ -27,8 +27,9 @@ Windows 上的宏自动化工具，重心是游戏宏：把键盘、鼠标、手
 6. 提交信息用中文，说明改了什么与为什么；一次提交只做一件事。
 7. 开发阶段不保留兼容：`.wgmacro` 尚未发布，没有用户持有旧文件，所以不写双读、不为旧键留救援路径、不为
    "旧宏行为不变"将就字段形状，发现旧格式读法即删；撤掉的动作运行时报 `Run.Unsupported`，那是给用户看的提示。
-8. 窗口一律通过 `DialogWindow` 的 `ShowDialogOver` / `ShowOver` 打开：Windows 把置顶窗口放在所有非置顶窗口
-   之上（与属主关系无关），直接 `ShowDialog` 开的对话框会被压在下面点不到。
+8. 窗口一律通过 `DialogWindow` 的 `ShowDialogOver` / `ShowOver` / `ShowAsPeer` 打开：Windows 把置顶窗口放在
+  所有非置顶窗口之上（与属主关系无关），直接 `ShowDialog` 开的对话框会被压在下面点不到。`ShowAsPeer` 用在
+  要跟属主分开最小化的窗口上（宏编辑器，见"通知区域与退出"）。
 
 ## 常用命令
 
@@ -158,6 +159,12 @@ dotnet run --project WhaleGenie                  # 启动程序
 ## 实现约束
 
 ### 通知区域与退出
+
+写宏时主列表让开：打开宏编辑器时主窗口收进通知区域（`AppTray.StepAside`，与用户点最小化走同一条路），编辑器
+关掉时再拿回来（`ComeBack`，程序正在退出时不拿）——列表挡在游戏或别的窗口上时它是最碍事的那一层。编辑器因此
+**不**是主窗口的子窗口（`DialogWindow.ShowAsPeer`）：带属主的窗口会随属主一起被收起，而两者要能分开最小化。
+编辑器一次只开一个（主窗口记着那一个，再点"编辑"是把它调到前面），保存的东西从 `MacroEditorWindow.Result`
+读，不再靠模态返回。
 
 程序在通知区域保留一个图标（`WindowsTray`，用外壳的 `Shell_NotifyIcon`；策略与真壳子分成
 `INotificationArea` + `AppTray`）。关窗与最小化只把窗口 `Hide`，真正退出只有图标菜单里那一项，退出前关掉
