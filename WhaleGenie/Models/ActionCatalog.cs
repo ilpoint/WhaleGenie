@@ -540,7 +540,8 @@ public static class ActionCatalog
                 Choice("newline", "Line break", ["none", "end", "start"], "none",
                     "Whether to put a line break around the text: none, one after it, or — when "
                     + "adding to a file whose last line never ended — one in front of it.",
-                    labels: ["None", "After the text", "In front of the text when it is needed"]),
+                    labels: ["None", "After the text", "In front of the text when it is needed"],
+                    advanced: true),
                 Encoding(),
             ],
         },
@@ -1109,7 +1110,7 @@ public static class ActionCatalog
                     + "start the program with WhaleGenie's own environment. Lines starting with # are "
                     + "skipped. Giving a program its own environment means naming the program "
                     + "itself, not a document or a shortcut.",
-                    "LANG=zh_CN.UTF-8", required: false),
+                    "LANG=zh_CN.UTF-8", required: false, advanced: true),
                 Variable("resultVariable", "Result variable", "processId",
                     "Variable that receives the process id.", required: false, namesVariable: true),
             ],
