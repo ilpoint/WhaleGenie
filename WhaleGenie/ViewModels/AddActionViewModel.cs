@@ -21,8 +21,10 @@ namespace WhaleGenie.ViewModels;
 /// </summary>
 public partial class AddActionViewModel : ViewModelBase
 {
-    private readonly IReadOnlyList<VariableChoice> _variables;
-    private readonly IReadOnlyList<string> _macros;
+    private IReadOnlyList<VariableChoice> _variables;
+    private IReadOnlyList<string> _macros;
+    private IReadOnlyList<ActionDefinition> _availableActions = [];
+    private IReadOnlyList<ActionParameterOption> _steps = [];
     private string _assetFolder = string.Empty;
 
     /// <summary>Raised with the step to add, or <c>null</c> when the dialog is cancelled.</summary>
@@ -87,13 +89,50 @@ public partial class AddActionViewModel : ViewModelBase
     }
 
     /// <summary>Everything the "Select Action" dropdown offers.</summary>
-    public IReadOnlyList<ActionDefinition> AvailableActions { get; }
+    /// <remarks>
+    /// The window stays open from one step to the next, and the place a step goes decides which
+    /// actions are worth offering — a switch's branch list only takes branches — so this is
+    /// replaced rather than fixed when the editor moves.
+    /// </remarks>
+    public IReadOnlyList<ActionDefinition> AvailableActions
+    {
+        get => _availableActions;
+        private set
+        {
+            _availableActions = value;
+            OnPropertyChanged();
+        }
+    }
 
     /// <summary>
     /// The steps of the macro being written, which is what a field naming a step picks from. The
     /// dialog is handed them because only the editor knows what is in the macro.
     /// </summary>
-    public IReadOnlyList<ActionParameterOption> StepChoices { get; }
+    public IReadOnlyList<ActionParameterOption> StepChoices
+    {
+        get => _steps;
+        private set
+        {
+            _steps = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Takes what only the editor knows about the place a step is going: the actions that place
+    /// takes, the names its fields may offer, and where a picture taken from the screen is kept.
+    /// </summary>
+    public void Retarget(IReadOnlyList<ActionDefinition>? actions,
+        IReadOnlyList<VariableChoice>? variables, IReadOnlyList<string>? macros,
+        IReadOnlyList<ActionParameterOption>? steps, string? assetFolder)
+    {
+        AvailableActions = actions ?? ActionCatalog.RunnableActions;
+        _variables = variables ?? [];
+        _macros = macros ?? [];
+        StepChoices = steps ?? [];
+        AssetFolder = assetFolder ?? string.Empty;
+        RebuildActions();
+    }
 
     /// <summary>What the picker's search box holds. Blank shows the whole catalogue.</summary>
     [ObservableProperty]
@@ -243,6 +282,32 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>Label of the confirm button.</summary>
     public string CommitLabel => Strings.Get(IsEditing ? "Add.CommitEdit" : "Add.Commit");
+
+    /// <summary>
+    /// True while the window stays up from one step to the next, which is how the editor opens it.
+    /// The button that ends a step then reads as clearing the form, because the window does not go
+    /// anywhere when it is pressed.
+    /// </summary>
+    public bool StaysOpen
+    {
+        get => _staysOpen;
+        set
+        {
+            if (_staysOpen == value)
+            {
+                return;
+            }
+
+            _staysOpen = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CancelLabel));
+        }
+    }
+
+    /// <summary>Label of the button that ends a step: leaving, or clearing the form.</summary>
+    public string CancelLabel => Strings.Get(StaysOpen ? "Add.ClearForm" : "Add.Cancel");
+
+    private bool _staysOpen;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelection))]
@@ -507,15 +572,73 @@ public partial class AddActionViewModel : ViewModelBase
     public string RunLabel => Strings.Get(IsRunning ? "Add.Running" : "Add.RunStep");
 
     /// <summary>
-    /// What the last run did. A step that quietly does nothing looks the same as one that was never
-    /// run, so what happened is said under the form.
+    /// What just happened: what a run did, or why a step could not go where it was being put. A step
+    /// that quietly does nothing looks the same as one that was never run, so it is said under the
+    /// form rather than left for the user to work out.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasRunStatus))]
-    public partial string RunStatus { get; set; } = string.Empty;
+    [NotifyPropertyChangedFor(nameof(HasNotice))]
+    [NotifyPropertyChangedFor(nameof(ShowsNotice))]
+    [NotifyPropertyChangedFor(nameof(ShowsWarning))]
+    public partial string Notice { get; set; } = string.Empty;
 
-    /// <summary>True while there is something to say about the last run.</summary>
-    public bool HasRunStatus => RunStatus.Length > 0;
+    /// <summary>True when the notice is a problem rather than a note about what just happened.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsNotice))]
+    [NotifyPropertyChangedFor(nameof(ShowsWarning))]
+    public partial bool NoticeIsWarning { get; set; }
+
+    /// <summary>True while there is something to say.</summary>
+    public bool HasNotice => Notice.Length > 0;
+
+    /// <summary>True when the line under the form carries a note.</summary>
+    public bool ShowsNotice => HasNotice && !NoticeIsWarning;
+
+    /// <summary>True when it carries a problem.</summary>
+    public bool ShowsWarning => HasNotice && NoticeIsWarning;
+
+    /// <summary>Says what just happened, in the line under the form.</summary>
+    public void Say(string message, bool warning = false)
+    {
+        NoticeIsWarning = warning;
+        Notice = message;
+    }
+
+    /// <summary>
+    /// Puts the dialog back to writing a fresh step of the action it is on. The dialog stays open
+    /// from one step to the next, so this is what "that one is done" looks like: the left list and
+    /// the chosen action stay where they are and everything filled in goes.
+    /// </summary>
+    public void Reset(string? stepId = null)
+    {
+        var keep = SelectedDefinition?.Key;
+
+        _editingId = stepId ?? string.Empty;
+        _isNewStep = _editingId.Length > 0;
+        IsEditing = false;
+        OnPropertyChanged(nameof(StepId));
+        OnPropertyChanged(nameof(HasStepId));
+
+        MetaComment = string.Empty;
+        MetaEnabled = true;
+        MetaTimeout.Load(0);
+        MetaRetryCount = 0;
+        MetaRetryDelay.Load(500);
+        MetaOnError = ErrorChoices.First(choice =>
+            choice.Value == StepMeta.Name(StepErrorAction.AskUser));
+        MetaRetryBackoff = BackoffChoices[0];
+        MetaDelayBefore.Load(0);
+        MetaDelayAfter.Load(0);
+        NoticeIsWarning = false;
+        Notice = string.Empty;
+
+        // Choosing the action again is what rebuilds its fields, with nothing in them.
+        SelectedDefinition = null;
+        if (keep is not null)
+        {
+            SelectAction(keep);
+        }
+    }
 
     partial void OnSelectedDefinitionChanged(ActionDefinition? value)
     {

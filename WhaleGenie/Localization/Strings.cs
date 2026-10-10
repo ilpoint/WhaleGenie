@@ -366,6 +366,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Record"] = "Record",
         ["Editor.StopRecording"] = "Stop Recording",
         ["Editor.RecordIdle"] = "Press Ctrl + F10 or click Record to start",
+        ["Editor.PlaceTakesOnly"] = "The step was not added. This place only takes {0}.",
         ["Editor.RecordActive"] = "Recording — {0} captured, Escape is recorded like any other "
                                   + "key. Press Ctrl + F10 to stop",
         ["Editor.RecordFailed"] = "Recording could not start. Another program may be holding the "
@@ -509,6 +510,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.JsonPlaceholder"] = "// Select an action to preview its JSON node",
         ["Add.NoParameters"] = "This action takes no parameters.",
         ["Add.Cancel"] = "Cancel",
+        ["Add.ClearForm"] = "Clear",
         ["Add.Commit"] = "Add Step",
         ["Add.CommitEdit"] = "Save Step",
         ["Add.SelectFirst"] = "Select an action first.",
@@ -1333,6 +1335,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Record"] = "开始录制",
         ["Editor.StopRecording"] = "停止录制",
         ["Editor.RecordIdle"] = "按 Ctrl + F10 或点“开始录制”",
+        ["Editor.PlaceTakesOnly"] = "这一步没有加进去：这个位置只收{0}。",
         ["Editor.RecordActive"] = "录制中 —— 已捕获 {0} 个事件（Esc 会被正常录下来），"
                                   + "按 Ctrl + F10 停止",
         ["Editor.RecordFailed"] = "无法开始录制。可能有其他程序占用了键盘或鼠标钩子。",
@@ -1470,6 +1473,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.JsonPlaceholder"] = "// 选择一个动作以预览它的 JSON 节点",
         ["Add.NoParameters"] = "这个动作不需要参数。",
         ["Add.Cancel"] = "取消",
+        ["Add.ClearForm"] = "清空",
         ["Add.Commit"] = "添加步骤",
         ["Add.CommitEdit"] = "保存步骤",
         ["Add.SelectFirst"] = "请先选择一个动作。",

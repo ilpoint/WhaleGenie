@@ -68,6 +68,12 @@ public partial class MacroEditorWindow : Window
     /// <summary>The step list, kept because the drag handlers need it after construction.</summary>
     private ListBox? _stepList;
 
+    /// <summary>
+    /// The window steps are written in, kept while the editor is open. A macro is a run of steps,
+    /// and it floats above the editor so the list can be read and picked from while writing one.
+    /// </summary>
+    private AddActionWindow? _addWindow;
+
     /// <summary>Layer the drag marker is drawn on, over the step list.</summary>
     private Canvas? _dropLayer;
     private Border? _dropMarker;
@@ -604,32 +610,83 @@ public partial class MacroEditorWindow : Window
         _pickTimer.Start();
     }
 
-    /// <summary>Opens the add-action dialog and appends the step it returns.</summary>
-    private async void OnAddStepRequested()
-    {
-        // A list may only take certain kinds of step — a switch's branches, a condition — so the
-        // dialog is opened with the choices the place the step is going allows.
-        var dialog = new AddActionWindow(null, _viewModel.InsertChoices, _viewModel.CollectVariables(),
-            MacroNames(), null, _assetFolder, _viewModel.StepChoices(), _viewModel.NewStepId());
-        var step = await dialog.ShowDialogOver<MacroStep?>(this);
+    /// <summary>Brings up the window a step is written in, on the place the editor is now.</summary>
+    private void OnAddStepRequested() => ShowAddAction(null, _viewModel.InsertChoices, null);
 
-        if (step is not null)
+    /// <summary>The same, preset on the "run another macro" step.</summary>
+    private void OnRunMacroRequested() => ShowAddAction(null, null, "control.runMacro");
+
+    /// <summary>
+    /// Opens the window a step is written in, or points the one already up at what the editor is
+    /// working with now. It stays open from one step to the next, so every call here is also what
+    /// tells it where a step would go and what that place takes.
+    /// </summary>
+    private void ShowAddAction(MacroStep? editing, IReadOnlyList<ActionDefinition>? actions,
+        string? presetKey)
+    {
+        if (_addWindow is not { } window)
         {
-            _viewModel.AddStep(step);
+            window = new AddActionWindow(editing, actions, _viewModel.CollectVariables(), MacroNames(),
+                presetKey, _assetFolder, _viewModel.StepChoices(), _viewModel.NewStepId())
+            {
+                StaysOpen = true,
+                Macros = BuildLibrary(),
+                MintStepId = _viewModel.NewStepId,
+                PlaceStep = TakeStep,
+            };
+
+            // The window belongs to the editor, so it goes when the editor does; the field is
+            // cleared with it so a later step opens a fresh one rather than a closed window.
+            window.Closed += (_, _) =>
+            {
+                if (ReferenceEquals(_addWindow, window))
+                {
+                    _addWindow = null;
+                }
+            };
+
+            _addWindow = window;
+            window.ShowOver(this);
+            return;
         }
+
+        window.Retarget(actions, _viewModel.CollectVariables(), MacroNames(), _viewModel.StepChoices(),
+            _assetFolder);
+        window.Macros = BuildLibrary();
+
+        if (editing is null)
+        {
+            window.BeginStep(presetKey);
+        }
+        else
+        {
+            window.EditStep(editing);
+        }
+
+        window.Activate();
     }
 
-    /// <summary>Opens the dialog on the "run another macro" step and appends what it returns.</summary>
-    private async void OnRunMacroRequested()
+    /// <summary>
+    /// Puts a step the window handed over where it belongs, and answers what to say when the place
+    /// picked in the list does not take that kind of step. The window is told what that place does
+    /// take before anything is said, so the next attempt is made from a form it can fill in.
+    /// </summary>
+    private string? TakeStep(MacroStep? editing, MacroStep built)
     {
-        var dialog = new AddActionWindow(null, null, _viewModel.CollectVariables(), MacroNames(),
-            "control.runMacro", _assetFolder, _viewModel.StepChoices(), _viewModel.NewStepId());
-        var step = await dialog.ShowDialogOver<MacroStep?>(this);
-
-        if (step is not null)
+        if (editing is not null)
         {
-            _viewModel.AddStep(step);
+            _viewModel.ReplaceStep(editing, built);
+            return null;
         }
+
+        if (_viewModel.AddStepHere(built) is not { } refusal)
+        {
+            return null;
+        }
+
+        _addWindow?.Retarget(_viewModel.InsertChoices, _viewModel.CollectVariables(), MacroNames(),
+            _viewModel.StepChoices(), _assetFolder);
+        return refusal;
     }
 
     /// <summary>The macro names a "run another macro" step can be pointed at.</summary>
@@ -701,18 +758,8 @@ public partial class MacroEditorWindow : Window
         }
     }
 
-    /// <summary>Opens the same dialog for an existing step and swaps in the result.</summary>
-    private async void OnEditStepRequested(MacroStep step)
-    {
-        var dialog = new AddActionWindow(step, null, _viewModel.CollectVariables(), MacroNames(),
-            null, _assetFolder, _viewModel.StepChoices());
-        var edited = await dialog.ShowDialogOver<MacroStep?>(this);
-
-        if (edited is not null)
-        {
-            _viewModel.ReplaceStep(step, edited);
-        }
-    }
+    /// <summary>Opens the same window on an existing step and swaps in the result.</summary>
+    private void OnEditStepRequested(MacroStep step) => ShowAddAction(step, null, null);
 
     /// <summary>Confirms the palette's "clear all steps", which cannot be undone.</summary>
     private async void OnClearRequested()

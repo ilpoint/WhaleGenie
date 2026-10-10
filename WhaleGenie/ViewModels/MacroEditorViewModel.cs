@@ -914,6 +914,40 @@ public partial class MacroEditorViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Puts a step the add-action window handed over where the editor is pointing now. That window
+    /// stays open while the list is worked on, so where the step goes is read again here rather
+    /// than when the window was opened. Returns null once the step is in the list, or what to say
+    /// when the place picked does not take that kind of step.
+    /// </summary>
+    public string? AddStepHere(MacroStep step)
+    {
+        // A place asked for by name — the "add" button on a block's line — stands until the
+        // selection moves: moving it is the user saying "somewhere else".
+        _insertAt ??= InsertionPoint();
+
+        if (InsertChoices is { } allowed && !allowed.Any(definition => definition.Key == step.Type))
+        {
+            return Strings.Format("Editor.PlaceTakesOnly", KindsAllowed(allowed));
+        }
+
+        AddStep(step);
+        return null;
+    }
+
+    /// <summary>
+    /// What a place that takes only certain kinds of step accepts, named the way the picker names
+    /// it: a handful of kinds are worth listing, a whole family is better said by its name.
+    /// </summary>
+    private static string KindsAllowed(IReadOnlyList<ActionDefinition> allowed)
+    {
+        var names = allowed.Select(definition => definition.LocalName).Distinct().ToList();
+
+        return names.Count <= 3
+            ? string.Join(" / ", names)
+            : Strings.Get($"Add.Category.{allowed[0].Category}");
+    }
+
+    /// <summary>
     /// Puts a step built by the "Add Action" dialog where the editor said it was to go, which is
     /// the end of the macro unless a step or a block was picked first.
     /// </summary>

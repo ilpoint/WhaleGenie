@@ -37,6 +37,9 @@ public partial class AddActionWindow : Window
     /// <summary>Where the keyboard is writing at the moment: the field or the row that asked for it.</summary>
     private Action<string>? _keyTarget;
 
+    /// <summary>The step the form was opened on for editing, or null while writing a new one.</summary>
+    private MacroStep? _editingStep;
+
     private IDeviceLayer? _devices;
 
     public AddActionWindow()
@@ -62,6 +65,40 @@ public partial class AddActionWindow : Window
     internal IMacroLibrary? Macros { get; set; }
 
     /// <summary>
+    /// True while the window stays up from one step to the next, which is how the editor opens it:
+    /// a macro is a run of steps, and being taken back to the list to open the window again for
+    /// each one is the thing this saves.
+    /// </summary>
+    internal bool StaysOpen
+    {
+        get => Form?.StaysOpen ?? false;
+        set
+        {
+            if (Form is { } form)
+            {
+                form.StaysOpen = value;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Where a step written here goes. The editor takes it because only the editor knows what is
+    /// picked in the list and what that place accepts; it answers null once the step is in the
+    /// list, or what to say when the place would not take it.
+    /// </summary>
+    internal Func<MacroStep?, MacroStep, string?>? PlaceStep { get; set; }
+
+    /// <summary>
+    /// A name for the next step, minted by the editor. The window outlives one step, and two steps
+    /// of a macro are told apart by their names, so a name held from when the window opened would
+    /// be handed out twice.
+    /// </summary>
+    internal Func<string>? MintStepId { get; set; }
+
+    /// <summary>The form this window is driving.</summary>
+    private AddActionViewModel? Form => DataContext as AddActionViewModel;
+
+    /// <summary>
     /// Opens the dialog, optionally preloaded with a step being edited and optionally
     /// restricted to a catalogue subset, such as the condition actions.
     /// </summary>
@@ -83,6 +120,7 @@ public partial class AddActionWindow : Window
 
         if (existing is not null)
         {
+            _editingStep = existing;
             viewModel.LoadFrom(existing);
         }
         else if (!string.IsNullOrEmpty(presetKey))
@@ -91,7 +129,7 @@ public partial class AddActionWindow : Window
         }
 
         DataContext = viewModel;
-        viewModel.CloseRequested += Close;
+        viewModel.CloseRequested += OnFormFinished;
         viewModel.NestedAddRequested += OnNestedAddRequested;
         viewModel.NestedEditRequested += OnNestedEditRequested;
         Title = viewModel.Header;
@@ -156,6 +194,76 @@ public partial class AddActionWindow : Window
         }
 
         picker.IsDropDownOpen = true;
+    }
+
+    /// <summary>
+    /// The form was finished with: it either holds a step to put somewhere, or nothing when the
+    /// user cleared it. A window opened for one step closes and hands the step back; the editor's
+    /// window stays up, so it is told where the step goes and starts again on the next one.
+    /// </summary>
+    private void OnFormFinished(MacroStep? step)
+    {
+        if (!StaysOpen)
+        {
+            Close(step);
+            return;
+        }
+
+        if (step is not null && PlaceStep is { } place && place(_editingStep, step) is { } refusal)
+        {
+            // The place picked in the list does not take this kind of step, so nothing was added.
+            // The form goes back to a fresh step — offering what that place does take, which the
+            // editor has already handed over — and the line under it says why.
+            BeginStep(null);
+            Form?.Say(refusal, warning: true);
+            return;
+        }
+
+        BeginStep(null);
+    }
+
+    /// <summary>
+    /// Starts the form again on a fresh step of the action it is already showing, under a name the
+    /// editor mints. This is what "that one is done" looks like in a window that does not close.
+    /// </summary>
+    internal void BeginStep(string? presetKey)
+    {
+        _editingStep = null;
+        ResetKeyPad();
+        Form?.Reset(MintStepId?.Invoke());
+
+        if (!string.IsNullOrEmpty(presetKey))
+        {
+            Form?.SelectAction(presetKey);
+        }
+    }
+
+    /// <summary>Points the form at a step that is already in the list, so it can be changed.</summary>
+    internal void EditStep(MacroStep step)
+    {
+        _editingStep = step;
+        ResetKeyPad();
+        Form?.LoadFrom(step);
+    }
+
+    /// <summary>
+    /// Takes what the editor knows about the place a step would go now: which actions that place
+    /// takes, and the names its fields may offer. Both change while the window is up, because the
+    /// list behind it is still being worked on.
+    /// </summary>
+    internal void Retarget(IReadOnlyList<ActionDefinition>? actions,
+        IReadOnlyList<VariableChoice>? variables, IReadOnlyList<string>? macros,
+        IReadOnlyList<ActionParameterOption>? steps, string? assetFolder)
+        => Form?.Retarget(actions, variables, macros, steps, assetFolder);
+
+    /// <summary>
+    /// The form has moved on to another step, so the keyboard is no longer writing into anything
+    /// that is on screen: the fields it was pointed at are gone with the form it belonged to.
+    /// </summary>
+    private void ResetKeyPad()
+    {
+        _keyTarget = null;
+        _keyPad?.Close();
     }
 
     /// <summary>Opens a picker for a nested list and appends whatever the user builds.</summary>
@@ -720,12 +828,12 @@ public partial class AddActionWindow : Window
     /// <summary>Says what a run did, under the form, until the next thing the user does.</summary>
     private void Say(string message)
     {
-        if (DataContext is not AddActionViewModel viewModel)
+        if (Form is not { } viewModel)
         {
             return;
         }
 
-        viewModel.RunStatus = message;
+        viewModel.Say(message);
 
         _runTimer?.Stop();
         _runTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
@@ -733,7 +841,7 @@ public partial class AddActionWindow : Window
         {
             _runTimer?.Stop();
             _runTimer = null;
-            viewModel.RunStatus = string.Empty;
+            viewModel.Say(string.Empty);
         };
         _runTimer.Start();
     }

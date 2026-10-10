@@ -1249,14 +1249,18 @@
                                FontWeight="SemiBold" TextWrapping="Wrap"
                                Text="{Binding ValidationMessage}"
                                IsVisible="{Binding ValidationIsProblem}" />
-                    <!-- What the last run did, so a step that is meant to do something visible and
-                         a step that did nothing can be told apart. -->
+                    <!-- What just happened: what a run did, so a step that is meant to do something
+                         visible and a step that did nothing can be told apart, or why a step did not
+                         go where it was being put. -->
                     <TextBlock Foreground="#7FC97F" TextWrapping="Wrap"
-                               Text="{Binding RunStatus}"
-                               IsVisible="{Binding HasRunStatus}" />
+                               Text="{Binding Notice}"
+                               IsVisible="{Binding ShowsNotice}" />
+                    <TextBlock Foreground="#E5C07B" TextWrapping="Wrap"
+                               Text="{Binding Notice}"
+                               IsVisible="{Binding ShowsWarning}" />
                 </StackPanel>
                 <Button Grid.Column="1" Classes="FlatButton" Height="38" MinWidth="92"
-                        Content="{Binding [Add.Cancel], Source={x:Static loc:Strings.Current}}"
+                        Content="{Binding CancelLabel}"
                         Margin="8,0,0,0" Command="{Binding CancelCommand}" />
                 <Button Grid.Column="2" Classes="AddButton" Content="{Binding CommitLabel}" Height="38" MinWidth="110"
                         Margin="8,0,0,0" Command="{Binding SaveCommand}" />
