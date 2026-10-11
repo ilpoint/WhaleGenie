@@ -167,6 +167,16 @@ internal static class ActionStrings
     private const string MatchIndexHint =
         "“命中排序”里的第几个，从 1 开始，默认 1。超出命中数量时这一步按没找到处理。";
 
+    /// <summary>
+    /// The hint every action that lists several reference pictures shares for its picker: which of
+    /// the pictures the step goes with.
+    /// </summary>
+    private const string ImageSetHint =
+        "上面列出的几张参考图，这一步认哪一张。默认“认出的第一张”，是同一个东西有两套画法时的用法；"
+        + "“最像的那一张”把每一张都比一遍，取分数最高的一张，用来在两张相像的图标里挑更像的一张；"
+        + "“每一张都要”要求这几张同时都在，缺一张就当没找到，这一步只对整套都在的画面动手。"
+        + "交回命中时以列在第一张的那张为准，“第几个命中”也在这张里数。";
+
     /// <summary>The hint every "which way to recognise the picture" picker shares.</summary>
     private const string MatchAlgorithmHint =
         "参考图用哪种方式识别，默认归一化相关。归一化相关：先抵消整体明暗再比对，画面变亮变暗"
@@ -1723,6 +1733,11 @@ internal static class ActionStrings
         ["vision.findImage.matchIndex.hint"] = MatchIndexHint,
         ["vision.findImage.allMatches.label"] = "记录全部命中",
         ["vision.findImage.allMatches.hint"] = AllMatchesHint,
+        ["vision.findImage.imageSet.label"] = "认哪一张",
+        ["vision.findImage.imageSet.hint"] = ImageSetHint,
+        ["vision.findImage.imageSet.option.first"] = "认出的第一张",
+        ["vision.findImage.imageSet.option.best"] = "最像的那一张",
+        ["vision.findImage.imageSet.option.every"] = "每一张都要",
 
         ["vision.waitImage.algorithm.label"] = "识别算法",
         ["vision.waitImage.algorithm.hint"] = MatchAlgorithmHint,
@@ -1744,6 +1759,11 @@ internal static class ActionStrings
         ["vision.waitImage.region.hint"] = RegionHintText,
         ["vision.waitImage.matchIndex.label"] = "第几个命中",
         ["vision.waitImage.matchIndex.hint"] = MatchIndexHint,
+        ["vision.waitImage.imageSet.label"] = "认哪一张",
+        ["vision.waitImage.imageSet.hint"] = ImageSetHint,
+        ["vision.waitImage.imageSet.option.first"] = "认出的第一张",
+        ["vision.waitImage.imageSet.option.best"] = "最像的那一张",
+        ["vision.waitImage.imageSet.option.every"] = "每一张都要",
         ["vision.waitImage.anchorMode.label"] = "坐标基准",
         ["vision.waitImage.anchorMode.hint"] = AnchorModeHint,
         ["vision.waitImage.anchorMode.option.screen"] = "屏幕像素",
@@ -1772,6 +1792,11 @@ internal static class ActionStrings
         ["vision.clickImage.orderBy.option.random"] = "随机",
         ["vision.clickImage.matchIndex.label"] = "第几个命中",
         ["vision.clickImage.matchIndex.hint"] = MatchIndexHint,
+        ["vision.clickImage.imageSet.label"] = "认哪一张",
+        ["vision.clickImage.imageSet.hint"] = ImageSetHint,
+        ["vision.clickImage.imageSet.option.first"] = "认出的第一张",
+        ["vision.clickImage.imageSet.option.best"] = "最像的那一张",
+        ["vision.clickImage.imageSet.option.every"] = "每一张都要",
         ["vision.clickImage.anchorMode.label"] = "坐标基准",
         ["vision.clickImage.anchorMode.hint"] = AnchorModeHint,
         ["vision.clickImage.anchorMode.option.screen"] = "屏幕像素",
@@ -2287,6 +2312,11 @@ internal static class ActionStrings
         ["condition.imageExists.confidence.hint"] = "要求的最低匹配度。",
         ["condition.imageExists.region.label"] = "搜索区域",
         ["condition.imageExists.region.hint"] = RegionHintText,
+        ["condition.imageExists.imageSet.label"] = "认哪一张",
+        ["condition.imageExists.imageSet.hint"] = ImageSetHint,
+        ["condition.imageExists.imageSet.option.first"] = "认出的第一张",
+        ["condition.imageExists.imageSet.option.best"] = "最像的那一张",
+        ["condition.imageExists.imageSet.option.every"] = "每一张都要",
 
         ["condition.textExists.name"] = "文字存在",
         ["condition.textExists.desc"] = "当屏幕上出现指定文字时为真。",
@@ -2321,6 +2351,11 @@ internal static class ActionStrings
         ["condition.imageNotExists.confidence.hint"] = "要求的最低匹配度。",
         ["condition.imageNotExists.region.label"] = "搜索区域",
         ["condition.imageNotExists.region.hint"] = RegionHintText,
+        ["condition.imageNotExists.imageSet.label"] = "认哪一张",
+        ["condition.imageNotExists.imageSet.hint"] = ImageSetHint,
+        ["condition.imageNotExists.imageSet.option.first"] = "认出的第一张",
+        ["condition.imageNotExists.imageSet.option.best"] = "最像的那一张",
+        ["condition.imageNotExists.imageSet.option.every"] = "每一张都要",
         ["condition.imageNotExists.anchorMode.label"] = "坐标基准",
         ["condition.imageNotExists.anchorMode.hint"] = AnchorModeHint,
         ["condition.imageNotExists.anchorMode.option.screen"] = "屏幕像素",

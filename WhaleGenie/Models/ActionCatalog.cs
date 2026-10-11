@@ -2118,6 +2118,7 @@ public static class ActionCatalog
                     "How alike the picture on screen has to be, from 0 to 100 per cent; the default "
                     + "is 90. Raise it to accept fewer false matches, lower it when the screen is "
                     + "drawn a little differently.", max: 100),
+                ImageSet(),
                 MatchAlgorithm(),
                 SkipColour(),
                 MinFeatures(),
@@ -2146,6 +2147,7 @@ public static class ActionCatalog
                 Number("confidence", "Similarity %", 90,
                     "How alike the picture on screen has to be, from 0 to 100 per cent; the default "
                     + "is 90.", max: 100),
+                ImageSet(),
                 Number("timeoutMs", "Wait up to", 5000,
                     "How long to wait for one of the pictures to turn up, in milliseconds; the "
                     + "default is 5000."),
@@ -2176,6 +2178,7 @@ public static class ActionCatalog
                 Number("confidence", "Similarity %", 90,
                     "How alike the picture on screen has to be, from 0 to 100 per cent; the default "
                     + "is 90.", max: 100),
+                ImageSet(),
                 Button(),
                 Number("offsetX", "Offset X", 0,
                     "Pixels added to the middle of the match before clicking. 0, the default, clicks "
@@ -2884,6 +2887,7 @@ public static class ActionCatalog
                 Images("image", "Reference pictures", @"C:\images\ok.png",
                     "The pictures to look for, one row each, tried in the order they are listed; the "
                     + "condition is true as soon as one of them turns up."),
+                ImageSet(),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 Region(),
                 ..Capture(),
@@ -2902,6 +2906,7 @@ public static class ActionCatalog
                 Images("image", "Reference pictures", @"C:\images\ok.png",
                     "The pictures to look for, one row each, tried in the order they are listed; the "
                     + "condition is true only when none of them turns up."),
+                ImageSet(),
                 Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
                 Region(),
                 ..Capture(),
@@ -3539,6 +3544,24 @@ public static class ActionCatalog
             Hint = hint,
             Required = true,
         };
+
+    /// <summary>
+    /// Which of the pictures a step listed it goes with. A step that lists several pictures is a
+    /// step that covers a thing drawn differently from one screen to the next, and what it wants
+    /// of them is not always "whichever turns up first": a screen may count as reached only when
+    /// the whole set is there, or the closest of two similar icons may be the one to click.
+    /// </summary>
+    private static ActionParameter ImageSet()
+        => Choice("imageSet", "Which of the pictures", ["first", "best", "every"], "first",
+            "Which of the pictures above this step goes with. The first that turns up, the "
+            + "default, is what a button drawn two ways asks for. The surest of them looks at "
+            + "every picture and takes the one whose closest match scored highest, which is how "
+            + "the closer of two similar icons is picked. Every one of them asks for the whole "
+            + "set at once, so a step acts only on a screen showing all of them and finds nothing "
+            + "when one is missing; where a match is handed over it is the first picture's, and "
+            + "the hit that is handed over is counted inside that picture as usual.",
+            labels: ["The first that turns up", "The surest of them", "Every one of them"],
+            advanced: true);
 
     /// <summary>
     /// The places on the screen an action looks at. It is a list rather than a line of text so that

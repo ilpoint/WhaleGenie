@@ -3411,8 +3411,9 @@ public sealed class MacroRunner
     /// Every place the reference picture appears in the search areas, in screen coordinates and in
     /// reading order: down the screen first, then across. That is the order a person counts them in
     /// when looking at a screenshot, which is what "the third one" has to mean to be useful.
-    /// The pictures the step lists are tried in turn and the first one that turns up is the one the
-    /// step goes with; the hits of that one picture are what "the third one" then counts.
+    /// Which of the pictures the step listed it goes with is the step's own choice: the first one
+    /// that turns up, whichever scored closest, or all of them at once. The hits that come back are
+    /// the hits of the one picture the step went with, and "the third one" counts inside it.
     /// </summary>
     private List<ImageMatch> Hits(ExecutableStep step)
     {
@@ -3420,7 +3421,9 @@ public sealed class MacroRunner
         var areas = SearchAreas(step);
         var wanted = References(step);
 
-        for (var number = 0; number < wanted.Count; number++)
+        // One picture, looked for in every area the step named: the places it turned up, in the
+        // order this step counts them in.
+        List<ImageMatch> Look(int number)
         {
             var hits = new List<ImageMatch>();
             foreach (var (area, origin) in areas)
@@ -3435,23 +3438,101 @@ public sealed class MacroRunner
                 }
             }
 
-            if (hits.Count == 0)
-            {
-                continue;
-            }
-
             Sorted(hits, step);
-            SawSearch(step, LookKind.Template, areas, [.. hits.Select(hit => (hit, (string?)null))],
-                WentWith(hits, step), wanted[number].Name, wanted[number].Frame,
-                query.ConfidencePercent / 100, number + 1, wanted.Count);
             return hits;
         }
 
-        // Nothing turned up anywhere. The look is handed over for the first picture rather than for
-        // none: what the window has to show then is what was being looked for and where.
-        SawSearch(step, LookKind.Template, areas, [], 0, wanted[0].Name, wanted[0].Frame,
-            query.ConfidencePercent / 100, 1, wanted.Count);
-        return [];
+        // What the window is shown: the picture the step went with, or the first one it listed when
+        // it went with none of them. Handing over nothing at all would leave out what was being
+        // looked for and where.
+        void SawPicture(int number, IReadOnlyList<ImageMatch> hits, bool found)
+            => SawSearch(step, LookKind.Template, areas,
+                [.. hits.Select(hit => (hit, (string?)null))],
+                found ? WentWith(hits, step) : 0, wanted[number].Name, wanted[number].Frame,
+                query.ConfidencePercent / 100, number + 1, wanted.Count);
+
+        switch (WhichOfThePictures(step))
+        {
+            case "every":
+                {
+                    // The whole set has to be there. The step goes with the picture it listed
+                    // first, which is the one whose hits are handed over.
+                    var looked = new List<ImageMatch>[wanted.Count];
+                    for (var number = 0; number < wanted.Count; number++)
+                    {
+                        looked[number] = Look(number);
+                        if (looked[number].Count == 0)
+                        {
+                            SawPicture(0, [], found: false);
+                            return [];
+                        }
+                    }
+
+                    SawPicture(0, looked[0], found: true);
+                    return looked[0];
+                }
+
+            case "best":
+                {
+                    // Every picture is looked at, and the one whose closest match scored highest
+                    // is the one the step goes with.
+                    var looked = new List<ImageMatch>[wanted.Count];
+                    var winner = -1;
+                    var surest = double.NegativeInfinity;
+                    for (var number = 0; number < wanted.Count; number++)
+                    {
+                        looked[number] = Look(number);
+                        var score = looked[number].Count == 0
+                            ? double.NegativeInfinity
+                            : looked[number].Max(hit => hit.Score);
+                        if (score > surest)
+                        {
+                            surest = score;
+                            winner = number;
+                        }
+                    }
+
+                    if (winner < 0)
+                    {
+                        SawPicture(0, [], found: false);
+                        return [];
+                    }
+
+                    SawPicture(winner, looked[winner], found: true);
+                    return looked[winner];
+                }
+
+            default:
+                {
+                    // The first picture that turns up is the one the step goes with, and the rest
+                    // of the list is not looked at at all.
+                    for (var number = 0; number < wanted.Count; number++)
+                    {
+                        var hits = Look(number);
+                        if (hits.Count == 0)
+                        {
+                            continue;
+                        }
+
+                        SawPicture(number, hits, found: true);
+                        return hits;
+                    }
+
+                    SawPicture(0, [], found: false);
+                    return [];
+                }
+        }
+    }
+
+    /// <summary>
+    /// Which of the pictures a step listed it goes with, as written in its field. Anything that
+    /// does not read as one of the other two is the first that turns up, which is what a step
+    /// written before this field existed asks for and what almost every step wants.
+    /// </summary>
+    private static string WhichOfThePictures(ExecutableStep step)
+    {
+        var written = step.Text("imageSet").Trim().ToLowerInvariant();
+        return written.Length == 0 ? "first" : written;
     }
 
     /// <summary>

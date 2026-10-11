@@ -1137,6 +1137,124 @@ public class DeviceActionTests
     }
 
     /// <summary>
+    /// Two reference pictures the fake tells apart by their own first pixel, each answered the way
+    /// the check says: how a step that lists several pictures is asked about them one by one.
+    /// </summary>
+    private static FakeDeviceLayer TwoPictures(ImageMatch? one, ImageMatch? two)
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Pictures["one.png"] = Picture("#FF0000");
+        devices.Pictures["two.png"] = Picture("#00FF00");
+        devices.PictureAnswers = (needle, _) => (needle[0, 0].R == 0xFF ? one : two) is { } hit
+            ? [hit]
+            : [];
+        return devices;
+    }
+
+    /// <summary>
+    /// Picture one at the left, picture two at the right: what a check reads to see which of them
+    /// the step went with.
+    /// </summary>
+    private static ImageMatch Left => new(0.91, new ScreenPoint(5, 6), new ScreenSize(2, 2));
+
+    private static ImageMatch Right => new(0.99, new ScreenPoint(40, 50), new ScreenSize(2, 2));
+
+    /// <summary>
+    /// A step that lists several pictures normally goes with the first that turns up, and the ones
+    /// after it are not looked for at all: that is what a button drawn two ways asks for.
+    /// </summary>
+    [Fact]
+    public async Task The_first_picture_that_turns_up_is_the_one_taken()
+    {
+        var devices = TwoPictures(Left, Right);
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("one.png", "two.png"), Hit("match", "where")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("6,7", store.Local.Values["where"].AsText());
+        Assert.Equal(1, devices.Searches);
+    }
+
+    /// <summary>
+    /// Asked for the surest of them, every picture is looked at and the one whose closest match
+    /// scored highest is the one the step goes with — the closer of two similar icons.
+    /// </summary>
+    [Fact]
+    public async Task The_surest_of_the_pictures_is_the_one_taken()
+    {
+        var devices = TwoPictures(Left, Right);
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("one.png", "two.png"), Param("imageSet", "best"),
+                Hit("match", "where")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("41,51", store.Local.Values["where"].AsText());
+        Assert.Equal(2, devices.Searches);
+    }
+
+    /// <summary>
+    /// Asked for every one of them, a picture the screen does not show is what stops the step: it
+    /// finds nothing rather than going with the one picture that is there.
+    /// </summary>
+    [Fact]
+    public async Task Every_picture_has_to_turn_up()
+    {
+        var devices = TwoPictures(Left, null);
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("one.png", "two.png"), Param("imageSet", "every"),
+                Hit("match", "where")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(string.Empty, store.Local.Values["where"].AsText());
+    }
+
+    /// <summary>
+    /// With the whole set on the screen the step goes with the picture it listed first, and the
+    /// "which one" that follows counts inside that picture as it always did.
+    /// </summary>
+    [Fact]
+    public async Task Every_picture_there_goes_with_the_first_listed()
+    {
+        var devices = TwoPictures(Left, Right);
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("one.png", "two.png"), Param("imageSet", "every"),
+                Hit("match", "where")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("6,7", store.Local.Values["where"].AsText());
+        Assert.Equal(2, devices.Searches);
+    }
+
+    /// <summary>A condition about a picture asks the same question of the whole set.</summary>
+    [Fact]
+    public async Task A_condition_about_a_picture_can_ask_for_the_whole_set()
+    {
+        var devices = TwoPictures(Left, null);
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("control.if", When("condition", Step("condition.imageExists",
+                Pictures("one.png", "two.png"), Param("imageSet", "every"))),
+                Body("then", Step("control.setVariable", Param("name", "seen"), Param("value", "yes")))),
+            Step("control.setVariable", Param("name", "seen"), Param("value", "no")),
+        ], devices);
+
+        Assert.Equal("no", store.Local.Values["seen"].AsText());
+    }
+
+    /// <summary>
     /// A colour search looked at by score keeps the pixel closest to the colour asked for, even when
     /// that pixel is not the first one the area is walked over.
     /// </summary>
