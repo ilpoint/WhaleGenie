@@ -654,9 +654,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Expr.Error.IndexOutOfRange"] = "List index is outside the list: {0}",
 
         // ----------------------------------------------------- expression builder
-        ["Add.ExpressionBuilder"] = "Operators…",
-        ["Add.ExpressionBuilderHint"] = "Open the expression builder: every operator is a button "
-            + "and the variables in scope are a list, so nothing has to be typed from memory.",
+        ["Add.ExpressionBuilder"] = "Expression",
+        ["Add.ExpressionBuilderHint"] = "Open the expression editor: every operator is a button "
+            + "and the variables in scope are a list, so nothing has to be typed from memory. The "
+            + "field keeps what it hands back, and a plain number written there goes back to the "
+            + "spinner.",
         ["Add.VariablePicker"] = "Variables",
         ["Add.VariablePickerHint"] = "Pick one of the variables the macro can read and put its name "
             + "in at the cursor.",
@@ -676,7 +678,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["VarWall.Pick"] = "Hover over a button to see what that variable is.",
         ["VarWall.Empty"] = "There is nothing in this group yet — try another button above.",
         ["VarWall.Outcome"] = "What this step came to: ok, failed or skipped.",
-        ["ExprBuilder.Title"] = "Expression builder",
+        ["ExprBuilder.Title"] = "Expression",
         ["ExprBuilder.Help"] = "Click an operator or a variable to add it at the cursor, or edit "
             + "the expression directly. Hover over an operator to see what it does, and watch the "
             + "line under the box for what the expression comes to.",
@@ -1637,9 +1639,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Expr.Error.IndexOutOfRange"] = "列表下标超出范围：{0}",
 
         // ----------------------------------------------------- expression builder
-        ["Add.ExpressionBuilder"] = "运算编辑器…",
-        ["Add.ExpressionBuilderHint"] = "打开运算编辑器：所有运算符都做成按钮，可用变量做成下拉列表，"
-            + "不用凭记忆手写。",
+        ["Add.ExpressionBuilder"] = "表达式",
+        ["Add.ExpressionBuilderHint"] = "打开表达式编辑器：所有运算符都做成按钮，可用变量做成下拉"
+            + "列表，不用凭记忆手写。字段保留它交回来的内容，写回一个普通数字就回到数字框。",
         ["Add.VariablePicker"] = "变量",
         ["Add.VariablePickerHint"] = "从宏能读到的变量里挑一个，把名字插到光标处。",
         ["VarPicker.Title"] = "选择变量",
@@ -1658,7 +1660,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["VarWall.Pick"] = "鼠标停在按钮上就能看见那个变量是什么。",
         ["VarWall.Empty"] = "这一类现在还没有变量，点上面别的按钮看看。",
         ["VarWall.Outcome"] = "这一步跑完的结局：ok / failed / skipped。",
-        ["ExprBuilder.Title"] = "运算编辑器",
+        ["ExprBuilder.Title"] = "表达式",
         ["ExprBuilder.Help"] = "点运算符或变量即可插入到光标处，也可以直接改下面的表达式。"
             + "鼠标停在运算符上会说明它的作用；输入框下方会显示它算出来的结果。",
         ["ExprBuilder.Operators"] = "运算符",

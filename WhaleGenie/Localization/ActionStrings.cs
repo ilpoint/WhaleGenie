@@ -392,7 +392,7 @@ internal static class ActionStrings
         ["control.calculate.scope.option.global"] = "全局变量（所有宏共享）",
         ["control.calculate.value.label"] = "表达式",
         ["control.calculate.value.hint"] = "要算的公式，比如 $count + 1、$total * 0.85，"
-            + "或者 concat($first, \" \", $last)。点 ƒx 用运算编辑器一块块拼出来。",
+            + "或者 concat($first, \" \", $last)。字段旁的「表达式」按钮能把它一块块拼出来。",
 
         ["control.listCreate.name"] = "创建列表",
         ["control.listCreate.desc"] = "建立一个列表变量，覆盖它原来的内容。",
