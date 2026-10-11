@@ -584,9 +584,10 @@ public class ActionDialogTests
             // The rectangle a step reads is stored the way the engine will read it back: counted
             // from the window's own corner rather than from the screen, because that is what tells
             // the step where inside the window to look.
-            var row = Assert.Single(viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "region").Regions);
-            Assert.Equal("8,10,30,40", row.Written);
+            Assert.Equal("8", Value(viewModel, "x"));
+            Assert.Equal("10", Value(viewModel, "y"));
+            Assert.Equal("30", Value(viewModel, "width"));
+            Assert.Equal("40", Value(viewModel, "height"));
         });
     }
 
@@ -754,8 +755,8 @@ public class ActionDialogTests
     [InlineData("ocr.findText", "region")]
     [InlineData("vision.findImage", "region")]
     [InlineData("condition.imageExists", "region")]
-    [InlineData("vision.capture", "region")]
-    [InlineData("ocr.recognize", "region")]
+    [InlineData("vision.capture", "x")]
+    [InlineData("ocr.recognize", "x")]
     [InlineData("input.mouseDrag", "startX")]
     public void The_region_picker_sits_on_the_row_that_names_a_rectangle(string key, string anchor)
     {
@@ -770,7 +771,7 @@ public class ActionDialogTests
             // step is about rather than how it is tuned.
             var field = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == anchor);
-            Assert.True(field.IsRegionAnchor || field.IsRect);
+            Assert.True(field.IsRegionAnchor);
             Assert.Contains(anchor, viewModel.Rows.SelectMany(Names));
         });
     }
@@ -800,25 +801,26 @@ public class ActionDialogTests
     }
 
     /// <summary>
-    /// A step that reads or copies one part of the screen keeps the rectangle it was given, so the
-    /// four numbers of the advanced page and the read-out on the basic page say the same thing.
+    /// A step that reads or copies one part of the screen has the four numbers as ordinary fields,
+    /// so what the region picker dragged out lands in them one by one and each of them can still be
+    /// written as a formula of its own.
     /// </summary>
-    [Fact]
-    public void A_rectangle_fills_the_one_region_a_step_reads()
+    [Theory]
+    [InlineData("ocr.recognize")]
+    [InlineData("vision.capture")]
+    public void A_rectangle_fills_the_one_region_a_step_reads(string key)
     {
         Ui.Run(() =>
         {
-            var viewModel = Open("ocr.recognize");
-            var region = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "region");
+            var viewModel = Open(key);
 
             Assert.True(viewModel.ApplyRegion(10, 20, 30, 40));
 
-            var row = Assert.Single(region.Regions);
-            Assert.Equal("10,20,30,40", row.Written);
-            // A step with nowhere to look is not a step, so the one rectangle cannot be taken away.
-            Assert.True(row.IsSingle);
-            Assert.Contains("region", viewModel.Rows.SelectMany(Names));
+            Assert.Equal("10", Value(viewModel, "x"));
+            Assert.Equal("20", Value(viewModel, "y"));
+            Assert.Equal("30", Value(viewModel, "width"));
+            Assert.Equal("40", Value(viewModel, "height"));
+            Assert.Contains("x", viewModel.Rows.SelectMany(Names));
         });
     }
 
@@ -835,8 +837,10 @@ public class ActionDialogTests
             Assert.True(viewModel.ApplyRegion(10, 20, 30, 40));
 
             var row = Assert.Single(region.Regions);
-            Assert.Equal("10,20,30,40", row.Written);
-            Assert.False(row.IsSingle);
+            Assert.Equal("10", row.X.Text);
+            Assert.Equal("20", row.Y.Text);
+            Assert.Equal("30", row.Width.Text);
+            Assert.Equal("40", row.Height.Text);
         });
     }
 

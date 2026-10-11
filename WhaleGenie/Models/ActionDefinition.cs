@@ -48,17 +48,11 @@ public enum ActionParameterKind
 
     /// <summary>
     /// The places on the screen to look at, edited as a list of rectangles that can be dragged out
-    /// one by one: two halves of a screen are two rows rather than one line of punctuation.
+    /// one by one: two halves of a screen are two rows rather than one line of punctuation. Each
+    /// row says its own rectangle as four numbers, or names a variable holding one — or holding a
+    /// picture taken earlier, which is looked at instead of the screen.
     /// </summary>
     Region,
-
-    /// <summary>
-    /// One rectangle of the screen, dragged out with the region picker or written as four numbers.
-    /// It differs from <see cref="Region"/> in how many there are, not in what one is: a step that
-    /// reads or copies one part of the screen has one rectangle, and a step that searches has
-    /// however many places the user wants looked at.
-    /// </summary>
-    Rect,
 
     /// <summary>
     /// The title of a window, edited with free text and the window picker.

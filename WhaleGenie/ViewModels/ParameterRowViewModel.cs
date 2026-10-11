@@ -36,7 +36,7 @@ public sealed class ParameterRowViewModel
     /// it; a search that may look in several places has no single row to hang it on, and the button
     /// that adds a picked place belongs under the list.
     /// </summary>
-    public bool IsRegionAnchor => First.IsRegionAnchor && !First.IsRect;
+    public bool IsRegionAnchor => First.IsRegionAnchor;
 
     /// <summary>True when this line carries the button that picks a click point on the picture.</summary>
     public bool ShowsOffsetPick => First.IsOffsetAnchor;

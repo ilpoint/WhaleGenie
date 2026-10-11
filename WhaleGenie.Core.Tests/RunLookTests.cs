@@ -52,21 +52,13 @@ public class RunLookTests
                 })],
         };
 
-    /// <summary>The one rectangle a step that reads or copies the screen works on.</summary>
-    private static ExecutableParameter Region(params (int X, int Y, int Width, int Height)[] rectangles)
-        => new()
-        {
-            Name = "region",
-            Rows = [.. rectangles.Select(region => (IReadOnlyDictionary<string, string>)
-                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    ["x"] = region.X.ToString(CultureInfo.InvariantCulture),
-                    ["y"] = region.Y.ToString(CultureInfo.InvariantCulture),
-                    ["width"] = region.Width.ToString(CultureInfo.InvariantCulture),
-                    ["height"] = region.Height.ToString(CultureInfo.InvariantCulture),
-                })],
-        };
+    /// <summary>See <see cref="SampleFiles.Capture"/>: a step that copies one part of the screen.</summary>
+    private static ExecutableStep Capture(int x, int y, int width, int height,
+        params ExecutableParameter[] rest) => SampleFiles.Capture(x, y, width, height, rest);
 
+    /// <summary>See <see cref="SampleFiles.Recognize"/>: a step that reads one part of the screen.</summary>
+    private static ExecutableStep Recognize(int x, int y, int width, int height,
+        params ExecutableParameter[] rest) => SampleFiles.Recognize(x, y, width, height, rest);
     /// <summary>
     /// A step that looks for a picture, with the places to look given the way the dialog gives
     /// them: one row per rectangle.
@@ -371,7 +363,7 @@ public class RunLookTests
         var devices = Screen();
         devices.Spans = [new TextSpan("Save", new ScreenPoint(5, 6), new ScreenSize(20, 8), 30)];
         var looks = new Watched();
-        var step = Step("ocr.recognize", Region((10, 20, 40, 30)), Param("language", "auto"), Returns("text=text"));
+        var step = Recognize(10, 20, 40, 30, Param("language", "auto"), Returns("text=text"));
 
         await Run(step, devices, looks);
 
@@ -386,7 +378,7 @@ public class RunLookTests
     {
         var devices = Screen();
         var looks = new Watched();
-        var step = Step("vision.capture", Region((1, 2, 5, 6)), Hit("image", "shot"));
+        var step = Capture(1, 2, 5, 6, Hit("image", "shot"));
 
         await Run(step, devices, looks);
 

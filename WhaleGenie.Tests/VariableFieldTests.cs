@@ -65,7 +65,7 @@ public class VariableFieldTests
                 Assert.Equal("30", region.Regions[0].ToRow().Text("width"));
                 Assert.Equal("40", region.Regions[0].ToRow().Text("height"));
 
-                region.AddRegion(new RegionRowViewModel { IsFromVariable = true, Named = "$shot" });
+                region.AddRegion(new RegionRowViewModel { OrVariable = "$shot" });
                 Assert.Equal(2, region.Regions.Count);
                 Assert.Equal("$shot", region.Regions[1].ToRow().Text("text"));
 

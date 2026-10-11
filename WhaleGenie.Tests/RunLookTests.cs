@@ -36,6 +36,10 @@ public class RunLookTests
         ],
     };
 
+    /// <summary>One of the four numbers a capture step works on, written the way the file writes it.</summary>
+    private static StepParameter Number(string name, string value)
+        => new() { Name = name, Kind = ActionParameterKind.Number, Value = value };
+
     [Fact]
     public void A_step_that_looked_at_the_screen_gets_a_picture_on_its_row()
     {
@@ -96,24 +100,10 @@ public class RunLookTests
                 Type = "vision.capture",
                 Parameters =
                 [
-                    new StepParameter
-                    {
-                        Name = "region",
-                        Kind = ActionParameterKind.Rect,
-                        Rows =
-                        [
-                            new StepParameterRow
-                            {
-                                Columns = new Dictionary<string, string>
-                                {
-                                    ["x"] = "0",
-                                    ["y"] = "0",
-                                    ["width"] = "20",
-                                    ["height"] = "20",
-                                },
-                            },
-                        ],
-                    },
+                    Number("x", "0"),
+                    Number("y", "0"),
+                    Number("width", "20"),
+                    Number("height", "20"),
                     Handed("image", $"shot{index}"),
                 ],
             }).ToList();

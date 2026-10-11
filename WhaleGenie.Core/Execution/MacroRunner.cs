@@ -3110,28 +3110,13 @@ public sealed class MacroRunner
     /// picture has to read.
     /// </summary>
     private (ImageFrame Frame, ScreenPoint Corner) CaptureBox(ExecutableStep step)
-        => RectangleOf(step);
-
-    /// <summary>
-    /// The one rectangle a step reads or copies, taken off the screen: the row it is written as, or
-    /// the picture or rectangle a variable it names holds. It is the same reading a search region
-    /// gets, because a rectangle is a rectangle whether the step has one or several.
-    /// </summary>
-    private (ImageFrame Frame, ScreenPoint Corner) RectangleOf(ExecutableStep step)
     {
-        var rows = step.Rows("region");
-        if (rows.Count == 0)
-        {
-            throw new StepFailure("Run.EmptyRegion", step.Type);
-        }
-
-        var areas = Areas(step, rows[0]).ToList();
-        if (areas.Count == 0)
-        {
-            throw new StepFailure("Run.BadRegion", Written(rows));
-        }
-
-        return (areas[0].Frame, areas[0].Origin);
+        var anchor = AnchorOf(step);
+        var corner = Placed(anchor.Corner, Number(step, "x"), Number(step, "y"));
+        var width = Math.Max(1, Number(step, "width"));
+        var height = Math.Max(1, Number(step, "height"));
+        var shot = Shot(step, corner.X, corner.Y, width, height, anchor.Window);
+        return (shot.Frame, shot.Origin);
     }
 
     /// <summary>
@@ -5951,8 +5936,11 @@ public sealed class MacroRunner
     private (ScreenPoint Corner, ImageFrame Area, IReadOnlyList<TextSpan> Spans) ReadBox(
         ExecutableStep step)
     {
-        var (frame, corner) = RectangleOf(step);
-        return (corner, frame, ReadFrame(step, frame));
+        var anchor = AnchorOf(step);
+        var corner = Placed(anchor.Corner, Number(step, "x"), Number(step, "y"));
+        var shot = Shot(step, corner.X, corner.Y, Math.Max(1, Number(step, "width")),
+            Math.Max(1, Number(step, "height")), anchor.Window);
+        return (shot.Origin, shot.Frame, ReadFrame(step, shot.Frame));
     }
 
     /// <summary>

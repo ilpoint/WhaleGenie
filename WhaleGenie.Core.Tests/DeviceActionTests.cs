@@ -32,20 +32,20 @@ public class DeviceActionTests
     private static ExecutableParameter Body(string name, params ExecutableStep[] steps)
         => new() { Name = name, Steps = steps };
 
-    /// <summary>
-    /// Where a step looks, written the way the dialog writes it: one row per rectangle, each row
-    /// saying where its corners are by column name.
-    /// </summary>
+    /// <summary>See <see cref="SampleFiles.Region"/>: the places a step looks at, one row per place.</summary>
     private static ExecutableParameter Region(params (int X, int Y, int Width, int Height)[] rectangles)
-        => new() { Name = "region", Rows = [.. rectangles.Select(Rectangle)] };
+        => SampleFiles.Region(rectangles);
 
-    /// <summary>A search region that names a variable instead of giving numbers.</summary>
-    private static ExecutableParameter RegionFrom(string named)
-        => new()
-        {
-            Name = "region",
-            Rows = [new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["text"] = named }],
-        };
+    /// <summary>See <see cref="SampleFiles.RegionFrom"/>: a place that names a variable.</summary>
+    private static ExecutableParameter RegionFrom(string named) => SampleFiles.RegionFrom(named);
+
+    /// <summary>See <see cref="SampleFiles.Capture"/>: a step that copies one part of the screen.</summary>
+    private static ExecutableStep Capture(int x, int y, int width, int height,
+        params ExecutableParameter[] rest) => SampleFiles.Capture(x, y, width, height, rest);
+
+    /// <summary>See <see cref="SampleFiles.Recognize"/>: a step that reads one part of the screen.</summary>
+    private static ExecutableStep Recognize(int x, int y, int width, int height,
+        params ExecutableParameter[] rest) => SampleFiles.Recognize(x, y, width, height, rest);
 
     /// <summary>A parameter that holds a list of rows: the places to look, the presses of a run.</summary>
     private static ExecutableParameter Rows(string name,
@@ -88,16 +88,6 @@ public class DeviceActionTests
 
         return row;
     }
-
-    private static IReadOnlyDictionary<string, string> Rectangle(
-        (int X, int Y, int Width, int Height) rectangle)
-        => new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["x"] = rectangle.X.ToString(CultureInfo.InvariantCulture),
-            ["y"] = rectangle.Y.ToString(CultureInfo.InvariantCulture),
-            ["width"] = rectangle.Width.ToString(CultureInfo.InvariantCulture),
-            ["height"] = rectangle.Height.ToString(CultureInfo.InvariantCulture),
-        };
 
     private static ExecutableParameter When(string name, ExecutableStep step)
         => new() { Name = name, Condition = step };
@@ -1239,7 +1229,7 @@ public class DeviceActionTests
 
         await RunAsync(
         [
-            Step("vision.capture", Region((10, 20, 30, 40)), Param("anchorMode", "client"),
+            Capture(10, 20, 30, 40, Param("anchorMode", "client"),
                 Param("anchorWindow", "Game"), Hit("image", "shot")),
         ], devices);
 
@@ -1267,7 +1257,7 @@ public class DeviceActionTests
 
         await RunAsync(
         [
-            Step("vision.capture", Region((1, 1, 2, 2)), Param("anchorMode", "client"),
+            Capture(1, 1, 2, 2, Param("anchorMode", "client"),
                 Param("anchorWindow", "Game"), Param("captureMode", written),
                 Hit("image", "shot")),
         ], devices);
@@ -1288,9 +1278,9 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("vision.capture", Region((7, 9, 10, 10)), Param("anchorMode", "window"),
+            Capture(7, 9, 10, 10, Param("anchorMode", "window"),
                 Param("anchorWindow", "Game"), Hit("image", "fromWindow")),
-            Step("vision.capture", Region((7, 9, 10, 10)), Hit("image", "fromScreen")),
+            Capture(7, 9, 10, 10, Hit("image", "fromScreen")),
         ], devices);
 
         Assert.Equal((107, 59, 10, 10),
@@ -1314,7 +1304,7 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("vision.capture", Region((0, 0, 10, 10)), Param("captureMode", "graphicsCapture"),
+            Capture(0, 0, 10, 10, Param("captureMode", "graphicsCapture"),
                 Hit("image", "shot")),
         ], devices);
 
@@ -1335,7 +1325,7 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("vision.capture", Region((0, 0, 10, 10)), Param("anchorMode", "client"), Param("anchorWindow", "Game"),
+            Capture(0, 0, 10, 10, Param("anchorMode", "client"), Param("anchorWindow", "Game"),
                 Param("captureMode", "graphicsCapture"), Hit("image", "shot")),
         ], devices);
 
@@ -1459,7 +1449,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("vision.capture", Region((10, 10, 20, 20)), Param("frameMaxAgeMs", "200"), Hit("image", "shot")),
+            Capture(10, 10, 20, 20, Param("frameMaxAgeMs", "200"), Hit("image", "shot")),
             Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
                 Param("confidence", "90"), Param("frameMaxAgeMs", "200"),
                 Hit("match", "match")),
@@ -1488,7 +1478,7 @@ public class DeviceActionTests
 
         await RunAsync(
         [
-            Step("vision.capture", Region((10, 10, 20, 20)), Param("frameMaxAgeMs", "200"), Hit("image", "shot")),
+            Capture(10, 10, 20, 20, Param("frameMaxAgeMs", "200"), Hit("image", "shot")),
             Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
                 Param("confidence", "90"), Hit("match", "match")),
         ], devices);
@@ -1512,7 +1502,7 @@ public class DeviceActionTests
 
         await RunAsync(
         [
-            Step("vision.capture", Region((10, 10, 20, 20)), Param("frameMaxAgeMs", "20"), Hit("image", "shot")),
+            Capture(10, 10, 20, 20, Param("frameMaxAgeMs", "20"), Hit("image", "shot")),
             Step("control.delay", Param("ms", "60")),
             Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
                 Param("confidence", "90"), Param("frameMaxAgeMs", "20"),
@@ -1789,7 +1779,7 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("vision.capture", Region((0, 0, 10, 10)), Hit("image", "shot")),
+            Capture(0, 0, 10, 10, Hit("image", "shot")),
             Step("vision.findImage", Pictures("shot"), Param("confidence", "90"),
                 Param("region", ""), Hit("match", "where")),
         ], devices);
@@ -1933,7 +1923,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("ocr.recognize", Region((0, 0, 100, 20)), Param("language", "en"), Returns("text=words")),
+            Recognize(0, 0, 100, 20, Param("language", "en"), Returns("text=words")),
         ], devices);
 
         Assert.Equal("Ready Go", store.Local.Values["words"].AsText());
@@ -2069,7 +2059,7 @@ public class DeviceActionTests
 
         var (_, _, _) = await RunAsync(
         [
-            Step("ocr.recognize", Region((0, 0, 2, 1)), Param("colorFilter", "#FFFFFF"),
+            Recognize(0, 0, 2, 1, Param("colorFilter", "#FFFFFF"),
                 Param("colorTolerance", "10"), Returns("text=text")),
         ], devices);
 
@@ -2094,7 +2084,7 @@ public class DeviceActionTests
 
         var (_, _, _) = await RunAsync(
         [
-            Step("ocr.recognize", Region((0, 0, 2, 1)), Returns("text=text")),
+            Recognize(0, 0, 2, 1, Returns("text=text")),
         ], devices);
 
         var handed = Assert.Single(devices.OcrPictures);
@@ -2147,7 +2137,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("ocr.recognize", Region((0, 0, 100, 40)), Param("content", "digits"), Returns("text=amounts")),
+            Recognize(0, 0, 100, 40, Param("content", "digits"), Returns("text=amounts")),
             Step("ocr.findText", Param("text", "1234.50"), Param("content", "digits"),
                 Hit("match", "where")),
         ], devices);
@@ -2172,7 +2162,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("ocr.recognize", Region((0, 0, 200, 60)), Param("table", "true"),
+            Recognize(0, 0, 200, 60, Param("table", "true"),
                 Returns("table=sheet", "text=sheet.text")),
         ], devices);
 
@@ -4945,7 +4935,7 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("vision.capture", Region((0, 0, 10, 10)), Hit("image", "shot")),
+            Capture(0, 0, 10, 10, Hit("image", "shot")),
             Step("vision.findImage", Pictures("$shot"), Param("confidence", "90"),
                 Param("region", ""), Hit("match", "where")),
         ], devices);
@@ -4999,7 +4989,7 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("vision.capture", Region((0, 0, 2, 1)), Hit("image", "shot")),
+            Capture(0, 0, 2, 1, Hit("image", "shot")),
             Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
                 RegionFrom("$shot"), Hit("match", "where")),
         ], devices);

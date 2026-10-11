@@ -191,19 +191,24 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.RegionAdd"] = "Add a region",
         ["Add.RegionRemove"] = "Remove",
         ["Add.RegionRemoveHint"] = "Take this region out of the list.",
-        ["Add.RegionNumbers"] = "Four numbers",
-        ["Add.RegionNumbersHint"] = "Say where to look with x, y, width and height.",
-        ["Add.RegionVariable"] = "From a variable",
-        ["Add.RegionVariableHint"] = "Let a variable say where to look: one holding a picture an "
-            + "earlier Capture took, which is then searched inside, or one holding a rectangle "
-            + "written as x,y,width,height.",
-        ["Add.RegionVariablePlaceholder"] = "$shot",
-        ["Add.RegionX"] = "X",
-        ["Add.RegionY"] = "Y",
-        ["Add.RegionWidth"] = "Width",
-        ["Add.RegionHeight"] = "Height",
-        ["Add.RegionNamedHere"] = "A variable says where this is; the name is typed above, on "
-            + "the basic page.",
+        ["Add.RegionX"] = "Top-left X",
+        ["Add.RegionXHint"] = "How far the left edge of this place is from the left of the screen, "
+            + "in pixels; under a window anchor, from that window's own left edge.",
+        ["Add.RegionY"] = "Top-left Y",
+        ["Add.RegionYHint"] = "How far the top edge of this place is from the top of the screen, "
+            + "in pixels; under a window anchor, from that window's own top edge.",
+        ["Add.RegionWidth"] = "Width to the right",
+        ["Add.RegionWidthHint"] = "How wide this place is, in pixels: the distance from its left "
+            + "edge to its right one.",
+        ["Add.RegionHeight"] = "Height downward",
+        ["Add.RegionHeightHint"] = "How tall this place is, in pixels: the distance from its top "
+            + "edge to its bottom one.",
+        ["Add.RegionOrVariable"] = "Or a variable",
+        ["Add.RegionOrVariableHint"] = "Name one variable instead of the four numbers: one holding "
+            + "a picture an earlier Capture took is searched inside it, and one holding a rectangle "
+            + "written as x,y,width,height is looked at where it says. Filling this in empties the "
+            + "four numbers.",
+        ["Add.RegionOrVariablePlaceholder"] = "$shot",
         ["Add.RegionEmpty"] = "Looking at the whole screen.",
         ["Add.ImageAdd"] = "Add a picture",
         ["Add.ImageAddHint"] = "Look for one more picture, tried after the ones already listed.",
@@ -1211,17 +1216,21 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.RegionAdd"] = "加一条区域",
         ["Add.RegionRemove"] = "删除",
         ["Add.RegionRemoveHint"] = "把这一条从列表里去掉了。",
-        ["Add.RegionNumbers"] = "四个数字",
-        ["Add.RegionNumbersHint"] = "用 x、y、宽、高说明看哪里。",
-        ["Add.RegionVariable"] = "用变量",
-        ["Add.RegionVariableHint"] = "改由变量说明看哪里：截图动作存的图片变量（会在那张图里找），"
-            + "或装着 x,y,宽,高 的变量。",
-        ["Add.RegionVariablePlaceholder"] = "$shot",
-        ["Add.RegionX"] = "X",
-        ["Add.RegionY"] = "Y",
-        ["Add.RegionWidth"] = "宽",
-        ["Add.RegionHeight"] = "高",
-        ["Add.RegionNamedHere"] = "这一处由变量说明，变量名在基础设置那一页填。",
+        ["Add.RegionX"] = "左上角 X",
+        ["Add.RegionXHint"] = "这一处的左边界距屏幕左边的像素数；坐标基准选窗口时，从窗口自己的"
+            + "左边算起。",
+        ["Add.RegionY"] = "左上角 Y",
+        ["Add.RegionYHint"] = "这一处的上边界距屏幕上边的像素数；坐标基准选窗口时，从窗口自己的"
+            + "上边算起。",
+        ["Add.RegionWidth"] = "向右的宽",
+        ["Add.RegionWidthHint"] = "这一处有多宽，单位像素：从左边界量到右边界。",
+        ["Add.RegionHeight"] = "向下的高",
+        ["Add.RegionHeightHint"] = "这一处有多高，单位像素：从上边界量到下边界。",
+        ["Add.RegionOrVariable"] = "或者：一个变量",
+        ["Add.RegionOrVariableHint"] = "不写四个数，改由一个变量说明看哪里：装着截图动作留下的"
+            + "图片的变量，会在那张图里找；装着 x,y,宽,高 的变量，按它写的位置看。这一格填上"
+            + "东西，四个数就清空。",
+        ["Add.RegionOrVariablePlaceholder"] = "$shot",
         ["Add.RegionEmpty"] = "没填就是看整个屏幕。",
         ["Add.ImageAdd"] = "加一张",
         ["Add.ImageAddHint"] = "再找一张图，排在已经列出的后面。",

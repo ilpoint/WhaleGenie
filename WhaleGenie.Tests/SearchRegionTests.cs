@@ -42,7 +42,7 @@ public class SearchRegionTests
 
             region.AddRegion();
             region.Regions[0].Put(10, 20, 30, 40);
-            region.AddRegion(new RegionRowViewModel { IsFromVariable = true, Named = "$shot" });
+            region.AddRegion(new RegionRowViewModel { OrVariable = "$shot" });
 
             MacroStep? saved = null;
             viewModel.CloseRequested += step => saved = step;
@@ -59,35 +59,61 @@ public class SearchRegionTests
     }
 
     /// <summary>
-    /// A step that reads or copies one part of the screen has the one rectangle, which opens on the
-    /// rectangle the catalogue gives it: a step with nowhere to look would read the whole screen,
-    /// which is not what a default is for. What is dragged out reaches the file as that same row.
+    /// The four numbers of a place to look are ordinary fields: each may be written as an expression
+    /// the engine works out while the macro runs, and what is written is what reaches the file.
     /// </summary>
     [Fact]
-    public void The_one_rectangle_a_step_reads_opens_where_the_catalogue_says()
+    public void A_number_of_a_place_to_look_may_be_worked_out()
     {
         Ui.Run(() =>
         {
-            var viewModel = Open("ocr.recognize");
+            var viewModel = Open("vision.findImage");
             var region = Region(viewModel);
 
-            Assert.True(region.IsRect);
-            var opened = Assert.Single(region.Regions);
-            Assert.Equal("0,0,400,120", opened.Written);
-            Assert.True(opened.IsSingle);
+            region.AddRegion();
+            var row = region.Regions[0];
 
-            region.Regions[0].Put(10, 20, 30, 40);
+            row.X.Write("$left");
+            row.Y.SetNumber(20);
+            row.Width.SetNumber(30);
+            row.Height.SetNumber(40);
+
+            // A number written as a formula is no longer a number, and the row says so.
+            Assert.True(row.HasFormula);
+            Assert.False(row.X.IsPlain);
 
             MacroStep? saved = null;
             viewModel.CloseRequested += step => saved = step;
             viewModel.SaveCommand.Execute(null);
 
             var rows = Assert.Single(new[] { saved! }.ToExecutable()).Rows("region");
-            var row = Assert.Single(rows);
-            Assert.Equal("10", row["x"]);
-            Assert.Equal("20", row["y"]);
-            Assert.Equal("30", row["width"]);
-            Assert.Equal("40", row["height"]);
+            var written = Assert.Single(rows);
+            Assert.Equal("$left", written["x"]);
+            Assert.Equal("20", written["y"]);
+            Assert.Equal("30", written["width"]);
+            Assert.Equal("40", written["height"]);
+        });
+    }
+
+    /// <summary>
+    /// A place is said one way at a time: naming a variable takes the four numbers out, and writing
+    /// a number takes the name out, so no row carries two answers.
+    /// </summary>
+    [Fact]
+    public void A_row_says_where_to_look_one_way_at_a_time()
+    {
+        Ui.Run(() =>
+        {
+            var row = new RegionRowViewModel();
+            row.Put(10, 20, 30, 40);
+
+            row.OrVariable = "$shot";
+            Assert.Equal(string.Empty, row.X.Text);
+            Assert.Equal("$shot", row.ToRow().Text("text"));
+
+            row.X.SetNumber(5);
+            Assert.Equal(string.Empty, row.OrVariable);
+            Assert.Equal("5", row.ToRow().Text("x"));
         });
     }
 
@@ -130,6 +156,58 @@ public class SearchRegionTests
             candidate.IsEffectivelyVisible
             && Equals(candidate.Content, content)
             && (data is null || Equals(candidate.DataContext, data)));
+
+    /// <summary>
+    /// A row is four number fields with nothing to switch between: every one of them has the
+    /// expression builder beside it, and one box beside them names a variable instead. Which way a
+    /// row says where to look is read off the row rather than chosen before typing.
+    /// </summary>
+    [Fact]
+    public void A_row_is_four_number_fields_and_one_variable_box()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(null, ActionCatalog.Definitions,
+                VariableChoicesForChecks.Named("shot"), []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("vision.findImage");
+            Dispatcher.UIThread.RunJobs();
+
+            var region = Region(viewModel);
+            FindButton(window, region, Strings.Get("Add.RegionAdd"))
+                .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            var row = Assert.Single(region.Regions);
+            var cells = row.Cells;
+
+            // Four numbers, each with the expression builder beside it.
+            Assert.Equal(4, window.GetVisualDescendants().OfType<NumericUpDown>()
+                .Count(box => box.IsEffectivelyVisible
+                    && box.DataContext is NumberCellViewModel cell && cells.Contains(cell)));
+            Assert.Equal(4, window.GetVisualDescendants().OfType<Button>()
+                .Count(button => button.IsEffectivelyVisible
+                    && button.Tag is NumberCellViewModel cell && cells.Contains(cell)));
+
+            // And the one box that names a variable instead, on the same row.
+            Assert.Contains(window.GetVisualDescendants().OfType<TextBox>(),
+                box => box.IsEffectivelyVisible && ReferenceEquals(box.DataContext, row));
+
+            // The buttons that go with the row itself: picking one on the screen, naming the
+            // variable that says where to look, and taking the row away again.
+            var buttons = window.GetVisualDescendants().OfType<Button>()
+                .Where(button => button.IsEffectivelyVisible
+                    && ReferenceEquals(button.DataContext, row))
+                .Select(button => button.Content)
+                .ToList();
+            Assert.Contains(Strings.Get("Add.PickRegion"), buttons);
+            Assert.Contains(Strings.Get("Add.RegionRemove"), buttons);
+            Assert.Contains(Strings.Get("Add.VariablePicker"), buttons);
+        });
+    }
 
     [Fact]
     public void The_places_a_step_looks_at_survive_the_macro_package()

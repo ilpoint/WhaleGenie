@@ -2071,10 +2071,7 @@ public static class ActionCatalog
             Description = "Capture a screen region into an image variable.",
             Parameters =
             [
-                Rect("region", "What to capture", "0,0,100,100",
-                    "The part of the screen to copy: drag a rectangle out with “pick region”, or "
-                    + "write x, y, width and height. The four numbers are on the advanced page, "
-                    + "and the rectangle may also be a variable holding one."),
+                ..RegionNumbers(0, 0, 100, 100),
                 ..Anchor(withElement: true),
                 ..Capture(),
                 LookGap(0),
@@ -2314,10 +2311,7 @@ public static class ActionCatalog
             Description = "Read text from a screen region.",
             Parameters =
             [
-                Rect("region", "Where to read", "0,0,400,120",
-                    "The part of the screen to read: drag a rectangle out with “pick region”, or "
-                    + "write x, y, width and height. The four numbers are on the advanced page, "
-                    + "and the rectangle may also be a variable holding one."),
+                ..RegionNumbers(0, 0, 400, 120),
                 Choice("language", "Language", ["auto", "en", "zh"], "auto", advanced: true),
                 Content(),
                 Toggle("table", "Read as a table", false,
@@ -3527,24 +3521,27 @@ public static class ActionCatalog
         };
 
     /// <summary>
-    /// The one part of the screen a step reads or copies, dragged out with the region picker or
-    /// written as four numbers. It is the same shape as a row of <see cref="Region"/>, so the same
-    /// picker, the same "a name instead of four numbers" and the same reading in the engine serve
-    /// both; what the rectangle is called and what is written in it is all that differs.
+    /// The one part of the screen a step reads or copies, written as four numbers it works on
+    /// directly rather than as a rectangle of its own: the corners are ordinary number fields, each
+    /// of which may be written as an expression, and the region picker fills all four at once.
     /// </summary>
-    private static ActionParameter Rect(string name, string label, string defaultRectangle,
-        string hint)
-        => new()
-        {
-            Name = name,
-            Label = label,
-            Kind = ActionParameterKind.Rect,
-            Hint = hint,
-            // A rectangle typed into by hand rather than picked has to start somewhere, and a step
-            // that reads one part of the screen with nowhere given would read the whole screen.
-            DefaultValue = defaultRectangle,
-            Required = true,
-        };
+    private static ActionParameter[] RegionNumbers(int x, int y, int width, int height)
+    =>
+    [
+        Number("x", "Top-left X", x,
+            "How far the left edge of the region is from the left of the screen, in pixels. Under "
+            + "a window anchor it is counted from that window's own left edge. “Pick region” fills "
+            + "this in along with the other three."),
+        Number("y", "Top-left Y", y,
+            "How far the top edge of the region is from the top of the screen, in pixels. Under a "
+            + "window anchor it is counted from that window's own top edge."),
+        Number("width", "Width to the right", width,
+            "How wide the region is, in pixels: the distance from the left edge to the right one. "
+            + "At least 1.", min: 1),
+        Number("height", "Height downward", height,
+            "How tall the region is, in pixels: the distance from the top edge to the bottom one. "
+            + "At least 1.", min: 1),
+    ];
 
     /// <summary>
     /// A run of key combinations: one row per combination, in the order they are pressed. It is a

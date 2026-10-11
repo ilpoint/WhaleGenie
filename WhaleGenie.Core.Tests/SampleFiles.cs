@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -30,6 +31,64 @@ internal static class SampleFiles
     /// <summary>One parameter of a step.</summary>
     public static ExecutableParameter Param(string name, string text = "")
         => new() { Name = name, Text = text };
+
+    /// <summary>
+    /// Where a step looks, written the way the dialog writes it: one row per place, each row giving
+    /// its rectangle by column name.
+    /// </summary>
+    public static ExecutableParameter Region(
+        params (int X, int Y, int Width, int Height)[] rectangles)
+        => new()
+        {
+            Name = "region",
+            Rows = [.. rectangles.Select(rectangle =>
+                (IReadOnlyDictionary<string, string>)new Dictionary<string, string>(
+                    StringComparer.OrdinalIgnoreCase)
+                {
+                    ["x"] = rectangle.X.ToString(CultureInfo.InvariantCulture),
+                    ["y"] = rectangle.Y.ToString(CultureInfo.InvariantCulture),
+                    ["width"] = rectangle.Width.ToString(CultureInfo.InvariantCulture),
+                    ["height"] = rectangle.Height.ToString(CultureInfo.InvariantCulture),
+                })],
+        };
+
+    /// <summary>A place to look that names a variable instead of giving four numbers.</summary>
+    public static ExecutableParameter RegionFrom(string named)
+        => new()
+        {
+            Name = "region",
+            Rows =
+            [
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["text"] = named,
+                },
+            ],
+        };
+
+    /// <summary>
+    /// The one part of the screen a step reads or copies, written the way the dialog writes it: four
+    /// ordinary fields of the step rather than a row of its own, because a rectangle a step works on
+    /// directly is the four numbers it says.
+    /// </summary>
+    public static ExecutableParameter[] Coords(int x, int y, int width, int height)
+        =>
+        [
+            Param("x", x.ToString(CultureInfo.InvariantCulture)),
+            Param("y", y.ToString(CultureInfo.InvariantCulture)),
+            Param("width", width.ToString(CultureInfo.InvariantCulture)),
+            Param("height", height.ToString(CultureInfo.InvariantCulture)),
+        ];
+
+    /// <summary>Copies one part of the screen: the four numbers it covers, then the rest of its settings.</summary>
+    public static ExecutableStep Capture(int x, int y, int width, int height,
+        params ExecutableParameter[] rest)
+        => Step("vision.capture", [.. Coords(x, y, width, height), .. rest]);
+
+    /// <summary>Reads one part of the screen: the four numbers it covers, then the rest of its settings.</summary>
+    public static ExecutableStep Recognize(int x, int y, int width, int height,
+        params ExecutableParameter[] rest)
+        => Step("ocr.recognize", [.. Coords(x, y, width, height), .. rest]);
 
     /// <summary>
     /// The results a step was told to hand over, one row per result: "text" hands it over under the

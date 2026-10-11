@@ -40,11 +40,6 @@ public class ActionPageTests
     /// <summary>
     /// Every field of a step is edited on one page. A field drawn in two places is a field with two
     /// answers being written to it, which is how a form comes to disagree with itself.
-    ///
-    /// A rectangle is the one thing written on two pages, and it is one value with two ways of
-    /// saying it rather than two fields: where it is dragged out is what the step is about and
-    /// stands on the basic page, and the four numbers that make it exact are on the advanced page.
-    /// Both read the same row, so they cannot disagree — and each half has to be somewhere.
     /// </summary>
     [Fact]
     public void Every_field_belongs_to_one_page()
@@ -56,24 +51,12 @@ public class ActionPageTests
             var basic = On(action, viewModel => viewModel.Rows);
             var advanced = On(action, viewModel => viewModel.AdvancedRows);
 
-            var rectangles = Ui.Run(() => Open(action.Key).Parameters
-                .Where(parameter => parameter.IsRegion)
-                .Select(parameter => parameter.Definition.Name)
-                .ToList());
-
-            var drawn = basic.Concat(advanced)
-                .Where(name => !rectangles.Contains(name, StringComparer.Ordinal))
-                .ToList();
-            var twice = drawn.GroupBy(name => name, StringComparer.Ordinal)
+            var twice = basic.Concat(advanced)
+                .GroupBy(name => name, StringComparer.Ordinal)
                 .Where(group => group.Count() > 1)
                 .Select(group => group.Key);
 
             clashes.AddRange(twice.Select(name => $"{action.Key}: {name}"));
-
-            clashes.AddRange(rectangles
-                .Where(name => !(basic.Contains(name, StringComparer.Ordinal)
-                    && advanced.Contains(name, StringComparer.Ordinal)))
-                .Select(name => $"{action.Key}: {name} is not one half on each page"));
         }
 
         Assert.Empty(clashes);
@@ -189,16 +172,14 @@ public class ActionPageTests
     }
 
     /// <summary>
-    /// A rectangle is dragged out on the basic page and made exact on the advanced page: the four
-    /// numbers are what is tuned, and the picking is what the step is.
+    /// The four numbers of a place to look are ordinary fields on the basic page, beside the things
+    /// that say what the step is: the rectangle is dragged out and made exact in one place rather
+    /// than read on two pages that could disagree.
     /// </summary>
     [Theory]
     [InlineData("vision.capture")]
     [InlineData("ocr.recognize")]
-    [InlineData("vision.findImage")]
-    [InlineData("ocr.findText")]
-    public void A_rectangle_is_picked_on_the_basic_page_and_made_exact_on_the_advanced_page(
-        string action)
+    public void A_rectangle_is_picked_and_written_on_the_basic_page(string action)
     {
         Ui.Run(() =>
         {
@@ -206,13 +187,12 @@ public class ActionPageTests
             var basic = viewModel.Rows.SelectMany(Names).ToList();
             var advanced = viewModel.AdvancedRows.SelectMany(Names).ToList();
 
-            Assert.Contains("region", basic);
-            Assert.Contains("region", advanced);
-
-            // The four numbers are on the advanced page and nowhere else; the basic page shows what
-            // was picked rather than four boxes to type in.
-            Assert.DoesNotContain("x", basic);
-            Assert.DoesNotContain("width", basic);
+            Assert.Contains("x", basic);
+            Assert.Contains("y", basic);
+            Assert.Contains("width", basic);
+            Assert.Contains("height", basic);
+            Assert.DoesNotContain("x", advanced);
+            Assert.DoesNotContain("width", advanced);
         });
     }
 

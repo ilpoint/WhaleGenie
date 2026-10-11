@@ -15,24 +15,6 @@ using WhaleGenie.Storage;
 namespace WhaleGenie.ViewModels;
 
 /// <summary>
-/// Which half of a rectangle field one editor is showing. A rectangle is one value with two ways
-/// of saying it — dragged out on the screen, or written as four numbers — and the two ways are read
-/// on two pages: the picking is what the step is about, the numbers are for when the rectangle has
-/// to be exact or has to come from a variable.
-/// </summary>
-public enum RectanglePart
-{
-    /// <summary>The whole field, for the editors that have no second way of saying it.</summary>
-    Whole,
-
-    /// <summary>Where the rectangle is dragged out or named, which is the basic page.</summary>
-    Picker,
-
-    /// <summary>The four numbers, which are on the advanced page.</summary>
-    Numbers,
-}
-
-/// <summary>
 /// Editable wrapper around one <see cref="ActionParameter"/>. Each editor kind has
 /// its own property, so the dialog never has to convert between them while typing.
 /// </summary>
@@ -47,18 +29,9 @@ public partial class StepParameterViewModel : ViewModelBase
     public StepParameterViewModel(ActionParameter definition,
         IReadOnlyList<VariableChoice>? variables = null,
         IReadOnlyList<string>? macros = null, IReadOnlyList<ActionParameterOption>? steps = null,
-        ObservableCollection<RegionRowViewModel>? places = null, RectanglePart part = RectanglePart.Whole,
         IReadOnlyList<ActionReturn>? results = null)
     {
         Definition = definition;
-        Part = part;
-
-        // A rectangle field written on two pages is one value with two editors, and what says where
-        // it is lives in the rows below. The second editor is handed the same list rather than a
-        // copy, so the numbers on the advanced page and the rectangle on the basic page cannot come
-        // apart. The first editor is the one that has a default to lay down.
-        Regions = places ?? [];
-        var holdsDefault = places is null;
         Variables = variables ?? [];
         Named = [.. Variables.Select(choice => choice.Name)];
         Macros = macros ?? [];
@@ -86,13 +59,6 @@ public partial class StepParameterViewModel : ViewModelBase
         ExpressionSuggestions = suggestions;
         Text = definition.DefaultValue;
         Flag = string.Equals(definition.DefaultValue, "true", StringComparison.OrdinalIgnoreCase);
-
-        // A rectangle starts where the catalogue says it does: a step that reads one part of the
-        // screen with nowhere given would read the whole screen, which is not what a default is for.
-        if (holdsDefault && definition.Kind is ActionParameterKind.Rect)
-        {
-            AddRegion(RegionRowViewModel.FromRectangle(definition.DefaultValue));
-        }
 
         // The results this action can hand over are listed here, one line each, with the one a step
         // nearly always wants ticked. What each is named is filled in by the dialog, which is the
@@ -188,26 +154,10 @@ public partial class StepParameterViewModel : ViewModelBase
     /// The places this step looks at, when it is one that searches: one row per rectangle, which
     /// the region picker fills in from a drag on the screen.
     /// </summary>
-    public ObservableCollection<RegionRowViewModel> Regions { get; }
+    public ObservableCollection<RegionRowViewModel> Regions { get; } = [];
 
-    /// <summary>
-    /// Which half of this rectangle field the editor showing it is. A field with one half is drawn
-    /// whole; the halves of a rectangle are drawn on the two pages it belongs to.
-    /// </summary>
-    public RectanglePart Part { get; }
-
-    /// <summary>True when this parameter is a list of the places to search, or the one it reads.</summary>
-    public bool IsRegion => Definition.Kind is ActionParameterKind.Region
-        or ActionParameterKind.Rect;
-
-    /// <summary>True when this parameter is one rectangle rather than a list of them.</summary>
-    public bool IsRect => Definition.Kind is ActionParameterKind.Rect;
-
-    /// <summary>True when this editor is the picking half: drag it out, or name a variable.</summary>
-    public bool IsPickerPart => Part is not RectanglePart.Numbers;
-
-    /// <summary>True when this editor is the four numbers, which are edited on the advanced page.</summary>
-    public bool IsNumbersPart => Part is RectanglePart.Numbers;
+    /// <summary>True when this parameter is a list of the places to search.</summary>
+    public bool IsRegion => Definition.Kind is ActionParameterKind.Region;
 
     /// <summary>True while the step has nowhere in particular to look, which is the whole screen.</summary>
     public bool HasRegions => Regions.Count > 0;
@@ -234,7 +184,7 @@ public partial class StepParameterViewModel : ViewModelBase
     public void AddRegion(RegionRowViewModel? row = null)
     {
         var added = row ?? new RegionRowViewModel();
-        added.IsSingle = IsRect;
+        added.Prepare(Variables);
         added.Take = RemoveRegion;
         added.PropertyChanged += OnRegionChanged;
         Regions.Add(added);
@@ -786,11 +736,7 @@ public partial class StepParameterViewModel : ViewModelBase
     public string FormulaNote => Strings.Get("Add.FormulaNumber");
 
     /// <summary>True when what the field holds is a plain number rather than an expression.</summary>
-    public bool TextIsNumber => IsNumberText(Text);
-
-    private static bool IsNumberText(string? text)
-        => decimal.TryParse((text ?? string.Empty).Trim(), NumberStyles.Number,
-            CultureInfo.InvariantCulture, out _);
+    public bool TextIsNumber => NumberField.IsNumberText(Text);
 
     public bool IsBool => Definition.Kind is ActionParameterKind.Bool;
 
@@ -928,10 +874,6 @@ public partial class StepParameterViewModel : ViewModelBase
         // A list of them is at its default when it is empty: what such a field holds is not in its
         // text, so reading the text alone would call a filled-in list of pictures untouched.
         ActionParameterKind.Region => Regions.Count == 0,
-        // One rectangle starts on the rectangle the catalogue gives it, so it is at its default
-        // while it still says exactly that.
-        ActionParameterKind.Rect => Regions.Count == 1
-            && string.Equals(Regions[0].Written, Definition.DefaultValue, StringComparison.Ordinal),
         ActionParameterKind.KeySequence => !HasKeyPress,
         ActionParameterKind.Images => Pictures.Count == 0,
         // The results are at their default while exactly the ones the action nearly always wants
@@ -980,9 +922,6 @@ public partial class StepParameterViewModel : ViewModelBase
         // field's text, so judging them by the text alone would call a filled-in run of keys empty.
         ActionParameterKind.KeySequence => !HasKeyPress,
         ActionParameterKind.Region => Regions.Count == 0,
-        // One rectangle with nothing in it is not a rectangle: a step that read there would read
-        // nothing at all, so the field still counts as unanswered.
-        ActionParameterKind.Rect => Regions.Count == 0 || Regions[0].IsEmpty,
         // Handing nothing over is a legitimate answer here: the step simply leaves no result.
         ActionParameterKind.Returns => false,
         _ => string.IsNullOrWhiteSpace(CurrentText),
@@ -997,7 +936,6 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         ActionParameterKind.Steps or ActionParameterKind.Condition => HasNestedSteps,
         ActionParameterKind.Region => Regions.Count > 0,
-        ActionParameterKind.Rect => Regions.Count > 0 && !Regions[0].IsEmpty,
         ActionParameterKind.KeySequence => HasKeyPress,
         ActionParameterKind.Images => Pictures.Any(picture => !string.IsNullOrWhiteSpace(picture.Text)),
         ActionParameterKind.Returns => HandsOverAnything,
@@ -1069,7 +1007,7 @@ public partial class StepParameterViewModel : ViewModelBase
         // Which box the field shows is decided from what is being written rather than from what was
         // there a moment ago, and the value goes in before the mode does: switching a number into an
         // expression would otherwise read the number that was showing and decide the other way.
-        var number = written.Length == 0 || IsNumberText(written);
+        var number = written.Length == 0 || NumberField.IsNumberText(written);
         _writing = true;
         try
         {
@@ -1133,26 +1071,9 @@ public partial class StepParameterViewModel : ViewModelBase
 
     private void UpdateExpression(string? source)
     {
-        ExpressionMessage = string.Empty;
-        HasExpressionError = false;
-
-        if (string.IsNullOrWhiteSpace(source))
-        {
-            return;
-        }
-
-        if (!Expression.TryEvaluate(source, new KnownVariables(Named), out var value, out var error))
-        {
-            HasExpressionError = true;
-            ExpressionMessage = ExpressionText.Describe(error!);
-            return;
-        }
-
-        // Without variables the answer is exact, so it is worth showing. With variables
-        // there is nothing to run yet, so the field only confirms that the text reads.
-        ExpressionMessage = source.Contains('$')
-            ? Strings.Get("Add.ExpressionValid")
-            : Strings.Format("Add.ExpressionResult", value.AsText());
+        var (message, failed) = NumberField.Check(source, Named);
+        HasExpressionError = failed;
+        ExpressionMessage = message;
     }
 
     /// <summary>The value as text, taken from whichever editor this parameter uses.</summary>
@@ -1184,7 +1105,6 @@ public partial class StepParameterViewModel : ViewModelBase
         Rows = Definition.Kind switch
         {
             ActionParameterKind.Region => [.. Regions.Select(row => row.ToRow())],
-            ActionParameterKind.Rect => [.. Regions.Select(row => row.ToRow())],
             ActionParameterKind.KeySequence => [.. KeyRows.Select(row => row.ToRow())],
             ActionParameterKind.Images => [.. Pictures.Select(picture => picture.ToRow())],
             ActionParameterKind.Returns => [.. ReturnsRows.Select(row => row.ToRow())
@@ -1206,19 +1126,12 @@ public partial class StepParameterViewModel : ViewModelBase
             return;
         }
 
-        if (Definition.Kind is ActionParameterKind.Region or ActionParameterKind.Rect)
+        if (Definition.Kind is ActionParameterKind.Region)
         {
             Regions.Clear();
             foreach (var row in stored.Rows)
             {
                 AddRegion(RegionRowViewModel.From(row));
-            }
-
-            // The list of places may be empty — it means the whole screen — while the one rectangle
-            // has to be somewhere, so a file that names none opens on the catalogue's own.
-            if (Regions.Count == 0 && Definition.Kind is ActionParameterKind.Rect)
-            {
-                AddRegion(RegionRowViewModel.FromRectangle(Definition.DefaultValue));
             }
 
             return;

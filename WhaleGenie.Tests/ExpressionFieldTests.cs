@@ -129,7 +129,7 @@ public class ExpressionFieldTests
                     or ActionParameterKind.KeySequence;
                 var isPicture = parameter.Kind
                     is ActionParameterKind.Image or ActionParameterKind.Images;
-                var isArea = parameter.Kind is ActionParameterKind.Region or ActionParameterKind.Rect;
+                var isArea = parameter.Kind is ActionParameterKind.Region;
                 var isSelector = parameter.Name is "selector" or "anchorSelector"
                     || (parameter.Name == "target"
                         && parameter.OwnerKey.StartsWith("browser.", StringComparison.Ordinal));

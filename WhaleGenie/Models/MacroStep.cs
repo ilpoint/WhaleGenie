@@ -38,8 +38,7 @@ public class StepParameter
     /// <summary>
     /// The rows of a parameter that holds a list of them, filled in when <see cref="Kind"/> is
     /// <see cref="ActionParameterKind.Region"/>, <see cref="ActionParameterKind.KeySequence"/> or
-    /// <see cref="ActionParameterKind.Images"/>, and holds the one row when it is
-    /// <see cref="ActionParameterKind.Rect"/>; a <see cref="ActionParameterKind.Returns"/> holds
+    /// <see cref="ActionParameterKind.Images"/>; a <see cref="ActionParameterKind.Returns"/> holds
     /// one row per result the step hands over. What the columns of a row mean belongs to the
     /// action, so this holds the names and what they say rather than a shape of its own.
     /// </summary>
@@ -52,8 +51,7 @@ public class StepParameter
     /// while every press of a key run is only itself.
     /// </summary>
     public bool IsRowList => Kind is ActionParameterKind.Region
-        or ActionParameterKind.Rect or ActionParameterKind.KeySequence or ActionParameterKind.Images
-        or ActionParameterKind.Returns;
+        or ActionParameterKind.KeySequence or ActionParameterKind.Images or ActionParameterKind.Returns;
 
     /// <summary>Everything written in the rows of a list parameter, by row.</summary>
     public IEnumerable<string> RowValues => Rows.SelectMany(row => row.Columns.Values);
@@ -71,8 +69,8 @@ public class StepParameter
         ActionParameterKind.Bool => JsonValue.Create(
             string.Equals(Value, "true", StringComparison.OrdinalIgnoreCase)),
         ActionParameterKind.Steps => BuildArray(Steps),
-        ActionParameterKind.Region or ActionParameterKind.Rect or ActionParameterKind.KeySequence
-            or ActionParameterKind.Images or ActionParameterKind.Returns => RowsJson(),
+        ActionParameterKind.Region or ActionParameterKind.KeySequence or ActionParameterKind.Images
+            or ActionParameterKind.Returns => RowsJson(),
         ActionParameterKind.Condition => Condition?.ToJson(),
         _ => JsonValue.Create(Value),
     };
@@ -120,8 +118,8 @@ public class StepParameter
         return node switch
         {
             JsonArray rows when definition?.Kind is ActionParameterKind.Region
-                or ActionParameterKind.Rect or ActionParameterKind.KeySequence
-                or ActionParameterKind.Images or ActionParameterKind.Returns => new StepParameter
+                or ActionParameterKind.KeySequence or ActionParameterKind.Images
+                or ActionParameterKind.Returns => new StepParameter
                 {
                     Name = name,
                     Kind = definition!.Kind,

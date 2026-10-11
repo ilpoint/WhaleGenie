@@ -567,6 +567,48 @@ public partial class AddActionWindow : Window
     }
 
     /// <summary>
+    /// Opens the expression builder on one number of a place to look. The cell carries itself, so
+    /// the button does not have to be looked up from the row it stands in, and what comes back is
+    /// put in the way the cell reads it: a number stays a number, anything else becomes a formula.
+    /// </summary>
+    private async void OnOpenCellExpression(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { Tag: NumberCellViewModel cell })
+        {
+            return;
+        }
+
+        if (await ExpressionBuilderWindow.ShowFor(this, cell.Text, cell.Variables) is { } built)
+        {
+            cell.Write(built);
+        }
+    }
+
+    /// <summary>
+    /// Opens the variable picker on the box of a row of places to look, and drops the name in where
+    /// the caret is. The box belongs to the row rather than to a field of its own, so its caret is
+    /// read off the row the button stands in.
+    /// </summary>
+    private async void OnPickRegionVariable(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: RegionRowViewModel row } button
+            || DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        if (await VariablePickerWindow.ShowFor(this, viewModel.CollectVariables())
+            is not { Length: > 0 } picked)
+        {
+            return;
+        }
+
+        var caret = button.FindAncestorOfType<WrapPanel>(true)?.GetVisualDescendants()
+            .OfType<TextBox>().FirstOrDefault()?.CaretIndex;
+        row.InsertVariable(picked, caret ?? row.OrVariable.Length);
+    }
+
+    /// <summary>
     /// Opens the variable picker on the field that asked for it. A field that can name a variable
     /// should never need the name typed out of memory, and the name goes in where the caret is: a
     /// field is often a piece of text with a variable beside it rather than only a variable.
