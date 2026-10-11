@@ -1,5 +1,18 @@
 # WhaleGenie（鲸灵）
 
+[![Windows 10 2004+ / 11 (x64)](https://img.shields.io/badge/Windows-10%202004%2B%20%7C%2011%20(x64)-0078D4?logo=windows&logoColor=white)](https://www.microsoft.com/windows)
+[![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)](https://github.com/dotnet/runtime)
+[![Avalonia](https://img.shields.io/badge/Avalonia-MIT-007ec6)](https://github.com/AvaloniaUI/Avalonia)
+[![CommunityToolkit.Mvvm](https://img.shields.io/badge/CommunityToolkit.Mvvm-MIT-007ec6)](https://github.com/CommunityToolkit/dotnet)
+[![SharpHook](https://img.shields.io/badge/SharpHook-MIT-007ec6)](https://github.com/TolikPylypchuk/SharpHook)
+[![Viiper.Client](https://img.shields.io/badge/Viiper.Client-MIT-007ec6)](https://github.com/Alia5/VIIPER)
+[![OpenCvSharp5](https://img.shields.io/badge/OpenCvSharp5-Apache--2.0-97CA00)](https://github.com/shimat/opencvsharp)
+[![SimdPaddleOCR](https://img.shields.io/badge/SimdPaddleOCR-Apache--2.0-97CA00)](https://github.com/sdcb/SimdPaddleOCR)
+[![FlaUI](https://img.shields.io/badge/FlaUI-MIT-007ec6)](https://github.com/FlaUI/FlaUI)
+[![Playwright](https://img.shields.io/badge/Playwright-Apache--2.0-97CA00)](https://github.com/microsoft/playwright-dotnet)
+[![CsvHelper](https://img.shields.io/badge/CsvHelper-Apache--2.0%20%7C%20MS--PL-97CA00)](https://github.com/JoshClose/CsvHelper)
+[![Zaya.Screenshot](https://img.shields.io/badge/Zaya.Screenshot-MIT-007ec6)](https://github.com/shtrasser-dev/Zaya.Screenshot)
+
 Windows 上的宏自动化工具，面向**游戏宏**：把键盘、鼠标、手柄、屏幕和窗口上的操作编成一步步的宏，
 用热键、鼠标按键、滚轮或屏幕上某个像素的颜色触发它。文件、数据、网页那些办公向的能力也在，
 只是它们不是这个工具的重点。界面用 Avalonia 写，执行引擎与界面分离。
