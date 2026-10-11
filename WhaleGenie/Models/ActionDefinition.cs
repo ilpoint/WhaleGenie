@@ -112,6 +112,14 @@ public enum ActionParameterKind
 public sealed record ActionParameterOption(string Value, string Display);
 
 /// <summary>
+/// What a field is called, and what it shows as an example, while a sibling field holds a
+/// particular value: the same field asks for a plain piece of text or for a pattern depending on
+/// what the field beside it says, and the two are not written the same way.
+/// </summary>
+public sealed record ActionParameterVariant(string Sibling, string When, string Label,
+    string Placeholder);
+
+/// <summary>
 /// What kind of value a <see cref="ActionReturn"/> holds. The editor shows it — a list reads as a
 /// count of items, a picture as its size — and the variable pickers use it to say what a name is
 /// good for, so it is worth saying rather than leaving every result as just "text".
@@ -227,6 +235,22 @@ public class ActionParameter
 
     /// <summary>Label in the current interface language.</summary>
     public string LocalLabel => Strings.Get($"{OwnerKey}.{Name}.label", Label);
+
+    /// <summary>
+    /// What this field is called, and what it shows as an example, while a sibling field says
+    /// something particular. A window's text is a regular expression once the comparing field says
+    /// so, and calling it "match text" either way leaves the person writing the step to work out
+    /// where the pattern goes.
+    /// </summary>
+    public ActionParameterVariant? Variant { get; init; }
+
+    /// <summary>Label of the variant in the current interface language.</summary>
+    internal string LocalVariantLabel
+        => Strings.Get($"{OwnerKey}.{Name}.{Variant!.When}.label", Variant.Label);
+
+    /// <summary>Placeholder of the variant in the current interface language.</summary>
+    internal string LocalVariantPlaceholder
+        => Strings.Get($"{OwnerKey}.{Name}.{Variant!.When}.placeholder", Variant.Placeholder);
 
     /// <summary>Hint in the current interface language.</summary>
     public string LocalHint => Strings.Get($"{OwnerKey}.{Name}.hint", Hint);

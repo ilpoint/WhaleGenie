@@ -75,6 +75,38 @@ public class ActionDialogTests
         => viewModel.Parameters.First(parameter => parameter.Definition.Name == name).CurrentText;
 
     [Fact]
+    public void A_window_text_is_called_a_pattern_while_the_comparing_field_says_so()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("window.exists");
+            var text = viewModel.Parameters.First(parameter => parameter.Definition.Name == "title");
+            var variant = text.Definition.Variant!;
+
+            // A field that may be left empty says so, whichever of its two names is showing.
+            Assert.Equal(Strings.Format("Common.OptionalSuffix", text.Definition.LocalLabel),
+                text.Label);
+            Assert.Equal("Notepad", text.Placeholder);
+
+            Choose(viewModel, "compareBy", "regex");
+
+            // What goes in the field is a pattern now, and it should not go on being called the
+            // text of a title bar while that is what it wants.
+            Assert.Equal(Strings.Format("Common.OptionalSuffix",
+                Strings.Get("window.exists.title.regex.label", variant.Label)), text.Label);
+            Assert.Equal(Strings.Get("window.exists.title.regex.placeholder", variant.Placeholder),
+                text.Placeholder);
+
+            Choose(viewModel, "compareBy", "startsWith");
+            Assert.Equal(Strings.Format("Common.OptionalSuffix", text.Definition.LocalLabel),
+                text.Label);
+
+            Choose(viewModel, "compareBy", "contains");
+            Assert.Equal("Notepad", text.Placeholder);
+        });
+    }
+
+    [Fact]
     public void A_step_that_reads_the_screen_starts_with_no_rectangle()
     {
         Ui.Run(() =>

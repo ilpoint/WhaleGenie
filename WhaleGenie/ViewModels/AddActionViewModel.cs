@@ -1448,6 +1448,15 @@ public partial class AddActionViewModel : ViewModelBase
                     rows++;
                 }
             }
+
+            // What a field is called can follow a field beside it as well: the text a window is
+            // recognised by is a pattern once the comparing field says so, and it should not go on
+            // being called the same thing while that is what it holds.
+            if (editor.Definition.Variant is { } named)
+            {
+                editor.UpdateVariant(Parameters.FirstOrDefault(parameter =>
+                    parameter.Definition.Name == named.Sibling)?.CurrentText);
+            }
         }
 
         // Which windows the step recognises is read off all three of those fields, so it is asked

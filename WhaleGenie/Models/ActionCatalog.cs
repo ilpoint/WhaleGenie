@@ -4228,6 +4228,11 @@ public static class ActionCatalog
             Label = "Match text",
             Kind = ActionParameterKind.Window,
             Placeholder = "Notepad",
+            // Once the comparing field says "regular expression", this field asks for a pattern
+            // rather than for the text of a title bar, and the person writing the step should not
+            // have to work out that the pattern goes here.
+            Variant = new ActionParameterVariant("compareBy", "regex", "Match pattern",
+                @"Notepad.*?\.txt"),
             Hint = "The text the window is recognised by. It is compared with the part chosen by "
                    + "\"Match by\", the way \"Compare\" says, ignoring case. Leave it empty for the "
                    + "window in front.",

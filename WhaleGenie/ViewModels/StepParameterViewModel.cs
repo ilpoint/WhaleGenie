@@ -26,6 +26,9 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>True while a whole value is being put in at once, rather than typed a character at a time.</summary>
     private bool _writing;
 
+    /// <summary>True while the field beside this one says this field goes by its other name.</summary>
+    private bool _variantSays;
+
     private WindowPreviewViewModel? _windowPreview;
 
     public StepParameterViewModel(ActionParameter definition,
@@ -920,15 +923,43 @@ public partial class StepParameterViewModel : ViewModelBase
 
     public decimal Increment => Definition.Increment;
 
-    public string Label => Definition.Required
-        ? Definition.LocalLabel
-        : Strings.Format("Common.OptionalSuffix", Definition.LocalLabel);
+    /// <summary>The name this field goes by right now, which a field beside it can change.</summary>
+    public string Label => Name(_variantSays && Definition.Variant is not null
+        ? Definition.LocalVariantLabel
+        : Definition.LocalLabel);
 
     public string Hint => Definition.LocalHint;
 
     public bool HasHint => !string.IsNullOrWhiteSpace(Definition.Hint);
 
-    public string Placeholder => Definition.Placeholder;
+    public string Placeholder => _variantSays && Definition.Variant is not null
+        ? Definition.LocalVariantPlaceholder
+        : Definition.Placeholder;
+
+    /// <summary>An optional field says so, whichever of its names is the one showing.</summary>
+    private string Name(string label)
+        => Definition.Required ? label : Strings.Format("Common.OptionalSuffix", label);
+
+    /// <summary>
+    /// Reacts to the field this one is renamed by: a window's text is called one thing while it is
+    /// compared literally and another while it is a pattern, so which name shows follows the answer
+    /// the comparing field holds.
+    /// </summary>
+    public void UpdateVariant(string? siblingValue)
+    {
+        var says = Definition.Variant is { } variant
+            && string.Equals(siblingValue?.Trim() ?? string.Empty, variant.When,
+                StringComparison.OrdinalIgnoreCase);
+
+        if (says == _variantSays)
+        {
+            return;
+        }
+
+        _variantSays = says;
+        OnPropertyChanged(nameof(Label));
+        OnPropertyChanged(nameof(Placeholder));
+    }
 
     /// <summary>What the expression editor of a number field hints at.</summary>
     public string FormulaPlaceholder => Strings.Get("Add.FormulaPlaceholder");

@@ -120,6 +120,14 @@ internal static class ActionStrings
     /// <summary>The label every window action gives the text its window is recognised by.</summary>
     private const string WindowMatchTextLabel = "匹配内容";
 
+    /// <summary>
+    /// The same label and example for the case where that text is a pattern rather than a piece of
+    /// a title: what goes in the field is written differently, so it is not called the same thing.
+    /// </summary>
+    private const string WindowRegexLabel = "匹配的正则";
+
+    private const string WindowRegexPlaceholder = @"记事本.*?\.txt";
+
     /// <summary>The comparing hint the window actions share.</summary>
     private const string WindowCompareHint =
         "「匹配内容」怎么和那一部分比较。包含：那部分里出现这段文字就算匹配；开头是：那部分从这段文字开头；"
@@ -1025,6 +1033,8 @@ internal static class ActionStrings
         ["window.exists.name"] = "窗口是否存在",
         ["window.exists.desc"] = "检查当前有没有符合匹配内容的窗口。",
         ["window.exists.title.label"] = WindowMatchTextLabel,
+        ["window.exists.title.regex.label"] = WindowRegexLabel,
+        ["window.exists.title.regex.placeholder"] = WindowRegexPlaceholder,
         ["window.exists.title.hint"] = WindowTitleHint,
         ["window.exists.matchBy.label"] = "匹配方式",
         ["window.exists.matchBy.hint"] = WindowMatchByHint,
@@ -1040,6 +1050,8 @@ internal static class ActionStrings
         ["window.waitFor.name"] = "等待窗口",
         ["window.waitFor.desc"] = "等到符合匹配内容的窗口出现为止，超过给定时间算失败。",
         ["window.waitFor.title.label"] = WindowMatchTextLabel,
+        ["window.waitFor.title.regex.label"] = WindowRegexLabel,
+        ["window.waitFor.title.regex.placeholder"] = WindowRegexPlaceholder,
         ["window.waitFor.title.hint"] = WindowTitleHint,
         ["window.waitFor.matchBy.label"] = "匹配方式",
         ["window.waitFor.matchBy.hint"] = WindowMatchByHint,
@@ -1057,6 +1069,8 @@ internal static class ActionStrings
         ["window.activate.name"] = "激活窗口",
         ["window.activate.desc"] = "把符合匹配内容的窗口调到最前，已最小化时先恢复。",
         ["window.activate.title.label"] = WindowMatchTextLabel,
+        ["window.activate.title.regex.label"] = WindowRegexLabel,
+        ["window.activate.title.regex.placeholder"] = WindowRegexPlaceholder,
         ["window.activate.title.hint"] = WindowTitleHint,
         ["window.activate.matchBy.label"] = "匹配方式",
         ["window.activate.matchBy.hint"] = WindowMatchByHint,
@@ -1072,6 +1086,8 @@ internal static class ActionStrings
         ["window.minimize.name"] = "最小化窗口",
         ["window.minimize.desc"] = "把符合匹配内容的窗口最小化到任务栏。",
         ["window.minimize.title.label"] = WindowMatchTextLabel,
+        ["window.minimize.title.regex.label"] = WindowRegexLabel,
+        ["window.minimize.title.regex.placeholder"] = WindowRegexPlaceholder,
         ["window.minimize.title.hint"] = WindowTitleHint,
         ["window.minimize.matchBy.label"] = "匹配方式",
         ["window.minimize.matchBy.hint"] = WindowMatchByHint,
@@ -1087,6 +1103,8 @@ internal static class ActionStrings
         ["window.maximize.name"] = "最大化窗口",
         ["window.maximize.desc"] = "把符合匹配内容的窗口最大化，铺满整个屏幕。",
         ["window.maximize.title.label"] = WindowMatchTextLabel,
+        ["window.maximize.title.regex.label"] = WindowRegexLabel,
+        ["window.maximize.title.regex.placeholder"] = WindowRegexPlaceholder,
         ["window.maximize.title.hint"] = WindowTitleHint,
         ["window.maximize.matchBy.label"] = "匹配方式",
         ["window.maximize.matchBy.hint"] = WindowMatchByHint,
@@ -1102,6 +1120,8 @@ internal static class ActionStrings
         ["window.restore.name"] = "还原窗口",
         ["window.restore.desc"] = "把符合匹配内容的窗口从最小化或最大化恢复成正常大小。",
         ["window.restore.title.label"] = WindowMatchTextLabel,
+        ["window.restore.title.regex.label"] = WindowRegexLabel,
+        ["window.restore.title.regex.placeholder"] = WindowRegexPlaceholder,
         ["window.restore.title.hint"] = WindowTitleHint,
         ["window.restore.matchBy.label"] = "匹配方式",
         ["window.restore.matchBy.hint"] = WindowMatchByHint,
@@ -1117,6 +1137,8 @@ internal static class ActionStrings
         ["window.move.name"] = "移动窗口",
         ["window.move.desc"] = "把符合匹配内容的窗口移到指定位置，并改成指定大小。",
         ["window.move.title.label"] = WindowMatchTextLabel,
+        ["window.move.title.regex.label"] = WindowRegexLabel,
+        ["window.move.title.regex.placeholder"] = WindowRegexPlaceholder,
         ["window.move.title.hint"] = WindowTitleHint,
         ["window.move.matchBy.label"] = "匹配方式",
         ["window.move.matchBy.hint"] = WindowMatchByHint,
@@ -1140,6 +1162,8 @@ internal static class ActionStrings
         ["window.close.name"] = "关闭窗口",
         ["window.close.desc"] = "请求符合匹配内容的窗口关闭，相当于点它的关闭按钮。",
         ["window.close.title.label"] = WindowMatchTextLabel,
+        ["window.close.title.regex.label"] = WindowRegexLabel,
+        ["window.close.title.regex.placeholder"] = WindowRegexPlaceholder,
         ["window.close.title.hint"] = WindowTitleHint,
         ["window.close.matchBy.label"] = "匹配方式",
         ["window.close.matchBy.hint"] = WindowMatchByHint,
@@ -1165,6 +1189,8 @@ internal static class ActionStrings
         ["window.info.name"] = "窗口信息",
         ["window.info.desc"] = "读取符合匹配内容的窗口的位置和大小。",
         ["window.info.title.label"] = WindowMatchTextLabel,
+        ["window.info.title.regex.label"] = WindowRegexLabel,
+        ["window.info.title.regex.placeholder"] = WindowRegexPlaceholder,
         ["window.info.title.hint"] = WindowTitleHint,
         ["window.info.matchBy.label"] = "匹配方式",
         ["window.info.matchBy.hint"] = WindowMatchByHint,
@@ -1842,6 +1868,8 @@ internal static class ActionStrings
         ["vision.captureWindow.name"] = "截取窗口",
         ["vision.captureWindow.desc"] = "把整个窗口连着标题栏一起截取到图像变量里。",
         ["vision.captureWindow.title.label"] = WindowMatchTextLabel,
+        ["vision.captureWindow.title.regex.label"] = WindowRegexLabel,
+        ["vision.captureWindow.title.regex.placeholder"] = WindowRegexPlaceholder,
         ["vision.captureWindow.title.hint"] = WindowTitleHint,
         ["vision.captureWindow.matchBy.label"] = "匹配方式",
         ["vision.captureWindow.matchBy.hint"] = WindowMatchByHint,
