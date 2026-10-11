@@ -1176,8 +1176,7 @@ public class DeviceActionTests
 
         await RunAsync(
         [
-            Step("vision.capture", Param("x", "10"), Param("y", "20"), Param("width", "30"),
-                Param("height", "40"), Param("anchorMode", "client"),
+            Step("vision.capture", Region((10, 20, 30, 40)), Param("anchorMode", "client"),
                 Param("anchorWindow", "Game"), Param("saveTo", "shot")),
         ], devices);
 
@@ -1205,8 +1204,7 @@ public class DeviceActionTests
 
         await RunAsync(
         [
-            Step("vision.capture", Param("x", "1"), Param("y", "1"), Param("width", "2"),
-                Param("height", "2"), Param("anchorMode", "client"),
+            Step("vision.capture", Region((1, 1, 2, 2)), Param("anchorMode", "client"),
                 Param("anchorWindow", "Game"), Param("captureMode", written),
                 Param("saveTo", "shot")),
         ], devices);
@@ -1227,11 +1225,9 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("vision.capture", Param("x", "7"), Param("y", "9"), Param("width", "10"),
-                Param("height", "10"), Param("anchorMode", "window"),
+            Step("vision.capture", Region((7, 9, 10, 10)), Param("anchorMode", "window"),
                 Param("anchorWindow", "Game"), Param("saveTo", "fromWindow")),
-            Step("vision.capture", Param("x", "7"), Param("y", "9"), Param("width", "10"),
-                Param("height", "10"), Param("saveTo", "fromScreen")),
+            Step("vision.capture", Region((7, 9, 10, 10)), Param("saveTo", "fromScreen")),
         ], devices);
 
         Assert.Equal((107, 59, 10, 10),
@@ -1255,8 +1251,7 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("vision.capture", Param("x", "0"), Param("y", "0"), Param("width", "10"),
-                Param("height", "10"), Param("captureMode", "graphicsCapture"),
+            Step("vision.capture", Region((0, 0, 10, 10)), Param("captureMode", "graphicsCapture"),
                 Param("saveTo", "shot")),
         ], devices);
 
@@ -1277,8 +1272,7 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("vision.capture", Param("x", "0"), Param("y", "0"), Param("width", "10"),
-                Param("height", "10"), Param("anchorMode", "client"), Param("anchorWindow", "Game"),
+            Step("vision.capture", Region((0, 0, 10, 10)), Param("anchorMode", "client"), Param("anchorWindow", "Game"),
                 Param("captureMode", "graphicsCapture"), Param("saveTo", "shot")),
         ], devices);
 
@@ -1402,8 +1396,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("vision.capture", Param("x", "10"), Param("y", "10"), Param("width", "20"),
-                Param("height", "20"), Param("frameMaxAgeMs", "200"), Param("saveTo", "shot")),
+            Step("vision.capture", Region((10, 10, 20, 20)), Param("frameMaxAgeMs", "200"), Param("saveTo", "shot")),
             Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
                 Param("confidence", "90"), Param("frameMaxAgeMs", "200"),
                 Param("resultVariable", "match")),
@@ -1432,8 +1425,7 @@ public class DeviceActionTests
 
         await RunAsync(
         [
-            Step("vision.capture", Param("x", "10"), Param("y", "10"), Param("width", "20"),
-                Param("height", "20"), Param("frameMaxAgeMs", "200"), Param("saveTo", "shot")),
+            Step("vision.capture", Region((10, 10, 20, 20)), Param("frameMaxAgeMs", "200"), Param("saveTo", "shot")),
             Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
                 Param("confidence", "90"), Param("resultVariable", "match")),
         ], devices);
@@ -1457,8 +1449,7 @@ public class DeviceActionTests
 
         await RunAsync(
         [
-            Step("vision.capture", Param("x", "10"), Param("y", "10"), Param("width", "20"),
-                Param("height", "20"), Param("frameMaxAgeMs", "20"), Param("saveTo", "shot")),
+            Step("vision.capture", Region((10, 10, 20, 20)), Param("frameMaxAgeMs", "20"), Param("saveTo", "shot")),
             Step("control.delay", Param("ms", "60")),
             Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
                 Param("confidence", "90"), Param("frameMaxAgeMs", "20"),
@@ -1735,8 +1726,7 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("vision.capture", Param("x", "0"), Param("y", "0"), Param("width", "10"),
-                Param("height", "10"), Param("saveTo", "shot")),
+            Step("vision.capture", Region((0, 0, 10, 10)), Param("saveTo", "shot")),
             Step("vision.findImage", Pictures("shot"), Param("confidence", "90"),
                 Param("region", ""), Param("resultVariable", "where")),
         ], devices);
@@ -1880,8 +1870,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("ocr.recognize", Param("x", "0"), Param("y", "0"), Param("width", "100"),
-                Param("height", "20"), Param("language", "en"), Param("resultVariable", "words")),
+            Step("ocr.recognize", Region((0, 0, 100, 20)), Param("language", "en"), Param("resultVariable", "words")),
         ], devices);
 
         Assert.Equal("Ready Go", store.Local.Values["words"].AsText());
@@ -2017,8 +2006,7 @@ public class DeviceActionTests
 
         var (_, _, _) = await RunAsync(
         [
-            Step("ocr.recognize", Param("x", "0"), Param("y", "0"), Param("width", "2"),
-                Param("height", "1"), Param("colorFilter", "#FFFFFF"),
+            Step("ocr.recognize", Region((0, 0, 2, 1)), Param("colorFilter", "#FFFFFF"),
                 Param("colorTolerance", "10"), Param("resultVariable", "text")),
         ], devices);
 
@@ -2043,8 +2031,7 @@ public class DeviceActionTests
 
         var (_, _, _) = await RunAsync(
         [
-            Step("ocr.recognize", Param("x", "0"), Param("y", "0"), Param("width", "2"),
-                Param("height", "1"), Param("resultVariable", "text")),
+            Step("ocr.recognize", Region((0, 0, 2, 1)), Param("resultVariable", "text")),
         ], devices);
 
         var handed = Assert.Single(devices.OcrPictures);
@@ -2097,8 +2084,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("ocr.recognize", Param("x", "0"), Param("y", "0"), Param("width", "100"),
-                Param("height", "40"), Param("content", "digits"), Param("resultVariable", "amounts")),
+            Step("ocr.recognize", Region((0, 0, 100, 40)), Param("content", "digits"), Param("resultVariable", "amounts")),
             Step("ocr.findText", Param("text", "1234.50"), Param("content", "digits"),
                 Param("resultVariable", "where")),
         ], devices);
@@ -2123,8 +2109,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("ocr.recognize", Param("x", "0"), Param("y", "0"), Param("width", "200"),
-                Param("height", "60"), Param("table", "true"), Param("resultVariable", "sheet")),
+            Step("ocr.recognize", Region((0, 0, 200, 60)), Param("table", "true"), Param("resultVariable", "sheet")),
         ], devices);
 
         var rows = store.Local.Values["sheet"].AsList();
@@ -4893,8 +4878,7 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("vision.capture", Param("x", "0"), Param("y", "0"), Param("width", "10"),
-                Param("height", "10"), Param("saveTo", "shot")),
+            Step("vision.capture", Region((0, 0, 10, 10)), Param("saveTo", "shot")),
             Step("vision.findImage", Pictures("$shot"), Param("confidence", "90"),
                 Param("region", ""), Param("resultVariable", "where")),
         ], devices);
@@ -4948,8 +4932,7 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("vision.capture", Param("x", "0"), Param("y", "0"), Param("width", "2"),
-                Param("height", "1"), Param("saveTo", "shot")),
+            Step("vision.capture", Region((0, 0, 2, 1)), Param("saveTo", "shot")),
             Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
                 RegionFrom("$shot"), Param("resultVariable", "where")),
         ], devices);

@@ -30,8 +30,13 @@ public sealed class ParameterRowViewModel
     /// </summary>
     public bool IsDefault => First.IsDefault && (Second?.IsDefault ?? true);
 
-    /// <summary>True when this line carries the button that picks a whole screen region.</summary>
-    public bool IsRegionAnchor => First.IsRegionAnchor;
+    /// <summary>
+    /// True when this line carries the button that picks a whole screen region. A field that holds
+    /// one rectangle has that button on the rectangle itself, so the line under it does not repeat
+    /// it; a search that may look in several places has no single row to hang it on, and the button
+    /// that adds a picked place belongs under the list.
+    /// </summary>
+    public bool IsRegionAnchor => First.IsRegionAnchor && !First.IsRect;
 
     /// <summary>True when this line carries the button that picks a click point on the picture.</summary>
     public bool ShowsOffsetPick => First.IsOffsetAnchor;

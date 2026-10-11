@@ -330,6 +330,15 @@ public partial class AddActionViewModel : ViewModelBase
     public ObservableCollection<StepParameterViewModel> Parameters { get; } = [];
 
     /// <summary>
+    /// The four numbers of every rectangle of the selected action, one editor per rectangle field,
+    /// sharing its rows with the editor on the basic page. They are not part of
+    /// <see cref="Parameters"/>: a rectangle is one value, and saving it twice would write the same
+    /// thing in two places.
+    /// </summary>
+    private Dictionary<string, StepParameterViewModel> RegionNumbers { get; } =
+        new(StringComparer.Ordinal);
+
+    /// <summary>
     /// The four pages a step is edited on, in the order they are read. A step of a dozen fields is
     /// the reason they exist: which page a field belongs on is decided by the catalogued parameter
     /// rather than here, and this only says which page is open.
@@ -979,7 +988,13 @@ public partial class AddActionViewModel : ViewModelBase
             }
         }
 
+        foreach (var numbers in RegionNumbers.Values)
+        {
+            numbers.PropertyChanged -= OnParameterChanged;
+        }
+
         Parameters.Clear();
+        RegionNumbers.Clear();
 
         if (definition is not null)
         {
@@ -1000,6 +1015,20 @@ public partial class AddActionViewModel : ViewModelBase
                 }
 
                 Parameters.Add(editor);
+
+                // A rectangle is one value with two ways of saying it, and they are read a page
+                // apart. The second editor is handed the same rows, so the two halves of one
+                // field cannot come apart: what is dragged out on one page is what the numbers on
+                // the other say.
+                if (editor.IsRegion)
+                {
+                    var numbers = new StepParameterViewModel(
+                        parameter, variables, _macros, steps, editor.Regions,
+                        RectanglePart.Numbers);
+                    numbers.AssetFolder = _assetFolder;
+                    numbers.PropertyChanged += OnParameterChanged;
+                    RegionNumbers[parameter.Name] = numbers;
+                }
             }
 
             MarkCoordinates();
@@ -1025,10 +1054,30 @@ public partial class AddActionViewModel : ViewModelBase
         AdvancedRows.Clear();
         OutputRows.Clear();
 
-        FillRows(Parameters.Where(parameter => !parameter.Definition.IsOutputVariable
-            && !parameter.IsAdvanced), Rows);
-        FillRows(Parameters.Where(parameter => !parameter.Definition.IsOutputVariable
-            && parameter.IsAdvanced), AdvancedRows);
+        // A rectangle is laid out as the two halves of one field: where it is picked is what the
+        // step is about and stands first, and the four numbers are a way of being exact and go with
+        // the rest of the fine tuning. The order of the fields is kept on both pages.
+        var basic = new List<StepParameterViewModel>();
+        var fine = new List<StepParameterViewModel>();
+        foreach (var parameter in Parameters)
+        {
+            if (parameter.Definition.IsOutputVariable)
+            {
+                continue;
+            }
+
+            if (parameter.IsRegion)
+            {
+                basic.Add(parameter);
+                fine.Add(RegionNumbers[parameter.Definition.Name]);
+                continue;
+            }
+
+            (parameter.IsAdvanced ? fine : basic).Add(parameter);
+        }
+
+        FillRows(basic, Rows);
+        FillRows(fine, AdvancedRows);
         FillRows(Parameters.Where(parameter => parameter.Definition.IsOutputVariable), OutputRows);
 
         RefreshPages();
@@ -1323,7 +1372,19 @@ public partial class AddActionViewModel : ViewModelBase
 
         if (!filled && Parameter("region") is { } region)
         {
-            region.Text = $"{left},{top},{width},{height}";
+            // A step that reads or copies one part of the screen has the one rectangle, and a
+            // search that has several places may have this one added to them: what the button says
+            // is "look here", so that is what it does either way.
+            var row = RegionRowViewModel.FromRectangle($"{left},{top},{width},{height}");
+            if (region.IsRect && region.Regions.Count > 0)
+            {
+                region.Regions[0].Put(left, top, width, height);
+            }
+            else
+            {
+                region.AddRegion(row);
+            }
+
             filled = true;
         }
 

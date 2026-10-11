@@ -578,10 +578,12 @@ public class ActionDialogTests
 
             Assert.True(viewModel.ApplyRegion(1008, 530, 30, 40));
 
-            Assert.Equal("8", Value(viewModel, "x"));
-            Assert.Equal("10", Value(viewModel, "y"));
-            Assert.Equal("30", Value(viewModel, "width"));
-            Assert.Equal("40", Value(viewModel, "height"));
+            // The rectangle a step reads is stored the way the engine will read it back: counted
+            // from the window's own corner rather than from the screen, because that is what tells
+            // the step where inside the window to look.
+            var row = Assert.Single(viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "region").Regions);
+            Assert.Equal("8,10,30,40", row.Written);
         });
     }
 
@@ -742,12 +744,12 @@ public class ActionDialogTests
     }
 
     [Theory]
-    [InlineData("vision.capture", "x")]
-    [InlineData("ocr.recognize", "x")]
-    [InlineData("input.mouseDrag", "startX")]
     [InlineData("ocr.findText", "region")]
     [InlineData("vision.findImage", "region")]
     [InlineData("condition.imageExists", "region")]
+    [InlineData("vision.capture", "region")]
+    [InlineData("ocr.recognize", "region")]
+    [InlineData("input.mouseDrag", "startX")]
     public void The_region_picker_sits_on_the_row_that_names_a_rectangle(string key, string anchor)
     {
         Ui.Run(() =>
@@ -755,8 +757,14 @@ public class ActionDialogTests
             var viewModel = Open(key);
 
             Assert.True(viewModel.HasRegion);
-            Assert.True(viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == anchor).IsRegionAnchor);
+
+            // Where the button is written down is the line that names the rectangle, and it stands
+            // on the basic page: a rectangle is dragged out on the screen, and that is what the
+            // step is about rather than how it is tuned.
+            var field = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == anchor);
+            Assert.True(field.IsRegionAnchor || field.IsRect);
+            Assert.Contains(anchor, viewModel.Rows.SelectMany(Names));
         });
     }
 
@@ -770,11 +778,11 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_rectangle_fills_x_y_width_and_height()
+    public void A_rectangle_fills_the_four_numbers_a_window_step_works_on()
     {
         Ui.Run(() =>
         {
-            var viewModel = Open("vision.capture");
+            var viewModel = Open("window.move");
 
             Assert.True(viewModel.ApplyRegion(10, 20, 30, 40));
             Assert.Equal("10", Value(viewModel, "x"));
@@ -784,15 +792,44 @@ public class ActionDialogTests
         });
     }
 
+    /// <summary>
+    /// A step that reads or copies one part of the screen keeps the rectangle it was given, so the
+    /// four numbers of the advanced page and the read-out on the basic page say the same thing.
+    /// </summary>
     [Fact]
-    public void A_rectangle_fills_a_single_region_field()
+    public void A_rectangle_fills_the_one_region_a_step_reads()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("ocr.recognize");
+            var region = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "region");
+
+            Assert.True(viewModel.ApplyRegion(10, 20, 30, 40));
+
+            var row = Assert.Single(region.Regions);
+            Assert.Equal("10,20,30,40", row.Written);
+            // A step with nowhere to look is not a step, so the one rectangle cannot be taken away.
+            Assert.True(row.IsSingle);
+            Assert.Contains("region", viewModel.Rows.SelectMany(Names));
+        });
+    }
+
+    /// <summary>A search that may look in several places takes the rectangle as one more place.</summary>
+    [Fact]
+    public void A_rectangle_adds_a_place_to_a_search()
     {
         Ui.Run(() =>
         {
             var viewModel = Open("ocr.findText");
+            var region = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "region");
 
             Assert.True(viewModel.ApplyRegion(10, 20, 30, 40));
-            Assert.Equal("10,20,30,40", Value(viewModel, "region"));
+
+            var row = Assert.Single(region.Regions);
+            Assert.Equal("10,20,30,40", row.Written);
+            Assert.False(row.IsSingle);
         });
     }
 
@@ -1126,10 +1163,11 @@ public class ActionDialogTests
             viewModel.SelectAction("input.mouseMove");
             Dispatcher.UIThread.RunJobs();
 
-            // x and y share a line, so four fields read as three lines while the advanced page
-            // holds the rest: what the coordinates are measured from, and where the input is sent.
-            Assert.Equal(3, viewModel.Rows.Count);
-            Assert.Equal(5, viewModel.AdvancedRows.Count);
+            // x and y share a line, so where the pointer goes and how long it takes read as two
+            // lines while the advanced page holds the rest: what the coordinates are measured from,
+            // how the pointer travels, and where the input is sent.
+            Assert.Equal(2, viewModel.Rows.Count);
+            Assert.Equal(6, viewModel.AdvancedRows.Count);
             Assert.True(viewModel.OnBase);
 
             // The pages are opened by their own tabs rather than by a fold, so a step's settings
@@ -1384,14 +1422,17 @@ public class ActionDialogTests
             // knobs. Filling a step in is answering those questions in that order, so the dialog
             // asks them in that order and keeps the rest behind the fold.
             var reading = Open("file.readCsv");
-            Assert.Equal(
-                ["path", "hasHeader", "columns", "matchColumn", "matchValue"],
-                reading.Rows.SelectMany(Names).ToList());
+            Assert.Equal(["path", "hasHeader"], reading.Rows.SelectMany(Names).ToList());
 
             var folded = reading.AdvancedRows.SelectMany(Names).ToList();
             Assert.Contains("encoding", folded);
             Assert.Contains("separator", folded);
             Assert.Contains("trim", folded);
+            // Reading part of a file — these columns, these rows — is how the step is tuned rather
+            // than what it is, so those fields are folded away with the rest.
+            Assert.Contains("columns", folded);
+            Assert.Contains("matchColumn", folded);
+            Assert.Contains("matchValue", folded);
 
             // The names the step leaves its answer under are asked for on a page of their own: they
             // are not part of what the step is, they are how the rest of the macro reaches it.
@@ -1399,8 +1440,9 @@ public class ActionDialogTests
                 reading.OutputRows.SelectMany(Names).ToList());
 
             var writing = Open("file.writeCsv");
-            Assert.Equal(["path", "rows", "header", "mode", "align"],
+            Assert.Equal(["path", "rows", "header", "mode"],
                 writing.Rows.SelectMany(Names).ToList());
+            Assert.Contains("align", writing.AdvancedRows.SelectMany(Names));
             Assert.Empty(writing.OutputRows);
 
             var listing = Open("file.listFiles");

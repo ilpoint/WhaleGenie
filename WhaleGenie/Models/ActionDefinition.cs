@@ -54,6 +54,14 @@ public enum ActionParameterKind
     Region,
 
     /// <summary>
+    /// One rectangle of the screen, dragged out with the region picker or written as four numbers.
+    /// It differs from <see cref="Region"/> in how many there are, not in what one is: a step that
+    /// reads or copies one part of the screen has one rectangle, and a step that searches has
+    /// however many places the user wants looked at.
+    /// </summary>
+    Rect,
+
+    /// <summary>
     /// The title of a window, edited with free text and the window picker.
     /// </summary>
     Window,
@@ -217,6 +225,13 @@ public class ActionParameter
 
     /// <summary>The values of the field named by <see cref="AppliesWhen"/> this field belongs to.</summary>
     public IReadOnlyList<string> AppliesWhenValues { get; init; } = [];
+
+    /// <summary>
+    /// A value of <see cref="AppliesWhenValues"/> that stands for "the field it follows has
+    /// anything in it". A question that only exists once the one above it is answered — how many
+    /// rows deep, which entry the number names — is asked that way rather than being drawn empty.
+    /// </summary>
+    public const string AnyValue = "*";
 
     /// <summary>
     /// True when the value always names a variable rather than holding a literal. The

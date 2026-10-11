@@ -1907,14 +1907,9 @@ internal static class ActionStrings
         // ------------------------------------------------------------------- vision
         ["vision.capture.name"] = "截屏",
         ["vision.capture.desc"] = "把屏幕的一块区域截取到图像变量里。",
-        ["vision.capture.x.label"] = "X",
-        ["vision.capture.x.hint"] = "区域左上角横坐标。",
-        ["vision.capture.y.label"] = "Y",
-        ["vision.capture.y.hint"] = "区域左上角纵坐标。",
-        ["vision.capture.width.label"] = "宽度",
-        ["vision.capture.width.hint"] = "区域宽度（像素）。",
-        ["vision.capture.height.label"] = "高度",
-        ["vision.capture.height.hint"] = "区域高度（像素）。",
+        ["vision.capture.region.label"] = "要截取的区域",
+        ["vision.capture.region.hint"] = "要复制的那块屏幕：用「框选区域」在屏幕上拖出"
+            + "矩形，或者写在高级设置里的 x、y、宽、高。这个字段也可以填一个装着矩形的变量。",
         ["vision.capture.saveTo.label"] = "保存到变量",
         ["vision.capture.saveTo.hint"] = "接收截图的变量。$变量名.x、.y、.width、.height 记录这次截图覆盖的矩形。",
 
@@ -1995,14 +1990,9 @@ internal static class ActionStrings
         // ---------------------------------------------------------------------- ocr
         ["ocr.recognize.name"] = "识别文字",
         ["ocr.recognize.desc"] = "识别屏幕某块区域里的文字。",
-        ["ocr.recognize.x.label"] = "X",
-        ["ocr.recognize.x.hint"] = "区域左上角横坐标。",
-        ["ocr.recognize.y.label"] = "Y",
-        ["ocr.recognize.y.hint"] = "区域左上角纵坐标。",
-        ["ocr.recognize.width.label"] = "宽度",
-        ["ocr.recognize.width.hint"] = "区域宽度（像素）。",
-        ["ocr.recognize.height.label"] = "高度",
-        ["ocr.recognize.height.hint"] = "区域高度（像素）。",
+        ["ocr.recognize.region.label"] = "要识别的区域",
+        ["ocr.recognize.region.hint"] = "要读的那块屏幕：用「框选区域」在屏幕上拖出矩形，"
+            + "或者写在高级设置里的 x、y、宽、高。这个字段也可以填一个装着矩形的变量。",
         ["ocr.recognize.language.label"] = "语言",
         ["ocr.recognize.content.label"] = "读取内容",
         ["ocr.recognize.content.hint"] = "读全部文字，还是只读数字：只读数字时，含数字的片段"

@@ -38,8 +38,13 @@ public class ActionPageTests
     }
 
     /// <summary>
-    /// Every field of a step is on exactly one page. A field drawn in two places is a field with two
+    /// Every field of a step is edited on one page. A field drawn in two places is a field with two
     /// answers being written to it, which is how a form comes to disagree with itself.
+    ///
+    /// A rectangle is the one thing written on two pages, and it is one value with two ways of
+    /// saying it rather than two fields: where it is dragged out is what the step is about and
+    /// stands on the basic page, and the four numbers that make it exact are on the advanced page.
+    /// Both read the same row, so they cannot disagree — and each half has to be somewhere.
     /// </summary>
     [Fact]
     public void Every_field_belongs_to_one_page()
@@ -48,22 +53,168 @@ public class ActionPageTests
 
         foreach (var action in Ui.Run(() => ActionCatalog.RunnableActions.ToList()))
         {
-            var pages = new[]
-            {
-                On(action, viewModel => viewModel.Rows),
-                On(action, viewModel => viewModel.AdvancedRows),
-                On(action, viewModel => viewModel.OutputRows),
-            };
+            var basic = On(action, viewModel => viewModel.Rows);
+            var advanced = On(action, viewModel => viewModel.AdvancedRows);
+            var output = On(action, viewModel => viewModel.OutputRows);
 
-            var drawn = pages.SelectMany(names => names).ToList();
+            var rectangles = Ui.Run(() => Open(action.Key).Parameters
+                .Where(parameter => parameter.IsRegion)
+                .Select(parameter => parameter.Definition.Name)
+                .ToList());
+
+            var drawn = basic.Concat(advanced).Concat(output)
+                .Where(name => !rectangles.Contains(name, StringComparer.Ordinal))
+                .ToList();
             var twice = drawn.GroupBy(name => name, StringComparer.Ordinal)
                 .Where(group => group.Count() > 1)
                 .Select(group => group.Key);
 
             clashes.AddRange(twice.Select(name => $"{action.Key}: {name}"));
+
+            clashes.AddRange(rectangles
+                .Where(name => !(basic.Contains(name, StringComparer.Ordinal)
+                    && advanced.Contains(name, StringComparer.Ordinal)))
+                .Select(name => $"{action.Key}: {name} is not one half on each page"));
         }
 
         Assert.Empty(clashes);
+    }
+
+    /// <summary>
+    /// What is worth tuning rather than what the step is: the way a picture is recognised, which of
+    /// several hits to take, where the coordinates are counted from, how the input is sent, and the
+    /// format and environment details of a file or a program. These are the answers almost every
+    /// macro wants left alone, so they live behind the fold of the advanced page wherever they
+    /// appear. Two names are missing on purpose, because they mean different things in different
+    /// actions: <c>intervalMs</c> is a step's own beat in one action and how often the screen is
+    /// looked at in another, and <c>matchMode</c> is how strictly writing is compared in one and how
+    /// rows are picked out of a file in another. Two more are the same word for two things:
+    /// <c>algorithm</c> is how a picture is compared and also which hash a checksum is asked for, and
+    /// <c>steps</c> is the body of a block and also how far a drag is broken up. Both are checked
+    /// where they mean the tuning they are.
+    /// </summary>
+    private static readonly string[] Tuning =
+    [
+        "minFeatures", "ignoreColor", "matchIndex", "allMatches", "orderBy",
+        "anchorMode", "anchorWindow", "anchorSelector", "inputMode", "targetWindow", "style",
+        "captureMode", "frameMaxAgeMs", "preprocess", "colorFilter", "colorTolerance", "fixText",
+        "expected", "minScore", "language", "encoding", "outputEncoding", "lineEnding", "quoteAll",
+        "emptyCells", "align", "separator", "depth", "sortBy", "descending", "withinCount",
+        "withinUnit", "minKb", "maxKb", "relative", "columns", "matchColumn", "matchValue",
+        "maxRows", "headless", "storeAs", "limit", "skipBlankLines", "trim", "shape", "pollMs",
+        "afterMs", "hidden", "runAsAdmin",
+    ];
+
+    [Fact]
+    public void What_is_tuned_rather_than_what_the_step_is_lives_on_the_advanced_page()
+    {
+        var misplaced = new List<string>();
+
+        foreach (var action in Ui.Run(() => ActionCatalog.RunnableActions.ToList()))
+        {
+            var basic = On(action, viewModel => viewModel.Rows);
+            foreach (var name in Tuning.Where(name => basic.Contains(name, StringComparer.Ordinal)))
+            {
+                misplaced.Add($"{action.Key}: {name}");
+            }
+        }
+
+        Assert.Empty(misplaced);
+    }
+
+    /// <summary>
+    /// A step that looks at the screen waits between two looks, and that number is not the same
+    /// question as the beat of a step that presses a key: one is how much a loop may cost, the other
+    /// is how the presses read. The first is tuning and the second is part of the action.
+    /// </summary>
+    [Theory]
+    [InlineData("vision.findImage", "advanced")]
+    [InlineData("vision.waitStable", "advanced")]
+    [InlineData("ocr.findText", "advanced")]
+    [InlineData("ocr.clickText", "advanced")]
+    [InlineData("input.keyPress", "base")]
+    [InlineData("input.mouseClick", "base")]
+    [InlineData("input.mouseScroll", "base")]
+    public void A_step_that_looks_at_the_screen_tunes_its_rhythm_on_the_advanced_page(
+        string action, string page)
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open(action);
+            var names = page == "advanced"
+                ? viewModel.AdvancedRows.SelectMany(Names).ToList()
+                : viewModel.Rows.SelectMany(Names).ToList();
+
+            Assert.Contains("intervalMs", names);
+        });
+    }
+
+    /// <summary>
+    /// How a picture is compared — the way of recognising it, how many feature pairs have to line
+    /// up, which colour to ignore, and in what order the hits are counted — is the same kind of
+    /// answer as the rest of the tuning, and is asked for on the advanced page.
+    /// </summary>
+    [Theory]
+    [InlineData("vision.findImage")]
+    [InlineData("vision.waitImage")]
+    [InlineData("vision.clickImage")]
+    public void How_a_picture_is_recognised_is_asked_for_on_the_advanced_page(string action)
+    {
+        var finder = Ui.Run(() => ActionCatalog.Find(action)!);
+        var advanced = On(finder, viewModel => viewModel.AdvancedRows);
+
+        Assert.Contains("algorithm", advanced);
+        Assert.Contains("minFeatures", advanced);
+        Assert.Contains("ignoreColor", advanced);
+        Assert.Contains("orderBy", advanced);
+    }
+
+    /// <summary>
+    /// How far a drag is broken up, and how the pointer travels, are tuning; the two ends of the
+    /// drag are what the step is.
+    /// </summary>
+    [Fact]
+    public void How_a_drag_is_broken_up_is_tuning()
+    {
+        var drag = Ui.Run(() => ActionCatalog.Find("input.mouseDrag")!);
+        var advanced = On(drag, viewModel => viewModel.AdvancedRows);
+
+        Assert.Contains("steps", advanced);
+        Assert.Contains("style", advanced);
+
+        // Where the drag starts and ends is what the step is, so it is on the basic page along with
+        // the button it presses.
+        var basic = On(drag, viewModel => viewModel.Rows);
+        Assert.Contains("startX", basic);
+        Assert.Contains("endX", basic);
+    }
+
+    /// <summary>
+    /// A rectangle is dragged out on the basic page and made exact on the advanced page: the four
+    /// numbers are what is tuned, and the picking is what the step is.
+    /// </summary>
+    [Theory]
+    [InlineData("vision.capture")]
+    [InlineData("ocr.recognize")]
+    [InlineData("vision.findImage")]
+    [InlineData("ocr.findText")]
+    public void A_rectangle_is_picked_on_the_basic_page_and_made_exact_on_the_advanced_page(
+        string action)
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open(action);
+            var basic = viewModel.Rows.SelectMany(Names).ToList();
+            var advanced = viewModel.AdvancedRows.SelectMany(Names).ToList();
+
+            Assert.Contains("region", basic);
+            Assert.Contains("region", advanced);
+
+            // The four numbers are on the advanced page and nowhere else; the basic page shows what
+            // was picked rather than four boxes to type in.
+            Assert.DoesNotContain("x", basic);
+            Assert.DoesNotContain("width", basic);
+        });
     }
 
     /// <summary>

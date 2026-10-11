@@ -792,14 +792,17 @@ public static class ActionCatalog
                     hint: "The columns to keep, written the way they are named in the header or as "
                         + "the letter they sit under: 金额, or B, or 金额,B. Each row comes back with "
                         + "those columns and no others, in the order written here. Leave empty for "
-                        + "every column."),
+                        + "every column.",
+                    advanced: true),
                 Text("matchColumn", "Only rows where", "订单号", required: false,
                     hint: "Read just the rows whose cell in this column is the value below; the "
-                        + "column is named the same way. Leave empty to read every row."),
+                        + "column is named the same way. Leave empty to read every row.",
+                    advanced: true),
                 Text("matchValue", "Is", "A123", required: false,
                     hint: "The value those rows hold. Written out, or named as a variable with "
                         + "$name.",
-                    acceptsVariables: true),
+                    acceptsVariables: true, advanced: true,
+                    onlyWith: [ActionParameter.AnyValue], onlyField: "matchColumn"),
                 Variable("resultVariable", "Result variable", "rows",
                     "Variable that receives a list of rows, each a list of cells.",
                     required: false, namesVariable: true),
@@ -858,7 +861,8 @@ public static class ActionCatalog
                     + "than in the same place across the row. That is what keeps a column the file "
                     + "has and this step knows nothing about from shifting everything after it. The "
                     + "names of this step's cells come from the header row above, and a name the "
-                    + "file has not got is reported rather than guessed at."),
+                    + "file has not got is reported rather than guessed at.",
+                    advanced: true, onlyWith: ["append"], onlyField: "mode"),
                 ..Separator("comma"),
                 Choice("lineEnding", "Line ending", ["windows", "unix"], "windows",
                     "Which characters end a line: CRLF, which Windows writes, or LF, which "
@@ -1081,7 +1085,7 @@ public static class ActionCatalog
                 Multiline("text", "Text", "Text to paste. Leave empty to paste what is already copied.",
                     required: false),
                 Text("keys", "Shortcut", "Ctrl+V", "Keys joined with + that paste.",
-                    required: true, defaultValue: "Ctrl+V"),
+                    required: true, defaultValue: "Ctrl+V", advanced: true),
             ],
         },
 
@@ -1100,11 +1104,11 @@ public static class ActionCatalog
                 PickablePath("workingDirectory", "Working folder", "",
                     "Folder to start the program in.", PathIntent.Folder, required: false),
                 Toggle("hidden", "Hidden window", true,
-                    "Start the program without showing its window."),
+                    "Start the program without showing its window.", advanced: true),
                 Toggle("runAsAdmin", "Run as administrator", false,
                     "Ask Windows to start the program with administrator rights. Windows shows "
                     + "its own approval prompt, and refusing it fails the step. A program started "
-                    + "elevated cannot be kept off the screen."),
+                    + "elevated cannot be kept off the screen.", advanced: true),
                 Multiline("environment", "Environment variables",
                     "One NAME=value per line for the program to start with. Leave it empty to "
                     + "start the program with WhaleGenie's own environment. Lines starting with # are "
@@ -1338,11 +1342,12 @@ public static class ActionCatalog
                         "Unmute", "Mute or unmute",
                     ]),
                 Number("percent", "Level %", 50,
-                    "The level to set, from 0 to 100. Used by \"Set the level\".", max: 100),
+                    "The level to set, from 0 to 100. Used by \"Set the level\".", max: 100,
+                    onlyWith: ["set"], onlyField: "what"),
                 Number("stepPercent", "By how much", 5,
                     "How far to move the volume, in points. Used by \"Turn it up\" and \"Turn it "
                     + "down\", which never go past 0 or 100.",
-                    min: 1, max: 100),
+                    min: 1, max: 100, onlyWith: ["up", "down"], onlyField: "what"),
                 Variable("resultVariable", "Result variable", "volume",
                     "Variable that receives the volume the machine is left at, from 0 to 100. A "
                     + "step that only mutes still reports the level it is waiting at.",
@@ -1437,11 +1442,12 @@ public static class ActionCatalog
                     + "setting may not answer at all.",
                     labels: ["Read it", "Set the level", "Turn it up", "Turn it down"]),
                 Number("percent", "Level %", 50,
-                    "The level to set, from 0 to 100. Used by \"Set the level\".", max: 100),
+                    "The level to set, from 0 to 100. Used by \"Set the level\".", max: 100,
+                    onlyWith: ["set"], onlyField: "what"),
                 Number("stepPercent", "By how much", 10,
                     "How far to move the brightness, in points. Used by \"Turn it up\" and \"Turn it "
                     + "down\", which never go past 0 or 100.",
-                    min: 1, max: 100),
+                    min: 1, max: 100, onlyWith: ["up", "down"], onlyField: "what"),
                 Variable("resultVariable", "Result variable", "brightness",
                     "Variable that receives the brightness the screens are left at, from 0 to 100.",
                     namesVariable: true, defaultValue: "brightness"),
@@ -1915,10 +1921,10 @@ public static class ActionCatalog
             Description = "Capture a screen region into an image variable.",
             Parameters =
             [
-                Number("x", "X", 0, "Region origin column."),
-                Number("y", "Y", 0, "Region origin row."),
-                Number("width", "Width", 100, "Region width in pixels.", min: 1),
-                Number("height", "Height", 100, "Region height in pixels.", min: 1),
+                Rect("region", "What to capture", "0,0,100,100",
+                    "The part of the screen to copy: drag a rectangle out with “pick region”, or "
+                    + "write x, y, width and height. The four numbers are on the advanced page, "
+                    + "and the rectangle may also be a variable holding one."),
                 ..Anchor(withElement: true),
                 ..Capture(),
                 LookGap(0),
@@ -2135,7 +2141,7 @@ public static class ActionCatalog
                     max: 100, advanced: true),
                 Number("timeoutMs", "Give up after", 10000,
                     "How long to wait for the picture to settle, in milliseconds; the default is "
-                    + "10000. Reached, the step fails.", advanced: true),
+                    + "10000. Reached, the step fails."),
                 LookPoll(100),
             ],
         },
@@ -2149,10 +2155,10 @@ public static class ActionCatalog
             Description = "Read text from a screen region.",
             Parameters =
             [
-                Number("x", "X", 0, "Region origin column."),
-                Number("y", "Y", 0, "Region origin row."),
-                Number("width", "Width", 400, "Region width in pixels.", min: 1),
-                Number("height", "Height", 120, "Region height in pixels.", min: 1),
+                Rect("region", "Where to read", "0,0,400,120",
+                    "The part of the screen to read: drag a rectangle out with “pick region”, or "
+                    + "write x, y, width and height. The four numbers are on the advanced page, "
+                    + "and the rectangle may also be a variable holding one."),
                 Choice("language", "Language", ["auto", "en", "zh"], "auto", advanced: true),
                 Content(),
                 Toggle("table", "Read as a table", false,
@@ -2349,10 +2355,11 @@ public static class ActionCatalog
                 Text("item", "Entry", "Ready", required: false,
                     hint: "The entry to pick, by the text it shows; a $variable holding the text "
                           + "works too. Leave it empty and fill in the number below instead.",
-                    acceptsFormula: true),
+                    acceptsFormula: true,
+                    onlyWith: ["", "0"], onlyField: "itemIndex"),
                 Number("itemIndex", "Entry number", 0,
                     "Which entry to pick, counted from 1. 0 means pick the one named above.",
-                    max: 10000),
+                    max: 10000, onlyWith: [""], onlyField: "item"),
             ],
         },
         new()
@@ -2535,10 +2542,12 @@ public static class ActionCatalog
                     labels: ["The newest one", "By number", "By title", "By address"]),
                 Number("index", "Tab number", 1,
                     "Which tab, counted from the left of the tab strip starting at 1. Used with "
-                    + "\"by number\" above.", min: 1, max: 50),
+                    + "\"by number\" above.", min: 1, max: 50,
+                    onlyWith: ["index"], onlyField: "how"),
                 Text("match", "Title or address holds", "",
                     "The text the tab's title (or address) has to contain. Used with \"by title\" "
-                    + "and \"by address\" above.", required: false),
+                    + "and \"by address\" above.", required: false,
+                    onlyWith: ["title", "url"], onlyField: "how"),
             ],
         },
         new()
@@ -2991,7 +3000,8 @@ public static class ActionCatalog
 
     private static ActionParameter Text(string name, string label, string placeholder = "",
         string hint = "", bool required = true, string defaultValue = "", bool advanced = false,
-        bool foreign = false, bool acceptsVariables = false, bool acceptsFormula = false)
+        bool foreign = false, bool acceptsVariables = false, bool acceptsFormula = false,
+        string[]? onlyWith = null, string onlyField = "algorithm")
         => new()
         {
             Name = name,
@@ -3005,6 +3015,8 @@ public static class ActionCatalog
             ForeignText = foreign,
             AcceptsVariables = acceptsVariables,
             AcceptsFormula = acceptsFormula,
+            AppliesWhen = onlyWith is null ? string.Empty : onlyField,
+            AppliesWhenValues = onlyWith ?? [],
         };
 
     private static ActionParameter Multiline(string name, string label, string hint = "",
@@ -3140,7 +3152,7 @@ public static class ActionCatalog
 
     private static ActionParameter Number(string name, string label, decimal defaultValue,
         string hint = "", decimal min = 0m, decimal max = StepMeta.LongestPauseMs,
-        bool advanced = false, string[]? onlyWith = null)
+        bool advanced = false, string[]? onlyWith = null, string onlyField = "algorithm")
         => new()
         {
             Name = name,
@@ -3155,12 +3167,13 @@ public static class ActionCatalog
             // length of time is simply never named that way.
             IsDuration = name == "ms" || name.EndsWith("Ms", StringComparison.Ordinal),
             Advanced = advanced,
-            AppliesWhen = onlyWith is null ? string.Empty : "algorithm",
+            AppliesWhen = onlyWith is null ? string.Empty : onlyField,
             AppliesWhenValues = onlyWith ?? [],
         };
 
     private static ActionParameter Toggle(string name, string label, bool defaultValue = false,
-        string hint = "", bool advanced = false, string[]? onlyWith = null)
+        string hint = "", bool advanced = false, string[]? onlyWith = null,
+        string onlyField = "algorithm")
         => new()
         {
             Name = name,
@@ -3169,13 +3182,14 @@ public static class ActionCatalog
             Hint = hint,
             DefaultValue = defaultValue ? "true" : "false",
             Advanced = advanced,
-            AppliesWhen = onlyWith is null ? string.Empty : "algorithm",
+            AppliesWhen = onlyWith is null ? string.Empty : onlyField,
             AppliesWhenValues = onlyWith ?? [],
         };
 
     private static ActionParameter Choice(string name, string label, string[] options,
         string defaultValue, string hint = "", string[]? labels = null,
-        string enabledBySibling = "", bool advanced = false, string[]? onlyWith = null)
+        string enabledBySibling = "", bool advanced = false, string[]? onlyWith = null,
+        string onlyField = "algorithm")
         => new()
         {
             Name = name,
@@ -3187,7 +3201,7 @@ public static class ActionCatalog
             Hint = hint,
             EnabledBySibling = enabledBySibling,
             Advanced = advanced,
-            AppliesWhen = onlyWith is null ? string.Empty : "algorithm",
+            AppliesWhen = onlyWith is null ? string.Empty : onlyField,
             AppliesWhenValues = onlyWith ?? [],
         };
 
@@ -3278,6 +3292,26 @@ public static class ActionCatalog
             Kind = ActionParameterKind.Region,
             Hint = RegionHint,
             Required = false,
+        };
+
+    /// <summary>
+    /// The one part of the screen a step reads or copies, dragged out with the region picker or
+    /// written as four numbers. It is the same shape as a row of <see cref="Region"/>, so the same
+    /// picker, the same "a name instead of four numbers" and the same reading in the engine serve
+    /// both; what the rectangle is called and what is written in it is all that differs.
+    /// </summary>
+    private static ActionParameter Rect(string name, string label, string defaultRectangle,
+        string hint)
+        => new()
+        {
+            Name = name,
+            Label = label,
+            Kind = ActionParameterKind.Rect,
+            Hint = hint,
+            // A rectangle typed into by hand rather than picked has to start somewhere, and a step
+            // that reads one part of the screen with nowhere given would read the whole screen.
+            DefaultValue = defaultRectangle,
+            Required = true,
         };
 
     /// <summary>
@@ -3613,7 +3647,7 @@ public static class ActionCatalog
             + "bows, drifts slightly and eases in and out, so the move does not look like a machine "
             + "drew it. A bent path is travelled rather than jumped, so an instant move borrows "
             + "200 ms to have somewhere to bend.",
-            labels: ["Straight line", "Bent path", "Hand-like"]);
+            labels: ["Straight line", "Bent path", "Hand-like"], advanced: true);
 
     /// <summary>
     /// A file or folder path, which may be written as an expression. The intent decides which

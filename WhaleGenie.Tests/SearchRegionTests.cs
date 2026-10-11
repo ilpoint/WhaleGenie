@@ -59,6 +59,39 @@ public class SearchRegionTests
     }
 
     /// <summary>
+    /// A step that reads or copies one part of the screen has the one rectangle, which opens on the
+    /// rectangle the catalogue gives it: a step with nowhere to look would read the whole screen,
+    /// which is not what a default is for. What is dragged out reaches the file as that same row.
+    /// </summary>
+    [Fact]
+    public void The_one_rectangle_a_step_reads_opens_where_the_catalogue_says()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("ocr.recognize");
+            var region = Region(viewModel);
+
+            Assert.True(region.IsRect);
+            var opened = Assert.Single(region.Regions);
+            Assert.Equal("0,0,400,120", opened.Written);
+            Assert.True(opened.IsSingle);
+
+            region.Regions[0].Put(10, 20, 30, 40);
+
+            MacroStep? saved = null;
+            viewModel.CloseRequested += step => saved = step;
+            viewModel.SaveCommand.Execute(null);
+
+            var rows = Assert.Single(new[] { saved! }.ToExecutable()).Rows("region");
+            var row = Assert.Single(rows);
+            Assert.Equal("10", row["x"]);
+            Assert.Equal("20", row["y"]);
+            Assert.Equal("30", row["width"]);
+            Assert.Equal("40", row["height"]);
+        });
+    }
+
+    /// <summary>
     /// The dialog shows a place to look as a row, and a row is added and taken away from the
     /// dialog itself rather than by writing punctuation into a field.
     /// </summary>

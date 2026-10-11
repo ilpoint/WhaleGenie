@@ -202,6 +202,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.RegionY"] = "Y",
         ["Add.RegionWidth"] = "Width",
         ["Add.RegionHeight"] = "Height",
+        ["Add.RegionNamedHere"] = "A variable says where this is; the name is typed above, on "
+            + "the basic page.",
         ["Add.RegionEmpty"] = "Looking at the whole screen.",
         ["Add.ImageAdd"] = "Add a picture",
         ["Add.ImageAddHint"] = "Look for one more picture, tried after the ones already listed.",
@@ -1216,6 +1218,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.RegionY"] = "Y",
         ["Add.RegionWidth"] = "宽",
         ["Add.RegionHeight"] = "高",
+        ["Add.RegionNamedHere"] = "这一处由变量说明，变量名在基础设置那一页填。",
         ["Add.RegionEmpty"] = "没填就是看整个屏幕。",
         ["Add.ImageAdd"] = "加一张",
         ["Add.ImageAddHint"] = "再找一张图，排在已经列出的后面。",

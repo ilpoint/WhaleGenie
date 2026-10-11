@@ -377,26 +377,11 @@
                                      off the side: four numbers with their labels are the widest thing
                                      the page holds, and the window may be as narrow as 900. -->
                                 <WrapPanel Margin="0,0,0,6">
-                                    <StackPanel Orientation="Horizontal"
-                                                Spacing="6" Margin="0,0,12,0"
-                                                IsVisible="{Binding IsWritten}">
-                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
-                                                   Text="{Binding [Add.RegionX], Source={x:Static loc:Strings.Current}}" />
-                                        <views:NumberBox Width="88" FormatString="0"
-                                                       Value="{Binding X}" />
-                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
-                                                   Text="{Binding [Add.RegionY], Source={x:Static loc:Strings.Current}}" />
-                                        <views:NumberBox Width="88" FormatString="0"
-                                                       Value="{Binding Y}" />
-                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
-                                                   Text="{Binding [Add.RegionWidth], Source={x:Static loc:Strings.Current}}" />
-                                        <views:NumberBox Width="88" FormatString="0"
-                                                       Value="{Binding Width}" />
-                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
-                                                   Text="{Binding [Add.RegionHeight], Source={x:Static loc:Strings.Current}}" />
-                                        <views:NumberBox Width="88" FormatString="0"
-                                                       Value="{Binding Height}" />
-                                    </StackPanel>
+                                    <TextBlock Classes="Muted" Width="280" Margin="0,0,12,0"
+                                               VerticalAlignment="Center"
+                                               TextWrapping="Wrap"
+                                               IsVisible="{Binding IsWritten}"
+                                               Text="{Binding Written}" />
 
                                     <TextBox Width="280" Classes="ParamInput" Margin="0,0,12,0"
                                              IsVisible="{Binding IsFromVariable}"
@@ -424,6 +409,7 @@
 
                                     <Button Classes="FlatButton"
                                             Height="26" Padding="9,0"
+                                            IsVisible="{Binding !IsSingle}"
                                             Content="{Binding [Add.RegionRemove], Source={x:Static loc:Strings.Current}}"
                                             ToolTip.Tip="{Binding [Add.RegionRemoveHint], Source={x:Static loc:Strings.Current}}"
                                             Command="{Binding RemoveCommand}" />
@@ -432,8 +418,54 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                    <!-- The same rows as four numbers, on the page for the rectangle that has to be
+                         exact or has to come from a variable. A row that names a variable says so
+                         here instead, and the name itself is typed on the basic page. -->
+                    <ItemsControl ItemsSource="{Binding Regions}" IsVisible="{Binding IsNumbersPart}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RegionRowViewModel">
+                                <WrapPanel Margin="0,0,0,6">
+                                    <StackPanel Orientation="Horizontal"
+                                                Spacing="6" Margin="0,0,12,0"
+                                                IsVisible="{Binding IsWritten}">
+                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                                   Text="{Binding [Add.RegionX], Source={x:Static loc:Strings.Current}}" />
+                                        <views:NumberBox Width="88" FormatString="0"
+                                                       Value="{Binding X}" />
+                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                                   Text="{Binding [Add.RegionY], Source={x:Static loc:Strings.Current}}" />
+                                        <views:NumberBox Width="88" FormatString="0"
+                                                       Value="{Binding Y}" />
+                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                                   Text="{Binding [Add.RegionWidth], Source={x:Static loc:Strings.Current}}" />
+                                        <views:NumberBox Width="88" FormatString="0"
+                                                       Value="{Binding Width}" />
+                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                                   Text="{Binding [Add.RegionHeight], Source={x:Static loc:Strings.Current}}" />
+                                        <views:NumberBox Width="88" FormatString="0"
+                                                       Value="{Binding Height}" />
+                                    </StackPanel>
+
+                                    <TextBlock Classes="Muted" Width="280" Margin="0,0,12,0"
+                                               VerticalAlignment="Center"
+                                               TextWrapping="Wrap"
+                                               IsVisible="{Binding IsFromVariable}"
+                                               Text="{Binding [Add.RegionNamedHere], Source={x:Static loc:Strings.Current}}" />
+
+                                    <Button Classes="FlatButton" Height="33" Padding="11,0"
+                                            IsVisible="{Binding IsFromVariable}"
+                                            Content="{Binding [Add.RegionNumbers], Source={x:Static loc:Strings.Current}}"
+                                            ToolTip.Tip="{Binding [Add.RegionNumbersHint], Source={x:Static loc:Strings.Current}}"
+                                            Command="{Binding UseNumbersCommand}" />
+                                </WrapPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10"
+                          IsVisible="{Binding IsPickerPart}">
                         <Button Classes="FlatButton" Height="30" Padding="10,0"
+                                IsVisible="{Binding !IsRect}"
                                 Content="{Binding [Add.RegionAdd], Source={x:Static loc:Strings.Current}}"
                                 Click="OnAddRegionRow" />
                         <TextBlock Grid.Column="1" Classes="Muted" VerticalAlignment="Center"

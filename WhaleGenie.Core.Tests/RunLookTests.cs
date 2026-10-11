@@ -45,6 +45,21 @@ public class RunLookTests
                 })],
         };
 
+    /// <summary>The one rectangle a step that reads or copies the screen works on.</summary>
+    private static ExecutableParameter Region(params (int X, int Y, int Width, int Height)[] rectangles)
+        => new()
+        {
+            Name = "region",
+            Rows = [.. rectangles.Select(region => (IReadOnlyDictionary<string, string>)
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["x"] = region.X.ToString(CultureInfo.InvariantCulture),
+                    ["y"] = region.Y.ToString(CultureInfo.InvariantCulture),
+                    ["width"] = region.Width.ToString(CultureInfo.InvariantCulture),
+                    ["height"] = region.Height.ToString(CultureInfo.InvariantCulture),
+                })],
+        };
+
     /// <summary>
     /// A step that looks for a picture, with the places to look given the way the dialog gives
     /// them: one row per rectangle.
@@ -349,8 +364,7 @@ public class RunLookTests
         var devices = Screen();
         devices.Spans = [new TextSpan("Save", new ScreenPoint(5, 6), new ScreenSize(20, 8), 30)];
         var looks = new Watched();
-        var step = Step("ocr.recognize", Param("x", "10"), Param("y", "20"), Param("width", "40"),
-            Param("height", "30"), Param("language", "auto"), Param("resultVariable", "text"));
+        var step = Step("ocr.recognize", Region((10, 20, 40, 30)), Param("language", "auto"), Param("resultVariable", "text"));
 
         await Run(step, devices, looks);
 
@@ -365,8 +379,7 @@ public class RunLookTests
     {
         var devices = Screen();
         var looks = new Watched();
-        var step = Step("vision.capture", Param("x", "1"), Param("y", "2"), Param("width", "5"),
-            Param("height", "6"), Param("saveTo", "shot"));
+        var step = Step("vision.capture", Region((1, 2, 5, 6)), Param("saveTo", "shot"));
 
         await Run(step, devices, looks);
 

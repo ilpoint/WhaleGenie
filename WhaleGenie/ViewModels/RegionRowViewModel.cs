@@ -17,25 +17,87 @@ public partial class RegionRowViewModel : ViewModelBase
     /// <summary>True when this row names a variable rather than giving four numbers.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsWritten))]
+    [NotifyPropertyChangedFor(nameof(Written))]
+    [NotifyPropertyChangedFor(nameof(IsEmpty))]
     public partial bool IsFromVariable { get; set; }
 
     /// <summary>True when this row gives the rectangle as four numbers.</summary>
     public bool IsWritten => !IsFromVariable;
 
+    /// <summary>
+    /// True when the field holds this one row and no other, which is what a step that reads or
+    /// copies one part of the screen asks for: there is nothing to take away, because a step with
+    /// nowhere to look is not a step.
+    /// </summary>
+    public bool IsSingle { get; set; }
+
+    /// <summary>
+    /// True when this row says nothing at all: no numbers and no variable. Such a row is not a
+    /// place, and a step that looked there would look at nothing.
+    /// </summary>
+    public bool IsEmpty => IsFromVariable
+        ? Named.Trim().Length == 0
+        : X is null && Y is null && Width is null && Height is null;
+
+    /// <summary>
+    /// This row written as one rectangle, <c>x,y,width,height</c>, or nothing when it names a
+    /// variable. It is how a row reads back on the basic page, where the four numbers are not
+    /// edited, and how a rectangle written before this field existed is read.
+    /// </summary>
+    public string Written => IsFromVariable
+        ? string.Empty
+        : string.Join(',', new[]
+        {
+            WrittenNumber(X), WrittenNumber(Y), WrittenNumber(Width), WrittenNumber(Height),
+        });
+
+    /// <summary>A row made out of a rectangle written as four numbers.</summary>
+    public static RegionRowViewModel FromRectangle(string rectangle)
+    {
+        var parts = rectangle.Split(',', StringSplitOptions.TrimEntries);
+        var row = new RegionRowViewModel();
+        if (parts.Length == 4)
+        {
+            row.X = Number(parts[0]);
+            row.Y = Number(parts[1]);
+            row.Width = Number(parts[2]);
+            row.Height = Number(parts[3]);
+        }
+
+        return row;
+    }
+
+    private static string WrittenNumber(decimal? value)
+        => (value ?? 0m).ToString("0.####", CultureInfo.InvariantCulture);
+
+    private static decimal? Number(string text)
+        => decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var number)
+            ? number
+            : null;
+
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Written))]
+    [NotifyPropertyChangedFor(nameof(IsEmpty))]
     public partial decimal? X { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Written))]
+    [NotifyPropertyChangedFor(nameof(IsEmpty))]
     public partial decimal? Y { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Written))]
+    [NotifyPropertyChangedFor(nameof(IsEmpty))]
     public partial decimal? Width { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Written))]
+    [NotifyPropertyChangedFor(nameof(IsEmpty))]
     public partial decimal? Height { get; set; }
 
     /// <summary>The variable this row names, when it names one.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsEmpty))]
     public partial string Named { get; set; } = string.Empty;
 
     /// <summary>

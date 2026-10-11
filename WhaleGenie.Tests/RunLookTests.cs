@@ -82,15 +82,21 @@ public class RunLookTests
                 [
                     new StepParameter
                     {
-                        Name = "width",
-                        Kind = ActionParameterKind.Number,
-                        Value = "20",
-                    },
-                    new StepParameter
-                    {
-                        Name = "height",
-                        Kind = ActionParameterKind.Number,
-                        Value = "20",
+                        Name = "region",
+                        Kind = ActionParameterKind.Rect,
+                        Rows =
+                        [
+                            new StepParameterRow
+                            {
+                                Columns = new Dictionary<string, string>
+                                {
+                                    ["x"] = "0",
+                                    ["y"] = "0",
+                                    ["width"] = "20",
+                                    ["height"] = "20",
+                                },
+                            },
+                        ],
                     },
                     new StepParameter
                     {
