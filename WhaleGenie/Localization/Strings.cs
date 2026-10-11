@@ -183,7 +183,9 @@ public sealed class Strings : INotifyPropertyChanged
                                  + "pointer a pixel (hold Shift for ten). Esc cancels.",
         ["Picker.Position"] = "{0}, {1}",
         ["Region.Title"] = "Pick a region",
-        ["Region.Hint"] = "Drag the rectangle, then press Enter or click inside it. Esc cancels.",
+        ["Region.Hint"] =
+            "Drag inside the rectangle to move it, or drag a handle to change its size. Press Enter, "
+            + "or click inside it, to take it; Esc cancels.",
         ["Region.Drag"] = "Drag a rectangle over what the macro should look at",
         ["Region.Size"] = "x {0}  y {1}   {2} × {3}",
         ["Add.PickRegion"] = "Pick region",
@@ -1210,7 +1212,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Picker.ConfirmHint"] = "单击或按 Enter 取色；方向键可逐像素微调（按住 Shift 每次 10 像素），Esc 取消。",
         ["Picker.Position"] = "{0}, {1}",
         ["Region.Title"] = "框选区域",
-        ["Region.Hint"] = "拖出矩形后按 Enter，或在矩形内单击确认；Esc 取消。",
+        ["Region.Hint"] =
+            "在矩形内拖动可移动它，拖动手柄可改变大小；按 Enter 或在矩形内单击取用，Esc 取消。",
         ["Region.Drag"] = "在屏幕上拖出宏需要看的区域",
         ["Region.Size"] = "x {0}  y {1}   宽 {2} × 高 {3}",
         ["Add.PickRegion"] = "框选区域",
