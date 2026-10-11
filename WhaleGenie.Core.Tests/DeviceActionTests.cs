@@ -2286,6 +2286,29 @@ public class DeviceActionTests
         Assert.Equal("click left 41 51 1 0", click);
     }
 
+    /// <summary>
+    /// A step that clicks what it found hands the hit over the way the step that only looks for a
+    /// picture does, so where the click landed can be read by a later step.
+    /// </summary>
+    [Fact]
+    public async Task A_click_on_a_picture_hands_over_where_it_clicked()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(2, 2)),
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.clickImage", Pictures("ok.png"), Param("confidence", "90"),
+                Returns("match=spot", "score=sure")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("6,7", store.Local.Values["spot"].AsText());
+        Assert.Equal(0.99, store.Local.Values["sure"].AsNumber(), 3);
+    }
+
     [Fact]
     public async Task An_image_condition_uses_the_found_match()
     {
@@ -2576,6 +2599,65 @@ public class DeviceActionTests
         // A step that did not ask for the whole set leaves no list behind for an older macro to
         // trip over.
         Assert.False(store.Local.Values.ContainsKey("one.count"));
+    }
+
+    /// <summary>
+    /// A search that records every place records what each of them said as well, in the same order:
+    /// a macro that walks the places usually wants to know which of them said what, and a list of
+    /// places on its own cannot say it.
+    /// </summary>
+    [Fact]
+    public async Task A_text_search_that_records_every_place_records_what_each_one_said()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans =
+            [
+                new TextSpan("Total 12", new ScreenPoint(0, 0), new ScreenSize(40, 8), 0.9),
+                new TextSpan("Other", new ScreenPoint(0, 20), new ScreenSize(20, 8), 0.9),
+                new TextSpan("Total 99", new ScreenPoint(0, 40), new ScreenSize(40, 8), 0.9),
+            ],
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("ocr.findText", Param("text", "Total"), Param("matchMode", "contains"),
+                Param("allMatches", "true"),
+                Returns("match=one", "count=howMany", "list=where", "texts=said")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(2, store.Local.Values["howMany"].AsNumber());
+        Assert.Equal("20,4", store.Local.Values["where"].AsList()[0].AsText());
+        Assert.Equal("20,44", store.Local.Values["where"].AsList()[1].AsText());
+
+        // The writing of each hit, in the order of the places: the two lists read as one.
+        Assert.Equal("Total 12", store.Local.Values["said"].AsList()[0].AsText());
+        Assert.Equal("Total 99", store.Local.Values["said"].AsList()[1].AsText());
+    }
+
+    /// <summary>
+    /// A step that clicks what it read hands the reading over the way the step that only looks for
+    /// text does, so where it clicked can be read afterwards.
+    /// </summary>
+    [Fact]
+    public async Task A_click_on_a_line_hands_over_where_it_clicked()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans = [new TextSpan("Save", new ScreenPoint(10, 10), new ScreenSize(20, 8), 0.9)],
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("ocr.clickText", Param("text", "Save"), Param("matchMode", "contains"),
+                Returns("match=spot", "text=what", "x=middle")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("20,14", store.Local.Values["spot"].AsText());
+        Assert.Equal("Save", store.Local.Values["what"].AsText());
+        Assert.Equal(20, store.Local.Values["middle"].AsNumber());
     }
 
     [Fact]

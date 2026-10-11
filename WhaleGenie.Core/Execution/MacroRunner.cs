@@ -3662,6 +3662,12 @@ public sealed class MacroRunner
         var at = Scattered(new ScreenPoint(
             found.Match.Center.X + Number(step, "offsetX"),
             found.Match.Center.Y + Number(step, "offsetY")), Spread(step));
+
+        // Where it was found and every place it was found, the same as the step that only looks:
+        // a step that clicks something is also a step whose position a later one may want.
+        GiveMatch(step, found.Match.Location, found.Match.Size, found.Match.Score);
+        GiveEvery(step, found.Hits, Flag(step, "allMatches", false));
+
         Aim(at);
         Input(step).Click(Button(step), at.X, at.Y, 1, 0);
         Log(LogLevel.Info, depth, step.Type, "Run.ClickedImage", at.X, at.Y);
@@ -6433,7 +6439,9 @@ public sealed class MacroRunner
 
         // Where every hit was, not only the one the step picked, so a macro can walk a list of
         // hits or click through a column of them.
-        GiveEvery(step, [.. hits.Select(hit => hit.Center)], Flag(step, "allMatches", false));
+        var every = Flag(step, "allMatches", false);
+        GiveEvery(step, [.. hits.Select(hit => hit.Center)], every);
+        GiveWritten(step, hits, every);
 
         Log(LogLevel.Info, depth, step.Type, span is null ? "Run.TextMissing" : "Run.TextFound",
             span is null ? string.Empty : $"{span.Center.X},{span.Center.Y}",
@@ -6441,14 +6449,19 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// The first place the wanted text was read that the step is willing to act on, looked for in
-    /// readings that are handed in rather than read again — the caller needs them for the look it
-    /// is going to make anyway.
+    /// Hands over what each of the readings said, in the same order as where they were. It is a
+    /// second list rather than the words joined onto the places, because writing has commas in it:
+    /// a list of "x,y,words" would have no way of saying which comma was which.
     /// </summary>
-    private TextSpan? TextHit(IReadOnlyList<TextSpan> readings, ExecutableStep step, string wanted,
-        string mode)
-        => readings.FirstOrDefault(candidate =>
-            Sure(step, candidate) && ActsOn(step, candidate.Text, wanted, mode));
+    private void GiveWritten(ExecutableStep step, IReadOnlyList<TextSpan> hits, bool every)
+    {
+        if (!every)
+        {
+            return;
+        }
+
+        Give(step, "texts", Value.FromList(hits.Select(hit => Value.FromText(hit.Text))));
+    }
 
     /// <summary>What one reading of the screen reads as a mark: the writing, with its own score.</summary>
     private static List<(ImageMatch Match, string? Label)> TextMarks(
@@ -6471,23 +6484,14 @@ public sealed class MacroRunner
         // The readings of the last look are kept, so the look handed over at the end is of the
         // screen as it was when the step gave up or found what it wanted.
         IReadOnlyList<TextSpan> readings = [];
+        List<TextSpan> hits = [];
         var chosen = 0;
 
         TextSpan? Look()
         {
             readings = ReadSpans(step);
-            chosen = 0;
-            var found = TextHit(readings, step, wanted, mode);
-            for (var index = 0; found is not null && index < readings.Count; index++)
-            {
-                if (readings[index] == found)
-                {
-                    chosen = index + 1;
-                    break;
-                }
-            }
-
-            return found;
+            (hits, chosen) = Counting(step, readings, wanted, mode);
+            return hits.Count > 0 ? hits[0] : null;
         }
 
         var span = await WaitForValueAsync(
@@ -6519,6 +6523,14 @@ public sealed class MacroRunner
         var at = Scattered(new ScreenPoint(
             span.Center.X + Number(step, "offsetX"),
             span.Center.Y + Number(step, "offsetY")), Spread(step));
+
+        // Where the line was read, every other place it was read, and what each of them said — the
+        // same answers the step that only looks for text hands over.
+        GiveMatch(step, span.Location, span.Size, span.Confidence, span.Text);
+        var every = Flag(step, "allMatches", false);
+        GiveEvery(step, [.. hits.Select(hit => hit.Center)], every);
+        GiveWritten(step, hits, every);
+
         Aim(at);
         Input(step).Click(Button(step), at.X, at.Y, 1, 0);
         Log(LogLevel.Info, depth, step.Type, "Run.ClickedText", wanted, $"{at.X},{at.Y}");

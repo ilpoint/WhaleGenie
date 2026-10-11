@@ -2451,6 +2451,10 @@ public static class ActionCatalog
                 Return("list", "Every match", type: ActionReturnType.List,
                     hint: "Every one that was found, a list of x,y centres. Only written when the "
                         + "step is told to record every one."),
+                Return("texts", "What each one said", type: ActionReturnType.List,
+                    hint: "What every one of them actually read, in the same order as “every "
+                        + "match”: a list of writing rather than of places. Only written when the "
+                        + "step is told to record every one."),
             ],
             Category = ActionCategory.Ocr,
             DisplayName = "Find Text",
@@ -2509,6 +2513,10 @@ public static class ActionCatalog
                         + "record every one."),
                 Return("list", "Every match", type: ActionReturnType.List,
                     hint: "Every one that was found, a list of x,y centres. Only written when the "
+                        + "step is told to record every one."),
+                Return("texts", "What each one said", type: ActionReturnType.List,
+                    hint: "What every one of them actually read, in the same order as “every "
+                        + "match”: a list of writing rather than of places. Only written when the "
                         + "step is told to record every one."),
             ],
             Category = ActionCategory.Ocr,

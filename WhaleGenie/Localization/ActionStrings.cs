@@ -3334,6 +3334,10 @@ internal static class ActionStrings
         ["ocr.findText.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
         ["ocr.findText.return.list.label"] = "全部命中",
         ["ocr.findText.return.list.hint"] = "每一处命中的中心点，每项一个 x,y；只有勾上“记录全部命中”才有。",
+        ["ocr.findText.return.texts.label"] = "每一条的文字",
+        ["ocr.findText.return.texts.hint"] =
+            "每一处命中当时读到的文字，和“全部命中”一一对应、同一个顺序：一个是位置表，一个是"
+            + "文字表。只有勾上“记录全部命中”才有。",
         ["ocr.findText.returns.label"] = "要留下的结果",
         ["ocr.findText.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 
@@ -3367,6 +3371,10 @@ internal static class ActionStrings
         ["ocr.clickText.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
         ["ocr.clickText.return.list.label"] = "全部命中",
         ["ocr.clickText.return.list.hint"] = "每一处命中的中心点，每项一个 x,y；只有勾上“记录全部命中”才有。",
+        ["ocr.clickText.return.texts.label"] = "每一条的文字",
+        ["ocr.clickText.return.texts.hint"] =
+            "每一处命中当时读到的文字，和“全部命中”一一对应、同一个顺序：一个是位置表，一个是"
+            + "文字表。只有勾上“记录全部命中”才有。",
         ["ocr.clickText.returns.label"] = "要留下的结果",
         ["ocr.clickText.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 
