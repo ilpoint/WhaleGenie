@@ -714,23 +714,23 @@ public partial class AddActionViewModel : ViewModelBase
     public WindowPreviewViewModel? WindowPreview { get; private set; }
 
     /// <summary>
-    /// Hangs the preview on the field that finishes the rule — the way the text is compared — so
-    /// the list stands under all three fields rather than between them. An action with no such
-    /// rule has nothing to preview.
+    /// Hangs the preview on the field the rule is about — the text the window is recognised by — so
+    /// the list stands right under the box being written rather than between a field and its own
+    /// editor. An action with no such rule has nothing to preview.
     /// </summary>
     private void WireWindowPreview()
     {
         WindowPreview?.Stop();
         WindowPreview = null;
 
-        if (Parameter("title") is null || Parameter("compareBy") is not { } comparing)
+        if (Parameter("title") is not { } text || Parameter("compareBy") is null)
         {
             return;
         }
 
         WindowPreview = new WindowPreviewViewModel();
         WindowPreview.Watch(() => Windows);
-        comparing.WindowPreview = WindowPreview;
+        text.WindowPreview = WindowPreview;
     }
 
     /// <summary>Folds a group open or shut and remembers which way it went.</summary>

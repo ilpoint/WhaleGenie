@@ -4,7 +4,9 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -205,6 +207,36 @@ public class WindowPreviewTests
     }
 
     [Fact]
+    public void The_list_stands_under_the_field_the_rule_is_about()
+    {
+        Ui.Run(() =>
+        {
+            var window = Shell("window.exists");
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.Windows = Desk().Add(1, "Notepad - notes.txt", "notepad", "Notepad");
+            Typing(viewModel, "Notepad");
+
+            var preview = viewModel.WindowPreview!;
+            preview.RefreshCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            double Top(Control control) => control.TranslatePoint(default, window)!.Value.Y;
+
+            var box = window.GetVisualDescendants().OfType<TextBox>()
+                .First(one => one.IsEffectivelyVisible && ReferenceEquals(one.DataContext,
+                    Parameter(viewModel, "title")));
+            var list = window.GetVisualDescendants().OfType<TextBlock>()
+                .First(one => one.IsEffectivelyVisible && one.Text == preview.Summary);
+            var comparing = window.GetVisualDescendants().OfType<ComboBox>()
+                .First(one => ReferenceEquals(one.DataContext, Parameter(viewModel, "compareBy")));
+
+            // Under the box it is about, rather than between a field and the editor of that field.
+            Assert.True(Top(list) > Top(box), "the list is not under the match text");
+            Assert.True(Top(list) < Top(comparing), "the list is not above the comparing field");
+        });
+    }
+
+    [Fact]
     public void An_action_that_recognises_no_window_of_its_own_has_no_list()
     {
         Ui.Run(() =>
@@ -248,6 +280,13 @@ public class WindowPreviewTests
     private static WindowsForChecks Desk() => new();
 
     private static AddActionViewModel Open(string key)
+        => (AddActionViewModel)Shell(key).DataContext!;
+
+    private static StepParameterViewModel Parameter(AddActionViewModel viewModel, string name)
+        => viewModel.Parameters.First(parameter => parameter.Definition.Name == name);
+
+    /// <summary>The dialog, opened on an action the way the editor opens it.</summary>
+    private static AddActionWindow Shell(string key)
     {
         var window = new AddActionWindow(null, ActionCatalog.Definitions,
             VariableChoicesForChecks.Named("wanted"), []);
@@ -255,10 +294,9 @@ public class WindowPreviewTests
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
-        var viewModel = (AddActionViewModel)window.DataContext!;
-        viewModel.SelectAction(key);
+        ((AddActionViewModel)window.DataContext!).SelectAction(key);
         Dispatcher.UIThread.RunJobs();
-        return viewModel;
+        return window;
     }
 
     /// <summary>
