@@ -1,6 +1,6 @@
 # Performance
 
-[English](性能测试.en.md) | [简体中文](性能测试.md)
+[English](performance.en.md) | [简体中文](performance.md)
 
 What one look at the screen costs, on which machine these numbers were taken, and how. It is not part
 of CI: after changing how the screen is read (`WindowsScreenDevice`) or how it is matched and read as

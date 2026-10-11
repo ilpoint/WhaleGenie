@@ -1,6 +1,6 @@
 # 性能测试
 
-[简体中文](性能测试.md) | [English](性能测试.en.md)
+[简体中文](performance.md) | [English](performance.en.md)
 
 "看一次屏幕"要花多少时间，以及这些数字是在哪台机器上、用什么办法量出来的。它不随 CI 跑：改动画面获取
 （`WindowsScreenDevice`）或匹配与识别（`OpenCvVisionDevice`、`PixelSearch`、`PaddleOcrDevice`）之后，
