@@ -713,9 +713,10 @@
         <!-- One result a step may hand over: the box that says whether the macro keeps it, what it
              is, and the name it goes by. The name follows the step's note until it is typed in by
              hand, and a name something else already holds is said out loud rather than left to be
-             discovered when two steps write into one variable. -->
+             discovered when two steps write into one variable. A result the step's own settings
+             cannot produce is not drawn at all. -->
         <DataTemplate x:Key="ReturnsRowEditor" x:DataType="vm:ReturnsRowViewModel">
-            <StackPanel Margin="0,0,0,14">
+            <StackPanel Margin="0,0,0,14" IsVisible="{Binding IsApplicable}">
                 <CheckBox IsChecked="{Binding Ticked}" Content="{Binding Label}" />
                 <TextBlock Classes="Muted" Text="{Binding Hint}" IsVisible="{Binding HasHint}"
                            TextWrapping="Wrap" Margin="26,3,0,0" />

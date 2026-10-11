@@ -44,6 +44,38 @@ public class ReturnsPageTests
     }
 
     [Fact]
+    public void The_match_count_is_only_offered_when_the_step_records_every_match()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("vision.findImage");
+            var recording = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "allMatches");
+
+            var count = viewModel.ReturnsRows.First(row => row.Key == "count");
+            var every = viewModel.ReturnsRows.First(row => row.Key == "list");
+
+            // Nothing is worked out to hand over until the step is told to record every match.
+            Assert.False(count.IsApplicable);
+            Assert.False(every.IsApplicable);
+            Assert.True(viewModel.ReturnsRows.First(row => row.Key == "match").IsApplicable);
+
+            recording.Flag = true;
+            Assert.True(count.IsApplicable);
+            Assert.True(every.IsApplicable);
+
+            // And even a result that was ticked is not written while the box it depends on is off.
+            count.Ticked = true;
+            Assert.Contains("count", viewModel.BuildStep().Parameters
+                .First(parameter => parameter.Name == "returns").Rows.Select(row => row.Text("key")));
+
+            recording.Flag = false;
+            Assert.DoesNotContain("count", viewModel.BuildStep().Parameters
+                .First(parameter => parameter.Name == "returns").Rows.Select(row => row.Text("key")));
+        });
+    }
+
+    [Fact]
     public void Handing_nothing_over_leaves_no_returns_parameter_behind()
     {
         Ui.Run(() =>

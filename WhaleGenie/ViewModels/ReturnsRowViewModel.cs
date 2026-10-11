@@ -62,6 +62,14 @@ public partial class ReturnsRowViewModel : ViewModelBase
     public bool ShowsName => Ticked || Name.Length > 0;
 
     /// <summary>
+    /// False for a result the step's own settings have nothing behind: how many hits there were and
+    /// where each of them is mean nothing until the step is told to record every one, so those
+    /// lines are not drawn and are not written.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsApplicable { get; set; } = true;
+
+    /// <summary>
     /// True when the name this result goes by is already in use somewhere the macro can see, which
     /// is how two steps end up writing into one variable.
     /// </summary>
@@ -142,7 +150,7 @@ public partial class ReturnsRowViewModel : ViewModelBase
     }
 
     /// <summary>The row this result is written as, or nothing while it is not handed over.</summary>
-    public StepParameterRow? ToRow() => Ticked && Name.Trim().Length > 0
+    public StepParameterRow? ToRow() => IsApplicable && Ticked && Name.Trim().Length > 0
         ? new StepParameterRow
         {
             Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)

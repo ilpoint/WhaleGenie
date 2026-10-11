@@ -109,7 +109,8 @@ public partial class StepParameterViewModel : ViewModelBase
                 row.PropertyChanged += (_, e) =>
                 {
                     if (e.PropertyName is nameof(ReturnsRowViewModel.Ticked)
-                        or nameof(ReturnsRowViewModel.Name))
+                        or nameof(ReturnsRowViewModel.Name)
+                        or nameof(ReturnsRowViewModel.IsApplicable))
                     {
                         OnPropertyChanged(nameof(HandsOverAnything));
                     }

@@ -2501,7 +2501,9 @@ public sealed class MacroRunner
                 new(new ImageMatch(0, taken.Corner,
                     new ScreenSize(taken.Frame.Width, taken.Frame.Height)), LookRole.Area),
             ],
-            1, step.Text("saveTo").Trim());
+            // The name the picture would be handed over under, which is what the run itself puts
+            // here when it really takes one; a step asked to try its looking writes nothing.
+            1, step.Return("image"));
 
     /// <summary>Hands over what was read off a picture, without writing the reading anywhere.</summary>
     private void WasRead(ExecutableStep step,
