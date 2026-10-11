@@ -327,6 +327,15 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.ClearImageHint"] = "Forget the picture this step points at.",
         ["Add.PickWindow"] = "Pick window…",
         ["Add.PickWindowHint"] = "Choose one of the windows that are open now.",
+        ["Add.WindowPreview.Count"] = "This step recognises {0} windows right now:",
+        ["Add.WindowPreview.None"] = "No window matches this rule right now.",
+        ["Add.WindowPreview.More"] = "{0} more",
+        ["Add.WindowPreview.Front"] =
+            "With the match text empty, the window in front is the one taken.",
+        ["Add.WindowPreview.Variable"] =
+            "The field holds a variable; what it comes to is only known when the macro runs, so the "
+            + "text is read as it stands here.",
+        ["Add.WindowPreview.Unreadable"] = "The open windows cannot be read right now.",
         ["WindowPicker.Title"] = "Pick a window",
         ["WindowPicker.Filter"] = "Filter by title, program or class",
         ["WindowPicker.Refresh"] = "Refresh",
@@ -1341,6 +1350,13 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.ClearImageHint"] = "不再使用这个步骤指向的图片。",
         ["Add.PickWindow"] = "拾取窗口…",
         ["Add.PickWindowHint"] = "从当前打开的窗口里选一个。",
+        ["Add.WindowPreview.Count"] = "这一步现在会认到 {0} 个窗口：",
+        ["Add.WindowPreview.None"] = "现在没有窗口匹配这条规则。",
+        ["Add.WindowPreview.More"] = "还有 {0} 个",
+        ["Add.WindowPreview.Front"] = "匹配内容留空：取最前面那个窗口。",
+        ["Add.WindowPreview.Variable"] =
+            "字段里写着变量，它是什么要等宏跑起来才知道，这里按字面看。",
+        ["Add.WindowPreview.Unreadable"] = "现在读不到窗口列表。",
         ["WindowPicker.Title"] = "拾取窗口",
         ["WindowPicker.Filter"] = "按标题、程序或类名筛选",
         ["WindowPicker.Refresh"] = "刷新",

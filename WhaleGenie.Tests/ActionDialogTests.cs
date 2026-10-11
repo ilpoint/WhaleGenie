@@ -721,6 +721,9 @@ public class ActionDialogTests
 
         public IReadOnlyList<WindowInfo> List() => [Notepad];
 
+        public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match, WindowCompare compare)
+            => Find(value, match, compare) is { } window ? [window] : [];
+
         public WindowInfo? Find(string value, WindowMatch match, WindowCompare compare)
             => Notepad.Title.Contains(value, StringComparison.OrdinalIgnoreCase) ? Notepad : null;
 

@@ -694,6 +694,45 @@ public partial class AddActionViewModel : ViewModelBase
             _ => WindowMatch.Title,
         };
 
+    /// <summary>
+    /// How the action compares its text with that part, which is the other half of the rule the
+    /// window picker and the preview of recognised windows are read against.
+    /// </summary>
+    public WindowCompare WindowCompareFor()
+        => Parameters.FirstOrDefault(row => row.Definition.Name == "compareBy")?.CurrentText
+            .Trim().ToLowerInvariant() switch
+        {
+            "startswith" => WindowCompare.StartsWith,
+            "regex" => WindowCompare.Regex,
+            _ => WindowCompare.Contains,
+        };
+
+    /// <summary>
+    /// The windows this step would recognise right now, which is shown under the field that
+    /// completes the rule. Null while the action recognises no window by text of its own.
+    /// </summary>
+    public WindowPreviewViewModel? WindowPreview { get; private set; }
+
+    /// <summary>
+    /// Hangs the preview on the field that finishes the rule — the way the text is compared — so
+    /// the list stands under all three fields rather than between them. An action with no such
+    /// rule has nothing to preview.
+    /// </summary>
+    private void WireWindowPreview()
+    {
+        WindowPreview?.Stop();
+        WindowPreview = null;
+
+        if (Parameter("title") is null || Parameter("compareBy") is not { } comparing)
+        {
+            return;
+        }
+
+        WindowPreview = new WindowPreviewViewModel();
+        WindowPreview.Watch(() => Windows);
+        comparing.WindowPreview = WindowPreview;
+    }
+
     /// <summary>Folds a group open or shut and remembers which way it went.</summary>
     public void ToggleGroup(ActionGroupViewModel group)
     {
@@ -1017,6 +1056,7 @@ public partial class AddActionViewModel : ViewModelBase
             MarkCoordinates();
             MarkRegion();
             MarkOffset();
+            WireWindowPreview();
 
             if (ReturnsField is { } returns)
             {
@@ -1408,6 +1448,13 @@ public partial class AddActionViewModel : ViewModelBase
                     rows++;
                 }
             }
+        }
+
+        // Which windows the step recognises is read off all three of those fields, so it is asked
+        // for once they all say what they say.
+        if (WindowPreview is { } preview && Parameter("title") is { } text)
+        {
+            preview.Follow(text.CurrentText, WindowMatchFor(), WindowCompareFor());
         }
 
         // Which page holds what can come and go with what a field says, so the pages are read

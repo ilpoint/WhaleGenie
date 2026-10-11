@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -27,6 +28,10 @@ public sealed class WindowsWindowDevice : IWindowDevice
 
     public WindowInfo? Find(string value, WindowMatch match,
         WindowCompare compare = WindowCompare.Contains)
+        => Filter(value, match, compare).FirstOrDefault();
+
+    public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match,
+        WindowCompare compare = WindowCompare.Contains)
     {
         Require();
 
@@ -37,18 +42,10 @@ public sealed class WindowsWindowDevice : IWindowDevice
         // when it says "the active window".
         if (wanted.Length == 0)
         {
-            return windows.Count > 0 ? windows[0] : null;
+            return windows.Count > 0 ? [windows[0]] : [];
         }
 
-        foreach (var window in windows)
-        {
-            if (Matches(window, wanted, match, compare))
-            {
-                return window;
-            }
-        }
-
-        return null;
+        return [.. windows.Where(window => Matches(window, wanted, match, compare))];
     }
 
     /// <summary>

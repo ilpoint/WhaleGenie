@@ -26,6 +26,8 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>True while a whole value is being put in at once, rather than typed a character at a time.</summary>
     private bool _writing;
 
+    private WindowPreviewViewModel? _windowPreview;
+
     public StepParameterViewModel(ActionParameter definition,
         IReadOnlyList<VariableChoice>? variables = null,
         IReadOnlyList<string>? macros = null, IReadOnlyList<ActionParameterOption>? steps = null,
@@ -856,6 +858,24 @@ public partial class StepParameterViewModel : ViewModelBase
 
     /// <summary>True when this parameter names a variable and offers suggestions.</summary>
     public bool IsVariable => Definition.Kind is ActionParameterKind.Variable;
+
+    /// <summary>
+    /// The windows this step would recognise right now, when this is the field the dialog hangs the
+    /// preview on. Null on every other field, so the block is drawn only under the rule it belongs to.
+    /// </summary>
+    public WindowPreviewViewModel? WindowPreview
+    {
+        get => _windowPreview;
+        set
+        {
+            _windowPreview = value;
+            OnPropertyChanged(nameof(WindowPreview));
+            OnPropertyChanged(nameof(ShowsWindowPreview));
+        }
+    }
+
+    /// <summary>True when the preview of the windows this step recognises belongs under this field.</summary>
+    public bool ShowsWindowPreview => _windowPreview is not null;
 
     /// <summary>True when this parameter names another macro and offers the project's macros.</summary>
     public bool IsMacro => Definition.Kind is ActionParameterKind.Macro;

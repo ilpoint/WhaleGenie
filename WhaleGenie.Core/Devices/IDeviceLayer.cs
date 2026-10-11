@@ -498,6 +498,17 @@ public interface IWindowDevice
     IReadOnlyList<WindowInfo> List();
 
     /// <summary>
+    /// Every window that matches <paramref name="value"/> the way <paramref name="match"/> and
+    /// <paramref name="compare"/> say, ignoring case, in the order <see cref="List"/> gives them,
+    /// or nothing when none does. An empty value matches the frontmost window alone, which is the
+    /// same answer <see cref="Find"/> gives: it is the one window a step that says nothing means.
+    /// The interface asks for all of them so that what a step would recognise can be shown rather
+    /// than guessed at, and the rule itself stays in one place.
+    /// </summary>
+    IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match,
+        WindowCompare compare = WindowCompare.Contains);
+
+    /// <summary>
     /// The first window that matches <paramref name="value"/> the way <paramref name="match"/>
     /// and <paramref name="compare"/> say, ignoring case, or null when nothing does. An empty value
     /// matches the frontmost window, whichever of the three parts it is asked to look at. A
@@ -784,6 +795,9 @@ public sealed class NullDeviceLayer : IDeviceLayer
         // Named through the interface because the process device already has a List and a Find
         // that take no such argument.
         IReadOnlyList<WindowInfo> IWindowDevice.List() => throw Missing("windows");
+
+        IReadOnlyList<WindowInfo> IWindowDevice.Filter(string value, WindowMatch match,
+            WindowCompare compare) => throw Missing("windows");
 
         WindowInfo? IWindowDevice.Find(string value, WindowMatch match, WindowCompare compare)
             => throw Missing("windows");

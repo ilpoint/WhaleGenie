@@ -408,6 +408,45 @@
                             Click="OnPickVariable" />
                 </Grid>
 
+                <!-- Whether the step recognises the right window is otherwise only visible by
+                     running the macro, so the windows this rule picks out right now are listed
+                     under the fields that make up the rule. -->
+                <StackPanel IsVisible="{Binding ShowsWindowPreview}" Margin="0,8,0,0" Spacing="4">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                        <TextBlock Classes="Muted" VerticalAlignment="Center" TextWrapping="Wrap"
+                                   Text="{Binding WindowPreview.Summary}" />
+                        <Button Grid.Column="1" Classes="FlatButton" Height="28" Padding="10,0"
+                                Content="{Binding [WindowPicker.Refresh], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [WindowPicker.RefreshHint], Source={x:Static loc:Strings.Current}}"
+                                Command="{Binding WindowPreview.RefreshCommand}" />
+                    </Grid>
+
+                    <ItemsControl ItemsSource="{Binding WindowPreview.Rows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:WindowPreviewRow">
+                                <StackPanel Margin="2,0,0,0">
+                                    <TextBlock FontSize="12" Foreground="#E8E8E8"
+                                               TextTrimming="CharacterEllipsis"
+                                               Text="{Binding Title}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="5"
+                                                IsVisible="{Binding HasPart}">
+                                        <TextBlock Classes="Muted" FontSize="11"
+                                                   Text="{Binding PartLabel}" />
+                                        <TextBlock Classes="Muted" FontSize="11"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Text="{Binding Part}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding WindowPreview.More}"
+                               IsVisible="{Binding WindowPreview.HasMore}" />
+                    <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding WindowPreview.Note}"
+                               IsVisible="{Binding WindowPreview.HasNote}" />
+                </StackPanel>
+
                 <!-- Where a step looks: one row per rectangle, so looking at two halves of a
                      screen reads as two things. A row says its rectangle as four numbers — each of
                      them an ordinary number field, which may be written as an expression — or names

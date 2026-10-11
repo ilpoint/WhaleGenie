@@ -6577,13 +6577,26 @@ internal sealed class FakeDeviceLayer
                 new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
         }
 
+        return Matching(value, match, compare).FirstOrDefault();
+    }
+
+    IReadOnlyList<WindowInfo> IWindowDevice.Filter(string value, WindowMatch match,
+        WindowCompare compare)
+    {
+        Note($"filterWindows {value}");
+        return Matching(value, match, compare);
+    }
+
+    /// <summary>The windows that answer to a value, in the order the fake lists them.</summary>
+    private List<WindowInfo> Matching(string value, WindowMatch match, WindowCompare compare)
+    {
         var wanted = (value ?? string.Empty).Trim();
         if (wanted.Length == 0)
         {
-            return Windows.Count > 0 ? Windows[0] : null;
+            return Windows.Count > 0 ? [Windows[0]] : [];
         }
 
-        return Windows.FirstOrDefault(window => Answers(window, wanted, match, compare));
+        return [.. Windows.Where(window => Answers(window, wanted, match, compare))];
     }
 
     /// <summary>
