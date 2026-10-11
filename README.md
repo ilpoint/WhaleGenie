@@ -77,8 +77,9 @@ dotnet format WhaleGenie.slnx           # 按 .editorconfig 整理格式
    改动这部分时按用例手动过一遍。
 
 整套跑一次四十秒上下：引擎那套五秒，界面那套三十八秒，两边同时跑。界面那套是一条接一条来的（无头
-会话只有一条界面线程），中位数三毫秒，真正在等钟表的只有文件监听那三条。一次"看屏幕"要花多少、怎么
-再量一遍，见 [doc/performance.md](doc/performance.md)。
+会话只有一条界面线程），中位数三毫秒，真正在等钟表的只有文件监听那三条；偶尔整条会拖到十分钟上下，
+用例仍然全过，那是在等某件外在的事。一次"看屏幕"要花多少、怎么再量一遍，见
+[doc/performance.md](doc/performance.md)。
 
 文案是两份手写的表（`Strings` 的英文与中文、`ActionStrings` 的中文），
 `WhaleGenie.Tests` 里的本地化用例会检查键是否两边齐全、动作的每个参数和每个下拉选项是否有中文。
