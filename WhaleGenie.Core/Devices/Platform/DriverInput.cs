@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 
@@ -43,6 +44,34 @@ public static class DriverInput
     /// <summary>How long a probe waits for an answer before it counts as nothing being there.</summary>
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromMilliseconds(400);
 
+    private static readonly object AskingGate = new();
+
+    /// <summary>The question that is out, or null when none is. Read and written under the gate.</summary>
+    private static Task<bool>? _asking;
+
+    /// <summary>
+    /// How the machine is asked whether the server is there. A check hands in its own answer, so what
+    /// a burst of questions does — how often the machine is really asked, and what each caller reads
+    /// in between — can be read without a server on the machine.
+    /// </summary>
+    internal static Func<bool> Probe
+    {
+        get => _probe;
+        set
+        {
+            lock (AskingGate)
+            {
+                _probe = value;
+
+                // The question that is out was asked of the machine that was there a moment ago, so
+                // it is not the answer to the one this hands in.
+                _asking = null;
+            }
+        }
+    }
+
+    private static Func<bool> _probe = Connect;
+
     /// <summary>Looks at this machine and says which piece driver-level input is still missing.</summary>
     public static DriverInputState Check()
     {
@@ -79,23 +108,52 @@ public static class DriverInput
     /// </summary>
     public static bool IsServerAnswering()
     {
-        // The connect is kept off this thread so the window that asked never waits on a server that
-        // is not there, and the timeout is what turns a refusal into a quick "no" instead of
-        // Windows' own minute-long connect wait.
-        var probe = Task.Run(() =>
-        {
-            try
-            {
-                using var client = new TcpClient();
-                client.Connect(IPAddress.Parse(ServerHost), ServerPort);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        });
+        var asking = Ask();
+        return asking.Wait(ProbeTimeout) && asking.Result;
+    }
 
-        return probe.Wait(ProbeTimeout) && probe.Result;
+    /// <summary>
+    /// The question that is out, or a new one when none is. One at a time: a window that opens reads
+    /// two lines, a run looks before it starts and again while it waits for a server, and every one
+    /// of those asks the same thing — the caller that arrives while a question is out waits on that
+    /// one instead of making a connection of its own. A question that has already been answered is
+    /// not reused, so what acts on the answer — starting a server — still sees one that came up a
+    /// moment ago.
+    /// </summary>
+    private static Task<bool> Ask()
+    {
+        lock (AskingGate)
+        {
+            if (_asking is null || _asking.IsCompleted)
+            {
+                _asking = Task.Run(_probe);
+            }
+
+            return _asking;
+        }
+    }
+
+    /// <summary>
+    /// One connection to where the server answers, called off when it outlasts
+    /// <see cref="ProbeTimeout"/>. A machine with nothing listening spends about two seconds before
+    /// it refuses, and a connect that cannot be called off spends them on the thread it was started
+    /// on: a handful of those emptied the thread pool, and work with nothing to do with driver-level
+    /// input waited behind them.
+    /// </summary>
+    private static bool Connect()
+    {
+        try
+        {
+            using var client = new TcpClient();
+            using var giveUp = new CancellationTokenSource(ProbeTimeout);
+            client.ConnectAsync(IPAddress.Parse(ServerHost), ServerPort, giveUp.Token)
+                .GetAwaiter().GetResult();
+            return true;
+        }
+        catch
+        {
+            // A refusal, a call-off and a machine with no server answer the same question.
+            return false;
+        }
     }
 }
