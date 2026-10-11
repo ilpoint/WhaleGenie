@@ -47,6 +47,14 @@ public class DeviceActionTests
     private static ExecutableStep Recognize(int x, int y, int width, int height,
         params ExecutableParameter[] rest) => SampleFiles.Recognize(x, y, width, height, rest);
 
+    /// <summary>See <see cref="SampleFiles.CaptureWholeScreen"/>: a step that names no rectangle.</summary>
+    private static ExecutableStep CaptureWholeScreen(params ExecutableParameter[] rest)
+        => SampleFiles.CaptureWholeScreen(rest);
+
+    /// <summary>See <see cref="SampleFiles.RecognizeWholeScreen"/>: a step that names no rectangle.</summary>
+    private static ExecutableStep RecognizeWholeScreen(params ExecutableParameter[] rest)
+        => SampleFiles.RecognizeWholeScreen(rest);
+
     /// <summary>A parameter that holds a list of rows: the places to look, the presses of a run.</summary>
     private static ExecutableParameter Rows(string name,
         params IReadOnlyDictionary<string, string>[] rows)
@@ -1385,6 +1393,56 @@ public class DeviceActionTests
         var asked = Assert.Single(devices.Captures);
         Assert.Equal(9, asked.Window);
         Assert.Equal((100, 50, 400, 300), (asked.X, asked.Y, asked.Width, asked.Height));
+    }
+
+    /// <summary>
+    /// A step that copies or reads the screen and gives no rectangle at all reads the whole screen:
+    /// a number nobody filled in is not a zero, which would have left it looking at one pixel in the
+    /// corner and saying it had done what it was asked.
+    /// </summary>
+    [Fact]
+    public async Task A_capture_that_names_no_rectangle_reads_the_whole_screen()
+    {
+        var devices = new FakeDeviceLayer();
+
+        await RunAsync([CaptureWholeScreen(Hit("image", "shot"))], devices);
+
+        var asked = Assert.Single(devices.Captures);
+        Assert.Equal((0, 0, 100, 50), (asked.X, asked.Y, asked.Width, asked.Height));
+    }
+
+    [Fact]
+    public async Task A_reading_that_names_no_rectangle_reads_the_whole_screen()
+    {
+        var devices = new FakeDeviceLayer();
+
+        await RunAsync([RecognizeWholeScreen(Returns("text=words"))], devices);
+
+        var asked = Assert.Single(devices.Captures);
+        Assert.Equal((0, 0, 100, 50), (asked.X, asked.Y, asked.Width, asked.Height));
+    }
+
+    /// <summary>
+    /// What a step says is read; what it leaves out reaches the edge of the screen. A step that named
+    /// only how wide to read starts at the corner and takes the whole height, rather than one row of
+    /// pixels; one that named where to start and nothing else takes everything from there on.
+    /// </summary>
+    [Fact]
+    public async Task A_number_a_step_leaves_out_reaches_the_edge_of_the_screen()
+    {
+        var devices = new FakeDeviceLayer();
+
+        await RunAsync(
+        [
+            Step("vision.capture", Param("width", "40"), Hit("image", "shot")),
+            Step("vision.capture", Param("x", "20"), Param("y", "10"), Hit("image", "shot")),
+        ], devices);
+
+        Assert.Equal(2, devices.Captures.Count);
+        Assert.Equal((0, 0, 40, 50), (devices.Captures[0].X, devices.Captures[0].Y,
+            devices.Captures[0].Width, devices.Captures[0].Height));
+        Assert.Equal((20, 10, 80, 40), (devices.Captures[1].X, devices.Captures[1].Y,
+            devices.Captures[1].Width, devices.Captures[1].Height));
     }
 
     /// <summary>

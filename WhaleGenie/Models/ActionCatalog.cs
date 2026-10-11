@@ -2071,7 +2071,7 @@ public static class ActionCatalog
             Description = "Capture a screen region into an image variable.",
             Parameters =
             [
-                ..RegionNumbers(0, 0, 100, 100),
+                ..RegionNumbers(),
                 ..Anchor(withElement: true),
                 ..Capture(),
                 LookGap(0),
@@ -2311,7 +2311,7 @@ public static class ActionCatalog
             Description = "Read text from a screen region.",
             Parameters =
             [
-                ..RegionNumbers(0, 0, 400, 120),
+                ..RegionNumbers(),
                 Choice("language", "Language", ["auto", "en", "zh"], "auto", advanced: true),
                 Content(),
                 Toggle("table", "Read as a table", false,
@@ -3404,16 +3404,20 @@ public static class ActionCatalog
             Advanced = advanced,
         };
 
-    private static ActionParameter Number(string name, string label, decimal defaultValue,
+    private static ActionParameter Number(string name, string label, decimal? defaultValue = null,
         string hint = "", decimal min = 0m, decimal max = StepMeta.LongestPauseMs,
-        bool advanced = false, string[]? onlyWith = null, string onlyField = "algorithm")
+        bool advanced = false, string[]? onlyWith = null, string onlyField = "algorithm",
+        bool required = true)
         => new()
         {
             Name = name,
             Label = label,
             Kind = ActionParameterKind.Number,
             Hint = hint,
-            DefaultValue = defaultValue.ToString(CultureInfo.InvariantCulture),
+            // A number with nothing written in it is a field nobody has answered rather than a
+            // zero, which is what the few fields that start empty are for.
+            DefaultValue = defaultValue?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            Required = required,
             Minimum = min,
             Maximum = max,
             // Every pause in the catalogue ends its name in "Ms", so the editor can offer the
@@ -3554,24 +3558,29 @@ public static class ActionCatalog
     /// <summary>
     /// The one part of the screen a step reads or copies, written as four numbers it works on
     /// directly rather than as a rectangle of its own: the corners are ordinary number fields, each
-    /// of which may be written as an expression, and the region picker fills all four at once.
+    /// of which may be written as an expression, and the region picker fills all four at once. They
+    /// start empty and a number left unsaid is not read as a zero: the rectangle goes to the edge of
+    /// the screen instead, so a step that says nothing about where to look reads all of it. A number
+    /// guessed at the corner of the screen would be a step that quietly reads the wrong thing.
     /// </summary>
-    private static ActionParameter[] RegionNumbers(int x, int y, int width, int height)
+    private static ActionParameter[] RegionNumbers()
     =>
     [
-        Number("x", "Top-left X", x,
-            "How far the left edge of the region is from the left of the screen, in pixels. Under "
-            + "a window anchor it is counted from that window's own left edge. “Pick region” fills "
-            + "this in along with the other three."),
-        Number("y", "Top-left Y", y,
-            "How far the top edge of the region is from the top of the screen, in pixels. Under a "
-            + "window anchor it is counted from that window's own top edge."),
-        Number("width", "Width to the right", width,
-            "How wide the region is, in pixels: the distance from the left edge to the right one. "
-            + "At least 1.", min: 1),
-        Number("height", "Height downward", height,
-            "How tall the region is, in pixels: the distance from the top edge to the bottom one. "
-            + "At least 1.", min: 1),
+        Number("x", "Top-left X",
+            hint: "How far the left edge of the region is from the left of the screen, in pixels. Under "
+            + "a window anchor it is counted from that window's own left edge. Left out, counting "
+            + "starts at that edge, and with the other three left out too the whole screen is read. "
+            + "“Pick region” fills all four in at once.", required: false),
+        Number("y", "Top-left Y",
+            hint: "How far the top edge of the region is from the top of the screen, in pixels. Under a "
+            + "window anchor it is counted from that window's own top edge. Left out, counting "
+            + "starts at that edge.", required: false),
+        Number("width", "Width to the right",
+            hint: "How wide the region is, in pixels: the distance from the left edge to the right one. "
+            + "Left out, it reaches the right edge of the screen. At least 1.", min: 1, required: false),
+        Number("height", "Height downward",
+            hint: "How tall the region is, in pixels: the distance from the top edge to the bottom one. "
+            + "Left out, it reaches the bottom edge of the screen. At least 1.", min: 1, required: false),
     ];
 
     /// <summary>

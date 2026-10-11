@@ -3113,8 +3113,7 @@ public sealed class MacroRunner
     {
         var anchor = AnchorOf(step);
         var corner = Placed(anchor.Corner, Number(step, "x"), Number(step, "y"));
-        var width = Math.Max(1, Number(step, "width"));
-        var height = Math.Max(1, Number(step, "height"));
+        var (width, height) = Extent(step, corner);
         var shot = Shot(step, corner.X, corner.Y, width, height, anchor.Window);
         return (shot.Frame, shot.Origin);
     }
@@ -3869,6 +3868,23 @@ public sealed class MacroRunner
         var corner = Placed(anchor.Corner, x, y);
         var shot = Shot(step, corner.X, corner.Y, width, height, anchor.Window);
         return (shot.Frame, shot.Origin);
+    }
+
+    /// <summary>
+    /// How big the rectangle a step reads or copies is. A step that leaves one of these numbers out
+    /// has not said how much of the screen it wants, and the whole of it is what that means: the
+    /// side runs from where the rectangle starts to the edge of the screen, where the zero a number
+    /// nobody gave would have left it one pixel wide.
+    /// </summary>
+    private (int Width, int Height) Extent(ExecutableStep step, ScreenPoint corner)
+    {
+        var screen = _devices.Screen.PrimarySize;
+        return (Reach("width", corner.X, screen.Width), Reach("height", corner.Y, screen.Height));
+
+        int Reach(string name, int from, int limit)
+            => step.Text(name).Trim().Length == 0
+                ? Math.Clamp(limit - from, 1, limit)
+                : Math.Max(1, Number(step, name));
     }
 
     /// <summary>
@@ -5952,8 +5968,8 @@ public sealed class MacroRunner
     {
         var anchor = AnchorOf(step);
         var corner = Placed(anchor.Corner, Number(step, "x"), Number(step, "y"));
-        var shot = Shot(step, corner.X, corner.Y, Math.Max(1, Number(step, "width")),
-            Math.Max(1, Number(step, "height")), anchor.Window);
+        var (width, height) = Extent(step, corner);
+        var shot = Shot(step, corner.X, corner.Y, width, height, anchor.Window);
         return (shot.Origin, shot.Frame, ReadFrame(step, shot.Frame));
     }
 

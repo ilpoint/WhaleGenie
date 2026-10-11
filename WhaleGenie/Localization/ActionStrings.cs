@@ -1824,19 +1824,20 @@ internal static class ActionStrings
 
         // ------------------------------------------------------------------- vision
         ["vision.capture.name"] = "截屏",
-        ["vision.capture.desc"] = "把屏幕的一块区域截取到图像变量里。",
+        ["vision.capture.desc"] = "把屏幕的一块区域截取到图像变量里；四个数都不填就是整块屏幕。",
         ["vision.capture.x.label"] = "左上角 X",
         ["vision.capture.x.hint"] = "要截取的那块屏幕的左边界距屏幕左边多少像素；坐标基准选"
-            + "窗口时，从窗口自己的左边算起。用「框选区域」拖一次会把它和另外三个数一起填好。",
+            + "窗口时，从窗口自己的左边算起。留空就从那条边开始，四个数都留空则读整块屏幕。"
+            + "用「框选区域」拖一次会把四个数一起填好。",
         ["vision.capture.y.label"] = "左上角 Y",
         ["vision.capture.y.hint"] = "要截取的那块屏幕的上边界距屏幕上边多少像素；坐标基准选"
-            + "窗口时，从窗口自己的上边算起。",
+            + "窗口时，从窗口自己的上边算起。留空就从那条边开始。",
         ["vision.capture.width.label"] = "向右的宽",
         ["vision.capture.width.hint"] = "要截取的那块屏幕有多宽，单位像素，至少 1；从左上角向"
-            + "右量。",
+            + "右量，留空就一直量到屏幕右边缘。",
         ["vision.capture.height.label"] = "向下的高",
         ["vision.capture.height.hint"] = "要截取的那块屏幕有多高，单位像素，至少 1；从左上角向"
-            + "下量。",
+            + "下量，留空就一直量到屏幕下边缘。",
 
         ["vision.captureWindow.name"] = "截取窗口",
         ["vision.captureWindow.desc"] = "把整个窗口连着标题栏一起截取到图像变量里。",
@@ -1907,19 +1908,20 @@ internal static class ActionStrings
 
         // ---------------------------------------------------------------------- ocr
         ["ocr.recognize.name"] = "识别文字",
-        ["ocr.recognize.desc"] = "识别屏幕某块区域里的文字。",
+        ["ocr.recognize.desc"] = "识别屏幕某块区域里的文字；四个数都不填就是整块屏幕。",
         ["ocr.recognize.x.label"] = "左上角 X",
         ["ocr.recognize.x.hint"] = "要读的那块屏幕的左边界距屏幕左边多少像素；坐标基准选窗口"
-            + "时，从窗口自己的左边算起。用「框选区域」拖一次会把它和另外三个数一起填好。",
+            + "时，从窗口自己的左边算起。留空就从那条边开始，四个数都留空则读整块屏幕。"
+            + "用「框选区域」拖一次会把四个数一起填好。",
         ["ocr.recognize.y.label"] = "左上角 Y",
         ["ocr.recognize.y.hint"] = "要读的那块屏幕的上边界距屏幕上边多少像素；坐标基准选窗口"
-            + "时，从窗口自己的上边算起。",
+            + "时，从窗口自己的上边算起。留空就从那条边开始。",
         ["ocr.recognize.width.label"] = "向右的宽",
         ["ocr.recognize.width.hint"] = "要读的那块屏幕有多宽，单位像素，至少 1；从左上角向右"
-            + "量。",
+            + "量，留空就一直量到屏幕右边缘。",
         ["ocr.recognize.height.label"] = "向下的高",
         ["ocr.recognize.height.hint"] = "要读的那块屏幕有多高，单位像素，至少 1；从左上角向下"
-            + "量。",
+            + "量，留空就一直量到屏幕下边缘。",
         ["ocr.recognize.language.label"] = "语言",
         ["ocr.recognize.content.label"] = "读取内容",
         ["ocr.recognize.content.hint"] = "读全部文字，还是只读数字：只读数字时，含数字的片段"

@@ -74,6 +74,57 @@ public class NumberBoxTests
     }
 
     [Fact]
+    public void Clearing_a_number_box_leaves_the_step_having_said_nothing()
+    {
+        Ui.Run(() =>
+        {
+            var window = Open("window.move");
+            var wide = Parameter(window, "width");
+            var box = window.GetVisualDescendants().OfType<NumericUpDown>()
+                .First(one => ReferenceEquals(one.DataContext, wide));
+            box.Value = null;
+            Dispatcher.UIThread.RunJobs();
+
+            // How wide nobody has said is a question still open, so the step says so rather than
+            // saving a zero and looking like it was answered.
+            Assert.Equal(string.Empty, wide.CurrentText);
+            Assert.False(((AddActionViewModel)window.DataContext!).CanSave);
+
+            // A length of time is the one exception: a box with nothing in it still means no time at
+            // all, which is what a wait with no length has always been.
+            var delay = Open("control.delay");
+            var ms = Parameter(delay, "ms");
+            delay.GetVisualDescendants().OfType<NumericUpDown>()
+                .First(one => ReferenceEquals(one.DataContext, ms)).Value = null;
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("0", ms.CurrentText);
+        });
+    }
+
+    [Fact]
+    public void An_empty_number_box_shows_nothing_rather_than_the_smallest_number()
+    {
+        Ui.Run(() =>
+        {
+            var window = Open("vision.capture");
+            Dispatcher.UIThread.RunJobs();
+
+            // Nothing has been said about where to look, so nothing is what the field shows: a box
+            // that displayed its lower bound would look like an answer the step had written down.
+            foreach (var name in new[] { "x", "y", "width", "height" })
+            {
+                var box = window.GetVisualDescendants().OfType<NumericUpDown>()
+                    .First(one => one.IsEffectivelyVisible
+                        && ReferenceEquals(one.DataContext, Parameter(window, name)));
+
+                Assert.Null(box.Value);
+                Assert.True(string.IsNullOrWhiteSpace(box.Text), $"{name} shows \"{box.Text}\"");
+            }
+        });
+    }
+
+    [Fact]
     public void A_search_region_says_its_rectangle_as_two_lines_of_two()
     {
         Ui.Run(() =>

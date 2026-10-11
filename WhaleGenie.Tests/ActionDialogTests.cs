@@ -75,6 +75,49 @@ public class ActionDialogTests
         => viewModel.Parameters.First(parameter => parameter.Definition.Name == name).CurrentText;
 
     [Fact]
+    public void A_step_that_reads_the_screen_starts_with_no_rectangle()
+    {
+        Ui.Run(() =>
+        {
+            foreach (var key in new[] { "vision.capture", "ocr.recognize" })
+            {
+                var viewModel = Open(key);
+
+                // Nothing written down is an answer here: the step reads the whole screen. A
+                // rectangle guessed in the corner would be a step that runs and looks at the wrong
+                // thing without saying so.
+                foreach (var name in new[] { "x", "y", "width", "height" })
+                {
+                    var field = viewModel.Parameters
+                        .First(parameter => parameter.Definition.Name == name);
+
+                    Assert.Equal(string.Empty, field.CurrentText);
+                    Assert.Equal(Strings.Format("Common.OptionalSuffix", field.Definition.LocalLabel),
+                        field.Label);
+
+                    // An empty box is a question nobody has answered rather than a formula, so the
+                    // spinner is what the field opens as.
+                    Assert.True(field.IsNumberValue);
+                }
+
+                Assert.True(viewModel.CanSave, $"{key}: {viewModel.ValidationMessage}");
+
+                // And what was left empty is left out of the file rather than written down as a
+                // zero, because zero is a place a step can mean.
+                MacroStep? saved = null;
+                viewModel.CloseRequested += step => saved = step;
+                viewModel.SaveCommand.Execute(null);
+
+                var names = saved!.Parameters.Select(parameter => parameter.Name).ToList();
+                Assert.DoesNotContain("x", names);
+                Assert.DoesNotContain("y", names);
+                Assert.DoesNotContain("width", names);
+                Assert.DoesNotContain("height", names);
+            }
+        });
+    }
+
+    [Fact]
     public void A_number_can_be_written_as_an_expression()
     {
         Ui.Run(() =>

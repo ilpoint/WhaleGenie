@@ -106,9 +106,12 @@ public partial class StepParameterViewModel : ViewModelBase
         {
             ShowMilliseconds(number);
         }
-        else if (definition.Kind is ActionParameterKind.Number)
+        else if (definition.Kind is ActionParameterKind.Number
+                 && definition.DefaultValue.Trim().Length > 0)
         {
-            // A number that was written as an expression opens in the expression editor.
+            // A number that was written as an expression opens in the expression editor. One that
+            // starts empty is a field nobody has answered yet, and it opens as the spinner: an empty
+            // expression box would read as "this step has a formula" when it has nothing at all.
             UseFormula = true;
         }
 
@@ -1079,15 +1082,25 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>The value as text, taken from whichever editor this parameter uses.</summary>
     public string CurrentText => Definition.Kind switch
     {
-        ActionParameterKind.Number => UseFormula
-            ? Text ?? string.Empty
-            : IsDuration
-                ? Milliseconds.ToString("0.####", CultureInfo.InvariantCulture)
-                : (NumberValue ?? 0m).ToString(CultureInfo.InvariantCulture),
+        ActionParameterKind.Number => NumberText,
         ActionParameterKind.Bool => Flag ? "true" : "false",
         ActionParameterKind.Choice or ActionParameterKind.Step => Option?.Value ?? string.Empty,
         _ => Text ?? string.Empty,
     };
+
+    /// <summary>
+    /// A number as it is to be written down. A box nobody has typed in holds nothing rather than a
+    /// zero: zero is a number a step can mean — the left edge of the screen, a wait of no time —
+    /// and a field nobody has answered has not said it. The engine reads an empty field as the
+    /// "nothing was said" it is, and a length of time keeps meaning no time at all.
+    /// </summary>
+    private string NumberText => UseFormula
+        ? Text ?? string.Empty
+        : IsDuration
+            ? Milliseconds.ToString("0.####", CultureInfo.InvariantCulture)
+            : NumberValue is { } number
+                ? number.ToString(CultureInfo.InvariantCulture)
+                : string.Empty;
 
     /// <summary>Flattens the edited value into the model the step is built from.</summary>
     public StepParameter ToStepParameter() => new()

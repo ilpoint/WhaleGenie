@@ -91,6 +91,17 @@ internal static class SampleFiles
         => Step("ocr.recognize", [.. Coords(x, y, width, height), .. rest]);
 
     /// <summary>
+    /// Copies the whole screen: a step that names no rectangle at all, which is how one is written
+    /// when the four numbers are left empty.
+    /// </summary>
+    public static ExecutableStep CaptureWholeScreen(params ExecutableParameter[] rest)
+        => Step("vision.capture", rest);
+
+    /// <summary>Reads the whole screen: a step that names no rectangle at all.</summary>
+    public static ExecutableStep RecognizeWholeScreen(params ExecutableParameter[] rest)
+        => Step("ocr.recognize", rest);
+
+    /// <summary>
     /// The results a step was told to hand over, one row per result: "text" hands it over under the
     /// name <c>text</c>, and "image=shot" hands the picture over under <c>shot</c>. A step that ticks
     /// nothing hands nothing over at all, so a macro that reads it reads a name no run wrote.
