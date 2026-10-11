@@ -175,14 +175,18 @@ public class ViiperServerTests : IDisposable
     }
 
     [Fact]
-    public void The_launch_carries_the_flag_that_attaches_the_devices()
+    public void The_launch_asks_for_the_server_and_the_flag_that_attaches_the_devices()
     {
-        // Without this flag the keyboard and mouse go on the bus and never reach the desktop, which
+        // Without the flag the keyboard and mouse go on the bus and never reach the desktop, which
         // is the difference between a virtual keyboard that types and one that does nothing. The
-        // flag itself is what the server documents; that the launch uses it is read here, because
-        // running the real server is a thing for a person to do, not for a check.
+        // command has to be named as well: from VIIPER 0.9.0 a launch without one opens that
+        // project's interactive launcher, which serves nothing. Both are what the server
+        // documents; that the launch carries them is read here, because running the real server is
+        // a thing for a person to do, not for a check.
+        Assert.Equal("server", ViiperServer.ServerCommand);
         Assert.Equal("--api.auto-attach-local-client", ViiperServer.AutoAttach);
-        Assert.Contains("Arguments = AutoAttach", Source(), StringComparison.Ordinal);
+        Assert.Equal("server --api.auto-attach-local-client", ViiperServer.LaunchArguments);
+        Assert.Contains("Arguments = LaunchArguments", Source(), StringComparison.Ordinal);
     }
 
     [Fact]

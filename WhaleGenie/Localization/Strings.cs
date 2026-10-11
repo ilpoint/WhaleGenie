@@ -746,11 +746,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.ServerChoose"] = "Choose viiper.exe...",
         ["Settings.ServerFilter"] = "Program",
         ["Settings.ServerHint"] =
-            "VIIPER is another project: its zip is downloaded and unzipped by hand, and where it "
-            + "lands does not matter. Point at viiper.exe once and WhaleGenie runs it with "
-            + "--api.auto-attach-local-client whenever it starts up, so the first driver-level move "
-            + "of a macro is not the one that waits for it. A server that was already running is "
-            + "left alone.",
+            "VIIPER is another project: its program is downloaded by hand, and where it lands does "
+            + "not matter. Point at viiper.exe once and WhaleGenie runs it as \"viiper.exe server "
+            + "--api.auto-attach-local-client\" whenever it starts up, so the first driver-level "
+            + "move of a macro is not the one that waits for it. A server that was already running "
+            + "is left alone.",
         ["Settings.Admin"] = "Administrator",
         ["Settings.AdminYes"] = "Running as administrator.",
         ["Settings.AdminNo"] = "Not running as administrator.",
@@ -913,8 +913,9 @@ public sealed class Strings : INotifyPropertyChanged
             + "in the settings window, or start the server yourself.",
         ["Run.NoDriverAttached"] =
             "Driver-level input is not reaching this machine: it is not using the virtual keyboard "
-            + "and mouse. Start the VIIPER server with --api.auto-attach-local-client, and close any "
-            + "other program that is driving virtual devices.",
+            + "and mouse. Start the VIIPER server as \"viiper.exe server "
+            + "--api.auto-attach-local-client\", and close any other program that is driving "
+            + "virtual devices.",
         ["Run.NoDriverKey"] = "A virtual keyboard has no such key: {0}",
         ["Run.NoDriverTyping"] = "Driver-level input cannot type this character: {0}",
         ["Run.NoGamepad"] = "No virtual controller is on the machine yet.",
@@ -1728,9 +1729,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.ServerChoose"] = "选择 viiper.exe…",
         ["Settings.ServerFilter"] = "程序",
         ["Settings.ServerHint"] =
-            "VIIPER 也是别人的项目：压缩包自己下载、自己解压，解到哪都行。选一次 viiper.exe，以后"
-            + "鲸灵一启动就带上 --api.auto-attach-local-client 把它跑起来，宏里第一次用驱动级输入"
-            + "才不用在那儿等它；本来就在运行的那个不动它。",
+            "VIIPER 也是别人的项目：程序自己下载，放在哪都行。选一次 viiper.exe，以后鲸灵一启动就用"
+            + "“viiper.exe server --api.auto-attach-local-client”把它跑起来，宏里第一次用驱动级"
+            + "输入才不用在那儿等它；本来就在运行的那个不动它。",
         ["Settings.Admin"] = "管理员权限",
         ["Settings.AdminYes"] = "正以管理员身份运行。",
         ["Settings.AdminNo"] = "没有以管理员身份运行。",
@@ -1882,7 +1883,8 @@ public sealed class Strings : INotifyPropertyChanged
             "驱动级输入连不上本机的 VIIPER 服务端：设置窗口里选一次 viiper.exe，或者自己把它跑起来。",
         ["Run.NoDriverAttached"] =
             "驱动级输入没有送达这台机器：系统没有在用这套虚拟键盘和鼠标。"
-            + "请让 VIIPER 服务端带上 --api.auto-attach-local-client 启动，并关掉其它正在使用虚拟设备的程序。",
+            + "请用“viiper.exe server --api.auto-attach-local-client”启动 VIIPER 服务端，"
+            + "并关掉其它正在使用虚拟设备的程序。",
         ["Run.NoDriverKey"] = "虚拟键盘没有这个键：{0}",
         ["Run.NoDriverTyping"] = "驱动级输入打不出这个字符：{0}",
         ["Run.NoGamepad"] = "本机还没有接上虚拟手柄。",

@@ -19,10 +19,23 @@ namespace WhaleGenie.Core.Devices.Platform;
 public static class ViiperServer
 {
     /// <summary>
+    /// The command that starts the server. It is named instead of being left as the default,
+    /// because from VIIPER 0.9.0 a launch without a command opens that project's interactive
+    /// launcher rather than the server: the launcher answers nothing on the port, so a run would
+    /// report driver-level input as missing while a program the user did not ask for sits on the
+    /// screen. The command is called "server" in every version, so naming it costs an older copy
+    /// nothing.
+    /// </summary>
+    public const string ServerCommand = "server";
+
+    /// <summary>
     /// The flag a client on this machine needs. Without it the devices go on the bus and never
     /// reach the desktop, so every launch carries it rather than depending on how the user ran it.
     /// </summary>
     public const string AutoAttach = "--api.auto-attach-local-client";
+
+    /// <summary>What the server is started with.</summary>
+    public const string LaunchArguments = ServerCommand + " " + AutoAttach;
 
     /// <summary>
     /// How long a start waits for the server to answer. The program is a few megabytes and starts a
@@ -219,7 +232,7 @@ public static class ViiperServer
             process = Process.Start(new ProcessStartInfo
             {
                 FileName = path,
-                Arguments = AutoAttach,
+                Arguments = LaunchArguments,
                 WorkingDirectory = Path.GetDirectoryName(path) ?? string.Empty,
                 UseShellExecute = false,
                 CreateNoWindow = true,
