@@ -116,8 +116,8 @@ internal static class SampleFiles
 
     private static readonly string[] Parts =
     [
-        "x", "y", "width", "height", "score", "text", "count", "list", "window", "method", "title",
-        "id", "name", "memoryMb", "cpuSeconds",
+        "x", "y", "left", "top", "width", "height", "score", "box", "text", "count", "list",
+        "window", "method", "title", "id", "name", "memoryMb", "cpuSeconds",
     ];
 
     private static IReadOnlyDictionary<string, string> Result(string written)

@@ -694,22 +694,54 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"),
-                Returns("score=sure", "width=wide", "x=left")),
+                Returns("score=sure", "width=wide", "x=middle", "left=edge", "box=whole")),
         ], devices);
 
         Assert.True(result.Succeeded);
         Assert.Equal(0.75, store.Local.Values["sure"].AsNumber(), 3);
         Assert.Equal(4, store.Local.Values["wide"].AsNumber());
 
-        // The place is the middle of what was found, the way every position a step hands over is.
-        Assert.Equal(12, store.Local.Values["left"].AsNumber());
+        // The middle is what a click aims at, and the corner is where a region starts counting:
+        // both are handed over, each under a name of its own, so a macro never has to work out
+        // which of the two it is reading.
+        Assert.Equal(12, store.Local.Values["middle"].AsNumber());
+        Assert.Equal(10, store.Local.Values["edge"].AsNumber());
+        Assert.Equal("10,20,4,6", store.Local.Values["whole"].AsText());
 
         // The place itself was not ticked, so nothing holds it — not even an empty value.
         Assert.False(store.TryGet("match", out _));
+    }
 
-        // A part is a result of its own rather than a spelling of the place's name, so nothing was
-        // written under a dotted name either.
-        Assert.False(store.TryGet("sure.x", out _));
+    /// <summary>
+    /// A hit is handed over twice over: the middle of it, which is what a click aims at, and its
+    /// top-left corner with the rectangle it makes, which is where a search region counts from — so
+    /// a step that looks again at what it just found can say so without arithmetic first.
+    /// </summary>
+    [Fact]
+    public async Task A_hit_hands_over_its_middle_and_its_corner()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Match = new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 6)),
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+
+        // The middle of a 10 by 6 match that starts at (30,40).
+        Assert.Equal("35,43", store.Local.Values["spot"].AsText());
+        Assert.Equal(35, store.Local.Values["spot.x"].AsNumber());
+        Assert.Equal(43, store.Local.Values["spot.y"].AsNumber());
+
+        // And the corner, which is what a region is written from, plus the whole rectangle ready
+        // to be named in one variable box.
+        Assert.Equal(30, store.Local.Values["spot.left"].AsNumber());
+        Assert.Equal(40, store.Local.Values["spot.top"].AsNumber());
+        Assert.Equal("30,40,10,6", store.Local.Values["spot.box"].AsText());
     }
 
     /// <summary>

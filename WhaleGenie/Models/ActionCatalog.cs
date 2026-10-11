@@ -1713,9 +1713,9 @@ public static class ActionCatalog
                 Return("box", "Rectangle", primary: true,
                     hint: "The window's rectangle, written as x,y,width,height so it can be used "
                         + "as a search region."),
-                Return("x", "X", type: ActionReturnType.Number,
+                Return("x", "Left", type: ActionReturnType.Number,
                     hint: "The left edge of the window, in screen pixels."),
-                Return("y", "Y", type: ActionReturnType.Number,
+                Return("y", "Top", type: ActionReturnType.Number,
                     hint: "The top edge of the window, in screen pixels."),
                 Return("width", "Width", type: ActionReturnType.Number,
                     hint: "How wide the window is, in pixels."),
@@ -2334,11 +2334,19 @@ public static class ActionCatalog
             Returns =
             [
                 Return("match", "Position", primary: true,
-                    hint: "Where it was found, written as x,y; empty when it was not there."),
-                Return("x", "X", type: ActionReturnType.Number,
-                    hint: "The centre's horizontal position, in screen pixels."),
-                Return("y", "Y", type: ActionReturnType.Number,
-                    hint: "The centre's vertical position, in screen pixels."),
+                    hint: "Where it was found, written as the middle x,y; empty when it was not "
+                        + "there. It is the point a click aims at, not the corner a region counts "
+                        + "from — that is “left” and “top”."),
+                Return("x", "Centre X", type: ActionReturnType.Number,
+                    hint: "The middle of the reading, in screen pixels."),
+                Return("y", "Centre Y", type: ActionReturnType.Number,
+                    hint: "The middle of the reading, in screen pixels."),
+                Return("left", "Left", type: ActionReturnType.Number,
+                    hint: "The left edge of the reading, in screen pixels: the same corner a search "
+                        + "region's top-left X counts from."),
+                Return("top", "Top", type: ActionReturnType.Number,
+                    hint: "The top edge of the reading, in screen pixels: the same corner a search "
+                        + "region's top-left Y counts from."),
                 Return("width", "Width", type: ActionReturnType.Number,
                     hint: "How wide the reading was, in pixels."),
                 Return("height", "Height", type: ActionReturnType.Number,
@@ -2346,6 +2354,9 @@ public static class ActionCatalog
                 Return("text", "Text", hint: "What the reading actually said."),
                 Return("score", "Score", type: ActionReturnType.Number,
                     hint: "How sure the reading model was; bigger means surer."),
+                Return("box", "Rectangle", type: ActionReturnType.Text,
+                    hint: "The whole reading, written as left,top,width,height: name it in the one "
+                        + "variable box of a search region to read the same place next."),
                 Return("count", "Matches", type: ActionReturnType.Number,
                     hint: "How many were found altogether. Only written when the step is told to "
                         + "record every one."),
@@ -2382,11 +2393,19 @@ public static class ActionCatalog
             Returns =
             [
                 Return("match", "Position", primary: true,
-                    hint: "Where the text was found and clicked, written as x,y."),
-                Return("x", "X", type: ActionReturnType.Number,
-                    hint: "The centre's horizontal position, in screen pixels."),
-                Return("y", "Y", type: ActionReturnType.Number,
-                    hint: "The centre's vertical position, in screen pixels."),
+                    hint: "Where the text was found and clicked, written as the middle x,y. It is "
+                        + "the point the click landed on, not the corner a region counts from — "
+                        + "that is “left” and “top”."),
+                Return("x", "Centre X", type: ActionReturnType.Number,
+                    hint: "The middle of the reading that was clicked, in screen pixels."),
+                Return("y", "Centre Y", type: ActionReturnType.Number,
+                    hint: "The middle of the reading that was clicked, in screen pixels."),
+                Return("left", "Left", type: ActionReturnType.Number,
+                    hint: "The left edge of the reading, in screen pixels: the same corner a search "
+                        + "region's top-left X counts from."),
+                Return("top", "Top", type: ActionReturnType.Number,
+                    hint: "The top edge of the reading, in screen pixels: the same corner a search "
+                        + "region's top-left Y counts from."),
                 Return("width", "Width", type: ActionReturnType.Number,
                     hint: "How wide the reading was, in pixels."),
                 Return("height", "Height", type: ActionReturnType.Number,
@@ -2394,6 +2413,9 @@ public static class ActionCatalog
                 Return("text", "Text", hint: "What the reading that was clicked actually said."),
                 Return("score", "Score", type: ActionReturnType.Number,
                     hint: "How sure the reading model was; bigger means surer."),
+                Return("box", "Rectangle", type: ActionReturnType.Text,
+                    hint: "The whole reading, written as left,top,width,height: name it in the one "
+                        + "variable box of a search region to look at the same place next."),
                 Return("count", "Matches", type: ActionReturnType.Number,
                     hint: "How many were found altogether. Only written when the step is told to "
                         + "record every one."),
@@ -2459,17 +2481,26 @@ public static class ActionCatalog
             Returns =
             [
                 Return("element", "Element", primary: true,
-                    hint: "The element's centre, written as x,y, which is what a later step "
-                        + "measures from. Empty when it was not found."),
-                Return("x", "X", type: ActionReturnType.Number,
-                    hint: "The centre's horizontal position, in screen pixels."),
-                Return("y", "Y", type: ActionReturnType.Number,
-                    hint: "The centre's vertical position, in screen pixels."),
+                    hint: "The element's middle, written as x,y, which is what a later step "
+                        + "measures from or clicks. Empty when it was not found."),
+                Return("x", "Centre X", type: ActionReturnType.Number,
+                    hint: "The middle of the element, in screen pixels."),
+                Return("y", "Centre Y", type: ActionReturnType.Number,
+                    hint: "The middle of the element, in screen pixels."),
+                Return("left", "Left", type: ActionReturnType.Number,
+                    hint: "The element's left edge, in screen pixels: the same corner a search "
+                        + "region's top-left X counts from."),
+                Return("top", "Top", type: ActionReturnType.Number,
+                    hint: "The element's top edge, in screen pixels: the same corner a search "
+                        + "region's top-left Y counts from."),
                 Return("width", "Width", type: ActionReturnType.Number,
                     hint: "How wide the element is, in pixels."),
                 Return("height", "Height", type: ActionReturnType.Number,
                     hint: "How tall the element is, in pixels."),
                 Return("text", "Text", hint: "The element's own text, as the system reads it."),
+                Return("box", "Rectangle", type: ActionReturnType.Text,
+                    hint: "The whole element, written as left,top,width,height: name it in the one "
+                        + "variable box of a search region to look inside it next."),
                 Return("count", "Matches", type: ActionReturnType.Number,
                     hint: "How many were found altogether. Only written when the step is told to "
                         + "record every one."),
@@ -3598,27 +3629,44 @@ public static class ActionCatalog
     /// found, how big it was and how sure the search was, plus — once the step has been told to keep
     /// every one — how many there were and where each of them is. A colour is a single pixel, so it
     /// has no size and nothing to score; that is the only difference between the two lists.
+    ///
+    /// The middle of a hit and its top-left corner are two different things and both are handed
+    /// over under names of their own: the middle is what a click aims at, and the corner is where a
+    /// search region starts counting, so a macro that looks again at what it just found does not
+    /// have to work out which of the two it is reading.
     /// </summary>
     private static ActionReturn[] HitParts(bool singlePixel = false)
     {
         var parts = new List<ActionReturn>
         {
             Return("match", "Position", primary: true, type: ActionReturnType.Text,
-                hint: "Where it was found, written as x,y; empty when it was not there."),
-            Return("x", "X", type: ActionReturnType.Number,
-                hint: "The centre's horizontal position, in screen pixels."),
-            Return("y", "Y", type: ActionReturnType.Number,
-                hint: "The centre's vertical position, in screen pixels."),
+                hint: "Where it was found, written as the middle x,y; empty when it was not there. "
+                    + "It is the point the action aims at, not the corner a region counts from — "
+                    + "that is “left” and “top”."),
+            Return("x", "Centre X", type: ActionReturnType.Number,
+                hint: "The middle of the hit, in screen pixels: the point this action clicks or "
+                    + "moves to."),
+            Return("y", "Centre Y", type: ActionReturnType.Number,
+                hint: "The middle of the hit, in screen pixels."),
         };
 
         if (!singlePixel)
         {
+            parts.Add(Return("left", "Left", type: ActionReturnType.Number,
+                hint: "The left edge of the hit, in screen pixels: the same corner a search "
+                    + "region's top-left X counts from."));
+            parts.Add(Return("top", "Top", type: ActionReturnType.Number,
+                hint: "The top edge of the hit, in screen pixels: the same corner a search "
+                    + "region's top-left Y counts from."));
             parts.Add(Return("width", "Width", type: ActionReturnType.Number,
                 hint: "How wide the hit was, in pixels."));
             parts.Add(Return("height", "Height", type: ActionReturnType.Number,
                 hint: "How tall the hit was, in pixels."));
             parts.Add(Return("score", "Score", type: ActionReturnType.Number,
                 hint: "How closely it matched, from 0 to 1; higher is closer."));
+            parts.Add(Return("box", "Rectangle", type: ActionReturnType.Text,
+                hint: "The whole hit, written as left,top,width,height: name it in the one "
+                    + "variable box of a search region to look at the same place next."));
         }
 
         parts.Add(Return("count", "Matches", type: ActionReturnType.Number,
@@ -3636,9 +3684,9 @@ public static class ActionCatalog
     /// </summary>
     private static ActionReturn[] CoveredBox() =>
     [
-        Return("x", "X", type: ActionReturnType.Number,
+        Return("x", "Left", type: ActionReturnType.Number,
             hint: "The left edge of the covered rectangle, in screen pixels."),
-        Return("y", "Y", type: ActionReturnType.Number,
+        Return("y", "Top", type: ActionReturnType.Number,
             hint: "The top edge of the covered rectangle, in screen pixels."),
         Return("width", "Width", type: ActionReturnType.Number,
             hint: "How wide the covered rectangle was, in pixels."),

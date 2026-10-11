@@ -3231,7 +3231,7 @@ public sealed class MacroRunner
         }
         else
         {
-            GiveMatch(step, match.Center, match.Size, match.Score);
+            GiveMatch(step, match.Location, match.Size, match.Score);
         }
 
         GiveEvery(step, hits, Flag(step, "allMatches", false));
@@ -3374,7 +3374,7 @@ public sealed class MacroRunner
         }
         else
         {
-            GiveMatch(step, match.Center, match.Size, match.Score);
+            GiveMatch(step, match.Location, match.Size, match.Score);
         }
 
         GiveEvery(step, hits, Flag(step, "allMatches", false));
@@ -3387,7 +3387,7 @@ public sealed class MacroRunner
         var found = await HitsUntil(step, token)
                     ?? throw new StepFailure("Run.ImageNotFound", Written(step.Rows("image")));
 
-        GiveMatch(step, found.Match.Center, found.Match.Size, found.Match.Score);
+        GiveMatch(step, found.Match.Location, found.Match.Size, found.Match.Score);
         GiveEvery(step, found.Hits, Flag(step, "allMatches", false));
         Log(LogLevel.Info, depth, step.Type, "Run.ImageFound",
             $"{found.Match.Center.X},{found.Match.Center.Y}");
@@ -5630,16 +5630,25 @@ public sealed class MacroRunner
     /// a result of its own, so a macro that wants only the score is not made to carry a position it
     /// never reads; a part an action does not list is simply never ticked, and handing it over does
     /// nothing.
+    ///
+    /// The rectangle is named by its top-left corner, because that is the corner a search region
+    /// counts from: what a hit hands over has to be usable as where to look next without the macro
+    /// working out an offset first. The middle is handed over beside it under names of its own,
+    /// because that is the point a click or a move aims at.
     /// </summary>
-    private void GiveMatch(ExecutableStep step, ScreenPoint centre, ScreenSize size, double score,
+    private void GiveMatch(ExecutableStep step, ScreenPoint corner, ScreenSize size, double score,
         string text = "")
     {
+        var centre = Middle(corner, size);
         Give(step, "match", Value.FromText($"{centre.X},{centre.Y}"));
         Give(step, "x", Value.FromNumber(centre.X));
         Give(step, "y", Value.FromNumber(centre.Y));
+        Give(step, "left", Value.FromNumber(corner.X));
+        Give(step, "top", Value.FromNumber(corner.Y));
         Give(step, "width", Value.FromNumber(size.Width));
         Give(step, "height", Value.FromNumber(size.Height));
         Give(step, "score", Value.FromNumber(score));
+        Give(step, "box", Value.FromText($"{corner.X},{corner.Y},{size.Width},{size.Height}"));
         GiveTaken(step);
 
         if (text.Length > 0)
@@ -5647,6 +5656,10 @@ public sealed class MacroRunner
             Give(step, "text", Value.FromText(text));
         }
     }
+
+    /// <summary>The middle of a rectangle, which is the point an action aims at.</summary>
+    private static ScreenPoint Middle(ScreenPoint corner, ScreenSize size)
+        => new(corner.X + (size.Width / 2), corner.Y + (size.Height / 2));
 
     /// <summary>
     /// Empties what a search would have handed over, so a step inside a loop never reads the place
@@ -5656,7 +5669,8 @@ public sealed class MacroRunner
     {
         foreach (var key in new[]
                  {
-                     "match", "x", "y", "width", "height", "score", "text", "window", "method",
+                     "match", "x", "y", "left", "top", "width", "height", "score", "box", "text",
+                     "window", "method",
                  })
         {
             Give(step, key, Value.FromText(string.Empty));
@@ -6054,7 +6068,7 @@ public sealed class MacroRunner
         }
         else
         {
-            GiveMatch(step, span.Center, span.Size, span.Confidence, span.Text);
+            GiveMatch(step, span.Location, span.Size, span.Confidence, span.Text);
         }
 
         // Where every hit was, not only the one the step picked, so a macro can walk a list of
@@ -6194,7 +6208,7 @@ public sealed class MacroRunner
         }
         else
         {
-            GiveMatch(step, Centre(match), match.Size, 1, match.Name);
+            GiveMatch(step, match.Location, match.Size, 1, match.Name);
         }
 
         GiveEvery(step, [.. hits.Select(Centre)], every);
