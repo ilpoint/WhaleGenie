@@ -648,6 +648,11 @@ public partial class AddActionViewModel : ViewModelBase
 
     partial void OnSelectedDefinitionChanged(ActionDefinition? value)
     {
+        // A step that waits for something starts out with the length the action suggests, so the
+        // wait has a length at all without anyone having to go looking for the setting; picking
+        // another action is what puts it there, and editing a step overwrites it with what the
+        // step itself says.
+        MetaTimeout.Load(value?.StepTimeoutMs ?? 0);
         BuildParameters(value);
         MarkChosen();
         // Choosing an action is what turns "pick one first" into a real answer, so whether the line

@@ -435,4 +435,13 @@ public class ActionDefinition
 
     /// <summary>Line-art icon for the category, shared by every action inside it.</summary>
     public Avalonia.Media.Geometry? Icon => ActionCatalog.IconFor(Category);
+
+    /// <summary>
+    /// The step timeout a step of this action starts out with, in milliseconds, or 0 for an action
+    /// that is not waited on and so has no length of its own to suggest. Only the actions that wait
+    /// for something to turn up carry one: their wait is ended by the step's own clock, so the
+    /// number is written into the step rather than kept hidden in the engine, and the user can
+    /// change it or clear it like any other step setting.
+    /// </summary>
+    public int StepTimeoutMs { get; init; }
 }

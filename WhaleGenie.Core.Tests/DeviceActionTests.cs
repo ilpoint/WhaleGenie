@@ -19,6 +19,10 @@ public class DeviceActionTests
     private static ExecutableStep Step(string type, params ExecutableParameter[] parameters)
         => new() { Type = type, Parameters = parameters };
 
+    /// <summary>See <see cref="SampleFiles.Within"/>: the same step, allowed this long.</summary>
+    private static ExecutableStep Within(int milliseconds, ExecutableStep step)
+        => SampleFiles.Within(milliseconds, step);
+
     private static ExecutableParameter Param(string name, string text = "")
         => new() { Name = name, Text = text };
 
@@ -1060,17 +1064,22 @@ public class DeviceActionTests
     }
 
     [Fact]
-    public async Task Waiting_for_a_colour_that_never_shows_fails_the_step()
+    public async Task A_colour_search_looks_once_and_leaves_the_colour_to_the_wait()
     {
         var devices = new FakeDeviceLayer { Display = Picture("#000000") };
 
-        var (result, _, _) = await RunAsync(
+        var (result, _, store) = await RunAsync(
         [
             Step("vision.findColor", Param("color", "#FF0000"),
-                Param("timeoutMs", "20"), Param("intervalMs", "5")),
+                Param("intervalMs", "5"), Hit("match", "spot")),
         ], devices);
 
-        Assert.False(result.Succeeded);
+        Assert.True(result.Succeeded);
+        Assert.Equal(string.Empty, store.Local.Values["spot"].AsText());
+
+        // One look, however long the step is allowed: a colour search answers "is the colour there
+        // now", and waiting for it is what vision.waitColor is for.
+        Assert.Equal(1, devices.Calls.Count(call => call.StartsWith("capture", StringComparison.Ordinal)));
     }
 
     [Fact]
@@ -1081,7 +1090,7 @@ public class DeviceActionTests
 
         var result = await new MacroRunner(new VariableStore(), host, devices).RunAsync(
             [Step("vision.waitColor", Param("x", "5"), Param("y", "6"), Param("color", "#FF0000"),
-                Param("tolerance", "5"), Param("timeoutMs", "200"))]);
+                Param("tolerance", "5"), Param("intervalMs", "5"))]);
 
         Assert.True(result.Succeeded);
         Assert.Contains(host.Entries, entry => entry.Key == "Run.SawColor");
@@ -1093,10 +1102,12 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer { Pixel = new PixelColor(0x00, 0x00, 0x00) };
 
         var (result, _, _) = await RunAsync(
-            [Step("vision.waitColor", Param("x", "5"), Param("y", "6"), Param("color", "#FFFFFF"),
-                Param("tolerance", "1"), Param("timeoutMs", "20"))], devices);
+            [Within(20, Step("vision.waitColor", Param("x", "5"), Param("y", "6"),
+                Param("color", "#FFFFFF"), Param("tolerance", "1"), Param("intervalMs", "5")))],
+            devices);
 
         Assert.False(result.Succeeded);
+        Assert.Equal("Run.WaitColorTimeout", result.Key);
     }
 
     [Fact]
@@ -1139,7 +1150,7 @@ public class DeviceActionTests
 
         var host = new SilentRunHost();
         var result = await new MacroRunner(new VariableStore(), host, devices).RunAsync(
-            [Step("vision.waitStable", Param("quietMs", "0"), Param("intervalMs", "1"), Param("timeoutMs", "5000"))]);
+            [Within(5000, Step("vision.waitStable", Param("quietMs", "0"), Param("intervalMs", "1")))]);
 
         Assert.True(result.Succeeded);
         Assert.Contains(host.Entries, entry => entry.Key == "Run.FrameStill");
@@ -1163,11 +1174,11 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("vision.waitStable", Param("quietMs", "50"), Param("intervalMs", "5"),
-                Param("timeoutMs", "60")),
+            Within(60, Step("vision.waitStable", Param("quietMs", "50"), Param("intervalMs", "5"))),
         ], devices);
 
         Assert.False(result.Succeeded);
+        Assert.Equal("Run.ScreenNotStable", result.Key);
     }
 
     /// <summary>
@@ -1184,8 +1195,8 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("vision.waitStable", Param("quietMs", "0"), Param("intervalMs", "1"),
-                Param("tolerance", "5"), Param("timeoutMs", "100")),
+            Within(5000, Step("vision.waitStable", Param("quietMs", "0"), Param("intervalMs", "1"),
+                Param("tolerance", "5"))),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -1958,9 +1969,8 @@ public class DeviceActionTests
         var started = Stopwatch.GetTimestamp();
         var (result, _, store) = await RunAsync(
         [
-            Step("vision.waitImage", Pictures("anything.png"), Param("confidence", "90"),
-                Param("timeoutMs", "5000"), Param("intervalMs", "60"),
-                Hit("match", "spot")),
+            Within(5000, Step("vision.waitImage", Pictures("anything.png"), Param("confidence", "90"),
+                Param("intervalMs", "60"), Hit("match", "spot"))),
         ], devices);
 
         var took = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
@@ -1982,8 +1992,8 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("vision.waitColor", Param("x", "0"), Param("y", "0"), Param("color", "#000000"),
-                Param("timeoutMs", "160")),
+            Within(160, Step("vision.waitColor", Param("x", "0"), Param("y", "0"),
+                Param("color", "#000000"))),
         ], devices);
 
         Assert.Equal("Run.WaitColorTimeout", result.Key);
@@ -2209,8 +2219,8 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("vision.waitImage", Pictures("anything.png"), Param("confidence", "90"),
-                Param("timeoutMs", "2000"), Param("intervalMs", "1"), Hit("match", "spot")),
+            Within(2000, Step("vision.waitImage", Pictures("anything.png"), Param("confidence", "90"),
+                Param("intervalMs", "1"), Hit("match", "spot"))),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -2229,8 +2239,8 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("vision.waitImage", Pictures("anything.png"), Param("confidence", "90"),
-                Param("timeoutMs", "20"), Param("intervalMs", "1"), Hit("match", "spot")),
+            Within(20, Step("vision.waitImage", Pictures("anything.png"), Param("confidence", "90"),
+                Param("intervalMs", "1"), Hit("match", "spot"))),
         ], devices);
 
         Assert.False(result.Succeeded);
@@ -2771,12 +2781,30 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("ocr.clickText", Param("text", "OK"), Param("matchMode", "contains"),
-                Param("offsetX", "1"), Param("offsetY", "2"), Param("timeoutMs", "1000"),
-                Param("button", "left")),
+                Param("offsetX", "1"), Param("offsetY", "2"), Param("button", "left")),
         ], devices);
 
         Assert.True(result.Succeeded);
         Assert.Contains("click left 21 27 1 0", devices.Calls);
+    }
+
+    /// <summary>
+    /// A wait that runs out says what it was waiting for: the step that never read its line names
+    /// the line, because that is what the reader has to go and look at.
+    /// </summary>
+    [Fact]
+    public async Task Clicking_text_that_never_shows_says_what_was_never_read()
+    {
+        var devices = new FakeDeviceLayer { Spans = [] };
+
+        var (result, _, _) = await RunAsync(
+        [
+            Within(20, Step("ocr.clickText", Param("text", "OK"), Param("intervalMs", "5"))),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.TextNotFound", result.Key);
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("click ", StringComparison.Ordinal));
     }
 
     [Fact]

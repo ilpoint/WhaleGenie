@@ -244,17 +244,19 @@ public class ActionPageTests
     }
 
     /// <summary>
-    /// The rhythm a step that waits for the screen looks at it with is the one it had before the
-    /// field existed, so a macro that says nothing about it behaves the way it always has.
+    /// The rhythm a step that watches the screen looks at it with is the one it had before the
+    /// field existed, so a macro that says nothing about it behaves the way it always has: the
+    /// steps that wait look again on a beat of their own, and the ones that look once leave no gap
+    /// between two looks at the same place.
     /// </summary>
     [Theory]
     [InlineData("vision.waitColor", "50")]
     [InlineData("vision.waitStable", "100")]
     [InlineData("vision.waitImage", "200")]
-    [InlineData("vision.findColor", "200")]
     [InlineData("vision.clickImage", "200")]
     [InlineData("ocr.clickText", "200")]
     [InlineData("vision.findImage", "0")]
+    [InlineData("vision.findColor", "0")]
     [InlineData("condition.imageExists", "0")]
     public void A_step_that_looks_at_the_screen_keeps_the_rhythm_it_had(string action, string intervalMs)
     {

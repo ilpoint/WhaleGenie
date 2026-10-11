@@ -604,8 +604,7 @@ public sealed class MacroRunner
                 catch (OperationCanceledException)
                     when (limit is { IsCancellationRequested: true } && !token.IsCancellationRequested)
                 {
-                    throw new StepFailure("Run.Timeout",
-                        step.Meta.TimeoutMs.ToString(CultureInfo.InvariantCulture));
+                    throw WaitedTooLong(step);
                 }
 
                 // The clock catches what the token cannot: a device call that blocks until it is
@@ -613,6 +612,9 @@ public sealed class MacroRunner
                 var elapsed = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
                 if (step.Meta.TimeoutMs > 0 && elapsed > step.Meta.TimeoutMs)
                 {
+                    // This is the step having run past its clock rather than a wait that was cut
+                    // short, and the step may well have got what it was after on the way: the
+                    // honest thing to report is the length, not a picture that was in fact found.
                     throw new StepFailure("Run.Timeout",
                         step.Meta.TimeoutMs.ToString(CultureInfo.InvariantCulture));
                 }
@@ -667,6 +669,37 @@ public sealed class MacroRunner
 
                 await Pause(RetryPause(step, attempt + 1), token);
             }
+        }
+    }
+
+    /// <summary>
+    /// The failure a step reports when its own clock runs out. A step that was waiting for
+    /// something knows what it was waiting for, so it says that rather than only that it was slow:
+    /// "the picture never turned up" points at the picture, where "too slow" points at the number.
+    /// Every other step has nothing more to say than that it ran out of time.
+    /// </summary>
+    private StepFailure WaitedTooLong(ExecutableStep step)
+    {
+        var patience = step.Meta.TimeoutMs.ToString(CultureInfo.InvariantCulture);
+        try
+        {
+            return step.Type switch
+            {
+                "vision.waitColor" => new StepFailure("Run.WaitColorTimeout",
+                    PixelColor.Parse(Read(step.Text("color")).AsText()).ToHex()),
+                "vision.waitImage" or "vision.clickImage" => new StepFailure("Run.ImageNotFound",
+                    Written(step.Rows("image"))),
+                "vision.waitStable" => new StepFailure("Run.ScreenNotStable", patience),
+                "ocr.clickText" => new StepFailure("Run.TextNotFound",
+                    Read(step.Text("text")).AsText()),
+                _ => new StepFailure("Run.Timeout", patience),
+            };
+        }
+        catch (ExpressionException)
+        {
+            // A field that cannot be read at all is the business of another failure; the only
+            // thing this one has to say is that the step ran out of time.
+            return new StepFailure("Run.Timeout", patience);
         }
     }
 
@@ -1188,7 +1221,7 @@ public sealed class MacroRunner
 
             case "vision.findColor":
                 await Gate(step, token);
-                await Watching(() => FindColor(step, depth, token));
+                Watching(() => FindColor(step, depth));
                 return Signal.Normal;
 
             case "vision.findColors":
@@ -3276,42 +3309,35 @@ public sealed class MacroRunner
     {
         var target = PixelColor.Parse(Read(step.Text("color")).AsText());
         var tolerance = Read(step.Text("tolerance")).AsNumber();
-        var timeout = Math.Max(0, Number(step, "timeoutMs"));
 
         // The corner is looked up again on every check, so a wait that watches a window keeps
         // watching the same spot inside it even if the window is moved while the macro waits.
         var (point, window) = Spot(step);
         var interval = Math.Max(1, OptionalNumber(step, "intervalMs", 50));
-        var seen = await WaitForFlagAsync(
-            () => PixelAt(step).Matches(target, tolerance), timeout, interval, token);
+        await WaitForFlagAsync(
+            () => PixelAt(step).Matches(target, tolerance), interval, token);
         SawPixel(step, point, target.ToHex(), window);
-        if (!seen)
-        {
-            throw new StepFailure("Run.WaitColorTimeout", target.ToHex());
-        }
 
         Log(LogLevel.Info, depth, step.Type, "Run.SawColor", target.ToHex());
     }
 
     /// <summary>
-    /// Looks for a colour in the search areas and writes where it was found. A step with a timeout
-    /// waits for the colour to turn up and fails when it never does, the way waiting for a picture
-    /// does; one without looks once and empties the result instead, the way finding a picture does.
-    /// A step that names a least share of the region — how full a bar has to be before it acts —
-    /// waits for that share rather than for the first pixel of the colour.
+    /// Looks for a colour in the search areas and writes where it was found, once: what it does not
+    /// find it leaves empty rather than waiting for, the way finding a picture does. A step that
+    /// names a least share of the region — how full a bar has to be before it acts — counts as
+    /// finding nothing until that much of the region shows the colour, and waiting on it is the
+    /// job of <c>vision.waitColor</c> or of a wait-until block.
     /// </summary>
-    private async Task FindColor(ExecutableStep step, int depth, CancellationToken token)
+    private void FindColor(ExecutableStep step, int depth)
     {
         var target = PixelColor.Parse(Read(step.Text("color")).AsText());
         var tolerance = Read(step.Text("tolerance")).AsNumber();
-        var timeout = Math.Max(0, Number(step, "timeoutMs"));
         var least = Read(step.Text("minCoverage")).AsNumber() / 100;
 
-        var pass = await ColourHits(step, target, tolerance, timeout, least, token);
-        if (!pass.Enough(least) && timeout > 0)
-        {
-            throw new StepFailure("Run.WaitColorTimeout", target.ToHex());
-        }
+        // The share is only measured when the step asks about it, either by handing it over or by
+        // saying below which share it will not act: the walk it costs is otherwise wasted.
+        var measured = least > 0 || step.Return("coverage").Length > 0;
+        var pass = Scan(step, target, tolerance, measured);
 
         // The share is handed over whether or not the colour was found: a region the step will not
         // act on is exactly when the number is worth reading.
@@ -3334,35 +3360,6 @@ public sealed class MacroRunner
         GiveEvery(step, hits, Flag(step, "allMatches", false));
         Log(LogLevel.Info, depth, step.Type, match is null ? "Run.ImageMissing" : "Run.ImageFound",
             match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
-    }
-
-    /// <summary>
-    /// The pixels of the search areas that show the colour, in reading order, waited for when the
-    /// step asked for one. Each hit is a single pixel: its centre is the pixel itself, and its score
-    /// says how close the colour was, one being exact.
-    /// </summary>
-    private async Task<ColourPass> ColourHits(ExecutableStep step, PixelColor target,
-        double tolerance, int timeout, double least, CancellationToken token)
-    {
-        // The share is only measured when the step asks about it, either by handing it over or by
-        // saying below which share it will not act: the walk it costs is otherwise wasted.
-        var measured = least > 0 || step.Return("coverage").Length > 0;
-        var pass = Scan(step, target, tolerance, measured);
-        if (pass.Enough(least) || timeout <= 0)
-        {
-            return pass;
-        }
-
-        var interval = Math.Max(1, OptionalNumber(step, "intervalMs", 200));
-
-        // The areas are captured again on every pass, so a wait keeps watching a window that is
-        // moving rather than the place it used to be.
-        ColourPass? Look() => Scan(step, target, tolerance, measured) is { } found
-                              && found.Enough(least)
-            ? found
-            : null;
-
-        return await WaitForValueAsync(Look, timeout, interval, token) ?? pass;
     }
 
     /// <summary>
@@ -3551,7 +3548,6 @@ public sealed class MacroRunner
         var tolerance = Read(step.Text("tolerance")).AsNumber();
         var allowed = Read(step.Text("changedPercent")).AsNumber() / 100;
         var quiet = Math.Max(0, Number(step, "quietMs"));
-        var timeout = Math.Max(1, Number(step, "timeoutMs"));
         var interval = Math.Max(1, OptionalNumber(step, "intervalMs", 100));
 
         var started = Stopwatch.GetTimestamp();
@@ -3579,12 +3575,6 @@ public sealed class MacroRunner
                 // but the picture the screen has just arrived at.
                 anchor = now;
                 since = Elapsed();
-            }
-
-            if (Elapsed() >= timeout)
-            {
-                throw new StepFailure("Run.ScreenNotStable",
-                    timeout.ToString(CultureInfo.InvariantCulture));
             }
         }
     }
@@ -3635,8 +3625,7 @@ public sealed class MacroRunner
 
     private async Task WaitForImage(ExecutableStep step, int depth, CancellationToken token)
     {
-        var found = await HitsUntil(step, token)
-                    ?? throw new StepFailure("Run.ImageNotFound", Written(step.Rows("image")));
+        var found = await HitsUntil(step, token);
 
         GiveMatch(step, found.Match.Location, found.Match.Size, found.Match.Score);
         GiveEvery(step, found.Hits, Flag(step, "allMatches", false));
@@ -3646,17 +3635,20 @@ public sealed class MacroRunner
 
     private async Task ClickImage(ExecutableStep step, int depth, CancellationToken token)
     {
-        var found = await HitsUntil(step, token)
-                    ?? throw new StepFailure("Run.ImageNotFound", Written(step.Rows("image")));
+        var found = await HitsUntil(step, token);
 
         // A step that asked to look again waits a moment and confirms the picture is still there: a
-        // button that flashed past, or a screen that has already moved on, is not clicked.
+        // button that flashed past, or a screen that has already moved on, is not clicked. The
+        // second look is a single look rather than another wait: what is being asked is whether the
+        // picture is still there, not whether it turns up again.
         var again = Pace(OptionalNumber(step, "recheckMs", 0));
         if (again > 0)
         {
             await Pause(again, token);
-            found = await HitsUntil(step, token)
-                    ?? throw new StepFailure("Run.ImageNotFound", Written(step.Rows("image")));
+            var hits = Hits(step);
+            found = Chosen(hits, step) is { } match
+                ? new Found(hits, match)
+                : throw new StepFailure("Run.ImageNotFound", Written(step.Rows("image")));
         }
 
         var at = Scattered(new ScreenPoint(
@@ -3924,10 +3916,13 @@ public sealed class MacroRunner
     /// <summary>The hits a wait ended on: the whole set and the one the step asked for.</summary>
     private sealed record Found(List<ImageMatch> Hits, ImageMatch Match);
 
-    /// <summary>The hits, once there are enough of them, or null when the wait ran out.</summary>
-    private async Task<Found?> HitsUntil(ExecutableStep step, CancellationToken token)
+    /// <summary>
+    /// The hits, once there are enough of them. How long that may take is the step's own timeout
+    /// and nothing else: the wait ends where the clock does, and the step it belongs to is what
+    /// fails, retries or gives up from there.
+    /// </summary>
+    private async Task<Found> HitsUntil(ExecutableStep step, CancellationToken token)
     {
-        var timeout = Math.Max(0, Number(step, "timeoutMs"));
         var interval = Math.Max(1, OptionalNumber(step, "intervalMs", 200));
 
         Found? Enough()
@@ -3936,7 +3931,7 @@ public sealed class MacroRunner
             return Chosen(hits, step) is { } match ? new Found(hits, match) : null;
         }
 
-        return await WaitForValueAsync(Enough, timeout, interval, token);
+        return await WaitForValueAsync(Enough, interval, token);
     }
 
     /// <summary>How many hits to look for: the one the step asked for, or the whole list.</summary>
@@ -6479,7 +6474,7 @@ public sealed class MacroRunner
     {
         var wanted = Read(step.Text("text")).AsText();
         var mode = step.Text("matchMode");
-        var timeout = Math.Max(0, Number(step, "timeoutMs"));
+        var interval = Math.Max(1, OptionalNumber(step, "intervalMs", 200));
 
         // The readings of the last look are kept, so the look handed over at the end is of the
         // screen as it was when the step gave up or found what it wanted.
@@ -6494,30 +6489,20 @@ public sealed class MacroRunner
             return hits.Count > 0 ? hits[0] : null;
         }
 
-        var span = await WaitForValueAsync(
-            Look,
-            timeout, Math.Max(1, OptionalNumber(step, "intervalMs", 200)), token);
+        var span = await WaitForValueAsync(Look, interval, token);
         SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen, wanted,
             minimum: Number(step, "minScore"));
-        if (span is null)
-        {
-            throw new StepFailure("Run.TextNotFound", wanted);
-        }
 
         // A step that asked to look again waits a moment and confirms the line is still there: a
-        // line that has already been replaced is not clicked.
+        // line that has already been replaced is not clicked. The second look is a single look
+        // rather than another wait: whether the line is still there is not a thing to wait for.
         var again = Pace(OptionalNumber(step, "recheckMs", 0));
         if (again > 0)
         {
             await Pause(again, token);
-            span = await WaitForValueAsync(Look, timeout,
-                Math.Max(1, OptionalNumber(step, "intervalMs", 200)), token);
+            span = Look() ?? throw new StepFailure("Run.TextNotFound", wanted);
             SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen, wanted,
                 minimum: Number(step, "minScore"));
-            if (span is null)
-            {
-                throw new StepFailure("Run.TextNotFound", wanted);
-            }
         }
 
         var at = Scattered(new ScreenPoint(
@@ -7156,9 +7141,9 @@ public sealed class MacroRunner
 
     /// <summary>
     /// Waits for something to become true, asking again every <paramref name="pollMs"/> and giving
-    /// up after <paramref name="timeoutMs"/>. Every wait in the engine comes through here: waiting
-    /// is the same thing whether it is a colour, a picture, an element, a window or a condition the
-    /// macro wrote itself, so the pacing and the way a timeout is counted are written once. The
+    /// up after <paramref name="timeoutMs"/>. Every wait that carries its own length comes through
+    /// here: waiting is the same thing whether it is an element, a window, a program or a condition
+    /// the macro wrote itself, so the pacing and the way a timeout is counted are written once. The
     /// question is asked before the clock is read, so a wait that already holds costs nothing, and
     /// a timeout of zero means "look once and give up".
     /// </summary>
@@ -7198,6 +7183,36 @@ public sealed class MacroRunner
             if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeoutMs)
             {
                 return null;
+            }
+
+            await Pause(pollMs, token);
+        }
+    }
+
+    /// <summary>
+    /// Waits for something to become true, asking again every <paramref name="pollMs"/> until it
+    /// does. How long that may take is not the wait's to say: the step's own timeout is what ends
+    /// it, which is what makes the length of a wait a setting of the step rather than a field that
+    /// says the same thing a second time.
+    /// </summary>
+    private static async Task WaitForFlagAsync(Func<bool> ready, int pollMs, CancellationToken token)
+    {
+        while (!ready())
+        {
+            await Pause(pollMs, token);
+        }
+    }
+
+    /// <summary>The same, for something that turns up rather than becomes true.</summary>
+    private static async Task<T> WaitForValueAsync<T>(Func<T?> probe, int pollMs,
+        CancellationToken token)
+        where T : class
+    {
+        while (true)
+        {
+            if (probe() is { } found)
+            {
+                return found;
             }
 
             await Pause(pollMs, token);

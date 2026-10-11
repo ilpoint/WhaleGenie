@@ -279,7 +279,6 @@ public class ActionDialogTests
                 .First(parameter => parameter.Definition.Name == "color").IsColor);
             Assert.Equal("5", Value(viewModel, "tolerance"));
             Assert.Equal("1", Value(viewModel, "matchIndex"));
-            Assert.Equal("0", Value(viewModel, "timeoutMs"));
             Assert.Equal("0", Value(viewModel, "minCoverage"));
             Assert.Equal(["match", "x", "y", "count", "list", "coverage"],
                 viewModel.ReturnsRows.Select(row => row.Key).ToList());
@@ -1054,6 +1053,47 @@ public class ActionDialogTests
     private static decimal StoredMaximum(AddActionViewModel viewModel, string name)
         => viewModel.Parameters.First(parameter => parameter.Definition.Name == name)
             .Definition.Maximum;
+
+    /// <summary>
+    /// A step that waits for something is allowed a length of time before anyone touches it: the
+    /// action names one and the dialog writes it into the step's own settings, where it is on
+    /// screen beside the rest of them and can be changed or cleared. Nothing is waited on by any
+    /// other action, so nothing else starts with a clock.
+    /// </summary>
+    [Fact]
+    public void A_step_that_waits_starts_out_allowed_the_length_the_action_names()
+    {
+        Ui.Run(() =>
+        {
+            foreach (var key in new[]
+                     {
+                         "vision.waitImage", "vision.clickImage", "vision.waitColor",
+                         "vision.waitStable", "ocr.clickText",
+                     })
+            {
+                var viewModel = Open(key);
+                Assert.Equal(5000, viewModel.MetaTimeout.Milliseconds);
+
+                MacroStep? saved = null;
+                viewModel.CloseRequested += result => saved = result;
+                viewModel.SaveCommand.Execute(null);
+                Assert.Equal(5000, saved!.Meta.TimeoutMs);
+            }
+
+            Assert.Equal(0, Open("vision.findColor").MetaTimeout.Milliseconds);
+            Assert.Equal(0, Open("input.keyPress").MetaTimeout.Milliseconds);
+
+            // A step that already exists brings its own answer, including having none: clearing the
+            // field is how a wait is told to go on until the run itself is stopped.
+            var cleared = Open("vision.waitImage");
+            cleared.LoadFrom(new MacroStep
+            {
+                Type = "vision.waitImage",
+                Meta = new StepMeta { TimeoutMs = 0 },
+            });
+            Assert.Equal(0, cleared.MetaTimeout.Milliseconds);
+        });
+    }
 
     [Fact]
     public void A_length_of_time_can_be_written_in_minutes_and_still_saves_milliseconds()

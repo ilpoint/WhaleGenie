@@ -27,6 +27,10 @@ public class RunLookTests
     private static ExecutableStep Step(string type, params ExecutableParameter[] parameters)
         => new() { Type = type, Id = "k3f9", Parameters = parameters };
 
+    /// <summary>See <see cref="SampleFiles.Within"/>: the same step, allowed this long.</summary>
+    private static ExecutableStep Within(int milliseconds, ExecutableStep step)
+        => SampleFiles.Within(milliseconds, step);
+
     private static ExecutableParameter Param(string name, string text = "")
         => new() { Name = name, Text = text };
 
@@ -252,9 +256,8 @@ public class RunLookTests
     {
         var devices = Screen();
         var looks = new Watched();
-        var step = Step("vision.waitImage", Pictures(@"C:\images\ok.png"),
-            Param("confidence", "90"), Param("timeoutMs", "60"), Param("intervalMs", "10"),
-            Hit("match", "match"));
+        var step = Within(60, Step("vision.waitImage", Pictures(@"C:\images\ok.png"),
+            Param("confidence", "90"), Param("intervalMs", "10"), Hit("match", "match")));
 
         var result = await Run(step, devices, looks);
 
@@ -317,7 +320,7 @@ public class RunLookTests
         var looks = new Watched();
         var step = Step("vision.clickImage", Pictures(@"C:\images\ok.png"),
             Param("confidence", "90"), Param("offsetX", "3"), Param("offsetY", "-2"),
-            Param("timeoutMs", "0"), Param("button", "left"));
+            Param("button", "left"));
 
         await Run(step, devices, looks);
 
@@ -429,7 +432,7 @@ public class RunLookTests
         var devices = Screen(match: new ImageMatch(0.9, new ScreenPoint(30, 40), new ScreenSize(2, 2)));
         var step = Step("vision.clickImage", Pictures(@"C:\images\ok.png"),
             Param("confidence", "90"), Param("offsetX", "3"), Param("offsetY", "-2"),
-            Param("timeoutMs", "0"), Param("button", "left"), Hit("match", "match"));
+            Param("button", "left"), Hit("match", "match"));
 
         var outcome = MacroRunner.LookOnce(step, devices);
 
@@ -461,8 +464,7 @@ public class RunLookTests
     {
         var devices = Screen();
         var step = Step("vision.waitImage", Pictures(@"C:\images\ok.png"),
-            Param("confidence", "90"), Param("timeoutMs", "60000"), Param("intervalMs", "10"),
-            Hit("match", "match"));
+            Param("confidence", "90"), Param("intervalMs", "10"), Hit("match", "match"));
 
         var outcome = MacroRunner.LookOnce(step, devices);
 

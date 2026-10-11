@@ -2164,7 +2164,9 @@ public static class ActionCatalog
             Returns = HitParts(),
             Category = ActionCategory.Vision,
             DisplayName = "Wait Image",
-            Description = "Wait until a reference image appears on screen.",
+            Description = "Wait until a reference image appears on screen, for as long as the "
+                + "step's own timeout allows; running out of it fails the step.",
+            StepTimeoutMs = 5000,
             Parameters =
             [
                 Images("image", "Reference pictures", @"C:\images\ok.png",
@@ -2177,9 +2179,6 @@ public static class ActionCatalog
                     "How alike the picture on screen has to be, from 0 to 100 per cent; the default "
                     + "is 90.", max: 100),
                 ImageSet(),
-                Number("timeoutMs", "Wait up to", 5000,
-                    "How long to wait for one of the pictures to turn up, in milliseconds; the "
-                    + "default is 5000."),
                 MatchAlgorithm(),
                 SkipColour(),
                 MinFeatures(),
@@ -2196,7 +2195,9 @@ public static class ActionCatalog
             Returns = HitParts(),
             Category = ActionCategory.Vision,
             DisplayName = "Click Image",
-            Description = "Find a reference image on screen and click it.",
+            Description = "Find a reference image on screen and click it, waiting for as long as "
+                + "the step's own timeout allows; running out of it fails the step.",
+            StepTimeoutMs = 5000,
             Parameters =
             [
                 Images("image", "Reference pictures", @"C:\images\ok.png",
@@ -2221,9 +2222,6 @@ public static class ActionCatalog
                     + "that should not look machine-clicked; keep it small enough that the whole "
                     + "spread stays inside the thing being clicked.",
                     min: 0, max: 100000),
-                Number("timeoutMs", "Wait up to", 5000,
-                    "How long to wait for one of the pictures to turn up before giving up, in "
-                    + "milliseconds; the default is 5000."),
                 MatchAlgorithm(),
                 SkipColour(),
                 MinFeatures(),
@@ -2237,8 +2235,8 @@ public static class ActionCatalog
                     + "step waits that long, looks again and clicks only if the picture is still "
                     + "there — which is how a button that flashes past, or a screen that has "
                     + "already moved on, is not clicked by mistake. A second look that finds "
-                    + "nothing counts as finding nothing at all, and the wait for it is the one "
-                    + "the step was already allowed.",
+                    + "nothing counts as finding nothing at all: the second look is one look "
+                    + "rather than another wait, so a picture that has gone is not waited for.",
                     min: 0, advanced: true),
                 AllMatches(pixelsOnly: true),
                 Returns(),
@@ -2272,16 +2270,15 @@ public static class ActionCatalog
             Key = "vision.waitColor",
             Category = ActionCategory.Vision,
             DisplayName = "Wait Color",
-            Description = "Wait until a pixel shows a specific colour.",
+            Description = "Wait until a pixel shows a specific colour, for as long as the step's "
+                + "own timeout allows; running out of it fails the step.",
+            StepTimeoutMs = 5000,
             Parameters =
             [
                 Number("x", "X", 0, "Screen column to watch."),
                 Number("y", "Y", 0, "Screen row to watch."),
                 ColorPick("color", "Colour", "#000000", "Colour the pixel has to show."),
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100),
-                Number("timeoutMs", "Wait up to", 5000,
-                    "How long to wait for the pixel to show that colour, in milliseconds; the "
-                    + "default is 5000."),
                 ..Anchor(),
                 ..Capture(),
                 LookPoll(50),
@@ -2309,15 +2306,11 @@ public static class ActionCatalog
                     min: 0, max: 100, advanced: true),
                 Region(),
                 ..Capture(),
-                Number("timeoutMs", "Wait up to", 0,
-                    "0, the default, looks once and leaves the result empty when the colour is not "
-                    + "there. Any other number waits that many milliseconds and fails when the "
-                    + "colour never turns up."),
                 MatchOrder(bySize: false),
                 MatchIndex(),
                 AllMatches(),
                 ..Anchor(),
-                LookPoll(200),
+                LookGap(0),
                 Returns(),
             ],
         },
@@ -2327,7 +2320,9 @@ public static class ActionCatalog
             Category = ActionCategory.Vision,
             DisplayName = "Wait for Screen to Settle",
             Description = "Wait until the screen stops changing, so the step after it works on a "
-                + "picture that is not still being drawn.",
+                + "picture that is not still being drawn. It waits for as long as the step's own "
+                + "timeout allows; running out of it fails the step.",
+            StepTimeoutMs = 5000,
             Parameters =
             [
                 Region(),
@@ -2346,9 +2341,6 @@ public static class ActionCatalog
                     + "list scrolling or a progress bar filling moves more than this. From 0 to 100 "
                     + "per cent, 0.1 by default.",
                     max: 100, advanced: true),
-                Number("timeoutMs", "Give up after", 10000,
-                    "How long to wait for the picture to settle, in milliseconds; the default is "
-                    + "10000. Reached, the step fails."),
                 LookPoll(100),
             ],
         },
@@ -2521,7 +2513,9 @@ public static class ActionCatalog
             ],
             Category = ActionCategory.Ocr,
             DisplayName = "Click Text",
-            Description = "Find text on screen and click it.",
+            Description = "Find text on screen and click it, waiting for as long as the step's own "
+                + "timeout allows; running out of it fails the step.",
+            StepTimeoutMs = 5000,
             Parameters =
             [
                 Text("text", "Text to find", "Save", acceptsFormula: true),
@@ -2539,9 +2533,6 @@ public static class ActionCatalog
                     + "clicked is picked at random within that many pixels either way, so two "
                     + "clicks in a row do not land on the same pixel.",
                     min: 0, max: 100000),
-                Number("timeoutMs", "Wait up to", 5000,
-                    "How long to wait for the text to turn up before giving up, in milliseconds; "
-                    + "the default is 5000."),
                 ..Anchor(),
                 LookPoll(200),
                 Number("recheckMs", "Look again after", 0,
@@ -2550,7 +2541,8 @@ public static class ActionCatalog
                     + "waits that long, looks again and clicks only if the text is still there — "
                     + "which is how a line that has already been replaced is not clicked by "
                     + "mistake. A second look that finds nothing counts as finding nothing at all, "
-                    + "and the wait for it is the one the step was already allowed.",
+                    + "and it is one look rather than another wait, so a line that has gone is not "
+                    + "waited for.",
                     min: 0, advanced: true),
                 Preprocess(advanced: true),
                 ColourFilter(advanced: true),

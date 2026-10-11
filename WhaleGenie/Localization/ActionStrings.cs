@@ -1849,9 +1849,6 @@ internal static class ActionStrings
         ["vision.findColor.allMatches.hint"] = AllMatchesHint,
         ["vision.findColor.region.label"] = "搜索区域",
         ["vision.findColor.region.hint"] = RegionHintText,
-        ["vision.findColor.timeoutMs.label"] = "等待上限",
-        ["vision.findColor.timeoutMs.hint"] =
-            "0 表示只找一次，找不到就把结果留空；填了数字就等它出现，一直不出现算失败。",
         ["vision.findColor.anchorMode.label"] = "坐标基准",
         ["vision.findColor.anchorMode.hint"] = AnchorModeHint,
         ["vision.findColor.anchorMode.option.screen"] = "屏幕像素",
@@ -1919,7 +1916,9 @@ internal static class ActionStrings
             + "一个都不勾也可以，这一步就不留下任何结果。",
 
         ["vision.waitStable.name"] = "等画面静止",
-        ["vision.waitStable.desc"] = "等到画面不再动，让后面的步骤拿到一张不会再变的图。",
+        ["vision.waitStable.desc"] =
+            "等到画面不再动，让后面的步骤拿到一张不会再变的图，最多等到步骤设置里的「超时」；"
+            + "到点这一步算失败。",
         ["vision.waitStable.region.label"] = "搜索区域",
         ["vision.waitStable.region.hint"] = RegionHintText,
         ["vision.waitStable.quietMs.label"] = "静止多久",
@@ -1929,8 +1928,6 @@ internal static class ActionStrings
         ["vision.waitStable.changedPercent.label"] = "允许变化 %",
         ["vision.waitStable.changedPercent.hint"] =
             "整块区域里最多有多少比例的像素在动还算静止。转圈、滚动、进度条都超过这个数。",
-        ["vision.waitStable.timeoutMs.label"] = "超时",
-        ["vision.waitStable.timeoutMs.hint"] = "等这么久还不动就失败，交给外面的块重试或跳过。",
         ["vision.waitStable.anchorMode.label"] = "坐标基准",
         ["vision.waitStable.anchorMode.hint"] = AnchorModeHint,
         ["vision.waitStable.anchorMode.option.screen"] = "屏幕像素",
@@ -2034,16 +2031,16 @@ internal static class ActionStrings
         ["vision.findImage.region.hint"] = RegionHintText,
 
         ["vision.waitImage.name"] = "等待图片",
-        ["vision.waitImage.desc"] = "等待参考图片在屏幕上出现。",
+        ["vision.waitImage.desc"] =
+            "等待参考图片在屏幕上出现，最多等到步骤设置里的「超时」；到点这一步算失败。",
         ["vision.waitImage.image.label"] = "图片文件",
         ["vision.waitImage.image.hint"] = "要等待的参考图片：文件路径，或截图动作保存的变量。",
         ["vision.waitImage.confidence.label"] = "相似度 %",
         ["vision.waitImage.confidence.hint"] = "要求的最低匹配度。",
-        ["vision.waitImage.timeoutMs.label"] = "等待上限",
-        ["vision.waitImage.timeoutMs.hint"] = "超过这个时长就放弃。",
 
         ["vision.clickImage.name"] = "点击图片",
-        ["vision.clickImage.desc"] = "在屏幕上找到参考图片并点击它。",
+        ["vision.clickImage.desc"] =
+            "在屏幕上找到参考图片并点击它，最多等到步骤设置里的「超时」；到点这一步算失败。",
         ["vision.clickImage.image.label"] = "图片文件",
         ["vision.clickImage.confidence.label"] = "相似度 %",
         ["vision.clickImage.confidence.hint"] = "要求的最低匹配度。",
@@ -2059,9 +2056,7 @@ internal static class ActionStrings
         ["vision.clickImage.recheckMs.hint"] =
             "点之前先等这么多毫秒再看一次，单位毫秒，默认 0，即一认出就点。填了数就等这么久再"
             + "看一眼，这次仍认得才点；这次认不得按没找到处理。用于按钮一闪而过、或者画面其实"
-            + "已经翻过去的情况；再看的这一次也在这一步允许的时间里。",
-        ["vision.clickImage.timeoutMs.label"] = "等待上限",
-        ["vision.clickImage.timeoutMs.hint"] = "等待图片出现的时长，超时即放弃。",
+            + "已经翻过去的情况。第二次查看只查一次、不再等，所以画面已经变过就直接算没找到。",
         ["vision.clickImage.button.label"] = "按键",
 
         ["vision.getPixel.name"] = "取色",
@@ -2074,7 +2069,8 @@ internal static class ActionStrings
         ["vision.getPixel.asHex.hint"] = "存成 #RRGGBB，而不是原始通道值。",
 
         ["vision.waitColor.name"] = "等待颜色",
-        ["vision.waitColor.desc"] = "等待某个像素变成指定颜色。",
+        ["vision.waitColor.desc"] =
+            "等待某个像素变成指定颜色，最多等到步骤设置里的「超时」；到点这一步算失败。",
         ["vision.waitColor.x.label"] = "X",
         ["vision.waitColor.x.hint"] = "监视点的横坐标。",
         ["vision.waitColor.y.label"] = "Y",
@@ -2083,8 +2079,6 @@ internal static class ActionStrings
         ["vision.waitColor.color.hint"] = "像素需要显示的颜色。",
         ["vision.waitColor.tolerance.label"] = "容差 %",
         ["vision.waitColor.tolerance.hint"] = "允许的颜色偏差，0–100（百分比），默认 5。",
-        ["vision.waitColor.timeoutMs.label"] = "等待上限",
-        ["vision.waitColor.timeoutMs.hint"] = "超过这个时长就放弃。",
 
         // ---------------------------------------------------------------------- ocr
         ["ocr.recognize.name"] = "识别文字",
@@ -2159,7 +2153,8 @@ internal static class ActionStrings
         ["ocr.findText.fixText.hint"] = FixTextHint,
 
         ["ocr.clickText.name"] = "点击文字",
-        ["ocr.clickText.desc"] = "在屏幕上找到文字并点击它。",
+        ["ocr.clickText.desc"] =
+            "在屏幕上找到文字并点击它，最多等到步骤设置里的「超时」；到点这一步算失败。",
         ["ocr.clickText.text.label"] = "要查找的文字",
         ["ocr.clickText.region.label"] = "搜索区域",
         ["ocr.clickText.region.hint"] = RegionHintText,
@@ -2184,9 +2179,8 @@ internal static class ActionStrings
         ["ocr.clickText.recheckMs.label"] = "落手前再确认",
         ["ocr.clickText.recheckMs.hint"] =
             "点之前先等这么多毫秒再看一次，单位毫秒，默认 0，即一认出就点。填了数就等这么久再"
-            + "看一眼，这次仍读得到才点；这次读不到按没找到处理。用于那一行文字已经被替掉的情况。",
-        ["ocr.clickText.timeoutMs.label"] = "等待上限",
-        ["ocr.clickText.timeoutMs.hint"] = "等待文字出现的时长（毫秒），默认 5000；超过即放弃。",
+            + "看一眼，这次仍读得到才点；这次读不到按没找到处理。用于那一行文字已经被替掉的情"
+            + "况。第二次查看只查一次、不再等，所以文字已经没了就直接算没找到。",
         ["ocr.clickText.minScore.label"] = "最低识别分",
         ["ocr.clickText.minScore.hint"] = MinScoreHint,
         ["ocr.clickText.orderBy.label"] = "命中排序",

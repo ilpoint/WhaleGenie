@@ -28,6 +28,20 @@ internal static class SampleFiles
     public static ExecutableStep Step(string type, params ExecutableParameter[] parameters)
         => new() { Type = type, Parameters = parameters };
 
+    /// <summary>
+    /// The same step with a clock of its own. A step that waits for something says how long it may
+    /// wait in its own settings rather than in a field of the action, so a check that lets a wait
+    /// run out — or that keeps one from running forever — says so here.
+    /// </summary>
+    public static ExecutableStep Within(int milliseconds, ExecutableStep step)
+        => new()
+        {
+            Type = step.Type,
+            Id = step.Id,
+            Parameters = step.Parameters,
+            Meta = new StepMeta { TimeoutMs = milliseconds },
+        };
+
     /// <summary>One parameter of a step.</summary>
     public static ExecutableParameter Param(string name, string text = "")
         => new() { Name = name, Text = text };
