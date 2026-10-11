@@ -51,6 +51,12 @@ dotnet run --project WhaleGenie                  # 启动程序
 
 - 每加一个动作至少有一条引擎用例走到它，用户可见文案由 `LocalizationTests` 覆盖。真实浏览器测试是无头的
   （`BrowserTabTests` 开不显示窗口的 Edge），拾取与高亮仍算手动项；界面用例偶尔整套失败，属无头会话竞态。
+- 整套跑一次四十秒上下：引擎那套五秒，界面那套三十八秒，两个程序集并行。界面那套串行是有原因的——无头
+  Avalonia 会话只有一条界面线程，`Ui.cs` 关掉了并行——所以看单条：中位数三毫秒，超过一秒的只有文件监听
+  那三条，它们等的是操作系统的通知，不是 CPU。
+- 哪次觉得慢了，给它留下逐条耗时：`dotnet test WhaleGenie.slnx --logger "trx;LogFileName=run.trx"`
+  （结果在 `TestResults/` 里），一眼能分出是某一条卡住还是整体变慢。别与整套 `dotnet format` 这类占满
+  CPU 的活同时跑，那会让十分钟的读数看着像测试自己的问题。
 
 ## 对标与边界
 
