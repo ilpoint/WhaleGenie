@@ -1235,7 +1235,9 @@ public partial class AddActionViewModel : ViewModelBase
             anchor.IsRegionAnchor = true;
         }
 
-        // The two corners of a drag read better side by side, the way x and y already do.
+        // How far a rectangle reaches is one thing said in two numbers, and so is a drag's other
+        // corner: both read better side by side, the way x and y already do.
+        PairRow("width", "height");
         PairRow("startX", "startY");
         PairRow("endX", "endY");
 

@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -69,6 +70,65 @@ public class NumberBoxTests
                 Dispatcher.UIThread.RunJobs();
                 AssertNoOverlap(window, typeof(RegionRowViewModel), width);
             }
+        });
+    }
+
+    [Fact]
+    public void A_search_region_says_its_rectangle_as_two_lines_of_two()
+    {
+        Ui.Run(() =>
+        {
+            var window = Open("vision.findImage");
+            Parameter(window, "region").AddRegion();
+            Dispatcher.UIThread.RunJobs();
+
+            var row = Parameter(window, "region").Regions[0];
+
+            Point Place(NumberCellViewModel cell)
+            {
+                var box = window.GetVisualDescendants().OfType<NumericUpDown>()
+                    .First(b => ReferenceEquals(b.DataContext, cell) && b.IsEffectivelyVisible);
+                return box.TranslatePoint(default, window)!.Value;
+            }
+
+            var x = Place(row.X);
+            var y = Place(row.Y);
+            var width = Place(row.Width);
+            var height = Place(row.Height);
+
+            // Where the corner is and how far the rectangle reaches are two things, each said by a
+            // pair of numbers side by side.
+            Assert.True(y.X > x.X, "Y is not beside X");
+            Assert.Equal(x.Y, y.Y, 1);
+            Assert.True(height.X > width.X, "height is not beside width");
+            Assert.Equal(width.Y, height.Y, 1);
+            Assert.True(width.Y > x.Y, "width is not on the line below X");
+        });
+    }
+
+    [Theory]
+    [InlineData("vision.capture")]
+    [InlineData("ocr.recognize")]
+    public void The_button_that_drags_a_whole_rectangle_stands_above_its_numbers(string key)
+    {
+        Ui.Run(() =>
+        {
+            var window = Open(key);
+            Dispatcher.UIThread.RunJobs();
+
+            // One button fills all four numbers, so it belongs above the pair of them rather than
+            // beside one and looking like an answer to that one.
+            var button = window.GetVisualDescendants().OfType<Button>()
+                .First(pressed => pressed.IsEffectivelyVisible
+                    && pressed.Content as string == Strings.Get("Add.PickRegion"));
+            var x = window.GetVisualDescendants().OfType<NumericUpDown>()
+                .First(box => box.IsEffectivelyVisible
+                    && ReferenceEquals(box.DataContext, Parameter(window, "x")));
+
+            var above = button.TranslatePoint(default, window)!.Value;
+            var below = x.TranslatePoint(default, window)!.Value;
+
+            Assert.True(above.Y < below.Y, "the region button does not stand above the numbers");
         });
     }
 

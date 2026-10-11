@@ -53,6 +53,36 @@
             </Grid>
         </DataTemplate>
 
+        <!-- One number of a place to look: dialled in with the spinner, or written as an
+             expression the engine works out while the macro runs. It stands in a grid of two
+             columns, so the four numbers of a rectangle read as two pairs rather than a column. -->
+        <DataTemplate x:Key="NumberCell" x:DataType="vm:NumberCellViewModel">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+                <TextBlock Classes="Muted" VerticalAlignment="Center"
+                           Text="{Binding Label}"
+                           ToolTip.Tip="{Binding Hint}" />
+
+                <views:NumberBox Grid.Column="1" FormatString="0"
+                               IsVisible="{Binding IsPlain}"
+                               HorizontalAlignment="Stretch"
+                               Value="{Binding Number}" />
+
+                <AutoCompleteBox Grid.Column="1" Classes="VarInput"
+                                 IsVisible="{Binding IsFormula}"
+                                 ItemsSource="{Binding Suggestions}"
+                                 Text="{Binding Text}"
+                                 PlaceholderText="{Binding Placeholder}"
+                                 MinimumPrefixLength="1"
+                                 FilterMode="Contains" />
+
+                <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                        Tag="{Binding}"
+                        Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
+                        ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
+                        Click="OnOpenCellExpression" />
+            </Grid>
+        </DataTemplate>
+
         <!-- One parameter's editor, shared by every line of the parameter list. -->
         <DataTemplate x:Key="ParameterEditor" x:DataType="vm:StepParameterViewModel">
             <StackPanel>
@@ -387,43 +417,24 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:RegionRowViewModel">
                                 <StackPanel Margin="0,0,0,9" Spacing="5">
-                                    <!-- The four numbers of the rectangle, wrapping rather than
-                                         running off the side: the window may be as narrow as 900. -->
-                                    <ItemsControl ItemsSource="{Binding Cells}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel />
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="vm:NumberCellViewModel">
-                                                <StackPanel Orientation="Horizontal" Spacing="5"
-                                                            Margin="0,0,12,5">
-                                                    <TextBlock Classes="Muted" VerticalAlignment="Center"
-                                                               Text="{Binding Label}"
-                                                               ToolTip.Tip="{Binding Hint}" />
-
-                                                    <views:NumberBox Width="96" FormatString="0"
-                                                                   IsVisible="{Binding IsPlain}"
-                                                                   Value="{Binding Number}" />
-
-                                                    <AutoCompleteBox Width="132" Classes="VarInput"
-                                                                     IsVisible="{Binding IsFormula}"
-                                                                     ItemsSource="{Binding Suggestions}"
-                                                                     Text="{Binding Text}"
-                                                                     PlaceholderText="{Binding Placeholder}"
-                                                                     MinimumPrefixLength="1"
-                                                                     FilterMode="Contains" />
-
-                                                    <Button Classes="FlatButton" Height="33" Padding="11,0"
-                                                            Tag="{Binding}"
-                                                            Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
-                                                            ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
-                                                            Click="OnOpenCellExpression" />
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                                    <!-- The four numbers of the rectangle, two to a line: X and Y
+                                         say where the corner is and width and height say how far it
+                                         reaches, so each pair reads as one thing. -->
+                                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto"
+                                          ColumnSpacing="14" RowSpacing="6">
+                                        <ContentControl Grid.Row="0" Grid.Column="0"
+                                                        Content="{Binding X}"
+                                                        ContentTemplate="{StaticResource NumberCell}" />
+                                        <ContentControl Grid.Row="0" Grid.Column="1"
+                                                        Content="{Binding Y}"
+                                                        ContentTemplate="{StaticResource NumberCell}" />
+                                        <ContentControl Grid.Row="1" Grid.Column="0"
+                                                        Content="{Binding Width}"
+                                                        ContentTemplate="{StaticResource NumberCell}" />
+                                        <ContentControl Grid.Row="1" Grid.Column="1"
+                                                        Content="{Binding Height}"
+                                                        ContentTemplate="{StaticResource NumberCell}" />
+                                    </Grid>
 
                                     <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap"
                                                Foreground="#E06C75"
@@ -731,30 +742,32 @@
         <DataTemplate x:Key="ParameterRowEditor" x:DataType="vm:ParameterRowViewModel">
             <!-- A line whose question the step's own settings do not ask is not drawn: a field
                  that is there and does nothing is worse than one that is not there. -->
-            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*"
+            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*"
                   IsVisible="{Binding IsApplicable}"
                   ColumnSpacing="16" Margin="0,0,0,14">
-                <ContentControl Grid.Row="0" Grid.Column="0"
+                <!-- What fills the whole rectangle stands above the pair of numbers it fills,
+                     because it is one button for both of them rather than an answer to one. -->
+                <Button Grid.Row="0" Grid.ColumnSpan="2" Classes="FlatButton"
+                        Height="30" Padding="10,0" Margin="0,0,0,8"
+                        HorizontalAlignment="Left"
+                        IsVisible="{Binding IsRegionAnchor}"
+                        ToolTip.Tip="{Binding [Add.PickRegionHint], Source={x:Static loc:Strings.Current}}"
+                        Content="{Binding [Add.PickRegion], Source={x:Static loc:Strings.Current}}"
+                        Click="OnPickRegion" />
+                <ContentControl Grid.Row="1" Grid.Column="0"
                                 Grid.ColumnSpan="{Binding FirstSpan}"
                                 Content="{Binding First}"
                                 ContentTemplate="{StaticResource ParameterEditor}" />
-                <ContentControl Grid.Row="0" Grid.Column="1"
+                <ContentControl Grid.Row="1" Grid.Column="1"
                                 Content="{Binding Second}"
                                 ContentTemplate="{StaticResource ParameterEditor}"
                                 IsVisible="{Binding HasSecond}" />
-                <!-- A position is taken from the pointer with Alt + X, and a whole rectangle with
-                     the region picker. -->
-                <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="2,6,0,0" Spacing="6">
+                <!-- A position is taken from the pointer with Alt + X, and a click point from the
+                     reference picture itself. -->
+                <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="2,6,0,0" Spacing="6">
                     <TextBlock Classes="Muted" TextWrapping="Wrap"
                                IsVisible="{Binding ShowsPositionHint}"
                                Text="{Binding [Add.SharedPositionHint], Source={x:Static loc:Strings.Current}}" />
-                    <Button Classes="FlatButton" Height="30" Padding="10,0"
-                            HorizontalAlignment="Left"
-                            IsVisible="{Binding IsRegionAnchor}"
-                            ToolTip.Tip="{Binding [Add.PickRegionHint], Source={x:Static loc:Strings.Current}}"
-                            Content="{Binding [Add.PickRegion], Source={x:Static loc:Strings.Current}}"
-                            Click="OnPickRegion" />
-                    <!-- Where the click should land, picked on the reference picture itself. -->
                     <Button Classes="FlatButton" Height="30" Padding="10,0"
                             HorizontalAlignment="Left"
                             IsVisible="{Binding ShowsOffsetPick}"
