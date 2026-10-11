@@ -17,8 +17,8 @@ public class SampleCsvTests
         var run = await SampleFiles.RunAsync(
             SampleFiles.Step("file.readCsv", SampleFiles.Param("path", "sample-1.csv"),
                 SampleFiles.Param("separator", "auto"), SampleFiles.Param("hasHeader", "true"),
-                SampleFiles.Param("headerVariable", "columns"),
-                SampleFiles.Param("resultVariable", "rows")));
+                SampleFiles.Returns("header=columns"),
+                SampleFiles.Returns("rows=rows")));
 
         Assert.True(run.Result.Succeeded, run.Result.Detail);
 
@@ -43,7 +43,7 @@ public class SampleCsvTests
             SampleFiles.Step("file.readCsv", SampleFiles.Param("path", "sample-1.csv"),
                 SampleFiles.Param("separator", "semicolon"),
                 SampleFiles.Param("hasHeader", "false"),
-                SampleFiles.Param("resultVariable", "rows")));
+                SampleFiles.Returns("rows=rows")));
 
         Assert.True(run.Result.Succeeded, run.Result.Detail);
 
@@ -61,7 +61,7 @@ public class SampleCsvTests
         var run = await SampleFiles.RunAsync(
             SampleFiles.Step("file.readCsv", SampleFiles.Param("path", "sample-2.csv"),
                 SampleFiles.Param("separator", "auto"), SampleFiles.Param("hasHeader", "true"),
-                SampleFiles.Param("resultVariable", "rows")));
+                SampleFiles.Returns("rows=rows")));
 
         Assert.True(run.Result.Succeeded, run.Result.Detail);
 
@@ -90,13 +90,13 @@ public class SampleCsvTests
         var run = await SampleFiles.RunAsync(
             SampleFiles.Step("file.readCsv", SampleFiles.Param("path", "sample-2.csv"),
                 SampleFiles.Param("separator", "auto"), SampleFiles.Param("hasHeader", "false"),
-                SampleFiles.Param("resultVariable", "rows")),
+                SampleFiles.Returns("rows=rows")),
             SampleFiles.Step("file.writeCsv", SampleFiles.Param("path", "back.csv"),
                 SampleFiles.Param("rows", "$rows"), SampleFiles.Param("separator", "comma"),
                 SampleFiles.Param("mode", "replace")),
             SampleFiles.Step("file.readCsv", SampleFiles.Param("path", "back.csv"),
                 SampleFiles.Param("separator", "auto"), SampleFiles.Param("hasHeader", "false"),
-                SampleFiles.Param("resultVariable", "again")));
+                SampleFiles.Returns("rows=again")));
 
         Assert.True(run.Result.Succeeded, run.Result.Detail);
         Assert.True(run.Devices.Files.ContainsKey("back.csv"), "the file should have been written");

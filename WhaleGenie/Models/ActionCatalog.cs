@@ -24,6 +24,11 @@ public static class ActionCatalog
             {
                 parameter.OwnerKey = definition.Key;
             }
+
+            foreach (var result in definition.Returns)
+            {
+                result.OwnerKey = definition.Key;
+            }
         }
     }
 
@@ -149,6 +154,11 @@ public static class ActionCatalog
         new()
         {
             Key = "control.waitUntil",
+            Returns =
+            [
+                Return("elapsed", "Waited ms", primary: true, type: ActionReturnType.Number,
+                    hint: "How long the wait actually lasted, in milliseconds."),
+            ],
             Category = ActionCategory.Control,
             DisplayName = "Wait Until",
             Description = "Wait until a condition holds, then carry on.",
@@ -163,9 +173,7 @@ public static class ActionCatalog
                 Choice("onTimeout", "If it never holds", ["stop", "continue"], "stop",
                     "What the macro does when the time runs out.",
                     labels: ["Stop the macro", "Carry on with the next step"]),
-                Variable("elapsedVariable", "Waited ms", "waited",
-                    "Variable that receives how long the wait lasted, in milliseconds.",
-                    required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
@@ -302,6 +310,11 @@ public static class ActionCatalog
         new()
         {
             Key = "control.try",
+            Returns =
+            [
+                Return("error", "Error", primary: true,
+                    hint: "Why the attempt failed, or empty when it did not."),
+            ],
             Category = ActionCategory.Control,
             DisplayName = "Try",
             Description = "Attempt some steps, handle a failure in another block, and always "
@@ -311,10 +324,7 @@ public static class ActionCatalog
                 Steps("body", "Try steps", "Steps to attempt."),
                 Steps("catch", "Catch steps", "Steps to run when the attempt fails."),
                 Steps("finally", "Finally steps", "Steps that always run, however it ended."),
-                Variable("errorVariable", "Error variable", "error",
-                    "Variable that receives the reason the attempt failed, or is emptied when "
-                    + "it did not.",
-                    required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
@@ -494,7 +504,7 @@ public static class ActionCatalog
                     + "value is read the way other fields are, so count=$n + 1 passes a number "
                     + "and xs=$list passes the list itself. Lines starting with # are skipped.",
                     "count=$n + 1\nlabel=$name", required: false),
-                Text("returns", "Results", "answer, status",
+                Text("bringBack", "Results", "answer, status",
                     "Names of the called macro's values to bring back into this macro, separated "
                     + "by commas. A name the called macro never set comes back empty.", required: false),
             ],
@@ -504,14 +514,18 @@ public static class ActionCatalog
         new()
         {
             Key = "file.readText",
+            Returns =
+            [
+                Return("text", "Text", primary: true,
+                    hint: "What the file held. With “one item per line” it is a list of lines."),
+            ],
             Category = ActionCategory.File,
             DisplayName = "Read Text",
             Description = "Read a text file into a variable.",
             Parameters =
             [
                 FilePath("path", "File", "notes.txt", "File to read.", PathIntent.Read),
-                Variable("resultVariable", "Result variable", "text",
-                    "Variable that receives the contents.", required: false, namesVariable: true),
+                Returns(),
                 Choice("storeAs", "Store as", ["text", "lines"], "text",
                     "Keep the file as one piece of text, or hand each line over as an item of a "
                     + "list, which is what looping over a file of names or paths wants.",
@@ -572,14 +586,18 @@ public static class ActionCatalog
         new()
         {
             Key = "file.exists",
+            Returns =
+            [
+                Return("exists", "Exists", primary: true, type: ActionReturnType.Flag,
+                    hint: "True when the file or folder is there."),
+            ],
             Category = ActionCategory.File,
             DisplayName = "File Exists",
             Description = "Check whether a file or folder is there.",
             Parameters =
             [
                 FilePath("path", "File", "notes.txt", "File or folder to look for.", PathIntent.Read),
-                Variable("resultVariable", "Result variable", "exists",
-                    "Variable that receives true or false.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
@@ -636,6 +654,11 @@ public static class ActionCatalog
         new()
         {
             Key = "file.path",
+            Returns =
+            [
+                Return("path", "Path", primary: true,
+                    hint: "The path that was worked out."),
+            ],
             Category = ActionCategory.File,
             DisplayName = "Path",
             Description = "Work out part of a path: join, split, or find where it points.",
@@ -657,8 +680,7 @@ public static class ActionCatalog
                     "The path to work on. The two folder answers ignore it.", PathIntent.Read),
                 Text("name", "Name", "report.csv", required: false,
                     hint: "The second half of a join. Only \"join folder and name\" uses it."),
-                Variable("resultVariable", "Result variable", "path",
-                    "Variable that receives the answer.", namesVariable: true, defaultValue: "path"),
+                Returns(),
             ],
         },
         new()
@@ -707,6 +729,11 @@ public static class ActionCatalog
         new()
         {
             Key = "file.listFiles",
+            Returns =
+            [
+                Return("files", "Files", primary: true, type: ActionReturnType.List,
+                    hint: "The full paths of the files that were collected."),
+            ],
             Category = ActionCategory.File,
             DisplayName = "List Files",
             Description = "Collect the files in a folder into a list.",
@@ -718,9 +745,7 @@ public static class ActionCatalog
                     + "once, for example *.txt; report?.xlsx.",
                     acceptsVariables: true),
                 Toggle("recurse", "Include subfolders"),
-                Variable("resultVariable", "Result variable", "files",
-                    "Variable that receives the list of full paths.", required: false,
-                    namesVariable: true),
+                Returns(),
                 Choice("sortBy", "Order", ["name", "modified", "created", "size", "extension"],
                     "name",
                     "What to put the files in order by. Files that agree are ordered by name, so "
@@ -753,6 +778,11 @@ public static class ActionCatalog
         new()
         {
             Key = "file.readJson",
+            Returns =
+            [
+                Return("value", "Value", primary: true,
+                    hint: "The value that was read. Missing reads as empty."),
+            ],
             Category = ActionCategory.File,
             DisplayName = "Read JSON",
             Description = "Read a value out of a JSON file.",
@@ -763,8 +793,7 @@ public static class ActionCatalog
                 Text("query", "Where", "server.name",
                     "Path to the value, such as server.name or items[0].id. "
                     + "Leave empty for the whole file.", acceptsFormula: true),
-                Variable("resultVariable", "Result variable", "value",
-                    "Variable that receives the value.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
@@ -787,6 +816,14 @@ public static class ActionCatalog
         new()
         {
             Key = "file.readCsv",
+            Returns =
+            [
+                Return("rows", "Rows", primary: true, type: ActionReturnType.List,
+                    hint: "The rows that were read, each row a list of cells."),
+                Return("header", "Column names", type: ActionReturnType.List,
+                    hint: "The names in the header row, in column order, which is how a macro "
+                        + "finds the column it wants. Empty when the first row is not a header."),
+            ],
             Category = ActionCategory.File,
             DisplayName = "Read CSV",
             Description = "Read a CSV file into a list of rows.",
@@ -795,7 +832,7 @@ public static class ActionCatalog
                 FilePath("path", "File", "rows.csv", "CSV file to read.", PathIntent.Read, "*.csv"),
                 Toggle("hasHeader", "First row is a header", true,
                     "Leave the first row out of the result, and keep what it says in the names "
-                    + "variable below."),
+                    + "result on the returns page."),
                 Text("columns", "Only these columns", "金额, 日期", required: false,
                     hint: "The columns to keep, written the way they are named in the header or as "
                         + "the letter they sit under: 金额, or B, or 金额,B. Each row comes back with "
@@ -811,15 +848,9 @@ public static class ActionCatalog
                         + "$name.",
                     acceptsVariables: true, acceptsFormula: true, advanced: true,
                     onlyWith: [ActionParameter.AnyValue], onlyField: "matchColumn"),
-                Variable("resultVariable", "Result variable", "rows",
-                    "Variable that receives a list of rows, each a list of cells.",
-                    required: false, namesVariable: true),
+                Returns(),
                 Encoding(),
                 ..Separator("auto", mayBeAutomatic: true),
-                Variable("headerVariable", "Column names variable", "columns",
-                    "Variable that receives the names in the header row, in column order, which is "
-                    + "how a macro finds the column it wants. Leave empty for none.",
-                    required: false, namesVariable: true, advanced: true),
                 Toggle("skipBlankLines", "Skip blank lines", true,
                     "Drop lines that hold nothing. A file written by another program often ends "
                     + "with one, and it would otherwise read as a row of one empty cell.",
@@ -919,6 +950,11 @@ public static class ActionCatalog
         new()
         {
             Key = "data.base64Encode",
+            Returns =
+            [
+                Return("encoded", "Encoded", primary: true,
+                    hint: "The text written as Base64."),
+            ],
             Category = ActionCategory.Data,
             DisplayName = "Encode as Base64",
             Description = "Turn text into Base64, the form a value takes inside a URL or a token.",
@@ -927,13 +963,17 @@ public static class ActionCatalog
                 Text("text", "Text", "hello",
                     "The text to encode. It is read as one value, so a variable or an expression "
                     + "may stand for it, and the text is taken as UTF-8.", acceptsFormula: true),
-                Variable("resultVariable", "Result variable", "encoded",
-                    "Variable that receives the Base64 text.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
         {
             Key = "data.base64Decode",
+            Returns =
+            [
+                Return("decoded", "Decoded", primary: true,
+                    hint: "The text the Base64 held, read as UTF-8."),
+            ],
             Category = ActionCategory.Data,
             DisplayName = "Decode from Base64",
             Description = "Turn Base64 back into the text it holds.",
@@ -942,14 +982,17 @@ public static class ActionCatalog
                 Text("text", "Base64", "aGVsbG8=",
                     "The Base64 text to decode. It is read as one value, so a variable or an "
                     + "expression may stand for it.", acceptsFormula: true),
-                Variable("resultVariable", "Result variable", "decoded",
-                    "Variable that receives the decoded text, read as UTF-8.",
-                    required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
         {
             Key = "data.hash",
+            Returns =
+            [
+                Return("digest", "Checksum", primary: true,
+                    hint: "The checksum, written in lowercase letters and digits."),
+            ],
             Category = ActionCategory.Data,
             DisplayName = "Hash Text",
             Description = "Work out the checksum of a piece of text.",
@@ -961,9 +1004,7 @@ public static class ActionCatalog
                     labels: ["MD5", "SHA-1", "SHA-256", "SHA-512"]),
                 Text("text", "Text", "hello", "The text to work out the checksum of.",
                     acceptsFormula: true),
-                Variable("resultVariable", "Result variable", "digest",
-                    "Variable that receives the checksum in lowercase letters and digits.",
-                    required: false, namesVariable: true),
+                Returns(),
             ],
         },
 
@@ -983,28 +1024,33 @@ public static class ActionCatalog
         new()
         {
             Key = "clipboard.readText",
+            Returns =
+            [
+                Return("text", "Text", primary: true, hint: "The text that was on the clipboard."),
+            ],
             Category = ActionCategory.Clipboard,
             DisplayName = "Read Clipboard",
             Description = "Read the text on the clipboard into a variable.",
             Parameters =
             [
-                Variable("resultVariable", "Result variable", "clipboard",
-                    "Variable that receives the text.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
         {
             Key = "clipboard.readImage",
+            Returns =
+            [
+                Return("image", "Picture", primary: true, type: ActionReturnType.Image,
+                    hint: "The picture, ready for a find-image step to look for on screen. A "
+                        + "picture on the clipboard has no place on screen, so there is no position."),
+            ],
             Category = ActionCategory.Clipboard,
             DisplayName = "Read Clipboard Picture",
             Description = "Take the picture on the clipboard into an image variable.",
             Parameters =
             [
-                Variable("resultVariable", "Result variable", "picture",
-                    "Variable that receives the picture, ready for a find-image step to look for "
-                    + "on screen. $name.width and $name.height hold its size; a picture on the "
-                    + "clipboard has no place on screen, so there is no $name.x.",
-                    required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
@@ -1022,15 +1068,17 @@ public static class ActionCatalog
         new()
         {
             Key = "clipboard.readFiles",
+            Returns =
+            [
+                Return("files", "Files", primary: true, type: ActionReturnType.List,
+                    hint: "The full paths of the files on the clipboard. Empty when it holds none."),
+            ],
             Category = ActionCategory.Clipboard,
             DisplayName = "Read Clipboard Files",
             Description = "Take the paths of the files on the clipboard into a list.",
             Parameters =
             [
-                Variable("resultVariable", "Result variable", "files",
-                    "Variable that receives the list of full paths. An empty list means the "
-                    + "clipboard holds no files.",
-                    required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
@@ -1059,20 +1107,26 @@ public static class ActionCatalog
         new()
         {
             Key = "clipboard.waitChange",
+            Returns =
+            [
+                Return("text", "Text", primary: true, hint: "The new text that was copied."),
+            ],
             Category = ActionCategory.Clipboard,
             DisplayName = "Wait for Clipboard",
             Description = "Wait until something new is copied to the clipboard.",
             Parameters =
             [
                 Number("timeoutMs", "Timeout", 5000, "How long to wait before giving up."),
-                Variable("resultVariable", "Result variable", "clipboard",
-                    "Variable that receives the new text. Leave empty to only wait.",
-                    required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
         {
             Key = "clipboard.copy",
+            Returns =
+            [
+                Return("text", "Text", primary: true, hint: "What the copy put on the clipboard."),
+            ],
             Category = ActionCategory.Clipboard,
             DisplayName = "Copy Selection",
             Description = "Press the copy shortcut, then keep what landed on the clipboard.",
@@ -1081,8 +1135,7 @@ public static class ActionCatalog
                 Text("keys", "Shortcut", "Ctrl+C", "Keys joined with + that copy the selection.",
                     required: true, defaultValue: "Ctrl+C"),
                 Number("timeoutMs", "Timeout", 1500, "How long to wait for the clipboard."),
-                Variable("resultVariable", "Result variable", "clipboard",
-                    "Variable that receives the copied text.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
@@ -1104,6 +1157,12 @@ public static class ActionCatalog
         new()
         {
             Key = "process.start",
+            Returns =
+            [
+                Return("processId", "Process id", primary: true, type: ActionReturnType.Number,
+                    hint: "The id of the program that was started, which the wait and stop steps "
+                        + "take."),
+            ],
             Category = ActionCategory.Process,
             DisplayName = "Start Program",
             Description = "Start another program, optionally without showing its window.",
@@ -1127,13 +1186,17 @@ public static class ActionCatalog
                     + "skipped. Giving a program its own environment means naming the program "
                     + "itself, not a document or a shortcut.",
                     "LANG=zh_CN.UTF-8", required: false, advanced: true),
-                Variable("resultVariable", "Result variable", "processId",
-                    "Variable that receives the process id.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
         {
             Key = "process.waitFor",
+            Returns =
+            [
+                Return("process", "Process id", primary: true, type: ActionReturnType.Number,
+                    hint: "The id of the program that turned up."),
+            ],
             Category = ActionCategory.Process,
             DisplayName = "Wait for Program",
             Description = "Wait until a program is running.",
@@ -1142,13 +1205,17 @@ public static class ActionCatalog
                 Text("name", "Program", "notepad", "Name of the program to watch for.",
                     acceptsFormula: true),
                 Number("timeoutMs", "Timeout", 10000, "How long to wait before giving up."),
-                Variable("resultVariable", "Result variable", "processId",
-                    "Variable that receives the process id.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
         {
             Key = "process.waitExit",
+            Returns =
+            [
+                Return("exitCode", "Exit code", primary: true, type: ActionReturnType.Number,
+                    hint: "The code the program ended with; 0 usually means it was happy."),
+            ],
             Category = ActionCategory.Process,
             DisplayName = "Wait for Exit",
             Description = "Wait until a program started by this macro has finished.",
@@ -1158,13 +1225,17 @@ public static class ActionCatalog
                     "The process to watch, usually the one Start Program gave back.",
                     acceptsFormula: true),
                 Number("timeoutMs", "Timeout", 60000, "How long to wait before giving up."),
-                Variable("resultVariable", "Result variable", "exitCode",
-                    "Variable that receives the exit code.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
         {
             Key = "process.exists",
+            Returns =
+            [
+                Return("running", "Running", primary: true, type: ActionReturnType.Flag,
+                    hint: "True when the program is running."),
+            ],
             Category = ActionCategory.Process,
             DisplayName = "Program Running",
             Description = "Check whether a program is running.",
@@ -1172,25 +1243,40 @@ public static class ActionCatalog
             [
                 Text("name", "Program", "notepad", "Name of the program to look for.",
                     acceptsFormula: true),
-                Variable("resultVariable", "Result variable", "running",
-                    "Variable that receives true or false.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
         {
             Key = "process.list",
+            Returns =
+            [
+                Return("processes", "Programs", primary: true, type: ActionReturnType.List,
+                    hint: "The names of the programs that are running."),
+            ],
             Category = ActionCategory.Process,
             DisplayName = "List Programs",
             Description = "Collect the names of the running programs into a list.",
             Parameters =
             [
-                Variable("resultVariable", "Result variable", "processes",
-                    "Variable that receives the list of names.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
         {
             Key = "process.info",
+            Returns =
+            [
+                Return("info", "File", primary: true,
+                    hint: "The program's file. Empty when Windows will not say it."),
+                Return("id", "Process id", type: ActionReturnType.Number,
+                    hint: "The program's id."),
+                Return("name", "Name", hint: "The program's name."),
+                Return("memoryMb", "Memory", type: ActionReturnType.Number,
+                    hint: "How much memory the program is using, in megabytes."),
+                Return("cpuSeconds", "Processor time", type: ActionReturnType.Number,
+                    hint: "How much processor time the program has used, in seconds."),
+            ],
             Category = ActionCategory.Process,
             DisplayName = "Program Details",
             Description = "Read what is known about a running program.",
@@ -1198,16 +1284,17 @@ public static class ActionCatalog
             [
                 Text("target", "Program", "notepad", "Name of the program, or a process id.",
                     acceptsFormula: true),
-                Variable("resultVariable", "Result variable", "process",
-                    "Variable that receives the program's file. $name.id, $name.name, $name.path, "
-                    + "$name.memoryMb and $name.cpuSeconds hold the parts, and the file is empty "
-                    + "when Windows will not say it.",
-                    required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
         {
             Key = "process.kill",
+            Returns =
+            [
+                Return("stopped", "Closed", primary: true, type: ActionReturnType.Number,
+                    hint: "How many programs were closed."),
+            ],
             Category = ActionCategory.Process,
             DisplayName = "Stop Program",
             Description = "Close a program, asking it to exit first unless told to be firm.",
@@ -1217,13 +1304,21 @@ public static class ActionCatalog
                     acceptsFormula: true),
                 Toggle("force", "Force close", false,
                     "Close it at once instead of asking it to exit."),
-                Variable("resultVariable", "Result variable", "stopped",
-                    "Variable that receives how many were closed.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
         {
             Key = "command.run",
+            Returns =
+            [
+                Return("output", "Output", primary: true,
+                    hint: "What the command printed on its standard output."),
+                Return("error", "Error output",
+                    hint: "What the command printed on its error stream."),
+                Return("exitCode", "Exit code", type: ActionReturnType.Number,
+                    hint: "The code the command ended with; 0 usually means it succeeded."),
+            ],
             Category = ActionCategory.Process,
             DisplayName = "Run Command",
             Description = "Run a command line and collect what it printed.",
@@ -1247,8 +1342,8 @@ public static class ActionCatalog
                 Number("timeoutMs", "Timeout", 30000, "How long the command may run."),
                 Toggle("streamOutput", "Write output to the log as it arrives", false,
                     "Put every line the command prints into the run log while it is still running, "
-                    + "which is how a long build or script can be watched. The result variable still "
-                    + "holds the whole output.", advanced: true),
+                    + "which is how a long build or script can be watched. The output result still "
+                    + "holds everything the command printed.", advanced: true),
                 Choice("outputEncoding", "Output encoding", ["system", "utf8", "utf16"], "system",
                     "The code page the command prints in. Left as it is, its output is read in this "
                     + "machine's own, which is what the programs Windows ships with — cmd.exe, "
@@ -1256,14 +1351,7 @@ public static class ActionCatalog
                     + "A program that prints UTF-8 whichever machine it is on, Node.js for one, "
                     + "needs to be read that way instead.",
                     labels: ["This machine's", "UTF-8", "UTF-16"], advanced: true),
-                Variable("resultVariable", "Result variable", "output",
-                    "Variable that receives what the command printed.",
-                    required: false, namesVariable: true),
-                Variable("errorVariable", "Error variable", "",
-                    "Variable that receives anything printed on the error stream.",
-                    required: false, namesVariable: true),
-                Variable("exitCodeVariable", "Exit code variable", "exitCode",
-                    "Variable that receives the exit code.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
 
@@ -1271,6 +1359,10 @@ public static class ActionCatalog
         new()
         {
             Key = "system.info",
+            Returns =
+            [
+                Return("value", "Value", primary: true, hint: "The fact that was read."),
+            ],
             Category = ActionCategory.System,
             DisplayName = "System Info",
             Description = "Read a fact about this machine, such as the user name or a folder.",
@@ -1295,13 +1387,17 @@ public static class ActionCatalog
                         "Battery %", "On mains power", "Screen count", "Screen rectangles",
                         "DPI", "DPI percent", "Seconds since start",
                     ]),
-                Variable("resultVariable", "Result variable", "info",
-                    "Variable that receives the value.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
         {
             Key = "system.environment",
+            Returns =
+            [
+                Return("value", "Value", primary: true,
+                    hint: "What the environment variable holds; empty when it is not set."),
+            ],
             Category = ActionCategory.System,
             DisplayName = "Environment Variable",
             Description = "Read an environment variable.",
@@ -1309,8 +1405,7 @@ public static class ActionCatalog
             [
                 Text("name", "Name", "TEMP", "Name of the environment variable.",
                     acceptsFormula: true),
-                Variable("resultVariable", "Result variable", "value",
-                    "Variable that receives the value.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
@@ -1343,6 +1438,12 @@ public static class ActionCatalog
         new()
         {
             Key = "system.volume",
+            Returns =
+            [
+                Return("volume", "Volume", primary: true, type: ActionReturnType.Number,
+                    hint: "The level the machine is left at, from 0 to 100. A step that only mutes "
+                        + "still reports the level it is waiting at."),
+            ],
             Category = ActionCategory.System,
             DisplayName = "Volume",
             Description = "Read or change the volume of the speakers Windows is using.",
@@ -1366,10 +1467,7 @@ public static class ActionCatalog
                     "How far to move the volume, in points. Used by \"Turn it up\" and \"Turn it "
                     + "down\", which never go past 0 or 100.",
                     min: 1, max: 100, onlyWith: ["up", "down"], onlyField: "what"),
-                Variable("resultVariable", "Result variable", "volume",
-                    "Variable that receives the volume the machine is left at, from 0 to 100. A "
-                    + "step that only mutes still reports the level it is waiting at.",
-                    namesVariable: true, defaultValue: "volume"),
+                Returns(),
             ],
         },
         new()
@@ -1416,6 +1514,11 @@ public static class ActionCatalog
         new()
         {
             Key = "system.ime",
+            Returns =
+            [
+                Return("ime", "Input method", primary: true,
+                    hint: "Which layout is in use, or the list of layouts that could be switched to."),
+            ],
             Category = ActionCategory.System,
             DisplayName = "Input Method",
             Description = "Read or change the keyboard layout and input method of the window in "
@@ -1439,15 +1542,17 @@ public static class ActionCatalog
                           + "to choose from. The step waits for the window to really change over, so "
                           + "the step after it can rely on typing in that language.",
                     acceptsFormula: true),
-                Variable("resultVariable", "Result variable", "ime",
-                    "Variable that receives the answer: the layout in use, or the list of layouts "
-                    + "that could be switched to.",
-                    namesVariable: true, defaultValue: "ime"),
+                Returns(),
             ],
         },
         new()
         {
             Key = "system.brightness",
+            Returns =
+            [
+                Return("brightness", "Brightness", primary: true, type: ActionReturnType.Number,
+                    hint: "The brightness the screens are left at, from 0 to 100."),
+            ],
             Category = ActionCategory.System,
             DisplayName = "Brightness",
             Description = "Read or change how bright the screens are.",
@@ -1467,9 +1572,7 @@ public static class ActionCatalog
                     "How far to move the brightness, in points. Used by \"Turn it up\" and \"Turn it "
                     + "down\", which never go past 0 or 100.",
                     min: 1, max: 100, onlyWith: ["up", "down"], onlyField: "what"),
-                Variable("resultVariable", "Result variable", "brightness",
-                    "Variable that receives the brightness the screens are left at, from 0 to 100.",
-                    namesVariable: true, defaultValue: "brightness"),
+                Returns(),
             ],
         },
 
@@ -1477,19 +1580,27 @@ public static class ActionCatalog
         new()
         {
             Key = "window.exists",
+            Returns =
+            [
+                Return("found", "Found", primary: true, type: ActionReturnType.Flag,
+                    hint: "True when a matching window is open."),
+            ],
             Category = ActionCategory.Window,
             DisplayName = "Window Exists",
             Description = "Check whether a matching window is open.",
             Parameters =
             [
                 ..WindowTarget(),
-                Variable("resultVariable", "Result variable", "found",
-                    "Variable that receives true or false.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
         {
             Key = "window.waitFor",
+            Returns =
+            [
+                Return("title", "Title", primary: true, hint: "What the window's title bar says."),
+            ],
             Category = ActionCategory.Window,
             DisplayName = "Wait for Window",
             Description = "Wait until a matching window appears.",
@@ -1497,8 +1608,7 @@ public static class ActionCatalog
             [
                 ..WindowTarget(),
                 Number("timeoutMs", "Timeout", 10000, "How long to wait before giving up."),
-                Variable("resultVariable", "Result variable", "window",
-                    "Variable that receives the window title.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
@@ -1575,6 +1685,11 @@ public static class ActionCatalog
         new()
         {
             Key = "window.list",
+            Returns =
+            [
+                Return("windows", "Windows", primary: true, type: ActionReturnType.List,
+                    hint: "The titles of the windows that matched."),
+            ],
             Category = ActionCategory.Window,
             DisplayName = "List Windows",
             Description = "Collect the titles of the open windows into a list, or of the ones that "
@@ -1587,24 +1702,34 @@ public static class ActionCatalog
                 Choice("filterBy", "Filter by", ["title", "process", "class"], "title",
                     "Which part of a window the filter text is compared with. This one is always "
                     + "matched as \"contains\".", advanced: true),
-                Variable("resultVariable", "Result variable", "windows",
-                    "Variable that receives the list of titles.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
         {
             Key = "window.info",
+            Returns =
+            [
+                Return("box", "Rectangle", primary: true,
+                    hint: "The window's rectangle, written as x,y,width,height so it can be used "
+                        + "as a search region."),
+                Return("x", "X", type: ActionReturnType.Number,
+                    hint: "The left edge of the window, in screen pixels."),
+                Return("y", "Y", type: ActionReturnType.Number,
+                    hint: "The top edge of the window, in screen pixels."),
+                Return("width", "Width", type: ActionReturnType.Number,
+                    hint: "How wide the window is, in pixels."),
+                Return("height", "Height", type: ActionReturnType.Number,
+                    hint: "How tall the window is, in pixels."),
+                Return("title", "Title", hint: "What the window's title bar says."),
+            ],
             Category = ActionCategory.Window,
             DisplayName = "Window Info",
             Description = "Read where a window sits and how big it is into variables.",
             Parameters =
             [
                 ..WindowTarget(),
-                Variable("resultVariable", "Result variable", "box",
-                    "Variable that receives the window's rectangle, written as x,y,width,height "
-                    + "so it can be used as a search region. .x, .y, .width and .height hold the "
-                    + "parts on their own, and .title holds what the title bar says.",
-                    namesVariable: true, defaultValue: "box"),
+                Returns(),
             ],
         },
 
@@ -1935,6 +2060,12 @@ public static class ActionCatalog
         new()
         {
             Key = "vision.capture",
+            Returns =
+            [
+                Return("image", "Picture", primary: true, type: ActionReturnType.Image,
+                    hint: "The picture that was captured, ready to be searched for or written out."),
+                ..CoveredBox(),
+            ],
             Category = ActionCategory.Vision,
             DisplayName = "Capture",
             Description = "Capture a screen region into an image variable.",
@@ -1947,15 +2078,18 @@ public static class ActionCatalog
                 ..Anchor(withElement: true),
                 ..Capture(),
                 LookGap(0),
-                Variable("saveTo", "Save to variable", "shot",
-                    "Variable that receives the captured image. $name.x, $name.y, $name.width and "
-                    + "$name.height hold the rectangle it covered, so a later step can search it.",
-                    namesVariable: true, defaultValue: "shot"),
+                Returns(),
             ],
         },
         new()
         {
             Key = "vision.captureWindow",
+            Returns =
+            [
+                Return("image", "Picture", primary: true, type: ActionReturnType.Image,
+                    hint: "The picture that was captured, title bar and all."),
+                ..CoveredBox(),
+            ],
             Category = ActionCategory.Vision,
             DisplayName = "Capture Window",
             Description = "Capture a whole window, title bar and all, into an image variable.",
@@ -1964,15 +2098,13 @@ public static class ActionCatalog
                 ..WindowTarget(),
                 ..WindowCapture(),
                 LookGap(0),
-                Variable("saveTo", "Save to variable", "shot",
-                    "Variable that receives the captured image. $name.x, $name.y, $name.width and "
-                    + "$name.height hold the rectangle it covered, so a later step can search it.",
-                    namesVariable: true, defaultValue: "shot"),
+                Returns(),
             ],
         },
         new()
         {
             Key = "vision.findImage",
+            Returns = HitParts(),
             Category = ActionCategory.Vision,
             DisplayName = "Find Image",
             Description = "Look for a reference image on screen.",
@@ -1996,16 +2128,13 @@ public static class ActionCatalog
                 ..Anchor(),
                 MatchIndex(pixelsOnly: true),
                 AllMatches(pixelsOnly: true),
-                Variable("resultVariable", "Result variable", "match",
-                    "Variable that receives the match centre, empty when nothing was found. "
-                    + "$name.x, $name.y, $name.width, $name.height and $name.score hold the parts, "
-                    + "and $name.count and $name.list the whole set when the step records it.",
-                    namesVariable: true, defaultValue: "match"),
+                Returns(),
             ],
         },
         new()
         {
             Key = "vision.waitImage",
+            Returns = HitParts(),
             Category = ActionCategory.Vision,
             DisplayName = "Wait Image",
             Description = "Wait until a reference image appears on screen.",
@@ -2029,14 +2158,14 @@ public static class ActionCatalog
                 MatchOrder(pixelsOnly: true),
                 ..Anchor(),
                 MatchIndex(pixelsOnly: true),
-                Variable("resultVariable", "Result variable", "match",
-                    "Variable that receives the match centre. $name.x, $name.y and $name.score "
-                    + "hold the parts.", namesVariable: true, defaultValue: "match"),
+                AllMatches(pixelsOnly: true),
+                Returns(),
             ],
         },
         new()
         {
             Key = "vision.clickImage",
+            Returns = HitParts(),
             Category = ActionCategory.Vision,
             DisplayName = "Click Image",
             Description = "Find a reference image on screen and click it.",
@@ -2065,11 +2194,19 @@ public static class ActionCatalog
                 ..Anchor(),
                 MatchIndex(pixelsOnly: true),
                 LookPoll(200),
+                AllMatches(pixelsOnly: true),
+                Returns(),
             ],
         },
         new()
         {
             Key = "vision.getPixel",
+            Returns =
+            [
+                Return("color", "Colour", primary: true,
+                    hint: "The colour of the pixel, as hex or as raw channels, whichever the step "
+                        + "was asked for."),
+            ],
             Category = ActionCategory.Vision,
             DisplayName = "Get Pixel",
             Description = "Read the colour of a pixel.",
@@ -2080,8 +2217,7 @@ public static class ActionCatalog
                 ..Anchor(),
                 ..Capture(),
                 LookGap(0),
-                Variable("resultVariable", "Result variable", "color",
-                    "Variable that receives the colour.", namesVariable: true, defaultValue: "color"),
+                Returns(),
                 Toggle("asHex", "Store as hex", true, "Store #RRGGBB instead of raw colour channels."),
             ],
         },
@@ -2108,6 +2244,7 @@ public static class ActionCatalog
         new()
         {
             Key = "vision.findColor",
+            Returns = HitParts(singlePixel: true),
             Category = ActionCategory.Vision,
             DisplayName = "Find Color",
             Description = "Look for a colour inside a screen region.",
@@ -2126,11 +2263,7 @@ public static class ActionCatalog
                 AllMatches(),
                 ..Anchor(),
                 LookPoll(200),
-                Variable("resultVariable", "Result variable", "match",
-                    "Variable that receives where the colour was found, empty when it was not. "
-                    + "$name.x, $name.y and $name.score hold the parts, and $name.count and "
-                    + "$name.list the whole set when the step records it.",
-                    namesVariable: true, defaultValue: "match"),
+                Returns(),
             ],
         },
         new()
@@ -2169,6 +2302,13 @@ public static class ActionCatalog
         new()
         {
             Key = "ocr.recognize",
+            Returns =
+            [
+                Return("text", "Text", primary: true, hint: "The writing that was read."),
+                Return("table", "Table", type: ActionReturnType.List,
+                    hint: "The writing kept as rows of cells, one list per row. Only filled in when "
+                        + "the step is told to read a table."),
+            ],
             Category = ActionCategory.Ocr,
             DisplayName = "Recognize",
             Description = "Read text from a screen region.",
@@ -2183,7 +2323,7 @@ public static class ActionCatalog
                 Toggle("table", "Read as a table", false,
                     "Keep the lines and columns the writing was read in: the variable holds rows of "
                     + "cells — the same shape as reading a table through UI Automation — and "
-                    + "$name.text holds the whole lot as text, one line per row."),
+                    + "the text result holds the whole lot as text, one line per row."),
                 ..Anchor(),
                 ..Capture(),
                 LookGap(0),
@@ -2191,15 +2331,34 @@ public static class ActionCatalog
                 ColourFilter(advanced: true),
                 ColourTolerance(advanced: true),
                 FixText(advanced: true),
-                Variable("resultVariable", "Result variable", "text",
-                    "Variable that receives the recognised text, or the rows of cells when the step "
-                    + "reads a table. $name.text is the writing either way.",
-                    namesVariable: true, defaultValue: "text"),
+                Returns(),
             ],
         },
         new()
         {
             Key = "ocr.findText",
+            Returns =
+            [
+                Return("match", "Position", primary: true,
+                    hint: "Where it was found, written as x,y; empty when it was not there."),
+                Return("x", "X", type: ActionReturnType.Number,
+                    hint: "The centre's horizontal position, in screen pixels."),
+                Return("y", "Y", type: ActionReturnType.Number,
+                    hint: "The centre's vertical position, in screen pixels."),
+                Return("width", "Width", type: ActionReturnType.Number,
+                    hint: "How wide the reading was, in pixels."),
+                Return("height", "Height", type: ActionReturnType.Number,
+                    hint: "How tall the reading was, in pixels."),
+                Return("text", "Text", hint: "What the reading actually said."),
+                Return("score", "Score", type: ActionReturnType.Number,
+                    hint: "How sure the reading model was; bigger means surer."),
+                Return("count", "Matches", type: ActionReturnType.Number,
+                    hint: "How many were found altogether. Only written when the step is told to "
+                        + "record every one."),
+                Return("list", "Every match", type: ActionReturnType.List,
+                    hint: "Every one that was found, a list of x,y centres. Only written when the "
+                        + "step is told to record every one."),
+            ],
             Category = ActionCategory.Ocr,
             DisplayName = "Find Text",
             Description = "Search the screen for text.",
@@ -2220,18 +2379,34 @@ public static class ActionCatalog
                 MinScore(),
                 MatchOrder(),
                 AllMatches(),
-                Variable("resultVariable", "Result variable", "match",
-                    "Variable that receives the match centre, empty when the text was not found. "
-                    + "$name.x, $name.y, $name.width, $name.height, $name.text and $name.score hold "
-                    + "the parts, and $name.count and $name.list the whole set when the step records "
-                    + "it. The score is what the reading model made of it, not a percentage: bigger "
-                    + "means surer.",
-                    namesVariable: true, defaultValue: "match"),
+                Returns(),
             ],
         },
         new()
         {
             Key = "ocr.clickText",
+            Returns =
+            [
+                Return("match", "Position", primary: true,
+                    hint: "Where the text was found and clicked, written as x,y."),
+                Return("x", "X", type: ActionReturnType.Number,
+                    hint: "The centre's horizontal position, in screen pixels."),
+                Return("y", "Y", type: ActionReturnType.Number,
+                    hint: "The centre's vertical position, in screen pixels."),
+                Return("width", "Width", type: ActionReturnType.Number,
+                    hint: "How wide the reading was, in pixels."),
+                Return("height", "Height", type: ActionReturnType.Number,
+                    hint: "How tall the reading was, in pixels."),
+                Return("text", "Text", hint: "What the reading that was clicked actually said."),
+                Return("score", "Score", type: ActionReturnType.Number,
+                    hint: "How sure the reading model was; bigger means surer."),
+                Return("count", "Matches", type: ActionReturnType.Number,
+                    hint: "How many were found altogether. Only written when the step is told to "
+                        + "record every one."),
+                Return("list", "Every match", type: ActionReturnType.List,
+                    hint: "Every one that was found, a list of x,y centres. Only written when the "
+                        + "step is told to record every one."),
+            ],
             Category = ActionCategory.Ocr,
             DisplayName = "Click Text",
             Description = "Find text on screen and click it.",
@@ -2258,6 +2433,8 @@ public static class ActionCatalog
                 Expected(),
                 MinScore(),
                 MatchOrder(),
+                AllMatches(),
+                Returns(),
             ],
         },
 
@@ -2265,6 +2442,11 @@ public static class ActionCatalog
         new()
         {
             Key = "uia.exists",
+            Returns =
+            [
+                Return("exists", "Exists", primary: true, type: ActionReturnType.Flag,
+                    hint: "True when the element was there."),
+            ],
             Category = ActionCategory.Uia,
             DisplayName = "Exists",
             Description = "Check whether a UI Automation element exists.",
@@ -2274,14 +2456,33 @@ public static class ActionCatalog
                 Selector(),
                 MatchIndex(),
                 Number("timeoutMs", "Timeout", 0, "0 checks once and returns immediately."),
-                Variable("resultVariable", "Result variable", "exists",
-                    "Variable that receives true or false.",
-                    namesVariable: true, defaultValue: "exists"),
+                Returns(),
             ],
         },
         new()
         {
             Key = "uia.find",
+            Returns =
+            [
+                Return("element", "Element", primary: true,
+                    hint: "The element's centre, written as x,y, which is what a later step "
+                        + "measures from. Empty when it was not found."),
+                Return("x", "X", type: ActionReturnType.Number,
+                    hint: "The centre's horizontal position, in screen pixels."),
+                Return("y", "Y", type: ActionReturnType.Number,
+                    hint: "The centre's vertical position, in screen pixels."),
+                Return("width", "Width", type: ActionReturnType.Number,
+                    hint: "How wide the element is, in pixels."),
+                Return("height", "Height", type: ActionReturnType.Number,
+                    hint: "How tall the element is, in pixels."),
+                Return("text", "Text", hint: "The element's own text, as the system reads it."),
+                Return("count", "Matches", type: ActionReturnType.Number,
+                    hint: "How many were found altogether. Only written when the step is told to "
+                        + "record every one."),
+                Return("list", "Every match", type: ActionReturnType.List,
+                    hint: "Every one that was found, a list of x,y centres. Only written when the "
+                        + "step is told to record every one."),
+            ],
             Category = ActionCategory.Uia,
             DisplayName = "Find Element",
             Description = "Find a UI Automation element and remember where it is.",
@@ -2291,12 +2492,7 @@ public static class ActionCatalog
                 Selector(),
                 MatchIndex(),
                 AllMatches(),
-                Variable("resultVariable", "Result variable", "element",
-                    "Variable that receives the element's centre, empty when it was not found. "
-                    + "$name.x, $name.y, $name.width, $name.height and $name.text hold the parts, "
-                    + "which is what a later step measures from, and $name.count and $name.list "
-                    + "the whole set when the step records it.",
-                    namesVariable: true, defaultValue: "element"),
+                Returns(),
             ],
         },
         new()
@@ -2348,6 +2544,10 @@ public static class ActionCatalog
         new()
         {
             Key = "uia.getText",
+            Returns =
+            [
+                Return("text", "Text", primary: true, hint: "The element's text."),
+            ],
             Category = ActionCategory.Uia,
             DisplayName = "Get Text",
             Description = "Read text from a UI Automation element.",
@@ -2356,9 +2556,7 @@ public static class ActionCatalog
                 Window(),
                 Selector(),
                 MatchIndex(),
-                Variable("resultVariable", "Result variable", "text",
-                    "Variable that receives the text.",
-                    namesVariable: true, defaultValue: "text"),
+                Returns(),
             ],
         },
         new()
@@ -2431,6 +2629,15 @@ public static class ActionCatalog
         new()
         {
             Key = "uia.readTable",
+            Returns =
+            [
+                Return("table", "Table", primary: true, type: ActionReturnType.List,
+                    hint: "The rows that were read, each a list of cells, the same shape the CSV "
+                        + "reader gives back."),
+                Return("columns", "Column names", type: ActionReturnType.List,
+                    hint: "The names of the columns, in column order, which is how a macro finds "
+                        + "the column it wants."),
+            ],
             Category = ActionCategory.Uia,
             DisplayName = "Read Table",
             Description = "Read a table or a grid into a list of rows.",
@@ -2444,14 +2651,7 @@ public static class ActionCatalog
                     + "nothing at all — the strip the column titles live in, and the empty row "
                     + "some grids keep at the bottom for typing a new one in — are left out.",
                     min: 1, max: 10000, advanced: true),
-                Variable("columnsVariable", "Column names variable", "columns",
-                    "Variable that receives the names of the columns, in column order, which is how "
-                    + "a macro finds the column it wants. Leave empty for none.",
-                    required: false, namesVariable: true),
-                Variable("resultVariable", "Result variable", "table",
-                    "Variable that receives the rows. $name holds a list of rows, and every row is "
-                    + "a list of cells, the same shape the CSV reader gives back.",
-                    namesVariable: true, defaultValue: "table"),
+                Returns(),
             ],
         },
         new()
@@ -2533,6 +2733,10 @@ public static class ActionCatalog
         new()
         {
             Key = "browser.readText",
+            Returns =
+            [
+                Return("text", "Text", primary: true, hint: "The text that was read."),
+            ],
             Category = ActionCategory.Browser,
             DisplayName = "Read Text",
             Description = "Reads the text of an element, or of the whole page.",
@@ -2541,8 +2745,7 @@ public static class ActionCatalog
                 Text("target", "Selector", "",
                     "Which element to read, named the way the click action names one. Leave it "
                     + "empty to read the whole page.", required: false),
-                Variable("resultVariable", "Result variable", "text",
-                    "Variable that receives the text.", required: false, namesVariable: true),
+                Returns(),
             ],
         },
         new()
@@ -2592,6 +2795,11 @@ public static class ActionCatalog
         new()
         {
             Key = "script.run",
+            Returns =
+            [
+                Return("output", "Output", primary: true,
+                    hint: "What the script printed, without the blank lines around it."),
+            ],
             Category = ActionCategory.Script,
             DisplayName = "Run Script",
             Description = "Run a short script with an interpreter of your choice.",
@@ -2624,7 +2832,7 @@ public static class ActionCatalog
                 Multiline("script", "Script",
                     "The script itself. {{name}} is replaced by what the variable name holds "
                     + "before the script runs, which is how a macro value gets in; everything the "
-                    + "script prints comes back in the result variable below.",
+                    + "script prints comes back in the output result.",
                     "Write-Host \"Hello\"", foreign: true),
                 Text("arguments", "Arguments", "first second", required: false,
                     hint: "Extra arguments for the script's command line. {{name}} is filled in "
@@ -2635,10 +2843,7 @@ public static class ActionCatalog
                     PathIntent.Folder, required: false, advanced: true),
                 Number("timeoutMs", "Timeout", 60000,
                     "Stop the script and fail the step after this long."),
-                Variable("resultVariable", "Result variable", "output",
-                    "Variable that receives what the script printed, without the blank lines "
-                    + "around it.",
-                    namesVariable: true, defaultValue: "output"),
+                Returns(),
             ],
         },
 
@@ -3361,6 +3566,89 @@ public static class ActionCatalog
                 + "to use the run's own.",
         };
 
+    /// <summary>
+    /// The results a step may hand over, edited as one line each: what the engine works out while
+    /// it runs, with a box beside the ones the macro should keep. Only what is ticked is written,
+    /// each under a name of its own, because a step that reports eight things should not put eight
+    /// variables in front of somebody who wanted one.
+    /// </summary>
+    private static ActionParameter Returns()
+        => new()
+        {
+            Name = "returns",
+            Label = "Returns",
+            Kind = ActionParameterKind.Returns,
+            Required = false,
+            Hint = "Tick the results this step should hand over. Each ticked one becomes a variable "
+                + "of its own, named after the note, the action and the result, and can then be "
+                + "read by later steps. Nothing ticked means the step leaves no result behind.",
+        };
+
+    /// <summary>One result an action can hand over.</summary>
+    private static ActionReturn Return(string key, string label, bool primary = false,
+        string hint = "", ActionReturnType type = ActionReturnType.Text)
+        => new()
+        {
+            Key = key,
+            Label = label,
+            Hint = hint,
+            Type = type,
+            Primary = primary,
+        };
+
+    /// <summary>
+    /// The parts of one hit, which every action that searches the screen can hand over: where it was
+    /// found, how big it was and how sure the search was, plus — once the step has been told to keep
+    /// every one — how many there were and where each of them is. A colour is a single pixel, so it
+    /// has no size and nothing to score; that is the only difference between the two lists.
+    /// </summary>
+    private static ActionReturn[] HitParts(bool singlePixel = false)
+    {
+        var parts = new List<ActionReturn>
+        {
+            Return("match", "Position", primary: true, type: ActionReturnType.Text,
+                hint: "Where it was found, written as x,y; empty when it was not there."),
+            Return("x", "X", type: ActionReturnType.Number,
+                hint: "The centre's horizontal position, in screen pixels."),
+            Return("y", "Y", type: ActionReturnType.Number,
+                hint: "The centre's vertical position, in screen pixels."),
+        };
+
+        if (!singlePixel)
+        {
+            parts.Add(Return("width", "Width", type: ActionReturnType.Number,
+                hint: "How wide the hit was, in pixels."));
+            parts.Add(Return("height", "Height", type: ActionReturnType.Number,
+                hint: "How tall the hit was, in pixels."));
+            parts.Add(Return("score", "Score", type: ActionReturnType.Number,
+                hint: "How closely it matched, from 0 to 1; higher is closer."));
+        }
+
+        parts.Add(Return("count", "Matches", type: ActionReturnType.Number,
+            hint: "How many were found altogether. Only written when the step is told to record "
+                + "every one."));
+        parts.Add(Return("list", "Every match", type: ActionReturnType.List,
+            hint: "Every one that was found, a list of x,y centres. Only written when the step is "
+                + "told to record every one."));
+        return [.. parts];
+    }
+
+    /// <summary>
+    /// The four numbers of the rectangle a picture covered, handed over beside the picture itself so
+    /// a later step can search the same place without working the position out again.
+    /// </summary>
+    private static ActionReturn[] CoveredBox() =>
+    [
+        Return("x", "X", type: ActionReturnType.Number,
+            hint: "The left edge of the covered rectangle, in screen pixels."),
+        Return("y", "Y", type: ActionReturnType.Number,
+            hint: "The top edge of the covered rectangle, in screen pixels."),
+        Return("width", "Width", type: ActionReturnType.Number,
+            hint: "How wide the covered rectangle was, in pixels."),
+        Return("height", "Height", type: ActionReturnType.Number,
+            hint: "How tall the covered rectangle was, in pixels."),
+    ];
+
     /// <summary>Mouse button picker shared by every input action that clicks.</summary>
     private static ActionParameter Button()
         => Choice("button", "Button", ["left", "right", "middle", "back", "forward"], "left");
@@ -3578,9 +3866,9 @@ public static class ActionCatalog
     /// </summary>
     private static ActionParameter AllMatches(bool pixelsOnly = false)
         => Toggle("allMatches", "Record every match", false,
-            "Records every hit as well as the one that was taken: $name.count is how many, and "
-            + "$name.list holds one \"x,y\" per hit, ready for count(), get() and forEach. Switched "
-            + "off, only the one that was taken is recorded.",
+            "Records every hit as well as the one that was taken. With it on, the “matches” and "
+            + "“every match” results can be handed over — ready for count(), get() and forEach. "
+            + "Switched off, only the one that was taken is recorded.",
             advanced: true,
             onlyWith: pixelsOnly ? PixelWays() : null);
 

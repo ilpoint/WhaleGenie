@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using WhaleGenie.Localization;
 
@@ -104,11 +103,88 @@ public enum ActionParameterKind
     /// empty numbers is left out of the run rather than pressed as an empty combination.
     /// </summary>
     KeySequence,
+
+    /// <summary>
+    /// The results the step may hand over, edited as a list of them: what the engine works out
+    /// while it runs, one line each, with a box beside the ones the macro should keep and a name
+    /// for each. Those the user leaves alone are not written at all, which is how a step that
+    /// hands nothing over stays out of the variable pickers.
+    /// </summary>
+    Returns,
 }
 
 /// <summary>One choice of a <see cref="ActionParameterKind.Choice"/> parameter:
 /// the value written to JSON together with the text shown for it.</summary>
 public sealed record ActionParameterOption(string Value, string Display);
+
+/// <summary>
+/// What kind of value a <see cref="ActionReturn"/> holds. The editor shows it — a list reads as a
+/// count of items, a picture as its size — and the variable pickers use it to say what a name is
+/// good for, so it is worth saying rather than leaving every result as just "text".
+/// </summary>
+public enum ActionReturnType
+{
+    /// <summary>Writing, such as recognised text or a file path.</summary>
+    Text,
+
+    /// <summary>A plain number, such as how many were found or a process id.</summary>
+    Number,
+
+    /// <summary>True or false.</summary>
+    Flag,
+
+    /// <summary>A list of values.</summary>
+    List,
+
+    /// <summary>A picture, which a later step can search for.</summary>
+    Image,
+}
+
+/// <summary>
+/// One result an action can hand over. The key names the result inside the engine and is what the
+/// macro file stores; the label and hint are what the user reads on the returns page. Only the ones
+/// the user ticks are written, each under a name of its own, so a step that reports eight things
+/// does not put eight variables in front of someone who wanted one.
+/// </summary>
+public sealed class ActionReturn
+{
+    /// <summary>Name the engine knows this result by, such as <c>match</c> or <c>count</c>.</summary>
+    public required string Key { get; init; }
+
+    /// <summary>Label shown beside the box, used for the variable name and the hint's fallback.</summary>
+    public required string Label { get; init; }
+
+    /// <summary>What the result holds, shown under the label.</summary>
+    public string Hint { get; init; } = string.Empty;
+
+    /// <summary>What kind of value it is.</summary>
+    public ActionReturnType Type { get; init; } = ActionReturnType.Text;
+
+    /// <summary>
+    /// True for the result a step is nearly always asked for, which is the one ticked when the step
+    /// is written and the one the rest are read next to.
+    /// </summary>
+    public bool Primary { get; init; }
+
+    /// <summary>Fully qualified key of the action this result belongs to.</summary>
+    internal string OwnerKey { get; set; } = string.Empty;
+
+    /// <summary>Label in the current interface language.</summary>
+    public string LocalLabel => Strings.Get($"{OwnerKey}.return.{Key}.label", Label);
+
+    /// <summary>Hint in the current interface language.</summary>
+    public string LocalHint => Strings.Get($"{OwnerKey}.return.{Key}.hint", Hint);
+
+    /// <summary>What the variable pickers call this kind of value.</summary>
+    public string TypeName => Type switch
+    {
+        ActionReturnType.Number => "number",
+        ActionReturnType.Flag => "flag",
+        ActionReturnType.List => "list",
+        ActionReturnType.Image => "image",
+        _ => "text",
+    };
+}
 
 /// <summary>
 /// What a file dialog is being opened for. A path field is typed by hand like any other value —
@@ -240,33 +316,6 @@ public class ActionParameter
     public bool NamesVariable { get; init; }
 
     /// <summary>
-    /// True when the field holds the name of a variable this step **creates**, rather than one it
-    /// reads. Those are the names that have to be told apart from each other: two steps writing
-    /// into the same name is a mistake nobody sees, so such a field is filled in with a name that
-    /// carries the step's own name.
-    /// </summary>
-    public bool IsOutputVariable => OutputNames.Contains(Name);
-
-    /// <summary>
-    /// The parameter names that hold a value the step leaves behind. Written down rather than
-    /// asked of the engine, because what an action does with a field is not something the catalogue
-    /// declares — and the set is small and stable: <c>resultVariable</c> and the handful of others
-    /// that were split off from it to say what the value is.
-    /// </summary>
-    private static readonly HashSet<string> OutputNames = new(StringComparer.Ordinal)
-    {
-        "resultVariable",
-        "headerVariable",
-        "columnsVariable",
-        "errorVariable",
-        "elapsedVariable",
-        "exitCodeVariable",
-        "saveTo",
-        "itemVariable",
-        "indexVariable",
-    };
-
-    /// <summary>
     /// True when the text may name variables, so the editor offers them while the field is typed
     /// in. It is what keeps a hint that says "written out or held in a variable" honest: without
     /// it the field is a plain box and the name has to be spelled from memory. The value itself is
@@ -352,6 +401,13 @@ public class ActionDefinition
     public string LocalDescription => Strings.Get($"{Key}.desc", Description);
 
     public IReadOnlyList<ActionParameter> Parameters { get; init; } = [];
+
+    /// <summary>
+    /// The results this action can hand over, in the order they are read on the returns page. Empty
+    /// for an action that leaves nothing behind, which is most of them; the ones that are here and
+    /// ticked become variables of their own.
+    /// </summary>
+    public IReadOnlyList<ActionReturn> Returns { get; init; } = [];
 
     /// <summary>
     /// True for an action that only makes sense inside a particular container, such as a switch

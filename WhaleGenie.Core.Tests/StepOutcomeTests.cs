@@ -17,6 +17,13 @@ public class StepOutcomeTests
     private static ExecutableParameter Param(string name, string text = "")
         => new() { Name = name, Text = text };
 
+    /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
+    private static ExecutableParameter Returns(params string[] results)
+        => SampleFiles.Returns(results);
+
+    /// <summary>See <see cref="SampleFiles.Hit"/>: a place, a picture or a program and all its parts.</summary>
+    private static ExecutableParameter Hit(string key, string name) => SampleFiles.Hit(key, name);
+
     private static ExecutableParameter Body(string name, params ExecutableStep[] steps)
         => new() { Name = name, Steps = steps };
 
@@ -203,7 +210,7 @@ public class StepOutcomeTests
         var store = await RunAsync(
         [
             Step("control.try", "aaaa",
-                Param("errorVariable", "why"),
+                Returns("error=why"),
                 Body("body", Broken("bbbb")),
                 Body("catch", Set("cccc", "seen", "$step.bbbb.outcome")),
                 Body("finally", Set("dddd", "tidied", "1"))),

@@ -60,6 +60,31 @@ public sealed class ExecutableStep
     public IReadOnlyList<IReadOnlyDictionary<string, string>> Rows(string name)
         => Parameter(name)?.Rows ?? [];
 
+    /// <summary>
+    /// The name a step was told to hand one of its results over under, or nothing when it left that
+    /// result unticked. A result nobody asked for is not written at all rather than written and left
+    /// for the macro to avoid reading, so this is the one place that answers "does this step hand
+    /// that over, and what is it called".
+    /// </summary>
+    public string Return(string key)
+    {
+        // The results may be written as more than one list — a step the editor saved carries one, a
+        // step built by hand may carry a list per result — so every row of every one of them counts.
+        foreach (var parameter in Parameters.Where(parameter => parameter.Name == "returns"))
+        {
+            foreach (var row in parameter.Rows)
+            {
+                if (row.TryGetValue("key", out var written)
+                    && string.Equals(written.Trim(), key, StringComparison.OrdinalIgnoreCase))
+                {
+                    return row.TryGetValue("name", out var name) ? name.Trim() : string.Empty;
+                }
+            }
+        }
+
+        return string.Empty;
+    }
+
     /// <summary>The condition held by a named parameter.</summary>
     public ExecutableStep? Condition(string name) => Parameter(name)?.Condition;
 

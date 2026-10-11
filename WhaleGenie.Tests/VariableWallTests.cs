@@ -138,29 +138,51 @@ public class VariableWallTests
             Id = "k3f9",
             Parameters =
             [
-                new StepParameter
-                {
-                    Name = "resultVariable",
-                    Kind = ActionParameterKind.Variable,
-                    Value = "rows",
-                },
+                Handed("rows", "上月订单"),
             ],
         };
 
         var rows = VariableChoices.For([step]);
-        var result = rows.First(row => row.Name == "rows");
+        var result = rows.First(row => row.Name == "上月订单");
         var ending = rows.First(row => row.Name == "step.k3f9.outcome");
 
         // Both say which step they came from, which is the one thing a name on its own cannot.
         Assert.Contains("k3f9", result.Source);
         Assert.False(result.IsStepResult);
         Assert.Equal(VariableGroup.Local, result.Group);
+        // What it holds comes from the result the step was told to hand over.
+        Assert.Equal("list", result.Type);
         Assert.True(ending.IsStepResult);
         Assert.Equal(VariableGroup.StepResult, ending.Group);
 
         // And the ones the macro does not make are offered as well: the fields may read those too.
         Assert.Contains(rows, row => row.Group == VariableGroup.System);
+
+        // A result nobody ticked is not a variable at all, so it is not offered anywhere.
+        var unticked = new MacroStep { Type = "file.readCsv", Id = "bbbb" };
+        Assert.DoesNotContain(VariableChoices.For([unticked]),
+            row => row.Group == VariableGroup.Local && !row.IsStepResult);
     }
+
+    /// <summary>
+    /// A step told to hand one result over, written the way the file writes it.
+    /// </summary>
+    private static StepParameter Handed(string key, string name) => new()
+    {
+        Name = "returns",
+        Kind = ActionParameterKind.Returns,
+        Rows =
+        [
+            new StepParameterRow
+            {
+                Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["key"] = key,
+                    ["name"] = name,
+                },
+            },
+        ],
+    };
 
     /// <summary>
     /// The button only exists if the dialog draws it, so the rows a field can be filled in from are

@@ -23,11 +23,16 @@ public static class VariableNames
     /// </summary>
     public const int NoteLength = 12;
 
-    /// <summary>What to write into a result variable of a step with this note, action and name.</summary>
-    public static string ForStep(string note, string action, string stepId)
+    /// <summary>
+    /// What to name one result of a step: the note, the action, what the result is, and the step's
+    /// own name. A step that hands over several results gets a name for each, so a find-image step
+    /// that reports a position and a count can be read back as one or the other.
+    /// </summary>
+    public static string ForStep(string note, string action, string result, string stepId)
     {
         var parts = new List<string>();
-        foreach (var (text, limit) in new[] { (note, NoteLength), (action, 0), (stepId, 0) })
+        foreach (var (text, limit) in
+                 new[] { (note, NoteLength), (action, 0), (result, 0), (stepId, 0) })
         {
             var part = Part(text, limit);
             if (part.Length > 0)

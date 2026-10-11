@@ -41,16 +41,14 @@ public partial class StepParameterViewModel : ViewModelBase
     private string _assetFolder = string.Empty;
     private DurationUnit _unit = DurationUnit.Catalog[0];
 
-    /// <summary>The name the dialog suggested last, so a name the user typed can be told apart.</summary>
-    private string _suggested = string.Empty;
-
     /// <summary>True while a whole value is being put in at once, rather than typed a character at a time.</summary>
     private bool _writing;
 
     public StepParameterViewModel(ActionParameter definition,
         IReadOnlyList<VariableChoice>? variables = null,
         IReadOnlyList<string>? macros = null, IReadOnlyList<ActionParameterOption>? steps = null,
-        ObservableCollection<RegionRowViewModel>? places = null, RectanglePart part = RectanglePart.Whole)
+        ObservableCollection<RegionRowViewModel>? places = null, RectanglePart part = RectanglePart.Whole,
+        IReadOnlyList<ActionReturn>? results = null)
     {
         Definition = definition;
         Part = part;
@@ -94,6 +92,30 @@ public partial class StepParameterViewModel : ViewModelBase
         if (holdsDefault && definition.Kind is ActionParameterKind.Rect)
         {
             AddRegion(RegionRowViewModel.FromRectangle(definition.DefaultValue));
+        }
+
+        // The results this action can hand over are listed here, one line each, with the one a step
+        // nearly always wants ticked. What each is named is filled in by the dialog, which is the
+        // only thing that knows the note and the step's own name.
+        if (definition.Kind is ActionParameterKind.Returns)
+        {
+            foreach (var result in results ?? [])
+            {
+                var row = new ReturnsRowViewModel(result);
+                // A tick or a name written on a line is a change to this field, and the dialog
+                // follows the field: without this the returns page would go on being called empty.
+                // Only those two: the row also reports its own warnings, and those are answers to
+                // what this field says rather than changes to it.
+                row.PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName is nameof(ReturnsRowViewModel.Ticked)
+                        or nameof(ReturnsRowViewModel.Name))
+                    {
+                        OnPropertyChanged(nameof(HandsOverAnything));
+                    }
+                };
+                ReturnsRows.Add(row);
+            }
         }
         // A step name is picked from the steps of the macro rather than from the catalogue, so
         // those choices come in from the editor; every other choice is the catalogue's own.
@@ -787,44 +809,55 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </summary>
     public bool IsPath => Definition.PathIntent is not PathIntent.None;
 
-    /// <summary>
-    /// True when this field names a variable the step creates. Such a field is filled in with a
-    /// name of its own rather than left as "output", so two steps of the same action do not write
-    /// into each other.
-    /// </summary>
-    public bool IsOutputVariable => Definition.IsOutputVariable;
-
-    /// <summary>True once the user has typed a name of their own into this field.</summary>
-    public bool IsNameChanged { get; private set; }
+    /// <summary>True when this parameter is the list of results the step may hand over.</summary>
+    public bool IsReturns => Definition.Kind is ActionParameterKind.Returns;
 
     /// <summary>
-    /// True when the name this field holds is already in use somewhere the macro can see, which is
-    /// how two steps end up writing into one variable.
+    /// The results this action can hand over: one line each, with a box saying whether the step
+    /// keeps it and the name it goes by. Only the ticked ones are written, so a step that reports
+    /// eight things does not put eight variables in front of somebody who wanted one.
     /// </summary>
-    public bool IsNameTaken => IsOutputVariable
-        && CurrentText.Trim().Length > 0
-        && Named.Contains(CurrentText.Trim(), StringComparer.OrdinalIgnoreCase);
+    public ObservableCollection<ReturnsRowViewModel> ReturnsRows { get; } = [];
 
-    /// <summary>What the line under such a field says when its name is already taken.</summary>
-    public string NameWarning => IsNameTaken
-        ? Strings.Format("Add.NameTaken", CurrentText.Trim())
-        : string.Empty;
+    /// <summary>True while the step hands anything over at all.</summary>
+    public bool HandsOverAnything => ReturnsRows.Any(row => row.ToRow() is not null);
 
     /// <summary>
-    /// Writes the suggested name, unless the user has already chosen one. Called again whenever the
-    /// note changes, so the name follows the note for as long as nobody has touched it.
+    /// Leaves every result unticked: a step that was saved handing nothing over hands nothing over
+    /// when it is opened again, and an action that has just been chosen starts from its catalogue
+    /// defaults instead.
     /// </summary>
-    public void SuggestName(string name)
+    public void ClearReturns()
     {
-        if (!IsOutputVariable || IsNameChanged || name.Length == 0 || Text == name)
+        foreach (var row in ReturnsRows)
         {
-            return;
+            row.Skip();
         }
 
-        // Written down before the text moves: the change handler tells a name the dialog chose
-        // from one the user typed by comparing the two.
-        _suggested = name;
-        Text = name;
+        OnPropertyChanged(nameof(HandsOverAnything));
+    }
+
+    /// <summary>
+    /// Names every result the step hands over, following the note for as long as the name has not
+    /// been chosen by hand. Called when the note changes, and once when the dialog is built.
+    /// </summary>
+    public void SettleReturns(string note, string action, string stepId,
+        IReadOnlyList<string> taken)
+    {
+        var spoken = new List<string>(taken);
+        foreach (var row in ReturnsRows)
+        {
+            row.Knows(spoken);
+            if (row.Ticked)
+            {
+                row.Suggest(VariableNames.ForStep(note, action, row.Label, stepId));
+            }
+
+            if (row.Name.Trim() is { Length: > 0 } named)
+            {
+                spoken.Add(named);
+            }
+        }
     }
 
     /// <summary>
@@ -836,28 +869,6 @@ public partial class StepParameterViewModel : ViewModelBase
         var current = Text ?? string.Empty;
         var at = Math.Clamp(caret, 0, current.Length);
         Text = current[..at] + token + current[at..];
-    }
-
-    /// <summary>Gives the field a free name of its own, next to the one that was taken.</summary>
-    public void MakeNameUnique()
-    {
-        var wanted = CurrentText.Trim();
-        if (wanted.Length == 0)
-        {
-            return;
-        }
-
-        var free = VariableNames.Free(wanted, Named);
-        if (free == wanted)
-        {
-            return;
-        }
-
-        IsNameChanged = true;
-        _suggested = free;
-        Text = free;
-        OnPropertyChanged(nameof(IsNameTaken));
-        OnPropertyChanged(nameof(NameWarning));
     }
 
     /// <summary>What the button beside the field should say.</summary>
@@ -922,6 +933,9 @@ public partial class StepParameterViewModel : ViewModelBase
             && string.Equals(Regions[0].Written, Definition.DefaultValue, StringComparison.Ordinal),
         ActionParameterKind.KeySequence => !HasKeyPress,
         ActionParameterKind.Images => Pictures.Count == 0,
+        // The results are at their default while exactly the ones the action nearly always wants
+        // are ticked: what they are called is not a change worth a mark on the tab.
+        ActionParameterKind.Returns => ReturnsRows.All(row => row.Ticked == row.IsPrimary),
         _ => string.Equals(CurrentText.Trim(), Definition.DefaultValue, StringComparison.Ordinal),
     };
 
@@ -968,6 +982,8 @@ public partial class StepParameterViewModel : ViewModelBase
         // One rectangle with nothing in it is not a rectangle: a step that read there would read
         // nothing at all, so the field still counts as unanswered.
         ActionParameterKind.Rect => Regions.Count == 0 || Regions[0].IsEmpty,
+        // Handing nothing over is a legitimate answer here: the step simply leaves no result.
+        ActionParameterKind.Returns => false,
         _ => string.IsNullOrWhiteSpace(CurrentText),
     };
 
@@ -983,6 +999,7 @@ public partial class StepParameterViewModel : ViewModelBase
         ActionParameterKind.Rect => Regions.Count > 0 && !Regions[0].IsEmpty,
         ActionParameterKind.KeySequence => HasKeyPress,
         ActionParameterKind.Images => Pictures.Any(picture => !string.IsNullOrWhiteSpace(picture.Text)),
+        ActionParameterKind.Returns => HandsOverAnything,
         _ => Definition.Required || !string.IsNullOrWhiteSpace(CurrentText),
     };
 
@@ -1020,19 +1037,6 @@ public partial class StepParameterViewModel : ViewModelBase
         {
             UseFormula = false;
             return;
-        }
-
-        // A name the dialog did not suggest is one the user chose, and it stops following the note
-        // from then on: a name that kept moving while it was being written would be no name at all.
-        if (IsOutputVariable && !string.Equals(value, _suggested, StringComparison.Ordinal))
-        {
-            IsNameChanged = true;
-        }
-
-        if (IsOutputVariable)
-        {
-            OnPropertyChanged(nameof(IsNameTaken));
-            OnPropertyChanged(nameof(NameWarning));
         }
 
         if (IsImage)
@@ -1182,6 +1186,9 @@ public partial class StepParameterViewModel : ViewModelBase
             ActionParameterKind.Rect => [.. Regions.Select(row => row.ToRow())],
             ActionParameterKind.KeySequence => [.. KeyRows.Select(row => row.ToRow())],
             ActionParameterKind.Images => [.. Pictures.Select(picture => picture.ToRow())],
+            ActionParameterKind.Returns => [.. ReturnsRows.Select(row => row.ToRow())
+                .Where(row => row is not null)
+                .Select(row => row!)],
             _ => [],
         },
         Condition = Definition.Kind is ActionParameterKind.Condition
@@ -1235,6 +1242,27 @@ public partial class StepParameterViewModel : ViewModelBase
                 AddPicture(ImageRowViewModel.From(row));
             }
 
+            return;
+        }
+
+        if (Definition.Kind is ActionParameterKind.Returns)
+        {
+            // What the file does not name is a result this step did not hand over, so every line
+            // starts unticked and only the ones that were written are ticked back on.
+            foreach (var row in ReturnsRows)
+            {
+                row.Skip();
+            }
+
+            foreach (var written in stored.Rows)
+            {
+                var key = written.Text("key").Trim();
+                var match = ReturnsRows.FirstOrDefault(row =>
+                    string.Equals(row.Key, key, StringComparison.OrdinalIgnoreCase));
+                match?.Load(written.Text("name"));
+            }
+
+            OnPropertyChanged(nameof(HandsOverAnything));
             return;
         }
 

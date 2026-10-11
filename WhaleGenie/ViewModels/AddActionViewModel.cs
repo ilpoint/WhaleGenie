@@ -77,7 +77,7 @@ public partial class AddActionViewModel : ViewModelBase
                  {
                      (BasePage, "Add.Page.Base"),
                      (AdvancedPage, "Add.Page.Advanced"),
-                     (OutputPage, "Add.Page.Output"),
+                     (ReturnsPage, "Add.Page.Returns"),
                      (OtherPage, "Add.Page.Other"),
                  })
         {
@@ -351,8 +351,8 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>Key of the page that holds the settings only a different approach needs.</summary>
     public const string AdvancedPage = "advanced";
 
-    /// <summary>Key of the page that holds the names this step leaves its answer under.</summary>
-    public const string OutputPage = "output";
+    /// <summary>Key of the page that holds the results this step may hand over.</summary>
+    public const string ReturnsPage = "returns";
 
     /// <summary>Key of the page that holds the settings every step has, and the JSON it comes to.</summary>
     public const string OtherPage = "other";
@@ -361,7 +361,7 @@ public partial class AddActionViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(OnBase))]
     [NotifyPropertyChangedFor(nameof(OnAdvanced))]
-    [NotifyPropertyChangedFor(nameof(OnOutput))]
+    [NotifyPropertyChangedFor(nameof(OnReturns))]
     [NotifyPropertyChangedFor(nameof(OnOther))]
     public partial ActionPageViewModel? Page { get; set; }
 
@@ -371,8 +371,8 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>True while the page of settings for another approach is on screen.</summary>
     public bool OnAdvanced => Page?.Key == AdvancedPage;
 
-    /// <summary>True while the page of result names is on screen.</summary>
-    public bool OnOutput => Page?.Key == OutputPage;
+    /// <summary>True while the page of results the step may hand over is on screen.</summary>
+    public bool OnReturns => Page?.Key == ReturnsPage;
 
     /// <summary>True while the page of step settings and the JSON is on screen.</summary>
     public bool OnOther => Page?.Key == OtherPage;
@@ -383,14 +383,18 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>The settings whose answer is "how this step does it", as another list of lines.</summary>
     public ObservableCollection<ParameterRowViewModel> AdvancedRows { get; } = [];
 
-    /// <summary>The variables this step leaves its answer in, which are asked for on their own page.</summary>
-    public ObservableCollection<ParameterRowViewModel> OutputRows { get; } = [];
+    /// <summary>The results this step may hand over, which are asked for on their own page.</summary>
+    public ObservableCollection<ReturnsRowViewModel> ReturnsRows { get; } = [];
 
     /// <summary>True when this action has settings that belong on the advanced page.</summary>
     public bool HasAdvanced => AdvancedRows.Any(row => row.IsApplicable);
 
-    /// <summary>True when this action writes anything into a variable.</summary>
-    public bool HasOutput => OutputRows.Any(row => row.IsApplicable);
+    /// <summary>True when this action can hand anything over.</summary>
+    public bool HasReturns => ReturnsRows.Count > 0;
+
+    /// <summary>The field that holds the results of this action, or null for one that leaves none.</summary>
+    private StepParameterViewModel? ReturnsField
+        => Parameters.FirstOrDefault(parameter => parameter.IsReturns);
 
     public bool HasSelection => SelectedDefinition is not null;
 
@@ -955,6 +959,12 @@ public partial class AddActionViewModel : ViewModelBase
             {
                 editor.ApplyValue(stored);
             }
+            else if (editor.IsReturns)
+            {
+                // The file said nothing about results, so this step hands none over: the defaults
+                // are what a step being written starts from, not what a step that exists becomes.
+                editor.ClearReturns();
+            }
         }
 
         MetaComment = step.Meta.Comment;
@@ -995,6 +1005,7 @@ public partial class AddActionViewModel : ViewModelBase
 
         Parameters.Clear();
         RegionNumbers.Clear();
+        ReturnsRows.Clear();
 
         if (definition is not null)
         {
@@ -1003,7 +1014,8 @@ public partial class AddActionViewModel : ViewModelBase
 
             foreach (var parameter in definition.Parameters)
             {
-                var editor = new StepParameterViewModel(parameter, variables, _macros, steps);
+                var editor = new StepParameterViewModel(parameter, variables, _macros, steps,
+                    results: definition.Returns);
                 editor.AssetFolder = _assetFolder;
                 editor.PropertyChanged += OnParameterChanged;
 
@@ -1034,7 +1046,18 @@ public partial class AddActionViewModel : ViewModelBase
             MarkCoordinates();
             MarkRegion();
             MarkOffset();
-            SuggestOutputNames();
+
+            if (ReturnsField is { } returns)
+            {
+                foreach (var row in returns.ReturnsRows)
+                {
+                    ReturnsRows.Add(row);
+                }
+
+                OnPropertyChanged(nameof(HasReturns));
+            }
+
+            SuggestReturnNames();
         }
 
         BuildRows();
@@ -1052,7 +1075,6 @@ public partial class AddActionViewModel : ViewModelBase
     {
         Rows.Clear();
         AdvancedRows.Clear();
-        OutputRows.Clear();
 
         // A rectangle is laid out as the two halves of one field: where it is picked is what the
         // step is about and stands first, and the four numbers are a way of being exact and go with
@@ -1061,7 +1083,9 @@ public partial class AddActionViewModel : ViewModelBase
         var fine = new List<StepParameterViewModel>();
         foreach (var parameter in Parameters)
         {
-            if (parameter.Definition.IsOutputVariable)
+            // The results are a page of their own rather than a line among the fields: what the
+            // step hands over is a list of names to choose from, not one more setting.
+            if (parameter.IsReturns)
             {
                 continue;
             }
@@ -1078,7 +1102,6 @@ public partial class AddActionViewModel : ViewModelBase
 
         FillRows(basic, Rows);
         FillRows(fine, AdvancedRows);
-        FillRows(Parameters.Where(parameter => parameter.Definition.IsOutputVariable), OutputRows);
 
         RefreshPages();
     }
@@ -1109,8 +1132,18 @@ public partial class AddActionViewModel : ViewModelBase
     {
         BasePage => Rows,
         AdvancedPage => AdvancedRows,
-        OutputPage => OutputRows,
         _ => [],
+    };
+
+    /// <summary>
+    /// True when a page holds something that is not the value it starts on. The returns page is a
+    /// list of its own rather than rows of field editors, so it is asked about separately.
+    /// </summary>
+    private bool PageIsChanged(string key) => key switch
+    {
+        OtherPage => false,
+        ReturnsPage => ReturnsField is { IsDefault: false },
+        _ => RowsOf(key).Any(row => row.IsApplicable && !row.IsDefault),
     };
 
     /// <summary>
@@ -1125,9 +1158,10 @@ public partial class AddActionViewModel : ViewModelBase
             // The page of step settings is about the step rather than about the action, so it is
             // there whatever the action is; the three that hold an action's fields are not.
             var rows = RowsOf(page.Key);
-            page.IsPresent = page.Key == OtherPage || rows.Any(row => row.IsApplicable);
-            page.HasDot = page.Key is AdvancedPage or OutputPage
-                && rows.Any(row => row.IsApplicable && !row.IsDefault);
+            page.IsPresent = page.Key == OtherPage
+                || page.Key == ReturnsPage && ReturnsRows.Count > 0
+                || rows.Any(row => row.IsApplicable);
+            page.HasDot = page.Key is AdvancedPage or ReturnsPage && PageIsChanged(page.Key);
         }
 
         // A page can empty out while it is the one open — the questions about which hit to take
@@ -1139,7 +1173,7 @@ public partial class AddActionViewModel : ViewModelBase
         }
 
         OnPropertyChanged(nameof(HasAdvanced));
-        OnPropertyChanged(nameof(HasOutput));
+        OnPropertyChanged(nameof(HasReturns));
     }
 
     /// <summary>
@@ -1154,8 +1188,7 @@ public partial class AddActionViewModel : ViewModelBase
         var present = Pages.Where(page => page.IsPresent).ToList();
         var filled = _isNewStep || !IsEditing
             ? null
-            : present.FirstOrDefault(page => page.Key != OtherPage
-                && RowsOf(page.Key).Any(row => row.IsApplicable && !row.IsDefault));
+            : present.FirstOrDefault(page => PageIsChanged(page.Key));
 
         Select(filled ?? present.FirstOrDefault() ?? Pages[0]);
     }
@@ -1437,6 +1470,9 @@ public partial class AddActionViewModel : ViewModelBase
     {
         RefreshGates();
         RefreshPages();
+        // A result ticked a moment ago has no name yet, and a name typed a moment ago may now be
+        // one somebody else is using, so the names are read again from what the dialog knows.
+        SuggestReturnNames();
         OnPropertyChanged(nameof(HasParameters));
         OnPropertyChanged(nameof(JsonPreview));
         OnPropertyChanged(nameof(ValidationMessage));
@@ -1447,37 +1483,24 @@ public partial class AddActionViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Fills in the name of every variable this step creates, and keeps doing it while the note is
-    /// being written. A name of its own means two steps of the same action do not quietly write
-    /// into the same variable, which is the one mistake in this dialog that shows up much later and
-    /// somewhere else.
+    /// Fills in the name of every result this step hands over, and keeps doing it while the note is
+    /// being written. A name of its own means two steps of the same action do not quietly write into
+    /// the same variable — the one mistake in this dialog that shows up much later and somewhere
+    /// else. A name the user (or the file) already chose is left as it is.
     /// </summary>
-    private void SuggestOutputNames()
+    private void SuggestReturnNames()
     {
-        if (!_isNewStep || SelectedDefinition is not { } definition)
+        if (SelectedDefinition is not { } definition || ReturnsField is not { } returns)
         {
             return;
         }
 
-        var wanted = VariableNames.ForStep(MetaComment, definition.LocalName, _editingId);
-        var taken = new HashSet<string>(
-            CollectVariables().Select(choice => choice.Name), StringComparer.OrdinalIgnoreCase);
-
-        foreach (var field in Parameters.Where(parameter => parameter.IsOutputVariable))
-        {
-            field.SuggestName(VariableNames.Free(wanted, taken));
-
-            // The next field of this same step has to steer clear of this one as well, or a step
-            // with two results would give them one name between them.
-            if (field.CurrentText.Trim() is { Length: > 0 } named)
-            {
-                taken.Add(named);
-            }
-        }
+        returns.SettleReturns(MetaComment, definition.LocalName, _editingId,
+            [.. CollectVariables().Select(choice => choice.Name)]);
     }
 
     /// <summary>The note is part of the name, so the name has to keep up with it.</summary>
-    partial void OnMetaCommentChanged(string value) => SuggestOutputNames();
+    partial void OnMetaCommentChanged(string value) => SuggestReturnNames();
 
     /// <summary>Refreshes what a change to a step-settings length of time affects.</summary>
     private void OnSettingChanged(object? sender, PropertyChangedEventArgs e)

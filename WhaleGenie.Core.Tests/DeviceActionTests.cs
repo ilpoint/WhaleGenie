@@ -22,6 +22,13 @@ public class DeviceActionTests
     private static ExecutableParameter Param(string name, string text = "")
         => new() { Name = name, Text = text };
 
+    /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
+    private static ExecutableParameter Returns(params string[] results)
+        => SampleFiles.Returns(results);
+
+    /// <summary>See <see cref="SampleFiles.Hit"/>: a place, a picture or a program and all its parts.</summary>
+    private static ExecutableParameter Hit(string key, string name) => SampleFiles.Hit(key, name);
+
     private static ExecutableParameter Body(string name, params ExecutableStep[] steps)
         => new() { Name = name, Steps = steps };
 
@@ -675,12 +682,65 @@ public class DeviceActionTests
         [
             Step("vision.getPixel", Param("x", "7"), Param("y", "8"),
                 Param("anchorMode", "client"), Param("anchorWindow", "Notepad"),
-                Param("resultVariable", "tone")),
+                Returns("color=tone")),
         ], devices);
 
         // A pixel counted from a window is read out of a picture of that window, so a window that
         // another window covers still gives its own colour rather than the covering one's.
         Assert.Equal(["findWindow Notepad", "clientOrigin 1", "capture 1007 528 1 1"], devices.Calls);
+    }
+
+    /// <summary>
+    /// A step hands over only the results it was told to. The ones left unticked are not written at
+    /// all, and the ones ticked are written under the names this step gave them rather than under
+    /// one name every part of the answer hangs off.
+    /// </summary>
+    [Fact]
+    public async Task Only_the_results_a_step_was_told_to_hand_over_are_written()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Match = new ImageMatch(0.75, new ScreenPoint(10, 20), new ScreenSize(4, 6));
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"),
+                Returns("score=sure", "width=wide", "x=left")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(0.75, store.Local.Values["sure"].AsNumber(), 3);
+        Assert.Equal(4, store.Local.Values["wide"].AsNumber());
+
+        // The place is the middle of what was found, the way every position a step hands over is.
+        Assert.Equal(12, store.Local.Values["left"].AsNumber());
+
+        // The place itself was not ticked, so nothing holds it — not even an empty value.
+        Assert.False(store.TryGet("match", out _));
+
+        // A part is a result of its own rather than a spelling of the place's name, so nothing was
+        // written under a dotted name either.
+        Assert.False(store.TryGet("sure.x", out _));
+    }
+
+    /// <summary>
+    /// A result the step was not told to hand over is undefined rather than empty: reading it is
+    /// what the design-time check warns about, and a run that reaches it says so instead of quietly
+    /// working on "nothing".
+    /// </summary>
+    [Fact]
+    public async Task An_expression_reading_a_result_nobody_asked_for_fails_the_step()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Match = new ImageMatch(0.9, new ScreenPoint(1, 2), new ScreenSize(3, 4));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Returns("score=sure")),
+            Step("control.log", Param("message", "$match + 1")),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BadExpression", result.Key);
     }
 
     [Fact]
@@ -693,7 +753,7 @@ public class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Region((10, 20, 30, 40)),
                 Param("anchorMode", "window"), Param("anchorWindow", "Notepad"),
-                Param("resultVariable", "where")),
+                Hit("match", "where")),
         ], devices);
 
         Assert.Contains("capture 1010 520 30 40", devices.Calls);
@@ -710,7 +770,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.getPixel", Param("x", "5"), Param("y", "6"),
-                Param("resultVariable", "tone"), Param("asHex", "true")),
+                Returns("color=tone"), Param("asHex", "true")),
         ], devices);
 
         Assert.Equal("#ABCDEF", store.Local.Values["tone"].AsText());
@@ -746,7 +806,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.findColor", Param("color", "#FF0000"), Param("tolerance", "1"),
-                Region((0, 0, 2, 2)), Param("resultVariable", "spot")),
+                Region((0, 0, 2, 2)), Hit("match", "spot")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -760,12 +820,15 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer { Display = Picture("#000000") };
 
         var (result, _, store) = await RunAsync(
-            [Step("vision.findColor", Param("color", "#FF0000"), Param("resultVariable", "spot"))],
+            [Step("vision.findColor", Param("color", "#FF0000"), Hit("match", "spot"))],
             devices);
 
         Assert.True(result.Succeeded);
         Assert.Equal(string.Empty, store.Local.Values["spot"].AsText());
-        Assert.Equal(string.Empty, store.Local.Values["spot.count"].AsText());
+
+        // Only the hits are counted when the step was told to record every one, and this step was
+        // not, so there is no count to read at all.
+        Assert.False(store.TryGet("spot.count", out _));
     }
 
     [Fact]
@@ -817,7 +880,7 @@ public class DeviceActionTests
         [
             Step("vision.findColor", Param("color", "#FF0000"), Param("tolerance", "1"),
                 Param("matchIndex", "2"), Region((0, 0, 3, 1)),
-                Param("resultVariable", "spot")),
+                Hit("match", "spot")),
         ], devices);
 
         Assert.Equal("2,0", store.Local.Values["spot"].AsText());
@@ -832,7 +895,7 @@ public class DeviceActionTests
         [
             Step("vision.findColor", Param("color", "#FF0000"), Param("tolerance", "1"),
                 Param("allMatches", "true"), Region((0, 0, 3, 1)),
-                Param("resultVariable", "spot")),
+                Hit("match", "spot")),
         ], devices);
 
         Assert.Equal(2, store.Local.Values["spot.count"].AsNumber());
@@ -912,7 +975,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Param("matchIndex", "2"),
-                Param("allMatches", "true"), Param("resultVariable", "where")),
+                Param("allMatches", "true"), Hit("match", "where")),
         ], devices);
 
         Assert.Equal("10,10", store.Local.Values["where"].AsText());
@@ -937,7 +1000,7 @@ public class DeviceActionTests
             Step("vision.findImage", Pictures("ok.png"), Param("confidence", "88"),
                 Param("algorithm", "feature"), Param("ignoreColor", "#00FF00"),
                 Param("minFeatures", "12"),
-                Param("resultVariable", "where")),
+                Hit("match", "where")),
         ], devices);
 
         var query = Assert.Single(devices.Queries);
@@ -971,9 +1034,9 @@ public class DeviceActionTests
         [
             written.Length == 0
                 ? Step("vision.findImage", Pictures("ok.png"),
-                    Param("resultVariable", "where"))
+                    Hit("match", "where"))
                 : Step("vision.findImage", Pictures("ok.png"),
-                    Param("algorithm", written), Param("resultVariable", "where")),
+                    Param("algorithm", written), Hit("match", "where")),
         ], devices);
 
         Assert.Equal(expected, Assert.Single(devices.Queries).Algorithm);
@@ -989,7 +1052,7 @@ public class DeviceActionTests
         };
 
         var (_, _, _) = await RunAsync(
-            [Step("vision.findImage", Pictures("ok.png"), Param("resultVariable", "where"))],
+            [Step("vision.findImage", Pictures("ok.png"), Hit("match", "where"))],
             devices);
 
         var query = Assert.Single(devices.Queries);
@@ -1014,7 +1077,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Param("orderBy", "score"),
-                Param("allMatches", "true"), Param("resultVariable", "where")),
+                Param("allMatches", "true"), Hit("match", "where")),
         ], devices);
 
         Assert.Equal("30,40", store.Local.Values["where"].AsText());
@@ -1036,7 +1099,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Param("orderBy", "area"),
-                Param("allMatches", "true"), Param("resultVariable", "where")),
+                Param("allMatches", "true"), Hit("match", "where")),
         ], devices);
 
         Assert.Equal("70,30", store.Local.Values["where"].AsText());
@@ -1056,7 +1119,7 @@ public class DeviceActionTests
         [
             Step("vision.findColor", Param("color", "#FF0000"), Param("tolerance", "10"),
                 Param("orderBy", "score"), Region((0, 0, 3, 1)),
-                Param("resultVariable", "spot")),
+                Hit("match", "spot")),
         ], devices);
 
         Assert.Equal("1,0", store.Local.Values["spot"].AsText());
@@ -1078,7 +1141,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("ocr.findText", Param("text", "Continue"), Param("matchMode", "equals"),
-                Param("orderBy", "score"), Param("resultVariable", "where")),
+                Param("orderBy", "score"), Hit("match", "where")),
         ], devices);
 
         Assert.Equal("25,64", store.Local.Values["where"].AsText());
@@ -1104,7 +1167,7 @@ public class DeviceActionTests
         [
             Step("ocr.findText", Param("text", "Ready"), Param("matchMode", "contains"),
                 Param("orderBy", "area"),
-                Param("resultVariable", "where")),
+                Hit("match", "where")),
         ], devices);
 
         Assert.Equal("140,94", store.Local.Values["where"].AsText());
@@ -1125,7 +1188,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Param("orderBy", "random"),
-                Param("matchIndex", "3"), Param("resultVariable", "where")),
+                Param("matchIndex", "3"), Hit("match", "where")),
         ], devices);
 
         Assert.Contains(store.Local.Values["where"].AsText(),
@@ -1142,7 +1205,7 @@ public class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"),
                 Region((0, 0, 10, 10), (100, 100, 10, 10)),
-                Param("matchIndex", "2"), Param("resultVariable", "where")),
+                Param("matchIndex", "2"), Hit("match", "where")),
         ], devices);
 
         Assert.Contains("capture 0 0 10 10", devices.Calls);
@@ -1177,7 +1240,7 @@ public class DeviceActionTests
         await RunAsync(
         [
             Step("vision.capture", Region((10, 20, 30, 40)), Param("anchorMode", "client"),
-                Param("anchorWindow", "Game"), Param("saveTo", "shot")),
+                Param("anchorWindow", "Game"), Hit("image", "shot")),
         ], devices);
 
         var asked = Assert.Single(devices.Captures);
@@ -1206,7 +1269,7 @@ public class DeviceActionTests
         [
             Step("vision.capture", Region((1, 1, 2, 2)), Param("anchorMode", "client"),
                 Param("anchorWindow", "Game"), Param("captureMode", written),
-                Param("saveTo", "shot")),
+                Hit("image", "shot")),
         ], devices);
 
         Assert.Equal(expected, Assert.Single(devices.Captures).Method);
@@ -1226,8 +1289,8 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.capture", Region((7, 9, 10, 10)), Param("anchorMode", "window"),
-                Param("anchorWindow", "Game"), Param("saveTo", "fromWindow")),
-            Step("vision.capture", Region((7, 9, 10, 10)), Param("saveTo", "fromScreen")),
+                Param("anchorWindow", "Game"), Hit("image", "fromWindow")),
+            Step("vision.capture", Region((7, 9, 10, 10)), Hit("image", "fromScreen")),
         ], devices);
 
         Assert.Equal((107, 59, 10, 10),
@@ -1252,7 +1315,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.capture", Region((0, 0, 10, 10)), Param("captureMode", "graphicsCapture"),
-                Param("saveTo", "shot")),
+                Hit("image", "shot")),
         ], devices);
 
         Assert.Equal("Run.NoCaptureWindow", result.Key);
@@ -1273,7 +1336,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.capture", Region((0, 0, 10, 10)), Param("anchorMode", "client"), Param("anchorWindow", "Game"),
-                Param("captureMode", "graphicsCapture"), Param("saveTo", "shot")),
+                Param("captureMode", "graphicsCapture"), Hit("image", "shot")),
         ], devices);
 
         Assert.Equal("Run.NoGraphicsCapture", result.Key);
@@ -1294,7 +1357,7 @@ public class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Param("confidence", "90"),
                 Param("anchorMode", "window"), Param("anchorWindow", "Game"),
-                Param("resultVariable", "match")),
+                Hit("match", "match")),
         ], devices);
 
         var asked = Assert.Single(devices.Captures);
@@ -1316,7 +1379,7 @@ public class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Param("confidence", "90"),
                 Param("anchorMode", "client"), Param("anchorWindow", "Game"),
-                Param("resultVariable", "match")),
+                Hit("match", "match")),
         ], devices);
 
         Assert.Equal("Game", store.Local.Values["match.window"].AsText());
@@ -1337,7 +1400,7 @@ public class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Param("confidence", "90"),
                 Param("anchorMode", "client"), Param("anchorWindow", "Game"),
-                Param("resultVariable", "match")),
+                Hit("match", "match")),
         ], devices);
 
         Assert.Equal(string.Empty, store.Local.Values["match.window"].AsText());
@@ -1358,7 +1421,7 @@ public class DeviceActionTests
         [
             Step("vision.getPixel", Param("x", "5"), Param("y", "6"),
                 Param("anchorMode", "client"), Param("anchorWindow", "Game"),
-                Param("resultVariable", "color")),
+                Returns("color=color")),
         ], devices);
 
         Assert.DoesNotContain(devices.Calls,
@@ -1376,7 +1439,7 @@ public class DeviceActionTests
         await RunAsync(
         [
             Step("vision.getPixel", Param("x", "5"), Param("y", "6"),
-                Param("resultVariable", "color")),
+                Returns("color=color")),
         ], devices);
 
         Assert.Contains("pixel 5 6", devices.Calls);
@@ -1396,10 +1459,10 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("vision.capture", Region((10, 10, 20, 20)), Param("frameMaxAgeMs", "200"), Param("saveTo", "shot")),
+            Step("vision.capture", Region((10, 10, 20, 20)), Param("frameMaxAgeMs", "200"), Hit("image", "shot")),
             Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
                 Param("confidence", "90"), Param("frameMaxAgeMs", "200"),
-                Param("resultVariable", "match")),
+                Hit("match", "match")),
         ], devices);
 
         // One reading of the screen between them: the whole of it, because a picture that is to be
@@ -1425,9 +1488,9 @@ public class DeviceActionTests
 
         await RunAsync(
         [
-            Step("vision.capture", Region((10, 10, 20, 20)), Param("frameMaxAgeMs", "200"), Param("saveTo", "shot")),
+            Step("vision.capture", Region((10, 10, 20, 20)), Param("frameMaxAgeMs", "200"), Hit("image", "shot")),
             Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
-                Param("confidence", "90"), Param("resultVariable", "match")),
+                Param("confidence", "90"), Hit("match", "match")),
         ], devices);
 
         Assert.Equal(2, devices.Captures.Count);
@@ -1449,11 +1512,11 @@ public class DeviceActionTests
 
         await RunAsync(
         [
-            Step("vision.capture", Region((10, 10, 20, 20)), Param("frameMaxAgeMs", "20"), Param("saveTo", "shot")),
+            Step("vision.capture", Region((10, 10, 20, 20)), Param("frameMaxAgeMs", "20"), Hit("image", "shot")),
             Step("control.delay", Param("ms", "60")),
             Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
                 Param("confidence", "90"), Param("frameMaxAgeMs", "20"),
-                Param("resultVariable", "match")),
+                Hit("match", "match")),
         ], devices);
 
         Assert.Equal(2, devices.Captures.Count);
@@ -1475,7 +1538,7 @@ public class DeviceActionTests
         [
             Step("control.repeat", Param("times", "3"), Body("body",
                 Step("vision.findImage", Pictures("ok.png"), Param("confidence", "90"),
-                    Param("intervalMs", "200"), Param("resultVariable", "match")))),
+                    Param("intervalMs", "200"), Hit("match", "match")))),
         ], devices);
 
         var took = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
@@ -1501,7 +1564,7 @@ public class DeviceActionTests
         [
             Step("vision.waitImage", Pictures("anything.png"), Param("confidence", "90"),
                 Param("timeoutMs", "5000"), Param("intervalMs", "60"),
-                Param("resultVariable", "spot")),
+                Hit("match", "spot")),
         ], devices);
 
         var took = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
@@ -1726,9 +1789,9 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("vision.capture", Region((0, 0, 10, 10)), Param("saveTo", "shot")),
+            Step("vision.capture", Region((0, 0, 10, 10)), Hit("image", "shot")),
             Step("vision.findImage", Pictures("shot"), Param("confidence", "90"),
-                Param("region", ""), Param("resultVariable", "where")),
+                Param("region", ""), Hit("match", "where")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -1751,7 +1814,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.waitImage", Pictures("anything.png"), Param("confidence", "90"),
-                Param("timeoutMs", "2000"), Param("intervalMs", "1"), Param("resultVariable", "spot")),
+                Param("timeoutMs", "2000"), Param("intervalMs", "1"), Hit("match", "spot")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -1771,7 +1834,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.waitImage", Pictures("anything.png"), Param("confidence", "90"),
-                Param("timeoutMs", "20"), Param("intervalMs", "1"), Param("resultVariable", "spot")),
+                Param("timeoutMs", "20"), Param("intervalMs", "1"), Hit("match", "spot")),
         ], devices);
 
         Assert.False(result.Succeeded);
@@ -1811,7 +1874,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
-                Region((10, 20, 30, 40)), Param("resultVariable", "where")),
+                Region((10, 20, 30, 40)), Hit("match", "where")),
         ], devices);
 
         // The match is reported in screen coordinates, not in region coordinates.
@@ -1870,7 +1933,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("ocr.recognize", Region((0, 0, 100, 20)), Param("language", "en"), Param("resultVariable", "words")),
+            Step("ocr.recognize", Region((0, 0, 100, 20)), Param("language", "en"), Returns("text=words")),
         ], devices);
 
         Assert.Equal("Ready Go", store.Local.Values["words"].AsText());
@@ -1888,7 +1951,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("ocr.findText", Param("text", "Save"), Param("region", ""),
-                Param("matchMode", "contains"), Param("resultVariable", "spot")),
+                Param("matchMode", "contains"), Hit("match", "spot")),
         ], devices);
 
         Assert.Equal("20,14", store.Local.Values["spot"].AsText());
@@ -1909,9 +1972,9 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("ocr.findText", Param("text", "Save"), Param("matchMode", "contains"),
-                Param("minScore", "30"), Param("allMatches", "true"), Param("resultVariable", "sure")),
+                Param("minScore", "30"), Param("allMatches", "true"), Hit("match", "sure")),
             Step("ocr.findText", Param("text", "Save"), Param("matchMode", "contains"),
-                Param("resultVariable", "any")),
+                Hit("match", "any")),
         ], devices);
 
         // The shaky reading is dropped, so the only one left is the one the model was sure of —
@@ -1943,7 +2006,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("ocr.findText", Param("text", "HP"), Param("expected", @"^HP \d+/\d+$"),
-                Param("resultVariable", "where")),
+                Hit("match", "where")),
         ], devices);
 
         Assert.Equal("20,24", store.Local.Values["where"].AsText());
@@ -1961,7 +2024,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("ocr.findText", Param("text", "HP"), Param("expected", @"HP (\d+"),
-                Param("resultVariable", "where")),
+                Hit("match", "where")),
         ], devices);
 
         Assert.False(result.Succeeded);
@@ -1983,7 +2046,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("ocr.findText", Param("text", "GOLD 100"), Param("matchMode", "exact"),
-                Param("fixText", "G0LD = GOLD\nl00 = 100"), Param("resultVariable", "where")),
+                Param("fixText", "G0LD = GOLD\nl00 = 100"), Hit("match", "where")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -2007,7 +2070,7 @@ public class DeviceActionTests
         var (_, _, _) = await RunAsync(
         [
             Step("ocr.recognize", Region((0, 0, 2, 1)), Param("colorFilter", "#FFFFFF"),
-                Param("colorTolerance", "10"), Param("resultVariable", "text")),
+                Param("colorTolerance", "10"), Returns("text=text")),
         ], devices);
 
         var handed = Assert.Single(devices.OcrPictures);
@@ -2031,7 +2094,7 @@ public class DeviceActionTests
 
         var (_, _, _) = await RunAsync(
         [
-            Step("ocr.recognize", Region((0, 0, 2, 1)), Param("resultVariable", "text")),
+            Step("ocr.recognize", Region((0, 0, 2, 1)), Returns("text=text")),
         ], devices);
 
         var handed = Assert.Single(devices.OcrPictures);
@@ -2055,9 +2118,9 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("ocr.findText", Param("text", "Total"), Param("matchMode", "contains"),
-                Param("allMatches", "true"), Param("resultVariable", "totals")),
+                Param("allMatches", "true"), Hit("match", "totals")),
             Step("ocr.findText", Param("text", "Other"), Param("matchMode", "contains"),
-                Param("resultVariable", "one")),
+                Hit("match", "one")),
         ], devices);
 
         Assert.Equal("20,4", store.Local.Values["totals"].AsText());
@@ -2084,9 +2147,9 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("ocr.recognize", Region((0, 0, 100, 40)), Param("content", "digits"), Param("resultVariable", "amounts")),
+            Step("ocr.recognize", Region((0, 0, 100, 40)), Param("content", "digits"), Returns("text=amounts")),
             Step("ocr.findText", Param("text", "1234.50"), Param("content", "digits"),
-                Param("resultVariable", "where")),
+                Hit("match", "where")),
         ], devices);
 
         Assert.Equal("1234.50", store.Local.Values["amounts"].AsText());
@@ -2109,7 +2172,8 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("ocr.recognize", Region((0, 0, 200, 60)), Param("table", "true"), Param("resultVariable", "sheet")),
+            Step("ocr.recognize", Region((0, 0, 200, 60)), Param("table", "true"),
+                Returns("table=sheet", "text=sheet.text")),
         ], devices);
 
         var rows = store.Local.Values["sheet"].AsList();
@@ -2133,7 +2197,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("ocr.findText", Param("text", "Go"), Param("preprocess", "upscale"),
-                Param("resultVariable", "spot")),
+                Hit("match", "spot")),
         ], devices);
 
         // The picture the OCR was handed was the searched region at twice its size...
@@ -2157,11 +2221,11 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("ocr.findText", Param("text", "Run"), Param("matchMode", "exact"),
-                Param("resultVariable", "exactHit")),
+                Hit("match", "exactHit")),
             Step("ocr.findText", Param("text", "^Run"), Param("matchMode", "regex"),
-                Param("resultVariable", "patternHit")),
+                Hit("match", "patternHit")),
             Step("ocr.findText", Param("text", "nope"), Param("matchMode", "contains"),
-                Param("resultVariable", "miss")),
+                Hit("match", "miss")),
         ], devices);
 
         Assert.Equal(string.Empty, store.Local.Values["exactHit"].AsText());
@@ -2218,7 +2282,7 @@ public class DeviceActionTests
 
         ExecutableStep Exists() => Step("uia.exists",
             Param("window", "Notepad"), Param("selector", "Button[name='Save']"),
-            Param("timeoutMs", "0"), Param("resultVariable", "there"));
+            Param("timeoutMs", "0"), Returns("exists=there"));
 
         var (_, _, yes) = await RunAsync([Exists()], found);
         var (_, _, no) = await RunAsync([Exists()], missing);
@@ -2235,7 +2299,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("uia.getText", Param("window", ""), Param("selector", "Text[name='Count']"),
-                Param("resultVariable", "countText")),
+                Returns("text=countText")),
         ], devices);
 
         Assert.Equal("12 items", store.Local.Values["countText"].AsText());
@@ -2251,7 +2315,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("uia.find", Param("window", "Notepad"), Param("selector", "Button[name='Save']"),
-                Param("resultVariable", "save")),
+                Hit("match", "save")),
         ], devices);
 
         // The centre is what a click aims at, and the parts are what a later step measures from.
@@ -2270,7 +2334,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("uia.find", Param("selector", "Button[name='Save']"),
-                Param("resultVariable", "save")),
+                Hit("match", "save")),
         ], devices);
 
         Assert.Equal(string.Empty, store.Local.Values["save"].AsText());
@@ -2289,7 +2353,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("uia.find", Param("selector", "ListItem[automationId='row1']"),
-                Param("allMatches", "true"), Param("resultVariable", "rows")),
+                Param("allMatches", "true"), Hit("match", "rows")),
         ], devices);
 
         Assert.Equal("2", store.Local.Values["rows.count"].AsText());
@@ -2415,7 +2479,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("uia.readTable", Param("selector", "Table[automationId='people']"),
-                Param("resultVariable", "people")),
+                Returns("table=people")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -2439,7 +2503,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("uia.readTable", Param("selector", "Table[automationId='people']"),
-                Param("maxRows", "2"), Param("resultVariable", "people")),
+                Param("maxRows", "2"), Returns("table=people")),
         ], devices);
 
         Assert.Equal(2, store.Local.Values["people"].Items.Count);
@@ -2460,7 +2524,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("uia.readTable", Param("selector", "Table[automationId='people']"),
-                Param("columnsVariable", "titles"), Param("resultVariable", "people")),
+                Returns("columns=titles"), Returns("table=people")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -2567,7 +2631,7 @@ public class DeviceActionTests
         [
             Step("uia.exists", Param("window", "Notepad"),
                 Param("selector", "Edit[automationId='input', controlType='Edit', class='Edit']"),
-                Param("timeoutMs", "0"), Param("resultVariable", "there")),
+                Param("timeoutMs", "0"), Returns("exists=there")),
         ], devices);
 
         Assert.Contains("ui Edit//input", devices.Calls[0]);
@@ -2579,7 +2643,7 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer();
         devices.Files["notes.txt"] = "hello world";
         var (result, _, store) = await RunAsync(
-            [Step("file.readText", Param("path", "notes.txt"), Param("resultVariable", "text"))],
+            [Step("file.readText", Param("path", "notes.txt"), Returns("text=text"))],
             devices);
 
         Assert.True(result.Succeeded);
@@ -2595,7 +2659,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("file.readText", Param("path", "names.txt"), Param("storeAs", "lines"),
-                Param("resultVariable", "names")),
+                Returns("text=names")),
         ], devices);
 
         var names = store.Local.Values["names"];
@@ -2612,7 +2676,7 @@ public class DeviceActionTests
         [
             Step("file.readText", Param("path", "names.txt"), Param("storeAs", "lines"),
                 Param("skipBlankLines", "true"), Param("trim", "true"),
-                Param("resultVariable", "names")),
+                Returns("text=names")),
         ], devices);
 
         Assert.Equal(["alpha", "beta"],
@@ -2627,7 +2691,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("file.readText", Param("path", "names.txt"), Param("limit", "2"),
-                Param("resultVariable", "head")),
+                Returns("text=head")),
         ], devices);
 
         // Two lines of a text, kept as text: this is how a macro peeks at the top of a file it has
@@ -2637,14 +2701,14 @@ public class DeviceActionTests
     }
 
     [Fact]
-    public async Task Reading_a_text_file_without_a_name_uses_a_default()
+    public async Task Reading_a_text_file_hands_nothing_over_until_a_result_is_asked_for()
     {
         var devices = new FakeDeviceLayer();
         devices.Files["notes.txt"] = "kept";
         var (_, _, store) = await RunAsync(
             [Step("file.readText", Param("path", "notes.txt"))], devices);
 
-        Assert.Equal("kept", store.Local.Values["text"].AsText());
+        Assert.Empty(store.Local.Values);
     }
 
     [Fact]
@@ -2780,8 +2844,8 @@ public class DeviceActionTests
         devices.Files["there.txt"] = "";
         var (_, _, store) = await RunAsync(
         [
-            Step("file.exists", Param("path", "there.txt"), Param("resultVariable", "there")),
-            Step("file.exists", Param("path", "gone.txt"), Param("resultVariable", "gone")),
+            Step("file.exists", Param("path", "there.txt"), Returns("exists=there")),
+            Step("file.exists", Param("path", "gone.txt"), Returns("exists=gone")),
         ], devices);
 
         Assert.True(store.Local.Values["there"].Flag);
@@ -2918,19 +2982,19 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("file.path", Param("operation", "combine"), Param("path", @"reports\"),
-                Param("name", "day.csv"), Param("resultVariable", "joined")),
+                Param("name", "day.csv"), Returns("path=joined")),
             Step("file.path", Param("operation", "folder"), Param("path", @"reports\day.csv"),
-                Param("resultVariable", "where")),
+                Returns("path=where")),
             Step("file.path", Param("operation", "name"), Param("path", @"reports\day.csv"),
-                Param("resultVariable", "what")),
+                Returns("path=what")),
             Step("file.path", Param("operation", "baseName"), Param("path", @"reports\day.csv"),
-                Param("resultVariable", "stem")),
+                Returns("path=stem")),
             Step("file.path", Param("operation", "extension"), Param("path", @"reports\day.csv"),
-                Param("resultVariable", "tail")),
+                Returns("path=tail")),
             Step("file.path", Param("operation", "full"), Param("path", @"reports\day.csv"),
-                Param("resultVariable", "whole")),
-            Step("file.path", Param("operation", "macros"), Param("resultVariable", "home")),
-            Step("file.path", Param("operation", "temp"), Param("resultVariable", "scratch")),
+                Returns("path=whole")),
+            Step("file.path", Param("operation", "macros"), Returns("path=home")),
+            Step("file.path", Param("operation", "temp"), Returns("path=scratch")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -2993,7 +3057,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("file.listFiles", Param("folder", "."), Param("pattern", "*.txt"),
-                Param("recurse", "true"), Param("resultVariable", "files")),
+                Param("recurse", "true"), Returns("files=files")),
         ], devices);
 
         var files = store.Local.Values["files"];
@@ -3016,7 +3080,7 @@ public class DeviceActionTests
         [
             Step("file.listFiles", Param("folder", "."), Param("pattern", "*"),
                 Param("withinCount", "1"), Param("withinUnit", "days"),
-                Param("resultVariable", "files")),
+                Returns("files=files")),
         ], devices);
 
         var files = store.Local.Values["files"];
@@ -3037,7 +3101,7 @@ public class DeviceActionTests
         [
             Step("file.listFiles", Param("folder", "."), Param("pattern", "*"),
                 Param("sortBy", "size"), Param("descending", "true"),
-                Param("minKb", "2"), Param("resultVariable", "files")),
+                Param("minKb", "2"), Returns("files=files")),
         ], devices);
 
         var files = store.Local.Values["files"];
@@ -3047,7 +3111,7 @@ public class DeviceActionTests
         var (_, _, notSorted) = await RunAsync(
         [
             Step("file.listFiles", Param("folder", "."), Param("pattern", "*"),
-                Param("sortBy", "size"), Param("resultVariable", "files")),
+                Param("sortBy", "size"), Returns("files=files")),
         ], devices);
 
         Assert.Equal(@"C:\fake\small.txt", notSorted.Local.Values["files"].Items[0].AsText());
@@ -3061,7 +3125,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("file.listFiles", Param("folder", "reports"), Param("pattern", "*"),
-                Param("relative", "true"), Param("resultVariable", "files")),
+                Param("relative", "true"), Returns("files=files")),
         ], devices);
 
         Assert.Equal("a.txt", store.Local.Values["files"].Items[0].AsText());
@@ -3074,7 +3138,7 @@ public class DeviceActionTests
         await RunAsync(
         [
             Step("file.listFiles", Param("folder", "."), Param("pattern", "*"),
-                Param("recurse", "true"), Param("depth", "2"), Param("resultVariable", "files")),
+                Param("recurse", "true"), Param("depth", "2"), Returns("files=files")),
         ], devices);
 
         Assert.Contains(@"listFiles . * True 2", devices.Calls);
@@ -3087,7 +3151,7 @@ public class DeviceActionTests
         await RunAsync(
         [
             Step("file.listFiles", Param("folder", "."), Param("pattern", "*.txt; report?.csv"),
-                Param("resultVariable", "files")),
+                Returns("files=files")),
         ], devices);
 
         Assert.Contains(@"listFiles . *.txt;report?.csv False 0", devices.Calls);
@@ -3101,9 +3165,9 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("file.readJson", Param("path", "config.json"), Param("query", "server.name"),
-                Param("resultVariable", "host")),
+                Returns("value=host")),
             Step("file.readJson", Param("path", "config.json"), Param("query", "server.port"),
-                Param("resultVariable", "port")),
+                Returns("value=port")),
         ], devices);
 
         Assert.Equal("alpha", store.Local.Values["host"].AsText());
@@ -3134,7 +3198,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("file.readCsv", Param("path", "rows.csv"), Param("separator", "comma"),
-                Param("hasHeader", "true"), Param("resultVariable", "rows")),
+                Param("hasHeader", "true"), Returns("rows=rows")),
         ], devices);
 
         var rows = store.Local.Values["rows"];
@@ -3154,7 +3218,7 @@ public class DeviceActionTests
         await RunAsync(
         [
             Step("file.readCsv", Param("path", "names.csv"), Param("separator", "comma"),
-                Param("hasHeader", "false"), Param("shape", "values"), Param("resultVariable", "names")),
+                Param("hasHeader", "false"), Param("shape", "values"), Returns("rows=names")),
             Step("control.listSet", Param("name", "names"), Param("index", "1"), Param("value", "Betty")),
             Step("file.writeCsv", Param("path", "out.csv"), Param("rows", "$names"),
                 Param("separator", "comma")),
@@ -3171,7 +3235,7 @@ public class DeviceActionTests
         await RunAsync(
         [
             Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
-                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+                Param("hasHeader", "false"), Returns("rows=rows")),
             Step("file.writeCsv", Param("path", "out.csv"), Param("rows", "$rows"),
                 Param("separator", "comma")),
         ], devices);
@@ -3190,8 +3254,8 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("file.readCsv", Param("path", "rows.csv"), Param("separator", "comma"),
-                Param("hasHeader", "true"), Param("headerVariable", "columns"),
-                Param("resultVariable", "rows")),
+                Param("hasHeader", "true"), Returns("header=columns"),
+                Returns("rows=rows")),
         ], devices);
 
         var columns = store.Local.Values["columns"].Items;
@@ -3214,7 +3278,7 @@ public class DeviceActionTests
         [
             Step("file.readCsv", Param("path", "big.csv"), Param("separator", "comma"),
                 Param("hasHeader", "false"), Param("startRow", "2"), Param("maxRows", "2"),
-                Param("resultVariable", "rows")),
+                Returns("rows=rows")),
         ], devices);
 
         var rows = store.Local.Values["rows"].Items;
@@ -3232,10 +3296,10 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("file.readCsv", Param("path", "rows.csv"), Param("separator", "comma"),
-                Param("hasHeader", "false"), Param("resultVariable", "kept")),
+                Param("hasHeader", "false"), Returns("rows=kept")),
             Step("file.readCsv", Param("path", "rows.csv"), Param("separator", "comma"),
                 Param("hasHeader", "false"), Param("skipBlankLines", "false"),
-                Param("resultVariable", "every")),
+                Returns("rows=every")),
         ], devices);
 
         Assert.Equal(2, store.Local.Values["kept"].Items.Count);
@@ -3252,7 +3316,7 @@ public class DeviceActionTests
         [
             Step("file.readCsv", Param("path", "odd.csv"), Param("separator", "comma"),
                 Param("separatorText", "#"), Param("hasHeader", "false"),
-                Param("resultVariable", "rows")),
+                Returns("rows=rows")),
         ], devices);
 
         var row = Assert.Single(store.Local.Values["rows"].Items);
@@ -3269,7 +3333,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("file.readCsv", Param("path", "padded.csv"), Param("separator", "comma"),
-                Param("hasHeader", "false"), Param("trim", "true"), Param("resultVariable", "rows")),
+                Param("hasHeader", "false"), Param("trim", "true"), Returns("rows=rows")),
         ], devices);
 
         var row = Assert.Single(store.Local.Values["rows"].Items);
@@ -3291,9 +3355,9 @@ public class DeviceActionTests
         await RunAsync(
         [
             Step("file.readCsv", Param("path", "first.csv"), Param("separator", "comma"),
-                Param("hasHeader", "false"), Param("resultVariable", "first")),
+                Param("hasHeader", "false"), Returns("rows=first")),
             Step("file.readCsv", Param("path", "second.csv"), Param("separator", "comma"),
-                Param("hasHeader", "false"), Param("resultVariable", "second")),
+                Param("hasHeader", "false"), Returns("rows=second")),
             Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$first"),
                 Param("header", "name,age"), Param("separator", "comma"),
                 Param("mode", "append")),
@@ -3319,7 +3383,7 @@ public class DeviceActionTests
         await RunAsync(
         [
             Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
-                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+                Param("hasHeader", "false"), Returns("rows=rows")),
             Step("file.writeCsv", Param("path", "out.csv"), Param("rows", "$rows"),
                 Param("separator", "comma")),
         ], devices);
@@ -3336,7 +3400,7 @@ public class DeviceActionTests
         await RunAsync(
         [
             Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
-                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+                Param("hasHeader", "false"), Returns("rows=rows")),
             Step("file.writeCsv", Param("path", "unix.csv"), Param("rows", "$rows"),
                 Param("separator", "comma"), Param("lineEnding", "unix"),
                 Param("quoteAll", "true")),
@@ -3354,13 +3418,13 @@ public class DeviceActionTests
         await RunAsync(
         [
             Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
-                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+                Param("hasHeader", "false"), Returns("rows=rows")),
             Step("file.writeCsv", Param("path", "bare.csv"), Param("rows", "$rows"),
                 Param("separator", "comma")),
             Step("file.writeCsv", Param("path", "shown.csv"), Param("rows", "$rows"),
                 Param("separator", "comma"), Param("emptyCells", "quoted")),
             Step("file.readCsv", Param("path", "shown.csv"), Param("separator", "comma"),
-                Param("hasHeader", "false"), Param("resultVariable", "back")),
+                Param("hasHeader", "false"), Returns("rows=back")),
         ], devices);
 
         // Both are a cell holding nothing; the second one is for the reader that wants to see a
@@ -3383,7 +3447,7 @@ public class DeviceActionTests
         await RunAsync(
         [
             Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
-                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+                Param("hasHeader", "false"), Returns("rows=rows")),
             Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$rows"),
                 Param("header", "订单号,金额"), Param("separator", "comma"),
                 Param("mode", "append"), Param("align", "true")),
@@ -3405,7 +3469,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
-                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+                Param("hasHeader", "false"), Returns("rows=rows")),
             Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$rows"),
                 Param("header", "总价"), Param("separator", "comma"),
                 Param("mode", "append"), Param("align", "true")),
@@ -3424,7 +3488,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
-                Param("hasHeader", "false"), Param("resultVariable", "rows")),
+                Param("hasHeader", "false"), Returns("rows=rows")),
             Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$rows"),
                 Param("header", "订单号"), Param("separator", "comma"),
                 Param("mode", "append"), Param("align", "true")),
@@ -3481,18 +3545,20 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer { ClipboardText = "from the clipboard" };
         var (_, _, store) = await RunAsync(
-            [Step("clipboard.readText", Param("resultVariable", "picked"))], devices);
+            [Step("clipboard.readText", Returns("text=picked"))], devices);
 
         Assert.Equal("from the clipboard", store.Local.Values["picked"].AsText());
     }
 
     [Fact]
-    public async Task Reading_the_clipboard_without_a_name_uses_a_default()
+    public async Task Reading_the_clipboard_hands_nothing_over_until_a_result_is_asked_for()
     {
         var devices = new FakeDeviceLayer { ClipboardText = "kept" };
         var (_, _, store) = await RunAsync([Step("clipboard.readText")], devices);
 
-        Assert.Equal("kept", store.Local.Values["clipboard"].AsText());
+        // Nothing was ticked, so the step leaves no variable behind at all: reading one is reading a
+        // name no run wrote, which is what the design-time check tells the macro author about.
+        Assert.Empty(store.Local.Values);
     }
 
     [Fact]
@@ -3503,7 +3569,7 @@ public class DeviceActionTests
             ClipboardCopy = new ImageFrame(4, 3, new byte[4 * 3 * 4]),
         };
         var (result, _, store) = await RunAsync(
-            [Step("clipboard.readImage", Param("resultVariable", "shot"))], devices);
+            [Step("clipboard.readImage", Hit("image", "shot"))], devices);
 
         Assert.True(result.Succeeded);
         Assert.Equal("<image 4x3>", store.Local.Values["shot"].AsText());
@@ -3516,7 +3582,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var (result, _, store) = await RunAsync(
-            [Step("clipboard.readImage", Param("resultVariable", "shot"))], devices);
+            [Step("clipboard.readImage", Hit("image", "shot"))], devices);
 
         Assert.True(result.Succeeded);
         Assert.Equal(string.Empty, store.Local.Values["shot"].AsText());
@@ -3530,7 +3596,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("clipboard.writeImage", Param("image", "ok.png")),
-            Step("clipboard.readImage", Param("resultVariable", "back")),
+            Step("clipboard.readImage", Hit("image", "back")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -3546,7 +3612,7 @@ public class DeviceActionTests
         devices.ClipboardFiles.Add(@"C:\reports\day.csv");
         devices.ClipboardFiles.Add(@"C:\reports\week.csv");
         var (_, _, store) = await RunAsync(
-            [Step("clipboard.readFiles", Param("resultVariable", "picked"))], devices);
+            [Step("clipboard.readFiles", Returns("files=picked"))], devices);
 
         Assert.Equal(["C:\\reports\\day.csv", "C:\\reports\\week.csv"],
             store.Local.Values["picked"].Items.Select(item => item.AsText()));
@@ -3613,7 +3679,7 @@ public class DeviceActionTests
         };
         var (result, _, store) = await RunAsync(
             [Step("clipboard.waitChange", Param("timeoutMs", "500"),
-                Param("resultVariable", "picked"))], devices);
+                Returns("text=picked"))], devices);
 
         Assert.True(result.Succeeded);
         Assert.Equal("copied meanwhile", store.Local.Values["picked"].AsText());
@@ -3640,7 +3706,7 @@ public class DeviceActionTests
         };
         var (result, _, store) = await RunAsync(
             [Step("clipboard.copy", Param("keys", "Ctrl+C"), Param("timeoutMs", "500"),
-                Param("resultVariable", "picked"))], devices);
+                Returns("text=picked"))], devices);
 
         Assert.True(result.Succeeded);
         Assert.Equal("the selection", store.Local.Values["picked"].AsText());
@@ -3704,7 +3770,7 @@ public class DeviceActionTests
         [
             Step("process.start", Param("file", "notepad.exe"), Param("arguments", "/a"),
                 Param("workingDirectory", @"C:\temp"), Param("hidden", "false"),
-                Param("resultVariable", "pid")),
+                Returns("processId=pid")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -3713,13 +3779,13 @@ public class DeviceActionTests
     }
 
     [Fact]
-    public async Task Starting_a_program_without_a_name_uses_a_default()
+    public async Task Starting_a_program_hands_nothing_over_until_a_result_is_asked_for()
     {
         var devices = new FakeDeviceLayer { NextProcessId = 7 };
         var (_, _, store) = await RunAsync(
             [Step("process.start", Param("file", "calc.exe"))], devices);
 
-        Assert.Equal(7d, store.Local.Values["processId"].Number);
+        Assert.Empty(store.Local.Values);
     }
 
     [Fact]
@@ -3834,7 +3900,7 @@ public class DeviceActionTests
         await new MacroRunner(store, host, devices).RunAsync(
         [
             Step("command.run", Param("file", "build.exe"), Param("streamOutput", "true"),
-                Param("resultVariable", "out")),
+                Returns("output=out")),
         ]);
 
         // Every line is handed over as it arrives, blank lines included, and the result variable
@@ -3859,7 +3925,7 @@ public class DeviceActionTests
 
         await new MacroRunner(new VariableStore(), host, devices).RunAsync(
         [
-            Step("command.run", Param("file", "build.exe"), Param("resultVariable", "out")),
+            Step("command.run", Param("file", "build.exe"), Returns("output=out")),
         ]);
 
         Assert.DoesNotContain(host.Entries, entry => entry.Key == "Run.CommandOutput");
@@ -3913,7 +3979,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("process.waitFor", Param("name", "notepad"), Param("timeoutMs", "2000"),
-                Param("resultVariable", "pid")),
+                Hit("process", "pid")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -3938,8 +4004,8 @@ public class DeviceActionTests
         devices.Running["notepad"] = [10];
         var (_, _, store) = await RunAsync(
         [
-            Step("process.exists", Param("name", "notepad"), Param("resultVariable", "here")),
-            Step("process.exists", Param("name", "gone"), Param("resultVariable", "there")),
+            Step("process.exists", Param("name", "notepad"), Returns("running=here")),
+            Step("process.exists", Param("name", "gone"), Returns("running=there")),
         ], devices);
 
         Assert.True(store.Local.Values["here"].Flag);
@@ -3953,7 +4019,7 @@ public class DeviceActionTests
         devices.Running["notepad"] = [1, 2];
         devices.Running["calc"] = [3];
         var (_, _, store) = await RunAsync(
-            [Step("process.list", Param("resultVariable", "names"))], devices);
+            [Step("process.list", Returns("processes=names"))], devices);
 
         var names = store.Local.Values["names"];
         Assert.Equal(2, names.Items.Count);
@@ -3966,12 +4032,11 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer();
         devices.Running["notepad"] = [42];
         var (result, _, store) = await RunAsync(
-            [Step("process.info", Param("target", "notepad"), Param("resultVariable", "note"))],
+            [Step("process.info", Param("target", "notepad"), Hit("info", "note"))],
             devices);
 
         Assert.True(result.Succeeded);
         Assert.Equal(@"C:\fake\notepad.exe", store.Local.Values["note"].AsText());
-        Assert.Equal(@"C:\fake\notepad.exe", store.Local.Values["note.path"].AsText());
         Assert.Equal(42d, store.Local.Values["note.id"].Number);
         Assert.Equal("notepad", store.Local.Values["note.name"].AsText());
         Assert.Equal(12.5d, store.Local.Values["note.memoryMb"].Number);
@@ -3983,7 +4048,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var (result, _, store) = await RunAsync(
-            [Step("process.info", Param("target", "ghost"), Param("resultVariable", "info"))],
+            [Step("process.info", Param("target", "ghost"), Hit("info", "info"))],
             devices);
 
         Assert.Equal(RunStatus.Failed, result.Status);
@@ -3999,7 +4064,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("process.kill", Param("target", "notepad"),
-                Param("resultVariable", "closed")),
+                Returns("stopped=closed")),
         ], devices);
 
         Assert.Equal(1d, store.Local.Values["closed"].Number);
@@ -4013,7 +4078,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("process.kill", Param("target", "77"), Param("force", "true"),
-                Param("resultVariable", "closed")),
+                Returns("stopped=closed")),
         ], devices);
 
         Assert.Equal(1d, store.Local.Values["closed"].Number);
@@ -4029,7 +4094,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("process.waitExit", Param("id", "42"), Param("timeoutMs", "1000"),
-                Param("resultVariable", "code")),
+                Returns("exitCode=code")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -4068,8 +4133,8 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("command.run", Param("file", "cmd.exe"), Param("arguments", "/c echo hello"),
-                Param("timeoutMs", "5000"), Param("resultVariable", "out"),
-                Param("errorVariable", "err"), Param("exitCodeVariable", "code")),
+                Param("timeoutMs", "5000"), Returns("output=out"),
+                Returns("error=err"), Returns("exitCode=code")),
         ], devices);
 
         Assert.Equal("hello", store.Local.Values["out"].AsText());
@@ -4091,7 +4156,7 @@ public class DeviceActionTests
         [
             Step("script.run", Param("language", "powershell"),
                 Param("script", "Write-Host 'hello from a script'"),
-                Param("resultVariable", "said")),
+                Returns("output=said")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -4150,7 +4215,7 @@ public class DeviceActionTests
         [
             Step("control.setVariable", Param("name", "who"), Param("value", "Ann")),
             Step("script.run", Param("script", "Write-Host {{who}}"),
-                Param("arguments", "--to {{who}} --x {{nope}}"), Param("resultVariable", "out")),
+                Param("arguments", "--to {{who}} --x {{nope}}"), Returns("output=out")),
         ], devices);
 
         // The value goes in where it was asked for, in the script and on the command line alike,
@@ -4273,8 +4338,8 @@ public class DeviceActionTests
         devices.EnvironmentValues["TEMP"] = @"C:\Temp";
         var (_, _, store) = await RunAsync(
         [
-            Step("system.info", Param("field", "desktopFolder"), Param("resultVariable", "desk")),
-            Step("system.environment", Param("name", "TEMP"), Param("resultVariable", "temp")),
+            Step("system.info", Param("field", "desktopFolder"), Returns("value=desk")),
+            Step("system.environment", Param("name", "TEMP"), Returns("value=temp")),
         ], devices);
 
         Assert.Equal(@"C:\Users\me\Desktop", store.Local.Values["desk"].AsText());
@@ -4326,9 +4391,9 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("system.volume", Param("what", "set"), Param("percent", "80"),
-                Param("resultVariable", "was")),
+                Returns("volume=was")),
             Step("system.volume", Param("what", "down"), Param("stepPercent", "15"),
-                Param("resultVariable", "now")),
+                Returns("volume=now")),
         ], devices);
 
         Assert.Equal(80d, store.Local.Values["was"].Number);
@@ -4343,7 +4408,8 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer { SpeakerVolume = 4 };
         var (_, _, store) = await RunAsync(
         [
-            Step("system.volume", Param("what", "down"), Param("stepPercent", "20")),
+            Step("system.volume", Param("what", "down"), Param("stepPercent", "20"),
+                Returns("volume")),
         ], devices);
 
         // The device clamps as well, so a macro cannot talk the machine into a volume it cannot have.
@@ -4443,8 +4509,8 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer();
         var (_, _, store) = await RunAsync(
         [
-            Step("system.ime", Param("what", "get"), Param("resultVariable", "which")),
-            Step("system.ime", Param("what", "list"), Param("resultVariable", "all")),
+            Step("system.ime", Param("what", "get"), Returns("ime=which")),
+            Step("system.ime", Param("what", "list"), Returns("ime=all")),
         ], devices);
 
         Assert.Equal("中文(简体) - 微软拼音", store.Local.Values["which"].AsText());
@@ -4460,7 +4526,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("system.ime", Param("what", "switch"), Param("layout", "英语"),
-                Param("resultVariable", "now")),
+                Returns("ime=now")),
         ], devices);
 
         // The variable holds the layout the window really ended up on, which is the name the device
@@ -4500,9 +4566,9 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("system.brightness", Param("what", "up"), Param("stepPercent", "30"),
-                Param("resultVariable", "up")),
+                Returns("brightness=up")),
             Step("system.brightness", Param("what", "down"), Param("stepPercent", "15"),
-                Param("resultVariable", "down")),
+                Returns("brightness=down")),
         ], devices);
 
         Assert.Equal(50d, store.Local.Values["up"].Number);
@@ -4515,7 +4581,8 @@ public class DeviceActionTests
     public async Task The_brightness_action_reads_without_changing_anything()
     {
         var devices = new FakeDeviceLayer { ScreenBrightness = 65 };
-        var (_, _, store) = await RunAsync([Step("system.brightness")], devices);
+        var (_, _, store) = await RunAsync(
+            [Step("system.brightness", Returns("brightness"))], devices);
 
         Assert.Equal(65d, store.Local.Values["brightness"].Number);
 
@@ -4543,8 +4610,8 @@ public class DeviceActionTests
             new ScreenPoint(10, 20), new ScreenSize(300, 200), false, false));
         var (_, _, store) = await RunAsync(
         [
-            Step("window.exists", Param("title", "notepad"), Param("resultVariable", "here")),
-            Step("window.exists", Param("title", "calculator"), Param("resultVariable", "there")),
+            Step("window.exists", Param("title", "notepad"), Returns("found=here")),
+            Step("window.exists", Param("title", "calculator"), Returns("found=there")),
         ], devices);
 
         Assert.True(store.Local.Values["here"].Flag);
@@ -4562,7 +4629,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("window.waitFor", Param("title", "notepad"), Param("timeoutMs", "2000"),
-                Param("resultVariable", "win")),
+                Returns("title=win")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -4579,11 +4646,11 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("window.exists", Param("title", "notes-app"), Param("matchBy", "process"),
-                Param("resultVariable", "byProcess")),
+                Returns("found=byProcess")),
             Step("window.exists", Param("title", "whalegenie"), Param("matchBy", "class"),
-                Param("resultVariable", "byClass")),
+                Returns("found=byClass")),
             Step("window.exists", Param("title", "notes"), Param("matchBy", "title"),
-                Param("resultVariable", "byTitle")),
+                Returns("found=byTitle")),
         ], devices);
 
         Assert.True(store.Local.Values["byProcess"].Flag);
@@ -4599,12 +4666,12 @@ public class DeviceActionTests
         [
             // The one window is called "Notepad - notes.txt".
             Step("window.exists", Param("title", "notepad"), Param("compareBy", "startsWith"),
-                Param("resultVariable", "fromStart")),
+                Returns("found=fromStart")),
             Step("window.exists", Param("title", "notes"), Param("compareBy", "startsWith"),
-                Param("resultVariable", "notFromStart")),
+                Returns("found=notFromStart")),
             Step("window.exists", Param("title", "notes\\.txt$"), Param("compareBy", "regex"),
-                Param("resultVariable", "byPattern")),
-            Step("window.exists", Param("title", "notes"), Param("resultVariable", "byText")),
+                Returns("found=byPattern")),
+            Step("window.exists", Param("title", "notes"), Returns("found=byText")),
         ], devices);
 
         Assert.True(store.Local.Values["fromStart"].Flag);
@@ -4621,7 +4688,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("window.exists", Param("title", "notes("), Param("compareBy", "regex"),
-                Param("resultVariable", "found")),
+                Returns("found=found")),
         ], devices);
 
         Assert.Equal("Run.BadPattern", result.Key);
@@ -4635,7 +4702,7 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("window.exists", Param("title", "explorer"), Param("matchBy", "process"),
-                Param("resultVariable", "found")),
+                Returns("found=found")),
         ], devices);
 
         Assert.False(store.Local.Values["found"].Flag);
@@ -4646,7 +4713,7 @@ public class DeviceActionTests
     {
         var devices = WithAWindow();
         var (result, _, store) = await RunAsync(
-            [Step("window.info", Param("title", "Notepad"), Param("resultVariable", "box"))], devices);
+            [Step("window.info", Param("title", "Notepad"), Hit("box", "box"))], devices);
 
         Assert.True(result.Succeeded);
 
@@ -4664,7 +4731,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var (result, _, _) = await RunAsync(
-            [Step("window.info", Param("title", "ghost"), Param("resultVariable", "box"))], devices);
+            [Step("window.info", Param("title", "ghost"), Hit("box", "box"))], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.WindowNotFound", result.Key);
@@ -4675,7 +4742,7 @@ public class DeviceActionTests
     {
         var devices = WithAWindow();
         var (result, _, store) = await RunAsync(
-            [Step("vision.captureWindow", Param("title", "Notepad"), Param("saveTo", "shot"))], devices);
+            [Step("vision.captureWindow", Param("title", "Notepad"), Hit("image", "shot"))], devices);
 
         Assert.True(result.Succeeded);
         Assert.Contains("capture 1000 500 800 600", devices.Calls);
@@ -4690,7 +4757,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var (result, _, _) = await RunAsync(
-            [Step("vision.captureWindow", Param("title", "ghost"), Param("saveTo", "shot"))], devices);
+            [Step("vision.captureWindow", Param("title", "ghost"), Hit("image", "shot"))], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.WindowNotFound", result.Key);
@@ -4796,7 +4863,7 @@ public class DeviceActionTests
         devices.Windows.Add(new WindowInfo(2, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
         devices.Windows.Add(new WindowInfo(3, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
         var (_, _, store) = await RunAsync(
-            [Step("window.list", Param("resultVariable", "titles"))], devices);
+            [Step("window.list", Returns("windows=titles"))], devices);
 
         var titles = store.Local.Values["titles"];
         Assert.Equal(["Notepad", "Calculator"], titles.Items.Select(item => item.AsText()));
@@ -4815,11 +4882,11 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("window.list", Param("filter", "notepad"), Param("filterBy", "title"),
-                Param("resultVariable", "byTitle")),
+                Returns("windows=byTitle")),
             Step("window.list", Param("filter", "calc"), Param("filterBy", "process"),
-                Param("resultVariable", "byProcess")),
+                Returns("windows=byProcess")),
             Step("window.list", Param("filter", "CalcFrame"), Param("filterBy", "class"),
-                Param("resultVariable", "byClass")),
+                Returns("windows=byClass")),
         ], devices);
 
         Assert.Equal(["Notepad", "Notepad - notes.txt"],
@@ -4839,7 +4906,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
-                Param("region", ""), Param("resultVariable", "where")),
+                Param("region", ""), Hit("match", "where")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -4860,7 +4927,7 @@ public class DeviceActionTests
         [
             Step("control.setVariable", Param("name", "where.x"), Param("value", "999")),
             Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
-                Param("region", ""), Param("resultVariable", "where")),
+                Param("region", ""), Hit("match", "where")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -4878,9 +4945,9 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("vision.capture", Region((0, 0, 10, 10)), Param("saveTo", "shot")),
+            Step("vision.capture", Region((0, 0, 10, 10)), Hit("image", "shot")),
             Step("vision.findImage", Pictures("$shot"), Param("confidence", "90"),
-                Param("region", ""), Param("resultVariable", "where")),
+                Param("region", ""), Hit("match", "where")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -4910,7 +4977,7 @@ public class DeviceActionTests
         [
             Step("control.setVariable", Param("name", "box"), Param("value", "10,20,30,40")),
             Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
-                RegionFrom("$box"), Param("resultVariable", "where")),
+                RegionFrom("$box"), Hit("match", "where")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -4932,9 +4999,9 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("vision.capture", Region((0, 0, 2, 1)), Param("saveTo", "shot")),
+            Step("vision.capture", Region((0, 0, 2, 1)), Hit("image", "shot")),
             Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
-                RegionFrom("$shot"), Param("resultVariable", "where")),
+                RegionFrom("$shot"), Hit("match", "where")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -4958,7 +5025,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
-                Region((10, 20, 0, 40)), Param("resultVariable", "where")),
+                Region((10, 20, 0, 40)), Hit("match", "where")),
         ], devices);
 
         Assert.False(result.Succeeded);
@@ -4976,7 +5043,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("ocr.findText", Param("text", "Save"), Param("region", ""),
-                Param("matchMode", "contains"), Param("resultVariable", "found")),
+                Param("matchMode", "contains"), Hit("match", "found")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -5012,7 +5079,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
-                Param("region", ""), Param("resultVariable", "where")),
+                Param("region", ""), Hit("match", "where")),
             Step("input.mouseMove", Param("x", "$where.x + 3"), Param("y", "$where.y"),
                 Param("durationMs", "0")),
         ], devices);
@@ -5035,7 +5102,7 @@ public class DeviceActionTests
                     Param("x", "0"), Param("y", "0"), Param("color", "#102030"),
                     Param("tolerance", "5"))),
                 Param("timeoutMs", "2000"), Param("pollMs", "10"),
-                Param("onTimeout", "stop"), Param("elapsedVariable", "waited")),
+                Param("onTimeout", "stop"), Returns("elapsed=waited")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -5078,7 +5145,7 @@ public class DeviceActionTests
                     Param("x", "0"), Param("y", "0"), Param("color", "#102030"),
                     Param("tolerance", "5"))),
                 Param("timeoutMs", "80"), Param("pollMs", "10"),
-                Param("onTimeout", "stop"), Param("elapsedVariable", "waited")),
+                Param("onTimeout", "stop"), Returns("elapsed=waited")),
         ], devices);
 
         Assert.Equal(RunStatus.Failed, result.Status);
@@ -5150,7 +5217,7 @@ public class DeviceActionTests
             Step("control.waitUntil",
                 When("condition", Step("condition.randomChance", Param("percent", "100"))),
                 Param("timeoutMs", "200"), Param("pollMs", "10"), Param("onTimeout", "stop"),
-                Param("elapsedVariable", "certainly")),
+                Returns("elapsed=certainly")),
         ]);
 
         Assert.True(certain.Succeeded);
@@ -5162,7 +5229,7 @@ public class DeviceActionTests
             Step("control.waitUntil",
                 When("condition", Step("condition.randomChance", Param("percent", "0"))),
                 Param("timeoutMs", "80"), Param("pollMs", "10"), Param("onTimeout", "continue"),
-                Param("elapsedVariable", "never")),
+                Returns("elapsed=never")),
         ]);
 
         Assert.True(never.Succeeded);
@@ -5276,7 +5343,7 @@ public class DeviceActionTests
             Step("browser.goTo", Param("url", "https://example.com/next")),
             Step("browser.click", Param("target", "#go")),
             Step("browser.fill", Param("target", "#q"), Param("text", "macro")),
-            Step("browser.readText", Param("target", "#result"), Param("resultVariable", "answer")),
+            Step("browser.readText", Param("target", "#result"), Returns("text=answer")),
             Step("browser.close"),
         ], devices);
 

@@ -62,6 +62,14 @@ public class LocalizationTests
                         Wanted(missing, $"{definition.Key}.{parameter.Name}.option.{choice.Value}");
                     }
                 }
+
+                // What a step hands over is named and explained on its returns page, so those lines
+                // are user-facing text like any other and have to exist in Chinese too.
+                foreach (var result in definition.Returns)
+                {
+                    Wanted(missing, $"{definition.Key}.return.{result.Key}.label");
+                    Wanted(missing, $"{definition.Key}.return.{result.Key}.hint");
+                }
             }
 
             return missing;
@@ -106,6 +114,12 @@ public class LocalizationTests
                     {
                         known.Add($"{definition.Key}.{parameter.Name}.option.{choice.Value}");
                     }
+                }
+
+                foreach (var result in definition.Returns)
+                {
+                    known.Add($"{definition.Key}.return.{result.Key}.label");
+                    known.Add($"{definition.Key}.return.{result.Key}.hint");
                 }
             }
 

@@ -32,6 +32,46 @@ internal static class SampleFiles
         => new() { Name = name, Text = text };
 
     /// <summary>
+    /// The results a step was told to hand over, one row per result: "text" hands it over under the
+    /// name <c>text</c>, and "image=shot" hands the picture over under <c>shot</c>. A step that ticks
+    /// nothing hands nothing over at all, so a macro that reads it reads a name no run wrote.
+    /// </summary>
+    public static ExecutableParameter Returns(params string[] results)
+        => new()
+        {
+            Name = "returns",
+            Rows = [.. results.Select(Result)],
+        };
+
+    /// <summary>
+    /// The results of a step that hands over a place, a picture, an element, a window rectangle or a
+    /// program: the main one under <paramref name="name"/>, and every part of it under a name of its
+    /// own — <c>name.x</c>, <c>name.y</c> and so on, the way a macro read them when each part was a
+    /// spelling of the main result. A key an action does not hand over is simply never asked for.
+    /// </summary>
+    public static ExecutableParameter Hit(string key, string name) => Returns(
+    [
+        $"{key}={name}",
+        .. Parts.Select(part => $"{part}={name}.{part}"),
+    ]);
+
+    private static readonly string[] Parts =
+    [
+        "x", "y", "width", "height", "score", "text", "count", "list", "window", "method", "title",
+        "id", "name", "memoryMb", "cpuSeconds",
+    ];
+
+    private static IReadOnlyDictionary<string, string> Result(string written)
+    {
+        var cut = written.IndexOf('=');
+        return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["key"] = cut < 0 ? written : written[..cut],
+            ["name"] = cut < 0 ? written : written[(cut + 1)..],
+        };
+    }
+
+    /// <summary>
     /// Runs steps over the sample files. The bytes handed to the engine are the ones on disk — a
     /// text file is decoded the way the reader would decode it — so what the engine works on is
     /// what a macro would work on; only the devices that are not a file are stand-ins.

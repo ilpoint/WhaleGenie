@@ -15,6 +15,27 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class RunLookTests
 {
+    /// <summary>
+    /// A step told to hand one result over, written the way the file writes it: a row of the
+    /// <c>returns</c> parameter with the key of the result and the name it goes by.
+    /// </summary>
+    private static StepParameter Handed(string key, string name) => new()
+    {
+        Name = "returns",
+        Kind = ActionParameterKind.Returns,
+        Rows =
+        [
+            new StepParameterRow
+            {
+                Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["key"] = key,
+                    ["name"] = name,
+                },
+            },
+        ],
+    };
+
     [Fact]
     public void A_step_that_looked_at_the_screen_gets_a_picture_on_its_row()
     {
@@ -37,12 +58,7 @@ public class RunLookTests
                         Kind = ActionParameterKind.Number,
                         Value = "90",
                     },
-                    new StepParameter
-                    {
-                        Name = "resultVariable",
-                        Kind = ActionParameterKind.Text,
-                        Value = "match",
-                    },
+                    Handed("match", "match"),
                 ],
             };
 
@@ -98,12 +114,7 @@ public class RunLookTests
                             },
                         ],
                     },
-                    new StepParameter
-                    {
-                        Name = "saveTo",
-                        Kind = ActionParameterKind.Text,
-                        Value = $"shot{index}",
-                    },
+                    Handed("image", $"shot{index}"),
                 ],
             }).ToList();
 

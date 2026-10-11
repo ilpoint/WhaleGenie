@@ -13,19 +13,19 @@ public class SampleJsonTests
     {
         var run = await SampleFiles.RunAsync(
             SampleFiles.Step("file.readJson", SampleFiles.Param("path", "sample-1.json"),
-                SampleFiles.Param("query", "store.name"), SampleFiles.Param("resultVariable", "shop")),
+                SampleFiles.Param("query", "store.name"), SampleFiles.Returns("value=shop")),
             SampleFiles.Step("file.readJson", SampleFiles.Param("path", "sample-1.json"),
                 SampleFiles.Param("query", "store.products[0].price"),
-                SampleFiles.Param("resultVariable", "price")),
+                SampleFiles.Returns("value=price")),
             SampleFiles.Step("file.readJson", SampleFiles.Param("path", "sample-1.json"),
                 SampleFiles.Param("query", "store.products[1].shipping.express.cost"),
-                SampleFiles.Param("resultVariable", "express")),
+                SampleFiles.Returns("value=express")),
             SampleFiles.Step("file.readJson", SampleFiles.Param("path", "sample-1.json"),
                 SampleFiles.Param("query", "store.products[0].details.features[2]"),
-                SampleFiles.Param("resultVariable", "lastFeature")),
+                SampleFiles.Returns("value=lastFeature")),
             SampleFiles.Step("file.readJson", SampleFiles.Param("path", "sample-2.json"),
                 SampleFiles.Param("query", "users[1].name"),
-                SampleFiles.Param("resultVariable", "second")));
+                SampleFiles.Returns("value=second")));
 
         Assert.True(run.Result.Succeeded, run.Result.Detail);
         Assert.Equal("Sample.Cat Store", run.Value("shop").AsText());
@@ -53,18 +53,18 @@ public class SampleJsonTests
                 SampleFiles.Param("value", "hello@sample.cat")),
             SampleFiles.Step("file.readJson", SampleFiles.Param("path", "sample-1.json"),
                 SampleFiles.Param("query", "store.products[0].price"),
-                SampleFiles.Param("resultVariable", "price")),
+                SampleFiles.Returns("value=price")),
             SampleFiles.Step("file.readJson", SampleFiles.Param("path", "sample-1.json"),
                 SampleFiles.Param("query", "store.products[1].shipping.express.deliveryTime"),
-                SampleFiles.Param("resultVariable", "when")),
+                SampleFiles.Returns("value=when")),
             SampleFiles.Step("file.readJson", SampleFiles.Param("path", "sample-1.json"),
-                SampleFiles.Param("query", "store.name"), SampleFiles.Param("resultVariable", "shop")),
+                SampleFiles.Param("query", "store.name"), SampleFiles.Returns("value=shop")),
             SampleFiles.Step("file.readJson", SampleFiles.Param("path", "sample-1.json"),
                 SampleFiles.Param("query", "store.contact.email"),
-                SampleFiles.Param("resultVariable", "email")),
+                SampleFiles.Returns("value=email")),
             SampleFiles.Step("file.readJson", SampleFiles.Param("path", "sample-1.json"),
                 SampleFiles.Param("query", "store.products[1].variants[1].color"),
-                SampleFiles.Param("resultVariable", "colour")));
+                SampleFiles.Returns("value=colour")));
 
         Assert.True(run.Result.Succeeded, run.Result.Detail);
         Assert.Equal(25.99, run.Value("price").AsNumber(), 2);

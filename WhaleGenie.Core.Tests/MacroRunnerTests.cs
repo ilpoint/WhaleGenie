@@ -17,6 +17,13 @@ public class MacroRunnerTests
     private static ExecutableParameter Param(string name, string text = "")
         => new() { Name = name, Text = text };
 
+    /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
+    private static ExecutableParameter Returns(params string[] results)
+        => SampleFiles.Returns(results);
+
+    /// <summary>See <see cref="SampleFiles.Hit"/>: a place, a picture or a program and all its parts.</summary>
+    private static ExecutableParameter Hit(string key, string name) => SampleFiles.Hit(key, name);
+
     private static ExecutableParameter Body(string name, params ExecutableStep[] steps)
         => new() { Name = name, Steps = steps };
 
@@ -1075,9 +1082,9 @@ public class MacroRunnerTests
         var (result, _) = await RunAsync(
             [
                 Step("data.base64Encode", Param("text", "你好, Ada"),
-                    Param("resultVariable", "encoded")),
+                    Returns("encoded")),
                 Step("data.base64Decode", Param("text", "$encoded"),
-                    Param("resultVariable", "back")),
+                    Returns("decoded=back")),
             ],
             variables: store);
 
@@ -1094,7 +1101,7 @@ public class MacroRunnerTests
     {
         var store = Store();
         var (result, _) = await RunAsync(
-            [Step("data.base64Decode", Param("text", "not base64!!"), Param("resultVariable", "x"))],
+            [Step("data.base64Decode", Param("text", "not base64!!"), Returns("decoded=x"))],
             variables: store);
 
         Assert.Equal(RunStatus.Failed, result.Status);
@@ -1109,9 +1116,9 @@ public class MacroRunnerTests
         var (result, _) = await RunAsync(
             [
                 Step("data.hash", Param("algorithm", "sha256"), Param("text", "abc"),
-                    Param("resultVariable", "digest")),
+                    Returns("digest")),
                 Step("data.hash", Param("algorithm", "md5"), Param("text", "abc"),
-                    Param("resultVariable", "md5")),
+                    Returns("digest=md5")),
             ],
             variables: store);
 
@@ -1360,7 +1367,7 @@ public class MacroRunnerTests
             Try(
                 Body("body", Step("input.keyPress", Param("key", "F5"))),
                 Body("catch", Set("handled", "yes")),
-                Param("errorVariable", "why")),
+                Returns("error=why")),
         ], variables: store);
 
         Assert.True(result.Succeeded);
@@ -1378,7 +1385,7 @@ public class MacroRunnerTests
         [
             Try(
                 Body("body", Set("a", "1")),
-                Param("errorVariable", "why")),
+                Returns("error=why")),
         ], variables: store);
 
         Assert.Equal(string.Empty, store.Local.Values["why"].AsText());
@@ -1580,10 +1587,10 @@ public class MacroRunnerTests
         var (result, _) = await RunAsync(
         [
             Step("control.runMacro", Param("macro", "双击"), Param("arguments", "n=$n"),
-                Param("returns", "n")),
+                Param("bringBack", "n")),
             Set("中间", "$n"),
             Step("control.runMacro", Param("macro", "清空"), Param("arguments", "n=$n"),
-                Param("returns", "n")),
+                Param("bringBack", "n")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
@@ -1600,7 +1607,7 @@ public class MacroRunnerTests
         var (result, _) = await RunAsync(
         [
             Step("control.runMacro", Param("macro", "加一"), Param("arguments", "输入=$我的数"),
-                Param("returns", "结果")),
+                Param("bringBack", "结果")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
@@ -1615,7 +1622,7 @@ public class MacroRunnerTests
         var (result, _) = await RunAsync(
         [
             Set("只有调用者有", "7"),
-            Step("control.runMacro", Param("macro", "读"), Param("returns", "结果")),
+            Step("control.runMacro", Param("macro", "读"), Param("bringBack", "结果")),
         ], macros: library);
 
         Assert.Equal(RunStatus.Failed, result.Status);
@@ -1642,7 +1649,7 @@ public class MacroRunnerTests
         var library = new Library(("空手", [Set("别的", "1")]));
 
         var (result, _) = await RunAsync(
-            [Step("control.runMacro", Param("macro", "空手"), Param("returns", "答案"))],
+            [Step("control.runMacro", Param("macro", "空手"), Param("bringBack", "答案"))],
             variables: store, macros: library);
 
         Assert.True(result.Succeeded);
@@ -1660,7 +1667,7 @@ public class MacroRunnerTests
         [
             Set("项目", "list(1, 2, 3)"),
             Step("control.runMacro", Param("macro", "数个数"), Param("arguments", "项目=$项目"),
-                Param("returns", "个数")),
+                Param("bringBack", "个数")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);

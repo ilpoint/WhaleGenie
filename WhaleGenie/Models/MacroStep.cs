@@ -39,7 +39,8 @@ public class StepParameter
     /// The rows of a parameter that holds a list of them, filled in when <see cref="Kind"/> is
     /// <see cref="ActionParameterKind.Region"/>, <see cref="ActionParameterKind.KeySequence"/> or
     /// <see cref="ActionParameterKind.Images"/>, and holds the one row when it is
-    /// <see cref="ActionParameterKind.Rect"/>. What the columns of a row mean belongs to the
+    /// <see cref="ActionParameterKind.Rect"/>; a <see cref="ActionParameterKind.Returns"/> holds
+    /// one row per result the step hands over. What the columns of a row mean belongs to the
     /// action, so this holds the names and what they say rather than a shape of its own.
     /// </summary>
     public List<StepParameterRow> Rows { get; init; } = [];
@@ -51,7 +52,8 @@ public class StepParameter
     /// while every press of a key run is only itself.
     /// </summary>
     public bool IsRowList => Kind is ActionParameterKind.Region
-        or ActionParameterKind.Rect or ActionParameterKind.KeySequence or ActionParameterKind.Images;
+        or ActionParameterKind.Rect or ActionParameterKind.KeySequence or ActionParameterKind.Images
+        or ActionParameterKind.Returns;
 
     /// <summary>Everything written in the rows of a list parameter, by row.</summary>
     public IEnumerable<string> RowValues => Rows.SelectMany(row => row.Columns.Values);
@@ -70,7 +72,7 @@ public class StepParameter
             string.Equals(Value, "true", StringComparison.OrdinalIgnoreCase)),
         ActionParameterKind.Steps => BuildArray(Steps),
         ActionParameterKind.Region or ActionParameterKind.Rect or ActionParameterKind.KeySequence
-            or ActionParameterKind.Images => RowsJson(),
+            or ActionParameterKind.Images or ActionParameterKind.Returns => RowsJson(),
         ActionParameterKind.Condition => Condition?.ToJson(),
         _ => JsonValue.Create(Value),
     };
@@ -119,7 +121,7 @@ public class StepParameter
         {
             JsonArray rows when definition?.Kind is ActionParameterKind.Region
                 or ActionParameterKind.Rect or ActionParameterKind.KeySequence
-                or ActionParameterKind.Images => new StepParameter
+                or ActionParameterKind.Images or ActionParameterKind.Returns => new StepParameter
                 {
                     Name = name,
                     Kind = definition!.Kind,
@@ -388,9 +390,12 @@ public class MacroStep : INotifyPropertyChanged
                     case ActionParameterKind.Images when parameter.Rows.Count > 0:
                         parts.Add($"{label} = {Strings.Format("Editor.PictureCount", parameter.Rows.Count)}");
                         break;
+                    case ActionParameterKind.Returns when parameter.Rows.Count > 0:
+                        parts.Add($"{label} = {Strings.Format("Editor.ReturnCount", parameter.Rows.Count)}");
+                        break;
                     case ActionParameterKind.Steps or ActionParameterKind.Condition
                         or ActionParameterKind.Region or ActionParameterKind.KeySequence
-                        or ActionParameterKind.Images:
+                        or ActionParameterKind.Images or ActionParameterKind.Returns:
                         break;
                     default:
                         if (!string.IsNullOrWhiteSpace(parameter.Value))
@@ -456,6 +461,14 @@ public class MacroStep : INotifyPropertyChanged
                 case ActionParameterKind.Condition:
                     parameter.Condition?.CollectVariables(names);
                     break;
+                // The results a step hands over are named one by one on the returns page, so what
+                // this step creates is read from those rows rather than from a single value.
+                case ActionParameterKind.Returns:
+                    foreach (var (_, name) in ReturnedResults(parameter))
+                    {
+                        names.Add(name);
+                    }
+                    break;
                 default:
                     if (DefinesVariable(parameter) && !string.IsNullOrWhiteSpace(parameter.Value))
                     {
@@ -467,17 +480,33 @@ public class MacroStep : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// True when the parameter creates a variable rather than referencing one. The names are the
-    /// ones the engine writes those variables under, so this is the one list of them: a picker that
-    /// offered anything else would offer a name no run ever makes.
+    /// The results this step was told to hand over, in the order they are written: one per ticked
+    /// result, each row of the <c>returns</c> parameter carrying the key of the result and the name
+    /// it goes by.
+    /// </summary>
+    public IEnumerable<(string Key, string Name)> ReturnedResults(StepParameter parameter)
+    {
+        foreach (var row in parameter.Rows)
+        {
+            var name = row.Text("name").Trim();
+            if (name.Length > 0)
+            {
+                yield return (row.Text("key").Trim(), name);
+            }
+        }
+    }
+
+    /// <summary>
+    /// True when the parameter creates a variable rather than referencing one. What a step leaves
+    /// behind is now named one result at a time on the returns page, so this is left with the names
+    /// that are part of writing the step itself: the loop's own variables, and the name a "set
+    /// variable", "calculate" or "create list" step writes into.
     /// </summary>
     public bool DefinesVariable(StepParameter parameter) => parameter.Name switch
     {
-        "itemVariable" or "indexVariable" or "resultVariable" or "errorVariable"
-            or "exitCodeVariable" or "saveTo" => true,
+        "itemVariable" or "indexVariable" => true,
         "name" => Type is "control.setVariable" or "control.calculate" or "control.listCreate",
         "variable" => Type is "control.for",
-        "elapsedVariable" => Type is "control.waitUntil",
         _ => false,
     };
 

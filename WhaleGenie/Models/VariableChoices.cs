@@ -146,6 +146,29 @@ public static class VariableChoices
                     continue;
                 }
 
+                // A step that hands results over names each of them itself, so a row is made for
+                // every one that was ticked: what it is called, what it holds, and where it came
+                // from. Nothing ticked means the step leaves no result behind.
+                if (parameter.Kind is ActionParameterKind.Returns)
+                {
+                    foreach (var (key, name) in step.ReturnedResults(parameter))
+                    {
+                        var result = step.Definition?.Returns.FirstOrDefault(
+                            candidate => string.Equals(candidate.Key, key,
+                                StringComparison.OrdinalIgnoreCase));
+                        rows.Add(new VariableChoice
+                        {
+                            Name = name,
+                            Scope = VariableScope.Local,
+                            Type = result?.TypeName ?? "text",
+                            Description = result?.LocalHint ?? string.Empty,
+                            Source = step.PickerLabel,
+                        });
+                    }
+
+                    continue;
+                }
+
                 // A condition reads variables and makes none, so there is nothing to collect there.
                 if (parameter.Kind is ActionParameterKind.Condition
                     || !step.DefinesVariable(parameter)

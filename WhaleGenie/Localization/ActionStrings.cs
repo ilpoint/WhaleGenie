@@ -214,9 +214,8 @@ internal static class ActionStrings
 
     /// <summary>The hint the "record every match" switches share.</summary>
     private const string AllMatchesHint =
-        "勾选后除了选中的那一个，还把命中的数量与每个命中都记下来：$变量名.count 是数量，"
-        + "$变量名.list 是每条命中的 “x,y”，可配合 count()、get()、forEach 使用。"
-        + "不勾选时只记录选中的那一个。";
+        "勾选后除了选中的那一处，还把命中的数量与每个命中都记下来：把“命中数”和“全部命中”两项结果"
+        + "一起勾上即可，列表可直接用于 count()、get() 和 forEach。不勾选时只记录选中的那一处。";
 
     /// <summary>
     /// The hint the two text-searching actions share for their lowest-score field. The numbers
@@ -243,8 +242,6 @@ internal static class ActionStrings
         ["control.waitUntil.onTimeout.hint"] = "时间到了以后这个宏怎么做。",
         ["control.waitUntil.onTimeout.option.stop"] = "停止整个宏",
         ["control.waitUntil.onTimeout.option.continue"] = "忽略并继续下一步",
-        ["control.waitUntil.elapsedVariable.label"] = "等待时长毫秒",
-        ["control.waitUntil.elapsedVariable.hint"] = "用来接收这次等待实际花了多少毫秒；等到和超时都会写入。",
 
         ["control.sequence.name"] = "顺序执行",
         ["control.sequence.desc"] = "按顺序依次执行子步骤。",
@@ -361,8 +358,6 @@ internal static class ActionStrings
         ["control.try.catch.hint"] = "尝试失败时执行的子步骤。",
         ["control.try.finally.label"] = "收尾步骤",
         ["control.try.finally.hint"] = "无论成功、失败还是被跳过都会执行的子步骤。",
-        ["control.try.errorVariable.label"] = "失败原因变量",
-        ["control.try.errorVariable.hint"] = "用来接收失败原因；没有失败时会被清空。",
 
         ["control.break.name"] = "跳出循环",
         ["control.break.desc"] = "立即跳出最内层循环。",
@@ -465,9 +460,6 @@ internal static class ActionStrings
         ["control.runMacro.arguments.hint"] = "一行一个 NAME=value，作为被调用宏自身的变量传入。"
             + "值按与其他字段相同的规则读取：count=$n + 1 传入的是数字，xs=$list 传入的是列表本身；"
             + "无法写成 NAME=value 的行会使这一步失败。# 开头的行会被跳过。",
-        ["control.runMacro.returns.label"] = "返回",
-        ["control.runMacro.returns.hint"] = "要带回本宏的变量名，用逗号隔开。被调用宏没有设置的"
-            + "名字会带回空值，这样后面读到的永远是这一次的结果，而不是上一次残留的。",
 
         // --------------------------------------------------------------------- file
         ["file.readText.name"] = "读取文本",
@@ -485,9 +477,6 @@ internal static class ActionStrings
         ["file.readText.skipBlankLines.hint"] = "丢掉什么都没有的行，名单中间夹着的空行就不会跑进列表里。",
         ["file.readText.trim.label"] = "去掉每行两端的空格",
         ["file.readText.trim.hint"] = "每一行两端的空格都去掉。",
-        ["file.readText.resultVariable.label"] = "结果变量",
-        ["file.readText.resultVariable.hint"] = "接收读取结果的变量：整份内容读成一段文本，"
-            + "或一行一项读成列表。",
         ["file.readText.encoding.label"] = "编码",
         ["file.readText.encoding.hint"] = EncodingHintText,
         ["file.readText.encoding.option.utf8"] = EncodingUtf8,
@@ -533,8 +522,6 @@ internal static class ActionStrings
         ["file.exists.desc"] = "检查文件或文件夹是否存在。",
         ["file.exists.path.label"] = "文件",
         ["file.exists.path.hint"] = "要查找的文件或文件夹。只写名称时会相对宏文件夹解析。",
-        ["file.exists.resultVariable.label"] = "结果变量",
-        ["file.exists.resultVariable.hint"] = "接收 true 或 false 的变量。",
 
         ["file.delete.name"] = "删除文件",
         ["file.delete.desc"] = "删除一个文件。",
@@ -590,8 +577,6 @@ internal static class ActionStrings
         ["file.path.path.hint"] = "要处理的路径。选两个文件夹相关的项时用不到它。",
         ["file.path.name.label"] = "名字",
         ["file.path.name.hint"] = "拼接时接在后面的部分，只有“拼接文件夹和文件名”用得到。",
-        ["file.path.resultVariable.label"] = "结果变量",
-        ["file.path.resultVariable.hint"] = "接收算出来的结果的变量。",
 
         ["file.unzip.name"] = "解压",
         ["file.unzip.desc"] = "把 zip 压缩包解压到文件夹。",
@@ -634,8 +619,6 @@ internal static class ActionStrings
         ["file.listFiles.sortBy.option.extension"] = "扩展名",
         ["file.listFiles.descending.label"] = "倒过来排",
         ["file.listFiles.descending.hint"] = "最大的、最新的或从 Z 到 A 排在最前面。",
-        ["file.listFiles.resultVariable.label"] = "结果变量",
-        ["file.listFiles.resultVariable.hint"] = "接收完整路径列表的变量。",
         ["file.listFiles.depth.label"] = "最多往里几层",
         ["file.listFiles.depth.hint"] = "勾了「包含子文件夹」时最多往里看几层；0 表示一层层看下去。",
         ["file.listFiles.withinCount.label"] = "最近改过的",
@@ -659,8 +642,6 @@ internal static class ActionStrings
         ["file.readJson.path.hint"] = "要读取的 JSON 文件。只写文件名时会相对宏文件夹解析。",
         ["file.readJson.query.label"] = "位置",
         ["file.readJson.query.hint"] = "值的路径，例如 server.name 或 items[0].id。留空表示整个文件。",
-        ["file.readJson.resultVariable.label"] = "结果变量",
-        ["file.readJson.resultVariable.hint"] = "接收该值的变量。",
 
         ["file.writeJson.name"] = "写入 JSON",
         ["file.writeJson.desc"] = "设置 JSON 文件中的一个值，保留其余内容。",
@@ -689,10 +670,7 @@ internal static class ActionStrings
         ["file.readCsv.separatorText.hint"] =
             "列表里没有的分隔符写在这里，比如 : 或 #；填了就按这个来，不填就用上面选的。",
         ["file.readCsv.hasHeader.label"] = "首行是表头",
-        ["file.readCsv.hasHeader.hint"] = "结果中不包含第一行，第一行的名字存到下面的变量里。",
-        ["file.readCsv.headerVariable.label"] = "列名变量",
-        ["file.readCsv.headerVariable.hint"] =
-            "接收表头那一行的列名，按列的顺序排列，宏靠它认出哪一列是要的那一列。不填就不存。",
+        ["file.readCsv.hasHeader.hint"] = "结果中不包含第一行，第一行的名字交给返回值页上的“表头”那一项。",
         ["file.readCsv.skipBlankLines.label"] = "跳过空行",
         ["file.readCsv.skipBlankLines.hint"] =
             "空行不算一行。别的程序导出的文件常在末尾留一个空行，不跳过就会读出一行空单元格。",
@@ -729,8 +707,6 @@ internal static class ActionStrings
         ["file.readCsv.matchMode.option.lessThan"] = "小于",
         ["file.readCsv.matchMode.option.lessOrEqual"] = "小于等于",
         ["file.readCsv.matchMode.option.regex"] = "正则匹配",
-        ["file.readCsv.resultVariable.label"] = "结果变量",
-        ["file.readCsv.resultVariable.hint"] = "接收行列表的变量，每行是一个单元格列表。",
         ["file.readCsv.encoding.label"] = "编码",
         ["file.readCsv.encoding.hint"] = EncodingHintText,
         ["file.readCsv.encoding.option.utf8"] = EncodingUtf8,
@@ -803,15 +779,11 @@ internal static class ActionStrings
         ["data.base64Encode.text.label"] = "文本",
         ["data.base64Encode.text.hint"] = "要编码的文本。按一个值读取，变量或表达式都可以写成它；"
             + "编码时按 UTF-8 处理。",
-        ["data.base64Encode.resultVariable.label"] = "结果变量",
-        ["data.base64Encode.resultVariable.hint"] = "存 Base64 文本的变量。",
 
         ["data.base64Decode.name"] = "Base64 解码",
         ["data.base64Decode.desc"] = "把 Base64 变回它原本的文本。",
         ["data.base64Decode.text.label"] = "Base64",
         ["data.base64Decode.text.hint"] = "要解码的 Base64 文本。按一个值读取，变量或表达式都可以写成它。",
-        ["data.base64Decode.resultVariable.label"] = "结果变量",
-        ["data.base64Decode.resultVariable.hint"] = "存解码后文本的变量，按 UTF-8 读出来。",
 
         ["data.hash.name"] = "计算哈希",
         ["data.hash.desc"] = "算出一段文本的校验和。",
@@ -824,8 +796,6 @@ internal static class ActionStrings
         ["data.hash.algorithm.option.sha512"] = "SHA-512",
         ["data.hash.text.label"] = "文本",
         ["data.hash.text.hint"] = "要算校验和的文本，按 UTF-8 处理。",
-        ["data.hash.resultVariable.label"] = "结果变量",
-        ["data.hash.resultVariable.hint"] = "存校验和的变量，用小写字母和数字。",
 
         // ---------------------------------------------------------------- clipboard
         ["clipboard.writeText.name"] = "复制到剪贴板",
@@ -835,13 +805,9 @@ internal static class ActionStrings
 
         ["clipboard.readText.name"] = "读取剪贴板",
         ["clipboard.readText.desc"] = "把剪贴板上的文本读入变量。",
-        ["clipboard.readText.resultVariable.label"] = "结果变量",
-        ["clipboard.readText.resultVariable.hint"] = "接收剪贴板文本的变量。",
 
         ["clipboard.readImage.name"] = "读取剪贴板图片",
         ["clipboard.readImage.desc"] = "把剪贴板上的图片读进图像变量。",
-        ["clipboard.readImage.resultVariable.label"] = "结果变量",
-        ["clipboard.readImage.resultVariable.hint"] = "接收图片的变量，可以交给找图步骤在屏幕上找。$变量名.width、.height 是它的尺寸；剪贴板上的图片没有屏幕位置，所以没有 .x。",
 
         ["clipboard.writeImage.name"] = "复制图片到剪贴板",
         ["clipboard.writeImage.desc"] = "把一张图片放到剪贴板上，等同于复制它。",
@@ -850,8 +816,6 @@ internal static class ActionStrings
 
         ["clipboard.readFiles.name"] = "读取剪贴板文件",
         ["clipboard.readFiles.desc"] = "把剪贴板上的文件路径读成列表。",
-        ["clipboard.readFiles.resultVariable.label"] = "结果变量",
-        ["clipboard.readFiles.resultVariable.hint"] = "接收完整路径列表的变量；剪贴板上没有文件时是空列表。",
 
         ["clipboard.writeFiles.name"] = "复制文件到剪贴板",
         ["clipboard.writeFiles.desc"] = "把文件放到剪贴板上，粘贴出来的是文件本身。",
@@ -865,8 +829,6 @@ internal static class ActionStrings
         ["clipboard.waitChange.desc"] = "等待剪贴板上有新的内容被复制。",
         ["clipboard.waitChange.timeoutMs.label"] = "超时",
         ["clipboard.waitChange.timeoutMs.hint"] = "最多等待多久，超时即失败。",
-        ["clipboard.waitChange.resultVariable.label"] = "结果变量",
-        ["clipboard.waitChange.resultVariable.hint"] = "接收新文本的变量，留空表示只等待不保存。",
 
         ["clipboard.copy.name"] = "复制",
         ["clipboard.copy.desc"] = "发送复制快捷键，并保留复制到的内容。",
@@ -874,8 +836,6 @@ internal static class ActionStrings
         ["clipboard.copy.keys.hint"] = "用 + 连接，用于复制所选内容。",
         ["clipboard.copy.timeoutMs.label"] = "超时",
         ["clipboard.copy.timeoutMs.hint"] = "等待剪贴板变化的时长。",
-        ["clipboard.copy.resultVariable.label"] = "结果变量",
-        ["clipboard.copy.resultVariable.hint"] = "接收复制内容的变量。",
 
         ["clipboard.paste.name"] = "粘贴",
         ["clipboard.paste.desc"] = "把文本放进剪贴板，并发送粘贴快捷键。",
@@ -899,8 +859,6 @@ internal static class ActionStrings
         ["process.start.runAsAdmin.hint"] = "请 Windows 用管理员权限启动这个程序。系统会弹出自己的确认框，拒绝就让这一步失败。以管理员身份启动的程序无法隐藏窗口。",
         ["process.start.environment.label"] = "环境变量",
         ["process.start.environment.hint"] = "这个程序启动时使用的环境变量，一行一个 NAME=value。留空表示沿用鲸灵自身的环境变量。以 # 开头的行会被忽略。自带环境变量启动时，这里要写程序本身，不能写文档或快捷方式。",
-        ["process.start.resultVariable.label"] = "结果变量",
-        ["process.start.resultVariable.hint"] = "接收进程 id 的变量。",
 
         ["process.waitFor.name"] = "等待程序",
         ["process.waitFor.desc"] = "等待某个程序开始运行。",
@@ -908,8 +866,6 @@ internal static class ActionStrings
         ["process.waitFor.name.hint"] = "要等待的程序名。",
         ["process.waitFor.timeoutMs.label"] = "超时",
         ["process.waitFor.timeoutMs.hint"] = "最多等待多久，超时即失败。",
-        ["process.waitFor.resultVariable.label"] = "结果变量",
-        ["process.waitFor.resultVariable.hint"] = "接收进程 id 的变量。",
 
         ["process.waitExit.name"] = "等待程序结束",
         ["process.waitExit.desc"] = "等待本宏启动的某个程序结束。",
@@ -917,29 +873,19 @@ internal static class ActionStrings
         ["process.waitExit.id.hint"] = "要等待的进程，通常是“启动程序”返回的 id。",
         ["process.waitExit.timeoutMs.label"] = "超时",
         ["process.waitExit.timeoutMs.hint"] = "最多等待多久，超时即失败。",
-        ["process.waitExit.resultVariable.label"] = "结果变量",
-        ["process.waitExit.resultVariable.hint"] = "接收退出码的变量。",
 
         ["process.exists.name"] = "程序是否在运行",
         ["process.exists.desc"] = "检查某个程序是否正在运行。",
         ["process.exists.name.label"] = "程序",
         ["process.exists.name.hint"] = "要查找的程序名。",
-        ["process.exists.resultVariable.label"] = "结果变量",
-        ["process.exists.resultVariable.hint"] = "接收 true 或 false 的变量。",
 
         ["process.list.name"] = "列出程序",
         ["process.list.desc"] = "把正在运行的程序名收集成列表。",
-        ["process.list.resultVariable.label"] = "结果变量",
-        ["process.list.resultVariable.hint"] = "接收名称列表的变量。",
 
         ["process.info.name"] = "程序信息",
         ["process.info.desc"] = "读取一个正在运行的程序的信息。",
         ["process.info.target.label"] = "程序",
         ["process.info.target.hint"] = "程序名，或进程 id。",
-        ["process.info.resultVariable.label"] = "结果变量",
-        ["process.info.resultVariable.hint"] = "接收程序文件路径的变量。"
-            + "$名字.id、$名字.name、$名字.path、$名字.memoryMb、$名字.cpuSeconds 是各个部分；"
-            + "Windows 不肯说的时候，路径是空的。",
 
         ["process.kill.name"] = "结束程序",
         ["process.kill.desc"] = "关闭一个程序，默认先请它正常退出。",
@@ -947,8 +893,6 @@ internal static class ActionStrings
         ["process.kill.target.hint"] = "程序名，或进程 id。",
         ["process.kill.force.label"] = "强制关闭",
         ["process.kill.force.hint"] = "直接结束，而不是先请它退出。",
-        ["process.kill.resultVariable.label"] = "结果变量",
-        ["process.kill.resultVariable.hint"] = "接收关闭了几个进程的变量。",
 
         ["command.run.name"] = "执行命令",
         ["command.run.desc"] = "执行一条命令并收集它的输出。",
@@ -971,12 +915,6 @@ internal static class ActionStrings
         ["command.run.outputEncoding.option.system"] = "本机代码页",
         ["command.run.outputEncoding.option.utf8"] = "UTF-8",
         ["command.run.outputEncoding.option.utf16"] = "UTF-16",
-        ["command.run.resultVariable.label"] = "结果变量",
-        ["command.run.resultVariable.hint"] = "接收命令输出的变量。",
-        ["command.run.errorVariable.label"] = "错误变量",
-        ["command.run.errorVariable.hint"] = "接收错误输出的变量。",
-        ["command.run.exitCodeVariable.label"] = "退出码变量",
-        ["command.run.exitCodeVariable.hint"] = "接收退出码的变量。",
 
         // ------------------------------------------------------------------ system
         ["system.info.name"] = "系统信息",
@@ -1007,15 +945,11 @@ internal static class ActionStrings
         ["system.info.field.option.dpi"] = "DPI",
         ["system.info.field.option.dpiPercent"] = "缩放百分比",
         ["system.info.field.option.uptimeSeconds"] = "已开机秒数",
-        ["system.info.resultVariable.label"] = "结果变量",
-        ["system.info.resultVariable.hint"] = "接收该值的变量。",
 
         ["system.environment.name"] = "环境变量",
         ["system.environment.desc"] = "读取一个环境变量。",
         ["system.environment.name.label"] = "名称",
         ["system.environment.name.hint"] = "环境变量的名称。",
-        ["system.environment.resultVariable.label"] = "结果变量",
-        ["system.environment.resultVariable.hint"] = "接收该值的变量。",
         ["system.power.name"] = "电源",
         ["system.power.desc"] = "锁屏、关闭显示器、睡眠、注销、重启或关闭这台电脑。",
         ["system.power.what.label"] = "执行",
@@ -1045,8 +979,6 @@ internal static class ActionStrings
         ["system.volume.percent.hint"] = "要设成的音量，0 到 100。被\"设为指定值\"使用。",
         ["system.volume.stepPercent.label"] = "调整幅度",
         ["system.volume.stepPercent.hint"] = "音量调大或调小多少个百分点。被\"调大\"和\"调小\"使用，两端都不会超过 0 和 100。",
-        ["system.volume.resultVariable.label"] = "结果变量",
-        ["system.volume.resultVariable.hint"] = "接收调整后音量的变量，取值 0 到 100。仅执行静音的步骤也会记录当前音量。",
         ["system.sound.name"] = "提示音",
         ["system.sound.desc"] = "播放系统自带的一种提示音。",
         ["system.sound.what.label"] = "播放",
@@ -1076,8 +1008,6 @@ internal static class ActionStrings
         ["system.ime.what.option.switch"] = "切换到另一种布局",
         ["system.ime.layout.label"] = "布局",
         ["system.ime.layout.hint"] = "要切换到的键盘布局，供\"切换到另一种布局\"使用。写名称的一部分即可匹配；可选名称可用\"列出已安装的布局\"查询。这一步会等到窗口真正切换完成后才结束，因此下一步即可按该布局输入。",
-        ["system.ime.resultVariable.label"] = "结果变量",
-        ["system.ime.resultVariable.hint"] = "接收结果的变量：当前布局名，或者可以切换过去的布局列表。",
         ["system.brightness.name"] = "屏幕亮度",
         ["system.brightness.desc"] = "读取或调整屏幕的亮度。",
         ["system.brightness.what.label"] = "执行",
@@ -1090,8 +1020,6 @@ internal static class ActionStrings
         ["system.brightness.percent.hint"] = "要设成的亮度，0 到 100。被\"设为指定值\"使用。",
         ["system.brightness.stepPercent.label"] = "调整幅度",
         ["system.brightness.stepPercent.hint"] = "亮度调亮或调暗多少个百分点。被\"调亮\"和\"调暗\"使用，两端都不会超过 0 和 100。",
-        ["system.brightness.resultVariable.label"] = "结果变量",
-        ["system.brightness.resultVariable.hint"] = "接收调整后屏幕亮度的变量，0 到 100。",
 
         // ------------------------------------------------------------------ window
         ["window.exists.name"] = "窗口是否存在",
@@ -1108,8 +1036,6 @@ internal static class ActionStrings
         ["window.exists.compareBy.option.contains"] = WindowCompareContains,
         ["window.exists.compareBy.option.startsWith"] = WindowCompareStartsWith,
         ["window.exists.compareBy.option.regex"] = WindowCompareRegex,
-        ["window.exists.resultVariable.label"] = "结果变量",
-        ["window.exists.resultVariable.hint"] = "接收 true 或 false 的变量。",
 
         ["window.waitFor.name"] = "等待窗口",
         ["window.waitFor.desc"] = "等到符合匹配内容的窗口出现为止，超过给定时间算失败。",
@@ -1127,8 +1053,6 @@ internal static class ActionStrings
         ["window.waitFor.compareBy.option.regex"] = WindowCompareRegex,
         ["window.waitFor.timeoutMs.label"] = "超时",
         ["window.waitFor.timeoutMs.hint"] = "最多等待多久，超时即失败。",
-        ["window.waitFor.resultVariable.label"] = "结果变量",
-        ["window.waitFor.resultVariable.hint"] = "接收该窗口标题的变量。",
 
         ["window.activate.name"] = "激活窗口",
         ["window.activate.desc"] = "把符合匹配内容的窗口调到最前，已最小化时先恢复。",
@@ -1237,8 +1161,6 @@ internal static class ActionStrings
         ["window.list.filterBy.option.title"] = WindowMatchByTitle,
         ["window.list.filterBy.option.process"] = WindowMatchByProcess,
         ["window.list.filterBy.option.class"] = WindowMatchByClass,
-        ["window.list.resultVariable.label"] = "结果变量",
-        ["window.list.resultVariable.hint"] = "接收标题列表的变量。",
 
         ["window.info.name"] = "窗口信息",
         ["window.info.desc"] = "读取符合匹配内容的窗口的位置和大小。",
@@ -1254,8 +1176,6 @@ internal static class ActionStrings
         ["window.info.compareBy.option.contains"] = WindowCompareContains,
         ["window.info.compareBy.option.startsWith"] = WindowCompareStartsWith,
         ["window.info.compareBy.option.regex"] = WindowCompareRegex,
-        ["window.info.resultVariable.label"] = "结果变量",
-        ["window.info.resultVariable.hint"] = "接收窗口矩形的变量，写法是 x,y,宽,高，可以直接当搜索区域用；.x、.y、.width、.height 是各个部分，.title 是标题栏上的字。",
 
         // -------------------------------------------------------------------- input
         ["input.keyPress.name"] = "按键",
@@ -1854,10 +1774,6 @@ internal static class ActionStrings
         ["vision.findColor.timeoutMs.label"] = "等待上限",
         ["vision.findColor.timeoutMs.hint"] =
             "0 表示只找一次，找不到就把结果留空；填了数字就等它出现，一直不出现算失败。",
-        ["vision.findColor.resultVariable.label"] = "结果变量",
-        ["vision.findColor.resultVariable.hint"] =
-            "接收找到的位置，没找到时为空；$变量名.x、.y、.score 是各个部分，"
-            + "勾了“记录全部命中”后还有 .count 和 .list。",
         ["vision.findColor.anchorMode.label"] = "坐标基准",
         ["vision.findColor.anchorMode.hint"] = AnchorModeHint,
         ["vision.findColor.anchorMode.option.screen"] = "屏幕像素",
@@ -1912,8 +1828,6 @@ internal static class ActionStrings
         ["vision.capture.region.label"] = "要截取的区域",
         ["vision.capture.region.hint"] = "要复制的那块屏幕：用「框选区域」在屏幕上拖出"
             + "矩形，或者写在高级设置里的 x、y、宽、高。这个字段也可以填一个装着矩形的变量。",
-        ["vision.capture.saveTo.label"] = "保存到变量",
-        ["vision.capture.saveTo.hint"] = "接收截图的变量。$变量名.x、.y、.width、.height 记录这次截图覆盖的矩形。",
 
         ["vision.captureWindow.name"] = "截取窗口",
         ["vision.captureWindow.desc"] = "把整个窗口连着标题栏一起截取到图像变量里。",
@@ -1929,8 +1843,6 @@ internal static class ActionStrings
         ["vision.captureWindow.compareBy.option.contains"] = WindowCompareContains,
         ["vision.captureWindow.compareBy.option.startsWith"] = WindowCompareStartsWith,
         ["vision.captureWindow.compareBy.option.regex"] = WindowCompareRegex,
-        ["vision.captureWindow.saveTo.label"] = "保存到变量",
-        ["vision.captureWindow.saveTo.hint"] = "接收截图的变量。$变量名.x、.y、.width、.height 记录窗口外框覆盖的矩形。",
 
         ["vision.findImage.name"] = "查找图片",
         ["vision.findImage.desc"] = "在屏幕上寻找一张参考图片。",
@@ -1940,8 +1852,6 @@ internal static class ActionStrings
         ["vision.findImage.confidence.hint"] = "要求的最低匹配度。",
         ["vision.findImage.region.label"] = "搜索区域",
         ["vision.findImage.region.hint"] = RegionHintText,
-        ["vision.findImage.resultVariable.label"] = "结果变量",
-        ["vision.findImage.resultVariable.hint"] = "接收匹配中心点，未找到时为空；$变量名.x、.y、.width、.height、.score 是各个部分。",
 
         ["vision.waitImage.name"] = "等待图片",
         ["vision.waitImage.desc"] = "等待参考图片在屏幕上出现。",
@@ -1951,7 +1861,6 @@ internal static class ActionStrings
         ["vision.waitImage.confidence.hint"] = "要求的最低匹配度。",
         ["vision.waitImage.timeoutMs.label"] = "等待上限",
         ["vision.waitImage.timeoutMs.hint"] = "超过这个时长就放弃。",
-        ["vision.waitImage.resultVariable.label"] = "结果变量",
 
         ["vision.clickImage.name"] = "点击图片",
         ["vision.clickImage.desc"] = "在屏幕上找到参考图片并点击它。",
@@ -1971,8 +1880,6 @@ internal static class ActionStrings
         ["vision.getPixel.x.hint"] = "取样点的横坐标。",
         ["vision.getPixel.y.label"] = "Y",
         ["vision.getPixel.y.hint"] = "取样点的纵坐标。",
-        ["vision.getPixel.resultVariable.label"] = "结果变量",
-        ["vision.getPixel.resultVariable.hint"] = "接收颜色的变量，可沿用已有变量名或新建一个。",
         ["vision.getPixel.asHex.label"] = "存为十六进制",
         ["vision.getPixel.asHex.hint"] = "存成 #RRGGBB，而不是原始通道值。",
 
@@ -2015,8 +1922,6 @@ internal static class ActionStrings
         ["ocr.recognize.colorTolerance.hint"] = ColourToleranceHint,
         ["ocr.recognize.fixText.label"] = "纠错表",
         ["ocr.recognize.fixText.hint"] = FixTextHint,
-        ["ocr.recognize.resultVariable.label"] = "结果变量",
-        ["ocr.recognize.resultVariable.hint"] = "接收识别结果的变量，可沿用已有变量名或新建一个。",
 
         ["ocr.findText.name"] = "查找文字",
         ["ocr.findText.desc"] = "在屏幕上搜索指定文字。",
@@ -2028,12 +1933,8 @@ internal static class ActionStrings
         ["ocr.findText.matchMode.hint"] = "识别结果与搜索文字的比较方式。",
         ["ocr.findText.expected.label"] = "整段须匹配",
         ["ocr.findText.expected.hint"] = ExpectedHint,
-        ["ocr.findText.resultVariable.label"] = "结果变量",
-        ["ocr.findText.resultVariable.hint"] = "接收匹配中心点，未找到时为空；$变量名.x、.y、"
-            + ".text、.score 是各个部分。score 是识别模型自己的打分，不是百分比，越大越可信。",
         ["ocr.findText.allMatches.label"] = "记录全部命中",
-        ["ocr.findText.allMatches.hint"] = "除选中的那一处之外，还记录匹配数量与各处位置："
-            + "$变量名.count 为匹配数量，$变量名.list 为每处一个“x,y”，可直接用于 count()、get() 和 forEach。",
+        ["ocr.findText.allMatches.hint"] = AllMatchesHint,
         ["ocr.findText.minScore.label"] = "最低识别分",
         ["ocr.findText.minScore.hint"] = MinScoreHint,
         ["ocr.findText.orderBy.label"] = "命中排序",
@@ -2112,8 +2013,6 @@ internal static class ActionStrings
         ["uia.exists.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要的是第几个。" + MatchIndexHint,
         ["uia.exists.timeoutMs.label"] = "超时",
         ["uia.exists.timeoutMs.hint"] = "0 表示只检查一次并立即返回。",
-        ["uia.exists.resultVariable.label"] = "结果变量",
-        ["uia.exists.resultVariable.hint"] = "接收 true / false 的变量。",
 
         ["uia.find.name"] = "查找元素",
         ["uia.find.desc"] = "查找一个 UI Automation 元素，并记住它在屏幕上的位置。",
@@ -2125,11 +2024,6 @@ internal static class ActionStrings
         ["uia.find.matchIndex.hint"] = MatchIndexHint,
         ["uia.find.allMatches.label"] = "记录全部命中",
         ["uia.find.allMatches.hint"] = AllMatchesHint,
-        ["uia.find.resultVariable.label"] = "结果变量",
-        ["uia.find.resultVariable.hint"] =
-            "用来接收元素中心位置的变量，没找到时置空。$变量.x、$变量.y、$变量.width、$变量.height "
-            + "和 $变量.text 分别是各个部分，后面的步骤可以拿它们当参照物；"
-            + "勾了“记录全部命中”时，$变量.count 和 $变量.list 是全部命中。",
 
         ["uia.waitElement.name"] = "等待元素",
         ["uia.waitElement.desc"] = "等待某个 UI Automation 元素出现。",
@@ -2178,8 +2072,6 @@ internal static class ActionStrings
         ["uia.getText.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可用“拾取元素”直接在屏幕上拾取控件。",
         ["uia.getText.matchIndex.label"] = "第几个命中",
         ["uia.getText.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要读取的是第几个。" + MatchIndexHint,
-        ["uia.getText.resultVariable.label"] = "结果变量",
-        ["uia.getText.resultVariable.hint"] = "接收文本的变量。",
 
         ["uia.select.name"] = "选择列表项",
         ["uia.select.desc"] = "在下拉框、列表或选项卡里选中一项。",
@@ -2243,14 +2135,6 @@ internal static class ActionStrings
         ["uia.readTable.maxRows.hint"] =
             "最多读取前多少行数据。整行都是空的会被跳过——放列标题的那一行、有些表格底部留着"
             + "用来输入新记录的空白行，都不是数据。",
-        ["uia.readTable.columnsVariable.label"] = "列名变量",
-        ["uia.readTable.columnsVariable.hint"] =
-            "接收列名，按列的顺序排列，宏靠它认出要读的是哪一列。表格自己把列名放在单独一条上，"
-            + "它不算一行数据，所以单独给。不填就不存。",
-        ["uia.readTable.resultVariable.label"] = "结果变量",
-        ["uia.readTable.resultVariable.hint"] =
-            "用来接收表格内容的变量：$变量 是一个“每行一项”的列表，每一项又是一行单元格的列表，"
-            + "和读取 CSV 返回的形状一样。",
 
         ["uia.focusWindow.name"] = "窗口置前",
         ["uia.focusWindow.desc"] = "把某个窗口切换到最前面。",
@@ -2295,8 +2179,6 @@ internal static class ActionStrings
         ["browser.readText.desc"] = "读取某个元素、或整个页面的文本。",
         ["browser.readText.target.label"] = "选择器",
         ["browser.readText.target.hint"] = "要读取哪个元素，写法同“点击元素”。留空表示读整个页面。",
-        ["browser.readText.resultVariable.label"] = "结果变量",
-        ["browser.readText.resultVariable.hint"] = "存文本的变量。",
 
         ["browser.switchTab.name"] = "切换标签页",
         ["browser.switchTab.desc"] = "让后面的步骤改用浏览器里的另一个标签页。",
@@ -2348,8 +2230,6 @@ internal static class ActionStrings
         ["script.run.folder.hint"] = "脚本在哪个目录中运行。留空表示宏所在目录；该目录不存在时，则使用鲸灵自身的工作目录。",
         ["script.run.timeoutMs.label"] = "超时",
         ["script.run.timeoutMs.hint"] = "超过这个时长就结束脚本并让这一步失败。",
-        ["script.run.resultVariable.label"] = "结果变量",
-        ["script.run.resultVariable.hint"] = "用来接收脚本打印内容的变量，首尾的空行会去掉。",
 
         // ---------------------------------------------------------------- condition
         ["condition.imageExists.name"] = "图片存在",
@@ -2828,5 +2708,455 @@ internal static class ActionStrings
         ["condition.colorsMatch.captureMode.option.printWindow"] = CapturePrintWindow,
         ["condition.colorsMatch.captureMode.option.graphicsCapture"] = CaptureGraphics,
         ["condition.colorsMatch.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
+
+        // control.waitUntil
+        ["control.waitUntil.return.elapsed.label"] = "用时",
+        ["control.waitUntil.return.elapsed.hint"] = "这次等待实际花了多少毫秒，等到和超时都会写。",
+        ["control.waitUntil.returns.label"] = "要留下的结果",
+        ["control.waitUntil.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // control.try
+        ["control.try.return.error.label"] = "错误信息",
+        ["control.try.return.error.hint"] = "尝试失败的原因；没有失败时为空。",
+        ["control.try.returns.label"] = "要留下的结果",
+        ["control.try.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // file.readText
+        ["file.readText.return.text.label"] = "文本",
+        ["file.readText.return.text.hint"] = "文件里的内容；按“每行一项”读出来时是一个列表。",
+        ["file.readText.returns.label"] = "要留下的结果",
+        ["file.readText.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // file.exists
+        ["file.exists.return.exists.label"] = "存在",
+        ["file.exists.return.exists.hint"] = "文件或文件夹在不在。",
+        ["file.exists.returns.label"] = "要留下的结果",
+        ["file.exists.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // file.path
+        ["file.path.return.path.label"] = "路径",
+        ["file.path.return.path.hint"] = "算出来的路径。",
+        ["file.path.returns.label"] = "要留下的结果",
+        ["file.path.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // file.listFiles
+        ["file.listFiles.return.files.label"] = "文件",
+        ["file.listFiles.return.files.hint"] = "收集到的文件完整路径。",
+        ["file.listFiles.returns.label"] = "要留下的结果",
+        ["file.listFiles.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // file.readJson
+        ["file.readJson.return.value.label"] = "值",
+        ["file.readJson.return.value.hint"] = "读到的值；取不到时为空。",
+        ["file.readJson.returns.label"] = "要留下的结果",
+        ["file.readJson.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // file.readCsv
+        ["file.readCsv.return.rows.label"] = "行",
+        ["file.readCsv.return.rows.hint"] = "读到的行，每项是一行的单元格。",
+        ["file.readCsv.return.header.label"] = "表头",
+        ["file.readCsv.return.header.hint"] = "表头那一行的名字，按列的顺序排，宏靠它找到要的那一列；第一行不是表头时为空。",
+        ["file.readCsv.returns.label"] = "要留下的结果",
+        ["file.readCsv.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // data.base64Encode
+        ["data.base64Encode.return.encoded.label"] = "编码结果",
+        ["data.base64Encode.return.encoded.hint"] = "写成 Base64 之后的文本。",
+        ["data.base64Encode.returns.label"] = "要留下的结果",
+        ["data.base64Encode.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // data.base64Decode
+        ["data.base64Decode.return.decoded.label"] = "解码文本",
+        ["data.base64Decode.return.decoded.hint"] = "Base64 里藏的文本，按 UTF-8 读出来。",
+        ["data.base64Decode.returns.label"] = "要留下的结果",
+        ["data.base64Decode.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // data.hash
+        ["data.hash.return.digest.label"] = "校验和",
+        ["data.hash.return.digest.hint"] = "用小写字母和数字写出来的校验和。",
+        ["data.hash.returns.label"] = "要留下的结果",
+        ["data.hash.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // clipboard.readText
+        ["clipboard.readText.return.text.label"] = "文本",
+        ["clipboard.readText.return.text.hint"] = "剪贴板上的文字。",
+        ["clipboard.readText.returns.label"] = "要留下的结果",
+        ["clipboard.readText.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // clipboard.readImage
+        ["clipboard.readImage.return.image.label"] = "图片",
+        ["clipboard.readImage.return.image.hint"] = "剪贴板上的图片，可以交给找图步骤在屏幕上找；它没有屏幕位置，所以没有坐标。",
+        ["clipboard.readImage.returns.label"] = "要留下的结果",
+        ["clipboard.readImage.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // clipboard.readFiles
+        ["clipboard.readFiles.return.files.label"] = "文件",
+        ["clipboard.readFiles.return.files.hint"] = "剪贴板上文件的完整路径；一个文件都没有时是空列表。",
+        ["clipboard.readFiles.returns.label"] = "要留下的结果",
+        ["clipboard.readFiles.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // clipboard.waitChange
+        ["clipboard.waitChange.return.text.label"] = "文本",
+        ["clipboard.waitChange.return.text.hint"] = "新复制上来的文字；只等待不保存时不用勾。",
+        ["clipboard.waitChange.returns.label"] = "要留下的结果",
+        ["clipboard.waitChange.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // clipboard.copy
+        ["clipboard.copy.return.text.label"] = "文本",
+        ["clipboard.copy.return.text.hint"] = "复制到剪贴板上的内容。",
+        ["clipboard.copy.returns.label"] = "要留下的结果",
+        ["clipboard.copy.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // process.start
+        ["process.start.return.processId.label"] = "进程号",
+        ["process.start.return.processId.hint"] = "程序的编号。",
+        ["process.start.returns.label"] = "要留下的结果",
+        ["process.start.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // process.waitFor
+        ["process.waitFor.return.process.label"] = "进程号",
+        ["process.waitFor.return.process.hint"] = "出现的那个程序的编号。",
+        ["process.waitFor.returns.label"] = "要留下的结果",
+        ["process.waitFor.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // process.waitExit
+        ["process.waitExit.return.exitCode.label"] = "退出码",
+        ["process.waitExit.return.exitCode.hint"] = "结束时返回的代码，0 通常表示正常。",
+        ["process.waitExit.returns.label"] = "要留下的结果",
+        ["process.waitExit.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // process.exists
+        ["process.exists.return.running.label"] = "在运行",
+        ["process.exists.return.running.hint"] = "程序在不在运行。",
+        ["process.exists.returns.label"] = "要留下的结果",
+        ["process.exists.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // process.list
+        ["process.list.return.processes.label"] = "进程列表",
+        ["process.list.return.processes.hint"] = "正在运行的程序的名称。",
+        ["process.list.returns.label"] = "要留下的结果",
+        ["process.list.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // process.info
+        ["process.info.return.info.label"] = "文件",
+        ["process.info.return.info.hint"] = "程序所在的文件；Windows 不肯说时为空。",
+        ["process.info.return.id.label"] = "进程号",
+        ["process.info.return.id.hint"] = "程序的编号。",
+        ["process.info.return.name.label"] = "名称",
+        ["process.info.return.name.hint"] = "程序的名称。",
+        ["process.info.return.memoryMb.label"] = "内存",
+        ["process.info.return.memoryMb.hint"] = "程序占用的内存，单位是兆字节。",
+        ["process.info.return.cpuSeconds.label"] = "处理器时间",
+        ["process.info.return.cpuSeconds.hint"] = "程序累计用掉的处理器时间，单位是秒。",
+        ["process.info.returns.label"] = "要留下的结果",
+        ["process.info.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // process.kill
+        ["process.kill.return.stopped.label"] = "已结束",
+        ["process.kill.return.stopped.hint"] = "一共关掉了几个程序。",
+        ["process.kill.returns.label"] = "要留下的结果",
+        ["process.kill.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // command.run
+        ["command.run.return.output.label"] = "输出",
+        ["command.run.return.output.hint"] = "命令打印到标准输出的内容。",
+        ["command.run.return.error.label"] = "错误输出",
+        ["command.run.return.error.hint"] = "命令打印到错误流的内容。",
+        ["command.run.return.exitCode.label"] = "退出码",
+        ["command.run.return.exitCode.hint"] = "命令结束时返回的代码，0 通常表示成功。",
+        ["command.run.returns.label"] = "要留下的结果",
+        ["command.run.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // system.info
+        ["system.info.return.value.label"] = "值",
+        ["system.info.return.value.hint"] = "读到的这项系统信息。",
+        ["system.info.returns.label"] = "要留下的结果",
+        ["system.info.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // system.environment
+        ["system.environment.return.value.label"] = "值",
+        ["system.environment.return.value.hint"] = "环境变量的内容；没有设置时为空。",
+        ["system.environment.returns.label"] = "要留下的结果",
+        ["system.environment.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // system.volume
+        ["system.volume.return.volume.label"] = "音量",
+        ["system.volume.return.volume.hint"] = "机器最后停在的音量，0 到 100；只执行静音的步骤也会报它停在哪一级。",
+        ["system.volume.returns.label"] = "要留下的结果",
+        ["system.volume.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // system.ime
+        ["system.ime.return.ime.label"] = "输入法",
+        ["system.ime.return.ime.hint"] = "正在使用的键盘布局，或者可以切换过去的布局列表。",
+        ["system.ime.returns.label"] = "要留下的结果",
+        ["system.ime.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // system.brightness
+        ["system.brightness.return.brightness.label"] = "亮度",
+        ["system.brightness.return.brightness.hint"] = "屏幕最后停在的亮度，0 到 100。",
+        ["system.brightness.returns.label"] = "要留下的结果",
+        ["system.brightness.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // window.exists
+        ["window.exists.return.found.label"] = "找到",
+        ["window.exists.return.found.hint"] = "有匹配的窗口开着时为真。",
+        ["window.exists.returns.label"] = "要留下的结果",
+        ["window.exists.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // window.waitFor
+        ["window.waitFor.return.title.label"] = "标题",
+        ["window.waitFor.return.title.hint"] = "窗口标题栏上的文字。",
+        ["window.waitFor.returns.label"] = "要留下的结果",
+        ["window.waitFor.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // window.list
+        ["window.list.return.windows.label"] = "窗口列表",
+        ["window.list.return.windows.hint"] = "匹配到的窗口标题。",
+        ["window.list.returns.label"] = "要留下的结果",
+        ["window.list.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // window.info
+        ["window.info.return.box.label"] = "窗口矩形",
+        ["window.info.return.box.hint"] = "窗口的矩形，写成 x,y,width,height，可以直接当搜索区域用。",
+        ["window.info.return.x.label"] = "X",
+        ["window.info.return.x.hint"] = "命中中心点的横坐标，单位是屏幕像素。",
+        ["window.info.return.y.label"] = "Y",
+        ["window.info.return.y.hint"] = "命中中心点的纵坐标，单位是屏幕像素。",
+        ["window.info.return.width.label"] = "宽",
+        ["window.info.return.width.hint"] = "命中区域的宽度，单位是像素。",
+        ["window.info.return.height.label"] = "高",
+        ["window.info.return.height.hint"] = "命中区域的高度，单位是像素。",
+        ["window.info.return.title.label"] = "标题",
+        ["window.info.return.title.hint"] = "窗口标题栏上的文字。",
+        ["window.info.returns.label"] = "要留下的结果",
+        ["window.info.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // vision.capture
+        ["vision.capture.return.image.label"] = "图片",
+        ["vision.capture.return.image.hint"] = "截到的图片，可以拿去搜索，也可以写进文件。",
+        ["vision.capture.return.x.label"] = "X",
+        ["vision.capture.return.x.hint"] = "命中中心点的横坐标，单位是屏幕像素。",
+        ["vision.capture.return.y.label"] = "Y",
+        ["vision.capture.return.y.hint"] = "命中中心点的纵坐标，单位是屏幕像素。",
+        ["vision.capture.return.width.label"] = "宽",
+        ["vision.capture.return.width.hint"] = "命中区域的宽度，单位是像素。",
+        ["vision.capture.return.height.label"] = "高",
+        ["vision.capture.return.height.hint"] = "命中区域的高度，单位是像素。",
+        ["vision.capture.returns.label"] = "要留下的结果",
+        ["vision.capture.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // vision.captureWindow
+        ["vision.captureWindow.return.image.label"] = "图片",
+        ["vision.captureWindow.return.image.hint"] = "截到的整窗图片，连标题栏一起。",
+        ["vision.captureWindow.return.x.label"] = "X",
+        ["vision.captureWindow.return.x.hint"] = "命中中心点的横坐标，单位是屏幕像素。",
+        ["vision.captureWindow.return.y.label"] = "Y",
+        ["vision.captureWindow.return.y.hint"] = "命中中心点的纵坐标，单位是屏幕像素。",
+        ["vision.captureWindow.return.width.label"] = "宽",
+        ["vision.captureWindow.return.width.hint"] = "命中区域的宽度，单位是像素。",
+        ["vision.captureWindow.return.height.label"] = "高",
+        ["vision.captureWindow.return.height.hint"] = "命中区域的高度，单位是像素。",
+        ["vision.captureWindow.returns.label"] = "要留下的结果",
+        ["vision.captureWindow.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // vision.findImage
+        ["vision.findImage.return.match.label"] = "位置",
+        ["vision.findImage.return.match.hint"] = "找到时的中心点，写成 x,y；没找到时为空。",
+        ["vision.findImage.return.x.label"] = "X",
+        ["vision.findImage.return.x.hint"] = "命中中心点的横坐标，单位是屏幕像素。",
+        ["vision.findImage.return.y.label"] = "Y",
+        ["vision.findImage.return.y.hint"] = "命中中心点的纵坐标，单位是屏幕像素。",
+        ["vision.findImage.return.width.label"] = "宽",
+        ["vision.findImage.return.width.hint"] = "命中区域的宽度，单位是像素。",
+        ["vision.findImage.return.height.label"] = "高",
+        ["vision.findImage.return.height.hint"] = "命中区域的高度，单位是像素。",
+        ["vision.findImage.return.score.label"] = "相似度",
+        ["vision.findImage.return.score.hint"] = "这次命中的匹配分数，越高越像，1 表示完全一样。",
+        ["vision.findImage.return.count.label"] = "命中数",
+        ["vision.findImage.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
+        ["vision.findImage.return.list.label"] = "全部命中",
+        ["vision.findImage.return.list.hint"] = "每一处命中的中心点，每项一个 x,y；只有勾上“记录全部命中”才有。",
+        ["vision.findImage.returns.label"] = "要留下的结果",
+        ["vision.findImage.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // vision.waitImage
+        ["vision.waitImage.return.match.label"] = "位置",
+        ["vision.waitImage.return.match.hint"] = "找到时的中心点，写成 x,y；没找到时为空。",
+        ["vision.waitImage.return.x.label"] = "X",
+        ["vision.waitImage.return.x.hint"] = "命中中心点的横坐标，单位是屏幕像素。",
+        ["vision.waitImage.return.y.label"] = "Y",
+        ["vision.waitImage.return.y.hint"] = "命中中心点的纵坐标，单位是屏幕像素。",
+        ["vision.waitImage.return.width.label"] = "宽",
+        ["vision.waitImage.return.width.hint"] = "命中区域的宽度，单位是像素。",
+        ["vision.waitImage.return.height.label"] = "高",
+        ["vision.waitImage.return.height.hint"] = "命中区域的高度，单位是像素。",
+        ["vision.waitImage.return.score.label"] = "相似度",
+        ["vision.waitImage.return.score.hint"] = "这次命中的匹配分数，越高越像，1 表示完全一样。",
+        ["vision.waitImage.return.count.label"] = "命中数",
+        ["vision.waitImage.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
+        ["vision.waitImage.return.list.label"] = "全部命中",
+        ["vision.waitImage.return.list.hint"] = "每一处命中的中心点，每项一个 x,y；只有勾上“记录全部命中”才有。",
+        ["vision.waitImage.returns.label"] = "要留下的结果",
+        ["vision.waitImage.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // vision.clickImage
+        ["vision.clickImage.return.match.label"] = "位置",
+        ["vision.clickImage.return.match.hint"] = "找到时的中心点，写成 x,y；没找到时为空。",
+        ["vision.clickImage.return.x.label"] = "X",
+        ["vision.clickImage.return.x.hint"] = "命中中心点的横坐标，单位是屏幕像素。",
+        ["vision.clickImage.return.y.label"] = "Y",
+        ["vision.clickImage.return.y.hint"] = "命中中心点的纵坐标，单位是屏幕像素。",
+        ["vision.clickImage.return.width.label"] = "宽",
+        ["vision.clickImage.return.width.hint"] = "命中区域的宽度，单位是像素。",
+        ["vision.clickImage.return.height.label"] = "高",
+        ["vision.clickImage.return.height.hint"] = "命中区域的高度，单位是像素。",
+        ["vision.clickImage.return.score.label"] = "相似度",
+        ["vision.clickImage.return.score.hint"] = "这次命中的匹配分数，越高越像，1 表示完全一样。",
+        ["vision.clickImage.return.count.label"] = "命中数",
+        ["vision.clickImage.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
+        ["vision.clickImage.return.list.label"] = "全部命中",
+        ["vision.clickImage.return.list.hint"] = "每一处命中的中心点，每项一个 x,y；只有勾上“记录全部命中”才有。",
+        ["vision.clickImage.returns.label"] = "要留下的结果",
+        ["vision.clickImage.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // vision.getPixel
+        ["vision.getPixel.return.color.label"] = "颜色",
+        ["vision.getPixel.return.color.hint"] = "这个像素的颜色。",
+        ["vision.getPixel.returns.label"] = "要留下的结果",
+        ["vision.getPixel.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // vision.findColor
+        ["vision.findColor.return.match.label"] = "位置",
+        ["vision.findColor.return.match.hint"] = "找到时的中心点，写成 x,y；没找到时为空。",
+        ["vision.findColor.return.x.label"] = "X",
+        ["vision.findColor.return.x.hint"] = "命中中心点的横坐标，单位是屏幕像素。",
+        ["vision.findColor.return.y.label"] = "Y",
+        ["vision.findColor.return.y.hint"] = "命中中心点的纵坐标，单位是屏幕像素。",
+        ["vision.findColor.return.count.label"] = "命中数",
+        ["vision.findColor.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
+        ["vision.findColor.return.list.label"] = "全部命中",
+        ["vision.findColor.return.list.hint"] = "每一处命中的中心点，每项一个 x,y；只有勾上“记录全部命中”才有。",
+        ["vision.findColor.returns.label"] = "要留下的结果",
+        ["vision.findColor.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // ocr.recognize
+        ["ocr.recognize.return.text.label"] = "文本",
+        ["ocr.recognize.return.text.hint"] = "识别出来的文字。",
+        ["ocr.recognize.return.table.label"] = "表格",
+        ["ocr.recognize.return.table.hint"] = "把内容按行列留成表格，每项是一行的单元格；只有勾上“读成表格”才有。",
+        ["ocr.recognize.returns.label"] = "要留下的结果",
+        ["ocr.recognize.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // ocr.findText
+        ["ocr.findText.return.match.label"] = "位置",
+        ["ocr.findText.return.match.hint"] = "找到时的中心点，写成 x,y；没找到时为空。",
+        ["ocr.findText.return.x.label"] = "X",
+        ["ocr.findText.return.x.hint"] = "命中中心点的横坐标，单位是屏幕像素。",
+        ["ocr.findText.return.y.label"] = "Y",
+        ["ocr.findText.return.y.hint"] = "命中中心点的纵坐标，单位是屏幕像素。",
+        ["ocr.findText.return.width.label"] = "宽",
+        ["ocr.findText.return.width.hint"] = "命中区域的宽度，单位是像素。",
+        ["ocr.findText.return.height.label"] = "高",
+        ["ocr.findText.return.height.hint"] = "命中区域的高度，单位是像素。",
+        ["ocr.findText.return.text.label"] = "文字",
+        ["ocr.findText.return.text.hint"] = "这一处读到的文字。",
+        ["ocr.findText.return.score.label"] = "读数分数",
+        ["ocr.findText.return.score.hint"] = "这次读到的分数，是识别模型给的，不是百分比，越大表示越有把握。",
+        ["ocr.findText.return.count.label"] = "命中数",
+        ["ocr.findText.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
+        ["ocr.findText.return.list.label"] = "全部命中",
+        ["ocr.findText.return.list.hint"] = "每一处命中的中心点，每项一个 x,y；只有勾上“记录全部命中”才有。",
+        ["ocr.findText.returns.label"] = "要留下的结果",
+        ["ocr.findText.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // ocr.clickText
+        ["ocr.clickText.return.match.label"] = "位置",
+        ["ocr.clickText.return.match.hint"] = "找到时的中心点，写成 x,y；没找到时为空。",
+        ["ocr.clickText.return.x.label"] = "X",
+        ["ocr.clickText.return.x.hint"] = "命中中心点的横坐标，单位是屏幕像素。",
+        ["ocr.clickText.return.y.label"] = "Y",
+        ["ocr.clickText.return.y.hint"] = "命中中心点的纵坐标，单位是屏幕像素。",
+        ["ocr.clickText.return.width.label"] = "宽",
+        ["ocr.clickText.return.width.hint"] = "命中区域的宽度，单位是像素。",
+        ["ocr.clickText.return.height.label"] = "高",
+        ["ocr.clickText.return.height.hint"] = "命中区域的高度，单位是像素。",
+        ["ocr.clickText.return.text.label"] = "文字",
+        ["ocr.clickText.return.text.hint"] = "点中的这一处读到的文字。",
+        ["ocr.clickText.return.score.label"] = "读数分数",
+        ["ocr.clickText.return.score.hint"] = "这次读到的分数，是识别模型给的，不是百分比，越大表示越有把握。",
+        ["ocr.clickText.return.count.label"] = "命中数",
+        ["ocr.clickText.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
+        ["ocr.clickText.return.list.label"] = "全部命中",
+        ["ocr.clickText.return.list.hint"] = "每一处命中的中心点，每项一个 x,y；只有勾上“记录全部命中”才有。",
+        ["ocr.clickText.returns.label"] = "要留下的结果",
+        ["ocr.clickText.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // uia.exists
+        ["uia.exists.return.exists.label"] = "存在",
+        ["uia.exists.return.exists.hint"] = "元素在不在。",
+        ["uia.exists.returns.label"] = "要留下的结果",
+        ["uia.exists.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // uia.find
+        ["uia.find.return.element.label"] = "元素",
+        ["uia.find.return.element.hint"] = "元素中心点的 x,y，后面的步骤按它量位置；没找到时为空。",
+        ["uia.find.return.x.label"] = "X",
+        ["uia.find.return.x.hint"] = "命中中心点的横坐标，单位是屏幕像素。",
+        ["uia.find.return.y.label"] = "Y",
+        ["uia.find.return.y.hint"] = "命中中心点的纵坐标，单位是屏幕像素。",
+        ["uia.find.return.width.label"] = "宽",
+        ["uia.find.return.width.hint"] = "命中区域的宽度，单位是像素。",
+        ["uia.find.return.height.label"] = "高",
+        ["uia.find.return.height.hint"] = "命中区域的高度，单位是像素。",
+        ["uia.find.return.text.label"] = "文本",
+        ["uia.find.return.text.hint"] = "读到的文字。",
+        ["uia.find.return.count.label"] = "命中数",
+        ["uia.find.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
+        ["uia.find.return.list.label"] = "全部命中",
+        ["uia.find.return.list.hint"] = "每一处命中的中心点，每项一个 x,y；只有勾上“记录全部命中”才有。",
+        ["uia.find.returns.label"] = "要留下的结果",
+        ["uia.find.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // uia.getText
+        ["uia.getText.return.text.label"] = "文本",
+        ["uia.getText.return.text.hint"] = "元素上的文字。",
+        ["uia.getText.returns.label"] = "要留下的结果",
+        ["uia.getText.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // uia.readTable
+        ["uia.readTable.return.table.label"] = "表格",
+        ["uia.readTable.return.table.hint"] = "读到的行，每项是一行的单元格，形状和读 CSV 一样。",
+        ["uia.readTable.return.columns.label"] = "列名",
+        ["uia.readTable.return.columns.hint"] = "各列的名字，按列的顺序排，宏靠它找到要的那一列。",
+        ["uia.readTable.returns.label"] = "要留下的结果",
+        ["uia.readTable.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // browser.readText
+        ["browser.readText.return.text.label"] = "文本",
+        ["browser.readText.return.text.hint"] = "页面上读到的文字。",
+        ["browser.readText.returns.label"] = "要留下的结果",
+        ["browser.readText.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // script.run
+        ["script.run.return.output.label"] = "输出",
+        ["script.run.return.output.hint"] = "脚本打印的内容，去掉了前后的空行。",
+        ["script.run.returns.label"] = "要留下的结果",
+        ["script.run.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+
+        // vision.waitImage
+        ["vision.waitImage.allMatches.label"] = "记录全部命中",
+        ["vision.waitImage.allMatches.hint"] = AllMatchesHint,
+
+        // vision.clickImage
+        ["vision.clickImage.allMatches.label"] = "记录全部命中",
+        ["vision.clickImage.allMatches.hint"] = AllMatchesHint,
+
+        // ocr.clickText
+        ["ocr.clickText.allMatches.label"] = "记录全部命中",
+        ["ocr.clickText.allMatches.hint"] = AllMatchesHint,
+
+        // control.runMacro
+        ["control.runMacro.bringBack.label"] = "结果",
+        ["control.runMacro.bringBack.hint"] = "被调用宏要带回本宏的变量名，用逗号隔开。名字写错或没设过时带回空值。",
     };
 }

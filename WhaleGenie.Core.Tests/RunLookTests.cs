@@ -30,6 +30,13 @@ public class RunLookTests
     private static ExecutableParameter Param(string name, string text = "")
         => new() { Name = name, Text = text };
 
+    /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
+    private static ExecutableParameter Returns(params string[] results)
+        => SampleFiles.Returns(results);
+
+    /// <summary>See <see cref="SampleFiles.Hit"/>: a place, a picture or a program and all its parts.</summary>
+    private static ExecutableParameter Hit(string key, string name) => SampleFiles.Hit(key, name);
+
     /// <summary>
     /// The pictures a step looks for, written the way the dialog writes them: one row each, tried
     /// in the order they are listed.
@@ -79,7 +86,7 @@ public class RunLookTests
                         ["height"] = region.Height.ToString(CultureInfo.InvariantCulture),
                     })],
             },
-            Param("resultVariable", "match"));
+            Hit("match", "match"));
 
     private static FakeDeviceLayer Screen(int width = 200, int height = 100,
         ImageMatch? match = null)
@@ -172,7 +179,7 @@ public class RunLookTests
 
         var looks = new Watched();
         var step = Step("vision.findImage", Pictures(@"C:\images\first.png", @"C:\images\second.png"),
-            Param("confidence", "90"), Param("resultVariable", "match"));
+            Param("confidence", "90"), Hit("match", "match"));
 
         var result = await Run(step, devices, looks);
 
@@ -213,7 +220,7 @@ public class RunLookTests
 
         var looks = new Watched();
         var step = Step("vision.findImage", Pictures(@"C:\images\first.png", @"C:\images\second.png"),
-            Param("confidence", "90"), Param("matchIndex", "3"), Param("resultVariable", "match"));
+            Param("confidence", "90"), Param("matchIndex", "3"), Hit("match", "match"));
 
         var result = await Run(step, devices, looks);
 
@@ -239,7 +246,7 @@ public class RunLookTests
     {
         var devices = Screen();
         var step = Step("vision.findImage", Pictures("  "), Param("confidence", "90"),
-            Param("resultVariable", "match"));
+            Hit("match", "match"));
 
         var result = await Run(step, devices);
 
@@ -255,7 +262,7 @@ public class RunLookTests
         var looks = new Watched();
         var step = Step("vision.waitImage", Pictures(@"C:\images\ok.png"),
             Param("confidence", "90"), Param("timeoutMs", "60"), Param("intervalMs", "10"),
-            Param("resultVariable", "match"));
+            Hit("match", "match"));
 
         var result = await Run(step, devices, looks);
 
@@ -343,7 +350,7 @@ public class RunLookTests
         ];
         var looks = new Watched();
         var step = Step("ocr.findText", Param("text", "Save"), Param("matchMode", "contains"),
-            Param("minScore", "0"), Param("resultVariable", "match"));
+            Param("minScore", "0"), Hit("match", "match"));
 
         await Run(step, devices, looks);
 
@@ -364,7 +371,7 @@ public class RunLookTests
         var devices = Screen();
         devices.Spans = [new TextSpan("Save", new ScreenPoint(5, 6), new ScreenSize(20, 8), 30)];
         var looks = new Watched();
-        var step = Step("ocr.recognize", Region((10, 20, 40, 30)), Param("language", "auto"), Param("resultVariable", "text"));
+        var step = Step("ocr.recognize", Region((10, 20, 40, 30)), Param("language", "auto"), Returns("text=text"));
 
         await Run(step, devices, looks);
 
@@ -379,7 +386,7 @@ public class RunLookTests
     {
         var devices = Screen();
         var looks = new Watched();
-        var step = Step("vision.capture", Region((1, 2, 5, 6)), Param("saveTo", "shot"));
+        var step = Step("vision.capture", Region((1, 2, 5, 6)), Hit("image", "shot"));
 
         await Run(step, devices, looks);
 
@@ -398,7 +405,7 @@ public class RunLookTests
         var devices = Screen();
         var looks = new Watched();
         var step = Step("vision.getPixel", Param("x", "50"), Param("y", "25"),
-            Param("resultVariable", "color"));
+            Returns("color=color"));
 
         await Run(step, devices, looks);
 
@@ -430,7 +437,7 @@ public class RunLookTests
         var devices = Screen(match: new ImageMatch(0.9, new ScreenPoint(30, 40), new ScreenSize(2, 2)));
         var step = Step("vision.clickImage", Pictures(@"C:\images\ok.png"),
             Param("confidence", "90"), Param("offsetX", "3"), Param("offsetY", "-2"),
-            Param("timeoutMs", "0"), Param("button", "left"), Param("resultVariable", "match"));
+            Param("timeoutMs", "0"), Param("button", "left"), Hit("match", "match"));
 
         var outcome = MacroRunner.LookOnce(step, devices);
 
@@ -463,7 +470,7 @@ public class RunLookTests
         var devices = Screen();
         var step = Step("vision.waitImage", Pictures(@"C:\images\ok.png"),
             Param("confidence", "90"), Param("timeoutMs", "60000"), Param("intervalMs", "10"),
-            Param("resultVariable", "match"));
+            Hit("match", "match"));
 
         var outcome = MacroRunner.LookOnce(step, devices);
 

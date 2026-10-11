@@ -1018,15 +1018,15 @@ public partial class AddActionWindow : Window
     }
 
     /// <summary>
-    /// Gives a result variable a name nothing else is using, by putting a number after the one it
-    /// has. It is what the line under such a field offers, so noticing a clash and doing something
+    /// Gives one result a name nothing else is using, by putting a number after the one it has. It
+    /// is what the line under such a name offers, so noticing a clash and doing something
     /// about it is one click rather than a rewrite of the name.
     /// </summary>
-    private void OnMakeNameUnique(object? sender, RoutedEventArgs e)
+    private void OnMakeReturnNameUnique(object? sender, RoutedEventArgs e)
     {
-        if (sender is Control { DataContext: StepParameterViewModel parameter })
+        if (sender is Control { DataContext: ReturnsRowViewModel row })
         {
-            parameter.MakeNameUnique();
+            row.MakeNameUnique();
         }
     }
 

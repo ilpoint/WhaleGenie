@@ -548,7 +548,7 @@ public sealed class MacroRunner
     /// </summary>
     private void Take(ExecutableStep step, VariableBag produced)
     {
-        var wanted = step.Text("returns").Trim();
+        var wanted = step.Text("bringBack").Trim();
         if (wanted.Length == 0)
         {
             return;
@@ -1348,11 +1348,7 @@ public sealed class MacroRunner
 
         // How long it waited is worth keeping even when it gave up, which is what makes a macro
         // that is too slow to catch something diagnosable.
-        var name = step.Text("elapsedVariable").Trim();
-        if (name.Length > 0)
-        {
-            Variables.Set(name, Value.FromNumber(waited));
-        }
+        Give(step, "elapsed", Value.FromNumber(waited));
 
         if (held)
         {
@@ -1517,7 +1513,13 @@ public sealed class MacroRunner
             stride = to >= from ? 1 : -1;
         }
 
-        var counter = VariableName(step, "variable", "i");
+        // The counter is a variable the step itself names, and a loop with no counter has nothing
+        // to run its body against, so an empty field falls back to the name every for-loop uses.
+        var counter = step.Text("variable").Trim();
+        if (counter.Length == 0)
+        {
+            counter = "i";
+        }
         var interval = Pace(Number(step, "intervalMs"));
         var round = 0;
 
@@ -1689,15 +1691,9 @@ public sealed class MacroRunner
         return signal;
     }
 
-    /// <summary>Records why the attempt failed, or empties the variable when it did not.</summary>
+    /// <summary>Records why the attempt failed, or empties the result when it did not.</summary>
     private void Remember(ExecutableStep step, StepFailure? failure)
     {
-        var name = step.Text("errorVariable").Trim();
-        if (name.Length == 0)
-        {
-            return;
-        }
-
         var reason = failure switch
         {
             null => string.Empty,
@@ -1705,7 +1701,7 @@ public sealed class MacroRunner
             _ => failure.Key,
         };
 
-        Variables.Set(name, Value.FromText(reason));
+        Give(step, "error", Value.FromText(reason));
     }
 
     /// <summary>
@@ -3164,42 +3160,43 @@ public sealed class MacroRunner
     /// </summary>
     private void Keep(ExecutableStep step, int depth, ImageFrame frame, ScreenPoint corner)
     {
-        var name = step.Text("saveTo").Trim();
-        if (name.Length == 0)
+        // The picture is kept under the name of the image result, and only there: a step that was
+        // told not to hand the picture over leaves nothing for a later step to search in, which is
+        // what leaving that result unticked means.
+        var name = Give(step, "image", Value.FromText($"<image {frame.Width}x{frame.Height}>"));
+        if (name.Length > 0)
         {
-            throw new StepFailure("Run.MissingVariable");
+            _images[name] = frame;
         }
 
-        _images[name] = frame;
-        Variables.Set(name, Value.FromText($"<image {frame.Width}x{frame.Height}>"));
-        Variables.Set(name + ".x", Value.FromNumber(corner.X));
-        Variables.Set(name + ".y", Value.FromNumber(corner.Y));
-        Variables.Set(name + ".width", Value.FromNumber(frame.Width));
-        Variables.Set(name + ".height", Value.FromNumber(frame.Height));
-        StoreSource(name);
+        Give(step, "x", Value.FromNumber(corner.X));
+        Give(step, "y", Value.FromNumber(corner.Y));
+        Give(step, "width", Value.FromNumber(frame.Width));
+        Give(step, "height", Value.FromNumber(frame.Height));
+        GiveTaken(step);
         Saw(step, LookKind.Capture, frame, corner,
             [new LookBox(new ImageMatch(0, corner, new ScreenSize(frame.Width, frame.Height)), LookRole.Area)],
             1, name);
-        Log(LogLevel.Info, depth, step.Type, "Run.Capture", name, $"{frame.Width}x{frame.Height}");
+        if (name.Length > 0)
+        {
+            Log(LogLevel.Info, depth, step.Type, "Run.Capture", name, $"{frame.Width}x{frame.Height}");
+        }
     }
 
     private void GetPixel(ExecutableStep step, int depth)
     {
-        var name = step.Text("resultVariable").Trim();
-        if (name.Length == 0)
-        {
-            name = "color";
-        }
-
         var (point, window) = Spot(step);
         var colour = PixelAt(step, point, window);
         var asHex = !string.Equals(step.Text("asHex").Trim(), "false", StringComparison.OrdinalIgnoreCase);
-        Variables.Set(name, asHex
+        var name = Give(step, "color", asHex
             ? Value.FromText(colour.ToHex())
             : Value.FromNumber((colour.R) | (colour.G << 8) | (colour.B << 16)));
 
         SawPixel(step, point, colour.ToHex(), window);
-        Log(LogLevel.Info, depth, step.Type, "Run.Set", name, colour.ToHex());
+        if (name.Length > 0)
+        {
+            Log(LogLevel.Info, depth, step.Type, "Run.Set", name, colour.ToHex());
+        }
     }
 
     private async Task WaitColor(ExecutableStep step, int depth, CancellationToken token)
@@ -3233,7 +3230,6 @@ public sealed class MacroRunner
         var target = PixelColor.Parse(Read(step.Text("color")).AsText());
         var tolerance = Read(step.Text("tolerance")).AsNumber();
         var timeout = Math.Max(0, Number(step, "timeoutMs"));
-        var name = VariableName(step, "resultVariable", "match");
 
         var hits = await ColourHits(step, target, tolerance, timeout, token);
         if (hits.Count == 0 && timeout > 0)
@@ -3244,16 +3240,16 @@ public sealed class MacroRunner
         var match = Chosen(hits, step);
         if (match is null)
         {
-            StoreMiss(name);
+            GiveNothing(step);
         }
         else
         {
-            StoreMatch(name, match.Center, match.Size, match.Score);
+            GiveMatch(step, match.Center, match.Size, match.Score);
         }
 
-        Remember(name, hits, Flag(step, "allMatches", false));
+        GiveEvery(step, hits, Flag(step, "allMatches", false));
         Log(LogLevel.Info, depth, step.Type, match is null ? "Run.ImageMissing" : "Run.ImageFound",
-            name, match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
+            match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
     }
 
     /// <summary>
@@ -3384,20 +3380,19 @@ public sealed class MacroRunner
     {
         var hits = Hits(step);
         var match = Chosen(hits, step);
-        var name = VariableName(step, "resultVariable", "match");
 
         if (match is null)
         {
-            StoreMiss(name);
+            GiveNothing(step);
         }
         else
         {
-            StoreMatch(name, match.Center, match.Size, match.Score);
+            GiveMatch(step, match.Center, match.Size, match.Score);
         }
 
-        Remember(name, hits, Flag(step, "allMatches", false));
+        GiveEvery(step, hits, Flag(step, "allMatches", false));
         Log(LogLevel.Info, depth, step.Type, match is null ? "Run.ImageMissing" : "Run.ImageFound",
-            name, match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
+            match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
     }
 
     private async Task WaitForImage(ExecutableStep step, int depth, CancellationToken token)
@@ -3405,10 +3400,9 @@ public sealed class MacroRunner
         var found = await HitsUntil(step, token)
                     ?? throw new StepFailure("Run.ImageNotFound", Written(step.Rows("image")));
 
-        var name = VariableName(step, "resultVariable", "match");
-        StoreMatch(name, found.Match.Center, found.Match.Size, found.Match.Score);
-        Remember(name, found.Hits, Flag(step, "allMatches", false));
-        Log(LogLevel.Info, depth, step.Type, "Run.ImageFound", name,
+        GiveMatch(step, found.Match.Center, found.Match.Size, found.Match.Score);
+        GiveEvery(step, found.Hits, Flag(step, "allMatches", false));
+        Log(LogLevel.Info, depth, step.Type, "Run.ImageFound",
             $"{found.Match.Center.X},{found.Match.Center.Y}");
     }
 
@@ -3650,27 +3644,6 @@ public sealed class MacroRunner
 
     /// <summary>The most hits one step collects, so a flat colour cannot fill memory.</summary>
     private const int MatchLimit = 200;
-
-    /// <summary>
-    /// Notes how many places matched and where they all are, for the steps that asked for the whole
-    /// list. Each entry is one "x,y" centre, so the list can be counted, taken apart and looped over
-    /// with the list functions.
-    /// </summary>
-    private void Remember(string name, IReadOnlyList<ImageMatch> hits, bool every)
-        => Remember(name, [.. hits.Select(hit => hit.Center)], every);
-
-    /// <summary>The same, for hits that are only places: the elements a search turned up.</summary>
-    private void Remember(string name, IReadOnlyList<ScreenPoint> centres, bool every)
-    {
-        if (!every)
-        {
-            return;
-        }
-
-        Variables.Set(name + ".count", Value.FromNumber(centres.Count));
-        Variables.Set(name + ".list", Value.FromList(
-            centres.Select(centre => Value.FromText($"{centre.X},{centre.Y}"))));
-    }
 
     /// <summary>
     /// The pictures a step looks for, in the order it listed them. A picture the step did not fill
@@ -4101,19 +4074,12 @@ public sealed class MacroRunner
         return name.Length == 0 ? TextEncoding.Default : name;
     }
 
-    private static string VariableName(ExecutableStep step, string parameter, string fallback)
-    {
-        var text = step.Text(parameter).Trim();
-        return text.Length == 0 ? fallback : text;
-    }
-
     private static readonly JsonSerializerOptions Writable = new() { WriteIndented = true };
 
     private void ReadTextFile(ExecutableStep step, int depth)
     {
         var path = PathOf(step);
         var text = _devices.Files.ReadText(path, EncodingOf(step));
-        var name = VariableName(step, "resultVariable", "text");
         var limit = Number(step, "limit");
         var lines = string.Equals(step.Text("storeAs").Trim(), "lines",
             StringComparison.OrdinalIgnoreCase);
@@ -4121,7 +4087,7 @@ public sealed class MacroRunner
         if (!lines && limit <= 0)
         {
             // What a step that says nothing does, unchanged: the file's text, whole and as it is.
-            Variables.Set(name, Value.FromText(text));
+            Store(step, "text", Value.FromText(text), depth);
             Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, text.Length);
             return;
         }
@@ -4132,9 +4098,9 @@ public sealed class MacroRunner
             wanted = [.. wanted.Take(limit)];
         }
 
-        Variables.Set(name, lines
+        Store(step, "text", lines
             ? Value.FromList(wanted.Select(Value.FromText))
-            : Value.FromText(string.Join(Environment.NewLine, wanted)));
+            : Value.FromText(string.Join(Environment.NewLine, wanted)), depth);
         Log(LogLevel.Info, depth, step.Type, "Run.ReadFileLines", path, wanted.Count);
     }
 
@@ -4216,9 +4182,7 @@ public sealed class MacroRunner
     private void FileExists(ExecutableStep step, int depth)
     {
         var found = _devices.Files.Exists(PathOf(step));
-        var name = VariableName(step, "resultVariable", "exists");
-        Variables.Set(name, Value.FromBool(found));
-        Log(LogLevel.Info, depth, step.Type, "Run.Set", name, found ? "true" : "false");
+        Store(step, "exists", Value.FromBool(found), depth);
     }
 
     private void DeleteFile(ExecutableStep step, int depth)
@@ -4338,9 +4302,7 @@ public sealed class MacroRunner
             _ => other.Length == 0 ? path : Path.Combine(path, other),
         };
 
-        var name = VariableName(step, "resultVariable", "path");
-        Variables.Set(name, Value.FromText(answer));
-        Log(LogLevel.Info, depth, step.Type, "Run.Set", name, answer);
+        Store(step, "path", Value.FromText(answer), depth);
     }
 
     private void UnzipFile(ExecutableStep step, int depth)
@@ -4390,8 +4352,7 @@ public sealed class MacroRunner
             .Select(entry => root.Length == 0 ? entry.Path : Path.GetRelativePath(root, entry.Path))
             .ToList();
 
-        Variables.Set(VariableName(step, "resultVariable", "files"),
-            Value.FromList(paths.Select(Value.FromText)));
+        Store(step, "files", Value.FromList(paths.Select(Value.FromText)), depth);
         Log(LogLevel.Info, depth, step.Type, "Run.ListedFiles", folder, paths.Count);
     }
 
@@ -4447,10 +4408,8 @@ public sealed class MacroRunner
             ? document
             : Select(document, query) ?? throw new StepFailure("Run.BadJsonPath", query);
 
-        var name = VariableName(step, "resultVariable", "value");
         var value = FromJson(node);
-        Variables.Set(name, value);
-        Log(LogLevel.Info, depth, step.Type, "Run.Set", name, value.AsText());
+        Store(step, "value", value, depth);
     }
 
     private void WriteJson(ExecutableStep step, int depth)
@@ -4499,16 +4458,12 @@ public sealed class MacroRunner
         var table = Narrow(step,
             header?.Select(Value.FromText).ToList(),
             body.Select(row => (IReadOnlyList<Value>)[.. row.Select(Value.FromText)]));
-        Variables.Set(VariableName(step, "resultVariable", "rows"), Shaped(step, table, path));
+        Store(step, "rows", Shaped(step, table, path), depth);
 
         // Which column holds what is the first thing a macro has to work out about somebody else's
         // file, and the names are the only place that is written down.
-        var names = step.Text("headerVariable").Trim();
-        if (names.Length > 0)
-        {
-            Variables.Set(names, Value.FromList(
-                (table.Header ?? []).Select(cell => Value.FromText(cell.AsText()))));
-        }
+        Give(step, "header", Value.FromList(
+            (table.Header ?? []).Select(cell => Value.FromText(cell.AsText()))));
 
         Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, table.Rows.Count);
     }
@@ -4826,7 +4781,7 @@ public sealed class MacroRunner
     {
         var text = Read(step.Text("text")).AsText();
         var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
-        Store(step, "resultVariable", "encoded", encoded, depth);
+        Store(step, "encoded", Value.FromText(encoded), depth);
     }
 
     /// <summary>
@@ -4846,7 +4801,7 @@ public sealed class MacroRunner
             throw new StepFailure("Run.BadBase64", text);
         }
 
-        Store(step, "resultVariable", "decoded", Encoding.UTF8.GetString(bytes), depth);
+        Store(step, "decoded", Value.FromText(Encoding.UTF8.GetString(bytes)), depth);
     }
 
     /// <summary>Works out the checksum of a piece of text.</summary>
@@ -4854,7 +4809,7 @@ public sealed class MacroRunner
     {
         var text = Read(step.Text("text")).AsText();
         var digest = ComputeHash(step.Text("algorithm"), Encoding.UTF8.GetBytes(text));
-        Store(step, "resultVariable", "digest", Convert.ToHexString(digest).ToLowerInvariant(), depth);
+        Store(step, "digest", Value.FromText(Convert.ToHexString(digest).ToLowerInvariant()), depth);
     }
 
     /// <summary>
@@ -4869,14 +4824,6 @@ public sealed class MacroRunner
             "sha512" => SHA512.HashData(bytes),
             _ => SHA256.HashData(bytes),
         };
-
-    /// <summary>Stores a value under a name and logs it, the way storing a value does.</summary>
-    private void Store(ExecutableStep step, string parameter, string fallback, string value, int depth)
-    {
-        var name = VariableName(step, parameter, fallback);
-        Variables.Set(name, Value.FromText(value));
-        Log(LogLevel.Info, depth, step.Type, "Run.Set", name, value);
-    }
 
     /// <summary>Reads a JSON file, reporting a broken one as a failed step.</summary>
     private static JsonNode Json(string path, string text)
@@ -5090,9 +5037,8 @@ public sealed class MacroRunner
     private void ClipboardRead(ExecutableStep step, int depth)
     {
         var text = _devices.Clipboard.ReadText();
-        var name = ClipboardName(step);
-        Variables.Set(name, Value.FromText(text));
-        Log(LogLevel.Info, depth, step.Type, "Run.ReadClipboard", name, text.Length);
+        Store(step, "text", Value.FromText(text), depth);
+        Log(LogLevel.Info, depth, step.Type, "Run.ReadClipboard", text.Length);
     }
 
     /// <summary>
@@ -5102,24 +5048,32 @@ public sealed class MacroRunner
     /// </summary>
     private void ClipboardImageRead(ExecutableStep step, int depth)
     {
-        var name = ClipboardName(step);
         var picture = _devices.Clipboard.ReadImage();
+        var name = step.Return("image");
 
         if (picture is null || picture.IsEmpty)
         {
             // A miss clears the variable outright, the same habit the find-image steps have: a
             // step inside a loop must never read the picture the previous pass left behind.
-            _images.Remove(name);
-            StoreMiss(name);
-            Log(LogLevel.Warn, depth, step.Type, "Run.NoClipboardImage", name);
+            if (name.Length > 0)
+            {
+                _images.Remove(name);
+            }
+
+            Give(step, "image", Value.FromText(string.Empty));
+            Log(LogLevel.Warn, depth, step.Type, "Run.NoClipboardImage");
             return;
         }
 
-        _images[name] = picture;
-        Variables.Set(name, Value.FromText($"<image {picture.Width}x{picture.Height}>"));
-        Variables.Set(name + ".width", Value.FromNumber(picture.Width));
-        Variables.Set(name + ".height", Value.FromNumber(picture.Height));
-        Log(LogLevel.Info, depth, step.Type, "Run.ReadClipboardImage", name,
+        if (name.Length > 0)
+        {
+            _images[name] = picture;
+        }
+
+        Give(step, "image", Value.FromText($"<image {picture.Width}x{picture.Height}>"));
+        Give(step, "width", Value.FromNumber(picture.Width));
+        Give(step, "height", Value.FromNumber(picture.Height));
+        Log(LogLevel.Info, depth, step.Type, "Run.ReadClipboardImage",
             $"{picture.Width}x{picture.Height}");
     }
 
@@ -5140,11 +5094,10 @@ public sealed class MacroRunner
     /// <summary>Takes the paths of the files on the clipboard into a list.</summary>
     private void ClipboardFilesRead(ExecutableStep step, int depth)
     {
-        var name = ClipboardName(step);
         var files = _devices.Clipboard.ReadFiles();
 
-        Variables.Set(name, Value.FromList(files.Select(Value.FromText)));
-        Log(LogLevel.Info, depth, step.Type, "Run.ReadClipboardFiles", name, files.Count);
+        Store(step, "files", Value.FromList(files.Select(Value.FromText)), depth);
+        Log(LogLevel.Info, depth, step.Type, "Run.ReadClipboardFiles", files.Count);
     }
 
     /// <summary>
@@ -5187,14 +5140,9 @@ public sealed class MacroRunner
     {
         await AwaitClipboard(step, _devices.Clipboard.ChangeCount, token);
 
-        var name = step.Text("resultVariable").Trim();
         var text = _devices.Clipboard.ReadText();
-        if (name.Length > 0)
-        {
-            Variables.Set(name, Value.FromText(text));
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.ClipboardChanged", name, text.Length);
+        Give(step, "text", Value.FromText(text));
+        Log(LogLevel.Info, depth, step.Type, "Run.ClipboardChanged", text.Length);
     }
 
     /// <summary>Presses the copy shortcut, then waits for what it put on the clipboard.</summary>
@@ -5205,13 +5153,8 @@ public sealed class MacroRunner
         await AwaitClipboard(step, before, token);
 
         var text = _devices.Clipboard.ReadText();
-        var name = step.Text("resultVariable").Trim();
-        if (name.Length > 0)
-        {
-            Variables.Set(name, Value.FromText(text));
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.CopiedFromWindow", name, text.Length);
+        Give(step, "text", Value.FromText(text));
+        Log(LogLevel.Info, depth, step.Type, "Run.CopiedFromWindow", text.Length);
     }
 
     /// <summary>Puts text on the clipboard when one is given, then presses the paste shortcut.</summary>
@@ -5242,12 +5185,6 @@ public sealed class MacroRunner
         }
     }
 
-    private static string ClipboardName(ExecutableStep step)
-    {
-        var text = step.Text("resultVariable").Trim();
-        return text.Length == 0 ? "clipboard" : text;
-    }
-
     // -------------------------------------------------------------------- process
 
     /// <summary>Starts another program and keeps its process id.</summary>
@@ -5261,8 +5198,7 @@ public sealed class MacroRunner
 
         var id = _devices.Processes.Start(
             new StartRequest(program, arguments, folder, hidden, runAsAdmin, EnvironmentOf(step)));
-        var name = VariableName(step, "resultVariable", "processId");
-        Variables.Set(name, Value.FromNumber(id));
+        Give(step, "processId", Value.FromNumber(id));
         Log(LogLevel.Info, depth, step.Type, "Run.StartedProgram", program, id);
     }
 
@@ -5337,12 +5273,7 @@ public sealed class MacroRunner
             throw new StepFailure("Run.ProgramNotFound", name);
         }
 
-        var variable = VariableName(step, "resultVariable", string.Empty);
-        if (variable.Length > 0)
-        {
-            Variables.Set(variable, Value.FromNumber(ids[0]));
-        }
-
+        Give(step, "process", Value.FromNumber(ids[0]));
         Log(LogLevel.Info, depth, step.Type, "Run.ProgramFound", name, ids[0]);
     }
 
@@ -5358,8 +5289,7 @@ public sealed class MacroRunner
         }
 
         var code = _devices.Processes.ExitCode(id) ?? 0;
-        var name = VariableName(step, "resultVariable", "exitCode");
-        Variables.Set(name, Value.FromNumber(code));
+        Give(step, "exitCode", Value.FromNumber(code));
         Log(LogLevel.Info, depth, step.Type, "Run.ProcessExited", id, code);
     }
 
@@ -5368,17 +5298,14 @@ public sealed class MacroRunner
     {
         var name = Read(step.Text("name")).AsText();
         var running = _devices.Processes.Find(name).Count > 0;
-        var variable = VariableName(step, "resultVariable", "running");
-        Variables.Set(variable, Value.FromBool(running));
-        Log(LogLevel.Info, depth, step.Type, "Run.Set", variable, running ? "true" : "false");
+        Store(step, "running", Value.FromBool(running), depth);
     }
 
     /// <summary>Collects the names of the running programs into a list.</summary>
     private void ListPrograms(ExecutableStep step, int depth)
     {
         var programs = _devices.Processes.List();
-        var variable = VariableName(step, "resultVariable", "processes");
-        Variables.Set(variable, Value.FromList(programs.Select(Value.FromText)));
+        Give(step, "processes", Value.FromList(programs.Select(Value.FromText)));
         Log(LogLevel.Info, depth, step.Type, "Run.ListedPrograms", programs.Count);
     }
 
@@ -5393,13 +5320,11 @@ public sealed class MacroRunner
         var details = _devices.Processes.Details(target)
             ?? throw new StepFailure("Run.NoSuchProcess", target);
 
-        var name = VariableName(step, "resultVariable", "process");
-        Variables.Set(name, Value.FromText(details.Path));
-        Variables.Set(name + ".id", Value.FromNumber(details.Id));
-        Variables.Set(name + ".name", Value.FromText(details.Name));
-        Variables.Set(name + ".path", Value.FromText(details.Path));
-        Variables.Set(name + ".memoryMb", Value.FromNumber(details.MemoryMb));
-        Variables.Set(name + ".cpuSeconds", Value.FromNumber(details.CpuSeconds));
+        Store(step, "info", Value.FromText(details.Path), depth);
+        Give(step, "id", Value.FromNumber(details.Id));
+        Give(step, "name", Value.FromText(details.Name));
+        Give(step, "memoryMb", Value.FromNumber(details.MemoryMb));
+        Give(step, "cpuSeconds", Value.FromNumber(details.CpuSeconds));
         Log(LogLevel.Info, depth, step.Type, "Run.ProgramDetails", details.Name, details.Id);
     }
 
@@ -5413,8 +5338,7 @@ public sealed class MacroRunner
             ? (_devices.Processes.StopById(id, force) ? 1 : 0)
             : _devices.Processes.StopByName(target, force);
 
-        var variable = VariableName(step, "resultVariable", "stopped");
-        Variables.Set(variable, Value.FromNumber(stopped));
+        Give(step, "stopped", Value.FromNumber(stopped));
         Log(LogLevel.Info, depth, step.Type, "Run.StoppedProgram", target, stopped);
     }
 
@@ -5441,9 +5365,9 @@ public sealed class MacroRunner
             watching ? line => Log(LogLevel.Info, depth, step.Type, "Run.CommandError", line) : null,
             OutputEncodingOf(step)));
 
-        Store(step, "resultVariable", "output", Value.FromText(result.StandardOutput));
-        Store(step, "errorVariable", string.Empty, Value.FromText(result.StandardError));
-        Store(step, "exitCodeVariable", "exitCode", Value.FromNumber(result.ExitCode));
+        Store(step, "output", Value.FromText(result.StandardOutput), depth);
+        Store(step, "error", Value.FromText(result.StandardError), depth);
+        Store(step, "exitCode", Value.FromNumber(result.ExitCode), depth);
 
         Log(LogLevel.Info, depth, step.Type, "Run.CommandFinished", program, result.ExitCode);
     }
@@ -5454,9 +5378,7 @@ public sealed class MacroRunner
     private void SystemInfo(ExecutableStep step, int depth)
     {
         var value = _devices.System.Info(step.Text("field").Trim());
-        var name = VariableName(step, "resultVariable", "info");
-        Variables.Set(name, Value.FromText(value));
-        Log(LogLevel.Info, depth, step.Type, "Run.Set", name, value);
+        Store(step, "value", Value.FromText(value), depth);
     }
 
     /// <summary>Reads an environment variable into a variable.</summary>
@@ -5464,9 +5386,7 @@ public sealed class MacroRunner
     {
         var name = Read(step.Text("name")).AsText();
         var value = _devices.System.Environment(name);
-        var variable = VariableName(step, "resultVariable", "value");
-        Variables.Set(variable, Value.FromText(value));
-        Log(LogLevel.Info, depth, step.Type, "Run.Set", variable, value);
+        Store(step, "value", Value.FromText(value), depth);
     }
 
     /// <summary>
@@ -5541,7 +5461,7 @@ public sealed class MacroRunner
         }
 
         var level = _devices.System.Volume();
-        Variables.Set(VariableName(step, "resultVariable", "volume"), Value.FromNumber(level));
+        Give(step, "volume", Value.FromNumber(level));
         Log(LogLevel.Info, depth, step.Type, "Run.Volume", level);
 
         // Switching the sound off does not change the level, so the level alone would leave a reader
@@ -5607,7 +5527,6 @@ public sealed class MacroRunner
     private void InputMethod(ExecutableStep step, int depth)
     {
         var what = step.Text("what").Trim().ToLowerInvariant();
-        var variable = VariableName(step, "resultVariable", "ime");
         Value answer;
 
         switch (what)
@@ -5640,8 +5559,7 @@ public sealed class MacroRunner
                 throw new StepFailure("Run.UnknownInputMethodAction", what);
         }
 
-        Variables.Set(variable, answer);
-        Log(LogLevel.Info, depth, step.Type, "Run.Set", variable, answer.AsText());
+        Store(step, "ime", answer, depth);
     }
 
     /// <summary>
@@ -5675,75 +5593,9 @@ public sealed class MacroRunner
         }
 
         var level = _devices.System.Brightness();
-        Variables.Set(VariableName(step, "resultVariable", "brightness"), Value.FromNumber(level));
+        Give(step, "brightness", Value.FromNumber(level));
         Log(LogLevel.Info, depth, step.Type, "Run.Brightness", level);
     }
-
-    /// <summary>Stores a value under a variable a step named, unless it named none.</summary>
-    private void Store(ExecutableStep step, string parameter, string fallback, Value value)
-    {
-        var name = step.Text(parameter).Trim();
-        if (name.Length == 0 && fallback.Length == 0)
-        {
-            return;
-        }
-
-        Variables.Set(name.Length == 0 ? fallback : name, value);
-    }
-
-    /// <summary>
-    /// Writes a match so a macro can read its parts: the centre as <c>name</c> ("x,y", the way
-    /// every coordinate field is written) and each part again as <c>name.x</c>, <c>name.y</c>,
-    /// <c>name.width</c>, <c>name.height</c> and <c>name.score</c>, with what the picture was
-    /// taken of beside them.
-    /// </summary>
-    private void StoreMatch(string name, ScreenPoint centre, ScreenSize size, double score,
-        string text = "")
-    {
-        Variables.Set(name, Value.FromText($"{centre.X},{centre.Y}"));
-        Variables.Set(name + ".x", Value.FromNumber(centre.X));
-        Variables.Set(name + ".y", Value.FromNumber(centre.Y));
-        Variables.Set(name + ".width", Value.FromNumber(size.Width));
-        Variables.Set(name + ".height", Value.FromNumber(size.Height));
-        Variables.Set(name + ".score", Value.FromNumber(score));
-        StoreSource(name);
-
-        if (text.Length > 0)
-        {
-            Variables.Set(name + ".text", Value.FromText(text));
-        }
-    }
-
-    /// <summary>
-    /// Writes which window the picture was taken of and which way it was taken. It sits beside a
-    /// result rather than inside one because it answers a different question: not "where was it",
-    /// but "was it even looking at the right thing".
-    /// </summary>
-    private void StoreSource(string name)
-    {
-        Variables.Set(name + ".window", Value.FromText(_takenWindow));
-        Variables.Set(name + ".method", Value.FromText(
-            _takenMethod is { } method ? CaptureMethodNames.Written(method) : string.Empty));
-    }
-
-    /// <summary>
-    /// Empties a match that was not found, parts included, so a step inside a loop never reads
-    /// the position the previous pass left behind.
-    /// </summary>
-    private void StoreMiss(string name)
-    {
-        Variables.Set(name, Value.FromText(string.Empty));
-        foreach (var part in MatchParts)
-        {
-            Variables.Set(name + part, Value.FromText(string.Empty));
-        }
-    }
-
-    /// <summary>The parts a match is broken into, named after the dot in <c>match.x</c>.</summary>
-    private static readonly string[] MatchParts =
-    [
-        ".x", ".y", ".width", ".height", ".score", ".text", ".count", ".list", ".window", ".method",
-    ];
 
     /// <summary>The process id a step names, which is usually a variable.</summary>
     private int ProcessId(ExecutableStep step)
@@ -5759,14 +5611,109 @@ public sealed class MacroRunner
 
     // --------------------------------------------------------------------- window
 
+    /// <summary>
+    /// Hands one of a step's results over under the name the step gave it, and does nothing at all
+    /// when the step did not ask for that result. An unticked result is not an empty variable, it is
+    /// one this step never makes: a macro that reads it is reading a name no run wrote.
+    /// </summary>
+    private string Give(ExecutableStep step, string key, Value value)
+    {
+        var name = step.Return(key);
+        if (name.Length > 0)
+        {
+            Variables.Set(name, value);
+        }
+
+        return name;
+    }
+
+    /// <summary>Hands one result over and says so in the log, the way storing a value does.</summary>
+    private void Store(ExecutableStep step, string key, Value value, int depth)
+    {
+        var name = Give(step, key, value);
+        if (name.Length > 0)
+        {
+            Log(LogLevel.Info, depth, step.Type, "Run.Set", name, value.AsText());
+        }
+    }
+
+    /// <summary>
+    /// Hands over what a search found: where it was, the four sides of the rectangle it was found
+    /// in, how sure the reading was, and the writing that was read where there was any. Each part is
+    /// a result of its own, so a macro that wants only the score is not made to carry a position it
+    /// never reads; a part an action does not list is simply never ticked, and handing it over does
+    /// nothing.
+    /// </summary>
+    private void GiveMatch(ExecutableStep step, ScreenPoint centre, ScreenSize size, double score,
+        string text = "")
+    {
+        Give(step, "match", Value.FromText($"{centre.X},{centre.Y}"));
+        Give(step, "x", Value.FromNumber(centre.X));
+        Give(step, "y", Value.FromNumber(centre.Y));
+        Give(step, "width", Value.FromNumber(size.Width));
+        Give(step, "height", Value.FromNumber(size.Height));
+        Give(step, "score", Value.FromNumber(score));
+        GiveTaken(step);
+
+        if (text.Length > 0)
+        {
+            Give(step, "text", Value.FromText(text));
+        }
+    }
+
+    /// <summary>
+    /// Empties what a search would have handed over, so a step inside a loop never reads the place
+    /// the pass before it found.
+    /// </summary>
+    private void GiveNothing(ExecutableStep step)
+    {
+        foreach (var key in new[]
+                 {
+                     "match", "x", "y", "width", "height", "score", "text", "window", "method",
+                 })
+        {
+            Give(step, key, Value.FromText(string.Empty));
+        }
+    }
+
+    /// <summary>
+    /// Hands over which window the picture came from and which way it was taken. That answers a
+    /// different question from where the hit was: not "where is it", but "was it looking at the
+    /// right thing at all".
+    /// </summary>
+    private void GiveTaken(ExecutableStep step)
+    {
+        Give(step, "window", Value.FromText(_takenWindow));
+        Give(step, "method", Value.FromText(
+            _takenMethod is { } method ? CaptureMethodNames.Written(method) : string.Empty));
+    }
+
+    /// <summary>
+    /// Notes how many places matched and where they all are, for the steps that asked for the whole
+    /// list. Each entry is one "x,y" centre, so the list can be counted, taken apart and looped over
+    /// with the list functions.
+    /// </summary>
+    private void GiveEvery(ExecutableStep step, IReadOnlyList<ImageMatch> hits, bool every)
+        => GiveEvery(step, [.. hits.Select(hit => hit.Center)], every);
+
+    /// <summary>The same, for hits that are only places: the pixels a colour search turned up.</summary>
+    private void GiveEvery(ExecutableStep step, IReadOnlyList<ScreenPoint> centres, bool every)
+    {
+        if (!every)
+        {
+            return;
+        }
+
+        Give(step, "count", Value.FromNumber(centres.Count));
+        Give(step, "list", Value.FromList(
+            centres.Select(centre => Value.FromText($"{centre.X},{centre.Y}"))));
+    }
+
     /// <summary>Leaves true or false behind, depending on whether the window is open.</summary>
     private void WindowExists(ExecutableStep step, int depth)
     {
         var found = Lookup(step) is not null;
-        var name = VariableName(step, "resultVariable", "found");
-
-        Variables.Set(name, Value.FromBool(found));
-        Log(LogLevel.Info, depth, step.Type, "Run.Set", name, found ? "true" : "false");
+        Store(step, "found", Value.FromBool(found), depth);
     }
 
     /// <summary>Waits until a window the step names appears.</summary>
@@ -5780,12 +5727,7 @@ public sealed class MacroRunner
             throw new StepFailure("Run.WindowTimeout", WindowText(step));
         }
 
-        var name = VariableName(step, "resultVariable", string.Empty);
-        if (name.Length > 0)
-        {
-            Variables.Set(name, Value.FromText(window.Title));
-        }
-
+        Give(step, "title", Value.FromText(window.Title));
         Log(LogLevel.Info, depth, step.Type, "Run.WindowAppeared", window.Title);
     }
 
@@ -5804,8 +5746,7 @@ public sealed class MacroRunner
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var name = VariableName(step, "resultVariable", "windows");
-        Variables.Set(name, Value.FromList(titles.Select(Value.FromText)));
+        Store(step, "windows", Value.FromList(titles.Select(Value.FromText)), depth);
         Log(LogLevel.Info, depth, step.Type, "Run.ListedWindows", titles.Count);
     }
 
@@ -5893,18 +5834,17 @@ public sealed class MacroRunner
     private void WindowBox(ExecutableStep step, int depth)
     {
         var window = Locate(step);
-        var name = VariableName(step, "resultVariable", "box");
         var left = window.Location.X;
         var top = window.Location.Y;
         var width = window.Size.Width;
         var height = window.Size.Height;
 
-        Variables.Set(name, Value.FromText($"{left},{top},{width},{height}"));
-        Variables.Set(name + ".x", Value.FromNumber(left));
-        Variables.Set(name + ".y", Value.FromNumber(top));
-        Variables.Set(name + ".width", Value.FromNumber(width));
-        Variables.Set(name + ".height", Value.FromNumber(height));
-        Variables.Set(name + ".title", Value.FromText(window.Title));
+        Give(step, "box", Value.FromText($"{left},{top},{width},{height}"));
+        Give(step, "x", Value.FromNumber(left));
+        Give(step, "y", Value.FromNumber(top));
+        Give(step, "width", Value.FromNumber(width));
+        Give(step, "height", Value.FromNumber(height));
+        Give(step, "title", Value.FromText(window.Title));
 
         Log(LogLevel.Info, depth, step.Type, "Run.WindowBox", window.Title, $"{left},{top},{width},{height}");
     }
@@ -6087,30 +6027,19 @@ public sealed class MacroRunner
         Saw(step, LookKind.Text, area, corner, Marks([(area, corner)], TextMarks(spans, corner), 0), 0,
             note: text, minimum: Number(step, "minScore"));
 
-        var name = step.Text("resultVariable").Trim();
-        if (name.Length == 0)
-        {
-            name = "text";
-        }
-
-        // Read as a table, the variable holds rows of cells — the shape reading a table through UI
-        // Automation gives. Read as text it holds the writing. The writing is always in .text, so a
-        // macro can take it either way round.
+        // Read as a table, the result holds rows of cells — the shape reading a table through UI
+        // Automation gives. Read as text it holds the writing, and either way the writing itself is
+        // handed over as well, so a macro can take it both ways round.
         if (Flag(step, "table", false))
         {
             var rows = OcrReading.Rows(spans);
-            Variables.Set(name, Value.FromList(rows.Select(row =>
+            Give(step, "table", Value.FromList(rows.Select(row =>
                 Value.FromList(row.Select(Value.FromText)))));
             text = string.Join('\n', rows.Select(row => string.Join('\t', row)));
-            Log(LogLevel.Info, depth, step.Type, "Run.ReadTable", name, rows.Count);
-        }
-        else
-        {
-            Variables.Set(name, Value.FromText(text));
-            Log(LogLevel.Info, depth, step.Type, "Run.Set", name, text);
+            Log(LogLevel.Info, depth, step.Type, "Run.ReadTable", rows.Count);
         }
 
-        Variables.Set(name + ".text", Value.FromText(text));
+        Store(step, "text", Value.FromText(text), depth);
     }
 
     private void FindText(ExecutableStep step, int depth)
@@ -6129,27 +6058,22 @@ public sealed class MacroRunner
 
         var span = hits.Count > 0 ? hits[0] : null;
 
-        var name = step.Text("resultVariable").Trim();
-        if (name.Length == 0)
-        {
-            name = "match";
-        }
-
         if (span is null)
         {
-            StoreMiss(name);
+            GiveNothing(step);
         }
         else
         {
-            StoreMatch(name, span.Center, span.Size, span.Confidence, span.Text);
+            GiveMatch(step, span.Center, span.Size, span.Confidence, span.Text);
         }
 
         // Where every hit was, not only the one the step picked, so a macro can walk a list of
         // hits or click through a column of them.
-        Remember(name, [.. hits.Select(hit => hit.Center)], Flag(step, "allMatches", false));
+        GiveEvery(step, [.. hits.Select(hit => hit.Center)], Flag(step, "allMatches", false));
 
         Log(LogLevel.Info, depth, step.Type, span is null ? "Run.TextMissing" : "Run.TextFound",
-            name, span is null ? string.Empty : $"{span.Center.X},{span.Center.Y}");
+            span is null ? string.Empty : $"{span.Center.X},{span.Center.Y}",
+            span is null ? string.Empty : span.Text);
     }
 
     /// <summary>
@@ -6238,14 +6162,7 @@ public sealed class MacroRunner
     private void Exists(ExecutableStep step, int depth)
     {
         var found = _devices.Ui.Exists(Query(step), Number(step, "timeoutMs"));
-        var name = step.Text("resultVariable").Trim();
-        if (name.Length == 0)
-        {
-            name = "exists";
-        }
-
-        Variables.Set(name, Value.FromBool(found));
-        Log(LogLevel.Info, depth, step.Type, "Run.Set", name, found ? "true" : "false");
+        Store(step, "exists", Value.FromBool(found), depth);
     }
 
     private async Task WaitElement(ExecutableStep step, int depth, CancellationToken token)
@@ -6273,7 +6190,6 @@ public sealed class MacroRunner
     /// </summary>
     private void FindElement(ExecutableStep step, int depth)
     {
-        var name = VariableName(step, "resultVariable", "element");
         var every = Flag(step, "allMatches", false);
         var index = Index(step, "matchIndex", 1);
 
@@ -6284,16 +6200,16 @@ public sealed class MacroRunner
 
         if (match is null)
         {
-            StoreMiss(name);
+            GiveNothing(step);
         }
         else
         {
-            StoreMatch(name, Centre(match), match.Size, 1, match.Name);
+            GiveMatch(step, Centre(match), match.Size, 1, match.Name);
         }
 
-        Remember(name, [.. hits.Select(Centre)], every);
+        GiveEvery(step, [.. hits.Select(Centre)], every);
         Log(LogLevel.Info, depth, step.Type, match is null ? "Run.ElementMissing" : "Run.ElementWhere",
-            name, match is null ? string.Empty : $"{Centre(match).X},{Centre(match).Y}");
+            match is null ? string.Empty : $"{Centre(match).X},{Centre(match).Y}");
     }
 
     /// <summary>The middle of an element, which is the point a click aimed at it would land on.</summary>
@@ -6336,14 +6252,7 @@ public sealed class MacroRunner
     private void GetElementText(ExecutableStep step, int depth)
     {
         var text = _devices.Ui.GetText(Query(step)) ?? string.Empty;
-        var name = step.Text("resultVariable").Trim();
-        if (name.Length == 0)
-        {
-            name = "text";
-        }
-
-        Variables.Set(name, Value.FromText(text));
-        Log(LogLevel.Info, depth, step.Type, "Run.Set", name, text);
+        Store(step, "text", Value.FromText(text), depth);
     }
 
     private void FocusWindow(ExecutableStep step, int depth)
@@ -6425,17 +6334,12 @@ public sealed class MacroRunner
         var limit = Math.Clamp(OptionalNumber(step, "maxRows", DefaultRows), 1, MaxRows);
         var table = _devices.Ui.ReadTable(Query(step), limit);
 
-        var name = VariableName(step, "resultVariable", "table");
-        Variables.Set(name, Value.FromList(
+        var name = Give(step, "table", Value.FromList(
             table.Rows.Select(row => Value.FromList(row.Select(Value.FromText)))));
 
         // The names a table keeps above its data are the only place that says which column is
         // which, and they are not a row of it.
-        var titles = step.Text("columnsVariable").Trim();
-        if (titles.Length > 0)
-        {
-            Variables.Set(titles, Value.FromList(table.Columns.Select(Value.FromText)));
-        }
+        Give(step, "columns", Value.FromList(table.Columns.Select(Value.FromText)));
 
         Log(LogLevel.Info, depth, step.Type, "Run.ReadTable", name, table.Rows.Count);
     }
@@ -6482,9 +6386,8 @@ public sealed class MacroRunner
     private void BrowserReadText(ExecutableStep step, int depth)
     {
         var text = _devices.Browser.Text(Read(step.Text("target")).AsText());
-        var name = VariableName(step, "resultVariable", "text");
-        Variables.Set(name, Value.FromText(text));
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserRead", text.Length, name);
+        Give(step, "text", Value.FromText(text));
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserRead", text.Length);
     }
 
     /// <summary>
@@ -6571,7 +6474,7 @@ public sealed class MacroRunner
         }
 
         var said = result.StandardOutput.Trim('\r', '\n');
-        Variables.Set(VariableName(step, "resultVariable", "output"), Value.FromText(said));
+        Give(step, "output", Value.FromText(said));
         Log(LogLevel.Info, depth, step.Type, "Run.RanScript", language, said.Length);
     }
 

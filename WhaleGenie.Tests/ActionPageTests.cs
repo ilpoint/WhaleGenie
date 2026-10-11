@@ -55,14 +55,13 @@ public class ActionPageTests
         {
             var basic = On(action, viewModel => viewModel.Rows);
             var advanced = On(action, viewModel => viewModel.AdvancedRows);
-            var output = On(action, viewModel => viewModel.OutputRows);
 
             var rectangles = Ui.Run(() => Open(action.Key).Parameters
                 .Where(parameter => parameter.IsRegion)
                 .Select(parameter => parameter.Definition.Name)
                 .ToList());
 
-            var drawn = basic.Concat(advanced).Concat(output)
+            var drawn = basic.Concat(advanced)
                 .Where(name => !rectangles.Contains(name, StringComparer.Ordinal))
                 .ToList();
             var twice = drawn.GroupBy(name => name, StringComparer.Ordinal)
@@ -232,8 +231,7 @@ public class ActionPageTests
         {
             var basic = On(action, viewModel => viewModel.Rows);
             var advanced = On(action, viewModel => viewModel.AdvancedRows);
-            var output = On(action, viewModel => viewModel.OutputRows);
-            if (!basic.Concat(advanced).Concat(output).Contains("captureMode", StringComparer.Ordinal))
+            if (!basic.Concat(advanced).Contains("captureMode", StringComparer.Ordinal))
             {
                 continue;
             }
@@ -317,25 +315,35 @@ public class ActionPageTests
     }
 
     /// <summary>
-    /// The page about the names a step leaves behind holds those names and nothing else: a field
-    /// whose name is the answer belongs there, and a field naming a variable it reads does not —
-    /// that one is part of what the step is.
+    /// The returns page lists exactly what the catalogue says the action can hand over, in the order
+    /// it declares, and no field of the step is drawn there: what a step hands over is a list of
+    /// results, not one more setting about how it runs.
     /// </summary>
     [Fact]
-    public void The_output_page_holds_the_names_the_step_leaves_behind()
+    public void The_returns_page_lists_what_the_action_can_hand_over()
     {
         var wrong = new List<string>();
 
-        foreach (var action in Ui.Run(() => ActionCatalog.RunnableActions.ToList()))
+        Ui.Run(() =>
         {
-            foreach (var name in On(action, viewModel => viewModel.OutputRows))
+            foreach (var action in ActionCatalog.RunnableActions)
             {
-                if (name != "saveTo" && !name.EndsWith("Variable", StringComparison.Ordinal))
+                var viewModel = Open(action.Key);
+                var drawn = viewModel.ReturnsRows.Select(row => row.Key).ToList();
+                var declared = action.Returns.Select(result => result.Key).ToList();
+
+                if (!drawn.SequenceEqual(declared, StringComparer.Ordinal))
                 {
-                    wrong.Add($"{action.Key}: {name}");
+                    wrong.Add($"{action.Key}: {string.Join(",", drawn)} for {string.Join(",", declared)}");
                 }
+
+                var elsewhere = viewModel.Rows.Concat(viewModel.AdvancedRows)
+                    .SelectMany(Names)
+                    .Where(name => name == "returns")
+                    .ToList();
+                wrong.AddRange(elsewhere.Select(name => $"{action.Key}: {name} is drawn among the fields"));
             }
-        }
+        });
 
         Assert.Empty(wrong);
     }
@@ -361,7 +369,6 @@ public class ActionPageTests
             {
                 (Name: "base", Fields: On(action, viewModel => viewModel.Rows)),
                 (Name: "advanced", Fields: On(action, viewModel => viewModel.AdvancedRows)),
-                (Name: "output", Fields: On(action, viewModel => viewModel.OutputRows)),
             };
 
             foreach (var (first, second) in pairs)

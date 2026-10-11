@@ -205,8 +205,8 @@ public class ActionDialogTests
             Assert.Equal("5", Value(viewModel, "tolerance"));
             Assert.Equal("1", Value(viewModel, "matchIndex"));
             Assert.Equal("0", Value(viewModel, "timeoutMs"));
-            Assert.True(viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "resultVariable").IsVariable);
+            Assert.Equal(["match", "x", "y", "count", "list"],
+                viewModel.ReturnsRows.Select(row => row.Key).ToList());
         });
     }
 
@@ -732,17 +732,21 @@ public class ActionDialogTests
         public UiTable ReadTable(UiQuery query, int limit) => UiTable.Empty;
     }
     [Fact]
-    public void A_vision_result_is_a_variable_the_macro_already_knows()
+    public void A_vision_step_opens_with_the_position_it_finds_ticked()
     {
         Ui.Run(() =>
         {
             var viewModel = Open("vision.findImage");
-            var result = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "resultVariable");
+            var result = viewModel.ReturnsRows.First(row => row.Key == "match");
 
-            Assert.True(result.IsVariable);
-            Assert.Equal("match", result.Text);
-            Assert.Contains("match.x", result.Variables.Select(choice => choice.Name));
+            // The position is the answer such a step nearly always wants, so it is the one ticked
+            // when the step is written, and it is named after the note, the action and the result.
+            Assert.True(result.Ticked);
+            Assert.NotEmpty(result.Name);
+
+            // The rest are there to be asked for, not handed over by default.
+            Assert.All(viewModel.ReturnsRows.Where(row => !row.IsPrimary),
+                row => Assert.False(row.Ticked));
         });
     }
 
@@ -870,8 +874,8 @@ public class ActionDialogTests
             Assert.Equal("10000", Value(viewModel, "timeoutMs"));
             Assert.Equal("200", Value(viewModel, "pollMs"));
             Assert.Equal("stop", Value(viewModel, "onTimeout"));
-            Assert.True(viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "elapsedVariable").IsVariable);
+            Assert.True(viewModel.ReturnsRows
+                .First(row => row.Key == "elapsed").Ticked);
         });
     }
 
@@ -1446,25 +1450,25 @@ public class ActionDialogTests
             Assert.Contains("matchColumn", folded);
             Assert.Contains("matchValue", folded);
 
-            // The names the step leaves its answer under are asked for on a page of their own: they
-            // are not part of what the step is, they are how the rest of the macro reaches it.
-            Assert.Equal(["resultVariable", "headerVariable"],
-                reading.OutputRows.SelectMany(Names).ToList());
+            // The results the step may hand over are asked for on a page of their own: they are not
+            // part of what the step is, they are how the rest of the macro reaches it.
+            Assert.Equal(["rows", "header"],
+                reading.ReturnsRows.Select(row => row.Key).ToList());
 
             var writing = Open("file.writeCsv");
             Assert.Equal(["path", "rows", "header", "mode"],
                 writing.Rows.SelectMany(Names).ToList());
             Assert.Contains("align", writing.AdvancedRows.SelectMany(Names));
-            Assert.Empty(writing.OutputRows);
+            Assert.Empty(writing.ReturnsRows);
 
             var listing = Open("file.listFiles");
             Assert.Equal(["folder", "pattern", "recurse"],
                 listing.Rows.SelectMany(Names).ToList());
-            Assert.Equal(["resultVariable"], listing.OutputRows.SelectMany(Names).ToList());
+            Assert.Equal(["files"], listing.ReturnsRows.Select(row => row.Key).ToList());
 
             var text = Open("file.readText");
             Assert.Equal(["path"], text.Rows.SelectMany(Names).ToList());
-            Assert.Equal(["resultVariable"], text.OutputRows.SelectMany(Names).ToList());
+            Assert.Equal(["text"], text.ReturnsRows.Select(row => row.Key).ToList());
         });
     }
 

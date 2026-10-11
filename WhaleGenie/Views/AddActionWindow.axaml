@@ -707,18 +707,31 @@
                            IsVisible="{Binding HasHint}"
                            TextWrapping="Wrap" Margin="2,5,0,0" />
 
-                <!-- A name the step creates that something else already holds: two steps writing
-                     into one variable is a mistake nobody sees, so it is said here with the one
-                     answer that always works next to it. -->
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6" Margin="2,5,0,0"
-                      IsVisible="{Binding IsNameTaken}">
-                    <TextBlock Classes="Muted" Text="{Binding NameWarning}" TextWrapping="Wrap"
-                               Foreground="#D8B36A" VerticalAlignment="Center" />
-                    <Button Grid.Column="1" Classes="FlatButton" Height="26" Padding="9,0"
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- One result a step may hand over: the box that says whether the macro keeps it, what it
+             is, and the name it goes by. The name follows the step's note until it is typed in by
+             hand, and a name something else already holds is said out loud rather than left to be
+             discovered when two steps write into one variable. -->
+        <DataTemplate x:Key="ReturnsRowEditor" x:DataType="vm:ReturnsRowViewModel">
+            <StackPanel Margin="0,0,0,14">
+                <CheckBox IsChecked="{Binding Ticked}" Content="{Binding Label}" />
+                <TextBlock Classes="Muted" Text="{Binding Hint}" IsVisible="{Binding HasHint}"
+                           TextWrapping="Wrap" Margin="26,3,0,0" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="26,6,0,0"
+                      IsVisible="{Binding ShowsName}">
+                    <TextBox Classes="ParamInput" Text="{Binding Name}"
+                             IsEnabled="{Binding Ticked}" />
+                    <Button Grid.Column="1" Classes="FlatButton" Height="30" Padding="9,0"
+                            IsVisible="{Binding IsNameTaken}"
                             Content="{Binding [Add.NameMakeUnique], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.NameMakeUniqueHint], Source={x:Static loc:Strings.Current}}"
-                            Click="OnMakeNameUnique" />
+                            Click="OnMakeReturnNameUnique" />
                 </Grid>
+                <TextBlock Classes="Muted" Text="{Binding NameWarning}" TextWrapping="Wrap"
+                           Foreground="#D8B36A" Margin="26,4,0,0"
+                           IsVisible="{Binding IsNameTaken}" />
             </StackPanel>
         </DataTemplate>
 
@@ -1174,14 +1187,15 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Where the step leaves its answer. These are names rather than settings: the
-                         variable a later step reads the result out of. -->
-                    <Border Classes="GroupBox" IsVisible="{Binding OnOutput}">
+                    <!-- What the step hands over. These are the results the engine works out while
+                         it runs: tick the ones the macro should keep, and each becomes a variable of
+                         its own for a later step to read. -->
+                    <Border Classes="GroupBox" IsVisible="{Binding OnReturns}">
                         <StackPanel>
                             <TextBlock Classes="Muted" TextWrapping="Wrap" Margin="2,0,0,8"
-                                       Text="{Binding [Add.Page.OutputHint], Source={x:Static loc:Strings.Current}}" />
-                            <ItemsControl ItemsSource="{Binding OutputRows}"
-                                          ItemTemplate="{StaticResource ParameterRowEditor}" />
+                                       Text="{Binding [Add.Page.ReturnsHint], Source={x:Static loc:Strings.Current}}" />
+                            <ItemsControl ItemsSource="{Binding ReturnsRows}"
+                                          ItemTemplate="{StaticResource ReturnsRowEditor}" />
                         </StackPanel>
                     </Border>
 
