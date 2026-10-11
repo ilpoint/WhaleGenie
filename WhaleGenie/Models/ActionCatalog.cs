@@ -2244,7 +2244,7 @@ public static class ActionCatalog
         new()
         {
             Key = "vision.findColor",
-            Returns = HitParts(singlePixel: true),
+            Returns = [.. HitParts(singlePixel: true), .. Coverage()],
             Category = ActionCategory.Vision,
             DisplayName = "Find Color",
             Description = "Look for a colour inside a screen region.",
@@ -2252,6 +2252,15 @@ public static class ActionCatalog
             [
                 ColorPick("color", "Colour", "#000000", "Colour to look for."),
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100),
+                Number("minCoverage", "At least this much", 0,
+                    "The least share of the search region that has to show the colour for the step "
+                    + "to count it as found, from 0 to 100 per cent; the default is 0, which does "
+                    + "not look at the share at all. A bar half filled, a button lit up, a gauge "
+                    + "past its mark are read with this rather than by where the colour is: the "
+                    + "share is measured over the whole search region, several rows counted as "
+                    + "one. Measuring it costs a walk of the whole region, so a step that does "
+                    + "not ask for it is not slowed down.",
+                    min: 0, max: 100, advanced: true),
                 Region(),
                 ..Capture(),
                 Number("timeoutMs", "Wait up to", 0,
@@ -2295,6 +2304,36 @@ public static class ActionCatalog
                     "How long to wait for the picture to settle, in milliseconds; the default is "
                     + "10000. Reached, the step fails."),
                 LookPoll(100),
+            ],
+        },
+        new()
+        {
+            Key = "vision.findColors",
+            Returns = HitParts(singlePixel: true),
+            Category = ActionCategory.Vision,
+            DisplayName = "Find Colour Pattern",
+            Description = "Look for a colour that has the colours this step names around it, which "
+                + "is how two things drawn alike are told apart.",
+            Parameters =
+            [
+                ColorPick("color", "Base colour", "#000000",
+                    "The colour in the middle of the pattern: the one whose place is handed over, "
+                    + "and the pixel the colours around it are counted from."),
+                Multiline("points", "Colours around it",
+                    "The colours that have to be there, one per line, written as the offset from "
+                    + "the base colour and the colour itself: 12,-4,#FF0000. Every one of them has "
+                    + "to be where it says, and the whole pattern has to fit inside the search "
+                    + "region; a pattern that runs off the edge of the region is not found.",
+                    "12,-4,#FF0000; -8,3,#00FF00"),
+                Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100),
+                Region(),
+                ..Capture(),
+                LookGap(0),
+                MatchOrder(bySize: false),
+                MatchIndex(),
+                AllMatches(),
+                ..Anchor(),
+                Returns(),
             ],
         },
 
@@ -3005,6 +3044,31 @@ public static class ActionCatalog
                 ..Anchor(),
                 ..Capture(),
                 LookGap(0),
+            ],
+        },
+        new()
+        {
+            Key = "condition.colorsExist",
+            Category = ActionCategory.Condition,
+            DisplayName = "Colour Pattern",
+            Description = "True when a colour is on screen with the colours this step names around "
+                + "it.",
+            Parameters =
+            [
+                ColorPick("color", "Base colour", "#000000",
+                    "The colour in the middle of the pattern: the pixel the colours around it are "
+                    + "counted from."),
+                Multiline("points", "Colours around it",
+                    "The colours that have to be there, one per line, written as the offset from "
+                    + "the base colour and the colour itself: 12,-4,#FF0000. Every one of them has "
+                    + "to be where it says, and the whole pattern has to fit inside the search "
+                    + "region; a pattern that runs off the edge of the region is not found.",
+                    "12,-4,#FF0000; -8,3,#00FF00"),
+                Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100),
+                Region(),
+                ..Capture(),
+                LookGap(0),
+                ..Anchor(),
             ],
         },
         new()
@@ -3724,6 +3788,19 @@ public static class ActionCatalog
             hint: "How wide the covered rectangle was, in pixels."),
         Return("height", "Height", type: ActionReturnType.Number,
             hint: "How tall the covered rectangle was, in pixels."),
+    ];
+
+    /// <summary>
+    /// How much of the search region shows the colour: a bar rather than a place, which is what a
+    /// health bar, a progress bar and a gauge are read with. It costs a walk of the whole region to
+    /// measure, so it is only measured by the steps that ask for it.
+    /// </summary>
+    private static ActionReturn[] Coverage() =>
+    [
+        Return("coverage", "Colour coverage %", type: ActionReturnType.Number,
+            hint: "How much of the search region shows the colour, from 0 to 100 per cent in "
+                + "tenths, with several search rows counted as one region. Written whether or not "
+                + "the colour was found, so a share below the least the step accepts can be read."),
     ];
 
     /// <summary>Mouse button picker shared by every input action that clicks.</summary>

@@ -844,6 +844,151 @@ public class DeviceActionTests
         Assert.Equal(1, store.Local.Values["spot.x"].AsNumber());
     }
 
+    /// <summary>
+    /// A step that asks how much of the region shows the colour is told, which is how a bar is read
+    /// rather than a place: a progress bar is not a pixel anywhere, it is how much of it is filled.
+    /// </summary>
+    [Fact]
+    public async Task The_share_of_the_region_that_shows_the_colour_can_be_read()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#FF0000", "#000000,#000000") };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findColor", Param("color", "#FF0000"), Param("tolerance", "1"),
+                Region((0, 0, 2, 2)), Returns("coverage=share")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(50, store.Local.Values["share"].AsNumber());
+    }
+
+    /// <summary>
+    /// A share the step will not act below is waited for and, when the region never shows that much
+    /// of the colour, there is nothing to hand over — the same answer as the colour not being there
+    /// at all, because half a bar is not a full one.
+    /// </summary>
+    [Fact]
+    public async Task A_colour_short_of_the_share_asked_for_is_not_found()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#000000", "#000000,#000000") };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findColor", Param("color", "#FF0000"), Param("tolerance", "1"),
+                Param("minCoverage", "60"), Region((0, 0, 2, 2)),
+                Returns("match=spot", "coverage=share")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(string.Empty, store.Local.Values["spot"].AsText());
+        Assert.Equal(25, store.Local.Values["share"].AsNumber());
+    }
+
+    /// <summary>
+    /// A colour on its own is not enough to tell two things drawn alike apart, so a step can name
+    /// the colours that have to be around it and be handed the place the pattern sits at.
+    /// </summary>
+    [Fact]
+    public async Task A_pattern_is_found_where_its_colours_sit()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Display = Picture("#000000,#000000,#000000",
+                "#000000,#FF0000,#00FF00",
+                "#000000,#0000FF,#000000"),
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findColors", Param("color", "#FF0000"),
+                Param("points", "1,0,#00FF00; 0,1,#0000FF"), Param("tolerance", "1"),
+                Region((0, 0, 3, 3)), Hit("match", "spot")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("1,1", store.Local.Values["spot"].AsText());
+    }
+
+    /// <summary>
+    /// One colour of the pattern out of place is what tells the red thing this step wants from the
+    /// red thing that merely looks like it.
+    /// </summary>
+    [Fact]
+    public async Task A_pattern_with_one_colour_out_of_place_is_not_found()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Display = Picture("#000000,#000000,#000000",
+                "#000000,#FF0000,#123456",
+                "#000000,#0000FF,#000000"),
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findColors", Param("color", "#FF0000"),
+                Param("points", "1,0,#00FF00; 0,1,#0000FF"), Param("tolerance", "1"),
+                Region((0, 0, 3, 3)), Hit("match", "spot")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(string.Empty, store.Local.Values["spot"].AsText());
+    }
+
+    /// <summary>
+    /// The same pattern as a condition: what a block waits for, branches on, or loops until it is
+    /// there. Asking for it is asking the same question as the step that looks for it.
+    /// </summary>
+    [Fact]
+    public async Task A_wait_can_hold_until_a_pattern_turns_up()
+    {
+        var present = Picture("#000000,#000000,#000000",
+            "#000000,#FF0000,#00FF00",
+            "#000000,#0000FF,#000000");
+        var devices = new FakeDeviceLayer
+        {
+            Display = Picture("#000000,#000000,#000000",
+                "#000000,#000000,#000000",
+                "#000000,#000000,#000000"),
+            Next = () => present,
+        };
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("control.waitUntil",
+                When("condition", Step("condition.colorsExist",
+                    Param("color", "#FF0000"), Param("points", "1,0,#00FF00; 0,1,#0000FF"),
+                    Param("tolerance", "1"), Region((0, 0, 3, 3)))),
+                Param("timeoutMs", "2000"), Param("pollMs", "10"), Param("onTimeout", "stop")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+    }
+
+    /// <summary>A pattern the screen does not show leaves the condition false rather than failing.</summary>
+    [Fact]
+    public async Task A_pattern_that_is_not_there_leaves_the_condition_false()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Display = Picture("#000000,#000000,#000000",
+                "#000000,#FF0000,#123456",
+                "#000000,#0000FF,#000000"),
+        };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("control.if",
+                When("condition", Step("condition.colorsExist",
+                    Param("color", "#FF0000"), Param("points", "1,0,#00FF00; 0,1,#0000FF"),
+                    Param("tolerance", "1"), Region((0, 0, 3, 3)))),
+                Body("then", Step("control.setVariable", Param("name", "seen"), Param("value", "yes"))),
+                Body("else", Step("control.setVariable", Param("name", "seen"), Param("value", "no")))),
+        ], devices);
+
+        Assert.Equal("no", store.Local.Values["seen"].AsText());
+    }
+
     [Fact]
     public async Task A_colour_that_is_not_there_leaves_the_result_empty()
     {

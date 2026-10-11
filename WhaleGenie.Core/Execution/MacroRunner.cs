@@ -1191,6 +1191,11 @@ public sealed class MacroRunner
                 await Watching(() => FindColor(step, depth, token));
                 return Signal.Normal;
 
+            case "vision.findColors":
+                await Gate(step, token);
+                Watching(() => FindColours(step, depth));
+                return Signal.Normal;
+
             case "vision.waitStable":
                 await Gate(step, token);
                 await WaitStable(step, depth, token);
@@ -1710,14 +1715,14 @@ public sealed class MacroRunner
     /// does with it.
     /// </summary>
     /// <summary>
-    /// Whether a condition's answer comes from the screen, and so from a look at it. The six that do
-    /// are the ones whose own "how often the screen is looked at" counts, the same field the vision
-    /// steps carry.
+    /// Whether a condition's answer comes from the screen, and so from a look at it. The ones that
+    /// do are the ones whose own "how often the screen is looked at" counts, the same field the
+    /// vision steps carry.
     /// </summary>
     private static bool LooksAtScreen(string conditionType) => conditionType is
         "condition.imageExists" or "condition.imageNotExists"
         or "condition.textExists" or "condition.textNotExists"
-        or "condition.colorEquals" or "condition.colorsMatch";
+        or "condition.colorEquals" or "condition.colorsMatch" or "condition.colorsExist";
 
     private bool Check(ExecutableStep condition, int depth, CancellationToken token)
     {
@@ -1784,6 +1789,9 @@ public sealed class MacroRunner
 
             case "condition.colorsMatch":
                 return ColoursMatch(condition);
+
+            case "condition.colorsExist":
+                return PatternHits(condition).Count > 0;
 
             default:
                 Log(LogLevel.Warn, depth, condition.Type, "Run.UnknownCondition", condition.Type);
@@ -2461,7 +2469,11 @@ public sealed class MacroRunner
             case "vision.findColor":
             case "vision.waitColor":
                 Watching(() => Scan(step, PixelColor.Parse(Read(step.Text("color")).AsText()),
-                    Read(step.Text("tolerance")).AsNumber()));
+                    Read(step.Text("tolerance")).AsNumber(), measured: false));
+                break;
+
+            case "vision.findColors":
+                Watching(() => PatternHits(step));
                 break;
 
             case "vision.getPixel":
@@ -3210,19 +3222,30 @@ public sealed class MacroRunner
     /// Looks for a colour in the search areas and writes where it was found. A step with a timeout
     /// waits for the colour to turn up and fails when it never does, the way waiting for a picture
     /// does; one without looks once and empties the result instead, the way finding a picture does.
+    /// A step that names a least share of the region — how full a bar has to be before it acts —
+    /// waits for that share rather than for the first pixel of the colour.
     /// </summary>
     private async Task FindColor(ExecutableStep step, int depth, CancellationToken token)
     {
         var target = PixelColor.Parse(Read(step.Text("color")).AsText());
         var tolerance = Read(step.Text("tolerance")).AsNumber();
         var timeout = Math.Max(0, Number(step, "timeoutMs"));
+        var least = Read(step.Text("minCoverage")).AsNumber() / 100;
 
-        var hits = await ColourHits(step, target, tolerance, timeout, token);
-        if (hits.Count == 0 && timeout > 0)
+        var pass = await ColourHits(step, target, tolerance, timeout, least, token);
+        if (!pass.Enough(least) && timeout > 0)
         {
             throw new StepFailure("Run.WaitColorTimeout", target.ToHex());
         }
 
+        // The share is handed over whether or not the colour was found: a region the step will not
+        // act on is exactly when the number is worth reading.
+        if (pass.Coverage is { } share)
+        {
+            Give(step, "coverage", Value.FromNumber(Math.Round(share * 100, 1)));
+        }
+
+        var hits = pass.Enough(least) ? pass.Hits : [];
         var match = Chosen(hits, step);
         if (match is null)
         {
@@ -3243,26 +3266,36 @@ public sealed class MacroRunner
     /// step asked for one. Each hit is a single pixel: its centre is the pixel itself, and its score
     /// says how close the colour was, one being exact.
     /// </summary>
-    private async Task<List<ImageMatch>> ColourHits(ExecutableStep step, PixelColor target,
-        double tolerance, int timeout, CancellationToken token)
+    private async Task<ColourPass> ColourHits(ExecutableStep step, PixelColor target,
+        double tolerance, int timeout, double least, CancellationToken token)
     {
-        var hits = Scan(step, target, tolerance);
-        if (hits.Count > 0 || timeout <= 0)
+        // The share is only measured when the step asks about it, either by handing it over or by
+        // saying below which share it will not act: the walk it costs is otherwise wasted.
+        var measured = least > 0 || step.Return("coverage").Length > 0;
+        var pass = Scan(step, target, tolerance, measured);
+        if (pass.Enough(least) || timeout <= 0)
         {
-            return hits;
+            return pass;
         }
 
         var interval = Math.Max(1, OptionalNumber(step, "intervalMs", 200));
 
         // The areas are captured again on every pass, so a wait keeps watching a window that is
         // moving rather than the place it used to be.
-        List<ImageMatch>? Look() => Scan(step, target, tolerance) is { Count: > 0 } found ? found : null;
+        ColourPass? Look() => Scan(step, target, tolerance, measured) is { } found
+                              && found.Enough(least)
+            ? found
+            : null;
 
-        return await WaitForValueAsync(Look, timeout, interval, token) ?? hits;
+        return await WaitForValueAsync(Look, timeout, interval, token) ?? pass;
     }
 
-    /// <summary>One pass over the search areas, in reading order.</summary>
-    private List<ImageMatch> Scan(ExecutableStep step, PixelColor target, double tolerance)
+    /// <summary>
+    /// One pass over the search areas, in reading order. A step that asks how much of the areas
+    /// shows the colour — rather than only where it is — pays for a walk of the whole of them,
+    /// which is why it is done for the steps that ask and for no others.
+    /// </summary>
+    private ColourPass Scan(ExecutableStep step, PixelColor target, double tolerance, bool measured)
     {
         var wanted = Wanted(step);
         var areas = SearchAreas(step);
@@ -3270,6 +3303,8 @@ public sealed class MacroRunner
         // the first ones read left to right and top to bottom are, which is the cheaper walk.
         var surest = OrderOf(step) is MatchOrder.Score;
         var hits = new List<ImageMatch>();
+        long matched = 0;
+        long total = 0;
         foreach (var (area, origin) in areas)
         {
             foreach (var point in PixelSearch.Find(area, target, tolerance, wanted, surest))
@@ -3279,12 +3314,154 @@ public sealed class MacroRunner
                     new ScreenPoint(origin.X + point.X, origin.Y + point.Y),
                     new ScreenSize(1, 1)));
             }
+
+            if (measured)
+            {
+                matched += PixelSearch.Count(area, target, tolerance);
+                total += (long)area.Width * area.Height;
+            }
         }
 
         Sorted(hits, step);
         SawSearch(step, LookKind.Colour, areas, [.. hits.Select(hit => (hit, (string?)null))],
             WentWith(hits, step), target.ToHex());
+        return new ColourPass(hits, measured && total > 0 ? (double)matched / total : null);
+    }
+
+    /// <summary>
+    /// What one pass over the search areas came back with: where the colour was, and, for a step
+    /// that asked about the share rather than the place, how much of the areas shows it.
+    /// </summary>
+    private sealed record ColourPass(List<ImageMatch> Hits, double? Coverage)
+    {
+        /// <summary>
+        /// True when this pass is what the step was after: the colour is somewhere in the areas and,
+        /// where a least share was named, enough of the areas shows it. A least share of zero is
+        /// the step that only asked where the colour is.
+        /// </summary>
+        public bool Enough(double least)
+            => Hits.Count > 0 && (Coverage is not { } share || share >= least);
+    }
+
+    /// <summary>
+    /// Looks for a colour that has to have the colours the step names around it, and writes where
+    /// it was found. One colour on its own says "something red is here", which a busy screen is
+    /// full of; the colours around it say which red thing this is, which is how two buttons drawn
+    /// alike are told apart without a branch for each.
+    /// </summary>
+    private void FindColours(ExecutableStep step, int depth)
+    {
+        var hits = PatternHits(step);
+        var match = Chosen(hits, step);
+        if (match is null)
+        {
+            GiveNothing(step);
+        }
+        else
+        {
+            GiveMatch(step, match.Location, match.Size, match.Score);
+        }
+
+        GiveEvery(step, hits, Flag(step, "allMatches", false));
+        Log(LogLevel.Info, depth, step.Type, match is null ? "Run.ImageMissing" : "Run.ImageFound",
+            match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
+    }
+
+    /// <summary>
+    /// One pass over the search areas: the pixels that show the pattern's own colour with every one
+    /// of the colours around it where it was asked for, in reading order. Each hit is a single pixel
+    /// — its centre is the pixel itself — and its score says how close the whole pattern came, one
+    /// being exact. The colours that had to be around the pixel the step went with are marked beside
+    /// it, which is what tells a step whose pattern is wrong from one that looked in the wrong place.
+    /// </summary>
+    private List<ImageMatch> PatternHits(ExecutableStep step)
+    {
+        var target = PixelColor.Parse(Read(step.Text("color")).AsText());
+        var tolerance = Read(step.Text("tolerance")).AsNumber();
+        var around = Pattern(step);
+
+        var wanted = Wanted(step);
+        var areas = SearchAreas(step);
+        var hits = new List<ImageMatch>();
+        foreach (var (area, origin) in areas)
+        {
+            foreach (var point in PixelSearch.FindPattern(area, target, tolerance, around, wanted))
+            {
+                hits.Add(new ImageMatch(
+                    Closeness(area, point, target, around),
+                    new ScreenPoint(origin.X + point.X, origin.Y + point.Y),
+                    new ScreenSize(1, 1)));
+            }
+        }
+
+        Sorted(hits, step);
+        var taken = WentWith(hits, step);
+        var marks = new List<(ImageMatch Match, string? Label)>(
+            hits.Select(hit => (hit, (string?)null)));
+        if (taken > 0)
+        {
+            var at = hits[taken - 1].Location;
+            foreach (var colour in around)
+            {
+                marks.Add((
+                    new ImageMatch(1, new ScreenPoint(at.X + colour.Dx, at.Y + colour.Dy),
+                        new ScreenSize(1, 1)),
+                    colour.Colour.ToHex()));
+            }
+        }
+
+        SawSearch(step, LookKind.Colour, areas, marks, taken, target.ToHex());
         return hits;
+    }
+
+    /// <summary>
+    /// The colours a pattern has to have around it. They are written the way the points of a
+    /// multi-point colour comparison are — a line of two numbers and a colour — but the numbers are
+    /// counted from the middle of the pattern rather than from the corner of the screen, because
+    /// the whole point of a pattern is that it is found wherever it happens to be.
+    /// </summary>
+    private IReadOnlyList<ColourStep> Pattern(ExecutableStep step)
+    {
+        var text = Interpolate(step.Text("points")).Trim();
+        var around = new List<ColourStep>();
+        foreach (var entry in text.Split([';', '\n', '\r'],
+                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var parts = entry.Split(',', StringSplitOptions.TrimEntries);
+            if (parts.Length != 3
+                || !int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var dx)
+                || !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var dy)
+                || !IsColour(parts[2]))
+            {
+                throw new StepFailure("Run.BadPoints", entry);
+            }
+
+            around.Add(new ColourStep(dx, dy, PixelColor.Parse(parts[2])));
+        }
+
+        if (around.Count == 0)
+        {
+            throw new StepFailure("Run.BadPoints", text);
+        }
+
+        return around;
+    }
+
+    /// <summary>
+    /// How close the whole pattern came, from 0 to 1: the average of how close each of its colours
+    /// is, the one in the middle included, so a pattern found on a faded screen scores lower than
+    /// the same pattern on a fresh one.
+    /// </summary>
+    private static double Closeness(ImageFrame area, ScreenPoint at, PixelColor target,
+        IReadOnlyList<ColourStep> around)
+    {
+        var total = area[at.X, at.Y].DistanceTo(target);
+        foreach (var step in around)
+        {
+            total += area[at.X + step.Dx, at.Y + step.Dy].DistanceTo(step.Colour);
+        }
+
+        return 1 - (total / (around.Count + 1));
     }
 
     /// <summary>

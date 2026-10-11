@@ -48,6 +48,9 @@ A 200×80 reference picture, the picture being the whole 2560×1440 screen excep
 | Colour, appearing near the start of the picture | ~0 ms |
 | Colour that is not on the screen at all (whole picture walked) | 16.7 ms |
 | Colour, the 20 closest ones (whole picture walked) | 29.8 ms |
+| Colour with its coverage counted, whole screen (walked twice: once to find, once to count) | 16.6 ms |
+| Colour with its coverage counted, 400×300 | 0.6 ms |
+| Colour pattern, 400×300 (three points, the colour nowhere on the picture) | 0.6 ms |
 | Whether the picture moved (one round of waiting for stillness) | 5.7 ms |
 | Text recognition, whole screen | 128 ms |
 | Text recognition, 800×200 | 23 ms |
@@ -59,6 +62,10 @@ A 200×80 reference picture, the picture being the whole 2560×1440 screen excep
 - Finding a colour looks at single pixels: the earlier the hit turns up, the cheaper it is (a hit on
   the first pixel measured as 0 ms); "the ones closest to the colour" has to walk the whole picture,
   which is 30 ms. A search that is going to find nothing costs 17 ms.
+- Counting the coverage and finding a colour pattern both walk the whole area: 16.6 ms for the whole
+  2560×1440 screen, the same order as a colour search that walks the whole picture, and 0.6 ms for
+  400×300. **The coverage is only counted by a step that asks for it**, so a step that does not ask
+  still takes the "stop at the first hit" path.
 - The first text recognition in a process spends 1.1–10.3 s reading the model in (how hot the disk
   cache is decides which end of that), and is 128 ms after that. Whole-screen text recognition is the
   most expensive single look in the table.

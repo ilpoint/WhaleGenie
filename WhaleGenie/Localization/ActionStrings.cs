@@ -1811,6 +1811,12 @@ internal static class ActionStrings
         ["vision.findColor.color.hint"] = "要找的颜色，默认 #000000。",
         ["vision.findColor.tolerance.label"] = "容差 %",
         ["vision.findColor.tolerance.hint"] = "允许的颜色偏差，0–100（百分比），默认 5。",
+        ["vision.findColor.minCoverage.label"] = "至少占比 %",
+        ["vision.findColor.minCoverage.hint"] =
+            "搜索区域里至少有多少比例是那个颜色才算找到，0–100（百分比），默认 0，即不看占比。"
+            + "血条涨到一半、按钮亮起来、仪表过了刻度这类判断用它，而不是看颜色在哪一点上；"
+            + "占比按整个搜索区域算，多行区域合起来算一个。算占比要把整块区域走一遍，"
+            + "没问占比的步骤不会因此变慢。",
         ["vision.findColor.matchIndex.label"] = "第几个命中",
         ["vision.findColor.matchIndex.hint"] = MatchIndexHint,
         ["vision.findColor.orderBy.label"] = "命中排序",
@@ -1832,6 +1838,64 @@ internal static class ActionStrings
         ["vision.findColor.anchorMode.option.client"] = "窗口客户区",
         ["vision.findColor.anchorWindow.label"] = "基准窗口",
         ["vision.findColor.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["vision.findColors.name"] = "多点找色",
+        ["vision.findColors.desc"] = "找一个颜色，并要求它周围指定的位置上也各有指定的颜色。",
+        ["vision.findColors.color.label"] = "基准色",
+        ["vision.findColors.color.hint"] =
+            "图案中间的那个颜色，默认 #000000。交回的位置就是它，其他颜色也都从它这里数。",
+        ["vision.findColors.points.label"] = "周围要对的颜色",
+        ["vision.findColors.points.hint"] =
+            "一行一个，写成相对基准色的偏移与颜色，例如 12,-4,#FF0000，偏移可以是负数。"
+            + "每一个都要在写的位置上，整个图案还必须落在搜索区域里面：贴着区域边缘、"
+            + "有一半在区域外的图案不算找到。",
+        ["vision.findColors.tolerance.label"] = "容差 %",
+        ["vision.findColors.tolerance.hint"] = "允许的颜色偏差，0–100（百分比），默认 5。",
+        ["vision.findColors.region.label"] = "搜索区域",
+        ["vision.findColors.region.hint"] = RegionHintText,
+        ["vision.findColors.intervalMs.label"] = LookIntervalLabel,
+        ["vision.findColors.intervalMs.hint"] = LookGapHint,
+        ["vision.findColors.orderBy.label"] = "命中排序",
+        ["vision.findColors.orderBy.hint"] = MatchOrderColourHint,
+        ["vision.findColors.orderBy.option.reading"] = "阅读顺序",
+        ["vision.findColors.orderBy.option.score"] = "分数最高",
+        ["vision.findColors.orderBy.option.random"] = "随机",
+        ["vision.findColors.matchIndex.label"] = "第几个命中",
+        ["vision.findColors.matchIndex.hint"] = MatchIndexHint,
+        ["vision.findColors.allMatches.label"] = "记录全部命中",
+        ["vision.findColors.allMatches.hint"] = AllMatchesHint,
+        ["vision.findColors.anchorMode.label"] = "坐标基准",
+        ["vision.findColors.anchorMode.hint"] = AnchorModeHint,
+        ["vision.findColors.anchorMode.option.screen"] = "屏幕像素",
+        ["vision.findColors.anchorMode.option.window"] = "窗口左上角",
+        ["vision.findColors.anchorMode.option.client"] = "窗口客户区",
+        ["vision.findColors.anchorWindow.label"] = "基准窗口",
+        ["vision.findColors.anchorWindow.hint"] = AnchorWindowHint,
+        ["vision.findColors.captureMode.label"] = CaptureModeLabel,
+        ["vision.findColors.captureMode.hint"] = CaptureModeHint,
+        ["vision.findColors.captureMode.option.auto"] = CaptureAuto,
+        ["vision.findColors.captureMode.option.gdi"] = CaptureGdi,
+        ["vision.findColors.captureMode.option.printWindow"] = CapturePrintWindow,
+        ["vision.findColors.captureMode.option.graphicsCapture"] = CaptureGraphics,
+        ["vision.findColors.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
+        ["vision.findColors.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["vision.findColors.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["vision.findColors.return.match.label"] = "位置",
+        ["vision.findColors.return.match.hint"] =
+            "基准色所在的那个像素，写成 x,y；没找到时为空。",
+        ["vision.findColors.return.x.label"] = "中心 X",
+        ["vision.findColors.return.x.hint"] = "基准色那个像素的横坐标，单位是屏幕像素。",
+        ["vision.findColors.return.y.label"] = "中心 Y",
+        ["vision.findColors.return.y.hint"] = "基准色那个像素的纵坐标，单位是屏幕像素。",
+        ["vision.findColors.return.count.label"] = "命中数",
+        ["vision.findColors.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
+        ["vision.findColors.return.list.label"] = "全部命中",
+        ["vision.findColors.return.list.hint"] =
+            "每一处命中的基准色位置，每项一个 x,y；只有勾上“记录全部命中”才有。",
+        ["vision.findColors.returns.label"] = "要留下的结果",
+        ["vision.findColors.returns.hint"] =
+            "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。"
+            + "一个都不勾也可以，这一步就不留下任何结果。",
 
         ["vision.waitStable.name"] = "等画面静止",
         ["vision.waitStable.desc"] = "等到画面不再动，让后面的步骤拿到一张不会再变的图。",
@@ -1872,6 +1936,38 @@ internal static class ActionStrings
         ["condition.colorsMatch.anchorMode.option.client"] = "窗口客户区",
         ["condition.colorsMatch.anchorWindow.label"] = "基准窗口",
         ["condition.colorsMatch.anchorWindow.hint"] = AnchorWindowHint,
+
+        ["condition.colorsExist.name"] = "颜色组合存在",
+        ["condition.colorsExist.desc"] = "当某个颜色在屏幕上、且它周围指定的位置上也各有指定的颜色时为真。",
+        ["condition.colorsExist.color.label"] = "基准色",
+        ["condition.colorsExist.color.hint"] =
+            "图案中间的那个颜色，默认 #000000。其他颜色都从它这里数。",
+        ["condition.colorsExist.points.label"] = "周围要对的颜色",
+        ["condition.colorsExist.points.hint"] =
+            "一行一个，写成相对基准色的偏移与颜色，例如 12,-4,#FF0000，偏移可以是负数。"
+            + "每一个都要在写的位置上，整个图案还必须落在搜索区域里面。",
+        ["condition.colorsExist.tolerance.label"] = "容差 %",
+        ["condition.colorsExist.tolerance.hint"] = "允许的颜色偏差，0–100（百分比），默认 5。",
+        ["condition.colorsExist.region.label"] = "搜索区域",
+        ["condition.colorsExist.region.hint"] = RegionHintText,
+        ["condition.colorsExist.intervalMs.label"] = LookIntervalLabel,
+        ["condition.colorsExist.intervalMs.hint"] = LookGapHint,
+        ["condition.colorsExist.anchorMode.label"] = "坐标基准",
+        ["condition.colorsExist.anchorMode.hint"] = AnchorModeHint,
+        ["condition.colorsExist.anchorMode.option.screen"] = "屏幕像素",
+        ["condition.colorsExist.anchorMode.option.window"] = "窗口左上角",
+        ["condition.colorsExist.anchorMode.option.client"] = "窗口客户区",
+        ["condition.colorsExist.anchorWindow.label"] = "基准窗口",
+        ["condition.colorsExist.anchorWindow.hint"] = AnchorWindowHint,
+        ["condition.colorsExist.captureMode.label"] = CaptureModeLabel,
+        ["condition.colorsExist.captureMode.hint"] = CaptureModeHint,
+        ["condition.colorsExist.captureMode.option.auto"] = CaptureAuto,
+        ["condition.colorsExist.captureMode.option.gdi"] = CaptureGdi,
+        ["condition.colorsExist.captureMode.option.printWindow"] = CapturePrintWindow,
+        ["condition.colorsExist.captureMode.option.graphicsCapture"] = CaptureGraphics,
+        ["condition.colorsExist.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
+        ["condition.colorsExist.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["condition.colorsExist.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
 
         // ------------------------------------------------------------------- vision
         ["vision.capture.name"] = "截屏",
@@ -3154,6 +3250,10 @@ internal static class ActionStrings
         ["vision.findColor.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
         ["vision.findColor.return.list.label"] = "全部命中",
         ["vision.findColor.return.list.hint"] = "每一处命中的中心点，每项一个 x,y；只有勾上“记录全部命中”才有。",
+        ["vision.findColor.return.coverage.label"] = "占比 %",
+        ["vision.findColor.return.coverage.hint"] =
+            "整个搜索区域里有多少比例是那个颜色，0–100 保留一位小数，多行区域合起来算一个。"
+            + "找没找到都会写，所以占比不够时能读出来看差多少。",
         ["vision.findColor.returns.label"] = "要留下的结果",
         ["vision.findColor.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 

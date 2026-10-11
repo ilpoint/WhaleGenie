@@ -280,7 +280,8 @@ public class ActionDialogTests
             Assert.Equal("5", Value(viewModel, "tolerance"));
             Assert.Equal("1", Value(viewModel, "matchIndex"));
             Assert.Equal("0", Value(viewModel, "timeoutMs"));
-            Assert.Equal(["match", "x", "y", "count", "list"],
+            Assert.Equal("0", Value(viewModel, "minCoverage"));
+            Assert.Equal(["match", "x", "y", "count", "list", "coverage"],
                 viewModel.ReturnsRows.Select(row => row.Key).ToList());
         });
     }
