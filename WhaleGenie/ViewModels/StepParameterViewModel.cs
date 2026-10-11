@@ -44,6 +44,9 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>The name the dialog suggested last, so a name the user typed can be told apart.</summary>
     private string _suggested = string.Empty;
 
+    /// <summary>True while a whole value is being put in at once, rather than typed a character at a time.</summary>
+    private bool _writing;
+
     public StepParameterViewModel(ActionParameter definition,
         IReadOnlyList<VariableChoice>? variables = null,
         IReadOnlyList<string>? macros = null, IReadOnlyList<ActionParameterOption>? steps = null,
@@ -406,8 +409,6 @@ public partial class StepParameterViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsNumberFormula))]
     [NotifyPropertyChangedFor(nameof(IsDurationEditor))]
     [NotifyPropertyChangedFor(nameof(IsDurationFormula))]
-    [NotifyPropertyChangedFor(nameof(CanToggleFormula))]
-    [NotifyPropertyChangedFor(nameof(FormulaTip))]
     [NotifyPropertyChangedFor(nameof(JitterRange))]
     [NotifyPropertyChangedFor(nameof(HasJitterRange))]
     public partial bool UseFormula { get; set; }
@@ -756,22 +757,16 @@ public partial class StepParameterViewModel : ViewModelBase
     public bool IsDurationFormula => IsDuration && UseFormula;
 
     /// <summary>
-    /// Whether the field can go back to the spinner. An expression that reads a variable has no
-    /// plain number to fall back on, so the switch stays off until the text is a number again.
+    /// What the box under a number written as an expression says, so the way back to the spinner is
+    /// not something to be discovered by accident.
     /// </summary>
-    public bool CanToggleFormula => IsNumber && (!UseFormula || TextIsNumber);
-
-    /// <summary>
-    /// What the expression toggle offers right now, so the button never looks stuck or does
-    /// something the field cannot do.
-    /// </summary>
-    public string FormulaTip => UseFormula
-        ? Strings.Get(TextIsNumber ? "Add.FormulaBack" : "Add.FormulaLocked")
-        : Strings.Get("Add.FormulaUse");
+    public string FormulaNote => Strings.Get("Add.FormulaNumber");
 
     /// <summary>True when what the field holds is a plain number rather than an expression.</summary>
-    private bool TextIsNumber
-        => decimal.TryParse((Text ?? string.Empty).Trim(), NumberStyles.Number,
+    public bool TextIsNumber => IsNumberText(Text);
+
+    private static bool IsNumberText(string? text)
+        => decimal.TryParse((text ?? string.Empty).Trim(), NumberStyles.Number,
             CultureInfo.InvariantCulture, out _);
 
     public bool IsBool => Definition.Kind is ActionParameterKind.Bool;
@@ -1018,6 +1013,15 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Re-checks an expression as it is typed, so the editor can show the outcome.</summary>
     partial void OnTextChanged(string value)
     {
+        // A number written as an expression goes back to the spinner the moment what is in the box
+        // is a plain number again — which is also how the box is emptied. The expression builder and
+        // a number typed by hand both land here, so neither has to know which box it wrote into.
+        if (!_writing && IsNumber && UseFormula && (value.Trim().Length == 0 || TextIsNumber))
+        {
+            UseFormula = false;
+            return;
+        }
+
         // A name the dialog did not suggest is one the user chose, and it stops following the note
         // from then on: a name that kept moving while it was being written would be no name at all.
         if (IsOutputVariable && !string.Equals(value, _suggested, StringComparison.Ordinal))
@@ -1036,27 +1040,55 @@ public partial class StepParameterViewModel : ViewModelBase
             RefreshThumbnail();
         }
 
-        if (IsNumberFormula)
-        {
-            OnPropertyChanged(nameof(CanToggleFormula));
-            OnPropertyChanged(nameof(FormulaTip));
-        }
-
         if (IsExpression || IsNumberFormula)
         {
             UpdateExpression(value);
         }
     }
 
-    /// <summary>Switches a number field between the spinner and an expression.</summary>
-    public void ToggleFormula()
+    /// <summary>
+    /// Puts a value in the field whichever way it is written, which is what comes back from the
+    /// expression builder: a plain number is a number and anything else is an expression, and the
+    /// field decides that for itself rather than the button knowing which kind it is.
+    /// </summary>
+    public void WriteValue(string? value)
     {
-        if (!CanToggleFormula)
+        var written = (value ?? string.Empty).Trim();
+
+        if (!IsNumber)
         {
+            Text = written;
             return;
         }
 
-        UseFormula = !UseFormula;
+        // Which box the field shows is decided from what is being written rather than from what was
+        // there a moment ago, and the value goes in before the mode does: switching a number into an
+        // expression would otherwise read the number that was showing and decide the other way.
+        var number = written.Length == 0 || IsNumberText(written);
+        _writing = true;
+        try
+        {
+            Text = written;
+            if (!number)
+            {
+                UseFormula = true;
+            }
+        }
+        finally
+        {
+            _writing = false;
+        }
+
+        if (number)
+        {
+            UseFormula = false;
+        }
+        else
+        {
+            // The check runs here rather than while the text went in, because the field only became
+            // an expression a moment ago and what the text says is read off that.
+            UpdateExpression(written);
+        }
     }
 
     /// <summary>
@@ -1071,6 +1103,13 @@ public partial class StepParameterViewModel : ViewModelBase
 
     partial void OnUseFormulaChanged(bool value)
     {
+        // A value written in one go is not a question about the box it goes in: what the builder
+        // handed back is what the field says, and the number it replaced is not what is meant.
+        if (_writing)
+        {
+            return;
+        }
+
         if (value)
         {
             // Start from the number that was showing, so the field is never left blank. The engine

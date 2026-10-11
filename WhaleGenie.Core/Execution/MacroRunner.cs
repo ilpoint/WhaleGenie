@@ -805,7 +805,8 @@ public sealed class MacroRunner
                 return LeaveLoop(Signal.Continue, step);
 
             case "control.stop":
-                Log(LogLevel.Warn, depth, step.Type, "Run.StopRequested", step.Text("reason"));
+                Log(LogLevel.Warn, depth, step.Type, "Run.StopRequested",
+                    Read(step.Text("reason")).AsText());
                 return Signal.Stop;
 
             case "control.setVariable":
@@ -1781,7 +1782,7 @@ public sealed class MacroRunner
 
             case "condition.colorEquals":
                 {
-                    var target = PixelColor.Parse(condition.Text("color"));
+                    var target = PixelColor.Parse(Read(condition.Text("color")).AsText());
                     return PixelAt(condition).Matches(target, Read(condition.Text("tolerance")).AsNumber());
                 }
 
@@ -2463,7 +2464,7 @@ public sealed class MacroRunner
 
             case "vision.findColor":
             case "vision.waitColor":
-                Watching(() => Scan(step, PixelColor.Parse(step.Text("color")),
+                Watching(() => Scan(step, PixelColor.Parse(Read(step.Text("color")).AsText()),
                     Read(step.Text("tolerance")).AsNumber()));
                 break;
 
@@ -3203,7 +3204,7 @@ public sealed class MacroRunner
 
     private async Task WaitColor(ExecutableStep step, int depth, CancellationToken token)
     {
-        var target = PixelColor.Parse(step.Text("color"));
+        var target = PixelColor.Parse(Read(step.Text("color")).AsText());
         var tolerance = Read(step.Text("tolerance")).AsNumber();
         var timeout = Math.Max(0, Number(step, "timeoutMs"));
 
@@ -3229,7 +3230,7 @@ public sealed class MacroRunner
     /// </summary>
     private async Task FindColor(ExecutableStep step, int depth, CancellationToken token)
     {
-        var target = PixelColor.Parse(step.Text("color"));
+        var target = PixelColor.Parse(Read(step.Text("color")).AsText());
         var tolerance = Read(step.Text("tolerance")).AsNumber();
         var timeout = Math.Max(0, Number(step, "timeoutMs"));
         var name = VariableName(step, "resultVariable", "match");
@@ -3486,7 +3487,7 @@ public sealed class MacroRunner
         }
 
         var features = Number(step, "minFeatures");
-        var skip = step.Text("ignoreColor").Trim();
+        var skip = Read(step.Text("ignoreColor")).AsText().Trim();
 
         return new VisionQuery(
             AlgorithmOf(step.Text("algorithm")),
@@ -4441,7 +4442,7 @@ public sealed class MacroRunner
     {
         var path = PathOf(step);
         var document = Json(path, _devices.Files.ReadText(path, EncodingOf(step)));
-        var query = step.Text("query").Trim();
+        var query = Read(step.Text("query")).AsText().Trim();
         var node = query.Length == 0
             ? document
             : Select(document, query) ?? throw new StepFailure("Run.BadJsonPath", query);
@@ -4455,7 +4456,7 @@ public sealed class MacroRunner
     private void WriteJson(ExecutableStep step, int depth)
     {
         var path = PathOf(step);
-        var query = step.Text("query").Trim();
+        var query = Read(step.Text("query")).AsText().Trim();
         if (query.Length == 0)
         {
             throw new StepFailure("Run.MissingJsonPath");
@@ -5967,7 +5968,7 @@ public sealed class MacroRunner
     /// </summary>
     private ImageFrame Isolated(ExecutableStep step, ImageFrame frame)
     {
-        var colour = step.Text("colorFilter").Trim();
+        var colour = Read(step.Text("colorFilter")).AsText().Trim();
         return colour.Length == 0
             ? frame
             : OcrPreprocess.ByColour(frame, PixelColor.Parse(colour), Number(step, "colorTolerance"));

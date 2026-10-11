@@ -264,12 +264,14 @@ public static class ActionCatalog
             Description = "Run the one case whose values match, and the otherwise steps when none do.",
             Parameters =
             [
-                // The value is an operand rather than an expression: it reads from the variable
-                // list like a condition does, and plain text such as "Running fast" is a value,
-                // not a mistake to flag. A one-step formula still works, the engine reads both.
+                // The value is an operand rather than a value that has to be an expression: it may
+                // be a name, a number or text of the user's own, so it is read from the variable
+                // list rather than being checked as a formula. A formula still works there, which
+                // is what the expression builder writes into it.
                 Variable("value", "Value (operand)", "count",
                     "What the cases are compared against, read once when the step runs. Pick a "
-                    + "variable from the list or type a name, a number or text of your own."),
+                    + "variable from the list or type a name, a number or text of your own.",
+                    acceptsFormula: true),
                 Choice("matchMode", "Match mode (operator)", MatchModes, "equals",
                     "How a case's values are compared with the value.",
                     labels: MatchModeLabels),
@@ -337,7 +339,8 @@ public static class ActionCatalog
             Description = "Stop the running macro.",
             Parameters =
             [
-                Text("reason", "Reason", hint: "Optional note written to the log.", required: false),
+                Text("reason", "Reason", hint: "Optional note written to the log.", required: false,
+                    acceptsFormula: true),
             ],
         },
         new()
@@ -470,7 +473,8 @@ public static class ActionCatalog
             Description = "Write a message to the WhaleGenie log.",
             Parameters =
             [
-                Multiline("message", "Message", "Text written to the log.", "Loop finished"),
+                Multiline("message", "Message", "Text written to the log.", "Loop finished",
+                    acceptsFormula: true),
                 Choice("level", "Level", ["info", "warn", "error", "debug"], "info"),
             ],
         },
@@ -533,7 +537,8 @@ public static class ActionCatalog
             Parameters =
             [
                 FilePath("path", "File", "notes.txt", "File to write.", PathIntent.Write),
-                Multiline("text", "Text", "Text to write.", "", required: false),
+                Multiline("text", "Text", "Text to write.", "", required: false,
+                    acceptsFormula: true),
                 Choice("mode", "Mode", ["overwrite", "append"], "overwrite",
                     "Replace the file, or add to what is already there.",
                     labels: ["Replace it", "Add to the end"]),
@@ -555,8 +560,9 @@ public static class ActionCatalog
             [
                 FilePath("path", "File", "log.txt", "The log file the line is added to.", PathIntent.Write),
                 Text("text", "Line", "Finished the run",
-                    "What the line says. Variables are filled in the way they are everywhere else. "
-                    + "The line ends with a line break, so the next one starts on a new line.",
+                    "What the line says. It is read as one value, so a variable or an expression "
+                    + "may stand for it. The line ends with a line break, so the next one starts on "
+                    + "a new line.",
                     acceptsFormula: true),
                 Toggle("timestamp", "Put the time first", true,
                     "Write the date and time in front of the line. A file of lines without them is "
@@ -756,7 +762,7 @@ public static class ActionCatalog
                     "*.json"),
                 Text("query", "Where", "server.name",
                     "Path to the value, such as server.name or items[0].id. "
-                    + "Leave empty for the whole file."),
+                    + "Leave empty for the whole file.", acceptsFormula: true),
                 Variable("resultVariable", "Result variable", "value",
                     "Variable that receives the value.", required: false, namesVariable: true),
             ],
@@ -772,8 +778,10 @@ public static class ActionCatalog
                 FilePath("path", "File", "config.json", "JSON file to update.", PathIntent.Write,
                     "*.json"),
                 Text("query", "Where", "server.name",
-                    "Path to the value. Missing objects on the way are created."),
-                Text("value", "Value", "", "Value to store.", required: false),
+                    "Path to the value. Missing objects on the way are created.",
+                    acceptsFormula: true),
+                Text("value", "Value", "", "Value to store.", required: false,
+                    acceptsFormula: true),
             ],
         },
         new()
@@ -801,7 +809,7 @@ public static class ActionCatalog
                 Text("matchValue", "Is", "A123", required: false,
                     hint: "The value those rows hold. Written out, or named as a variable with "
                         + "$name.",
-                    acceptsVariables: true, advanced: true,
+                    acceptsVariables: true, acceptsFormula: true, advanced: true,
                     onlyWith: [ActionParameter.AnyValue], onlyField: "matchColumn"),
                 Variable("resultVariable", "Result variable", "rows",
                     "Variable that receives a list of rows, each a list of cells.",
@@ -845,7 +853,8 @@ public static class ActionCatalog
                 FilePath("path", "File", "rows.csv", "CSV file to write.", PathIntent.Write,
                     "*.csv"),
                 Variable("rows", "Rows", "$rows",
-                    "A list of rows. Each row may itself be a list of cells.", namesVariable: false),
+                    "A list of rows. Each row may itself be a list of cells.",
+                    namesVariable: false, acceptsFormula: true),
                 Variable("header", "Header row", "$columns",
                     "Column names to put above the data: a list, or the names written out on one "
                     + "line with the separator between them. Adding to a file that is not there "
@@ -916,8 +925,8 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("text", "Text", "hello",
-                    "The text to encode. Variables are filled in first, then the whole value is "
-                    + "read as UTF-8.", acceptsFormula: true),
+                    "The text to encode. It is read as one value, so a variable or an expression "
+                    + "may stand for it, and the text is taken as UTF-8.", acceptsFormula: true),
                 Variable("resultVariable", "Result variable", "encoded",
                     "Variable that receives the Base64 text.", required: false, namesVariable: true),
             ],
@@ -931,7 +940,8 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("text", "Base64", "aGVsbG8=",
-                    "The Base64 text to decode. Variables are filled in first.", acceptsFormula: true),
+                    "The Base64 text to decode. It is read as one value, so a variable or an "
+                    + "expression may stand for it.", acceptsFormula: true),
                 Variable("resultVariable", "Result variable", "decoded",
                     "Variable that receives the decoded text, read as UTF-8.",
                     required: false, namesVariable: true),
@@ -966,7 +976,8 @@ public static class ActionCatalog
             Description = "Put text on the clipboard, the same as copying it.",
             Parameters =
             [
-                Multiline("text", "Text", "Text to put on the clipboard."),
+                Multiline("text", "Text", "Text to put on the clipboard.",
+                    acceptsFormula: true),
             ],
         },
         new()
@@ -1034,7 +1045,7 @@ public static class ActionCatalog
                     "A list of paths, or a single path. A relative one is taken from the macros "
                     + "folder, and every file has to be there: a paste of a path that points "
                     + "nowhere fails quietly in whatever program receives it.",
-                    namesVariable: false),
+                    namesVariable: false, acceptsFormula: true),
             ],
         },
         new()
@@ -1083,7 +1094,7 @@ public static class ActionCatalog
             Parameters =
             [
                 Multiline("text", "Text", "Text to paste. Leave empty to paste what is already copied.",
-                    required: false),
+                    required: false, acceptsFormula: true),
                 Text("keys", "Shortcut", "Ctrl+V", "Keys joined with + that paste.",
                     required: true, defaultValue: "Ctrl+V", advanced: true),
             ],
@@ -1100,7 +1111,8 @@ public static class ActionCatalog
             [
                 PickablePath("file", "Program", "notepad.exe", "The program to start.",
                     PathIntent.Read, "*.exe;*.com;*.bat;*.cmd"),
-                Text("arguments", "Arguments", "", "What to pass to the program.", required: false),
+                Text("arguments", "Arguments", "", "What to pass to the program.", required: false,
+                    acceptsFormula: true),
                 PickablePath("workingDirectory", "Working folder", "",
                     "Folder to start the program in.", PathIntent.Folder, required: false),
                 Toggle("hidden", "Hidden window", true,
@@ -1127,7 +1139,8 @@ public static class ActionCatalog
             Description = "Wait until a program is running.",
             Parameters =
             [
-                Text("name", "Program", "notepad", "Name of the program to watch for."),
+                Text("name", "Program", "notepad", "Name of the program to watch for.",
+                    acceptsFormula: true),
                 Number("timeoutMs", "Timeout", 10000, "How long to wait before giving up."),
                 Variable("resultVariable", "Result variable", "processId",
                     "Variable that receives the process id.", required: false, namesVariable: true),
@@ -1142,7 +1155,8 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("id", "Process id", "$processId",
-                    "The process to watch, usually the one Start Program gave back."),
+                    "The process to watch, usually the one Start Program gave back.",
+                    acceptsFormula: true),
                 Number("timeoutMs", "Timeout", 60000, "How long to wait before giving up."),
                 Variable("resultVariable", "Result variable", "exitCode",
                     "Variable that receives the exit code.", required: false, namesVariable: true),
@@ -1156,7 +1170,8 @@ public static class ActionCatalog
             Description = "Check whether a program is running.",
             Parameters =
             [
-                Text("name", "Program", "notepad", "Name of the program to look for."),
+                Text("name", "Program", "notepad", "Name of the program to look for.",
+                    acceptsFormula: true),
                 Variable("resultVariable", "Result variable", "running",
                     "Variable that receives true or false.", required: false, namesVariable: true),
             ],
@@ -1181,7 +1196,8 @@ public static class ActionCatalog
             Description = "Read what is known about a running program.",
             Parameters =
             [
-                Text("target", "Program", "notepad", "Name of the program, or a process id."),
+                Text("target", "Program", "notepad", "Name of the program, or a process id.",
+                    acceptsFormula: true),
                 Variable("resultVariable", "Result variable", "process",
                     "Variable that receives the program's file. $name.id, $name.name, $name.path, "
                     + "$name.memoryMb and $name.cpuSeconds hold the parts, and the file is empty "
@@ -1197,7 +1213,8 @@ public static class ActionCatalog
             Description = "Close a program, asking it to exit first unless told to be firm.",
             Parameters =
             [
-                Text("target", "Program", "notepad", "Name of the program, or a process id."),
+                Text("target", "Program", "notepad", "Name of the program, or a process id.",
+                    acceptsFormula: true),
                 Toggle("force", "Force close", false,
                     "Close it at once instead of asking it to exit."),
                 Variable("resultVariable", "Result variable", "stopped",
@@ -1215,7 +1232,7 @@ public static class ActionCatalog
                 PickablePath("file", "Command", "cmd.exe", "The program to run, such as cmd.exe.",
                     PathIntent.Read, "*.exe;*.com;*.bat;*.cmd"),
                 Text("arguments", "Arguments", "/c dir",
-                    "What to pass to the command.", required: false),
+                    "What to pass to the command.", required: false, acceptsFormula: true),
                 PickablePath("workingDirectory", "Working folder", "",
                     "Folder to run the command in.", PathIntent.Folder, required: false),
                 Multiline("environment", "Environment variables",
@@ -1290,7 +1307,8 @@ public static class ActionCatalog
             Description = "Read an environment variable.",
             Parameters =
             [
-                Text("name", "Name", "TEMP", "Name of the environment variable."),
+                Text("name", "Name", "TEMP", "Name of the environment variable.",
+                    acceptsFormula: true),
                 Variable("resultVariable", "Result variable", "value",
                     "Variable that receives the value.", required: false, namesVariable: true),
             ],
@@ -1419,7 +1437,8 @@ public static class ActionCatalog
                     hint: "Which layout to switch to, used by \"Switch to another layout\". Part of "
                           + "the name is enough; \"List the installed layouts\" writes out the names "
                           + "to choose from. The step waits for the window to really change over, so "
-                          + "the step after it can rely on typing in that language."),
+                          + "the step after it can rely on typing in that language.",
+                    acceptsFormula: true),
                 Variable("resultVariable", "Result variable", "ime",
                     "Variable that receives the answer: the layout in use, or the list of layouts "
                     + "that could be switched to.",
@@ -1564,7 +1583,7 @@ public static class ActionCatalog
             [
                 Text("filter", "Filter", "notepad",
                     "Keep only the windows whose title, process or class contains this text. "
-                    + "Leave it empty for every window.", required: false),
+                    + "Leave it empty for every window.", required: false, acceptsFormula: true),
                 Choice("filterBy", "Filter by", ["title", "process", "class"], "title",
                     "Which part of a window the filter text is compared with. This one is always "
                     + "matched as \"contains\".", advanced: true),
@@ -1683,7 +1702,7 @@ public static class ActionCatalog
             Description = "Type a string of text.",
             Parameters =
             [
-                Multiline("text", "Text", "Text to type.", "Hello world"),
+                Multiline("text", "Text", "Text to type.", "Hello world", acceptsFormula: true),
                 Number("intervalMs", "Interval", 30, "Delay between characters."),
                 ..Delivery(),
             ],
@@ -2186,7 +2205,7 @@ public static class ActionCatalog
             Description = "Search the screen for text.",
             Parameters =
             [
-                Text("text", "Text to find", "Save", "Text to look for."),
+                Text("text", "Text to find", "Save", "Text to look for.", acceptsFormula: true),
                 Region(),
                 ..Capture(),
                 LookGap(0),
@@ -2218,7 +2237,7 @@ public static class ActionCatalog
             Description = "Find text on screen and click it.",
             Parameters =
             [
-                Text("text", "Text to find", "Save"),
+                Text("text", "Text to find", "Save", acceptsFormula: true),
                 Region(),
                 ..Capture(),
                 TextMatch(),
@@ -2321,7 +2340,8 @@ public static class ActionCatalog
                 Window(),
                 Selector(),
                 MatchIndex(),
-                Text("text", "Text", "Hello", "Text written into the element."),
+                Text("text", "Text", "Hello", "Text written into the element.",
+                    acceptsFormula: true),
                 Toggle("clearFirst", "Clear first", true, "Clear the field before typing."),
             ],
         },
@@ -2464,7 +2484,7 @@ public static class ActionCatalog
                     labels: ["Edge (already on Windows)", "Chrome", "Chromium", "Firefox", "WebKit"]),
                 Text("url", "Address", "https://example.com",
                     "The page to open. Leave it empty to open the browser without a page yet.",
-                    required: false),
+                    required: false, acceptsFormula: true),
                 Toggle("headless", "Hidden window", false,
                     "Open the browser without showing it. A page kept off the screen is quicker, "
                     + "but nothing can be watched while the macro runs.", advanced: true),
@@ -2478,7 +2498,8 @@ public static class ActionCatalog
             Description = "Sends the page the browser has open to another address.",
             Parameters =
             [
-                Text("url", "Address", "https://example.com", "The page to open."),
+                Text("url", "Address", "https://example.com", "The page to open.",
+                    acceptsFormula: true),
             ],
         },
         new()
@@ -2505,8 +2526,8 @@ public static class ActionCatalog
                 Text("target", "Selector", "#search",
                     "Which element to type into, named the way the click action names one."),
                 Text("text", "Text", "$query",
-                    "What to type. Variables are filled in first, so a macro can type what it just "
-                    + "read somewhere else.", acceptsFormula: true),
+                    "What to type. It is read as one value, so a macro can type what it just read "
+                    + "somewhere else.", acceptsFormula: true),
             ],
         },
         new()
@@ -2547,7 +2568,7 @@ public static class ActionCatalog
                 Text("match", "Title or address holds", "",
                     "The text the tab's title (or address) has to contain. Used with \"by title\" "
                     + "and \"by address\" above.", required: false,
-                    onlyWith: ["title", "url"], onlyField: "how"),
+                    acceptsFormula: true, onlyWith: ["title", "url"], onlyField: "how"),
             ],
         },
         new()
@@ -2666,7 +2687,7 @@ public static class ActionCatalog
             Description = "True when the screen shows a piece of text.",
             Parameters =
             [
-                Text("text", "Text", "Ready"),
+                Text("text", "Text", "Ready", acceptsFormula: true),
                 Region(),
                 ..Capture(),
                 LookGap(0),
@@ -2682,7 +2703,7 @@ public static class ActionCatalog
             Description = "True when the screen does not show a piece of text.",
             Parameters =
             [
-                Text("text", "Text", "Ready"),
+                Text("text", "Text", "Ready", acceptsFormula: true),
                 Region(),
                 ..Capture(),
                 LookGap(0),
@@ -2783,7 +2804,7 @@ public static class ActionCatalog
                 Variable("value", "Variable or value", "3",
                     "Pick another variable from the list, or type a number or text. "
                     + "Not needed for \"exists\".",
-                    required: false),
+                    required: false, acceptsFormula: true),
             ],
         },
         new()
@@ -2814,10 +2835,11 @@ public static class ActionCatalog
             [
                 Variable("list", "List", "$items",
                     "The list to look in. Write it out as a;b;c, or name a variable holding one "
-                    + "with $items."),
+                    + "with $items.", acceptsFormula: true),
                 Variable("value", "Value", "1",
                     "The value that has to be in the list. A number is compared as a number, so "
-                    + "1 finds 1.0, and text is compared without caring about case."),
+                    + "1 finds 1.0, and text is compared without caring about case.",
+                    acceptsFormula: true),
             ],
         },
         new()
@@ -2844,7 +2866,7 @@ public static class ActionCatalog
                 Text("name", "Program", "notepad",
                     "The program's name, as it is written in Task Manager and without the "
                     + "\".exe\": notepad, chrome, excel.",
-                    acceptsVariables: true),
+                    acceptsVariables: true, acceptsFormula: true),
             ],
         },
         new()
@@ -2862,7 +2884,7 @@ public static class ActionCatalog
                 Text("value", "Window", "Untitled - Notepad",
                     "Part of it is enough, and case does not matter. Leave it empty to ask "
                     + "whether any window at all is open.",
-                    required: false, acceptsVariables: true),
+                    required: false, acceptsVariables: true, acceptsFormula: true),
             ],
         },
         new()
@@ -2874,12 +2896,12 @@ public static class ActionCatalog
             Parameters =
             [
                 Variable("value", "Value", "$count",
-                    "The value to place on the number line."),
+                    "The value to place on the number line.", acceptsFormula: true),
                 Variable("min", "Lowest", "1",
-                    "One end of the range. Either end may be written first."),
+                    "One end of the range. Either end may be written first.", acceptsFormula: true),
                 Variable("max", "Highest", "10",
                     "The other end of the range. Both ends count as inside, so a range of 1 to "
-                    + "10 holds 1 and 10."),
+                    + "10 holds 1 and 10.", acceptsFormula: true),
             ],
         },
         new()
@@ -3020,7 +3042,8 @@ public static class ActionCatalog
         };
 
     private static ActionParameter Multiline(string name, string label, string hint = "",
-        string placeholder = "", bool required = true, bool foreign = false, bool advanced = false)
+        string placeholder = "", bool required = true, bool foreign = false, bool advanced = false,
+        bool acceptsFormula = false)
         => new()
         {
             Name = name,
@@ -3031,6 +3054,7 @@ public static class ActionCatalog
             Required = required,
             ForeignText = foreign,
             Advanced = advanced,
+            AcceptsFormula = acceptsFormula,
         };
 
     /// <summary>
@@ -3244,6 +3268,9 @@ public static class ActionCatalog
             Hint = hint,
             Required = required,
             Advanced = advanced,
+            // A colour is read as a value like any other: it may be written out, or held in a
+            // variable the macro filled in earlier.
+            AcceptsFormula = true,
         };
 
     /// <summary>
@@ -3808,6 +3835,7 @@ public static class ActionCatalog
             DefaultValue = string.Empty,
             Required = false,
             Advanced = advanced,
+            AcceptsFormula = true,
             Hint = "Optional colour of the writing. Given one, everything that is not that colour "
                 + "— outline, shadow, background — is thrown away before the picture is read. For "
                 + "writing that has an outline or sits on a picture. Empty reads the picture as it "

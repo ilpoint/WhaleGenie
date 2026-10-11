@@ -523,8 +523,9 @@ internal static class ActionStrings
         ["file.appendLog.path.label"] = "日志文件",
         ["file.appendLog.path.hint"] = "要写入的日志文件。只写文件名时会相对宏文件夹解析。",
         ["file.appendLog.text.label"] = "这一行",
-        ["file.appendLog.text.hint"] = "这一行写什么。变量会照常填进去，末尾自动换行，下一条从新的一行开始；"
-            + "文件最后一行还没结束时，会先补一个换行，不会挤在上一行后面。",
+        ["file.appendLog.text.hint"] = "这一行写什么。按一个值读取，变量或表达式都可以写成它。"
+            + "末尾自动换行，下一条从新的一行开始；文件最后一行还没结束时，会先补一个换行，"
+            + "不会挤在上一行后面。",
         ["file.appendLog.timestamp.label"] = "前面写上时间",
         ["file.appendLog.timestamp.hint"] = "在每行前面写上日期和时间，事后翻日志才看得出先后。",
 
@@ -800,14 +801,15 @@ internal static class ActionStrings
         ["data.base64Encode.name"] = "Base64 编码",
         ["data.base64Encode.desc"] = "把文本编码成 Base64，放进 URL 或令牌时常用这种形式。",
         ["data.base64Encode.text.label"] = "文本",
-        ["data.base64Encode.text.hint"] = "要编码的文本。变量会先填进去，然后整段按 UTF-8 处理。",
+        ["data.base64Encode.text.hint"] = "要编码的文本。按一个值读取，变量或表达式都可以写成它；"
+            + "编码时按 UTF-8 处理。",
         ["data.base64Encode.resultVariable.label"] = "结果变量",
         ["data.base64Encode.resultVariable.hint"] = "存 Base64 文本的变量。",
 
         ["data.base64Decode.name"] = "Base64 解码",
         ["data.base64Decode.desc"] = "把 Base64 变回它原本的文本。",
         ["data.base64Decode.text.label"] = "Base64",
-        ["data.base64Decode.text.hint"] = "要解码的 Base64 文本。变量会先填进去。",
+        ["data.base64Decode.text.hint"] = "要解码的 Base64 文本。按一个值读取，变量或表达式都可以写成它。",
         ["data.base64Decode.resultVariable.label"] = "结果变量",
         ["data.base64Decode.resultVariable.hint"] = "存解码后文本的变量，按 UTF-8 读出来。",
 
@@ -2287,7 +2289,7 @@ internal static class ActionStrings
         ["browser.fill.target.label"] = "选择器",
         ["browser.fill.target.hint"] = "要输入到哪个元素，写法同“点击元素”。",
         ["browser.fill.text.label"] = "文本",
-        ["browser.fill.text.hint"] = "要输入的内容。变量会先填进去，所以可以把别处读到的值输入进来。",
+        ["browser.fill.text.hint"] = "要输入的内容。按一个值读取，所以可以把别处读到的值输入进来。",
 
         ["browser.readText.name"] = "读取文本",
         ["browser.readText.desc"] = "读取某个元素、或整个页面的文本。",

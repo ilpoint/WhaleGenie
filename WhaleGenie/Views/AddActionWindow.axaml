@@ -159,10 +159,20 @@
                             Click="OnTestBrowserElement" />
                 </Grid>
 
-                <TextBox Classes="ParamInput" Text="{Binding Text}"
-                         IsVisible="{Binding IsMultiline}"
-                         AcceptsReturn="True" TextWrapping="Wrap" Height="76"
-                         PlaceholderText="{Binding Placeholder}" />
+                <!-- A stretch of text that is handed over whole — what gets typed, written or put on
+                     the clipboard — may be built with the expression editor like any other value:
+                     what it makes there is what the step hands over. -->
+                <Grid IsVisible="{Binding IsMultiline}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                    <TextBox Classes="ParamInput" Text="{Binding Text}"
+                             AcceptsReturn="True" TextWrapping="Wrap" Height="76"
+                             PlaceholderText="{Binding Placeholder}" />
+                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                            VerticalAlignment="Top"
+                            IsVisible="{Binding OffersFormula}"
+                            Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnOpenExpressionBuilder" />
+                </Grid>
 
                 <!-- A number is dialled in with the spinner or written as an expression. -->
                 <Grid IsVisible="{Binding IsNumber}" ColumnDefinitions="*,Auto,Auto,Auto,Auto"
@@ -212,17 +222,11 @@
                                    Text="{Binding [Add.JitterUnit], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
 
-                    <Button Grid.Column="3" Classes="FlatButton" Width="38" Height="33" Padding="0"
-                            IsEnabled="{Binding CanToggleFormula}"
-                            ToolTip.Tip="{Binding FormulaTip}"
-                            Click="OnToggleNumberFormula">
-                        <TextBlock Text="ƒx" FontSize="14" FontStyle="Italic" />
-                    </Button>
-
-                    <!-- A number written as an expression gets the same helper the expression
-                         fields do, so there is one place to reach for operators and variables. -->
-                    <Button Grid.Column="4" Classes="FlatButton" Height="33" Padding="11,0"
-                            IsVisible="{Binding IsNumberFormula}"
+                    <!-- A number can always be written as an expression instead, so the box that
+                         builds one is there from the start rather than behind a switch: what the
+                         builder hands back is what the field holds, and a plain number written that
+                         way puts the spinner back. -->
+                    <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
                             Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenExpressionBuilder" />
@@ -233,6 +237,9 @@
                            Text="{Binding JitterRange}" />
 
                 <StackPanel IsVisible="{Binding IsNumberFormula}">
+                    <TextBlock Classes="Muted" Margin="2,5,0,0" TextWrapping="Wrap"
+                               Text="{Binding FormulaNote}"
+                               IsVisible="{Binding IsNumberFormula}" />
                     <TextBlock Classes="Muted" Margin="2,5,0,0" TextWrapping="Wrap"
                                Text="{Binding [Add.FormulaMilliseconds], Source={x:Static loc:Strings.Current}}"
                                IsVisible="{Binding IsDurationFormula}" />
@@ -248,9 +255,9 @@
                                IsVisible="{Binding ShowExpressionSuccess}" />
                 </StackPanel>
 
-                <!-- Colour parameters open the screen magnifier -->
+                <!-- Colour parameters open the screen magnifier, and may be a variable holding one. -->
                 <Grid IsVisible="{Binding IsColor}"
-                      ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                      ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
                     <TextBox Classes="ParamInput" Text="{Binding Text}"
                              PlaceholderText="{Binding Placeholder}" />
                     <Border Grid.Column="1" Width="33" Height="33" CornerRadius="5"
@@ -264,6 +271,11 @@
                               Stroke="#E4E4E4" StrokeThickness="1.7"
                               Data="M 2,22 L 3,21 H 6 L 15,12 M 3,21 V 18 L 12,9 M 15,6 L 18.4,2.6 A 2.1,2.1 0 1 1 21.4,5.6 L 18,9 L 18.9,9.9 A 2.1,2.1 0 1 1 15.9,12.9 L 9.3,6.3 A 2.1,2.1 0 1 1 12.3,3.3 L 13.1,4 Z" />
                     </Button>
+                    <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
+                            IsVisible="{Binding OffersFormula}"
+                            Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnOpenExpressionBuilder" />
                 </Grid>
 
                 <!-- A picture the action looks for: taken from a file, or straight off the

@@ -83,12 +83,17 @@ public class ActionDialogTests
             var x = viewModel.Parameters.First(parameter => parameter.Definition.Name == "x");
 
             Assert.True(x.IsNumberValue);
-            x.ToggleFormula();
-            x.Text = "$match.x";
+            x.WriteValue("$count + 1");
 
             Assert.True(x.IsNumberFormula);
-            Assert.Equal("$match.x", x.CurrentText);
-            Assert.False(x.CanToggleFormula);
+            Assert.Equal("$count + 1", x.CurrentText);
+
+            // What the builder hands back decides which box the field shows: a plain number goes
+            // back to the spinner, so nothing has to know which way the field was written.
+            x.WriteValue("7");
+
+            Assert.True(x.IsNumberValue);
+            Assert.Equal("7", x.CurrentText);
         });
     }
 
@@ -99,26 +104,25 @@ public class ActionDialogTests
         {
             var viewModel = Open("input.mouseMove");
             var x = viewModel.Parameters.First(parameter => parameter.Definition.Name == "x");
-            x.ToggleFormula();
-            x.Text = "$match.x";
+            x.WriteValue("$count + 1");
 
             MacroStep? saved = null;
             viewModel.CloseRequested += step => saved = step;
             viewModel.SaveCommand.Execute(null);
 
             Assert.NotNull(saved);
-            Assert.Equal("$match.x",
+            Assert.Equal("$count + 1",
                 saved!.Parameters.First(parameter => parameter.Name == "x").Value);
 
             var reopened = new AddActionWindow(saved, ActionCatalog.Definitions,
-                VariableChoicesForChecks.Named("match.x"), []);
+                VariableChoicesForChecks.Named("count"), []);
             reopened.Show();
             Dispatcher.UIThread.RunJobs();
 
             var again = ((AddActionViewModel)reopened.DataContext!).Parameters
                 .First(parameter => parameter.Definition.Name == "x");
             Assert.True(again.IsNumberFormula);
-            Assert.Equal("$match.x", again.CurrentText);
+            Assert.Equal("$count + 1", again.CurrentText);
         });
     }
 
@@ -145,8 +149,7 @@ public class ActionDialogTests
         {
             var viewModel = Open("input.mouseMove");
             var x = viewModel.Parameters.First(parameter => parameter.Definition.Name == "x");
-            x.ToggleFormula();
-            x.Text = "$match.x";
+            x.WriteValue("$count + 1");
 
             Assert.True(viewModel.ApplyCursorPosition(120, 240));
             Assert.Equal("120", x.CurrentText);
@@ -1036,16 +1039,25 @@ public class ActionDialogTests
 
             ms.Unit = ms.DurationUnits.First(unit => unit.Key == "min");
             ms.NumberValue = 2;
-            ms.ToggleFormula();
+
+            // What the expression builder is handed is the time in milliseconds rather than the 2
+            // the box is showing: an expression is counted in milliseconds, so building one out of
+            // the number on screen would quietly mean a different moment.
+            Assert.Equal("120000", ms.CurrentText);
+
+            ms.WriteValue("$count + 1");
 
             // The unit dropdown steps aside because the engine reads the expression in milliseconds.
             Assert.False(ms.IsDurationEditor);
             Assert.True(ms.IsDurationFormula);
-            Assert.Equal("120000", Value(viewModel, "ms"));
+            Assert.Equal("$count + 1", Value(viewModel, "ms"));
 
-            ms.ToggleFormula();
-            // Coming back to a plain number reads in milliseconds, the same as every other time
-            // field: what is shown is the number the step holds, so nothing is quietly converted.
+            // Writing a plain number in place of the expression puts the spinner back, and it reads
+            // in milliseconds the same as every other time field: what is shown is the number the
+            // step holds, so nothing is quietly converted.
+            ms.WriteValue("120000");
+
+            Assert.True(ms.IsNumberValue);
             Assert.Equal("ms", ms.Unit.Key);
             Assert.Equal(120_000m, ms.NumberValue);
             Assert.Equal("120000", Value(viewModel, "ms"));

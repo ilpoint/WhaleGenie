@@ -546,19 +546,11 @@ public partial class AddActionWindow : Window
         }
     }
 
-    /// <summary>Switches a number between the spinner and an expression such as $match.x.</summary>
-    private void OnToggleNumberFormula(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: StepParameterViewModel parameter })
-        {
-            parameter.ToggleFormula();
-        }
-    }
-
     /// <summary>
     /// Opens the expression builder on the field that asked for it and keeps what it returns.
-    /// Writing a formula is the same whether the field holds an expression or a number turned
-    /// into one, so both reach it through here.
+    /// Writing a formula is the same wherever the value goes, so every field that holds one reaches
+    /// it through here: the box shows the value as it stands, and what comes back is put in the way
+    /// the field reads it — a number stays a number, anything else becomes an expression.
     /// </summary>
     private async void OnOpenExpressionBuilder(object? sender, RoutedEventArgs e)
     {
@@ -567,10 +559,10 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (await ExpressionBuilderWindow.ShowFor(this, parameter.Text ?? string.Empty,
+        if (await ExpressionBuilderWindow.ShowFor(this, parameter.CurrentText,
                 parameter.Variables) is { } built)
         {
-            parameter.Text = built;
+            parameter.WriteValue(built);
         }
     }
 

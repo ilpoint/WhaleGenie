@@ -266,8 +266,12 @@ public class ElementPickerTests
             // The bare one-line field belongs to every other text parameter, so the selector is
             // never drawn twice on top of itself.
             Assert.False(selector.IsPlainText);
-            Assert.True(text.IsPlainText);
             Assert.False(text.IsSelector);
+
+            // What the step writes is read as one value, so that field is the one with the
+            // variables over it and the expression editor beside it.
+            Assert.True(text.OffersVariables);
+            Assert.True(text.OffersFormula);
         });
     }
 
@@ -292,13 +296,16 @@ public class ElementPickerTests
                 Assert.False(target.IsSelector, $"{key}'s element got the UI Automation picker");
             }
 
-            // A page is opened by the browser's own address field, which stays a plain box.
+            // A page is opened by the browser's own address field: it names no element of the page,
+            // so it takes no page picker — but it is a value the step reads, so the variables and
+            // the expression editor are over it like anywhere else.
             var open = ActionCatalog.Find("browser.open")
                 ?? throw new InvalidOperationException("browser.open is missing from the catalogue.");
             var url = new StepParameterViewModel(
                 open.Parameters.First(parameter => parameter.Name == "url"));
             Assert.False(url.IsBrowserTarget);
-            Assert.True(url.IsPlainText);
+            Assert.False(url.IsSelector);
+            Assert.True(url.OffersFormula);
         });
     }
 
