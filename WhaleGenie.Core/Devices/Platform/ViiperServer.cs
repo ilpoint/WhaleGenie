@@ -115,6 +115,14 @@ public static class ViiperServer
     {
         try
         {
+            // Nothing to start without a program to start, so the machine is not asked at all: a
+            // machine with the driver installed and no server running spends about two seconds on
+            // the look, and it would be spent answering a question nothing is going to act on.
+            if (Executable is not { Length: > 0 } path || !File.Exists(path))
+            {
+                return;
+            }
+
             // Nothing to warm up without the driver, and nothing to do when a server is already
             // answering — that one is not ours to touch. And nothing at all once the program is on
             // its way out: a server started now would be one nothing is left to close.

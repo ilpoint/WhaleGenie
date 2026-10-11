@@ -74,10 +74,35 @@ public class ViiperServerTests : IDisposable
             launched++;
             return true;
         };
+        ViiperServer.Executable = ProgramFile();
 
         await ViiperServer.WarmUp();
 
         Assert.Equal(0, launched);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(@"C:\no-such-folder\viiper.exe")]
+    public async Task A_warm_up_without_a_program_does_not_ask_the_machine(string? chosen)
+    {
+        // A machine with the driver on it and no server running spends about two seconds saying so,
+        // and a program that was never given a viiper.exe — or was given one that has moved since —
+        // could start nothing with the answer. That look is what a window built once per check paid
+        // for every time, with nothing to show for it.
+        var asked = 0;
+        ViiperServer.Executable = chosen;
+        ViiperServer.Answering = () =>
+        {
+            asked++;
+            return false;
+        };
+        ViiperServer.DriverInstalled = () => true;
+
+        await ViiperServer.WarmUp();
+
+        Assert.Equal(0, asked);
     }
 
     [Fact]
