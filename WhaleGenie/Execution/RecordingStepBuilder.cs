@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.Models;
 
@@ -125,6 +126,7 @@ public static class RecordingStepBuilder
         return new MacroStep
         {
             Type = type,
+            Meta = StepMeta.New,
             Parameters = parameters,
         };
     }

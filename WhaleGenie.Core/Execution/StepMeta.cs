@@ -48,6 +48,14 @@ public class StepMeta
     public static StepMeta Empty { get; } = new();
 
     /// <summary>
+    /// The settings a step starts with when the editor made it rather than the user writing it:
+    /// the block Ctrl + G throws around a selection, a step that was just recorded, the action the
+    /// dialog is filling in. A step nobody has tuned yet asks instead of bringing the rest of the
+    /// macro down on its own, and it says so in the step list.
+    /// </summary>
+    public static StepMeta New { get; } = new() { OnError = StepErrorAction.AskUser };
+
+    /// <summary>
     /// The longest pause a step may ask for, and the ceiling the editor's number boxes offer:
     /// a day and the best part of another. Milliseconds leave room for about 24 days, but past
     /// this nobody is reading the number any more, and a macro really waiting that long is

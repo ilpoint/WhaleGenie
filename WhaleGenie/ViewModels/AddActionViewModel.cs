@@ -58,8 +58,10 @@ public partial class AddActionViewModel : ViewModelBase
         _editingId = newStepId ?? string.Empty;
         _isNewStep = _editingId.Length > 0;
         // A step that fails is usually a surprise the macro cannot have planned for, so a new one
-        // starts by stopping and asking rather than bringing the whole run down on its own.
-        MetaOnError = ErrorChoices.First(choice => choice.Value == StepMeta.Name(StepErrorAction.AskUser));
+        // starts by stopping and asking rather than bringing the whole run down on its own. That
+        // is the same set of settings every step the editor makes starts with, the one place
+        // StepMeta.New keeps them.
+        MetaOnError = ErrorChoices.First(choice => choice.Value == StepMeta.Name(StepMeta.New.OnError));
         MetaRetryBackoff = BackoffChoices[0];
         MetaTimeout = new DurationSettingViewModel();
         MetaRetryDelay = new DurationSettingViewModel(500);
@@ -629,7 +631,7 @@ public partial class AddActionViewModel : ViewModelBase
         MetaRetryCount = 0;
         MetaRetryDelay.Load(500);
         MetaOnError = ErrorChoices.First(choice =>
-            choice.Value == StepMeta.Name(StepErrorAction.AskUser));
+            choice.Value == StepMeta.Name(StepMeta.New.OnError));
         MetaRetryBackoff = BackoffChoices[0];
         MetaDelayBefore.Load(0);
         MetaDelayAfter.Load(0);

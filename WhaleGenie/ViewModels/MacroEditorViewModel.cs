@@ -10,6 +10,7 @@ using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -843,6 +844,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         var group = new MacroStep
         {
             Type = "control.sequence",
+            Meta = StepMeta.New,
             Parameters =
             [
                 new StepParameter
