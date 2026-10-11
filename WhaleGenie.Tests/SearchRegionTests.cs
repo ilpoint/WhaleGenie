@@ -206,6 +206,22 @@ public class SearchRegionTests
             Assert.Contains(Strings.Get("Add.PickRegion"), buttons);
             Assert.Contains(Strings.Get("Add.RegionRemove"), buttons);
             Assert.Contains(Strings.Get("Add.VariablePicker"), buttons);
+
+            // A number written as an expression swaps the spinner for the expression box, the same
+            // way it does in every other number field, and writing a plain number swaps it back.
+            row.X.Write("$left");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(3, window.GetVisualDescendants().OfType<NumericUpDown>()
+                .Count(box => box.IsEffectivelyVisible
+                    && box.DataContext is NumberCellViewModel cell && cells.Contains(cell)));
+
+            row.X.SetNumber(7);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(4, window.GetVisualDescendants().OfType<NumericUpDown>()
+                .Count(box => box.IsEffectivelyVisible
+                    && box.DataContext is NumberCellViewModel cell && cells.Contains(cell)));
         });
     }
 

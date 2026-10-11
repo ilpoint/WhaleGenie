@@ -64,12 +64,6 @@ public partial class RegionRowViewModel : ViewModelBase
     /// <summary>What the one-variable box is for.</summary>
     public string VariableHint => Strings.Get("Add.RegionOrVariableHint");
 
-    /// <summary>
-    /// True when this row says nothing at all: no numbers and no variable. Such a row is not a
-    /// place, and a step that looked there would look at nothing.
-    /// </summary>
-    public bool IsEmpty => OrVariable.Trim().Length == 0 && Cells.All(cell => !cell.HasValue);
-
     /// <summary>True when one of the numbers is written as an expression rather than dialled in.</summary>
     public bool HasFormula => Cells.Any(cell => cell.IsFormula);
 
@@ -240,7 +234,6 @@ public partial class RegionRowViewModel : ViewModelBase
     /// </summary>
     private void Announce()
     {
-        OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(HasFormula));
         OnPropertyChanged(nameof(CellMessage));
         OnPropertyChanged(nameof(ShowCellError));
