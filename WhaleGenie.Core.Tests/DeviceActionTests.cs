@@ -405,6 +405,59 @@ public class DeviceActionTests
     }
 
     /// <summary>
+    /// A click that is allowed to drift lands inside the spread it asked for rather than on the one
+    /// pixel, which is how a button stops being pressed in exactly the same place every time.
+    /// </summary>
+    [Fact]
+    public async Task A_click_that_may_drift_lands_inside_its_spread()
+    {
+        var (_, devices, _) = await RunAsync(
+        [
+            Step("input.mouseClick", Param("button", "left"), Param("x", "100"), Param("y", "200"),
+                Param("variance", "6")),
+        ]);
+
+        var call = Assert.Single(devices.Calls);
+        var parts = call.Split(' ');
+        var x = int.Parse(parts[2], CultureInfo.InvariantCulture);
+        var y = int.Parse(parts[3], CultureInfo.InvariantCulture);
+        Assert.InRange(x, 94, 106);
+        Assert.InRange(y, 194, 206);
+    }
+
+    /// <summary>
+    /// A step that asks for it leaves the pointer where it found it: the click happened, and the
+    /// mouse is back where the user left it rather than sitting over the game.
+    /// </summary>
+    [Fact]
+    public async Task A_click_can_put_the_pointer_back_where_it_was()
+    {
+        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(300, 400) };
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.mouseClick", Param("button", "left"), Param("x", "10"), Param("y", "20"),
+                Param("moveBack", "true")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(["click left 10 20 1 0", "move 300 400 0"], devices.Calls);
+    }
+
+    /// <summary>Nothing is moved back unless the step asked, so the usual click is one device call.</summary>
+    [Fact]
+    public async Task A_click_that_was_not_asked_to_put_the_pointer_back_does_not()
+    {
+        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(300, 400) };
+
+        await RunAsync(
+            [Step("input.mouseClick", Param("button", "left"), Param("x", "10"), Param("y", "20"))],
+            devices);
+
+        Assert.Equal(["click left 10 20 1 0"], devices.Calls);
+    }
+
+    /// <summary>
     /// A run of combinations goes out in the order it is written, which is what makes a combo a
     /// combo rather than a single press of several keys.
     /// </summary>
@@ -2182,6 +2235,55 @@ public class DeviceActionTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.ImageNotFound", result.Key);
+    }
+
+    /// <summary>
+    /// A step that looks again before clicking does not click a picture that was gone by the time
+    /// of the second look: a button that flashed past is not worth pressing.
+    /// </summary>
+    [Fact]
+    public async Task A_click_that_looks_again_does_not_click_what_has_gone()
+    {
+        var looked = 0;
+        var devices = new FakeDeviceLayer();
+        devices.PictureAnswers = (_, _) => ++looked == 1
+            ? [new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(2, 2))]
+            : [];
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.clickImage", Pictures("ok.png"), Param("confidence", "90"),
+                Param("recheckMs", "10")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.ImageNotFound", result.Key);
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("click ", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// A click that confirms what it found goes with where the second look put it, which is where
+    /// the thing is by the time the click leaves.
+    /// </summary>
+    [Fact]
+    public async Task A_click_that_looks_again_uses_where_the_second_look_found_it()
+    {
+        var looked = 0;
+        var devices = new FakeDeviceLayer();
+        devices.PictureAnswers = (_, _) => ++looked == 1
+            ? [new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(2, 2))]
+            : [new ImageMatch(0.99, new ScreenPoint(40, 50), new ScreenSize(2, 2))];
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.clickImage", Pictures("ok.png"), Param("confidence", "90"),
+                Param("recheckMs", "10")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        var click = Assert.Single(devices.Calls,
+            call => call.StartsWith("click ", StringComparison.Ordinal));
+        Assert.Equal("click left 41 51 1 0", click);
     }
 
     [Fact]
@@ -5655,6 +5757,34 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Equal(["drag left 0 0 300 0 300 30"], devices.Calls);
+    }
+
+    /// <summary>
+    /// A drag that is told to hold at the end stays down over where it arrived for a moment before
+    /// letting go, which is what a drop into a slot needs: letting go the instant the pointer gets
+    /// there is how a drag onto something turns into a drag past it.
+    /// </summary>
+    [Fact]
+    public async Task A_drag_can_hold_at_the_end_before_letting_go()
+    {
+        var started = Stopwatch.GetTimestamp();
+        var (result, devices, _) = await RunAsync(
+        [
+            Step("input.mouseDrag", Param("startX", "0"), Param("startY", "0"), Param("endX", "300"),
+                Param("endY", "0"), Param("durationMs", "0"), Param("steps", "3"),
+                Param("settleMs", "60")),
+        ]);
+
+        var took = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+        Assert.True(result.Succeeded, result.Key);
+
+        // Being held means the press and the release are the step's own two calls with the travel
+        // between them, rather than the one call the device offers, which lets go on arrival.
+        Assert.Equal(3, devices.Calls.Count);
+        Assert.Equal("down left 0 0", devices.Calls[0]);
+        Assert.StartsWith("along ", devices.Calls[1]);
+        Assert.Equal("up left 300 0", devices.Calls[2]);
+        Assert.True(took >= 50, $"the button should stay down the 60 ms it was told to, took {took:0}");
     }
 
     [Fact]

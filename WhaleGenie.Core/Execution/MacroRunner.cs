@@ -1137,7 +1137,7 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "input.mouseDrag":
-                DragPointer(step);
+                await DragPointer(step, token);
                 return Signal.Normal;
 
             // ---------------------------------------------------------------- gamepad
@@ -2616,27 +2616,46 @@ public sealed class MacroRunner
     }
 
     /// <summary>Presses, travels, and lets go: the same shape of path as a plain move.</summary>
-    private void DragPointer(ExecutableStep step)
+    private async Task DragPointer(ExecutableStep step, CancellationToken token)
     {
         // Both ends are measured from the same corner, so a drag across a window stays inside it.
         var origin = Anchor(step);
         var from = Placed(origin, Number(step, "startX"), Number(step, "startY"));
         var to = Placed(origin, Number(step, "endX"), Number(step, "endY"));
         var duration = Pace(Number(step, "durationMs"));
+        var settle = Pace(OptionalNumber(step, "settleMs", 0));
         var steps = Math.Clamp(Number(step, "steps"), 1, 200);
         var route = MousePath.Route(step.Text("style"));
-        if (route is MouseRoute.Direct)
+        if (route is not MouseRoute.Direct)
         {
-            Input(step).Drag(Button(step), from.X, from.Y, to.X, to.Y, duration, steps);
+            if (duration <= 0)
+            {
+                duration = Pace(BorrowedMoveMs);
+            }
+        }
+
+        if (settle <= 0)
+        {
+            if (route is MouseRoute.Direct)
+            {
+                Input(step).Drag(Button(step), from.X, from.Y, to.X, to.Y, duration, steps);
+            }
+            else
+            {
+                Input(step).DragAlong(Button(step), MousePath.Plan(route, from, to, steps), duration);
+            }
+
             return;
         }
 
-        if (duration <= 0)
-        {
-            duration = Pace(BorrowedMoveMs);
-        }
-
-        Input(step).DragAlong(Button(step), MousePath.Plan(route, from, to, steps), duration);
+        // Held at the end for a moment before letting go: a slot a thing is dragged into only takes
+        // it once the pointer has rested over it, and letting go the instant the pointer arrives is
+        // how a drag onto something turns into a drag past it. That is three calls rather than the
+        // one the devices offer, because the one they offer lets go before it comes back.
+        Input(step).MouseDown(Button(step), from.X, from.Y);
+        Input(step).MoveMouseAlong(MousePath.Plan(route, from, to, steps), duration);
+        await Pause(settle, token);
+        Input(step).MouseUp(Button(step), to.X, to.Y);
     }
 
     private static IReadOnlyList<string> Keys(ExecutableStep step)
@@ -2857,8 +2876,13 @@ public sealed class MacroRunner
         var clicks = Math.Max(1, Number(step, "repeat"));
         var interval = Pace(Number(step, "intervalMs"));
         var hold = Pace(Number(step, "holdMs"));
+        var spread = Spread(step);
+        var from = ArrivedFrom(step);
 
-        if (hold <= 0)
+        // A step that lets the clicks drift, or that wants the pointer put back, has to place every
+        // click itself: sending them all at once would put them all on the same pixel, and there
+        // would be nowhere to put the pointer back from.
+        if (hold <= 0 && spread == 0 && from is null)
         {
             Input(step).Click(button, point.X, point.Y, clicks, interval);
             return;
@@ -2872,9 +2896,21 @@ public sealed class MacroRunner
                 await Pause(interval, token);
             }
 
-            Input(step).MouseDown(button, point.X, point.Y);
+            var at = Scattered(point, spread);
+            if (hold <= 0)
+            {
+                Input(step).Click(button, at.X, at.Y, 1, 0);
+                continue;
+            }
+
+            Input(step).MouseDown(button, at.X, at.Y);
             await Pause(hold, token);
-            Input(step).MouseUp(button, point.X, point.Y);
+            Input(step).MouseUp(button, at.X, at.Y);
+        }
+
+        if (from is { } back)
+        {
+            Input(step).MoveMouse(back.X, back.Y, 0);
         }
     }
 
@@ -2890,6 +2926,8 @@ public sealed class MacroRunner
         var point = Point(step, "x", "y");
         var repeats = Math.Max(1, Number(step, "repeat"));
         var interval = Pace(Number(step, "intervalMs"));
+        var spread = Spread(step);
+        var from = ArrivedFrom(step);
 
         for (var count = 0; count < repeats; count++)
         {
@@ -2899,9 +2937,46 @@ public sealed class MacroRunner
                 await Pause(interval, token);
             }
 
-            Input(step).Click(Button(step), point.X, point.Y, 2, 0);
+            var at = Scattered(point, spread);
+            Input(step).Click(Button(step), at.X, at.Y, 2, 0);
+        }
+
+        if (from is { } back)
+        {
+            Input(step).MoveMouse(back.X, back.Y, 0);
         }
     }
+
+    /// <summary>
+    /// How far a click is allowed to drift from the point the step names, in pixels: 0, the default,
+    /// is the point itself.
+    /// </summary>
+    private int Spread(ExecutableStep step)
+    {
+        var written = step.Text("variance").Trim();
+        return written.Length == 0 ? 0 : Math.Clamp(Number(step, "variance"), 0, 100000);
+    }
+
+    /// <summary>
+    /// A point with the drift the step asked for on it, so a run of clicks is spread over a button
+    /// rather than landing on one pixel. A drift of nothing is the point itself, to the pixel.
+    /// </summary>
+    private static ScreenPoint Scattered(ScreenPoint point, int spread)
+        => spread <= 0
+            ? point
+            : new ScreenPoint(
+                point.X + Random.Shared.Next(-spread, spread + 1),
+                point.Y + Random.Shared.Next(-spread, spread + 1));
+
+    /// <summary>
+    /// Where the pointer was before a step that has to put it back, or null when the step does not
+    /// put it back. Posting messages at a window never moves the pointer on screen, so there is
+    /// nothing to put back there and nothing is read.
+    /// </summary>
+    private ScreenPoint? ArrivedFrom(ExecutableStep step)
+        => Flag(step, "moveBack", false) && Route(step).Delivery is not InputDelivery.Background
+            ? Input(step).Cursor
+            : null;
 
     // -------------------------------------------------------------------- looks
 
@@ -3574,11 +3649,22 @@ public sealed class MacroRunner
         var found = await HitsUntil(step, token)
                     ?? throw new StepFailure("Run.ImageNotFound", Written(step.Rows("image")));
 
-        var x = found.Match.Center.X + Number(step, "offsetX");
-        var y = found.Match.Center.Y + Number(step, "offsetY");
-        Aim(new ScreenPoint(x, y));
-        Input(step).Click(Button(step), x, y, 1, 0);
-        Log(LogLevel.Info, depth, step.Type, "Run.ClickedImage", x, y);
+        // A step that asked to look again waits a moment and confirms the picture is still there: a
+        // button that flashed past, or a screen that has already moved on, is not clicked.
+        var again = Pace(OptionalNumber(step, "recheckMs", 0));
+        if (again > 0)
+        {
+            await Pause(again, token);
+            found = await HitsUntil(step, token)
+                    ?? throw new StepFailure("Run.ImageNotFound", Written(step.Rows("image")));
+        }
+
+        var at = Scattered(new ScreenPoint(
+            found.Match.Center.X + Number(step, "offsetX"),
+            found.Match.Center.Y + Number(step, "offsetY")), Spread(step));
+        Aim(at);
+        Input(step).Click(Button(step), at.X, at.Y, 1, 0);
+        Log(LogLevel.Info, depth, step.Type, "Run.ClickedImage", at.X, at.Y);
     }
 
     /// <summary>One attempt at finding a reference picture: the hit the step asked for.</summary>
@@ -6414,11 +6500,28 @@ public sealed class MacroRunner
             throw new StepFailure("Run.TextNotFound", wanted);
         }
 
-        var x = span.Center.X + Number(step, "offsetX");
-        var y = span.Center.Y + Number(step, "offsetY");
-        Aim(new ScreenPoint(x, y));
-        Input(step).Click(Button(step), x, y, 1, 0);
-        Log(LogLevel.Info, depth, step.Type, "Run.ClickedText", wanted, $"{x},{y}");
+        // A step that asked to look again waits a moment and confirms the line is still there: a
+        // line that has already been replaced is not clicked.
+        var again = Pace(OptionalNumber(step, "recheckMs", 0));
+        if (again > 0)
+        {
+            await Pause(again, token);
+            span = await WaitForValueAsync(Look, timeout,
+                Math.Max(1, OptionalNumber(step, "intervalMs", 200)), token);
+            SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen, wanted,
+                minimum: Number(step, "minScore"));
+            if (span is null)
+            {
+                throw new StepFailure("Run.TextNotFound", wanted);
+            }
+        }
+
+        var at = Scattered(new ScreenPoint(
+            span.Center.X + Number(step, "offsetX"),
+            span.Center.Y + Number(step, "offsetY")), Spread(step));
+        Aim(at);
+        Input(step).Click(Button(step), at.X, at.Y, 1, 0);
+        Log(LogLevel.Info, depth, step.Type, "Run.ClickedText", wanted, $"{at.X},{at.Y}");
     }
 
     private static string Language(ExecutableStep step)

@@ -1313,6 +1313,15 @@ internal static class ActionStrings
         ["input.mouseClick.intervalMs.hint"] = "连续点击之间的间隔。",
         ["input.mouseClick.holdMs.label"] = "按住时长",
         ["input.mouseClick.holdMs.hint"] = "按下后保持多久才松开。填 0 就是普通的一下快点击；需要长按才响应的按钮，把这里调大。",
+        ["input.mouseClick.variance.label"] = "落点随机范围",
+        ["input.mouseClick.variance.hint"] =
+            "实际落点与上面写的坐标最多相差多少个像素，默认 0，即正好点在写的位置上。填了数就每次都"
+            + "在这个范围内随机取一点，连着点不会落在同一个像素上。数字要小到整个范围仍落在被点的"
+            + "东西里面。",
+        ["input.mouseClick.moveBack.label"] = "点完把指针移回原处",
+        ["input.mouseClick.moveBack.hint"] =
+            "点完之后把指针移回点击之前的位置，鼠标就留在用户自己放的地方。后台模式下屏幕上指针"
+            + "本来就没动，这个开关不起作用。",
 
         ["input.mouseDoubleClick.name"] = "鼠标双击",
         ["input.mouseDoubleClick.desc"] = "在屏幕指定位置双击鼠标按键。",
@@ -1325,6 +1334,14 @@ internal static class ActionStrings
         ["input.mouseDoubleClick.repeat.hint"] = "连着双击几次；一般填 1，也就是一次双击。",
         ["input.mouseDoubleClick.intervalMs.label"] = "间隔",
         ["input.mouseDoubleClick.intervalMs.hint"] = "两次双击之间的等待时间。",
+        ["input.mouseDoubleClick.variance.label"] = "落点随机范围",
+        ["input.mouseDoubleClick.variance.hint"] =
+            "实际落点与上面写的坐标最多相差多少个像素，默认 0，即正好点在写的位置上。填了数就"
+            + "每次双击都在这个范围内随机取一点。",
+        ["input.mouseDoubleClick.moveBack.label"] = "点完把指针移回原处",
+        ["input.mouseDoubleClick.moveBack.hint"] =
+            "点完之后把指针移回点击之前的位置，鼠标就留在用户自己放的地方。后台模式下屏幕上指针"
+            + "本来就没动，这个开关不起作用。",
 
         ["input.mouseDown.name"] = "按下鼠标",
         ["input.mouseDown.desc"] = "保持按住鼠标按键，直到对应的“松开鼠标”步骤。",
@@ -1375,6 +1392,10 @@ internal static class ActionStrings
         ["input.mouseDrag.button.label"] = "按键",
         ["input.mouseDrag.durationMs.label"] = "用时",
         ["input.mouseDrag.durationMs.hint"] = "整个拖拽过程的时长。",
+        ["input.mouseDrag.settleMs.label"] = "到终点先停",
+        ["input.mouseDrag.settleMs.hint"] =
+            "拖到终点后、松开鼠标键之前先按住不动这么多毫秒，默认 0，即一到就松。要拖进格子里的"
+            + "东西，只有指针在格子上停过一下才会被放进去；一到就松会变成从上面滑过去。",
         ["input.mouseDrag.steps.label"] = "移动步数",
         ["input.mouseDrag.steps.hint"] = "拖拽过程中发送的中间移动事件数量。",
         ["input.mouseDrag.style.label"] = "移动方式",
@@ -2029,6 +2050,16 @@ internal static class ActionStrings
         ["vision.clickImage.offsetX.label"] = "横向偏移",
         ["vision.clickImage.offsetX.hint"] = "在匹配中心基础上水平偏移的像素。",
         ["vision.clickImage.offsetY.label"] = "纵向偏移",
+        ["vision.clickImage.variance.label"] = "落点随机范围",
+        ["vision.clickImage.variance.hint"] =
+            "落点与匹配中心最多相差多少个像素，默认 0，即正好点在那个点上。填了数就在这个范围内"
+            + "随机取一点，连着点两次不会落在同一个像素上。宽按钮上用它避免看起来像机器点的；"
+            + "数字要小到整个范围仍落在被点的东西里面。",
+        ["vision.clickImage.recheckMs.label"] = "落手前再确认",
+        ["vision.clickImage.recheckMs.hint"] =
+            "点之前先等这么多毫秒再看一次，单位毫秒，默认 0，即一认出就点。填了数就等这么久再"
+            + "看一眼，这次仍认得才点；这次认不得按没找到处理。用于按钮一闪而过、或者画面其实"
+            + "已经翻过去的情况；再看的这一次也在这一步允许的时间里。",
         ["vision.clickImage.timeoutMs.label"] = "等待上限",
         ["vision.clickImage.timeoutMs.hint"] = "等待图片出现的时长，超时即放弃。",
         ["vision.clickImage.button.label"] = "按键",
@@ -2146,6 +2177,14 @@ internal static class ActionStrings
         ["ocr.clickText.offsetX.label"] = "横向偏移",
         ["ocr.clickText.offsetX.hint"] = "在匹配中心基础上水平偏移的像素。",
         ["ocr.clickText.offsetY.label"] = "纵向偏移",
+        ["ocr.clickText.variance.label"] = "落点随机范围",
+        ["ocr.clickText.variance.hint"] =
+            "落点与读到的文字中心最多相差多少个像素，默认 0，即正好点在那个点上。填了数就在"
+            + "这个范围内随机取一点，连着点两次不会落在同一个像素上。",
+        ["ocr.clickText.recheckMs.label"] = "落手前再确认",
+        ["ocr.clickText.recheckMs.hint"] =
+            "点之前先等这么多毫秒再看一次，单位毫秒，默认 0，即一认出就点。填了数就等这么久再"
+            + "看一眼，这次仍读得到才点；这次读不到按没找到处理。用于那一行文字已经被替掉的情况。",
         ["ocr.clickText.timeoutMs.label"] = "等待上限",
         ["ocr.clickText.timeoutMs.hint"] = "等待文字出现的时长（毫秒），默认 5000；超过即放弃。",
         ["ocr.clickText.minScore.label"] = "最低识别分",

@@ -1875,11 +1875,24 @@ public static class ActionCatalog
                 Number("x", "X", 0, "Screen column to click."),
                 Number("y", "Y", 0, "Screen row to click."),
                 ..Anchor(withElement: true),
+                Number("variance", "Aim within", 0,
+                    "How far the click may land from the position above, in pixels; the default is "
+                    + "0, which lands on exactly that position. Given a number, every click is "
+                    + "placed at random within that many pixels either way, so a run of clicks is "
+                    + "spread over the button instead of landing on one pixel — which is what a "
+                    + "button that only counts a press somewhere inside it, and a game that "
+                    + "notices the same pixel every time, are both about. Keep it small enough "
+                    + "that the whole spread stays inside the thing being clicked.",
+                    min: 0, max: 100000),
                 Number("holdMs", "Hold", 0,
                     "How long the button stays down before it is released. 0 sends a normal "
                     + "quick click; a longer hold is for buttons that only answer a press-and-hold."),
                 Number("repeat", "Repeat", 1, "How many clicks to send.", min: 1),
                 Number("intervalMs", "Interval", 0, "Pause between repeated clicks."),
+                Toggle("moveBack", "Put the pointer back", false,
+                    "Move the pointer back to where it was before the click, so the mouse is left "
+                    + "where the user left it. It does nothing in background mode, where the "
+                    + "pointer on screen never moved in the first place.", advanced: true),
                 ..Delivery(),
             ],
         },
@@ -1895,10 +1908,19 @@ public static class ActionCatalog
                 Number("x", "X", 0, "Screen column to click."),
                 Number("y", "Y", 0, "Screen row to click."),
                 ..Anchor(withElement: true),
+                Number("variance", "Aim within", 0,
+                    "How far a double click may land from the position above, in pixels; the "
+                    + "default is 0, which lands on exactly that position. Given a number, each "
+                    + "double click is placed at random within that many pixels either way.",
+                    min: 0, max: 100000),
                 Number("repeat", "Repeat", 1,
                     "How many double clicks to send. 1 is the one a double click usually means.",
                     min: 1),
                 Number("intervalMs", "Interval", 0, "Pause between repeated double clicks."),
+                Toggle("moveBack", "Put the pointer back", false,
+                    "Move the pointer back to where it was before the click, so the mouse is left "
+                    + "where the user left it. It does nothing in background mode, where the "
+                    + "pointer on screen never moved in the first place.", advanced: true),
                 ..Delivery(),
             ],
         },
@@ -1973,6 +1995,13 @@ public static class ActionCatalog
                 ..Anchor(withElement: true),
                 Button(),
                 Number("durationMs", "Duration", 300, "How long the drag takes."),
+                Number("settleMs", "Hold at the end", 0,
+                    "How long the button stays down at the end of the drag before it is released, "
+                    + "in milliseconds; the default is 0, which lets go as soon as the pointer "
+                    + "arrives. A drop that is only answered once the thing has been held over its "
+                    + "new place for a moment, which is how a drag onto a slot becomes a drop into "
+                    + "that slot rather than a pass over it.",
+                    min: 0),
                 Number("steps", "Move steps", 20,
                     "Intermediate move events sent while dragging, 20 by default.", min: 1,
                     advanced: true),
@@ -2184,6 +2213,14 @@ public static class ActionCatalog
                     "Pixels added to the middle of the match before clicking. 0, the default, clicks "
                     + "the middle.", min: -100000m),
                 Number("offsetY", "Offset Y", 0, min: -100000m),
+                Number("variance", "Aim within", 0,
+                    "How far the click may land from the middle of the match, in pixels; the "
+                    + "default is 0, which lands on exactly that point. Given a number, the place "
+                    + "clicked is picked at random within that many pixels either way, so two "
+                    + "clicks in a row do not land on the same pixel. Raise it for a wide button "
+                    + "that should not look machine-clicked; keep it small enough that the whole "
+                    + "spread stays inside the thing being clicked.",
+                    min: 0, max: 100000),
                 Number("timeoutMs", "Wait up to", 5000,
                     "How long to wait for one of the pictures to turn up before giving up, in "
                     + "milliseconds; the default is 5000."),
@@ -2194,6 +2231,15 @@ public static class ActionCatalog
                 ..Anchor(),
                 MatchIndex(pixelsOnly: true),
                 LookPoll(200),
+                Number("recheckMs", "Look again after", 0,
+                    "How long to wait before looking a second time, in milliseconds; the default "
+                    + "is 0, which clicks as soon as the picture turns up. Given a number, the "
+                    + "step waits that long, looks again and clicks only if the picture is still "
+                    + "there — which is how a button that flashes past, or a screen that has "
+                    + "already moved on, is not clicked by mistake. A second look that finds "
+                    + "nothing counts as finding nothing at all, and the wait for it is the one "
+                    + "the step was already allowed.",
+                    min: 0, advanced: true),
                 AllMatches(pixelsOnly: true),
                 Returns(),
             ],
@@ -2479,11 +2525,25 @@ public static class ActionCatalog
                 Number("offsetX", "Offset X", 0, "Pixels added to the match centre.",
                     min: -100000m),
                 Number("offsetY", "Offset Y", 0, min: -100000m),
+                Number("variance", "Aim within", 0,
+                    "How far the click may land from the middle of the reading, in pixels; the "
+                    + "default is 0, which lands on exactly that point. Given a number, the place "
+                    + "clicked is picked at random within that many pixels either way, so two "
+                    + "clicks in a row do not land on the same pixel.",
+                    min: 0, max: 100000),
                 Number("timeoutMs", "Wait up to", 5000,
                     "How long to wait for the text to turn up before giving up, in milliseconds; "
                     + "the default is 5000."),
                 ..Anchor(),
                 LookPoll(200),
+                Number("recheckMs", "Look again after", 0,
+                    "How long to wait before looking a second time, in milliseconds; the default "
+                    + "is 0, which clicks as soon as the text turns up. Given a number, the step "
+                    + "waits that long, looks again and clicks only if the text is still there — "
+                    + "which is how a line that has already been replaced is not clicked by "
+                    + "mistake. A second look that finds nothing counts as finding nothing at all, "
+                    + "and the wait for it is the one the step was already allowed.",
+                    min: 0, advanced: true),
                 Preprocess(advanced: true),
                 ColourFilter(advanced: true),
                 ColourTolerance(advanced: true),
