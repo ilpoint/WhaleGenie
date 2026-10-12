@@ -20,6 +20,16 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Deterministic>true</Deterministic>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
+
+    <!--
+      Playwright 的驱动（Microsoft.Playwright 的 .playwright 目录）给五个平台各带一份 node，
+      由包里的目标按这个属性选一份抄进输出目录。它认得的值是 win-x64 这样的 RID，本仓库里
+      一直是空的，于是走了包自己那句"认不出就全抄"的兜底分支：每个输出目录多出 474 MB 用不上
+      的 node（darwin 与 linux 各两份），发布包里也一样。这里定死成 win-x64，因为整个仓库只
+      在 Windows 上构建与运行。写在根目录是因为 MSBuild 属性不跨项目传递：写在
+      WhaleGenie.Core.csproj 里只对 Core 自己的输出生效，引用它的程序与测试仍然会全抄。
+    -->
+    <PlaywrightPlatform>win-x64</PlaywrightPlatform>
   </PropertyGroup>
 
 </Project>

@@ -343,11 +343,14 @@ Settings → Actions → General → Workflow permissions 里放开一次。
 
 | 包 | 自带运行环境 | 体积（x64 打包后 / 解压后） | 什么时候用 |
 | --- | --- | --- | --- |
-| `WhaleGenie-<版本>-win-x64.zip` | 否，要装 .NET 10 桌面运行时 | 101 MB / 249 MB | 体积最小；已经装过运行环境 |
-| `WhaleGenie-<版本>-win-x64-standalone.zip` | 是 | 173 MB / 420 MB | 换机器、给别人，什么都不用装 |
+| `WhaleGenie-<版本>-win-x64.zip` | 否，要装 .NET 10 桌面运行时 | 108 MB / 277 MB | 体积最小；已经装过运行环境 |
+| `WhaleGenie-<版本>-win-x64-standalone.zip` | 是 | 181 MB / 448 MB | 换机器、给别人，什么都不用装 |
 
 解压后那多出来的一大块主要是浏览器动作用的 Playwright 驱动（`WhaleGenie` 文件夹里的
-`.playwright`，约 100 MB），它必须跟 exe 一起走，所以两个包都带着。
+`.playwright`，约 100 MB，其中 node 一份就占 89 MB），它必须跟 exe 一起走，所以两个包都带着。
+这个驱动里只放 Windows 那一份 node（根 `Directory.Build.props` 里的 `PlaywrightPlatform`）：
+驱动原本给五个平台各带一份，别的平台的 node 在 Windows 上永远不会被执行，抄进去只是让每个包
+多出四百多兆。
 
 不再出单文件包：exe 旁边的那些 dll 单文件版一样要在第一次启动时解压到系统临时目录，
 省下来的只是"拷一个文件"这点方便，却多一种要验的形态。

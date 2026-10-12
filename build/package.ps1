@@ -94,6 +94,31 @@ function Remove-Folder([string]$Path) {
 }
 
 <#
+    Playwright 的驱动是按 PlaywrightPlatform（在根 Directory.Build.props 里定成 win-x64）挑一份
+    node 抄出来的。这个属性一旦失效——名字被上游改了、驱动换了目录形状——包里就会多带别的平台
+    的 node：一份都用不上，包还大一倍，而拿到 zip 的人看不出来。所以摆好包之后在这里拦一道：
+    node 下面只有一个平台目录，里面要有 node.exe。平台目录叫什么不写死，驱动换名字不会误报。
+#>
+function Assert-OnePlatformDriver([string]$App) {
+    $node = Join-Path $App '.playwright\node'
+    if (-not (Test-Path $node)) {
+        throw "包里没有 .playwright\node：Playwright 的驱动没被抄出来，先看 dotnet publish 那一句。"
+    }
+
+    $platforms = @(Get-ChildItem $node -Directory)
+    if ($platforms.Count -ne 1) {
+        $names = ($platforms | ForEach-Object { $_.Name }) -join ', '
+        throw ("包里带了 $($platforms.Count) 个平台的 node（$names）：PlaywrightPlatform " +
+            "本该只留 Windows 那一份，先看清包为什么变大。")
+    }
+
+    if (-not (Test-Path (Join-Path $platforms[0].FullName 'node.exe'))) {
+        throw ("包里的 .playwright\node\$($platforms[0].Name) 没有 node.exe：驱动的形状变了，" +
+            "浏览器动作会在用户那里报 Driver not found。")
+    }
+}
+
+<#
     把一次 dotnet publish 的结果摆成便携包的形状。清单（WhaleGenie.deps.json）里每一项的
     写法决定运行时装到哪儿找程序集和原生库，所以 dll 搬家时清单得跟着改：留在 exe
     旁边的保持原名，进 lib 的写成 lib/<文件名>。
@@ -107,6 +132,8 @@ function New-PortableFolder([string]$Published, [string]$Package) {
 
     # 原生库自带的调试符号，比程序本身还大（Skia 一份 80 MB），用户用不上。
     Get-ChildItem $app -Recurse -Filter *.pdb | ForEach-Object { $_.Delete() }
+
+    Assert-OnePlatformDriver $app
 
     # 自己的许可和第三方说明必须跟着程序走：分发时不给出这两样，等于没写。
     foreach ($document in @('LICENSE.txt', 'THIRD-PARTY-NOTICES.md')) {

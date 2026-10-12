@@ -298,6 +298,8 @@ Windows 上按区域设置导出的 CSV 是 GBK。写入没有字节可参考，
 两种包都是"一个 `WhaleGenie` 文件夹，exe 在最外层，其余 dll 进 `lib`"：靠 `Program.cs` 里的两个解析钩子与
 清单 `WhaleGenie.deps.json` 里一起改写的路径，两样缺一不可。`Microsoft.Playwright.dll` 不能进 `lib`，否则
 Playwright 按程序集所在目录找不到它的 `.playwright`，正式包里会报 `Driver not found`（开发目录里两者同层，
-复现不出来）。打包形状在测试里验不了：改 `build/package.ps1`、清单改写或那两个钩子之后要本地跑一次脚本、把包
-解开双击一次，涉及原生库的动作也走一遍；`settings.json` 与 `logs` 不进仓库，路径只在
-`WhaleGenie.Execution.AppPaths` 定义一次。
+复现不出来）。驱动带的 node 是五个平台各一份，由根 `Directory.Build.props` 里的 `PlaywrightPlatform`
+（`win-x64`）只让 Windows 那份进输出目录——属性空着时包会走"认不出就全抄"的兜底分支，白搭 474 MB；
+写在根目录是因为 MSBuild 属性不跨项目传递，写在 Core 里 App 与测试的输出仍会全抄。打包形状在测试里验不了：
+改 `build/package.ps1`、清单改写或那两个钩子之后要本地跑一次脚本、把包解开双击一次，涉及原生库的动作也走
+一遍；`settings.json` 与 `logs` 不进仓库，路径只在 `WhaleGenie.Execution.AppPaths` 定义一次。
