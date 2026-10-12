@@ -26,13 +26,23 @@ from" in [README.md](../README.md).
 | --- | --- | --- |
 | Whole screen 2560×1440, desktop (GDI) | 29.5 ms | 24.6 / 32.5 |
 | A 400×300 patch, desktop (GDI) | 4.4 ms | 3.4 / 7.2 |
-| Whole screen 2560×1440, whole screen (graphics capture) | 63 ms | 60 / 70 |
+| Whole screen 2560×1440, whole screen (graphics capture) | 18 ms | 13 / 24 |
+| Whole screen 2560×1440, whole screen (graphics capture), session per read | 51 ms | 48 / 54 |
 | One window, window (PrintWindow) | 21 ms | 20 / 26 |
-| One window, window (graphics capture) | 19 ms | 14 / 21 |
+| One 800×600 window, window (graphics capture) | 10 ms | 8 / 11 |
 
 What a capture costs follows how much is being captured: the desktop way copies 2560×1440×4 ≈ 14.7 MB
-out of the display device, and a 400×300 patch is a fifteenth of that. Graphics capture costs about
-twice as much and buys reading a window that another window is covering.
+out of the display device, and a 400×300 patch is a fifteenth of that; almost all of those 29 ms are
+that copy (measured on its own, the `BitBlt` is about 16 ms, getting the pixels into managed memory
+0.6 ms and allocating the buffer 0.6 ms). Graphics capture costs about the same and buys reading a
+window that another window is covering.
+
+**A graphics capture session has to be kept**: opening one — building the graphics device and the
+pool of pictures — takes 0.4 s the first time, and after that a frame is only a copy from graphics
+memory. A kept session therefore reads the whole screen in 18 ms and a window in 10 ms, while opening
+and closing one per read costs 51 ms, about three times as much. Windows also draws a capture border
+around whatever is being read, which is there for as long as a session is: **opening and closing one
+per read makes that border blink**, which is a second reason to keep it.
 
 ## Finding something in the picture
 
