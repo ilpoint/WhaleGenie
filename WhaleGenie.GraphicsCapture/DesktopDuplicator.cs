@@ -26,7 +26,7 @@ internal sealed class DesktopDuplicator : IDisposable
     /// <summary>How long after a duplication is lost the next attempt is made.</summary>
     private const long RetryMs = 1000;
 
-    /// <summary>How long the throwaway frame a fresh duplication starts with is waited for.</summary>
+    /// <summary>How long the first picture a fresh duplication starts with is waited for.</summary>
     private const uint BlankFrameMs = 100;
 
     private readonly OneThread _thread = new("desktop duplication");
@@ -41,15 +41,14 @@ internal sealed class DesktopDuplicator : IDisposable
     private int _width;
     private int _height;
 
+    /// <summary>
+    /// How many pictures this duplication has handed over. The first one is the only one at risk of
+    /// being blank, which is what <see cref="WorthServing"/> reads it against.
+    /// </summary>
+    private int _frames;
+
     private bool _refused;
     private long _againAt;
-
-    /// <summary>
-    /// Whether the picture the duplication starts with is still to be thrown away. A fresh
-    /// duplication holds a surface that nothing has been drawn into yet, so the first frame it
-    /// hands over is black; serving it would hand a macro a black screen that is not one.
-    /// </summary>
-    private bool _blank;
 
     /// <summary>
     /// The rectangle that was asked for, out of the display's own picture of itself, or nothing when
@@ -155,11 +154,13 @@ internal sealed class DesktopDuplicator : IDisposable
                 _width = (int)mode.Width;
                 _height = (int)mode.Height;
 
-                // Thrown away here while the wait is cheap, so that the first look after this is
-                // the screen. If nothing has been drawn yet there is nothing to throw away and the
-                // first look throws it away instead.
-                _blank = true;
-                Discard(BlankFrameMs);
+                // The picture a fresh duplication starts with is often one nothing has been drawn
+                // into yet, so it is kept rather than trusted: the next picture that arrives is the
+                // display and replaces it. Keeping it is also what a still screen is read by — a
+                // screen nobody is drawing hands nothing else over, and throwing this one away
+                // would leave the first look of that screen with nothing to hand to the caller,
+                // which reads as a machine that cannot duplicate the display at all.
+                Take(BlankFrameMs);
                 return;
             }
         }
@@ -187,35 +188,73 @@ internal sealed class DesktopDuplicator : IDisposable
     /// </summary>
     private ScreenGrab? Shot(int x, int y, int width, int height)
     {
-        if (_duplication!.AcquireNextFrame(0, out _, out var resource).Success)
+        // Whatever has been drawn since the last look is newer than what is held, so it is the one
+        // to serve.
+        Take(0);
+
+        if (_whole is not { } whole)
         {
-            using (resource)
-            using (var texture = resource.QueryInterface<ID3D11Texture2D>())
-            {
-                Stage(texture);
-                _context!.CopyResource(_staging!, texture);
-            }
-
-            _duplication.ReleaseFrame();
-            if (_blank)
-            {
-                _blank = false;
-                return null;
-            }
-
-            Hold();
+            // Nothing has been drawn since this duplication was opened. Waiting for the card to draw
+            // would hold up a step on a screen that is standing still; read another way this once,
+            // and the look after it finds the picture waiting.
+            return null;
         }
 
-        // Waiting for the card to draw would hold up the first look of a step on a screen that is
-        // standing still; there is nothing to hand over yet, so the screen is read another way this
-        // once, and the look after it finds the picture waiting.
-        if (_whole is not { } whole)
+        if (!WorthServing(_frames, whole))
         {
             return null;
         }
 
         return Placement.Of(new ScreenGrab(_width, _height, whole, CaptureWay.DesktopDuplication),
             0, 0, x, y, width, height);
+    }
+
+    /// <summary>
+    /// The next picture the duplication hands over, copied into the picture this holds, or false
+    /// when it hands over nothing within <paramref name="waitMs"/>. A display that has not been drawn
+    /// again hands nothing over, and that is not a failure: what is held is still what is on screen.
+    /// </summary>
+    private bool Take(uint waitMs)
+    {
+        if (!_duplication!.AcquireNextFrame(waitMs, out _, out var resource).Success)
+        {
+            return false;
+        }
+
+        using (resource)
+        using (var texture = resource.QueryInterface<ID3D11Texture2D>())
+        {
+            Stage(texture);
+            _context!.CopyResource(_staging!, texture);
+        }
+
+        _duplication.ReleaseFrame();
+        _frames++;
+        Hold();
+        return true;
+    }
+
+    /// <summary>
+    /// Whether a picture that was read is one to hand to the caller. The first picture of a fresh
+    /// duplication is often blank — a surface the display has not been drawn into yet — so it is
+    /// handed over only when there is something in it; from the second picture on, what came back is
+    /// the display, however dark the display happens to be.
+    /// </summary>
+    internal static bool WorthServing(int frames, byte[] picture)
+        => frames > 1 || !Blank(picture);
+
+    /// <summary>Whether a picture has nothing drawn in it at all.</summary>
+    private static bool Blank(byte[] picture)
+    {
+        for (var at = 0; at + 2 < picture.Length; at += 4)
+        {
+            if (picture[at] != 0 || picture[at + 1] != 0 || picture[at + 2] != 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>A staging texture to copy frames into, made once at the size the display is.</summary>
@@ -268,23 +307,8 @@ internal sealed class DesktopDuplicator : IDisposable
         _device?.Dispose();
         _device = null;
         _whole = null;
+        _frames = 0;
         _againAt = Environment.TickCount64 + RetryMs;
-    }
-
-    /// <summary>
-    /// Takes and lets go of one frame, which is how the black picture a fresh duplication starts
-    /// with is got out of the way; nothing is read from it.
-    /// </summary>
-    private void Discard(uint waitMs)
-    {
-        if (!_duplication!.AcquireNextFrame(waitMs, out _, out var resource).Success)
-        {
-            return;
-        }
-
-        _blank = false;
-        resource.Dispose();
-        _duplication.ReleaseFrame();
     }
 
     public void Dispose()
