@@ -690,10 +690,12 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>
     /// Which part of a window the action compares its text with, which is what the window picker has
     /// to take away from here: a class picked while the step compares titles would match nothing. A
-    /// step that says nothing about it reads titles, the way it always did.
+    /// step that says nothing about it reads titles, the way it always did. The steps that look at
+    /// the screen say it beside their coordinate origin rather than as part of a window of their
+    /// own, and both readings are the same rule.
     /// </summary>
     public WindowMatch WindowMatchFor()
-        => Parameters.FirstOrDefault(row => row.Definition.Name == "matchBy")?.CurrentText
+        => (Parameter("matchBy") ?? Parameter("anchorMatchBy"))?.CurrentText
             .Trim().ToLowerInvariant() switch
         {
             "process" => WindowMatch.Process,
@@ -706,7 +708,7 @@ public partial class AddActionViewModel : ViewModelBase
     /// window picker and the preview of recognised windows are read against.
     /// </summary>
     public WindowCompare WindowCompareFor()
-        => Parameters.FirstOrDefault(row => row.Definition.Name == "compareBy")?.CurrentText
+        => (Parameter("compareBy") ?? Parameter("anchorCompareBy"))?.CurrentText
             .Trim().ToLowerInvariant() switch
         {
             "startswith" => WindowCompare.StartsWith,
@@ -720,25 +722,50 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     public WindowPreviewViewModel? WindowPreview { get; private set; }
 
+    /// <summary>The field the preview stands under, and whether the rule it follows is only read
+    /// while this step counts its numbers from a window.</summary>
+    private StepParameterViewModel? _previewField;
+    private bool _previewFollowsOrigin;
+
     /// <summary>
     /// Hangs the preview on the field the rule is about — the text the window is recognised by — so
     /// the list stands right under the box being written rather than between a field and its own
-    /// editor. An action with no such rule has nothing to preview.
+    /// editor. An action with no such rule has nothing to preview. A step that looks at the screen
+    /// names its window beside its coordinate origin instead of in fields of its own, and gets the
+    /// same list; its rule is only read while the numbers are counted from that window, so the list
+    /// is only there then.
     /// </summary>
     private void WireWindowPreview()
     {
         WindowPreview?.Stop();
         WindowPreview = null;
+        _previewField = null;
+        _previewFollowsOrigin = false;
 
-        if (Parameter("title") is not { } text || Parameter("compareBy") is null)
+        var text = Parameter("title");
+        if (text is null && Parameter("anchorMatchBy") is not null)
+        {
+            text = Parameter("anchorWindow");
+            _previewFollowsOrigin = true;
+        }
+
+        if (text is null)
         {
             return;
         }
 
+        _previewField = text;
         WindowPreview = new WindowPreviewViewModel();
         WindowPreview.Watch(() => Windows);
         text.WindowPreview = WindowPreview;
     }
+
+    /// <summary>
+    /// True when this step counts its numbers from a window, which is the only time the window it
+    /// names is read: the screen and element origins do not use it.
+    /// </summary>
+    private bool AnchorNamesWindow()
+        => Parameter("anchorMode")?.CurrentText.Trim().ToLowerInvariant() is "window" or "client";
 
     /// <summary>Folds a group open or shut and remembers which way it went.</summary>
     public void ToggleGroup(ActionGroupViewModel group)
@@ -1352,12 +1379,29 @@ public partial class AddActionViewModel : ViewModelBase
         }
 
         var title = Parameter("anchorWindow")?.Text?.Trim() ?? string.Empty;
-        if (title.Length == 0 || Windows.Find(title, WindowMatch.Title) is not { } window)
+        if (title.Length == 0)
         {
             return null;
         }
 
-        return mode == "client" ? Windows.ClientOrigin(window.Handle) : window.Location;
+        try
+        {
+            // Recognised the way the run will recognise it, so a position taken off the screen is
+            // counted from the same corner the step will count from.
+            if (Windows.Find(title, WindowMatchFor(), WindowCompareFor()) is not { } window)
+            {
+                return null;
+            }
+
+            return mode == "client" ? Windows.ClientOrigin(window.Handle) : window.Location;
+        }
+        catch (Exception)
+        {
+            // A window that is not open right now, or a pattern that will not read, leaves the
+            // numbers as screen pixels, which is the best that can be done; the step says what it
+            // needed when the macro runs.
+            return null;
+        }
     }
 
     /// <summary>
@@ -1467,10 +1511,17 @@ public partial class AddActionViewModel : ViewModelBase
         }
 
         // Which windows the step recognises is read off all three of those fields, so it is asked
-        // for once they all say what they say.
-        if (WindowPreview is { } preview && Parameter("title") is { } text)
+        // for once they all say what they say. A step that reads the screen recognises a window only
+        // while its numbers are counted from one, so the list goes up and comes down with that
+        // answer rather than standing there over a rule nothing reads.
+        if (WindowPreview is { } preview && _previewField is { } text)
         {
-            preview.Follow(text.CurrentText, WindowMatchFor(), WindowCompareFor());
+            var asking = !_previewFollowsOrigin || AnchorNamesWindow();
+            text.WindowPreview = asking ? preview : null;
+            if (asking)
+            {
+                preview.Follow(text.CurrentText, WindowMatchFor(), WindowCompareFor());
+            }
         }
 
         // Which page holds what can come and go with what a field says, so the pages are read

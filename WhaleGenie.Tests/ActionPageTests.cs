@@ -78,7 +78,8 @@ public class ActionPageTests
     private static readonly string[] Tuning =
     [
         "minFeatures", "ignoreColor", "matchIndex", "allMatches", "orderBy",
-        "anchorMode", "anchorWindow", "anchorSelector", "inputMode", "targetWindow", "style",
+        "anchorMode", "anchorWindow", "anchorMatchBy", "anchorCompareBy", "anchorSelector",
+        "inputMode", "targetWindow", "style",
         "captureMode", "frameMaxAgeMs", "preprocess", "colorFilter", "colorTolerance", "fixText",
         "expected", "minScore", "language", "encoding", "outputEncoding", "lineEnding", "quoteAll",
         "emptyCells", "align", "separator", "depth", "sortBy", "descending", "withinCount",

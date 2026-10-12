@@ -2377,10 +2377,25 @@ public sealed class MacroRunner
             return (null, null);
         }
 
-        // No title means the window in front, the same way every other window field reads.
+        // The window is recognised the way the window actions recognise one: the text compared with
+        // the part the step names, the way it says to compare it. A step written before those two
+        // fields existed reads titles the way it always did, and no text at all means the window in
+        // front, the same way every other window field reads.
         var title = Read(step.Text("anchorWindow")).AsText().Trim();
-        var window = _devices.Windows.Find(title, WindowMatch.Title)
+        WindowInfo window;
+        try
+        {
+            window = _devices.Windows.Find(title, WindowMatchOf(step.Text("anchorMatchBy")),
+                         WindowCompareOf(step.Text("anchorCompareBy")))
                      ?? throw new StepFailure("Run.WindowNotFound", title);
+        }
+        catch (ArgumentException)
+        {
+            // A pattern the machine cannot read is the macro's problem to see, not a stack trace to
+            // puzzle over, so it comes back as a failed step — the same words the window actions
+            // report it with.
+            throw new StepFailure("Run.BadPattern", title);
+        }
 
         var corner = mode == "client" ? _devices.Windows.ClientOrigin(window.Handle)
             : window.Location;

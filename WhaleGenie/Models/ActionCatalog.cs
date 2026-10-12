@@ -1842,7 +1842,7 @@ public static class ActionCatalog
             [
                 Number("x", "X", 0, "Target screen column."),
                 Number("y", "Y", 0, "Target screen row."),
-                ..Anchor(withElement: true),
+                ..Anchor(withElement: true, byTitleOnly: true),
                 Number("durationMs", "Duration", 0, "0 jumps straight to the target."),
                 Movement(),
                 ..Delivery(),
@@ -1874,7 +1874,7 @@ public static class ActionCatalog
                 Button(),
                 Number("x", "X", 0, "Screen column to click."),
                 Number("y", "Y", 0, "Screen row to click."),
-                ..Anchor(withElement: true),
+                ..Anchor(withElement: true, byTitleOnly: true),
                 Number("variance", "Aim within", 0,
                     "How far the click may land from the position above, in pixels; the default is "
                     + "0, which lands on exactly that position. Given a number, every click is "
@@ -1907,7 +1907,7 @@ public static class ActionCatalog
                 Button(),
                 Number("x", "X", 0, "Screen column to click."),
                 Number("y", "Y", 0, "Screen row to click."),
-                ..Anchor(withElement: true),
+                ..Anchor(withElement: true, byTitleOnly: true),
                 Number("variance", "Aim within", 0,
                     "How far a double click may land from the position above, in pixels; the "
                     + "default is 0, which lands on exactly that position. Given a number, each "
@@ -1935,7 +1935,7 @@ public static class ActionCatalog
                 Button(),
                 Number("x", "X", 0, "Screen column to press."),
                 Number("y", "Y", 0, "Screen row to press."),
-                ..Anchor(withElement: true),
+                ..Anchor(withElement: true, byTitleOnly: true),
                 ..Delivery(),
             ],
         },
@@ -1950,7 +1950,7 @@ public static class ActionCatalog
                 Button(),
                 Number("x", "X", 0, "Screen column to release at."),
                 Number("y", "Y", 0, "Screen row to release at."),
-                ..Anchor(withElement: true),
+                ..Anchor(withElement: true, byTitleOnly: true),
                 ..Delivery(),
             ],
         },
@@ -1974,7 +1974,7 @@ public static class ActionCatalog
                     "all at once.", advanced: true),
                 Number("x", "X", 0, "Screen column to scroll at."),
                 Number("y", "Y", 0, "Screen row to scroll at."),
-                ..Anchor(withElement: true),
+                ..Anchor(withElement: true, byTitleOnly: true),
                 Number("repeat", "Repeat", 1, "How many times to send that much scrolling.", min: 1),
                 Number("intervalMs", "Interval", 0, "Pause between repeated scrolls."),
                 ..Delivery(),
@@ -1992,7 +1992,7 @@ public static class ActionCatalog
                 Number("startY", "Start Y", 0),
                 Number("endX", "End X", 0, "Where the drag ends."),
                 Number("endY", "End Y", 0),
-                ..Anchor(withElement: true),
+                ..Anchor(withElement: true, byTitleOnly: true),
                 Button(),
                 Number("durationMs", "Duration", 300, "How long the drag takes."),
                 Number("settleMs", "Hold at the end", 0,
@@ -4149,7 +4149,22 @@ public static class ActionCatalog
     /// window. Only the actions that put the pointer somewhere offer it: a control is what a person
     /// actually aims at, and the actions that merely read a point would grow a field for nothing.
     /// </summary>
-    private static ActionParameter[] Anchor(bool withElement = false) =>
+    /// <param name="withElement">
+    /// True for an action that can measure from a control, which the element picker fills in.
+    /// </param>
+    /// <param name="byTitleOnly">
+    /// True for an action whose numbers are a place on the desktop rather than a window to look
+    /// into: the mouse and keyboard steps keep the single window field they have always had, since
+    /// all they need is a corner to count from.
+    /// </param>
+    /// <remarks>
+    /// A window is recognised by the same three parts the window actions use — what to look for,
+    /// which part of a window to compare it with, and how to compare them — because the steps that
+    /// look at the screen read their pixels out of the window those numbers are counted from, and a
+    /// title that moves with the document or the interface language is otherwise the only handle
+    /// there is on it.
+    /// </remarks>
+    private static ActionParameter[] Anchor(bool withElement = false, bool byTitleOnly = false) =>
     [
         Choice("anchorMode", "Coordinates from",
             withElement ? ["screen", "window", "client", "element"] : ["screen", "window", "client"],
@@ -4167,15 +4182,46 @@ public static class ActionCatalog
         new()
         {
             Name = "anchorWindow",
-            Label = "Anchor window",
+            Label = byTitleOnly ? "Anchor window" : "Match text",
             Kind = ActionParameterKind.Window,
             Placeholder = "Notepad",
-            Hint = "The window the coordinates are measured from; part of the title is enough. "
-                   + "Leave it empty for the window in front. The screen mode does not use it.",
+            Variant = byTitleOnly
+                ? null
+                : new ActionParameterVariant("anchorCompareBy", "regex", "Anchor pattern",
+                    @"Notepad.*?\.txt"),
+            Hint = byTitleOnly
+                ? "The window the coordinates are measured from; part of the title is enough. "
+                  + "Leave it empty for the window in front. The screen mode does not use it."
+                : "The text the window is recognised by. It is compared with the part chosen by "
+                  + "\"Match by\", the way \"Compare\" says, ignoring case, and the pixels this step "
+                  + "reads come out of that window. Leave it empty for the window in front.",
             Required = false,
             Advanced = true,
         },
+        ..(byTitleOnly ? Array.Empty<ActionParameter>() : AnchorWindowRule()),
         ..(withElement ? AnchorElement() : Array.Empty<ActionParameter>()),
+    ];
+
+    /// <summary>
+    /// The other two parts of the window a step reads its pixels out of: which part of a window the
+    /// text is compared with, and how the two are compared. They are asked for only while the
+    /// coordinate origin is a window, because the other origins do not read that window at all.
+    /// </summary>
+    private static ActionParameter[] AnchorWindowRule() =>
+    [
+        Choice("anchorMatchBy", "Match by", ["title", "process", "class"], "title",
+            "Which part of a window the match text is compared with: its title, the name of the "
+            + "program that owns it, or the window class that program registered. Change it when "
+            + "the title moves with the document or the language. The screen and element origins do "
+            + "not use it.",
+            labels: ["Title", "Process name", "Window class"],
+            advanced: true, onlyWith: ["window", "client"], onlyField: "anchorMode"),
+        Choice("anchorCompareBy", "Compare", ["contains", "startsWith", "regex"], "contains",
+            "How the match text is compared with that part: contained in it, the start of it, or a "
+            + "regular expression matched against it. Use a pattern when the title carries "
+            + "something that changes from run to run. The screen and element origins do not use it.",
+            labels: ["Contains", "Starts with", "Regular expression"],
+            advanced: true, onlyWith: ["window", "client"], onlyField: "anchorMode"),
     ];
 
     /// <summary>

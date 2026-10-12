@@ -871,6 +871,11 @@ public partial class StepParameterViewModel : ViewModelBase
         get => _windowPreview;
         set
         {
+            if (ReferenceEquals(_windowPreview, value))
+            {
+                return;
+            }
+
             _windowPreview = value;
             OnPropertyChanged(nameof(WindowPreview));
             OnPropertyChanged(nameof(ShowsWindowPreview));

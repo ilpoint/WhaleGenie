@@ -850,6 +850,55 @@ public class DeviceActionTests
         Assert.Equal("528", store.Local.Values["where.y"].AsText());
     }
 
+    /// <summary>
+    /// A step that reads the screen names its window the way a window action does: by the program
+    /// that owns it, or by the class it registered, rather than by a title that moves with the
+    /// document or the level. The window it names is also the one its picture is read out of, so
+    /// this is what keeps such a step aimed at the right window once the title has changed.
+    /// </summary>
+    [Fact]
+    public async Task A_step_that_reads_the_screen_can_name_its_window_by_the_program()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(1, "笔记 - 第 3 关", new ScreenPoint(1000, 500),
+            new ScreenSize(800, 600), false, false));
+        devices.WindowFacts[1] = ("notepad", "Notepad");
+        devices.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(4, 4));
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Region((10, 20, 30, 40)),
+                Param("anchorMode", "window"), Param("anchorWindow", "notepad"),
+                Param("anchorMatchBy", "process"), Hit("match", "where")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+
+        // The picture comes out of the window the program named and the area is counted from that
+        // window's own corner, which is what a step measuring from a window means.
+        Assert.Contains("capture 1010 520 30 40", devices.Calls);
+        Assert.Equal("1017", store.Local.Values["where.x"].AsText());
+    }
+
+    /// <summary>
+    /// A pattern the machine cannot read is the macro's problem to see, in the same words the window
+    /// actions report it with — a step that reads the screen says so rather than reading the desktop.
+    /// </summary>
+    [Fact]
+    public async Task A_window_pattern_a_screen_step_cannot_read_stops_the_step()
+    {
+        var devices = WithAWindow();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"),
+                Param("anchorMode", "window"), Param("anchorWindow", "Notepad["),
+                Param("anchorCompareBy", "regex")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.BadPattern", result.Key);
+    }
+
     [Fact]
     public async Task Reading_a_pixel_stores_its_colour()
     {
