@@ -202,7 +202,8 @@ dotnet run --project WhaleGenie                  # 启动程序
   关掉再开还会让 Windows 画的那圈捕获提示边框跟着闪；会话要 `Dispose()`（内部是 `Close()`）而不是只丢引用，
   否则设备与帧池都留着。认不出的窗口（分层窗口、设置页、输入法候选、显卡覆盖层）试一次就记下来。
   Windows 11 上顺带把系统那圈捕获边框关掉（`IGraphicsCaptureSession3`），Windows 10 19045 及更早没有这个接口，
-  拿不到就当没这回事。**窗口取到的是它的可见外框**：不是 `GetWindowRect` 那个外框（多出看不见的拉伸边框），
+  拿不到就当没这回事——本机就是 19045，会话一开那圈黄框就在（最上面两行 199,174,7），所以 Windows 10 上
+  "读的是哪一个窗口"只能靠我们自己画的框说。**窗口取到的是它的可见外框**：不是 `GetWindowRect` 那个外框（多出看不见的拉伸边框），
   所以位置用 `DwmGetWindowAttribute(DWMWA_EXTENDED_FRAME_BOUNDS)` 算，差几个像素落点就偏几个像素。
 - **桌面复制**（`DesktopDuplicator`，Vortice 包装的 DXGI）：显卡正在合成的整块画面复制进我们自己的纹理，
   整屏 2 毫秒，比 GDI 复制屏幕快十几倍，独占全屏的游戏也只有它取得到；读不了（HDR、屏幕转着用、被别的
