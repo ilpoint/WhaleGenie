@@ -73,6 +73,15 @@ public interface IScreenDevice
     /// and one that does not is answered with the desktop.
     /// </summary>
     ScreenShot Capture(ScreenCaptureRequest request);
+
+    /// <summary>
+    /// How long one refresh of the screen lasts, in milliseconds. It is the shortest wait between
+    /// two looks at the screen that can see something the look before it did not, because a picture
+    /// that has not been drawn again cannot differ from the one already read; a step that waits for
+    /// something to turn up looks again on this beat unless it was told another. A device that
+    /// cannot say answers with 16, one refresh of a 60 Hz display.
+    /// </summary>
+    int RefreshMilliseconds => 16;
 }
 
 /// <summary>Looking for a picture on screen.</summary>

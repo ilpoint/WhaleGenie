@@ -107,8 +107,10 @@ Two switches change that number. Both are on the **Advanced** page and both are 
   Ten steps reading the same part of the screen in a row take the capture cost from 10 × 29.5 ≈ 295 ms
   down to 30 ms.
 - **Time between looks** (`intervalMs`): the least time one step leaves between two looks at the
-  screen. A step that waits for something uses it as its polling pace, 50–200 ms by default, so one
-  round of polling costs the row above times the number of rounds.
+  screen. A step that waits for something uses it as its polling pace, and left empty that is one
+  screen refresh — 16 ms on a 60 Hz display, 5 ms on a 240 Hz one — so one round of polling costs
+  the row above times the number of rounds. The refresh rate is the floor under looking at all:
+  until the picture is drawn again there is nothing new to read.
 
 ## What is not there yet
 

@@ -3317,7 +3317,7 @@ public sealed class MacroRunner
         // The corner is looked up again on every check, so a wait that watches a window keeps
         // watching the same spot inside it even if the window is moved while the macro waits.
         var (point, window) = Spot(step);
-        var interval = Math.Max(1, OptionalNumber(step, "intervalMs", 50));
+        var interval = LookBeat(step);
         await WaitForFlagAsync(
             () => PixelAt(step).Matches(target, tolerance), interval, token);
         SawPixel(step, point, target.ToHex(), window);
@@ -3567,7 +3567,7 @@ public sealed class MacroRunner
         var tolerance = Read(step.Text("tolerance")).AsNumber();
         var allowed = Read(step.Text("changedPercent")).AsNumber() / 100;
         var quiet = Math.Max(0, Number(step, "quietMs"));
-        var interval = Math.Max(1, OptionalNumber(step, "intervalMs", 100));
+        var interval = LookBeat(step);
 
         var started = Stopwatch.GetTimestamp();
         long Elapsed() => (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
@@ -3942,7 +3942,7 @@ public sealed class MacroRunner
     /// </summary>
     private async Task<Found> HitsUntil(ExecutableStep step, CancellationToken token)
     {
-        var interval = Math.Max(1, OptionalNumber(step, "intervalMs", 200));
+        var interval = LookBeat(step);
 
         Found? Enough()
         {
@@ -6493,7 +6493,7 @@ public sealed class MacroRunner
     {
         var wanted = Read(step.Text("text")).AsText();
         var mode = step.Text("matchMode");
-        var interval = Math.Max(1, OptionalNumber(step, "intervalMs", 200));
+        var interval = LookBeat(step);
 
         // The readings of the last look are kept, so the look handed over at the end is of the
         // screen as it was when the step gave up or found what it wanted.
@@ -7166,6 +7166,18 @@ public sealed class MacroRunner
     /// question is asked before the clock is read, so a wait that already holds costs nothing, and
     /// a timeout of zero means "look once and give up".
     /// </summary>
+    /// <summary>
+    /// The beat a step that waits for something looks at the screen on when it was not given one:
+    /// one refresh of the screen it is running on, because a picture that has not been drawn again
+    /// cannot differ from the one just read, and a look that comes sooner than the next refresh
+    /// reads the same frame twice. That is 16 ms on a 60 Hz display and 4 ms on a 240 Hz one, which
+    /// is what makes the default follow the screen rather than the machine the macro was written
+    /// on. A number written into the step is used as it stands, and 0 means "as soon as the look
+    /// before it is done".
+    /// </summary>
+    private int LookBeat(ExecutableStep step)
+        => Math.Max(1, OptionalNumber(step, "intervalMs", _devices.Screen.RefreshMilliseconds));
+
     private async Task<bool> WaitForFlagAsync(Func<bool> ready, int timeoutMs, int pollMs,
         CancellationToken token)
     {

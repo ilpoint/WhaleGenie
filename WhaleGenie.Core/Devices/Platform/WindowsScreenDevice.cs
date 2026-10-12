@@ -27,6 +27,11 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
     /// </summary>
     private readonly Lazy<GraphicsCapture> _graphics = new(() => new GraphicsCapture());
 
+    /// <summary>What a waiting step looks on when the display driver cannot say how fast it runs.</summary>
+    private const int CommonRefresh = 16;
+
+    private int? _refresh;
+
     public ScreenSize PrimarySize
     {
         get
@@ -41,6 +46,45 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         => OperatingSystem.IsWindows() && GetCursorPos(out var point)
             ? new ScreenPoint(point.X, point.Y)
             : default;
+
+    /// <summary>
+    /// How long one refresh of the screen lasts, from the display driver, in whole milliseconds.
+    /// The driver answers in whole hertz and answers 0 or 1 when it does not know, which is taken as
+    /// the commonest display; the answer is remembered because what a monitor runs at does not
+    /// change while a macro runs.
+    /// </summary>
+    public int RefreshMilliseconds
+    {
+        get
+        {
+            _refresh ??= Refresh();
+            return _refresh.Value;
+        }
+    }
+
+    private static int Refresh()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return CommonRefresh;
+        }
+
+        var screen = GetDC(IntPtr.Zero);
+        if (screen == IntPtr.Zero)
+        {
+            return CommonRefresh;
+        }
+
+        try
+        {
+            var hertz = GetDeviceCaps(screen, VerticalRefresh);
+            return hertz < 2 ? CommonRefresh : Math.Max(1, (int)Math.Ceiling(1000.0 / hertz));
+        }
+        finally
+        {
+            ReleaseDC(IntPtr.Zero, screen);
+        }
+    }
 
     public PixelColor PixelAt(int x, int y)
     {
@@ -421,6 +465,9 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
     private const int SystemMetricWidth = 0;
     private const int SystemMetricHeight = 1;
 
+    /// <summary>The display driver's refresh rate, in whole hertz, asked of a screen context.</summary>
+    private const int VerticalRefresh = 116;
+
     [StructLayout(LayoutKind.Sequential)]
     private struct NativePoint
     {
@@ -487,6 +534,9 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
 
     [DllImport("gdi32.dll")]
     private static extern uint GetPixel(IntPtr deviceContext, int x, int y);
+
+    [DllImport("gdi32.dll")]
+    private static extern int GetDeviceCaps(IntPtr deviceContext, int index);
 
     [DllImport("gdi32.dll")]
     private static extern IntPtr CreateCompatibleDC(IntPtr deviceContext);

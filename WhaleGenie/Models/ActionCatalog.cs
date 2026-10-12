@@ -2174,7 +2174,7 @@ public static class ActionCatalog
                     + "row is a file path or the variable a Capture step saved ($shot)."),
                 Region(),
                 ..Capture(),
-                LookPoll(200),
+                LookPoll(),
                 Number("confidence", "Similarity %", 90,
                     "How alike the picture on screen has to be, from 0 to 100 per cent; the default "
                     + "is 90.", max: 100),
@@ -2228,7 +2228,7 @@ public static class ActionCatalog
                 MatchOrder(pixelsOnly: true),
                 ..Anchor(),
                 MatchIndex(pixelsOnly: true),
-                LookPoll(200),
+                LookPoll(),
                 Number("recheckMs", "Look again after", 0,
                     "How long to wait before looking a second time, in milliseconds; the default "
                     + "is 0, which clicks as soon as the picture turns up. Given a number, the "
@@ -2281,7 +2281,7 @@ public static class ActionCatalog
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100),
                 ..Anchor(),
                 ..Capture(),
-                LookPoll(50),
+                LookPoll(),
             ],
         },
         new()
@@ -2341,7 +2341,7 @@ public static class ActionCatalog
                     + "list scrolling or a progress bar filling moves more than this. From 0 to 100 "
                     + "per cent, 0.1 by default.",
                     max: 100, advanced: true),
-                LookPoll(100),
+                LookPoll(),
             ],
         },
         new()
@@ -2534,7 +2534,7 @@ public static class ActionCatalog
                     + "clicks in a row do not land on the same pixel.",
                     min: 0, max: 100000),
                 ..Anchor(),
-                LookPoll(200),
+                LookPoll(),
                 Number("recheckMs", "Look again after", 0,
                     "How long to wait before looking a second time, in milliseconds; the default "
                     + "is 0, which clicks as soon as the text turns up. Given a number, the step "
@@ -4042,15 +4042,17 @@ public static class ActionCatalog
     /// <summary>
     /// The same field for a step that waits for something to turn up: there it is how often the
     /// screen is looked at while the step waits, which is the same question — how many looks a
-    /// second the macro spends — asked of a step that has its own clock.
+    /// second the macro spends — asked of a step that has its own clock. It is left empty rather
+    /// than filled with a number so that a step nobody has answered for looks once a screen
+    /// refresh, which is as often as looking can tell anything and follows the display it runs on.
     /// </summary>
-    private static ActionParameter LookPoll(decimal defaultMs)
-        => Number("intervalMs", "Time between looks", defaultMs,
+    private static ActionParameter LookPoll()
+        => Number("intervalMs", "Time between looks", null,
             "How often the screen is looked at while this step waits for something to turn up, in "
-            + $"milliseconds, from 0 to 60000; the default is {Written(defaultMs)}, and 0 looks again "
+            + "milliseconds, from 0 to 60000. Left empty it looks again once the screen has been "
+            + "refreshed, which is 16 ms on a 60 Hz display and 4 ms on a 240 Hz one; 0 looks again "
             + "as soon as the look before it is done. Raise it when waiting should cost less, lower "
-            + "it when what the step watches is only there for a moment. Seven milliseconds is "
-            + "about 144 looks a second.",
+            + "it when what the step watches is only there for a moment.",
             min: 0, max: 60000, advanced: true);
 
     /// <summary>A number as the hint writes it, however the file was written.</summary>

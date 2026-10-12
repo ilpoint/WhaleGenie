@@ -97,11 +97,14 @@ internal static class ActionStrings
         + "这一步写在循环里、每圈都读同一个地方时改它：读得比用得上的还快，多出来的那几次"
         + "都是白花的。7 毫秒约等于每秒 144 次。";
 
-    private static string LookPollHint(int defaultMs)
-        => "等待期间多久看一次屏幕，单位毫秒，0–60000，默认 "
-           + defaultMs.ToString(CultureInfo.InvariantCulture)
-           + "，填 0 表示上一次看完了立刻再看。等得起就调大，省下的是机器的开销；"
-           + "要看的东西一闪而过就调小。7 毫秒约等于每秒 144 次。";
+    /// <summary>
+    /// The hint for the field on a step that waits: the beat it looks on, which is left empty so
+    /// that the screen itself says how fast looking can tell anything.
+    /// </summary>
+    private const string LookPollHint =
+        "等待期间多久看一次屏幕，单位毫秒，0–60000。留空表示按屏幕刷新一次的时间来看："
+        + "60 赫兹的屏 16 毫秒一次，240 赫兹的屏 4 毫秒一次，也就是每隔一次刷新看一回；"
+        + "填 0 表示上一次看完了立刻再看。等得起就调大，省下的是机器的开销；要看的东西一闪而过就调小。";
 
     /// <summary>The hint every window action shares for the text it recognises a window by.</summary>
     private const string WindowTitleHint =
@@ -2746,23 +2749,23 @@ internal static class ActionStrings
         ["vision.findImage.intervalMs.label"] = LookIntervalLabel,
         ["vision.findImage.intervalMs.hint"] = LookGapHint,
         ["vision.waitImage.intervalMs.label"] = LookIntervalLabel,
-        ["vision.waitImage.intervalMs.hint"] = LookPollHint(200),
+        ["vision.waitImage.intervalMs.hint"] = LookPollHint,
         ["vision.clickImage.intervalMs.label"] = LookIntervalLabel,
-        ["vision.clickImage.intervalMs.hint"] = LookPollHint(200),
+        ["vision.clickImage.intervalMs.hint"] = LookPollHint,
         ["vision.getPixel.intervalMs.label"] = LookIntervalLabel,
         ["vision.getPixel.intervalMs.hint"] = LookGapHint,
         ["vision.waitColor.intervalMs.label"] = LookIntervalLabel,
-        ["vision.waitColor.intervalMs.hint"] = LookPollHint(50),
+        ["vision.waitColor.intervalMs.hint"] = LookPollHint,
         ["vision.findColor.intervalMs.label"] = LookIntervalLabel,
         ["vision.findColor.intervalMs.hint"] = LookGapHint,
         ["vision.waitStable.intervalMs.label"] = LookIntervalLabel,
-        ["vision.waitStable.intervalMs.hint"] = LookPollHint(100),
+        ["vision.waitStable.intervalMs.hint"] = LookPollHint,
         ["ocr.recognize.intervalMs.label"] = LookIntervalLabel,
         ["ocr.recognize.intervalMs.hint"] = LookGapHint,
         ["ocr.findText.intervalMs.label"] = LookIntervalLabel,
         ["ocr.findText.intervalMs.hint"] = LookGapHint,
         ["ocr.clickText.intervalMs.label"] = LookIntervalLabel,
-        ["ocr.clickText.intervalMs.hint"] = LookPollHint(200),
+        ["ocr.clickText.intervalMs.hint"] = LookPollHint,
         ["condition.imageExists.intervalMs.label"] = LookIntervalLabel,
         ["condition.imageExists.intervalMs.hint"] = LookGapHint,
         ["condition.imageNotExists.intervalMs.label"] = LookIntervalLabel,

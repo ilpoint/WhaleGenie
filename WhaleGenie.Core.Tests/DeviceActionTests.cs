@@ -2056,14 +2056,20 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// A wait that says nothing about how often to look keeps the rhythm it has always had: waiting
-    /// for a colour looks fifty times a second, so a wait of 160 ms looks a handful of times rather
-    /// than as often as the machine can.
+    /// A wait that says nothing about how often to look looks once a screen refresh, which is what
+    /// makes the default follow the display the macro runs on rather than the machine it was
+    /// written on: the same wait looks four times as often on a 240 Hz screen as on a 60 Hz one,
+    /// and either way it is looking on a beat rather than as fast as the machine can manage.
     /// </summary>
     [Fact]
-    public async Task A_wait_without_a_gap_of_its_own_keeps_the_one_it_had()
+    public async Task A_wait_without_a_gap_of_its_own_looks_on_the_screens_beat()
     {
-        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0xFF, 0xFF, 0xFF) };
+        // A 240 Hz screen: one refresh every four milliseconds.
+        var devices = new FakeDeviceLayer
+        {
+            Pixel = new PixelColor(0xFF, 0xFF, 0xFF),
+            RefreshMilliseconds = 4,
+        };
 
         var (result, _, _) = await RunAsync(
         [
@@ -2073,7 +2079,7 @@ public class DeviceActionTests
 
         Assert.Equal("Run.WaitColorTimeout", result.Key);
         var looked = devices.Calls.Count(call => call == "pixel 0 0");
-        Assert.InRange(looked, 3, 8);
+        Assert.InRange(looked, 5, 40);
     }
 
     /// <summary>The negative conditions are their own actions, so "wait until it is gone" can be written.</summary>
@@ -6284,6 +6290,12 @@ internal sealed class FakeDeviceLayer
     public ScreenPoint Cursor { get; set; } = new(7, 9);
 
     public ScreenSize PrimarySize { get; set; } = new(100, 50);
+
+    /// <summary>
+    /// How long one refresh of the pretend screen lasts. A check that wants to see how often a
+    /// waiting step looks sets it low, and one that does not care gets a fast screen.
+    /// </summary>
+    public int RefreshMilliseconds { get; set; } = 1;
 
     public PixelColor Pixel { get; set; }
 
