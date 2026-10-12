@@ -20,6 +20,14 @@ public sealed class WindowsWindowDevice : IWindowDevice
     private const int ShowRestore = 9;
     private const uint CloseMessage = 0x0010;
 
+    /// <summary>
+    /// The rectangle a window is seen in rather than the one Windows resizes it by: the border kept
+    /// for resizing is not drawn, so the two differ by a few pixels on every side of an ordinary
+    /// window. It is the one a picture of the window starts at, and the one a frame around it
+    /// belongs on.
+    /// </summary>
+    private const int SeenByTheEye = 9;
+
     public IReadOnlyList<WindowInfo> List()
     {
         Require();
@@ -127,8 +135,31 @@ public sealed class WindowsWindowDevice : IWindowDevice
         Require();
 
         var window = new IntPtr(handle);
-        return IsWindow(window)
-               && MoveWindow(window, x, y, Math.Max(0, width), Math.Max(0, height), true);
+        if (!IsWindow(window))
+        {
+            return false;
+        }
+
+        // A window is moved and sized by its own rectangle, which is a few pixels wider and taller
+        // than what is seen of it. A macro asking for a window's left edge to be here means the edge
+        // it can see — the one window.info hands back — so the difference is added back on: moving a
+        // window to the rectangle that was just read puts it where the rectangle said.
+        var grown = 0;
+        var taller = 0;
+        var left = 0;
+        var top = 0;
+        // A shrunk window is not lying anywhere to have an edge, and its icon's rectangle is nothing
+        // to measure against, so it is moved the way it always was.
+        if (!IsIconic(window) && GetWindowRect(window, out var own) && Seen(window, out var seen))
+        {
+            left = own.Left - seen.Left;
+            top = own.Top - seen.Top;
+            grown = (own.Right - own.Left) - (seen.Right - seen.Left);
+            taller = (own.Bottom - own.Top) - (seen.Bottom - seen.Top);
+        }
+
+        return MoveWindow(window, x - left, y - top, Math.Max(0, width + grown),
+            Math.Max(0, height + taller), true);
     }
 
     /// <summary>
@@ -223,7 +254,7 @@ public sealed class WindowsWindowDevice : IWindowDevice
             }
 
             var title = TitleOf(handle);
-            if (title.Length == 0 || !GetWindowRect(handle, out var bounds))
+            if (title.Length == 0 || !Seen(handle, out var bounds))
             {
                 return true;
             }
@@ -241,6 +272,16 @@ public sealed class WindowsWindowDevice : IWindowDevice
 
         return windows;
     }
+
+    /// <summary>
+    /// Where a window is seen on the screen, which is the rectangle the eye has rather than the one
+    /// Windows keeps for resizing it. A window that DWM has no answer for — it is not one DWM draws,
+    /// or the answer does not apply — falls back to its own rectangle, which is the same thing on a
+    /// window with no border to hide.
+    /// </summary>
+    private static bool Seen(IntPtr handle, out NativeRect bounds)
+        => DwmGetWindowAttribute(handle, SeenByTheEye, out bounds, Marshal.SizeOf<NativeRect>()) == 0
+           || GetWindowRect(handle, out bounds);
 
     private static string TitleOf(IntPtr handle)
     {
@@ -306,6 +347,10 @@ public sealed class WindowsWindowDevice : IWindowDevice
 
     [DllImport("user32.dll")]
     private static extern bool GetWindowRect(IntPtr handle, out NativeRect bounds);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmGetWindowAttribute(IntPtr handle, int attribute,
+        out NativeRect value, int size);
 
     [DllImport("user32.dll")]
     private static extern bool GetClientRect(IntPtr handle, out NativeRect bounds);

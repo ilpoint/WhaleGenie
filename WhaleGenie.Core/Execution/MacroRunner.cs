@@ -2525,7 +2525,7 @@ public sealed class MacroRunner
 
         public void Look(StepLook look) => Seen = look;
 
-        public void Reading(long window) => watch?.Reading(window);
+        public void Reading(WindowInfo? window) => watch?.Reading(window);
     }
 
     /// <summary>
@@ -4420,7 +4420,7 @@ public sealed class MacroRunner
     }
 
     /// <summary>Tells whoever is watching which window the next picture comes out of.</summary>
-    private void Reading(WindowInfo? window) => _looks?.Reading(window?.Handle ?? 0);
+    private void Reading(WindowInfo? window) => _looks?.Reading(window);
 
     /// <summary>
     /// Waits out however much of this step's gap is left and notes the look. Every step that reads

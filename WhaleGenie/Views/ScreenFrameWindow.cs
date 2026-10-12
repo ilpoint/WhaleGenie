@@ -78,6 +78,14 @@ internal sealed class ScreenFrameWindow : Window
     /// </summary>
     public void Place(ScreenPoint location, ScreenSize size)
     {
+        // Following a window means being told where it is over and over, and most of those answers
+        // are the one already drawn: cutting the region again for each of them would be work for
+        // nothing, and on a window that is being read many times a second it is work done often.
+        if (_location == location && _size == size)
+        {
+            return;
+        }
+
         _location = location;
         _size = size;
         Fit();

@@ -200,6 +200,40 @@ public class WindowPreviewTests
     }
 
     /// <summary>
+    /// The frames follow the windows while the list is up. A window gets dragged somewhere else while
+    /// a rule is being written more often than not, and a frame left where the window used to be
+    /// points at a place that says nothing about this step any more.
+    /// </summary>
+    [Fact]
+    public void The_frames_follow_a_window_that_is_moved_while_the_list_is_up()
+    {
+        var followed = Ui.RunAsync(async () =>
+        {
+            var interval = WindowPreviewViewModel.FollowInterval;
+            WindowPreviewViewModel.FollowInterval = TimeSpan.FromMilliseconds(30);
+            try
+            {
+                var windows = Desk().Add(1, "Notepad - notes.txt", "notepad", "Notepad");
+                var (_, preview) = Rule(windows, "Notepad");
+                Assert.Equal(new FramePlace(1, new ScreenPoint(0, 0), new ScreenSize(100, 100)),
+                    Assert.Single(preview.Places));
+
+                windows.Place(1, 300, 200, 400, 300);
+                await Task.Delay(200);
+
+                return preview.Places;
+            }
+            finally
+            {
+                WindowPreviewViewModel.FollowInterval = interval;
+            }
+        });
+
+        Assert.Equal(new FramePlace(1, new ScreenPoint(300, 200), new ScreenSize(400, 300)),
+            Assert.Single(followed));
+    }
+
+    /// <summary>
     /// A shrunk window is not lying anywhere on the screen, so there is nowhere to draw its frame:
     /// a frame over nothing would say the window is somewhere it is not.
     /// </summary>

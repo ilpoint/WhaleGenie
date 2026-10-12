@@ -22,11 +22,11 @@ public class RunLookTests
         public List<StepLook> Seen { get; } = [];
 
         /// <summary>Which window each reading said it was going to read, in the order it said so.</summary>
-        public List<long> Read { get; } = [];
+        public List<WindowInfo?> Read { get; } = [];
 
         public void Look(StepLook look) => Seen.Add(look);
 
-        public void Reading(long window) => Read.Add(window);
+        public void Reading(WindowInfo? window) => Read.Add(window);
     }
 
     private static ExecutableStep Step(string type, params ExecutableParameter[] parameters)
@@ -448,14 +448,19 @@ public class RunLookTests
         await Run(Step("vision.captureWindow", Param("title", "Notepad"), Hit("image", "shot")),
             devices, looks);
 
-        Assert.Equal(4242, Assert.Single(looks.Read));
+        // The window comes with the reading rather than its handle alone, so whoever is drawing the
+        // frame has where the window is without asking the desktop a second time.
+        var read = Assert.IsType<WindowInfo>(Assert.Single(looks.Read));
+        Assert.Equal(4242, read.Handle);
+        Assert.Equal(new ScreenPoint(1000, 500), read.Location);
+        Assert.Equal(new ScreenSize(800, 600), read.Size);
 
         // The desktop itself is no window, so a step reading it says so rather than leaving the last
         // window the run happened to read standing as the answer.
         var desktop = new Watched();
         await Run(Capture(1, 2, 5, 6, Hit("image", "shot")), devices, desktop);
 
-        Assert.Equal(0, Assert.Single(desktop.Read));
+        Assert.Null(Assert.Single(desktop.Read));
     }
 
     [Fact]

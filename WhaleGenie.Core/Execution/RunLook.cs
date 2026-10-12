@@ -126,12 +126,15 @@ public interface IRunLooks
     void Look(StepLook look);
 
     /// <summary>
-    /// Which window the step about to look is reading, or zero when it is reading the desktop.
-    /// Said before every picture is taken rather than with the look itself, because "which window is
-    /// this reading" is a different answer from "what did it find there": a frame around the window
-    /// being read is what says whether the window the step names is the window it means.
+    /// Which window the step about to look is reading, as it stands for this look, or null when it is
+    /// reading the desktop. Said before every picture is taken rather than with the look itself,
+    /// because "which window is this reading" is a different answer from "what did it find there": a
+    /// frame around the window being read is what says whether the window the step names is the window
+    /// it means. The window comes along rather than its handle alone because a frame belongs where the
+    /// window is now, and a window that is being moved while it is watched is the case that makes that
+    /// worth saying on every look.
     /// </summary>
-    void Reading(long window);
+    void Reading(WindowInfo? window);
 }
 
 /// <summary>

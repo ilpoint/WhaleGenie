@@ -181,6 +181,95 @@ public class RunLookTests
     }
 
     /// <summary>
+    /// A frame follows a window that is being moved while it is being read. The reading says where the
+    /// window is for that look rather than where it was when the step started, which is what makes the
+    /// frame worth watching during a wait: a window dragged while a macro waits on it is framed where
+    /// it has been dragged to.
+    /// </summary>
+    [Fact]
+    public void The_frame_follows_a_window_that_is_moved_while_it_is_read()
+    {
+        var places = Ui.RunAsync(async () =>
+        {
+            var devices = new LookingDevices { Windows = new WalkingWindow() };
+            var steps = new[] { WindowCapture(), WindowCapture() };
+            StepIds.Settle(steps);
+
+            var frames = new List<FramePlace?>();
+            var viewModel = new RunViewModel(steps, devices);
+            viewModel.WindowRead += read => frames.Add(read);
+            viewModel.RunCommand.Execute(null);
+            while (viewModel.IsBusy)
+            {
+                await Task.Delay(10);
+            }
+
+            return frames.Where(read => read is not null).Select(read => read!.Value).ToList();
+        });
+
+        Assert.True(places.Count >= 2, "each look said where it was reading");
+        Assert.True(places[^1].Location.X > places[0].Location.X,
+            $"the frame stayed at {places[0].Location.X} while the window went to "
+            + $"{places[^1].Location.X}");
+    }
+
+    /// <summary>One step that reads the window named "Notepad" and keeps what it saw.</summary>
+    private static MacroStep WindowCapture() => new()
+    {
+        Type = "vision.captureWindow",
+        Parameters =
+        [
+            new StepParameter
+            {
+                Name = "title",
+                Kind = ActionParameterKind.Text,
+                Value = "Notepad",
+            },
+            Handed("image", "shot"),
+        ],
+    };
+
+    /// <summary>
+    /// A desktop with one window on it that is being carried across the screen: every look finds it
+    /// somewhere else, the way a look finds a window that is being dragged.
+    /// </summary>
+    private sealed class WalkingWindow : IWindowDevice
+    {
+        private int _steps;
+
+        private WindowInfo Here() => new(4242, "Notepad - notes.txt",
+            new ScreenPoint(1000 + (_steps++ * 100), 500), new ScreenSize(800, 600), false, false);
+
+        public IReadOnlyList<WindowInfo> List() => [Here()];
+
+        public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match, WindowCompare compare)
+            => [Here()];
+
+        public WindowInfo? Find(string value, WindowMatch match, WindowCompare compare)
+            => Filter(value, match, compare).FirstOrDefault();
+
+        public string ProcessOf(long handle) => "notepad";
+
+        public string ClassOf(long handle) => "Notepad";
+
+        public bool Activate(long handle) => true;
+
+        public bool Minimize(long handle) => true;
+
+        public bool Maximize(long handle) => true;
+
+        public bool Restore(long handle) => true;
+
+        public bool Close(long handle) => true;
+
+        public bool Move(long handle, int x, int y, int width, int height) => true;
+
+        public ScreenPoint ClientOrigin(long handle) => new(0, 0);
+
+        public ScreenSize ClientSize(long handle) => new(0, 0);
+    }
+
+    /// <summary>
     /// A device layer with a screen that shows a picture and a search that always finds it, so the
     /// engine looks at something without a real screen being read. Everything else is refused the
     /// way a machine with no devices would refuse it.

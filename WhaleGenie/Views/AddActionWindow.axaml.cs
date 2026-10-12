@@ -313,11 +313,9 @@ public partial class AddActionWindow : Window
     /// Puts a frame around the window a trial is reading. It is the other half of "did that look at
     /// the right thing": the trial shows what turned up, and this shows where the engine looked.
     /// </summary>
-    private void ShowReadWindow(long handle)
+    private void ShowReadWindow(WindowInfo? read)
     {
-        if (handle == 0
-            || Devices.Windows.List().FirstOrDefault(one => one.Handle == handle) is not { } window
-            || FramePlace.Of(window) is not { } place)
+        if (read is null || FramePlace.Of(read) is not { } place)
         {
             _trialFrames.Clear();
             return;
@@ -338,8 +336,8 @@ public partial class AddActionWindow : Window
             // What the trial found is shown by the trial itself; there is nothing to keep here.
         }
 
-        public void Reading(long handle)
-            => Dispatcher.UIThread.Invoke(() => window.ShowReadWindow(handle));
+        public void Reading(WindowInfo? read)
+            => Dispatcher.UIThread.Invoke(() => window.ShowReadWindow(read));
     }
 
     /// <summary>

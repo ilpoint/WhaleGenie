@@ -33,10 +33,19 @@ public partial class WindowPreviewViewModel : ViewModelBase
     /// </summary>
     internal static TimeSpan Interval { get; set; } = TimeSpan.FromMilliseconds(300);
 
+    /// <summary>
+    /// How often the frames are put back where their windows are now. Windows get moved while a rule
+    /// is being written — that is usually why it is being written — and a frame left where a window
+    /// used to be points at nothing.
+    /// </summary>
+    internal static TimeSpan FollowInterval { get; set; } = TimeSpan.FromMilliseconds(400);
+
     /// <summary>How many of them are listed: the rest are a line saying how many are left.</summary>
     private const int Shown = 5;
 
     private DispatcherTimer? _timer;
+
+    private DispatcherTimer? _follow;
 
     /// <summary>The windows to read. Asked for at every read rather than kept, because the dialog
     /// hands them over once and a check may swap them out under it.</summary>
@@ -50,6 +59,10 @@ public partial class WindowPreviewViewModel : ViewModelBase
     private bool _shown;
 
     private IReadOnlyList<FramePlace> _places = [];
+
+    /// <summary>The windows the list is showing, in the order it shows them, so that following them
+    /// around moves the frames of the listed windows rather than of whatever matches now.</summary>
+    private readonly List<long> _framed = [];
 
     /// <summary>The windows the rule recognises, up to <see cref="Shown"/> of them.</summary>
     public ObservableCollection<WindowPreviewRow> Rows { get; } = [];
@@ -139,6 +152,7 @@ public partial class WindowPreviewViewModel : ViewModelBase
     public void Stop()
     {
         _timer?.Stop();
+        _follow?.Stop();
         _windows = null;
         _rule = null;
         _shown = false;
@@ -166,8 +180,51 @@ public partial class WindowPreviewViewModel : ViewModelBase
         }
         else if (!shown)
         {
+            _follow?.Stop();
             Places = [];
         }
+    }
+
+    /// <summary>
+    /// Puts the frames back where the listed windows are now. Only where they are: the list itself is
+    /// what the 刷新 button reads again, so a line does not jump about under the pointer while the
+    /// rule is being written. A window that has gone has nowhere left to be framed.
+    /// </summary>
+    private void Follow()
+    {
+        if (_rule is not { } rule || _windows?.Invoke() is not { } windows)
+        {
+            return;
+        }
+
+        IReadOnlyList<WindowInfo> found;
+        try
+        {
+            found = windows.Filter(rule.Text, rule.Match, rule.Compare);
+        }
+        catch (Exception)
+        {
+            // The rule's own read has already said what is wrong with it, and that answer does not
+            // change by asking again every moment.
+            return;
+        }
+
+        var byHandle = new Dictionary<long, WindowInfo>();
+        foreach (var window in found)
+        {
+            byHandle[window.Handle] = window;
+        }
+
+        var places = new List<FramePlace>();
+        foreach (var handle in _framed)
+        {
+            if (byHandle.TryGetValue(handle, out var window) && FramePlace.Of(window) is { } place)
+            {
+                places.Add(place);
+            }
+        }
+
+        Places = _shown ? places : [];
     }
 
     private void Read()
@@ -220,13 +277,33 @@ public partial class WindowPreviewViewModel : ViewModelBase
             Rows.Add(Row(window, rule.Match, windows));
         }
 
-        Places = _shown
-            ? [.. found.Take(Shown).Select(FramePlace.Of).OfType<FramePlace>()]
-            : [];
+        var listed = found.Take(Shown).ToList();
+        _framed.Clear();
+        _framed.AddRange(listed.Select(window => window.Handle));
+        Places = _shown ? [.. listed.Select(FramePlace.Of).OfType<FramePlace>()] : [];
+
+        // The frames are worth keeping where the windows are for as long as the list is up: a window
+        // that is dragged somewhere else while the rule is being written would otherwise leave the
+        // frame pointing at where it used to be.
+        if (_shown && Places.Count > 0)
+        {
+            _follow ??= StartFollowing();
+            _follow.Interval = FollowInterval;
+            _follow.Stop();
+            _follow.Start();
+        }
 
         More = found.Count > Shown
             ? Strings.Format("Add.WindowPreview.More", found.Count - Shown)
             : string.Empty;
+    }
+
+    /// <summary>The clock that puts the frames back where their windows are.</summary>
+    private DispatcherTimer StartFollowing()
+    {
+        var timer = new DispatcherTimer();
+        timer.Tick += (_, _) => Follow();
+        return timer;
     }
 
     /// <summary>One line of the list: the title, and the part compared when that is not the title.</summary>

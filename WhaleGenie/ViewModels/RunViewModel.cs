@@ -620,27 +620,28 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     public event Action<FramePlace?>? WindowRead;
 
     /// <summary>
-    /// Told by the engine which window it is about to read, before every picture it takes. The call
-    /// comes from the thread the run is on, so what the window is asked for — and the frame drawn
-    /// from it — happens on the thread that owns windows.
+    /// Told by the engine which window it is about to read, and where that window is, before every
+    /// picture it takes: the engine looked the window up for this look, so a frame put up from what
+    /// is handed over here follows the window rather than staying where it was when the step started.
+    /// The call comes from the thread the run is on, so the frame is drawn on the thread that owns
+    /// windows.
     /// </summary>
-    public void Reading(long window) => Dispatcher.UIThread.Post(() => ReadingAt(window));
+    public void Reading(WindowInfo? window) => Dispatcher.UIThread.Post(() => ReadingAt(window));
 
     /// <summary>
     /// Moves the frame to the window being read. A reading that lands after the run has stopped
     /// takes the frame down rather than putting one up: a frame left over a window nothing is
     /// reading any more says something untrue.
     /// </summary>
-    private void ReadingAt(long handle)
+    private void ReadingAt(WindowInfo? window)
     {
-        if (!IsBusy || handle == 0)
+        if (!IsBusy || window is null)
         {
             WindowRead?.Invoke(null);
             return;
         }
 
-        var window = _devices.Windows.List().FirstOrDefault(one => one.Handle == handle);
-        WindowRead?.Invoke(window is null ? null : FramePlace.Of(window));
+        WindowRead?.Invoke(FramePlace.Of(window));
     }
 
     /// <summary>The whole of what a step last saw, or null when it has looked at nothing.</summary>
