@@ -14,8 +14,38 @@ namespace WhaleGenie.Core.Devices.Platform;
 public sealed class PaddleOcrDevice : IOcrDevice, IDisposable
 {
     /// <summary>Loading the models costs real time, so it waits until a macro reads text.</summary>
-    private readonly Lazy<PaddleOcrAll> _ocr = new(() =>
-        PaddleOcrAll.Load(ChineseV6TinyModels.Default, new PaddleOcrOptions()));
+    private readonly Lazy<PaddleOcrAll> _ocr;
+
+    public PaddleOcrDevice()
+        : this(() => PaddleOcrAll.Load(ChineseV6TinyModels.Default, new PaddleOcrOptions()))
+    {
+    }
+
+    /// <summary>
+    /// The same reader with the loading of the models handed in, which is what a check does so that
+    /// it can watch the loading happen without reading a real screen or loading a real model.
+    /// </summary>
+    internal PaddleOcrDevice(Func<PaddleOcrAll> load) => _ocr = new Lazy<PaddleOcrAll>(load);
+
+    /// <summary>
+    /// Loads the models now rather than at the first step that reads text. Loading costs a moment,
+    /// and the step that pays for it is usually the first text step of a run; this is what the
+    /// 「预加载文字识别」 setting turns on, so a run that reads text starts at its own pace. A machine
+    /// that cannot load them says so when a step needs the reading rather than here.
+    /// </summary>
+    public void WarmUp()
+    {
+        try
+        {
+            _ = _ocr.Value;
+        }
+        catch (Exception)
+        {
+            // Nothing is waiting on this: a warm-up that fails is not a failure of anything the user
+            // asked for. A load that failed is remembered the same way a load that worked is, so
+            // this is not tried again.
+        }
+    }
 
     public IReadOnlyList<TextSpan> Recognize(ImageFrame frame, string language)
     {

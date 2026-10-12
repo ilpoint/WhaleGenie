@@ -34,6 +34,13 @@ public partial class MacroEditorWindow : Window
     /// <summary>Where a picture taken from the screen is put, so it travels with the package.</summary>
     private readonly string _assetFolder;
 
+    /// <summary>
+    /// The layer the trials and runs started from here use, handed in by the window this was
+    /// opened from. Null when nobody handed one in, which is how a check opens the editor: the
+    /// dialogs then make their own.
+    /// </summary>
+    private readonly IDeviceLayer? _devices;
+
     private bool _allowClose;
     private bool _prompting;
     private bool _syncingSelection;
@@ -108,13 +115,14 @@ public partial class MacroEditorWindow : Window
     /// here can call it. The package path is where pictures taken from the screen are stored.
     /// </summary>
     public MacroEditorWindow(MacroItem? existing, IReadOnlyList<MacroItem>? project = null,
-        string? packagePath = null)
+        string? packagePath = null, IDeviceLayer? devices = null)
     {
         InitializeComponent();
 
         _project = project ?? (existing is null ? [] : [existing]);
         _editing = existing;
         _assetFolder = ImageAssets.FolderFor(packagePath);
+        _devices = devices;
         _viewModel = new MacroEditorViewModel();
         _recovery = new RecoveryWriter(WriteRecovery);
         if (existing is not null)
@@ -636,6 +644,13 @@ public partial class MacroEditorWindow : Window
                 PlaceStep = TakeStep,
             };
 
+            // The layer the whole program shares, when the editor was given one: the trials this
+            // window sends run on the same devices as everything else, models and all.
+            if (_devices is { } shared)
+            {
+                window.Devices = shared;
+            }
+
             // The window belongs to the editor, so it goes when the editor does; the field is
             // cleared with it so a later step opens a fresh one rather than a closed window.
             window.Closed += (_, _) =>
@@ -754,7 +769,7 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        new RunWindow(_viewModel.Steps, null, _viewModel.DelayScale, BuildLibrary()).ShowOver(this);
+        new RunWindow(_viewModel.Steps, _devices, _viewModel.DelayScale, BuildLibrary()).ShowOver(this);
     }
 
     /// <summary>Opens the run-speed dialog and keeps whatever factor it was given.</summary>

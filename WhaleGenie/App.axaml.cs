@@ -1,9 +1,11 @@
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Execution;
+using WhaleGenie.Localization;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
@@ -31,6 +33,14 @@ public partial class App : Application
         // driver-level move of a macro wait a second and a half.
         _ = ViiperServer.WarmUp();
 
+        // Reading text loads a model, which costs a moment the first step that reads would
+        // otherwise pay. Only when the setting says so: the models stay in memory for the rest of
+        // the run, and a machine that never reads text should not pay for one that does.
+        if (LocalSettings.LoadPreloadOcr())
+        {
+            _ = Task.Run(SharedDevices.WarmUpOcr);
+        }
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var window = new MainWindow
@@ -56,6 +66,10 @@ public partial class App : Application
             {
                 window.Tray?.Dispose();
                 BrowserPicker.Close();
+
+                // The program owns the device layer every window ran on, so this is where the
+                // models it loaded and the capture sessions it opened are let go.
+                SharedDevices.Release();
             };
         }
 

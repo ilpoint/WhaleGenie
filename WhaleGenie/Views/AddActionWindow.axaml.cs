@@ -61,6 +61,13 @@ public partial class AddActionWindow : Window
 
     private IDeviceLayer? _devices;
 
+    /// <summary>
+    /// Whether the layer is this dialog's own to let go of. The editor hands over the layer the
+    /// whole program shares, and a dialog that disposed that on closing would take the loaded text
+    /// recognition models with it.
+    /// </summary>
+    private bool _ownsDevices;
+
     public AddActionWindow()
         : this(null, null, null, null, null, null)
     {
@@ -72,8 +79,22 @@ public partial class AddActionWindow : Window
     /// </summary>
     internal IDeviceLayer Devices
     {
-        get => _devices ??= new WindowsDeviceLayer();
-        set => _devices = value;
+        get
+        {
+            if (_devices is null)
+            {
+                _devices = new WindowsDeviceLayer();
+                _ownsDevices = true;
+            }
+
+            return _devices;
+        }
+
+        set
+        {
+            _devices = value;
+            _ownsDevices = false;
+        }
     }
 
     /// <summary>
@@ -1491,8 +1512,13 @@ public partial class AddActionWindow : Window
         _trialFrames.Dispose();
 
         // The devices a trial used go with the dialog, so a controller it put on the machine does
-        // not outlive the window that asked for it.
-        (_devices as IDisposable)?.Dispose();
+        // not outlive the window that asked for it. A layer that was handed in belongs to whoever
+        // handed it over, which is the program itself.
+        if (_ownsDevices)
+        {
+            (_devices as IDisposable)?.Dispose();
+        }
+
         _devices = null;
 
         base.OnClosed(e);

@@ -338,7 +338,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        _triggers = new MacroTriggerService(() => viewModel.Macros);
+        // The one device layer the program holds: a trigger run and a window that is open both use
+        // it, so the text recognition models are loaded once rather than once per run.
+        _triggers = new MacroTriggerService(() => viewModel.Macros, SharedDevices.Current);
         _triggers.Ask = AskAboutFailedStep;
         _triggers.StatusChanged += OnTriggerStatusChanged;
         _triggers.IsEnabled = viewModel.IsRunning;
@@ -493,7 +495,9 @@ public partial class MainWindow : Window
         // it is closed is when to look.
         var before = MainViewModel.SharedVariables();
 
-        var window = new RunWindow([], listed: [.. viewModel.Macros]);
+        // The layer the whole program shares, so a debug run reads with the same loaded models the
+        // rest of the program uses rather than loading a second copy of them.
+        var window = new RunWindow([], SharedDevices.Current, listed: [.. viewModel.Macros]);
         _runDebug = window;
         window.Closed += (_, _) =>
         {
@@ -884,8 +888,11 @@ public partial class MainWindow : Window
             return open;
         }
 
-        // The package path is what a picture taken from the screen is stored beside.
-        var editor = new MacroEditorWindow(editing, [.. viewModel.Macros], viewModel.CurrentPath);
+        // The package path is what a picture taken from the screen is stored beside, and the device
+        // layer is the program's own, so the trials and the runs started from here use the one layer
+        // whose text recognition models are already loaded.
+        var editor = new MacroEditorWindow(editing, [.. viewModel.Macros], viewModel.CurrentPath,
+            SharedDevices.Current);
 
         // Recovered work is unsaved by definition, so closing that editor has to ask about it rather
         // than let it go without a word.

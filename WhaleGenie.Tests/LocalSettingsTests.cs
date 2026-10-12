@@ -1,11 +1,13 @@
 using System;
 using System.IO;
 using System.Linq;
+using Avalonia.Controls;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Execution;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
 using WhaleGenie.ViewModels;
+using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
 
@@ -105,6 +107,54 @@ public class LocalSettingsTests
                 CaptureChoice.Current.Screen = screen;
             }
         });
+    }
+
+    /// <summary>
+    /// Whether the text recognition models are loaded as the program starts is a choice like the
+    /// others, and it is off until it is turned on: the models hold memory for the rest of the run.
+    /// </summary>
+    [Fact]
+    public void The_settings_window_chooses_whether_the_models_are_loaded_at_startup()
+    {
+        InOwnFile(_ =>
+        {
+            Assert.False(LocalSettings.LoadPreloadOcr());
+
+            var viewModel = new SettingsViewModel();
+            Assert.False(viewModel.PreloadOcr);
+
+            viewModel.PreloadOcr = true;
+            Assert.True(LocalSettings.LoadPreloadOcr());
+
+            // Off again, which is what a machine that never reads text wants, and a window opened
+            // afterwards shows whichever of the two is in effect.
+            viewModel.PreloadOcr = false;
+            Assert.False(LocalSettings.LoadPreloadOcr());
+            Assert.False(new SettingsViewModel().PreloadOcr);
+        });
+    }
+
+    /// <summary>
+    /// The switch itself, as the window draws it: a choice nothing on the window is wired to would
+    /// store whatever the window happened to hold rather than what the person clicked.
+    /// </summary>
+    [Fact]
+    public void The_settings_window_carries_the_switch_that_loads_the_models()
+    {
+        InOwnFile(_ => Ui.Run(() =>
+        {
+            var window = new SettingsWindow();
+            window.Show();
+
+            var box = window.FindControl<CheckBox>("PreloadOcrCheck");
+            Assert.True(box is not null, "the settings window stopped offering to load the models");
+            Assert.False(box.IsChecked);
+
+            box.IsChecked = true;
+            Assert.True(LocalSettings.LoadPreloadOcr());
+
+            window.Close();
+        }));
     }
 
     /// <summary>

@@ -749,6 +749,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.FailureScreenshot"] = "Save a picture of the screen when a run fails",
         ["Settings.FailureScreenshotHint"] =
             "Kept in the logs folder beside the program. Nothing is written while a macro runs well.",
+        ["Settings.PreloadOcr"] = "Load text recognition in the background at startup",
+        ["Settings.PreloadOcrHint"] =
+            "Loading the models takes a moment, and the first step that reads text would otherwise "
+            + "be the one to wait. Off by default, because the models stay in memory while the "
+            + "program runs.",
         ["Settings.Driver"] = "Driver-level input",
         ["Settings.DriverReady"] = "usbip-win2 driver installed, VIIPER server answering.",
         ["Settings.DriverMissing"] = "The usbip-win2 driver is not installed.",
@@ -1761,6 +1766,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.Capture.gdi"] = "桌面（GDI）",
         ["Settings.FailureScreenshot"] = "运行失败时保存屏幕截图",
         ["Settings.FailureScreenshotHint"] = "保存到程序所在目录下的 logs 文件夹。宏运行顺利时不会写入任何文件。",
+        ["Settings.PreloadOcr"] = "启动时在后台预加载文字识别",
+        ["Settings.PreloadOcrHint"] = "加载模型要一点时间，不预加载的话就由第一步读取文字的步骤来等。默认关闭："
+            + "模型会一直占着内存，直到程序退出。",
         ["Settings.Driver"] = "驱动级输入",
         ["Settings.DriverReady"] = "usbip-win2 驱动已安装，VIIPER 服务端正在应答。",
         ["Settings.DriverMissing"] = "尚未安装 usbip-win2 驱动。",

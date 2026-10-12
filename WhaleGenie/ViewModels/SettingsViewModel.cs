@@ -43,6 +43,7 @@ public partial class SettingsViewModel : ViewModelBase
     {
         SelectedLanguage = Languages.First(option => option.Language == Strings.Current.Language);
         FailureScreenshot = LocalSettings.LoadFailureScreenshot();
+        PreloadOcr = LocalSettings.LoadPreloadOcr();
         ViiperPath = LocalSettings.LoadViiperPath();
         SelectedWindowWay = WindowWays.First(option => option.Way == CaptureChoice.Current.Window);
         SelectedScreenWay = ScreenWays.First(option => option.Way == CaptureChoice.Current.Screen);
@@ -107,6 +108,12 @@ public partial class SettingsViewModel : ViewModelBase
     public partial bool FailureScreenshot { get; set; }
 
     /// <summary>
+    /// Whether the text recognition models are loaded in the background as the program starts.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool PreloadOcr { get; set; }
+
+    /// <summary>
     /// What this machine has of the two pieces driver-level input needs. Read once when the window
     /// opens: installing a driver is not something that happens while the window sits there.
     /// </summary>
@@ -167,6 +174,15 @@ public partial class SettingsViewModel : ViewModelBase
         if (value != LocalSettings.LoadFailureScreenshot())
         {
             LocalSettings.StoreFailureScreenshot(value);
+        }
+    }
+
+    /// <summary>The same, for the choice that holds the text recognition models in memory.</summary>
+    partial void OnPreloadOcrChanged(bool value)
+    {
+        if (value != LocalSettings.LoadPreloadOcr())
+        {
+            LocalSettings.StorePreloadOcr(value);
         }
     }
 

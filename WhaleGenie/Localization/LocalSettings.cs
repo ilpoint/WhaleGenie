@@ -37,6 +37,16 @@ public static class LocalSettings
         => Write(model => model.FailureScreenshot = value);
 
     /// <summary>
+    /// Whether the text recognition models are loaded in the background as the program starts. Off
+    /// by default: loading them holds memory for the whole run, and a machine that never reads text
+    /// should not pay for a machine that does.
+    /// </summary>
+    public static bool LoadPreloadOcr() => Read().PreloadOcr;
+
+    /// <summary>Stores that choice. Failures are ignored on purpose.</summary>
+    public static void StorePreloadOcr(bool value) => Write(model => model.PreloadOcr = value);
+
+    /// <summary>
     /// Where this machine's copy of viiper.exe is, or empty while nobody has said. WhaleGenie does
     /// not go looking for another project's program, so this is the only way it hears about one.
     /// </summary>
@@ -105,6 +115,8 @@ public static class LocalSettings
         public string Language { get; set; } = nameof(Localization.Language.English);
 
         public bool FailureScreenshot { get; set; } = true;
+
+        public bool PreloadOcr { get; set; }
 
         public string ViiperPath { get; set; } = string.Empty;
 
