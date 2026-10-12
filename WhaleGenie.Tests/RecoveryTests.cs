@@ -249,6 +249,71 @@ public class RecoveryTests
         });
     }
 
+    /// <summary>
+    /// The snapshot is written from the same model the package is, so a number held as an expression
+    /// has to come back as that expression. A zero in its place is what the next run would be
+    /// offered: a macro that clicks the corner of the screen instead of following the mouse, with
+    /// nothing on screen to say the work was changed on the way.
+    /// </summary>
+    [Fact]
+    public void A_position_written_as_an_expression_comes_back_from_the_snapshot()
+    {
+        InOwnFile(_ => Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "click", Trigger = "F5" };
+            macro.Steps.Add(new MacroStep
+            {
+                Type = "input.mouseClick",
+                Parameters =
+                [
+                    new StepParameter
+                    {
+                        Name = "button", Kind = ActionParameterKind.Choice, Value = "left",
+                    },
+                    new StepParameter
+                    {
+                        Name = "x", Kind = ActionParameterKind.Number, Value = "$sys.mouseX",
+                    },
+                    new StepParameter
+                    {
+                        Name = "y", Kind = ActionParameterKind.Number, Value = "$sys.mouseY",
+                    },
+                ],
+            });
+
+            RecoveryStore.SaveProject([macro], [], null);
+
+            var step = RecoveryStore.Load()!.Macros[0].Steps[0];
+            Assert.Equal("$sys.mouseX", step.Parameters
+                .First(parameter => parameter.Name == "x").Value);
+            Assert.Equal("$sys.mouseY", step.Parameters
+                .First(parameter => parameter.Name == "y").Value);
+        }));
+    }
+
+    /// <summary>
+    /// A snapshot that cannot be read is taken away, and work written afterwards is written out
+    /// again: remembering that something was written to a file that is no longer there would leave
+    /// the next run with nothing to be offered and the work behind it unsaved.
+    /// </summary>
+    [Fact]
+    public void Work_written_after_an_unreadable_snapshot_went_is_written_again()
+    {
+        InOwnFile(path =>
+        {
+            RecoveryStore.SaveProject([Named("login")], [], null);
+            File.WriteAllText(path, "this is not a snapshot");
+            Assert.Null(RecoveryStore.Load());
+            Assert.False(File.Exists(path));
+
+            // The same work as before: it is the file that went, not the work that moved.
+            RecoveryStore.SaveProject([Named("login")], [], null);
+
+            Assert.True(File.Exists(path));
+            Assert.NotNull(RecoveryStore.Load());
+        });
+    }
+
     [Fact]
     public void Recovered_work_still_counts_as_unsaved()
     {

@@ -227,6 +227,57 @@ public class ProjectSaveTests
         });
     }
 
+    /// <summary>
+    /// What a step holds has to survive the package it is written to. A position written as an
+    /// expression is the one value that can be lost quietly this way: read back as a zero it is
+    /// still a number of the right kind, so nothing complains — the macro simply clicks the corner
+    /// of the screen instead of following the mouse.
+    /// </summary>
+    [Fact]
+    public void A_package_keeps_a_position_written_as_an_expression()
+    {
+        var folder = TempFolder();
+        try
+        {
+            Ui.Run(() =>
+            {
+                var macro = new MacroItem { Name = "click", Trigger = "F5" };
+                macro.Steps.Add(new MacroStep
+                {
+                    Type = "input.mouseClick",
+                    Parameters =
+                    [
+                        new StepParameter
+                        {
+                            Name = "button", Kind = ActionParameterKind.Choice, Value = "left",
+                        },
+                        new StepParameter
+                        {
+                            Name = "x", Kind = ActionParameterKind.Number, Value = "$sys.mouseX",
+                        },
+                        new StepParameter
+                        {
+                            Name = "y", Kind = ActionParameterKind.Number, Value = "$sys.mouseY",
+                        },
+                    ],
+                });
+
+                var path = Path.Combine(folder, "macros" + MacroPackage.Extension);
+                MacroPackage.Save(path, [macro], [], "v0");
+                var read = MacroPackage.Load(path).Macros[0];
+
+                Assert.Equal("$sys.mouseX", read.Steps[0].Parameters
+                    .First(parameter => parameter.Name == "x").Value);
+                Assert.Equal("$sys.mouseY", read.Steps[0].Parameters
+                    .First(parameter => parameter.Name == "y").Value);
+            });
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
     /// <summary>A folder of its own under the temporary directory, removed by the caller.</summary>
     private static string TempFolder()
     {

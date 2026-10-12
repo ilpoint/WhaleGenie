@@ -60,12 +60,16 @@ public class StepParameter
     public MacroStep? Condition { get; init; }
 
     /// <summary>Writes the value as the JSON type the runtime expects.</summary>
+    /// <remarks>
+    /// A number is written as the number it is, and anything else is written as what it says. A
+    /// number field may hold an expression — <c>$sys.mouseX</c>, the place the pointer is at when
+    /// the step runs — which the engine reads and works out; writing that as a zero because it is
+    /// not digits would save a step that clicks the corner of the screen instead of the mouse, and
+    /// the loss would be silent, because the file it is read back from says a number.
+    /// </remarks>
     public JsonNode? ToJson() => Kind switch
     {
-        ActionParameterKind.Number => JsonValue.Create(
-            decimal.TryParse(Value, NumberStyles.Number, CultureInfo.InvariantCulture, out var number)
-                ? number
-                : 0m),
+        ActionParameterKind.Number => NumberJson(),
         ActionParameterKind.Bool => JsonValue.Create(
             string.Equals(Value, "true", StringComparison.OrdinalIgnoreCase)),
         ActionParameterKind.Steps => BuildArray(Steps),
@@ -74,6 +78,23 @@ public class StepParameter
         ActionParameterKind.Condition => Condition?.ToJson(),
         _ => JsonValue.Create(Value),
     };
+
+    /// <summary>
+    /// A number field as the file holds it: the number it says, or the text of the expression it
+    /// says instead. A field nobody answered — only ever written by hand, because the editor leaves
+    /// an unanswered number out of the step — stays the zero it has always been read as.
+    /// </summary>
+    private JsonNode? NumberJson()
+    {
+        if (Value.Trim().Length == 0)
+        {
+            return JsonValue.Create(0m);
+        }
+
+        return decimal.TryParse(Value, NumberStyles.Number, CultureInfo.InvariantCulture, out var number)
+            ? JsonValue.Create(number)
+            : JsonValue.Create(Value);
+    }
 
     /// <summary>
     /// The rows as a JSON array with one object per row and one member per column. A column that

@@ -64,10 +64,18 @@ public static class RecoveryStore
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
 
     /// <summary>
-    /// What each part looked like when this run last wrote it, so a part that reads the same as
-    /// what is already in the file is not written again.
+    /// What the file on disk was built from: everything in it but the moment it was taken and the
+    /// version that took it, or nothing while there is no file to speak of. Work that comes to the
+    /// same text as this is not written again.
     /// </summary>
-    private static readonly Dictionary<string, string> Written = [];
+    /// <remarks>
+    /// It is the whole of the file rather than one part of it, because the parts are written by two
+    /// windows and a part written beside another is only the same file if what stood next to it
+    /// stood there too. It is emptied whenever the file stops being what it says — it is removed,
+    /// or a file that cannot be read is taken away — so that work written again after the snapshot
+    /// went is written out rather than taken for already kept.
+    /// </remarks>
+    private static string _written = string.Empty;
 
     private static string _path = Path.Combine(AppPaths.Root, "recovery.json");
 
@@ -85,7 +93,7 @@ public static class RecoveryStore
             lock (Gate)
             {
                 _path = value;
-                Written.Clear();
+                _written = string.Empty;
             }
         }
     }
@@ -165,7 +173,7 @@ public static class RecoveryStore
     {
         lock (Gate)
         {
-            Written.Clear();
+            _written = string.Empty;
             Remove();
         }
     }
@@ -182,7 +190,10 @@ public static class RecoveryStore
             catch
             {
                 // A file that cannot be read is not worth keeping and must not stop the program
-                // from opening; the next write replaces it.
+                // from opening; the next write replaces it. What was written is forgotten with it,
+                // so work that comes to the same text as the file that went is written out rather
+                // than taken for already kept.
+                _written = string.Empty;
                 Remove();
                 return null;
             }
@@ -259,10 +270,11 @@ public static class RecoveryStore
     /// nothing, and removes the file once neither part is left. Everything under one lock, so the
     /// project writer and the editor writer never leave each other a half-read file.
     ///
-    /// A part that reads the same as what this run last wrote is left alone. The file is only
-    /// there to be found after a stop without notice, so writing it again over work that has not
-    /// moved costs a disk write, moves the time it says it was taken, and tells whoever looks at
-    /// the file that work is seconds old when it may be hours old.
+    /// What the whole file would come to is read before anything is written, and the file is left
+    /// alone when it already says that. The file is only there to be found after a stop without
+    /// notice, so writing it again over work that has not moved costs a disk write, moves the time
+    /// it says it was taken, and tells whoever looks at the file that work is seconds old when it
+    /// may be hours old.
     /// </summary>
     private static void Update(string part, JsonObject? node)
     {
@@ -270,12 +282,6 @@ public static class RecoveryStore
         {
             try
             {
-                var text = node?.ToJsonString() ?? string.Empty;
-                if (Written.TryGetValue(part, out var already) && already == text)
-                {
-                    return;
-                }
-
                 var root = ReadRoot() ?? new JsonObject();
                 if (node is null)
                 {
@@ -286,23 +292,51 @@ public static class RecoveryStore
                     root[part] = node;
                 }
 
-                if (root["project"] is null && root["editor"] is null)
+                var content = Content(root);
+                if (content.Length == 0)
                 {
-                    Written[part] = text;
+                    // Neither part is left, so there is nothing to be offered back. What the file
+                    // held is forgotten with it: work that arrives later is written out afresh.
+                    _written = string.Empty;
                     Remove();
+                    return;
+                }
+
+                if (content == _written && File.Exists(FilePath))
+                {
                     return;
                 }
 
                 root["appVersion"] = AppVersion();
                 root["savedUtc"] = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
                 Write(root);
-                Written[part] = text;
+                _written = content;
             }
             catch
             {
                 // The safety net failing must never be what takes the program down.
             }
         }
+    }
+
+    /// <summary>
+    /// What the snapshot is about, as text, or nothing when it is about nothing: the two parts the
+    /// file carries, without the moment it was taken and the version that took it.
+    /// </summary>
+    private static string Content(JsonObject root)
+    {
+        var parts = new JsonObject();
+        foreach (var name in new[] { "project", "editor" })
+        {
+            if (root[name] is { } part)
+            {
+                // A copy, because a node stands in one place at a time and this one is also the
+                // file's own.
+                parts[name] = part.DeepClone();
+            }
+        }
+
+        return parts.Count == 0 ? string.Empty : parts.ToJsonString();
     }
 
     private static JsonObject? ReadRoot()
