@@ -28,16 +28,19 @@ public static class PixelSearch
             return found;
         }
 
+        var reach = new ColourReach(colour, tolerancePercent);
         if (surest)
         {
-            return Nearest(frame, colour, tolerancePercent, limit);
+            return Nearest(frame, reach, limit);
         }
 
+        var pixels = frame.Bgra;
+        var at = 0;
         for (var y = 0; y < frame.Height; y++)
         {
-            for (var x = 0; x < frame.Width; x++)
+            for (var x = 0; x < frame.Width; x++, at += 4)
             {
-                if (!frame[x, y].Matches(colour, tolerancePercent))
+                if (!reach.Near(pixels, at))
                 {
                     continue;
                 }
@@ -65,12 +68,15 @@ public static class PixelSearch
             return 0;
         }
 
+        var reach = new ColourReach(colour, tolerancePercent);
+        var pixels = frame.Bgra;
         var matched = 0;
+        var at = 0;
         for (var y = 0; y < frame.Height; y++)
         {
-            for (var x = 0; x < frame.Width; x++)
+            for (var x = 0; x < frame.Width; x++, at += 4)
             {
-                if (frame[x, y].Matches(colour, tolerancePercent))
+                if (reach.Near(pixels, at))
                 {
                     matched++;
                 }
@@ -97,11 +103,14 @@ public static class PixelSearch
             return found;
         }
 
+        var reach = new ColourReach(baseColour, tolerancePercent);
+        var pixels = frame.Bgra;
+        var at = 0;
         for (var y = 0; y < frame.Height; y++)
         {
-            for (var x = 0; x < frame.Width; x++)
+            for (var x = 0; x < frame.Width; x++, at += 4)
             {
-                if (!frame[x, y].Matches(baseColour, tolerancePercent)
+                if (!reach.Near(pixels, at)
                     || !Surrounded(frame, x, y, around, tolerancePercent))
                 {
                     continue;
@@ -140,34 +149,36 @@ public static class PixelSearch
     /// that is a better match still wins. Equally close ones stay in the order they were read in,
     /// so the answer does not depend on which way round the area happened to be walked.
     /// </summary>
-    private static List<ScreenPoint> Nearest(ImageFrame frame, PixelColor colour,
-        double tolerancePercent, int limit)
+    private static List<ScreenPoint> Nearest(ImageFrame frame, ColourReach reach, int limit)
     {
-        var best = new List<(double Distance, ScreenPoint At)>();
+        var best = new List<(int Distance, ScreenPoint At)>();
+        var pixels = frame.Bgra;
+        var at = 0;
         for (var y = 0; y < frame.Height; y++)
         {
-            for (var x = 0; x < frame.Width; x++)
+            for (var x = 0; x < frame.Width; x++, at += 4)
             {
-                var pixel = frame[x, y];
-                if (!pixel.Matches(colour, tolerancePercent))
+                if (!reach.Near(pixels, at))
                 {
                     continue;
                 }
 
-                var distance = pixel.DistanceTo(colour);
+                // Counted apart the same way the colour is, so that the nearest one is found
+                // without working out the square root of what each of them is away.
+                var distance = reach.Apart(pixels, at);
                 if (best.Count == limit && distance >= best[^1].Distance)
                 {
                     continue;
                 }
 
-                var at = best.FindIndex(item => item.Distance > distance);
-                if (at < 0)
+                var place = best.FindIndex(item => item.Distance > distance);
+                if (place < 0)
                 {
                     best.Add((distance, new ScreenPoint(x, y)));
                 }
                 else
                 {
-                    best.Insert(at, (distance, new ScreenPoint(x, y)));
+                    best.Insert(place, (distance, new ScreenPoint(x, y)));
                 }
 
                 if (best.Count > limit)

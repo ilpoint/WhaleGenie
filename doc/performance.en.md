@@ -46,11 +46,11 @@ A 200×80 reference picture, the picture being the whole 2560×1440 screen excep
 | Picture, feature matching (`Feature`) | 281 ms |
 | Picture, in a 640×480 patch only (`Normed`) | 14 ms |
 | Colour, appearing near the start of the picture | ~0 ms |
-| Colour that is not on the screen at all (whole picture walked) | 16.7 ms |
-| Colour, the 20 closest ones (whole picture walked) | 29.8 ms |
-| Colour with its coverage counted, whole screen (walked twice: once to find, once to count) | 16.6 ms |
-| Colour with its coverage counted, 400×300 | 0.6 ms |
-| Colour pattern, 400×300 (three points, the colour nowhere on the picture) | 0.6 ms |
+| Colour that is not on the screen at all (whole picture walked) | 2.5 ms |
+| Colour, the 20 closest ones (whole picture walked) | 11.9 ms |
+| Colour with its coverage counted, whole screen (walked twice: once to find, once to count) | 4.3 ms |
+| Colour with its coverage counted, 400×300 | 0.2 ms |
+| Colour pattern, 400×300 (three points, the colour nowhere on the picture) | 0.2 ms |
 | Whether the picture moved (one round of waiting for stillness) | 5.7 ms |
 | Text recognition, whole screen | 128 ms |
 | Text recognition, 800×200 | 23 ms |
@@ -61,12 +61,18 @@ A 200×80 reference picture, the picture being the whole 2560×1440 screen excep
   capturing one time fewer.
 - Finding a colour looks at single pixels: the earlier the hit turns up, the cheaper it is (a hit on
   the first pixel measured as 0 ms); "the ones closest to the colour" has to walk the whole picture,
-  which is 30 ms. A search that is going to find nothing costs 17 ms.
-- Counting the coverage and finding a colour pattern both walk the whole area: 16.6 ms for the whole
-  2560×1440 screen, the same order as a colour search that walks the whole picture, and 0.6 ms for
-  400×300. The condition that asks for a colour share walks the same way, so it costs what asking a
-  colour search for its coverage costs. **The coverage is only counted by a step that asks for it**,
-  so a step that does not ask still takes the "stop at the first hit" path.
+  which is 12 ms. A search that is going to find nothing costs 2.5 ms. **What decides how dear one
+  pixel is to compare is whether a square root has to be taken for it**: a colour is compared by the
+  sum of its channels' squared differences, which is the same question as comparing the distance, and
+  the square root of that distance was being paid once per pixel. Leaving it out makes the same walk
+  about six times faster (2.5 ms against 14.5 ms). "The ones closest to the colour" orders by the
+  squared difference, which puts them in the same order as their distance does, so the dearest row of
+  the table came down from 30 ms to 12 ms as well.
+- Counting the coverage and finding a colour pattern both walk the whole area: 2.5 ms for the whole
+  2560×1440 screen, 4.3 ms when it finds first and counts afterwards, and 0.2 ms for 400×300. The
+  condition that asks for a colour share walks the same way, so it costs what asking a colour search
+  for its coverage costs. **The coverage is only counted by a step that asks for it**, so a step that
+  does not ask still takes the "stop at the first hit" path.
 - The first text recognition in a process spends 1.1–10.3 s reading the model in (how hot the disk
   cache is decides which end of that), and is 128 ms after that. Whole-screen text recognition is the
   most expensive single look in the table.

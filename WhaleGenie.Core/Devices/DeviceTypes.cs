@@ -44,7 +44,7 @@ public readonly record struct PixelColor(byte R, byte G, byte B)
 
     /// <summary>True when this colour is within <paramref name="tolerancePercent"/> of another.</summary>
     public bool Matches(PixelColor other, double tolerancePercent)
-        => DistanceTo(other) * 100 <= Math.Max(0, tolerancePercent);
+        => new ColourReach(this, tolerancePercent).Near(other);
 
     public override string ToString() => ToHex();
 }
