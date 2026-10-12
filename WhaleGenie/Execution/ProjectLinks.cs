@@ -21,6 +21,13 @@ public static class ProjectLinks
     public const string LatestRelease = Home + "/releases/latest";
 
     /// <summary>
+    /// The manual, which is where somebody who has just installed this should start. It is a page of
+    /// the repository rather than a window of our own: the two would drift apart, and a window cannot
+    /// be searched, linked to or read without the program running.
+    /// </summary>
+    public const string Manual = Home + "/blob/master/doc/manual.md";
+
+    /// <summary>
     /// Where the usbip-win2 driver is fetched from. The newest release is what belongs on the
     /// machine, so the page is named without a version: a number written down here would be wrong
     /// the day after that project released again, and the driver is installed by hand anyway.

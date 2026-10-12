@@ -828,6 +828,13 @@ public partial class MainWindow : Window
         => WebPage.Open(ProjectLinks.Feedback);
 
     /// <summary>
+    /// Opens the manual. "Get started" says what the item is about; the manual is where the program
+    /// explains itself, and it lives in the repository so it can be searched and linked to.
+    /// </summary>
+    private void OnGetStartedClicked(object? sender, RoutedEventArgs e)
+        => WebPage.Open(ProjectLinks.Manual);
+
+    /// <summary>
     /// Says what the program is and offers the two documents that belong with it: the project page,
     /// and the list of what inside it was made by somebody else. Both the "?" button and "About"
     /// open this.

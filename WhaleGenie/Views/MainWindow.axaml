@@ -240,7 +240,8 @@
                                   Data="M 2,2 H 14 V 10.5 H 8.5 L 5.5,13.5 V 10.5 H 2 Z M 6,5 V 6.3 M 10,5 V 6.3 M 5.3,7.8 A 3.4,2.8 0 0 1 10.7,7.8" />
                         </MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem Header="{Binding [Main.GetStarted], Source={x:Static loc:Strings.Current}}">
+                    <MenuItem Header="{Binding [Main.GetStarted], Source={x:Static loc:Strings.Current}}"
+                              Click="OnGetStartedClicked">
                         <MenuItem.Icon>
                             <Path Width="15" Height="15" Stroke="#DADADA" StrokeThickness="1.4"
                                   Data="M 8,1.5 A 6.5,6.5 0 1 0 8,14.5 A 6.5,6.5 0 0 0 8,1.5 M 6.2,6 A 1.9,1.9 0 1 1 8,7.9 V 9.2 M 8,11 V 12" />
