@@ -3133,6 +3133,30 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "condition.colorCoverage",
+            Category = ActionCategory.Condition,
+            DisplayName = "Colour Share",
+            Description = "True when enough of a screen region shows a colour.",
+            Parameters =
+            [
+                ColorPick("color", "Colour", "#000000", "The colour to count."),
+                Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100),
+                Number("minCoverage", "At least this much", 0,
+                    "The least share of the search region that has to show the colour for this to "
+                    + "be true, from 0 to 100 per cent; the default is 0, which asks only whether "
+                    + "the colour is anywhere in the region. A bar half filled, a button lit up and "
+                    + "a gauge past its mark are waited on with a share of their own: the share is "
+                    + "measured over the whole region, several rows counted as one, and measuring it "
+                    + "walks the whole of it.",
+                    min: 0, max: 100),
+                Region(),
+                ..Capture(),
+                LookGap(0),
+                ..Anchor(),
+            ],
+        },
+        new()
+        {
             Key = "condition.expression",
             Category = ActionCategory.Condition,
             DisplayName = "Boolean Expression",

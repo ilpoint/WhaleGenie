@@ -1755,7 +1755,8 @@ public sealed class MacroRunner
     private static bool LooksAtScreen(string conditionType) => conditionType is
         "condition.imageExists" or "condition.imageNotExists"
         or "condition.textExists" or "condition.textNotExists"
-        or "condition.colorEquals" or "condition.colorsMatch" or "condition.colorsExist";
+        or "condition.colorEquals" or "condition.colorsMatch" or "condition.colorsExist"
+        or "condition.colorCoverage";
 
     private bool Check(ExecutableStep condition, int depth, CancellationToken token)
     {
@@ -1825,6 +1826,9 @@ public sealed class MacroRunner
 
             case "condition.colorsExist":
                 return PatternHits(condition).Count > 0;
+
+            case "condition.colorCoverage":
+                return ColourShare(condition);
 
             default:
                 Log(LogLevel.Warn, depth, condition.Type, "Run.UnknownCondition", condition.Type);
@@ -3398,6 +3402,21 @@ public sealed class MacroRunner
         SawSearch(step, LookKind.Colour, areas, [.. hits.Select(hit => (hit, (string?)null))],
             WentWith(hits, step), target.ToHex());
         return new ColourPass(hits, measured && total > 0 ? (double)matched / total : null);
+    }
+
+    /// <summary>
+    /// Whether enough of the search areas shows the colour, which is the question a bar, a gauge or
+    /// a lamp is asked: not where the colour is but how much of the region it fills. The whole of
+    /// every area is walked either way, so this is a thing to wait on rather than to ask in a tight
+    /// loop. A least share of nothing asks only whether the colour is anywhere in the region, which
+    /// is what a pixel-by-pixel condition cannot say.
+    /// </summary>
+    private bool ColourShare(ExecutableStep condition)
+    {
+        var target = PixelColor.Parse(Read(condition.Text("color")).AsText());
+        var tolerance = Read(condition.Text("tolerance")).AsNumber();
+        var least = Read(condition.Text("minCoverage")).AsNumber() / 100;
+        return Scan(condition, target, tolerance, measured: true).Enough(least);
     }
 
     /// <summary>

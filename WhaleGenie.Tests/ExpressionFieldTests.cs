@@ -66,6 +66,7 @@ public class ExpressionFieldTests
         ["condition.textNotExists"] = ["text"],
         ["condition.colorEquals"] = ["color"],
         ["condition.colorsExist"] = ["color"],
+        ["condition.colorCoverage"] = ["color"],
         ["condition.compare"] = ["value"],
         ["condition.listContains"] = ["list", "value"],
         ["condition.processRunning"] = ["name"],

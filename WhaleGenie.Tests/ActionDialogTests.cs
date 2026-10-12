@@ -629,6 +629,36 @@ public class ActionDialogTests
         });
     }
 
+    /// <summary>
+    /// A colour share is asked for the way a colour search is — a colour, a place, and how much of
+    /// the place has to show it — and what is filled in is what the step is handed back with. The
+    /// share sits on the basic page beside the colour: a number somebody has to go looking for
+    /// under "advanced" is a number they will not find.
+    /// </summary>
+    [Fact]
+    public void A_colour_share_condition_asks_for_the_colour_the_place_and_how_much()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("condition.colorCoverage");
+
+            Assert.True(viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "color").IsColor);
+            Assert.Equal("0", Value(viewModel, "minCoverage"));
+            Assert.Contains("minCoverage", viewModel.Rows.Select(row => row.First.Definition.Name));
+
+            viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "minCoverage").NumberValue = 50;
+
+            MacroStep? saved = null;
+            viewModel.CloseRequested += result => saved = result;
+            viewModel.SaveCommand.Execute(null);
+
+            Assert.Equal("50", saved!.Parameters
+                .First(parameter => parameter.Name == "minCoverage").Value);
+        });
+    }
+
     [Fact]
     public void A_position_picked_on_screen_is_stored_relative_to_the_windows_corner()
     {

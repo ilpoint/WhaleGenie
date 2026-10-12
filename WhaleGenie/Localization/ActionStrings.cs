@@ -1987,6 +1987,39 @@ internal static class ActionStrings
         ["condition.colorsExist.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
         ["condition.colorsExist.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
 
+        ["condition.colorCoverage.name"] = "颜色占比达到",
+        ["condition.colorCoverage.desc"] = "当屏幕的一块区域里，某个颜色的占比达到指定比例时为真。",
+        ["condition.colorCoverage.color.label"] = "颜色",
+        ["condition.colorCoverage.color.hint"] = "要数的颜色，默认 #000000。",
+        ["condition.colorCoverage.minCoverage.label"] = "至少占比 %",
+        ["condition.colorCoverage.minCoverage.hint"] =
+            "搜索区域里至少要有多少比例是这个颜色才算成立，0–100（百分比），默认 0，即只要区域里出现"
+            + "这个颜色就算成立。血条涨到一半、按钮亮起来、仪表过了刻度这类判断给它一个数：占比按整个"
+            + "搜索区域算，多行区域合起来算一个。算占比要把整块区域走一遍，所以它是拿来等的"
+            + "（放进等待直到、当条件为真期间重复里），不是塞进紧凑循环里反复问的。",
+        ["condition.colorCoverage.tolerance.label"] = "容差 %",
+        ["condition.colorCoverage.tolerance.hint"] = "允许的颜色偏差，0–100（百分比），默认 5。",
+        ["condition.colorCoverage.region.label"] = "搜索区域",
+        ["condition.colorCoverage.region.hint"] = RegionHintText,
+        ["condition.colorCoverage.intervalMs.label"] = LookIntervalLabel,
+        ["condition.colorCoverage.intervalMs.hint"] = LookGapHint,
+        ["condition.colorCoverage.anchorMode.label"] = "坐标基准",
+        ["condition.colorCoverage.anchorMode.hint"] = AnchorModeHint,
+        ["condition.colorCoverage.anchorMode.option.screen"] = "屏幕像素",
+        ["condition.colorCoverage.anchorMode.option.window"] = "窗口左上角",
+        ["condition.colorCoverage.anchorMode.option.client"] = "窗口客户区",
+        ["condition.colorCoverage.anchorWindow.label"] = "基准窗口",
+        ["condition.colorCoverage.anchorWindow.hint"] = AnchorWindowHint,
+        ["condition.colorCoverage.captureMode.label"] = CaptureModeLabel,
+        ["condition.colorCoverage.captureMode.hint"] = CaptureModeHint,
+        ["condition.colorCoverage.captureMode.option.auto"] = CaptureAuto,
+        ["condition.colorCoverage.captureMode.option.gdi"] = CaptureGdi,
+        ["condition.colorCoverage.captureMode.option.printWindow"] = CapturePrintWindow,
+        ["condition.colorCoverage.captureMode.option.graphicsCapture"] = CaptureGraphics,
+        ["condition.colorCoverage.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
+        ["condition.colorCoverage.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["condition.colorCoverage.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+
         // ------------------------------------------------------------------- vision
         ["vision.capture.name"] = "截屏",
         ["vision.capture.desc"] = "把屏幕的一块区域截取到图像变量里；四个数都不填就是整块屏幕。",

@@ -1046,6 +1046,81 @@ public class DeviceActionTests
         Assert.Equal("no", store.Local.Values["seen"].AsText());
     }
 
+    /// <summary>
+    /// A colour that fills enough of the region makes the condition true, and one that fills less
+    /// than the least share does not: what a bar, a gauge or a lamp is asked is how much of the
+    /// region shows the colour rather than where on it the colour is.
+    /// </summary>
+    [Theory]
+    [InlineData("50", "yes")]
+    [InlineData("60", "no")]
+    [InlineData("0", "yes")]
+    public async Task A_colour_share_is_compared_with_what_the_condition_asks_for(
+        string least, string expected)
+    {
+        // Half of the four pixels are the colour: 50 per cent of the region, and no more.
+        var devices = new FakeDeviceLayer
+        {
+            Display = Picture("#FF0000,#FF0000,#000000,#000000"),
+        };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("control.if",
+                When("condition", Step("condition.colorCoverage",
+                    Param("color", "#FF0000"), Param("tolerance", "1"),
+                    Param("minCoverage", least), Region((0, 0, 4, 1)))),
+                Body("then", Step("control.setVariable", Param("name", "seen"), Param("value", "yes"))),
+                Body("else", Step("control.setVariable", Param("name", "seen"), Param("value", "no")))),
+        ], devices);
+
+        Assert.Equal(expected, store.Local.Values["seen"].AsText());
+    }
+
+    /// <summary>A region with none of the colour in it is short of every share, the least of them included.</summary>
+    [Fact]
+    public async Task A_colour_that_is_nowhere_in_the_region_is_not_a_share_of_it()
+    {
+        var devices = new FakeDeviceLayer { Display = Picture("#000000,#000000,#000000,#000000") };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("control.if",
+                When("condition", Step("condition.colorCoverage",
+                    Param("color", "#FF0000"), Param("tolerance", "1"),
+                    Param("minCoverage", "0"), Region((0, 0, 4, 1)))),
+                Body("then", Step("control.setVariable", Param("name", "seen"), Param("value", "yes"))),
+                Body("else", Step("control.setVariable", Param("name", "seen"), Param("value", "no")))),
+        ], devices);
+
+        Assert.Equal("no", store.Local.Values["seen"].AsText());
+    }
+
+    /// <summary>
+    /// The share is what a wait-until block holds on: a bar filling in is waited for by asking the
+    /// same question again and again, and the block goes on the moment the share is reached.
+    /// </summary>
+    [Fact]
+    public async Task A_wait_can_hold_until_a_colour_fills_enough_of_the_region()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Display = Picture("#000000,#000000,#000000,#000000"),
+            Next = () => Picture("#FF0000,#FF0000,#000000,#000000"),
+        };
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("control.waitUntil",
+                When("condition", Step("condition.colorCoverage",
+                    Param("color", "#FF0000"), Param("tolerance", "1"),
+                    Param("minCoverage", "50"), Region((0, 0, 4, 1)))),
+                Param("timeoutMs", "2000"), Param("pollMs", "10"), Param("onTimeout", "stop")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+    }
+
     [Fact]
     public async Task A_colour_that_is_not_there_leaves_the_result_empty()
     {
