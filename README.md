@@ -349,7 +349,7 @@ GDI / PrintWindow / Graphics Capture / 桌面复制（DXGI）），找不着时�
 
 ## 致谢与许可
 
-「DeepSeek 帮忙写的小助手，所以是鲸灵啦。」程序本身按 MIT 协议授权，全文见 `LICENSE.txt`。
+「DeepSeek 帮忙写的小助手，所以是鲸灵啦。」程序本身按 AGPL-3.0 授权，全文见 `LICENSE.txt`。
 
 里面用到的别人的东西、以及图标素材的出处，写在 `THIRD-PARTY-NOTICES.md`：仓库根目录放一份，
 发布包里也放一份在 `WhaleGenie.exe` 旁边，程序里的「关于 → 第三方组件」显示的就是同一份。
