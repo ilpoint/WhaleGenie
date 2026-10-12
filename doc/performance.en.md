@@ -31,7 +31,8 @@ from" in [README.md](../README.md).
 | A 400×300 patch, desktop (GDI) | 4.4 ms | 3.4 / 7.2 |
 | Whole screen 2560×1440, graphics capture (the library way, used when the display cannot be duplicated) | 18 ms | 13 / 24 |
 | The same, a session opened and closed per read | 51 ms | 48 / 54 |
-| One window, window (PrintWindow) | 21 ms | 20 / 26 |
+| One window filling the screen 2576×1416, window (PrintWindow) | 20 ms | 16 / 28 |
+| The same window at 900×650, window (PrintWindow) | 4 ms | 3.6 / 5.5 |
 | One 800×600 window, window (graphics capture) | 10 ms | 8 / 11 |
 
 The cheapest way to read the whole screen is **desktop duplication** (DXGI Desktop Duplication): the
@@ -54,7 +55,8 @@ indifferent to how much is being captured — it takes the whole display and cut
 asked for out of it, so 400×300 costs what the whole screen costs (2 ms, or 0.1 ms when nothing has
 been drawn). For a small patch, GDI at 4 ms is quick enough too, and its advantage is that it needs
 no graphics device built first: a short macro that reads the screen once or twice is better off with
-desktop (GDI).
+desktop (GDI). Window (PrintWindow) likewise follows how large the window is, by asking the window
+to draw itself again: 20 ms for a window filling the screen, 4 ms for the same window at 900×650.
 
 **A window's graphics capture session has to be kept**: opening one — building the graphics device
 and the pool of pictures — takes 0.4 s the first time, and after that a frame is only a copy from
@@ -105,6 +107,14 @@ A 200×80 reference picture, the picture being the whole 2560×1440 screen excep
   condition that asks for a colour share walks the same way, so it costs what asking a colour search
   for its coverage costs. **The coverage is only counted by a step that asks for it**, so a step that
   does not ask still takes the "stop at the first hit" path.
+- The OpenCV way of looking for a colour (`InRange` plus `CountNonZero`) was measured as well. Counting
+  the whole screen with it is 2.7 ms, the same order as the hand-written walk over the squares of the
+  channel differences at 2.5 ms, but it compares each channel against its own upper and lower limit — a
+  box — which is not the same rule as the engine's round one: at a tolerance of 5% it takes 683 pixels
+  where the engine takes 249, and getting the engine's own answer back means walking the box's pixels
+  again for 3.8 ms in total. A three-point colour pattern in OpenCV is three `InRange` calls and two
+  bitwise ANDs, 1.96 ms over 400×300 against 0.2 ms hand-written, and it only says how many there are —
+  the places would have to be looked for again. So that way was not taken.
 - The first text recognition in a process spends 1.1–10.3 s reading the model in (how hot the disk
   cache is decides which end of that), and is 128 ms after that. Whole-screen text recognition is the
   most expensive single look in the table.
