@@ -1688,7 +1688,24 @@ public static class ActionCatalog
             Returns =
             [
                 Return("windows", "Windows", primary: true, type: ActionReturnType.List,
-                    hint: "The titles of the windows that matched."),
+                    hint: "The titles of the windows that matched, in the order the system lists "
+                        + "them. Two windows with the same title are two windows and get a line "
+                        + "each."),
+                Return("processes", "Programs", type: ActionReturnType.List,
+                    hint: "The program that owns each window, in the same order as the titles. It "
+                        + "is what a step filtering by process name compares against, and what says "
+                        + "which game a window belongs to when two titles read alike."),
+                Return("classes", "Window classes", type: ActionReturnType.List,
+                    hint: "The class each window was registered under, in the same order as the "
+                        + "titles: the kind of window rather than the document in it, so every "
+                        + "Notepad window reads \"Notepad\" however it was renamed."),
+                Return("handles", "Handles", type: ActionReturnType.List,
+                    hint: "What the system knows each window by, in the same order as the titles. "
+                        + "Two windows with the same title are told apart by it."),
+                Return("boxes", "Rectangles", type: ActionReturnType.List,
+                    hint: "Where each window sits and how big it is, written as left,top,width,height "
+                        + "in the same order as the titles: name one in the search region of a step "
+                        + "to look at that window."),
             ],
             Category = ActionCategory.Window,
             DisplayName = "List Windows",
@@ -1722,6 +1739,29 @@ public static class ActionCatalog
                 Return("height", "Height", type: ActionReturnType.Number,
                     hint: "How tall the window is, in pixels."),
                 Return("title", "Title", hint: "What the window's title bar says."),
+                Return("process", "Program", hint: "The program that owns the window, without the "
+                    + ".exe: what a step filtering by process name compares against."),
+                Return("class", "Window class", hint: "The class the window was registered under, "
+                    + "such as Notepad: the kind of window rather than the document in it."),
+                Return("handle", "Handle", type: ActionReturnType.Number,
+                    hint: "What the system knows the window by. Two windows with the same title are "
+                        + "told apart by it."),
+                Return("minimized", "Minimized", type: ActionReturnType.Flag,
+                    hint: "True while the window is shrunk to the taskbar."),
+                Return("maximized", "Maximized", type: ActionReturnType.Flag,
+                    hint: "True while the window fills the screen."),
+                Return("clientBox", "Content rectangle", hint: "The part of the window inside its "
+                    + "border and under its title bar, written as left,top,width,height: the area "
+                    + "a search anchored to this window looks at."),
+                Return("clientX", "Content left", type: ActionReturnType.Number,
+                    hint: "The left edge of that part, in screen pixels: the corner a \"window "
+                        + "client area\" coordinate origin counts from."),
+                Return("clientY", "Content top", type: ActionReturnType.Number,
+                    hint: "The top edge of that part, in screen pixels."),
+                Return("clientWidth", "Content width", type: ActionReturnType.Number,
+                    hint: "How wide that part is, in pixels."),
+                Return("clientHeight", "Content height", type: ActionReturnType.Number,
+                    hint: "How tall that part is, in pixels."),
             ],
             Category = ActionCategory.Window,
             DisplayName = "Window Info",

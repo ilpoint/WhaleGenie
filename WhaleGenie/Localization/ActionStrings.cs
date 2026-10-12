@@ -3443,7 +3443,23 @@ internal static class ActionStrings
 
         // window.list
         ["window.list.return.windows.label"] = "窗口列表",
-        ["window.list.return.windows.hint"] = "匹配到的窗口标题。",
+        ["window.list.return.windows.hint"] =
+            "匹配到的窗口标题，按系统列出的顺序排。同名窗口是两个窗口，各占一项。",
+        ["window.list.return.processes.label"] = "程序列表",
+        ["window.list.return.processes.hint"] =
+            "每个窗口所属的程序名（不含 .exe），顺序与窗口列表一一对应。两个窗口标题相像时，"
+            + "用它分清是哪个游戏；也是按进程名筛选时比较的那一项。",
+        ["window.list.return.classes.label"] = "窗口类名列表",
+        ["window.list.return.classes.hint"] =
+            "每个窗口注册的窗口类名，顺序与窗口列表一一对应：说明的是窗口的种类而不是里面的"
+            + "文档，记事本窗口改了名也还是 Notepad。",
+        ["window.list.return.handles.label"] = "句柄列表",
+        ["window.list.return.handles.hint"] =
+            "每个窗口在系统里的句柄，顺序与窗口列表一一对应。两个窗口标题相同时用它区分。",
+        ["window.list.return.boxes.label"] = "矩形列表",
+        ["window.list.return.boxes.hint"] =
+            "每个窗口的位置与大小，写成 左,上,宽,高，顺序与窗口列表一一对应：填进搜索区域那一行"
+            + "的变量格里，下一步就在那个窗口里找。",
         ["window.list.returns.label"] = "要留下的结果",
         ["window.list.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 
@@ -3461,6 +3477,32 @@ internal static class ActionStrings
         ["window.info.return.height.hint"] = "窗口的高度，单位是像素。",
         ["window.info.return.title.label"] = "标题",
         ["window.info.return.title.hint"] = "窗口标题栏上的文字。",
+        ["window.info.return.process.label"] = "程序名",
+        ["window.info.return.process.hint"] =
+            "窗口所属的程序名，不含 .exe，也就是按进程名筛选时比较的那一项。",
+        ["window.info.return.class.label"] = "窗口类名",
+        ["window.info.return.class.hint"] =
+            "窗口注册的窗口类名，例如 Notepad：说明的是窗口的种类而不是里面的文档。",
+        ["window.info.return.handle.label"] = "句柄",
+        ["window.info.return.handle.hint"] =
+            "窗口在系统里的句柄。两个窗口标题相同时用它区分。",
+        ["window.info.return.minimized.label"] = "已最小化",
+        ["window.info.return.minimized.hint"] = "窗口收到任务栏时是真的。",
+        ["window.info.return.maximized.label"] = "已最大化",
+        ["window.info.return.maximized.hint"] = "窗口铺满屏幕时是真的。",
+        ["window.info.return.clientBox.label"] = "客户区矩形",
+        ["window.info.return.clientBox.hint"] =
+            "窗口边框以内、标题栏以下的那一块，写成 左,上,宽,高：坐标基准选窗口客户区的这一步"
+            + "看的就是这块画面。",
+        ["window.info.return.clientX.label"] = "客户区左边界",
+        ["window.info.return.clientX.hint"] =
+            "客户区左边界在屏幕上的横坐标，单位是屏幕像素：和坐标基准里的“窗口客户区”同一个口径。",
+        ["window.info.return.clientY.label"] = "客户区上边界",
+        ["window.info.return.clientY.hint"] = "客户区上边界在屏幕上的纵坐标，单位是屏幕像素。",
+        ["window.info.return.clientWidth.label"] = "客户区宽",
+        ["window.info.return.clientWidth.hint"] = "客户区的宽度，单位是像素。",
+        ["window.info.return.clientHeight.label"] = "客户区高",
+        ["window.info.return.clientHeight.hint"] = "客户区的高度，单位是像素。",
         ["window.info.returns.label"] = "要留下的结果",
         ["window.info.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 

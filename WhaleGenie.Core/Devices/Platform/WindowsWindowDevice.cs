@@ -152,6 +152,26 @@ public sealed class WindowsWindowDevice : IWindowDevice
     }
 
     /// <summary>
+    /// How big the part of a window inside its border is, through <c>GetClientRect</c>: the frame
+    /// and the title bar are left out of it, so a search that names this window looks at the same
+    /// pixels the window itself draws in. A window that closed since it was looked up is reported
+    /// the same way as one that was never there.
+    /// </summary>
+    public ScreenSize ClientSize(long handle)
+    {
+        Require();
+
+        var window = new IntPtr(handle);
+        if (!IsWindow(window) || !GetClientRect(window, out var client))
+        {
+            throw new DeviceActionException("Run.WindowNotFound",
+                handle.ToString(CultureInfo.InvariantCulture));
+        }
+
+        return new ScreenSize(client.Right - client.Left, client.Bottom - client.Top);
+    }
+
+    /// <summary>
     /// The program behind a window handle, for the picker that lists what is open. It answers
     /// with an empty string rather than failing: a window can outlive the process lookup, and
     /// the picker only needs it as a label.
@@ -286,6 +306,9 @@ public sealed class WindowsWindowDevice : IWindowDevice
 
     [DllImport("user32.dll")]
     private static extern bool GetWindowRect(IntPtr handle, out NativeRect bounds);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetClientRect(IntPtr handle, out NativeRect bounds);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int GetClassName(IntPtr handle, StringBuilder name, int count);

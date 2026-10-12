@@ -6027,6 +6027,22 @@ public sealed class MacroRunner
         }
     }
 
+    /// <summary>True when the step keeps this result, so working it out is worth anything.</summary>
+    private static bool Wants(ExecutableStep step, string key) => step.Return(key).Length > 0;
+
+    /// <summary>
+    /// Hands a result over when the step asks for it, and works it out only then: what a part costs
+    /// — looking a window's process up, asking where its content starts — is not paid by a step
+    /// that does not keep that part.
+    /// </summary>
+    private void GiveAsked(ExecutableStep step, string key, Func<Value> value)
+    {
+        if (Wants(step, key))
+        {
+            Give(step, key, value());
+        }
+    }
+
     /// <summary>
     /// Hands over what a search found: where it was, the four sides of the rectangle it was found
     /// in, how sure the reading was, and the writing that was read where there was any. Each part is
@@ -6136,22 +6152,53 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// Collects the titles of the open windows into a list, narrowed down to the ones a step asks
-    /// for. A filter that looks at the process or the class has to ask the device about each
-    /// window, so a step that leaves the filter empty never pays for that.
+    /// Collects the open windows into a list of titles, narrowed down to the ones a step asks for,
+    /// with what else that step wants to know about them listed beside it in the same order. Two
+    /// windows with the same title are two windows, so each gets a line of its own. A filter that
+    /// looks at the process or the class has to ask the device about each window, and so does a list
+    /// of them, so neither is worked out for a step that asks for neither.
     /// </summary>
     private void ListWindows(ExecutableStep step, int depth)
     {
-        var titles = _devices.Windows
+        var windows = _devices.Windows
             .List()
             .Where(window => Keeps(window, Read(step.Text("filter")).AsText().Trim(),
                 WindowMatchOf(step.Text("filterBy"))))
-            .Select(window => window.Title)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        Store(step, "windows", Value.FromList(titles.Select(Value.FromText)), depth);
-        Log(LogLevel.Info, depth, step.Type, "Run.ListedWindows", titles.Count);
+        Store(step, "windows",
+            Value.FromList(windows.Select(window => Value.FromText(window.Title))), depth);
+
+        // The parts that cost a look at the window are read once for the whole listing, and only
+        // when the line they belong to is kept.
+        if (Wants(step, "processes"))
+        {
+            Give(step, "processes",
+                Value.FromList(windows.Select(window =>
+                    Value.FromText(_devices.Windows.ProcessOf(window.Handle)))));
+        }
+
+        if (Wants(step, "classes"))
+        {
+            Give(step, "classes",
+                Value.FromList(windows.Select(window =>
+                    Value.FromText(_devices.Windows.ClassOf(window.Handle)))));
+        }
+
+        if (Wants(step, "handles"))
+        {
+            Give(step, "handles",
+                Value.FromList(windows.Select(window => Value.FromNumber(window.Handle))));
+        }
+
+        if (Wants(step, "boxes"))
+        {
+            Give(step, "boxes",
+                Value.FromList(windows.Select(window => Value.FromText(
+                    $"{window.Location.X},{window.Location.Y},{window.Size.Width},{window.Size.Height}"))));
+        }
+
+        Log(LogLevel.Info, depth, step.Type, "Run.ListedWindows", windows.Count);
     }
 
     /// <summary>Whether a window survives a listing filter; an empty filter keeps every one.</summary>
@@ -6249,6 +6296,32 @@ public sealed class MacroRunner
         Give(step, "width", Value.FromNumber(width));
         Give(step, "height", Value.FromNumber(height));
         Give(step, "title", Value.FromText(window.Title));
+
+        // What the window is as well as where it is: a title says which document is open, these say
+        // which program and which kind of window — what a step filtering by process name or class
+        // compares against. Looking a process up costs more than reading a title, so neither is
+        // worked out for a step that does not keep it.
+        GiveAsked(step, "process", () => Value.FromText(_devices.Windows.ProcessOf(window.Handle)));
+        GiveAsked(step, "class", () => Value.FromText(_devices.Windows.ClassOf(window.Handle)));
+        Give(step, "handle", Value.FromNumber(window.Handle));
+        Give(step, "minimized", Value.FromBool(window.Minimized));
+        Give(step, "maximized", Value.FromBool(window.Maximized));
+
+        // The part of the window inside its border, which is where a search anchored to the window
+        // looks: the title bar and the border are not something the window draws on. Reading it
+        // costs a look at the window, so it is only read when one of its parts is kept.
+        if (Wants(step, "clientBox") || Wants(step, "clientX") || Wants(step, "clientY")
+            || Wants(step, "clientWidth") || Wants(step, "clientHeight"))
+        {
+            var client = _devices.Windows.ClientOrigin(window.Handle);
+            var inner = _devices.Windows.ClientSize(window.Handle);
+            Give(step, "clientBox",
+                Value.FromText($"{client.X},{client.Y},{inner.Width},{inner.Height}"));
+            Give(step, "clientX", Value.FromNumber(client.X));
+            Give(step, "clientY", Value.FromNumber(client.Y));
+            Give(step, "clientWidth", Value.FromNumber(inner.Width));
+            Give(step, "clientHeight", Value.FromNumber(inner.Height));
+        }
 
         Log(LogLevel.Info, depth, step.Type, "Run.WindowBox", window.Title, $"{left},{top},{width},{height}");
     }

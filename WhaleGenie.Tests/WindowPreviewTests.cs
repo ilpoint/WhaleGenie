@@ -447,5 +447,7 @@ public class WindowPreviewTests
         public bool Move(long handle, int x, int y, int width, int height) => true;
 
         public ScreenPoint ClientOrigin(long handle) => new(0, 0);
+
+        public ScreenSize ClientSize(long handle) => new(0, 0);
     }
 }

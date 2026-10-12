@@ -559,6 +559,12 @@ public interface IWindowDevice
     /// rather than the window's outer corner, which the border and the title bar push around.
     /// </summary>
     ScreenPoint ClientOrigin(long handle);
+
+    /// <summary>
+    /// How big a window's client area is, in pixels: the part inside the border and under the title
+    /// bar, which is the part the window draws in and the only part a search inside it can look at.
+    /// </summary>
+    ScreenSize ClientSize(long handle);
 }
 
 /// <summary>Everything a macro can do to the machine, in one place.</summary>
@@ -829,6 +835,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
             => throw Missing("windows");
 
         ScreenPoint IWindowDevice.ClientOrigin(long handle) => throw Missing("windows");
+
+        ScreenSize IWindowDevice.ClientSize(long handle) => throw Missing("windows");
 
         public ScreenPoint Cursor => throw Missing("the pointer position");
 

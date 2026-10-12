@@ -952,6 +952,8 @@ public class ActionDialogTests
         public bool Move(long handle, int x, int y, int width, int height) => true;
 
         public ScreenPoint ClientOrigin(long handle) => new(1000, 520);
+
+        public ScreenSize ClientSize(long handle) => new(784, 560);
     }
 
     /// <summary>

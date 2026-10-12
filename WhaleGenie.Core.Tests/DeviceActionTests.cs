@@ -5605,8 +5605,13 @@ public class DeviceActionTests
         Assert.Equal("Locked", result.Detail);
     }
 
+    /// <summary>
+    /// Two windows with the same title are two windows. Counting them once would leave the lines
+    /// that say what each one is and where it is short of an entry, and the one that went missing is
+    /// the window that could not be read.
+    /// </summary>
     [Fact]
-    public async Task Listing_windows_names_them_without_repeats()
+    public async Task Listing_windows_names_every_window_even_when_titles_repeat()
     {
         var devices = new FakeDeviceLayer();
         devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
@@ -5616,7 +5621,96 @@ public class DeviceActionTests
             [Step("window.list", Returns("windows=titles"))], devices);
 
         var titles = store.Local.Values["titles"];
-        Assert.Equal(["Notepad", "Calculator"], titles.Items.Select(item => item.AsText()));
+        Assert.Equal(["Notepad", "Notepad", "Calculator"],
+            titles.Items.Select(item => item.AsText()));
+    }
+
+    /// <summary>
+    /// The lines beside the titles say what each window is and where it sits, in the same order, so
+    /// the second title, the second program and the second rectangle are all the same window.
+    /// </summary>
+    [Fact]
+    public async Task Listing_windows_can_say_what_each_one_is_and_where_it_sits()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(10, 20),
+            new ScreenSize(300, 200), false, false));
+        devices.Windows.Add(new WindowInfo(2, "Calculator", new ScreenPoint(400, 30),
+            new ScreenSize(240, 320), false, false));
+        devices.WindowFacts[1] = ("notepad", "Notepad");
+        devices.WindowFacts[2] = ("calc", "CalcFrame");
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("window.list", Returns("windows=titles", "processes=programs",
+                "classes=classnames", "handles=ids", "boxes=rects")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(["Notepad", "Calculator"],
+            store.Local.Values["titles"].Items.Select(item => item.AsText()));
+        Assert.Equal(["notepad", "calc"],
+            store.Local.Values["programs"].Items.Select(item => item.AsText()));
+        Assert.Equal(["Notepad", "CalcFrame"],
+            store.Local.Values["classnames"].Items.Select(item => item.AsText()));
+        Assert.Equal([1, 2], store.Local.Values["ids"].Items.Select(item => item.AsNumber()));
+        Assert.Equal(["10,20,300,200", "400,30,240,320"],
+            store.Local.Values["rects"].Items.Select(item => item.AsText()));
+    }
+
+    /// <summary>
+    /// The program a window belongs to is a look at the machine per window, so a step that reads
+    /// only the titles pays for none of them.
+    /// </summary>
+    [Fact]
+    public async Task Listing_windows_looks_nothing_up_that_the_step_does_not_keep()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.WindowFacts[1] = ("notepad", "Notepad");
+
+        await RunAsync([Step("window.list", Returns("windows=titles"))], devices);
+
+        Assert.DoesNotContain(devices.Calls,
+            call => call.StartsWith("processOf", StringComparison.Ordinal));
+        Assert.DoesNotContain(devices.Calls,
+            call => call.StartsWith("classOf", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// A window has a program and a kind as well as a place, and the part of it inside its border is
+    /// where a search anchored to it looks. Each is handed over under a name of its own, so a step
+    /// that wants one of them is not made to read a line of punctuation to find it.
+    /// </summary>
+    [Fact]
+    public async Task Window_information_says_what_the_window_is_as_well_as_where_it_is()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(10, 20),
+            new ScreenSize(300, 200), false, true));
+        devices.WindowFacts[42] = ("notepad", "Notepad");
+        devices.ClientOrigins[42] = new ScreenPoint(14, 51);
+        devices.ClientSizes[42] = new ScreenSize(292, 160);
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("window.info", Param("title", "Notepad"),
+                Returns("process=program", "class=kind", "handle=id", "minimized=shrunk",
+                    "maximized=full", "clientBox=content", "clientX=left", "clientY=top",
+                    "clientWidth=wide", "clientHeight=tall")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("notepad", store.Local.Values["program"].AsText());
+        Assert.Equal("Notepad", store.Local.Values["kind"].AsText());
+        Assert.Equal(42, store.Local.Values["id"].AsNumber());
+        Assert.False(store.Local.Values["shrunk"].AsBool());
+        Assert.True(store.Local.Values["full"].AsBool());
+        Assert.Equal("14,51,292,160", store.Local.Values["content"].AsText());
+        Assert.Equal(14, store.Local.Values["left"].AsNumber());
+        Assert.Equal(51, store.Local.Values["top"].AsNumber());
+        Assert.Equal(292, store.Local.Values["wide"].AsNumber());
+        Assert.Equal(160, store.Local.Values["tall"].AsNumber());
     }
 
     [Fact]
@@ -7395,6 +7489,21 @@ internal sealed class FakeDeviceLayer
         return ClientOrigins.TryGetValue(handle, out var origin)
             ? origin
             : Windows.FirstOrDefault(window => window.Handle == handle)?.Location ?? default;
+    }
+
+    /// <summary>
+    /// How big each window's client area is, by handle. A handle that was not set up answers the
+    /// window's own size, which is what a window with no border looks like.
+    /// </summary>
+    public Dictionary<long, ScreenSize> ClientSizes { get; } = [];
+
+    ScreenSize IWindowDevice.ClientSize(long handle)
+    {
+        Note($"clientSize {handle}");
+        var window = Windows.FirstOrDefault(candidate => candidate.Handle == handle);
+        return ClientSizes.TryGetValue(handle, out var size)
+            ? size
+            : window?.Size ?? default;
     }
 
     /// <summary>
