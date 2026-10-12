@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Execution;
+using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.ViewModels;
@@ -19,7 +20,7 @@ public sealed record LanguageOption(Language Language, string Display)
 /// One entry of a capture picker. What it reads as comes from the text table rather than being
 /// copied here, so the two pickers and the ways named in a failure are named the same way.
 /// </summary>
-public sealed record CaptureOption(CaptureMethod Way, string Key)
+public sealed record CaptureOption(CaptureWay Way, string Key)
 {
     public override string ToString() => Strings.Get(Key);
 }
@@ -71,9 +72,9 @@ public partial class SettingsViewModel : ViewModelBase
     /// </summary>
     public IReadOnlyList<CaptureOption> WindowWays { get; } =
     [
-        new(CaptureMethod.Auto, "Settings.Capture.auto"),
-        new(CaptureMethod.PrintWindow, "Settings.Capture.printWindow"),
-        new(CaptureMethod.GraphicsCapture, "Settings.Capture.graphicsCapture"),
+        new(CaptureWay.Auto, "Settings.Capture.auto"),
+        new(CaptureWay.PrintWindow, "Settings.Capture.printWindow"),
+        new(CaptureWay.GraphicsCapture, "Settings.Capture.graphicsCapture"),
     ];
 
     /// <summary>
@@ -82,10 +83,10 @@ public partial class SettingsViewModel : ViewModelBase
     /// </summary>
     public IReadOnlyList<CaptureOption> ScreenWays { get; } =
     [
-        new(CaptureMethod.Auto, "Settings.Capture.auto"),
-        new(CaptureMethod.DesktopDuplication, "Settings.Capture.desktopDuplication"),
-        new(CaptureMethod.Gdi, "Settings.Capture.gdi"),
-        new(CaptureMethod.GraphicsCapture, "Settings.Capture.graphicsCapture"),
+        new(CaptureWay.Auto, "Settings.Capture.auto"),
+        new(CaptureWay.DesktopDuplication, "Settings.Capture.desktopDuplication"),
+        new(CaptureWay.Gdi, "Settings.Capture.gdi"),
+        new(CaptureWay.GraphicsCapture, "Settings.Capture.graphicsCapture"),
     ];
 
     /// <summary>How this machine reads a picture of a window.</summary>

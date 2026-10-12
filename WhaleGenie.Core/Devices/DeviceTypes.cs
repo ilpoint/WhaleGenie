@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Devices;
 
@@ -121,68 +122,6 @@ public sealed record ImageFrame(int Width, int Height, byte[] Bgra)
 }
 
 /// <summary>
-/// How a picture of part of the screen is taken. What is being read says which ways make sense: the
-/// desktop can be copied out of it, or read out of the graphics card's own copy of what it is being
-/// shown; a window can be asked to draw itself, or read through the machinery that composes it on
-/// screen, which is what still finds a game another window is covering.
-/// </summary>
-public enum CaptureMethod
-{
-    /// <summary>
-    /// Whatever suits the source, best first: the desktop through the graphics card's copy of it and
-    /// then GDI; a window through graphics capture, then by asking it to draw itself, then off the
-    /// screen.
-    /// </summary>
-    Auto,
-
-    /// <summary>The desktop, copied out of it by GDI. This is what a macro has always done.</summary>
-    Gdi,
-
-    /// <summary>A window, asked to draw itself into a picture of our own.</summary>
-    PrintWindow,
-
-    /// <summary>A window or a display, read the way the screen shows it.</summary>
-    GraphicsCapture,
-
-    /// <summary>The display, handed over by the graphics card: the picture being composed for it.</summary>
-    DesktopDuplication,
-}
-
-/// <summary>
-/// The names the ways of taking a picture go by, in the one place they are spelled: a step's field
-/// holds one of them, a result says one back, and a look says which one it was really taken with.
-/// </summary>
-public static class CaptureMethodNames
-{
-    /// <summary>
-    /// What one way is written as, or empty for the automatic choice — which is a question rather
-    /// than a way of taking a picture, and is never the answer to one.
-    /// </summary>
-    public static string Written(CaptureMethod method) => method switch
-    {
-        CaptureMethod.Gdi => "gdi",
-        CaptureMethod.PrintWindow => "printWindow",
-        CaptureMethod.GraphicsCapture => "graphicsCapture",
-        CaptureMethod.DesktopDuplication => "desktopDuplication",
-        _ => string.Empty,
-    };
-
-    /// <summary>
-    /// The way a written name stands for. Anything that is not one of them is the automatic choice,
-    /// so a half-written step looks at something rather than at nothing.
-    /// </summary>
-    public static CaptureMethod Read(string? written) => (written ?? string.Empty)
-        .Trim().ToLowerInvariant() switch
-    {
-        "gdi" => CaptureMethod.Gdi,
-        "printwindow" => CaptureMethod.PrintWindow,
-        "graphicscapture" => CaptureMethod.GraphicsCapture,
-        "desktopduplication" => CaptureMethod.DesktopDuplication,
-        _ => CaptureMethod.Auto,
-    };
-}
-
-/// <summary>
 /// How this machine reads a picture of the screen: the way a window is taken, and the way a
 /// rectangle of the desktop is. A macro says what it is looking at and how fresh the picture has to
 /// be; how the pixels come off this machine is the machine's business, because the answers —
@@ -192,10 +131,10 @@ public static class CaptureMethodNames
 public interface ICaptureChoice
 {
     /// <summary>The way a picture of a window is taken.</summary>
-    CaptureMethod ForWindow();
+    CaptureWay ForWindow();
 
     /// <summary>The way a picture of the desktop is taken.</summary>
-    CaptureMethod ForScreen();
+    CaptureWay ForScreen();
 }
 
 /// <summary>
@@ -210,14 +149,14 @@ public sealed class CaptureChoice : ICaptureChoice
     public static CaptureChoice Current { get; } = new();
 
     /// <summary>The way a picture of a window is taken, automatic by default.</summary>
-    public CaptureMethod Window { get; set; } = CaptureMethod.Auto;
+    public CaptureWay Window { get; set; } = CaptureWay.Auto;
 
     /// <summary>The way a picture of the desktop is taken, automatic by default.</summary>
-    public CaptureMethod Screen { get; set; } = CaptureMethod.Auto;
+    public CaptureWay Screen { get; set; } = CaptureWay.Auto;
 
-    public CaptureMethod ForWindow() => Window;
+    public CaptureWay ForWindow() => Window;
 
-    public CaptureMethod ForScreen() => Screen;
+    public CaptureWay ForScreen() => Screen;
 }
 
 /// <summary>
@@ -228,7 +167,7 @@ public sealed class CaptureChoice : ICaptureChoice
 /// "automatic" is a question rather than an answer, and a step that came out wrong is worth being
 /// able to ask what it was really read with.
 /// </summary>
-public readonly record struct ScreenShot(ImageFrame Frame, ScreenPoint Origin, CaptureMethod Method);
+public readonly record struct ScreenShot(ImageFrame Frame, ScreenPoint Origin, CaptureWay Method);
 
 /// <summary>
 /// One region to read, and where its pixels should come from. The rectangle is in screen pixels,
@@ -241,7 +180,7 @@ public sealed record ScreenCaptureRequest(
     int Y,
     int Width,
     int Height,
-    CaptureMethod Method = CaptureMethod.Auto,
+    CaptureWay Method = CaptureWay.Auto,
     long Window = 0)
 {
     /// <summary>True when the pixels are to come from a window rather than from the desktop.</summary>

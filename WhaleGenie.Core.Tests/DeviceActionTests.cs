@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Variables;
+using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Tests;
 
@@ -1842,7 +1843,7 @@ public class DeviceActionTests
         var asked = Assert.Single(devices.Captures);
         Assert.Equal((118, 101, 30, 40), (asked.X, asked.Y, asked.Width, asked.Height));
         Assert.Equal(4, asked.Window);
-        Assert.Equal(CaptureMethod.Auto, asked.Method);
+        Assert.Equal(CaptureWay.Auto, asked.Method);
     }
 
     /// <summary>
@@ -1855,8 +1856,8 @@ public class DeviceActionTests
     public async Task The_way_of_taking_the_picture_is_the_machines_own()
     {
         var devices = WithWindow();
-        devices.Ways.Window = CaptureMethod.PrintWindow;
-        devices.Ways.Screen = CaptureMethod.DesktopDuplication;
+        devices.Ways.Window = CaptureWay.PrintWindow;
+        devices.Ways.Screen = CaptureWay.DesktopDuplication;
 
         await RunAsync(
         [
@@ -1865,8 +1866,8 @@ public class DeviceActionTests
             Capture(1, 1, 2, 2, Hit("image", "screen")),
         ], devices);
 
-        Assert.Equal(CaptureMethod.PrintWindow, devices.Captures[0].Method);
-        Assert.Equal(CaptureMethod.DesktopDuplication, devices.Captures[1].Method);
+        Assert.Equal(CaptureWay.PrintWindow, devices.Captures[0].Method);
+        Assert.Equal(CaptureWay.DesktopDuplication, devices.Captures[1].Method);
     }
 
     /// <summary>
@@ -1906,7 +1907,7 @@ public class DeviceActionTests
     public async Task A_way_the_machine_cannot_do_is_reported_rather_than_swapped_for_another()
     {
         var devices = WithWindow();
-        devices.Ways.Window = CaptureMethod.GraphicsCapture;
+        devices.Ways.Window = CaptureWay.GraphicsCapture;
         devices.Refusal = new DeviceActionException("Run.NoGraphicsCapture", "this machine has none");
 
         var (result, _, _) = await RunAsync(
@@ -6846,9 +6847,9 @@ internal sealed class FakeDeviceLayer
         // What a real machine answers an automatic request with: the window itself when a window
         // was named, and the pixels of the desktop when it was not.
         return new ScreenShot(picture, new ScreenPoint(request.X, request.Y),
-            request.Method != CaptureMethod.Auto
+            request.Method != CaptureWay.Auto
                 ? request.Method
-                : request.Window == 0 ? CaptureMethod.Gdi : CaptureMethod.GraphicsCapture);
+                : request.Window == 0 ? CaptureWay.Gdi : CaptureWay.GraphicsCapture);
     }
 
     /// <summary>

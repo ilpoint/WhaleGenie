@@ -11,7 +11,6 @@
 [![FlaUI](https://img.shields.io/badge/FlaUI-MIT-007ec6)](https://github.com/FlaUI/FlaUI)
 [![Playwright](https://img.shields.io/badge/Playwright-Apache--2.0-97CA00)](https://github.com/microsoft/playwright-dotnet)
 [![CsvHelper](https://img.shields.io/badge/CsvHelper-Apache--2.0%20%7C%20MS--PL-97CA00)](https://github.com/JoshClose/CsvHelper)
-[![Zaya.Screenshot](https://img.shields.io/badge/Zaya.Screenshot-MIT-007ec6)](https://github.com/shtrasser-dev/Zaya.Screenshot)
 
 Windows 上的宏自动化工具，面向**游戏宏**：把键盘、鼠标、手柄、屏幕和窗口上的操作编成一步步的宏，
 用热键、鼠标按键、滚轮或屏幕上某个像素的颜色触发它。文件、数据、网页那些办公向的能力也在，
@@ -42,14 +41,17 @@ dotnet format WhaleGenie.slnx           # 按 .editorconfig 整理格式
 | 项目 | 职责 |
 | --- | --- |
 | `WhaleGenie.Core` | 执行引擎。动作目录、变量、表达式、宏包读写、以及所有真正碰机器的设备（输入、屏幕、OCR、UI Automation、文件、进程） |
+| `WhaleGenie.GraphicsCapture` | 从 Windows 拿像素：Graphics Capture、桌面复制（DXGI）、屏幕 GDI 与 PrintWindow 四种取法，以及会话缓存与选路。它不认识引擎的类型，引擎通过 `ProjectReference` 用它 |
 | `WhaleGenie` | 界面。窗口、视图模型、文案、触发器监听 |
 | `WhaleGenie.Core.Tests` | 引擎的测试，跑在替身设备层上，不碰真实桌面 |
+| `WhaleGenie.GraphicsCapture.Tests` | 画面获取的测试：选路次序、会话缓存与复用、图片落位。真正调用 Windows 的那几条按手动用例过 |
 | `WhaleGenie.Tests` | 界面的测试，跑在 Avalonia 无头平台上 |
 
 ## 引擎用到的包
 
 `WhaleGenie.Core` 真正依赖的就这么几个，每个都对应一类碰机器的设备；版本写在
-`WhaleGenie.Core/WhaleGenie.Core.csproj` 里，这里不抄第二遍：
+`WhaleGenie.Core/WhaleGenie.Core.csproj` 里，这里不抄第二遍（画面获取那两个写在
+`WhaleGenie.GraphicsCapture/WhaleGenie.GraphicsCapture.csproj` 里）：
 
 | 包 | 在引擎里干什么 |
 | --- | --- |
@@ -60,7 +62,7 @@ dotnet format WhaleGenie.slnx           # 按 .editorconfig 整理格式
 | `FlaUI.UIA3` | UI Automation：元素的取值、选择、勾选、展开、滚动到可见、读表格 |
 | `Microsoft.Playwright` | 浏览器动作（`browser.*`）：驱动跟着包走，默认开系统自带的 Edge |
 | `CsvHelper` | 带分隔符的文本文件（`file.readCsv` / `file.writeCsv`）：引号、单元格里的换行、行尾、空行这些细节归它管。自己拆字符串在这些地方都会悄悄读错 |
-| `Zaya.Screenshot`、`Zaya.Screenshot.Impl.Windows` | 窗口画面获取：窗口被别的窗口压住或开在后台时，抓屏方式的"窗口（Graphics Capture）"靠它取到画面 |
+| `Vortice.Direct3D11`、`Vortice.DXGI`（都由 `WhaleGenie.GraphicsCapture` 引用，引擎不直接引） | 画面获取：Graphics Capture 与桌面复制是 Direct3D 11 与 DXGI 的调用，它们只是一层托管包装，调用的是 Windows 自带的那两个库，不随包分发原生库。详见「代码怎么分块」 |
 | `OpenCvSharp5.AvaloniaExtensions` | 没人用它：引擎和界面都没有调用它的 API，它只会把 Avalonia 带进引擎的依赖图 |
 
 这些包各自带进来的原生库（`OpenCvSharpExtern.dll`、`uiohook.dll`、Playwright 的驱动等）
@@ -70,10 +72,12 @@ dotnet format WhaleGenie.slnx           # 按 .editorconfig 整理格式
 
 1. **纯逻辑**（`WhaleGenie.Core.Tests`）：引擎的每一步、变量与表达式、宏包往返。用替身设备层，
    断言的是"引擎要求了什么"，不是"桌面上发生了什么"。
-2. **界面逻辑与控件**（`WhaleGenie.Tests`）：参数成型、触发器比对、卡片显示、文案完整性，
+2. **画面获取**（`WhaleGenie.GraphicsCapture.Tests`）：选路次序、会话缓存与复用、图片怎么落位、
+   矩形越界怎么报。真正调用 Windows 取画面那几条进不了测试，按手动用例过。
+3. **界面逻辑与控件**（`WhaleGenie.Tests`）：参数成型、触发器比对、卡片显示、文案完整性，
    以及能真的开窗口、发按键的无头用例。无头会话把测试放在同一条 UI 线程上跑，
    `Ui.Run(...)` 是入口。
-3. **手动**：真的移动鼠标、真的抓屏取色、真的注入按键这类事情无法在测试里验证，
+4. **手动**：真的移动鼠标、真的抓屏取色、真的注入按键这类事情无法在测试里验证，
    改动这部分时按用例手动过一遍。
 
 整套通常四十秒上下：引擎五秒，界面三十八秒，两边同时跑。界面那套串行（无头会话只有一条界面线程），

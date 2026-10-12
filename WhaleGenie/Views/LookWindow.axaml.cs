@@ -13,6 +13,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
@@ -154,7 +155,7 @@ public partial class LookWindow : Window
     /// </summary>
     private static string Where(StepLook look)
     {
-        if (look.Method == CaptureMethod.Auto)
+        if (look.Method == CaptureWay.Auto)
         {
             return string.Empty;
         }
@@ -164,7 +165,7 @@ public partial class LookWindow : Window
             : Strings.Format("Look.Source.window", look.Source);
 
         return Strings.Format("Look.Where", source,
-            Strings.Get("Look.Way." + CaptureMethodNames.Written(look.Method)));
+            Strings.Get("Look.Way." + CaptureWayNames.Written(look.Method)));
     }
 
     /// <summary>

@@ -1,4 +1,4 @@
-namespace WhaleGenie.Core.Devices.Platform;
+namespace WhaleGenie.GraphicsCapture;
 
 /// <summary>
 /// The one duplication of the primary display this program hands out.

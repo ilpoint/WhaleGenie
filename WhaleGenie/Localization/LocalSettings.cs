@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Execution;
+using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Localization;
 
@@ -48,23 +49,23 @@ public static class LocalSettings
     /// How this machine reads a picture of a window. Automatic by default, which is the order the
     /// machine has always tried the ways in.
     /// </summary>
-    public static CaptureMethod LoadCaptureWindow()
-        => CaptureMethodNames.Read(Read().CaptureWindow);
+    public static CaptureWay LoadCaptureWindow()
+        => CaptureWayNames.Read(Read().CaptureWindow);
 
     /// <summary>Stores that choice, as the way is written in a file. Failures are ignored on purpose.</summary>
-    public static void StoreCaptureWindow(CaptureMethod way)
-        => Write(model => model.CaptureWindow = CaptureMethodNames.Written(way));
+    public static void StoreCaptureWindow(CaptureWay way)
+        => Write(model => model.CaptureWindow = CaptureWayNames.Written(way));
 
     /// <summary>
     /// How this machine reads a picture of the desktop. Automatic by default, which is the order the
     /// machine has always tried the ways in.
     /// </summary>
-    public static CaptureMethod LoadCaptureScreen()
-        => CaptureMethodNames.Read(Read().CaptureScreen);
+    public static CaptureWay LoadCaptureScreen()
+        => CaptureWayNames.Read(Read().CaptureScreen);
 
     /// <summary>Stores that choice, as the way is written in a file. Failures are ignored on purpose.</summary>
-    public static void StoreCaptureScreen(CaptureMethod way)
-        => Write(model => model.CaptureScreen = CaptureMethodNames.Written(way));
+    public static void StoreCaptureScreen(CaptureWay way)
+        => Write(model => model.CaptureScreen = CaptureWayNames.Written(way));
 
     private static Model Read()
     {

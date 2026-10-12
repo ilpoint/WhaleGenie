@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Wrappers only — the calls go to the Direct3D and DXGI that Windows already has, so nothing
+      native is shipped. Windows Graphics Capture itself needs no package: the type library for it
+      comes from the Windows version in the target framework.
+    -->
+    <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
+    <PackageReference Include="Vortice.DXGI" Version="3.8.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The checks read the session cache and the ways a picture is taken out of the library. -->
+    <InternalsVisibleTo Include="WhaleGenie.GraphicsCapture.Tests" />
+  </ItemGroup>
+
+</Project>

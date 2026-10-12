@@ -14,20 +14,15 @@
     <PackageReference Include="Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny" Version="1.0.0" />
     <PackageReference Include="SharpHook" Version="8.0.0" />
     <PackageReference Include="Viiper.Client" Version="0.9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!--
-      Windows Graphics Capture, for reading a window that another window is covering. The
-      abstractions and the Windows engine are two packages, the way the library ships them.
+      Taking a picture of the screen: the ways Windows hands pixels over, and which of them to reach
+      for. The engine says what it is looking at; what the machine can do with that is that project's
+      business, which is what keeps Direct3D and DXGI out of the engine.
     -->
-    <PackageReference Include="Zaya.Screenshot" Version="2.0.0" />
-    <PackageReference Include="Zaya.Screenshot.Impl.Windows" Version="2.0.0" />
-    <!--
-      The display duplication API, for reading the whole of the desktop out of graphics memory:
-      several times cheaper than copying the screen with GDI, and the only way to read a game that
-      fills the screen on its own. Wrappers only — the calls go to the Direct3D and DXGI that
-      Windows already has, so nothing native is shipped.
-    -->
-    <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
-    <PackageReference Include="Vortice.DXGI" Version="3.8.3" />
+    <ProjectReference Include="..\WhaleGenie.GraphicsCapture\WhaleGenie.GraphicsCapture.csproj" />
   </ItemGroup>
 
   <ItemGroup>

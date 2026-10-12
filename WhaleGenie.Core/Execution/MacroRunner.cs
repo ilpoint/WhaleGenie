@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
+using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Execution;
 
@@ -52,7 +53,7 @@ public sealed class MacroRunner
     /// </summary>
     private string _takenWindow = string.Empty;
 
-    private CaptureMethod? _takenMethod;
+    private CaptureWay? _takenMethod;
 
     /// <summary>
     /// The last picture taken of each source, for the steps that say a picture a little older will
@@ -60,8 +61,8 @@ public sealed class MacroRunner
     /// what a per-second budget of looks is really about. It lives for one run: what a macro sees is
     /// what it saw while it was running, and the next run starts by looking again.
     /// </summary>
-    private readonly Dictionary<(long Source, CaptureMethod Method),
-        (ImageFrame Frame, ScreenPoint Origin, CaptureMethod Method, long TakenAt)> _frames = [];
+    private readonly Dictionary<(long Source, CaptureWay Method),
+        (ImageFrame Frame, ScreenPoint Origin, CaptureWay Method, long TakenAt)> _frames = [];
 
     /// <summary>
     /// When each step last looked at the screen, for the steps that say how long to leave between
@@ -3129,7 +3130,7 @@ public sealed class MacroRunner
             PictureNumber = picture,
             PictureCount = pictures,
             Source = _takenWindow,
-            Method = _takenMethod ?? CaptureMethod.Auto,
+            Method = _takenMethod ?? CaptureWay.Auto,
         };
     }
 
@@ -4343,11 +4344,11 @@ public sealed class MacroRunner
     /// before anything is read: the automatic choice is a question, and this machine answers it the
     /// same way twice in a run.
     /// </summary>
-    private static (long Source, CaptureMethod Method) Reused(long source, CaptureMethod method)
+    private static (long Source, CaptureWay Method) Reused(long source, CaptureWay method)
         => (source, method);
 
     /// <summary>The whole of what a step reads from: the window, or the screen.</summary>
-    private ScreenShot Whole(CaptureMethod method, WindowInfo? window)
+    private ScreenShot Whole(CaptureWay method, WindowInfo? window)
     {
         if (window is null)
         {
@@ -4372,7 +4373,7 @@ public sealed class MacroRunner
     /// outside the picture is nothing to look at.
     /// </summary>
     private static ScreenShot Cut(ImageFrame whole, ScreenPoint origin, int x, int y, int width,
-        int height, CaptureMethod method)
+        int height, CaptureWay method)
     {
         if (origin.X == x && origin.Y == y && whole.Width == width && whole.Height == height)
         {
@@ -4400,7 +4401,7 @@ public sealed class MacroRunner
     }
 
     /// <summary>Notes what the picture a step is about to be given was taken of.</summary>
-    private void Taken(WindowInfo? window, CaptureMethod method)
+    private void Taken(WindowInfo? window, CaptureWay method)
     {
         _takenWindow = window?.Title ?? string.Empty;
         _takenMethod = method;
@@ -6116,7 +6117,7 @@ public sealed class MacroRunner
     {
         Give(step, "window", Value.FromText(_takenWindow));
         Give(step, "method", Value.FromText(
-            _takenMethod is { } method ? CaptureMethodNames.Written(method) : string.Empty));
+            _takenMethod is { } method ? CaptureWayNames.Written(method) : string.Empty));
     }
 
     /// <summary>

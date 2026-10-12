@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 
@@ -174,9 +175,9 @@ public class RunLookTests
         public ScreenShot Capture(ScreenCaptureRequest request)
             => new(new ImageFrame(request.Width, request.Height,
                 new byte[request.Width * request.Height * 4]), new ScreenPoint(request.X, request.Y),
-                request.Method != CaptureMethod.Auto
+                request.Method != CaptureWay.Auto
                     ? request.Method
-                    : request.Window == 0 ? CaptureMethod.Gdi : CaptureMethod.GraphicsCapture);
+                    : request.Window == 0 ? CaptureWay.Gdi : CaptureWay.GraphicsCapture);
 
         public ImageFrame? Load(string path) => new(4, 4, new byte[64]);
 

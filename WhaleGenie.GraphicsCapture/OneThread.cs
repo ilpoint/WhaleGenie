@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace WhaleGenie.Core.Devices.Platform;
+namespace WhaleGenie.GraphicsCapture;
 
 /// <summary>
 /// One thread with a queue, for work that must not run side by side and must not run on the thread

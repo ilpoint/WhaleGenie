@@ -1,4 +1,5 @@
 using WhaleGenie.Core.Devices;
+using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Execution;
@@ -19,14 +20,14 @@ public static class CaptureSetup
     }
 
     /// <summary>Stores how a window's picture is taken, and gives it to the engine.</summary>
-    public static void StoreWindow(CaptureMethod way)
+    public static void StoreWindow(CaptureWay way)
     {
         LocalSettings.StoreCaptureWindow(way);
         CaptureChoice.Current.Window = way;
     }
 
     /// <summary>Stores how the desktop's picture is taken, and gives it to the engine.</summary>
-    public static void StoreScreen(CaptureMethod way)
+    public static void StoreScreen(CaptureWay way)
     {
         LocalSettings.StoreCaptureScreen(way);
         CaptureChoice.Current.Screen = way;

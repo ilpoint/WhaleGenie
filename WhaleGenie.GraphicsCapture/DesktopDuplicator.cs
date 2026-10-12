@@ -4,7 +4,7 @@ using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
 
-namespace WhaleGenie.Core.Devices.Platform;
+namespace WhaleGenie.GraphicsCapture;
 
 /// <summary>
 /// The desktop, handed over by the graphics card: the picture the display is being given is
@@ -52,11 +52,12 @@ internal sealed class DesktopDuplicator : IDisposable
     private bool _blank;
 
     /// <summary>
-    /// The part of the display that was asked for, or nothing when this machine cannot duplicate it
-    /// — an older Windows, no graphics device that will do it, a display another program is also
-    /// reading, a picture in a form this does not read, or a display turned on its side.
+    /// The rectangle that was asked for, out of the display's own picture of itself, or nothing when
+    /// this machine cannot duplicate it — no graphics device that will do it, a display another
+    /// program is also reading, a picture in a form this does not read, or a display turned on its
+    /// side.
     /// </summary>
-    public ImageFrame? Try(int x, int y, int width, int height)
+    public ScreenGrab? Try(int x, int y, int width, int height)
         => _thread.Run(() =>
         {
             if (!Ready())
@@ -67,6 +68,13 @@ internal sealed class DesktopDuplicator : IDisposable
             try
             {
                 return Shot(x, y, width, height);
+            }
+            catch (EmptyRegionException)
+            {
+                // A rectangle that is not on the display is not something about the duplication: it
+                // is the same answer whichever way the screen would have been read, so it is not
+                // turned into "this machine cannot do it".
+                throw;
             }
             catch (Exception)
             {
@@ -177,7 +185,7 @@ internal sealed class DesktopDuplicator : IDisposable
     /// texture and read out of it. A desktop that has not been drawn again has nothing to hand
     /// over, and the picture already held is still what is on screen, so it is the one used.
     /// </summary>
-    private ImageFrame? Shot(int x, int y, int width, int height)
+    private ScreenGrab? Shot(int x, int y, int width, int height)
     {
         if (_duplication!.AcquireNextFrame(0, out _, out var resource).Success)
         {
@@ -206,24 +214,8 @@ internal sealed class DesktopDuplicator : IDisposable
             return null;
         }
 
-        if (x == 0 && y == 0 && width == _width && height == _height)
-        {
-            return new ImageFrame(_width, _height, (byte[])whole.Clone());
-        }
-
-        if (x < 0 || y < 0 || x + width > _width || y + height > _height)
-        {
-            throw new DeviceActionException("Run.EmptyRegion", $"{x},{y} {width}x{height}");
-        }
-
-        var pixels = new byte[(long)width * height * 4];
-        for (var row = 0; row < height; row++)
-        {
-            Array.Copy(whole, (((long)(y + row) * _width) + x) * 4, pixels, (long)row * width * 4,
-                width * 4);
-        }
-
-        return new ImageFrame(width, height, pixels);
+        return Placement.Of(new ScreenGrab(_width, _height, whole, CaptureWay.DesktopDuplication),
+            0, 0, x, y, width, height);
     }
 
     /// <summary>A staging texture to copy frames into, made once at the size the display is.</summary>

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Execution;
 
@@ -111,7 +112,7 @@ public sealed record StepLook
     public string Source { get; init; } = string.Empty;
 
     /// <summary>Which way the picture was taken, once "automatic" has been answered.</summary>
-    public CaptureMethod Method { get; init; } = CaptureMethod.Auto;
+    public CaptureWay Method { get; init; } = CaptureWay.Auto;
 }
 
 /// <summary>Where steps hand over what they saw, for a debugger to draw.</summary>

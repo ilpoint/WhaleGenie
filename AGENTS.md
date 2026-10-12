@@ -11,6 +11,10 @@ Windows 上的宏自动化工具，重心是游戏宏：把键盘、鼠标、手
 
 - `WhaleGenie.Core` 是执行引擎，不感知界面：动作目录、变量、表达式、宏包读写与所有直接操作机器的设备
   （输入、屏幕、OCR、UI Automation、文件、进程）；`WhaleGenie` 是界面：窗口、视图模型、文案、触发器。
+- `WhaleGenie.GraphicsCapture` 只管"从 Windows 拿到像素"：Graphics Capture、桌面复制（DXGI）、屏幕 GDI 与
+  PrintWindow 四种取法，加上会话缓存与选路。它不认识引擎类型（不 `using WhaleGenie.Core`，不认
+  `ImageFrame` / `DeviceActionException` / `IScreenDevice`），只交出 `ScreenGrab` 与 `CaptureWay`；Core 用
+  `ProjectReference` 引它，把 `ScreenGrab` 收成 `ImageFrame`、把它的失败收成 `Run.*` 文案键。
 - 引擎中不得 `using Avalonia`，界面中不得直接调 `SharpHook` / `OpenCV`；两者通过
   `WhaleGenie.Core.Devices` 的设备接口与 `ExecutableStep` 交互。
 
@@ -45,6 +49,7 @@ dotnet run --project WhaleGenie                  # 启动程序
 | 层 | 项目 | 验证内容 |
 | --- | --- | --- |
 | 纯逻辑 | `WhaleGenie.Core.Tests` | 引擎每一步、变量与表达式、宏包往返；跑在替身设备层上 |
+| 画面获取 | `WhaleGenie.GraphicsCapture.Tests` | 选路次序、会话缓存与复用、图片落位、矩形越界；真正调用 Windows 取画面那几条按手动用例过 |
 | 界面 | `WhaleGenie.Tests` | 参数成型、触发器比对、文案完整性，以及真的发鼠标与按键的无头用例（`Ui.Run`） |
 | 性能 | — | 抓屏与识别的单位成本，量一次记在 `doc/性能测试.md`：改画面获取或匹配算法之后重测一遍与表里比 |
 | 手动 | — | 真实输入、抓屏取色、UIA 拾取、页面拾取、录制、窗口布局 |
@@ -182,20 +187,31 @@ dotnet run --project WhaleGenie                  # 启动程序
 
 ### 画面获取
 
-读屏幕有两套图形设备，都放在 `WhaleGenie.Core.Devices.Platform` 里、都各自占一条自己的线程（`OneThread`），
-因为调用方既有引擎线程也有界面线程：
+读屏幕有四条路，都在 `WhaleGenie.GraphicsCapture` 里，各自占一条自己的线程（`OneThread`），因为调用方既有
+引擎线程也有界面线程：
 
-- **窗口**走 `GraphicsCapture`（Zaya.Screenshot 包装的 Windows Graphics Capture）：一个窗口一个会话，会话
-  留着不开关——开一次要 0.4 秒上下，关掉再开还会让 Windows 画的那圈捕获提示边框跟着闪；库认不出的窗口
-  （分层窗口、设置页、输入法候选、显卡覆盖层）试一次就记下来，不再每次重试。
-- **整屏**走 `DesktopDuplicator`（Vortice 包装的 DXGI 桌面复制）：显卡正在合成的整块画面复制进我们自己的
-  纹理，整屏 2 毫秒，比 GDI 复制屏幕快十几倍，独占全屏的游戏也只有它取得到；点了「桌面复制（DXGI）」，
-  或读屏幕那一档是「自动」，都先问它，读不了（HDR、屏幕转着用、被别的程序复制着、没有能复制的显卡）在
-  自动那一路退回 GDI、点名的档位则如实报出来。它交给调用方的永远是新的一份像素，画面没有重新画过时给的
-  是手里那张的裁切。
+- **Graphics Capture**（`WindowsGraphicsCapture`）是自己写的：.NET 目标框架带的 WinRT 类型库给出
+  `GraphicsCaptureItem` / `Direct3D11CaptureFramePool` / `GraphicsCaptureSession`，两个类型库没带的接口
+  （`IGraphicsCaptureItemInterop` 与 `IGraphicsCaptureSession3`）在 `Interop` 里自己声明，帧所在的显存纹理
+  用 Vortice 的 `IDirect3DDxgiInterfaceAccess` 拿到。窗口与显示器各留一个会话——开一次要 0.4 秒上下，
+  关掉再开还会让 Windows 画的那圈捕获提示边框跟着闪；会话要 `Dispose()`（内部是 `Close()`）而不是只丢引用，
+  否则设备与帧池都留着。认不出的窗口（分层窗口、设置页、输入法候选、显卡覆盖层）试一次就记下来。
+  Windows 11 上顺带把系统那圈捕获边框关掉（`IGraphicsCaptureSession3`），Windows 10 19045 及更早没有这个接口，
+  拿不到就当没这回事。**窗口取到的是它的可见外框**：不是 `GetWindowRect` 那个外框（多出看不见的拉伸边框），
+  所以位置用 `DwmGetWindowAttribute(DWMWA_EXTENDED_FRAME_BOUNDS)` 算，差几个像素落点就偏几个像素。
+- **桌面复制**（`DesktopDuplicator`，Vortice 包装的 DXGI）：显卡正在合成的整块画面复制进我们自己的纹理，
+  整屏 2 毫秒，比 GDI 复制屏幕快十几倍，独占全屏的游戏也只有它取得到；读不了（HDR、屏幕转着用、被别的
+  程序复制着、没有能复制的显卡）就如实报出来，只有「自动」那一路会退回 GDI。它交给调用方的永远是新的一份
+  像素，画面没有重新画过时给的是手里那张的裁切。
+- **屏幕 GDI**（`WindowsDesktop.Copy`）：BitBlt 复制，不要求显卡，总能取到点什么。
+- **PrintWindow**（`WindowsDesktop.Print`）：让窗口自己画一遍，取到整窗含标题栏。
 
-两套都只认 `ImageFrame` 的 BGRA 布局，取不到就报出来让上层换路，不做像素格式转换；单位成本记在
-`doc/performance.md`，改动画面获取之后重测一遍。
+`ScreenGrabber` 决定先试哪一路、会话留多久：一条路失败就换下一条（`CaptureUnavailableException` /
+`CaptureFailedException`），最后一条不留退路。交出来的 `ScreenGrab` 永远是要的那块矩形、永远在那块矩形的
+位置上（`Placement`），源上没有的部分留黑——所以 Core 侧不需要再回传"图片落在哪儿"。
+
+四条路都只认 BGRA 布局、一行接一行无行距（`ScreenGrab`），取不到就报出来让上层换路，不做像素格式转换；
+单位成本记在 `doc/performance.md`，改动画面获取之后重测一遍。
 
 ### 并发模型
 
@@ -203,6 +219,10 @@ dotnet run --project WhaleGenie                  # 启动程序
 （`MacroTriggerService.Start` 每个宏一个 `Task.Run`，`_running` 保证同一宏不会出现第二个实例）。单个工作
 单元内部可以多线程（截图、找图找色的算法、OCR），这是实现细节。编辑器"运行"也在后台线程，由
 `UiThreadRunHost` 把要展示的内容搬回界面线程。
+
+画面获取那几条路各有自己的线程（`OneThread`），因为同一份画面既会被引擎线程读（步骤、条件、试找），也会
+被界面线程读（预览、识别结果）：调进去是同步等待，等待期间干活的是它自己那条线程。显卡设备与帧池因此只被
+一条线程碰，不需要为它们上锁。
 
 ## 实现约束
 
