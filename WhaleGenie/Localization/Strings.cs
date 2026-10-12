@@ -113,6 +113,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.SystemEnableHint"] = "Press Home to enable",
         ["Main.SystemDisableHint"] = "Press Home to disable",
         ["Main.MacroRunning"] = "Running",
+        ["Main.RunDebug"] = "Run and Debug",
         ["Main.AlwaysOnTop"] = "Always on Top",
         ["Main.AlwaysOnTopCancel"] = "Stop Staying on Top",
 
@@ -821,10 +822,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Recover.Restore"] = "Recover",
         ["Recover.Discard"] = "Discard",
 
-        // -------------------------------------------------------- variable center
-        ["Variable.Title"] = "Variable Center",
+        // -------------------------------------------------------------- variables
         ["Variable.Note"] = "A macro can read system and global variables, and change a global one. "
-            + "Only this window creates globals. A local variable belongs to the macro that created it "
+            + "Only the run-and-debug window creates globals. A local variable belongs to the macro that created it "
             + "and cannot be read by the other macros in the list.",
         ["Variable.System"] = "System Variables",
         ["Variable.SystemHint"] = "Provided by WhaleGenie and read live here. A macro can read them but never change them.",
@@ -876,6 +876,10 @@ public sealed class Strings : INotifyPropertyChanged
 
         // ------------------------------------------------------------ run and debug
         ["Run.Title"] = "Run and Debug",
+        ["Run.Page.Debug"] = "Debug",
+        ["Run.Page.Variables"] = "Variables",
+        ["Run.DebugFromCard"] = "Right-click a macro in the list to start debugging it.",
+        ["Run.DebugSwitched"] = "Stopped the run of \"{0}\" to debug \"{1}\".",
         ["Run.Run"] = "Run",
         ["Run.Step"] = "Step",
         ["Run.Continue"] = "Continue",
@@ -908,7 +912,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BadList"] = "The value is not a list: {0}",
         ["Run.NotAList"] = "{0} is not a list",
         ["Run.IndexOutOfRange"] = "That position is outside the list: {0}",
-        ["Run.GlobalMustExist"] = "Only the Variable Center creates shared variables, and {0} does not exist",
+        ["Run.GlobalMustExist"] =
+            "Only the run-and-debug window creates shared variables, and {0} does not exist",
         ["Run.MissingVariable"] = "No variable name was given",
         ["Run.NoKeys"] = "The run has no key combination to send.",
         ["Run.KeysSent"] = "Sent {0} key combination(s).",
@@ -1141,7 +1146,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.Caught"] = "The attempt failed, so the catch steps are running.",
         ["Run.Finally"] = "Running the clean-up steps.",
         ["Add.SystemReadOnly"] = "\"{0}\" is a system variable, which a macro can only read.",
-        ["Add.GlobalMustExist"] = "Global variable \"{0}\" does not exist. Create it in the Variable Center first.",
+        ["Add.GlobalMustExist"] =
+            "Global variable \"{0}\" does not exist. Create it in the run-and-debug window first.",
     };
 
     internal static readonly Dictionary<string, string> Chinese = new()
@@ -1183,6 +1189,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.SystemEnableHint"] = "按 Home 键启用",
         ["Main.SystemDisableHint"] = "按 Home 键停用",
         ["Main.MacroRunning"] = "运行中",
+        ["Main.RunDebug"] = "运行调试",
         ["Main.AlwaysOnTop"] = "窗口置顶",
         ["Main.AlwaysOnTopCancel"] = "取消置顶",
 
@@ -1815,9 +1822,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Recover.Restore"] = "恢复",
         ["Recover.Discard"] = "丢弃",
 
-        // -------------------------------------------------------- variable center
-        ["Variable.Title"] = "变量中心",
-        ["Variable.Note"] = "宏可以读取系统变量和全局变量，也可以修改全局变量的值；只有变量中心能创建全局变量。"
+        // -------------------------------------------------------------- variables
+        ["Variable.Note"] = "宏可以读取系统变量和全局变量，也可以修改全局变量的值；只有运行调试窗口能创建全局变量。"
             + "局部变量只属于创建它的宏，宏列表里的其他宏读取不到。",
         ["Variable.System"] = "系统变量",
         ["Variable.SystemHint"] = "由鲸灵提供，这里实时读取当前值；宏只能读取，不能修改。",
@@ -1867,6 +1873,10 @@ public sealed class Strings : INotifyPropertyChanged
 
         // ------------------------------------------------------------ run and debug
         ["Run.Title"] = "运行与调试",
+        ["Run.Page.Debug"] = "调试",
+        ["Run.Page.Variables"] = "变量",
+        ["Run.DebugFromCard"] = "从主列表里右键某个宏，就能开始调试它。",
+        ["Run.DebugSwitched"] = "已停止“{0}”的运行，改为调试“{1}”。",
         ["Run.Run"] = "运行",
         ["Run.Step"] = "单步",
         ["Run.Continue"] = "继续",
@@ -1899,7 +1909,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BadList"] = "这个值不是列表：{0}",
         ["Run.NotAList"] = "{0} 不是列表",
         ["Run.IndexOutOfRange"] = "下标超出列表范围：{0}",
-        ["Run.GlobalMustExist"] = "只有变量中心能创建全局变量，而 {0} 还不存在",
+        ["Run.GlobalMustExist"] = "只有运行调试窗口能创建全局变量，而 {0} 还不存在",
         ["Run.MissingVariable"] = "没有填写变量名",
         ["Run.NoKeys"] = "这条序列里一个组合键都没有。",
         ["Run.KeysSent"] = "发出了 {0} 个组合键。",
@@ -2118,7 +2128,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.Caught"] = "执行失败，转入捕获步骤。",
         ["Run.Finally"] = "正在执行收尾步骤。",
         ["Add.SystemReadOnly"] = "“{0}”是系统变量，宏只能读取，不能修改。",
-        ["Add.GlobalMustExist"] = "全局变量“{0}”不存在，请先在变量中心创建。",
+        ["Add.GlobalMustExist"] = "全局变量“{0}”不存在，请先在运行调试窗口里创建。",
 
         ["Run.WaitedFor"] = "等待在 {0} 毫秒后成立：{1}。",
         ["Run.WaitGaveUp"] = "等了 {0} 毫秒仍不成立，按设置继续往下走：{1} 一直没有成立。",

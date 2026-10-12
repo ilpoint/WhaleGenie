@@ -13,6 +13,7 @@ using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
@@ -70,6 +71,40 @@ public sealed record RunLineViewModel(string Time, LogLevel Level, Thickness Ind
 /// <summary>One variable the run can see.</summary>
 public sealed record WatchedVariable(string Name, string Scope, string Value);
 
+/// <summary>Which half of the run-and-debug window is showing.</summary>
+public enum RunPage
+{
+    /// <summary>The steps, how each of them went, the variables in play and the log.</summary>
+    Debug,
+
+    /// <summary>Which variables there are, and the shared ones' own fields.</summary>
+    Variables,
+}
+
+/// <summary>The three pages the variables half is divided into.</summary>
+public enum VariableTab
+{
+    /// <summary>Everything the macros in the list can use right now.</summary>
+    Current,
+
+    /// <summary>Only the variables a macro created for itself.</summary>
+    Local,
+
+    /// <summary>Only the shared variables, which are edited here.</summary>
+    Global,
+
+    /// <summary>Only the variables WhaleGenie provides.</summary>
+    System,
+}
+
+/// <summary>The local variables one macro created, grouped under the macro's name.</summary>
+public sealed class MacroVariableGroup
+{
+    public required string MacroName { get; init; }
+
+    public required IReadOnlyList<VariableDefinition> Variables { get; init; }
+}
+
 /// <summary>How one step of the macro went, for the list beside the variables.</summary>
 public sealed record StepOutcome(string Name, string Label, string Value)
 {
@@ -99,23 +134,76 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// <summary>The looks still held, newest last, with the step each belongs to.</summary>
     private readonly List<(string StepId, StepLook Look, long Bytes)> _looks = [];
 
-    private readonly IReadOnlyList<ExecutableStep> _steps;
+    /// <summary>
+    /// The steps being debugged. The window is opened from the macro list and stays where it is, so
+    /// asking it to debug another macro replaces these rather than opening a second window over the
+    /// same list.
+    /// </summary>
+    private IReadOnlyList<ExecutableStep> _steps;
+
     private readonly VariableStore _variables;
     private readonly IDeviceLayer _devices;
     private readonly double _delayScale;
-    private readonly IMacroLibrary _macros;
-    private readonly HashSet<string> _watched;
     private readonly bool _ownsDevices;
     private readonly HashSet<string> _breakpoints = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The macros this run may call, when the window was handed them outright: the editor's own run
+    /// knows exactly which steps are being run, and it is those the macro being debugged is.
+    /// </summary>
+    private readonly IMacroLibrary? _macros;
+
+    /// <summary>The names worth watching, read off the macro that is loaded.</summary>
+    private HashSet<string> _watched;
+
+    /// <summary>The macros in the list, which is what the variables in use are read off: the window
+    /// asks what the whole project can use, not only what the macro being debugged touches.</summary>
+    private readonly IReadOnlyList<MacroItem> _listed;
+
+    /// <summary>How big the screen is, for the two rows that report it.</summary>
+    private readonly int _screenWidth;
+    private readonly int _screenHeight;
+
+    private string _clipboard = string.Empty;
+    private readonly List<VariableDefinition> _clipboardRows = [];
 
     private CancellationTokenSource? _cancellation;
     private TaskCompletionSource<bool>? _gate;
     private TaskCompletionSource<StepErrorChoice>? _answer;
+    private TaskCompletionSource? _ended;
+    private string? _runNote;
     private bool _stopAtNextStep;
     private string? _currentId;
 
     /// <summary>Raised when the window should close itself.</summary>
     public event Action? CloseRequested;
+
+    private string _debugged = string.Empty;
+
+    /// <summary>The name of the macro being debugged, or empty when this window has none.</summary>
+    public string Debugged
+    {
+        get => _debugged;
+        private set
+        {
+            if (_debugged == value)
+            {
+                return;
+            }
+
+            _debugged = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(WindowTitle));
+        }
+    }
+
+    /// <summary>
+    /// What the window calls what it is showing: the macro being debugged goes beside the title, so
+    /// that a window left open on one macro is not mistaken for another's.
+    /// </summary>
+    public string WindowTitle => Debugged.Length == 0
+        ? Strings.Get("Run.Title")
+        : $"{Strings.Get("Run.Title")} · {Debugged}";
 
     /// <summary>
     /// Called once the window is gone. The device layer is only let go when this window made
@@ -130,21 +218,121 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     }
 
     public RunViewModel(IEnumerable<MacroStep> steps, IDeviceLayer? devices = null, double delayScale = 1,
-        IMacroLibrary? macros = null)
+        IMacroLibrary? macros = null, IReadOnlyList<MacroItem>? listed = null)
     {
-        var source = steps as IReadOnlyList<MacroStep> ?? [.. steps];
-        _steps = source.ToExecutable();
         _ownsDevices = devices is null;
         _devices = devices ?? new WindowsDeviceLayer();
         _delayScale = delayScale;
-        _macros = macros ?? EmptyMacroLibrary.Instance;
-        _watched = VariablesUsed(source);
+        _macros = macros;
+        _listed = listed ?? [];
         _variables = MacroVariables.Seed();
+        NewType = Types[0];
 
+        (_screenWidth, _screenHeight) = ScreenSize();
+
+        // Nothing is loaded yet, so the compiler is told what every path sets before it reads them.
+        _steps = [];
+        _watched = [];
+
+        Globals.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasGlobals));
+
+        Load(steps);
+        Rebuild();
+    }
+
+    /// <summary>
+    /// Points the window at a macro: what it debugs, in the order it runs. What the last macro left
+    /// behind goes with it — breakpoints, the pictures it looked at and the lines it wrote are about
+    /// the steps that are no longer there.
+    /// </summary>
+    public void Load(IEnumerable<MacroStep> steps)
+    {
+        var source = steps as IReadOnlyList<MacroStep> ?? [.. steps];
+        _steps = source.ToExecutable();
+        _watched = VariablesUsed(source);
+
+        _breakpoints.Clear();
+        Steps.Clear();
+        Lines.Clear();
+        ShowStepOutcomes = false;
+        ReleaseLooks();
         Build(_steps, 0);
         RefreshVariables();
+
+        // Opening the window on a macro is about to debug it; opening it with nothing to debug is
+        // about the variables, because there is nothing else to show.
+        Page = _steps.Count == 0 ? RunPage.Variables : RunPage.Debug;
         Status = _steps.Count == 0 ? Strings.Get("Run.Empty") : Strings.Get("Run.Ready");
     }
+
+    /// <summary>
+    /// Debugs a macro, which is what the card's own menu asks for. One of these windows is open at a
+    /// time, so asking for a second macro puts its steps in this window and starts again; the run
+    /// that was going is stopped first, and the reason the log begins with is that a run which ends
+    /// early by itself looks like a failure.
+    /// </summary>
+    public async Task DebugAsync(MacroItem macro)
+    {
+        if (IsBusy && Debugged == macro.Name)
+        {
+            // The macro asked for is the one already running. Starting it again would throw away
+            // the run in progress, which is not what "debug this" means.
+            return;
+        }
+
+        var switched = IsBusy;
+        var was = Debugged;
+        if (switched && _ended is { } ending)
+        {
+            Stop();
+
+            // The steps the run is working through are about to be replaced, so wait for it to be
+            // over rather than pulling them out from under it.
+            await ending.Task;
+        }
+
+        Load(macro.Steps);
+        Debugged = macro.Name;
+        if (switched)
+        {
+            _runNote = Strings.Format("Run.DebugSwitched", was, macro.Name);
+            Status = _runNote;
+        }
+
+        if (RunCommand.CanExecute(null))
+        {
+            RunCommand.Execute(null);
+        }
+    }
+
+    /// <summary>
+    /// How big the screen is, for the rows that report it. A machine that hands out no screen — a
+    /// run driven by a check on one, or a desktop opened without one — answers zero rather than
+    /// failing the window that asked.
+    /// </summary>
+    private (int Width, int Height) ScreenSize()
+    {
+        try
+        {
+            var size = _devices.Screen.PrimarySize;
+            return (size.Width, size.Height);
+        }
+        catch (Exception)
+        {
+            return (0, 0);
+        }
+    }
+
+    /// <summary>
+    /// The macros a run may call: the ones in the list as they stand, so a macro that was just
+    /// edited is the one called. A window handed its own library uses that instead, which is what
+    /// the editor's own run does — it knows exactly which steps are being run, saved or not.
+    /// </summary>
+    private IMacroLibrary Library => _macros ?? (_listed.Count == 0
+        ? EmptyMacroLibrary.Instance
+        : new ProjectMacroLibrary(_listed
+            .Where(macro => macro.Name.Trim().Length > 0)
+            .Select(macro => (macro.Name.Trim(), macro.Steps.ToExecutable()))));
 
     /// <summary>Every step of the macro, in the order it runs, nested ones indented.</summary>
     public ObservableCollection<RunStepViewModel> Steps { get; } = [];
@@ -176,6 +364,20 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     public bool HasVariables => Variables.Count > 0;
 
     public bool HasSteps => Steps.Count > 0;
+
+    /// <summary>Which half of the window is showing: the steps, or the variables.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDebugPage))]
+    [NotifyPropertyChangedFor(nameof(IsVariablesPage))]
+    public partial RunPage Page { get; set; }
+
+    public bool IsDebugPage => Page is RunPage.Debug;
+
+    public bool IsVariablesPage => Page is RunPage.Variables;
+
+    [RelayCommand]
+    private void SelectPage(string? page)
+        => Page = page == nameof(RunPage.Variables) ? RunPage.Variables : RunPage.Debug;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RunCommand))]
@@ -283,6 +485,17 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     private async Task RunAsync()
     {
         Lines.Clear();
+
+        // A run asked for after another one was stopped says why the first one ended: a run that
+        // stopped by itself and one that was stopped on the way to this read the same otherwise.
+        if (_runNote is { } note)
+        {
+            _runNote = null;
+            Lines.Add(new RunLineViewModel(
+                DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
+                LogLevel.Warn, default, note));
+        }
+
         IsBusy = true;
         Status = Strings.Get("Run.Running");
         IsAsking = false;
@@ -290,11 +503,13 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
         using var cancellation = new CancellationTokenSource();
         _cancellation = cancellation;
+        var ended = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _ended = ended;
 
         try
         {
             var runner = new MacroRunner(
-                _variables, new UiThreadRunHost(this), _devices, _delayScale, _macros, this)
+                _variables, new UiThreadRunHost(this), _devices, _delayScale, Library, this)
             {
                 FailureScreenshot = LocalSettings.LoadFailureScreenshot(),
                 FailureFolder = AppPaths.Logs,
@@ -309,6 +524,8 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         finally
         {
             _cancellation = null;
+            _ended = null;
+            ended.TrySetResult();
             IsBusy = false;
             _stopAtNextStep = false;
             CurrentId = null;
@@ -698,6 +915,467 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         foreach (var name in WhaleGenie.Core.Expressions.Expression.ReferencedNames(trimmed))
         {
             names.Add(name);
+        }
+    }
+
+    // ------------------------------------------------------------------- variables
+
+    /// <summary>Built-in variables, with the value they hold right now.</summary>
+    public ObservableCollection<VariableDefinition> SystemVariables { get; } = [];
+
+    /// <summary>Every variable the macros in the list use: global, then local, then built-in.</summary>
+    public ObservableCollection<VariableDefinition> CurrentVariables { get; } = [];
+
+    /// <summary>
+    /// The shared variables, as this window lists them. A copy rather than the catalogue itself: what
+    /// the window binds is read and written on the thread that owns windows, and the catalogue is
+    /// also written to from wherever a package is opened. The fields on the lines are the catalogue's
+    /// own variables, so editing one edits the shared variable; 「刷新」 puts the list back in step
+    /// when something outside has changed it.
+    /// </summary>
+    public ObservableCollection<VariableDefinition> Globals { get; } = [];
+
+    public bool HasGlobals => Globals.Count > 0;
+
+    /// <summary>Variables created inside each macro in the macro list.</summary>
+    public ObservableCollection<MacroVariableGroup> LocalVariables { get; } = [];
+
+    public bool HasLocalVariables => LocalVariables.Count > 0;
+
+    /// <summary>Which set of variables is listed: the ones in use, or one scope on its own.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsCurrentTab))]
+    [NotifyPropertyChangedFor(nameof(IsLocalTab))]
+    [NotifyPropertyChangedFor(nameof(IsGlobalTab))]
+    [NotifyPropertyChangedFor(nameof(IsSystemTab))]
+    public partial VariableTab SelectedTab { get; set; } = VariableTab.Current;
+
+    public bool IsCurrentTab => SelectedTab is VariableTab.Current;
+
+    public bool IsLocalTab => SelectedTab is VariableTab.Local;
+
+    public bool IsGlobalTab => SelectedTab is VariableTab.Global;
+
+    public bool IsSystemTab => SelectedTab is VariableTab.System;
+
+    /// <summary>Whether the "in use" list also shows the built-in variables a macro touched.</summary>
+    [ObservableProperty]
+    public partial bool ShowSystemVariables { get; set; }
+
+    public bool HasCurrentVariables => CurrentVariables.Count > 0;
+
+    partial void OnShowSystemVariablesChanged(bool value) => RebuildCurrent();
+
+    [RelayCommand]
+    private void SelectTab(string? tab) => SelectedTab = tab switch
+    {
+        nameof(VariableTab.Local) => VariableTab.Local,
+        nameof(VariableTab.Global) => VariableTab.Global,
+        nameof(VariableTab.System) => VariableTab.System,
+        _ => VariableTab.Current,
+    };
+
+    /// <summary>The types a shared variable can be made of, named the way the fields name them.</summary>
+    public IReadOnlyList<ActionParameterOption> Types { get; } =
+    [
+        .. VariableDefinition.TypeNames.Select(name =>
+            new ActionParameterOption(name, Strings.Get($"Variable.Type.{name}", name))),
+    ];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ValidationMessage))]
+    [NotifyPropertyChangedFor(nameof(CanAdd))]
+    [NotifyCanExecuteChangedFor(nameof(AddGlobalCommand))]
+    public partial string NewName { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NewTypeIsList))]
+    [NotifyPropertyChangedFor(nameof(NewDefaultPreview))]
+    [NotifyPropertyChangedFor(nameof(NewDefaultHasError))]
+    [NotifyPropertyChangedFor(nameof(ShowNewDefaultSummary))]
+    [NotifyPropertyChangedFor(nameof(CanAdd))]
+    [NotifyCanExecuteChangedFor(nameof(AddGlobalCommand))]
+    public partial ActionParameterOption NewType { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NewDefaultPreview))]
+    [NotifyPropertyChangedFor(nameof(NewDefaultHasError))]
+    [NotifyPropertyChangedFor(nameof(ShowNewDefaultSummary))]
+    [NotifyPropertyChangedFor(nameof(ValidationMessage))]
+    [NotifyPropertyChangedFor(nameof(CanAdd))]
+    [NotifyCanExecuteChangedFor(nameof(AddGlobalCommand))]
+    public partial string NewDefault { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string NewDescription { get; set; } = string.Empty;
+
+    /// <summary>Explains why a new shared variable cannot be added yet.</summary>
+    public string ValidationMessage
+    {
+        get
+        {
+            var name = NewName.Trim();
+            if (name.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            if (VariableCatalog.IsSystem(name))
+            {
+                return Strings.Format("Variable.NameIsSystem", name);
+            }
+
+            if (VariableCatalog.IsGlobal(name))
+            {
+                return Strings.Format("Variable.NameTaken", name);
+            }
+
+            return NewDefaultHasError ? Strings.Get("Variable.InvalidDefault") : string.Empty;
+        }
+    }
+
+    public bool CanAdd => NewName.Trim().Length > 0 && ValidationMessage.Length == 0;
+
+    /// <summary>True while the type chosen for a new shared variable holds a list.</summary>
+    public bool NewTypeIsList => NewType.Value is "list";
+
+    /// <summary>How the starting value of the new shared variable reads, showing what a list holds.</summary>
+    public string NewDefaultPreview => VariableDefinition.Preview(NewType.Value, NewDefault);
+
+    /// <summary>True while the starting value of the new shared variable cannot be read.</summary>
+    public bool NewDefaultHasError => VariableDefinition.HasError(NewType.Value, NewDefault);
+
+    /// <summary>True while the new variable's preview shows what a list holds.</summary>
+    public bool ShowNewDefaultSummary => NewTypeIsList && !NewDefaultHasError;
+
+    /// <summary>Reads the built-in variables again and re-lists the macro variables.</summary>
+    public void Rebuild()
+    {
+        SystemVariables.Clear();
+        _clipboardRows.Clear();
+
+        Globals.Clear();
+        foreach (var shared in VariableCatalog.Globals)
+        {
+            Globals.Add(shared);
+        }
+
+        foreach (var variable in VariableCatalog.SystemVariables)
+        {
+            var row = new VariableDefinition
+            {
+                Name = variable.Name,
+                Scope = variable.Scope,
+                Type = variable.Type,
+                Description = variable.Description,
+                DefaultValue = variable.DefaultValue,
+            };
+
+            row.CurrentValue = variable.Name == "sys.clipboard"
+                ? _clipboard
+                : SystemVariableReader.Read(variable.Name, _screenWidth, _screenHeight);
+
+            if (variable.Name == "sys.clipboard")
+            {
+                _clipboardRows.Add(row);
+            }
+
+            SystemVariables.Add(row);
+        }
+
+        LocalVariables.Clear();
+        foreach (var macro in _listed)
+        {
+            var names = macro.LocalVariableNames();
+            if (names.Count == 0)
+            {
+                continue;
+            }
+
+            LocalVariables.Add(new MacroVariableGroup
+            {
+                MacroName = macro.Name,
+                Variables =
+                [
+                    .. names.Select(name => new VariableDefinition
+                    {
+                        Name = name,
+                        Scope = VariableScope.Local,
+                        Owner = macro.Name,
+                        Description = Strings.Get("Variable.LocalDescription"),
+                        CurrentValue = Strings.Get("Variable.NotSet"),
+                    }),
+                ],
+            });
+        }
+
+        OnPropertyChanged(nameof(HasLocalVariables));
+        RebuildCurrent();
+    }
+
+    /// <summary>
+    /// Lists the variables the macros in the list actually use, with the scope and the macros that
+    /// use them, so their state can be checked before a macro runs. A name a macro uses but no step
+    /// defines is called out, which is usually a typo.
+    /// </summary>
+    private void RebuildCurrent()
+    {
+        CurrentVariables.Clear();
+
+        var system = VariableCatalog.SystemVariables
+            .ToDictionary(variable => variable.Name, StringComparer.OrdinalIgnoreCase);
+        var globals = VariableCatalog.Globals
+            .ToDictionary(variable => variable.Name, StringComparer.OrdinalIgnoreCase);
+        var live = SystemVariables
+            .ToDictionary(variable => variable.Name, variable => variable.CurrentValue,
+                StringComparer.OrdinalIgnoreCase);
+
+        var used = new Dictionary<string, Usage>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var macro in _listed)
+        {
+            var locals = macro.LocalVariableNames().ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var known = new HashSet<string>(system.Keys, StringComparer.OrdinalIgnoreCase);
+            known.UnionWith(globals.Keys);
+            known.UnionWith(locals);
+
+            foreach (var name in UsedNames(macro, known))
+            {
+                var scope = locals.Contains(name) ? VariableScope.Local
+                    : globals.ContainsKey(name) ? VariableScope.Global
+                    : system.ContainsKey(name) ? VariableScope.System
+                    : VariableScope.Unknown;
+
+                if (scope is VariableScope.System && !ShowSystemVariables)
+                {
+                    continue;
+                }
+
+                // Two macros can each own a local variable with the same name.
+                var key = scope is VariableScope.Local ? $"{name}\u0000{macro.Name}" : name;
+                if (!used.TryGetValue(key, out var usage))
+                {
+                    usage = new Usage(name, scope);
+                    used[key] = usage;
+                }
+
+                usage.Owners.Add(macro.Name);
+            }
+        }
+
+        foreach (var usage in used.Values
+                     .OrderBy(entry => RankOf(entry.Scope))
+                     .ThenBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            var row = new VariableDefinition
+            {
+                Name = usage.Name,
+                Scope = usage.Scope,
+                Owner = string.Join(", ", usage.Owners),
+                Description = DescriptionOf(usage, system, globals),
+                Type = TypeOf(usage, system, globals),
+                CurrentValue = ValueOf(usage, system, globals, live),
+            };
+
+            if (usage.Scope is VariableScope.System && usage.Name == "sys.clipboard")
+            {
+                _clipboardRows.Add(row);
+            }
+
+            CurrentVariables.Add(row);
+        }
+
+        OnPropertyChanged(nameof(HasCurrentVariables));
+    }
+
+    /// <summary>Which variables a macro reads: the ones it defines, plus the ones it names.</summary>
+    private static SortedSet<string> UsedNames(MacroItem macro, IReadOnlySet<string> known)
+    {
+        var names = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var step in macro.Steps)
+        {
+            Collect(step);
+        }
+
+        return names;
+
+        void Collect(MacroStep step)
+        {
+            foreach (var parameter in step.Parameters)
+            {
+                switch (parameter.Kind)
+                {
+                    case ActionParameterKind.Steps:
+                        foreach (var child in parameter.Steps)
+                        {
+                            Collect(child);
+                        }
+
+                        break;
+                    case ActionParameterKind.Condition:
+                        if (parameter.Condition is not null)
+                        {
+                            Collect(parameter.Condition);
+                        }
+
+                        break;
+                    default:
+                        // A list parameter keeps its values in rows: whichever of them names a
+                        // variable is one the macro reads, the same as any plain field that starts
+                        // with a "$".
+                        foreach (var value in
+                            parameter.IsRowList ? parameter.RowValues : [parameter.Value])
+                        {
+                            Plain(step, parameter, value);
+                        }
+
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// One value the macro reads: a whole-value expression may name several variables anywhere
+        /// inside it, a plain field names one when it starts with a "$", and a field that always
+        /// names a variable counts even when nothing defines it — which is worth showing while
+        /// debugging.
+        /// </summary>
+        void Plain(MacroStep step, StepParameter parameter, string value)
+        {
+            var text = value.Trim();
+            if (text.Length == 0)
+            {
+                return;
+            }
+
+            if (parameter.Kind is ActionParameterKind.Expression)
+            {
+                foreach (var reference in Expression.ReferencedNames(text))
+                {
+                    names.Add(reference);
+                }
+
+                return;
+            }
+
+            if (text.StartsWith('$'))
+            {
+                var reference = text[1..].Trim();
+                if (reference.Length > 0)
+                {
+                    names.Add(reference);
+                }
+
+                return;
+            }
+
+            if (known.Contains(text))
+            {
+                names.Add(text);
+                return;
+            }
+
+            // A parameter that always names a variable can point at a name nothing defines, which
+            // is worth showing while debugging.
+            var declares = step.Definition?.Parameters
+                .FirstOrDefault(candidate => candidate.Name == parameter.Name)?.NamesVariable;
+            if (declares == true)
+            {
+                names.Add(text);
+            }
+        }
+    }
+
+    private static int RankOf(VariableScope scope) => scope switch
+    {
+        VariableScope.Global => 0,
+        VariableScope.Local => 1,
+        VariableScope.System => 2,
+        _ => 3,
+    };
+
+    private static string DescriptionOf(Usage usage,
+        IReadOnlyDictionary<string, VariableDefinition> system,
+        IReadOnlyDictionary<string, VariableDefinition> globals) => usage.Scope switch
+        {
+            VariableScope.System when system.TryGetValue(usage.Name, out var builtIn) => builtIn.LocalDescription,
+            VariableScope.Global when globals.TryGetValue(usage.Name, out var shared) => shared.Description,
+            VariableScope.Local => Strings.Get("Variable.LocalDescription"),
+            _ => Strings.Get("Variable.UnknownHint"),
+        };
+
+    private static string TypeOf(Usage usage,
+        IReadOnlyDictionary<string, VariableDefinition> system,
+        IReadOnlyDictionary<string, VariableDefinition> globals)
+        => usage.Scope switch
+        {
+            VariableScope.System when system.TryGetValue(usage.Name, out var builtIn) => builtIn.Type,
+            VariableScope.Global when globals.TryGetValue(usage.Name, out var shared) => shared.Type,
+            _ => "text",
+        };
+
+    private static string ValueOf(Usage usage,
+        IReadOnlyDictionary<string, VariableDefinition> system,
+        IReadOnlyDictionary<string, VariableDefinition> globals,
+        IReadOnlyDictionary<string, string> live)
+        => usage.Scope switch
+        {
+            VariableScope.System when live.TryGetValue(usage.Name, out var current) => current,
+            VariableScope.Global when globals.TryGetValue(usage.Name, out var shared)
+                && shared.DefaultValue.Length > 0 => VariableDefinition.Preview(shared.Type, shared.DefaultValue),
+            _ => Strings.Get("Variable.NotSet"),
+        };
+
+    /// <summary>One variable in use, together with the macros that use it.</summary>
+    private sealed class Usage(string name, VariableScope scope)
+    {
+        public string Name { get; } = name;
+
+        public VariableScope Scope { get; } = scope;
+
+        public SortedSet<string> Owners { get; } = new(StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Fills in the clipboard text, which cannot be read while the rows are built.</summary>
+    public void SetClipboard(string text)
+    {
+        _clipboard = text;
+        foreach (var row in _clipboardRows)
+        {
+            row.CurrentValue = text;
+        }
+    }
+
+    [RelayCommand]
+    private void Refresh() => Rebuild();
+
+    [RelayCommand(CanExecute = nameof(CanAdd))]
+    private void AddGlobal()
+    {
+        var created = new VariableDefinition
+        {
+            Name = NewName.Trim(),
+            Scope = VariableScope.Global,
+            Type = NewType.Value,
+            DefaultValue = NewDefault.Trim(),
+            Description = NewDescription.Trim(),
+        };
+
+        VariableCatalog.Globals.Add(created);
+        Globals.Add(created);
+
+        NewName = string.Empty;
+        NewDefault = string.Empty;
+        NewDescription = string.Empty;
+    }
+
+    [RelayCommand]
+    private void RemoveGlobal(VariableDefinition? variable)
+    {
+        if (variable is not null)
+        {
+            VariableCatalog.Globals.Remove(variable);
+            Globals.Remove(variable);
         }
     }
 

@@ -44,7 +44,8 @@ public class VariableWarningTests
         AssertRed(Path.Combine("WhaleGenie", "Views", "AddActionWindow.axaml"),
             "Text=\"{Binding ValidationMessage}\"");
 
-        AssertRed(Path.Combine("WhaleGenie", "Views", "VariableCenterWindow.axaml"),
+        // The lines that list the variables a macro may not change live in the run-and-debug window.
+        AssertRed(Path.Combine("WhaleGenie", "Views", "RunWindow.axaml"),
             "Variable.SystemHint");
     }
 

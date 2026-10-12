@@ -258,15 +258,15 @@
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" Margin="12,0" VerticalAlignment="Center">
                 <TextBlock Text="{Binding Version}" Foreground="#E8E8E8" FontSize="12" VerticalAlignment="Center" />
-                <Button Classes="LabeledToolButton" Name="VariableCenterButton"
+                <Button Classes="LabeledToolButton" Name="RunDebugButton"
                         VerticalAlignment="Center"
-                        ToolTip.Tip="{Binding [Variable.Title], Source={x:Static loc:Strings.Current}}">
+                        ToolTip.Tip="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <!-- Filled bars: PathIcon paints with a fill, so lines alone stay invisible. -->
                         <PathIcon Width="14" Height="14" Foreground="#DADADA"
                                   Data="M 2,3.2 H 14 V 4.8 H 2 Z M 2,7.2 H 10.4 V 8.8 H 2 Z M 2,11.2 H 14 V 12.8 H 2 Z" />
                         <TextBlock FontSize="12.5" Foreground="#E8E8E8" VerticalAlignment="Center"
-                                   Text="{Binding [Variable.Title], Source={x:Static loc:Strings.Current}}" />
+                                   Text="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
                 </Button>
                 <Button Classes="ToolButton" Name="SettingsButton"
@@ -292,6 +292,19 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:MacroItem">
                         <Border Background="#2A2A2A" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                            <!-- The same three things the card's own buttons do, where a right click
+                                 goes looking for them: debugging a macro is the one that has no
+                                 button of its own. -->
+                            <Border.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}"
+                                              Click="OnDebugMacroClicked" />
+                                    <MenuItem Header="{Binding [Main.EditTip], Source={x:Static loc:Strings.Current}}"
+                                              Click="OnEditMacroClicked" />
+                                    <MenuItem Header="{Binding [Main.DeleteTip], Source={x:Static loc:Strings.Current}}"
+                                              Click="OnDeleteMacroClicked" />
+                                </ContextMenu>
+                            </Border.ContextMenu>
                             <Grid RowDefinitions="Auto,Auto">
                                 <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">

@@ -34,6 +34,13 @@ public partial class MainWindow : Window
     /// </summary>
     private MacroEditorWindow? _editor;
 
+    /// <summary>
+    /// The run-and-debug window on screen, or null while there is none. One at a time for the same
+    /// reason: it debugs one macro, and asking for another puts those steps in the window that is
+    /// already open rather than laying a second one over the same list.
+    /// </summary>
+    private RunWindow? _runDebug;
+
     /// <summary>Whether the pin on the menu bar is holding the window above the other windows.</summary>
     private bool _alwaysOnTop;
 
@@ -132,10 +139,10 @@ public partial class MainWindow : Window
             settingsButton.Click += OnOpenSettings;
         }
 
-        var variableCenterButton = this.FindControl<Button>("VariableCenterButton");
-        if (variableCenterButton is not null)
+        var runDebugButton = this.FindControl<Button>("RunDebugButton");
+        if (runDebugButton is not null)
         {
-            variableCenterButton.Click += async (_, _) => await ShowVariableCenterAsync();
+            runDebugButton.Click += async (_, _) => await ShowRunDebugAsync();
         }
 
         var alwaysOnTopButton = this.FindControl<Button>("AlwaysOnTopButton");
@@ -457,23 +464,55 @@ public partial class MainWindow : Window
         _triggers = null;
     }
 
-    /// <summary>Opens the Variable Center, listing the variables the macros can use.</summary>
-    private async Task ShowVariableCenterAsync()
+    /// <summary>
+    /// Opens the run-and-debug window, or brings the one already open to the front. Asked for
+    /// without a macro it shows the variables and nothing to run: where a debug run starts from is
+    /// the card's own menu, which says which macro it is about.
+    /// </summary>
+    private async Task ShowRunDebugAsync(MacroItem? macro = null)
     {
         if (DataContext is not MainViewModel viewModel)
         {
             return;
         }
 
-        // The shared variables are written into the package with the macros, so adding or editing
-        // one is a change to the project like any other — and nothing on the macro list moves when
-        // it happens, so this is the one place that can notice it.
-        var before = MainViewModel.SharedVariables();
-        await new VariableCenterWindow(viewModel.Macros).ShowDialogOver(this);
-
-        if (MainViewModel.SharedVariablesChangedSince(before))
+        if (_runDebug is { } open)
         {
-            viewModel.MarkSharedVariablesChanged();
+            open.Activate();
+            if (macro is not null)
+            {
+                await open.DebugAsync(macro);
+            }
+
+            return;
+        }
+
+        // The shared variables are written into the package with the macros, so creating or editing
+        // one is a change to the project like any other — and nothing on the macro list moves when
+        // it happens, so this is the one place that can notice it. The window is not modal, so when
+        // it is closed is when to look.
+        var before = MainViewModel.SharedVariables();
+
+        var window = new RunWindow([], listed: [.. viewModel.Macros]);
+        _runDebug = window;
+        window.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_runDebug, window))
+            {
+                _runDebug = null;
+            }
+
+            if (MainViewModel.SharedVariablesChangedSince(before))
+            {
+                viewModel.MarkSharedVariablesChanged();
+            }
+        };
+
+        window.ShowOver(this);
+
+        if (macro is not null)
+        {
+            await window.DebugAsync(macro);
         }
     }
 
@@ -927,6 +966,20 @@ public partial class MainWindow : Window
         if (sender is Control { DataContext: MacroItem macro })
         {
             OpenEditor(macro, macro, draft: false);
+        }
+    }
+
+    /// <summary>
+    /// Debugs a macro: the one thing the card's own buttons do not do, so it lives in the menu a
+    /// right click opens. The window keeps the whole list, which is what its variables half lists.
+    /// </summary>
+    private async void OnDebugMacroClicked(object? sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+
+        if (sender is Control { DataContext: MacroItem macro })
+        {
+            await ShowRunDebugAsync(macro);
         }
     }
 
