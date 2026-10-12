@@ -1211,13 +1211,15 @@ internal static class ActionStrings
         ["window.move.compareBy.option.startsWith"] = WindowCompareStartsWith,
         ["window.move.compareBy.option.regex"] = WindowCompareRegex,
         ["window.move.x.label"] = "X",
-        ["window.move.x.hint"] = "窗口左边缘的屏幕横坐标，单位像素。",
+        ["window.move.x.hint"] = "窗口左边缘的屏幕横坐标，单位像素。按窗口被看见的样子算：Windows 留着"
+            + "用来拉伸的那圈边框不画出来也不算；`window.info` 交回来的那组数可以原样填在这里。",
         ["window.move.y.label"] = "Y",
-        ["window.move.y.hint"] = "窗口上边缘的屏幕纵坐标，单位像素。",
+        ["window.move.y.hint"] = "窗口上边缘的屏幕纵坐标，单位像素，和 X 一样按窗口被看见的样子算。",
         ["window.move.width.label"] = "宽度",
-        ["window.move.width.hint"] = "窗口的新宽度，单位像素。",
+        ["window.move.width.hint"] = "窗口要改成多宽，单位像素，同样按被看见的样子量，那圈看不见的"
+            + "边框不算。",
         ["window.move.height.label"] = "高度",
-        ["window.move.height.hint"] = "窗口的新高度，单位像素。",
+        ["window.move.height.hint"] = "窗口要改成多高，单位像素，和宽度一样算。",
 
         ["window.close.name"] = "关闭窗口",
         ["window.close.desc"] = "请求符合匹配内容的窗口关闭，相当于点它的关闭按钮。",
@@ -3490,7 +3492,9 @@ internal static class ActionStrings
         // window.info
         ["window.info.return.box.label"] = "窗口矩形",
         ["window.info.return.box.hint"] = "窗口的整块，写成 左,上,宽,高（也就是 屏幕 x,屏幕 y,宽,"
-            + "高）：填进搜索区域那一行的变量格里，下一步就在窗口里找。",
+            + "高）：填进搜索区域那一行的变量格里，下一步就在窗口里找。给的是窗口被看见的那个"
+            + "矩形：Windows 留着用来拉伸的那圈边框不画出来也不算，最大化的窗口按它在屏幕上的"
+            + "样子量。",
         ["window.info.return.x.label"] = "左边界",
         ["window.info.return.x.hint"] = "窗口左边界在屏幕上的横坐标，单位是屏幕像素。",
         ["window.info.return.y.label"] = "上边界",

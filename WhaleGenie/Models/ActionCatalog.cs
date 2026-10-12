@@ -1662,10 +1662,20 @@ public static class ActionCatalog
             Parameters =
             [
                 ..WindowTarget(),
-                Number("x", "X", 0, "Left edge, in screen pixels.", min: -100_000m, max: 100_000m),
-                Number("y", "Y", 0, "Top edge, in screen pixels.", min: -100_000m, max: 100_000m),
-                Number("width", "Width", 800, "New width in pixels.", min: 1m, max: 100_000m),
-                Number("height", "Height", 600, "New height in pixels.", min: 1m, max: 100_000m),
+                Number("x", "X", 0,
+                    "Left edge, in screen pixels, of the rectangle the window is seen at: the "
+                    + "border Windows keeps round it for resizing is not drawn and does not count. "
+                    + "The rectangle window.info hands over can be filled in here as it is.",
+                    min: -100_000m, max: 100_000m),
+                Number("y", "Y", 0,
+                    "Top edge, in screen pixels, counted the way X is.", min: -100_000m,
+                    max: 100_000m),
+                Number("width", "Width", 800,
+                    "How wide the window is to become, in pixels, measured the same way: as the "
+                    + "window is seen rather than as Windows stretches it.", min: 1m, max: 100_000m),
+                Number("height", "Height", 600,
+                    "How tall the window is to become, in pixels, counted the way the width is.",
+                    min: 1m, max: 100_000m),
             ],
         },
         new()
@@ -1713,7 +1723,9 @@ public static class ActionCatalog
             [
                 Return("box", "Rectangle", primary: true,
                     hint: "The window's rectangle, written as x,y,width,height so it can be used "
-                        + "as a search region."),
+                        + "as a search region. It is the rectangle the window is seen at: the "
+                        + "border Windows keeps round it for resizing is not drawn and does not "
+                        + "count, and a maximized window is measured as it looks."),
                 Return("x", "Left", type: ActionReturnType.Number,
                     hint: "The left edge of the window, in screen pixels."),
                 Return("y", "Top", type: ActionReturnType.Number,
