@@ -693,6 +693,7 @@ public sealed class MacroRunner
                 "vision.waitStable" => new StepFailure("Run.ScreenNotStable", patience),
                 "ocr.clickText" => new StepFailure("Run.TextNotFound",
                     Read(step.Text("text")).AsText()),
+                "control.waitUntil" => new StepFailure("Run.WaitTimeout", WaitingFor(step, patience)),
                 _ => new StepFailure("Run.Timeout", patience),
             };
         }
@@ -703,6 +704,14 @@ public sealed class MacroRunner
             return new StepFailure("Run.Timeout", patience);
         }
     }
+
+    /// <summary>
+    /// What a wait-until step was waiting for, so its failure names the question rather than only
+    /// that it was slow. A step with no condition left in it — which the editor does not write —
+    /// has nothing to name, and is left with the length of time.
+    /// </summary>
+    private static string WaitingFor(ExecutableStep step, string patience)
+        => step.Condition("condition")?.Type is { Length: > 0 } asked ? asked : patience;
 
     /// <summary>
     /// The step is over and it did not work: writes that down and hands back what its failure rule
@@ -1368,13 +1377,13 @@ public sealed class MacroRunner
     /// Waits for a condition of the macro's own choosing: any of the conditions an if or a while
     /// can use, asked again and again until it holds. This is the general shape of every other
     /// wait in the catalogue — waiting for a colour, a picture or an element is this block with
-    /// the question already written in.
+    /// the question already written in. How long it may wait is the step's own timeout rather than
+    /// a number of its own, so "give up after a while" is answered in one place for every wait.
     /// </summary>
     private async Task<Signal> RunWaitUntil(ExecutableStep step, int depth, CancellationToken token)
     {
         var condition = step.Condition("condition")
                         ?? throw new StepFailure("Run.MissingCondition");
-        var timeout = Math.Max(0, Number(step, "timeoutMs"));
         var poll = Number(step, "pollMs");
         if (poll <= 0)
         {
@@ -1382,27 +1391,29 @@ public sealed class MacroRunner
         }
 
         var started = Stopwatch.GetTimestamp();
-        var held = await WaitForFlagAsync(() => Check(condition, depth, token), timeout, poll, token);
-        var waited = (int)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+        try
+        {
+            await WaitForFlagAsync(() => Check(condition, depth, token), poll, token);
+        }
+        catch (OperationCanceledException)
+        {
+            // The step's own clock ran out rather than the condition holding. How long it waited is
+            // worth keeping all the same: that number is what makes a macro that is too slow to
+            // catch something diagnosable, and the waiting is over either way. Which failure this
+            // becomes is not this step's to decide — the timeout rule reads the step's type.
+            Give(step, "elapsed", Value.FromNumber(Elapsed(started)));
+            throw;
+        }
 
-        // How long it waited is worth keeping even when it gave up, which is what makes a macro
-        // that is too slow to catch something diagnosable.
+        var waited = Elapsed(started);
         Give(step, "elapsed", Value.FromNumber(waited));
-
-        if (held)
-        {
-            Log(LogLevel.Info, depth, step.Type, "Run.WaitedFor", waited, condition.Type);
-            return Signal.Normal;
-        }
-
-        if (string.Equals(step.Text("onTimeout").Trim(), "continue", StringComparison.OrdinalIgnoreCase))
-        {
-            Log(LogLevel.Warn, depth, step.Type, "Run.WaitGaveUp", waited, condition.Type);
-            return Signal.Normal;
-        }
-
-        throw new StepFailure("Run.WaitTimeout", condition.Type);
+        Log(LogLevel.Info, depth, step.Type, "Run.WaitedFor", waited, condition.Type);
+        return Signal.Normal;
     }
+
+    /// <summary>How long something has been going, in whole milliseconds.</summary>
+    private static int Elapsed(long started)
+        => (int)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
 
     private async Task<Signal> RunRepeat(ExecutableStep step, int depth, CancellationToken token)
     {

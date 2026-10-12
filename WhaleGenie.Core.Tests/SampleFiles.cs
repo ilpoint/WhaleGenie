@@ -31,15 +31,20 @@ internal static class SampleFiles
     /// <summary>
     /// The same step with a clock of its own. A step that waits for something says how long it may
     /// wait in its own settings rather than in a field of the action, so a check that lets a wait
-    /// run out — or that keeps one from running forever — says so here.
+    /// run out — or that keeps one from running forever — says so here. What happens when the
+    /// clock runs out is the step's failure rule, which a check that wants the run to carry on
+    /// names here too.
     /// </summary>
-    public static ExecutableStep Within(int milliseconds, ExecutableStep step)
+    public static ExecutableStep Within(int milliseconds, ExecutableStep step,
+        StepErrorAction onError = StepErrorAction.Stop, string id = "")
         => new()
         {
             Type = step.Type,
-            Id = step.Id,
+            // A step's name is a setting of the step too, and the outcome of a step that has one
+            // is written under it, so a check that reads an outcome names the step here.
+            Id = id.Length > 0 ? id : step.Id,
             Parameters = step.Parameters,
-            Meta = new StepMeta { TimeoutMs = milliseconds },
+            Meta = new StepMeta { TimeoutMs = milliseconds, OnError = onError },
         };
 
     /// <summary>One parameter of a step.</summary>

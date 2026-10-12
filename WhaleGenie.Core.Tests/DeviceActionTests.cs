@@ -22,8 +22,9 @@ public class DeviceActionTests
         => new() { Type = type, Parameters = parameters };
 
     /// <summary>See <see cref="SampleFiles.Within"/>: the same step, allowed this long.</summary>
-    private static ExecutableStep Within(int milliseconds, ExecutableStep step)
-        => SampleFiles.Within(milliseconds, step);
+    private static ExecutableStep Within(int milliseconds, ExecutableStep step,
+        StepErrorAction onError = StepErrorAction.Stop, string id = "")
+        => SampleFiles.Within(milliseconds, step, onError, id);
 
     private static ExecutableParameter Param(string name, string text = "")
         => new() { Name = name, Text = text };
@@ -1227,11 +1228,11 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("control.waitUntil",
+            Within(2000, Step("control.waitUntil",
                 When("condition", Step("condition.colorsExist",
                     Param("color", "#FF0000"), Param("points", "1,0,#00FF00; 0,1,#0000FF"),
                     Param("tolerance", "1"), Region((0, 0, 3, 3)))),
-                Param("timeoutMs", "2000"), Param("pollMs", "10"), Param("onTimeout", "stop")),
+                Param("pollMs", "10"))),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -1326,11 +1327,11 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("control.waitUntil",
+            Within(2000, Step("control.waitUntil",
                 When("condition", Step("condition.colorCoverage",
                     Param("color", "#FF0000"), Param("tolerance", "1"),
                     Param("minCoverage", "50"), Region((0, 0, 4, 1)))),
-                Param("timeoutMs", "2000"), Param("pollMs", "10"), Param("onTimeout", "stop")),
+                Param("pollMs", "10"))),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -6033,12 +6034,11 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("control.waitUntil",
+            Within(2000, Step("control.waitUntil",
                 When("condition", Step("condition.colorEquals",
                     Param("x", "0"), Param("y", "0"), Param("color", "#102030"),
                     Param("tolerance", "5"))),
-                Param("timeoutMs", "2000"), Param("pollMs", "10"),
-                Param("onTimeout", "stop"), Returns("elapsed=waited")),
+                Param("pollMs", "10"), Returns("elapsed=waited"))),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -6059,10 +6059,10 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Step("control.waitUntil",
+            Within(2000, Step("control.waitUntil",
                 When("condition", Step("condition.imageExists",
                     Pictures("a.png"), Param("confidence", "90"), Param("region", ""))),
-                Param("timeoutMs", "2000"), Param("pollMs", "10"), Param("onTimeout", "stop")),
+                Param("pollMs", "10"))),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -6076,22 +6076,30 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("control.waitUntil",
+            Within(300, Step("control.waitUntil",
                 When("condition", Step("condition.colorEquals",
                     Param("x", "0"), Param("y", "0"), Param("color", "#102030"),
                     Param("tolerance", "5"))),
-                Param("timeoutMs", "80"), Param("pollMs", "10"),
-                Param("onTimeout", "stop"), Returns("elapsed=waited")),
+                Param("pollMs", "10"), Returns("elapsed=waited"))),
         ], devices);
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.WaitTimeout", result.Key);
-        Assert.True(store.Local.Values["waited"].AsNumber() >= 80,
-            "how long it waited is worth keeping even when it gave up");
+
+        // How long the wait lasted is worth keeping even when it was cut short: that number is what
+        // makes a macro too slow to catch something diagnosable. It reads a little under the step's
+        // 300 ms because the step's clock starts before the waiting does.
+        var waited = store.Local.Values["waited"].AsNumber();
+        Assert.True(waited >= 250, $"the wait reported {waited} ms of an allowed 300");
     }
 
+    /// <summary>
+    /// Running out of time is a failure like any other, and what happens next is the step's own
+    /// failure rule that decides it: a wait that may carry on is told so in the step's settings
+    /// rather than in a field of the action, which is where every other step says it too.
+    /// </summary>
     [Fact]
-    public async Task A_wait_until_can_be_told_to_carry_on_when_the_time_runs_out()
+    public async Task A_wait_until_that_runs_out_fails_the_step_and_hands_it_to_the_failure_rule()
     {
         var devices = new FakeDeviceLayer { Pixel = new PixelColor(0xFF, 0xFF, 0xFF) };
         var host = new SilentRunHost();
@@ -6099,17 +6107,18 @@ public class DeviceActionTests
 
         var result = await new MacroRunner(store, host, devices).RunAsync(
         [
-            Step("control.waitUntil",
+            Within(80, Step("control.waitUntil",
                 When("condition", Step("condition.colorEquals",
                     Param("x", "0"), Param("y", "0"), Param("color", "#102030"),
                     Param("tolerance", "5"))),
-                Param("timeoutMs", "80"), Param("pollMs", "10"), Param("onTimeout", "continue")),
+                Param("pollMs", "10")), StepErrorAction.Continue, id: "wait"),
             Step("control.setVariable", Param("name", "after"), Param("scope", "local"),
                 Param("value", "1")),
         ]);
 
         Assert.True(result.Succeeded);
-        Assert.Contains(host.Entries, entry => entry.Key == "Run.WaitGaveUp");
+        Assert.Contains(host.Entries, entry => entry.Key == "Run.WaitTimeout");
+        Assert.Equal("failed", store.Local.Values["step.wait.outcome"].AsText());
         Assert.Equal(1, store.Local.Values["after"].AsNumber());
     }
 
@@ -6121,11 +6130,11 @@ public class DeviceActionTests
 
         await new MacroRunner(new VariableStore(), host, devices).RunAsync(
         [
-            Step("control.waitUntil",
+            Within(2000, Step("control.waitUntil",
                 When("condition", Step("condition.colorEquals",
                     Param("x", "0"), Param("y", "0"), Param("color", "#102030"),
                     Param("tolerance", "5"))),
-                Param("timeoutMs", "2000"), Param("pollMs", "10")),
+                Param("pollMs", "10"))),
         ]);
 
         var line = Assert.Single(host.Entries, entry => entry.Key == "Run.WaitedFor");
@@ -6135,7 +6144,7 @@ public class DeviceActionTests
     [Fact]
     public async Task A_wait_until_with_nothing_to_wait_for_is_refused()
     {
-        var (result, _, _) = await RunAsync([Step("control.waitUntil", Param("timeoutMs", "10"))]);
+        var (result, _, _) = await RunAsync([Within(10, Step("control.waitUntil"))]);
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.MissingCondition", result.Key);
@@ -6150,10 +6159,9 @@ public class DeviceActionTests
     {
         var (certain, _, certainStore) = await RunAsync(
         [
-            Step("control.waitUntil",
+            Within(200, Step("control.waitUntil",
                 When("condition", Step("condition.randomChance", Param("percent", "100"))),
-                Param("timeoutMs", "200"), Param("pollMs", "10"), Param("onTimeout", "stop"),
-                Returns("elapsed=certainly")),
+                Param("pollMs", "10"), Returns("elapsed=certainly"))),
         ]);
 
         Assert.True(certain.Succeeded);
@@ -6162,15 +6170,17 @@ public class DeviceActionTests
 
         var (never, _, store) = await RunAsync(
         [
-            Step("control.waitUntil",
+            Within(300, Step("control.waitUntil",
                 When("condition", Step("condition.randomChance", Param("percent", "0"))),
-                Param("timeoutMs", "80"), Param("pollMs", "10"), Param("onTimeout", "continue"),
-                Returns("elapsed=never")),
+                Param("pollMs", "10"), Returns("elapsed=never")), StepErrorAction.Continue),
         ]);
 
-        Assert.True(never.Succeeded);
-        Assert.True(store.Local.Values["never"].AsNumber() >= 80,
-            "a chance of none never comes up, so the whole time has to be waited out");
+        // A chance of none never comes up, so the whole clock is waited out; that the run carried
+        // on regardless is the step's own failure rule saying so, not a field of the action.
+        Assert.True(never.Succeeded, never.Key);
+        var waited = store.Local.Values["never"].AsNumber();
+        Assert.True(waited >= 250,
+            $"a chance of none never comes up, so the whole time is waited out, waited {waited}");
     }
 
     // ------------------------------------------------------------ mouse routes

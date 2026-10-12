@@ -1131,9 +1131,12 @@ public class ActionDialogTests
             Assert.True(condition.List!.IsCondition);
             Assert.Same(ActionCatalog.Conditions, condition.List.Catalog);
 
-            Assert.Equal("10000", Value(viewModel, "timeoutMs"));
+            // How long the wait may last is not the action's business: the step's own timeout
+            // says it, and this action names one of 10 seconds so a fresh step is not endless.
+            Assert.DoesNotContain(viewModel.Parameters,
+                parameter => parameter.Definition.Name is "timeoutMs" or "onTimeout");
+            Assert.Equal(10_000, viewModel.MetaTimeout.Milliseconds);
             Assert.Equal("200", Value(viewModel, "pollMs"));
-            Assert.Equal("stop", Value(viewModel, "onTimeout"));
             Assert.True(viewModel.ReturnsRows
                 .First(row => row.Key == "elapsed").Ticked);
         });
@@ -1222,9 +1225,9 @@ public class ActionDialogTests
             var delay = Open("control.delay");
             Assert.Equal(StepMeta.LongestPauseMs, StoredMaximum(delay, "ms"));
 
-            // Timeouts on the waiting actions share the same ceiling.
-            var wait = Open("control.waitUntil");
-            Assert.Equal(StepMeta.LongestPauseMs, StoredMaximum(wait, "timeoutMs"));
+            // The timeouts waiting actions keep in their own settings share the same ceiling.
+            var wait = Open("vision.waitImage");
+            Assert.Equal(StepMeta.LongestPauseMs, wait.MetaTimeout.Maximum);
         });
     }
 
@@ -1294,7 +1297,7 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var viewModel = Open("control.waitUntil");
+            var viewModel = Open("process.waitFor");
             var timeout = viewModel.Parameters.First(parameter => parameter.Definition.Name == "timeoutMs");
 
             // 10000 is 10 whole seconds, and it still opens as 10000: every time field in a step

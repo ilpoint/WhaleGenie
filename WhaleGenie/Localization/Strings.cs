@@ -1015,7 +1015,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.MissingInterpreter"] = "This step does not say which program runs the script.",
         ["Run.MissingScriptExtension"] = "This step does not say which file ending the script needs.",
         ["Run.WaitedFor"] = "The wait held after {0} ms: {1}.",
-        ["Run.WaitGaveUp"] = "Gave up after {0} ms, so the macro carried on: {1} never held.",
         ["Run.WaitTimeout"] = "The wait ran out: {0} never held.",
         ["Run.MissingCondition"] = "This wait has no condition to wait for.",
         ["Run.WindowNotFound"] = "No window matches that title: {0}",
@@ -2141,7 +2140,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.GlobalMustExist"] = "全局变量“{0}”不存在，请先在运行调试窗口里创建。",
 
         ["Run.WaitedFor"] = "等待在 {0} 毫秒后成立：{1}。",
-        ["Run.WaitGaveUp"] = "等了 {0} 毫秒仍不成立，按设置继续往下走：{1} 一直没有成立。",
         ["Run.WaitTimeout"] = "等待超时，{0} 始终没有成立。",
         ["Run.MissingCondition"] = "这一步没有填写要等待的条件。",
 

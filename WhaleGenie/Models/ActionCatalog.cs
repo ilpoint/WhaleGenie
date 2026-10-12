@@ -162,17 +162,14 @@ public static class ActionCatalog
             Category = ActionCategory.Control,
             DisplayName = "Wait Until",
             Description = "Wait until a condition holds, then carry on.",
+            StepTimeoutMs = 10000,
             Parameters =
             [
                 Condition("condition", "Condition", "Asked again and again until it holds. "
                     + "Any condition can be waited on: a colour, a picture, a piece of text, an "
                     + "element on screen, or a comparison between variables."),
-                Number("timeoutMs", "Timeout", 10000, "Give up after this long."),
                 Number("pollMs", "Check every", 200, "How long to wait between two checks.",
                     min: 10m, max: 60000m, advanced: true),
-                Choice("onTimeout", "If it never holds", ["stop", "continue"], "stop",
-                    "What the macro does when the time runs out.",
-                    labels: ["Stop the macro", "Carry on with the next step"]),
                 Returns(),
             ],
         },
