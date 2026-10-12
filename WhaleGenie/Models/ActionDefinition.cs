@@ -357,6 +357,14 @@ public class ActionParameter
     public bool AcceptsFormula { get; init; }
 
     /// <summary>
+    /// True for a number that means "as far as it goes" when it is left empty rather than "nobody
+    /// said": the four numbers of a region, where a side left out runs to the edge of the screen.
+    /// The dialog says which of the two a field is where it is filled in, because the two look the
+    /// same and mean opposite things.
+    /// </summary>
+    public bool EmptiesToEdge { get; init; }
+
+    /// <summary>
     /// True when the text is written in another language's syntax rather than as a macro value:
     /// a script's body, where <c>$name</c> means that language's own variable and nothing to do
     /// with a variable the macro reads. The editor leaves such text alone when it looks for the

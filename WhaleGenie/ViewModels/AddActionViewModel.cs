@@ -808,6 +808,34 @@ public partial class AddActionViewModel : ViewModelBase
     private bool InputPostsToWindow()
         => Parameter("inputMode")?.CurrentText.Trim().ToLowerInvariant() == "background";
 
+    /// <summary>
+    /// Says under the fields that place a step where their four numbers are counted from, and gives
+    /// that line to the one field of the step that carries it: the search region when the step
+    /// looks in places of its own, otherwise the first of the numbers that say where it reads. The
+    /// same four numbers mean a place on the screen, inside a window or inside a control depending
+    /// on the origin, and none of that is written in the numbers themselves.
+    /// </summary>
+    private void RefreshOriginNote()
+    {
+        var note = Strings.Format("Add.OriginNote",
+            Strings.Get(Parameter("anchorMode")?.CurrentText.Trim().ToLowerInvariant() switch
+            {
+                "window" => "Add.Origin.Window",
+                "client" => "Add.Origin.Client",
+                "element" => "Add.Origin.Element",
+                _ => "Add.Origin.Screen",
+            }));
+
+        var carrier = Parameters.FirstOrDefault(parameter =>
+                parameter.Definition.Kind is ActionParameterKind.Region)
+            ?? Parameters.FirstOrDefault(parameter => parameter.Definition.EmptiesToEdge);
+
+        foreach (var parameter in Parameters)
+        {
+            parameter.BasisNote = ReferenceEquals(parameter, carrier) ? note : string.Empty;
+        }
+    }
+
     /// <summary>Folds a group open or shut and remembers which way it went.</summary>
     public void ToggleGroup(ActionGroupViewModel group)
     {
@@ -1536,6 +1564,8 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     private void RefreshGates()
     {
+        RefreshOriginNote();
+
         var rows = 0;
         foreach (var editor in Parameters)
         {

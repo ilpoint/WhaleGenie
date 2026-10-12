@@ -19,7 +19,16 @@ public partial class NumberCellViewModel : ViewModelBase
     /// <summary>True while a whole value is being put in at once, rather than typed a character at a time.</summary>
     private bool _writing;
 
-    public NumberCellViewModel(string label, string hint) => (Label, Hint) = (label, hint);
+    /// <summary>
+    /// One number of a place to look: what it is called, one line saying what it counts from, and
+    /// what the box says while it is empty. The last one is given rather than worked out because
+    /// what an empty box means is a question about the place the numbers describe.
+    /// </summary>
+    public NumberCellViewModel(string label, string hint, string? placeholder = null)
+        => (Label, Hint, _placeholder) = (label, hint, placeholder);
+
+    /// <summary>What the box says while it is empty, when the caller named one.</summary>
+    private readonly string? _placeholder;
 
     /// <summary>What this number is called on the line it stands on.</summary>
     public string Label { get; }
@@ -36,8 +45,11 @@ public partial class NumberCellViewModel : ViewModelBase
     /// <summary>The names the expression is checked against.</summary>
     private IReadOnlyList<string> Named { get; set; } = [];
 
-    /// <summary>What the expression box suggests when it is empty.</summary>
-    public string Placeholder => Strings.Get("Add.FormulaPlaceholder");
+    /// <summary>
+    /// What the expression box suggests when it is empty: what this particular number is, or what
+    /// writing an expression there looks like.
+    /// </summary>
+    public string Placeholder => _placeholder ?? Strings.Get("Add.FormulaPlaceholder");
 
     /// <summary>What this number says, whether it is a plain number or a formula.</summary>
     [ObservableProperty]

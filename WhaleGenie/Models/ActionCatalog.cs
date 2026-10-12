@@ -3475,7 +3475,7 @@ public static class ActionCatalog
     private static ActionParameter Number(string name, string label, decimal? defaultValue = null,
         string hint = "", decimal min = 0m, decimal max = StepMeta.LongestPauseMs,
         bool advanced = false, string[]? onlyWith = null, string onlyField = "algorithm",
-        bool required = true)
+        bool required = true, bool emptiesToEdge = false)
         => new()
         {
             Name = name,
@@ -3492,6 +3492,7 @@ public static class ActionCatalog
             // unit dropdown without each call site having to ask for it. A number that is not a
             // length of time is simply never named that way.
             IsDuration = name == "ms" || name.EndsWith("Ms", StringComparison.Ordinal),
+            EmptiesToEdge = emptiesToEdge,
             Advanced = advanced,
             AppliesWhen = onlyWith is null ? string.Empty : onlyField,
             AppliesWhenValues = onlyWith ?? [],
@@ -3656,17 +3657,19 @@ public static class ActionCatalog
             hint: "How far the left edge of the region is from the left of the screen, in pixels. Under "
             + "a window anchor it is counted from that window's own left edge. Left out, counting "
             + "starts at that edge, and with the other three left out too the whole screen is read. "
-            + "“Pick region” fills all four in at once.", required: false),
+            + "“Pick region” fills all four in at once.", required: false, emptiesToEdge: true),
         Number("y", "Top-left Y",
             hint: "How far the top edge of the region is from the top of the screen, in pixels. Under a "
             + "window anchor it is counted from that window's own top edge. Left out, counting "
-            + "starts at that edge.", required: false),
+            + "starts at that edge.", required: false, emptiesToEdge: true),
         Number("width", "Width to the right",
             hint: "How wide the region is, in pixels: the distance from the left edge to the right one. "
-            + "Left out, it reaches the right edge of the screen. At least 1.", min: 1, required: false),
+            + "Left out, it reaches the right edge of the screen. At least 1.", min: 1, required: false,
+            emptiesToEdge: true),
         Number("height", "Height downward",
             hint: "How tall the region is, in pixels: the distance from the top edge to the bottom one. "
-            + "Left out, it reaches the bottom edge of the screen. At least 1.", min: 1, required: false),
+            + "Left out, it reaches the bottom edge of the screen. At least 1.", min: 1, required: false,
+            emptiesToEdge: true),
     ];
 
     /// <summary>

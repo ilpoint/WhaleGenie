@@ -58,6 +58,13 @@ public class ActionDialogTests
     }
 
     private static AddActionViewModel Open(string key)
+        => OpenWindow(key).ViewModel;
+
+    /// <summary>
+    /// The same dialog, window and all, for a check that looks at what the form draws rather than
+    /// only at what the view model holds.
+    /// </summary>
+    private static (AddActionWindow Window, AddActionViewModel ViewModel) OpenWindow(string key)
     {
         var window = new AddActionWindow(null, ActionCatalog.Definitions,
             VariableChoicesForChecks.Named("match.x", "match.y", "spot"), []);
@@ -68,7 +75,7 @@ public class ActionDialogTests
         var viewModel = (AddActionViewModel)window.DataContext!;
         viewModel.SelectAction(key);
         Dispatcher.UIThread.RunJobs();
-        return viewModel;
+        return (window, viewModel);
     }
 
     private static string Value(AddActionViewModel viewModel, string name)
@@ -146,6 +153,108 @@ public class ActionDialogTests
                 Assert.DoesNotContain("width", names);
                 Assert.DoesNotContain("height", names);
             }
+        });
+    }
+
+    /// <summary>
+    /// Two boxes that look exactly alike are read very differently: one holds a whole value that is
+    /// worked out while the macro runs, the other holds text with the names in it replaced. The
+    /// form says which is which beside the label, and says it again in the line under the box.
+    /// </summary>
+    [Fact]
+    public void A_box_that_is_read_as_one_value_carries_the_formula_mark()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = OpenWindow("ocr.findText");
+            var looked = viewModel.Parameters.First(parameter => parameter.Definition.Name == "text");
+
+            Assert.True(looked.TakesFormula);
+            Assert.StartsWith(Strings.Get("Add.FieldTakesFormula"), looked.Hint);
+
+            var marked = window.GetVisualDescendants().OfType<TextBlock>()
+                .Where(block => block.IsEffectivelyVisible && block.Text == "ƒ")
+                .Select(block => (StepParameterViewModel)block.DataContext!)
+                .ToList();
+
+            Assert.Contains(looked, marked);
+            Assert.All(marked, field => Assert.True(field.TakesFormula));
+
+            // Text with the names in it replaced is not that, and says so instead.
+            var (plainWindow, plain) = OpenWindow("file.listFiles");
+            var pattern = plain.Parameters.First(parameter => parameter.Definition.Name == "pattern");
+
+            Assert.False(pattern.TakesFormula);
+            Assert.StartsWith(Strings.Get("Add.FieldIsText"), pattern.Hint);
+            Assert.DoesNotContain(pattern, plainWindow.GetVisualDescendants().OfType<TextBlock>()
+                .Where(block => block.IsEffectivelyVisible && block.Text == "ƒ")
+                .Select(block => (StepParameterViewModel)block.DataContext!));
+        });
+    }
+
+    /// <summary>
+    /// What an empty number box means depends on the field, and the box cannot say it: a side of a
+    /// region left out reaches the edge, while a number left out is not written down at all. Both
+    /// say which one they are under the field.
+    /// </summary>
+    [Fact]
+    public void A_number_that_may_be_left_out_says_what_an_empty_box_means()
+    {
+        Ui.Run(() =>
+        {
+            var capture = Open("vision.capture");
+            foreach (var name in new[] { "x", "y", "width", "height" })
+            {
+                var field = capture.Parameters.First(parameter => parameter.Definition.Name == name);
+                Assert.True(field.Definition.EmptiesToEdge);
+                Assert.Contains(Strings.Get("Add.EmptyReachesTheEdge"), field.Hint);
+            }
+
+            // A search region is the same question asked as a list of places.
+            var region = Open("ocr.findText").Parameters
+                .First(parameter => parameter.Definition.Name == "region");
+            Assert.StartsWith(Strings.Get("Add.EmptyReachesTheEdge"), region.Hint);
+
+            // And a number that says nothing is left out of the step rather than written as a zero.
+            var look = Open("vision.waitImage").Parameters
+                .First(parameter => parameter.Definition.Name == "intervalMs");
+            Assert.Contains(Strings.Get("Add.EmptyMeansNothing"), look.Hint);
+        });
+    }
+
+    /// <summary>
+    /// The same four numbers say a place on the screen, a place inside a window or a place inside a
+    /// control depending on what the step counts them from, so the page says which one it is — once
+    /// for the step, under the corner the numbers are counted from.
+    /// </summary>
+    [Fact]
+    public void The_numbers_that_place_a_step_say_what_they_are_counted_from()
+    {
+        Ui.Run(() =>
+        {
+            var capture = Open("vision.capture");
+            var x = capture.Parameters.First(parameter => parameter.Definition.Name == "x");
+            var y = capture.Parameters.First(parameter => parameter.Definition.Name == "y");
+            var width = capture.Parameters.First(parameter => parameter.Definition.Name == "width");
+
+            Assert.Equal(Strings.Format("Add.OriginNote", Strings.Get("Add.Origin.Screen")),
+                x.BasisNote);
+            Assert.Equal(string.Empty, y.BasisNote);
+            Assert.Equal(string.Empty, width.BasisNote);
+
+            // The line follows the origin the moment it is changed.
+            Choose(capture, "anchorMode", "client");
+            Assert.Equal(Strings.Format("Add.OriginNote", Strings.Get("Add.Origin.Client")),
+                x.BasisNote);
+
+            // A step that looks in places of its own says it under the list of places.
+            var find = Open("vision.findImage");
+            Assert.Equal(Strings.Format("Add.OriginNote", Strings.Get("Add.Origin.Screen")),
+                find.Parameters.First(parameter => parameter.Definition.Name == "region").BasisNote);
+
+            // And a step that reads nothing off the screen has no such line at all.
+            Assert.All(Open("input.keyPress").Parameters,
+                parameter => Assert.Equal(string.Empty, parameter.BasisNote));
         });
     }
 

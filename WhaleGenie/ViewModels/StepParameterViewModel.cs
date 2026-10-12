@@ -506,6 +506,16 @@ public partial class StepParameterViewModel : ViewModelBase
     public bool OffersFormula => Definition.AcceptsFormula;
 
     /// <summary>
+    /// True when the whole value written here is read as one rather than as text with the names in
+    /// it replaced, so an expression may be written in the box. A number counts: the spinner and
+    /// the expression box are two ways of writing the same kind of value, and the engine works out
+    /// whichever one is there. This is not the same question as <see cref="OffersFormula"/>, which
+    /// asks whether the expression editor is the thing to offer beside this particular editor.
+    /// </summary>
+    public bool TakesFormula => Definition.AcceptsFormula
+        || Definition.Kind is ActionParameterKind.Expression or ActionParameterKind.Number;
+
+    /// <summary>
     /// True when this parameter is a UI Automation selector, which the element picker can take
     /// off the screen instead of it being written out by hand. The control a step measures from is
     /// one of these as well: it names a control the same way, so it is picked the same way.
@@ -690,6 +700,19 @@ public partial class StepParameterViewModel : ViewModelBase
     /// action works on a rectangle of the screen, so one button fills the whole group.
     /// </summary>
     public bool IsRegionAnchor { get; set; }
+
+    /// <summary>
+    /// One line saying where the numbers that say where this step works are counted from, written
+    /// by the dialog because only it knows what the step's coordinate origin says right now. Empty
+    /// on the fields that do not carry it: it belongs under the corner those numbers are counted
+    /// from, not under every pair of numbers the step has.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasBasisNote))]
+    public partial string BasisNote { get; set; } = string.Empty;
+
+    /// <summary>True when this field carries that line.</summary>
+    public bool HasBasisNote => BasisNote.Length > 0;
 
     /// <summary>
     /// True on the parameter whose line carries the button that picks a click point on the
@@ -938,9 +961,45 @@ public partial class StepParameterViewModel : ViewModelBase
         ? Definition.LocalVariantLabel
         : Definition.LocalLabel);
 
-    public string Hint => Definition.LocalHint;
+    /// <summary>
+    /// What the field says under itself: first what a field of this kind takes and what an empty
+    /// box means, then the catalogue's own words about this particular field. Both were once
+    /// things to remember — a box read as one value and a box read as text look exactly alike, and
+    /// so do a number that runs to the edge when left out and one that says nothing. Asking the
+    /// definition is what keeps the sentence and the field in step.
+    /// </summary>
+    public string Hint => string.Join(" ", Hints());
 
-    public bool HasHint => !string.IsNullOrWhiteSpace(Definition.Hint);
+    /// <summary>True when this field has anything to say about itself.</summary>
+    public bool HasHint => Hint.Length > 0;
+
+    private IEnumerable<string> Hints()
+    {
+        if (TakesFormula)
+        {
+            yield return Strings.Get("Add.FieldTakesFormula");
+        }
+        else if (OffersVariables)
+        {
+            yield return Strings.Get("Add.FieldIsText");
+        }
+
+        // A search region is a list of places rather than four numbers, but it is the same question
+        // asked the same way: a place left out reaches the edge, so it says so the same way.
+        if (Definition.EmptiesToEdge || Definition.Kind is ActionParameterKind.Region)
+        {
+            yield return Strings.Get("Add.EmptyReachesTheEdge");
+        }
+        else if (Definition.Kind is ActionParameterKind.Number && !Definition.Required)
+        {
+            yield return Strings.Get("Add.EmptyMeansNothing");
+        }
+
+        if (Definition.Hint.Length > 0)
+        {
+            yield return Definition.LocalHint;
+        }
+    }
 
     public string Placeholder => _variantSays && Definition.Variant is not null
         ? Definition.LocalVariantPlaceholder

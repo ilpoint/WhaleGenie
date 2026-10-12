@@ -22,12 +22,15 @@ public partial class RegionRowViewModel : ViewModelBase
 
     public RegionRowViewModel()
     {
-        X = new NumberCellViewModel(Strings.Get("Add.RegionX"), Strings.Get("Add.RegionXHint"));
-        Y = new NumberCellViewModel(Strings.Get("Add.RegionY"), Strings.Get("Add.RegionYHint"));
+        // The four numbers stand for the same thing a step reads directly, so an empty box says
+        // what an empty box says there: the side reaches the edge rather than meaning nothing.
+        var empty = Strings.Get("Add.EmptyReachesTheEdge");
+        X = new NumberCellViewModel(Strings.Get("Add.RegionX"), Strings.Get("Add.RegionXHint"), empty);
+        Y = new NumberCellViewModel(Strings.Get("Add.RegionY"), Strings.Get("Add.RegionYHint"), empty);
         Width = new NumberCellViewModel(Strings.Get("Add.RegionWidth"),
-            Strings.Get("Add.RegionWidthHint"));
+            Strings.Get("Add.RegionWidthHint"), empty);
         Height = new NumberCellViewModel(Strings.Get("Add.RegionHeight"),
-            Strings.Get("Add.RegionHeightHint"));
+            Strings.Get("Add.RegionHeightHint"), empty);
         Cells = [X, Y, Width, Height];
 
         foreach (var cell in Cells)

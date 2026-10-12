@@ -34,6 +34,8 @@ public sealed class ParameterRowViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(IsApplicable));
         OnPropertyChanged(nameof(IsDefault));
+        OnPropertyChanged(nameof(BasisNote));
+        OnPropertyChanged(nameof(HasBasisNote));
     }
 
     public StepParameterViewModel First { get; }
@@ -73,6 +75,16 @@ public sealed class ParameterRowViewModel : ViewModelBase
 
     /// <summary>True when the line says a position can be taken from the pointer with Alt + X.</summary>
     public bool ShowsPositionHint => HasSecond && First.IsCoordinate;
+
+    /// <summary>
+    /// True when this line carries the line about where its numbers are counted from: the dialog
+    /// gives it to the one field of the step that carries it, so it stands under the corner rather
+    /// than under every pair of numbers.
+    /// </summary>
+    public bool HasBasisNote => First.HasBasisNote;
+
+    /// <summary>That line, as the step's coordinate origin has it right now.</summary>
+    public string BasisNote => First.BasisNote;
 
     /// <summary>Half the line beside another editor, the whole line when it is on its own.</summary>
     public int FirstSpan => HasSecond ? 1 : 2;

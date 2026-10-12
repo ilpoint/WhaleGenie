@@ -86,7 +86,15 @@
         <!-- One parameter's editor, shared by every line of the parameter list. -->
         <DataTemplate x:Key="ParameterEditor" x:DataType="vm:StepParameterViewModel">
             <StackPanel>
-                <TextBlock Classes="FieldLabel" Text="{Binding Label}" />
+                <!-- What is written in this box is read as one value, so an expression may be
+                     written in it. The box looks the same either way, which is why the mark is
+                     there rather than left to the hint under it. -->
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Classes="FormulaMark" Text="ƒ"
+                               IsVisible="{Binding TakesFormula}"
+                               ToolTip.Tip="{Binding [Add.FieldTakesFormula], Source={x:Static loc:Strings.Current}}" />
+                    <TextBlock Classes="FieldLabel" Text="{Binding Label}" />
+                </StackPanel>
 
                 <Grid IsVisible="{Binding IsPlainText}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
                     <TextBox Classes="ParamInput" Text="{Binding Text}"
@@ -524,6 +532,11 @@
                                    Text="{Binding [Add.RegionEmpty], Source={x:Static loc:Strings.Current}}"
                                    IsVisible="{Binding !HasRegions}" />
                     </Grid>
+
+                    <!-- Where the four numbers of every row are counted from, said once for the
+                         whole list: the same numbers mean somewhere else depending on it. -->
+                    <TextBlock Classes="Muted" Margin="2,4,0,0" TextWrapping="Wrap"
+                               IsVisible="{Binding HasBasisNote}" Text="{Binding BasisNote}" />
                 </StackPanel>
 
                 <!-- A run of key combinations: one row per press, in the order they are sent. A
@@ -780,7 +793,7 @@
         <DataTemplate x:Key="ParameterRowEditor" x:DataType="vm:ParameterRowViewModel">
             <!-- A line whose question the step's own settings do not ask is not drawn: a field
                  that is there and does nothing is worse than one that is not there. -->
-            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*,Auto"
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,*,Auto"
                   IsVisible="{Binding IsApplicable}"
                   ColumnSpacing="16" Margin="0,0,0,14">
                 <!-- What fills the whole rectangle stands above the pair of numbers it fills,
@@ -823,6 +836,11 @@
                             Content="{Binding [Add.PickOffset], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickOffset" />
                 </StackPanel>
+
+                <!-- Where these numbers are counted from, said once for the line they are on. -->
+                <TextBlock Grid.Row="3" Grid.ColumnSpan="3" Classes="Muted" Margin="2,6,0,0"
+                           TextWrapping="Wrap"
+                           IsVisible="{Binding HasBasisNote}" Text="{Binding BasisNote}" />
             </Grid>
         </DataTemplate>
 
@@ -894,6 +912,15 @@
             <Setter Property="Foreground" Value="#C8C8C8" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Margin" Value="2,2,0,6" />
+        </Style>
+
+        <!-- The mark on a field that is read as one value: small, and in the colour the interface
+             already uses for a name it made itself. -->
+        <Style Selector="TextBlock.FormulaMark">
+            <Setter Property="Foreground" Value="#8FB3D9" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
+            <Setter Property="Margin" Value="2,3,5,6" />
         </Style>
         <Style Selector="TextBlock.Muted">
             <Setter Property="Foreground" Value="#9A9A9A" />

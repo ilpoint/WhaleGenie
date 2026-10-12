@@ -214,6 +214,21 @@ public sealed class Strings : INotifyPropertyChanged
             + "four numbers.",
         ["Add.RegionOrVariablePlaceholder"] = "$shot",
         ["Add.RegionEmpty"] = "Looking at the whole screen.",
+        ["Add.EmptyReachesTheEdge"] = "Left empty, this side reaches the edge of what it is counted "
+            + "from: the screen, or the window it is counted from.",
+        ["Add.EmptyMeansNothing"] = "Left empty, nothing is written into the macro and the engine "
+            + "reads it as nobody having said.",
+        ["Add.FieldTakesFormula"] = "This whole value is worked out when the macro runs, so an "
+            + "expression can be written here.",
+        ["Add.FieldIsText"] = "This is text rather than a formula: a $name in it is replaced with "
+            + "what that variable holds and the rest is used as written.",
+        ["Add.OriginNote"] = "Counted from {0}: the four numbers are its left, top, width and "
+            + "height.",
+        ["Add.Origin.Screen"] = "the whole screen",
+        ["Add.Origin.Window"] = "the top-left corner of the window this step names",
+        ["Add.Origin.Client"] = "the top-left corner inside that window's frame, title bar and "
+            + "borders aside",
+        ["Add.Origin.Element"] = "the top-left corner of the control this step is anchored to",
         ["Add.ImageAdd"] = "Add a picture",
         ["Add.ImageAddHint"] = "Look for one more picture, tried after the ones already listed.",
         ["Add.ImageMoveUp"] = "Move up",
@@ -1283,6 +1298,17 @@ public sealed class Strings : INotifyPropertyChanged
             + "东西，四个数就清空。",
         ["Add.RegionOrVariablePlaceholder"] = "$shot",
         ["Add.RegionEmpty"] = "没填就是看整个屏幕。",
+        ["Add.EmptyReachesTheEdge"] = "留空即从这一边一直量到屏幕边缘；坐标基准选窗口或客户区时，"
+            + "量到那个窗口的那一边为止。",
+        ["Add.EmptyMeansNothing"] = "留空即没填：这一项不写进宏文件，引擎按“什么都没说”处理。",
+        ["Add.FieldTakesFormula"] = "这里可以写算式：整段值由引擎在运行时算出来。",
+        ["Add.FieldIsText"] = "这里不计算式：$名字 只是就地替换成那个变量此刻的值，其余部分照原样"
+            + "使用。",
+        ["Add.OriginNote"] = "坐标基准是{0}，这四个数是它的左、上、宽、高。",
+        ["Add.Origin.Screen"] = "屏幕",
+        ["Add.Origin.Window"] = "这一步认的那个窗口的左上角",
+        ["Add.Origin.Client"] = "那个窗口内容区的左上角（不含标题栏与边框）",
+        ["Add.Origin.Element"] = "这一步锚定的那个控件的左上角",
         ["Add.ImageAdd"] = "加一张",
         ["Add.ImageAddHint"] = "再找一张图，排在已经列出的后面。",
         ["Add.ImageMoveUp"] = "上移",
