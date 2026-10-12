@@ -3,9 +3,9 @@
 [简体中文](performance.md) | [English](performance.en.md)
 
 "看一次屏幕"要花多少时间，以及这些数字是在哪台机器上、用什么办法量出来的。它不随 CI 跑：改动画面获取
-（`WindowsScreenDevice`）或匹配与识别（`OpenCvVisionDevice`、`PixelSearch`、`PaddleOcrDevice`）之后，
-在这里留一笔新的，好跟改动前比。数字之外的事情——谁读屏幕、什么时候读——见 [README.md](../README.md)
-的「画面从哪来、怎么取」。
+（`WhaleGenie.GraphicsCapture`）或匹配与识别（`OpenCvVisionDevice`、`PixelSearch`、`PaddleOcrDevice`）
+之后，在这里留一笔新的，好跟改动前比。数字之外的事情——谁读屏幕、什么时候读——见
+[manual.md](manual.md) 的「画面从哪来、怎么取」。
 
 ## 怎么量的
 

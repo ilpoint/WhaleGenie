@@ -3,10 +3,10 @@
 [English](performance.en.md) | [简体中文](performance.md)
 
 What one look at the screen costs, on which machine these numbers were taken, and how. It is not part
-of CI: after changing how the screen is read (`WindowsScreenDevice`) or how it is matched and read as
-text (`OpenCvVisionDevice`, `PixelSearch`, `PaddleOcrDevice`), leave a new entry here so it can be
-compared with the one before it. For who reads the screen and when, see "Where the picture comes
-from" in [README.md](../README.md).
+of CI: after changing how the screen is read (`WhaleGenie.GraphicsCapture`) or how it is matched and
+read as text (`OpenCvVisionDevice`, `PixelSearch`, `PaddleOcrDevice`), leave a new entry here so it
+can be compared with the one before it. For who reads the screen and when, see "Where the picture
+comes from" in [manual.md](manual.md).
 
 ## How the numbers were taken
 

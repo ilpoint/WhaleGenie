@@ -8,8 +8,8 @@
 
 | 包 | 需要装什么 | 大小（x64） | 什么时候用 |
 | --- | --- | --- | --- |
-| `WhaleGenie-<版本>-win-x64.zip` | .NET 10 桌面运行时 | 约 101 MB | 体积最小，**推荐**；机器上已经装过运行环境时 |
-| `WhaleGenie-<版本>-win-x64-standalone.zip` | 什么都不用装 | 约 173 MB | 换机器、给别人用；解压出来是一整个文件夹 |
+| `WhaleGenie-<版本>-win-x64.zip` | .NET 10 桌面运行时 | 约 108 MB | 体积最小，**推荐**；机器上已经装过运行环境时 |
+| `WhaleGenie-<版本>-win-x64-standalone.zip` | 什么都不用装 | 约 181 MB | 换机器、给别人用；解压出来是一整个文件夹 |
 
 框架依赖版没装运行环境时，双击 `WhaleGenie.exe` 会由程序自己弹窗提示并给出下载地址：
 <https://dotnet.microsoft.com/download/dotnet/10.0> → Windows → 对应架构 → Desktop Runtime
