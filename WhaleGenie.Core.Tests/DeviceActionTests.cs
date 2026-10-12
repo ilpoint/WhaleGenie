@@ -348,6 +348,56 @@ public class DeviceActionTests
         Assert.Equal(4242, route.WindowHandle);
     }
 
+    /// <summary>
+    /// The window background input is posted at is recognised the way a window action recognises
+    /// one: by the program that owns it, or by the class it registered, rather than by a title that
+    /// moves with the document or the level. That is what keeps a step typing into a game aimed at
+    /// the game after the level it was written for is over.
+    /// </summary>
+    [Fact]
+    public async Task Background_input_can_name_its_window_by_the_program()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(4242, "笔记 - 第 3 关", new ScreenPoint(0, 0),
+            new ScreenSize(100, 100), false, false));
+        devices.WindowFacts[4242] = ("notepad", "Notepad");
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.keyPress", Param("key", "F5"), Param("holdMs", "10"),
+                Param("inputMode", "background"), Param("targetWindow", "notepad"),
+                Param("targetMatchBy", "process")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(4242, Assert.Single(devices.Routes).WindowHandle);
+    }
+
+    /// <summary>
+    /// A pattern the machine cannot read is the macro's problem to see, and it is seen before
+    /// anything is typed: the step fails in the same words the window actions use rather than
+    /// posting the keys at whichever window happened to match.
+    /// </summary>
+    [Fact]
+    public async Task Background_input_with_a_pattern_it_cannot_read_stops_the_step()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(4242, "Notepad - notes.txt",
+            new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.keyPress", Param("key", "F5"), Param("inputMode", "background"),
+                Param("targetWindow", "Notepad["), Param("targetCompareBy", "regex")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.BadPattern", result.Key);
+
+        // It looked the window up and stopped there: nothing was posted at whatever came back.
+        Assert.Equal(["findWindow Notepad["], devices.Calls);
+    }
+
     [Fact]
     public async Task Background_input_without_a_window_fails_instead_of_typing_into_the_wrong_one()
     {

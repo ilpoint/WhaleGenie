@@ -1482,9 +1482,12 @@ public class ActionDialogTests
 
             // x and y share a line, so where the pointer goes and how long it takes read as two
             // lines while the advanced page holds the rest: what the coordinates are measured from,
-            // how the pointer travels, and where the input is sent.
+            // how the pointer travels, where the input is sent, and — for a step that posts it at a
+            // window — which window that is and how it is recognised. The last three are off the form
+            // while the input goes to whatever is in front, but they are still the tuning of this
+            // action rather than something to show without being asked for.
             Assert.Equal(2, viewModel.Rows.Count);
-            Assert.Equal(6, viewModel.AdvancedRows.Count);
+            Assert.Equal(8, viewModel.AdvancedRows.Count);
             Assert.True(viewModel.OnBase);
 
             // The pages are opened by their own tabs rather than by a fold, so a step's settings
@@ -1596,6 +1599,100 @@ public class ActionDialogTests
             Assert.NotNull(saved);
             Assert.Contains(saved!.Parameters,
                parameter => parameter.Name == "inputMode" && parameter.Value == "background");
+        });
+    }
+
+    /// <summary>
+    /// A step that sends its input to a window names that window with the same three parts a window
+    /// action uses, and they are asked for only while that is where its input goes: the other input
+    /// modes send to whatever has the focus, so the window below is never read while they are on.
+    /// </summary>
+    [Fact]
+    public void The_window_a_step_posts_its_input_at_is_asked_for_in_that_mode_alone()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.keyPress");
+
+            Assert.False(Shown(viewModel, "targetWindow"));
+            Assert.False(Shown(viewModel, "targetMatchBy"));
+            Assert.False(Shown(viewModel, "targetCompareBy"));
+
+            Choose(viewModel, "inputMode", "background");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(Shown(viewModel, "targetWindow"));
+            Assert.True(Shown(viewModel, "targetMatchBy"));
+            Assert.True(Shown(viewModel, "targetCompareBy"));
+
+            // All three are tuning rather than what the step is, so they are behind the fold.
+            var folded = viewModel.AdvancedRows.SelectMany(Names).ToList();
+            Assert.Contains("targetWindow", folded);
+            Assert.Contains("targetMatchBy", folded);
+            Assert.Contains("targetCompareBy", folded);
+
+            // Back to sending in front, and the three go with the mode that reads them.
+            Choose(viewModel, "inputMode", "foreground");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.False(Shown(viewModel, "targetWindow"));
+            Assert.False(Shown(viewModel, "targetMatchBy"));
+            Assert.False(Shown(viewModel, "targetCompareBy"));
+        });
+    }
+
+    /// <summary>
+    /// A step that posts its input at a window writes down how that window is recognised, so a run
+    /// reads it back the way the dialog did; and a step sent another way writes none of it, because
+    /// it never reads that window at all.
+    /// </summary>
+    [Fact]
+    public void A_step_writes_how_the_window_it_posts_to_is_recognised()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.keyPress");
+            var text = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "targetWindow");
+
+            Choose(viewModel, "inputMode", "background");
+            Choose(viewModel, "targetMatchBy", "process");
+            Choose(viewModel, "targetCompareBy", "regex");
+            text.Text = @"^notepad$";
+            Dispatcher.UIThread.RunJobs();
+
+            // A pattern in that box is not a title bar, and the field says so — the same way a window
+            // action's does.
+            Assert.Equal(Strings.Format("Common.OptionalSuffix",
+                Strings.Get("input.keyPress.targetWindow.regex.label",
+                    text.Definition.Variant!.Label)), text.Label);
+
+            MacroStep? posted = null;
+            viewModel.CloseRequested += step => posted = step;
+            viewModel.SaveCommand.Execute(null);
+
+            var written = posted!.Parameters.ToDictionary(parameter => parameter.Name,
+                parameter => parameter.Value, StringComparer.Ordinal);
+            Assert.Equal("background", written["inputMode"]);
+            Assert.Equal(@"^notepad$", written["targetWindow"]);
+            Assert.Equal("process", written["targetMatchBy"]);
+            Assert.Equal("regex", written["targetCompareBy"]);
+
+            // Told again to send in front, the step carries nothing about a window it does not read.
+            Choose(viewModel, "inputMode", "foreground");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.DoesNotContain("targetWindow", viewModel.JsonPreview, StringComparison.Ordinal);
+            Assert.DoesNotContain("targetMatchBy", viewModel.JsonPreview, StringComparison.Ordinal);
+            Assert.DoesNotContain("targetCompareBy", viewModel.JsonPreview, StringComparison.Ordinal);
+
+            MacroStep? inFront = null;
+            viewModel.CloseRequested += step => inFront = step;
+            viewModel.SaveCommand.Execute(null);
+
+            Assert.DoesNotContain(inFront!.Parameters, parameter => parameter.Name == "targetWindow");
+            Assert.DoesNotContain(inFront.Parameters, parameter => parameter.Name == "targetMatchBy");
+            Assert.DoesNotContain(inFront.Parameters, parameter => parameter.Name == "targetCompareBy");
         });
     }
 

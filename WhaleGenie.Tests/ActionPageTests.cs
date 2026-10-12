@@ -86,7 +86,7 @@ public class ActionPageTests
     [
         "minFeatures", "ignoreColor", "matchIndex", "allMatches", "orderBy",
         "anchorMode", "anchorWindow", "anchorMatchBy", "anchorCompareBy", "anchorSelector",
-        "inputMode", "targetWindow", "style",
+        "inputMode", "targetWindow", "targetMatchBy", "targetCompareBy", "style",
         "captureMode", "frameMaxAgeMs", "preprocess", "colorFilter", "colorTolerance", "fixText",
         "expected", "minScore", "language", "encoding", "outputEncoding", "lineEnding", "quoteAll",
         "emptyCells", "align", "separator", "depth", "sortBy", "descending", "withinCount",

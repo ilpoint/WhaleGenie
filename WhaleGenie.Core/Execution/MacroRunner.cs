@@ -2332,15 +2332,30 @@ public sealed class MacroRunner
             return InputRoute.Front;
         }
 
-        // Posting messages needs a window to post them at, and the step names it by title.
-        var title = Read(step.Text("targetWindow")).AsText().Trim();
-        if (title.Length == 0)
+        // Posting messages needs a window to post them at. The step names it the way the window
+        // actions name one — the text compared with the part it says to compare, the way it says to
+        // compare it — so a step that types into a window whose title moves with the document is
+        // not left without a handle on it.
+        var text = Read(step.Text("targetWindow")).AsText().Trim();
+        if (text.Length == 0)
         {
             throw new StepFailure("Run.MissingTargetWindow");
         }
 
-        var window = _devices.Windows.Find(title, WindowMatch.Title)
-                     ?? throw new StepFailure("Run.WindowNotFound", title);
+        WindowInfo window;
+        try
+        {
+            window = _devices.Windows.Find(text, WindowMatchOf(step.Text("targetMatchBy")),
+                         WindowCompareOf(step.Text("targetCompareBy")))
+                     ?? throw new StepFailure("Run.WindowNotFound", text);
+        }
+        catch (ArgumentException)
+        {
+            // A pattern the machine cannot read is the macro's problem to see, not a stack trace to
+            // puzzle over, so it comes back as a failed step — the same words the window actions
+            // report it with, and before anything is typed into the wrong window.
+            throw new StepFailure("Run.BadPattern", text);
+        }
 
         return new InputRoute(InputDelivery.Background, window.Handle);
     }

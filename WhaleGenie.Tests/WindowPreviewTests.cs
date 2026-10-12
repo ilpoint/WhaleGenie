@@ -241,15 +241,7 @@ public class WindowPreviewTests
     {
         Ui.Run(() =>
         {
-            foreach (var key in new[]
-                     {
-                         "input.keyPress", "control.delay", "window.list",
-
-                         // A step that works at the pointer names a window for its numbers to be
-                         // counted from and recognises it by its title alone, which is no three-part
-                         // rule to show.
-                         "input.mouseClick",
-                     })
+            foreach (var key in new[] { "control.delay", "window.list" })
             {
                 var viewModel = Open(key);
 
@@ -257,6 +249,49 @@ public class WindowPreviewTests
                 Assert.All(viewModel.Parameters,
                     parameter => Assert.False(parameter.ShowsWindowPreview));
             }
+        });
+    }
+
+    /// <summary>
+    /// A step that sends its input to a window names that window with the same three parts the
+    /// window actions use, so it gets the same list — and only while that is where its input goes:
+    /// the other input modes send to whatever has the focus, so the window named below is not read
+    /// and a list of windows standing under it says the step does something it does not.
+    /// </summary>
+    [Fact]
+    public void A_step_that_posts_its_input_at_a_window_shows_the_windows_it_would_post_to()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.keyPress");
+            viewModel.Windows = Desk()
+                .Add(1, "笔记 - 第 3 关", "notepad", "Notepad")
+                .Add(2, "Calculator", "calc", "CalcFrame");
+
+            var text = Parameter(viewModel, "targetWindow");
+
+            // Sending in front: the window is not read, so nothing hangs under its name.
+            Assert.False(text.ShowsWindowPreview);
+
+            Choose(viewModel, "inputMode", "background");
+            Choose(viewModel, "targetMatchBy", "process");
+            text.Text = "notepad";
+            Dispatcher.UIThread.RunJobs();
+
+            var preview = viewModel.WindowPreview!;
+            preview.RefreshCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(text.ShowsWindowPreview);
+            Assert.Equal(Strings.Format("Add.WindowPreview.Count", 1), preview.Summary);
+            Assert.Equal("笔记 - 第 3 关", Assert.Single(preview.Rows).Title);
+            Assert.Equal(WindowMatch.Process, viewModel.WindowMatchFor());
+
+            // Back to sending in front, and the list goes with the rule.
+            Choose(viewModel, "inputMode", "foreground");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.False(text.ShowsWindowPreview);
         });
     }
 

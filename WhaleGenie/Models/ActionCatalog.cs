@@ -4157,6 +4157,13 @@ public static class ActionCatalog
     /// In front is how input has always been sent; the other two are what let a macro work on a
     /// window it does not have the focus of, or look like real hardware.
     /// </summary>
+    /// <remarks>
+    /// The window the messages are posted at is recognised by the same three parts the window
+    /// actions use — what to look for, which part of a window to compare it with, and how to
+    /// compare them — because a title that moves with the document or the interface language is
+    /// otherwise the only handle there is on it. Only the background mode reads that window, so
+    /// the three are asked for only while that is how this step's input is sent.
+    /// </remarks>
     private static ActionParameter[] Delivery() =>
     [
         Choice("inputMode", "Input mode", ["foreground", "background", "driver"], "foreground",
@@ -4167,18 +4174,55 @@ public static class ActionCatalog
             + "window shows whether this machine has them.",
             labels: ["In front", "Background (posted)", "Driver (virtual device)"],
             advanced: true),
+        ..TargetWindowRule(),
+    ];
+
+    /// <summary>
+    /// The window background input posts its messages at, together with how to recognise it. A
+    /// title is what a person reads off the title bar, but it changes with the document and the
+    /// language; the program that owns the window and the class it registered hold still, which is
+    /// what a macro wants when the window it types into keeps coming back under a different name.
+    /// </summary>
+    private static ActionParameter[] TargetWindowRule() =>
+    [
         new()
         {
             Name = "targetWindow",
             Label = "Target window",
             Kind = ActionParameterKind.Window,
             Placeholder = "Notepad",
-            Hint = "The window background input posts its messages at; part of the title is "
-                   + "enough. The other input modes do not use it.",
+            // Once the comparing field says "regular expression", this field asks for a pattern
+            // rather than for the text of a title bar, and the person writing the step should not
+            // have to work out that the pattern goes here.
+            Variant = new ActionParameterVariant("targetCompareBy", "regex", "Match pattern",
+                @"Notepad.*?\.txt"),
+            Hint = "The window background input posts its messages at, recognised with the same "
+                   + "three fields a window action uses: the text is compared with the part "
+                   + "\"Match by\" names, the way \"Compare\" says, ignoring case. Only the "
+                   + "background mode reads it, and a background step that names no window fails "
+                   + "before it sends anything.",
             Required = false,
             Advanced = true,
+            AppliesWhen = "inputMode",
+            AppliesWhenValues = [BackgroundMode],
         },
+        Choice("targetMatchBy", "Match by", ["title", "process", "class"], "title",
+            "Which part of a window the match text is compared with: its title, the name of the "
+            + "program that owns it, or the window class that program registered. Change it when "
+            + "the title moves with the document or the language. Only the background input mode "
+            + "uses it.",
+            labels: ["Title", "Process name", "Window class"],
+            advanced: true, onlyWith: [BackgroundMode], onlyField: "inputMode"),
+        Choice("targetCompareBy", "Compare", ["contains", "startsWith", "regex"], "contains",
+            "How the match text is compared with that part: contained in it, the start of it, or a "
+            + "regular expression matched against it. Use a pattern when the title carries "
+            + "something that changes from run to run. Only the background input mode uses it.",
+            labels: ["Contains", "Starts with", "Regular expression"],
+            advanced: true, onlyWith: [BackgroundMode], onlyField: "inputMode"),
     ];
+
+    /// <summary>What the input mode says while the messages are posted at the named window.</summary>
+    private const string BackgroundMode = "background";
 
     /// <summary>
     /// What an action's coordinates are measured from, shared by every action that names a

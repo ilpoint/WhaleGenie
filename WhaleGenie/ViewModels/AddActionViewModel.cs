@@ -692,10 +692,13 @@ public partial class AddActionViewModel : ViewModelBase
     /// to take away from here: a class picked while the step compares titles would match nothing. A
     /// step that says nothing about it reads titles, the way it always did. The steps that look at
     /// the screen say it beside their coordinate origin rather than as part of a window of their
-    /// own, and both readings are the same rule.
+    /// own, and the steps that post their input at a window say it beside the input mode. All three
+    /// readings are the same rule, so the picker and the preview answer it the same way wherever the
+    /// field it belongs to sits.
     /// </summary>
     public WindowMatch WindowMatchFor()
-        => (Parameter("matchBy") ?? Parameter("anchorMatchBy"))?.CurrentText
+        => (Parameter("matchBy") ?? Parameter("anchorMatchBy") ?? Parameter("targetMatchBy"))
+            ?.CurrentText
             .Trim().ToLowerInvariant() switch
         {
             "process" => WindowMatch.Process,
@@ -708,7 +711,8 @@ public partial class AddActionViewModel : ViewModelBase
     /// window picker and the preview of recognised windows are read against.
     /// </summary>
     public WindowCompare WindowCompareFor()
-        => (Parameter("compareBy") ?? Parameter("anchorCompareBy"))?.CurrentText
+        => (Parameter("compareBy") ?? Parameter("anchorCompareBy") ?? Parameter("targetCompareBy"))
+            ?.CurrentText
             .Trim().ToLowerInvariant() switch
         {
             "startswith" => WindowCompare.StartsWith,
@@ -722,31 +726,55 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     public WindowPreviewViewModel? WindowPreview { get; private set; }
 
-    /// <summary>The field the preview stands under, and whether the rule it follows is only read
-    /// while this step counts its numbers from a window.</summary>
+    /// <summary>The field the preview stands under, and what has to be true of the step for the rule
+    /// it follows to be read at all.</summary>
     private StepParameterViewModel? _previewField;
-    private bool _previewFollowsOrigin;
+    private PreviewGate _previewGate;
+
+    /// <summary>
+    /// What the window a step names is named for. Some steps name one to count their numbers from,
+    /// some to post their input at; either way the rule is only read while that is what the step is
+    /// set up to do, and a list of windows standing under a rule nothing reads says the step does
+    /// something it does not.
+    /// </summary>
+    private enum PreviewGate
+    {
+        /// <summary>The rule is the step's own, read whenever the step runs.</summary>
+        Always,
+
+        /// <summary>Read only while the numbers are counted from a window.</summary>
+        AnchorOrigin,
+
+        /// <summary>Read only while the input is posted at a window.</summary>
+        BackgroundPost,
+    }
 
     /// <summary>
     /// Hangs the preview on the field the rule is about — the text the window is recognised by — so
     /// the list stands right under the box being written rather than between a field and its own
     /// editor. An action with no such rule has nothing to preview. A step that looks at the screen
-    /// names its window beside its coordinate origin instead of in fields of its own, and gets the
-    /// same list; its rule is only read while the numbers are counted from that window, so the list
-    /// is only there then.
+    /// names its window beside its coordinate origin, and one that posts its input names it beside
+    /// the input mode; both get the same list, and both are only read while that is what the step
+    /// does, so the list is only there then.
     /// </summary>
     private void WireWindowPreview()
     {
         WindowPreview?.Stop();
         WindowPreview = null;
         _previewField = null;
-        _previewFollowsOrigin = false;
+        _previewGate = PreviewGate.Always;
 
         var text = Parameter("title");
         if (text is null && Parameter("anchorMatchBy") is not null)
         {
             text = Parameter("anchorWindow");
-            _previewFollowsOrigin = true;
+            _previewGate = PreviewGate.AnchorOrigin;
+        }
+
+        if (text is null && Parameter("targetMatchBy") is not null)
+        {
+            text = Parameter("targetWindow");
+            _previewGate = PreviewGate.BackgroundPost;
         }
 
         if (text is null)
@@ -766,6 +794,13 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     private bool AnchorNamesWindow()
         => Parameter("anchorMode")?.CurrentText.Trim().ToLowerInvariant() is "window" or "client";
+
+    /// <summary>
+    /// True when this step posts its input at a window, which is the only time the window it names
+    /// is read: the other input modes send to whatever has the focus.
+    /// </summary>
+    private bool InputPostsToWindow()
+        => Parameter("inputMode")?.CurrentText.Trim().ToLowerInvariant() == "background";
 
     /// <summary>Folds a group open or shut and remembers which way it went.</summary>
     public void ToggleGroup(ActionGroupViewModel group)
@@ -1530,12 +1565,18 @@ public partial class AddActionViewModel : ViewModelBase
         }
 
         // Which windows the step recognises is read off all three of those fields, so it is asked
-        // for once they all say what they say. A step that reads the screen recognises a window only
-        // while its numbers are counted from one, so the list goes up and comes down with that
-        // answer rather than standing there over a rule nothing reads.
+        // for once they all say what they say. A window named to count numbers from, or to post
+        // input at, is read only while that is what the step does, so the list goes up and comes
+        // down with that answer rather than standing there over a rule nothing reads.
         if (WindowPreview is { } preview && _previewField is { } text)
         {
-            var asking = !_previewFollowsOrigin || AnchorNamesWindow();
+            var asking = _previewGate switch
+            {
+                PreviewGate.AnchorOrigin => AnchorNamesWindow(),
+                PreviewGate.BackgroundPost => InputPostsToWindow(),
+                _ => true,
+            };
+
             text.WindowPreview = asking ? preview : null;
             if (asking)
             {

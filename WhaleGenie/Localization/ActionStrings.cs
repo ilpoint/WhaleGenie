@@ -12,17 +12,33 @@ namespace WhaleGenie.Localization;
 internal static class ActionStrings
 {
     /// <summary>
-    /// The hint the thirteen input actions share for their input-mode picker. They were written
-    /// once rather than thirteen times, so a change to how input is described stays in one place.
+    /// The hint the fourteen input actions share for their input-mode picker. They were written
+    /// once rather than fourteen times, so a change to how input is described stays in one place.
     /// </summary>
     private const string InputModeHint =
         "这一步的输入怎么送出去。前台发给当前有焦点的窗口；后台把消息投给下面的目标窗口，"
         + "不用抢焦点，屏幕上的鼠标也不会真的移动；驱动级通过虚拟 USB 设备发送，"
         + "需要 usbip-win2 驱动和运行中的 VIIPER 服务端，设置窗口里能看这两样在不在。";
 
-    /// <summary>The matching hint for the window background input posts its messages at.</summary>
+    /// <summary>
+    /// The matching hint for the window background input posts its messages at. The window is
+    /// recognised the way a window action recognises one, so the hint says which part is compared
+    /// and how, the same way the window actions' own hint does.
+    /// </summary>
     private const string TargetWindowHint =
-        "后台输入把消息投给哪个窗口，填标题的一部分即可。其他输入方式用不到。";
+        "后台输入把消息投给哪个窗口，靠下面三行认出，认法与窗口动作一致，不区分大小写。"
+        + "只有输入方式选后台消息时用得到它；标题随文档名或界面语言变化时，改用进程名或窗口类名。";
+
+    /// <summary>What that field is called once the comparing field says the text is a pattern.</summary>
+    private const string TargetWindowRegexLabel = "目标窗口的正则";
+
+    /// <summary>Which part of the window the match text is compared with, for the input actions.</summary>
+    private const string TargetMatchByHint =
+        WindowMatchByHint + "只有输入方式选后台消息时用得到它。";
+
+    /// <summary>How that text is compared, for the input actions.</summary>
+    private const string TargetCompareByHint =
+        WindowCompareHint + "只有输入方式选后台消息时用得到它。";
 
     /// <summary>
     /// The hint every action that takes a position or a rectangle shares for its coordinate-origin
@@ -1511,7 +1527,7 @@ internal static class ActionStrings
         ["gamepad.release.desc"] = "松开虚拟手柄上所有按键、摇杆和扳机。一次运行结束时本来就会自动松开，"
             + "这一步用于宏中途想主动交还手柄。",
 
-        // 输入方式，13 个输入动作共用一组文案。
+        // 输入方式与后台输入的目标窗口，14 个输入动作共用一组文案。
         ["input.keyPress.inputMode.label"] = "输入方式",
         ["input.keyPress.inputMode.hint"] = InputModeHint,
         ["input.keyPress.inputMode.option.foreground"] = "前台",
@@ -1519,6 +1535,18 @@ internal static class ActionStrings
         ["input.keyPress.inputMode.option.driver"] = "驱动级",
         ["input.keyPress.targetWindow.label"] = "目标窗口",
         ["input.keyPress.targetWindow.hint"] = TargetWindowHint,
+        ["input.keyPress.targetWindow.regex.label"] = TargetWindowRegexLabel,
+        ["input.keyPress.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
+        ["input.keyPress.targetMatchBy.label"] = "匹配方式",
+        ["input.keyPress.targetMatchBy.hint"] = TargetMatchByHint,
+        ["input.keyPress.targetMatchBy.option.title"] = WindowMatchByTitle,
+        ["input.keyPress.targetMatchBy.option.process"] = WindowMatchByProcess,
+        ["input.keyPress.targetMatchBy.option.class"] = WindowMatchByClass,
+        ["input.keyPress.targetCompareBy.label"] = "比较方式",
+        ["input.keyPress.targetCompareBy.hint"] = TargetCompareByHint,
+        ["input.keyPress.targetCompareBy.option.contains"] = WindowCompareContains,
+        ["input.keyPress.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
+        ["input.keyPress.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.keySequence.inputMode.label"] = "输入方式",
         ["input.keySequence.inputMode.hint"] = InputModeHint,
@@ -1527,6 +1555,18 @@ internal static class ActionStrings
         ["input.keySequence.inputMode.option.driver"] = "驱动级",
         ["input.keySequence.targetWindow.label"] = "目标窗口",
         ["input.keySequence.targetWindow.hint"] = TargetWindowHint,
+        ["input.keySequence.targetWindow.regex.label"] = TargetWindowRegexLabel,
+        ["input.keySequence.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
+        ["input.keySequence.targetMatchBy.label"] = "匹配方式",
+        ["input.keySequence.targetMatchBy.hint"] = TargetMatchByHint,
+        ["input.keySequence.targetMatchBy.option.title"] = WindowMatchByTitle,
+        ["input.keySequence.targetMatchBy.option.process"] = WindowMatchByProcess,
+        ["input.keySequence.targetMatchBy.option.class"] = WindowMatchByClass,
+        ["input.keySequence.targetCompareBy.label"] = "比较方式",
+        ["input.keySequence.targetCompareBy.hint"] = TargetCompareByHint,
+        ["input.keySequence.targetCompareBy.option.contains"] = WindowCompareContains,
+        ["input.keySequence.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
+        ["input.keySequence.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.keyDown.inputMode.label"] = "输入方式",
         ["input.keyDown.inputMode.hint"] = InputModeHint,
@@ -1535,6 +1575,18 @@ internal static class ActionStrings
         ["input.keyDown.inputMode.option.driver"] = "驱动级",
         ["input.keyDown.targetWindow.label"] = "目标窗口",
         ["input.keyDown.targetWindow.hint"] = TargetWindowHint,
+        ["input.keyDown.targetWindow.regex.label"] = TargetWindowRegexLabel,
+        ["input.keyDown.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
+        ["input.keyDown.targetMatchBy.label"] = "匹配方式",
+        ["input.keyDown.targetMatchBy.hint"] = TargetMatchByHint,
+        ["input.keyDown.targetMatchBy.option.title"] = WindowMatchByTitle,
+        ["input.keyDown.targetMatchBy.option.process"] = WindowMatchByProcess,
+        ["input.keyDown.targetMatchBy.option.class"] = WindowMatchByClass,
+        ["input.keyDown.targetCompareBy.label"] = "比较方式",
+        ["input.keyDown.targetCompareBy.hint"] = TargetCompareByHint,
+        ["input.keyDown.targetCompareBy.option.contains"] = WindowCompareContains,
+        ["input.keyDown.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
+        ["input.keyDown.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.keyUp.inputMode.label"] = "输入方式",
         ["input.keyUp.inputMode.hint"] = InputModeHint,
@@ -1543,6 +1595,18 @@ internal static class ActionStrings
         ["input.keyUp.inputMode.option.driver"] = "驱动级",
         ["input.keyUp.targetWindow.label"] = "目标窗口",
         ["input.keyUp.targetWindow.hint"] = TargetWindowHint,
+        ["input.keyUp.targetWindow.regex.label"] = TargetWindowRegexLabel,
+        ["input.keyUp.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
+        ["input.keyUp.targetMatchBy.label"] = "匹配方式",
+        ["input.keyUp.targetMatchBy.hint"] = TargetMatchByHint,
+        ["input.keyUp.targetMatchBy.option.title"] = WindowMatchByTitle,
+        ["input.keyUp.targetMatchBy.option.process"] = WindowMatchByProcess,
+        ["input.keyUp.targetMatchBy.option.class"] = WindowMatchByClass,
+        ["input.keyUp.targetCompareBy.label"] = "比较方式",
+        ["input.keyUp.targetCompareBy.hint"] = TargetCompareByHint,
+        ["input.keyUp.targetCompareBy.option.contains"] = WindowCompareContains,
+        ["input.keyUp.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
+        ["input.keyUp.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.hotkey.inputMode.label"] = "输入方式",
         ["input.hotkey.inputMode.hint"] = InputModeHint,
@@ -1551,6 +1615,18 @@ internal static class ActionStrings
         ["input.hotkey.inputMode.option.driver"] = "驱动级",
         ["input.hotkey.targetWindow.label"] = "目标窗口",
         ["input.hotkey.targetWindow.hint"] = TargetWindowHint,
+        ["input.hotkey.targetWindow.regex.label"] = TargetWindowRegexLabel,
+        ["input.hotkey.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
+        ["input.hotkey.targetMatchBy.label"] = "匹配方式",
+        ["input.hotkey.targetMatchBy.hint"] = TargetMatchByHint,
+        ["input.hotkey.targetMatchBy.option.title"] = WindowMatchByTitle,
+        ["input.hotkey.targetMatchBy.option.process"] = WindowMatchByProcess,
+        ["input.hotkey.targetMatchBy.option.class"] = WindowMatchByClass,
+        ["input.hotkey.targetCompareBy.label"] = "比较方式",
+        ["input.hotkey.targetCompareBy.hint"] = TargetCompareByHint,
+        ["input.hotkey.targetCompareBy.option.contains"] = WindowCompareContains,
+        ["input.hotkey.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
+        ["input.hotkey.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.typeText.inputMode.label"] = "输入方式",
         ["input.typeText.inputMode.hint"] = InputModeHint,
@@ -1559,6 +1635,18 @@ internal static class ActionStrings
         ["input.typeText.inputMode.option.driver"] = "驱动级",
         ["input.typeText.targetWindow.label"] = "目标窗口",
         ["input.typeText.targetWindow.hint"] = TargetWindowHint,
+        ["input.typeText.targetWindow.regex.label"] = TargetWindowRegexLabel,
+        ["input.typeText.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
+        ["input.typeText.targetMatchBy.label"] = "匹配方式",
+        ["input.typeText.targetMatchBy.hint"] = TargetMatchByHint,
+        ["input.typeText.targetMatchBy.option.title"] = WindowMatchByTitle,
+        ["input.typeText.targetMatchBy.option.process"] = WindowMatchByProcess,
+        ["input.typeText.targetMatchBy.option.class"] = WindowMatchByClass,
+        ["input.typeText.targetCompareBy.label"] = "比较方式",
+        ["input.typeText.targetCompareBy.hint"] = TargetCompareByHint,
+        ["input.typeText.targetCompareBy.option.contains"] = WindowCompareContains,
+        ["input.typeText.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
+        ["input.typeText.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.mouseMove.inputMode.label"] = "输入方式",
         ["input.mouseMove.inputMode.hint"] = InputModeHint
@@ -1568,6 +1656,18 @@ internal static class ActionStrings
         ["input.mouseMove.inputMode.option.driver"] = "驱动级",
         ["input.mouseMove.targetWindow.label"] = "目标窗口",
         ["input.mouseMove.targetWindow.hint"] = TargetWindowHint,
+        ["input.mouseMove.targetWindow.regex.label"] = TargetWindowRegexLabel,
+        ["input.mouseMove.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
+        ["input.mouseMove.targetMatchBy.label"] = "匹配方式",
+        ["input.mouseMove.targetMatchBy.hint"] = TargetMatchByHint,
+        ["input.mouseMove.targetMatchBy.option.title"] = WindowMatchByTitle,
+        ["input.mouseMove.targetMatchBy.option.process"] = WindowMatchByProcess,
+        ["input.mouseMove.targetMatchBy.option.class"] = WindowMatchByClass,
+        ["input.mouseMove.targetCompareBy.label"] = "比较方式",
+        ["input.mouseMove.targetCompareBy.hint"] = TargetCompareByHint,
+        ["input.mouseMove.targetCompareBy.option.contains"] = WindowCompareContains,
+        ["input.mouseMove.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
+        ["input.mouseMove.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.mouseMoveRelative.inputMode.label"] = "输入方式",
         ["input.mouseMoveRelative.inputMode.hint"] = InputModeHint
@@ -1577,6 +1677,18 @@ internal static class ActionStrings
         ["input.mouseMoveRelative.inputMode.option.driver"] = "驱动级",
         ["input.mouseMoveRelative.targetWindow.label"] = "目标窗口",
         ["input.mouseMoveRelative.targetWindow.hint"] = TargetWindowHint,
+        ["input.mouseMoveRelative.targetWindow.regex.label"] = TargetWindowRegexLabel,
+        ["input.mouseMoveRelative.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
+        ["input.mouseMoveRelative.targetMatchBy.label"] = "匹配方式",
+        ["input.mouseMoveRelative.targetMatchBy.hint"] = TargetMatchByHint,
+        ["input.mouseMoveRelative.targetMatchBy.option.title"] = WindowMatchByTitle,
+        ["input.mouseMoveRelative.targetMatchBy.option.process"] = WindowMatchByProcess,
+        ["input.mouseMoveRelative.targetMatchBy.option.class"] = WindowMatchByClass,
+        ["input.mouseMoveRelative.targetCompareBy.label"] = "比较方式",
+        ["input.mouseMoveRelative.targetCompareBy.hint"] = TargetCompareByHint,
+        ["input.mouseMoveRelative.targetCompareBy.option.contains"] = WindowCompareContains,
+        ["input.mouseMoveRelative.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
+        ["input.mouseMoveRelative.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.mouseClick.inputMode.label"] = "输入方式",
         ["input.mouseClick.inputMode.hint"] = InputModeHint,
@@ -1585,6 +1697,18 @@ internal static class ActionStrings
         ["input.mouseClick.inputMode.option.driver"] = "驱动级",
         ["input.mouseClick.targetWindow.label"] = "目标窗口",
         ["input.mouseClick.targetWindow.hint"] = TargetWindowHint,
+        ["input.mouseClick.targetWindow.regex.label"] = TargetWindowRegexLabel,
+        ["input.mouseClick.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
+        ["input.mouseClick.targetMatchBy.label"] = "匹配方式",
+        ["input.mouseClick.targetMatchBy.hint"] = TargetMatchByHint,
+        ["input.mouseClick.targetMatchBy.option.title"] = WindowMatchByTitle,
+        ["input.mouseClick.targetMatchBy.option.process"] = WindowMatchByProcess,
+        ["input.mouseClick.targetMatchBy.option.class"] = WindowMatchByClass,
+        ["input.mouseClick.targetCompareBy.label"] = "比较方式",
+        ["input.mouseClick.targetCompareBy.hint"] = TargetCompareByHint,
+        ["input.mouseClick.targetCompareBy.option.contains"] = WindowCompareContains,
+        ["input.mouseClick.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
+        ["input.mouseClick.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.mouseDoubleClick.inputMode.label"] = "输入方式",
         ["input.mouseDoubleClick.inputMode.hint"] = InputModeHint,
@@ -1593,6 +1717,18 @@ internal static class ActionStrings
         ["input.mouseDoubleClick.inputMode.option.driver"] = "驱动级",
         ["input.mouseDoubleClick.targetWindow.label"] = "目标窗口",
         ["input.mouseDoubleClick.targetWindow.hint"] = TargetWindowHint,
+        ["input.mouseDoubleClick.targetWindow.regex.label"] = TargetWindowRegexLabel,
+        ["input.mouseDoubleClick.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
+        ["input.mouseDoubleClick.targetMatchBy.label"] = "匹配方式",
+        ["input.mouseDoubleClick.targetMatchBy.hint"] = TargetMatchByHint,
+        ["input.mouseDoubleClick.targetMatchBy.option.title"] = WindowMatchByTitle,
+        ["input.mouseDoubleClick.targetMatchBy.option.process"] = WindowMatchByProcess,
+        ["input.mouseDoubleClick.targetMatchBy.option.class"] = WindowMatchByClass,
+        ["input.mouseDoubleClick.targetCompareBy.label"] = "比较方式",
+        ["input.mouseDoubleClick.targetCompareBy.hint"] = TargetCompareByHint,
+        ["input.mouseDoubleClick.targetCompareBy.option.contains"] = WindowCompareContains,
+        ["input.mouseDoubleClick.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
+        ["input.mouseDoubleClick.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.mouseDown.inputMode.label"] = "输入方式",
         ["input.mouseDown.inputMode.hint"] = InputModeHint,
@@ -1601,6 +1737,18 @@ internal static class ActionStrings
         ["input.mouseDown.inputMode.option.driver"] = "驱动级",
         ["input.mouseDown.targetWindow.label"] = "目标窗口",
         ["input.mouseDown.targetWindow.hint"] = TargetWindowHint,
+        ["input.mouseDown.targetWindow.regex.label"] = TargetWindowRegexLabel,
+        ["input.mouseDown.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
+        ["input.mouseDown.targetMatchBy.label"] = "匹配方式",
+        ["input.mouseDown.targetMatchBy.hint"] = TargetMatchByHint,
+        ["input.mouseDown.targetMatchBy.option.title"] = WindowMatchByTitle,
+        ["input.mouseDown.targetMatchBy.option.process"] = WindowMatchByProcess,
+        ["input.mouseDown.targetMatchBy.option.class"] = WindowMatchByClass,
+        ["input.mouseDown.targetCompareBy.label"] = "比较方式",
+        ["input.mouseDown.targetCompareBy.hint"] = TargetCompareByHint,
+        ["input.mouseDown.targetCompareBy.option.contains"] = WindowCompareContains,
+        ["input.mouseDown.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
+        ["input.mouseDown.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.mouseUp.inputMode.label"] = "输入方式",
         ["input.mouseUp.inputMode.hint"] = InputModeHint,
@@ -1609,6 +1757,18 @@ internal static class ActionStrings
         ["input.mouseUp.inputMode.option.driver"] = "驱动级",
         ["input.mouseUp.targetWindow.label"] = "目标窗口",
         ["input.mouseUp.targetWindow.hint"] = TargetWindowHint,
+        ["input.mouseUp.targetWindow.regex.label"] = TargetWindowRegexLabel,
+        ["input.mouseUp.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
+        ["input.mouseUp.targetMatchBy.label"] = "匹配方式",
+        ["input.mouseUp.targetMatchBy.hint"] = TargetMatchByHint,
+        ["input.mouseUp.targetMatchBy.option.title"] = WindowMatchByTitle,
+        ["input.mouseUp.targetMatchBy.option.process"] = WindowMatchByProcess,
+        ["input.mouseUp.targetMatchBy.option.class"] = WindowMatchByClass,
+        ["input.mouseUp.targetCompareBy.label"] = "比较方式",
+        ["input.mouseUp.targetCompareBy.hint"] = TargetCompareByHint,
+        ["input.mouseUp.targetCompareBy.option.contains"] = WindowCompareContains,
+        ["input.mouseUp.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
+        ["input.mouseUp.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.mouseScroll.inputMode.label"] = "输入方式",
         ["input.mouseScroll.inputMode.hint"] = InputModeHint,
@@ -1617,6 +1777,18 @@ internal static class ActionStrings
         ["input.mouseScroll.inputMode.option.driver"] = "驱动级",
         ["input.mouseScroll.targetWindow.label"] = "目标窗口",
         ["input.mouseScroll.targetWindow.hint"] = TargetWindowHint,
+        ["input.mouseScroll.targetWindow.regex.label"] = TargetWindowRegexLabel,
+        ["input.mouseScroll.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
+        ["input.mouseScroll.targetMatchBy.label"] = "匹配方式",
+        ["input.mouseScroll.targetMatchBy.hint"] = TargetMatchByHint,
+        ["input.mouseScroll.targetMatchBy.option.title"] = WindowMatchByTitle,
+        ["input.mouseScroll.targetMatchBy.option.process"] = WindowMatchByProcess,
+        ["input.mouseScroll.targetMatchBy.option.class"] = WindowMatchByClass,
+        ["input.mouseScroll.targetCompareBy.label"] = "比较方式",
+        ["input.mouseScroll.targetCompareBy.hint"] = TargetCompareByHint,
+        ["input.mouseScroll.targetCompareBy.option.contains"] = WindowCompareContains,
+        ["input.mouseScroll.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
+        ["input.mouseScroll.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.mouseDrag.inputMode.label"] = "输入方式",
         ["input.mouseDrag.inputMode.hint"] = InputModeHint,
@@ -1625,6 +1797,18 @@ internal static class ActionStrings
         ["input.mouseDrag.inputMode.option.driver"] = "驱动级",
         ["input.mouseDrag.targetWindow.label"] = "目标窗口",
         ["input.mouseDrag.targetWindow.hint"] = TargetWindowHint,
+        ["input.mouseDrag.targetWindow.regex.label"] = TargetWindowRegexLabel,
+        ["input.mouseDrag.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
+        ["input.mouseDrag.targetMatchBy.label"] = "匹配方式",
+        ["input.mouseDrag.targetMatchBy.hint"] = TargetMatchByHint,
+        ["input.mouseDrag.targetMatchBy.option.title"] = WindowMatchByTitle,
+        ["input.mouseDrag.targetMatchBy.option.process"] = WindowMatchByProcess,
+        ["input.mouseDrag.targetMatchBy.option.class"] = WindowMatchByClass,
+        ["input.mouseDrag.targetCompareBy.label"] = "比较方式",
+        ["input.mouseDrag.targetCompareBy.hint"] = TargetCompareByHint,
+        ["input.mouseDrag.targetCompareBy.option.contains"] = WindowCompareContains,
+        ["input.mouseDrag.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
+        ["input.mouseDrag.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         // 坐标基准：所有带坐标或矩形的动作共用一组文案。
         ["input.mouseMove.anchorMode.label"] = "坐标基准",
