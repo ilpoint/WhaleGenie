@@ -1,0 +1,270 @@
+using System;
+using System.Runtime.InteropServices;
+using Vortice.Direct3D;
+using Vortice.Direct3D11;
+using Vortice.DXGI;
+
+namespace WhaleGenie.Core.Devices.Platform;
+
+/// <summary>
+/// The desktop, handed over by the graphics card: the picture the display is being given is
+/// duplicated into a texture of our own and copied out of graphics memory, so what comes back is
+/// what is on the monitor with no window in the way. It is the cheapest way to read the whole
+/// screen — a frame is one copy of 2560×1440×4 ≈ 14.7 MB, measured at 2 ms against 28 ms for
+/// copying the screen out with GDI — and it is the only way of reading a game that fills the
+/// screen on its own, which GDI answers with black.
+/// </summary>
+/// <remarks>
+/// Everything happens on one thread of this object's own, because the calls belong to one graphics
+/// device and are made from the engine's thread and from the interface's. A display that is being
+/// switched over to a game, locked, or read by another program too puts the duplication out of
+/// work; that is said by handing back nothing, which leaves the caller to read the screen another
+/// way, and the duplication is opened again a second later rather than for every look.
+/// </remarks>
+internal sealed class DesktopDuplicator : IDisposable
+{
+    /// <summary>How long after a duplication is lost the next attempt is made.</summary>
+    private const long RetryMs = 1000;
+
+    private readonly OneThread _thread = new("desktop duplication");
+
+    private ID3D11Device? _device;
+    private ID3D11DeviceContext? _context;
+    private IDXGIOutputDuplication? _duplication;
+    private ID3D11Texture2D? _staging;
+
+    /// <summary>The whole of the display as it was last read, and what it was read from.</summary>
+    private byte[]? _whole;
+    private int _width;
+    private int _height;
+
+    private bool _refused;
+    private long _againAt;
+
+    /// <summary>
+    /// The part of the display that was asked for, or nothing when this machine cannot duplicate it
+    /// — an older Windows, no graphics device that will do it, a display another program is also
+    /// reading, a picture in a form this does not read, or a display turned on its side.
+    /// </summary>
+    public ImageFrame? Try(int x, int y, int width, int height)
+        => _thread.Run(() =>
+        {
+            if (!Ready())
+            {
+                return null;
+            }
+
+            try
+            {
+                return Shot(x, y, width, height);
+            }
+            catch (Exception)
+            {
+                LetGo();
+                return null;
+            }
+        });
+
+    /// <summary>Whether this machine can duplicate the display at all, settled the first time it is asked.</summary>
+    private bool Ready()
+    {
+        if (_duplication is not null)
+        {
+            return true;
+        }
+
+        if (_refused || Environment.TickCount64 < _againAt)
+        {
+            return false;
+        }
+
+        try
+        {
+            Open();
+            return true;
+        }
+        catch (Exception)
+        {
+            // A machine with no graphics device that will duplicate the display is not going to
+            // grow one while a macro runs, so it is written off rather than tried again.
+            _refused = true;
+            LetGo();
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Opens the graphics device and the duplication of the display sitting at the top left of the
+    /// virtual desktop — the primary one, which is the one the engine's coordinates are counted in.
+    /// A display that is rotated is left alone: the picture would come back on its side, and a
+    /// macro aiming at it would aim at the wrong place.
+    /// </summary>
+    private void Open()
+    {
+        Vortice.Direct3D11.D3D11.D3D11CreateDevice(null, DriverType.Hardware, DeviceCreationFlags.BgraSupport,
+            [FeatureLevel.Level_11_0, FeatureLevel.Level_10_1], out ID3D11Device device,
+            out ID3D11DeviceContext context);
+        _device = device;
+        _context = context;
+
+        using var dxgi = device.QueryInterface<IDXGIDevice>();
+        var adapter = dxgi.GetAdapter();
+        for (uint index = 0; ; index++)
+        {
+            if (adapter.EnumOutputs(index, out var output).Failure)
+            {
+                break;
+            }
+
+            using (output)
+            {
+                var places = output.Description.DesktopCoordinates;
+                if (places.Left != 0 || places.Top != 0)
+                {
+                    continue;
+                }
+
+                using var direct = output.QueryInterface<IDXGIOutput1>();
+                var duplication = direct.DuplicateOutput(device);
+                var mode = duplication.Description.ModeDescription;
+                if (!Supported(duplication.Description, mode))
+                {
+                    duplication.Dispose();
+                    continue;
+                }
+
+                _duplication = duplication;
+                _width = (int)mode.Width;
+                _height = (int)mode.Height;
+                return;
+            }
+        }
+
+        throw new InvalidOperationException("no display can be duplicated");
+    }
+
+    /// <summary>
+    /// Whether a duplicated display is one this reads: a picture of the desktop four bytes to a
+    /// pixel, blue first, sitting the right way up. A display showing high dynamic range hands over
+    /// a wider picture than that, and one turned on its side hands over a picture lying on its
+    /// side; either would have to be turned into the shape the rest of the engine reads, and until
+    /// that is done another way of reading the screen is the one to use.
+    /// </summary>
+    private static bool Supported(OutduplDescription description, ModeDescription mode)
+        => description.Rotation == ModeRotation.Identity
+            && mode.Format == Format.B8G8R8A8_UNorm
+            && mode.Width > 0
+            && mode.Height > 0;
+
+    /// <summary>
+    /// One reading: whatever the card has drawn since the last look is copied into our own staging
+    /// texture and read out of it. A desktop that has not been drawn again has nothing to hand
+    /// over, and the picture already held is still what is on screen, so it is the one used.
+    /// </summary>
+    private ImageFrame? Shot(int x, int y, int width, int height)
+    {
+        if (_duplication!.AcquireNextFrame(0, out _, out var resource).Success)
+        {
+            using (resource)
+            using (var texture = resource.QueryInterface<ID3D11Texture2D>())
+            {
+                Stage(texture);
+                _context!.CopyResource(_staging!, texture);
+            }
+
+            _duplication.ReleaseFrame();
+            Hold();
+        }
+
+        // Waiting for the card to draw would hold up the first look of a step on a screen that is
+        // standing still; there is nothing to hand over yet, so the screen is read another way this
+        // once, and the look after it finds the picture waiting.
+        if (_whole is not { } whole)
+        {
+            return null;
+        }
+
+        if (x == 0 && y == 0 && width == _width && height == _height)
+        {
+            return new ImageFrame(_width, _height, (byte[])whole.Clone());
+        }
+
+        if (x < 0 || y < 0 || x + width > _width || y + height > _height)
+        {
+            throw new DeviceActionException("Run.EmptyRegion", $"{x},{y} {width}x{height}");
+        }
+
+        var pixels = new byte[(long)width * height * 4];
+        for (var row = 0; row < height; row++)
+        {
+            Array.Copy(whole, (((long)(y + row) * _width) + x) * 4, pixels, (long)row * width * 4,
+                width * 4);
+        }
+
+        return new ImageFrame(width, height, pixels);
+    }
+
+    /// <summary>A staging texture to copy frames into, made once at the size the display is.</summary>
+    private void Stage(ID3D11Texture2D texture)
+    {
+        if (_staging is not null)
+        {
+            return;
+        }
+
+        var shape = texture.Description;
+        shape.Usage = ResourceUsage.Staging;
+        shape.BindFlags = BindFlags.None;
+        shape.CPUAccessFlags = CpuAccessFlags.Read;
+        shape.MiscFlags = ResourceOptionFlags.None;
+        shape.ArraySize = 1;
+        shape.MipLevels = 1;
+        shape.SampleDescription = new SampleDescription(1, 0);
+        _staging = _device!.CreateTexture2D(shape);
+    }
+
+    /// <summary>Reads the staged frame out into the picture this keeps of the whole display.</summary>
+    private void Hold()
+    {
+        var mapped = _context!.Map(_staging!, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
+        try
+        {
+            var bytes = _whole ??= new byte[(long)_width * _height * 4];
+            for (var row = 0; row < _height; row++)
+            {
+                Marshal.Copy(mapped.DataPointer + (row * (int)mapped.RowPitch), bytes, row * _width * 4,
+                    _width * 4);
+            }
+        }
+        finally
+        {
+            _context.Unmap(_staging!, 0);
+        }
+    }
+
+    /// <summary>Puts the duplication down, keeping what was read so that asking again can try anew.</summary>
+    private void LetGo()
+    {
+        _duplication?.Dispose();
+        _duplication = null;
+        _staging?.Dispose();
+        _staging = null;
+        _context?.Dispose();
+        _context = null;
+        _device?.Dispose();
+        _device = null;
+        _whole = null;
+        _againAt = Environment.TickCount64 + RetryMs;
+    }
+
+    public void Dispose()
+    {
+        _thread.Run(() =>
+        {
+            LetGo();
+            return true;
+        });
+
+        _thread.Dispose();
+    }
+}

@@ -24,25 +24,43 @@ from" in [README.md](../README.md).
 
 | How | Median | Fastest / slowest |
 | --- | --- | --- |
+| Whole screen 2560×1440, desktop duplication (the picture the card hands over) | 2.0 ms | 0.6 / 10.3 |
+| 400×300, desktop duplication (the picture not drawn again, so the one already held) | 0.1 ms | 0.1 / 0.1 |
 | Whole screen 2560×1440, desktop (GDI) | 29.5 ms | 24.6 / 32.5 |
 | A 400×300 patch, desktop (GDI) | 4.4 ms | 3.4 / 7.2 |
-| Whole screen 2560×1440, whole screen (graphics capture) | 18 ms | 13 / 24 |
-| Whole screen 2560×1440, whole screen (graphics capture), session per read | 51 ms | 48 / 54 |
+| Whole screen 2560×1440, graphics capture (the library way, used when the display cannot be duplicated) | 18 ms | 13 / 24 |
+| The same, a session opened and closed per read | 51 ms | 48 / 54 |
 | One window, window (PrintWindow) | 21 ms | 20 / 26 |
 | One 800×600 window, window (graphics capture) | 10 ms | 8 / 11 |
 
-What a capture costs follows how much is being captured: the desktop way copies 2560×1440×4 ≈ 14.7 MB
-out of the display device, and a 400×300 patch is a fifteenth of that; almost all of those 29 ms are
-that copy (measured on its own, the `BitBlt` is about 16 ms, getting the pixels into managed memory
-0.6 ms and allocating the buffer 0.6 ms). Graphics capture costs about the same and buys reading a
-window that another window is covering.
+The cheapest way to read the whole screen is **desktop duplication** (DXGI Desktop Duplication): the
+picture the graphics card is composing for the monitor is duplicated into a texture of our own and
+read out of it, so what comes back is what is on screen. A 2560×1440 frame costs 2 ms, more than ten
+times less than copying the screen with GDI, and it is the only way to read a game that fills the
+screen on its own (GDI answers with black). It is also the only way that gets a picture for nothing:
+a desktop that has not been drawn again has no new frame, and the picture already held is what is on
+screen, so asking again costs 0.1 ms. What it costs is one graphics device per process, built the
+first time it is asked for (about 0.25 s, once per run), and it cannot read a display showing high
+dynamic range or one turned on its side: then the whole-screen way falls back on the library's
+graphics capture (18 ms, the row below) and, failing that, on GDI.
 
-**A graphics capture session has to be kept**: opening one — building the graphics device and the
-pool of pictures — takes 0.4 s the first time, and after that a frame is only a copy from graphics
-memory. A kept session therefore reads the whole screen in 18 ms and a window in 10 ms, while opening
-and closing one per read costs 51 ms, about three times as much. Windows also draws a capture border
-around whatever is being read, which is there for as long as a session is: **opening and closing one
-per read makes that border blink**, which is a second reason to keep it.
+What a GDI capture costs follows how much is being captured: the whole screen copies
+2560×1440×4 ≈ 14.7 MB out of the display device and a 400×300 patch is a fifteenth of that; almost
+all of those 29 ms are that copy (measured on its own, the `BitBlt` is about 16 ms, getting the
+pixels into managed memory 0.6 ms and allocating the buffer 0.6 ms). Desktop duplication is
+indifferent to how much is being captured — it takes the whole display and cuts the part that was
+asked for out of it, so 400×300 costs what the whole screen costs (2 ms, or 0.1 ms when nothing has
+been drawn). For a small patch, GDI at 4 ms is still the cheapest.
+
+**A window's graphics capture session has to be kept**: opening one — building the graphics device
+and the pool of pictures — takes 0.4 s the first time, and after that a frame is only a copy from
+graphics memory. A kept session therefore reads a window in 10 ms and the whole screen in 18 ms,
+while opening and closing one per read costs 51 ms, about three times as much. Windows also draws a
+capture border around a window being read, which is there for as long as a session is: **opening and
+closing one per read makes that border blink**, which is a second reason to keep it. Windows the
+library cannot read at all — layered windows, the Settings pages, the input-method candidates, the
+graphics driver's overlay — are tried once and then remembered, so no session is opened and thrown
+away for them over and over.
 
 ## Finding something in the picture
 
@@ -94,18 +112,18 @@ One look = one capture + one algorithm run over it. With the defaults (`frameMax
 
 | What the step does | One look | Times a second |
 | --- | --- | --- |
-| Find a 200×80 picture in the whole screen | 29.5 + 211 ≈ 240 ms | about 4 |
-| The same, inside 640×480 only | 29.5 + 14 ≈ 43 ms | about 23 |
-| Find a colour in the whole screen (hit early) | 29.5 + 0 ≈ 30 ms | about 33 |
-| Recognise text over the whole screen | 29.5 + 128 ≈ 158 ms | about 6 |
-| One round of waiting for the picture to hold still | 29.5 + 5.7 ≈ 35 ms | about 28 |
+| Find a 200×80 picture in the whole screen | 2.0 + 211 ≈ 213 ms | about 5 |
+| The same, inside 640×480 only | 4.4 + 14 ≈ 18 ms | about 55 |
+| Find a colour in the whole screen (hit early) | 2.0 + 0.4 ≈ 2.4 ms | about 400 |
+| Recognise text over the whole screen | 2.0 + 128 ≈ 130 ms | about 8 |
+| One round of waiting for the picture to hold still | 2.0 + 5.7 ≈ 8 ms | about 125 |
 
 Two switches change that number. Both are on the **Advanced** page and both are off by default:
 
 - **Accept a picture up to** (`frameMaxAgeMs`): above 0, one capture serves every step reading the
   same source the same way within that age, and the later steps cut their own rectangle out of it.
   Ten steps reading the same part of the screen in a row take the capture cost from 10 × 29.5 ≈ 295 ms
-  down to 30 ms.
+  down to 30 ms on the GDI way, and from 10 × 2 ≈ 20 ms down to 2 ms on the duplication way.
 - **Time between looks** (`intervalMs`): the least time one step leaves between two looks at the
   screen. A step that waits for something uses it as its polling pace, and left empty that is one
   screen refresh — 16 ms on a 60 Hz display, 5 ms on a 240 Hz one — so one round of polling costs

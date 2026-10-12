@@ -20,6 +20,14 @@
     -->
     <PackageReference Include="Zaya.Screenshot" Version="2.0.0" />
     <PackageReference Include="Zaya.Screenshot.Impl.Windows" Version="2.0.0" />
+    <!--
+      The display duplication API, for reading the whole of the desktop out of graphics memory:
+      several times cheaper than copying the screen with GDI, and the only way to read a game that
+      fills the screen on its own. Wrappers only — the calls go to the Direct3D and DXGI that
+      Windows already has, so nothing native is shipped.
+    -->
+    <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
+    <PackageReference Include="Vortice.DXGI" Version="3.8.3" />
   </ItemGroup>
 
   <ItemGroup>

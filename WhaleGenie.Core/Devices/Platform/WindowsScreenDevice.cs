@@ -27,6 +27,12 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
     /// </summary>
     private readonly Lazy<GraphicsCapture> _graphics = new(() => new GraphicsCapture());
 
+    /// <summary>
+    /// The display's own picture of itself, built on first use the way graphics capture is: a macro
+    /// that never reads the screen never opens a graphics device over it.
+    /// </summary>
+    private readonly Lazy<DesktopDuplicator> _duplicator = new(() => new DesktopDuplicator());
+
     /// <summary>What a waiting step looks on when the display driver cannot say how fast it runs.</summary>
     private const int CommonRefresh = 16;
 
@@ -165,9 +171,69 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         CaptureMethod.PrintWindow or CaptureMethod.GraphicsCapture
             => throw new DeviceActionException("Run.NoCaptureWindow", Written(request)),
         CaptureMethod.GraphicsCaptureDesktop => ThroughTheDisplay(request),
-        _ => new ScreenShot(Copy(request.X, request.Y, request.Width, request.Height),
-            new ScreenPoint(request.X, request.Y), CaptureMethod.Gdi),
+        CaptureMethod.Gdi => Gdi(request),
+        _ => AutoDesktop(request),
     };
+
+    /// <summary>
+    /// What a step that asked for the desktop by no particular means gets: the display's own
+    /// picture of what it is being shown, when this machine can hand one over, and the copy taken
+    /// out of the screen when it cannot. The first is several times cheaper — a frame out of
+    /// graphics memory against copying 14.7 MB out of the display device — and is the only one that
+    /// finds a game filling the screen on its own; the second always answers something.
+    /// </summary>
+    private ScreenShot AutoDesktop(ScreenCaptureRequest request)
+    {
+        var (left, top, right, bottom) = Bounds(request);
+        if (request.X == left && request.Y == top && request.Width == right - left
+            && request.Height == bottom - top
+            && Display(left, top, right - left, bottom - top) is { } frame)
+        {
+            return new ScreenShot(frame, new ScreenPoint(left, top),
+                CaptureMethod.GraphicsCaptureDesktop);
+        }
+
+        return Gdi(request);
+    }
+
+    /// <summary>Copies the rectangle straight out of the screen, the way a macro always has.</summary>
+    private static ScreenShot Gdi(ScreenCaptureRequest request)
+        => new(Copy(request.X, request.Y, request.Width, request.Height),
+            new ScreenPoint(request.X, request.Y), CaptureMethod.Gdi);
+
+    /// <summary>
+    /// The rectangle of the desktop that is on the display, in the display's coordinates. What is
+    /// asked for past the edge of the screen has nothing to give, which is said here rather than
+    /// answered with a picture of a part of it.
+    /// </summary>
+    private (int Left, int Top, int Right, int Bottom) Bounds(ScreenCaptureRequest request)
+    {
+        var size = PrimarySize;
+        return (Math.Max(0, request.X), Math.Max(0, request.Y),
+            Math.Min(size.Width, request.X + request.Width),
+            Math.Min(size.Height, request.Y + request.Height));
+    }
+
+    /// <summary>
+    /// The display's own picture of the part of it that was asked for, by whichever of the two ways
+    /// can hand one over, or nothing when this machine has neither.
+    /// </summary>
+    private ImageFrame? Display(int x, int y, int width, int height)
+    {
+        if (_duplicator.Value.Try(x, y, width, height) is { } direct)
+        {
+            return direct;
+        }
+
+        try
+        {
+            return _graphics.Value.Desktop(x, y, width, height);
+        }
+        catch (DeviceActionException)
+        {
+            return null;
+        }
+    }
 
     /// <summary>
     /// What a step that asked for neither a window nor a means gets: the pixels where the window
@@ -220,20 +286,22 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         return Crop(frame, content.Location, request, CaptureMethod.GraphicsCapture);
     }
 
-    /// <summary>One display read through graphics capture, in the display's own coordinates.</summary>
+    /// <summary>
+    /// One display read the way the screen shows it, in the display's own coordinates. The
+    /// rectangle is cut down to what is on the screen, and a rectangle with nothing on the screen
+    /// in it is a failure rather than an empty picture.
+    /// </summary>
     private ScreenShot ThroughTheDisplay(ScreenCaptureRequest request)
     {
-        var size = PrimarySize;
-        var left = Math.Max(0, request.X);
-        var top = Math.Max(0, request.Y);
-        var right = Math.Min(size.Width, request.X + request.Width);
-        var bottom = Math.Min(size.Height, request.Y + request.Height);
+        var (left, top, right, bottom) = Bounds(request);
         if (right <= left || bottom <= top)
         {
             throw new DeviceActionException("Run.EmptyRegion", Written(request));
         }
 
-        var frame = _graphics.Value.Desktop(left, top, right - left, bottom - top);
+        var frame = Display(left, top, right - left, bottom - top)
+            ?? throw new DeviceActionException("Run.NoGraphicsCapture",
+                "reading the display this way is not possible on this machine");
         return new ScreenShot(frame, new ScreenPoint(left, top),
             CaptureMethod.GraphicsCaptureDesktop);
     }
@@ -431,6 +499,11 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         if (_graphics.IsValueCreated)
         {
             _graphics.Value.Dispose();
+        }
+
+        if (_duplicator.IsValueCreated)
+        {
+            _duplicator.Value.Dispose();
         }
     }
 

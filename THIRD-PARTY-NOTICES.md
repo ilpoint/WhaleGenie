@@ -64,6 +64,12 @@ The icon was scaled and modified from the original.
   <https://github.com/shtrasser-dev/Zaya.Screenshot>
   窗口画面获取用它：Windows Graphics Capture 与 Direct3D 11 把窗口自己画的内容取出来，
   窗口被压住或开在后台时也取得到。
+- Vortice.Windows（Vortice.DXGI、Vortice.Direct3D11，以及它们带的 Vortice.DirectX、
+  Vortice.Mathematics、SharpGen.Runtime）— MIT
+  <https://github.com/amerkoleci/Vortice.Windows>
+  整屏画面获取用它：桌面复制（DXGI Desktop Duplication）把显卡正在合成的整块画面交出来，
+  比 GDI 复制屏幕便宜，也是独占全屏的游戏唯一能取到画面的路。它只是一层托管包装，调用的是
+  Windows 自带的 Direct3D 11 与 DXGI，不随包分发任何原生库。
 - Playwright（Microsoft.Playwright）— Apache-2.0
   <https://github.com/microsoft/playwright-dotnet>
   随包分发的是它的驱动，里面带一份 Node.js；浏览器本体不在这里，见下面「用户自己装的组件」。
