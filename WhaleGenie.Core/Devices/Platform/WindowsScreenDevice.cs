@@ -187,7 +187,7 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         var (left, top, right, bottom) = Bounds(request);
         if (request.X == left && request.Y == top && request.Width == right - left
             && request.Height == bottom - top
-            && Display(left, top, right - left, bottom - top) is { } frame)
+            && _duplicator.Value.Try(left, top, right - left, bottom - top) is { } frame)
         {
             return new ScreenShot(frame, new ScreenPoint(left, top),
                 CaptureMethod.GraphicsCaptureDesktop);
@@ -212,27 +212,6 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         return (Math.Max(0, request.X), Math.Max(0, request.Y),
             Math.Min(size.Width, request.X + request.Width),
             Math.Min(size.Height, request.Y + request.Height));
-    }
-
-    /// <summary>
-    /// The display's own picture of the part of it that was asked for, by whichever of the two ways
-    /// can hand one over, or nothing when this machine has neither.
-    /// </summary>
-    private ImageFrame? Display(int x, int y, int width, int height)
-    {
-        if (_duplicator.Value.Try(x, y, width, height) is { } direct)
-        {
-            return direct;
-        }
-
-        try
-        {
-            return _graphics.Value.Desktop(x, y, width, height);
-        }
-        catch (DeviceActionException)
-        {
-            return null;
-        }
     }
 
     /// <summary>
@@ -299,11 +278,29 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
             throw new DeviceActionException("Run.EmptyRegion", Written(request));
         }
 
-        var frame = Display(left, top, right - left, bottom - top)
+        var frame = _duplicator.Value.Try(left, top, right - left, bottom - top)
+            ?? Library(left, top, right - left, bottom - top)
             ?? throw new DeviceActionException("Run.NoGraphicsCapture",
                 "reading the display this way is not possible on this machine");
         return new ScreenShot(frame, new ScreenPoint(left, top),
             CaptureMethod.GraphicsCaptureDesktop);
+    }
+
+    /// <summary>
+    /// The display read by the capture library, which is what a machine that cannot duplicate it has
+    /// left on this path, or nothing when the library cannot read it either. A machine whose display
+    /// shows high dynamic range or is turned on its side is one of these.
+    /// </summary>
+    private ImageFrame? Library(int x, int y, int width, int height)
+    {
+        try
+        {
+            return _graphics.Value.Desktop(x, y, width, height);
+        }
+        catch (DeviceActionException)
+        {
+            return null;
+        }
     }
 
     /// <summary>

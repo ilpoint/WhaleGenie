@@ -26,6 +26,9 @@ internal sealed class DesktopDuplicator : IDisposable
     /// <summary>How long after a duplication is lost the next attempt is made.</summary>
     private const long RetryMs = 1000;
 
+    /// <summary>How long the throwaway frame a fresh duplication starts with is waited for.</summary>
+    private const uint BlankFrameMs = 100;
+
     private readonly OneThread _thread = new("desktop duplication");
 
     private ID3D11Device? _device;
@@ -40,6 +43,13 @@ internal sealed class DesktopDuplicator : IDisposable
 
     private bool _refused;
     private long _againAt;
+
+    /// <summary>
+    /// Whether the picture the duplication starts with is still to be thrown away. A fresh
+    /// duplication holds a surface that nothing has been drawn into yet, so the first frame it
+    /// hands over is black; serving it would hand a macro a black screen that is not one.
+    /// </summary>
+    private bool _blank;
 
     /// <summary>
     /// The part of the display that was asked for, or nothing when this machine cannot duplicate it
@@ -136,6 +146,12 @@ internal sealed class DesktopDuplicator : IDisposable
                 _duplication = duplication;
                 _width = (int)mode.Width;
                 _height = (int)mode.Height;
+
+                // Thrown away here while the wait is cheap, so that the first look after this is
+                // the screen. If nothing has been drawn yet there is nothing to throw away and the
+                // first look throws it away instead.
+                _blank = true;
+                Discard(BlankFrameMs);
                 return;
             }
         }
@@ -173,6 +189,12 @@ internal sealed class DesktopDuplicator : IDisposable
             }
 
             _duplication.ReleaseFrame();
+            if (_blank)
+            {
+                _blank = false;
+                return null;
+            }
+
             Hold();
         }
 
@@ -255,6 +277,22 @@ internal sealed class DesktopDuplicator : IDisposable
         _device = null;
         _whole = null;
         _againAt = Environment.TickCount64 + RetryMs;
+    }
+
+    /// <summary>
+    /// Takes and lets go of one frame, which is how the black picture a fresh duplication starts
+    /// with is got out of the way; nothing is read from it.
+    /// </summary>
+    private void Discard(uint waitMs)
+    {
+        if (!_duplication!.AcquireNextFrame(waitMs, out _, out var resource).Success)
+        {
+            return;
+        }
+
+        _blank = false;
+        resource.Dispose();
+        _duplication.ReleaseFrame();
     }
 
     public void Dispose()

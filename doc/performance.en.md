@@ -24,8 +24,9 @@ from" in [README.md](../README.md).
 
 | How | Median | Fastest / slowest |
 | --- | --- | --- |
-| Whole screen 2560×1440, desktop duplication (the picture the card hands over) | 2.0 ms | 0.6 / 10.3 |
-| 400×300, desktop duplication (the picture not drawn again, so the one already held) | 0.1 ms | 0.1 / 0.1 |
+| Whole screen 2560×1440, desktop duplication (the picture the card hands over, redrawn) | 2.0 ms | 0.5 / 7.6 |
+| The same, not drawn again since (the picture already held) | 0.1 ms | 0.1 / 0.2 |
+| 400×300, desktop duplication | 0.1 ms | 0.1 / 0.4 |
 | Whole screen 2560×1440, desktop (GDI) | 29.5 ms | 24.6 / 32.5 |
 | A 400×300 patch, desktop (GDI) | 4.4 ms | 3.4 / 7.2 |
 | Whole screen 2560×1440, graphics capture (the library way, used when the display cannot be duplicated) | 18 ms | 13 / 24 |
@@ -35,14 +36,15 @@ from" in [README.md](../README.md).
 
 The cheapest way to read the whole screen is **desktop duplication** (DXGI Desktop Duplication): the
 picture the graphics card is composing for the monitor is duplicated into a texture of our own and
-read out of it, so what comes back is what is on screen. A 2560×1440 frame costs 2 ms, more than ten
-times less than copying the screen with GDI, and it is the only way to read a game that fills the
-screen on its own (GDI answers with black). It is also the only way that gets a picture for nothing:
-a desktop that has not been drawn again has no new frame, and the picture already held is what is on
-screen, so asking again costs 0.1 ms. What it costs is one graphics device per process, built the
-first time it is asked for (about 0.25 s, once per run), and it cannot read a display showing high
-dynamic range or one turned on its side: then the whole-screen way falls back on the library's
-graphics capture (18 ms, the row below) and, failing that, on GDI.
+read out of it, so what comes back is what is on screen. A picture that has been drawn again costs
+one 14.7 MB copy — 2 ms for 2560×1440, more than ten times less than copying the screen with GDI —
+and it is the only way to read a game that fills the screen on its own (GDI answers with black). It
+is also the only way that gets a picture for nothing: a desktop that has not been drawn again has no
+new frame, and the picture already held is what is on screen, so asking again costs 0.1 ms, which is
+where most whole-screen looks land. What it costs is one graphics device per process, built the first
+time it is asked for (about 0.25 s, once per run), and it cannot read a display showing high dynamic
+range or one turned on its side: then the whole-screen way falls back on the library's graphics
+capture (18 ms, the row below) and, failing that, on GDI.
 
 What a GDI capture costs follows how much is being captured: the whole screen copies
 2560×1440×4 ≈ 14.7 MB out of the display device and a 400×300 patch is a fifteenth of that; almost
@@ -50,7 +52,9 @@ all of those 29 ms are that copy (measured on its own, the `BitBlt` is about 16 
 pixels into managed memory 0.6 ms and allocating the buffer 0.6 ms). Desktop duplication is
 indifferent to how much is being captured — it takes the whole display and cuts the part that was
 asked for out of it, so 400×300 costs what the whole screen costs (2 ms, or 0.1 ms when nothing has
-been drawn). For a small patch, GDI at 4 ms is still the cheapest.
+been drawn). For a small patch, GDI at 4 ms is quick enough too, and its advantage is that it needs
+no graphics device built first: a short macro that reads the screen once or twice is better off with
+desktop (GDI).
 
 **A window's graphics capture session has to be kept**: opening one — building the graphics device
 and the pool of pictures — takes 0.4 s the first time, and after that a frame is only a copy from
