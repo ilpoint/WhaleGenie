@@ -28,10 +28,13 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
     private readonly Lazy<GraphicsCapture> _graphics = new(() => new GraphicsCapture());
 
     /// <summary>
-    /// The display's own picture of itself, built on first use the way graphics capture is: a macro
-    /// that never reads the screen never opens a graphics device over it.
+    /// The display's own picture of itself, taken on first use the way graphics capture is: a macro
+    /// that never reads the screen never opens a graphics device over it. It is shared, because a
+    /// process is allowed to duplicate a display once and a run and the editor's preview read the
+    /// screen at the same time.
     /// </summary>
-    private readonly Lazy<DesktopDuplicator> _duplicator = new(() => new DesktopDuplicator());
+    private readonly Lazy<DesktopDuplicator> _duplicator =
+        new(SharedDesktopDuplicator.Take);
 
     /// <summary>What a waiting step looks on when the display driver cannot say how fast it runs.</summary>
     private const int CommonRefresh = 16;
@@ -500,7 +503,7 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
 
         if (_duplicator.IsValueCreated)
         {
-            _duplicator.Value.Dispose();
+            SharedDesktopDuplicator.Give();
         }
     }
 
