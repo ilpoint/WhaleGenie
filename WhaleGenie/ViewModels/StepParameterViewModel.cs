@@ -1153,15 +1153,16 @@ public partial class StepParameterViewModel : ViewModelBase
     /// A number as it is to be written down. A box nobody has typed in holds nothing rather than a
     /// zero: zero is a number a step can mean — the left edge of the screen, a wait of no time —
     /// and a field nobody has answered has not said it. The engine reads an empty field as the
-    /// "nothing was said" it is, and a length of time keeps meaning no time at all.
+    /// "nothing was said" it is — which for a length of time is a step that follows the screen it
+    /// runs on rather than one written as a zero, and zero is itself a length a step can mean.
     /// </summary>
     private string NumberText => UseFormula
         ? Text ?? string.Empty
-        : IsDuration
-            ? Milliseconds.ToString("0.####", CultureInfo.InvariantCulture)
-            : NumberValue is { } number
-                ? number.ToString(CultureInfo.InvariantCulture)
-                : string.Empty;
+        : NumberValue is not { } number
+            ? string.Empty
+            : IsDuration
+                ? Milliseconds.ToString("0.####", CultureInfo.InvariantCulture)
+                : number.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>Flattens the edited value into the model the step is built from.</summary>
     public StepParameter ToStepParameter() => new()

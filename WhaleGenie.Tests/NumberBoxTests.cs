@@ -90,15 +90,18 @@ public class NumberBoxTests
             Assert.Equal(string.Empty, wide.CurrentText);
             Assert.False(((AddActionViewModel)window.DataContext!).CanSave);
 
-            // A length of time is the one exception: a box with nothing in it still means no time at
-            // all, which is what a wait with no length has always been.
+            // A length of time is a number like any other: a box with nothing in it says nothing,
+            // so a step whose clock is required cannot be saved until it is answered. What a step
+            // does when a length is left empty is the step's own business — a look interval left
+            // empty follows the screen's refresh rate, which is why it is not written down as a 0.
             var delay = Open("control.delay");
             var ms = Parameter(delay, "ms");
             delay.GetVisualDescendants().OfType<NumericUpDown>()
                 .First(one => ReferenceEquals(one.DataContext, ms)).Value = null;
             Dispatcher.UIThread.RunJobs();
 
-            Assert.Equal("0", ms.CurrentText);
+            Assert.Equal(string.Empty, ms.CurrentText);
+            Assert.False(((AddActionViewModel)delay.DataContext!).CanSave);
         });
     }
 

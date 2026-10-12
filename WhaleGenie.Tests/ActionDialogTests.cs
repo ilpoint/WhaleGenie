@@ -347,6 +347,40 @@ public class ActionDialogTests
     }
 
     [Fact]
+    public void A_length_of_time_left_empty_is_left_out_instead_of_written_as_a_zero()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("vision.waitImage");
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "image")
+                .AddPicture(new ImageRowViewModel { Text = @"C:\images\ok.png" });
+
+            var look = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "intervalMs");
+
+            // Nobody has answered, so the box is empty and the label says the field may be left
+            // that way: a step that says nothing here follows the screen it runs on.
+            Assert.Null(look.NumberValue);
+            Assert.Equal(string.Empty, look.CurrentText);
+            Assert.Equal(Strings.Format("Common.OptionalSuffix", look.Definition.LocalLabel),
+                look.Label);
+            Assert.True(viewModel.CanSave, viewModel.ValidationMessage);
+
+            MacroStep? saved = null;
+            viewModel.CloseRequested += step => saved = step;
+            viewModel.SaveCommand.Execute(null);
+            Assert.DoesNotContain(saved!.Parameters, parameter => parameter.Name == "intervalMs");
+
+            // A number written in is what the step keeps, and 0 is a number rather than nothing:
+            // it means looking again as soon as the look before it is done.
+            look.NumberValue = 0m;
+            viewModel.SaveCommand.Execute(null);
+            Assert.Equal("0", Value(viewModel, "intervalMs"));
+            Assert.Contains(saved!.Parameters, parameter => parameter.Name == "intervalMs");
+        });
+    }
+
+    [Fact]
     public void A_condition_can_be_written_as_an_expression()
     {
         Ui.Run(() =>

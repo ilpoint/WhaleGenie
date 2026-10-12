@@ -3895,6 +3895,9 @@ public static class ActionCatalog
     /// second the macro spends — asked of a step that has its own clock. It is left empty rather
     /// than filled with a number so that a step nobody has answered for looks once a screen
     /// refresh, which is as often as looking can tell anything and follows the display it runs on.
+    /// Leaving it empty is an answer here, so the field is optional and an empty box is left out of
+    /// the step rather than written down as a zero — a zero would mean "look again as fast as the
+    /// last look finishes", which is the other answer this field can be given.
     /// </summary>
     private static ActionParameter LookPoll()
         => Number("intervalMs", "Time between looks", null,
@@ -3903,7 +3906,7 @@ public static class ActionCatalog
             + "refreshed, which is 16 ms on a 60 Hz display and 4 ms on a 240 Hz one; 0 looks again "
             + "as soon as the look before it is done. Raise it when waiting should cost less, lower "
             + "it when what the step watches is only there for a moment.",
-            min: 0, max: 60000, advanced: true);
+            min: 0, max: 60000, advanced: true, required: false);
 
     /// <summary>A number as the hint writes it, however the file was written.</summary>
     private static string Written(decimal value) => value.ToString(CultureInfo.InvariantCulture);
