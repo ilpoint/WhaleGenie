@@ -35,6 +35,13 @@ public class ActionPageTests
         {
             yield return second.Definition.Name;
         }
+
+        // A field standing at the end of a line is on that line's page rather than on one of its
+        // own, so it counts as a field the page draws like any other.
+        if (row.Third is { } third)
+        {
+            yield return third.Definition.Name;
+        }
     }
 
     /// <summary>
@@ -170,6 +177,31 @@ public class ActionPageTests
         var basic = On(drag, viewModel => viewModel.Rows);
         Assert.Contains("startX", basic);
         Assert.Contains("endX", basic);
+    }
+
+    /// <summary>
+    /// The switch that takes a mouse step's place from the pointer is part of what the step is — the
+    /// place it acts on — so it is read on the basic page, and it stands at the end of the line of
+    /// the field it belongs to rather than taking a line of its own.
+    /// </summary>
+    [Theory]
+    [InlineData("input.mouseClick", "button")]
+    [InlineData("input.mouseDoubleClick", "button")]
+    [InlineData("input.mouseDown", "button")]
+    [InlineData("input.mouseUp", "button")]
+    [InlineData("input.mouseScroll", "x")]
+    public void The_switch_for_working_at_the_pointer_rides_the_line_it_belongs_to(
+        string action, string line)
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open(action);
+            var basic = viewModel.Rows.SelectMany(Names).ToList();
+
+            Assert.Contains("useCursor", basic);
+            Assert.Equal("useCursor", viewModel.Rows
+                .First(row => row.First.Definition.Name == line).Third?.Definition.Name);
+        });
     }
 
     /// <summary>

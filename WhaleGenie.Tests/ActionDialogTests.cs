@@ -659,6 +659,152 @@ public class ActionDialogTests
         });
     }
 
+    /// <summary>
+    /// The switch that takes the place from the pointer stands on the line of the button it belongs
+    /// to rather than taking a line of its own, and with it on the pair of numbers is not asked for:
+    /// a step that works wherever the pointer is carries no coordinates for anything to read as a
+    /// position of its own.
+    /// </summary>
+    [Fact]
+    public void A_click_can_be_told_to_work_at_the_pointer()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.mouseClick");
+            var row = viewModel.Rows.First(candidate =>
+                candidate.First.Definition.Name == "button");
+
+            Assert.True(row.HasThird);
+            Assert.Equal("useCursor", row.Third!.Definition.Name);
+
+            MacroStep? saved = null;
+            viewModel.CloseRequested += step => saved = step;
+
+            row.Third.Flag = true;
+            Dispatcher.UIThread.RunJobs();
+            viewModel.SaveCommand.Execute(null);
+
+            Assert.Equal("true", saved!.Parameters
+                .First(parameter => parameter.Name == "useCursor").Value);
+            Assert.DoesNotContain(saved.Parameters, parameter => parameter.Name == "x");
+            Assert.DoesNotContain(saved.Parameters, parameter => parameter.Name == "y");
+        });
+    }
+
+    /// <summary>
+    /// A scroll has no button to stand beside, so the switch rides the line of the two numbers it
+    /// replaces; and what the numbers held is put away rather than thrown away — a step told again
+    /// to work at a place keeps the place it was written with.
+    /// </summary>
+    [Fact]
+    public void A_scroll_can_be_told_to_work_at_the_pointer_too()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.mouseScroll");
+            var x = viewModel.Parameters.First(parameter => parameter.Definition.Name == "x");
+            var place = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "useCursor");
+            var row = viewModel.Rows.First(candidate => candidate.First.Definition.Name == "x");
+
+            Assert.True(row.HasThird);
+            Assert.Same(place, row.Third);
+
+            x.SetNumber(300);
+            place.Flag = true;
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.False(x.IsIncluded);
+            Assert.False(row.IsApplicable);
+            Assert.Equal("300", x.CurrentText);
+
+            place.Flag = false;
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(x.IsIncluded);
+            Assert.True(row.IsApplicable);
+            Assert.Equal("300", x.CurrentText);
+        });
+    }
+
+    /// <summary>
+    /// Ticking the switch takes the two numbers off the form as well as out of the step. A field
+    /// still drawn while the step no longer writes it is worse than one that is not drawn: what it
+    /// holds reads as the place the step acts on, and it is not.
+    /// </summary>
+    [Fact]
+    public void Ticking_the_switch_takes_the_numbers_off_the_form()
+    {
+        Ui.Run(() =>
+        {
+            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], []);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("input.mouseClick");
+            Dispatcher.UIThread.RunJobs();
+
+            var place = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "useCursor");
+            var numbers = Line(window, "x");
+
+            Assert.True(numbers.IsEffectivelyVisible);
+
+            place.Flag = true;
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(numbers.IsEffectivelyVisible);
+
+            // A step told again to act on the numbers it was written with is drawn the way it was:
+            // nothing was thrown away while they were off the form.
+            place.Flag = false;
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(numbers.IsEffectivelyVisible);
+        });
+    }
+
+    /// <summary>The line of the form a field of the step is drawn on.</summary>
+    private static Control Line(Window window, string name)
+        => window.GetVisualDescendants().OfType<Grid>().First(grid =>
+            grid.DataContext is ParameterRowViewModel row
+            && row.First.Definition.Name == name);
+
+    /// <summary>
+    /// A step told to work at the pointer opens the way it was saved: the switch is on, the numbers
+    /// it does not write are not drawn, and what the step will be written as says the same.
+    /// </summary>
+    [Fact]
+    public void A_step_told_to_work_at_the_pointer_opens_that_way()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("input.mouseClick");
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "x").SetNumber(120);
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "y").SetNumber(240);
+            viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "useCursor").Flag = true;
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains("\"useCursor\": true", viewModel.JsonPreview, StringComparison.Ordinal);
+            Assert.DoesNotContain("\"x\"", viewModel.JsonPreview, StringComparison.Ordinal);
+
+            MacroStep? saved = null;
+            viewModel.CloseRequested += step => saved = step;
+            viewModel.SaveCommand.Execute(null);
+
+            var reopened = new AddActionWindow(saved, ActionCatalog.Definitions, [], []);
+            reopened.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var again = (AddActionViewModel)reopened.DataContext!;
+
+            Assert.True(again.Parameters
+                .First(parameter => parameter.Definition.Name == "useCursor").Flag);
+            Assert.False(Shown(again, "x"));
+            Assert.False(Shown(again, "y"));
+        });
+    }
+
     [Fact]
     public void A_position_picked_on_screen_is_stored_relative_to_the_windows_corner()
     {

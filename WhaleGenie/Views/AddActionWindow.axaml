@@ -781,7 +781,7 @@
         <DataTemplate x:Key="ParameterRowEditor" x:DataType="vm:ParameterRowViewModel">
             <!-- A line whose question the step's own settings do not ask is not drawn: a field
                  that is there and does nothing is worse than one that is not there. -->
-            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*"
+            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*,Auto"
                   IsVisible="{Binding IsApplicable}"
                   ColumnSpacing="16" Margin="0,0,0,14">
                 <!-- What fills the whole rectangle stands above the pair of numbers it fills,
@@ -801,6 +801,16 @@
                                 Content="{Binding Second}"
                                 ContentTemplate="{StaticResource ParameterEditor}"
                                 IsVisible="{Binding HasSecond}" />
+                <!-- A field that belongs beside the line rather than under it: the switch that
+                     takes a mouse step's place from the pointer stands at the end of the row of
+                     the button it belongs to. It is held to a width of its own, because this
+                     column is measured before the two beside it: a wordy explanation would
+                     otherwise ask for as much room as it has words and leave the fields it stands
+                     beside with none. -->
+                <ContentControl Grid.Row="1" Grid.Column="2" MaxWidth="260"
+                                Content="{Binding Third}"
+                                ContentTemplate="{StaticResource ParameterEditor}"
+                                IsVisible="{Binding HasThird}" />
                 <!-- A position is taken from the pointer with Alt + X, and a click point from the
                      reference picture itself. -->
                 <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="2,6,0,0" Spacing="6">

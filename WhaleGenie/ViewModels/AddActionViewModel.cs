@@ -1146,20 +1146,27 @@ public partial class AddActionViewModel : ViewModelBase
         ObservableCollection<ParameterRowViewModel> rows)
     {
         var laid = parameters.ToList();
-        for (var index = 0; index < laid.Count; index++)
+        var index = 0;
+        while (index < laid.Count)
         {
             var current = laid[index];
-            var next = index + 1 < laid.Count ? laid[index + 1] : null;
+            StepParameterViewModel? second = null;
 
-            if (current.IsRowPair && next?.IsRowPair == true
-                || current.IsCoordinate && next?.IsCoordinate == true)
+            if (index + 1 < laid.Count
+                && (current.IsRowPair && laid[index + 1].IsRowPair
+                    || current.IsCoordinate && laid[index + 1].IsCoordinate))
             {
-                rows.Add(new ParameterRowViewModel(current, next));
-                index++;
-                continue;
+                second = laid[++index];
             }
 
-            rows.Add(new ParameterRowViewModel(current));
+            // A field that belongs beside the line rather than on one of its own — the switch that
+            // takes a mouse step's place from the pointer — rides on this line.
+            var beside = index + 1 < laid.Count && laid[index + 1].IsRowCompanion
+                ? laid[++index]
+                : null;
+
+            rows.Add(new ParameterRowViewModel(current, second, beside));
+            index++;
         }
     }
 
@@ -1242,7 +1249,8 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>
     /// Notes the parameters that make up a screen position, so either of them can take the
-    /// pointer's current place. Only actions carrying both halves get the shortcut.
+    /// pointer's current place, and the switch that says the whole position comes from the pointer
+    /// instead of from numbers. Only actions carrying both halves get either.
     /// </summary>
     private void MarkCoordinates()
     {
@@ -1255,7 +1263,18 @@ public partial class AddActionViewModel : ViewModelBase
 
         x.IsCoordinate = true;
         y.IsCoordinate = true;
+
+        // The switch stands beside what it belongs to: the button for the actions that click, press
+        // or scroll, and the pair of numbers it replaces for the rest.
+        if (Parameters.FirstOrDefault(parameter =>
+                parameter.Definition.Name == CursorPlaceParameter) is { } place)
+        {
+            place.IsRowCompanion = true;
+        }
     }
+
+    /// <summary>Name of the switch that takes a mouse step's place from the pointer.</summary>
+    private const string CursorPlaceParameter = "useCursor";
 
     /// <summary>
     /// Notes the offset of an action that clicks a picture, so the two halves sit on one line and

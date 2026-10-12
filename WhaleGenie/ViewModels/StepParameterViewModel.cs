@@ -167,6 +167,13 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>True when this parameter is a list of the places to search.</summary>
     public bool IsRegion => Definition.Kind is ActionParameterKind.Region;
 
+    /// <summary>
+    /// True when this field belongs beside the one before it on the same line rather than taking a
+    /// line of its own, which is how the switch that takes a mouse step's place from the pointer
+    /// stands next to the button it belongs to. Set by the dialog.
+    /// </summary>
+    public bool IsRowCompanion { get; set; }
+
     /// <summary>True while the step has nowhere in particular to look, which is the whole screen.</summary>
     public bool HasRegions => Regions.Count > 0;
 

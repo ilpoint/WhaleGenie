@@ -63,6 +63,16 @@ internal static class ActionStrings
     private const string AnchorWindowRegexLabel = "基准窗口的正则";
 
     /// <summary>
+    /// The switch every mouse action shares for taking its place from the pointer rather than from
+    /// numbers, which is what a macro means when the place is wherever the user left the mouse.
+    /// </summary>
+    private const string AtPointerLabel = "就在指针当前所在位置";
+
+    private const string AtPointerHint =
+        "勾上后这一步不写坐标，运行时在指针当时停留的地方完成，也不移动指针。要按用户自己放好的位置"
+        + "动作时用它；勾上后上面的“X”“Y”不写进宏文件，也不再参与。";
+
+    /// <summary>
     /// The label and hint every step that looks at the screen shares for the capture picker: they
     /// ask one question — where the pixels come from and how they are taken — so they are written
     /// once.
@@ -1330,6 +1340,8 @@ internal static class ActionStrings
         ["input.mouseClick.name"] = "鼠标点击",
         ["input.mouseClick.desc"] = "在屏幕指定位置点击鼠标按键。",
         ["input.mouseClick.button.label"] = "按键",
+        ["input.mouseClick.useCursor.label"] = AtPointerLabel,
+        ["input.mouseClick.useCursor.hint"] = AtPointerHint,
         ["input.mouseClick.x.label"] = "X",
         ["input.mouseClick.x.hint"] = "点击位置的横坐标。",
         ["input.mouseClick.y.label"] = "Y",
@@ -1353,6 +1365,8 @@ internal static class ActionStrings
         ["input.mouseDoubleClick.name"] = "鼠标双击",
         ["input.mouseDoubleClick.desc"] = "在屏幕指定位置双击鼠标按键。",
         ["input.mouseDoubleClick.button.label"] = "按键",
+        ["input.mouseDoubleClick.useCursor.label"] = AtPointerLabel,
+        ["input.mouseDoubleClick.useCursor.hint"] = AtPointerHint,
         ["input.mouseDoubleClick.x.label"] = "X",
         ["input.mouseDoubleClick.x.hint"] = "双击位置的横坐标。",
         ["input.mouseDoubleClick.y.label"] = "Y",
@@ -1373,6 +1387,8 @@ internal static class ActionStrings
         ["input.mouseDown.name"] = "按下鼠标",
         ["input.mouseDown.desc"] = "保持按住鼠标按键，直到对应的“松开鼠标”步骤。",
         ["input.mouseDown.button.label"] = "按键",
+        ["input.mouseDown.useCursor.label"] = AtPointerLabel,
+        ["input.mouseDown.useCursor.hint"] = AtPointerHint,
         ["input.mouseDown.x.label"] = "X",
         ["input.mouseDown.x.hint"] = "按下位置的横坐标。",
         ["input.mouseDown.y.label"] = "Y",
@@ -1381,6 +1397,8 @@ internal static class ActionStrings
         ["input.mouseUp.name"] = "松开鼠标",
         ["input.mouseUp.desc"] = "松开当前处于按住状态的鼠标按键。",
         ["input.mouseUp.button.label"] = "按键",
+        ["input.mouseUp.useCursor.label"] = AtPointerLabel,
+        ["input.mouseUp.useCursor.hint"] = AtPointerHint,
         ["input.mouseUp.x.label"] = "X",
         ["input.mouseUp.x.hint"] = "松开位置的横坐标。",
         ["input.mouseUp.y.label"] = "Y",
@@ -1401,6 +1419,8 @@ internal static class ActionStrings
         ["input.mouseScroll.x.hint"] = "滚动位置的横坐标。",
         ["input.mouseScroll.y.label"] = "Y",
         ["input.mouseScroll.y.hint"] = "滚动位置的纵坐标。",
+        ["input.mouseScroll.useCursor.label"] = AtPointerLabel,
+        ["input.mouseScroll.useCursor.hint"] = AtPointerHint,
         ["input.mouseScroll.repeat.label"] = "重复次数",
         ["input.mouseScroll.repeat.hint"] = "这么大的滚动量发几次。",
         ["input.mouseScroll.intervalMs.label"] = "间隔",

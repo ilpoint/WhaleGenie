@@ -2603,10 +2603,18 @@ public sealed class MacroRunner
 
     /// <summary>
     /// Where a mouse action lands. An empty position means "wherever the pointer already is",
-    /// which is what a click or a press with no coordinates written down means.
+    /// which is what a click or a press with no coordinates written down means; a step that says so
+    /// outright reads the pointer the same way, whatever its numbers hold. Asking for the pointer is
+    /// answered before anything is measured from, so a step that says it works at the pointer does
+    /// not need the window its numbers would have been counted from to be there at all.
     /// </summary>
     private ScreenPoint Point(ExecutableStep step, string xName, string yName)
     {
+        if (Flag(step, "useCursor", false))
+        {
+            return Input(step).Cursor;
+        }
+
         var x = step.Text(xName).Trim();
         var y = step.Text(yName).Trim();
         return x.Length == 0 && y.Length == 0

@@ -382,6 +382,71 @@ public class DeviceActionTests
         Assert.Equal(["click left 7 9 1 0"], devices.Calls);
     }
 
+    /// <summary>
+    /// A step told to work at the pointer works where the pointer is, whatever numbers it carries:
+    /// the numbers it holds are of the pointer as it stood while the macro was being written, and
+    /// reading them would click the corner of the screen instead.
+    /// </summary>
+    [Fact]
+    public async Task A_step_told_to_work_at_the_pointer_uses_where_the_pointer_is()
+    {
+        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(7, 9) };
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.mouseClick", Param("button", "left"), Param("useCursor", "true"),
+                Param("x", "100"), Param("y", "200")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(["click left 7 9 1 0"], devices.Calls);
+    }
+
+    /// <summary>
+    /// The other mouse steps answer the same question the same way: pressing, letting go, scrolling
+    /// and double clicking can each be told to do it wherever the pointer is.
+    /// </summary>
+    [Fact]
+    public async Task Every_mouse_step_can_be_told_to_work_at_the_pointer()
+    {
+        var devices = new FakeDeviceLayer { Cursor = new ScreenPoint(7, 9) };
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.mouseDoubleClick", Param("button", "left"), Param("useCursor", "true"),
+                Param("x", "100"), Param("y", "200")),
+            Step("input.mouseDown", Param("button", "left"), Param("useCursor", "true"),
+                Param("x", "100"), Param("y", "200")),
+            Step("input.mouseUp", Param("button", "left"), Param("useCursor", "true"),
+                Param("x", "100"), Param("y", "200")),
+            Step("input.mouseScroll", Param("direction", "down"), Param("amount", "3"),
+                Param("useCursor", "true"), Param("x", "100"), Param("y", "200")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(["click left 7 9 2 0", "down left 7 9", "up left 7 9", "scroll down 360 7 9"],
+            devices.Calls);
+    }
+
+    /// <summary>
+    /// A step that works at the pointer does not need the window its numbers would have been
+    /// counted from, so a window that has since been closed does not fail it — the pointer is
+    /// somewhere on the screen whether that window is open or not.
+    /// </summary>
+    [Fact]
+    public async Task A_step_at_the_pointer_does_not_need_the_window_its_numbers_are_counted_from()
+    {
+        var devices = WithAWindow();
+        devices.Cursor = new ScreenPoint(7, 9);
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.mouseClick", Param("button", "left"), Param("useCursor", "true"),
+                Param("x", "10"), Param("y", "20"),
+                Param("anchorMode", "window"), Param("anchorWindow", "Gone")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(["click left 7 9 1 0"], devices.Calls);
+    }
+
     [Fact]
     public async Task A_click_can_hold_the_button_down()
     {

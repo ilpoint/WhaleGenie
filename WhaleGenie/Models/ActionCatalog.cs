@@ -1872,8 +1872,8 @@ public static class ActionCatalog
             Parameters =
             [
                 Button(),
-                Number("x", "X", 0, "Screen column to click."),
-                Number("y", "Y", 0, "Screen row to click."),
+                AtPointer(),
+                ..PointerPosition("Screen column to click.", "Screen row to click."),
                 ..Anchor(withElement: true, byTitleOnly: true),
                 Number("variance", "Aim within", 0,
                     "How far the click may land from the position above, in pixels; the default is "
@@ -1905,8 +1905,8 @@ public static class ActionCatalog
             Parameters =
             [
                 Button(),
-                Number("x", "X", 0, "Screen column to click."),
-                Number("y", "Y", 0, "Screen row to click."),
+                AtPointer(),
+                ..PointerPosition("Screen column to click.", "Screen row to click."),
                 ..Anchor(withElement: true, byTitleOnly: true),
                 Number("variance", "Aim within", 0,
                     "How far a double click may land from the position above, in pixels; the "
@@ -1933,8 +1933,8 @@ public static class ActionCatalog
             Parameters =
             [
                 Button(),
-                Number("x", "X", 0, "Screen column to press."),
-                Number("y", "Y", 0, "Screen row to press."),
+                AtPointer(),
+                ..PointerPosition("Screen column to press.", "Screen row to press."),
                 ..Anchor(withElement: true, byTitleOnly: true),
                 ..Delivery(),
             ],
@@ -1948,8 +1948,8 @@ public static class ActionCatalog
             Parameters =
             [
                 Button(),
-                Number("x", "X", 0, "Screen column to release at."),
-                Number("y", "Y", 0, "Screen row to release at."),
+                AtPointer(),
+                ..PointerPosition("Screen column to release at.", "Screen row to release at."),
                 ..Anchor(withElement: true, byTitleOnly: true),
                 ..Delivery(),
             ],
@@ -1972,8 +1972,8 @@ public static class ActionCatalog
                     "Spread the scroll over this many milliseconds instead of sending it in one " +
                     "jump, so an application that animates its scrolling can follow. 0 sends it " +
                     "all at once.", advanced: true),
-                Number("x", "X", 0, "Screen column to scroll at."),
-                Number("y", "Y", 0, "Screen row to scroll at."),
+                ..PointerPosition("Screen column to scroll at.", "Screen row to scroll at."),
+                AtPointer(),
                 ..Anchor(withElement: true, byTitleOnly: true),
                 Number("repeat", "Repeat", 1, "How many times to send that much scrolling.", min: 1),
                 Number("intervalMs", "Interval", 0, "Pause between repeated scrolls."),
@@ -4223,6 +4223,34 @@ public static class ActionCatalog
             labels: ["Contains", "Starts with", "Regular expression"],
             advanced: true, onlyWith: ["window", "client"], onlyField: "anchorMode"),
     ];
+
+    /// <summary>
+    /// The switch the mouse actions share for taking the place they act on from the pointer rather
+    /// than from a pair of numbers. A macro that clicks wherever the user left the mouse has no way
+    /// of writing that down as coordinates: the numbers it would write are of the pointer as it
+    /// stood while the macro was being written.
+    /// </summary>
+    private static ActionParameter AtPointer()
+        => Toggle(CursorPlaceToggle, "At the pointer's place", false,
+            "With this on the step writes no coordinates and works wherever the pointer is at the "
+            + "time. Use it when the place is decided by where the user left the mouse; the X and Y "
+            + "fields are then not written and not read.");
+
+    /// <summary>
+    /// The two halves of the place a mouse action acts on. They are asked for only while that place
+    /// is not taken from the pointer, so a step set that way carries no coordinates at all.
+    /// </summary>
+    private static ActionParameter[] PointerPosition(string xHint, string yHint) =>
+    [
+        Number("x", "X", 0, xHint, onlyWith: [CursorPlaceOff], onlyField: CursorPlaceToggle),
+        Number("y", "Y", 0, yHint, onlyWith: [CursorPlaceOff], onlyField: CursorPlaceToggle),
+    ];
+
+    /// <summary>Name of the switch that takes a mouse step's place from the pointer.</summary>
+    private const string CursorPlaceToggle = "useCursor";
+
+    /// <summary>What that switch says while the step is still counting from its own numbers.</summary>
+    private const string CursorPlaceOff = "false";
 
     /// <summary>
     /// The control a step measures from when it measures from one. The element picker fills this in
