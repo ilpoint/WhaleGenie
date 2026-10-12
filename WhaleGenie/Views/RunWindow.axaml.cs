@@ -13,6 +13,9 @@ namespace WhaleGenie.Views;
 /// <summary>Runs a macro and shows what it does, one step at a time if asked.</summary>
 public partial class RunWindow : Window
 {
+    /// <summary>The frame around the window the run is reading right now.</summary>
+    private readonly ScreenFrames _frames = new();
+
     public RunWindow()
         : this([])
     {
@@ -33,11 +36,23 @@ public partial class RunWindow : Window
 
         viewModel.CloseRequested += Close;
         viewModel.LookRequested += look => LookWindow.Show(look, this);
+        viewModel.WindowRead += place =>
+        {
+            if (place is { } found)
+            {
+                _frames.Show([found]);
+            }
+            else
+            {
+                _frames.Clear();
+            }
+        };
         Closing += (_, _) => viewModel.StopCommand.Execute(null);
         Closed += (_, _) =>
         {
             viewModel.ReleaseDevices();
             viewModel.ReleaseLooks();
+            _frames.Dispose();
         };
         MacroTriggerGate.Enter();
         Closed += (_, _) => MacroTriggerGate.Exit();

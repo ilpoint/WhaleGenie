@@ -45,8 +45,35 @@ public partial class WindowPreviewViewModel : ViewModelBase
     /// <summary>The rule the list was last read for, so a keystroke in some other field costs nothing.</summary>
     private (string Text, WindowMatch Match, WindowCompare Compare)? _rule;
 
+    /// <summary>Whether the list is on the screen at all, which the dialog says: a rule the step does
+    /// not read has nothing to frame either.</summary>
+    private bool _shown;
+
+    private IReadOnlyList<FramePlace> _places = [];
+
     /// <summary>The windows the rule recognises, up to <see cref="Shown"/> of them.</summary>
     public ObservableCollection<WindowPreviewRow> Rows { get; } = [];
+
+    /// <summary>
+    /// Where the windows it lists sit on the screen, so that whoever is showing the list can put a
+    /// frame around each of them: a title in a list says which window, and a frame on it says where
+    /// it is, which is what makes the list worth trusting at a glance. Empty while the list is not
+    /// on screen, and for the windows with no place to draw a frame — see <see cref="FramePlace.Of"/>.
+    /// </summary>
+    public IReadOnlyList<FramePlace> Places
+    {
+        get => _places;
+        private set
+        {
+            if (_places.SequenceEqual(value))
+            {
+                return;
+            }
+
+            _places = value;
+            OnPropertyChanged();
+        }
+    }
 
     /// <summary>How many windows there are, or why there are none to show.</summary>
     [ObservableProperty]
@@ -114,6 +141,33 @@ public partial class WindowPreviewViewModel : ViewModelBase
         _timer?.Stop();
         _windows = null;
         _rule = null;
+        _shown = false;
+        Places = [];
+    }
+
+    /// <summary>
+    /// Says whether the list itself is on the screen. A window named to count numbers from, or to
+    /// post input at, is only read while that is what the step does, so the frames come and go with
+    /// the list rather than standing over a rule nothing reads.
+    /// </summary>
+    public void Show(bool shown)
+    {
+        if (_shown == shown)
+        {
+            return;
+        }
+
+        _shown = shown;
+        if (shown && _rule is not null)
+        {
+            // Coming back to a rule it has already read: the places went with the list, so the
+            // windows are read again rather than left unframed.
+            Read();
+        }
+        else if (!shown)
+        {
+            Places = [];
+        }
     }
 
     private void Read()
@@ -126,6 +180,7 @@ public partial class WindowPreviewViewModel : ViewModelBase
         if (_rule is not { } rule || _windows?.Invoke() is not { } windows)
         {
             Summary = Strings.Get("Add.WindowPreview.Unreadable");
+            Places = [];
             return;
         }
 
@@ -138,6 +193,7 @@ public partial class WindowPreviewViewModel : ViewModelBase
         {
             // The same words a run reports it with, because it is the same mistake.
             Summary = Strings.Format("Run.BadPattern", rule.Text);
+            Places = [];
             return;
         }
         catch (Exception)
@@ -145,6 +201,7 @@ public partial class WindowPreviewViewModel : ViewModelBase
             // A machine that will not hand its windows over has none to offer, which is worth
             // saying rather than showing as "no window matches".
             Summary = Strings.Get("Add.WindowPreview.Unreadable");
+            Places = [];
             return;
         }
 
@@ -162,6 +219,10 @@ public partial class WindowPreviewViewModel : ViewModelBase
         {
             Rows.Add(Row(window, rule.Match, windows));
         }
+
+        Places = _shown
+            ? [.. found.Take(Shown).Select(FramePlace.Of).OfType<FramePlace>()]
+            : [];
 
         More = found.Count > Shown
             ? Strings.Format("Add.WindowPreview.More", found.Count - Shown)

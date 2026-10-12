@@ -21,7 +21,12 @@ public class RunLookTests
     {
         public List<StepLook> Seen { get; } = [];
 
+        /// <summary>Which window each reading said it was going to read, in the order it said so.</summary>
+        public List<long> Read { get; } = [];
+
         public void Look(StepLook look) => Seen.Add(look);
+
+        public void Reading(long window) => Read.Add(window);
     }
 
     private static ExecutableStep Step(string type, params ExecutableParameter[] parameters)
@@ -424,6 +429,33 @@ public class RunLookTests
         await Run(step, devices, looks);
 
         Assert.Empty(looks.Seen);
+        Assert.Empty(looks.Read);
+    }
+
+    /// <summary>
+    /// Which window a step is reading is said before the picture is taken, because it is the one
+    /// question a look cannot answer: a picture says what was there, not where the engine looked for
+    /// it. That is what puts a frame around the window a run is reading.
+    /// </summary>
+    [Fact]
+    public async Task The_window_a_step_reads_is_said_before_the_picture_is_taken()
+    {
+        var devices = Screen();
+        devices.Windows.Add(new WindowInfo(4242, "Notepad - notes.txt", new ScreenPoint(1000, 500),
+            new ScreenSize(800, 600), false, false));
+        var looks = new Watched();
+
+        await Run(Step("vision.captureWindow", Param("title", "Notepad"), Hit("image", "shot")),
+            devices, looks);
+
+        Assert.Equal(4242, Assert.Single(looks.Read));
+
+        // The desktop itself is no window, so a step reading it says so rather than leaving the last
+        // window the run happened to read standing as the answer.
+        var desktop = new Watched();
+        await Run(Capture(1, 2, 5, 6, Hit("image", "shot")), devices, desktop);
+
+        Assert.Equal(0, Assert.Single(desktop.Read));
     }
 
     [Fact]

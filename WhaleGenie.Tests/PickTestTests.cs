@@ -16,7 +16,7 @@ public class PickTestTests
     [Fact]
     public void The_control_a_selector_names_is_looked_up_where_it_sits()
     {
-        var found = ElementFlashWindow.Locate(
+        var found = ElementFlash.Locate(
             new ElementDevice(found: true), "Button[automationId='saveButton']", "Notepad");
 
         Assert.NotNull(found);
@@ -27,7 +27,7 @@ public class PickTestTests
     [Fact]
     public void A_selector_that_is_not_on_screen_answers_with_nothing_to_flash()
     {
-        Assert.Null(ElementFlashWindow.Locate(
+        Assert.Null(ElementFlash.Locate(
             new ElementDevice(found: false), "Button[name='Save']", string.Empty));
     }
 
@@ -36,7 +36,7 @@ public class PickTestTests
     {
         // A field nobody has filled in is not a selector that matches everything: it is nothing to
         // look for, and the dialog says so rather than flashing something unrelated.
-        Assert.Null(ElementFlashWindow.Locate(new ElementDevice(found: true), "   ", string.Empty));
+        Assert.Null(ElementFlash.Locate(new ElementDevice(found: true), "   ", string.Empty));
     }
 
     [Fact]

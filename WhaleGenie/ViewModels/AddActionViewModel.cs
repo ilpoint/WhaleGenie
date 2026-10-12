@@ -779,6 +779,8 @@ public partial class AddActionViewModel : ViewModelBase
 
         if (text is null)
         {
+            // No rule of its own, so there is no list and no frames either.
+            OnPropertyChanged(nameof(WindowPreview));
             return;
         }
 
@@ -786,6 +788,10 @@ public partial class AddActionViewModel : ViewModelBase
         WindowPreview = new WindowPreviewViewModel();
         WindowPreview.Watch(() => Windows);
         text.WindowPreview = WindowPreview;
+
+        // The list is a different one for every action, so whoever is drawing the frames around it
+        // has to be told to look at this one instead of the one that just went away.
+        OnPropertyChanged(nameof(WindowPreview));
     }
 
     /// <summary>
@@ -1578,6 +1584,7 @@ public partial class AddActionViewModel : ViewModelBase
             };
 
             text.WindowPreview = asking ? preview : null;
+            preview.Show(asking);
             if (asking)
             {
                 preview.Follow(text.CurrentText, WindowMatchFor(), WindowCompareFor());

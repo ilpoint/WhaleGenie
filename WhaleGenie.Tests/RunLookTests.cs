@@ -128,6 +128,59 @@ public class RunLookTests
     }
 
     /// <summary>
+    /// Which window a run is reading, said while it reads it. A step's own picture says what was
+    /// there and not where the engine looked, and that is the answer when a step read the wrong
+    /// window: the frame lands on the window it really read.
+    /// </summary>
+    [Fact]
+    public void The_window_a_run_is_reading_is_reported_while_it_reads_it()
+    {
+        var (place, last) = Ui.RunAsync(async () =>
+        {
+            var desktop = new WindowsOnDesk(new WindowInfo(4242, "Notepad - notes.txt",
+                new ScreenPoint(1000, 500), new ScreenSize(800, 600), false, false));
+            var devices = new LookingDevices { Windows = desktop };
+
+            var step = new MacroStep
+            {
+                Type = "vision.captureWindow",
+                Parameters =
+                [
+                    new StepParameter
+                    {
+                        Name = "title",
+                        Kind = ActionParameterKind.Text,
+                        Value = "Notepad",
+                    },
+                    Handed("image", "shot"),
+                ],
+            };
+
+            StepIds.Settle([step]);
+
+            var frames = new List<FramePlace?>();
+            var viewModel = new RunViewModel([step], devices);
+            viewModel.WindowRead += read => frames.Add(read);
+            viewModel.RunCommand.Execute(null);
+            while (viewModel.IsBusy)
+            {
+                await Task.Delay(10);
+            }
+
+            return (frames.FirstOrDefault(read => read is not null), frames[^1]);
+        });
+
+        // The window the step read is framed where it sits...
+        Assert.NotNull(place);
+        Assert.Equal(4242, place!.Value.Handle);
+        Assert.Equal(new ScreenPoint(1000, 500), place.Value.Location);
+        Assert.Equal(new ScreenSize(800, 600), place.Value.Size);
+
+        // ...and the run ending takes the frame down again.
+        Assert.Null(last);
+    }
+
+    /// <summary>
     /// A device layer with a screen that shows a picture and a search that always finds it, so the
     /// engine looks at something without a real screen being read. Everything else is refused the
     /// way a machine with no devices would refuse it.
@@ -161,7 +214,9 @@ public class RunLookTests
 
         public ISystemDevice System => NullDeviceLayer.Instance.System;
 
-        public IWindowDevice Windows => NullDeviceLayer.Instance.Windows;
+        /// <summary>The windows this machine has open. None by default, so a check that reads the
+        /// screen for its own sake does not have to know about windows.</summary>
+        public IWindowDevice Windows { get; set; } = NullDeviceLayer.Instance.Windows;
 
         public IBrowserDevice Browser => NullDeviceLayer.Instance.Browser;
 
@@ -183,5 +238,42 @@ public class RunLookTests
 
         public IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle, VisionQuery query)
             => [new(0.95, new ScreenPoint(10, 12), new ScreenSize(4, 4))];
+    }
+
+    /// <summary>
+    /// The windows a check puts on the pretend desktop. Only what a reading of a window needs is
+    /// answered for real — which windows there are and which of them a name picks — and everything
+    /// else is the flat "yes" a window that is never acted on deserves.
+    /// </summary>
+    private sealed class WindowsOnDesk(params WindowInfo[] windows) : IWindowDevice
+    {
+        public IReadOnlyList<WindowInfo> List() => [.. windows];
+
+        public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match, WindowCompare compare)
+            => [.. windows.Where(window => window.Title.Contains(value ?? string.Empty,
+                StringComparison.OrdinalIgnoreCase))];
+
+        public WindowInfo? Find(string value, WindowMatch match, WindowCompare compare)
+            => Filter(value, match, compare).FirstOrDefault();
+
+        public string ProcessOf(long handle) => string.Empty;
+
+        public string ClassOf(long handle) => string.Empty;
+
+        public bool Activate(long handle) => true;
+
+        public bool Minimize(long handle) => true;
+
+        public bool Maximize(long handle) => true;
+
+        public bool Restore(long handle) => true;
+
+        public bool Close(long handle) => true;
+
+        public bool Move(long handle, int x, int y, int width, int height) => true;
+
+        public ScreenPoint ClientOrigin(long handle) => new(0, 0);
+
+        public ScreenSize ClientSize(long handle) => new(0, 0);
     }
 }

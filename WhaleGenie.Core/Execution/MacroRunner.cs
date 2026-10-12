@@ -2441,6 +2441,9 @@ public sealed class MacroRunner
     {
         if (window is null)
         {
+            // A pixel of the desktop is read straight off it rather than out of a picture, so this
+            // is the one reading that has to say for itself that it is not reading a window.
+            Reading(null);
             return _devices.Screen.PixelAt(point.X, point.Y);
         }
 
@@ -2471,15 +2474,18 @@ public sealed class MacroRunner
     /// about it: no key is pressed, no mouse button goes down, no variable is written. It answers
     /// "what does this step actually see", where running the step would answer it by clicking on
     /// the user's screen. Null when this kind of step does not look at the screen at all.
+    /// <paramref name="watch"/> is told which window is being read as it happens, if anybody wants
+    /// to be: it is the same callback a run hands over, so a trial can show what a run shows.
     /// </summary>
-    public static LookOutcome LookOnce(ExecutableStep step, IDeviceLayer devices)
+    public static LookOutcome LookOnce(ExecutableStep step, IDeviceLayer devices,
+        IRunLooks? watch = null)
     {
         if (!CanLook(step.Type))
         {
             return new LookOutcome(null, "Run.NotALookingStep");
         }
 
-        var asked = new Asked();
+        var asked = new Asked(watch);
         try
         {
             new MacroRunner(new VariableStore(), devices: devices, looks: asked).SeeOnce(step);
@@ -2513,11 +2519,13 @@ public sealed class MacroRunner
     }
 
     /// <summary>Where a look goes when the caller only wanted the one.</summary>
-    private sealed class Asked : IRunLooks
+    private sealed class Asked(IRunLooks? watch) : IRunLooks
     {
         public StepLook? Seen { get; private set; }
 
         public void Look(StepLook look) => Seen = look;
+
+        public void Reading(long window) => watch?.Reading(window);
     }
 
     /// <summary>
@@ -4300,6 +4308,10 @@ public sealed class MacroRunner
     private ScreenShot Shot(ExecutableStep step, int x, int y, int width, int height,
         WindowInfo? window = null)
     {
+        // Which window this is about to be read out of is asked for before anything is read, so a
+        // debugger can put a frame there while the reading is going on rather than after it.
+        Reading(window);
+
         var method = window is null
             ? _devices.Capture.ForScreen()
             : _devices.Capture.ForWindow();
@@ -4406,6 +4418,9 @@ public sealed class MacroRunner
         _takenWindow = window?.Title ?? string.Empty;
         _takenMethod = method;
     }
+
+    /// <summary>Tells whoever is watching which window the next picture comes out of.</summary>
+    private void Reading(WindowInfo? window) => _looks?.Reading(window?.Handle ?? 0);
 
     /// <summary>
     /// Waits out however much of this step's gap is left and notes the look. Every step that reads

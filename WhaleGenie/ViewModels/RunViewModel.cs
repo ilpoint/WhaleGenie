@@ -312,6 +312,10 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
             IsBusy = false;
             _stopAtNextStep = false;
             CurrentId = null;
+
+            // The run is over, so nothing is being read any more.
+            WindowRead?.Invoke(null);
+
             RefreshVariables();
             Status = Lines.Count > 0 ? Lines[^1].Text : Strings.Get("Run.Ready");
         }
@@ -320,6 +324,10 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// <summary>Highlights the step that is about to run, and stops when asked to.</summary>
     public async Task BeforeStep(ExecutableStep step, int depth, CancellationToken token)
     {
+        // Whatever the last step was reading, this one is not reading it yet: the frame comes down
+        // and goes up again when this step's own reading is reported.
+        WindowRead?.Invoke(null);
+
         CurrentId = step.Id;
         RefreshVariables();
 
@@ -385,6 +393,38 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
     /// <summary>Opens one step's picture, which is the whole of what it saw rather than a thumbnail.</summary>
     public event Action<StepLook>? LookRequested;
+
+    /// <summary>
+    /// Where the window the run is reading right now sits, or null when it is reading nothing: a
+    /// step that does not look at the screen, the desktop, or a window that has gone. A step's own
+    /// picture says what was found, and this says where the engine was looking for it — which is the
+    /// answer when a step looked in the wrong window and found nothing.
+    /// </summary>
+    public event Action<FramePlace?>? WindowRead;
+
+    /// <summary>
+    /// Told by the engine which window it is about to read, before every picture it takes. The call
+    /// comes from the thread the run is on, so what the window is asked for — and the frame drawn
+    /// from it — happens on the thread that owns windows.
+    /// </summary>
+    public void Reading(long window) => Dispatcher.UIThread.Post(() => ReadingAt(window));
+
+    /// <summary>
+    /// Moves the frame to the window being read. A reading that lands after the run has stopped
+    /// takes the frame down rather than putting one up: a frame left over a window nothing is
+    /// reading any more says something untrue.
+    /// </summary>
+    private void ReadingAt(long handle)
+    {
+        if (!IsBusy || handle == 0)
+        {
+            WindowRead?.Invoke(null);
+            return;
+        }
+
+        var window = _devices.Windows.List().FirstOrDefault(one => one.Handle == handle);
+        WindowRead?.Invoke(window is null ? null : FramePlace.Of(window));
+    }
 
     /// <summary>The whole of what a step last saw, or null when it has looked at nothing.</summary>
     public StepLook? LookOf(string stepId)

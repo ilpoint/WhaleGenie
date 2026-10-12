@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
@@ -36,6 +37,24 @@ public partial class AddActionWindow : Window
 
     /// <summary>Where the keyboard is writing at the moment: the field or the row that asked for it.</summary>
     private Action<string>? _keyTarget;
+
+    /// <summary>
+    /// The frames standing around the windows the preview lists. They go up and come down with the
+    /// list, and with the dialog: a frame outlives the list it belongs to only as an overlay the
+    /// user has to get rid of.
+    /// </summary>
+    private readonly ScreenFrames _previewFrames = new();
+
+    /// <summary>The frame around the window a "try looking" is reading, while it reads it.</summary>
+    private readonly ScreenFrames _trialFrames = new();
+
+    /// <summary>The windows the preview has framed on the screen right now, which is what the list
+    /// beside the rule is worth looking at: kept where a check can count them.</summary>
+    internal IReadOnlyCollection<long> FramedWindows => _previewFrames.Framed;
+
+    /// <summary>The list whose frames are up, so that a dialog moving on to another action stops
+    /// watching the one it had.</summary>
+    private WindowPreviewViewModel? _watched;
 
     /// <summary>The step the form was opened on for editing, or null while writing a new one.</summary>
     private MacroStep? _editingStep;
@@ -129,6 +148,7 @@ public partial class AddActionWindow : Window
         }
 
         DataContext = viewModel;
+        viewModel.PropertyChanged += OnFormChanged;
         viewModel.CloseRequested += OnFormFinished;
         viewModel.NestedAddRequested += OnNestedAddRequested;
         viewModel.NestedEditRequested += OnNestedEditRequested;
@@ -171,6 +191,10 @@ public partial class AddActionWindow : Window
     {
         base.OnOpened(e);
 
+        // The windows the step would recognise, framed where they sit: the list says which ones,
+        // and the frames say where they are.
+        WatchPreview();
+
         var owner = Owner;
         var screen = (owner is not null ? Screens.ScreenFromWindow(owner) : null) ?? Screens.Primary;
         if (screen is null)
@@ -196,6 +220,105 @@ public partial class AddActionWindow : Window
 
         Width = width;
         Height = height;
+    }
+
+    /// <summary>
+    /// A dialog put away for a moment — the same one that stands aside while a picker is open —
+    /// takes its frames with it rather than leaving them over whatever is being picked.
+    /// </summary>
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == WindowStateProperty || change.Property == IsVisibleProperty)
+        {
+            DrawPreviewFrames();
+        }
+    }
+
+    /// <summary>The form has moved on to another action, which comes with a list of its own.</summary>
+    private void OnFormChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(AddActionViewModel.WindowPreview))
+        {
+            WatchPreview();
+        }
+    }
+
+    /// <summary>
+    /// Watches whatever list the form has now and draws the frames it asks for. The list is a new one
+    /// for every action, so the one that just went away has to stop being watched rather than going
+    /// on moving frames for a step that is no longer being written.
+    /// </summary>
+    private void WatchPreview()
+    {
+        if (_watched is { } stale)
+        {
+            stale.PropertyChanged -= OnPreviewChanged;
+        }
+
+        _watched = Form?.WindowPreview;
+        if (_watched is { } fresh)
+        {
+            fresh.PropertyChanged += OnPreviewChanged;
+        }
+
+        DrawPreviewFrames();
+    }
+
+    private void OnPreviewChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(WindowPreviewViewModel.Places))
+        {
+            DrawPreviewFrames();
+        }
+    }
+
+    /// <summary>
+    /// Puts a frame around each window the list is showing, and takes down the ones that are no
+    /// longer in it. Nothing is framed while the dialog is out of the way: the frames say what the
+    /// list says, and there is no list to read then.
+    /// </summary>
+    private void DrawPreviewFrames()
+    {
+        IReadOnlyList<FramePlace> places = _closed || !IsVisible || WindowState == WindowState.Minimized
+            ? []
+            : Form?.WindowPreview?.Places ?? [];
+
+        _previewFrames.Show(places);
+    }
+
+    /// <summary>
+    /// Puts a frame around the window a trial is reading. It is the other half of "did that look at
+    /// the right thing": the trial shows what turned up, and this shows where the engine looked.
+    /// </summary>
+    private void ShowReadWindow(long handle)
+    {
+        if (handle == 0
+            || Devices.Windows.List().FirstOrDefault(one => one.Handle == handle) is not { } window
+            || FramePlace.Of(window) is not { } place)
+        {
+            _trialFrames.Clear();
+            return;
+        }
+
+        _trialFrames.Show([place]);
+    }
+
+    /// <summary>
+    /// What a trial hands over: it wants to be told which window is being read, and that comes from
+    /// the thread the trial is on, so the frame is drawn on the thread that owns windows. Waiting for
+    /// that rather than posting it keeps the frame off the screen once the trial is over.
+    /// </summary>
+    private sealed class TrialFrames(AddActionWindow window) : IRunLooks
+    {
+        public void Look(StepLook look)
+        {
+            // What the trial found is shown by the trial itself; there is nothing to keep here.
+        }
+
+        public void Reading(long handle)
+            => Dispatcher.UIThread.Invoke(() => window.ShowReadWindow(handle));
     }
 
     /// <summary>
@@ -819,7 +942,11 @@ public partial class AddActionWindow : Window
     {
         // Off the thread that draws the window: reading the screen and matching a picture can take
         // a moment, and the dialog has to stay able to come back when it is done.
-        var outcome = await Task.Run(() => MacroRunner.LookOnce(step, Devices));
+        var outcome = await Task.Run(() => MacroRunner.LookOnce(step, Devices, new TrialFrames(this)));
+
+        // Nothing is being read any more, so the frame comes down with the reading.
+        _trialFrames.Clear();
+
         if (outcome.Look is null)
         {
             await ReportTestAsync(TrialFailure(
@@ -1258,12 +1385,12 @@ public partial class AddActionWindow : Window
         var previous = WindowState;
         WindowState = WindowState.Minimized;
 
-        ElementFlashWindow? flash = null;
+        ScreenFrameWindow? flash = null;
         try
         {
-            if (ElementFlashWindow.Locate(viewModel.Ui, selector, filter) is { } found)
+            if (ElementFlash.Locate(viewModel.Ui, selector, filter) is { } found)
             {
-                flash = ElementFlashWindow.Show(found);
+                flash = ElementFlash.Show(found);
                 if (flash is not null)
                 {
                     await flash.Finished;
@@ -1354,6 +1481,14 @@ public partial class AddActionWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         _closed = true;
+
+        // The frames belong to this dialog: a list that stayed framed after the window it was read
+        // in went away would be an overlay with nothing left to explain it.
+        Form?.PropertyChanged -= OnFormChanged;
+        _watched?.PropertyChanged -= OnPreviewChanged;
+        _watched = null;
+        _previewFrames.Dispose();
+        _trialFrames.Dispose();
 
         // The devices a trial used go with the dialog, so a controller it put on the machine does
         // not outlive the window that asked for it.

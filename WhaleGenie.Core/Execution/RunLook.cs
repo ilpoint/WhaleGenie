@@ -124,6 +124,14 @@ public sealed record StepLook
 public interface IRunLooks
 {
     void Look(StepLook look);
+
+    /// <summary>
+    /// Which window the step about to look is reading, or zero when it is reading the desktop.
+    /// Said before every picture is taken rather than with the look itself, because "which window is
+    /// this reading" is a different answer from "what did it find there": a frame around the window
+    /// being read is what says whether the window the step names is the window it means.
+    /// </summary>
+    void Reading(long window);
 }
 
 /// <summary>
