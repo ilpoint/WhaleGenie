@@ -1688,29 +1688,16 @@ public static class ActionCatalog
             Returns =
             [
                 Return("windows", "Windows", primary: true, type: ActionReturnType.List,
-                    hint: "The titles of the windows that matched, in the order the system lists "
-                        + "them. Two windows with the same title are two windows and get a line "
-                        + "each."),
-                Return("processes", "Programs", type: ActionReturnType.List,
-                    hint: "The program that owns each window, in the same order as the titles. It "
-                        + "is what a step filtering by process name compares against, and what says "
-                        + "which game a window belongs to when two titles read alike."),
-                Return("classes", "Window classes", type: ActionReturnType.List,
-                    hint: "The class each window was registered under, in the same order as the "
-                        + "titles: the kind of window rather than the document in it, so every "
-                        + "Notepad window reads \"Notepad\" however it was renamed."),
-                Return("handles", "Handles", type: ActionReturnType.List,
-                    hint: "What the system knows each window by, in the same order as the titles. "
-                        + "Two windows with the same title are told apart by it."),
-                Return("boxes", "Rectangles", type: ActionReturnType.List,
-                    hint: "Where each window sits and how big it is, written as left,top,width,height "
-                        + "in the same order as the titles: name one in the search region of a step "
-                        + "to look at that window."),
+                    hint: "The windows that matched, each as a record of its own with the fields "
+                        + "title, process, class, handle and box, in the order the system lists "
+                        + "them. Two windows with the same title are two windows and get a record "
+                        + "each. Read one field of one of them with "
+                        + "field(get($name, 0), \"title\"), and walk them all with forEach."),
             ],
             Category = ActionCategory.Window,
             DisplayName = "List Windows",
-            Description = "Collect the titles of the open windows into a list, or of the ones that "
-                + "match the filter.",
+            Description = "Collect the open windows into a list, one record each, or only the ones "
+                + "that match the filter.",
             Parameters =
             [
                 Text("filter", "Filter", "notepad",
@@ -2170,7 +2157,7 @@ public static class ActionCatalog
         new()
         {
             Key = "vision.findImage",
-            Returns = HitParts(),
+            Returns = Hits(),
             Category = ActionCategory.Vision,
             DisplayName = "Find Image",
             Description = "Look for a reference image on screen.",
@@ -2194,14 +2181,13 @@ public static class ActionCatalog
                 MatchOrder(pixelsOnly: true),
                 ..Anchor(),
                 MatchIndex(pixelsOnly: true),
-                AllMatches(pixelsOnly: true),
                 Returns(),
             ],
         },
         new()
         {
             Key = "vision.waitImage",
-            Returns = HitParts(),
+            Returns = Hits(),
             Category = ActionCategory.Vision,
             DisplayName = "Wait Image",
             Description = "Wait until a reference image appears on screen, for as long as the "
@@ -2225,14 +2211,13 @@ public static class ActionCatalog
                 MatchOrder(pixelsOnly: true),
                 ..Anchor(),
                 MatchIndex(pixelsOnly: true),
-                AllMatches(pixelsOnly: true),
                 Returns(),
             ],
         },
         new()
         {
             Key = "vision.clickImage",
-            Returns = HitParts(),
+            Returns = Hits(),
             Category = ActionCategory.Vision,
             DisplayName = "Click Image",
             Description = "Find a reference image on screen and click it, waiting for as long as "
@@ -2278,7 +2263,6 @@ public static class ActionCatalog
                     + "nothing counts as finding nothing at all: the second look is one look "
                     + "rather than another wait, so a picture that has gone is not waited for.",
                     min: 0, advanced: true),
-                AllMatches(pixelsOnly: true),
                 Returns(),
             ],
         },
@@ -2327,7 +2311,7 @@ public static class ActionCatalog
         new()
         {
             Key = "vision.findColor",
-            Returns = [.. HitParts(singlePixel: true), .. Coverage()],
+            Returns = [.. Hits(), .. Coverage()],
             Category = ActionCategory.Vision,
             DisplayName = "Find Color",
             Description = "Look for a colour inside a screen region.",
@@ -2348,7 +2332,6 @@ public static class ActionCatalog
                 ..Capture(),
                 MatchOrder(bySize: false),
                 MatchIndex(),
-                AllMatches(),
                 ..Anchor(),
                 LookGap(0),
                 Returns(),
@@ -2387,7 +2370,7 @@ public static class ActionCatalog
         new()
         {
             Key = "vision.findColors",
-            Returns = HitParts(singlePixel: true),
+            Returns = Hits(),
             Category = ActionCategory.Vision,
             DisplayName = "Find Colour Pattern",
             Description = "Look for a colour that has the colours this step names around it, which "
@@ -2409,7 +2392,6 @@ public static class ActionCatalog
                 LookGap(0),
                 MatchOrder(bySize: false),
                 MatchIndex(),
-                AllMatches(),
                 ..Anchor(),
                 Returns(),
             ],
@@ -2451,43 +2433,7 @@ public static class ActionCatalog
         new()
         {
             Key = "ocr.findText",
-            Returns =
-            [
-                Return("match", "Position", primary: true,
-                    hint: "Where it was found, written as the middle x,y; empty when it was not "
-                        + "there. It is the point a click aims at, not the corner a region counts "
-                        + "from — that is “left” and “top”."),
-                Return("x", "Centre X", type: ActionReturnType.Number,
-                    hint: "The middle of the reading, in screen pixels."),
-                Return("y", "Centre Y", type: ActionReturnType.Number,
-                    hint: "The middle of the reading, in screen pixels."),
-                Return("left", "Left", type: ActionReturnType.Number,
-                    hint: "The left edge of the reading, in screen pixels: the same corner a search "
-                        + "region's top-left X counts from."),
-                Return("top", "Top", type: ActionReturnType.Number,
-                    hint: "The top edge of the reading, in screen pixels: the same corner a search "
-                        + "region's top-left Y counts from."),
-                Return("width", "Width", type: ActionReturnType.Number,
-                    hint: "How wide the reading was, in pixels."),
-                Return("height", "Height", type: ActionReturnType.Number,
-                    hint: "How tall the reading was, in pixels."),
-                Return("text", "Text", hint: "What the reading actually said."),
-                Return("score", "Score", type: ActionReturnType.Number,
-                    hint: "How sure the reading model was; bigger means surer."),
-                Return("box", "Rectangle", type: ActionReturnType.Text,
-                    hint: "The whole reading, written as left,top,width,height: name it in the one "
-                        + "variable box of a search region to read the same place next."),
-                Return("count", "Matches", type: ActionReturnType.Number,
-                    hint: "How many were found altogether. Only written when the step is told to "
-                        + "record every one."),
-                Return("list", "Every match", type: ActionReturnType.List,
-                    hint: "Every one that was found, a list of x,y centres. Only written when the "
-                        + "step is told to record every one."),
-                Return("texts", "What each one said", type: ActionReturnType.List,
-                    hint: "What every one of them actually read, in the same order as “every "
-                        + "match”: a list of writing rather than of places. Only written when the "
-                        + "step is told to record every one."),
-            ],
+            Returns = Hits(),
             Category = ActionCategory.Ocr,
             DisplayName = "Find Text",
             Description = "Search the screen for text.",
@@ -2507,50 +2453,13 @@ public static class ActionCatalog
                 Expected(),
                 MinScore(),
                 MatchOrder(),
-                AllMatches(),
                 Returns(),
             ],
         },
         new()
         {
             Key = "ocr.clickText",
-            Returns =
-            [
-                Return("match", "Position", primary: true,
-                    hint: "Where the text was found and clicked, written as the middle x,y. It is "
-                        + "the point the click landed on, not the corner a region counts from — "
-                        + "that is “left” and “top”."),
-                Return("x", "Centre X", type: ActionReturnType.Number,
-                    hint: "The middle of the reading that was clicked, in screen pixels."),
-                Return("y", "Centre Y", type: ActionReturnType.Number,
-                    hint: "The middle of the reading that was clicked, in screen pixels."),
-                Return("left", "Left", type: ActionReturnType.Number,
-                    hint: "The left edge of the reading, in screen pixels: the same corner a search "
-                        + "region's top-left X counts from."),
-                Return("top", "Top", type: ActionReturnType.Number,
-                    hint: "The top edge of the reading, in screen pixels: the same corner a search "
-                        + "region's top-left Y counts from."),
-                Return("width", "Width", type: ActionReturnType.Number,
-                    hint: "How wide the reading was, in pixels."),
-                Return("height", "Height", type: ActionReturnType.Number,
-                    hint: "How tall the reading was, in pixels."),
-                Return("text", "Text", hint: "What the reading that was clicked actually said."),
-                Return("score", "Score", type: ActionReturnType.Number,
-                    hint: "How sure the reading model was; bigger means surer."),
-                Return("box", "Rectangle", type: ActionReturnType.Text,
-                    hint: "The whole reading, written as left,top,width,height: name it in the one "
-                        + "variable box of a search region to look at the same place next."),
-                Return("count", "Matches", type: ActionReturnType.Number,
-                    hint: "How many were found altogether. Only written when the step is told to "
-                        + "record every one."),
-                Return("list", "Every match", type: ActionReturnType.List,
-                    hint: "Every one that was found, a list of x,y centres. Only written when the "
-                        + "step is told to record every one."),
-                Return("texts", "What each one said", type: ActionReturnType.List,
-                    hint: "What every one of them actually read, in the same order as “every "
-                        + "match”: a list of writing rather than of places. Only written when the "
-                        + "step is told to record every one."),
-            ],
+            Returns = Hits(),
             Category = ActionCategory.Ocr,
             DisplayName = "Click Text",
             Description = "Find text on screen and click it, waiting for as long as the step's own "
@@ -2591,7 +2500,6 @@ public static class ActionCatalog
                 Expected(),
                 MinScore(),
                 MatchOrder(),
-                AllMatches(),
                 Returns(),
             ],
         },
@@ -2620,36 +2528,7 @@ public static class ActionCatalog
         new()
         {
             Key = "uia.find",
-            Returns =
-            [
-                Return("element", "Element", primary: true,
-                    hint: "The element's middle, written as x,y, which is what a later step "
-                        + "measures from or clicks. Empty when it was not found."),
-                Return("x", "Centre X", type: ActionReturnType.Number,
-                    hint: "The middle of the element, in screen pixels."),
-                Return("y", "Centre Y", type: ActionReturnType.Number,
-                    hint: "The middle of the element, in screen pixels."),
-                Return("left", "Left", type: ActionReturnType.Number,
-                    hint: "The element's left edge, in screen pixels: the same corner a search "
-                        + "region's top-left X counts from."),
-                Return("top", "Top", type: ActionReturnType.Number,
-                    hint: "The element's top edge, in screen pixels: the same corner a search "
-                        + "region's top-left Y counts from."),
-                Return("width", "Width", type: ActionReturnType.Number,
-                    hint: "How wide the element is, in pixels."),
-                Return("height", "Height", type: ActionReturnType.Number,
-                    hint: "How tall the element is, in pixels."),
-                Return("text", "Text", hint: "The element's own text, as the system reads it."),
-                Return("box", "Rectangle", type: ActionReturnType.Text,
-                    hint: "The whole element, written as left,top,width,height: name it in the one "
-                        + "variable box of a search region to look inside it next."),
-                Return("count", "Matches", type: ActionReturnType.Number,
-                    hint: "How many were found altogether. Only written when the step is told to "
-                        + "record every one."),
-                Return("list", "Every match", type: ActionReturnType.List,
-                    hint: "Every one that was found, a list of x,y centres. Only written when the "
-                        + "step is told to record every one."),
-            ],
+            Returns = Hits(),
             Category = ActionCategory.Uia,
             DisplayName = "Find Element",
             Description = "Find a UI Automation element and remember where it is.",
@@ -2658,7 +2537,6 @@ public static class ActionCatalog
                 Window(),
                 Selector(),
                 MatchIndex(),
-                AllMatches(),
                 Returns(),
             ],
         },
@@ -3845,58 +3723,32 @@ public static class ActionCatalog
         };
 
     /// <summary>
-    /// The parts of one hit, which every action that searches the screen can hand over: where it was
-    /// found, how big it was and how sure the search was, plus — once the step has been told to keep
-    /// every one — how many there were and where each of them is. A colour is a single pixel, so it
-    /// has no size and nothing to score; that is the only difference between the two lists.
+    /// What a search hands over: the one hit it went with, and — when the step asks for them — every
+    /// hit it found. Both are records, because the middle of a hit, the rectangle it was found in,
+    /// how sure the reading was and the writing that was read are several answers about one thing:
+    /// they travel together under names rather than as a variable each, and a macro reads one part
+    /// of it with <c>field(变量, "x")</c>.
     ///
-    /// The middle of a hit and its top-left corner are two different things and both are handed
-    /// over under names of their own: the middle is what a click aims at, and the corner is where a
-    /// search region starts counting, so a macro that looks again at what it just found does not
-    /// have to work out which of the two it is reading.
+    /// The middle of a hit and its top-left corner are two different things and both are in the
+    /// record: the middle is what a click aims at, and the corner is where a search region starts
+    /// counting, so a macro that looks again at what it just found does not have to work out which
+    /// of the two it is reading.
     /// </summary>
-    private static ActionReturn[] HitParts(bool singlePixel = false)
-    {
-        var parts = new List<ActionReturn>
-        {
-            Return("match", "Position", primary: true, type: ActionReturnType.Text,
-                hint: "Where it was found, written as the middle x,y; empty when it was not there. "
-                    + "It is the point the action aims at, not the corner a region counts from — "
-                    + "that is “left” and “top”."),
-            Return("x", "Centre X", type: ActionReturnType.Number,
-                hint: "The middle of the hit, in screen pixels: the point this action clicks or "
-                    + "moves to."),
-            Return("y", "Centre Y", type: ActionReturnType.Number,
-                hint: "The middle of the hit, in screen pixels."),
-        };
-
-        if (!singlePixel)
-        {
-            parts.Add(Return("left", "Left", type: ActionReturnType.Number,
-                hint: "The left edge of the hit, in screen pixels: the same corner a search "
-                    + "region's top-left X counts from."));
-            parts.Add(Return("top", "Top", type: ActionReturnType.Number,
-                hint: "The top edge of the hit, in screen pixels: the same corner a search "
-                    + "region's top-left Y counts from."));
-            parts.Add(Return("width", "Width", type: ActionReturnType.Number,
-                hint: "How wide the hit was, in pixels."));
-            parts.Add(Return("height", "Height", type: ActionReturnType.Number,
-                hint: "How tall the hit was, in pixels."));
-            parts.Add(Return("score", "Score", type: ActionReturnType.Number,
-                hint: "How closely it matched, from 0 to 1; higher is closer."));
-            parts.Add(Return("box", "Rectangle", type: ActionReturnType.Text,
-                hint: "The whole hit, written as left,top,width,height: name it in the one "
-                    + "variable box of a search region to look at the same place next."));
-        }
-
-        parts.Add(Return("count", "Matches", type: ActionReturnType.Number,
-            hint: "How many were found altogether. Only written when the step is told to record "
-                + "every one."));
-        parts.Add(Return("list", "Every match", type: ActionReturnType.List,
-            hint: "Every one that was found, a list of x,y centres. Only written when the step is "
-                + "told to record every one."));
-        return [.. parts];
-    }
+    private static ActionReturn[] Hits() =>
+    [
+        Return("match", "Hit", primary: true, type: ActionReturnType.Record,
+            hint: "Where it was found and everything else about it, as one record; empty when it "
+                + "was not there. x and y are the middle — the point this action clicks or moves "
+                + "to — left and top are the corner a search region counts from, width and height "
+                + "are its size, score is how sure the reading was, box is the whole hit written "
+                + "as left,top,width,height, and text is what was read where the action reads "
+                + "writing. Read one part of it with field($name, \"x\")."),
+        Return("every", "Every match", type: ActionReturnType.List,
+            hint: "Every hit that was found, each shaped like the record above, in the order they "
+                + "are counted in. Walk them with forEach or count them with count(); name one of "
+                + "them in a search region to look at that place next. Only written when this box "
+                + "is ticked."),
+    ];
 
     /// <summary>
     /// The four numbers of the rectangle a picture covered, handed over beside the picture itself so
@@ -4098,19 +3950,6 @@ public static class ActionCatalog
             + "to the colour, wherever it is. Random shuffles them, for a step that must not always "
             + "take the same one of several.",
             labels: ["Reading order", "Surest first", "Shuffled"], advanced: true,
-            onlyWith: pixelsOnly ? PixelWays() : null);
-
-    /// <summary>
-    /// Whether a step records the whole set of hits as well as the one it picked, shared by the
-    /// finders that can report more than one. The list is what lets a macro walk every place
-    /// something turned up.
-    /// </summary>
-    private static ActionParameter AllMatches(bool pixelsOnly = false)
-        => Toggle("allMatches", "Record every match", false,
-            "Records every hit as well as the one that was taken. With it on, the “matches” and "
-            + "“every match” results can be handed over — ready for count(), get() and forEach. "
-            + "Switched off, only the one that was taken is recorded.",
-            advanced: true,
             onlyWith: pixelsOnly ? PixelWays() : null);
 
     /// <summary>

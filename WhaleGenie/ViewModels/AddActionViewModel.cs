@@ -1143,7 +1143,6 @@ public partial class AddActionViewModel : ViewModelBase
                 OnPropertyChanged(nameof(HasReturns));
             }
 
-            GateReturnRows();
             SuggestReturnNames();
         }
 
@@ -1605,9 +1604,6 @@ public partial class AddActionViewModel : ViewModelBase
 
     private void OnParameterChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // A result only exists while the settings it comes from say so, so which lines are worth
-        // showing is settled before the pages and the JSON are read off them.
-        GateReturnRows();
         RefreshGates();
         RefreshPages();
         // A result ticked a moment ago has no name yet, and a name typed a moment ago may now be
@@ -1623,35 +1619,6 @@ public partial class AddActionViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Shows only the results this step's own settings can produce. How many hits there were and
-    /// where each of them is are answers a search only works out when it has been told to record
-    /// every one, so those two lines are not drawn until that is on: a box that ticks and hands
-    /// nothing over is worse than one that is not there.
-    /// </summary>
-    private void GateReturnRows()
-    {
-        if (ReturnsField is not { } returns)
-        {
-            return;
-        }
-
-        var recording = Parameters.FirstOrDefault(parameter =>
-            parameter.Definition.Name == "allMatches");
-        if (recording is null)
-        {
-            return;
-        }
-
-        foreach (var row in returns.ReturnsRows)
-        {
-            if (row.Key is "count" or "list")
-            {
-                row.IsApplicable = recording.Flag;
-            }
-        }
-    }
-
-    /// <summary>
     /// Fills in the name of every result this step hands over, and keeps doing it while the note is
     /// being written. A name of its own means two steps of the same action do not quietly write into
     /// the same variable — the one mistake in this dialog that shows up much later and somewhere
@@ -1664,7 +1631,7 @@ public partial class AddActionViewModel : ViewModelBase
             return;
         }
 
-        returns.SettleReturns(MetaComment, definition.LocalName, _editingId,
+        returns.SettleReturns(MetaComment, _editingId,
             [.. CollectVariables().Select(choice => choice.Name)]);
     }
 

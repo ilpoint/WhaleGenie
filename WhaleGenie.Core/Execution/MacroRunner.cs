@@ -3408,7 +3408,7 @@ public sealed class MacroRunner
             GiveMatch(step, match.Location, match.Size, match.Score);
         }
 
-        GiveEvery(step, hits, Flag(step, "allMatches", false));
+        GiveEvery(step, HitRecords(hits));
         Log(LogLevel.Info, depth, step.Type, match is null ? "Run.ImageMissing" : "Run.ImageFound",
             match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
     }
@@ -3500,7 +3500,7 @@ public sealed class MacroRunner
             GiveMatch(step, match.Location, match.Size, match.Score);
         }
 
-        GiveEvery(step, hits, Flag(step, "allMatches", false));
+        GiveEvery(step, HitRecords(hits));
         Log(LogLevel.Info, depth, step.Type, match is null ? "Run.ImageMissing" : "Run.ImageFound",
             match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
     }
@@ -3684,7 +3684,7 @@ public sealed class MacroRunner
             GiveMatch(step, match.Location, match.Size, match.Score);
         }
 
-        GiveEvery(step, hits, Flag(step, "allMatches", false));
+        GiveEvery(step, HitRecords(hits));
         Log(LogLevel.Info, depth, step.Type, match is null ? "Run.ImageMissing" : "Run.ImageFound",
             match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
     }
@@ -3694,7 +3694,7 @@ public sealed class MacroRunner
         var found = await HitsUntil(step, token);
 
         GiveMatch(step, found.Match.Location, found.Match.Size, found.Match.Score);
-        GiveEvery(step, found.Hits, Flag(step, "allMatches", false));
+        GiveEvery(step, HitRecords(found.Hits));
         Log(LogLevel.Info, depth, step.Type, "Run.ImageFound",
             $"{found.Match.Center.X},{found.Match.Center.Y}");
     }
@@ -3724,7 +3724,7 @@ public sealed class MacroRunner
         // Where it was found and every place it was found, the same as the step that only looks:
         // a step that clicks something is also a step whose position a later one may want.
         GiveMatch(step, found.Match.Location, found.Match.Size, found.Match.Score);
-        GiveEvery(step, found.Hits, Flag(step, "allMatches", false));
+        GiveEvery(step, HitRecords(found.Hits));
 
         Aim(at);
         Input(step).Click(Button(step), at.X, at.Y, 1, 0);
@@ -4001,7 +4001,13 @@ public sealed class MacroRunner
     }
 
     /// <summary>How many hits to look for: the one the step asked for, or the whole list.</summary>
-    private int Wanted(ExecutableStep step) => Flag(step, "allMatches", false)
+    /// <summary>
+    /// How many hits a search has to collect: all it can hold when the step keeps the whole list,
+    /// and only as far as the hit it named otherwise. Asking for the list is what makes collecting
+    /// it worth anything, and one step hands that over by ticking the box rather than by a switch of
+    /// its own.
+    /// </summary>
+    private int Wanted(ExecutableStep step) => Wants(step, "every")
         ? MatchLimit
         : Index(step, "matchIndex", 1);
 
@@ -4202,6 +4208,15 @@ public sealed class MacroRunner
             yield break;
         }
 
+        // A record is one rectangle with a name for each of its sides, which is what a hit hands
+        // over: naming that record here is how "look again at what you just found" is written
+        // without the macro spelling the four numbers out again.
+        if (Read(raw) is { IsRecord: true } record && Held(step, record) is { } held)
+        {
+            yield return held;
+            yield break;
+        }
+
         // Anything else is a rectangle, written out or held in a variable. It is only interpolated
         // rather than read as a whole expression: the commas of a written rectangle would stop an
         // expression at its first number.
@@ -4215,6 +4230,27 @@ public sealed class MacroRunner
             yield return Written(step, rectangle);
         }
     }
+
+    /// <summary>
+    /// The rectangle a record stands for: its four sides by name, or the one written rectangle an
+    /// action that hands its box over as text puts in it. Nothing when the record is neither, so a
+    /// record that is not a rectangle is reported as a region nobody could read rather than as a
+    /// failure of its own.
+    /// </summary>
+    private (ImageFrame Frame, ScreenPoint Origin)? Held(ExecutableStep step, Value record)
+    {
+        if (record.Field("left") is { } left && record.Field("top") is { } top
+            && record.Field("width") is { } width && record.Field("height") is { } height)
+        {
+            return Capture(step, Whole(left), Whole(top), Whole(width), Whole(height));
+        }
+
+        var box = record.Field("box")?.AsText().Trim() ?? string.Empty;
+        return box.Length > 0 ? Written(step, box) : null;
+    }
+
+    /// <summary>One side of a rectangle held in a record, in whole screen pixels.</summary>
+    private static int Whole(Value side) => (int)Math.Round(side.AsNumber());
 
     /// <summary>One region written as four numbers, captured where on the screen it says.</summary>
     private (ImageFrame Frame, ScreenPoint Origin) Rectangle(ExecutableStep step,
@@ -6042,36 +6078,49 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// Hands over what a search found: where it was, the four sides of the rectangle it was found
-    /// in, how sure the reading was, and the writing that was read where there was any. Each part is
-    /// a result of its own, so a macro that wants only the score is not made to carry a position it
-    /// never reads; a part an action does not list is simply never ticked, and handing it over does
-    /// nothing.
+    /// Hands over what a search found as one record: where it was, the four sides of the rectangle
+    /// it was found in, how sure the reading was, and the writing that was read where there was any.
+    /// All of it about one hit, so it travels together under the names a macro reads with
+    /// <c>field($hit, "x")</c> rather than as a variable of its own for each part.
     ///
     /// The rectangle is named by its top-left corner, because that is the corner a search region
     /// counts from: what a hit hands over has to be usable as where to look next without the macro
-    /// working out an offset first. The middle is handed over beside it under names of its own,
+    /// working out an offset first. The middle is in the record beside it under names of its own,
     /// because that is the point a click or a move aims at.
     /// </summary>
     private void GiveMatch(ExecutableStep step, ScreenPoint corner, ScreenSize size, double score,
         string text = "")
     {
-        var centre = Middle(corner, size);
-        Give(step, "match", Value.FromText($"{centre.X},{centre.Y}"));
-        Give(step, "x", Value.FromNumber(centre.X));
-        Give(step, "y", Value.FromNumber(centre.Y));
-        Give(step, "left", Value.FromNumber(corner.X));
-        Give(step, "top", Value.FromNumber(corner.Y));
-        Give(step, "width", Value.FromNumber(size.Width));
-        Give(step, "height", Value.FromNumber(size.Height));
-        Give(step, "score", Value.FromNumber(score));
-        Give(step, "box", Value.FromText($"{corner.X},{corner.Y},{size.Width},{size.Height}"));
+        Give(step, "match", Hit(corner, size, score, text));
         GiveTaken(step);
+    }
+
+    /// <summary>
+    /// One hit as a record. The fields are the same whatever was found, so a macro that reads the
+    /// size of a picture reads the size of a line of writing the same way; a hit that read no
+    /// writing — a picture, a colour — simply has no text field.
+    /// </summary>
+    private static Value Hit(ScreenPoint corner, ScreenSize size, double score, string text = "")
+    {
+        var centre = Middle(corner, size);
+        var fields = new List<(string, Value)>
+        {
+            ("x", Value.FromNumber(centre.X)),
+            ("y", Value.FromNumber(centre.Y)),
+            ("left", Value.FromNumber(corner.X)),
+            ("top", Value.FromNumber(corner.Y)),
+            ("width", Value.FromNumber(size.Width)),
+            ("height", Value.FromNumber(size.Height)),
+            ("score", Value.FromNumber(score)),
+            ("box", Value.FromText($"{corner.X},{corner.Y},{size.Width},{size.Height}")),
+        };
 
         if (text.Length > 0)
         {
-            Give(step, "text", Value.FromText(text));
+            fields.Add(("text", Value.FromText(text)));
         }
+
+        return Value.FromRecord(fields);
     }
 
     /// <summary>The middle of a rectangle, which is the point an action aims at.</summary>
@@ -6080,18 +6129,15 @@ public sealed class MacroRunner
 
     /// <summary>
     /// Empties what a search would have handed over, so a step inside a loop never reads the place
-    /// the pass before it found.
+    /// the pass before it found. Nothing found is an empty hit and no hits at all, rather than the
+    /// hit of the pass before: an empty list counts as nought, which is what "found nothing" means.
     /// </summary>
     private void GiveNothing(ExecutableStep step)
     {
-        foreach (var key in new[]
-                 {
-                     "match", "x", "y", "left", "top", "width", "height", "score", "box", "text",
-                     "window", "method",
-                 })
-        {
-            Give(step, key, Value.FromText(string.Empty));
-        }
+        Give(step, "match", Value.FromText(string.Empty));
+        Give(step, "every", Value.FromList([]));
+        Give(step, "window", Value.FromText(string.Empty));
+        Give(step, "method", Value.FromText(string.Empty));
     }
 
     /// <summary>
@@ -6107,25 +6153,25 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// Notes how many places matched and where they all are, for the steps that asked for the whole
-    /// list. Each entry is one "x,y" centre, so the list can be counted, taken apart and looped over
-    /// with the list functions.
+    /// Hands over every hit there was, each a record shaped like the one that was taken, so a macro
+    /// can count them, take one apart and loop over them all with the list functions. Only the steps
+    /// that asked for them pay for the list.
     /// </summary>
-    private void GiveEvery(ExecutableStep step, IReadOnlyList<ImageMatch> hits, bool every)
-        => GiveEvery(step, [.. hits.Select(hit => hit.Center)], every);
-
-    /// <summary>The same, for hits that are only places: the pixels a colour search turned up.</summary>
-    private void GiveEvery(ExecutableStep step, IReadOnlyList<ScreenPoint> centres, bool every)
+    private void GiveEvery(ExecutableStep step, IEnumerable<Value> hits)
     {
-        if (!every)
+        if (Wants(step, "every"))
         {
-            return;
+            Give(step, "every", Value.FromList(hits));
         }
-
-        Give(step, "count", Value.FromNumber(centres.Count));
-        Give(step, "list", Value.FromList(
-            centres.Select(centre => Value.FromText($"{centre.X},{centre.Y}"))));
     }
+
+    /// <summary>Every picture hit as a record, in the order the step counts them in.</summary>
+    private static IEnumerable<Value> HitRecords(IReadOnlyList<ImageMatch> hits)
+        => hits.Select(hit => Hit(hit.Location, hit.Size, hit.Score));
+
+    /// <summary>Every reading of the screen as a record, keeping what each of them said.</summary>
+    private static IEnumerable<Value> HitRecords(IReadOnlyList<TextSpan> hits)
+        => hits.Select(hit => Hit(hit.Location, hit.Size, hit.Confidence, hit.Text));
 
     /// <summary>Leaves true or false behind, depending on whether the window is open.</summary>
     private void WindowExists(ExecutableStep step, int depth)
@@ -6150,11 +6196,11 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// Collects the open windows into a list of titles, narrowed down to the ones a step asks for,
-    /// with what else that step wants to know about them listed beside it in the same order. Two
-    /// windows with the same title are two windows, so each gets a line of its own. A filter that
-    /// looks at the process or the class has to ask the device about each window, and so does a list
-    /// of them, so neither is worked out for a step that asks for neither.
+    /// Collects the open windows into a list, narrowed down to the ones a step asks for, each window
+    /// as a record of its own: its title, the program and class it belongs to, what the system knows
+    /// it by and where it sits. Two windows with the same title are two windows, so each gets a
+    /// record of its own. Looking a process or a class up costs a look at the window, so neither is
+    /// read for a step that keeps no window at all.
     /// </summary>
     private void ListWindows(ExecutableStep step, int depth)
     {
@@ -6164,36 +6210,20 @@ public sealed class MacroRunner
                 WindowMatchOf(step.Text("filterBy"))))
             .ToList();
 
-        Store(step, "windows",
-            Value.FromList(windows.Select(window => Value.FromText(window.Title))), depth);
-
-        // The parts that cost a look at the window are read once for the whole listing, and only
-        // when the line they belong to is kept.
-        if (Wants(step, "processes"))
+        // The program and the class of a window are only read when the step keeps the list, because
+        // looking either of them up costs a look at the window. The record holds all five parts of a
+        // window, so a step that keeps the list keeps everything about it.
+        if (Wants(step, "windows"))
         {
-            Give(step, "processes",
-                Value.FromList(windows.Select(window =>
-                    Value.FromText(_devices.Windows.ProcessOf(window.Handle)))));
-        }
-
-        if (Wants(step, "classes"))
-        {
-            Give(step, "classes",
-                Value.FromList(windows.Select(window =>
-                    Value.FromText(_devices.Windows.ClassOf(window.Handle)))));
-        }
-
-        if (Wants(step, "handles"))
-        {
-            Give(step, "handles",
-                Value.FromList(windows.Select(window => Value.FromNumber(window.Handle))));
-        }
-
-        if (Wants(step, "boxes"))
-        {
-            Give(step, "boxes",
-                Value.FromList(windows.Select(window => Value.FromText(
-                    $"{window.Location.X},{window.Location.Y},{window.Size.Width},{window.Size.Height}"))));
+            Store(step, "windows", Value.FromList(windows.Select(window => Value.FromRecord(
+                [
+                    ("title", Value.FromText(window.Title)),
+                    ("process", Value.FromText(_devices.Windows.ProcessOf(window.Handle))),
+                    ("class", Value.FromText(_devices.Windows.ClassOf(window.Handle))),
+                    ("handle", Value.FromNumber(window.Handle)),
+                    ("box", Value.FromText(
+                        $"{window.Location.X},{window.Location.Y},{window.Size.Width},{window.Size.Height}")),
+                ]))), depth);
         }
 
         Log(LogLevel.Info, depth, step.Type, "Run.ListedWindows", windows.Count);
@@ -6545,30 +6575,13 @@ public sealed class MacroRunner
             GiveMatch(step, span.Location, span.Size, span.Confidence, span.Text);
         }
 
-        // Where every hit was, not only the one the step picked, so a macro can walk a list of
-        // hits or click through a column of them.
-        var every = Flag(step, "allMatches", false);
-        GiveEvery(step, [.. hits.Select(hit => hit.Center)], every);
-        GiveWritten(step, hits, every);
+        // Every reading, not only the one the step picked, so a macro can walk a list of them or
+        // click through a column of them; what each of them said is in its own record.
+        GiveEvery(step, HitRecords(hits));
 
         Log(LogLevel.Info, depth, step.Type, span is null ? "Run.TextMissing" : "Run.TextFound",
             span is null ? string.Empty : $"{span.Center.X},{span.Center.Y}",
             span is null ? string.Empty : span.Text);
-    }
-
-    /// <summary>
-    /// Hands over what each of the readings said, in the same order as where they were. It is a
-    /// second list rather than the words joined onto the places, because writing has commas in it:
-    /// a list of "x,y,words" would have no way of saying which comma was which.
-    /// </summary>
-    private void GiveWritten(ExecutableStep step, IReadOnlyList<TextSpan> hits, bool every)
-    {
-        if (!every)
-        {
-            return;
-        }
-
-        Give(step, "texts", Value.FromList(hits.Select(hit => Value.FromText(hit.Text))));
     }
 
     /// <summary>What one reading of the screen reads as a mark: the writing, with its own score.</summary>
@@ -6625,9 +6638,7 @@ public sealed class MacroRunner
         // Where the line was read, every other place it was read, and what each of them said — the
         // same answers the step that only looks for text hands over.
         GiveMatch(step, span.Location, span.Size, span.Confidence, span.Text);
-        var every = Flag(step, "allMatches", false);
-        GiveEvery(step, [.. hits.Select(hit => hit.Center)], every);
-        GiveWritten(step, hits, every);
+        GiveEvery(step, HitRecords(hits));
 
         Aim(at);
         Input(step).Click(Button(step), at.X, at.Y, 1, 0);
@@ -6681,7 +6692,7 @@ public sealed class MacroRunner
     /// </summary>
     private void FindElement(ExecutableStep step, int depth)
     {
-        var every = Flag(step, "allMatches", false);
+        var every = Wants(step, "every");
         var index = Index(step, "matchIndex", 1);
 
         // Asking for the whole list is what makes the list worth collecting; otherwise the search
@@ -6698,7 +6709,7 @@ public sealed class MacroRunner
             GiveMatch(step, match.Location, match.Size, 1, match.Name);
         }
 
-        GiveEvery(step, [.. hits.Select(Centre)], every);
+        GiveEvery(step, hits.Select(element => Hit(element.Location, element.Size, 1, element.Name)));
         Log(LogLevel.Info, depth, step.Type, match is null ? "Run.ElementMissing" : "Run.ElementWhere",
             match is null ? string.Empty : $"{Centre(match).X},{Centre(match).Y}");
     }

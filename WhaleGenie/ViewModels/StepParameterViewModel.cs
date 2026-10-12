@@ -80,8 +80,7 @@ public partial class StepParameterViewModel : ViewModelBase
                 row.PropertyChanged += (_, e) =>
                 {
                     if (e.PropertyName is nameof(ReturnsRowViewModel.Ticked)
-                        or nameof(ReturnsRowViewModel.Name)
-                        or nameof(ReturnsRowViewModel.IsApplicable))
+                        or nameof(ReturnsRowViewModel.Name))
                     {
                         OnPropertyChanged(nameof(HandsOverAnything));
                     }
@@ -803,8 +802,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// Names every result the step hands over, following the note for as long as the name has not
     /// been chosen by hand. Called when the note changes, and once when the dialog is built.
     /// </summary>
-    public void SettleReturns(string note, string action, string stepId,
-        IReadOnlyList<string> taken)
+    public void SettleReturns(string note, string stepId, IReadOnlyList<string> taken)
     {
         var spoken = new List<string>(taken);
         foreach (var row in ReturnsRows)
@@ -812,7 +810,7 @@ public partial class StepParameterViewModel : ViewModelBase
             row.Knows(spoken);
             if (row.Ticked)
             {
-                row.Suggest(VariableNames.ForStep(note, action, row.Label, stepId));
+                row.Suggest(VariableNames.ForStep(note, row.Label, stepId, spoken));
             }
 
             if (row.Name.Trim() is { Length: > 0 } named)

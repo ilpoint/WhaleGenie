@@ -128,21 +128,34 @@ internal static class SampleFiles
         };
 
     /// <summary>
-    /// The results of a step that hands over a place, a picture, an element, a window rectangle or a
-    /// program: the main one under <paramref name="name"/>, and every part of it under a name of its
-    /// own — <c>name.x</c>, <c>name.y</c> and so on, the way a macro read them when each part was a
-    /// spelling of the main result. A key an action does not hand over is simply never asked for.
+    /// The results of a step that found something: one record under <paramref name="name"/> holding
+    /// every part of the hit and — with <paramref name="every"/> — the whole list of them under
+    /// <c>name.every</c>. A search hands a hit over as one record — where it was, how big it was,
+    /// how sure the reading was — so the parts of it are read with <c>field(变量, "x")</c> rather
+    /// than as a variable each, and asking for the list is what makes the step collect every hit.
     /// </summary>
-    public static ExecutableParameter Hit(string key, string name) => Returns(
+    public static ExecutableParameter Hit(string key, string name, bool every = false)
+        => every ? Returns($"{key}={name}", $"every={name}.every") : Returns($"{key}={name}");
+
+    /// <summary>
+    /// The results of a step that hands a value over along with every part of it under a name of its
+    /// own — <c>name.x</c>, <c>name.id</c> and so on. Measuring and copying still hand their numbers
+    /// over one variable each, because four numbers about a rectangle are the whole of what they
+    /// say; a hit is the one that became a record. A key an action does not hand over is simply
+    /// never asked for.
+    /// </summary>
+    public static ExecutableParameter Parts(string key, string name) => Returns(
     [
         $"{key}={name}",
-        .. Parts.Select(part => $"{part}={name}.{part}"),
+        .. PartNames.Select(part => $"{part}={name}.{part}"),
     ]);
 
-    private static readonly string[] Parts =
+    private static readonly string[] PartNames =
     [
-        "x", "y", "left", "top", "width", "height", "score", "box", "text", "count", "list",
-        "window", "method", "title", "id", "name", "memoryMb", "cpuSeconds",
+        "x", "y", "width", "height", "box", "window", "method", "title",
+        "process", "class", "handle", "minimized", "maximized",
+        "clientBox", "clientX", "clientY", "clientWidth", "clientHeight",
+        "id", "name", "memoryMb", "cpuSeconds",
     ];
 
     private static IReadOnlyDictionary<string, string> Result(string written)

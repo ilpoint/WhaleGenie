@@ -10,10 +10,11 @@ namespace WhaleGenie.Models;
 /// <remarks>
 /// Two "read the sheet" steps both want to call it <c>rows</c>, and the second one quietly
 /// overwrites the first — which is the kind of mistake nobody sees until the macro is doing the
-/// wrong thing in the middle of a job. So the name says which step it came from: the note the user
-/// wrote, the action, and the name the step goes by. Any one of the three alone is not enough —
-/// the note is what the user recognises, the action says what kind of thing it is, and the step's
-/// name is the only part that is unique for certain.
+/// wrong thing in the middle of a job. So the name says what the note says and what the result is,
+/// and a name that is already spoken for gets the step's own name after it, which is the one part
+/// no other step shares. The action's name and the step's name are not in every name: they made the
+/// common case — a note the user wrote, read back under the name they would have chosen — long
+/// enough to be unreadable at a glance.
 /// </remarks>
 public static class VariableNames
 {
@@ -24,24 +25,29 @@ public static class VariableNames
     public const int NoteLength = 12;
 
     /// <summary>
-    /// What to name one result of a step: the note, the action, what the result is, and the step's
-    /// own name. A step that hands over several results gets a name for each, so a find-image step
-    /// that reports a position and a count can be read back as one or the other.
+    /// What to name one result of a step: the note and what the result is, and — when that name is
+    /// already spoken for somewhere the macro can see — the step's own name after it. A step that
+    /// hands over several results gets a name for each, so a find-image step that hands over a hit
+    /// and the whole list can be read back as one or the other.
     /// </summary>
-    public static string ForStep(string note, string action, string result, string stepId)
+    public static string ForStep(string note, string result, string stepId,
+        IEnumerable<string>? taken = null)
     {
-        var parts = new List<string>();
-        foreach (var (text, limit) in
-                 new[] { (note, NoteLength), (action, 0), (result, 0), (stepId, 0) })
+        var wanted = Join(Part(note, NoteLength), Part(result, 0));
+        if (wanted.Length == 0)
         {
-            var part = Part(text, limit);
-            if (part.Length > 0)
-            {
-                parts.Add(part);
-            }
+            // A step with no note whose action hands over a result nobody named in the table still
+            // has to leave that result somewhere a later step can read it.
+            wanted = Part(stepId, 0);
         }
 
-        return string.Join("_", parts);
+        if (wanted.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        var used = new HashSet<string>(taken ?? [], StringComparer.OrdinalIgnoreCase);
+        return used.Contains(wanted) ? Free(Join(wanted, Part(stepId, 0)), used) : wanted;
     }
 
     /// <summary>
@@ -93,4 +99,8 @@ public static class VariableNames
 
         return cleaned.Trim('_');
     }
+
+    /// <summary>The parts that are worth anything, joined the way a name is written.</summary>
+    private static string Join(params string[] parts)
+        => string.Join("_", parts.Where(part => part.Length > 0));
 }

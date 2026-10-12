@@ -29,49 +29,54 @@ public class ReturnsPageTests
         {
             var viewModel = Open("vision.findImage");
             viewModel.MetaComment = "登录";
-            var score = viewModel.ReturnsRows.First(row => row.Key == "score");
-            score.Ticked = true;
+            var every = viewModel.ReturnsRows.First(row => row.Key == "every");
+            every.Ticked = true;
 
             var step = viewModel.BuildStep();
             var returns = step.Parameters.First(parameter => parameter.Name == "returns");
 
-            // Only the results that were ticked: the position the step starts with, and the score
+            // Only the results that were ticked: the hit the step starts with, and the whole list
             // that was asked for.
-            Assert.Equal(["match", "score"], returns.Rows.Select(row => row.Text("key")).ToList());
-            Assert.Contains("登录", returns.Rows[0].Text("name"), StringComparison.Ordinal);
-            Assert.Contains(score.Label, returns.Rows[1].Text("name"), StringComparison.Ordinal);
+            Assert.Equal(["match", "every"], returns.Rows.Select(row => row.Text("key")).ToList());
+            var hit = returns.Rows[0].Text("name");
+            var all = returns.Rows[1].Text("name");
+            Assert.Contains("登录", hit, StringComparison.Ordinal);
+            Assert.Contains("登录", all, StringComparison.Ordinal);
+
+            // Each result of the step has a name of its own, so two variables are written rather
+            // than one being quietly overwritten by the other.
+            Assert.NotEqual(hit, all, StringComparer.OrdinalIgnoreCase);
         });
     }
 
     [Fact]
-    public void The_match_count_is_only_offered_when_the_step_records_every_match()
+    public void A_search_hands_over_one_hit_and_however_many_were_found()
     {
         Ui.Run(() =>
         {
             var viewModel = Open("vision.findImage");
-            var recording = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "allMatches");
 
-            var count = viewModel.ReturnsRows.First(row => row.Key == "count");
-            var every = viewModel.ReturnsRows.First(row => row.Key == "list");
+            // The hit is the one a search nearly always wants and starts ticked; the whole list is
+            // there beside it, and ticking it is the whole of "find every one of them".
+            var hit = viewModel.ReturnsRows.First(row => row.Key == "match");
+            var every = viewModel.ReturnsRows.First(row => row.Key == "every");
 
-            // Nothing is worked out to hand over until the step is told to record every match.
-            Assert.False(count.IsApplicable);
-            Assert.False(every.IsApplicable);
-            Assert.True(viewModel.ReturnsRows.First(row => row.Key == "match").IsApplicable);
+            Assert.True(hit.Ticked);
+            Assert.False(every.Ticked);
+            Assert.Equal(ActionReturnType.Record, hit.Result.Type);
+            Assert.Equal(ActionReturnType.List, every.Result.Type);
 
-            recording.Flag = true;
-            Assert.True(count.IsApplicable);
-            Assert.True(every.IsApplicable);
+            // What was not ticked is not written, and what was ticked is.
+            var written = viewModel.BuildStep().Parameters
+                .First(parameter => parameter.Name == "returns").Rows
+                .Select(row => row.Text("key")).ToList();
+            Assert.Equal(["match"], written);
 
-            // And even a result that was ticked is not written while the box it depends on is off.
-            count.Ticked = true;
-            Assert.Contains("count", viewModel.BuildStep().Parameters
-                .First(parameter => parameter.Name == "returns").Rows.Select(row => row.Text("key")));
-
-            recording.Flag = false;
-            Assert.DoesNotContain("count", viewModel.BuildStep().Parameters
-                .First(parameter => parameter.Name == "returns").Rows.Select(row => row.Text("key")));
+            every.Ticked = true;
+            written = viewModel.BuildStep().Parameters
+                .First(parameter => parameter.Name == "returns").Rows
+                .Select(row => row.Text("key")).ToList();
+            Assert.Equal(["match", "every"], written);
         });
     }
 
@@ -107,7 +112,7 @@ public class ReturnsPageTests
                     Rows =
                     [
                         Row("match", "登录_找图_位置_k3f9"),
-                        Row("count", "登录_找图_命中数_k3f9"),
+                        Row("every", "登录_全部命中"),
                     ],
                 },
             ],
@@ -121,7 +126,7 @@ public class ReturnsPageTests
             System.Text.Json.Nodes.JsonNode.Parse(written)!);
         var returns = back.Parameters.First(parameter => parameter.Name == "returns");
 
-        Assert.Equal(["match", "count"], returns.Rows.Select(row => row.Text("key")).ToList());
+        Assert.Equal(["match", "every"], returns.Rows.Select(row => row.Text("key")).ToList());
         Assert.Equal("登录_找图_位置_k3f9", returns.Rows[0].Text("name"));
     }
 
@@ -138,19 +143,18 @@ public class ReturnsPageTests
                 {
                     Name = "returns",
                     Kind = ActionParameterKind.Returns,
-                    Rows = [Row("match", "登录_找图_位置_k3f9")],
+                    Rows = [Row("match", "登录_命中")],
                 },
             ],
         };
 
         // The declaration is what a name is read out of, so the editor has to find it by key.
         var definition = ActionCatalog.Find("vision.findImage")!;
-        Assert.Equal("text", definition.Returns.First(result => result.Key == "match").TypeName);
-        Assert.Equal("list", definition.Returns.First(result => result.Key == "list").TypeName);
-        Assert.Equal("number", definition.Returns.First(result => result.Key == "width").TypeName);
+        Assert.Equal("record", definition.Returns.First(result => result.Key == "match").TypeName);
+        Assert.Equal("list", definition.Returns.First(result => result.Key == "every").TypeName);
 
         var offered = VariableChoices.For([step]);
-        var result = offered.First(choice => choice.Name == "登录_找图_位置_k3f9");
+        var result = offered.First(choice => choice.Name == "登录_命中");
 
         Assert.Contains("k3f9", result.Source, StringComparison.Ordinal);
         Assert.Equal(VariableGroup.Local, result.Group);

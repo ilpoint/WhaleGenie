@@ -84,7 +84,7 @@ public class ActionPageTests
     /// </summary>
     private static readonly string[] Tuning =
     [
-        "minFeatures", "ignoreColor", "matchIndex", "allMatches", "orderBy",
+        "minFeatures", "ignoreColor", "matchIndex", "orderBy",
         "anchorMode", "anchorWindow", "anchorMatchBy", "anchorCompareBy", "anchorSelector",
         "inputMode", "targetWindow", "targetMatchBy", "targetCompareBy", "style",
         "frameMaxAgeMs", "preprocess", "colorFilter", "colorTolerance", "fixText",

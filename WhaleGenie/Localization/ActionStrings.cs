@@ -249,10 +249,47 @@ internal static class ActionStrings
         "像素与文字颜色的距离在这个范围内仍算文字，0–100，默认 10。文字带渐变或有抗锯齿边缘时"
         + "调大。";
 
-    /// <summary>The hint the "record every match" switches share.</summary>
-    private const string AllMatchesHint =
-        "勾选后除了选中的那一处，还把命中的数量与每个命中都记下来：把“命中数”和“全部命中”两项结果"
-        + "一起勾上即可，列表可直接用于 count()、get() 和 forEach。不勾选时只记录选中的那一处。";
+    /// <summary>The label the hit record of every search action goes by.</summary>
+    private const string HitRecordLabel = "命中";
+
+    /// <summary>The label of the list of every hit a search action found.</summary>
+    private const string EveryHitLabel = "全部命中";
+
+    /// <summary>
+    /// The hint the picture-searching actions share for their hit record: one record holding the
+    /// same parts whatever was found, so a macro reads the size of a picture the same way it reads
+    /// the size of a line of writing.
+    /// </summary>
+    private const string HitRecordHintImage =
+        "这次找到的那一处，一条记录：「x」「y」是正中的位置（动作要点或移到的那个点），「left」"
+        + "「top」是矩形左上角（搜索区域从那里开始量），「width」「height」是宽高，「score」是这一处"
+        + "的相似度（越大越像，1 表示完全一样），「box」是整块矩形，写成 左,上,宽,高，填进搜索区域"
+        + "那一行的变量格即可看同一处。取其中一项用 field($变量, \"x\")。没找到时为空。";
+
+    /// <summary>The same hint for the colour searches, whose hit is a single pixel.</summary>
+    private const string HitRecordHintColour =
+        "这次找到的那个像素，一条记录：「x」「y」是它的位置，「left」「top」是同一个位置，「width」"
+        + "「height」是 1，「score」是这个像素与要找的颜色的接近程度（1 表示完全一样），「box」写成"
+        + "左,上,宽,高。取其中一项用 field($变量, \"x\")。没找到时为空。";
+
+    /// <summary>The same hint for the text searches, whose hit also carries what was read.</summary>
+    private const string HitRecordHintText =
+        "这次读到的那一处，一条记录：「x」「y」是正中的位置（点文字落的就是这里），「left」「top」是"
+        + "矩形左上角（搜索区域从那里开始量），「width」「height」是宽高，「text」是这一处读到的文字，"
+        + "「score」是识别模型给的读数分数（越大越有把握），「box」是整块矩形，写成 左,上,宽,高。"
+        + "取其中一项用 field($变量, \"x\")。没找到时为空。";
+
+    /// <summary>The same hint for the element searches, whose hit carries the element's own text.</summary>
+    private const string HitRecordHintElement =
+        "这次找到的那个元素，一条记录：「x」「y」是它的正中（后面的步骤按它量位置、点它），「left」"
+        + "「top」是它左上角，「width」「height」是它的宽高，「text」是元素自带的文本，「box」是整块"
+        + "矩形，写成 左,上,宽,高。取其中一项用 field($变量, \"x\")。没找到时为空。";
+
+    /// <summary>The hint the "every match" results of the search actions share.</summary>
+    private const string EveryHitHint =
+        "勾上后把这次找到的每一处都记下来，一条命中是一条与上面同样的记录，顺序就是“命中排序”里的"
+        + "顺序：“第几个命中”数的就是这一列。可以直接 count() 数一数、get() 取出其中一条、用 forEach "
+        + "逐个走一遍。不勾选时只记录选中的那一处。";
 
     /// <summary>
     /// The hint the two text-searching actions share for their lowest-score field. The numbers
@@ -1206,7 +1243,7 @@ internal static class ActionStrings
         ["window.close.compareBy.option.regex"] = WindowCompareRegex,
 
         ["window.list.name"] = "列出窗口",
-        ["window.list.desc"] = "把当前打开的窗口标题收集成一个列表，可以只留符合筛选条件的那些。",
+        ["window.list.desc"] = "把当前打开的窗口收集成一个列表，每个窗口一条记录，可以只留符合筛选条件的那些。",
         ["window.list.filter.label"] = "筛选文字",
         ["window.list.filter.hint"] = "只保留标题、进程名或窗口类名里含有这段文字的窗口。留空表示不过滤。",
         ["window.list.filterBy.label"] = "按什么筛选",
@@ -2057,8 +2094,10 @@ internal static class ActionStrings
         ["vision.findImage.orderBy.option.random"] = "随机",
         ["vision.findImage.matchIndex.label"] = "第几个命中",
         ["vision.findImage.matchIndex.hint"] = MatchIndexHint,
-        ["vision.findImage.allMatches.label"] = "记录全部命中",
-        ["vision.findImage.allMatches.hint"] = AllMatchesHint,
+        ["vision.findImage.return.match.label"] = HitRecordLabel,
+        ["vision.findImage.return.match.hint"] = HitRecordHintImage,
+        ["vision.findImage.return.every.label"] = EveryHitLabel,
+        ["vision.findImage.return.every.hint"] = EveryHitHint,
         ["vision.findImage.imageSet.label"] = "认哪一张",
         ["vision.findImage.imageSet.hint"] = ImageSetHint,
         ["vision.findImage.imageSet.option.first"] = "认出的第一张",
@@ -2174,8 +2213,10 @@ internal static class ActionStrings
         ["vision.findColor.orderBy.option.reading"] = "阅读顺序",
         ["vision.findColor.orderBy.option.score"] = "分数最高",
         ["vision.findColor.orderBy.option.random"] = "随机",
-        ["vision.findColor.allMatches.label"] = "记录全部命中",
-        ["vision.findColor.allMatches.hint"] = AllMatchesHint,
+        ["vision.findColor.return.match.label"] = HitRecordLabel,
+        ["vision.findColor.return.match.hint"] = HitRecordHintColour,
+        ["vision.findColor.return.every.label"] = EveryHitLabel,
+        ["vision.findColor.return.every.hint"] = EveryHitHint,
         ["vision.findColor.region.label"] = "搜索区域",
         ["vision.findColor.region.hint"] = RegionHintText,
         ["vision.findColor.anchorMode.label"] = "坐标基准",
@@ -2221,8 +2262,10 @@ internal static class ActionStrings
         ["vision.findColors.orderBy.option.random"] = "随机",
         ["vision.findColors.matchIndex.label"] = "第几个命中",
         ["vision.findColors.matchIndex.hint"] = MatchIndexHint,
-        ["vision.findColors.allMatches.label"] = "记录全部命中",
-        ["vision.findColors.allMatches.hint"] = AllMatchesHint,
+        ["vision.findColors.return.match.label"] = HitRecordLabel,
+        ["vision.findColors.return.match.hint"] = HitRecordHintColour,
+        ["vision.findColors.return.every.label"] = EveryHitLabel,
+        ["vision.findColors.return.every.hint"] = EveryHitHint,
         ["vision.findColors.anchorMode.label"] = "坐标基准",
         ["vision.findColors.anchorMode.hint"] = AnchorModeHint,
         ["vision.findColors.anchorMode.option.screen"] = "屏幕像素",
@@ -2244,18 +2287,6 @@ internal static class ActionStrings
         ["vision.findColors.anchorCompareBy.option.regex"] = WindowCompareRegex,
         ["vision.findColors.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
         ["vision.findColors.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
-        ["vision.findColors.return.match.label"] = "位置",
-        ["vision.findColors.return.match.hint"] =
-            "基准色所在的那个像素，写成 x,y；没找到时为空。",
-        ["vision.findColors.return.x.label"] = "中心 X",
-        ["vision.findColors.return.x.hint"] = "基准色那个像素的横坐标，单位是屏幕像素。",
-        ["vision.findColors.return.y.label"] = "中心 Y",
-        ["vision.findColors.return.y.hint"] = "基准色那个像素的纵坐标，单位是屏幕像素。",
-        ["vision.findColors.return.count.label"] = "命中数",
-        ["vision.findColors.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
-        ["vision.findColors.return.list.label"] = "全部命中",
-        ["vision.findColors.return.list.hint"] =
-            "每一处命中的基准色位置，每项一个 x,y；只有勾上“记录全部命中”才有。",
         ["vision.findColors.returns.label"] = "要留下的结果",
         ["vision.findColors.returns.hint"] =
             "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。"
@@ -2540,8 +2571,10 @@ internal static class ActionStrings
         ["ocr.findText.matchMode.hint"] = "识别结果与搜索文字的比较方式。",
         ["ocr.findText.expected.label"] = "整段须匹配",
         ["ocr.findText.expected.hint"] = ExpectedHint,
-        ["ocr.findText.allMatches.label"] = "记录全部命中",
-        ["ocr.findText.allMatches.hint"] = AllMatchesHint,
+        ["ocr.findText.return.match.label"] = HitRecordLabel,
+        ["ocr.findText.return.match.hint"] = HitRecordHintText,
+        ["ocr.findText.return.every.label"] = EveryHitLabel,
+        ["ocr.findText.return.every.hint"] = EveryHitHint,
         ["ocr.findText.minScore.label"] = "最低识别分",
         ["ocr.findText.minScore.hint"] = MinScoreHint,
         ["ocr.findText.orderBy.label"] = "命中排序",
@@ -2649,8 +2682,10 @@ internal static class ActionStrings
         ["uia.find.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可用“拾取元素”直接在屏幕上拾取控件。",
         ["uia.find.matchIndex.label"] = "第几个命中",
         ["uia.find.matchIndex.hint"] = MatchIndexHint,
-        ["uia.find.allMatches.label"] = "记录全部命中",
-        ["uia.find.allMatches.hint"] = AllMatchesHint,
+        ["uia.find.return.match.label"] = HitRecordLabel,
+        ["uia.find.return.match.hint"] = HitRecordHintElement,
+        ["uia.find.return.every.label"] = EveryHitLabel,
+        ["uia.find.return.every.hint"] = EveryHitHint,
 
         ["uia.waitElement.name"] = "等待元素",
         ["uia.waitElement.desc"] = "等待某个 UI Automation 元素出现。",
@@ -3449,22 +3484,12 @@ internal static class ActionStrings
         // window.list
         ["window.list.return.windows.label"] = "窗口列表",
         ["window.list.return.windows.hint"] =
-            "匹配到的窗口标题，按系统列出的顺序排。同名窗口是两个窗口，各占一项。",
-        ["window.list.return.processes.label"] = "程序列表",
-        ["window.list.return.processes.hint"] =
-            "每个窗口所属的程序名（不含 .exe），顺序与窗口列表一一对应。两个窗口标题相像时，"
-            + "用它分清是哪个游戏；也是按进程名筛选时比较的那一项。",
-        ["window.list.return.classes.label"] = "窗口类名列表",
-        ["window.list.return.classes.hint"] =
-            "每个窗口注册的窗口类名，顺序与窗口列表一一对应：说明的是窗口的种类而不是里面的"
-            + "文档，记事本窗口改了名也还是 Notepad。",
-        ["window.list.return.handles.label"] = "句柄列表",
-        ["window.list.return.handles.hint"] =
-            "每个窗口在系统里的句柄，顺序与窗口列表一一对应。两个窗口标题相同时用它区分。",
-        ["window.list.return.boxes.label"] = "矩形列表",
-        ["window.list.return.boxes.hint"] =
-            "每个窗口的位置与大小，写成 左,上,宽,高，顺序与窗口列表一一对应：填进搜索区域那一行"
-            + "的变量格里，下一步就在那个窗口里找。",
+            "匹配到的窗口，一个窗口一条记录，按系统列出的顺序排。同名窗口是两个窗口，各占一条。"
+            + "每条记录里有「title」（标题）、「process」（程序名，不含 .exe）、「class」（窗口"
+            + "类名，说明窗口的种类而不是里面的文档，记事本改了名也还是 Notepad）、「handle」"
+            + "（句柄，标题相同时用它区分）和「box」（位置与大小，写成 左,上,宽,高，填进搜索区域"
+            + "那一行的变量格里，下一步就在那个窗口里找）。读其中一条的一个字段用 "
+            + "field(get($变量, 0), \"title\")，逐个走一遍用 forEach。",
         ["window.list.returns.label"] = "要留下的结果",
         ["window.list.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 
@@ -3542,93 +3567,22 @@ internal static class ActionStrings
         ["vision.captureWindow.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 
         // vision.findImage
-        ["vision.findImage.return.match.label"] = "位置",
-        ["vision.findImage.return.match.hint"] = "找到时的中心点，写成 x,y；没找到时为空。这是"
-            + "动作要点的那个点，不是区域起算的角——那个是「左边界」和「上边界」。",
-        ["vision.findImage.return.x.label"] = "中心 X",
-        ["vision.findImage.return.x.hint"] = "命中正中的横坐标，单位是屏幕像素：点图落的就是"
-            + "这里。",
-        ["vision.findImage.return.y.label"] = "中心 Y",
-        ["vision.findImage.return.y.hint"] = "命中正中的纵坐标，单位是屏幕像素。",
-        ["vision.findImage.return.left.label"] = "左边界",
-        ["vision.findImage.return.left.hint"] = "命中矩形的左边界，单位是屏幕像素，和搜索区域"
-            + "「左上角 X」同一个口径。",
-        ["vision.findImage.return.top.label"] = "上边界",
-        ["vision.findImage.return.top.hint"] = "命中矩形的上边界，单位是屏幕像素，和搜索区域"
-            + "「左上角 Y」同一个口径。",
-        ["vision.findImage.return.width.label"] = "宽",
-        ["vision.findImage.return.width.hint"] = "命中矩形的宽度，单位是像素。",
-        ["vision.findImage.return.height.label"] = "高",
-        ["vision.findImage.return.height.hint"] = "命中矩形的高度，单位是像素。",
-        ["vision.findImage.return.score.label"] = "相似度",
-        ["vision.findImage.return.score.hint"] = "这次命中的匹配分数，越高越像，1 表示完全一样。",
-        ["vision.findImage.return.box.label"] = "矩形",
-        ["vision.findImage.return.box.hint"] = "整个命中，写成 左,上,宽,高：填进搜索区域那一行的"
-            + "变量格里，下一步就看同一处。",
-        ["vision.findImage.return.count.label"] = "命中数",
-        ["vision.findImage.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
-        ["vision.findImage.return.list.label"] = "全部命中",
-        ["vision.findImage.return.list.hint"] = "每一处命中的中心点，每项一个 x,y；只有勾上“记录全部命中”才有。",
         ["vision.findImage.returns.label"] = "要留下的结果",
         ["vision.findImage.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 
         // vision.waitImage
-        ["vision.waitImage.return.match.label"] = "位置",
-        ["vision.waitImage.return.match.hint"] = "等到时的中心点，写成 x,y；没等到时为空。这是"
-            + "动作要看的那个点，不是区域起算的角——那个是「左边界」和「上边界」。",
-        ["vision.waitImage.return.x.label"] = "中心 X",
-        ["vision.waitImage.return.x.hint"] = "命中正中的横坐标，单位是屏幕像素。",
-        ["vision.waitImage.return.y.label"] = "中心 Y",
-        ["vision.waitImage.return.y.hint"] = "命中正中的纵坐标，单位是屏幕像素。",
-        ["vision.waitImage.return.left.label"] = "左边界",
-        ["vision.waitImage.return.left.hint"] = "命中矩形的左边界，单位是屏幕像素，和搜索区域"
-            + "「左上角 X」同一个口径。",
-        ["vision.waitImage.return.top.label"] = "上边界",
-        ["vision.waitImage.return.top.hint"] = "命中矩形的上边界，单位是屏幕像素，和搜索区域"
-            + "「左上角 Y」同一个口径。",
-        ["vision.waitImage.return.width.label"] = "宽",
-        ["vision.waitImage.return.width.hint"] = "命中矩形的宽度，单位是像素。",
-        ["vision.waitImage.return.height.label"] = "高",
-        ["vision.waitImage.return.height.hint"] = "命中矩形的高度，单位是像素。",
-        ["vision.waitImage.return.score.label"] = "相似度",
-        ["vision.waitImage.return.score.hint"] = "这次命中的匹配分数，越高越像，1 表示完全一样。",
-        ["vision.waitImage.return.box.label"] = "矩形",
-        ["vision.waitImage.return.box.hint"] = "整个命中，写成 左,上,宽,高：填进搜索区域那一行的"
-            + "变量格里，下一步就看同一处。",
-        ["vision.waitImage.return.count.label"] = "命中数",
-        ["vision.waitImage.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
-        ["vision.waitImage.return.list.label"] = "全部命中",
-        ["vision.waitImage.return.list.hint"] = "每一处命中的中心点，每项一个 x,y；只有勾上“记录全部命中”才有。",
+        ["vision.waitImage.return.match.label"] = HitRecordLabel,
+        ["vision.waitImage.return.match.hint"] = HitRecordHintImage,
+        ["vision.waitImage.return.every.label"] = EveryHitLabel,
+        ["vision.waitImage.return.every.hint"] = EveryHitHint,
         ["vision.waitImage.returns.label"] = "要留下的结果",
         ["vision.waitImage.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 
         // vision.clickImage
-        ["vision.clickImage.return.match.label"] = "位置",
-        ["vision.clickImage.return.match.hint"] = "点下去的那个中心点，写成 x,y。这是动作要点的"
-            + "点，不是区域起算的角——那个是「左边界」和「上边界」。",
-        ["vision.clickImage.return.x.label"] = "中心 X",
-        ["vision.clickImage.return.x.hint"] = "命中正中的横坐标，单位是屏幕像素：点落的就是这里。",
-        ["vision.clickImage.return.y.label"] = "中心 Y",
-        ["vision.clickImage.return.y.hint"] = "命中正中的纵坐标，单位是屏幕像素。",
-        ["vision.clickImage.return.left.label"] = "左边界",
-        ["vision.clickImage.return.left.hint"] = "命中矩形的左边界，单位是屏幕像素，和搜索区域"
-            + "「左上角 X」同一个口径。",
-        ["vision.clickImage.return.top.label"] = "上边界",
-        ["vision.clickImage.return.top.hint"] = "命中矩形的上边界，单位是屏幕像素，和搜索区域"
-            + "「左上角 Y」同一个口径。",
-        ["vision.clickImage.return.width.label"] = "宽",
-        ["vision.clickImage.return.width.hint"] = "命中矩形的宽度，单位是像素。",
-        ["vision.clickImage.return.height.label"] = "高",
-        ["vision.clickImage.return.height.hint"] = "命中矩形的高度，单位是像素。",
-        ["vision.clickImage.return.score.label"] = "相似度",
-        ["vision.clickImage.return.score.hint"] = "这次命中的匹配分数，越高越像，1 表示完全一样。",
-        ["vision.clickImage.return.box.label"] = "矩形",
-        ["vision.clickImage.return.box.hint"] = "整个命中，写成 左,上,宽,高：填进搜索区域那一行的"
-            + "变量格里，下一步就看同一处。",
-        ["vision.clickImage.return.count.label"] = "命中数",
-        ["vision.clickImage.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
-        ["vision.clickImage.return.list.label"] = "全部命中",
-        ["vision.clickImage.return.list.hint"] = "每一处命中的中心点，每项一个 x,y；只有勾上“记录全部命中”才有。",
+        ["vision.clickImage.return.match.label"] = HitRecordLabel,
+        ["vision.clickImage.return.match.hint"] = HitRecordHintImage,
+        ["vision.clickImage.return.every.label"] = EveryHitLabel,
+        ["vision.clickImage.return.every.hint"] = EveryHitHint,
         ["vision.clickImage.returns.label"] = "要留下的结果",
         ["vision.clickImage.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 
@@ -3639,17 +3593,6 @@ internal static class ActionStrings
         ["vision.getPixel.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 
         // vision.findColor
-        ["vision.findColor.return.match.label"] = "位置",
-        ["vision.findColor.return.match.hint"] = "找到的那个像素，写成 x,y；没找到时为空。一个"
-            + "颜色就是一个像素，没有宽高。",
-        ["vision.findColor.return.x.label"] = "中心 X",
-        ["vision.findColor.return.x.hint"] = "命中那个像素的横坐标，单位是屏幕像素。",
-        ["vision.findColor.return.y.label"] = "中心 Y",
-        ["vision.findColor.return.y.hint"] = "命中那个像素的纵坐标，单位是屏幕像素。",
-        ["vision.findColor.return.count.label"] = "命中数",
-        ["vision.findColor.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
-        ["vision.findColor.return.list.label"] = "全部命中",
-        ["vision.findColor.return.list.hint"] = "每一处命中的中心点，每项一个 x,y；只有勾上“记录全部命中”才有。",
         ["vision.findColor.return.coverage.label"] = "占比 %",
         ["vision.findColor.return.coverage.hint"] =
             "整个搜索区域里有多少比例是那个颜色，0–100 保留一位小数，多行区域合起来算一个。"
@@ -3666,76 +3609,14 @@ internal static class ActionStrings
         ["ocr.recognize.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 
         // ocr.findText
-        ["ocr.findText.return.match.label"] = "位置",
-        ["ocr.findText.return.match.hint"] = "找到时的中心点，写成 x,y；没找到时为空。这是动作"
-            + "要点的那个点，不是区域起算的角——那个是「左边界」和「上边界」。",
-        ["ocr.findText.return.x.label"] = "中心 X",
-        ["ocr.findText.return.x.hint"] = "读到的那处正中的横坐标，单位是屏幕像素：点文字落的"
-            + "就是这里。",
-        ["ocr.findText.return.y.label"] = "中心 Y",
-        ["ocr.findText.return.y.hint"] = "读到的那处正中的纵坐标，单位是屏幕像素。",
-        ["ocr.findText.return.left.label"] = "左边界",
-        ["ocr.findText.return.left.hint"] = "读到的那处左边的位置，单位是屏幕像素，和搜索区域"
-            + "「左上角 X」同一个口径。",
-        ["ocr.findText.return.top.label"] = "上边界",
-        ["ocr.findText.return.top.hint"] = "读到的那处上边的位置，单位是屏幕像素，和搜索区域"
-            + "「左上角 Y」同一个口径。",
-        ["ocr.findText.return.width.label"] = "宽",
-        ["ocr.findText.return.width.hint"] = "读到的那处的宽度，单位是像素。",
-        ["ocr.findText.return.height.label"] = "高",
-        ["ocr.findText.return.height.hint"] = "读到的那处的高度，单位是像素。",
-        ["ocr.findText.return.text.label"] = "文字",
-        ["ocr.findText.return.text.hint"] = "这一处读到的文字。",
-        ["ocr.findText.return.score.label"] = "读数分数",
-        ["ocr.findText.return.score.hint"] = "这次读到的分数，是识别模型给的，不是百分比，越大表示越有把握。",
-        ["ocr.findText.return.box.label"] = "矩形",
-        ["ocr.findText.return.box.hint"] = "读到的那处的整块，写成 左,上,宽,高：填进搜索区域那一行"
-            + "的变量格里，下一步就读同一处。",
-        ["ocr.findText.return.count.label"] = "命中数",
-        ["ocr.findText.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
-        ["ocr.findText.return.list.label"] = "全部命中",
-        ["ocr.findText.return.list.hint"] = "每一处命中的中心点，每项一个 x,y；只有勾上“记录全部命中”才有。",
-        ["ocr.findText.return.texts.label"] = "每一条的文字",
-        ["ocr.findText.return.texts.hint"] =
-            "每一处命中当时读到的文字，和“全部命中”一一对应、同一个顺序：一个是位置表，一个是"
-            + "文字表。只有勾上“记录全部命中”才有。",
         ["ocr.findText.returns.label"] = "要留下的结果",
         ["ocr.findText.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 
         // ocr.clickText
-        ["ocr.clickText.return.match.label"] = "位置",
-        ["ocr.clickText.return.match.hint"] = "点下去的那个中心点，写成 x,y。这是动作要点的点，"
-            + "不是区域起算的角——那个是「左边界」和「上边界」。",
-        ["ocr.clickText.return.x.label"] = "中心 X",
-        ["ocr.clickText.return.x.hint"] = "读到的那处正中的横坐标，单位是屏幕像素：点落的就是"
-            + "这里。",
-        ["ocr.clickText.return.y.label"] = "中心 Y",
-        ["ocr.clickText.return.y.hint"] = "读到的那处正中的纵坐标，单位是屏幕像素。",
-        ["ocr.clickText.return.left.label"] = "左边界",
-        ["ocr.clickText.return.left.hint"] = "读到的那处左边的位置，单位是屏幕像素，和搜索区域"
-            + "「左上角 X」同一个口径。",
-        ["ocr.clickText.return.top.label"] = "上边界",
-        ["ocr.clickText.return.top.hint"] = "读到的那处上边的位置，单位是屏幕像素，和搜索区域"
-            + "「左上角 Y」同一个口径。",
-        ["ocr.clickText.return.width.label"] = "宽",
-        ["ocr.clickText.return.width.hint"] = "读到的那处的宽度，单位是像素。",
-        ["ocr.clickText.return.height.label"] = "高",
-        ["ocr.clickText.return.height.hint"] = "读到的那处的高度，单位是像素。",
-        ["ocr.clickText.return.text.label"] = "文字",
-        ["ocr.clickText.return.text.hint"] = "点中的这一处读到的文字。",
-        ["ocr.clickText.return.score.label"] = "读数分数",
-        ["ocr.clickText.return.score.hint"] = "这次读到的分数，是识别模型给的，不是百分比，越大表示越有把握。",
-        ["ocr.clickText.return.box.label"] = "矩形",
-        ["ocr.clickText.return.box.hint"] = "读到的那处的整块，写成 左,上,宽,高：填进搜索区域那一行"
-            + "的变量格里，下一步就看同一处。",
-        ["ocr.clickText.return.count.label"] = "命中数",
-        ["ocr.clickText.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
-        ["ocr.clickText.return.list.label"] = "全部命中",
-        ["ocr.clickText.return.list.hint"] = "每一处命中的中心点，每项一个 x,y；只有勾上“记录全部命中”才有。",
-        ["ocr.clickText.return.texts.label"] = "每一条的文字",
-        ["ocr.clickText.return.texts.hint"] =
-            "每一处命中当时读到的文字，和“全部命中”一一对应、同一个顺序：一个是位置表，一个是"
-            + "文字表。只有勾上“记录全部命中”才有。",
+        ["ocr.clickText.return.match.label"] = HitRecordLabel,
+        ["ocr.clickText.return.match.hint"] = HitRecordHintText,
+        ["ocr.clickText.return.every.label"] = EveryHitLabel,
+        ["ocr.clickText.return.every.hint"] = EveryHitHint,
         ["ocr.clickText.returns.label"] = "要留下的结果",
         ["ocr.clickText.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 
@@ -3746,32 +3627,6 @@ internal static class ActionStrings
         ["uia.exists.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 
         // uia.find
-        ["uia.find.return.element.label"] = "元素",
-        ["uia.find.return.element.hint"] = "元素中心点的 x,y，后面的步骤按它量位置、点它；没找到时"
-            + "为空。要元素的矩形就用「左边界」「上边界」那几项。",
-        ["uia.find.return.x.label"] = "中心 X",
-        ["uia.find.return.x.hint"] = "元素正中的横坐标，单位是屏幕像素。",
-        ["uia.find.return.y.label"] = "中心 Y",
-        ["uia.find.return.y.hint"] = "元素正中的纵坐标，单位是屏幕像素。",
-        ["uia.find.return.left.label"] = "左边界",
-        ["uia.find.return.left.hint"] = "元素左边的位置，单位是屏幕像素，和搜索区域的「左上角 X」"
-            + "同一个口径。",
-        ["uia.find.return.top.label"] = "上边界",
-        ["uia.find.return.top.hint"] = "元素上边的位置，单位是屏幕像素，和搜索区域的「左上角 Y」"
-            + "同一个口径。",
-        ["uia.find.return.width.label"] = "宽",
-        ["uia.find.return.width.hint"] = "元素的宽度，单位是像素。",
-        ["uia.find.return.height.label"] = "高",
-        ["uia.find.return.height.hint"] = "元素的高度，单位是像素。",
-        ["uia.find.return.text.label"] = "文本",
-        ["uia.find.return.text.hint"] = "读到的文字。",
-        ["uia.find.return.box.label"] = "矩形",
-        ["uia.find.return.box.hint"] = "元素的整块，写成 左,上,宽,高：填进搜索区域那一行的变量格"
-            + "里，下一步就在它里面找。",
-        ["uia.find.return.count.label"] = "命中数",
-        ["uia.find.return.count.hint"] = "这次一共找到几处；只有勾上“记录全部命中”才有。",
-        ["uia.find.return.list.label"] = "全部命中",
-        ["uia.find.return.list.hint"] = "每一处命中的中心点，每项一个 x,y；只有勾上“记录全部命中”才有。",
         ["uia.find.returns.label"] = "要留下的结果",
         ["uia.find.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 
@@ -3802,16 +3657,10 @@ internal static class ActionStrings
         ["script.run.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 
         // vision.waitImage
-        ["vision.waitImage.allMatches.label"] = "记录全部命中",
-        ["vision.waitImage.allMatches.hint"] = AllMatchesHint,
 
         // vision.clickImage
-        ["vision.clickImage.allMatches.label"] = "记录全部命中",
-        ["vision.clickImage.allMatches.hint"] = AllMatchesHint,
 
         // ocr.clickText
-        ["ocr.clickText.allMatches.label"] = "记录全部命中",
-        ["ocr.clickText.allMatches.hint"] = AllMatchesHint,
 
         // control.runMacro
         ["control.runMacro.bringBack.label"] = "结果",

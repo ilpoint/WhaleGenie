@@ -280,7 +280,7 @@ public class ActionDialogTests
             Assert.Equal("5", Value(viewModel, "tolerance"));
             Assert.Equal("1", Value(viewModel, "matchIndex"));
             Assert.Equal("0", Value(viewModel, "minCoverage"));
-            Assert.Equal(["match", "x", "y", "count", "list", "coverage"],
+            Assert.Equal(["match", "every", "coverage"],
                 viewModel.ReturnsRows.Select(row => row.Key).ToList());
         });
     }
@@ -306,14 +306,14 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void Finding_an_image_offers_which_hit_and_whether_to_record_them_all()
+    public void Finding_an_image_offers_which_hit_and_the_whole_list_of_them()
     {
         Ui.Run(() =>
         {
             var viewModel = Open("vision.findImage");
 
             Assert.Equal("1", Value(viewModel, "matchIndex"));
-            Assert.Equal("false", Value(viewModel, "allMatches"));
+            Assert.Equal(["match", "every"], viewModel.ReturnsRows.Select(row => row.Key));
         });
     }
 
@@ -1707,13 +1707,12 @@ public class ActionDialogTests
 
             // Which hit to take and what the search is measured from are worth having and not worth
             // showing on every step; how alike the picture has to be is part of what the step is.
-            // The colour of the reference picture that keeps changing and the whole set of hits are
-            // knobs of that same kind: a step that leaves them alone wants the default.
+            // The colour of the reference picture that keeps changing is a knob of that same kind:
+            // a step that leaves it alone wants the default.
             Assert.Contains("confidence", visible);
             Assert.Contains("matchIndex", folded);
             Assert.Contains("anchorMode", folded);
             Assert.Contains("ignoreColor", folded);
-            Assert.Contains("allMatches", folded);
 
             // What the step is about stays in front.
             Assert.Contains("image", visible);
@@ -1747,7 +1746,6 @@ public class ActionDialogTests
                 Assert.True(Shown(viewModel, "minFeatures"), key);
                 Assert.False(Shown(viewModel, "matchIndex"), key);
                 Assert.False(Shown(viewModel, "orderBy"), key);
-                Assert.False(Shown(viewModel, "allMatches"), key);
 
                 // Back to a pixel comparison, and what was typed is still there.
                 Choose(viewModel, "algorithm", "correlated");
@@ -1780,8 +1778,6 @@ public class ActionDialogTests
                 @"C:\images\ok.png";
             viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "matchIndex").NumberValue = 3;
-            viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "allMatches").Flag = true;
             Choose(viewModel, "algorithm", "feature");
             Dispatcher.UIThread.RunJobs();
 
@@ -1793,7 +1789,6 @@ public class ActionDialogTests
             var names = saved!.Parameters.Select(parameter => parameter.Name).ToList();
 
             Assert.DoesNotContain("matchIndex", names);
-            Assert.DoesNotContain("allMatches", names);
             Assert.DoesNotContain("orderBy", names);
             Assert.Contains("algorithm", names);
         });

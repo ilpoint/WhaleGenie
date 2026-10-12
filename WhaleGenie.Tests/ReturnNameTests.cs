@@ -8,8 +8,8 @@ namespace WhaleGenie.Tests;
 
 /// <summary>
 /// What a result is called before the user says anything. Two steps of the same action both want to
-/// call it "rows", and the second one quietly overwrites the first, so the name says which step and
-/// which of its results it came from instead.
+/// call it "rows", and the second one quietly overwrites the first, so the name says what the note
+/// says and what the result is — and, when that is already spoken for, which step it came from.
 /// </summary>
 public class ReturnNameTests
 {
@@ -31,21 +31,36 @@ public class ReturnNameTests
         => viewModel.ReturnsRows.First(row => row.Key == key);
 
     [Fact]
-    public void The_name_carries_the_note_the_action_the_result_and_the_steps_name()
+    public void The_name_carries_the_note_and_what_the_result_is()
     {
-        Assert.Equal("Delay_k3f9", VariableNames.ForStep(string.Empty, "Delay", string.Empty, "k3f9"));
-        Assert.Equal("Delay_Text_k3f9", VariableNames.ForStep(string.Empty, "Delay", "Text", "k3f9"));
+        Assert.Equal("Text", VariableNames.ForStep(string.Empty, "Text", "k3f9"));
 
         // A note written with spaces and colons in it is not something a macro can read back, and
         // Chinese is letters, so it stays.
-        Assert.Equal("上个月的销量_Delay_文本_k3f9",
-            VariableNames.ForStep("上个月的销量", "Delay", "文本", "k3f9"));
-        Assert.Equal("a_b_Delay_Text_k3f9", VariableNames.ForStep("a: b", "Delay", "Text", "k3f9"));
+        Assert.Equal("上个月的销量_文本", VariableNames.ForStep("上个月的销量", "文本", "k3f9"));
+        Assert.Equal("a_b_Text", VariableNames.ForStep("a: b", "Text", "k3f9"));
 
         // A long note is cut short: the name still has to read at a glance.
         var many = new string('x', 30);
-        Assert.Equal($"{new string('x', VariableNames.NoteLength)}_Delay_Text_k3f9",
-            VariableNames.ForStep(many, "Delay", "Text", "k3f9"));
+        Assert.Equal($"{new string('x', VariableNames.NoteLength)}_Text",
+            VariableNames.ForStep(many, "Text", "k3f9"));
+
+        // Nothing to name it after at all: a step whose action hands over a result nobody named
+        // still leaves it behind, under the step's own name.
+        Assert.Equal("k3f9", VariableNames.ForStep(string.Empty, string.Empty, "k3f9"));
+    }
+
+    [Fact]
+    public void A_name_that_is_already_spoken_for_gets_the_steps_own_name()
+    {
+        // The step's name is the one part no other step shares, so the action's name and the step's
+        // name are only written when they are needed.
+        Assert.Equal("rows_k3f9", VariableNames.ForStep(string.Empty, "rows", "k3f9", ["rows"]));
+        Assert.Equal("rows_k3f9", VariableNames.ForStep("rows", string.Empty, "k3f9", ["rows", "ROWS"]));
+
+        // And with that taken too, the name is made free the way every other free name is.
+        Assert.Equal("rows_k3f9_2",
+            VariableNames.ForStep(string.Empty, "rows", "k3f9", ["rows", "rows_k3f9"]));
     }
 
     [Fact]
@@ -64,17 +79,16 @@ public class ReturnNameTests
     {
         Ui.Run(() =>
         {
-            var action = ActionCatalog.Find("file.readText")!.LocalName;
             var viewModel = Open("file.readText", "k3f9", out var window);
 
             var result = Row(viewModel, "text");
 
             Assert.True(result.Ticked);
-            Assert.Equal(VariableNames.ForStep(string.Empty, action, result.Label, "k3f9"), result.Name);
+            Assert.Equal(VariableNames.ForStep(string.Empty, result.Label, "k3f9"), result.Name);
 
             // The name follows the note for as long as nobody has touched it.
             viewModel.MetaComment = "上个月的销量";
-            Assert.Equal(VariableNames.ForStep("上个月的销量", action, result.Label, "k3f9"), result.Name);
+            Assert.Equal(VariableNames.ForStep("上个月的销量", result.Label, "k3f9"), result.Name);
 
             window.Close();
         });
@@ -85,7 +99,6 @@ public class ReturnNameTests
     {
         Ui.Run(() =>
         {
-            var action = ActionCatalog.Find("file.readCsv")!.LocalName;
             var viewModel = Open("file.readCsv", "k3f9", out var window);
 
             var header = Row(viewModel, "header");
@@ -94,7 +107,7 @@ public class ReturnNameTests
             header.Ticked = true;
             Dispatcher.UIThread.RunJobs();
 
-            Assert.Equal(VariableNames.ForStep(string.Empty, action, header.Label, "k3f9"), header.Name);
+            Assert.Equal(VariableNames.ForStep(string.Empty, header.Label, "k3f9"), header.Name);
 
             // And handing nothing over at all is allowed: the step then leaves no result behind.
             foreach (var row in viewModel.ReturnsRows)
@@ -133,8 +146,7 @@ public class ReturnNameTests
     {
         Ui.Run(() =>
         {
-            var action = ActionCatalog.Find("file.readText")!.LocalName;
-            var taken = VariableNames.ForStep(string.Empty, action, "文本", "k3f9");
+            var taken = VariableNames.ForStep(string.Empty, "文本", "k3f9");
             var viewModel = Open("file.readText", "k3f9", out var window,
                 variables: VariableChoicesForChecks.Named(taken));
             var result = Row(viewModel, "text");

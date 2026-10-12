@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.GraphicsCapture;
 
@@ -32,7 +33,30 @@ public class DeviceActionTests
         => SampleFiles.Returns(results);
 
     /// <summary>See <see cref="SampleFiles.Hit"/>: a place, a picture or a program and all its parts.</summary>
-    private static ExecutableParameter Hit(string key, string name) => SampleFiles.Hit(key, name);
+    private static ExecutableParameter Hit(string key, string name, bool every = false)
+        => SampleFiles.Hit(key, name, every);
+
+    /// <summary>See <see cref="SampleFiles.Parts"/>: a measured value beside every part of it.</summary>
+    private static ExecutableParameter Parts(string key, string name)
+        => SampleFiles.Parts(key, name);
+
+    /// <summary>One field of a record a step handed over, read the way an expression reads it.</summary>
+    private static Value Field(VariableStore store, string name, string field)
+        => store.Local.Values[name].Field(field)
+            ?? throw new InvalidOperationException($"\"{name}\" has no field \"{field}\"");
+
+    /// <summary>The middle of a hit, written "x,y" the way a position was written before records.</summary>
+    private static string Centre(VariableStore store, string name)
+        => $"{Field(store, name, "x").AsText()},{Field(store, name, "y").AsText()}";
+
+    /// <summary>The middle of every hit in one "every match" list, in the order they are counted in.</summary>
+    private static string Centres(VariableStore store, string name)
+        => string.Join(", ", store.Local.Values[name + ".every"].AsList()
+            .Select(hit => $"{hit.Field("x")!.AsText()},{hit.Field("y")!.AsText()}"));
+
+    /// <summary>The title of every window in one listing, in the order the system listed them.</summary>
+    private static IEnumerable<string> Titles(VariableStore store, string name)
+        => store.Local.Values[name].AsList().Select(window => window.Field("title")!.AsText());
 
     private static ExecutableParameter Body(string name, params ExecutableStep[] steps)
         => new() { Name = name, Steps = steps };
@@ -874,23 +898,21 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("vision.findImage", Pictures("ok.png"),
-                Returns("score=sure", "width=wide", "x=middle", "left=edge", "box=whole")),
+            Step("vision.findImage", Pictures("ok.png"), Returns("match=spot")),
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(0.75, store.Local.Values["sure"].AsNumber(), 3);
-        Assert.Equal(4, store.Local.Values["wide"].AsNumber());
 
-        // The middle is what a click aims at, and the corner is where a region starts counting:
-        // both are handed over, each under a name of its own, so a macro never has to work out
-        // which of the two it is reading.
-        Assert.Equal(12, store.Local.Values["middle"].AsNumber());
-        Assert.Equal(10, store.Local.Values["edge"].AsNumber());
-        Assert.Equal("10,20,4,6", store.Local.Values["whole"].AsText());
+        // One hit is one record, so the parts of it are read by name: the middle a click aims at,
+        // the corner a region counts from, how big it was and how sure the reading was.
+        Assert.Equal("12,23", Centre(store, "spot"));
+        Assert.Equal(10, Field(store, "spot", "left").AsNumber());
+        Assert.Equal(4, Field(store, "spot", "width").AsNumber());
+        Assert.Equal(0.75, Field(store, "spot", "score").AsNumber(), 3);
+        Assert.Equal("10,20,4,6", Field(store, "spot", "box").AsText());
 
-        // The place itself was not ticked, so nothing holds it — not even an empty value.
-        Assert.False(store.TryGet("match", out _));
+        // The whole list of hits was not ticked, so nothing holds it — not even an empty list.
+        Assert.False(store.TryGet("spot.every", out _));
     }
 
     /// <summary>
@@ -914,15 +936,15 @@ public class DeviceActionTests
         Assert.True(result.Succeeded, result.Key);
 
         // The middle of a 10 by 6 match that starts at (30,40).
-        Assert.Equal("35,43", store.Local.Values["spot"].AsText());
-        Assert.Equal(35, store.Local.Values["spot.x"].AsNumber());
-        Assert.Equal(43, store.Local.Values["spot.y"].AsNumber());
+        Assert.Equal("35,43", Centre(store, "spot"));
+        Assert.Equal(35, Field(store, "spot", "x").AsNumber());
+        Assert.Equal(43, Field(store, "spot", "y").AsNumber());
 
         // And the corner, which is what a region is written from, plus the whole rectangle ready
         // to be named in one variable box.
-        Assert.Equal(30, store.Local.Values["spot.left"].AsNumber());
-        Assert.Equal(40, store.Local.Values["spot.top"].AsNumber());
-        Assert.Equal("30,40,10,6", store.Local.Values["spot.box"].AsText());
+        Assert.Equal(30, Field(store, "spot", "left").AsNumber());
+        Assert.Equal(40, Field(store, "spot", "top").AsNumber());
+        Assert.Equal("30,40,10,6", Field(store, "spot", "box").AsText());
     }
 
     /// <summary>
@@ -946,6 +968,34 @@ public class DeviceActionTests
         Assert.Equal("Run.BadExpression", result.Key);
     }
 
+    /// <summary>
+    /// A region may name the record a step handed over, which is how "look again at what you just
+    /// found" is written: the four sides are read out of the hit rather than typed again, so a
+    /// rectangle that moved between the two steps is searched where it is now.
+    /// </summary>
+    [Fact]
+    public async Task A_search_region_can_be_named_by_the_record_a_step_handed_over()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Match = new ImageMatch(0.99, new ScreenPoint(10, 20), new ScreenSize(4, 6)),
+        };
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("a.png"), Region((0, 0, 40, 30)),
+                Hit("match", "spot")),
+            Step("vision.findImage", Pictures("b.png"), RegionFrom("$spot"),
+                Hit("match", "again")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+
+        // The second search looked at the rectangle the first one found — whose top-left corner is
+        // what a region counts from — rather than at the whole screen.
+        Assert.Contains("capture 10 20 4 6", devices.Calls);
+    }
+
     [Fact]
     public async Task A_search_region_can_be_measured_from_a_window_corner()
     {
@@ -962,8 +1012,8 @@ public class DeviceActionTests
         Assert.Contains("capture 1010 520 30 40", devices.Calls);
 
         // The match is reported in screen pixels, so the step that clicks it needs no arithmetic.
-        Assert.Equal("1017", store.Local.Values["where.x"].AsText());
-        Assert.Equal("528", store.Local.Values["where.y"].AsText());
+        Assert.Equal("1017", Field(store, "where", "x").AsText());
+        Assert.Equal("528", Field(store, "where", "y").AsText());
     }
 
     /// <summary>
@@ -993,7 +1043,7 @@ public class DeviceActionTests
         // The picture comes out of the window the program named and the area is counted from that
         // window's own corner, which is what a step measuring from a window means.
         Assert.Contains("capture 1010 520 30 40", devices.Calls);
-        Assert.Equal("1017", store.Local.Values["where.x"].AsText());
+        Assert.Equal("1017", Field(store, "where", "x").AsText());
     }
 
     /// <summary>
@@ -1062,8 +1112,8 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal("1,0", store.Local.Values["spot"].AsText());
-        Assert.Equal(1, store.Local.Values["spot.x"].AsNumber());
+        Assert.Equal("1,0", Centre(store, "spot"));
+        Assert.Equal(1, Field(store, "spot", "x").AsNumber());
     }
 
     /// <summary>
@@ -1129,7 +1179,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.Equal("1,1", store.Local.Values["spot"].AsText());
+        Assert.Equal("1,1", Centre(store, "spot"));
     }
 
     /// <summary>
@@ -1362,7 +1412,7 @@ public class DeviceActionTests
                 Hit("match", "spot")),
         ], devices);
 
-        Assert.Equal("2,0", store.Local.Values["spot"].AsText());
+        Assert.Equal("2,0", Centre(store, "spot"));
     }
 
     [Fact]
@@ -1373,12 +1423,11 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.findColor", Param("color", "#FF0000"), Param("tolerance", "1"),
-                Param("allMatches", "true"), Region((0, 0, 3, 1)),
-                Hit("match", "spot")),
+                Region((0, 0, 3, 1)), Hit("match", "spot", every: true)),
         ], devices);
 
-        Assert.Equal(2, store.Local.Values["spot.count"].AsNumber());
-        Assert.Equal("0,0, 2,0", store.Local.Values["spot.list"].AsText());
+        Assert.Equal(2, store.Local.Values["spot.every"].AsList().Count);
+        Assert.Equal("0,0, 2,0", Centres(store, "spot"));
     }
 
     [Fact]
@@ -1454,12 +1503,12 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Param("matchIndex", "2"),
-                Param("allMatches", "true"), Hit("match", "where")),
+                Hit("match", "where", every: true)),
         ], devices);
 
-        Assert.Equal("10,10", store.Local.Values["where"].AsText());
-        Assert.Equal(3, store.Local.Values["where.count"].AsNumber());
-        Assert.Equal("50,5, 10,10, 30,40", store.Local.Values["where.list"].AsText());
+        Assert.Equal("10,10", Centre(store, "where"));
+        Assert.Equal(3, store.Local.Values["where.every"].AsList().Count);
+        Assert.Equal("50,5, 10,10, 30,40", Centres(store, "where"));
     }
 
     /// <summary>
@@ -1556,11 +1605,11 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Param("orderBy", "score"),
-                Param("allMatches", "true"), Hit("match", "where")),
+                Hit("match", "where", every: true)),
         ], devices);
 
-        Assert.Equal("30,40", store.Local.Values["where"].AsText());
-        Assert.Equal("30,40, 10,10, 50,5", store.Local.Values["where.list"].AsText());
+        Assert.Equal("30,40", Centre(store, "where"));
+        Assert.Equal("30,40, 10,10, 50,5", Centres(store, "where"));
     }
 
     /// <summary>
@@ -1578,11 +1627,11 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Param("orderBy", "area"),
-                Param("allMatches", "true"), Hit("match", "where")),
+                Hit("match", "where", every: true)),
         ], devices);
 
-        Assert.Equal("70,30", store.Local.Values["where"].AsText());
-        Assert.Equal("70,30, 50,80, 52,7", store.Local.Values["where.list"].AsText());
+        Assert.Equal("70,30", Centre(store, "where"));
+        Assert.Equal("70,30, 50,80, 52,7", Centres(store, "where"));
     }
 
     /// <summary>
@@ -1623,7 +1672,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.Equal("6,7", store.Local.Values["where"].AsText());
+        Assert.Equal("6,7", Centre(store, "where"));
         Assert.Equal(1, devices.Searches);
     }
 
@@ -1643,7 +1692,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.Equal("41,51", store.Local.Values["where"].AsText());
+        Assert.Equal("41,51", Centre(store, "where"));
         Assert.Equal(2, devices.Searches);
     }
 
@@ -1682,7 +1731,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.Equal("6,7", store.Local.Values["where"].AsText());
+        Assert.Equal("6,7", Centre(store, "where"));
         Assert.Equal(2, devices.Searches);
     }
 
@@ -1719,7 +1768,7 @@ public class DeviceActionTests
                 Hit("match", "spot")),
         ], devices);
 
-        Assert.Equal("1,0", store.Local.Values["spot"].AsText());
+        Assert.Equal("1,0", Centre(store, "spot"));
     }
 
     /// <summary>Read off the screen, the surest reading is the one a step can act on.</summary>
@@ -1741,7 +1790,7 @@ public class DeviceActionTests
                 Param("orderBy", "score"), Hit("match", "where")),
         ], devices);
 
-        Assert.Equal("25,64", store.Local.Values["where"].AsText());
+        Assert.Equal("25,64", Centre(store, "where"));
     }
 
     /// <summary>
@@ -1767,7 +1816,7 @@ public class DeviceActionTests
                 Hit("match", "where")),
         ], devices);
 
-        Assert.Equal("140,94", store.Local.Values["where"].AsText());
+        Assert.Equal("140,94", Centre(store, "where"));
     }
 
     /// <summary>
@@ -1788,7 +1837,7 @@ public class DeviceActionTests
                 Param("matchIndex", "3"), Hit("match", "where")),
         ], devices);
 
-        Assert.Contains(store.Local.Values["where"].AsText(),
+        Assert.Contains(Centre(store, "where"),
             new[] { "10,10", "20,20", "30,30" });
     }
 
@@ -1807,7 +1856,7 @@ public class DeviceActionTests
 
         Assert.Contains("capture 0 0 10 10", devices.Calls);
         Assert.Contains("capture 100 100 10 10", devices.Calls);
-        Assert.Equal("102,103", store.Local.Values["where"].AsText());
+        Assert.Equal("102,103", Centre(store, "where"));
     }
 
     /// <summary>
@@ -1837,7 +1886,7 @@ public class DeviceActionTests
         await RunAsync(
         [
             Capture(10, 20, 30, 40, Param("anchorMode", "client"),
-                Param("anchorWindow", "Game"), Hit("image", "shot")),
+                Param("anchorWindow", "Game"), Parts("image", "shot")),
         ], devices);
 
         var asked = Assert.Single(devices.Captures);
@@ -1862,8 +1911,8 @@ public class DeviceActionTests
         await RunAsync(
         [
             Capture(1, 1, 2, 2, Param("anchorMode", "client"), Param("anchorWindow", "Game"),
-                Hit("image", "window")),
-            Capture(1, 1, 2, 2, Hit("image", "screen")),
+                Parts("image", "window")),
+            Capture(1, 1, 2, 2, Parts("image", "screen")),
         ], devices);
 
         Assert.Equal(CaptureWay.PrintWindow, devices.Captures[0].Method);
@@ -1884,8 +1933,8 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Capture(7, 9, 10, 10, Param("anchorMode", "window"),
-                Param("anchorWindow", "Game"), Hit("image", "fromWindow")),
-            Capture(7, 9, 10, 10, Hit("image", "fromScreen")),
+                Param("anchorWindow", "Game"), Parts("image", "fromWindow")),
+            Capture(7, 9, 10, 10, Parts("image", "fromScreen")),
         ], devices);
 
         Assert.Equal((107, 59, 10, 10),
@@ -1913,7 +1962,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Capture(0, 0, 10, 10, Param("anchorMode", "client"), Param("anchorWindow", "Game"),
-                Hit("image", "shot")),
+                Parts("image", "shot")),
         ], devices);
 
         Assert.Equal("Run.NoGraphicsCapture", result.Key);
@@ -1952,7 +2001,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
 
-        await RunAsync([CaptureWholeScreen(Hit("image", "shot"))], devices);
+        await RunAsync([CaptureWholeScreen(Parts("image", "shot"))], devices);
 
         var asked = Assert.Single(devices.Captures);
         Assert.Equal((0, 0, 100, 50), (asked.X, asked.Y, asked.Width, asked.Height));
@@ -1981,8 +2030,8 @@ public class DeviceActionTests
 
         await RunAsync(
         [
-            Step("vision.capture", Param("width", "40"), Hit("image", "shot")),
-            Step("vision.capture", Param("x", "20"), Param("y", "10"), Hit("image", "shot")),
+            Step("vision.capture", Param("width", "40"), Parts("image", "shot")),
+            Step("vision.capture", Param("x", "20"), Param("y", "10"), Parts("image", "shot")),
         ], devices);
 
         Assert.Equal(2, devices.Captures.Count);
@@ -2006,7 +2055,7 @@ public class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Param("confidence", "90"),
                 Param("anchorMode", "client"), Param("anchorWindow", "Game"),
-                Hit("match", "match")),
+                Returns("match=match", "window=match.window", "method=match.method")),
         ], devices);
 
         Assert.Equal("Game", store.Local.Values["match.window"].AsText());
@@ -2027,7 +2076,7 @@ public class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Param("confidence", "90"),
                 Param("anchorMode", "client"), Param("anchorWindow", "Game"),
-                Hit("match", "match")),
+                Returns("match=match", "window=match.window", "method=match.method")),
         ], devices);
 
         Assert.Equal(string.Empty, store.Local.Values["match.window"].AsText());
@@ -2086,7 +2135,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Capture(10, 10, 20, 20, Param("frameMaxAgeMs", "200"), Hit("image", "shot")),
+            Capture(10, 10, 20, 20, Param("frameMaxAgeMs", "200"), Parts("image", "shot")),
             Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
                 Param("confidence", "90"), Param("frameMaxAgeMs", "200"),
                 Hit("match", "match")),
@@ -2100,7 +2149,7 @@ public class DeviceActionTests
         // Both steps were answered out of that one picture, cut where each of them asked.
         Assert.Equal("10", store.Local.Values["shot.x"].AsText());
         Assert.Equal("10", store.Local.Values["shot.y"].AsText());
-        Assert.Equal("32,8", store.Local.Values["match"].AsText());
+        Assert.Equal("32,8", Centre(store, "match"));
     }
 
     /// <summary>
@@ -2115,7 +2164,7 @@ public class DeviceActionTests
 
         await RunAsync(
         [
-            Capture(10, 10, 20, 20, Param("frameMaxAgeMs", "200"), Hit("image", "shot")),
+            Capture(10, 10, 20, 20, Param("frameMaxAgeMs", "200"), Parts("image", "shot")),
             Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
                 Param("confidence", "90"), Hit("match", "match")),
         ], devices);
@@ -2139,7 +2188,7 @@ public class DeviceActionTests
 
         await RunAsync(
         [
-            Capture(10, 10, 20, 20, Param("frameMaxAgeMs", "20"), Hit("image", "shot")),
+            Capture(10, 10, 20, 20, Param("frameMaxAgeMs", "20"), Parts("image", "shot")),
             Step("control.delay", Param("ms", "60")),
             Step("vision.findImage", Pictures("ok.png"), Region((30, 5, 10, 10)),
                 Param("confidence", "90"), Param("frameMaxAgeMs", "20"),
@@ -2195,7 +2244,7 @@ public class DeviceActionTests
 
         var took = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
         Assert.True(result.Succeeded);
-        Assert.Equal("2,2", store.Local.Values["spot"].AsText());
+        Assert.Equal("2,2", Centre(store, "spot"));
         Assert.Equal(3, devices.Searches);
         Assert.True(took >= 110, $"three looks 60 ms apart take at least 120 ms, took {took:0}");
     }
@@ -2421,14 +2470,14 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Capture(0, 0, 10, 10, Hit("image", "shot")),
+            Capture(0, 0, 10, 10, Parts("image", "shot")),
             Step("vision.findImage", Pictures("shot"), Param("confidence", "90"),
                 Param("region", ""), Hit("match", "where")),
         ], devices);
 
         Assert.True(result.Succeeded);
         Assert.Equal("<image 10x10>", store.Local.Values["shot"].AsText());
-        Assert.Equal("8,9", store.Local.Values["where"].AsText());
+        Assert.Equal("8,9", Centre(store, "where"));
         Assert.Contains("capture 0 0 10 10", devices.Calls);
         Assert.Contains("findAll 10x10 90 Normed", devices.Calls);
     }
@@ -2450,7 +2499,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal("2,2", store.Local.Values["spot"].AsText());
+        Assert.Equal("2,2", Centre(store, "spot"));
         Assert.Equal(3, devices.Searches);
     }
 
@@ -2537,12 +2586,12 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.clickImage", Pictures("ok.png"), Param("confidence", "90"),
-                Returns("match=spot", "score=sure")),
+                Returns("match=spot")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.Equal("6,7", store.Local.Values["spot"].AsText());
-        Assert.Equal(0.99, store.Local.Values["sure"].AsNumber(), 3);
+        Assert.Equal("6,7", Centre(store, "spot"));
+        Assert.Equal(0.99, Field(store, "spot", "score").AsNumber(), 3);
     }
 
     [Fact]
@@ -2583,7 +2632,7 @@ public class DeviceActionTests
 
         // The match is reported in screen coordinates, not in region coordinates.
         Assert.Contains("capture 10 20 30 40", devices.Calls);
-        Assert.Equal("11,21", store.Local.Values["where"].AsText());
+        Assert.Equal("11,21", Centre(store, "where"));
     }
 
     [Fact]
@@ -2658,7 +2707,7 @@ public class DeviceActionTests
                 Param("matchMode", "contains"), Hit("match", "spot")),
         ], devices);
 
-        Assert.Equal("20,14", store.Local.Values["spot"].AsText());
+        Assert.Equal("20,14", Centre(store, "spot"));
     }
 
     [Fact]
@@ -2676,19 +2725,19 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("ocr.findText", Param("text", "Save"), Param("matchMode", "contains"),
-                Param("minScore", "30"), Param("allMatches", "true"), Hit("match", "sure")),
+                Param("minScore", "30"), Hit("match", "sure", every: true)),
             Step("ocr.findText", Param("text", "Save"), Param("matchMode", "contains"),
                 Hit("match", "any")),
         ], devices);
 
         // The shaky reading is dropped, so the only one left is the one the model was sure of —
         // including in the list of every hit.
-        Assert.Equal("20,44", store.Local.Values["sure"].AsText());
-        Assert.Equal(1, store.Local.Values["sure.count"].AsNumber());
+        Assert.Equal("20,44", Centre(store, "sure"));
+        Assert.Single(store.Local.Values["sure.every"].AsList());
 
         // Left alone, the field takes everything, shaky reading first, which is what macros that
         // never set it have always seen.
-        Assert.Equal("20,14", store.Local.Values["any"].AsText());
+        Assert.Equal("20,14", Centre(store, "any"));
     }
 
     /// <summary>
@@ -2713,7 +2762,7 @@ public class DeviceActionTests
                 Hit("match", "where")),
         ], devices);
 
-        Assert.Equal("20,24", store.Local.Values["where"].AsText());
+        Assert.Equal("20,24", Centre(store, "where"));
     }
 
     /// <summary>A pattern nothing can read is the macro's own mistake, so it is said in a sentence.</summary>
@@ -2754,8 +2803,8 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal("20,4", store.Local.Values["where"].AsText());
-        Assert.Equal("GOLD 100", store.Local.Values["where.text"].AsText());
+        Assert.Equal("20,4", Centre(store, "where"));
+        Assert.Equal("GOLD 100", Field(store, "where", "text").AsText());
     }
 
     /// <summary>
@@ -2822,19 +2871,18 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("ocr.findText", Param("text", "Total"), Param("matchMode", "contains"),
-                Param("allMatches", "true"), Hit("match", "totals")),
+                Hit("match", "totals", every: true)),
             Step("ocr.findText", Param("text", "Other"), Param("matchMode", "contains"),
                 Hit("match", "one")),
         ], devices);
 
-        Assert.Equal("20,4", store.Local.Values["totals"].AsText());
-        Assert.Equal(2, store.Local.Values["totals.count"].AsNumber());
-        Assert.Equal("20,4", store.Local.Values["totals.list"].AsList()[0].AsText());
-        Assert.Equal("20,44", store.Local.Values["totals.list"].AsList()[1].AsText());
+        Assert.Equal("20,4", Centre(store, "totals"));
+        Assert.Equal(2, store.Local.Values["totals.every"].AsList().Count);
+        Assert.Equal("20,4, 20,44", Centres(store, "totals"));
 
         // A step that did not ask for the whole set leaves no list behind for an older macro to
         // trip over.
-        Assert.False(store.Local.Values.ContainsKey("one.count"));
+        Assert.False(store.Local.Values.ContainsKey("one.every"));
     }
 
     /// <summary>
@@ -2858,18 +2906,17 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("ocr.findText", Param("text", "Total"), Param("matchMode", "contains"),
-                Param("allMatches", "true"),
-                Returns("match=one", "count=howMany", "list=where", "texts=said")),
+                Returns("match=one", "every=one.every")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.Equal(2, store.Local.Values["howMany"].AsNumber());
-        Assert.Equal("20,4", store.Local.Values["where"].AsList()[0].AsText());
-        Assert.Equal("20,44", store.Local.Values["where"].AsList()[1].AsText());
+        Assert.Equal(2, store.Local.Values["one.every"].AsList().Count);
 
-        // The writing of each hit, in the order of the places: the two lists read as one.
-        Assert.Equal("Total 12", store.Local.Values["said"].AsList()[0].AsText());
-        Assert.Equal("Total 99", store.Local.Values["said"].AsList()[1].AsText());
+        // Where each of them was and what it said are the two halves of one record, so the list of
+        // hits reads as one list rather than as two that have to be lined up by counting.
+        Assert.Equal("20,4, 20,44", Centres(store, "one"));
+        Assert.Equal("Total 12", store.Local.Values["one.every"].AsList()[0].Field("text")!.AsText());
+        Assert.Equal("Total 99", store.Local.Values["one.every"].AsList()[1].Field("text")!.AsText());
     }
 
     /// <summary>
@@ -2887,13 +2934,13 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("ocr.clickText", Param("text", "Save"), Param("matchMode", "contains"),
-                Returns("match=spot", "text=what", "x=middle")),
+                Returns("match=spot")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.Equal("20,14", store.Local.Values["spot"].AsText());
-        Assert.Equal("Save", store.Local.Values["what"].AsText());
-        Assert.Equal(20, store.Local.Values["middle"].AsNumber());
+        Assert.Equal("20,14", Centre(store, "spot"));
+        Assert.Equal("Save", Field(store, "spot", "text").AsText());
+        Assert.Equal(20, Field(store, "spot", "x").AsNumber());
     }
 
     [Fact]
@@ -2916,7 +2963,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.Equal("1234.50", store.Local.Values["amounts"].AsText());
-        Assert.Equal("40,6", store.Local.Values["where"].AsText());
+        Assert.Equal("40,6", Centre(store, "where"));
     }
 
     [Fact]
@@ -2968,9 +3015,9 @@ public class DeviceActionTests
 
         // ...so what it read comes back halved, and the place still means screen pixels: the
         // writing sat at 20,10 and was 40 by 8, so its centre is 40,14 and comes back as 20,7.
-        Assert.Equal("20,7", store.Local.Values["spot"].AsText());
-        Assert.Equal(20, store.Local.Values["spot.width"].AsNumber());
-        Assert.Equal(4, store.Local.Values["spot.height"].AsNumber());
+        Assert.Equal("20,7", Centre(store, "spot"));
+        Assert.Equal(20, Field(store, "spot", "width").AsNumber());
+        Assert.Equal(4, Field(store, "spot", "height").AsNumber());
     }
 
     [Fact]
@@ -2992,7 +3039,7 @@ public class DeviceActionTests
         ], devices);
 
         Assert.Equal(string.Empty, store.Local.Values["exactHit"].AsText());
-        Assert.Equal("5,2", store.Local.Values["patternHit"].AsText());
+        Assert.Equal("5,2", Centre(store, "patternHit"));
         Assert.Equal(string.Empty, store.Local.Values["miss"].AsText());
     }
 
@@ -3100,12 +3147,12 @@ public class DeviceActionTests
         ], devices);
 
         // The centre is what a click aims at, and the parts are what a later step measures from.
-        Assert.Equal("50,32", store.Local.Values["save"].AsText());
-        Assert.Equal("50", store.Local.Values["save.x"].AsText());
-        Assert.Equal("32", store.Local.Values["save.y"].AsText());
-        Assert.Equal("80", store.Local.Values["save.width"].AsText());
-        Assert.Equal("24", store.Local.Values["save.height"].AsText());
-        Assert.Equal("Save", store.Local.Values["save.text"].AsText());
+        Assert.Equal("50,32", Centre(store, "save"));
+        Assert.Equal("50", Field(store, "save", "x").AsText());
+        Assert.Equal("32", Field(store, "save", "y").AsText());
+        Assert.Equal("80", Field(store, "save", "width").AsText());
+        Assert.Equal("24", Field(store, "save", "height").AsText());
+        Assert.Equal("Save", Field(store, "save", "text").AsText());
     }
 
     [Fact]
@@ -3115,11 +3162,13 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("uia.find", Param("selector", "Button[name='Save']"),
-                Hit("match", "save")),
+                Hit("match", "save", every: true)),
         ], devices);
 
+        // Nothing was found, so the record is empty and the list of hits is empty too: a step that
+        // found nothing hands over nothing rather than the place the pass before it found.
         Assert.Equal(string.Empty, store.Local.Values["save"].AsText());
-        Assert.Equal(string.Empty, store.Local.Values["save.x"].AsText());
+        Assert.Empty(store.Local.Values["save.every"].AsList());
     }
 
     [Fact]
@@ -3134,12 +3183,11 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("uia.find", Param("selector", "ListItem[automationId='row1']"),
-                Param("allMatches", "true"), Hit("match", "rows")),
+                Hit("match", "rows", every: true)),
         ], devices);
 
-        Assert.Equal("2", store.Local.Values["rows.count"].AsText());
-        Assert.Equal("100,110", store.Local.Values["rows.list"].Items[0].AsText());
-        Assert.Equal("100,130", store.Local.Values["rows.list"].Items[1].AsText());
+        Assert.Equal(2, store.Local.Values["rows.every"].AsList().Count);
+        Assert.Equal("100,110, 100,130", Centres(store, "rows"));
     }
 
     [Fact]
@@ -4350,7 +4398,7 @@ public class DeviceActionTests
             ClipboardCopy = new ImageFrame(4, 3, new byte[4 * 3 * 4]),
         };
         var (result, _, store) = await RunAsync(
-            [Step("clipboard.readImage", Hit("image", "shot"))], devices);
+            [Step("clipboard.readImage", Parts("image", "shot"))], devices);
 
         Assert.True(result.Succeeded);
         Assert.Equal("<image 4x3>", store.Local.Values["shot"].AsText());
@@ -4363,7 +4411,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var (result, _, store) = await RunAsync(
-            [Step("clipboard.readImage", Hit("image", "shot"))], devices);
+            [Step("clipboard.readImage", Parts("image", "shot"))], devices);
 
         Assert.True(result.Succeeded);
         Assert.Equal(string.Empty, store.Local.Values["shot"].AsText());
@@ -4377,7 +4425,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("clipboard.writeImage", Param("image", "ok.png")),
-            Step("clipboard.readImage", Hit("image", "back")),
+            Step("clipboard.readImage", Parts("image", "back")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -4760,7 +4808,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("process.waitFor", Param("name", "notepad"), Param("timeoutMs", "2000"),
-                Hit("process", "pid")),
+                Parts("process", "pid")),
         ], devices);
 
         Assert.True(result.Succeeded);
@@ -4813,7 +4861,7 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer();
         devices.Running["notepad"] = [42];
         var (result, _, store) = await RunAsync(
-            [Step("process.info", Param("target", "notepad"), Hit("info", "note"))],
+            [Step("process.info", Param("target", "notepad"), Parts("info", "note"))],
             devices);
 
         Assert.True(result.Succeeded);
@@ -4829,7 +4877,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var (result, _, store) = await RunAsync(
-            [Step("process.info", Param("target", "ghost"), Hit("info", "info"))],
+            [Step("process.info", Param("target", "ghost"), Parts("info", "info"))],
             devices);
 
         Assert.Equal(RunStatus.Failed, result.Status);
@@ -5494,7 +5542,7 @@ public class DeviceActionTests
     {
         var devices = WithAWindow();
         var (result, _, store) = await RunAsync(
-            [Step("window.info", Param("title", "Notepad"), Hit("box", "box"))], devices);
+            [Step("window.info", Param("title", "Notepad"), Parts("box", "box"))], devices);
 
         Assert.True(result.Succeeded);
 
@@ -5512,7 +5560,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var (result, _, _) = await RunAsync(
-            [Step("window.info", Param("title", "ghost"), Hit("box", "box"))], devices);
+            [Step("window.info", Param("title", "ghost"), Parts("box", "box"))], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.WindowNotFound", result.Key);
@@ -5523,7 +5571,7 @@ public class DeviceActionTests
     {
         var devices = WithAWindow();
         var (result, _, store) = await RunAsync(
-            [Step("vision.captureWindow", Param("title", "Notepad"), Hit("image", "shot"))], devices);
+            [Step("vision.captureWindow", Param("title", "Notepad"), Parts("image", "shot"))], devices);
 
         Assert.True(result.Succeeded);
         Assert.Contains("capture 1000 500 800 600", devices.Calls);
@@ -5538,7 +5586,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var (result, _, _) = await RunAsync(
-            [Step("vision.captureWindow", Param("title", "ghost"), Hit("image", "shot"))], devices);
+            [Step("vision.captureWindow", Param("title", "ghost"), Parts("image", "shot"))], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.WindowNotFound", result.Key);
@@ -5651,14 +5699,12 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
             [Step("window.list", Returns("windows=titles"))], devices);
 
-        var titles = store.Local.Values["titles"];
-        Assert.Equal(["Notepad", "Notepad", "Calculator"],
-            titles.Items.Select(item => item.AsText()));
+        Assert.Equal(["Notepad", "Notepad", "Calculator"], Titles(store, "titles"));
     }
 
     /// <summary>
-    /// The lines beside the titles say what each window is and where it sits, in the same order, so
-    /// the second title, the second program and the second rectangle are all the same window.
+    /// Each window is one record holding what it is and where it sits, so the second title, the
+    /// second program and the second rectangle are the same window without anything being counted.
     /// </summary>
     [Fact]
     public async Task Listing_windows_can_say_what_each_one_is_and_where_it_sits()
@@ -5673,25 +5719,24 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("window.list", Returns("windows=titles", "processes=programs",
-                "classes=classnames", "handles=ids", "boxes=rects")),
+            Step("window.list", Returns("windows=listed")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.Equal(["Notepad", "Calculator"],
-            store.Local.Values["titles"].Items.Select(item => item.AsText()));
+        var listed = store.Local.Values["listed"].AsList();
+        Assert.Equal(["Notepad", "Calculator"], Titles(store, "listed"));
         Assert.Equal(["notepad", "calc"],
-            store.Local.Values["programs"].Items.Select(item => item.AsText()));
+            listed.Select(window => window.Field("process")!.AsText()));
         Assert.Equal(["Notepad", "CalcFrame"],
-            store.Local.Values["classnames"].Items.Select(item => item.AsText()));
-        Assert.Equal([1, 2], store.Local.Values["ids"].Items.Select(item => item.AsNumber()));
+            listed.Select(window => window.Field("class")!.AsText()));
+        Assert.Equal([1, 2], listed.Select(window => window.Field("handle")!.AsNumber()));
         Assert.Equal(["10,20,300,200", "400,30,240,320"],
-            store.Local.Values["rects"].Items.Select(item => item.AsText()));
+            listed.Select(window => window.Field("box")!.AsText()));
     }
 
     /// <summary>
-    /// The program a window belongs to is a look at the machine per window, so a step that reads
-    /// only the titles pays for none of them.
+    /// The program a window belongs to is a look at the machine per window, so a step that keeps
+    /// nothing from the listing pays for none of them.
     /// </summary>
     [Fact]
     public async Task Listing_windows_looks_nothing_up_that_the_step_does_not_keep()
@@ -5700,7 +5745,11 @@ public class DeviceActionTests
         devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
         devices.WindowFacts[1] = ("notepad", "Notepad");
 
-        await RunAsync([Step("window.list", Returns("windows=titles"))], devices);
+        await RunAsync([Step("window.list")], devices);
+
+        // The list itself is still read — a step that keeps nothing still ran — but nothing about
+        // the windows in it was looked up.
+        Assert.Contains(devices.Calls, call => call == "listWindows");
 
         Assert.DoesNotContain(devices.Calls,
             call => call.StartsWith("processOf", StringComparison.Ordinal));
@@ -5764,10 +5813,18 @@ public class DeviceActionTests
                 Returns("windows=byClass")),
         ], devices);
 
-        Assert.Equal(["Notepad", "Notepad - notes.txt"],
-            store.Local.Values["byTitle"].Items.Select(item => item.AsText()));
-        Assert.Equal(["Calculator"], store.Local.Values["byProcess"].Items.Select(item => item.AsText()));
-        Assert.Equal(["Calculator"], store.Local.Values["byClass"].Items.Select(item => item.AsText()));
+        Assert.Equal(["Notepad", "Notepad - notes.txt"], Titles(store, "byTitle"));
+        Assert.Equal(["Calculator"], Titles(store, "byProcess"));
+        Assert.Equal(["Calculator"], Titles(store, "byClass"));
+
+        // One window is one record, so the title, the program, the class, the handle and the
+        // rectangle all come out of one list rather than five that have to be lined up by counting.
+        var calculator = store.Local.Values["byProcess"].AsList()[0];
+        Assert.Equal("Calculator", calculator.Field("title")!.AsText());
+        Assert.Equal("calc-app", calculator.Field("process")!.AsText());
+        Assert.Equal("CalcFrame", calculator.Field("class")!.AsText());
+        Assert.Equal(2, calculator.Field("handle")!.AsNumber());
+        Assert.Equal("0,0,0,0", calculator.Field("box")!.AsText());
     }
 
     [Fact]
@@ -5785,12 +5842,12 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal("8,9", store.Local.Values["where"].AsText());
-        Assert.Equal(8, store.Local.Values["where.x"].AsNumber());
-        Assert.Equal(9, store.Local.Values["where.y"].AsNumber());
-        Assert.Equal(10, store.Local.Values["where.width"].AsNumber());
-        Assert.Equal(10, store.Local.Values["where.height"].AsNumber());
-        Assert.Equal(0.98, store.Local.Values["where.score"].AsNumber(), 3);
+        Assert.Equal("8,9", Centre(store, "where"));
+        Assert.Equal(8, Field(store, "where", "x").AsNumber());
+        Assert.Equal(9, Field(store, "where", "y").AsNumber());
+        Assert.Equal(10, Field(store, "where", "width").AsNumber());
+        Assert.Equal(10, Field(store, "where", "height").AsNumber());
+        Assert.Equal(0.98, Field(store, "where", "score").AsNumber(), 3);
     }
 
     [Fact]
@@ -5806,8 +5863,11 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
+
+        // Finding nothing hands over an empty hit, so the record left over from the pass before —
+        // here a variable of the old shape, given by name — is not what a later step reads.
         Assert.Equal(string.Empty, store.Local.Values["where"].AsText());
-        Assert.Equal(string.Empty, store.Local.Values["where.x"].AsText());
+        Assert.False(store.Local.Values["where"].IsRecord);
     }
 
     [Fact]
@@ -5820,7 +5880,7 @@ public class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Capture(0, 0, 10, 10, Hit("image", "shot")),
+            Capture(0, 0, 10, 10, Parts("image", "shot")),
             Step("vision.findImage", Pictures("$shot"), Param("confidence", "90"),
                 Param("region", ""), Hit("match", "where")),
         ], devices);
@@ -5874,7 +5934,7 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Capture(0, 0, 2, 1, Hit("image", "shot")),
+            Capture(0, 0, 2, 1, Parts("image", "shot")),
             Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
                 RegionFrom("$shot"), Hit("match", "where")),
         ], devices);
@@ -5884,7 +5944,7 @@ public class DeviceActionTests
         // The screen was grabbed for the capture and not again for the search: what was searched is
         // the picture the capture left behind.
         Assert.Single(devices.Calls, call => call.StartsWith("capture", StringComparison.Ordinal));
-        Assert.Equal("1,0", store.Local.Values["where"].AsText());
+        Assert.Equal("1,0", Centre(store, "where"));
     }
 
     /// <summary>A place to look that cannot be read is said in a sentence rather than guessed at.</summary>
@@ -5922,10 +5982,10 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal("30,26", store.Local.Values["found"].AsText());
-        Assert.Equal("Save", store.Local.Values["found.text"].AsText());
-        Assert.Equal(30, store.Local.Values["found.x"].AsNumber());
-        Assert.Equal(0.9, store.Local.Values["found.score"].AsNumber(), 3);
+        Assert.Equal("30,26", Centre(store, "found"));
+        Assert.Equal("Save", Field(store, "found", "text").AsText());
+        Assert.Equal(30, Field(store, "found", "x").AsNumber());
+        Assert.Equal(0.9, Field(store, "found", "score").AsNumber(), 3);
     }
 
     [Fact]
@@ -5955,7 +6015,8 @@ public class DeviceActionTests
         [
             Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
                 Param("region", ""), Hit("match", "where")),
-            Step("input.mouseMove", Param("x", "$where.x + 3"), Param("y", "$where.y"),
+            Step("input.mouseMove", Param("x", "field($where, \"x\") + 3"),
+                Param("y", "field($where, \"y\")"),
                 Param("durationMs", "0")),
         ], devices);
 
