@@ -121,17 +121,17 @@ public sealed record ImageFrame(int Width, int Height, byte[] Bgra)
 }
 
 /// <summary>
-/// How a picture of part of the screen is taken. The desktop can be read the way a macro always
-/// has; a window can be asked to draw itself, or read through the same machinery that composes it
-/// on screen, which is what still finds a game that another window is covering. The two are not
-/// interchangeable: the first is cheapest and needs nothing of the graphics card, the second works
-/// when nothing of the window is visible.
+/// How a picture of part of the screen is taken. What is being read says which ways make sense: the
+/// desktop can be copied out of it, or read out of the graphics card's own copy of what it is being
+/// shown; a window can be asked to draw itself, or read through the machinery that composes it on
+/// screen, which is what still finds a game another window is covering.
 /// </summary>
 public enum CaptureMethod
 {
     /// <summary>
-    /// Whatever suits the source: the desktop through GDI, a window through graphics capture and
-    /// then, if this machine has none, by asking the window to draw itself.
+    /// Whatever suits the source, best first: the desktop through the graphics card's copy of it and
+    /// then GDI; a window through graphics capture, then by asking it to draw itself, then off the
+    /// screen.
     /// </summary>
     Auto,
 
@@ -141,11 +141,11 @@ public enum CaptureMethod
     /// <summary>A window, asked to draw itself into a picture of our own.</summary>
     PrintWindow,
 
-    /// <summary>A window, read the way the screen shows it, so a covering window changes nothing.</summary>
+    /// <summary>A window or a display, read the way the screen shows it.</summary>
     GraphicsCapture,
 
-    /// <summary>The desktop, read the way the screen shows it.</summary>
-    GraphicsCaptureDesktop,
+    /// <summary>The display, handed over by the graphics card: the picture being composed for it.</summary>
+    DesktopDuplication,
 }
 
 /// <summary>
@@ -154,12 +154,6 @@ public enum CaptureMethod
 /// </summary>
 public static class CaptureMethodNames
 {
-    /// <summary>The ways a region of the screen can be asked for, in the order they are offered.</summary>
-    public static IReadOnlyList<string> All { get; } =
-    [
-        "auto", "gdi", "printWindow", "graphicsCapture", "graphicsCaptureDesktop",
-    ];
-
     /// <summary>
     /// What one way is written as, or empty for the automatic choice — which is a question rather
     /// than a way of taking a picture, and is never the answer to one.
@@ -169,7 +163,7 @@ public static class CaptureMethodNames
         CaptureMethod.Gdi => "gdi",
         CaptureMethod.PrintWindow => "printWindow",
         CaptureMethod.GraphicsCapture => "graphicsCapture",
-        CaptureMethod.GraphicsCaptureDesktop => "graphicsCaptureDesktop",
+        CaptureMethod.DesktopDuplication => "desktopDuplication",
         _ => string.Empty,
     };
 
@@ -183,9 +177,47 @@ public static class CaptureMethodNames
         "gdi" => CaptureMethod.Gdi,
         "printwindow" => CaptureMethod.PrintWindow,
         "graphicscapture" => CaptureMethod.GraphicsCapture,
-        "graphicscapturedesktop" => CaptureMethod.GraphicsCaptureDesktop,
+        "desktopduplication" => CaptureMethod.DesktopDuplication,
         _ => CaptureMethod.Auto,
     };
+}
+
+/// <summary>
+/// How this machine reads a picture of the screen: the way a window is taken, and the way a
+/// rectangle of the desktop is. A macro says what it is looking at and how fresh the picture has to
+/// be; how the pixels come off this machine is the machine's business, because the answers —
+/// whether it has a graphics card that will duplicate the display, whether it can read a window
+/// another window covers — are the same for every step of every macro that runs here.
+/// </summary>
+public interface ICaptureChoice
+{
+    /// <summary>The way a picture of a window is taken.</summary>
+    CaptureMethod ForWindow();
+
+    /// <summary>The way a picture of the desktop is taken.</summary>
+    CaptureMethod ForScreen();
+}
+
+/// <summary>
+/// The choice the program is running with. The engine cannot read the settings file — where it
+/// lives is the interface's business — so the two answers are handed over here, the way the viiper
+/// path is: once when the program starts and again whenever the settings change. What the test
+/// devices answer with is their own, so a check can put any of the ways behind a step.
+/// </summary>
+public sealed class CaptureChoice : ICaptureChoice
+{
+    /// <summary>The choice this machine's screen is read with.</summary>
+    public static CaptureChoice Current { get; } = new();
+
+    /// <summary>The way a picture of a window is taken, automatic by default.</summary>
+    public CaptureMethod Window { get; set; } = CaptureMethod.Auto;
+
+    /// <summary>The way a picture of the desktop is taken, automatic by default.</summary>
+    public CaptureMethod Screen { get; set; } = CaptureMethod.Auto;
+
+    public CaptureMethod ForWindow() => Window;
+
+    public CaptureMethod ForScreen() => Screen;
 }
 
 /// <summary>

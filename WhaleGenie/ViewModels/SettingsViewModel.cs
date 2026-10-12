@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
@@ -12,6 +13,15 @@ namespace WhaleGenie.ViewModels;
 public sealed record LanguageOption(Language Language, string Display)
 {
     public override string ToString() => Display;
+}
+
+/// <summary>
+/// One entry of a capture picker. What it reads as comes from the text table rather than being
+/// copied here, so the two pickers and the ways named in a failure are named the same way.
+/// </summary>
+public sealed record CaptureOption(CaptureMethod Way, string Key)
+{
+    public override string ToString() => Strings.Get(Key);
 }
 
 /// <summary>Backs the settings window. Changing the language applies immediately.</summary>
@@ -33,6 +43,8 @@ public partial class SettingsViewModel : ViewModelBase
         SelectedLanguage = Languages.First(option => option.Language == Strings.Current.Language);
         FailureScreenshot = LocalSettings.LoadFailureScreenshot();
         ViiperPath = LocalSettings.LoadViiperPath();
+        SelectedWindowWay = WindowWays.First(option => option.Way == CaptureChoice.Current.Window);
+        SelectedScreenWay = ScreenWays.First(option => option.Way == CaptureChoice.Current.Screen);
         IsElevated = elevated ?? ProcessRights.IsElevated;
 
         DriverState = driverInput();
@@ -52,6 +64,37 @@ public partial class SettingsViewModel : ViewModelBase
         new(Language.English, "English"),
         new(Language.Chinese, "中文"),
     ];
+
+    /// <summary>
+    /// The ways a window's picture can be taken, in the order they are offered: automatic first, then
+    /// the two the machine can be told to use on a window.
+    /// </summary>
+    public IReadOnlyList<CaptureOption> WindowWays { get; } =
+    [
+        new(CaptureMethod.Auto, "Settings.Capture.auto"),
+        new(CaptureMethod.PrintWindow, "Settings.Capture.printWindow"),
+        new(CaptureMethod.GraphicsCapture, "Settings.Capture.graphicsCapture"),
+    ];
+
+    /// <summary>
+    /// The ways the desktop's picture can be taken, in the order they are offered: automatic first,
+    /// then the ways that read the display, cheapest and most reliable last.
+    /// </summary>
+    public IReadOnlyList<CaptureOption> ScreenWays { get; } =
+    [
+        new(CaptureMethod.Auto, "Settings.Capture.auto"),
+        new(CaptureMethod.DesktopDuplication, "Settings.Capture.desktopDuplication"),
+        new(CaptureMethod.Gdi, "Settings.Capture.gdi"),
+        new(CaptureMethod.GraphicsCapture, "Settings.Capture.graphicsCapture"),
+    ];
+
+    /// <summary>How this machine reads a picture of a window.</summary>
+    [ObservableProperty]
+    public partial CaptureOption SelectedWindowWay { get; set; }
+
+    /// <summary>How this machine reads a picture of the desktop.</summary>
+    [ObservableProperty]
+    public partial CaptureOption SelectedScreenWay { get; set; }
 
     [ObservableProperty]
     public partial LanguageOption SelectedLanguage { get; set; }
@@ -123,6 +166,28 @@ public partial class SettingsViewModel : ViewModelBase
         if (value != LocalSettings.LoadFailureScreenshot())
         {
             LocalSettings.StoreFailureScreenshot(value);
+        }
+    }
+
+    /// <summary>
+    /// Gives the engine the new way, but only when it really changed: opening the window reads what
+    /// the engine is using into this property, and that must not count as the user asking for
+    /// something.
+    /// </summary>
+    partial void OnSelectedWindowWayChanged(CaptureOption value)
+    {
+        if (value.Way != CaptureChoice.Current.Window)
+        {
+            CaptureSetup.StoreWindow(value.Way);
+        }
+    }
+
+    /// <summary>The same for the way the desktop is read.</summary>
+    partial void OnSelectedScreenWayChanged(CaptureOption value)
+    {
+        if (value.Way != CaptureChoice.Current.Screen)
+        {
+            CaptureSetup.StoreScreen(value.Way);
         }
     }
 }

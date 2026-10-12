@@ -87,7 +87,7 @@ public class ActionPageTests
         "minFeatures", "ignoreColor", "matchIndex", "allMatches", "orderBy",
         "anchorMode", "anchorWindow", "anchorMatchBy", "anchorCompareBy", "anchorSelector",
         "inputMode", "targetWindow", "targetMatchBy", "targetCompareBy", "style",
-        "captureMode", "frameMaxAgeMs", "preprocess", "colorFilter", "colorTolerance", "fixText",
+        "frameMaxAgeMs", "preprocess", "colorFilter", "colorTolerance", "fixText",
         "expected", "minScore", "language", "encoding", "outputEncoding", "lineEnding", "quoteAll",
         "emptyCells", "align", "separator", "depth", "sortBy", "descending", "withinCount",
         "withinUnit", "minKb", "maxKb", "relative", "columns", "matchColumn", "matchValue",
@@ -230,21 +230,21 @@ public class ActionPageTests
     }
 
     /// <summary>
-    /// The three fields that say how a step reads the screen — where the picture comes from, how old
-    /// a picture it will accept, and how long it leaves between two looks — belong together on the
-    /// advanced page, because the answers almost every macro wants are the defaults.
+    /// The two fields that say how a step reads the screen — how old a picture it will accept, and
+    /// how long it leaves between two looks — belong together on the advanced page, because the
+    /// answers almost every macro wants are the defaults. How the pixels come off this machine is a
+    /// setting of the program rather than a field of a step, so there is no third one beside them.
     /// </summary>
     [Fact]
     public void How_a_step_reads_the_screen_is_on_the_advanced_page()
     {
         var misplaced = new List<string>();
-        var about = new[] { "captureMode", "frameMaxAgeMs", "intervalMs" };
+        var about = new[] { "frameMaxAgeMs", "intervalMs" };
 
         foreach (var action in Ui.Run(() => ActionCatalog.RunnableActions.ToList()))
         {
-            var basic = On(action, viewModel => viewModel.Rows);
             var advanced = On(action, viewModel => viewModel.AdvancedRows);
-            if (!basic.Concat(advanced).Contains("captureMode", StringComparer.Ordinal))
+            if (!advanced.Contains("frameMaxAgeMs", StringComparer.Ordinal))
             {
                 continue;
             }
@@ -259,21 +259,6 @@ public class ActionPageTests
         }
 
         Assert.Empty(misplaced);
-    }
-
-    /// <summary>
-    /// The step that is about one window offers only the ways a window can be read, because the ways
-    /// of reading the desktop are not answers to the question it asks.
-    /// </summary>
-    [Fact]
-    public void The_capture_window_step_offers_only_the_ways_a_window_is_read()
-    {
-        var offered = Ui.Run(() => ActionCatalog.Definitions
-            .First(definition => definition.Key == "vision.captureWindow")
-            .Parameters.First(parameter => parameter.Name == "captureMode")
-            .OptionChoices.Select(choice => choice.Value).ToList());
-
-        Assert.Equal(["auto", "printWindow", "graphicsCapture"], offered);
     }
 
     /// <summary>

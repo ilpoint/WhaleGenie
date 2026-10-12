@@ -5,8 +5,9 @@ namespace WhaleGenie.Core.Devices.Platform;
 
 /// <summary>
 /// Reads the Windows desktop: how big it is, what colour a pixel is, and what it looks like. The
-/// desktop is copied out of the screen with GDI; a window can also be asked to draw itself, or
-/// read through graphics capture, which is what still finds a game another window is covering.
+/// desktop can be copied out of the screen with GDI, read out of the graphics card's own picture of
+/// it, or read through Graphics Capture, which is what still finds a game another window is
+/// covering; a window can also be asked to draw itself.
 /// </summary>
 public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
 {
@@ -153,28 +154,31 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
             : One(request.Method, request, window);
     }
 
-    /// <summary>Reads the rectangle the one way that was named, without falling back to another.</summary>
+    /// <summary>
+    /// Reads the rectangle the one way that was named, without falling back to another. The ways
+    /// that read a window are for the window that was named; the two desktop ways read the pixels
+    /// where the window is, which is what "read the screen here" means wherever it is asked for.
+    /// </summary>
     private ScreenShot One(CaptureMethod method, ScreenCaptureRequest request, WindowGeometry window)
         => method switch
         {
             CaptureMethod.PrintWindow => PrintWindow(request, window),
             CaptureMethod.GraphicsCapture => Graphics(request, window),
-            CaptureMethod.GraphicsCaptureDesktop => ThroughTheDisplay(request),
-            _ => new ScreenShot(Copy(request.X, request.Y, request.Width, request.Height),
-                new ScreenPoint(request.X, request.Y), CaptureMethod.Gdi),
+            CaptureMethod.DesktopDuplication => Duplicated(request),
+            _ => Gdi(request),
         };
 
     /// <summary>
-    /// A request that does not name a window: the desktop, read by the means asked for. Naming a
-    /// means that only makes sense for a window is refused rather than quietly read another way,
-    /// because a step that says "this window" and does not name one has a mistake in it.
+    /// A request that does not name a window: the desktop, read by the means asked for. The two
+    /// ways that read a window belong to a request that names one, so they are not among the ones
+    /// the machine is set up with here, and a request that asks for one of them anyway is read off
+    /// the screen the way it always was.
     /// </summary>
     private ScreenShot Horizontal(ScreenCaptureRequest request) => request.Method switch
     {
-        CaptureMethod.PrintWindow or CaptureMethod.GraphicsCapture
-            => throw new DeviceActionException("Run.NoCaptureWindow", Written(request)),
-        CaptureMethod.GraphicsCaptureDesktop => ThroughTheDisplay(request),
-        CaptureMethod.Gdi => Gdi(request),
+        CaptureMethod.Gdi or CaptureMethod.PrintWindow => Gdi(request),
+        CaptureMethod.DesktopDuplication => Duplicated(request),
+        CaptureMethod.GraphicsCapture => ThroughGraphicsCapture(request),
         _ => AutoDesktop(request),
     };
 
@@ -193,7 +197,7 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
             && _duplicator.Value.Try(left, top, right - left, bottom - top) is { } frame)
         {
             return new ScreenShot(frame, new ScreenPoint(left, top),
-                CaptureMethod.GraphicsCaptureDesktop);
+                CaptureMethod.DesktopDuplication);
         }
 
         return Gdi(request);
@@ -269,11 +273,14 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
     }
 
     /// <summary>
-    /// One display read the way the screen shows it, in the display's own coordinates. The
-    /// rectangle is cut down to what is on the screen, and a rectangle with nothing on the screen
-    /// in it is a failure rather than an empty picture.
+    /// One display copied out of the graphics card's own picture of it, in the display's own
+    /// coordinates. The rectangle is cut down to what is on the screen, and a rectangle with
+    /// nothing on the screen in it is a failure rather than an empty picture. A machine that
+    /// cannot hand a picture over is refused rather than quietly read another way: the way is
+    /// written down in the settings, and falling back would hide that this machine is not doing
+    /// what it was told to do.
     /// </summary>
-    private ScreenShot ThroughTheDisplay(ScreenCaptureRequest request)
+    private ScreenShot Duplicated(ScreenCaptureRequest request)
     {
         var (left, top, right, bottom) = Bounds(request);
         if (right <= left || bottom <= top)
@@ -282,28 +289,26 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         }
 
         var frame = _duplicator.Value.Try(left, top, right - left, bottom - top)
-            ?? Library(left, top, right - left, bottom - top)
             ?? throw new DeviceActionException("Run.NoGraphicsCapture",
-                "reading the display this way is not possible on this machine");
-        return new ScreenShot(frame, new ScreenPoint(left, top),
-            CaptureMethod.GraphicsCaptureDesktop);
+                "this display cannot be duplicated on this machine");
+        return new ScreenShot(frame, new ScreenPoint(left, top), CaptureMethod.DesktopDuplication);
     }
 
     /// <summary>
-    /// The display read by the capture library, which is what a machine that cannot duplicate it has
-    /// left on this path, or nothing when the library cannot read it either. A machine whose display
-    /// shows high dynamic range or is turned on its side is one of these.
+    /// One display read through Graphics Capture, in the display's own coordinates. This is the way
+    /// that reads a display the graphics card will not duplicate, and the one that finds a screen a
+    /// full-screen game has taken over.
     /// </summary>
-    private ImageFrame? Library(int x, int y, int width, int height)
+    private ScreenShot ThroughGraphicsCapture(ScreenCaptureRequest request)
     {
-        try
+        var (left, top, right, bottom) = Bounds(request);
+        if (right <= left || bottom <= top)
         {
-            return _graphics.Value.Desktop(x, y, width, height);
+            throw new DeviceActionException("Run.EmptyRegion", Written(request));
         }
-        catch (DeviceActionException)
-        {
-            return null;
-        }
+
+        var frame = _graphics.Value.Desktop(left, top, right - left, bottom - top);
+        return new ScreenShot(frame, new ScreenPoint(left, top), CaptureMethod.GraphicsCapture);
     }
 
     /// <summary>

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Execution;
 
 namespace WhaleGenie.Localization;
@@ -43,6 +44,28 @@ public static class LocalSettings
     /// <summary>Stores that choice. Failures are ignored on purpose.</summary>
     public static void StoreViiperPath(string path) => Write(model => model.ViiperPath = path);
 
+    /// <summary>
+    /// How this machine reads a picture of a window. Automatic by default, which is the order the
+    /// machine has always tried the ways in.
+    /// </summary>
+    public static CaptureMethod LoadCaptureWindow()
+        => CaptureMethodNames.Read(Read().CaptureWindow);
+
+    /// <summary>Stores that choice, as the way is written in a file. Failures are ignored on purpose.</summary>
+    public static void StoreCaptureWindow(CaptureMethod way)
+        => Write(model => model.CaptureWindow = CaptureMethodNames.Written(way));
+
+    /// <summary>
+    /// How this machine reads a picture of the desktop. Automatic by default, which is the order the
+    /// machine has always tried the ways in.
+    /// </summary>
+    public static CaptureMethod LoadCaptureScreen()
+        => CaptureMethodNames.Read(Read().CaptureScreen);
+
+    /// <summary>Stores that choice, as the way is written in a file. Failures are ignored on purpose.</summary>
+    public static void StoreCaptureScreen(CaptureMethod way)
+        => Write(model => model.CaptureScreen = CaptureMethodNames.Written(way));
+
     private static Model Read()
     {
         try
@@ -83,5 +106,9 @@ public static class LocalSettings
         public bool FailureScreenshot { get; set; } = true;
 
         public string ViiperPath { get; set; } = string.Empty;
+
+        public string CaptureWindow { get; set; } = string.Empty;
+
+        public string CaptureScreen { get; set; } = string.Empty;
     }
 }

@@ -1846,29 +1846,27 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// The way a step names travels with the request as it was written: "automatic" is a question
-    /// the device answers, and anything that reads as none of the ways asks the same question.
+    /// How the pixels come off this machine is an answer about the machine rather than a field of a
+    /// step, so the way a step's picture is taken is whatever the machine was set up with: a step
+    /// counting its coordinates from a window is read the window way, and a step reading the desktop
+    /// the screen way.
     /// </summary>
-    [Theory]
-    [InlineData("gdi", CaptureMethod.Gdi)]
-    [InlineData("printWindow", CaptureMethod.PrintWindow)]
-    [InlineData("graphicsCapture", CaptureMethod.GraphicsCapture)]
-    [InlineData("graphicsCaptureDesktop", CaptureMethod.GraphicsCaptureDesktop)]
-    [InlineData("", CaptureMethod.Auto)]
-    [InlineData("nonsense", CaptureMethod.Auto)]
-    public async Task The_way_of_taking_the_picture_travels_with_the_request(string written,
-        CaptureMethod expected)
+    [Fact]
+    public async Task The_way_of_taking_the_picture_is_the_machines_own()
     {
         var devices = WithWindow();
+        devices.Ways.Window = CaptureMethod.PrintWindow;
+        devices.Ways.Screen = CaptureMethod.DesktopDuplication;
 
         await RunAsync(
         [
-            Capture(1, 1, 2, 2, Param("anchorMode", "client"),
-                Param("anchorWindow", "Game"), Param("captureMode", written),
-                Hit("image", "shot")),
+            Capture(1, 1, 2, 2, Param("anchorMode", "client"), Param("anchorWindow", "Game"),
+                Hit("image", "window")),
+            Capture(1, 1, 2, 2, Hit("image", "screen")),
         ], devices);
 
-        Assert.Equal(expected, Assert.Single(devices.Captures).Method);
+        Assert.Equal(CaptureMethod.PrintWindow, devices.Captures[0].Method);
+        Assert.Equal(CaptureMethod.DesktopDuplication, devices.Captures[1].Method);
     }
 
     /// <summary>
@@ -1900,39 +1898,21 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// A way of reading a window, asked for without a window being named, is a mistake in the step
-    /// rather than something about the machine, and is said instead of quietly read off the desktop.
-    /// </summary>
-    [Fact]
-    public async Task A_window_way_without_a_window_is_refused()
-    {
-        var devices = new FakeDeviceLayer();
-
-        var (result, _, _) = await RunAsync(
-        [
-            Capture(0, 0, 10, 10, Param("captureMode", "graphicsCapture"),
-                Hit("image", "shot")),
-        ], devices);
-
-        Assert.Equal("Run.NoCaptureWindow", result.Key);
-        Assert.Empty(devices.Captures);
-    }
-
-    /// <summary>
-    /// A way of reading a window that this machine cannot do is reported with the key the interface
-    /// knows, rather than the step being answered by some other way behind its back: a step that
-    /// named a way gets that way, or it gets a failure.
+    /// A way this machine cannot do is reported with the key the interface knows, rather than the
+    /// step being answered by some other way behind its back: a step whose picture cannot be taken
+    /// the way the machine was set up to take it fails, and says why.
     /// </summary>
     [Fact]
     public async Task A_way_the_machine_cannot_do_is_reported_rather_than_swapped_for_another()
     {
         var devices = WithWindow();
+        devices.Ways.Window = CaptureMethod.GraphicsCapture;
         devices.Refusal = new DeviceActionException("Run.NoGraphicsCapture", "this machine has none");
 
         var (result, _, _) = await RunAsync(
         [
             Capture(0, 0, 10, 10, Param("anchorMode", "client"), Param("anchorWindow", "Game"),
-                Param("captureMode", "graphicsCapture"), Hit("image", "shot")),
+                Hit("image", "shot")),
         ], devices);
 
         Assert.Equal("Run.NoGraphicsCapture", result.Key);
@@ -6694,6 +6674,14 @@ internal sealed class FakeDeviceLayer
     IInputDevice IDeviceLayer.Input => this;
 
     IGamepadDevice IDeviceLayer.Gamepad => this;
+
+    /// <summary>
+    /// How this machine has been told to read the screen. Automatic unless a check is about the
+    /// choice itself, which is what a machine nobody has set up answers.
+    /// </summary>
+    public CaptureChoice Ways { get; } = new();
+
+    ICaptureChoice IDeviceLayer.Capture => Ways;
 
     IScreenDevice IDeviceLayer.Screen => this;
 

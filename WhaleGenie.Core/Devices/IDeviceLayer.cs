@@ -585,6 +585,13 @@ public interface IDeviceLayer
     /// </summary>
     IGamepadDevice Gamepad { get; }
 
+    /// <summary>
+    /// How this machine reads a picture of the screen. It is beside the devices rather than inside
+    /// the screen device because it is a choice about this machine that every device layer has an
+    /// answer to, rather than a way of reading pixels that a device may or may not offer.
+    /// </summary>
+    ICaptureChoice Capture { get; }
+
     IScreenDevice Screen { get; }
 
     IVisionDevice Vision { get; }
@@ -645,6 +652,12 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
     /// <summary>Nothing here can be a controller.</summary>
     public IGamepadDevice Gamepad => _refusal;
+
+    /// <summary>
+    /// The automatic choice, which is what the engine takes to mean "read it the way this machine
+    /// would read it anyway": a layer with no devices has no other answer to give.
+    /// </summary>
+    public ICaptureChoice Capture { get; } = CaptureChoice.Current;
 
     public IScreenDevice Screen => _refusal;
 

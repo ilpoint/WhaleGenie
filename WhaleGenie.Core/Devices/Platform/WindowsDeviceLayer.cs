@@ -51,6 +51,13 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
     /// </summary>
     public IGamepadDevice Gamepad => _gamepad.Value;
 
+    /// <summary>
+    /// How this machine reads the screen, which the settings window keeps up to date: the answers
+    /// are the machine's rather than a step's, so they are kept beside the devices rather than in
+    /// the screen device, and a running macro picks up a change at its next look.
+    /// </summary>
+    public ICaptureChoice Capture => CaptureChoice.Current;
+
     public IScreenDevice Screen => _screen.Value;
 
     /// <summary>Image matching, which needs the reference picture to be readable.</summary>

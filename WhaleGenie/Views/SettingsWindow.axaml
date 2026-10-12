@@ -97,6 +97,22 @@
                 <TextBlock Classes="Muted" Margin="2,7,0,0"
                            Text="{Binding [Settings.LanguageHint], Source={x:Static loc:Strings.Current}}" />
 
+                <TextBlock Classes="FieldLabel" Margin="2,18,0,6"
+                           Text="{Binding [Settings.CaptureWindow], Source={x:Static loc:Strings.Current}}" />
+                <ComboBox Classes="LanguageSelect"
+                          ItemsSource="{Binding WindowWays}"
+                          SelectedItem="{Binding SelectedWindowWay}" />
+                <TextBlock Classes="Muted" Margin="2,7,0,0" TextWrapping="Wrap"
+                           Text="{Binding [Settings.CaptureWindowHint], Source={x:Static loc:Strings.Current}}" />
+
+                <TextBlock Classes="FieldLabel" Margin="2,18,0,6"
+                           Text="{Binding [Settings.CaptureScreen], Source={x:Static loc:Strings.Current}}" />
+                <ComboBox Classes="LanguageSelect"
+                          ItemsSource="{Binding ScreenWays}"
+                          SelectedItem="{Binding SelectedScreenWay}" />
+                <TextBlock Classes="Muted" Margin="2,7,0,0" TextWrapping="Wrap"
+                           Text="{Binding [Settings.CaptureScreenHint], Source={x:Static loc:Strings.Current}}" />
+
                 <CheckBox Margin="2,18,0,0" Foreground="#C8C8C8" FontSize="12.5"
                           IsChecked="{Binding FailureScreenshot}"
                           Content="{Binding [Settings.FailureScreenshot], Source={x:Static loc:Strings.Current}}" />

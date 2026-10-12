@@ -150,7 +150,7 @@ Two switches change that number. Both are on the **Advanced** page and both are 
   at the screen at most N times a second" over the whole macro: ten different find-picture steps in
   one loop each go as fast as they can, and the total is their sum. Making them share a picture takes
   `frameMaxAgeMs` on every one of them, and what is shared is keyed by "source + way of capturing", so
-  changing `captureMode` shares nothing.
+  changing which way a window or the screen is read in the settings shares nothing.
 - Capturing and matching are done on the running thread, so those 29 ms are 29 ms of blocking. A macro
   is a sequence anyway, so it only makes that round longer; it does not disturb other steps.
 - The text recognition model is read in once per process, paid by the first look.

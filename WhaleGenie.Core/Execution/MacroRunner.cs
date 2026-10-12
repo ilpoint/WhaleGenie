@@ -4290,23 +4290,18 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// One picture of the screen, asked for the way a step asks for it: which means, and whether the
-    /// pixels are to come from a window rather than from the desktop. The window is the one the
-    /// step's own coordinates are counted from, or the one it names outright; a step that asks for a
-    /// window's picture without naming a window is a mistake, and is said rather than quietly read
-    /// off the desktop.
+    /// One picture of the screen, taken the way this machine is set up to take one: a step says what
+    /// it is looking at — a window, or a rectangle of the desktop — and whether the pixels come off
+    /// the screen or out of the window itself is an answer about the machine rather than about the
+    /// step. The window is the one the step's own coordinates are counted from, or the one it names
+    /// outright.
     /// </summary>
     private ScreenShot Shot(ExecutableStep step, int x, int y, int width, int height,
         WindowInfo? window = null)
     {
-        var method = CaptureMethodNames.Read(step.Text("captureMode"));
-        if (window is null && method is CaptureMethod.PrintWindow or CaptureMethod.GraphicsCapture)
-        {
-            // A way of reading a window is asked for without one being named. That is a mistake in
-            // the step rather than something about this machine, and reading the desktop instead
-            // would quietly answer a different question.
-            throw new StepFailure("Run.NoCaptureWindow", step.Text("captureMode").Trim());
-        }
+        var method = window is null
+            ? _devices.Capture.ForScreen()
+            : _devices.Capture.ForWindow();
 
         var source = window?.Handle ?? 0;
         var age = Math.Max(0, Number(step, "frameMaxAgeMs"));
@@ -4343,17 +4338,18 @@ public sealed class MacroRunner
     /// Which pictures are worth keeping for a second look: one to each source, one to each way of
     /// reading it. Two steps reading the same window the same way see the same picture, and a step
     /// reading it another way gets its own — a window copied off the screen and a window read as the
-    /// window itself shows it are not the same pixels.
+    /// window itself shows it are not the same pixels. What is keyed on is the way that was asked
+    /// for rather than the one that came back, because the next step has to look its picture up
+    /// before anything is read: the automatic choice is a question, and this machine answers it the
+    /// same way twice in a run.
     /// </summary>
     private static (long Source, CaptureMethod Method) Reused(long source, CaptureMethod method)
-        => (source, method == CaptureMethod.Auto
-            ? source == 0 ? CaptureMethod.Gdi : CaptureMethod.GraphicsCapture
-            : method);
+        => (source, method);
 
     /// <summary>The whole of what a step reads from: the window, or the screen.</summary>
     private ScreenShot Whole(CaptureMethod method, WindowInfo? window)
     {
-        if (window is null || method == CaptureMethod.GraphicsCaptureDesktop)
+        if (window is null)
         {
             var size = _devices.Screen.PrimarySize;
             return _devices.Screen.Capture(

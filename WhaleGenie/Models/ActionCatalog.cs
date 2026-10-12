@@ -2162,7 +2162,7 @@ public static class ActionCatalog
             Parameters =
             [
                 ..WindowTarget(),
-                ..WindowCapture(),
+                ..Capture(),
                 LookGap(0),
                 Returns(),
             ],
@@ -3999,55 +3999,16 @@ public static class ActionCatalog
             labels: ["Normalised", "Correlated", "Pixel for pixel", "Features"], advanced: true);
 
     /// <summary>
-    /// How the picture a step looks at is taken, shared by every step that looks at the screen.
-    /// The desktop can be copied out of it, or a window read as the window itself shows it, which
-    /// is what still finds a game another window is covering.
+    /// How fresh the picture a step looks at has to be, shared by every step that looks at the
+    /// screen. How the pixels come off this machine is a setting rather than a step's business: the
+    /// machine answers the same way for every step of every macro that runs on it.
     /// </summary>
     /// <remarks>
-    /// Spread into the parameter list rather than written out in each of the eighteen steps, because
-    /// the two fields answer one question between them — what this step reads, and how fresh it has
-    /// to be — and a step that reads a window must not be able to have one without the other.
+    /// Spread into the parameter list rather than written out in each of the steps that read the
+    /// screen, so that the field that makes a macro read the same place once instead of twenty
+    /// times is offered everywhere that reading happens.
     /// </remarks>
-    private static ActionParameter[] Capture() => [CaptureMode(), FrameMaxAge()];
-
-    private static ActionParameter[] WindowCapture() => [WindowCaptureMode(), FrameMaxAge()];
-
-    private static ActionParameter CaptureMode()
-        => Choice("captureMode", "How the picture is taken",
-            ["auto", "gdi", "printWindow", "graphicsCapture", "graphicsCaptureDesktop"], "auto",
-            "Where the pixels come from and how they are taken. Automatic, the default, reads the "
-            + "desktop the way a macro always has and a window through graphics capture, falling "
-            + "back on the window drawing itself where this machine has none. Desktop (GDI) is the "
-            + "cheapest and needs nothing of the graphics card, but a window read this way comes "
-            + "out as whatever is on top of it. Window (PrintWindow) asks the window to draw "
-            + "itself, which most windows do, and gives the whole window with its title bar. "
-            + "Window (graphics capture) reads what the window shows, so a game another window is "
-            + "covering still comes out; it needs Windows 10 2004 or later. Whole screen (graphics "
-            + "capture) reads the display itself, which is what a game drawing in exclusive full "
-            + "screen needs. A window way needs the step to count its coordinates from a window.",
-            labels:
-            [
-                "Automatic", "Desktop (GDI)", "Window (PrintWindow)", "Window (graphics capture)",
-                "Whole screen (graphics capture)",
-            ],
-            advanced: true);
-
-    /// <summary>
-    /// The same for the step that is about one window: the two ways of reading a window and the
-    /// automatic choice between them, without the ways that name the desktop, which a step that
-    /// captures a window has no use for.
-    /// </summary>
-    private static ActionParameter WindowCaptureMode()
-        => Choice("captureMode", "How the picture is taken",
-            ["auto", "printWindow", "graphicsCapture"], "auto",
-            "How the window is read. Automatic, the default, reads it through graphics capture and "
-            + "falls back on the window drawing itself where this machine has none. Window "
-            + "(PrintWindow) asks the window to draw itself, which most windows do, and gives the "
-            + "whole window with its title bar. Window (graphics capture) reads what the window "
-            + "shows even when another window covers it, and gives the part the window draws in "
-            + "without the title bar; it needs Windows 10 2004 or later.",
-            labels: ["Automatic", "Window (PrintWindow)", "Window (graphics capture)"],
-            advanced: true);
+    private static ActionParameter[] Capture() => [FrameMaxAge()];
 
     /// <summary>
     /// How long a picture a step reads may have been taken already, shared by every step that looks

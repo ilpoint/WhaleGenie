@@ -23,6 +23,10 @@ public partial class App : Application
         // ask for driver-level input.
         ViiperSetup.Load();
 
+        // How this machine reads the screen was chosen in the same window, and is told to the
+        // engine the same way: a macro reads it before the settings window has ever been opened.
+        CaptureSetup.Load();
+
         // And then it is given a head start: starting that server is what makes the first
         // driver-level move of a macro wait a second and a half.
         _ = ViiperServer.WarmUp();

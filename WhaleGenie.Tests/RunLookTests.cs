@@ -143,6 +143,11 @@ public class RunLookTests
 
         public IGamepadDevice Gamepad => NullDeviceLayer.Instance.Gamepad;
 
+        /// <summary>Automatic, like a machine nobody has set up to read the screen another way.</summary>
+        public CaptureChoice Ways { get; } = new();
+
+        ICaptureChoice IDeviceLayer.Capture => Ways;
+
         public IOcrDevice Ocr => NullDeviceLayer.Instance.Ocr;
 
         public IUiDevice Ui => NullDeviceLayer.Instance.Ui;

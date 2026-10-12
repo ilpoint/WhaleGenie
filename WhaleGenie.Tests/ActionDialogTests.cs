@@ -2308,6 +2308,11 @@ public class ActionDialogTests
 
         public IGamepadDevice Gamepad => this;
 
+        /// <summary>Automatic, like a machine nobody has set up to read the screen another way.</summary>
+        public CaptureChoice Ways { get; } = new();
+
+        ICaptureChoice IDeviceLayer.Capture => Ways;
+
         public IScreenDevice Screen => NullDeviceLayer.Instance.Screen;
 
         public IVisionDevice Vision => NullDeviceLayer.Instance.Vision;

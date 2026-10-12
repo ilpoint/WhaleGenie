@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using System.Linq;
+using WhaleGenie.Core.Devices;
+using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.ViewModels;
 
@@ -44,6 +47,7 @@ public class LocalSettingsTests
 
             Assert.Equal(Language.English, LocalSettings.Load());
             Assert.True(LocalSettings.LoadFailureScreenshot());
+            Assert.Equal(CaptureMethod.Auto, LocalSettings.LoadCaptureWindow());
         });
     }
 
@@ -59,6 +63,46 @@ public class LocalSettingsTests
 
             viewModel.FailureScreenshot = true;
             Assert.True(LocalSettings.LoadFailureScreenshot());
+        });
+    }
+
+    /// <summary>
+    /// How this machine reads the screen is chosen in the settings window and written down like every
+    /// other choice, and the engine hears about it in the same breath: a macro that is running reads
+    /// the change at its next look.
+    /// </summary>
+    [Fact]
+    public void The_settings_window_chooses_how_the_screen_is_read()
+    {
+        InOwnFile(_ =>
+        {
+            var window = CaptureChoice.Current.Window;
+            var screen = CaptureChoice.Current.Screen;
+            try
+            {
+                CaptureSetup.StoreWindow(CaptureMethod.PrintWindow);
+                CaptureSetup.StoreScreen(CaptureMethod.DesktopDuplication);
+
+                Assert.Equal(CaptureMethod.PrintWindow, LocalSettings.LoadCaptureWindow());
+                Assert.Equal(CaptureMethod.DesktopDuplication, LocalSettings.LoadCaptureScreen());
+                Assert.Equal(CaptureMethod.PrintWindow, CaptureChoice.Current.Window);
+                Assert.Equal(CaptureMethod.DesktopDuplication, CaptureChoice.Current.Screen);
+
+                // A window opened afterwards shows what is in effect, and putting a choice back is a
+                // change like any other.
+                var viewModel = new SettingsViewModel();
+                Assert.Equal(CaptureMethod.PrintWindow, viewModel.SelectedWindowWay.Way);
+                Assert.Equal(CaptureMethod.DesktopDuplication, viewModel.SelectedScreenWay.Way);
+
+                viewModel.SelectedScreenWay = viewModel.ScreenWays.First(way => way.Way == CaptureMethod.Gdi);
+                Assert.Equal(CaptureMethod.Gdi, LocalSettings.LoadCaptureScreen());
+                Assert.Equal(CaptureMethod.Gdi, CaptureChoice.Current.Screen);
+            }
+            finally
+            {
+                CaptureChoice.Current.Window = window;
+                CaptureChoice.Current.Screen = screen;
+            }
         });
     }
 

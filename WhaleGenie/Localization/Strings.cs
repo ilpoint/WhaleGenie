@@ -267,8 +267,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Look.Source.window"] = "the window {0}",
         ["Look.Way.gdi"] = "GDI",
         ["Look.Way.printWindow"] = "PrintWindow",
-        ["Look.Way.graphicsCapture"] = "graphics capture",
-        ["Look.Way.graphicsCaptureDesktop"] = "graphics capture of the display",
+        ["Look.Way.graphicsCapture"] = "Graphics Capture",
+        ["Look.Way.desktopDuplication"] = "desktop duplication (DXGI)",
         ["Look.Picture"] = "Looking for reference picture {0} of {1}: {2}",
         ["Look.Note"] = "Read as: {0}",
         ["Look.Marks"] = "Marks",
@@ -720,6 +720,31 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.Title"] = "Settings",
         ["Settings.Language"] = "Language",
         ["Settings.LanguageHint"] = "Applies immediately to every window.",
+        ["Settings.CaptureWindow"] = "Reading a window",
+        ["Settings.CaptureWindowHint"] =
+            "How a picture of a window is taken on this machine, for every step of every macro. "
+            + "Automatic, the default, reads the window through Graphics Capture, then asks it to "
+            + "draw itself, then reads the pixels on the screen where it is. A way that is named is "
+            + "the only one tried, so a change here is what to reach for when a window comes out "
+            + "wrong. PrintWindow gives the whole window with its title bar; Graphics Capture gives "
+            + "the part the window draws in, and finds a window another window covers. Applies from "
+            + "the next look; a step that is reading the screen at this moment finishes the way it "
+            + "started.",
+        ["Settings.CaptureScreen"] = "Reading the screen",
+        ["Settings.CaptureScreenHint"] =
+            "How a picture of the desktop is taken on this machine, for every step of every macro. "
+            + "Automatic, the default, copies the picture the graphics card is composing for the "
+            + "display and falls back on copying the screen, which is several times slower. Desktop "
+            + "duplication (DXGI) is that picture, and is the only way that finds a game holding the "
+            + "screen to itself; high dynamic range and a screen turned on its side are what it "
+            + "cannot do. Desktop (GDI) copies the screen, which always answers something. Graphics "
+            + "Capture reads the display the way a window is read, and needs Windows 10 2004 or "
+            + "later.",
+        ["Settings.Capture.auto"] = "Automatic",
+        ["Settings.Capture.printWindow"] = "Window (PrintWindow)",
+        ["Settings.Capture.graphicsCapture"] = "Graphics Capture",
+        ["Settings.Capture.desktopDuplication"] = "Desktop duplication (DXGI)",
+        ["Settings.Capture.gdi"] = "Desktop (GDI)",
         ["Settings.FailureScreenshot"] = "Save a picture of the screen when a run fails",
         ["Settings.FailureScreenshotHint"] =
             "Kept in the logs folder beside the program. Nothing is written while a macro runs well.",
@@ -929,12 +954,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.PixelOutsideScreen"] = "That pixel is not on the screen: {0}",
         ["Run.EmptyRegion"] = "That is not a usable screen region: {0}",
         ["Run.CaptureFailed"] = "The screen region could not be copied: {0}",
-        ["Run.NoCaptureWindow"] =
-            "This step reads a window and names none: {0}. Its coordinates have to be counted from a "
-            + "window, or its way of taking a picture has to be one that reads the desktop.",
         ["Run.NoGraphicsCapture"] =
-            "This window could not be read with graphics capture: {0}. Letting the window draw "
-            + "itself, or reading the desktop, is the other way round it.",
+            "The screen cannot be read this way on this machine: {0}. Graphics Capture needs Windows "
+            + "10 2004 or later and a Direct3D 11 device, and cannot read a display the graphics card "
+            + "will not duplicate either.",
         ["Run.BadRegion"] = "A search region reads as x,y,width,height: {0}",
         ["Run.BadPoints"] = "Every point of a colour comparison reads as x,y,#RRGGBB: {0}",
         ["Run.BadPattern"] = "That is not a usable match pattern: {0}",
@@ -1296,8 +1319,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Look.Source.window"] = "窗口「{0}」",
         ["Look.Way.gdi"] = "GDI",
         ["Look.Way.printWindow"] = "PrintWindow",
-        ["Look.Way.graphicsCapture"] = "图形捕获",
-        ["Look.Way.graphicsCaptureDesktop"] = "整屏图形捕获",
+        ["Look.Way.graphicsCapture"] = "Graphics Capture",
+        ["Look.Way.desktopDuplication"] = "桌面复制（DXGI）",
         ["Look.Note"] = "读到的文字：{0}",
         ["Look.Marks"] = "标记",
         ["Look.ZoomFit"] = "适应窗口",
@@ -1710,6 +1733,25 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.Title"] = "设置",
         ["Settings.Language"] = "语言",
         ["Settings.LanguageHint"] = "立即应用到所有窗口。",
+        ["Settings.CaptureWindow"] = "读窗口",
+        ["Settings.CaptureWindowHint"] =
+            "这台机器上窗口的画面怎么取，对所有宏的每一步都生效。自动（默认）：先走 Graphics "
+            + "Capture，再让窗口自己画一遍，最后读它在屏幕上的那块像素。点名哪一档就只走那一档，"
+            + "所以窗口取出来不对时改这里。PrintWindow 取到整窗，含标题栏；Graphics Capture "
+            + "取窗口自己画的那部分，被别的窗口压住也取得到。改完从下一次看画面起生效，"
+            + "正在读画面的那一步会按开始时的档位读完。",
+        ["Settings.CaptureScreen"] = "读屏幕",
+        ["Settings.CaptureScreenHint"] =
+            "这台机器上桌面的画面怎么取，对所有宏的每一步都生效。自动（默认）：先取显卡正在为"
+            + "显示器合成的画面，取不到就退回复制屏幕，后者慢好几倍。桌面复制（DXGI）就是显卡"
+            + "合成的那张画面，也是唯一能取到独占全屏游戏的档；高动态范围与屏幕转着用是它做不到的。"
+            + "桌面（GDI）直接复制屏幕，总能取到点什么。Graphics Capture 按读窗口的那套机器读显示器，"
+            + "需要 Windows 10 2004 或更高版本。",
+        ["Settings.Capture.auto"] = "自动",
+        ["Settings.Capture.printWindow"] = "窗口（PrintWindow）",
+        ["Settings.Capture.graphicsCapture"] = "Graphics Capture",
+        ["Settings.Capture.desktopDuplication"] = "桌面复制（DXGI）",
+        ["Settings.Capture.gdi"] = "桌面（GDI）",
         ["Settings.FailureScreenshot"] = "运行失败时保存屏幕截图",
         ["Settings.FailureScreenshotHint"] = "保存到程序所在目录下的 logs 文件夹。宏运行顺利时不会写入任何文件。",
         ["Settings.Driver"] = "驱动级输入",
@@ -1898,11 +1940,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.PixelOutsideScreen"] = "这个坐标不在屏幕上：{0}",
         ["Run.EmptyRegion"] = "这不是一个可用的屏幕区域：{0}",
         ["Run.CaptureFailed"] = "这块屏幕区域无法复制：{0}",
-        ["Run.NoCaptureWindow"] =
-            "这一步要取窗口的画面，却没有指定窗口：{0}。把坐标基准选在某个窗口上，"
-            + "或者换成读桌面的抓屏方式。",
         ["Run.NoGraphicsCapture"] =
-            "用图形捕获取不到这个窗口的画面：{0}。可以改成让窗口自己画，或者读桌面。",
+            "这台机器用这种方式读不到画面：{0}。Graphics Capture 需要 Windows 10 2004 或更高版本"
+            + "与 Direct3D 11 设备；显卡不肯交出的显示器它也读不到。",
         ["Run.BadRegion"] = "搜索区域要写成 x,y,宽,高 的形式：{0}",
         ["Run.BadPoints"] = "多点比色里的每个点要写成 x,y,#RRGGBB 的形式：{0}",
         ["Run.BadPattern"] = "这不是一个可用的匹配模式：{0}",

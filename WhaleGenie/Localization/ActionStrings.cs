@@ -89,40 +89,6 @@ internal static class ActionStrings
         + "动作时用它；勾上后上面的“X”“Y”不写进宏文件，也不再参与。";
 
     /// <summary>
-    /// The label and hint every step that looks at the screen shares for the capture picker: they
-    /// ask one question — where the pixels come from and how they are taken — so they are written
-    /// once.
-    /// </summary>
-    private const string CaptureModeLabel = "抓屏方式";
-
-    private const string CaptureModeHint =
-        "这一步的画面从哪儿来、怎么取。自动（默认）：桌面按原来的方式复制，窗口走图形捕获，"
-        + "这台机器没有图形捕获时退回让窗口自己画。桌面（GDI）：最省，不要求显卡，"
-        + "但坐标基准在窗口上时会取到压在它上面的窗口。窗口（PrintWindow）：让窗口自己画一遍，"
-        + "多数窗口都行，取到的是整窗，含标题栏。窗口（图形捕获）：取窗口自己显示的内容，"
-        + "被别的窗口压住或开在后台也取得到，只有内容区、不含标题栏，需要 Windows 10 2004 "
-        + "或更高版本。整屏（图形捕获）：取整块屏幕，独占全屏的游戏用它。"
-        + "两种窗口方式要求坐标基准选在窗口上，否则这一步会报错。";
-
-    /// <summary>The same for the one step that is about a single window, whose ways are its own.</summary>
-    private const string WindowCaptureModeHint =
-        "这个窗口的画面怎么取。自动（默认）：走图形捕获，这台机器没有图形捕获时退回让窗口自己画。"
-        + "窗口（PrintWindow）：让窗口自己画一遍，多数窗口都行，取到的是整窗，含标题栏。"
-        + "窗口（图形捕获）：取窗口自己显示的内容，被别的窗口压住也取得到，只有内容区、"
-        + "不含标题栏，需要 Windows 10 2004 或更高版本。";
-
-    /// <summary>The ways a picture can be taken, named the same wherever they are offered.</summary>
-    private const string CaptureAuto = "自动";
-
-    private const string CaptureGdi = "桌面（GDI）";
-
-    private const string CapturePrintWindow = "窗口（PrintWindow）";
-
-    private const string CaptureGraphics = "窗口（图形捕获）";
-
-    private const string CaptureGraphicsDesktop = "整屏（图形捕获）";
-
-    /// <summary>
     /// The label and hint every step that looks at the screen shares for how old a picture it will
     /// accept, written once for the same reason the capture picker is.
     /// </summary>
@@ -2276,13 +2242,6 @@ internal static class ActionStrings
         ["vision.findColors.anchorCompareBy.option.contains"] = WindowCompareContains,
         ["vision.findColors.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
         ["vision.findColors.anchorCompareBy.option.regex"] = WindowCompareRegex,
-        ["vision.findColors.captureMode.label"] = CaptureModeLabel,
-        ["vision.findColors.captureMode.hint"] = CaptureModeHint,
-        ["vision.findColors.captureMode.option.auto"] = CaptureAuto,
-        ["vision.findColors.captureMode.option.gdi"] = CaptureGdi,
-        ["vision.findColors.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["vision.findColors.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["vision.findColors.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
         ["vision.findColors.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
         ["vision.findColors.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
         ["vision.findColors.return.match.label"] = "位置",
@@ -2400,13 +2359,6 @@ internal static class ActionStrings
         ["condition.colorsExist.anchorCompareBy.option.contains"] = WindowCompareContains,
         ["condition.colorsExist.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
         ["condition.colorsExist.anchorCompareBy.option.regex"] = WindowCompareRegex,
-        ["condition.colorsExist.captureMode.label"] = CaptureModeLabel,
-        ["condition.colorsExist.captureMode.hint"] = CaptureModeHint,
-        ["condition.colorsExist.captureMode.option.auto"] = CaptureAuto,
-        ["condition.colorsExist.captureMode.option.gdi"] = CaptureGdi,
-        ["condition.colorsExist.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["condition.colorsExist.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["condition.colorsExist.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
         ["condition.colorsExist.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
         ["condition.colorsExist.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
 
@@ -2445,13 +2397,6 @@ internal static class ActionStrings
         ["condition.colorCoverage.anchorCompareBy.option.contains"] = WindowCompareContains,
         ["condition.colorCoverage.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
         ["condition.colorCoverage.anchorCompareBy.option.regex"] = WindowCompareRegex,
-        ["condition.colorCoverage.captureMode.label"] = CaptureModeLabel,
-        ["condition.colorCoverage.captureMode.hint"] = CaptureModeHint,
-        ["condition.colorCoverage.captureMode.option.auto"] = CaptureAuto,
-        ["condition.colorCoverage.captureMode.option.gdi"] = CaptureGdi,
-        ["condition.colorCoverage.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["condition.colorCoverage.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["condition.colorCoverage.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
         ["condition.colorCoverage.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
         ["condition.colorCoverage.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
 
@@ -3134,42 +3079,6 @@ internal static class ActionStrings
         ["condition.randomChance.percent.hint"] = "条件为真的概率。",
 
         // --------------------------------------------------- 抓屏方式（看屏幕的步骤都有这一个字段）
-        ["vision.capture.captureMode.label"] = CaptureModeLabel,
-        ["vision.capture.captureMode.hint"] = CaptureModeHint,
-        ["vision.captureWindow.captureMode.label"] = CaptureModeLabel,
-        ["vision.captureWindow.captureMode.hint"] = WindowCaptureModeHint,
-        ["vision.findImage.captureMode.label"] = CaptureModeLabel,
-        ["vision.findImage.captureMode.hint"] = CaptureModeHint,
-        ["vision.waitImage.captureMode.label"] = CaptureModeLabel,
-        ["vision.waitImage.captureMode.hint"] = CaptureModeHint,
-        ["vision.clickImage.captureMode.label"] = CaptureModeLabel,
-        ["vision.clickImage.captureMode.hint"] = CaptureModeHint,
-        ["vision.getPixel.captureMode.label"] = CaptureModeLabel,
-        ["vision.getPixel.captureMode.hint"] = CaptureModeHint,
-        ["vision.waitColor.captureMode.label"] = CaptureModeLabel,
-        ["vision.waitColor.captureMode.hint"] = CaptureModeHint,
-        ["vision.findColor.captureMode.label"] = CaptureModeLabel,
-        ["vision.findColor.captureMode.hint"] = CaptureModeHint,
-        ["vision.waitStable.captureMode.label"] = CaptureModeLabel,
-        ["vision.waitStable.captureMode.hint"] = CaptureModeHint,
-        ["ocr.recognize.captureMode.label"] = CaptureModeLabel,
-        ["ocr.recognize.captureMode.hint"] = CaptureModeHint,
-        ["ocr.findText.captureMode.label"] = CaptureModeLabel,
-        ["ocr.findText.captureMode.hint"] = CaptureModeHint,
-        ["ocr.clickText.captureMode.label"] = CaptureModeLabel,
-        ["ocr.clickText.captureMode.hint"] = CaptureModeHint,
-        ["condition.imageExists.captureMode.label"] = CaptureModeLabel,
-        ["condition.imageExists.captureMode.hint"] = CaptureModeHint,
-        ["condition.imageNotExists.captureMode.label"] = CaptureModeLabel,
-        ["condition.imageNotExists.captureMode.hint"] = CaptureModeHint,
-        ["condition.textExists.captureMode.label"] = CaptureModeLabel,
-        ["condition.textExists.captureMode.hint"] = CaptureModeHint,
-        ["condition.textNotExists.captureMode.label"] = CaptureModeLabel,
-        ["condition.textNotExists.captureMode.hint"] = CaptureModeHint,
-        ["condition.colorEquals.captureMode.label"] = CaptureModeLabel,
-        ["condition.colorEquals.captureMode.hint"] = CaptureModeHint,
-        ["condition.colorsMatch.captureMode.label"] = CaptureModeLabel,
-        ["condition.colorsMatch.captureMode.hint"] = CaptureModeHint,
 
         // --------------------------------------------------- 画面复用（看屏幕的步骤也都有这一个字段）
         ["vision.capture.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
@@ -3335,95 +3244,7 @@ internal static class ActionStrings
         ["control.log.level.option.error"] = "错误",
         ["control.log.level.option.debug"] = "调试",
 
-        ["vision.capture.captureMode.option.auto"] = CaptureAuto,
-        ["vision.capture.captureMode.option.gdi"] = CaptureGdi,
-        ["vision.capture.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["vision.capture.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["vision.capture.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
-        ["vision.captureWindow.captureMode.option.auto"] = CaptureAuto,
-        ["vision.captureWindow.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["vision.captureWindow.captureMode.option.graphicsCapture"] = CaptureGraphics,
 
-        ["vision.findImage.captureMode.option.auto"] = CaptureAuto,
-        ["vision.findImage.captureMode.option.gdi"] = CaptureGdi,
-        ["vision.findImage.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["vision.findImage.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["vision.findImage.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
-        ["vision.waitImage.captureMode.option.auto"] = CaptureAuto,
-        ["vision.waitImage.captureMode.option.gdi"] = CaptureGdi,
-        ["vision.waitImage.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["vision.waitImage.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["vision.waitImage.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
-        ["vision.clickImage.captureMode.option.auto"] = CaptureAuto,
-        ["vision.clickImage.captureMode.option.gdi"] = CaptureGdi,
-        ["vision.clickImage.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["vision.clickImage.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["vision.clickImage.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
-        ["vision.getPixel.captureMode.option.auto"] = CaptureAuto,
-        ["vision.getPixel.captureMode.option.gdi"] = CaptureGdi,
-        ["vision.getPixel.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["vision.getPixel.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["vision.getPixel.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
-        ["vision.waitColor.captureMode.option.auto"] = CaptureAuto,
-        ["vision.waitColor.captureMode.option.gdi"] = CaptureGdi,
-        ["vision.waitColor.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["vision.waitColor.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["vision.waitColor.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
-        ["vision.findColor.captureMode.option.auto"] = CaptureAuto,
-        ["vision.findColor.captureMode.option.gdi"] = CaptureGdi,
-        ["vision.findColor.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["vision.findColor.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["vision.findColor.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
-        ["vision.waitStable.captureMode.option.auto"] = CaptureAuto,
-        ["vision.waitStable.captureMode.option.gdi"] = CaptureGdi,
-        ["vision.waitStable.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["vision.waitStable.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["vision.waitStable.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
-        ["ocr.recognize.captureMode.option.auto"] = CaptureAuto,
-        ["ocr.recognize.captureMode.option.gdi"] = CaptureGdi,
-        ["ocr.recognize.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["ocr.recognize.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["ocr.recognize.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
-        ["ocr.findText.captureMode.option.auto"] = CaptureAuto,
-        ["ocr.findText.captureMode.option.gdi"] = CaptureGdi,
-        ["ocr.findText.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["ocr.findText.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["ocr.findText.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
-        ["ocr.clickText.captureMode.option.auto"] = CaptureAuto,
-        ["ocr.clickText.captureMode.option.gdi"] = CaptureGdi,
-        ["ocr.clickText.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["ocr.clickText.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["ocr.clickText.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
-        ["condition.imageExists.captureMode.option.auto"] = CaptureAuto,
-        ["condition.imageExists.captureMode.option.gdi"] = CaptureGdi,
-        ["condition.imageExists.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["condition.imageExists.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["condition.imageExists.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
-        ["condition.imageNotExists.captureMode.option.auto"] = CaptureAuto,
-        ["condition.imageNotExists.captureMode.option.gdi"] = CaptureGdi,
-        ["condition.imageNotExists.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["condition.imageNotExists.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["condition.imageNotExists.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
-        ["condition.textExists.captureMode.option.auto"] = CaptureAuto,
-        ["condition.textExists.captureMode.option.gdi"] = CaptureGdi,
-        ["condition.textExists.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["condition.textExists.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["condition.textExists.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
-        ["condition.textNotExists.captureMode.option.auto"] = CaptureAuto,
-        ["condition.textNotExists.captureMode.option.gdi"] = CaptureGdi,
-        ["condition.textNotExists.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["condition.textNotExists.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["condition.textNotExists.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
-        ["condition.colorEquals.captureMode.option.auto"] = CaptureAuto,
-        ["condition.colorEquals.captureMode.option.gdi"] = CaptureGdi,
-        ["condition.colorEquals.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["condition.colorEquals.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["condition.colorEquals.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
-        ["condition.colorsMatch.captureMode.option.auto"] = CaptureAuto,
-        ["condition.colorsMatch.captureMode.option.gdi"] = CaptureGdi,
-        ["condition.colorsMatch.captureMode.option.printWindow"] = CapturePrintWindow,
-        ["condition.colorsMatch.captureMode.option.graphicsCapture"] = CaptureGraphics,
-        ["condition.colorsMatch.captureMode.option.graphicsCaptureDesktop"] = CaptureGraphicsDesktop,
 
         // control.waitUntil
         ["control.waitUntil.return.elapsed.label"] = "用时",
