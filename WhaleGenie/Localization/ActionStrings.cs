@@ -2754,7 +2754,7 @@ internal static class ActionStrings
         ["vision.waitColor.intervalMs.label"] = LookIntervalLabel,
         ["vision.waitColor.intervalMs.hint"] = LookPollHint(50),
         ["vision.findColor.intervalMs.label"] = LookIntervalLabel,
-        ["vision.findColor.intervalMs.hint"] = LookPollHint(200),
+        ["vision.findColor.intervalMs.hint"] = LookGapHint,
         ["vision.waitStable.intervalMs.label"] = LookIntervalLabel,
         ["vision.waitStable.intervalMs.hint"] = LookPollHint(100),
         ["ocr.recognize.intervalMs.label"] = LookIntervalLabel,
