@@ -13,6 +13,12 @@ public enum ValueKind
     Bool,
     Text,
     List,
+
+    /// <summary>
+    /// Named fields in the order they were written. A hit found on the screen and one window out of
+    /// a listing are records: several answers about one thing, which belong together.
+    /// </summary>
+    Record,
 }
 
 /// <summary>
@@ -25,14 +31,17 @@ public sealed class Value : IEquatable<Value>
     private readonly bool _flag;
     private readonly string _text;
     private readonly List<Value> _items;
+    private readonly List<(string Name, Value Value)> _fields;
 
-    private Value(ValueKind kind, double number, bool flag, string text, List<Value>? items)
+    private Value(ValueKind kind, double number, bool flag, string text, List<Value>? items,
+        List<(string Name, Value Value)>? fields = null)
     {
         Kind = kind;
         _number = number;
         _flag = flag;
         _text = text;
         _items = items ?? [];
+        _fields = fields ?? [];
     }
 
     /// <summary>The empty value, used for a variable nothing has set yet.</summary>
@@ -48,11 +57,20 @@ public sealed class Value : IEquatable<Value>
 
     public static Value FromList(IEnumerable<Value> items) => new(ValueKind.List, 0, false, string.Empty, [.. items]);
 
+    /// <summary>
+    /// A record out of fields written in turn. The order is kept as it was given, because that is
+    /// the order a reader — and the text a record writes itself as — sees them.
+    /// </summary>
+    public static Value FromRecord(IEnumerable<(string Name, Value Value)> fields)
+        => new(ValueKind.Record, 0, false, string.Empty, null, [.. fields]);
+
     public bool IsNull => Kind is ValueKind.Null;
 
     public bool IsList => Kind is ValueKind.List;
 
     public bool IsNumber => Kind is ValueKind.Number;
+
+    public bool IsRecord => Kind is ValueKind.Record;
 
     /// <summary>The raw number when <see cref="Kind"/> is <see cref="ValueKind.Number"/>.</summary>
     public double Number => _number;
@@ -65,6 +83,27 @@ public sealed class Value : IEquatable<Value>
 
     /// <summary>Items of a list, or an empty sequence for the other kinds.</summary>
     public IReadOnlyList<Value> Items => _items;
+
+    /// <summary>The fields of a record, or an empty sequence for the other kinds.</summary>
+    public IReadOnlyList<(string Name, Value Value)> Fields => _fields;
+
+    /// <summary>True when a record has a field by that name; names are read without caring about case.</summary>
+    public bool HasField(string name)
+        => _fields.Any(field => string.Equals(field.Name, name, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>One field of a record, or nothing when it has none by that name.</summary>
+    public Value? Field(string name)
+    {
+        foreach (var (field, value) in _fields)
+        {
+            if (string.Equals(field, name, StringComparison.OrdinalIgnoreCase))
+            {
+                return value;
+            }
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// Reads the value as a list: a list gives its items, the empty value gives nothing
@@ -95,6 +134,8 @@ public sealed class Value : IEquatable<Value>
                 throw ExpressionException.TypeMismatch($"\"{_text}\" is not a number");
             case ValueKind.List:
                 throw ExpressionException.TypeMismatch("a list is not a number");
+            case ValueKind.Record:
+                throw ExpressionException.TypeMismatch("a record is not a number");
             default:
                 return 0;
         }
@@ -109,6 +150,7 @@ public sealed class Value : IEquatable<Value>
             && !string.Equals(_text, "false", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(_text, "0", StringComparison.Ordinal),
         ValueKind.List => _items.Count > 0,
+        ValueKind.Record => _fields.Count > 0,
         _ => false,
     };
 
@@ -119,6 +161,7 @@ public sealed class Value : IEquatable<Value>
         ValueKind.Bool => _flag ? "true" : "false",
         ValueKind.Text => _text,
         ValueKind.List => string.Join(", ", _items.Select(item => item.AsText())),
+        ValueKind.Record => JsonValues.Written(this),
         _ => string.Empty,
     };
 
@@ -158,6 +201,18 @@ public sealed class Value : IEquatable<Value>
         if (Kind is ValueKind.List || other.Kind is ValueKind.List)
         {
             return Kind == other.Kind && _items.SequenceEqual(other._items);
+        }
+
+        if (Kind is ValueKind.Record || other.Kind is ValueKind.Record)
+        {
+            // Field names are compared as written while everything a user types is read without
+            // caring about case: what a record writes itself as has to be the text the comparison
+            // of two records agrees on, because that text is also their hash.
+            return Kind == other.Kind
+                && _fields.Count == other._fields.Count
+                && _fields.Zip(other._fields).All(pair =>
+                    string.Equals(pair.First.Name, pair.Second.Name, StringComparison.Ordinal)
+                    && Equals(pair.First.Value, pair.Second.Value));
         }
 
         if (Kind is ValueKind.Number && other.Kind is ValueKind.Number)

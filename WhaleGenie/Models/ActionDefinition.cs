@@ -138,6 +138,12 @@ public enum ActionReturnType
     /// <summary>A list of values.</summary>
     List,
 
+    /// <summary>
+    /// Named fields about one thing, such as the place, the size and the score of one hit. Read a
+    /// field of it with <c>field(记录, 名字)</c>.
+    /// </summary>
+    Record,
+
     /// <summary>A picture, which a later step can search for.</summary>
     Image,
 }
@@ -183,6 +189,7 @@ public sealed class ActionReturn
         ActionReturnType.Number => "number",
         ActionReturnType.Flag => "flag",
         ActionReturnType.List => "list",
+        ActionReturnType.Record => "record",
         ActionReturnType.Image => "image",
         _ => "text",
     };

@@ -5393,41 +5393,12 @@ public sealed class MacroRunner
         _ => throw new StepFailure("Run.BadJsonPath", query),
     };
 
-    private static JsonNode? ToJson(Value value)
-    {
-        switch (value.Kind)
-        {
-            case ValueKind.Null:
-                return null;
-            case ValueKind.Number:
-                return JsonValue.Create(value.Number);
-            case ValueKind.Bool:
-                return JsonValue.Create(value.Flag);
-            case ValueKind.List:
-                {
-                    var array = new JsonArray();
-                    foreach (var item in value.Items)
-                    {
-                        array.Add(ToJson(item));
-                    }
+    // A document and the values a macro works with are the same shape, and the one place that
+    // knows how the two are written as each other is JsonValues, so a record read out of a file is
+    // the record that went into it.
+    private static JsonNode? ToJson(Value value) => JsonValues.Node(value);
 
-                    return array;
-                }
-            default:
-                return JsonValue.Create(value.Text);
-        }
-    }
-
-    private static Value FromJson(JsonNode? node) => node switch
-    {
-        null => Value.Null,
-        JsonArray array => Value.FromList(array.Select(FromJson)),
-        JsonObject obj => Value.FromText(obj.ToJsonString()),
-        JsonValue value => value.TryGetValue<bool>(out var flag) ? Value.FromBool(flag)
-            : value.TryGetValue<double>(out var number) ? Value.FromNumber(number)
-            : Value.FromText(value.TryGetValue<string>(out var text) ? text : value.ToJsonString()),
-        _ => Value.Null,
-    };
+    private static Value FromJson(JsonNode? node) => JsonValues.FromJson(node);
 
     /// <summary>The character between two CSV cells.</summary>
     /// <summary>

@@ -189,7 +189,10 @@ internal static class FunctionLibrary
             + "text.", 2, Any, args => Value.FromText(JsonOf(args))),
         Fn("toJson", "toJson(value)",
             "A value written as JSON text, so a list becomes an array.", 1, 1,
-            args => Value.FromText(Node(V(args, 0))?.ToJsonString() ?? "null")),
+            args => Value.FromText(JsonValues.Written(V(args, 0)))),
+        Fn("field", "field(record, name)", "One field of a record, such as the x of a hit. The "
+            + "fields the record does have are listed when the name is not one of them.", 2, 2,
+            args => Field(args)),
     ];
 
     private static readonly Dictionary<string, FunctionEntry> ByName =
@@ -228,9 +231,35 @@ internal static class FunctionLibrary
     private static double Length(Value value) => value.Kind switch
     {
         ValueKind.List => value.Items.Count,
+        ValueKind.Record => value.Fields.Count,
         ValueKind.Null => 0,
         _ => value.AsText().Length,
     };
+
+    /// <summary>
+    /// One field of a record. A name the record does not have, or a value that is not a record at
+    /// all, is a mistake worth saying out loud — and the message lists the fields the record does
+    /// have, because those names come from the action that made it and nobody remembers them all.
+    /// </summary>
+    private static Value Field(IReadOnlyList<Func<Value>> args)
+    {
+        var record = V(args, 0);
+        if (record.Kind is not ValueKind.Record)
+        {
+            throw ExpressionException.TypeMismatch($"\"{record.AsText()}\" is not a record");
+        }
+
+        var name = S(args, 1).Trim();
+        if (record.Field(name) is { } found)
+        {
+            return found;
+        }
+
+        var names = string.Join(", ", record.Fields.Select(field => field.Name));
+        throw ExpressionException.TypeMismatch(names.Length == 0
+            ? $"a record has no field \"{name}\"; it has no fields at all"
+            : $"a record has no field \"{name}\"; it has {names}");
+    }
 
     private static string Substring(IReadOnlyList<Func<Value>> args)
     {
@@ -614,7 +643,7 @@ internal static class FunctionLibrary
     private static Value JsonGet(IReadOnlyList<Func<Value>> args)
     {
         var (found, node) = Located(args);
-        return found ? AsValue(node) : Value.Null;
+        return found ? JsonValues.FromJson(node) : Value.Null;
     }
 
     private static (bool Found, JsonNode? Node) Located(IReadOnlyList<Func<Value>> args)
@@ -654,44 +683,6 @@ internal static class FunctionLibrary
     }
 
     /// <summary>
-    /// A JSON node as one of the engine's values. An object cannot be one of them, so it
-    /// comes back as the text the reader can hand straight to another JSON function.
-    /// </summary>
-    private static Value AsValue(JsonNode? node)
-    {
-        switch (node)
-        {
-            case null:
-                return Value.Null;
-            case JsonArray array:
-                return Value.FromList(array.Select(item => AsValue(item)));
-            case JsonObject obj:
-                return Value.FromText(obj.ToJsonString());
-            case JsonValue scalar:
-                return Scalar(scalar);
-            default:
-                return Value.Null;
-        }
-    }
-
-    private static Value Scalar(JsonValue value)
-    {
-        if (value.TryGetValue<bool>(out var flag))
-        {
-            return Value.FromBool(flag);
-        }
-
-        if (value.TryGetValue<double>(out var number))
-        {
-            return Value.FromNumber(number);
-        }
-
-        return value.TryGetValue<string>(out var text)
-            ? Value.FromText(text)
-            : Value.FromText(value.ToJsonString());
-    }
-
-    /// <summary>
     /// Names and values in turn, made into one object and kept in the order they were written.
     /// A name with no value after it is a mistake worth saying out loud, because joining the two
     /// halves up wrongly would otherwise quietly produce a document with the wrong fields in it.
@@ -713,7 +704,7 @@ internal static class FunctionLibrary
                 throw ExpressionException.TypeMismatch("a field of an object has to be named");
             }
 
-            made[name] = Node(args[index + 1]());
+            made[name] = JsonValues.Node(args[index + 1]());
         }
 
         return made.ToJsonString();
@@ -722,7 +713,7 @@ internal static class FunctionLibrary
     private static string JsonSet(IReadOnlyList<Func<Value>> args)
     {
         var steps = Path(S(args, 1));
-        var value = Node(V(args, 2));
+        var value = JsonValues.Node(V(args, 2));
         if (steps.Count == 0)
         {
             // Setting the document itself replaces it, so a macro can start from nothing.
@@ -816,30 +807,6 @@ internal static class FunctionLibrary
         => current as JsonArray
            ?? throw ExpressionException.TypeMismatch(
                $"the path steps into [{position}] but that part is not a list");
-
-    /// <summary>A value written as JSON, so it can be put into a document or sent on.</summary>
-    private static JsonNode? Node(Value value)
-    {
-        switch (value.Kind)
-        {
-            case ValueKind.Null:
-                return null;
-            case ValueKind.Number:
-                return JsonValue.Create(value.Number);
-            case ValueKind.Bool:
-                return JsonValue.Create(value.Flag);
-            case ValueKind.Text:
-                return JsonValue.Create(value.Text);
-            default:
-                var array = new JsonArray();
-                foreach (var item in value.Items)
-                {
-                    array.Add(Node(item));
-                }
-
-                return array;
-        }
-    }
 
     /// <summary>
     /// Reads a path such as <c>a.b[0].c</c> or <c>$.a.b</c> into the field names and the

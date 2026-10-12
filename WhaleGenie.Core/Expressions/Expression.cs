@@ -524,7 +524,8 @@ file sealed class Parser
 
     private static Value Add(Value left, Value right)
     {
-        if (left.Kind is ValueKind.Text or ValueKind.List || right.Kind is ValueKind.Text or ValueKind.List)
+        if (left.Kind is ValueKind.Text or ValueKind.List or ValueKind.Record
+            || right.Kind is ValueKind.Text or ValueKind.List or ValueKind.Record)
         {
             return Value.FromText(left.AsText() + right.AsText());
         }
