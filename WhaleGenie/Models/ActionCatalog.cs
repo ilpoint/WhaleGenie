@@ -2961,7 +2961,10 @@ public static class ActionCatalog
                     "The pictures to look for, one row each, tried in the order they are listed; the "
                     + "condition is true as soon as one of them turns up."),
                 ImageSet(),
-                Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
+                Number("confidence", "Confidence %", 90,
+                    "The lowest match confidence that still counts as found, as a whole percent from "
+                    + "0 to 100; 90 by default. Lower it for a reference picture that is drawn a "
+                    + "little differently each time.", max: 100, advanced: true),
                 Region(),
                 ..Capture(),
                 LookGap(0),
@@ -2980,7 +2983,10 @@ public static class ActionCatalog
                     "The pictures to look for, one row each, tried in the order they are listed; the "
                     + "condition is true only when none of them turns up."),
                 ImageSet(),
-                Number("confidence", "Confidence %", 90, "Required match confidence.", max: 100, advanced: true),
+                Number("confidence", "Confidence %", 90,
+                    "The lowest match confidence that still counts as found, as a whole percent from "
+                    + "0 to 100; 90 by default. Lower it for a reference picture that is drawn a "
+                    + "little differently each time.", max: 100, advanced: true),
                 Region(),
                 ..Capture(),
                 LookGap(0),
@@ -3051,8 +3057,12 @@ public static class ActionCatalog
             Description = "True when a pixel matches a colour.",
             Parameters =
             [
-                Number("x", "X", 0, "Screen column to compare."),
-                Number("y", "Y", 0, "Screen row to compare."),
+                Number("x", "X", 0,
+                    "The column of the pixel to compare, counted from the coordinate origin above, "
+                    + "in pixels; 0 by default."),
+                Number("y", "Y", 0,
+                    "The row of the pixel to compare, counted from the coordinate origin above, in "
+                    + "pixels; 0 by default."),
                 ..Anchor(),
                 ..Capture(),
                 LookGap(0),
@@ -3156,7 +3166,7 @@ public static class ActionCatalog
                     "Variable to test. Suggestions come from the variables earlier steps create.",
                     namesVariable: true),
                 Choice("operator", "Operator", ComparisonOperators, "equals",
-                    "How the variable is compared against the value.",
+                    "How the variable is compared against the value; equal to by default.",
                     labels: ComparisonOperatorLabels),
                 Variable("value", "Variable or value", "3",
                     "Pick another variable from the list, or type a number or text. "
@@ -3177,8 +3187,8 @@ public static class ActionCatalog
                     + "action and its name; a step the run has not reached yet answers \"not "
                     + "reached\" rather than \"no\"."),
                 Choice("expected", "Should have", ["ok", "failed", "skipped"], "ok",
-                    "How that step should have ended: it did what it was asked to, it failed, or "
-                    + "the run never got to it.",
+                    "How that step should have ended, succeeded by default: it did what it was asked "
+                    + "to, it failed, or the run never got to it.",
                     labels: ["Succeeded", "Failed", "Not reached"]),
             ],
         },
@@ -3235,8 +3245,8 @@ public static class ActionCatalog
             Parameters =
             [
                 Choice("match", "Look at", ["title", "process"], "title",
-                    "Whether the value is looked for in the window's title, which is what is "
-                    + "written on it, or in the name of the program that owns it.",
+                    "Whether the value is looked for in the window's title, which is what is written "
+                    + "on it, or in the name of the program that owns it; the title by default.",
                     labels: ["The title", "The program"]),
                 Text("value", "Window", "Untitled - Notepad",
                     "Part of it is enough, and case does not matter. Leave it empty to ask "
@@ -3255,10 +3265,11 @@ public static class ActionCatalog
                 Variable("value", "Value", "$count",
                     "The value to place on the number line.", acceptsFormula: true),
                 Variable("min", "Lowest", "1",
-                    "One end of the range. Either end may be written first.", acceptsFormula: true),
+                    "One end of the range, 1 by default. Either end may be written first.",
+                    acceptsFormula: true),
                 Variable("max", "Highest", "10",
-                    "The other end of the range. Both ends count as inside, so a range of 1 to "
-                    + "10 holds 1 and 10.", acceptsFormula: true),
+                    "The other end of the range, 10 by default. Both ends count as inside, so a "
+                    + "range of 1 to 10 holds 1 and 10.", acceptsFormula: true),
             ],
         },
         new()
@@ -3274,12 +3285,12 @@ public static class ActionCatalog
                     + "such as 2026-01-31 or 09:30, or work one out with today().",
                     acceptsFormula: true),
                 Choice("operator", "Compare", ["before", "after", "same", "sameDay"], "after",
-                    "How the first date stands against the second. \"The same day\" ignores the "
-                    + "time of day, which is what asking whether something has happened today "
-                    + "needs.",
+                    "How the first date stands against the second; is after by default. \"The same "
+                    + "day\" ignores the time of day, which is what asking whether something has "
+                    + "happened today needs.",
                     labels: ["Is before", "Is after", "Is exactly", "Is the same day"]),
                 Variable("right", "Against", "2026-01-01",
-                    "The date it is compared against, written the same ways.",
+                    "The date it is compared against, written the same ways; 2026-01-01 by default.",
                     acceptsFormula: true),
             ],
         },
@@ -3292,7 +3303,8 @@ public static class ActionCatalog
             Parameters =
             [
                 Choice("op", "Logic", ["and", "or", "none"], "and",
-                    "How the child conditions are combined. Available once the group has two or more.",
+                    "How the child conditions are combined, AND by default. Available once the "
+                    + "group has two or more.",
                     labels: ["AND (all match)", "OR (any matches)", "NONE (none match)"],
                     enabledBySibling: "conditions"),
                 ConditionList("conditions", "Conditions",
@@ -4358,7 +4370,8 @@ public static class ActionCatalog
     /// <summary>How OCR text searches compare their match.</summary>
     private static ActionParameter TextMatch()
         => Choice("matchMode", "Match mode", ["contains", "exact", "regex"], "contains",
-            "How the found text is compared against the search text.");
+            "How the text that was read is compared against the text being looked for; by default "
+            + "it has to contain it.");
 
     /// <summary>
     /// Whether a step wants everything that can be read, or only the numbers. Shared by the three
@@ -4472,7 +4485,8 @@ public static class ActionCatalog
 
     /// <summary>A window title, filled in from the windows that are open by the window picker.</summary>
     private static ActionParameter Window(string name = "window",
-        string hint = "Optional window title filter. Leave empty to search every window.",
+        string hint = "Optional: look only in windows whose title holds this text. Leave it empty "
+            + "to look in every window.",
         bool required = false)
         => new()
         {
