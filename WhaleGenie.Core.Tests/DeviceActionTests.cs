@@ -5452,6 +5452,36 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Listing_the_displays_hands_over_one_record_to_a_display()
+    {
+        // Two displays side by side, the second one to the right of the primary: a macro that has
+        // to work over there reads where "over there" is instead of having one machine's numbers
+        // written into it. A display to the left of the primary one would start at a negative
+        // number, and that is exactly what the step has to hand over.
+        var devices = new FakeDeviceLayer
+        {
+            Desktop = new ScreenLayout(
+                new ScreenArea(0, 0, 300, 100),
+                [
+                    new ScreenDisplay(new ScreenArea(0, 0, 100, 100), true),
+                    new ScreenDisplay(new ScreenArea(100, 0, 200, 100), false),
+                ]),
+        };
+        var (_, _, store) = await RunAsync(
+            [Step("screen.list", Returns("displays=desk"))], devices);
+
+        var displays = store.Local.Values["desk"].AsList();
+        Assert.Equal(2, displays.Count);
+        Assert.Equal("0,0,100,100", displays[0].Field("box")!.AsText());
+        Assert.Equal("100,0,200,100", displays[1].Field("box")!.AsText());
+        Assert.Equal("100", displays[1].Field("left")!.AsText());
+        Assert.Equal("200", displays[1].Field("width")!.AsText());
+        Assert.Equal("300", displays[1].Field("right")!.AsText());
+        Assert.True(displays[0].Field("primary")!.AsBool());
+        Assert.False(displays[1].Field("primary")!.AsBool());
+    }
+
+    [Fact]
     public async Task The_power_action_asks_for_the_thing_the_macro_picked()
     {
         var devices = new FakeDeviceLayer();
@@ -7041,7 +7071,12 @@ internal sealed class FakeDeviceLayer
 
     public ScreenPoint Cursor { get; set; } = new(7, 9);
 
-    public ScreenSize PrimarySize { get; set; } = new(100, 50);
+    /// <summary>
+    /// How the pretend desk is laid out. One display to begin with; a check about several sets this
+    /// to a layout with more, in the coordinates Windows would report them in.
+    /// </summary>
+    public ScreenLayout Desktop { get; set; } = new(new ScreenArea(0, 0, 100, 50),
+        [new ScreenDisplay(new ScreenArea(0, 0, 100, 50), true)]);
 
     /// <summary>
     /// How long one refresh of the pretend screen lasts. A check that wants to see how often a

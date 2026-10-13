@@ -19,12 +19,17 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
 
     private int? _refresh;
 
-    public ScreenSize PrimarySize
+    /// <summary>
+    /// How the desk is laid out, read from the display itself rather than from a setting: plugging a
+    /// second display in changes what "the whole screen" means, and a macro reading the screen should
+    /// follow the desk it is on.
+    /// </summary>
+    public ScreenLayout Desktop
     {
         get
         {
             Require();
-            return new ScreenSize(GetSystemMetrics(SystemMetricWidth), GetSystemMetrics(SystemMetricHeight));
+            return _grabber.Desktop();
         }
     }
 
@@ -149,9 +154,6 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         }
     }
 
-    private const int SystemMetricWidth = 0;
-    private const int SystemMetricHeight = 1;
-
     /// <summary>The display driver's refresh rate, in whole hertz, asked of a screen context.</summary>
     private const int VerticalRefresh = 116;
 
@@ -161,9 +163,6 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         public int X;
         public int Y;
     }
-
-    [DllImport("user32.dll")]
-    private static extern int GetSystemMetrics(int index);
 
     [DllImport("user32.dll")]
     private static extern bool GetCursorPos(out NativePoint point);

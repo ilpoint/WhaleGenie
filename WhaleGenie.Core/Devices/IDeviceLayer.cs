@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Devices;
 
@@ -58,8 +59,12 @@ public interface IInputDevice
 /// <summary>The screen: its size, its pixels, and pictures of it.</summary>
 public interface IScreenDevice
 {
-    /// <summary>Size of the primary screen, in pixels.</summary>
-    ScreenSize PrimarySize { get; }
+    /// <summary>
+    /// How the desk is laid out right now: one rectangle covering every display, which is what "the
+    /// whole screen" means, and the displays it is made of. Read afresh each time because a display
+    /// is plugged in, unplugged or rearranged while the program runs.
+    /// </summary>
+    ScreenLayout Desktop { get; }
 
     /// <summary>The colour of one pixel.</summary>
     PixelColor PixelAt(int x, int y);
@@ -877,7 +882,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public ScreenPoint Cursor => throw Missing("the pointer position");
 
-        public ScreenSize PrimarySize => throw Missing("the screen");
+        public ScreenLayout Desktop => throw Missing("the screen");
 
         public void KeyPress(string key, int holdMs) => throw Missing("the keyboard");
 

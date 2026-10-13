@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Variables;
+using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Tests;
 
@@ -101,7 +102,8 @@ public class RunLookTests
         ImageMatch? match = null)
         => new()
         {
-            PrimarySize = new ScreenSize(width, height),
+            Desktop = new ScreenLayout(new ScreenArea(0, 0, width, height),
+                [new ScreenDisplay(new ScreenArea(0, 0, width, height), true)]),
             Match = match,
             Loaded = new ImageFrame(2, 2, new byte[16]),
             Display = new ImageFrame(width, height, new byte[width * height * 4]),

@@ -49,14 +49,14 @@ internal sealed class WindowsGraphicsCapture : IPictureSources
         }
     });
 
-    public IPictureSource Open(long window) => _thread.Run(() =>
+    public IPictureSource Open(SourceKey key) => _thread.Run(() =>
     {
         try
         {
-            var item = window == 0
-                ? Interop.ForDisplay()
-                : Interop.ForWindow(new IntPtr(window));
-            return (IPictureSource)Session(item, window);
+            var item = key.IsDisplay
+                ? Interop.ForDisplay(key.Display)
+                : Interop.ForWindow(new IntPtr(key.Window));
+            return (IPictureSource)Session(item, key);
         }
         catch (CaptureUnavailableException)
         {
@@ -65,9 +65,9 @@ internal sealed class WindowsGraphicsCapture : IPictureSources
         catch (Exception error)
         {
             throw new CaptureUnavailableException(
-                window == 0
-                    ? "the display cannot be read this way"
-                    : $"{window:X} cannot be read this way",
+                key.IsDisplay
+                    ? $"the display at {key.Display.Left},{key.Display.Top} cannot be read this way"
+                    : $"{key.Window:X} cannot be read this way",
                 error);
         }
     });
@@ -76,7 +76,7 @@ internal sealed class WindowsGraphicsCapture : IPictureSources
     /// One session on one item: a pool of pictures the size of what is being read, the session that
     /// keeps it filling, and the reading of a frame out of it.
     /// </summary>
-    private WindowsCaptureSession Session(GraphicsCaptureItem item, long window)
+    private WindowsCaptureSession Session(GraphicsCaptureItem item, SourceKey key)
     {
         var devices = Device();
         var pool = Direct3D11CaptureFramePool.CreateFreeThreaded(devices.Runtime,
@@ -88,7 +88,7 @@ internal sealed class WindowsGraphicsCapture : IPictureSources
         session.IsCursorCaptureEnabled = true;
         Interop.WithoutBorder(session);
         session.StartCapture();
-        return new WindowsCaptureSession(devices.Direct3D, devices.Context, pool, session, window);
+        return new WindowsCaptureSession(devices.Direct3D, devices.Context, pool, session, key);
     }
 
     /// <summary>
@@ -151,16 +151,16 @@ internal sealed class WindowsCaptureSession : IPictureSource
     private readonly ID3D11DeviceContext _context;
     private readonly Direct3D11CaptureFramePool _pool;
     private readonly GraphicsCaptureSession _session;
-    private readonly long _window;
+    private readonly SourceKey _key;
 
     public WindowsCaptureSession(ID3D11Device device, ID3D11DeviceContext context,
-        Direct3D11CaptureFramePool pool, GraphicsCaptureSession session, long window)
+        Direct3D11CaptureFramePool pool, GraphicsCaptureSession session, SourceKey key)
     {
         _device = device;
         _context = context;
         _pool = pool;
         _session = session;
-        _window = window;
+        _key = key;
     }
 
     /// <summary>
@@ -180,15 +180,16 @@ internal sealed class WindowsCaptureSession : IPictureSource
         var pixels = Copy(Interop.HeldBy(frame.Surface), size.Width, size.Height);
         var grab = new ScreenGrab(size.Width, size.Height, pixels, CaptureWay.GraphicsCapture);
 
-        // A display's picture starts at the display's corner. A window's starts where the window is
-        // seen, which is where this picture was taken from — the outer rectangle Windows reports runs
-        // a few pixels past what is drawn.
-        if (_window == 0)
+        // A display's picture starts at that display's own corner, which is not the corner of the
+        // desktop once there is more than one of them. A window's starts where the window is seen,
+        // which is where this picture was taken from — the outer rectangle Windows reports runs a
+        // few pixels past what is drawn.
+        if (_key.IsDisplay)
         {
-            return new Picture(grab, 0, 0);
+            return new Picture(grab, _key.Display.Left, _key.Display.Top);
         }
 
-        var seen = WindowsDesktop.Visible(_window);
+        var seen = WindowsDesktop.Visible(_key.Window);
         return new Picture(grab, seen.X, seen.Y);
     }
 

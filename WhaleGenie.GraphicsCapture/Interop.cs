@@ -82,8 +82,13 @@ internal static class Interop
     /// <summary>An item for one window, which is what a session on a window is opened with.</summary>
     public static GraphicsCaptureItem ForWindow(IntPtr window) => ItemFor(window, forWindow: true);
 
-    /// <summary>An item for the primary display, which is what a session on the whole screen is opened with.</summary>
-    public static GraphicsCaptureItem ForDisplay() => ItemFor(Primary(), forWindow: false);
+    /// <summary>
+    /// An item for one display, which is what a session on the whole screen is opened with. The
+    /// display is named by where it sits on the desktop, because a machine with two of them has no
+    /// single item that covers both: reading the whole desktop takes one item each and putting the
+    /// pieces together.
+    /// </summary>
+    public static GraphicsCaptureItem ForDisplay(ScreenArea area) => ItemFor(Monitor(area), forWindow: false);
 
     /// <summary>
     /// The texture a frame was drawn in, out of the surface the type library hands over. Nothing of
@@ -170,13 +175,35 @@ internal static class Interop
         }
     }
 
-    /// <summary>
-    /// The primary display, which is the one the engine's coordinates are counted in: the display
-    /// holding the top left corner of the desktop.
-    /// </summary>
-    private static IntPtr Primary() => MonitorFromPoint(new NativePoint(), PrimaryMonitor);
+    /// <summary>The monitor of the display sitting at this rectangle of the desktop.</summary>
+    private static IntPtr Monitor(ScreenArea area)
+    {
+        var rect = new NativeRect
+        {
+            Left = area.Left,
+            Top = area.Top,
+            Right = area.Right,
+            Bottom = area.Bottom,
+        };
 
-    private const int PrimaryMonitor = 1;
+        return MonitorFromRect(ref rect, NearestMonitor);
+    }
+
+    /// <summary>
+    /// What to do when no monitor holds the rectangle: the nearest one, which is the monitor the
+    /// display showing that corner of the desktop is. The alternative would be no item at all for a
+    /// rectangle that is a handful of pixels past the edge of the layout.
+    /// </summary>
+    private const int NearestMonitor = 2;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NativePoint
@@ -199,7 +226,7 @@ internal static class Interop
     private static extern int CreateDirect3D11DeviceFromDXGIDevice(IntPtr dxgi, out IntPtr device);
 
     [DllImport("user32.dll")]
-    private static extern IntPtr MonitorFromPoint(NativePoint point, int flags);
+    private static extern IntPtr MonitorFromRect(ref NativeRect rect, int flags);
 
     /// <summary>
     /// The Windows Runtime string a class name is asked for as. There is no marshaller for one in

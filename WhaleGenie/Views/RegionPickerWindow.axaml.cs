@@ -178,17 +178,28 @@ public partial class RegionPickerWindow : Window
         Update();
     }
 
-    /// <summary>Stretches the window over the main screen, whatever its scaling is.</summary>
+    /// <summary>
+    /// Stretches the window over the whole desk, whatever its scaling is. A desk of two displays is
+    /// covered corner to corner, so a place on the second one can be picked as easily as one on the
+    /// first — and the origin travels with the window, because what the pointer reads against has to
+    /// be the same number the macro will be written with.
+    /// </summary>
     private void Cover()
     {
-        var size = _screen.PrimarySize;
-        _origin = new PixelPoint(0, 0);
+        var desk = _screen.Desktop.Bounds;
+        _origin = new PixelPoint(desk.Left, desk.Top);
         _scaling = RenderScaling <= 0 ? 1 : RenderScaling;
+        var size = new ScreenSize(desk.Width, desk.Height);
 
-        if (Screens.Primary is { } screen)
+        if (Screens.All.Count > 0)
         {
-            _origin = screen.Bounds.Position;
-            size = new ScreenSize(screen.Bounds.Width, screen.Bounds.Height);
+            var left = Screens.All.Min(screen => screen.Bounds.X);
+            var top = Screens.All.Min(screen => screen.Bounds.Y);
+            var right = Screens.All.Max(screen => screen.Bounds.X + screen.Bounds.Width);
+            var bottom = Screens.All.Max(screen => screen.Bounds.Y + screen.Bounds.Height);
+
+            _origin = new PixelPoint(left, top);
+            size = new ScreenSize(right - left, bottom - top);
         }
 
         Width = size.Width / _scaling;

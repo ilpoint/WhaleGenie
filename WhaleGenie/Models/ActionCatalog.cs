@@ -1533,7 +1533,7 @@ public static class ActionCatalog
                         "systemFolder", "tempFolder", "userFolder", "desktopFolder",
                         "documentsFolder", "downloadsFolder", "startupFolder", "appDataFolder",
                         "programFiles", "networkConnected", "networkNames", "localIp",
-                        "batteryPercent", "onAcPower", "monitorCount", "monitorBounds", "dpi",
+                        "batteryPercent", "onAcPower", "dpi",
                         "dpiPercent", "uptimeSeconds",
                     ],
                     "userName", "Which fact to read; the user name by default.",
@@ -1543,9 +1543,30 @@ public static class ActionCatalog
                         "Processor count", "Windows folder", "Temp folder", "User folder",
                         "Desktop", "Documents", "Downloads", "Startup folder", "App data",
                         "Program Files", "Network connected", "Network names", "Local address",
-                        "Battery %", "On mains power", "Screen count", "Screen rectangles",
+                        "Battery %", "On mains power",
                         "DPI", "DPI percent", "Seconds since start",
                     ]),
+                Returns(),
+            ],
+        },
+        new()
+        {
+            Key = "screen.list",
+            Returns =
+            [
+                Return("displays", "Displays", primary: true, type: ActionReturnType.List,
+                    hint: "One record to a display, in the order Windows lists them: left, top, "
+                        + "width, height, right, bottom, primary, and box — the rectangle written as "
+                        + "left,top,width,height, which a region field takes as it stands. A display "
+                        + "to the left of the primary one starts at a negative left, which is what a "
+                        + "step aiming at it needs. Read one part of one of them with "
+                        + "field(get($name, 0), \"left\"), and walk them all with forEach."),
+            ],
+            Category = ActionCategory.System,
+            DisplayName = "List Displays",
+            Description = "Read how the desk is laid out: every display and the rectangle it holds.",
+            Parameters =
+            [
                 Returns(),
             ],
         },

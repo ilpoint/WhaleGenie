@@ -318,8 +318,8 @@ public sealed class MacroRunner
 
         try
         {
-            var size = _devices.Screen.PrimarySize;
-            var frame = _devices.Screen.Capture(0, 0, size.Width, size.Height);
+            var desk = _devices.Screen.Desktop.Bounds;
+            var frame = _devices.Screen.Capture(desk.Left, desk.Top, desk.Width, desk.Height);
             if (frame.IsEmpty)
             {
                 return;
@@ -1195,6 +1195,10 @@ public sealed class MacroRunner
             // ----------------------------------------------------------------- system
             case "system.info":
                 SystemInfo(step, depth);
+                return Signal.Normal;
+
+            case "screen.list":
+                ListDisplays(step, depth);
                 return Signal.Normal;
 
             case "system.environment":
@@ -3451,11 +3455,11 @@ public sealed class MacroRunner
             return;
         }
 
-        var size = _devices.Screen.PrimarySize;
-        var left = Math.Clamp(point.X - Neighbourhood, 0, Math.Max(0, size.Width - 1));
-        var top = Math.Clamp(point.Y - Neighbourhood, 0, Math.Max(0, size.Height - 1));
-        var right = Math.Clamp(point.X + Neighbourhood + 1, left + 1, size.Width);
-        var bottom = Math.Clamp(point.Y + Neighbourhood + 1, top + 1, size.Height);
+        var desk = _devices.Screen.Desktop.Bounds;
+        var left = Math.Clamp(point.X - Neighbourhood, desk.Left, Math.Max(desk.Left, desk.Right - 1));
+        var top = Math.Clamp(point.Y - Neighbourhood, desk.Top, Math.Max(desk.Top, desk.Bottom - 1));
+        var right = Math.Clamp(point.X + Neighbourhood + 1, left + 1, desk.Right);
+        var bottom = Math.Clamp(point.Y + Neighbourhood + 1, top + 1, desk.Bottom);
 
         var shot = Shot(step, left, top, right - left, bottom - top, window);
         Saw(step, LookKind.Pixel, shot.Frame, shot.Origin,
@@ -4445,8 +4449,8 @@ public sealed class MacroRunner
                 return [(whole.Frame, whole.Origin)];
             }
 
-            var size = _devices.Screen.PrimarySize;
-            var desktop = Shot(step, 0, 0, size.Width, size.Height);
+            var desk = _devices.Screen.Desktop.Bounds;
+            var desktop = Shot(step, desk.Left, desk.Top, desk.Width, desk.Height);
             return [(desktop.Frame, desktop.Origin)];
         }
 
@@ -4611,8 +4615,8 @@ public sealed class MacroRunner
     /// </summary>
     private (int Width, int Height) Extent(ExecutableStep step, ScreenPoint corner)
     {
-        var screen = _devices.Screen.PrimarySize;
-        return (Reach("width", corner.X, screen.Width), Reach("height", corner.Y, screen.Height));
+        var desk = _devices.Screen.Desktop.Bounds;
+        return (Reach("width", corner.X, desk.Right), Reach("height", corner.Y, desk.Bottom));
 
         int Reach(string name, int from, int limit)
             => step.Text(name).Trim().Length == 0
@@ -4686,9 +4690,9 @@ public sealed class MacroRunner
     {
         if (window is null)
         {
-            var size = _devices.Screen.PrimarySize;
+            var desk = _devices.Screen.Desktop.Bounds;
             return _devices.Screen.Capture(
-                new ScreenCaptureRequest(0, 0, size.Width, size.Height, method));
+                new ScreenCaptureRequest(desk.Left, desk.Top, desk.Width, desk.Height, method));
         }
 
         return _devices.Screen.Capture(new ScreenCaptureRequest(window.Location.X, window.Location.Y,
@@ -6166,6 +6170,37 @@ public sealed class MacroRunner
     {
         var value = _devices.System.Info(step.Text("field").Trim());
         Store(step, "value", Value.FromText(value), depth);
+    }
+
+    /// <summary>
+    /// How the desk is laid out, one record to a display, so a macro that has to work on the second
+    /// screen can find out where it is instead of having the numbers written into it. The rectangle
+    /// is in desktop coordinates, which is what every other coordinate in a macro is written in —
+    /// a display to the left of the primary one starts at a negative number, and that is exactly the
+    /// number a step aiming at it needs.
+    /// </summary>
+    private void ListDisplays(ExecutableStep step, int depth)
+    {
+        var desk = _devices.Screen.Desktop;
+
+        Give(step, "displays", Value.FromList(
+        [
+            .. desk.Displays.Select(display => Value.FromRecord(
+            [
+                ("left", Value.FromNumber(display.Bounds.Left)),
+                ("top", Value.FromNumber(display.Bounds.Top)),
+                ("width", Value.FromNumber(display.Bounds.Width)),
+                ("height", Value.FromNumber(display.Bounds.Height)),
+                ("right", Value.FromNumber(display.Bounds.Right)),
+                ("bottom", Value.FromNumber(display.Bounds.Bottom)),
+                ("primary", Value.FromBool(display.Primary)),
+                ("box", Value.FromText(
+                    $"{display.Bounds.Left},{display.Bounds.Top},{display.Bounds.Width},{display.Bounds.Height}")),
+            ])),
+        ]));
+
+        Log(LogLevel.Info, depth, step.Type, "Run.ListedDisplays",
+            desk.Displays.Count, $"{desk.Bounds.Width}x{desk.Bounds.Height}");
     }
 
     /// <summary>Reads an environment variable into a variable.</summary>

@@ -516,8 +516,10 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     {
         try
         {
-            var size = _devices.Screen.PrimarySize;
-            return (size.Width, size.Height);
+            // The desk rather than one display: a macro's coordinates are counted across every
+            // display, so the width and height a macro can aim within are the desk's own.
+            var desk = _devices.Screen.Desktop.Bounds;
+            return (desk.Width, desk.Height);
         }
         catch (Exception)
         {

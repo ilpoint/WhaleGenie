@@ -22,8 +22,13 @@ public sealed class ScreenGrabber : IDisposable
 
     private readonly IPictureSources _sources;
 
-    /// <summary>One session per window, and one for the display, which is kept under the handle 0.</summary>
-    private readonly Dictionary<long, IPictureSource> _open = [];
+    private readonly Func<ScreenLayout> _displays;
+
+    /// <summary>
+    /// One session per window, and one per display of the desktop: a window is kept under its
+    /// handle, and a display under the rectangle it holds.
+    /// </summary>
+    private readonly Dictionary<SourceKey, IPictureSource> _open = [];
 
     /// <summary>
     /// Windows that could not be opened for reading this way at all. Opening one fails every time, so
@@ -35,15 +40,27 @@ public sealed class ScreenGrabber : IDisposable
     private readonly HashSet<long> _refused = [];
 
     /// <summary>A grabber reading this machine's screen.</summary>
-    public ScreenGrabber() : this(new WindowsGraphicsCapture())
+    public ScreenGrabber() : this(new WindowsGraphicsCapture(), Displays.Read)
     {
     }
 
     /// <summary>
     /// The same, with somewhere else for the sessions to come from, so a check can drive the caching
-    /// and the trying of the ways without a screen being there.
+    /// and the trying of the ways without a screen being there, and somewhere else for the desktop's
+    /// own layout to come from, so a check can read a machine with more than one display.
     /// </summary>
-    internal ScreenGrabber(IPictureSources sources) => _sources = sources;
+    internal ScreenGrabber(IPictureSources sources, Func<ScreenLayout>? displays = null)
+    {
+        _sources = sources;
+        _displays = displays ?? Displays.Read;
+    }
+
+    /// <summary>
+    /// How the desktop is laid out right now. Read afresh rather than kept: a display is plugged in,
+    /// unplugged or rearranged while the program runs, and a macro that keeps reading the screen
+    /// should follow the desk it is on rather than the desk it started on.
+    /// </summary>
+    public ScreenLayout Desktop() => _displays();
 
     /// <summary>
     /// Whether this machine can read a window through Graphics Capture at all. A machine with none
@@ -132,9 +149,16 @@ public sealed class ScreenGrabber : IDisposable
     /// <summary>
     /// One window, or the display, read the way the screen shows it: what the window shows is read
     /// out of the machinery that composes it, so a game another window is covering still comes out.
+    /// The whole desktop takes one session per display, because Windows composes one picture per
+    /// display and has no item that covers two of them.
     /// </summary>
     private ScreenGrab Grabbed(long window, int x, int y, int width, int height)
     {
+        if (window == 0)
+        {
+            return GrabbedDesktop(x, y, width, height);
+        }
+
         if (_refused.Contains(window))
         {
             throw new CaptureUnavailableException($"{window:X} (refused earlier)");
@@ -145,53 +169,85 @@ public sealed class ScreenGrabber : IDisposable
     }
 
     /// <summary>
+    /// The desktop, a display at a time: every display the rectangle covers is read through its own
+    /// session and the part of it that falls inside the rectangle is copied into one picture. The
+    /// sessions are kept the same way a window's is, so a macro reading the same corner of the desk
+    /// over and over does not open one each look.
+    /// </summary>
+    private ScreenGrab GrabbedDesktop(int x, int y, int width, int height)
+    {
+        var pieces = ScreenPlacement.Pieces(Desktop(), x, y, width, height);
+        if (pieces.Count == 1)
+        {
+            var only = pieces[0];
+            var picture = Read(SourceKey.OfDisplay(only.Display));
+            return Placement.Of(picture.Grab, picture.X, picture.Y, x, y, width, height);
+        }
+
+        var pixels = new byte[(long)width * height * 4];
+        var way = CaptureWay.GraphicsCapture;
+        foreach (var piece in pieces)
+        {
+            var picture = Read(SourceKey.OfDisplay(piece.Display));
+            Placement.Blit(picture.Grab, piece.SourceX, piece.SourceY, pixels, width,
+                piece.ToX, piece.ToY, piece.Width, piece.Height);
+            way = picture.Grab.Used;
+        }
+
+        return new ScreenGrab(width, height, pixels, way);
+    }
+
+    /// <summary>
     /// One reading out of the session for what is being read, opened again once if it cannot deliver:
     /// what a session was opened on has been closed, resized or drawn again from scratch, and a
     /// second failure is that thing's own and is reported.
     /// </summary>
-    private Picture Read(long window)
+    private Picture Read(SourceKey key)
     {
         try
         {
-            return Source(window).Read();
+            return Source(key).Read();
         }
         catch (CaptureFailedException)
         {
-            Drop(window);
-            return Source(window).Read();
+            Drop(key);
+            return Source(key).Read();
         }
     }
+
+    /// <summary>The one reading of a window, kept where the shape a session is named by is a handle.</summary>
+    private Picture Read(long window) => Read(SourceKey.OfWindow(window));
 
     /// <summary>
     /// The session for one thing, opened the first time it is read and kept while it lives. A window
     /// that will not open is remembered, which is what stops a loop from paying for the same failed
     /// attempt on every look.
     /// </summary>
-    private IPictureSource Source(long window)
+    private IPictureSource Source(SourceKey key)
     {
-        if (_open.TryGetValue(window, out var kept))
+        if (_open.TryGetValue(key, out var kept))
         {
             return kept;
         }
 
         try
         {
-            return _open[window] = _sources.Open(window);
+            return _open[key] = _sources.Open(key);
         }
         catch (CaptureUnavailableException)
         {
-            if (window != 0)
+            if (!key.IsDisplay)
             {
-                _refused.Add(window);
+                _refused.Add(key.Window);
             }
 
             throw;
         }
     }
 
-    private void Drop(long window)
+    private void Drop(SourceKey key)
     {
-        if (_open.Remove(window, out var session))
+        if (_open.Remove(key, out var session))
         {
             session.Dispose();
         }

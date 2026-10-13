@@ -54,7 +54,7 @@ public class ScreenGrabberTests
         grabber.Grab(7, 0, 0, 4, 4, CaptureWay.GraphicsCapture);
         grabber.Grab(7, 0, 0, 4, 4, CaptureWay.GraphicsCapture);
 
-        Assert.Equal([7L], sources.Opened);
+        Assert.Equal([7L], sources.OpenedWindows);
     }
 
     /// <summary>
@@ -71,7 +71,7 @@ public class ScreenGrabberTests
 
         var picture = grabber.Grab(7, 0, 0, 4, 4, CaptureWay.GraphicsCapture);
 
-        Assert.Equal([7L, 7L], sources.Opened);
+        Assert.Equal([7L, 7L], sources.OpenedWindows);
         Assert.Equal(4, picture.Width);
         Assert.Equal(CaptureWay.GraphicsCapture, picture.Used);
     }
@@ -86,7 +86,7 @@ public class ScreenGrabberTests
 
         grabber.Grab(7, 0, 0, 4, 4, CaptureWay.GraphicsCapture);
 
-        Assert.Equal([7L], sources.Closed);
+        Assert.Equal([7L], sources.ClosedWindows);
     }
 
     /// <summary>
@@ -106,7 +106,7 @@ public class ScreenGrabberTests
         Assert.Throws<CaptureUnavailableException>(
             () => grabber.Grab(7, 0, 0, 4, 4, CaptureWay.GraphicsCapture));
 
-        Assert.Equal([7L], sources.Opened);
+        Assert.Equal([7L], sources.OpenedWindows);
     }
 
     /// <summary>
@@ -169,7 +169,87 @@ public class ScreenGrabberTests
 
         Assert.Throws<EmptyRegionException>(
             () => grabber.Grab(7, 0, 0, width, height, CaptureWay.GraphicsCapture));
-        Assert.Empty(sources.Opened);
+        Assert.Empty(sources.OpenedWindows);
+    }
+
+    /// <summary>
+    /// A desk of two displays is read one display at a time and put together: each display's own
+    /// picture is taken through its own session, and a rectangle straddling the seam is filled in
+    /// from both — the left-hand part from the left-hand display and the right-hand part from the
+    /// right-hand one, at the place each of them belongs.
+    /// </summary>
+    [Fact]
+    public void A_desk_of_two_displays_is_read_one_display_each()
+    {
+        var left = new ScreenArea(0, 0, 4, 4);
+        var right = new ScreenArea(4, 0, 4, 4);
+        var desk = new ScreenLayout(new ScreenArea(0, 0, 8, 4),
+            [new ScreenDisplay(left, true), new ScreenDisplay(right, false)]);
+
+        var sources = new FakeSources();
+        sources.ByDisplay[left] = Numbered(4, 4);
+        sources.ByDisplay[right] = Fours(4, 4);
+
+        using var grabber = new ScreenGrabber(sources, () => desk);
+
+        var part = grabber.Grab(0, 2, 0, 4, 2, CaptureWay.GraphicsCapture);
+
+        // Column 0 and 1 of the left-hand display's top rows, then the right-hand display's own
+        // numbers from the seam on — one picture, two displays.
+        Assert.Equal([3, 4, 102, 102, 7, 8, 102, 102], Shown(part));
+        Assert.Equal([left, right], sources.OpenedDisplays);
+    }
+
+    /// <summary>
+    /// A rectangle that sits on one display of several reads only that one: the display nobody is
+    /// looking at is not duplicated, because duplicating one costs.
+    /// </summary>
+    [Fact]
+    public void A_rectangle_on_one_display_of_several_reads_only_that_one()
+    {
+        var left = new ScreenArea(0, 0, 4, 4);
+        var right = new ScreenArea(4, 0, 4, 4);
+        var desk = new ScreenLayout(new ScreenArea(0, 0, 8, 4),
+            [new ScreenDisplay(left, true), new ScreenDisplay(right, false)]);
+
+        var sources = new FakeSources();
+        sources.ByDisplay[left] = Numbered(4, 4);
+        sources.ByDisplay[right] = Fours(4, 4);
+
+        using var grabber = new ScreenGrabber(sources, () => desk);
+
+        var part = grabber.Grab(0, 5, 1, 2, 2, CaptureWay.GraphicsCapture);
+
+        Assert.Equal([102, 102, 102, 102], Shown(part));
+        Assert.Equal([right], sources.OpenedDisplays);
+    }
+
+    /// <summary>The same display read twice is one session, the same as a window read twice is.</summary>
+    [Fact]
+    public void A_display_read_twice_opens_one_session()
+    {
+        var left = new ScreenArea(0, 0, 4, 4);
+        var desk = new ScreenLayout(left, [new ScreenDisplay(left, true)]);
+
+        var sources = new FakeSources { Picture = Solid(4, 4) };
+        using var grabber = new ScreenGrabber(sources, () => desk);
+
+        grabber.Grab(0, 0, 0, 2, 2, CaptureWay.GraphicsCapture);
+        grabber.Grab(0, 0, 0, 2, 2, CaptureWay.GraphicsCapture);
+
+        Assert.Equal([left], sources.OpenedDisplays);
+    }
+
+    /// <summary>A picture filled with one number, so where each display's part came from shows.</summary>
+    private static ScreenGrab Fours(int width, int height)
+    {
+        var pixels = new byte[width * height * 4];
+        for (var at = 0; at < width * height; at++)
+        {
+            pixels[at * 4] = 102;
+        }
+
+        return new ScreenGrab(width, height, pixels, CaptureWay.GraphicsCapture);
     }
 
     /// <summary>A picture whose blue channel counts the pixels, so where each one came from shows.</summary>
@@ -209,11 +289,23 @@ public class ScreenGrabberTests
     /// </summary>
     private sealed class FakeSources : IPictureSources
     {
-        /// <summary>Every window a session was opened for, in the order they were asked for; 0 is the display.</summary>
-        public List<long> Opened { get; } = [];
+        /// <summary>Every thing a session was opened for, in the order they were asked for.</summary>
+        public List<SourceKey> Opened { get; } = [];
 
         /// <summary>Every session that was let go of.</summary>
-        public List<long> Closed { get; } = [];
+        public List<SourceKey> Closed { get; } = [];
+
+        /// <summary>The windows among the sessions, which is what the caching checks watch.</summary>
+        public List<long> OpenedWindows
+            => [.. Opened.Where(key => !key.IsDisplay).Select(key => key.Window)];
+
+        /// <summary>The windows among the sessions that were let go of.</summary>
+        public List<long> ClosedWindows
+            => [.. Closed.Where(key => !key.IsDisplay).Select(key => key.Window)];
+
+        /// <summary>The displays among the sessions, in the order they were asked for.</summary>
+        public List<ScreenArea> OpenedDisplays
+            => [.. Opened.Where(key => key.IsDisplay).Select(key => key.Display)];
 
         /// <summary>The windows this machine will not open a session on at all.</summary>
         public HashSet<long> Refuses { get; } = [];
@@ -227,30 +319,37 @@ public class ScreenGrabberTests
         /// <summary>Where that picture sits on the screen.</summary>
         public (int X, int Y) At { get; set; }
 
+        /// <summary>
+        /// What one display hands back, when it is not the picture above. A display's picture is its
+        /// own — that is what makes a desk of two of them two pictures to put together — so a check
+        /// about several displays says what each one shows.
+        /// </summary>
+        public Dictionary<ScreenArea, ScreenGrab> ByDisplay { get; } = [];
+
         public bool Available { get; set; } = true;
 
-        public IPictureSource Open(long window)
+        public IPictureSource Open(SourceKey key)
         {
-            Opened.Add(window);
-            if (Refuses.Contains(window))
+            Opened.Add(key);
+            if (!key.IsDisplay && Refuses.Contains(key.Window))
             {
-                throw new CaptureUnavailableException($"{window:X} cannot be read this way");
+                throw new CaptureUnavailableException($"{key.Window:X} cannot be read this way");
             }
 
-            var fails = Failures.TryGetValue(window, out var left) && left > 0;
+            var fails = Failures.TryGetValue(key.Window, out var left) && left > 0;
             if (fails)
             {
-                Failures[window] = left - 1;
+                Failures[key.Window] = left - 1;
             }
 
-            return new FakeSource(this, window, fails);
+            return new FakeSource(this, key, fails);
         }
 
         public void Dispose()
         {
         }
 
-        private sealed class FakeSource(FakeSources owner, long window, bool fails) : IPictureSource
+        private sealed class FakeSource(FakeSources owner, SourceKey key, bool fails) : IPictureSource
         {
             public Picture Read()
             {
@@ -259,10 +358,19 @@ public class ScreenGrabberTests
                     throw new CaptureFailedException("no picture came back");
                 }
 
-                return new Picture(owner.Picture, owner.At.X, owner.At.Y);
+                if (owner.ByDisplay.TryGetValue(key.Display, out var shown))
+                {
+                    return new Picture(shown, key.Display.Left, key.Display.Top);
+                }
+
+                // A display's picture starts at that display's own corner, which is what the real
+                // ways do and what a desk of several displays turns on.
+                return key.IsDisplay
+                    ? new Picture(owner.Picture, key.Display.Left, key.Display.Top)
+                    : new Picture(owner.Picture, owner.At.X, owner.At.Y);
             }
 
-            public void Dispose() => owner.Closed.Add(window);
+            public void Dispose() => owner.Closed.Add(key);
         }
     }
 }

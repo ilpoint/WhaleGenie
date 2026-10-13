@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -358,16 +359,24 @@ public sealed class ElementPickerWindow : Window
         _readoutBox = new Box(x, y, width, height);
     }
 
-    /// <summary>Where the main screen is, which is the screen the picker works on.</summary>
+    /// <summary>
+    /// Where the whole desk is, which is the space the picker works in and the space a macro's own
+    /// coordinates are written in. A desk of several displays is covered corner to corner: the
+    /// pointer's position is the number the macro gets, on whichever display it is.
+    /// </summary>
     private (int X, int Y, int Width, int Height) ScreenBounds()
     {
-        if (Screens.Primary is { } primary)
+        if (Screens.All.Count > 0)
         {
-            return (primary.Bounds.X, primary.Bounds.Y, primary.Bounds.Width, primary.Bounds.Height);
+            var left = Screens.All.Min(screen => screen.Bounds.X);
+            var top = Screens.All.Min(screen => screen.Bounds.Y);
+            var right = Screens.All.Max(screen => screen.Bounds.X + screen.Bounds.Width);
+            var bottom = Screens.All.Max(screen => screen.Bounds.Y + screen.Bounds.Height);
+            return (left, top, right - left, bottom - top);
         }
 
-        var size = _screen.PrimarySize;
-        return (0, 0, size.Width, size.Height);
+        var desk = _screen.Desktop.Bounds;
+        return (desk.Left, desk.Top, desk.Width, desk.Height);
     }
 
     /// <summary>What the readout says about the control under the pointer.</summary>

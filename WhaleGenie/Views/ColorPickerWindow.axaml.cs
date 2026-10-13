@@ -139,10 +139,10 @@ public partial class ColorPickerWindow : Window
             return;
         }
 
-        var size = _screen.PrimarySize;
+        var desk = _screen.Desktop.Bounds;
         var half = RegionSize / 2;
-        var originX = Math.Clamp(point.X - half, 0, Math.Max(0, size.Width - RegionSize));
-        var originY = Math.Clamp(point.Y - half, 0, Math.Max(0, size.Height - RegionSize));
+        var originX = Math.Clamp(point.X - half, desk.Left, Math.Max(desk.Left, desk.Right - RegionSize));
+        var originY = Math.Clamp(point.Y - half, desk.Top, Math.Max(desk.Top, desk.Bottom - RegionSize));
 
         ImageFrame frame;
         try
@@ -216,23 +216,23 @@ public partial class ColorPickerWindow : Window
         var scale = RenderScaling <= 0 ? 1 : RenderScaling;
         var width = (int)Math.Ceiling(Bounds.Width * scale);
         var height = (int)Math.Ceiling(Bounds.Height * scale);
-        var size = _screen.PrimarySize;
+        var desk = _screen.Desktop.Bounds;
 
         var x = point.X + Offset;
         var y = point.Y + Offset;
 
-        if (width > 0 && x + width > size.Width)
+        if (width > 0 && x + width > desk.Right)
         {
             x = point.X - width - Offset;
         }
 
-        if (height > 0 && y + height > size.Height)
+        if (height > 0 && y + height > desk.Bottom)
         {
             y = point.Y - height - Offset;
         }
 
-        x = Math.Clamp(x, 0, Math.Max(0, size.Width - width));
-        y = Math.Clamp(y, 0, Math.Max(0, size.Height - height));
+        x = Math.Clamp(x, desk.Left, Math.Max(desk.Left, desk.Right - width));
+        y = Math.Clamp(y, desk.Top, Math.Max(desk.Top, desk.Bottom - height));
 
         Position = new PixelPoint(x, y);
     }

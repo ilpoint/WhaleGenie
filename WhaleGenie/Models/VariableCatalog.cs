@@ -39,8 +39,11 @@ public static class VariableCatalog
         SystemVariable("sys.mouseColor", "text", "Colour of the pixel under the cursor, as #RRGGBB.",
             "#000000"),
 
-        SystemVariable("sys.screenWidth", "number", "Width of the main screen.", "0"),
-        SystemVariable("sys.screenHeight", "number", "Height of the main screen.", "0"),
+        SystemVariable("sys.screenWidth", "number",
+            "Width of the desk, every display together; the same space macro coordinates are in.",
+            "0"),
+        SystemVariable("sys.screenHeight", "number",
+            "Height of the desk, every display together.", "0"),
         SystemVariable("sys.machineName", "text", "Name of this computer.", string.Empty),
         SystemVariable("sys.userName", "text", "Name of the logged-in user.", string.Empty),
         SystemVariable("sys.clipboard", "text", "Current clipboard text.", string.Empty),

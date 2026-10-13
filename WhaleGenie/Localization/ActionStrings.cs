@@ -1133,11 +1133,20 @@ internal static class ActionStrings
         ["system.info.field.option.localIp"] = "本机 IP",
         ["system.info.field.option.batteryPercent"] = "电池百分比",
         ["system.info.field.option.onAcPower"] = "已接电源",
-        ["system.info.field.option.monitorCount"] = "显示器数量",
-        ["system.info.field.option.monitorBounds"] = "显示器位置",
         ["system.info.field.option.dpi"] = "DPI",
         ["system.info.field.option.dpiPercent"] = "缩放百分比",
         ["system.info.field.option.uptimeSeconds"] = "已开机秒数",
+
+        ["screen.list.name"] = "列出显示器",
+        ["screen.list.desc"] = "读出桌面是怎么摆的：每一块显示器和它占的那块矩形。",
+        ["screen.list.returns.label"] = "要留下的结果",
+        ["screen.list.returns.hint"] = ReturnsHintText,
+        ["screen.list.return.displays.label"] = "显示器",
+        ["screen.list.return.displays.hint"] = "一块显示器一条记录，顺序就是 Windows 列出的顺序："
+            + "left、top、width、height、right、bottom、primary，以及 box——那块矩形写成"
+            + "「左,上,宽,高」，区域那一格可以直接用它。主显示器左边的显示器 left 是负数，"
+            + "瞄准它时那正是要填的数。取其中一块的一项用 field(get($变量, 0), \"left\")，"
+            + "全部走一遍用 forEach。",
 
         ["system.environment.name"] = "环境变量",
         ["system.environment.desc"] = "读取一个环境变量。",

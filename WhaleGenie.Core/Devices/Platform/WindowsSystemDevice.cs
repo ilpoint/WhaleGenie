@@ -37,8 +37,6 @@ public sealed class WindowsSystemDevice : ISystemDevice
         "localip" => LocalAddress(),
         "batterypercent" => BatteryPercent(),
         "onacpower" => AcLine(),
-        "monitorcount" => Monitors().Count.ToString(CultureInfo.InvariantCulture),
-        "monitorbounds" => MonitorsText(),
         "dpi" => Dpi().ToString(CultureInfo.InvariantCulture),
         "dpipercent" => ((Dpi() * 100) / 96).ToString(CultureInfo.InvariantCulture),
         "uptimeseconds" => (System.Environment.TickCount64 / 1000)
@@ -284,28 +282,6 @@ public sealed class WindowsSystemDevice : ISystemDevice
         return status.AcLineStatus == Unknown ? string.Empty : Bool(status.AcLineStatus == 1);
     }
 
-    /// <summary>
-    /// Every screen that is switched on, in the order Windows lists them, as one
-    /// <c>x,y,width,height</c> per screen joined with semicolons — the same shape the area fields
-    /// take, so one can be handed straight to a screen search.
-    /// </summary>
-    private static string MonitorsText()
-        => string.Join(';', Monitors().Select(screen =>
-            $"{screen.Left},{screen.Top},{screen.Right - screen.Left},{screen.Bottom - screen.Top}"));
-
-    private static List<Rect> Monitors()
-    {
-        var found = new List<Rect>();
-        _ = EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero,
-            (IntPtr _, IntPtr _, ref Rect rect, IntPtr _) =>
-            {
-                found.Add(rect);
-                return true;
-            },
-            IntPtr.Zero);
-        return found;
-    }
-
     /// <summary>The scaling Windows lists the primary screen at: 96 is 100%, 144 is 150%.</summary>
     private static uint Dpi() => OperatingSystem.IsWindows() ? GetDpiForSystem() : 96;
 
@@ -319,16 +295,6 @@ public sealed class WindowsSystemDevice : ISystemDevice
     /// <summary>What Windows says when it has no answer for one of these numbers.</summary>
     private const byte Unknown = 255;
 
-    /// <summary>A screen's rectangle, which is why the sides are named and not a size.</summary>
-    [StructLayout(LayoutKind.Sequential)]
-    private struct Rect
-    {
-        public int Left;
-        public int Top;
-        public int Right;
-        public int Bottom;
-    }
-
     /// <summary>What the machine's battery and mains connection are doing.</summary>
     [StructLayout(LayoutKind.Sequential)]
     private struct SystemPowerStatus
@@ -340,13 +306,6 @@ public sealed class WindowsSystemDevice : ISystemDevice
         public uint BatteryLifeTime;
         public uint BatteryFullLifeTime;
     }
-
-    private delegate bool MonitorCallback(IntPtr monitor, IntPtr context, ref Rect rect,
-        IntPtr data);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool EnumDisplayMonitors(IntPtr context, IntPtr clip,
-        MonitorCallback callback, IntPtr data);
 
     [DllImport("user32.dll")]
     private static extern uint GetDpiForSystem();
