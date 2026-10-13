@@ -45,12 +45,10 @@
 
 ## 零散项
 
-这两件跟任何阶段都不冲突，谁有空谁做，做完也把这一段删掉：
+这一件跟任何阶段都不冲突，谁有空谁做，做完也把这一段删掉：
 
 - **其余动作的说明按书面语过一轮**：视觉与文字识别那一批已经改过，其余一百多个动作照 `AGENTS.md` 规范 2
   改。机械、无风险，按类别分几条提交，`LocalizationTests` 与 `ActionPageTests` 全绿即算完成。
-- **删掉没人用的 `OpenCvSharp5.AvaloniaExtensions`**：[dev.md](dev.md) 记着它没被调用、只会把 Avalonia 带
-  进引擎的依赖图。删引用、跑三项，再从 dev.md 的依赖表与 `THIRD-PARTY-NOTICES.md` 去掉那一行。
 
 ## 明确不做
 

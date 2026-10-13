@@ -43,7 +43,7 @@ The icon was scaled and modified from the original.
   <https://github.com/kwhat/libuiohook>
 - Viiper.Client — MIT
   <https://github.com/Alia5/VIIPER>
-- OpenCvSharp5（OpenCvSharp5、OpenCvSharp5.Windows、OpenCvSharp5.AvaloniaExtensions 等）— Apache-2.0
+- OpenCvSharp5（OpenCvSharp5、OpenCvSharp5.Windows 等）— Apache-2.0
   <https://github.com/shimat/opencvsharp>
   原生库 OpenCvSharpExtern.dll 里的 OpenCV 按 Apache-2.0 授权：
   <https://github.com/opencv/opencv>
