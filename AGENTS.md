@@ -14,12 +14,12 @@ Windows 上的通用宏 / 自动化工具：把键盘、鼠标、手柄、屏幕
 
 - `WhaleGenie.Core` 是执行引擎，不感知界面：动作目录、变量、表达式、宏包读写与所有直接操作机器的设备
   （输入、屏幕、OCR、UI Automation、文件、进程）；`WhaleGenie` 是界面：窗口、视图模型、文案、触发器。
-- `WhaleGenie.GraphicsCapture` 只管"从 Windows 拿到像素"：Graphics Capture、桌面复制（DXGI）、屏幕 GDI 与
-  PrintWindow 四种取法，加上会话缓存与选路。它不认识引擎的类型，只交出 `ScreenGrab` 与 `CaptureWay`；Core
-  用 `ProjectReference` 引它，把 `ScreenGrab` 收成 `ImageFrame`、把它的失败收成 `Run.*` 文案键。
-- 引擎中不得 `using Avalonia`，界面中不得直接调 `OpenCV`。全局钩子（SharpHook）两边都用：设备层做注入与
-  录制，界面装同一份钩子（`GlobalInputHook.Shared`）给触发、拾取与录制用，键位与鼠标键的取值沿用
-  `WhaleGenie.Core/Devices/Platform` 那一套；把钩子收成鲸灵自己的类型这件事待议，见 `doc/roadmap.md`。
+- `WhaleGenie.GraphicsCapture` 只管"从 Windows 拿到像素"（四种取法见「画面获取」）：会话缓存与选路都是它的，
+  它不认识引擎的类型，只交出 `ScreenGrab` 与 `CaptureWay`；Core 把前者收成 `ImageFrame`、把它的失败收成 `Run.*`。
+- 引擎中不得 `using Avalonia`；界面里不得出现第三方设备库的名字（SharpHook、OpenCV、FlaUI、Playwright、
+  Viper、Vortice）：它们的取值、事件与异常只在引擎里，界面只认引擎交出的接口（如 `IInputHook`）与自己的模型。
+  全局钩子全程序共用一条，界面从 `GlobalInputHook.Shared` 订阅事件给触发、系统热键与拾取用；处理器在钩子线程
+  上就地执行、置 `Suppress` 即吞掉这次输入。界面仍点名了几处 Windows 实现，收拢见 `doc/roadmap.md`。
 
 ## 开发规范
 
