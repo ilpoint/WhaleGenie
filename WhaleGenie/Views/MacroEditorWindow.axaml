@@ -634,11 +634,6 @@
                                 <TextBox Classes="ParamInput" Text="{Binding WindowValue}"
                                          PlaceholderText="{Binding [Editor.WindowValueHint], Source={x:Static loc:Strings.Current}}" />
 
-                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
-                                           Text="{Binding [Editor.WindowHow], Source={x:Static loc:Strings.Current}}" />
-                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding WindowHowOptions}"
-                                          SelectedIndex="{Binding WindowHowIndex}" />
-
                                 <!-- The windows this rule picks out right now, so a rule written a
                                      little too wide is seen while it is being written rather than
                                      when it fires. -->
@@ -681,6 +676,11 @@
                                                Text="{Binding WindowPreview.Note}"
                                                IsVisible="{Binding WindowPreview.HasNote}" />
                                 </StackPanel>
+
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           Text="{Binding [Editor.WindowHow], Source={x:Static loc:Strings.Current}}" />
+                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding WindowHowOptions}"
+                                          SelectedIndex="{Binding WindowHowIndex}" />
 
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            Text="{Binding [Editor.WindowWhen], Source={x:Static loc:Strings.Current}}" />
