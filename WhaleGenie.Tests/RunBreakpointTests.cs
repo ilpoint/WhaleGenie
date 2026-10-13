@@ -172,6 +172,11 @@ public class RunBreakpointTests
                 await Task.Delay(10);
             }
 
+            // A run says it has finished as soon as the last step is done, and what that step came
+            // to reaches the rows a moment later, on this same thread. Reading the rows without
+            // letting that arrive first is what made this check pass or fail on its own timing.
+            Dispatcher.UIThread.RunJobs();
+
             return viewModel.Steps.Select(step => step.HasRun).ToList();
         });
 
