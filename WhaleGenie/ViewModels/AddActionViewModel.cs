@@ -741,6 +741,32 @@ public partial class AddActionViewModel : ViewModelBase
         => WindowHow.Read(HowField(text)?.CurrentText).Match;
 
     /// <summary>
+    /// Writes the title a picker read into the field that holds a window rule's text, and puts the
+    /// way that text is compared back to "the title holds it". A picker reads titles, so a rule left
+    /// on the process name, the class or a pattern would be holding a title up against something
+    /// else and would recognise no window at all. A field that already says which window this is
+    /// keeps what it says: nothing was picked into it.
+    /// </summary>
+    public bool FillWindowFromPick(string field, string title)
+    {
+        if (Parameters.FirstOrDefault(item => item.Definition.Name == field) is not { } text
+            || (text.Text ?? string.Empty).Trim().Length > 0)
+        {
+            return false;
+        }
+
+        text.Text = title;
+        if (HowField(text) is { } how
+            && how.Choices.FirstOrDefault(choice => choice.Value == WindowHow.TitleContains)
+                is { } byTitle)
+        {
+            how.Option = byTitle;
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// The windows this step would recognise right now, which is shown under the field that
     /// completes the rule. Null while the action recognises no window by text of its own.
     /// </summary>

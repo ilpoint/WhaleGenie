@@ -1341,13 +1341,12 @@ public partial class AddActionWindow : Window
 
         // The window filter is filled in for whichever field this action keeps it in, so a step
         // that is anchored to a control gets the same narrowing as one that looks the control up.
+        // What the picker reads is a title, so the rule goes back to holding the text up against
+        // the title: one left on the process name or on a pattern would be comparing something
+        // other than what was just picked, and would recognise nothing.
         foreach (var name in new[] { "window", "anchorWindow" })
         {
-            if (viewModel.Parameters.FirstOrDefault(item => item.Definition.Name == name) is { } filter
-                && string.IsNullOrWhiteSpace(filter.Text))
-            {
-                filter.Text = picked.Window;
-            }
+            viewModel.FillWindowFromPick(name, picked.Window);
         }
     }
 
