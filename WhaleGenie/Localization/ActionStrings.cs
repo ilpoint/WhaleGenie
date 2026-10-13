@@ -1143,7 +1143,7 @@ internal static class ActionStrings
         ["screen.list.returns.hint"] = ReturnsHintText,
         ["screen.list.return.displays.label"] = "显示器",
         ["screen.list.return.displays.hint"] = "一块显示器一条记录，顺序就是 Windows 列出的顺序："
-            + "left、top、width、height、right、bottom、primary，以及 box——那块矩形写成"
+            + "left、top、width、height、right、bottom、primary，以及 box，也就是那块矩形写成"
             + "「左,上,宽,高」，区域那一格可以直接用它。主显示器左边的显示器 left 是负数，"
             + "瞄准它时那正是要填的数。取其中一块的一项用 field(get($变量, 0), \"left\")，"
             + "全部走一遍用 forEach。",
@@ -2957,7 +2957,7 @@ internal static class ActionStrings
         ["uia.read.return.element.label"] = "元素",
         ["uia.read.return.element.hint"] = "这个元素自己说出的内容，一条记录：enabled 与 visible、"
             + "value、name、automationId、controlType，以及 left、top、width、height 与 box。"
-            + "取其中一项用 field($变量, \"value\")。value 是元素持有的内容——输入框里的文字、"
+            + "取其中一项用 field($变量, \"value\")。value 是元素持有的内容，输入框里的文字、"
             + "按钮上的标题，元素本身不持有内容时为空。",
 
         ["uia.select.name"] = "选择列表项",

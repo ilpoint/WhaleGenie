@@ -1425,7 +1425,7 @@ public static class ActionCatalog
             [
                 Return("program", "Program", primary: true, type: ActionReturnType.Record,
                     hint: "The program as one record: info is its file, empty when Windows will not "
-                        + "say it; then id, name, memoryMb — the memory it holds, in megabytes — and "
+                        + "say it; then id, name, memoryMb (the memory it holds, in megabytes) and "
                         + "cpuSeconds, the processor time it has used. Read one part of it with "
                         + "field($name, \"id\")."),
             ],
@@ -1556,7 +1556,7 @@ public static class ActionCatalog
             [
                 Return("displays", "Displays", primary: true, type: ActionReturnType.List,
                     hint: "One record to a display, in the order Windows lists them: left, top, "
-                        + "width, height, right, bottom, primary, and box — the rectangle written as "
+                        + "width, height, right, bottom, primary, and box, the rectangle written as "
                         + "left,top,width,height, which a region field takes as it stands. A display "
                         + "to the left of the primary one starts at a negative left, which is what a "
                         + "step aiming at it needs. Read one part of one of them with "
@@ -1889,7 +1889,7 @@ public static class ActionCatalog
                 Return("windows", "Windows", primary: true, type: ActionReturnType.List,
                     hint: "The windows that matched, each as a record of its own — the same shape "
                         + "window.info hands over for one window, without the part inside its "
-                        + "border — with the fields title, handle, minimized, maximized, left, top, "
+                        + "border, with the fields title, handle, minimized, maximized, left, top, "
                         + "width, height and box, plus process and class when the step is told to "
                         + "read them, in the order the system lists them. Two windows with the same "
                         + "title are two windows and get a record each. Read one field of one of "
@@ -2649,8 +2649,8 @@ public static class ActionCatalog
                 ContentPattern(),
                 Toggle("table", "Read as a table", false,
                     "Keep the lines and columns the writing was read in: the table result holds one "
-                        + "record per row, keyed by where each cell sits — A, B, C, the way a table "
-                        + "through UI Automation is keyed by its column names — and the text result "
+                        + "record per row, keyed by where each cell sits (A, B, C, the way a table "
+                        + "through UI Automation is keyed by its column names), and the text result "
                         + "holds the whole lot as text, one line per row."),
                 ..Anchor(),
                 ..Capture(),
@@ -2848,7 +2848,7 @@ public static class ActionCatalog
                     hint: "What the element says about itself, as one record: enabled and visible, "
                         + "value, name, automationId and controlType, then left, top, width, height "
                         + "and box. Read one part of it with field($name, \"value\"). value is what "
-                        + "the element holds — the text in a box, the caption of a button — and is "
+                        + "the element holds (the text in a box, the caption of a button), and is "
                         + "empty for one that keeps nothing."),
             ],
             Category = ActionCategory.Uia,
@@ -2937,7 +2937,7 @@ public static class ActionCatalog
             [
                 Return("table", "Table", primary: true, type: ActionReturnType.List,
                     hint: "The rows that were read, each a record whose keys are the names written "
-                        + "above its columns — the same shape the CSV reader gives back, so "
+                        + "above its columns, which is the shape the CSV reader gives back, so "
                         + "field(get($name, 0), \"Name\") reads one cell by name. A table with no "
                         + "strip of names gets A, B, C instead, and a column whose name is blank or "
                         + "repeats one already taken keeps the letter of its place."),
@@ -4145,8 +4145,8 @@ public static class ActionCatalog
     [
         Return("match", "Hit", primary: true, type: ActionReturnType.Record,
             hint: "Where it was found and everything else about it, as one record; empty when it "
-                + "was not there. x and y are the middle — the point this action clicks or moves "
-                + "to — left and top are the corner a search region counts from, width and height "
+                + "was not there. x and y are the middle (the point this action clicks or moves "
+                + "to), left and top are the corner a search region counts from, width and height "
                 + "are its size, score is how sure the reading was, box is the whole hit written "
                 + "as left,top,width,height, and text is what was read where the action reads "
                 + "writing. Read one part of it with field($name, \"x\")."),
@@ -4166,9 +4166,9 @@ public static class ActionCatalog
     [
         Return("place", "Place", type: ActionReturnType.Record,
             hint: "Where the picture was taken, as one record. left and top are the corner it "
-                + "starts at and width and height are its size in screen pixels — the picture's own "
+                + "starts at and width and height are its size in screen pixels: the picture's own "
                 + "size, so a capture that ran off the edge of the screen comes back smaller than "
-                + "it asked for — and box is the whole rectangle written as left,top,width,height, "
+                + "it asked for; box is the whole rectangle written as left,top,width,height, "
                 + "ready to be used as a search region. Read one part of it with "
                 + "field($name, \"left\")."),
     ];
@@ -4587,7 +4587,7 @@ public static class ActionCatalog
             "How far the click may land from the place it aimed at, in pixels; the default is 0, "
             + "which lands on exactly that place. Given a number, every click is placed at random "
             + "within that many pixels either way, so a run of clicks is spread over the button "
-            + "instead of landing on one pixel — which is what a button that only counts a press "
+            + "instead of landing on one pixel, which is what a button that only counts a press "
             + "somewhere inside it, and a game that notices the same pixel every time, are both "
             + "about. Keep it small enough that the whole spread stays inside the thing being "
             + "clicked.",
@@ -4834,7 +4834,7 @@ public static class ActionCatalog
             Advanced = advanced,
             AcceptsFormula = true,
             Hint = "Optional colour of the writing. Given one, everything that is not that colour "
-                + "— outline, shadow, background — is thrown away before the picture is read. For "
+                + "(outline, shadow, background) is thrown away before the picture is read. For "
                 + "writing that has an outline or sits on a picture. Empty reads the picture as it "
                 + "is, which is the default.",
         };

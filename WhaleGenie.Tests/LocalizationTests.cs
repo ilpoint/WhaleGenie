@@ -255,6 +255,42 @@ public class LocalizationTests
     }
 
     /// <summary>
+    /// A field's line is read in a dialog rather than on a page, so the marks a note is written in
+    /// are not part of it: a dash or a backtick left in one reads as a slip of the pen, and the
+    /// line is where the reader is deciding what to type. Both languages are read, because a dash
+    /// usually comes in with a sentence translated in a hurry.
+    /// </summary>
+    [Fact]
+    public void No_field_says_what_it_is_with_a_dash_or_a_backtick()
+    {
+        var marked = Ui.Run(() =>
+        {
+            var found = new List<string>();
+            foreach (var definition in ActionCatalog.Definitions)
+            {
+                foreach (var parameter in definition.Parameters)
+                {
+                    if (parameter.Hint.Contains('—') || parameter.Hint.Contains('`'))
+                    {
+                        found.Add($"{definition.Key}.{parameter.Name} (English)");
+                    }
+
+                    var key = $"{definition.Key}.{parameter.Name}.hint";
+                    if (ActionStrings.Chinese.TryGetValue(key, out var chinese)
+                        && (chinese.Contains('—') || chinese.Contains('`')))
+                    {
+                        found.Add(key);
+                    }
+                }
+            }
+
+            return found;
+        });
+
+        Assert.Empty(marked.Order());
+    }
+
+    /// <summary>
     /// The repository root, found by walking up from the test binaries until the solution file is
     /// there. The tests run from inside <c>bin</c>, so the source they read is found rather than
     /// assumed.
