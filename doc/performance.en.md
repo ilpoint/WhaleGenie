@@ -190,8 +190,8 @@ because holding one keeps an exited program in the process list and flatters the
 | An open window closes | — | 5/5, 315–333 ms late | 5/5, 2–3 ms late |
 | A window that is up for 400 ms | 400 ms | 5/5, 320–350 ms late | 5/5, 1–2 ms late |
 | A window that is up for 100 ms | 100 ms | **0/5, all missed** | 5/5, 1–2 ms late |
-| A program that quits at once | 33 ms (11–33 ms in the process list) | 3/5 (of 20) | 19/20 |
-| A program that lives about 100 ms | 78–173 ms | 5/5 | 5/5 |
+| A program that quits at once | 33 ms (11–33 ms in the process list) | 11 of 20 | 19 of 20 |
+| A program that lives about 100 ms | 78–173 ms | — | 5/5 |
 
 Two things followed. **Windows** are now announced by the machine when one appears, goes away or is
 renamed (`WindowsWindowEvents`, `SetWinEventHook`), and the window list is read there and then; the
