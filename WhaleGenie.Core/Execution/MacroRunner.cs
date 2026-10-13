@@ -6663,7 +6663,7 @@ public sealed class MacroRunner
     private IReadOnlyList<TextSpan> ReadFrame(ExecutableStep step, ImageFrame frame)
     {
         var (prepared, scale) = OcrPreprocess.Apply(Isolated(step, frame), step.Text("preprocess"));
-        var readings = _devices.Ocr.Recognize(prepared, Language(step))
+        var readings = _devices.Ocr.Recognize(prepared)
             .Select(span => span with { Text = Corrected(step, span.Text) });
         var spans = Wanted(step, [.. readings]);
 
@@ -6795,14 +6795,44 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// What a step wants read: everything, or only the numbers. Asking for numbers keeps the
-    /// pieces that hold one and cuts each down to the number itself, which is how a screen full of
-    /// labels and a screen full of amounts can be handled by the same kind of step.
+    /// What a step keeps of what was read: the writing as it stands, one kind of character out of
+    /// it, or what a pattern picks out. Cutting a screen down to the numbers, or to the letters, is
+    /// how a screen full of labels and a screen full of codes are handled by the same kind of step.
     /// </summary>
-    private static IReadOnlyList<TextSpan> Wanted(ExecutableStep step, IReadOnlyList<TextSpan> spans)
-        => step.Text("content").Trim().Equals("digits", StringComparison.OrdinalIgnoreCase)
-            ? OcrReading.Numbers(spans)
-            : spans;
+    private IReadOnlyList<TextSpan> Wanted(ExecutableStep step, IReadOnlyList<TextSpan> spans)
+        => step.Text("content").Trim().ToLowerInvariant() switch
+        {
+            "digits" => OcrReading.Numbers(spans),
+            "letters" => OcrReading.Letters(spans),
+            "chinese" => OcrReading.Chinese(spans),
+            "lettersandchinese" => OcrReading.LettersAndChinese(spans),
+            "regex" => Extracted(step, spans),
+            _ => spans,
+        };
+
+    /// <summary>
+    /// The pieces the step's own pattern picks out of what was read. A pattern with nothing in it
+    /// asks for no cutting, which is what a step that chose the pattern and then left it empty is
+    /// saying; a pattern the machine cannot read comes back as a failed step rather than as a look
+    /// that found nothing.
+    /// </summary>
+    private IReadOnlyList<TextSpan> Extracted(ExecutableStep step, IReadOnlyList<TextSpan> spans)
+    {
+        var pattern = Read(step.Text("contentPattern")).AsText().Trim();
+        if (pattern.Length == 0)
+        {
+            return spans;
+        }
+
+        try
+        {
+            return OcrReading.ByPattern(spans, new Regex(pattern));
+        }
+        catch (ArgumentException)
+        {
+            throw new StepFailure("Run.BadPattern", pattern);
+        }
+    }
 
     private void Recognize(ExecutableStep step, int depth)
     {
@@ -6922,12 +6952,6 @@ public sealed class MacroRunner
         Aim(at);
         Input(step).Click(Button(step), at.X, at.Y, 1, 0);
         Log(LogLevel.Info, depth, step.Type, "Run.ClickedText", wanted, $"{at.X},{at.Y}");
-    }
-
-    private static string Language(ExecutableStep step)
-    {
-        var language = step.Text("language").Trim();
-        return language.Length == 0 ? "auto" : language;
     }
 
     /// <summary>Compares found text against what was asked for, the way the step chose.</summary>

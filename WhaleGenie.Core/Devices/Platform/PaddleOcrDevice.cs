@@ -47,7 +47,7 @@ public sealed class PaddleOcrDevice : IOcrDevice, IDisposable
         }
     }
 
-    public IReadOnlyList<TextSpan> Recognize(ImageFrame frame, string language)
+    public IReadOnlyList<TextSpan> Recognize(ImageFrame frame)
     {
         if (frame.IsEmpty)
         {

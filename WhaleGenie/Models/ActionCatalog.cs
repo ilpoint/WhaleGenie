@@ -2526,12 +2526,8 @@ public static class ActionCatalog
             Parameters =
             [
                 ..RegionNumbers(),
-                Choice("language", "Language", ["auto", "en", "zh"], "auto",
-                    "Which writing the screen is read as: automatic, English or Chinese; automatic "
-                    + "by default. The one model that comes with the program reads both scripts, so "
-                    + "a screen of either kind is read without naming one.",
-                    advanced: true),
                 Content(),
+                ContentPattern(),
                 Toggle("table", "Read as a table", false,
                     "Keep the lines and columns the writing was read in: the table result holds one "
                         + "record per row, keyed by where each cell sits — A, B, C, the way a table "
@@ -2565,6 +2561,7 @@ public static class ActionCatalog
                 LookGap(0),
                 TextMatch(),
                 Content(),
+                ContentPattern(),
                 ..Anchor(),
                 Preprocess(advanced: true),
                 ColourFilter(advanced: true),
@@ -2594,6 +2591,7 @@ public static class ActionCatalog
                 ..Capture(),
                 TextMatch(),
                 Content(),
+                ContentPattern(),
                 Button(),
                 Number("offsetX", "Offset X", 0,
                     "Pixels added to the match centre; 0, the default, clicks the centre.",
@@ -4466,14 +4464,42 @@ public static class ActionCatalog
             + "in it by default.");
 
     /// <summary>
-    /// Whether a step wants everything that can be read, or only the numbers. Shared by the three
-    /// actions that read the screen with OCR, so one screen is read the same way by all of them.
+    /// What a step keeps of each piece it reads: the writing as it stands, one kind of character out
+    /// of it, or what a pattern picks out. Shared by the three actions that read the screen with OCR,
+    /// so one screen is read the same way by all of them.
     /// </summary>
     private static ActionParameter Content()
-        => Choice("content", "Content", ["text", "digits"], "text",
-            "What a piece of writing is kept as. Text keeps all of it. Digits keeps the number out "
-            + "of it and drops the currency sign, the thousands separators and the label around it; "
-            + "a piece with no digit in it is left out.");
+        => Choice("content", "Content",
+            ["text", "digits", "letters", "chinese", "lettersAndChinese", "regex"], "text",
+            "What is kept of each piece of writing that was read. All of it is kept as it stands. "
+            + "Digits, letters, Chinese and letters-and-Chinese keep only that kind of character and "
+            + "leave out a piece with none of them, which is how a screen full of labels comes back "
+            + "as just the amounts or just the codes; by pattern cuts each piece down to what the "
+            + "pattern below matches. Full-width letters and digits count as ordinary ones, and the "
+            + "one model the program comes with reads Chinese and English both, so keeping Chinese "
+            + "sorts what was read rather than asking for another model.",
+            labels:
+            [
+                "All writing",
+                "Digits only",
+                "Letters only",
+                "Chinese only",
+                "Letters and Chinese",
+                "By pattern",
+            ]);
+
+    /// <summary>
+    /// The pattern a step picks its text out with, asked for only while the reading is set to keep
+    /// what a pattern matches.
+    /// </summary>
+    private static ActionParameter ContentPattern()
+        => Text("contentPattern", "Extract pattern", @"(\d+)",
+            "The regular expression each piece of what was read is cut down by: a piece it does not "
+            + "match is left out, and a piece it does match stands as the first bracketed part when "
+            + "the pattern has one and as the whole match when it has none. For example, the pattern "
+            + @"Order (\d+) leaves just 88231 out of a line that was read as Order 88231. Write (?i) "
+            + "at the front to ignore case. Leave it empty to keep everything that was read.",
+            required: false, advanced: true, onlyWith: ["regex"], onlyField: "content");
 
     /// <summary>
     /// Whether a step wants the picture tidied up before it is read. Small, low-contrast writing on

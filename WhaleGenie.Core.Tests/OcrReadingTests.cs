@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 
@@ -55,6 +57,49 @@ public class OcrReadingTests
         Assert.Equal(spans[0].Location, numbers[0].Location);
         Assert.Equal(spans[0].Confidence, numbers[0].Confidence);
         Assert.Equal(spans[0].Size, numbers[0].Size);
+    }
+
+    [Fact]
+    public void A_piece_can_be_cut_down_to_the_letters_or_the_chinese_in_it()
+    {
+        var spans = new List<TextSpan>
+        {
+            new("序号 SN-2048 完成", new ScreenPoint(10, 10), new ScreenSize(120, 14), 0.9),
+            new("已发货", new ScreenPoint(10, 30), new ScreenSize(40, 14), 0.8),
+            new("1234", new ScreenPoint(10, 50), new ScreenSize(30, 14), 0.7),
+            new("ＡＢ１２", new ScreenPoint(10, 70), new ScreenSize(40, 14), 0.6),
+        };
+
+        // The digits, the punctuation and the writing of the other kind all go; what stood apart as
+        // two words still stands apart, and a piece with nothing of the wanted kind left is not a
+        // reading at all.
+        Assert.Equal(["SN", "AB"], OcrReading.Letters(spans).Select(span => span.Text));
+        Assert.Equal(["序号 完成", "已发货"], OcrReading.Chinese(spans).Select(span => span.Text));
+        Assert.Equal(
+            ["序号 SN 完成", "已发货", "AB"],
+            OcrReading.LettersAndChinese(spans).Select(span => span.Text));
+    }
+
+    [Fact]
+    public void A_piece_can_be_cut_down_to_what_a_pattern_picks_out()
+    {
+        var spans = new List<TextSpan>
+        {
+            new("合计 ¥1,234.50", new ScreenPoint(10, 10), new ScreenSize(80, 14), 0.9),
+            new("订单号 ORD-88231", new ScreenPoint(10, 30), new ScreenSize(110, 14), 0.8),
+            new("已发货", new ScreenPoint(10, 50), new ScreenSize(40, 14), 0.7),
+        };
+
+        // The amount is the part in brackets, and the order number is the whole match: a pattern
+        // with brackets keeps what they took, and one without keeps what it matched.
+        var amounts = OcrReading.ByPattern(spans, new Regex(@"¥([\d,.]+)"));
+        var codes = OcrReading.ByPattern(spans, new Regex(@"ORD-\d+"));
+
+        var amount = Assert.Single(amounts);
+        Assert.Equal("1,234.50", amount.Text);
+        Assert.Equal(spans[0].Location, amount.Location);
+        Assert.Equal(spans[0].Confidence, amount.Confidence);
+        Assert.Equal("ORD-88231", Assert.Single(codes).Text);
     }
 
     [Fact]

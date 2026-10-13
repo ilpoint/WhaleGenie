@@ -92,6 +92,106 @@ public static class OcrReading
     }
 
     /// <summary>
+    /// The pieces cut down to the letters in them: the digits, the punctuation and the label around
+    /// a word are dropped, and a piece with no letter in it is left out altogether. A screen full of
+    /// codes is where this pays off — the letters of a serial number come back without the numbers
+    /// between them. Letters written the full-width way are read as ordinary letters.
+    /// </summary>
+    public static IReadOnlyList<TextSpan> Letters(IReadOnlyList<TextSpan> spans)
+        => Kept(spans, IsLetter);
+
+    /// <summary>
+    /// The same, keeping the Chinese writing instead: what a screen read next to a Latin interface
+    /// holds is the writing that matters, and the rest is the interface talking.
+    /// </summary>
+    public static IReadOnlyList<TextSpan> Chinese(IReadOnlyList<TextSpan> spans)
+        => Kept(spans, IsChinese);
+
+    /// <summary>
+    /// The same, keeping both kinds of writing: what is left when the digits and the symbols are
+    /// dropped, which is what a piece of writing is made of.
+    /// </summary>
+    public static IReadOnlyList<TextSpan> LettersAndChinese(IReadOnlyList<TextSpan> spans)
+        => Kept(spans, character => IsLetter(character) || IsChinese(character));
+
+    /// <summary>
+    /// The pieces the pattern picks out: a piece it does not match is left out, and a piece it does
+    /// match stands as the first bracketed part when the pattern has one, and as the whole match when
+    /// it has none. That is what makes one reading on a screen — an order number inside a line of
+    /// labels — into the one thing a later step wants.
+    /// </summary>
+    public static IReadOnlyList<TextSpan> ByPattern(IReadOnlyList<TextSpan> spans, Regex pattern)
+    {
+        var kept = new List<TextSpan>();
+        foreach (var span in spans)
+        {
+            var match = pattern.Match(span.Text);
+            var text = match.Success
+                ? (match.Groups.Count > 1 ? match.Groups[1].Value : match.Value).Trim()
+                : string.Empty;
+
+            if (text.Length > 0)
+            {
+                kept.Add(span with { Text = text });
+            }
+        }
+
+        return kept;
+    }
+
+    /// <summary>
+    /// The wanted writing kept out of each piece, with everything else dropped. The gaps between two
+    /// kept words stay one space, so a piece that held a sentence still reads as one; a piece left
+    /// with nothing in it is no piece at all and does not travel on as an empty reading.
+    /// </summary>
+    private static IReadOnlyList<TextSpan> Kept(IReadOnlyList<TextSpan> spans, Func<char, bool> wanted)
+    {
+        var kept = new List<TextSpan>();
+        foreach (var span in spans)
+        {
+            var text = new StringBuilder(span.Text.Length);
+            var gap = false;
+
+            foreach (var character in span.Text)
+            {
+                var plain = Narrow(character);
+
+                if (wanted(plain))
+                {
+                    if (gap && text.Length > 0)
+                    {
+                        text.Append(' ');
+                    }
+
+                    gap = false;
+                    text.Append(plain);
+                }
+                else if (char.IsWhiteSpace(character))
+                {
+                    gap = true;
+                }
+            }
+
+            if (text.Length > 0)
+            {
+                kept.Add(span with { Text = text.ToString() });
+            }
+        }
+
+        return kept;
+    }
+
+    /// <summary>Whether a character is one of the letters the writing on a screen is made of.</summary>
+    private static bool IsLetter(char character) => character is >= 'A' and <= 'Z' or >= 'a' and <= 'z';
+
+    /// <summary>
+    /// Whether a character is Chinese writing: the main block of characters and the extension beside
+    /// it, which is where the rarer ones live.
+    /// </summary>
+    private static bool IsChinese(char character) =>
+        character is >= '\u4E00' and <= '\u9FFF' or >= '\u3400' and <= '\u4DBF';
+
+    /// <summary>
     /// The pieces laid out the way they sit on screen: one row for each line of writing, one cell
     /// for each column in it. Rows and columns are worked out from where the pieces are, so a
     /// table printed without lines comes out the same as one with them, and the answer is the shape
@@ -185,11 +285,14 @@ public static class OcrReading
 
     /// <summary>
     /// The plain character behind a full-width one. A Chinese screen is full of them: OCR reads the
-    /// numbers of a form as １２３ unless they are brought back to the ordinary digits.
+    /// numbers of a form as １２３ and the letters of a code as ＡＢＣ unless they are brought back to
+    /// the ordinary characters.
     /// </summary>
     private static char Narrow(char character) => character switch
     {
         >= '\uFF10' and <= '\uFF19' => (char)(character - '\uFF10' + '0'),
+        >= '\uFF21' and <= '\uFF3A' => (char)(character - '\uFF21' + 'A'),
+        >= '\uFF41' and <= '\uFF5A' => (char)(character - '\uFF41' + 'a'),
         '\uFF0D' or '\u2212' => '-',
         '\uFF0E' => '.',
         _ => character,

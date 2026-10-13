@@ -383,7 +383,7 @@ public class RunLookTests
         var devices = Screen();
         devices.Spans = [new TextSpan("Save", new ScreenPoint(5, 6), new ScreenSize(20, 8), 30)];
         var looks = new Watched();
-        var step = Recognize(10, 20, 40, 30, Param("language", "auto"), Returns("text=text"));
+        var step = Recognize(10, 20, 40, 30, Returns("text=text"));
 
         await Run(step, devices, looks);
 

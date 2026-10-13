@@ -255,6 +255,38 @@ internal static class ActionStrings
         + "用于一屏里出现多个相同字样、只认其中一行的场合，例如 HP 120/300 用 ^HP \\d+/\\d+$ 找得到，"
         + "HP 已满 不会误中。写法与“匹配方式”里的正则相同。";
 
+    /// <summary>
+    /// What the three reading actions keep of each piece they read: one question asked in three
+    /// places, so it is written once and all three answer the same way.
+    /// </summary>
+    private const string ContentHint =
+        "读到的一段文字留下什么：全部文字照原样留下；只读数字、只留字母、只留中文、只留字母与中文"
+        + "这几档只留下要的那类字符（首尾的空格去掉、中间连续的空格并成一个），一个字符也不剩下的"
+        + "段落就当没读到；按正则提取把「提取的正则」套在每一段上，只留下匹配到的那一段。全角字母"
+        + "与全角数字按半角算；随包那一份模型本来就中英文都读，所以「只留中文」是在读出来的结果里"
+        + "挑中文，不是换一份模型。";
+
+    private const string ContentAll = "全部文字";
+    private const string ContentDigits = "只读数字";
+    private const string ContentLetters = "只留字母";
+    private const string ContentChinese = "只留中文";
+    private const string ContentLettersAndChinese = "只留字母与中文";
+    private const string ContentByPattern = "按正则提取";
+
+    /// <summary>
+    /// The field that carries the pattern, asked for only while the reading is set to keep what a
+    /// pattern matches: what goes in it is written differently from a piece of writing, so it is not
+    /// called the same thing.
+    /// </summary>
+    private const string ContentPatternLabel = "提取的正则";
+
+    /// <summary>The hint the three reading actions share for that pattern.</summary>
+    private const string ContentPatternHint =
+        "把每一段读到的文字都套一遍这个正则：匹配不上的段落不要，匹配上的段落只留下括号里的第一组"
+        + "（正则里没有括号时留下整个匹配）。写法与“匹配方式”里的正则相同，最前面写 (?i) 不区分"
+        + "大小写；留空表示不做提取，读到的文字原样留下。例如 单号：(\\d+) 会把「单号：88231」"
+        + "只留下 88231。";
+
     /// <summary>The hint the three reading actions share for their corrections list.</summary>
     private const string FixTextHint =
         "可选的纠错表：一行一条，写成“模型读到的 = 实际内容”，例如 l00 = 100、O = 0。"
@@ -2658,12 +2690,10 @@ internal static class ActionStrings
         ["ocr.recognize.height.label"] = "向下的高",
         ["ocr.recognize.height.hint"] = "要读的那块屏幕有多高，单位像素，至少 1；从左上角向下"
             + "量，留空就一直量到屏幕下边缘。",
-        ["ocr.recognize.language.label"] = "语言",
-        ["ocr.recognize.language.hint"] = "按哪种文字读屏幕上的字：自动、英文或中文，默认「自动」。识别用的是随包那一份中英文模型，所以两种文字的画面都不用专门指定。",
         ["ocr.recognize.content.label"] = "读取内容",
-        ["ocr.recognize.content.hint"] = "读全部文字，还是只读数字：只读数字时，含数字的片段"
-            + "只留下数字本身（货币符号、千位分隔符和旁边的文字都去掉），一个数字也没有的片段"
-            + "直接不要。全角数字按普通数字读。",
+        ["ocr.recognize.content.hint"] = ContentHint,
+        ["ocr.recognize.contentPattern.label"] = ContentPatternLabel,
+        ["ocr.recognize.contentPattern.hint"] = ContentPatternHint,
         ["ocr.recognize.table.label"] = "按表格读",
         ["ocr.recognize.table.hint"] = "按屏幕上的位置分行分列：$变量是表格（每行一项、每项是一条"
             + "记录，键是格子的列号 A、B、C），$变量.text 是同样的内容按行拼成的文本（行与行之间换行、"
@@ -2703,9 +2733,9 @@ internal static class ActionStrings
         ["ocr.findText.orderBy.option.area"] = "面积最大",
         ["ocr.findText.orderBy.option.random"] = "随机",
         ["ocr.findText.content.label"] = "读取内容",
-        ["ocr.findText.content.hint"] = "与屏幕内容按全部文字比对还是按数字比对：按数字比对时，"
-            + "含数字的片段只保留数字本身（去掉货币符号、千位分隔符及相邻文字），不含数字的"
-            + "片段不参与比对，因此“查找 1234.50”不会误匹配旁边的文字。",
+        ["ocr.findText.content.hint"] = ContentHint,
+        ["ocr.findText.contentPattern.label"] = ContentPatternLabel,
+        ["ocr.findText.contentPattern.hint"] = ContentPatternHint,
         ["ocr.findText.preprocess.label"] = "画面预处理",
         ["ocr.findText.preprocess.hint"] = "识别前的画面处理：灰度 / 黑白 / 放大两倍 / "
             + "放大并黑白。黑白的分界取整幅图的平均亮度；放大后读到的位置会按比例换算回"
@@ -2769,9 +2799,9 @@ internal static class ActionStrings
         ["ocr.clickText.orderBy.option.area"] = "面积最大",
         ["ocr.clickText.orderBy.option.random"] = "随机",
         ["ocr.clickText.content.label"] = "读取内容",
-        ["ocr.clickText.content.hint"] = "把屏幕按全部文字找，还是按数字找：按数字找时，含数字的"
-            + "片段只留下数字本身（货币符号、千位分隔符和旁边的文字都去掉），一个数字也没有的"
-            + "片段直接不要。",
+        ["ocr.clickText.content.hint"] = ContentHint,
+        ["ocr.clickText.contentPattern.label"] = ContentPatternLabel,
+        ["ocr.clickText.contentPattern.hint"] = ContentPatternHint,
         ["ocr.clickText.preprocess.label"] = "画面预处理",
         ["ocr.clickText.preprocess.hint"] = "识别前的画面处理：灰度 / 黑白 / 放大两倍 / "
             + "放大并黑白。黑白的分界取整幅图的平均亮度。",
@@ -3377,15 +3407,24 @@ internal static class ActionStrings
         ["input.mouseScroll.direction.option.left"] = "向左",
         ["input.mouseScroll.direction.option.right"] = "向右",
 
-        ["ocr.recognize.language.option.auto"] = "自动",
-        ["ocr.recognize.language.option.en"] = "英文",
-        ["ocr.recognize.language.option.zh"] = "中文",
-        ["ocr.recognize.content.option.text"] = "全部文字",
-        ["ocr.recognize.content.option.digits"] = "只读数字",
-        ["ocr.findText.content.option.text"] = "全部文字",
-        ["ocr.findText.content.option.digits"] = "只读数字",
-        ["ocr.clickText.content.option.text"] = "全部文字",
-        ["ocr.clickText.content.option.digits"] = "只读数字",
+        ["ocr.recognize.content.option.text"] = ContentAll,
+        ["ocr.recognize.content.option.digits"] = ContentDigits,
+        ["ocr.recognize.content.option.letters"] = ContentLetters,
+        ["ocr.recognize.content.option.chinese"] = ContentChinese,
+        ["ocr.recognize.content.option.lettersAndChinese"] = ContentLettersAndChinese,
+        ["ocr.recognize.content.option.regex"] = ContentByPattern,
+        ["ocr.findText.content.option.text"] = ContentAll,
+        ["ocr.findText.content.option.digits"] = ContentDigits,
+        ["ocr.findText.content.option.letters"] = ContentLetters,
+        ["ocr.findText.content.option.chinese"] = ContentChinese,
+        ["ocr.findText.content.option.lettersAndChinese"] = ContentLettersAndChinese,
+        ["ocr.findText.content.option.regex"] = ContentByPattern,
+        ["ocr.clickText.content.option.text"] = ContentAll,
+        ["ocr.clickText.content.option.digits"] = ContentDigits,
+        ["ocr.clickText.content.option.letters"] = ContentLetters,
+        ["ocr.clickText.content.option.chinese"] = ContentChinese,
+        ["ocr.clickText.content.option.lettersAndChinese"] = ContentLettersAndChinese,
+        ["ocr.clickText.content.option.regex"] = ContentByPattern,
         ["ocr.recognize.preprocess.option.none"] = "原样",
         ["ocr.recognize.preprocess.option.greyscale"] = "灰度",
         ["ocr.recognize.preprocess.option.binarize"] = "黑白",

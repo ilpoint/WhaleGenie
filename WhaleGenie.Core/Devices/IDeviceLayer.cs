@@ -104,7 +104,7 @@ public interface IVisionDevice
 public interface IOcrDevice
 {
     /// <summary>Every piece of text in the frame, in reading order.</summary>
-    IReadOnlyList<TextSpan> Recognize(ImageFrame frame, string language);
+    IReadOnlyList<TextSpan> Recognize(ImageFrame frame);
 }
 
 /// <summary>Finding and driving windows through UI Automation.</summary>
@@ -898,7 +898,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public IReadOnlyList<ImageMatch> FindAll(ImageFrame haystack, ImageFrame needle,
             VisionQuery query) => throw Missing("image matching");
 
-        public IReadOnlyList<TextSpan> Recognize(ImageFrame frame, string language) => throw Missing("text recognition");
+        public IReadOnlyList<TextSpan> Recognize(ImageFrame frame) => throw Missing("text recognition");
 
         public bool Exists(UiQuery query, int timeoutMs) => throw Missing("UI Automation");
 

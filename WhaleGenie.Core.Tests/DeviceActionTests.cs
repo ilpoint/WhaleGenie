@@ -2711,11 +2711,11 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Recognize(0, 0, 100, 20, Param("language", "en"), Returns("text=words")),
+            Recognize(0, 0, 100, 20, Returns("text=words")),
         ], devices);
 
         Assert.Equal("Ready Go", store.Local.Values["words"].AsText());
-        Assert.Contains("ocr en", devices.Calls);
+        Assert.Contains("ocr", devices.Calls);
     }
 
     [Fact]
@@ -2989,6 +2989,131 @@ public class DeviceActionTests
 
         Assert.Equal("1234.50", store.Local.Values["amounts"].AsText());
         Assert.Equal("40,6", Centre(store, "where"));
+    }
+
+    /// <summary>
+    /// The other kinds of writing a step can keep, which is how one screen full of labels is read
+    /// for the code on it and for the Chinese beside it by the same kind of step. A piece left with
+    /// none of what was asked for does not travel on as an empty reading.
+    /// </summary>
+    [Fact]
+    public async Task Recognising_text_can_keep_only_one_kind_of_writing()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans =
+            [
+                new TextSpan("序号 SN-2048 完成", new ScreenPoint(0, 0), new ScreenSize(120, 12), 0.9),
+                new TextSpan("1234", new ScreenPoint(0, 20), new ScreenSize(30, 12), 0.8),
+            ],
+        };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Recognize(0, 0, 100, 40, Param("content", "letters"), Returns("text=letters")),
+            Recognize(0, 0, 100, 40, Param("content", "chinese"), Returns("text=chinese")),
+            Recognize(0, 0, 100, 40, Param("content", "lettersAndChinese"),
+                Returns("text=writing")),
+        ], devices);
+
+        Assert.Equal("SN", store.Local.Values["letters"].AsText());
+        Assert.Equal("序号 完成", store.Local.Values["chinese"].AsText());
+        Assert.Equal("序号 SN 完成", store.Local.Values["writing"].AsText());
+    }
+
+    /// <summary>
+    /// Keeping what a pattern picks out, reading and extracting in one step: the amount inside a
+    /// line of labels is what comes out, and the line the pattern missed is left out.
+    /// </summary>
+    [Fact]
+    public async Task Recognising_text_can_keep_only_what_a_pattern_picks_out()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans =
+            [
+                new TextSpan("合计 ¥1,234.50", new ScreenPoint(0, 0), new ScreenSize(90, 12), 0.9),
+                new TextSpan("已发货", new ScreenPoint(0, 20), new ScreenSize(30, 12), 0.8),
+                new TextSpan("订单号 ORD-88231", new ScreenPoint(0, 40), new ScreenSize(110, 12), 0.7),
+            ],
+        };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Recognize(0, 0, 100, 60, Param("content", "regex"),
+                Param("contentPattern", @"¥([\d,.]+)"), Returns("text=amount")),
+            Recognize(0, 0, 100, 60, Param("content", "regex"),
+                Param("contentPattern", @"ORD-\d+"), Returns("text=code")),
+        ], devices);
+
+        Assert.Equal("1,234.50", store.Local.Values["amount"].AsText());
+        Assert.Equal("ORD-88231", store.Local.Values["code"].AsText());
+    }
+
+    /// <summary>
+    /// The looking-for side reads the screen the same way, so a step can say what it wants in the
+    /// words the screen actually shows: "SN" is not part of "SN-2048" until the reading is cut down
+    /// to its letters.
+    /// </summary>
+    [Fact]
+    public async Task Finding_text_reads_the_screen_the_way_the_step_said_to()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans = [new TextSpan("SN-2048", new ScreenPoint(0, 0), new ScreenSize(40, 10), 0.9)],
+        };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("ocr.findText", Param("text", "SN"), Param("matchMode", "exact"),
+                Param("content", "letters"), Hit("match", "where")),
+        ], devices);
+
+        Assert.Equal("20,5", Centre(store, "where"));
+    }
+
+    /// <summary>
+    /// A pattern the machine cannot read is the macro's problem to see, and it is seen as a failed
+    /// step rather than as a screen that was read and then quietly kept whole.
+    /// </summary>
+    [Fact]
+    public async Task A_pattern_the_text_reading_cannot_read_stops_the_step()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans = [new TextSpan("订单号 ORD-88231", new ScreenPoint(0, 0), new ScreenSize(110, 12), 0.9)],
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Recognize(0, 0, 100, 20, Param("content", "regex"),
+                Param("contentPattern", "ORD-[0-9"), Returns("text=code")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.BadPattern", result.Key);
+        Assert.Empty(store.Local.Values);
+    }
+
+    /// <summary>
+    /// A pattern left empty asks for no extracting: what was read stays as it was read, which is what
+    /// the field being empty means everywhere else.
+    /// </summary>
+    [Fact]
+    public async Task A_pattern_left_empty_keeps_everything_that_was_read()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans = [new TextSpan("订单号 88231", new ScreenPoint(0, 0), new ScreenSize(90, 12), 0.9)],
+        };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Recognize(0, 0, 100, 20, Param("content", "regex"),
+                Param("contentPattern", ""), Returns("text=text")),
+        ], devices);
+
+        Assert.Equal("订单号 88231", store.Local.Values["text"].AsText());
     }
 
     [Fact]
@@ -7221,9 +7346,9 @@ internal sealed class FakeDeviceLayer
     /// <summary>Every search asked for, so a check can see how the step was read.</summary>
     public List<VisionQuery> Queries { get; } = [];
 
-    public IReadOnlyList<TextSpan> Recognize(ImageFrame frame, string language)
+    public IReadOnlyList<TextSpan> Recognize(ImageFrame frame)
     {
-        Note($"ocr {language}");
+        Note("ocr");
         OcrFrames.Add((frame.Width, frame.Height));
         OcrPictures.Add(frame);
         return Spans;

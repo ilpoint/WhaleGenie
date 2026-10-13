@@ -1224,6 +1224,61 @@ public class ActionDialogTests
         });
     }
 
+    /// <summary>
+    /// The pattern a reading step cuts its text down by is asked for only while the reading is set to
+    /// keep what a pattern matches, and a step that keeps the writing as it stands writes nothing
+    /// about a pattern: one field belongs to one way of doing something, and travels with it.
+    /// </summary>
+    [Fact]
+    public void The_pattern_a_reading_keeps_its_text_by_is_asked_for_only_when_it_is_used()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("ocr.recognize");
+            var pattern = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "contentPattern");
+
+            // Nothing about a pattern until the reading says it keeps what one matches.
+            Assert.False(Shown(viewModel, "contentPattern"));
+
+            Choose(viewModel, "content", "letters");
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(Shown(viewModel, "contentPattern"));
+
+            Choose(viewModel, "content", "regex");
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(Shown(viewModel, "contentPattern"));
+
+            // It is tuning rather than what the step is, so it is behind the fold.
+            Assert.Contains("contentPattern", viewModel.AdvancedRows.SelectMany(Names));
+
+            pattern.Text = @"单号：(\d+)";
+            Dispatcher.UIThread.RunJobs();
+
+            MacroStep? kept = null;
+            viewModel.CloseRequested += step => kept = step;
+            viewModel.SaveCommand.Execute(null);
+
+            var written = kept!.Parameters.ToDictionary(parameter => parameter.Name,
+                parameter => parameter.Value, StringComparer.Ordinal);
+            Assert.Equal("regex", written["content"]);
+            Assert.Equal(@"单号：(\d+)", written["contentPattern"]);
+
+            // Told to keep the writing as it stands, the step carries no pattern at all.
+            Choose(viewModel, "content", "text");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.DoesNotContain("contentPattern", viewModel.JsonPreview, StringComparison.Ordinal);
+
+            MacroStep? plain = null;
+            viewModel.CloseRequested += step => plain = step;
+            viewModel.SaveCommand.Execute(null);
+
+            Assert.DoesNotContain(plain!.Parameters,
+                parameter => parameter.Name == "contentPattern");
+        });
+    }
+
     /// <summary>A search that may look in several places takes the rectangle as one more place.</summary>
     [Fact]
     public void A_rectangle_adds_a_place_to_a_search()
