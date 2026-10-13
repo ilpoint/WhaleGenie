@@ -5903,6 +5903,18 @@ public class DeviceActionTests
             Assert.Equal(match, elements.LastQuery!.WindowMatch);
             Assert.Equal(compare, elements.LastQuery.WindowCompare);
             Assert.Equal(text, elements.LastQuery.WindowTitle);
+
+            // Bringing a window to the front is handed the same rule, so choosing the program or a
+            // pattern there means what it means everywhere else.
+            var focused = Named();
+            await RunAsync(
+            [
+                Step("uia.focusWindow", Param("window", text), Param("how", how)),
+            ], focused);
+
+            Assert.Equal(match, focused.LastQuery!.WindowMatch);
+            Assert.Equal(compare, focused.LastQuery.WindowCompare);
+            Assert.Equal(text, focused.LastQuery.WindowTitle);
         }
     }
 
@@ -7731,9 +7743,10 @@ internal sealed class FakeDeviceLayer
         return ElementExists;
     }
 
-    public bool FocusWindow(string title)
+    public bool FocusWindow(UiQuery query)
     {
-        Note($"focus {title}");
+        LastQuery = query;
+        Note($"focus {query.WindowTitle}");
         return WindowFocused;
     }
 

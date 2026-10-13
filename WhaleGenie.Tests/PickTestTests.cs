@@ -85,7 +85,7 @@ public class PickTestTests
                 Save.ControlType, Save.Location, Save.Size)
             : null;
 
-        public bool FocusWindow(string title) => found;
+        public bool FocusWindow(UiQuery query) => found;
 
         public bool SetText(UiQuery query, string text, bool clearFirst) => found;
 

@@ -1116,7 +1116,7 @@ public class ActionDialogTests
         public UiElementFacts? Facts(UiQuery query) => new(true, true, Save.Name, Save.Name,
             Save.AutomationId, Save.ControlType, Save.Location, Save.Size);
 
-        public bool FocusWindow(string title) => true;
+        public bool FocusWindow(UiQuery query) => true;
 
         public bool SetText(UiQuery query, string text, bool clearFirst) => true;
 

@@ -7238,13 +7238,13 @@ public sealed class MacroRunner
 
     private void FocusWindow(ExecutableStep step, int depth)
     {
-        var title = Read(step.Text("window")).AsText();
-        if (!_devices.Ui.FocusWindow(title))
+        var rule = WindowRuleOf(step, "window", "how");
+        if (!_devices.Ui.FocusWindow(UiQuery.Parse(string.Empty, rule.Text, 1, rule.Match, rule.Compare)))
         {
-            throw new StepFailure("Run.WindowNotFound", title);
+            throw new StepFailure("Run.WindowNotFound", rule.Text);
         }
 
-        Log(LogLevel.Info, depth, step.Type, "Run.FocusedWindow", title);
+        Log(LogLevel.Info, depth, step.Type, "Run.FocusedWindow", rule.Text);
     }
 
     /// <summary>

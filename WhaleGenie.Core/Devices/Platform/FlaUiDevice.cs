@@ -101,15 +101,15 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         }
     }
 
-    public bool FocusWindow(string title)
+    public bool FocusWindow(UiQuery query)
     {
         Require();
-        if (string.IsNullOrWhiteSpace(title))
+        if (string.IsNullOrWhiteSpace(query.WindowTitle))
         {
-            throw new DeviceActionException("Run.MissingWindow", title);
+            throw new DeviceActionException("Run.MissingWindow", query.WindowTitle ?? string.Empty);
         }
 
-        var window = Root(new UiQuery(WindowTitle: title));
+        var window = Root(query);
         if (window is null)
         {
             return false;

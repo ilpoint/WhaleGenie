@@ -136,7 +136,11 @@ public interface IUiDevice
     /// </summary>
     UiElementFacts? Facts(UiQuery query);
 
-    bool FocusWindow(string title);
+    /// <summary>
+    /// Brings the window a query names to the front. The window is recognised by the same rule every
+    /// other step recognises one with, so the query carries both halves of it.
+    /// </summary>
+    bool FocusWindow(UiQuery query);
 
     /// <summary>Writes into an element, optionally clearing what was there first.</summary>
     bool SetText(UiQuery query, string text, bool clearFirst);
@@ -1010,7 +1014,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public UiElementFacts? Facts(UiQuery query) => throw Missing("UI Automation");
 
-        public bool FocusWindow(string title) => throw Missing("UI Automation");
+        public bool FocusWindow(UiQuery query) => throw Missing("UI Automation");
 
         public bool SetText(UiQuery query, string text, bool clearFirst) => throw Missing("UI Automation");
 
