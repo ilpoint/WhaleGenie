@@ -39,7 +39,11 @@ public class FunctionTableTests
     /// <summary>Every row of the manual's function table: the name written, and the line beside it.</summary>
     private static IEnumerable<Match> Rows()
     {
-        var manual = File.ReadAllText(Path.Combine(Repository(), "doc", "manual.md"));
+        // Line endings are the checkout's business, not the text's, and this is read a line at a
+        // time: a checkout that writes CRLF would otherwise find no rows at all and the two checks
+        // below would compare the table against nothing.
+        var manual = File.ReadAllText(Path.Combine(Repository(), "doc", "manual.md"))
+            .Replace("\r\n", "\n", StringComparison.Ordinal);
         var start = manual.IndexOf("## 表达式函数一览", StringComparison.Ordinal);
         Assert.True(start >= 0, "the manual no longer has a section listing the expression functions");
 
