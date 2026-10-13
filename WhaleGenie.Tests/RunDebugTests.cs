@@ -193,6 +193,49 @@ public class RunDebugTests
     }
 
     /// <summary>
+    /// The panel is on the window itself, not only in the view model: what a step worked out is
+    /// read off the screen when a run is watched, so a row that carried it in memory only would be
+    /// no use to anybody.
+    /// </summary>
+    [Fact]
+    public void The_row_shows_what_the_step_worked_out_on_the_window_itself()
+    {
+        var answer = Ui.RunAsync(async () =>
+        {
+            var step = Encode("hello");
+            StepIds.Settle([step]);
+
+            var window = new RunWindow([step], NullDeviceLayer.Instance);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            viewModel.RunCommand.Execute(null);
+            while (viewModel.IsBusy)
+            {
+                await Task.Delay(10);
+            }
+
+            Dispatcher.UIThread.RunJobs();
+
+            var written = window.GetVisualDescendants().OfType<TextBlock>()
+                .Where(text => text.IsEffectivelyVisible)
+                .Select(text => text.Text ?? string.Empty)
+                .ToList();
+
+            window.Close();
+            return written;
+        });
+
+        // The step, how it ended and what it worked out — under the engine's own name for it,
+        // because nobody ticked it.
+        Assert.Contains(answer, text => text.Contains("data.base64Encode", System.StringComparison.Ordinal));
+        Assert.Contains(WhaleGenie.Localization.Strings.Get("Run.OutcomeOk"), answer);
+        Assert.Contains("encoded", answer);
+        Assert.Contains("aGVsbG8=", answer);
+    }
+
+    /// <summary>
     /// A breakpoint with a condition stops the run only while that condition holds; one whose
     /// condition is not met lets the run go past, which is the whole reason to write a condition.
     /// </summary>

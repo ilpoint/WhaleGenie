@@ -52,6 +52,14 @@ public partial class RunStepViewModel : ObservableObject
     /// <summary>Left margin that lines the step up under its parent.</summary>
     public Thickness Indent => new(Depth * 16, 0, 0, 0);
 
+    /// <summary>
+    /// Whether the engine can stop in front of this row. A condition is asked by the step it
+    /// belongs to rather than run on its own, so nothing pauses before one: a dot on that row would
+    /// be a promise the run cannot keep, and stopping before the question is asked is what the dot
+    /// on the step it belongs to is for.
+    /// </summary>
+    public required bool CanBreak { get; init; }
+
     [ObservableProperty]
     public partial bool HasBreakpoint { get; set; }
 
@@ -1017,6 +1025,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                 Label = FailedStepPrompt.Name(step.Type),
                 Detail = Detail(step),
                 Depth = depth,
+                CanBreak = !step.Type.StartsWith("condition.", StringComparison.Ordinal),
             });
 
             // The condition reads first, so an "if"/"while" shows its test above the bodies.

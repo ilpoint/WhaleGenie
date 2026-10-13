@@ -295,6 +295,7 @@
                                                 <Grid ColumnDefinitions="24,*,Auto">
                                                     <Button Classes="Breakpoint" Classes.on="{Binding HasBreakpoint}"
                                                             VerticalAlignment="Center"
+                                                            IsVisible="{Binding CanBreak}"
                                                             ToolTip.Tip="{Binding Label}"
                                                             Command="{Binding $parent[ItemsControl].((vm:RunViewModel)DataContext).ToggleBreakpointCommand}"
                                                             CommandParameter="{Binding}">
