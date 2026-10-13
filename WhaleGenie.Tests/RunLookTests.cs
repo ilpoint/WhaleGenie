@@ -144,6 +144,10 @@ public class RunLookTests
             var step = new MacroStep
             {
                 Type = "vision.captureWindow",
+                // The frame is put up from a message to the interface thread, so the run has to
+                // still be going when that message lands: a step that ends the instant it started
+                // lets the run finish first, and then there is no run left to frame a window for.
+                Meta = new StepMeta { DelayAfterMs = 200 },
                 Parameters =
                 [
                     new StepParameter
@@ -192,7 +196,10 @@ public class RunLookTests
         var places = Ui.RunAsync(async () =>
         {
             var devices = new LookingDevices { Windows = new WalkingWindow() };
-            var steps = new[] { WindowCapture(), WindowCapture() };
+            // Each look is followed by a pause, because the frame is put up from a message to the
+            // interface thread: a step that ends the instant it started lets the run finish before
+            // that message lands, and a frame for a run that is over is not put up at all.
+            var steps = new[] { WindowCapture(delayAfterMs: 150), WindowCapture(delayAfterMs: 150) };
             StepIds.Settle(steps);
 
             var frames = new List<FramePlace?>();
@@ -213,10 +220,15 @@ public class RunLookTests
             + $"{places[^1].Location.X}");
     }
 
-    /// <summary>One step that reads the window named "Notepad" and keeps what it saw.</summary>
-    private static MacroStep WindowCapture() => new()
+    /// <summary>
+    /// One step that reads the window named "Notepad" and keeps what it saw. A pause after it is
+    /// for the checks that watch a frame go up: the frame arrives on the interface thread, and the
+    /// run has to still be going when it does.
+    /// </summary>
+    private static MacroStep WindowCapture(int delayAfterMs = 0) => new()
     {
         Type = "vision.captureWindow",
+        Meta = new StepMeta { DelayAfterMs = delayAfterMs },
         Parameters =
         [
             new StepParameter

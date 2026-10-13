@@ -131,7 +131,7 @@ public sealed class Strings : INotifyPropertyChanged
         // ----------------------------------------------------------- macro editor
         ["Editor.Title"] = "Macro Editor",
         ["Editor.NamePlaceholder"] = "Enter a name for your macro..",
-        ["Editor.LiftedMacroName"] = "{0} — a macro of its own",
+        ["Editor.LiftedMacroName"] = "{0}, a macro of its own",
         ["Editor.LiftedMacroNameEmpty"] = "A macro of its own",
         ["Editor.TriggerSettings"] = "Trigger Settings",
         ["Editor.TriggerBy"] = "Trigger by :",
@@ -165,7 +165,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.WatchNote"] = "The macro runs once for each change. The events of one save "
             + "arrive together and count as one.",
         ["Editor.ProcessName"] = "Program :",
-        ["Editor.ProcessNameHint"] = "notepad, or chrome — the .exe is not needed",
+        ["Editor.ProcessNameHint"] = "notepad, or chrome; the .exe is not needed",
         ["Editor.ProcessWhen"] = "When :",
         ["Editor.ProcessNote"] = "The macro runs once each time the program starts or stops. "
             + "A program that is already open when the system is switched on is not a start.",
@@ -393,7 +393,7 @@ public sealed class Strings : INotifyPropertyChanged
         // rather than surprised by.
         ["Add.TestField"] = "Test",
         ["Add.TestKeyHint"] = "Presses this key once, for real, the way the step's own input "
-            + "setting says — so it can be watched landing in the window it is meant for. The "
+            + "setting says, so it can be watched landing in the window it is meant for. The "
             + "dialog steps aside first.",
         ["Add.TestGamepadHint"] = "Drives the virtual controller once, for real, then lets go of "
             + "it again. Put the game in front to watch it land.",
@@ -433,14 +433,14 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.StopRecording"] = "Stop Recording",
         ["Editor.RecordIdle"] = "Press Ctrl + F10 or click Record to start",
         ["Editor.PlaceTakesOnly"] = "The step was not added. This place only takes {0}.",
-        ["Editor.RecordActive"] = "Recording — {0} captured, Escape is recorded like any other "
+        ["Editor.RecordActive"] = "Recording: {0} captured, Escape is recorded like any other "
                                   + "key. Press Ctrl + F10 to stop",
         ["Editor.RecordFailed"] = "Recording could not start. Another program may be holding the "
                                   + "keyboard or mouse hook.",
         ["Editor.RecordEmpty"] = "The recording caught nothing, which usually means nothing was done "
                                  + "while it ran. Note that the system marks input sent by another "
-                                 + "program — a remote session, a virtual machine, an automation tool "
-                                 + "— as injected, and that input is left out on purpose so a macro "
+            + "program (a remote session, a virtual machine, an automation tool) "
+            + "as injected, and that input is left out on purpose so a macro "
                                  + "never records its own playback. If you are working through a "
                                  + "remote connection, turn off \"Ignore Other Programs' Input\" in the "
                                  + "Record Actions panel and try again.",
@@ -466,7 +466,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.KeyCount"] = "{0} press(es)",
         ["Editor.PictureCount"] = "{0} picture(s)",
         ["Editor.ReturnCount"] = "{0} result(s)",
-        ["Editor.StepIdHint"] = "Step name {0} — a result variable and a condition point at this "
+        ["Editor.StepIdHint"] = "Step name {0}: a result variable and a condition point at this "
             + "step by it.",
         ["Editor.Unfold"] = "Show the steps inside",
         ["Editor.AddInside"] = "Add a sub-step at the end of this list",
@@ -561,17 +561,17 @@ public sealed class Strings : INotifyPropertyChanged
         ["Palette.Delete"] = "Delete the selected steps (Del)",
         ["Palette.Group"] = "Group the selected steps into one step that runs them in order (Ctrl + G)",
         ["Palette.LiftToMacro"] =
-            "Lift the selected steps into a macro of their own — the values they read become its "
+            "Lift the selected steps into a macro of their own: the values they read become its "
             + "arguments, a call to it takes their place",
         ["Palette.Run"] = "Run and debug this macro (F5)",
         ["Palette.MoveUp"] = "Move the selected steps up (Ctrl + Up)",
         ["Palette.MoveDown"] = "Move the selected steps down (Ctrl + Down)",
         ["Palette.Clear"] = "Clear all steps",
-        ["Palette.AdjustDelays"] = "Playback speed — scale waits, holds and typing",
-        ["Palette.RunMacro"] = "Run another macro — add a call to another macro in this project",
+        ["Palette.AdjustDelays"] = "Playback speed: scale waits, holds and typing",
+        ["Palette.RunMacro"] = "Run another macro: add a call to another macro in this project",
         ["Speed.Title"] = "Playback speed",
         ["Speed.Explanation"] = "Scales this macro's waits and pacing by a factor. It applies only while "
-            + "the macro runs, so the steps keep the numbers you wrote — ×1 is exactly as written.",
+            + "the macro runs, so the steps keep the numbers you wrote; ×1 is exactly as written.",
         ["Speed.Summary"] = "{0} waits: about {1} → {2}",
         ["Speed.Detail"] = "Also scales {0} loop intervals and {1} key or mouse timings.",
         ["Speed.NoWaits"] = "This macro has no waits yet, so the factor only affects pacing while it runs.",
@@ -593,7 +593,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.Page.ReturnsHint"] = "What this step works out while it runs. Tick the results the "
             + "macro should keep: each becomes a variable of its own, named after the note, the "
             + "action and the result, and a later step reads it by that name. Leaving every box "
-            + "alone is allowed — the step then leaves no result behind.",
+            + "alone is allowed, and the step then leaves no result behind.",
         ["Add.JsonNode"] = "JSON Node",
         ["Add.JsonPlaceholder"] = "// Select an action to preview its JSON node",
         ["Add.NoParameters"] = "This action takes no parameters.",
@@ -734,7 +734,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["VarWall.StepResult"] = "Step results",
         ["VarWall.StepResultHint"] = "What a step's run came to: ok, failed or skipped.",
         ["VarWall.Pick"] = "Hover over a button to see what that variable is.",
-        ["VarWall.Empty"] = "There is nothing in this group yet — try another button above.",
+        ["VarWall.Empty"] = "There is nothing in this group yet; try another button above.",
         ["VarWall.Outcome"] = "What this step came to: ok, failed or skipped.",
         ["VarWall.Error"] = "Why this step failed, as WhaleGenie's own name for the failure; empty when it did not fail.",
         ["VarWall.UsedBy"] = "Steps that read it:",
@@ -819,7 +819,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.DriverInstall"] = "Install driver...",
         ["Settings.DriverHint"] =
             "Driver-level input makes the target program see real hardware. Install the usbip-win2 "
-            + "driver by hand — administrator rights, a brief USB disconnect, possibly a restart — "
+            + "driver by hand (administrator rights, a brief USB disconnect, possibly a restart), "
             + "and that is the only piece that has to be. The server below is started and stopped "
             + "for you.",
         ["Settings.Server"] = "VIIPER server",
@@ -844,8 +844,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.AdminNo"] = "Not running as administrator.",
         ["Settings.AdminHint"] =
             "WhaleGenie reads its hotkeys through a system hook, and Windows does not let it see the "
-            + "keys that go to a window of a higher privilege — Task Manager, or anything started "
-            + "with \"run as administrator\" — nor put ordinary input into one. Sending input is not "
+            + "keys that go to a window of a higher privilege (Task Manager, or anything started "
+            + "with \"run as administrator\"), nor put ordinary input into one. Sending input is not "
             + "the problem: driver-level input reaches those windows, because the machine sees it as "
             + "real hardware. Starting a macro from a hotkey in front of them is.",
         ["Settings.AdminRestart"] = "Restart as administrator",
@@ -858,6 +858,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Common.Close"] = "Close",
         ["Common.OptionalSuffix"] = "{0} (optional)",
         ["Common.StepCount"] = "{0} step(s)",
+        ["Common.None"] = "None",
 
         // ------------------------------------------------------------ macro package
         ["Main.OpenProjectTitle"] = "Open Macro Project",
@@ -895,7 +896,7 @@ public sealed class Strings : INotifyPropertyChanged
             + "The default value is what a macro sees before it changes anything.",
         ["Variable.Locals"] = "Macro Variables",
         ["Variable.LocalsHint"] = "Only the macros in the macro list are shown. A macro sees its own local variables "
-            + "only — the other macros cannot read them. They hold a value while their macro runs.",
+            + "only; the other macros cannot read them. They hold a value while their macro runs.",
         ["Variable.Tab.Current"] = "Variables in use",
         ["Variable.Tab.Local"] = "Local variables",
         ["Variable.Tab.Global"] = "Global variables",
@@ -1572,7 +1573,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.StopRecording"] = "停止录制",
         ["Editor.RecordIdle"] = "按 Ctrl + F10 或点“开始录制”",
         ["Editor.PlaceTakesOnly"] = "这一步没有加进去：这个位置只收{0}。",
-        ["Editor.RecordActive"] = "录制中 —— 已捕获 {0} 个事件（Esc 会被正常录下来），"
+        ["Editor.RecordActive"] = "录制中：已捕获 {0} 个事件（Esc 会被正常录下来），"
                                   + "按 Ctrl + F10 停止",
         ["Editor.RecordFailed"] = "无法开始录制。可能有其他程序占用了键盘或鼠标钩子。",
         ["Editor.RecordEmpty"] = "这次录制没有捕获到任何操作，通常是录制期间没有产生任何输入。"
@@ -1599,7 +1600,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.KeyCount"] = "{0} 个组合",
         ["Editor.PictureCount"] = "{0} 张图",
         ["Editor.ReturnCount"] = "{0} 项结果",
-        ["Editor.StepIdHint"] = "步骤名称 {0}——结果变量和条件用它指这一步。",
+        ["Editor.StepIdHint"] = "步骤名称 {0}：结果变量和条件用它指这一步。",
         ["Editor.Unfold"] = "展开里面的步骤",
         ["Editor.AddInside"] = "在这一块的末尾添加子步骤",
         ["Editor.NoStepsHint"] = "点击上方的“添加新动作”，选择动作并填写参数。",
@@ -1694,11 +1695,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Palette.MoveUp"] = "上移选中的步骤 (Ctrl + ↑)",
         ["Palette.MoveDown"] = "下移选中的步骤 (Ctrl + ↓)",
         ["Palette.Clear"] = "清空全部步骤",
-        ["Palette.AdjustDelays"] = "运行速度 —— 按倍率缩放等待、按住与输入间隔",
-        ["Palette.RunMacro"] = "执行其他宏 —— 插入一步调用本项目里的其他宏",
+        ["Palette.AdjustDelays"] = "运行速度：按倍率缩放等待、按住与输入间隔",
+        ["Palette.RunMacro"] = "执行其他宏：插入一步调用本项目里的其他宏",
         ["Speed.Title"] = "运行速度",
-        ["Speed.Explanation"] = "按倍率缩放这个宏的等待与节奏。只在本宏运行时生效，步骤里的数字不会被改动"
-            + "——×1 就是完全按原文运行。",
+        ["Speed.Explanation"] = "按倍率缩放这个宏的等待与节奏。只在本宏运行时生效，步骤里的数字不会被改动；"
+            + "×1 就是完全按原文运行。",
         ["Speed.Summary"] = "{0} 处等待：约 {1} → {2}",
         ["Speed.Detail"] = "另有 {0} 处循环间隔、{1} 处按键 / 鼠标节奏也会一起缩放。",
         ["Speed.NoWaits"] = "这个宏还没有等待步骤，倍率只影响运行时的节奏。",
@@ -1941,7 +1942,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.AdminHint"] =
             "热键是靠系统钩子读的，前台窗口属于更高权限的程序时（任务管理器，或者任何「以管理员"
             + "身份运行」起来的程序），Windows 不让鲸灵看到那里的按键，普通输入也送不进去。送输入"
-            + "不是问题——驱动级输入能进那些窗口，因为系统当它是真实硬件；问题是那些窗口在前面时"
+            + "不是问题：驱动级输入能进那些窗口，因为系统当它是真实硬件；问题是那些窗口在前面时"
             + "热键启不了宏。",
         ["Settings.AdminRestart"] = "以管理员身份重新启动",
         ["Settings.Note"] = "动作名称和参数文本会在窗口打开时按所选语言显示。",
@@ -1953,6 +1954,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Common.Close"] = "关闭",
         ["Common.OptionalSuffix"] = "{0}（可选）",
         ["Common.StepCount"] = "{0} 个步骤",
+        ["Common.None"] = "无",
 
         // ------------------------------------------------------------ macro package
         ["Main.OpenProjectTitle"] = "打开宏项目",

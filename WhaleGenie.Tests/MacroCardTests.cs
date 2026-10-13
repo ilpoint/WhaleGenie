@@ -1,3 +1,4 @@
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Tests;
@@ -31,9 +32,11 @@ public class MacroCardTests
     [Fact]
     public void A_macro_without_a_binding_says_so()
     {
+        // A card with nothing written on it would read as a macro that starts some other way, so a
+        // trigger with nothing to preview says "none" in the reader's own language.
         var macro = new MacroItem();
 
-        Assert.Equal("—", macro.TriggerPreview);
+        Assert.Equal(Strings.Get("Common.None"), macro.TriggerPreview);
         Assert.True(macro.IsKeyboardTrigger);
     }
 

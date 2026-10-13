@@ -114,7 +114,7 @@ public partial class MacroItem : ObservableObject
     public partial string HexColor { get; set; } = "#000000";
 
     /// <summary>Shown on the card when a trigger has nothing to preview yet.</summary>
-    private const string NoPreview = "—";
+    private static string NoPreview => Strings.Get("Common.None");
 
     /// <summary>True when the macro is started by a colour / pixel change.</summary>
     public bool IsColorTrigger => TriggerMode == MacroTrigger.ColorPixelChanges;

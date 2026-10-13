@@ -104,8 +104,8 @@ public partial class VariableDefinition : ObservableObject
     /// <summary>Scope name in the current interface language.</summary>
     public string LocalScope => Strings.Get($"Variable.Scope.{Scope}", Scope.ToString());
 
-    /// <summary>Macro that owns a local variable, or a dash for the other scopes.</summary>
-    public string LocalOwner => Owner.Length == 0 ? "—" : Owner;
+    /// <summary>Macro that owns a local variable, or the word for none for the other scopes.</summary>
+    public string LocalOwner => Owner.Length == 0 ? Strings.Get("Common.None") : Owner;
 
     /// <summary>Type choices for the editor dropdown, with translated text.</summary>
     public IReadOnlyList<ActionParameterOption> TypeOptions { get; } =

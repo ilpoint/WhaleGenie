@@ -73,7 +73,7 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>Title bar text, which names the open package once there is one.</summary>
     public string WindowTitle => CurrentPath is null
         ? BaseTitle
-        : $"{BaseTitle} — {System.IO.Path.GetFileName(CurrentPath)}";
+        : $"{BaseTitle} · {System.IO.Path.GetFileName(CurrentPath)}";
 
     /// <summary>
     /// The application name as the title bar shows it. The admin badge appears only when the

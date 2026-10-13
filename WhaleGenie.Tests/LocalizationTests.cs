@@ -255,32 +255,60 @@ public class LocalizationTests
     }
 
     /// <summary>
-    /// A field's line is read in a dialog rather than on a page, so the marks a note is written in
-    /// are not part of it: a dash or a backtick left in one reads as a slip of the pen, and the
-    /// line is where the reader is deciding what to type. Both languages are read, because a dash
-    /// usually comes in with a sentence translated in a hurry.
+    /// Text the user reads is written in the tables rather than on a page, so the marks a note is
+    /// written in are not part of it: a dash or a backtick left in one reads as a slip of the pen,
+    /// and it lands where the reader is deciding what to type or which button to press. Everything
+    /// the interface can show is read here, in both languages, because a dash usually comes in
+    /// with a sentence translated in a hurry.
     /// </summary>
     [Fact]
-    public void No_field_says_what_it_is_with_a_dash_or_a_backtick()
+    public void No_text_a_user_reads_carries_a_dash_or_a_backtick()
     {
         var marked = Ui.Run(() =>
         {
             var found = new List<string>();
+            void Look(string where, string text)
+            {
+                if (text.Contains('—') || text.Contains('`'))
+                {
+                    found.Add(where);
+                }
+            }
+
+            foreach (var (key, text) in Strings.English)
+            {
+                Look($"Strings.English[{key}]", text);
+            }
+
+            foreach (var (key, text) in Strings.Chinese)
+            {
+                Look($"Strings.Chinese[{key}]", text);
+            }
+
+            foreach (var (key, text) in ActionStrings.Chinese)
+            {
+                Look($"ActionStrings.Chinese[{key}]", text);
+            }
+
             foreach (var definition in ActionCatalog.Definitions)
             {
+                Look($"{definition.Key}.Description", definition.Description);
+                Look($"{definition.Key}.DisplayName", definition.DisplayName);
                 foreach (var parameter in definition.Parameters)
                 {
-                    if (parameter.Hint.Contains('—') || parameter.Hint.Contains('`'))
+                    Look($"{definition.Key}.{parameter.Name}", parameter.Hint);
+                    Look($"{definition.Key}.{parameter.Name}.label", parameter.Label);
+                    Look($"{definition.Key}.{parameter.Name}.placeholder", parameter.Placeholder);
+                    foreach (var option in parameter.OptionLabels)
                     {
-                        found.Add($"{definition.Key}.{parameter.Name} (English)");
+                        Look($"{definition.Key}.{parameter.Name}.option", option);
                     }
+                }
 
-                    var key = $"{definition.Key}.{parameter.Name}.hint";
-                    if (ActionStrings.Chinese.TryGetValue(key, out var chinese)
-                        && (chinese.Contains('—') || chinese.Contains('`')))
-                    {
-                        found.Add(key);
-                    }
+                foreach (var result in definition.Returns)
+                {
+                    Look($"{definition.Key}.return.{result.Key}.label", result.Label);
+                    Look($"{definition.Key}.return.{result.Key}.hint", result.Hint);
                 }
             }
 

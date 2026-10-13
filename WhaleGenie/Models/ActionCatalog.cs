@@ -184,8 +184,8 @@ public static class ActionCatalog
             Key = "control.repeat",
             Category = ActionCategory.Control,
             DisplayName = "Repeat",
-            Description = "Run child steps a fixed number of times — for when you already know "
-                + "how many rounds it takes.",
+            Description = "Run child steps a fixed number of times, for when you already know how "
+                + "many rounds it takes.",
             Parameters =
             [
                 Number("times", "Times", 10, "How many iterations to run, from 1 up; 10 by default.",
@@ -201,8 +201,8 @@ public static class ActionCatalog
             Key = "control.while",
             Category = ActionCategory.Control,
             DisplayName = "While",
-            Description = "Repeat child steps while a condition stays true — for when only the "
-                + "state decides when to stop.",
+            Description = "Repeat child steps while a condition stays true, for when only the state "
+                + "decides when to stop.",
             Parameters =
             [
                 Condition("condition", "Condition",
@@ -219,7 +219,7 @@ public static class ActionCatalog
             Key = "control.forEach",
             Category = ActionCategory.Control,
             DisplayName = "For Each",
-            Description = "Run child steps once per item in a list or variable — for a batch of "
+            Description = "Run child steps once per item in a list or variable, for a batch of "
                 + "values that each want the same handling.",
             Parameters =
             [
@@ -243,8 +243,8 @@ public static class ActionCatalog
             Key = "control.for",
             Category = ActionCategory.Control,
             DisplayName = "Count From To",
-            Description = "Count from one number to another, running the child steps each time — "
-                + "for when the steps need the number of the round they are on.",
+            Description = "Count from one number to another, running the child steps each time, for "
+                + "when the steps need the number of the round they are on.",
             Parameters =
             [
                 Number("from", "From", 1,
@@ -566,7 +566,7 @@ public static class ActionCatalog
             Returns =
             [
                 Return("confirmed", "Confirmed", primary: true, type: ActionReturnType.Flag,
-                    hint: "True when the person said yes, false when they said no — and also false "
+                    hint: "True when the person said yes, false when they said no, and also false "
                         + "when there was nobody to ask, which is what a run a trigger started gets."),
             ],
             Category = ActionCategory.Control,
@@ -1887,7 +1887,7 @@ public static class ActionCatalog
             Returns =
             [
                 Return("windows", "Windows", primary: true, type: ActionReturnType.List,
-                    hint: "The windows that matched, each as a record of its own — the same shape "
+                    hint: "The windows that matched, each as a record of its own: the same shape "
                         + "window.info hands over for one window, without the part inside its "
                         + "border, with the fields title, handle, minimized, maximized, left, top, "
                         + "width, height and box, plus process and class when the step is told to "
@@ -1918,7 +1918,7 @@ public static class ActionCatalog
             Returns =
             [
                 Return("window", "Window", primary: true, type: ActionReturnType.Record,
-                    hint: "The window as one record — the shape a listing hands over for each window "
+                    hint: "The window as one record, the shape a listing hands over for each window "
                         + "it finds, with the part inside its border added: title, process, class, "
                         + "handle, minimized, maximized, left, top, width, height, box and clientBox. "
                         + "Read one part of it with field($name, \"left\"). box is the rectangle "
@@ -2256,8 +2256,8 @@ public static class ActionCatalog
             Key = "gamepad.connect",
             Category = ActionCategory.Input,
             DisplayName = "Connect Controller",
-            Description = "Put the virtual controller — an Xbox 360 pad — on the machine, which "
-                + "the steps after this one press the buttons of. The steps that drive a controller "
+            Description = "Put the virtual controller (an Xbox 360 pad) on the machine, which the "
+                + "steps after this one press the buttons of. The steps that drive a controller "
                 + "put it there by themselves, so this is for a game that only looks at what is "
                 + "connected when it starts. It is the same driver-level input as a virtual "
                 + "keyboard: the usbip-win2 driver and the VIIPER server have to be there.",
@@ -2635,8 +2635,8 @@ public static class ActionCatalog
             [
                 Return("text", "Text", primary: true, hint: "The writing that was read."),
                 Return("table", "Table", type: ActionReturnType.List,
-                    hint: "The writing kept as rows, each one a record keyed by where its cells sit — "
-                        + "A, B, C, the shape a file with no header gets. Only filled in when the "
+                    hint: "The writing kept as rows, each one a record keyed by where its cells sit "
+                        + "(A, B, C, the shape a file with no header gets). Only filled in when the "
                         + "step is told to read a table."),
             ],
             Category = ActionCategory.Ocr,

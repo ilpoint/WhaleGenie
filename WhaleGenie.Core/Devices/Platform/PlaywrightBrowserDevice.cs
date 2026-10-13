@@ -181,7 +181,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
     public string InstallHint =>
         "This browser is not on this machine yet. Edge, the browser Windows already has, needs no "
-        + "installing at all — pick it instead. A downloaded engine is fetched once with "
+        + "installing at all, so pick it instead. A downloaded engine is fetched once with "
         + "\"playwright.ps1 install chromium\" (or firefox / webkit), run from the folder "
         + "WhaleGenie was installed in.";
 
@@ -455,7 +455,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
         return new DeviceActionException(
             "Run.BrowserFailed",
-            where.Length == 0 ? failure.Message : where + " — " + failure.Message);
+            where.Length == 0 ? failure.Message : where + ": " + failure.Message);
     }
 
     /// <summary>
