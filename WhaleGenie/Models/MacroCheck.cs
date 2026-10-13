@@ -296,4 +296,27 @@ public static class MacroCheck
         }
     }
 
+    /// <summary>
+    /// Every variable name the steps read, nested steps included. It is what says which values a
+    /// stretch of steps takes from around it: the values a lift has to turn into arguments of the
+    /// macro it makes, and what "nothing defines this" is decided against elsewhere.
+    /// </summary>
+    public static IReadOnlyList<string> Reads(IEnumerable<MacroStep> steps)
+    {
+        var names = new List<string>();
+        foreach (var step in Every(steps))
+        {
+            foreach (var parameter in step.Parameters)
+            {
+                if (step.ParameterDefinition(parameter) is { ForeignText: true })
+                {
+                    continue;
+                }
+
+                names.AddRange(Referenced(parameter));
+            }
+        }
+
+        return names;
+    }
 }

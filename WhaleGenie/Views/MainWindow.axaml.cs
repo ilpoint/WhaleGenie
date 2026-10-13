@@ -937,6 +937,14 @@ public partial class MainWindow : Window
             return;
         }
 
+        // A stretch of steps lifted into a macro of its own during the session is real work: it
+        // joins the project together with the macro that calls it, because the call is only in the
+        // list that is arriving now.
+        foreach (var lifted in editor.LiftedMacros)
+        {
+            viewModel.AddMacro(lifted);
+        }
+
         if (existing is null)
         {
             viewModel.AddMacro(macro);

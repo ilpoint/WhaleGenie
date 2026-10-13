@@ -25,7 +25,14 @@ namespace WhaleGenie.Views;
 public partial class MacroEditorWindow : Window
 {
     private readonly MacroEditorViewModel _viewModel;
-    private readonly IReadOnlyList<MacroItem> _project;
+    private readonly List<MacroItem> _project;
+
+    /// <summary>
+    /// Macros the editor made while it was open, which is what a lift leaves behind: they join the
+    /// project when the macro that calls them is saved, because until then the call is not saved
+    /// either.
+    /// </summary>
+    private readonly List<MacroItem> _lifted = [];
 
     /// <summary>The macro being edited, kept apart from the rest of the project so a call it makes
     /// can be told from a call to another macro.</summary>
@@ -119,7 +126,7 @@ public partial class MacroEditorWindow : Window
     {
         InitializeComponent();
 
-        _project = project ?? (existing is null ? [] : [existing]);
+        _project = [.. project ?? (existing is null ? [] : [existing])];
         _editing = existing;
         _assetFolder = ImageAssets.FolderFor(packagePath);
         _devices = devices;
@@ -155,6 +162,7 @@ public partial class MacroEditorWindow : Window
         _viewModel.RunRequested += OnRunRequested;
         _viewModel.AdjustDelaysRequested += OnAdjustDelaysRequested;
         _viewModel.RunMacroRequested += OnRunMacroRequested;
+        _viewModel.MacroLifted += OnMacroLifted;
         _viewModel.RecordingChanged += OnRecordingChanged;
 
         // A macro that has not been saved must not be lost to a crash, so it is written out as
@@ -626,6 +634,19 @@ public partial class MacroEditorWindow : Window
     private void OnRunMacroRequested() => ShowAddAction(null, null, "control.runMacro");
 
     /// <summary>
+    /// Takes a macro lifted out of this one: it counts as part of the project from here on, so a
+    /// later call can be pointed at it and the design-time check knows it is there.
+    /// </summary>
+    private void OnMacroLifted(MacroItem macro)
+    {
+        _lifted.Add(macro);
+        _project.Add(macro);
+        _viewModel.SetProjectMacros(_project
+            .Where(candidate => !ReferenceEquals(candidate, _editing))
+            .Select(candidate => candidate.Callable));
+    }
+
+    /// <summary>
     /// Opens the window a step is written in, or points the one already up at what the editor is
     /// working with now. It stays open from one step to the next, so every call here is also what
     /// tells it where a step would go and what that place takes.
@@ -821,6 +842,12 @@ public partial class MacroEditorWindow : Window
     /// read from here as it closes.
     /// </summary>
     internal MacroItem? Result { get; private set; }
+
+    /// <summary>
+    /// Macros this session made out of stretches of the one being edited. They are part of what the
+    /// session produced, so the project takes them along with the edited macro.
+    /// </summary>
+    internal IReadOnlyList<MacroItem> LiftedMacros => _lifted;
 
     /// <summary>
     /// True when the main list went into the notification area to make room for this editor, which

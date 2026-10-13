@@ -130,6 +130,8 @@ public sealed class Strings : INotifyPropertyChanged
         // ----------------------------------------------------------- macro editor
         ["Editor.Title"] = "Macro Editor",
         ["Editor.NamePlaceholder"] = "Enter a name for your macro..",
+        ["Editor.LiftedMacroName"] = "{0} — a macro of its own",
+        ["Editor.LiftedMacroNameEmpty"] = "A macro of its own",
         ["Editor.TriggerSettings"] = "Trigger Settings",
         ["Editor.TriggerBy"] = "Trigger by :",
         ["Editor.Loop"] = "Loop :",
@@ -537,6 +539,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Palette.Paste"] = "Paste below the selected step (Ctrl + V)",
         ["Palette.Delete"] = "Delete the selected steps (Del)",
         ["Palette.Group"] = "Group the selected steps into one step that runs them in order (Ctrl + G)",
+        ["Palette.LiftToMacro"] =
+            "Lift the selected steps into a macro of their own — the values they read become its "
+            + "arguments, a call to it takes their place",
         ["Palette.Run"] = "Run and debug this macro (F5)",
         ["Palette.MoveUp"] = "Move the selected steps up (Ctrl + Up)",
         ["Palette.MoveDown"] = "Move the selected steps down (Ctrl + Down)",
@@ -1231,6 +1236,8 @@ public sealed class Strings : INotifyPropertyChanged
         // ----------------------------------------------------------- macro editor
         ["Editor.Title"] = "宏编辑器",
         ["Editor.NamePlaceholder"] = "给这个宏起个名字..",
+        ["Editor.LiftedMacroName"] = "{0} 的子宏",
+        ["Editor.LiftedMacroNameEmpty"] = "新的子宏",
         ["Editor.TriggerSettings"] = "触发设置",
         ["Editor.TriggerBy"] = "触发方式：",
         ["Editor.Loop"] = "循环：",
@@ -1591,6 +1598,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Palette.Paste"] = "粘贴到选中步骤的下方 (Ctrl + V)",
         ["Palette.Delete"] = "删除选中的步骤 (Del)",
         ["Palette.Group"] = "把选中的步骤组合为一个顺序执行的分组 (Ctrl + G)",
+        ["Palette.LiftToMacro"] =
+            "把选中的步骤提为一个宏：这段里读到的值成为它的形参，原地留下一条调用它的步骤",
         ["Palette.Run"] = "运行并调试这个宏 (F5)",
         ["Palette.MoveUp"] = "上移选中的步骤 (Ctrl + ↑)",
         ["Palette.MoveDown"] = "下移选中的步骤 (Ctrl + ↓)",

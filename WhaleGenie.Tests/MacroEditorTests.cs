@@ -4,6 +4,7 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -31,6 +32,74 @@ public class MacroEditorTests
         window.KeyPressQwerty(key, RawInputModifiers.None);
         window.KeyReleaseQwerty(key, RawInputModifiers.None);
         Dispatcher.UIThread.RunJobs();
+    }
+
+    private static MacroStep Set(string name, string value)
+        => new()
+        {
+            Type = "control.setVariable",
+            Meta = StepMeta.New,
+            Parameters =
+            [
+                new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Value = name },
+                new StepParameter { Name = "scope", Kind = ActionParameterKind.Choice, Value = "local" },
+                new StepParameter { Name = "value", Kind = ActionParameterKind.Expression, Value = value },
+            ],
+        };
+
+    /// <summary>
+    /// Lifting takes the selected steps out of the macro and leaves a call to a new macro in their
+    /// place. The values the stretch read become that macro's arguments and the values it wrote
+    /// become its results, so the steps around the call go on reading the same names — and the call
+    /// is written the way the dialog would have written it, rather than as a second magic shape.
+    /// </summary>
+    [Fact]
+    public void A_stretch_of_steps_can_be_lifted_into_a_macro_of_its_own()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = Open();
+
+            var started = Set("开始", "0");
+            var counted = Set("中间", "$开始 + 1");
+            var noted = Set("标记", "$中间");
+            var after = Set("之后", "$中间");
+            viewModel.Steps.Add(started);
+            viewModel.Steps.Add(counted);
+            viewModel.Steps.Add(noted);
+            viewModel.Steps.Add(after);
+            viewModel.SetSelection([counted, noted]);
+
+            MacroItem? lifted = null;
+            viewModel.MacroLifted += macro => lifted = macro;
+            viewModel.LiftSelectedCommand.Execute(null);
+
+            Assert.NotNull(lifted);
+            Assert.Equal([counted, noted], lifted!.Steps);
+            Assert.Equal(["开始"], lifted.Parameters.Select(parameter => parameter.Name));
+            Assert.True(lifted.Parameters[0].Required);
+            // The names the stretch writes are offered back in a settled order, so the same stretch
+            // lifted twice writes the same call.
+            Assert.Equal(["中间", "标记"], lifted.Results.Select(result => result.Name));
+
+            // The stretch is out of the macro and a call stands where it was.
+            Assert.Equal(3, viewModel.Steps.Count);
+            Assert.Same(started, viewModel.Steps[0]);
+            var call = viewModel.Steps[1];
+            Assert.Equal("control.runMacro", call.Type);
+            Assert.Equal(lifted.Name, call.Text("macro"));
+            Assert.Equal("$开始", call.Text("arg.开始"));
+            Assert.Same(after, viewModel.Steps[2]);
+
+            var wanted = call.Parameters.First(parameter => parameter.Name == "returns").Rows;
+            Assert.Equal(["中间", "标记"], wanted.Select(row => row.Text("key")));
+            Assert.Equal(["中间", "标记"], wanted.Select(row => row.Text("name")));
+
+            // The call is one the project can reach, so the step is not marked as calling something
+            // that is not there; and the name it brings back is what the step after it reads.
+            Assert.Empty(viewModel.Problems.Select(problem => problem.Message));
+            Assert.Contains(lifted, window.LiftedMacros);
+        });
     }
 
     [Fact]

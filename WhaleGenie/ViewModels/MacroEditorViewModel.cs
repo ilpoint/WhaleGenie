@@ -62,6 +62,12 @@ public partial class MacroEditorViewModel : ViewModelBase
                 LabelKey = "Palette.Group",
                 Key = "group", NeedsSelection = true },
 
+        // A box with an arrow leaving it: the selected steps are taken out of this macro and put
+        // into one of their own, with a call left where they were.
+        new() { Icon = G("M3,8 H15 V20 H3 Z M12,11 H21 M18,8 L21,11 L18,14"),
+                LabelKey = "Palette.LiftToMacro",
+                Key = "liftToMacro", NeedsSelection = true },
+
         new() { Icon = G("M12,19 L12,5 M6,11 L12,5 L18,11"),
                 LabelKey = "Palette.MoveUp", Key = "moveUp", NeedsSelection = true },
 
@@ -144,6 +150,12 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     /// <summary>Raised when the palette asks to open the run-speed dialog.</summary>
     public event Action? AdjustDelaysRequested;
+
+    /// <summary>
+    /// Raised when a stretch of steps was lifted into a macro of its own: the project takes the
+    /// new macro, because the call left behind in this one is a call to it.
+    /// </summary>
+    public event Action<MacroItem>? MacroLifted;
 
     /// <summary>Raised when the palette asks for a step that runs another macro.</summary>
     public event Action? RunMacroRequested;
@@ -688,6 +700,9 @@ public partial class MacroEditorViewModel : ViewModelBase
             case "group":
                 GroupSelectedCommand.Execute(null);
                 break;
+            case "liftToMacro":
+                LiftSelectedCommand.Execute(null);
+                break;
             case "moveUp":
                 MoveSelectedUpCommand.Execute(null);
                 break;
@@ -878,6 +893,165 @@ public partial class MacroEditorViewModel : ViewModelBase
         StepIds.Settle(Steps);
         RestoreSelection([group]);
         NotifyStepsChanged();
+    }
+
+    /// <summary>
+    /// Moves the selected steps into a macro of their own and leaves a call to it in their place.
+    /// What the stretch reads from this macro becomes the new macro's arguments and what it writes
+    /// becomes its results, so the steps around the call go on reading the names they always did.
+    /// </summary>
+    [RelayCommand]
+    private void LiftSelected()
+    {
+        var selected = Ordered(_selection);
+        if (selected.Count == 0 || ListOf(selected[0]) is not { } list)
+        {
+            return;
+        }
+
+        // The stretch is the part of the selection that sits in one list. Steps picked out of
+        // several blocks have no one place to come out of, and the call they left behind would
+        // have nowhere to go; as with grouping, the block the first of them is in is the one.
+        var stretch = selected.Where(step => ReferenceEquals(ListOf(step), list)).ToList();
+        if (stretch.Count == 0)
+        {
+            return;
+        }
+
+        var lifted = LiftedMacro(stretch);
+        var call = CallTo(lifted);
+
+        PushUndo();
+        var index = list.IndexOf(stretch[0]);
+        foreach (var step in stretch)
+        {
+            list.Remove(step);
+        }
+
+        list.Insert(Math.Clamp(index, 0, list.Count), call);
+        StepIds.Settle(Steps);
+
+        // The new macro is one of the ones a call may reach from here, so the step just written is
+        // checked against it rather than being marked as calling something that is not there.
+        _projectMacros = [.. _projectMacros, lifted.Callable];
+        RestoreSelection([call]);
+        NotifyStepsChanged();
+        MacroLifted?.Invoke(lifted);
+    }
+
+    /// <summary>
+    /// The macro a stretch of steps becomes: named after this one, taking as arguments the values
+    /// it read from around itself, and offering back the values it writes.
+    /// </summary>
+    private MacroItem LiftedMacro(IReadOnlyList<MacroStep> stretch)
+    {
+        var lifted = new MacroItem { Name = FreeMacroName() };
+
+        // What the stretch makes is what the steps after the call can still be reading, so every
+        // name it writes is offered back rather than left behind in the called macro's own table.
+        var written = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var step in stretch)
+        {
+            step.CollectVariables(written);
+        }
+
+        // Shared values and the ones WhaleGenie provides are readable on both sides of a call, so
+        // they need no argument; everything else the stretch reads has to be handed in.
+        var alwaysVisible = new HashSet<string>(
+            VariableCatalog.SystemVariables.Select(variable => variable.Name),
+            StringComparer.OrdinalIgnoreCase);
+        alwaysVisible.UnionWith(VariableCatalog.Globals.Select(variable => variable.Name));
+
+        var read = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var name in MacroCheck.Reads(stretch))
+        {
+            if (!read.Add(name) || written.Contains(name) || alwaysVisible.Contains(name))
+            {
+                continue;
+            }
+
+            lifted.Parameters.Add(new MacroParameter { Name = name });
+        }
+
+        foreach (var name in written)
+        {
+            lifted.Results.Add(new MacroResult { Name = name });
+        }
+
+        foreach (var step in stretch)
+        {
+            lifted.Steps.Add(step);
+        }
+
+        return lifted;
+    }
+
+    /// <summary>The call left where the stretch was: it hands in this macro's values and takes back
+    /// every name the stretch writes, each under the name it already had.</summary>
+    private MacroStep CallTo(MacroItem lifted)
+    {
+        var parameters = new List<StepParameter>
+        {
+            new()
+            {
+                Name = "macro",
+                Kind = ActionParameterKind.Macro,
+                Value = lifted.Name,
+            },
+        };
+
+        foreach (var argument in lifted.Parameters)
+        {
+            parameters.Add(new StepParameter
+            {
+                Name = MacroCallFields.Argument(argument.Name),
+                Kind = ActionParameterKind.Expression,
+                Value = "$" + argument.Name,
+            });
+        }
+
+        parameters.Add(new StepParameter
+        {
+            Name = "returns",
+            Kind = ActionParameterKind.Returns,
+            Rows =
+            [
+                .. lifted.Results.Select(result => new StepParameterRow
+                {
+                    Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["key"] = result.Name,
+                        ["name"] = result.Name,
+                    },
+                }),
+            ],
+        });
+
+        return new MacroStep
+        {
+            Type = "control.runMacro",
+            Id = NewStepId(),
+            Meta = StepMeta.New,
+            Parameters = parameters,
+        };
+    }
+
+    /// <summary>A name for the new macro that is not one of the project's own.</summary>
+    private string FreeMacroName()
+    {
+        var stem = Name.Trim();
+        var wanted = stem.Length == 0
+            ? Strings.Get("Editor.LiftedMacroNameEmpty")
+            : Strings.Format("Editor.LiftedMacroName", stem);
+
+        var taken = new HashSet<string>(
+            _projectMacros.Select(macro => macro.Name), StringComparer.OrdinalIgnoreCase);
+        if (stem.Length > 0)
+        {
+            taken.Add(stem);
+        }
+
+        return VariableNames.Free(wanted, taken);
     }
 
     [RelayCommand]
