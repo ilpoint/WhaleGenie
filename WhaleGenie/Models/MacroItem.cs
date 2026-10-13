@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using System.Text.Json.Nodes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
@@ -219,6 +219,21 @@ public partial class MacroItem : ObservableObject
     /// <summary>The recorded or hand-built steps, saved as the macro's JSON tree.</summary>
     public List<MacroStep> Steps { get; } = [];
 
+    /// <summary>
+    /// The values this macro asks whoever calls it to fill in. A call is a form of exactly these
+    /// fields, so what a macro expects is written down once, where it is called from.
+    /// </summary>
+    public List<MacroParameter> Parameters { get; } = [];
+
+    /// <summary>
+    /// The names this macro offers to hand back to whoever called it. A call may ask for any of
+    /// them; a name that is not here is a mistake at the call site.
+    /// </summary>
+    public List<MacroResult> Results { get; } = [];
+
+    /// <summary>What this macro asks of a call to it, read by the editor, the check and the engine.</summary>
+    public MacroCallable Callable => new(Name, Parameters, Results);
+
     /// <summary>Names of the variables this macro creates for itself.</summary>
     public IReadOnlyList<string> LocalVariableNames()
     {
@@ -293,8 +308,58 @@ public partial class MacroItem : ObservableObject
                 ["ignoreDelaysBelowMs"] = IgnoreDelaysBelowMs,
                 ["ignoreInjected"] = RecordIgnoreInjected,
             },
+            ["arguments"] = ArgumentsJson(),
+            ["returns"] = ResultsJson(),
             ["steps"] = steps,
         };
+    }
+
+    /// <summary>
+    /// The declarations as the file holds them. A macro that declares neither writes neither, so a
+    /// macro that is called for what it does rather than for what it takes stays as short as it was.
+    /// </summary>
+    private JsonArray ArgumentsJson()
+    {
+        var array = new JsonArray();
+        foreach (var parameter in Parameters)
+        {
+            if (parameter.Name.Trim().Length == 0)
+            {
+                continue;
+            }
+
+            array.Add(new JsonObject
+            {
+                ["name"] = parameter.Name.Trim(),
+                ["default"] = parameter.Default,
+                ["required"] = parameter.Required,
+                ["hint"] = parameter.Description,
+            });
+        }
+
+        return array;
+    }
+
+    /// <summary>The names this macro may hand back, with what each one is.</summary>
+    private JsonArray ResultsJson()
+    {
+        var array = new JsonArray();
+        foreach (var result in Results)
+        {
+            if (result.Name.Trim().Length == 0)
+            {
+                continue;
+            }
+
+            array.Add(new JsonObject
+            {
+                ["name"] = result.Name.Trim(),
+                ["hint"] = result.Description,
+                ["type"] = result.Type.ToString(),
+            });
+        }
+
+        return array;
     }
 
     /// <summary>Rebuilds a macro from the JSON document written by <see cref="ToJson"/>.</summary>
@@ -345,6 +410,45 @@ public partial class MacroItem : ObservableObject
             RecordIgnoreInjected = ReadBool(record?["ignoreInjected"], true),
             DelayScale = ReadDouble(node["delayScale"], 1),
         };
+
+        if (node["arguments"] is JsonArray arguments)
+        {
+            foreach (var declared in arguments.OfType<JsonObject>())
+            {
+                var name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty;
+                if (name.Length == 0)
+                {
+                    continue;
+                }
+
+                macro.Parameters.Add(new MacroParameter
+                {
+                    Name = name,
+                    Default = declared["default"]?.GetValue<string>() ?? string.Empty,
+                    Required = ReadBool(declared["required"], true),
+                    Description = declared["hint"]?.GetValue<string>() ?? string.Empty,
+                });
+            }
+        }
+
+        if (node["returns"] is JsonArray results)
+        {
+            foreach (var declared in results.OfType<JsonObject>())
+            {
+                var name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty;
+                if (name.Length == 0)
+                {
+                    continue;
+                }
+
+                macro.Results.Add(new MacroResult
+                {
+                    Name = name,
+                    Description = declared["hint"]?.GetValue<string>() ?? string.Empty,
+                    Type = ReadEnum(declared, "type", ActionReturnType.Text),
+                });
+            }
+        }
 
         if (node["steps"] is JsonArray steps)
         {
