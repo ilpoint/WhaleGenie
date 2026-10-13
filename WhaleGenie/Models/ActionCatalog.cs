@@ -1228,21 +1228,25 @@ public static class ActionCatalog
             Description = "Start another program, optionally without showing its window.",
             Parameters =
             [
-                PickablePath("file", "Program", "notepad.exe", "The program to start.",
+                PickablePath("file", "Program", "notepad.exe", "The program to start, such as notepad.exe "
+                    + "or a full path to it.",
                     PathIntent.Read, "*.exe;*.com;*.bat;*.cmd"),
-                Text("arguments", "Arguments", "", "What to pass to the program.", required: false,
+                Text("arguments", "Arguments", "", "What to pass to the program, read as one value. "
+                    + "Empty, which is the default, passes nothing.", required: false,
                     acceptsFormula: true),
                 PickablePath("workingDirectory", "Working folder", "",
-                    "Folder to start the program in.", PathIntent.Folder, required: false),
+                    "Folder to start the program in. Empty, which is the default, leaves it in the "
+                    + "folder WhaleGenie itself was started in.", PathIntent.Folder, required: false),
                 Toggle("hidden", "Hidden window", true,
-                    "Start the program without showing its window.", advanced: true),
+                    "Start the program without showing its window; on by default. An installer "
+                    + "that has to be clicked through wants this off.", advanced: true),
                 Toggle("runAsAdmin", "Run as administrator", false,
-                    "Ask Windows to start the program with administrator rights. Windows shows "
-                    + "its own approval prompt, and refusing it fails the step. A program started "
-                    + "elevated cannot be kept off the screen.", advanced: true),
+                    "Ask Windows to start the program with administrator rights; off by default. "
+                    + "Windows shows its own approval prompt, and refusing it fails the step. A program "
+                    + "started elevated cannot be kept off the screen.", advanced: true),
                 Multiline("environment", "Environment variables",
-                    "One NAME=value per line for the program to start with. Leave it empty to "
-                    + "start the program with WhaleGenie's own environment. Lines starting with # are "
+                    "One NAME=value per line for the program to start with. Empty, which is the "
+                    + "default, starts it with WhaleGenie's own environment. Lines starting with # are "
                     + "skipped. Giving a program its own environment means naming the program "
                     + "itself, not a document or a shortcut.",
                     "LANG=zh_CN.UTF-8", required: false, advanced: true),
@@ -1262,9 +1266,12 @@ public static class ActionCatalog
             Description = "Wait until a program is running.",
             Parameters =
             [
-                Text("name", "Program", "notepad", "Name of the program to watch for.",
+                Text("name", "Program", "notepad", "Name of the program to watch for, matched in full "
+                    + "and without regard to case, with the .exe left off or on as one likes.",
                     acceptsFormula: true),
-                Number("timeoutMs", "Timeout", 10000, "How long to wait before giving up."),
+                Number("timeoutMs", "Timeout", 10000,
+                    "How long to wait for the program to turn up, in milliseconds; 10000 by "
+                    + "default."),
                 Returns(),
             ],
         },
@@ -1282,9 +1289,11 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("id", "Process id", "$processId",
-                    "The process to watch, usually the one Start Program gave back.",
+                    "The process to watch, usually the one Start Program gave back. Read as one "
+                    + "value, so a variable or an expression may stand for it.",
                     acceptsFormula: true),
-                Number("timeoutMs", "Timeout", 60000, "How long to wait before giving up."),
+                Number("timeoutMs", "Timeout", 60000,
+                    "How long to wait for the program to end, in milliseconds; 60000 by default."),
                 Returns(),
             ],
         },
@@ -1301,7 +1310,8 @@ public static class ActionCatalog
             Description = "Check whether a program is running.",
             Parameters =
             [
-                Text("name", "Program", "notepad", "Name of the program to look for.",
+                Text("name", "Program", "notepad", "Name of the program to look for, matched in full and "
+                    + "without regard to case, with the .exe left off or on as one likes.",
                     acceptsFormula: true),
                 Returns(),
             ],
@@ -1342,8 +1352,9 @@ public static class ActionCatalog
             Description = "Read what is known about a running program.",
             Parameters =
             [
-                Text("target", "Program", "notepad", "Name of the program, or a process id.",
-                    acceptsFormula: true),
+                Text("target", "Program", "notepad", "Name of the program, or a process id. A name is "
+                    + "matched in full and without regard to case, with the .exe left off or on as one "
+                    + "likes.", acceptsFormula: true),
                 Returns(),
             ],
         },
@@ -1360,10 +1371,11 @@ public static class ActionCatalog
             Description = "Close a program, asking it to exit first unless told to be firm.",
             Parameters =
             [
-                Text("target", "Program", "notepad", "Name of the program, or a process id.",
-                    acceptsFormula: true),
+                Text("target", "Program", "notepad", "Name of the program, or a process id. A name is "
+                    + "matched in full and without regard to case, with the .exe left off or on as one "
+                    + "likes.", acceptsFormula: true),
                 Toggle("force", "Force close", false,
-                    "Close it at once instead of asking it to exit."),
+                    "Close it at once instead of asking it to exit. Off by default."),
                 Returns(),
             ],
         },
@@ -1384,32 +1396,37 @@ public static class ActionCatalog
             Description = "Run a command line and collect what it printed.",
             Parameters =
             [
-                PickablePath("file", "Command", "cmd.exe", "The program to run, such as cmd.exe.",
+                PickablePath("file", "Command", "cmd.exe", "The program to run, such as cmd.exe or a full "
+                    + "path to it.",
                     PathIntent.Read, "*.exe;*.com;*.bat;*.cmd"),
                 Text("arguments", "Arguments", "/c dir",
-                    "What to pass to the command.", required: false, acceptsFormula: true),
+                    "What to pass to the command, read as one value. Empty, which is the "
+                    + "default, passes nothing.", required: false, acceptsFormula: true),
                 PickablePath("workingDirectory", "Working folder", "",
-                    "Folder to run the command in.", PathIntent.Folder, required: false),
+                    "Folder to run the command in. Empty, which is the default, leaves it in the "
+                    + "folder WhaleGenie itself was started in.", PathIntent.Folder, required: false),
                 Multiline("environment", "Environment variables",
-                    "One NAME=value per line for the command to run with. Leave it empty to run "
-                    + "it with WhaleGenie's own environment. Lines starting with # are skipped.",
+                    "One NAME=value per line for the command to run with. Empty, which is the "
+                    + "default, runs it with WhaleGenie's own environment. Lines starting with # are "
+                    + "skipped.",
                     "LANG=zh_CN.UTF-8", required: false, advanced: true),
                 Multiline("standardInput", "Standard input",
-                    "What the command reads on its standard input. Leave it empty to give the "
-                    + "command nothing to read. Sent as UTF-8, and $name is replaced by what that "
+                    "What the command reads on its standard input. Empty, which is the default, "
+                    + "gives it nothing to read. Sent as UTF-8, and $name is replaced by what that "
                     + "variable holds.",
                     "first line\nsecond line", required: false, advanced: true),
-                Number("timeoutMs", "Timeout", 30000, "How long the command may run."),
+                Number("timeoutMs", "Timeout", 30000,
+                    "How long the command may run, in milliseconds; 30000 by default. The step "
+                    + "fails when it runs past that."),
                 Toggle("streamOutput", "Write output to the log as it arrives", false,
                     "Put every line the command prints into the run log while it is still running, "
                     + "which is how a long build or script can be watched. The output result still "
-                    + "holds everything the command printed.", advanced: true),
+                    + "holds everything the command printed. Off by default.", advanced: true),
                 Choice("outputEncoding", "Output encoding", ["system", "utf8", "utf16"], "system",
-                    "The code page the command prints in. Left as it is, its output is read in this "
-                    + "machine's own, which is what the programs Windows ships with — cmd.exe, "
-                    + "Windows PowerShell, Python — write in when they are not talking to a screen. "
-                    + "A program that prints UTF-8 whichever machine it is on, Node.js for one, "
-                    + "needs to be read that way instead.",
+                    "The code page the command prints in; this machine's own by default. That is "
+                    + "what the programs Windows ships with, cmd.exe, Windows PowerShell and Python, "
+                    + "write in when they are not talking to a screen. A program that prints UTF-8 "
+                    + "whichever machine it is on, Node.js for one, has to be read that way instead.",
                     labels: ["This machine's", "UTF-8", "UTF-16"], advanced: true),
                 Returns(),
             ],
@@ -1437,7 +1454,7 @@ public static class ActionCatalog
                         "batteryPercent", "onAcPower", "monitorCount", "monitorBounds", "dpi",
                         "dpiPercent", "uptimeSeconds",
                     ],
-                    "userName", "Which fact to read.",
+                    "userName", "Which fact to read; the user name by default.",
                     labels:
                     [
                         "User name", "Computer name", "Domain", "Windows version",
@@ -1463,8 +1480,9 @@ public static class ActionCatalog
             Description = "Read an environment variable.",
             Parameters =
             [
-                Text("name", "Name", "TEMP", "Name of the environment variable.",
-                    acceptsFormula: true),
+                Text("name", "Name", "TEMP",
+                    "Name of the environment variable, without regard to case. Read as one value, "
+                    + "so a variable or an expression may stand for it.", acceptsFormula: true),
                 Returns(),
             ],
         },
@@ -1480,18 +1498,20 @@ public static class ActionCatalog
                     ["lock", "monitorOff", "signOut", "sleep", "hibernate", "restart", "shutDown",
                         "abortShutdown"],
                     "lock",
-                    "Which of the things the Start menu's power button does. Locking the screen and "
-                    + "turning the monitor off cost nothing. Signing out, restarting and shutting "
-                    + "down close what is open, so anything unsaved goes with it.",
+                    "Which of the things the Start menu's power button does; locking the screen by "
+                    + "default. Locking the screen and turning the monitor off cost nothing. Signing "
+                    + "out, restarting and shutting down close what is open, so anything unsaved goes "
+                    + "with it.",
                     labels:
                     [
                         "Lock the screen", "Turn the monitor off", "Sign out", "Sleep", "Hibernate",
                         "Restart", "Shut down", "Cancel a countdown",
                     ]),
                 Number("graceSeconds", "Warning seconds", 0,
-                    "How much warning Windows gives before restarting or shutting down: a countdown "
-                    + "appears on screen and the shutdown can still be called off with \"Cancel a "
-                    + "countdown\" or shutdown /a. Zero means at once. Ignored by the rest.",
+                    "How much warning Windows gives before restarting or shutting down, from 0 to "
+                    + "600 and 0 by default: a countdown appears on screen and the shutdown can still "
+                    + "be called off with \"Cancel a countdown\" or shutdown /a. Zero means at once. "
+                    + "The rest of the answers ignore it.",
                     max: 600),
             ],
         },
@@ -1512,20 +1532,21 @@ public static class ActionCatalog
                 Choice("what", "Do what",
                     ["get", "set", "up", "down", "mute", "unmute", "toggleMute"], "get",
                     "Whether to read the volume, set it to a level, move it up or down by a few "
-                    + "points, or switch the sound off and on. The sound card is the machine's own, "
-                    + "so this is not the same as the volume keys, which turn up whatever window "
-                    + "has the focus.",
+                    + "points, or switch the sound off and on; reading it by default. This is the "
+                    + "machine's own volume, which is not the same as the volume keys, since those turn "
+                    + "up whichever program has the focus.",
                     labels:
                     [
                         "Read it", "Set the level", "Turn it up", "Turn it down", "Mute",
                         "Unmute", "Mute or unmute",
                     ]),
                 Number("percent", "Level %", 50,
-                    "The level to set, from 0 to 100. Used by \"Set the level\".", max: 100,
+                    "The level to set, from 0 to 100 and 50 by default. Used by \"Set the level\".",
+                    max: 100,
                     onlyWith: ["set"], onlyField: "what"),
                 Number("stepPercent", "By how much", 5,
-                    "How far to move the volume, in points. Used by \"Turn it up\" and \"Turn it "
-                    + "down\", which never go past 0 or 100.",
+                    "How far to move the volume, in points; from 1 to 100 and 5 by default. Used "
+                    + "by \"Turn it up\" and \"Turn it down\", which never go past 0 or 100.",
                     min: 1, max: 100, onlyWith: ["up", "down"], onlyField: "what"),
                 Returns(),
             ],
@@ -1540,11 +1561,11 @@ public static class ActionCatalog
             [
                 Choice("what", "Play which sound",
                     ["default", "information", "warning", "error", "question"], "default",
-                    "Which of the machine's own sounds to play. A macro that has finished, or gone "
-                    + "wrong, can say so out loud without putting anything on the screen. Which "
-                    + "sound each of these is follows the machine's own sound settings: a machine "
-                    + "told to keep quiet plays nothing and the step is done either way, while one "
-                    + "with no sound device at all fails the step and says why.",
+                    "Which of the machine's own sounds to play; the default one by default. A macro "
+                    + "that has finished, or gone wrong, can say so out loud without putting anything "
+                    + "on the screen. Which sound each of these is follows the machine's own sound "
+                    + "settings: a machine told to keep quiet plays nothing and the step is done either "
+                    + "way, while one with no sound device at all fails the step and says why.",
                     labels:
                     ["The default one", "Notice", "Warning", "Error", "Question"]),
             ],
@@ -1558,16 +1579,16 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("heading", "Title", "Backup finished",
-                    "The heading of the notification. Leave it empty to head it with the program's "
-                    + "own name.", required: false, acceptsFormula: true),
+                    "The heading of the notification. Empty, which is the default, heads it with "
+                    + "the program's own name.", required: false, acceptsFormula: true),
                 Text("message", "Message", "All the files were copied.",
                     "What the notification says. Variables in it are filled in the way they are "
                     + "everywhere else, so a macro can report what it just did.",
                     required: true, acceptsFormula: true),
                 Choice("what", "Kind", ["information", "warning", "error"], "information",
                     "How the notification is marked: an ordinary note, something worth looking at, "
-                    + "or something that went wrong. A machine with its notifications switched off "
-                    + "shows nothing and the step is done either way.",
+                    + "or something that went wrong; an ordinary note by default. A machine with its "
+                    + "notifications switched off shows nothing and the step is done either way.",
                     labels: ["Note", "Warning", "Error"]),
             ],
         },
@@ -1587,13 +1608,13 @@ public static class ActionCatalog
             [
                 Choice("what", "Do what",
                     ["get", "list", "switch"], "get",
-                    "Which keyboard layout the window in front is typing in, and how to give it "
-                    + "another. A macro that types Latin keys while a Chinese layout is in use gets "
-                    + "Chinese candidates instead of its shortcut, so switching to the English "
-                    + "layout first is often what makes a macro work. Turning a Chinese input "
-                    + "method's own Chinese/English switch off is a key press rather than a setting "
-                    + "— Windows keeps that state inside the program being typed into — so that part "
-                    + "is done by sending Ctrl+Space or Shift.",
+                    "Whether to read which keyboard layout the window in front is typing in, list "
+                    + "the installed ones, or give it another; reading it by default. A macro that types "
+                    + "Latin keys while a Chinese layout is in use gets Chinese candidates instead of "
+                    + "its shortcut, so switching to the English layout first is often what makes a "
+                    + "macro work. Turning a Chinese input method's own Chinese/English switch off is a "
+                    + "key press rather than a setting, since Windows keeps that state inside the "
+                    + "program being typed into, so that part is done by sending Ctrl+Space or Shift.",
                     labels:
                     ["Which layout is in use", "List the installed layouts", "Switch to another layout"]),
                 Text("layout", "Layout", "英语(美国)", required: false,
@@ -1619,18 +1640,19 @@ public static class ActionCatalog
             Parameters =
             [
                 Choice("what", "Do what", ["get", "set", "up", "down"], "get",
-                    "Whether to read the brightness, set it to a level, or move it up or down a "
-                    + "few points. Every screen that answers is changed together — this talks to the "
-                    + "screen itself over its video cable, the same way the brightness buttons on a "
-                    + "monitor do, so a laptop's own panel or a screen that does not carry the "
-                    + "setting may not answer at all.",
+                    "Whether to read the brightness, set it to a level, or move it up or down a few "
+                    + "points; reading it by default. Every screen that answers is changed together, "
+                    + "because this talks to the screen itself over its video cable the way the "
+                    + "brightness buttons on a monitor do, so a laptop's own panel or a screen that "
+                    + "does not carry the setting may not answer at all.",
                     labels: ["Read it", "Set the level", "Turn it up", "Turn it down"]),
                 Number("percent", "Level %", 50,
-                    "The level to set, from 0 to 100. Used by \"Set the level\".", max: 100,
+                    "The level to set, from 0 to 100 and 50 by default. Used by \"Set the level\".",
+                    max: 100,
                     onlyWith: ["set"], onlyField: "what"),
                 Number("stepPercent", "By how much", 10,
-                    "How far to move the brightness, in points. Used by \"Turn it up\" and \"Turn it "
-                    + "down\", which never go past 0 or 100.",
+                    "How far to move the brightness, in points; from 1 to 100 and 10 by default. "
+                    + "Used by \"Turn it up\" and \"Turn it down\", which never go past 0 or 100.",
                     min: 1, max: 100, onlyWith: ["up", "down"], onlyField: "what"),
                 Returns(),
             ],
