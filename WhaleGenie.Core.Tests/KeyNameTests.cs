@@ -1,3 +1,4 @@
+using System;
 using SharpHook.Data;
 using WhaleGenie.Core.Devices.Platform;
 
@@ -19,13 +20,13 @@ public class KeyNameTests
     [InlineData(KeyCode.VcLeftMeta, "左Win")]
     [InlineData(KeyCode.VcRightMeta, "右Win")]
     public void SidedNameKeepsTheHalf(KeyCode code, string expected)
-        => Assert.Equal(expected, KeyNames.Name(code, sided: true));
+        => Assert.Equal(expected, KeyNames.Name(SharpKeys.Key(code), sided: true));
 
     [Theory]
     [InlineData(KeyCode.VcLeftShift)]
     [InlineData(KeyCode.VcRightShift)]
     public void PlainNameStaysSideAgnostic(KeyCode code)
-        => Assert.Equal("Shift", KeyNames.Name(code));
+        => Assert.Equal("Shift", KeyNames.Name(SharpKeys.Key(code)));
 
     [Fact]
     public void The_list_of_names_holds_every_key_a_picker_offers()
@@ -46,9 +47,9 @@ public class KeyNameTests
     [Fact]
     public void OtherKeysAreSpelledTheSameEitherWay()
     {
-        Assert.Equal("NumPad7", KeyNames.Name(KeyCode.VcNumPad7, sided: true));
-        Assert.Equal("NumPad7", KeyNames.Name(KeyCode.VcNumPad7));
-        Assert.Equal("Home", KeyNames.Name(KeyCode.VcHome, sided: true));
+        Assert.Equal("NumPad7", KeyNames.Name(SharpKeys.Key(KeyCode.VcNumPad7), sided: true));
+        Assert.Equal("NumPad7", KeyNames.Name(SharpKeys.Key(KeyCode.VcNumPad7)));
+        Assert.Equal("Home", KeyNames.Name(SharpKeys.Key(KeyCode.VcHome), sided: true));
     }
 
     [Theory]
@@ -60,15 +61,15 @@ public class KeyNameTests
     [InlineData("LAlt", KeyCode.VcLeftAlt)]
     [InlineData("右Win", KeyCode.VcRightMeta)]
     public void EverySpellingResolves(string name, KeyCode expected)
-        => Assert.Equal(expected, KeyNames.Resolve(name));
+        => Assert.Equal(SharpKeys.Key(expected), KeyNames.Resolve(name));
 
     [Fact]
     public void BareModifiersKeepMeaningTheLeftOne()
     {
-        Assert.Equal(KeyCode.VcLeftShift, KeyNames.Resolve("Shift"));
-        Assert.Equal(KeyCode.VcLeftControl, KeyNames.Resolve("Ctrl"));
-        Assert.Equal(KeyCode.VcLeftAlt, KeyNames.Resolve("Alt"));
-        Assert.Equal(KeyCode.VcLeftMeta, KeyNames.Resolve("Win"));
+        Assert.Equal(SharpKeys.Key(KeyCode.VcLeftShift), KeyNames.Resolve("Shift"));
+        Assert.Equal(SharpKeys.Key(KeyCode.VcLeftControl), KeyNames.Resolve("Ctrl"));
+        Assert.Equal(SharpKeys.Key(KeyCode.VcLeftAlt), KeyNames.Resolve("Alt"));
+        Assert.Equal(SharpKeys.Key(KeyCode.VcLeftMeta), KeyNames.Resolve("Win"));
     }
 
     [Theory]
@@ -87,6 +88,41 @@ public class KeyNameTests
     {
         var chords = KeyNames.ResolveChord("右Ctrl+右Shift+S", out var unknown);
         Assert.Null(unknown);
-        Assert.Equal([KeyCode.VcRightControl, KeyCode.VcRightShift, KeyCode.VcS], chords);
+        Assert.Equal(
+            [
+                SharpKeys.Key(KeyCode.VcRightControl),
+                SharpKeys.Key(KeyCode.VcRightShift),
+                SharpKeys.Key(KeyCode.VcS),
+            ],
+            chords);
+    }
+
+    [Fact]
+    public void Every_code_the_hook_reports_keeps_its_identity()
+    {
+        // Which library reads the keyboard is the engine's business, and this is the seam where the
+        // two vocabularies meet: a key that did not come back as the code it was made from would
+        // make a trigger answer to the wrong key, and nothing else in the program would notice.
+        foreach (var code in Enum.GetValues<KeyCode>())
+        {
+            Assert.Equal(code, SharpKeys.Code(SharpKeys.Key(code)));
+        }
+    }
+
+    [Fact]
+    public void The_mouse_and_the_wheel_keep_the_spelling_a_binding_stores()
+    {
+        // These words are written into a trigger binding and into a recorded macro, so changing one
+        // would quietly stop an existing binding from answering.
+        Assert.Equal("Mouse Left", KeyNames.MouseName(HookMouseButton.Left));
+        Assert.Equal("Mouse Right", KeyNames.MouseName(HookMouseButton.Right));
+        Assert.Equal("Mouse Middle", KeyNames.MouseName(HookMouseButton.Middle));
+        Assert.Equal("Mouse 4", KeyNames.MouseName(HookMouseButton.Back));
+        Assert.Equal("Mouse 5", KeyNames.MouseName(HookMouseButton.Forward));
+
+        Assert.Equal("Wheel Up", KeyNames.WheelName(HookWheelAxis.Vertical, 120));
+        Assert.Equal("Wheel Down", KeyNames.WheelName(HookWheelAxis.Vertical, -120));
+        Assert.Equal("Wheel Left", KeyNames.WheelName(HookWheelAxis.Horizontal, 120));
+        Assert.Equal("Wheel Right", KeyNames.WheelName(HookWheelAxis.Horizontal, -120));
     }
 }

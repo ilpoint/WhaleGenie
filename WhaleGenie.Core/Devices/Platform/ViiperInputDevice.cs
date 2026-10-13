@@ -285,7 +285,7 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
 
                 // The name is the one the recorder hears, which counts up as a turn towards the
                 // left, while the virtual device counts up as a turn towards the right.
-                WhaleGenieInputGate.Note(KeyNames.WheelName(
+                WhaleGenieInputGate.Note(SharpKeys.WheelName(
                     vertical ? MouseWheelScrollDirection.Vertical : MouseWheelScrollDirection.Horizontal,
                     vertical ? turn : (short)-turn));
 
@@ -573,24 +573,24 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
             return;
         }
 
-        throw new DeviceActionException("Run.NoDriverKey", KeyNames.Name(code, sided: true));
+        throw new DeviceActionException("Run.NoDriverKey", SharpKeys.Name(code, sided: true));
     }
 
     /// <summary>The code a macro's key name stands for.</summary>
     private static KeyCode Code(string key)
-        => KeyNames.Resolve(key) ?? throw new DeviceActionException("Run.UnknownKey", key);
+        => SharpKeys.ResolveCode(key) ?? throw new DeviceActionException("Run.UnknownKey", key);
 
     /// <summary>Tells the parts of the app that watch the keyboard that this press is WhaleGenie's own.</summary>
-    private static void Note(KeyCode code) => WhaleGenieInputGate.Note(KeyNames.Name(code, sided: true));
+    private static void Note(KeyCode code) => WhaleGenieInputGate.Note(SharpKeys.Name(code, sided: true));
 
     /// <summary>The virtual mouse's bit for a button, and the name WhaleGenie calls that button by.</summary>
     private static (byte Bit, string Name) Button(string button) => button.Trim().ToLowerInvariant() switch
     {
-        "right" => ((byte)Btn.Right, KeyNames.MouseName(MouseButton.Button2)),
-        "middle" => ((byte)Btn.Middle, KeyNames.MouseName(MouseButton.Button3)),
-        "middle2" or "back" => ((byte)Btn.Back, KeyNames.MouseName(MouseButton.Button4)),
-        "forward" => ((byte)Btn.Forward, KeyNames.MouseName(MouseButton.Button5)),
-        _ => ((byte)Btn.Left, KeyNames.MouseName(MouseButton.Button1)),
+        "right" => ((byte)Btn.Right, SharpKeys.MouseName(MouseButton.Button2)),
+        "middle" => ((byte)Btn.Middle, SharpKeys.MouseName(MouseButton.Button3)),
+        "middle2" or "back" => ((byte)Btn.Back, SharpKeys.MouseName(MouseButton.Button4)),
+        "forward" => ((byte)Btn.Forward, SharpKeys.MouseName(MouseButton.Button5)),
+        _ => ((byte)Btn.Left, SharpKeys.MouseName(MouseButton.Button1)),
     };
 
     /// <summary>The most one report has room for.</summary>

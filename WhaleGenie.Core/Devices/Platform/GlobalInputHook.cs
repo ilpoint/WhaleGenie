@@ -1,12 +1,8 @@
-using System;
-using System.Threading.Tasks;
-using SharpHook;
-using SharpHook.Data;
-
 namespace WhaleGenie.Core.Devices.Platform;
 
 /// <summary>
-/// The one keyboard and mouse hook this process installs.
+/// The one keyboard and mouse hook this process installs, handed out as what it can say rather
+/// than as the library that says it.
 /// </summary>
 /// <remarks>
 /// Windows does not hand a global hook over cleanly twice: a hook made after an earlier one has
@@ -14,32 +10,16 @@ namespace WhaleGenie.Core.Devices.Platform;
 /// first couple of recordings and then quietly caught nothing. The hook is therefore installed
 /// once and kept for the life of the process, and whatever needs it subscribes while it works.
 /// </remarks>
-public sealed class GlobalInputHook
+public static class GlobalInputHook
 {
     private static readonly object Gate = new();
-    private static GlobalInputHook? _shared;
+    private static SharpHookInputHook? _shared;
 
-    private readonly IGlobalHook _hook;
-    private readonly Task _running;
-    private readonly ManualResetEventSlim _installed = new(false);
-
-    private GlobalInputHook()
-    {
-        _hook = new SimpleGlobalHook();
-        _hook.HookEnabled += OnInstalled;
-        _running = _hook.RunAsync(GlobalHookType.All, useBackgroundThread: true);
-        _running.ContinueWith(
-            static task => _ = task.Exception,
-            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
-
-        // Installing the hook takes a moment; waiting here is what keeps the first thing a
-        // recording is asked to catch from being missed.
-        _installed.Wait(TimeSpan.FromSeconds(2));
-    }
-
-    /// <summary>The hook, installed on first use.</summary>
-    /// <exception cref="HookException">The hook could not be installed.</exception>
-    public static GlobalInputHook Shared
+    /// <summary>
+    /// The hook, installed the first time anything asks for it; a hook that has died is replaced,
+    /// so a later recording can still work. Throws when the hook cannot be installed at all.
+    /// </summary>
+    public static IInputHook Shared
     {
         get
         {
@@ -50,18 +30,9 @@ public sealed class GlobalInputHook
                     return alive;
                 }
 
-                // A hook that has died is replaced, so a later recording can still work.
-                _shared = new GlobalInputHook();
+                _shared = new SharpHookInputHook();
                 return _shared;
             }
         }
     }
-
-    /// <summary>The events the hook raises. Subscribe while they are wanted, then unsubscribe.</summary>
-    public IGlobalHook Hook => _hook;
-
-    /// <summary>True while the hook thread is still running.</summary>
-    public bool IsAlive => !_running.IsFaulted && !_running.IsCompleted;
-
-    private void OnInstalled(object? sender, HookEventArgs e) => _installed.Set();
 }

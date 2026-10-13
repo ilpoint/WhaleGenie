@@ -25,7 +25,7 @@ public sealed class SharpHookInputDevice : IInputDevice
     public void KeyPress(string key, int holdMs)
     {
         var code = Code(key);
-        WhaleGenieInputGate.Note(KeyNames.Name(code, sided: true));
+        WhaleGenieInputGate.Note(SharpKeys.Name(code, sided: true));
         _simulator.SimulateKeyPress(code);
         Rest(holdMs, 50);
         _simulator.SimulateKeyRelease(code);
@@ -34,14 +34,14 @@ public sealed class SharpHookInputDevice : IInputDevice
     public void KeyDown(string key)
     {
         var code = Code(key);
-        WhaleGenieInputGate.Note(KeyNames.Name(code, sided: true));
+        WhaleGenieInputGate.Note(SharpKeys.Name(code, sided: true));
         _simulator.SimulateKeyPress(code);
     }
 
     public void KeyUp(string key)
     {
         var code = Code(key);
-        WhaleGenieInputGate.Note(KeyNames.Name(code, sided: true));
+        WhaleGenieInputGate.Note(SharpKeys.Name(code, sided: true));
         _simulator.SimulateKeyRelease(code);
     }
 
@@ -54,7 +54,7 @@ public sealed class SharpHookInputDevice : IInputDevice
             codes.Add(code);
 
             // The gate speaks the names the trigger compares, which keep a modifier's side.
-            WhaleGenieInputGate.Note(KeyNames.Name(code, sided: true));
+            WhaleGenieInputGate.Note(SharpKeys.Name(code, sided: true));
         }
 
         if (codes.Count == 0)
@@ -139,7 +139,7 @@ public sealed class SharpHookInputDevice : IInputDevice
     {
         MoveMouse(x, y, 0);
         var code = Button(button);
-        WhaleGenieInputGate.Note(KeyNames.MouseName(code));
+        WhaleGenieInputGate.Note(SharpKeys.MouseName(code));
         _simulator.SimulateMousePress(code);
     }
 
@@ -147,7 +147,7 @@ public sealed class SharpHookInputDevice : IInputDevice
     {
         MoveMouse(x, y, 0);
         var code = Button(button);
-        WhaleGenieInputGate.Note(KeyNames.MouseName(code));
+        WhaleGenieInputGate.Note(SharpKeys.MouseName(code));
         _simulator.SimulateMouseRelease(code);
     }
 
@@ -165,7 +165,7 @@ public sealed class SharpHookInputDevice : IInputDevice
                 Thread.Sleep(gap);
             }
 
-            WhaleGenieInputGate.Note(KeyNames.MouseName(code));
+            WhaleGenieInputGate.Note(SharpKeys.MouseName(code));
             _simulator.SimulateMousePress(code);
             Thread.Sleep(10);
             _simulator.SimulateMouseRelease(code);
@@ -192,7 +192,7 @@ public sealed class SharpHookInputDevice : IInputDevice
             var step = Math.Min(left, Notch);
             left -= step;
             var rotation = (short)(sign * step);
-            WhaleGenieInputGate.Note(KeyNames.WheelName(axis, rotation));
+            WhaleGenieInputGate.Note(SharpKeys.WheelName(axis, rotation));
             _simulator.SimulateMouseWheel(rotation, axis, Scrolling);
             Thread.Sleep(10);
         }
@@ -211,7 +211,7 @@ public sealed class SharpHookInputDevice : IInputDevice
 
         var code = Button(button);
         MoveMouse(path[0].X, path[0].Y, 0);
-        WhaleGenieInputGate.Note(KeyNames.MouseName(code));
+        WhaleGenieInputGate.Note(SharpKeys.MouseName(code));
         _simulator.SimulateMousePress(code);
 
         try
@@ -254,7 +254,7 @@ public sealed class SharpHookInputDevice : IInputDevice
     }
 
     private static KeyCode Code(string key)
-        => KeyNames.Resolve(key) ?? throw new DeviceActionException("Run.UnknownKey", key);
+        => SharpKeys.ResolveCode(key) ?? throw new DeviceActionException("Run.UnknownKey", key);
 
     private static MouseButton Button(string button) => button.Trim().ToLowerInvariant() switch
     {

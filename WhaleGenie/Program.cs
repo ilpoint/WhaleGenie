@@ -53,8 +53,9 @@ sealed class Program
         AssemblyLoadContext.Default.Resolving += (_, name) => ResolveAssembly(folder, name);
         AssemblyLoadContext.Default.ResolvingUnmanagedDll += (_, name) => ResolveLibrary(folder, name);
 
-        // Skia, HarfBuzz and SharpHook ask Windows for their library by name and never go through
-        // the managed resolver, so the folder also has to be in the search path Windows uses.
+        // Skia, HarfBuzz and the library the input hook and the injector come from ask Windows for
+        // their own native library by name and never go through the managed resolver, so the folder
+        // also has to be in the search path Windows uses.
         AddDllDirectory(folder);
     }
 

@@ -5,7 +5,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
-using SharpHook;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Localization;
@@ -30,6 +29,13 @@ public sealed class ElementPickerWindow : Window
     /// <summary>How far the readout keeps out of the pointer's way, in screen pixels.</summary>
     private const int ReadoutGap = 18;
 
+    /// <summary>
+    /// The key that leaves the picker, looked up once rather than compared by name on every key
+    /// press. A name that does not resolve leaves a key nothing can match, which is the safe way
+    /// round: the picker can still be left with the right mouse button.
+    /// </summary>
+    private static readonly HookKey Escape = KeyNames.Resolve("Esc") ?? default;
+
     private readonly Func<int, int, UiElementInfo?> _look;
     private readonly FlaUiDevice? _device;
     private readonly bool _listen;
@@ -38,7 +44,7 @@ public sealed class ElementPickerWindow : Window
     private readonly TextBlock _readoutText = new();
 
     private Window? _readout;
-    private IGlobalHook? _hook;
+    private IInputHook? _hook;
     private bool _done;
 
     /// <summary>True once the hook and the timer are watching, which is only worth doing once.</summary>
@@ -413,9 +419,9 @@ public sealed class ElementPickerWindow : Window
     {
         try
         {
-            var hook = GlobalInputHook.Shared.Hook;
-            hook.MousePressed += OnMousePressed;
-            hook.KeyPressed += OnKeyPressed;
+            var hook = GlobalInputHook.Shared;
+            hook.MouseDown += OnMouseDown;
+            hook.KeyDown += OnKeyDown;
             _hook = hook;
         }
         catch (Exception)
@@ -433,33 +439,33 @@ public sealed class ElementPickerWindow : Window
             return;
         }
 
-        hook.MousePressed -= OnMousePressed;
-        hook.KeyPressed -= OnKeyPressed;
+        hook.MouseDown -= OnMouseDown;
+        hook.KeyDown -= OnKeyDown;
         _hook = null;
     }
 
-    private void OnMousePressed(object? sender, MouseHookEventArgs e)
+    private void OnMouseDown(MouseHookEvent e)
     {
-        if (e.Data.Button == SharpHook.Data.MouseButton.Button2)
+        if (e.Button == HookMouseButton.Right)
         {
-            e.SuppressEvent = true;
+            e.Suppress = true;
             Dispatcher.UIThread.Post(Cancel);
             return;
         }
 
-        if (e.Data.Button != SharpHook.Data.MouseButton.Button1)
+        if (e.Button != HookMouseButton.Left)
         {
             return;
         }
 
-        var x = e.Data.X;
-        var y = e.Data.Y;
+        var x = e.X;
+        var y = e.Y;
         if (Handles(new ScreenPoint(x, y)))
         {
             return;   // a click on the picker's own border is none of its business
         }
 
-        e.SuppressEvent = true;
+        e.Suppress = true;
         Dispatcher.UIThread.Post(() =>
         {
             if (_done)
@@ -476,15 +482,14 @@ public sealed class ElementPickerWindow : Window
         });
     }
 
-    private void OnKeyPressed(object? sender, KeyboardHookEventArgs e)
+    private void OnKeyDown(KeyHookEvent e)
     {
-        if (e.Data.KeyCode != SharpHook.Data.KeyCode.VcEscape)
+        if (e.Key != Escape)
         {
             return;
         }
 
-        e.SuppressEvent = true;
+        e.Suppress = true;
         Dispatcher.UIThread.Post(Cancel);
     }
-
 }

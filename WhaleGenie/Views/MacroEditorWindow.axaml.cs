@@ -297,10 +297,8 @@ public partial class MacroEditorWindow : Window
         // The pointer reports the tilt the other way round from the input device, so the sign
         // is flipped here and the shared naming decides which way that is.
         var (axis, rotation) = Math.Abs(e.Delta.X) > Math.Abs(e.Delta.Y)
-            ? (SharpHook.Data.MouseWheelScrollDirection.Horizontal,
-                (short)(e.Delta.X < 0 ? 1 : -1))
-            : (SharpHook.Data.MouseWheelScrollDirection.Vertical,
-                (short)(e.Delta.Y >= 0 ? 1 : -1));
+            ? (HookWheelAxis.Horizontal, e.Delta.X < 0 ? 1 : -1)
+            : (HookWheelAxis.Vertical, e.Delta.Y >= 0 ? 1 : -1);
 
         viewModel.CaptureKey(KeyNames.WheelName(axis, rotation));
         e.Handled = true;
@@ -316,21 +314,20 @@ public partial class MacroEditorWindow : Window
 
         var button = e.GetCurrentPoint(this).Properties.PointerUpdateKind switch
         {
-            PointerUpdateKind.LeftButtonPressed => SharpHook.Data.MouseButton.Button1,
-            PointerUpdateKind.RightButtonPressed => SharpHook.Data.MouseButton.Button2,
-            PointerUpdateKind.MiddleButtonPressed => SharpHook.Data.MouseButton.Button3,
-            PointerUpdateKind.XButton1Pressed => SharpHook.Data.MouseButton.Button4,
-            PointerUpdateKind.XButton2Pressed => SharpHook.Data.MouseButton.Button5,
-            _ => SharpHook.Data.MouseButton.NoButton,
+            PointerUpdateKind.LeftButtonPressed => HookMouseButton.Left,
+            PointerUpdateKind.RightButtonPressed => HookMouseButton.Right,
+            PointerUpdateKind.MiddleButtonPressed => HookMouseButton.Middle,
+            PointerUpdateKind.XButton1Pressed => HookMouseButton.Back,
+            PointerUpdateKind.XButton2Pressed => HookMouseButton.Forward,
+            _ => (HookMouseButton?)null,
         };
 
-        var name = KeyNames.MouseName(button);
-        if (name.Length == 0)
+        if (button is not { } pressed)
         {
             return;
         }
 
-        viewModel.CaptureKey(name);
+        viewModel.CaptureKey(KeyNames.MouseName(pressed));
         e.Handled = true;
     }
 
@@ -1045,7 +1042,7 @@ public partial class MacroEditorWindow : Window
             _captured.Clear();
         }
 
-        var recorder = new SharpHookRecorder();
+        var recorder = new InputHookRecorder();
         recorder.Captured += OnCaptured;
         recorder.StopRequested += OnRecorderStopRequested;
         recorder.IgnoreInjected = _viewModel.RecordIgnoreInjected;

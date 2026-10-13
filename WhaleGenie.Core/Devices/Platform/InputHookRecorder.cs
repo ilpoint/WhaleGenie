@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
-using SharpHook;
 using SharpHook.Data;
 using WhaleGenie.Core.Recording;
 
@@ -10,14 +9,15 @@ namespace WhaleGenie.Core.Devices.Platform;
 
 /// <summary>
 /// Watches the keyboard and the mouse the way the operating system sees them, so a macro can
-/// be built by doing the work once instead of describing it step by step.
+/// be built by doing the work once instead of describing it step by step. What it listens to is
+/// the hook's own events, so which library reads the keyboard is none of its business.
 /// </summary>
 /// <remarks>
 /// The hook runs on a thread of its own and raises its events there; the timestamps count
 /// milliseconds from the moment recording started. Input that WhaleGenie itself sends is skipped,
 /// which keeps a recording from picking up a macro that happens to be running.
 /// </remarks>
-public sealed class SharpHookRecorder : IInputRecorder
+public sealed class InputHookRecorder : IInputRecorder
 {
     /// <summary>One wheel notch, as the platform reports it.</summary>
     private const int Notch = 120;
@@ -26,16 +26,21 @@ public sealed class SharpHookRecorder : IInputRecorder
     private const int MaxScrollNotches = 60;
 
     private readonly Stopwatch _clock = new();
-    private readonly HashSet<KeyCode> _down = [];
+    private readonly HashSet<HookKey> _down = [];
 
     /// <summary>The shared hook while this recorder is listening to it.</summary>
-    private IGlobalHook? _hook;
+    private IInputHook? _hook;
     private int _cursorX;
     private int _cursorY;
     private bool _hasCursor;
     private int _lastMoveX = int.MinValue;
     private int _lastMoveY = int.MinValue;
     private int _stopRaised;
+
+    /// <summary>The one shortcut that ends a recording, and the two keys it is held with.</summary>
+    private static readonly HookKey StopKey = SharpKeys.Key(KeyCode.VcF10);
+    private static readonly HookKey LeftControl = SharpKeys.Key(KeyCode.VcLeftControl);
+    private static readonly HookKey RightControl = SharpKeys.Key(KeyCode.VcRightControl);
 
     public bool IsRunning { get; private set; }
 
@@ -59,16 +64,14 @@ public sealed class SharpHookRecorder : IInputRecorder
 
         // The hook lives for the life of the process; a recording only listens to it for a
         // while. Building one per recording stops working after the first couple of times.
-        var hook = GlobalInputHook.Shared.Hook;
-        hook.KeyPressed += OnKeyPressed;
-        hook.KeyReleased += OnKeyReleased;
-        hook.MousePressed += OnMousePressed;
-        hook.MouseReleased += OnMouseReleased;
-        hook.MouseMoved += OnMouseMoved;
-        hook.MouseDragged += OnMouseMoved;
-        hook.MouseMovedRelative += OnMouseMovedRelative;
-        hook.MouseDraggedRelative += OnMouseMovedRelative;
-        hook.MouseWheel += OnMouseWheel;
+        var hook = GlobalInputHook.Shared;
+        hook.KeyDown += OnKeyDown;
+        hook.KeyUp += OnKeyUp;
+        hook.MouseDown += OnMouseDown;
+        hook.MouseUp += OnMouseUp;
+        hook.Moved += OnMoved;
+        hook.MovedRelative += OnMovedRelative;
+        hook.Wheel += OnWheel;
 
         _down.Clear();
         _hasCursor = false;
@@ -99,114 +102,108 @@ public sealed class SharpHookRecorder : IInputRecorder
     /// <summary>Milliseconds since the recording started.</summary>
     private long Now => _clock.ElapsedMilliseconds;
 
-    private void OnKeyPressed(object? sender, KeyboardHookEventArgs e)
+    private void OnKeyDown(KeyHookEvent e)
     {
-        if (!IsRunning || Skipped(e))
-        {
-            return;
-        }
-
-        var code = e.Data.KeyCode;
-        if (code == KeyCode.VcUndefined)
+        if (!IsRunning || Skipped(e.Injected))
         {
             return;
         }
 
         // The one shortcut that ends a recording is never part of the recording. Escape is
         // deliberately not one of them: it is a key the work being recorded often uses.
-        if (code == KeyCode.VcF10 && (Held(KeyCode.VcLeftControl) || Held(KeyCode.VcRightControl)))
+        if (e.Key == StopKey && (Held(LeftControl) || Held(RightControl)))
         {
             RequestStop();
             return;
         }
 
-        var name = KeyNames.Name(code);
+        // A key with no name is one no macro could ask for, and there is nothing to write down.
+        var name = KeyNames.Name(e.Key);
         if (name.Length == 0)
         {
             return;
         }
 
-        _down.Add(code);
+        _down.Add(e.Key);
         Raise(RecordedInput.KeyDown(name, Now));
     }
 
-    private void OnKeyReleased(object? sender, KeyboardHookEventArgs e)
+    private void OnKeyUp(KeyHookEvent e)
     {
-        if (!IsRunning || Skipped(e))
+        if (!IsRunning || Skipped(e.Injected))
         {
             return;
         }
 
         // A key that was already down when recording started has no press of ours to match,
         // and replaying its release on its own would confuse whatever is being driven.
-        var code = e.Data.KeyCode;
-        if (!_down.Remove(code))
+        if (!_down.Remove(e.Key))
         {
             return;
         }
 
-        var name = KeyNames.Name(code);
+        var name = KeyNames.Name(e.Key);
         if (name.Length != 0)
         {
             Raise(RecordedInput.KeyUp(name, Now));
         }
     }
 
-    private void OnMousePressed(object? sender, MouseHookEventArgs e)
+    private void OnMouseDown(MouseHookEvent e)
     {
-        if (!IsRunning || Skipped(e) || Button(e.Data.Button) is not { } button)
+        if (!IsRunning || Skipped(e.Injected))
         {
             return;
         }
 
-        MoveCursorTo(e.Data.X, e.Data.Y);
-        Raise(RecordedInput.MouseDown(button, e.Data.X, e.Data.Y, Now));
+        MoveCursorTo(e.X, e.Y);
+        Raise(RecordedInput.MouseDown(Button(e.Button), e.X, e.Y, Now));
     }
 
-    private void OnMouseReleased(object? sender, MouseHookEventArgs e)
+    private void OnMouseUp(MouseHookEvent e)
     {
-        if (!IsRunning || Skipped(e) || Button(e.Data.Button) is not { } button)
+        if (!IsRunning || Skipped(e.Injected))
         {
             return;
         }
 
-        MoveCursorTo(e.Data.X, e.Data.Y);
-        Raise(RecordedInput.MouseUp(button, e.Data.X, e.Data.Y, Now));
+        MoveCursorTo(e.X, e.Y);
+        Raise(RecordedInput.MouseUp(Button(e.Button), e.X, e.Y, Now));
     }
 
-    private void OnMouseMoved(object? sender, MouseHookEventArgs e)
+    private void OnMoved(MouseMovedHookEvent e)
     {
-        if (!IsRunning || Skipped(e))
+        if (!IsRunning || Skipped(e.Injected))
         {
             return;
         }
 
-        Report(e.Data.X, e.Data.Y);
+        Report(e.X, e.Y);
     }
 
-    private void OnMouseMovedRelative(object? sender, MouseHookEventArgs e)
+    private void OnMovedRelative(MouseMovedRelativeHookEvent e)
     {
-        if (!IsRunning || Skipped(e))
+        if (!IsRunning || Skipped(e.Injected))
         {
             return;
         }
 
-        Report(_cursorX + e.Data.X, _cursorY + e.Data.Y);
+        Report(_cursorX + e.DeltaX, _cursorY + e.DeltaY);
     }
 
-    private void OnMouseWheel(object? sender, MouseWheelHookEventArgs e)
+    private void OnWheel(WheelHookEvent e)
     {
-        if (!IsRunning || Skipped(e))
+        if (!IsRunning || Skipped(e.Injected))
         {
             return;
         }
 
-        MoveCursorTo(e.Data.X, e.Data.Y);
+        MoveCursorTo(e.X, e.Y);
 
-        var (direction, amount) = Wheel(e.Data.Direction, e.Data.Rotation, e.Data.Delta);
+        var (direction, amount) = Wheel(e.Axis, e.Rotation, e.Delta);
         if (amount > 0)
         {
-            Raise(RecordedInput.Scroll(direction, amount, e.Data.X, e.Data.Y, Now));
+            Raise(RecordedInput.Scroll(direction, amount, e.X, e.Y, Now));
         }
     }
 
@@ -240,35 +237,34 @@ public sealed class SharpHookRecorder : IInputRecorder
         _cursorY = y;
     }
 
-    private bool Held(KeyCode code) => _down.Contains(code);
+    private bool Held(HookKey key) => _down.Contains(key);
 
     /// <summary>True when an event is input another program sent and the user asked to skip it.</summary>
-    private bool Skipped(HookEventArgs e) => IgnoreInjected && e.IsEventSimulated;
+    private bool Skipped(bool injected) => IgnoreInjected && injected;
 
     /// <summary>Turns a wheel turn into the direction and the number of notches a macro writes.</summary>
-    private static (string Direction, int Amount) Wheel(
-        MouseWheelScrollDirection axis, short rotation, ushort delta)
+    private static (string Direction, int Amount) Wheel(HookWheelAxis axis, int rotation, int delta)
     {
         // The signs follow the input device, so what is recorded plays back the way it happened.
-        var direction = axis == MouseWheelScrollDirection.Horizontal
+        var direction = axis == HookWheelAxis.Horizontal
             ? rotation < 0 ? "right" : "left"
             : rotation < 0 ? "down" : "up";
 
         var notches = Math.Abs(rotation) >= Notch
             ? Math.Abs(rotation) / Notch
-            : Math.Max(1, Math.Abs((int)delta));
+            : Math.Max(1, Math.Abs(delta));
 
         return (direction, Math.Clamp(notches, 1, MaxScrollNotches));
     }
 
-    private static string? Button(MouseButton button) => button switch
+    /// <summary>The word a macro writes for a button.</summary>
+    private static string Button(HookMouseButton button) => button switch
     {
-        MouseButton.Button1 => "left",
-        MouseButton.Button2 => "right",
-        MouseButton.Button3 => "middle",
-        MouseButton.Button4 => "back",
-        MouseButton.Button5 => "forward",
-        _ => null,
+        HookMouseButton.Right => "right",
+        HookMouseButton.Middle => "middle",
+        HookMouseButton.Back => "back",
+        HookMouseButton.Forward => "forward",
+        _ => "left",
     };
 
     private void Raise(RecordedInput input)
@@ -300,16 +296,14 @@ public sealed class SharpHookRecorder : IInputRecorder
         }
     }
 
-    private void Detach(IGlobalHook hook)
+    private void Detach(IInputHook hook)
     {
-        hook.KeyPressed -= OnKeyPressed;
-        hook.KeyReleased -= OnKeyReleased;
-        hook.MousePressed -= OnMousePressed;
-        hook.MouseReleased -= OnMouseReleased;
-        hook.MouseMoved -= OnMouseMoved;
-        hook.MouseDragged -= OnMouseMoved;
-        hook.MouseMovedRelative -= OnMouseMovedRelative;
-        hook.MouseDraggedRelative -= OnMouseMovedRelative;
-        hook.MouseWheel -= OnMouseWheel;
+        hook.KeyDown -= OnKeyDown;
+        hook.KeyUp -= OnKeyUp;
+        hook.MouseDown -= OnMouseDown;
+        hook.MouseUp -= OnMouseUp;
+        hook.Moved -= OnMoved;
+        hook.MovedRelative -= OnMovedRelative;
+        hook.Wheel -= OnWheel;
     }
 }

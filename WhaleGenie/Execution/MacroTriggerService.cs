@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using SharpHook;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Execution;
@@ -69,7 +68,10 @@ public sealed class MacroTriggerService : IDisposable
     private readonly Timer _poll;
     private readonly Timer _programs;
 
-    private IGlobalHook? _hook;
+    /// <summary>The hook handed in for this service, or null to share the one the program keeps.</summary>
+    private readonly IInputHook? _hookSource;
+
+    private IInputHook? _hook;
     private int _windowPass;
     private int _windowAgain;
     private DateTime _windowsDueAt;
@@ -91,14 +93,20 @@ public sealed class MacroTriggerService : IDisposable
     /// window list to the timer, which is how it has always been noticed; a check that is about
     /// something else can hand in one of its own.
     /// </param>
+    /// <param name="hook">
+    /// The keyboard and the mouse, as the bound keys and buttons are answered from. The whole
+    /// program shares the one hook the machine allows, so only a check that wants to drive the
+    /// events itself hands in one of its own.
+    /// </param>
     public MacroTriggerService(Func<IReadOnlyList<MacroItem>> macros, IDeviceLayer? devices = null,
-        IWindowEvents? windowEvents = null)
+        IWindowEvents? windowEvents = null, IInputHook? hook = null)
     {
         _macros = macros;
         _ownsDevices = devices is null;
         _devices = devices ?? new WindowsDeviceLayer();
         _ownsWindowEvents = windowEvents is null;
         _windowEvents = windowEvents ?? new WindowsWindowEvents();
+        _hookSource = hook;
         _poll = new Timer(_ => Poll(), null, Timeout.Infinite, Timeout.Infinite);
         _programs = new Timer(_ => Programs(), null, Timeout.Infinite, Timeout.Infinite);
     }
@@ -314,12 +322,12 @@ public sealed class MacroTriggerService : IDisposable
     {
         try
         {
-            var hook = GlobalInputHook.Shared.Hook;
-            hook.KeyPressed += OnKeyPressed;
-            hook.KeyReleased += OnKeyReleased;
-            hook.MousePressed += OnMousePressed;
-            hook.MouseReleased += OnMouseReleased;
-            hook.MouseWheel += OnMouseWheel;
+            var hook = _hookSource ?? GlobalInputHook.Shared;
+            hook.KeyDown += OnKeyDown;
+            hook.KeyUp += OnKeyUp;
+            hook.MouseDown += OnMouseDown;
+            hook.MouseUp += OnMouseUp;
+            hook.Wheel += OnWheel;
             _hook = hook;
         }
         catch (Exception)
@@ -358,11 +366,11 @@ public sealed class MacroTriggerService : IDisposable
 
         if (_hook is { } hook)
         {
-            hook.KeyPressed -= OnKeyPressed;
-            hook.KeyReleased -= OnKeyReleased;
-            hook.MousePressed -= OnMousePressed;
-            hook.MouseReleased -= OnMouseReleased;
-            hook.MouseWheel -= OnMouseWheel;
+            hook.KeyDown -= OnKeyDown;
+            hook.KeyUp -= OnKeyUp;
+            hook.MouseDown -= OnMouseDown;
+            hook.MouseUp -= OnMouseUp;
+            hook.Wheel -= OnWheel;
             _hook = null;
         }
 
@@ -411,61 +419,65 @@ public sealed class MacroTriggerService : IDisposable
         }
     }
 
-    private void OnKeyPressed(object? sender, KeyboardHookEventArgs e)
+    private void OnKeyDown(KeyHookEvent e)
     {
-        if (!Listening)
+        if (Listening)
         {
-            return;
+            Answer(e.Key, pressed: true);
         }
-
-        // Bound keys carry their side, so the right Shift and the left one are told apart.
-        var key = KeyNames.Name(e.Data.KeyCode, sided: true);
-        if (key.Length == 0)
-        {
-            return;
-        }
-
-        lock (_keys)
-        {
-            _heldKeys.Add(key);
-        }
-
-        Fire(key, pressed: true);
     }
 
-    private void OnKeyReleased(object? sender, KeyboardHookEventArgs e)
+    private void OnKeyUp(KeyHookEvent e)
     {
-        if (!Listening)
+        if (Listening)
+        {
+            Answer(e.Key, pressed: false);
+        }
+    }
+
+    /// <summary>
+    /// A key the hook has seen, answered the way a bound key is answered. Called by the hook's own
+    /// two handlers, and by the checks, which need an answer to arrive when they say so rather than
+    /// when a keyboard is pressed.
+    /// </summary>
+    internal void Answer(HookKey key, bool pressed)
+    {
+        // Bound keys carry their side, so the right Shift and the left one are told apart.
+        var name = KeyNames.Name(key, sided: true);
+        if (name.Length == 0)
         {
             return;
         }
 
-        var key = KeyNames.Name(e.Data.KeyCode, sided: true);
-        if (key.Length == 0)
-        {
-            return;
-        }
-
+        // The held keys are what a combination is answered from, so a press is written down before
+        // anything is asked and a release is forgotten before it is.
         lock (_keys)
         {
-            _heldKeys.Remove(key);
+            if (pressed)
+            {
+                _heldKeys.Add(name);
+            }
+            else
+            {
+                _heldKeys.Remove(name);
+            }
         }
 
-        Fire(key, pressed: false);
+        Fire(name, pressed);
     }
 
     /// <summary>True while a key press should be looked at.</summary>
     private bool Listening => _enabled && !_disposed && !MacroTriggerGate.IsOpen;
 
     /// <summary>A mouse button answers a macro the same way a key does.</summary>
-    private void OnMousePressed(object? sender, MouseHookEventArgs e)
+    private void OnMouseDown(MouseHookEvent e)
     {
         if (!Listening)
         {
             return;
         }
 
-        var button = KeyNames.MouseName(e.Data.Button);
+        var button = KeyNames.MouseName(e.Button);
         if (button.Length == 0)
         {
             return;
@@ -479,14 +491,14 @@ public sealed class MacroTriggerService : IDisposable
         Fire(button, pressed: true);
     }
 
-    private void OnMouseReleased(object? sender, MouseHookEventArgs e)
+    private void OnMouseUp(MouseHookEvent e)
     {
         if (!Listening)
         {
             return;
         }
 
-        var button = KeyNames.MouseName(e.Data.Button);
+        var button = KeyNames.MouseName(e.Button);
         if (button.Length == 0)
         {
             return;
@@ -504,14 +516,14 @@ public sealed class MacroTriggerService : IDisposable
     /// A wheel notch has no "down" state, so it counts as a press that is let go again straight
     /// away. A trigger bound to a wheel fires once per notch, the way a key press does.
     /// </summary>
-    private void OnMouseWheel(object? sender, MouseWheelHookEventArgs e)
+    private void OnWheel(WheelHookEvent e)
     {
         if (!Listening)
         {
             return;
         }
 
-        var notch = KeyNames.WheelName(e.Data.Direction, e.Data.Rotation);
+        var notch = KeyNames.WheelName(e.Axis, e.Rotation);
         Fire(notch, pressed: true);
         Fire(notch, pressed: false);
     }

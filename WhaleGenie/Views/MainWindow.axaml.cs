@@ -11,8 +11,6 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using SharpHook;
-using SharpHook.Data;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Execution;
@@ -45,7 +43,14 @@ public partial class MainWindow : Window
     private bool _alwaysOnTop;
 
     /// <summary>The shared hook the Home key is answered through; null until the window is open.</summary>
-    private IGlobalHook? _hotkeyHook;
+    private IInputHook? _hotkeyHook;
+
+    /// <summary>
+    /// The key the system switch is bound to, looked up once rather than compared by name on every
+    /// key press. A name that does not resolve leaves a key nothing can match, which is the safe
+    /// way round: the button on the window still works.
+    /// </summary>
+    private static readonly HookKey SystemHotkey = KeyNames.Resolve("Home") ?? default;
 
     /// <summary>Set by the tray once the answer to the leaving question is "go".</summary>
     private bool _allowClose;
@@ -372,8 +377,8 @@ public partial class MainWindow : Window
     {
         try
         {
-            var hook = GlobalInputHook.Shared.Hook;
-            hook.KeyPressed += OnSystemHotkeyPressed;
+            var hook = GlobalInputHook.Shared;
+            hook.KeyDown += OnSystemHotkeyDown;
             _hotkeyHook = hook;
         }
         catch (Exception)
@@ -387,21 +392,21 @@ public partial class MainWindow : Window
     {
         if (_hotkeyHook is { } hook)
         {
-            hook.KeyPressed -= OnSystemHotkeyPressed;
+            hook.KeyDown -= OnSystemHotkeyDown;
             _hotkeyHook = null;
         }
     }
 
-    private void OnSystemHotkeyPressed(object? sender, KeyboardHookEventArgs e)
+    private void OnSystemHotkeyDown(KeyHookEvent e)
     {
         // The editor and the other dialogs own the keyboard while they are open.
-        if (e.Data.KeyCode != KeyCode.VcHome || MacroTriggerGate.IsOpen)
+        if (e.Key != SystemHotkey || MacroTriggerGate.IsOpen)
         {
             return;
         }
 
         // A key WhaleGenie sent itself is its own output, not the user asking for a switch.
-        if (WhaleGenieInputGate.RecentlySent(KeyNames.Name(e.Data.KeyCode, sided: true)))
+        if (WhaleGenieInputGate.RecentlySent(KeyNames.Name(e.Key, sided: true)))
         {
             return;
         }

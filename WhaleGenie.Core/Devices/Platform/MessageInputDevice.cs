@@ -232,7 +232,7 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
 
     /// <summary>The virtual key code a macro's key name stands for.</summary>
     private static int VirtualKey(string key)
-        => KeyNames.Resolve(key) is { } code
+        => SharpKeys.ResolveCode(key) is { } code
             ? (int)code
             : throw new DeviceActionException("Run.UnknownKey", key);
 

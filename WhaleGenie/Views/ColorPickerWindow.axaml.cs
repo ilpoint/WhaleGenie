@@ -9,8 +9,6 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
-using SharpHook;
-using SharpHook.Data;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Localization;
@@ -40,7 +38,7 @@ public partial class ColorPickerWindow : Window
     private TextBlock? _rgbText;
     private TextBlock? _pointText;
 
-    private IGlobalHook? _hook;
+    private IInputHook? _hook;
     private WriteableBitmap? _bitmap;
     private PixelColor _colour;
     private bool _done;
@@ -307,20 +305,20 @@ public partial class ColorPickerWindow : Window
     /// The click is swallowed, so the program the colour is being read from never sees it. The
     /// hook runs its handlers inline, which is what lets the event be suppressed.
     /// </summary>
-    private void OnMousePressed(object? sender, MouseHookEventArgs e)
+    private void OnMouseDown(MouseHookEvent e)
     {
-        if (e.Data.Button != SharpHook.Data.MouseButton.Button1)
+        if (e.Button != HookMouseButton.Left)
         {
             return;
         }
 
-        var point = new ScreenPoint(e.Data.X, e.Data.Y);
+        var point = new ScreenPoint(e.X, e.Y);
         if (Covers(point))
         {
             return;   // the magnifier itself was clicked; leave that click alone
         }
 
-        e.SuppressEvent = true;
+        e.Suppress = true;
         var colour = ReadColour(point);
         Dispatcher.UIThread.Post(() => Finish(colour));
     }
@@ -342,8 +340,8 @@ public partial class ColorPickerWindow : Window
     {
         try
         {
-            var hook = GlobalInputHook.Shared.Hook;
-            hook.MousePressed += OnMousePressed;
+            var hook = GlobalInputHook.Shared;
+            hook.MouseDown += OnMouseDown;
             _hook = hook;
         }
         catch (Exception)
@@ -357,7 +355,7 @@ public partial class ColorPickerWindow : Window
     {
         if (_hook is { } hook)
         {
-            hook.MousePressed -= OnMousePressed;
+            hook.MouseDown -= OnMouseDown;
             _hook = null;
         }
     }

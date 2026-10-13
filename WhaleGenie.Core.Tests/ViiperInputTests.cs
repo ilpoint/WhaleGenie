@@ -30,7 +30,7 @@ public class ViiperInputTests
     [InlineData("[", Key.LeftBrace)]
     [InlineData("NumPad5", Key.Kp5)]
     public void The_names_a_macro_writes_reach_the_device(string name, Key expected)
-        => Assert.Equal(expected, ViiperKeys.Usage(KeyNames.Resolve(name)!.Value));
+        => Assert.Equal(expected, ViiperKeys.Usage(SharpKeys.ResolveCode(name)!.Value));
 
     [Theory]
     [InlineData("Ctrl", Mod.LeftCtrl)]
@@ -41,7 +41,7 @@ public class ViiperInputTests
     [InlineData("右Shift", Mod.RightShift)]
     public void A_modifier_travels_in_the_modifier_byte_instead_of_the_key_list(string name, Mod expected)
     {
-        var code = KeyNames.Resolve(name)!.Value;
+        var code = SharpKeys.ResolveCode(name)!.Value;
 
         Assert.Equal(expected, ViiperKeys.Modifier(code));
         Assert.Null(ViiperKeys.Usage(code));
@@ -53,7 +53,7 @@ public class ViiperInputTests
     [InlineData("Katakana")]
     public void A_key_a_virtual_keyboard_has_not_got_is_left_empty(string name)
     {
-        var code = KeyNames.Resolve(name)!.Value;
+        var code = SharpKeys.ResolveCode(name)!.Value;
 
         Assert.Null(ViiperKeys.Usage(code));
         Assert.Null(ViiperKeys.Modifier(code));
