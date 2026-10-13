@@ -179,6 +179,82 @@ public class LocalizationTests
     }
 
     /// <summary>
+    /// A field with nothing under it leaves the reader to guess three things at once: what it takes,
+    /// what an empty box means, and what happens if they leave it. Only the labels, the options and
+    /// the returns were ever asked for, which is how a dozen fields came to have no line at all —
+    /// half of them with no English one either, so the Chinese interface fell back to English.
+    /// </summary>
+    [Fact]
+    public void Every_field_says_something_about_itself_in_both_languages()
+    {
+        var gaps = Ui.Run(() =>
+        {
+            var missing = new List<string>();
+            foreach (var definition in ActionCatalog.Definitions)
+            {
+                foreach (var parameter in definition.Parameters)
+                {
+                    if (parameter.Hint.Length == 0)
+                    {
+                        missing.Add($"{definition.Key}.{parameter.Name} (English)");
+                    }
+
+                    var key = $"{definition.Key}.{parameter.Name}.hint";
+                    if (!ActionStrings.Chinese.ContainsKey(key))
+                    {
+                        missing.Add(key);
+                    }
+                }
+            }
+
+            return missing;
+        });
+
+        Assert.Empty(gaps.Order());
+    }
+
+    /// <summary>
+    /// A number that is already filled in is one the reader does not have to answer, so the one thing
+    /// its line has to say is what the filled-in value is. Numbers are what this is about: a choice
+    /// says which option it starts on in the option's own words.
+    /// </summary>
+    [Fact]
+    public void A_number_that_starts_filled_in_says_what_it_starts_at()
+    {
+        var gaps = Ui.Run(() =>
+        {
+            var missing = new List<string>();
+            foreach (var definition in ActionCatalog.Definitions)
+            {
+                foreach (var parameter in definition.Parameters)
+                {
+                    if (parameter.Kind != ActionParameterKind.Number
+                        || parameter.DefaultValue.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    if (!parameter.Hint.Contains("default", StringComparison.OrdinalIgnoreCase))
+                    {
+                        missing.Add($"{definition.Key}.{parameter.Name} (English)");
+                    }
+
+                    var key = $"{definition.Key}.{parameter.Name}.hint";
+                    if (!ActionStrings.Chinese.TryGetValue(key, out var chinese)
+                        || !chinese.Contains("默认"))
+                    {
+                        missing.Add(key);
+                    }
+                }
+            }
+
+            return missing;
+        });
+
+        Assert.Empty(gaps.Order());
+    }
+
+    /// <summary>
     /// The repository root, found by walking up from the test binaries until the solution file is
     /// there. The tests run from inside <c>bin</c>, so the source they read is found rather than
     /// assumed.

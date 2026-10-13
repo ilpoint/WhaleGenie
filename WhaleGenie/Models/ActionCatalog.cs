@@ -786,7 +786,9 @@ public static class ActionCatalog
                     "Which files to collect. Wildcards work, and a semi-colon asks for several at "
                     + "once, for example *.txt; report?.xlsx. *.txt by default.",
                     acceptsVariables: true),
-                Toggle("recurse", "Include subfolders"),
+                Toggle("recurse", "Include subfolders", false,
+                    "Look inside the folders under the one named above as well; off by default, "
+                    + "which lists that folder alone."),
                 Returns(),
                 Choice("sortBy", "Order", ["name", "modified", "created", "size", "extension"],
                     "name",
@@ -2184,6 +2186,7 @@ public static class ActionCatalog
             Parameters =
             [
                 Choice("stick", "Stick", ["left", "right"], "left",
+                    "Which of the two sticks is pushed; the left one by default.",
                     labels: ["Left stick", "Right stick"]),
                 Number("x", "X", 0,
                     "How far sideways the stick is pushed, as whole percent away from its centre, "
@@ -2205,6 +2208,7 @@ public static class ActionCatalog
             Parameters =
             [
                 Choice("trigger", "Trigger", ["left", "right"], "left",
+                    "Which of the two triggers is pulled; the left one by default.",
                     labels: ["Left trigger", "Right trigger"]),
                 Number("amount", "Amount", 100,
                     "How far the trigger is pulled, as whole percent, from 0 to 100; 100 by default, "
@@ -2522,7 +2526,11 @@ public static class ActionCatalog
             Parameters =
             [
                 ..RegionNumbers(),
-                Choice("language", "Language", ["auto", "en", "zh"], "auto", advanced: true),
+                Choice("language", "Language", ["auto", "en", "zh"], "auto",
+                    "Which writing the screen is read as: automatic, English or Chinese; automatic "
+                    + "by default. The one model that comes with the program reads both scripts, so "
+                    + "a screen of either kind is read without naming one.",
+                    advanced: true),
                 Content(),
                 Toggle("table", "Read as a table", false,
                     "Keep the lines and columns the writing was read in: the table result holds one "
@@ -2625,7 +2633,9 @@ public static class ActionCatalog
                 Window(),
                 Selector(),
                 MatchIndex(),
-                Number("timeoutMs", "Timeout", 0, "0 checks once and returns immediately."),
+                Number("timeoutMs", "Timeout", 0,
+                    "How long to wait for the element to turn up, in milliseconds; the default is "
+                    + "0, which checks once and returns immediately."),
                 Returns(),
             ],
         },
@@ -2731,7 +2741,8 @@ public static class ActionCatalog
                     acceptsFormula: true,
                     onlyWith: ["", "0"], onlyField: "itemIndex"),
                 Number("itemIndex", "Entry number", 0,
-                    "Which entry to pick, counted from 1. 0 means pick the one named above.",
+                    "Which entry to pick, counted from 1; the default is 0, which picks the one "
+                    + "named above.",
                     max: 10000, onlyWith: [""], onlyField: "item"),
             ],
         },
@@ -3064,7 +3075,11 @@ public static class ActionCatalog
             Description = "True when the screen shows a piece of text.",
             Parameters =
             [
-                Text("text", "Text", "Ready", acceptsFormula: true),
+                Text("text", "Text", "Ready",
+                    "The text to look for on screen, for example Ready. It is read as one value, so "
+                    + "a variable or an expression may stand for it; nothing is filled in by "
+                    + "default.",
+                    acceptsFormula: true),
                 Region(),
                 ..Capture(),
                 LookGap(0),
@@ -3080,7 +3095,11 @@ public static class ActionCatalog
             Description = "True when the screen does not show a piece of text.",
             Parameters =
             [
-                Text("text", "Text", "Ready", acceptsFormula: true),
+                Text("text", "Text", "Ready",
+                    "The text the screen must not be showing, for example Ready. It is read as one "
+                    + "value, so a variable or an expression may stand for it; nothing is filled in "
+                    + "by default.",
+                    acceptsFormula: true),
                 Region(),
                 ..Capture(),
                 LookGap(0),
@@ -3129,7 +3148,8 @@ public static class ActionCatalog
                 ..Anchor(),
                 ..Capture(),
                 LookGap(0),
-                ColorPick("color", "Colour", "#000000"),
+                ColorPick("color", "Colour", "#000000",
+                    "The colour the pixel is compared with, written as #RRGGBB; black by default."),
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100, advanced: true),
             ],
         },

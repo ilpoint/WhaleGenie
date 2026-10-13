@@ -562,6 +562,7 @@ internal static class ActionStrings
         ["control.log.message.label"] = "消息",
         ["control.log.message.hint"] = "写进日志的文字，可以写多行，也可以填变量或算式。",
         ["control.log.level.label"] = "级别",
+        ["control.log.level.hint"] = "这条日志记成哪一级，默认「信息」。",
 
         ["control.runMacro.name"] = "执行其他宏",
         ["control.runMacro.desc"] = "运行本项目里的另一个宏，效果相当于把它的步骤写在这里。"
@@ -720,6 +721,7 @@ internal static class ActionStrings
         ["file.listFiles.pattern.hint"] = "要收集哪些文件，例如 *.txt。可以使用通配符，也可以用分号一次写多个，"
             + "例如 *.txt; report?.xlsx。默认 *.txt。",
         ["file.listFiles.recurse.label"] = "包含子文件夹",
+        ["file.listFiles.recurse.hint"] = "连上面那个文件夹里的子文件夹一起找，默认关：只列那一个文件夹里的东西。",
         ["file.listFiles.sortBy.label"] = "排序依据",
         ["file.listFiles.sortBy.hint"] = "按哪一项给文件排序，默认按名称。排在一起的文件（例如同样大小）再按名称排，"
             + "所以同一个文件夹每次列出来的顺序都相同。",
@@ -1523,6 +1525,7 @@ internal static class ActionStrings
         ["input.mouseScroll.name"] = "鼠标滚轮",
         ["input.mouseScroll.desc"] = "滚动鼠标滚轮。",
         ["input.mouseScroll.direction.label"] = "方向",
+        ["input.mouseScroll.direction.hint"] = "滚轮往哪边滚，默认向下。",
         ["input.mouseScroll.unit.label"] = "滚轮单位",
         ["input.mouseScroll.unit.hint"] = "滚多远按什么计算，默认格。格是滚轮平时一次转动的量；像素把同样的转动量"
             + "分得更细，120 像素等于一格。只看整数格的程序可能会忽略不足一格的部分。",
@@ -1618,6 +1621,7 @@ internal static class ActionStrings
         ["gamepad.stick.name"] = "手柄摇杆",
         ["gamepad.stick.desc"] = "把虚拟手柄的一根摇杆拨开，写的是偏离中心百分之多少。",
         ["gamepad.stick.stick.label"] = "摇杆",
+        ["gamepad.stick.stick.hint"] = "推哪一根摇杆，默认左摇杆。",
         ["gamepad.stick.stick.option.left"] = "左摇杆",
         ["gamepad.stick.stick.option.right"] = "右摇杆",
         ["gamepad.stick.x.label"] = "X",
@@ -1630,6 +1634,7 @@ internal static class ActionStrings
         ["gamepad.trigger.name"] = "手柄扳机",
         ["gamepad.trigger.desc"] = "扣下虚拟手柄的一个扳机，或者松开。",
         ["gamepad.trigger.trigger.label"] = "扳机",
+        ["gamepad.trigger.trigger.hint"] = "扣哪一个扳机，默认左扳机。",
         ["gamepad.trigger.trigger.option.left"] = "左扳机 (LT)",
         ["gamepad.trigger.trigger.option.right"] = "右扳机 (RT)",
         ["gamepad.trigger.amount.label"] = "扣下程度",
@@ -2596,6 +2601,7 @@ internal static class ActionStrings
         ["vision.clickImage.desc"] =
             "在屏幕上找到参考图片并点击它，最多等到步骤设置里的「超时」；到点这一步算失败。",
         ["vision.clickImage.image.label"] = "图片文件",
+        ["vision.clickImage.image.hint"] = "图片文件，也可以填前面步骤存下的图片变量。",
         ["vision.clickImage.confidence.label"] = "相似度 %",
         ["vision.clickImage.confidence.hint"] = "要求的相似度下限，写成 0 到 100 的百分数，默认 90；屏幕上的样子画得略有不同时调低。",
         ["vision.clickImage.offsetX.label"] = "横向偏移",
@@ -2653,6 +2659,7 @@ internal static class ActionStrings
         ["ocr.recognize.height.hint"] = "要读的那块屏幕有多高，单位像素，至少 1；从左上角向下"
             + "量，留空就一直量到屏幕下边缘。",
         ["ocr.recognize.language.label"] = "语言",
+        ["ocr.recognize.language.hint"] = "按哪种文字读屏幕上的字：自动、英文或中文，默认「自动」。识别用的是随包那一份中英文模型，所以两种文字的画面都不用专门指定。",
         ["ocr.recognize.content.label"] = "读取内容",
         ["ocr.recognize.content.hint"] = "读全部文字，还是只读数字：只读数字时，含数字的片段"
             + "只留下数字本身（货币符号、千位分隔符和旁边的文字都去掉），一个数字也没有的片段"
@@ -2714,6 +2721,7 @@ internal static class ActionStrings
         ["ocr.clickText.desc"] =
             "在屏幕上找到文字并点击它，最多等到步骤设置里的「超时」；到点这一步算失败。",
         ["ocr.clickText.text.label"] = "要查找的文字",
+        ["ocr.clickText.text.hint"] = "要查找的文字，例如 Save，默认空着要自己填。整段按一个值读，所以变量或算式都能放在这里。",
         ["ocr.clickText.region.label"] = "搜索区域",
         ["ocr.clickText.region.hint"] = RegionHintText,
         ["ocr.clickText.anchorMode.label"] = "坐标基准",
@@ -2861,7 +2869,7 @@ internal static class ActionStrings
         ["uia.select.item.label"] = "选项文字",
         ["uia.select.item.hint"] = "要选中的那一项显示的文字，也可以由 $变量 提供（比如刚从别处读回来的值）。留空就填下面的序号。",
         ["uia.select.itemIndex.label"] = "选项序号",
-        ["uia.select.itemIndex.hint"] = "要选第几项，从 1 开始数；填 0 表示用上面写的文字来选。",
+        ["uia.select.itemIndex.hint"] = "要选第几项，从 1 开始数；默认 0，表示用上面写的文字来选。",
 
         ["uia.check.name"] = "勾选框",
         ["uia.check.desc"] = "把勾选框、开关或单选框打开或关掉。",
@@ -2968,7 +2976,7 @@ internal static class ActionStrings
         ["browser.switchTab.how.option.title"] = "按标题",
         ["browser.switchTab.how.option.url"] = "按网址",
         ["browser.switchTab.index.label"] = "第几个标签页",
-        ["browser.switchTab.index.hint"] = "从标签栏最左边数起，第一个是 1，范围为 1 到 50，配合「第几个」使用。",
+        ["browser.switchTab.index.hint"] = "从标签栏最左边数起，第一个是 1，范围为 1 到 50，默认 1，配合「第几个」使用。",
         ["browser.switchTab.match.label"] = "标题或网址里包含",
         ["browser.switchTab.match.hint"] = "标签页的标题或网址里要包含的文字，配合「按标题」「按网址」使用。",
 
@@ -3015,6 +3023,7 @@ internal static class ActionStrings
         ["condition.imageExists.name"] = "图片存在",
         ["condition.imageExists.desc"] = "当参考图片出现在屏幕上时为真。",
         ["condition.imageExists.image.label"] = "图片文件",
+        ["condition.imageExists.image.hint"] = "要找的图片，一行一张，按列出的顺序试；只要有一张出现在画面上，这个条件就成立。",
         ["condition.imageExists.confidence.label"] = "相似度 %",
         ["condition.imageExists.confidence.hint"] = "要求的相似度下限，写成 0 到 100 的百分数，默认 90；把参考图"
             + "的写法放宽一点就调低。",
@@ -3029,6 +3038,7 @@ internal static class ActionStrings
         ["condition.textExists.name"] = "文字存在",
         ["condition.textExists.desc"] = "当屏幕上出现指定文字时为真。",
         ["condition.textExists.text.label"] = "文字",
+        ["condition.textExists.text.hint"] = "要在屏幕上找的文字，例如 Ready，默认空着要自己填。整段按一个值读，所以变量或算式都能放在这里；画面上出现这段文字时条件成立。",
         ["condition.textExists.region.label"] = "搜索区域",
         ["condition.textExists.region.hint"] = RegionHintText,
         ["condition.textExists.matchMode.label"] = "匹配方式",
@@ -3049,6 +3059,7 @@ internal static class ActionStrings
         ["condition.colorEquals.y.label"] = "Y",
         ["condition.colorEquals.y.hint"] = "要比较的像素的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["condition.colorEquals.color.label"] = "颜色",
+        ["condition.colorEquals.color.hint"] = "拿来和这个像素比较的颜色，写成 #RRGGBB，默认黑色。",
         ["condition.colorEquals.tolerance.label"] = "容差 %",
         ["condition.colorEquals.tolerance.hint"] = "允许的颜色偏差，写成 0 到 100 的百分数，默认 5；画面有压缩"
             + "痕迹或做过缩放时调大。",
@@ -3057,6 +3068,7 @@ internal static class ActionStrings
         ["condition.imageNotExists.name"] = "图片不存在",
         ["condition.imageNotExists.desc"] = "当参考图片不在屏幕上时为真。",
         ["condition.imageNotExists.image.label"] = "图片文件",
+        ["condition.imageNotExists.image.hint"] = "要找的图片，一行一张，按列出的顺序试；一张都没出现，这个条件才成立。",
         ["condition.imageNotExists.confidence.label"] = "相似度 %",
         ["condition.imageNotExists.confidence.hint"] = "要求的相似度下限，写成 0 到 100 的百分数，默认 90；把"
             + "参考图的写法放宽一点就调低。",
@@ -3090,6 +3102,7 @@ internal static class ActionStrings
         ["condition.textNotExists.name"] = "文字不存在",
         ["condition.textNotExists.desc"] = "当屏幕上没有指定文字时为真。",
         ["condition.textNotExists.text.label"] = "文字",
+        ["condition.textNotExists.text.hint"] = "要在屏幕上确认没有的文字，例如 Ready，默认空着要自己填。整段按一个值读，所以变量或算式都能放在这里；画面上没有它时条件成立。",
         ["condition.textNotExists.region.label"] = "搜索区域",
         ["condition.textNotExists.region.hint"] = RegionHintText,
         ["condition.textNotExists.matchMode.label"] = "匹配方式",
@@ -3607,7 +3620,7 @@ internal static class ActionStrings
             + "用它区分）、「minimized」「maximized」（是否收进任务栏、是否铺满屏幕）、「left」「top」"
             + "「width」「height」（矩形四个数）与「box」（同一个矩形，写成 左,上,宽,高，填进搜索区域那一"
             + "行的变量格里，下一步就在那个窗口里找），再加上「process」（程序名，不含 .exe）与「class」"
-            + "（窗口类名，说明窗口的种类而不是里面的文档，记事本改了名也还是 Notepad）——这两格要勾上"
+            + "（窗口类名，说明窗口的种类而不是里面的文档，记事本改了名也还是 Notepad），这两格要勾上"
             + "「每个窗口都读程序名与类名（慢）」才有，没读的留空。读其中一条的一个字段用 "
             + "field(get($变量, 0), \"title\")，逐个走一遍用 forEach。",
         ["window.list.returns.label"] = "要留下的结果",
