@@ -565,17 +565,18 @@ public static class ActionCatalog
                 Returns(),
                 Choice("storeAs", "Store as", ["text", "lines"], "text",
                     "Keep the file as one piece of text, or hand each line over as an item of a "
-                    + "list, which is what looping over a file of names or paths wants.",
+                    + "list, which is what walking through a file of names or paths wants. One "
+                    + "piece of text is the default.",
                     labels: ["One piece of text", "One item per line"], advanced: true),
                 Number("limit", "Only the first", 0,
-                    "Read only this many lines. Zero reads the whole file, which a big file of "
-                    + "lines to pick a few out of does not want.", min: 0m, max: 1_000_000m,
-                    advanced: true),
+                    "Read only the first this many lines, from 0 to 1000000 and 0 by default. "
+                    + "Zero reads the whole file, which a file of lines to pick a few out of does "
+                    + "not want.", min: 0m, max: 1_000_000m, advanced: true),
                 Toggle("skipBlankLines", "Leave out blank lines", false,
-                    "Drop the empty lines, so a list of names with a blank line in the middle is "
-                    + "just the names.", advanced: true),
+                    "Drop the lines that hold nothing, so a blank line in the middle of a list of "
+                    + "names does not become an item. Off by default.", advanced: true),
                 Toggle("trim", "Trim each line", false,
-                    "Take the spaces off both ends of every line.", advanced: true),
+                    "Take the spaces off both ends of every line. Off by default.", advanced: true),
                 Encoding(),
             ],
         },
@@ -588,14 +589,16 @@ public static class ActionCatalog
             Parameters =
             [
                 FilePath("path", "File", "notes.txt", "File to write.", PathIntent.Write),
-                Multiline("text", "Text", "Text to write.", "", required: false,
+                Multiline("text", "Text", "Text to write. Read as one value, so a variable or an "
+                    + "expression may stand for it.", "", required: false,
                     acceptsFormula: true),
                 Choice("mode", "Mode", ["overwrite", "append"], "overwrite",
-                    "Replace the file, or add to what is already there.",
+                    "Replace the file, or add to what is already there. Replacing is the default.",
                     labels: ["Replace it", "Add to the end"]),
                 Choice("newline", "Line break", ["none", "end", "start"], "none",
-                    "Whether to put a line break around the text: none, one after it, or — when "
-                    + "adding to a file whose last line never ended — one in front of it.",
+                    "Whether to put a line break around the text: none, one after it, or one in "
+                    + "front of it when adding to a file whose last line never ended. None by "
+                    + "default.",
                     labels: ["None", "After the text", "In front of the text when it is needed"],
                     advanced: true),
                 Encoding(),
@@ -612,12 +615,12 @@ public static class ActionCatalog
                 FilePath("path", "File", "log.txt", "The log file the line is added to.", PathIntent.Write),
                 Text("text", "Line", "Finished the run",
                     "What the line says. It is read as one value, so a variable or an expression "
-                    + "may stand for it. The line ends with a line break, so the next one starts on "
-                    + "a new line.",
+                    + "may stand for it; a line break ends the line, and adding to a file whose last "
+                    + "line never ended writes one in front of it.",
                     acceptsFormula: true),
                 Toggle("timestamp", "Put the time first", true,
-                    "Write the date and time in front of the line. A file of lines without them is "
-                    + "hard to read after the fact."),
+                    "Write the date and time in front of the line. On by default; a file of lines "
+                    + "without them is hard to read afterwards."),
             ],
         },
         new()
@@ -647,8 +650,8 @@ public static class ActionCatalog
             [
                 FilePath("path", "File", "old.txt", "File to remove.", PathIntent.Read),
                 Toggle("toRecycleBin", "To recycle bin", false,
-                    "Put the file in the recycle bin, where it can still be put back, "
-                    + "instead of removing it for good."),
+                    "Put the file in the recycle bin, where it can still be restored, instead of "
+                    + "removing it for good. Off by default."),
             ],
         },
         new()
@@ -706,7 +709,7 @@ public static class ActionCatalog
                     "combine",
                     "What to work out. Combine joins the path and the name beside it; the others "
                     + "read one part off the path, or hand back a folder that is always in the "
-                    + "same place.",
+                    + "same place. Combine is the default.",
                     labels:
                     [
                         "Join folder and name", "The folder it is in", "The file name",
@@ -733,7 +736,7 @@ public static class ActionCatalog
                 FilePath("folder", "Into folder", @"unpacked", "Folder the contents come out in.",
                     PathIntent.Folder),
                 Toggle("overwrite", "Overwrite", true,
-                    "Replace files that are already there."),
+                    "Replace files that are already there. On by default."),
             ],
         },
         new()
@@ -760,7 +763,8 @@ public static class ActionCatalog
             [
                 FilePath("path", "Folder", @"output\old", "Folder to remove.", PathIntent.Folder),
                 Toggle("recurse", "Delete what is inside", false,
-                    "A folder that still holds something is left alone unless this is on."),
+                    "Delete what is inside the folder along with the folder itself. Off by default; "
+                    + "a folder that still holds something is otherwise left alone."),
             ],
         },
         new()
@@ -779,37 +783,42 @@ public static class ActionCatalog
                 FilePath("folder", "Folder", ".", "Folder to look in.", PathIntent.Folder),
                 Text("pattern", "Pattern", "*.txt",
                     "Which files to collect. Wildcards work, and a semi-colon asks for several at "
-                    + "once, for example *.txt; report?.xlsx.",
+                    + "once, for example *.txt; report?.xlsx. *.txt by default.",
                     acceptsVariables: true),
                 Toggle("recurse", "Include subfolders"),
                 Returns(),
                 Choice("sortBy", "Order", ["name", "modified", "created", "size", "extension"],
                     "name",
-                    "What to put the files in order by. Files that agree are ordered by name, so "
-                    + "the same folder comes out in the same order on every run.",
+                    "What to put the files in order by, name by default. Files that agree are "
+                    + "ordered by name, so the same folder comes out in the same order on every run.",
                     labels: ["Name", "Last modified", "Created", "Size", "Extension"],
                     advanced: true),
                 Toggle("descending", "The other way round", false,
-                    "Newest, largest or Z to A first instead of the plain order.", advanced: true),
+                    "Newest, largest or Z to A first instead of the plain order. Off by default.",
+                    advanced: true),
                 Number("depth", "How deep", 0,
-                    "How many folders deep to look while subfolders are included. Zero is as deep "
-                    + "as they go.", min: 0m, max: 64m, advanced: true),
+                    "How many folders deep to look while subfolders are included, from 0 to 64 and "
+                    + "0 by default. Zero is as deep as they go.", min: 0m, max: 64m,
+                    advanced: true),
                 Number("withinCount", "Changed in the last", 0,
                     "Keep only the files that changed in the last so many minutes, hours or days, "
-                    + "which is how a macro asks for \"what changed today\". Zero keeps every file.",
+                    + "which is how a macro asks for \"what changed today\". From 0 to 100000, 0 by "
+                    + "default, and zero keeps every file.",
                     min: 0m, max: 100_000m, advanced: true),
                 Choice("withinUnit", "Unit", ["minutes", "hours", "days"], "days",
-                    "What the number above counts in.",
+                    "What the number above counts in. Days by default.",
                     labels: ["Minutes", "Hours", "Days"], advanced: true),
                 Number("minKb", "At least this big", 0,
-                    "Keep only the files of this many kilobytes or more. Zero keeps every size.",
+                    "Keep only the files of this many kilobytes or more, from 0 to 1000000; zero, "
+                    + "which is the default, keeps every size.",
                     min: 0m, max: 1_000_000m, advanced: true),
                 Number("maxKb", "At most this big", 0,
-                    "Keep only the files of this many kilobytes or less. Zero keeps every size.",
+                    "Keep only the files of this many kilobytes or less, from 0 to 1000000; zero, "
+                    + "which is the default, keeps every size.",
                     min: 0m, max: 1_000_000m, advanced: true),
                 Toggle("relative", "Paths inside the folder", false,
                     "Give each file as the path it has inside the folder that was listed, rather "
-                    + "than the whole path on the disk.", advanced: true),
+                    + "than the whole path on the disk. Off by default.", advanced: true),
             ],
         },
         new()
@@ -828,8 +837,8 @@ public static class ActionCatalog
                 FilePath("path", "File", "config.json", "JSON file to read.", PathIntent.Read,
                     "*.json"),
                 Text("query", "Where", "server.name",
-                    "Path to the value, such as server.name or items[0].id. "
-                    + "Leave empty for the whole file.", acceptsFormula: true),
+                    "Path to the value, such as server.name or items[0].id. Empty, the "
+                    + "default, reads the whole file.", acceptsFormula: true),
                 Returns(),
             ],
         },
@@ -844,9 +853,10 @@ public static class ActionCatalog
                 FilePath("path", "File", "config.json", "JSON file to update.", PathIntent.Write,
                     "*.json"),
                 Text("query", "Where", "server.name",
-                    "Path to the value. Missing objects on the way are created.",
+                    "Path to the value, such as server.name. Missing objects on the way are created.",
                     acceptsFormula: true),
-                Text("value", "Value", "", "Value to store.", required: false,
+                Text("value", "Value", "", "Value to store, read as one value, so a variable "
+                    + "or an expression may stand for it.", required: false,
                     acceptsFormula: true),
             ],
         },
@@ -867,8 +877,8 @@ public static class ActionCatalog
             [
                 FilePath("path", "File", "rows.csv", "CSV file to read.", PathIntent.Read, "*.csv"),
                 Toggle("hasHeader", "First row is a header", true,
-                    "Leave the first row out of the result and use it to name the columns of every "
-                    + "row, which is what lets a cell be read by name."),
+                    "On by default: leave the first row out of the result and use it to name the "
+                    + "columns of every row, which is what lets a cell be read by name."),
                 Text("columns", "Only these columns", "金额, 日期", required: false,
                     hint: "The columns to keep, written the way they are named in the header or as "
                         + "the letter they sit under: 金额, or B, or 金额,B. Each row comes back with "
@@ -888,24 +898,28 @@ public static class ActionCatalog
                 Encoding(),
                 ..Separator("auto", mayBeAutomatic: true),
                 Toggle("skipBlankLines", "Skip blank lines", true,
-                    "Drop lines that hold nothing. A file written by another program often ends "
-                    + "with one, and it would otherwise read as a row of one empty cell.",
+                    "Drop lines that hold nothing; on by default. A file written by another "
+                    + "program often ends with one, and it would otherwise read as a row of one empty "
+                    + "cell.",
                     advanced: true),
                 Number("startRow", "Start at row", 1,
-                    "The line of the file to start at, counted from 1. When the first row is a "
-                    + "header, the header is this line.", min: 1, advanced: true),
+                    "The line of the file to start at, counted from 1 and 1 by default; the "
+                    + "header, when there is one, is this line.", min: 1, advanced: true),
                 Number("maxRows", "At most rows", 0,
-                    "Read this many rows at most. 0 reads every row from there on.", max: 1000000,
-                    advanced: true),
+                    "Read this many rows at most, from 0 to 1000000 and 0 by default. Zero "
+                    + "reads every row from there on.", max: 1000000, advanced: true),
                 Toggle("trim", "Trim spaces", false,
-                    "Drop spaces around each cell, which a file written by hand often has.",
+                    "Drop spaces around each cell, which a file written by hand often has. Off "
+                    + "by default.",
                     advanced: true),
                 Choice("shape", "Result shape", ["rows", "values"], "rows",
-                    "A list of rows, or — when exactly one column was named above — the values of "
-                    + "that column as one plain list, ready to walk through or add up.",
+                    "A list of rows, or, when exactly one column was named above, the values of "
+                    + "that column as one plain list, ready to walk through or add up. A list of rows "
+                    + "by default.",
                     labels: ["One list per row", "The values of one column"], advanced: true),
                 Choice("matchMode", "Matches", MatchModes, "equals",
-                    "How the cell is compared against the value: exactly, or parts of it.",
+                    "How the cell is compared against the value: exactly, or parts of it. "
+                    + "Exactly by default.",
                     labels: MatchModeLabels, advanced: true),
             ],
         },
@@ -926,10 +940,11 @@ public static class ActionCatalog
                     "Column names to put above the data: a list, or the names written out on one "
                     + "line with the separator between them. Adding to a file that is not there "
                     + "yet writes it; adding to one that already is does not, so a log keeps one "
-                    + "header at the top. Leave it empty for a table with nothing above it.",
+                    + "header at the top. Empty, which is the default, writes no header row.",
                     required: false),
                 Choice("mode", "Mode", ["replace", "append"], "replace",
-                    "Write the file from the start, or add these rows below what is already in it.",
+                    "Write the file from the start, or add these rows below what is already in "
+                    + "it. Writing from the start is the default.",
                     labels: ["Replace the file", "Add below the last row"]),
                 Toggle("align", "Put each value under the column with that name", false,
                     "Adding to a file that already holds a table: put every cell under the column "
@@ -942,15 +957,16 @@ public static class ActionCatalog
                 ..Separator("comma"),
                 Choice("lineEnding", "Line ending", ["windows", "unix"], "windows",
                     "Which characters end a line: CRLF, which Windows writes, or LF, which "
-                    + "everything else does.",
+                    + "everything else does. CRLF, which Windows writes, is the default.",
                     labels: ["Windows (CRLF)", "Unix (LF)"], advanced: true),
                 Toggle("quoteAll", "Quote every cell", false,
                     "Put quotes around every cell rather than only around the ones that need them. "
-                    + "Some programs insist on it.", advanced: true),
+                    + "Some programs insist on it. Off by default.", advanced: true),
                 Choice("emptyCells", "Empty cells", ["bare", "quoted"], "bare",
                     "How a cell holding nothing is written: as an empty place between two "
                     + "separators, or as two quotes. Both read back as an empty cell, and the "
-                    + "quotes are for the program that wants to see a cell there.",
+                    + "quotes are for the program that wants to see a cell there. Nothing "
+                    + "between the separators is the default.",
                     labels: ["Nothing between the separators", "Two quotes"], advanced: true),
                 Encoding(),
             ],
@@ -966,8 +982,8 @@ public static class ActionCatalog
                 FilePath("path", "File", "state.json", "File to write.", PathIntent.Write,
                     "*.json"),
                 Text("names", "Which", "",
-                    "Names to save, separated by commas. Leave empty for every local and "
-                    + "shared variable.", required: false),
+                    "Names to save, separated by commas. Empty, the default, saves every local "
+                    + "and shared variable.", required: false),
             ],
         },
         new()
@@ -3782,8 +3798,9 @@ public static class ActionCatalog
             Kind = ActionParameterKind.Returns,
             Required = false,
             Hint = "Tick the results this step should hand over. Each ticked one becomes a variable "
-                + "of its own, named after the note, the action and the result, and can then be "
-                + "read by later steps. Nothing ticked means the step leaves no result behind.",
+                + "of its own, named after the note on the step and the name of the result, which "
+                + "the row itself may change, and can then be read by later steps. Nothing "
+                + "ticked means the step leaves no result behind.",
         };
 
     /// <summary>One result an action can hand over.</summary>
@@ -4331,7 +4348,8 @@ public static class ActionCatalog
         => Choice("ifExists", "If it is already there",
             ["overwrite", "skip", "unique"], "overwrite",
             "What to do when a file of that name is already there: put this one over it, leave the "
-            + "one that is there alone, or give the new one a number of its own (report (2).csv).",
+            + "one that is there alone, or give the new one a number of its own (report (2).csv). "
+            + "Putting this one over it is the default.",
             labels: ["Replace it", "Leave it alone", "Give the new one a number"]);
 
     /// <summary>
@@ -4346,14 +4364,17 @@ public static class ActionCatalog
                 ? ["auto", "comma", "semicolon", "tab", "pipe", "space"]
                 : ["comma", "semicolon", "tab", "pipe", "space"],
             defaultValue,
-            "The character between two cells.",
+            mayBeAutomatic
+                ? "The character between two cells; working it out from the first line of the "
+                    + "file is the default."
+                : "The character between two cells; a comma is the default.",
             labels: mayBeAutomatic
                 ? ["Work it out (auto)", "Comma ,", "Semicolon ;", "Tab", "Vertical bar |", "Space"]
                 : ["Comma ,", "Semicolon ;", "Tab", "Vertical bar |", "Space"],
             advanced: true),
         Text("separatorText", "Or this character", required: false, defaultValue: "",
             hint: "Fill this in for a character the list does not have, such as : or #, and it is "
-                + "used instead of the one chosen above. Leave it empty for the chosen one.",
+                + "used instead of the one chosen above. Empty by default.",
             advanced: true),
     ];
 
@@ -4364,12 +4385,12 @@ public static class ActionCatalog
     /// </summary>
     private static ActionParameter Encoding()
         => Choice("encoding", "Encoding", [.. TextEncoding.Names], TextEncoding.Default,
-            "How the file's text is turned into bytes. UTF-8 is what everything new uses; UTF-8 "
-            + "with a mark is what Notepad writes; GBK is what a Chinese Windows writes its own "
-            + "text files in; UTF-16 is what some older Windows programs expect. Reading follows "
-            + "the mark at the front of the file when it has one, and reads bytes that are not "
-            + "UTF-8 at all in this machine's own code page — which is how a CSV another machine "
-            + "exported still reads.",
+            "How the file's text is turned into bytes. UTF-8 is what everything new uses and is "
+            + "the default; UTF-8 with a mark is what Notepad writes; GBK is what a Chinese Windows "
+            + "writes its own text files in; UTF-16 is what some older Windows programs expect. "
+            + "Reading follows the mark at the front of the file when it has one, and reads bytes "
+            + "that are not UTF-8 at all in this machine's own code page, which is how a CSV "
+            + "another machine exported still reads.",
             labels: ["UTF-8", "UTF-8 with BOM", "GBK (Chinese)", "UTF-16"], advanced: true);
 
     /// <summary>How OCR text searches compare their match.</summary>

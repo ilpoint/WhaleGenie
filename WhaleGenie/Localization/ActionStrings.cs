@@ -89,6 +89,16 @@ internal static class ActionStrings
         + "动作时用它；勾上后上面的“X”“Y”不写进宏文件，也不再参与。";
 
     /// <summary>
+    /// The hint every step that can hand a result over gives its returns table. It is written once
+    /// rather than forty-seven times, so the way a result is named is described in one place: the
+    /// name of the note and the name of the result, which the row itself may override.
+    /// </summary>
+    private const string ReturnsHintText =
+        "勾上这一步要留下的结果：每一项各自成为一个变量，名字默认取这一步的备注与这个结果的名字，"
+        + "重名时补上步骤标识，也可以在下面每一行自己改，后面的步骤按这个名字取用。"
+        + "一个都不勾也可以，这一步就不留下任何结果。";
+
+    /// <summary>
     /// The label and hint every step that looks at the screen shares for how old a picture it will
     /// accept, written once for the same reason the capture picker is.
     /// </summary>
@@ -158,7 +168,7 @@ internal static class ActionStrings
 
     /// <summary>The hint the four text-file actions share for their encoding picker.</summary>
     private const string EncodingHintText =
-        "文件里的文字按什么编码变成字节。UTF-8 是现在通用的写法；带 BOM 的是记事本默认保存的样子；"
+        "文件里的文字按什么编码变成字节。默认 UTF-8，它也是现在通用的写法；带 BOM 的是记事本默认保存的样子；"
         + "GBK 是中文 Windows 自己写文本文件用的编码；UTF-16 是一些老 Windows 程序认的。"
         + "读取时如果文件开头有 BOM，会以 BOM 为准；没有 BOM 又根本不是 UTF-8 的，按本机代码页读"
         + "（中文 Windows 是 GBK），别的机器导出的 CSV 因此也能直接读。";
@@ -556,16 +566,16 @@ internal static class ActionStrings
         ["file.readText.path.label"] = "文件",
         ["file.readText.path.hint"] = "要读取的文件。只写文件名时会相对宏文件夹解析。",
         ["file.readText.storeAs.label"] = "读成什么",
-        ["file.readText.storeAs.hint"] = "整个文件读成一段文本，还是一行一项读成列表 —— "
-            + "要把一份名单或路径逐条处理时用后者。",
+        ["file.readText.storeAs.hint"] = "整个文件读成一段文本，还是一行一项读成列表，默认「一段文本」。逐条处理一份名单或路径时选"
+            + "「一行一项的列表」。",
         ["file.readText.storeAs.option.text"] = "一段文本",
         ["file.readText.storeAs.option.lines"] = "一行一项的列表",
         ["file.readText.limit.label"] = "只读前几行",
-        ["file.readText.limit.hint"] = "只读文件的前多少行；0 表示整份都读。",
+        ["file.readText.limit.hint"] = "只读文件的前多少行，范围为 0 到 1000000，默认 0；0 表示整份都读，大文件只要前面几行时用它。",
         ["file.readText.skipBlankLines.label"] = "去掉空行",
-        ["file.readText.skipBlankLines.hint"] = "丢掉什么都没有的行，名单中间夹着的空行就不会跑进列表里。",
+        ["file.readText.skipBlankLines.hint"] = "丢弃没有内容的行，这样名单中间夹着的空行不会进入列表。默认不勾选。",
         ["file.readText.trim.label"] = "去掉每行两端的空格",
-        ["file.readText.trim.hint"] = "每一行两端的空格都去掉。",
+        ["file.readText.trim.hint"] = "去掉每一行两端的空格。默认不勾选。",
         ["file.readText.encoding.label"] = "编码",
         ["file.readText.encoding.hint"] = EncodingHintText,
         ["file.readText.encoding.option.utf8"] = EncodingUtf8,
@@ -578,14 +588,14 @@ internal static class ActionStrings
         ["file.writeText.path.label"] = "文件",
         ["file.writeText.path.hint"] = "要写入的文件。只写文件名时会相对宏文件夹解析。",
         ["file.writeText.text.label"] = "文本",
-        ["file.writeText.text.hint"] = "要写入的文本。",
+        ["file.writeText.text.hint"] = "要写入的文本。按一个值读取，变量或表达式都可以写成它。",
         ["file.writeText.mode.label"] = "方式",
-        ["file.writeText.mode.hint"] = "替换原文件，或追加到已有内容后面。",
+        ["file.writeText.mode.hint"] = "替换原文件，或把内容接到已有内容后面。默认「替换原内容」。",
         ["file.writeText.mode.option.overwrite"] = "替换原内容",
         ["file.writeText.mode.option.append"] = "追加到末尾",
         ["file.writeText.newline.label"] = "换行",
-        ["file.writeText.newline.hint"] = "文本前后的换行：不加、写完之后再换一行，或追加时"
-            + "若文件最后一行还没结束就先补一个换行，让新内容从新的一行开始。",
+        ["file.writeText.newline.hint"] = "要不要在文本前后补一个换行：不加、写完之后补一个，或追加时文件最后一行还没有结束"
+            + "时先补一个。默认不加。",
         ["file.writeText.newline.option.none"] = "不加",
         ["file.writeText.newline.option.end"] = "写完换一行",
         ["file.writeText.newline.option.start"] = "追加前先换一行（上一行没结束时）",
@@ -601,11 +611,10 @@ internal static class ActionStrings
         ["file.appendLog.path.label"] = "日志文件",
         ["file.appendLog.path.hint"] = "要写入的日志文件。只写文件名时会相对宏文件夹解析。",
         ["file.appendLog.text.label"] = "这一行",
-        ["file.appendLog.text.hint"] = "这一行写什么。按一个值读取，变量或表达式都可以写成它。"
-            + "末尾自动换行，下一条从新的一行开始；文件最后一行还没结束时，会先补一个换行，"
-            + "不会挤在上一行后面。",
+        ["file.appendLog.text.hint"] = "这一行写什么。按一个值读取，变量或表达式都可以写成它；每行末尾自动补一个换行，"
+            + "追加时文件最后一行还没有结束会先补一个换行。",
         ["file.appendLog.timestamp.label"] = "前面写上时间",
-        ["file.appendLog.timestamp.hint"] = "在每行前面写上日期和时间，事后翻日志才看得出先后。",
+        ["file.appendLog.timestamp.hint"] = "在每行前面写上日期和时间。默认勾选；事后翻看日志需要它分辨先后。",
 
         ["file.exists.name"] = "文件是否存在",
         ["file.exists.desc"] = "检查文件或文件夹是否存在。",
@@ -617,7 +626,7 @@ internal static class ActionStrings
         ["file.delete.path.label"] = "文件",
         ["file.delete.path.hint"] = "要删除的文件。只写文件名时会相对宏文件夹解析。",
         ["file.delete.toRecycleBin.label"] = "放进回收站",
-        ["file.delete.toRecycleBin.hint"] = "勾选后不彻底删除，文件会留在回收站里，还能找回来。",
+        ["file.delete.toRecycleBin.hint"] = "把文件放进回收站而不是彻底删除，放进回收站的文件可以还原。默认不勾选。",
 
         ["file.copy.name"] = "复制文件",
         ["file.copy.desc"] = "把文件复制到另一个位置。",
@@ -626,8 +635,8 @@ internal static class ActionStrings
         ["file.copy.to.label"] = "目标",
         ["file.copy.to.hint"] = "副本要放到哪里。只写文件名时会相对宏文件夹解析。",
         ["file.copy.ifExists.label"] = "目标已存在时",
-        ["file.copy.ifExists.hint"] = "同名文件已经在那里时怎么办：替换它、留着它（这一步什么也不做），"
-            + "或给新文件一个自己的编号（report (2).csv）。",
+        ["file.copy.ifExists.hint"] = "目标已有同名文件时的做法：替换它、保留原文件（这一步什么也不做），或在文件名后"
+            + "补一个编号（report (2).csv）。默认替换它。",
         ["file.copy.ifExists.option.overwrite"] = "替换它",
         ["file.copy.ifExists.option.skip"] = "留着它，什么也不做",
         ["file.copy.ifExists.option.unique"] = "给新文件编号",
@@ -639,8 +648,8 @@ internal static class ActionStrings
         ["file.move.to.label"] = "目标",
         ["file.move.to.hint"] = "移到哪里，连文件名一起写。只写文件名时会相对宏文件夹解析。",
         ["file.move.ifExists.label"] = "目标已存在时",
-        ["file.move.ifExists.hint"] = "同名文件已经在那里时怎么办：替换它、留着它（这一步什么也不做），"
-            + "或给移过来的文件一个自己的编号（report (2).csv）。",
+        ["file.move.ifExists.hint"] = "目标已有同名文件时的做法：替换它、保留原文件（这一步什么也不做），或给移过来的"
+            + "文件补一个编号（report (2).csv）。默认替换它。",
         ["file.move.ifExists.option.overwrite"] = "替换它",
         ["file.move.ifExists.option.skip"] = "留着它，什么也不做",
         ["file.move.ifExists.option.unique"] = "给移过来的文件编号",
@@ -653,7 +662,8 @@ internal static class ActionStrings
         ["file.path.name"] = "路径处理",
         ["file.path.desc"] = "得到一个路径的组成部分：拼接、拆分，或解析出它所指向的位置。",
         ["file.path.operation.label"] = "要算什么",
-        ["file.path.operation.hint"] = "“拼接文件夹和文件名”把路径和下面的名字接起来；其余几项各取路径的一部分，或者给出固定位置的文件夹。",
+        ["file.path.operation.hint"] = "「拼接文件夹和文件名」把路径和下面的名字接起来；其余几项各取路径的一部分，"
+            + "或者给出固定位置的文件夹。默认「拼接文件夹和文件名」。",
         ["file.path.operation.option.combine"] = "拼接文件夹和文件名",
         ["file.path.operation.option.folder"] = "所在的文件夹",
         ["file.path.operation.option.name"] = "文件名",
@@ -665,7 +675,7 @@ internal static class ActionStrings
         ["file.path.path.label"] = "路径",
         ["file.path.path.hint"] = "要处理的路径。选两个文件夹相关的项时用不到它。",
         ["file.path.name.label"] = "名字",
-        ["file.path.name.hint"] = "拼接时接在后面的部分，只有“拼接文件夹和文件名”用得到。",
+        ["file.path.name.hint"] = "拼接时接在后面的部分。只有「拼接文件夹和文件名」用得到它。",
 
         ["file.unzip.name"] = "解压",
         ["file.unzip.desc"] = "把 zip 压缩包解压到文件夹。",
@@ -674,81 +684,81 @@ internal static class ActionStrings
         ["file.unzip.folder.label"] = "解压到",
         ["file.unzip.folder.hint"] = "内容解压到哪个文件夹，不存在时会建出来。",
         ["file.unzip.overwrite.label"] = "覆盖",
-        ["file.unzip.overwrite.hint"] = "目标已存在同名文件时是否替换。",
+        ["file.unzip.overwrite.hint"] = "目标已有同名文件时替换它。默认勾选。",
 
         ["file.zip.name"] = "压缩文件夹",
         ["file.zip.desc"] = "把文件夹打包成一个 zip 压缩包。",
         ["file.zip.folder.label"] = "文件夹",
         ["file.zip.folder.hint"] = "要打包的文件夹。只写文件夹名时会相对宏文件夹解析。",
         ["file.zip.to.label"] = "压缩包",
-        ["file.zip.to.hint"] = "要写出的 zip 文件，已存在时会替换。",
+        ["file.zip.to.hint"] = "要写出的 zip 文件，已存在时会替换。只写文件名时会相对宏文件夹解析。",
 
         ["file.deleteFolder.name"] = "删除文件夹",
         ["file.deleteFolder.desc"] = "删除文件夹；可选择连同其中的内容一起删除。",
         ["file.deleteFolder.path.label"] = "文件夹",
         ["file.deleteFolder.path.hint"] = "要删除的文件夹。只写名字时会相对宏文件夹解析。",
         ["file.deleteFolder.recurse.label"] = "连里面的内容一起删",
-        ["file.deleteFolder.recurse.hint"] = "不勾选时，文件夹非空则保留原样，不会删除其中的内容。",
+        ["file.deleteFolder.recurse.hint"] = "连同文件夹里的内容一起删除。默认不勾选；不勾选时，文件夹非空则保留原样，"
+            + "其中的内容不会被删除。",
 
         ["file.listFiles.name"] = "列出文件",
         ["file.listFiles.desc"] = "把文件夹里的文件收集成列表。",
         ["file.listFiles.folder.label"] = "文件夹",
         ["file.listFiles.folder.hint"] = "要在其中查找的文件夹。只写名称时会相对宏文件夹解析。",
         ["file.listFiles.pattern.label"] = "匹配模式",
-        ["file.listFiles.pattern.hint"] = "要收集哪些文件，例如 *.txt。可以用通配符，也可以用"
-            + "分号一次写多个，例如 *.txt; report?.xlsx。",
+        ["file.listFiles.pattern.hint"] = "要收集哪些文件，例如 *.txt。可以使用通配符，也可以用分号一次写多个，"
+            + "例如 *.txt; report?.xlsx。默认 *.txt。",
         ["file.listFiles.recurse.label"] = "包含子文件夹",
         ["file.listFiles.sortBy.label"] = "排序依据",
-        ["file.listFiles.sortBy.hint"] = "按哪一样给文件排序。排在一起（例如同样大小）的再按名称排，"
-            + "所以同一个文件夹每次列出来的顺序都一样。",
+        ["file.listFiles.sortBy.hint"] = "按哪一项给文件排序，默认按名称。排在一起的文件（例如同样大小）再按名称排，"
+            + "所以同一个文件夹每次列出来的顺序都相同。",
         ["file.listFiles.sortBy.option.name"] = "名称",
         ["file.listFiles.sortBy.option.modified"] = "修改时间",
         ["file.listFiles.sortBy.option.created"] = "创建时间",
         ["file.listFiles.sortBy.option.size"] = "大小",
         ["file.listFiles.sortBy.option.extension"] = "扩展名",
         ["file.listFiles.descending.label"] = "倒过来排",
-        ["file.listFiles.descending.hint"] = "最大的、最新的或从 Z 到 A 排在最前面。",
+        ["file.listFiles.descending.hint"] = "把顺序倒过来，最大的、最新的或从 Z 到 A 排在最前面。默认不勾选。",
         ["file.listFiles.depth.label"] = "最多往里几层",
-        ["file.listFiles.depth.hint"] = "勾了「包含子文件夹」时最多往里看几层；0 表示一层层看下去。",
+        ["file.listFiles.depth.hint"] = "勾了「包含子文件夹」时最多往里看几层，范围为 0 到 64，默认 0；0 表示一直往下看。",
         ["file.listFiles.withinCount.label"] = "最近改过的",
-        ["file.listFiles.withinCount.hint"] = "只留下最近这么多分钟 / 小时 / 天里改动过的文件，"
-            + "「今天改过的文件」就是这么问的；0 表示不限时间。",
+        ["file.listFiles.withinCount.hint"] = "只留下最近这么多分钟 / 小时 / 天里改动过的文件，「今天改过的文件」就是这么问的。"
+            + "范围为 0 到 100000，默认 0；0 表示不限时间。",
         ["file.listFiles.withinUnit.label"] = "单位",
-        ["file.listFiles.withinUnit.hint"] = "上面那个数字按什么算。",
+        ["file.listFiles.withinUnit.hint"] = "上面那个数字按什么算，默认「天」。",
         ["file.listFiles.withinUnit.option.minutes"] = "分钟",
         ["file.listFiles.withinUnit.option.hours"] = "小时",
         ["file.listFiles.withinUnit.option.days"] = "天",
         ["file.listFiles.minKb.label"] = "最小多大（KB）",
-        ["file.listFiles.minKb.hint"] = "只留下这么大或更大的文件；0 表示不限大小。",
+        ["file.listFiles.minKb.hint"] = "只留下这么大或更大的文件，单位为 KB，范围为 0 到 1000000，默认 0；0 表示不限大小。",
         ["file.listFiles.maxKb.label"] = "最大多大（KB）",
-        ["file.listFiles.maxKb.hint"] = "只留下这么大或更小的文件；0 表示不限大小。",
+        ["file.listFiles.maxKb.hint"] = "只留下这么大或更小的文件，单位为 KB，范围为 0 到 1000000，默认 0；0 表示不限大小。",
         ["file.listFiles.relative.label"] = "只要文件夹里的路径",
-        ["file.listFiles.relative.hint"] = "每一项写成它在这个文件夹里的路径，而不是磁盘上的完整路径。",
+        ["file.listFiles.relative.hint"] = "每一项写成它在这个文件夹里的路径，而不是磁盘上的完整路径。默认不勾选。",
 
         ["file.readJson.name"] = "读取 JSON",
         ["file.readJson.desc"] = "从 JSON 文件中读取一个值。",
         ["file.readJson.path.label"] = "文件",
         ["file.readJson.path.hint"] = "要读取的 JSON 文件。只写文件名时会相对宏文件夹解析。",
         ["file.readJson.query.label"] = "位置",
-        ["file.readJson.query.hint"] = "值的路径，例如 server.name 或 items[0].id。留空表示整个文件。",
+        ["file.readJson.query.hint"] = "值的路径，例如 server.name 或 items[0].id。默认留空，表示整个文件。",
 
         ["file.writeJson.name"] = "写入 JSON",
         ["file.writeJson.desc"] = "设置 JSON 文件中的一个值，保留其余内容。",
         ["file.writeJson.path.label"] = "文件",
         ["file.writeJson.path.hint"] = "要更新的 JSON 文件。只写文件名时会相对宏文件夹解析。",
         ["file.writeJson.query.label"] = "位置",
-        ["file.writeJson.query.hint"] = "值的路径。途经的缺失对象会自动创建。",
+        ["file.writeJson.query.hint"] = "值的路径，例如 server.name。途经的缺失对象会自动创建。",
         ["file.writeJson.value.label"] = "值",
-        ["file.writeJson.value.hint"] = "要存入的值。",
+        ["file.writeJson.value.hint"] = "要存入的值。按一个值读取，变量或表达式都可以写成它。",
 
         ["file.readCsv.name"] = "读取 CSV",
         ["file.readCsv.desc"] = "把 CSV 文件读取成行列表。",
         ["file.readCsv.path.label"] = "文件",
         ["file.readCsv.path.hint"] = "要读取的 CSV 文件。只写文件名时会相对宏文件夹解析。",
         ["file.readCsv.separator.label"] = "分隔符",
-        ["file.readCsv.separator.hint"] =
-            "两个单元格之间的字符。自动识别会自己看文件的第一行——文本文件里没有任何地方写着"
-            + "它用的是什么字符，而写它的那个程序挑的往往不是读它的这个程序会挑的。",
+        ["file.readCsv.separator.hint"] = "两个单元格之间的字符，默认「自动识别」。自动识别按文件的第一行判断，"
+            + "文本文件里没有地方写明它用的是什么字符，列表里没有的字符写在下面那一格。",
         ["file.readCsv.separator.option.auto"] = "自动识别",
         ["file.readCsv.separator.option.comma"] = "逗号 ,",
         ["file.readCsv.separator.option.semicolon"] = "分号 ;",
@@ -756,36 +766,36 @@ internal static class ActionStrings
         ["file.readCsv.separator.option.pipe"] = "竖线 |",
         ["file.readCsv.separator.option.space"] = "空格",
         ["file.readCsv.separatorText.label"] = "或者这个字符",
-        ["file.readCsv.separatorText.hint"] =
-            "列表里没有的分隔符写在这里，比如 : 或 #；填了就按这个来，不填就用上面选的。",
+        ["file.readCsv.separatorText.hint"] = "上面列表里没有的分隔符写在这里，例如 : 或 #。填了就按这里写的来，"
+            + "不填就用上面选的，默认留空。",
         ["file.readCsv.hasHeader.label"] = "首行是表头",
-        ["file.readCsv.hasHeader.hint"] = "结果中不包含第一行，第一行的名字用来给每一行的单元格命名，按名字取单元格靠的就是它。",
+        ["file.readCsv.hasHeader.hint"] = "第一行是列名。默认勾选：结果中不含第一行，第一行的名字用来给每一行的单元格命名，"
+            + "按名字取单元格靠的就是它。",
         ["file.readCsv.skipBlankLines.label"] = "跳过空行",
-        ["file.readCsv.skipBlankLines.hint"] =
-            "空行不算一行。别的程序导出的文件常在末尾留一个空行，不跳过就会读出一行空单元格。",
+        ["file.readCsv.skipBlankLines.hint"] = "空行不算一行，默认勾选。别的程序导出的文件常在末尾留一个空行，"
+            + "不跳过就会读出一行空单元格。",
         ["file.readCsv.startRow.label"] = "从第几行开始",
-        ["file.readCsv.startRow.hint"] =
-            "从文件的第几行开始读，从 1 数起。首行是表头时，表头就是这一行。",
+        ["file.readCsv.startRow.hint"] = "从文件的第几行开始读，从 1 数起，默认 1。首行是表头时，表头就是这一行。",
         ["file.readCsv.maxRows.label"] = "最多读几行",
-        ["file.readCsv.maxRows.hint"] = "最多读取这么多行，0 表示从这里一直读到文件末尾。",
+        ["file.readCsv.maxRows.hint"] = "最多读取这么多行，范围为 0 到 1000000，默认 0；0 表示从这里一直读到文件末尾。",
         ["file.readCsv.trim.label"] = "去掉空格",
-        ["file.readCsv.trim.hint"] = "把每个单元格两端的空格去掉，手写的文件里常有。",
+        ["file.readCsv.trim.hint"] = "去掉每个单元格两端的空格。默认不勾选；手写的文件里常有这些空格。",
         ["file.readCsv.columns.label"] = "只读这几列",
         ["file.readCsv.columns.hint"] =
             "要保留的列，按表头里的名字写，或者按它所在的字母写：金额、B、金额,B。每一行只留这几列，"
             + "顺序按这里写的来；留空表示所有列。",
         ["file.readCsv.shape.label"] = "结果形状",
-        ["file.readCsv.shape.hint"] =
-            "给出行列表，或者在只点名了一列时，直接给出那一列的值（一个普通列表，可以直接遍历或求和）。",
+        ["file.readCsv.shape.hint"] = "给出行列表，或者在只点名了一列时，直接给出那一列的值（一个普通列表，可以直接遍历或求和）。"
+            + "默认「每行一个列表」。",
         ["file.readCsv.shape.option.rows"] = "每行一个列表",
         ["file.readCsv.shape.option.values"] = "一列的值",
         ["file.readCsv.matchColumn.label"] = "只读这些行",
-        ["file.readCsv.matchColumn.hint"] =
-            "只读这一列的单元格等于下面那个值的行；列名写法与上面一样。留空表示每一行都读。",
+        ["file.readCsv.matchColumn.hint"] = "只读这一列的单元格等于下面那个值的行，列名写法与上面一样。"
+            + "默认留空，表示每一行都读。",
         ["file.readCsv.matchValue.label"] = "等于",
         ["file.readCsv.matchValue.hint"] = "这些行里那个单元格要等于的值，也可以写成 $变量。",
         ["file.readCsv.matchMode.label"] = "匹配方式",
-        ["file.readCsv.matchMode.hint"] = "单元格与这个值怎么比：完全相等，还是比其中一段。",
+        ["file.readCsv.matchMode.hint"] = "单元格与这个值怎么比：完全相等，还是比其中一段。默认「等于」。",
         ["file.readCsv.matchMode.option.equals"] = "等于",
         ["file.readCsv.matchMode.option.notEquals"] = "不等于",
         ["file.readCsv.matchMode.option.contains"] = "包含",
@@ -810,21 +820,21 @@ internal static class ActionStrings
         ["file.writeCsv.rows.label"] = "行",
         ["file.writeCsv.rows.hint"] = "行列表。每一行本身也可以是一个单元格列表。",
         ["file.writeCsv.header.label"] = "表头行",
-        ["file.writeCsv.header.hint"] =
-            "写在数据上面的列名：可以是一个列表，也可以直接用分隔符连成一行写出来。"
-            + "追加到一个还不存在的文件时会写上，追加到已有的文件时不写，所以流水账只有一个表头。",
+        ["file.writeCsv.header.hint"] = "写在数据上面的列名：可以是一个列表，也可以直接用分隔符连成一行写出来。"
+            + "追加到一个还不存在的文件时会写上，追加到已有的文件时不写，所以流水账只有一个表头。"
+            + "默认留空，表示不写表头。",
         ["file.writeCsv.separator.label"] = "分隔符",
-        ["file.writeCsv.separator.hint"] = "两个单元格之间的字符。",
+        ["file.writeCsv.separator.hint"] = "两个单元格之间的字符，默认「逗号 ,」。",
         ["file.writeCsv.separator.option.comma"] = "逗号 ,",
         ["file.writeCsv.separator.option.semicolon"] = "分号 ;",
         ["file.writeCsv.separator.option.tab"] = "制表符",
         ["file.writeCsv.separator.option.pipe"] = "竖线 |",
         ["file.writeCsv.separator.option.space"] = "空格",
         ["file.writeCsv.separatorText.label"] = "或者这个字符",
-        ["file.writeCsv.separatorText.hint"] =
-            "列表里没有的分隔符写在这里，比如 : 或 #；填了就按这个来，不填就用上面选的。",
+        ["file.writeCsv.separatorText.hint"] = "上面列表里没有的分隔符写在这里，例如 : 或 #。填了就按这里写的来，"
+            + "不填就用上面选的，默认留空。",
         ["file.writeCsv.mode.label"] = "写入方式",
-        ["file.writeCsv.mode.hint"] = "从头写这个文件，还是把这几行接在文件已有的内容后面。",
+        ["file.writeCsv.mode.hint"] = "从头写这个文件，或把这几行接在文件已有内容的后面。默认「覆盖整个文件」。",
         ["file.writeCsv.mode.option.replace"] = "覆盖整个文件",
         ["file.writeCsv.mode.option.append"] = "接在最后一行后面",
         ["file.writeCsv.align.label"] = "按列名放进同名的列",
@@ -833,14 +843,15 @@ internal static class ActionStrings
             + "而不是每行放在同一个位置上。这样文件里有、这一步没写的列不会把后面的内容挤错位。"
             + "这些名字来自上面那一栏表头，文件里没有那个名字时就说出来，而不是随手塞进某一列。",
         ["file.writeCsv.lineEnding.label"] = "换行符",
-        ["file.writeCsv.lineEnding.hint"] = "一行以什么字符结束：CRLF 是 Windows 的写法，LF 是其他平台的。",
+        ["file.writeCsv.lineEnding.hint"] = "一行以什么字符结束：CRLF 是 Windows 的写法，LF 是其他平台的写法。默认 Windows (CRLF)。",
         ["file.writeCsv.lineEnding.option.windows"] = "Windows (CRLF)",
         ["file.writeCsv.lineEnding.option.unix"] = "Unix (LF)",
         ["file.writeCsv.quoteAll.label"] = "每个单元格都加引号",
-        ["file.writeCsv.quoteAll.hint"] = "只给需要加引号的单元格加，还是全部都加。有些程序只认全部都加的。",
+        ["file.writeCsv.quoteAll.hint"] = "给所有单元格都加引号，而不是只给需要加引号的加。默认不勾选；"
+            + "有些程序只认全部都加引号的写法。",
         ["file.writeCsv.emptyCells.label"] = "空单元格写成",
-        ["file.writeCsv.emptyCells.hint"] = "什么都没有的单元格怎么写：两个分隔符之间留空，"
-            + "还是写成两个引号。两种读回来都是空单元格，引号是给非要看见一个格子的程序用的。",
+        ["file.writeCsv.emptyCells.hint"] = "没有内容的单元格怎么写：两个分隔符之间留空，还是写成两个引号。默认两个分隔符之间留空；"
+            + "两种写法读回来都是空单元格，引号是给非要看见一个格子的程序用的。",
         ["file.writeCsv.emptyCells.option.bare"] = "两个分隔符之间留空",
         ["file.writeCsv.emptyCells.option.quoted"] = "写成两个引号",
         ["file.writeCsv.encoding.label"] = "编码",
@@ -855,7 +866,7 @@ internal static class ActionStrings
         ["file.saveVariables.path.label"] = "文件",
         ["file.saveVariables.path.hint"] = "要写入的文件。只写文件名时会相对宏文件夹解析。",
         ["file.saveVariables.names.label"] = "哪些变量",
-        ["file.saveVariables.names.hint"] = "要保存的名称，用逗号分隔。留空表示所有局部变量和共享变量。",
+        ["file.saveVariables.names.hint"] = "要保存的名称，用逗号分隔。默认留空，表示所有局部变量和共享变量。",
 
         ["file.loadVariables.name"] = "读取变量",
         ["file.loadVariables.desc"] = "读取由“保存变量”写出的文件，恢复变量。",
@@ -3343,49 +3354,49 @@ internal static class ActionStrings
         ["control.waitUntil.return.elapsed.label"] = "用时",
         ["control.waitUntil.return.elapsed.hint"] = "这次等待实际花了多少毫秒，等到和超时都会写。",
         ["control.waitUntil.returns.label"] = "要留下的结果",
-        ["control.waitUntil.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["control.waitUntil.returns.hint"] = ReturnsHintText,
 
         // control.try
         ["control.try.return.error.label"] = "错误信息",
         ["control.try.return.error.hint"] = "尝试失败的原因；没有失败时为空。",
         ["control.try.returns.label"] = "要留下的结果",
-        ["control.try.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["control.try.returns.hint"] = ReturnsHintText,
 
         // file.readText
         ["file.readText.return.text.label"] = "文本",
         ["file.readText.return.text.hint"] = "文件里的内容；按“每行一项”读出来时是一个列表。",
         ["file.readText.returns.label"] = "要留下的结果",
-        ["file.readText.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["file.readText.returns.hint"] = ReturnsHintText,
 
         // file.exists
         ["file.exists.return.exists.label"] = "存在",
         ["file.exists.return.exists.hint"] = "文件或文件夹在不在。",
         ["file.exists.returns.label"] = "要留下的结果",
-        ["file.exists.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["file.exists.returns.hint"] = ReturnsHintText,
 
         // file.path
         ["file.path.return.path.label"] = "路径",
         ["file.path.return.path.hint"] = "算出来的路径。",
         ["file.path.returns.label"] = "要留下的结果",
-        ["file.path.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["file.path.returns.hint"] = ReturnsHintText,
 
         // file.listFiles
         ["file.listFiles.return.files.label"] = "文件",
         ["file.listFiles.return.files.hint"] = "收集到的文件完整路径。",
         ["file.listFiles.returns.label"] = "要留下的结果",
-        ["file.listFiles.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["file.listFiles.returns.hint"] = ReturnsHintText,
 
         // file.readJson
         ["file.readJson.return.value.label"] = "值",
         ["file.readJson.return.value.hint"] = "读到的值；取不到时为空。",
         ["file.readJson.returns.label"] = "要留下的结果",
-        ["file.readJson.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["file.readJson.returns.hint"] = ReturnsHintText,
 
         // file.readCsv
         ["file.readCsv.return.rows.label"] = "行",
         ["file.readCsv.return.rows.hint"] = "读到的行，每行是一条记录：键就是表头那一行里的列名，用 field(行, \"金额\") 按名字取一个单元格；第一行不是表头时列名是 A、B、C。",
         ["file.readCsv.returns.label"] = "要留下的结果",
-        ["file.readCsv.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["file.readCsv.returns.hint"] = ReturnsHintText,
 
         // data.base64Encode
         ["data.base64Encode.return.encoded.label"] = "编码结果",
@@ -3403,67 +3414,67 @@ internal static class ActionStrings
         ["data.hash.return.digest.label"] = "校验和",
         ["data.hash.return.digest.hint"] = "用小写字母和数字写出来的校验和。",
         ["data.hash.returns.label"] = "要留下的结果",
-        ["data.hash.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["data.hash.returns.hint"] = ReturnsHintText,
 
         // clipboard.readText
         ["clipboard.readText.return.text.label"] = "文本",
         ["clipboard.readText.return.text.hint"] = "剪贴板上的文字。",
         ["clipboard.readText.returns.label"] = "要留下的结果",
-        ["clipboard.readText.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["clipboard.readText.returns.hint"] = ReturnsHintText,
 
         // clipboard.readImage
         ["clipboard.readImage.return.image.label"] = "图片",
         ["clipboard.readImage.return.image.hint"] = "剪贴板上的图片，可以交给找图步骤在屏幕上找；它没有屏幕位置，所以没有坐标。",
         ["clipboard.readImage.returns.label"] = "要留下的结果",
-        ["clipboard.readImage.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["clipboard.readImage.returns.hint"] = ReturnsHintText,
 
         // clipboard.readFiles
         ["clipboard.readFiles.return.files.label"] = "文件",
         ["clipboard.readFiles.return.files.hint"] = "剪贴板上文件的完整路径；一个文件都没有时是空列表。",
         ["clipboard.readFiles.returns.label"] = "要留下的结果",
-        ["clipboard.readFiles.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["clipboard.readFiles.returns.hint"] = ReturnsHintText,
 
         // clipboard.waitChange
         ["clipboard.waitChange.return.text.label"] = "文本",
         ["clipboard.waitChange.return.text.hint"] = "新复制上来的文字；只等待不保存时不用勾。",
         ["clipboard.waitChange.returns.label"] = "要留下的结果",
-        ["clipboard.waitChange.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["clipboard.waitChange.returns.hint"] = ReturnsHintText,
 
         // clipboard.copy
         ["clipboard.copy.return.text.label"] = "文本",
         ["clipboard.copy.return.text.hint"] = "复制到剪贴板上的内容。",
         ["clipboard.copy.returns.label"] = "要留下的结果",
-        ["clipboard.copy.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["clipboard.copy.returns.hint"] = ReturnsHintText,
 
         // process.start
         ["process.start.return.processId.label"] = "进程号",
         ["process.start.return.processId.hint"] = "程序的编号。",
         ["process.start.returns.label"] = "要留下的结果",
-        ["process.start.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["process.start.returns.hint"] = ReturnsHintText,
 
         // process.waitFor
         ["process.waitFor.return.process.label"] = "进程号",
         ["process.waitFor.return.process.hint"] = "出现的那个程序的编号。",
         ["process.waitFor.returns.label"] = "要留下的结果",
-        ["process.waitFor.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["process.waitFor.returns.hint"] = ReturnsHintText,
 
         // process.waitExit
         ["process.waitExit.return.exitCode.label"] = "退出码",
         ["process.waitExit.return.exitCode.hint"] = "结束时返回的代码，0 通常表示正常。",
         ["process.waitExit.returns.label"] = "要留下的结果",
-        ["process.waitExit.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["process.waitExit.returns.hint"] = ReturnsHintText,
 
         // process.exists
         ["process.exists.return.running.label"] = "在运行",
         ["process.exists.return.running.hint"] = "程序在不在运行。",
         ["process.exists.returns.label"] = "要留下的结果",
-        ["process.exists.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["process.exists.returns.hint"] = ReturnsHintText,
 
         // process.list
         ["process.list.return.processes.label"] = "进程列表",
         ["process.list.return.processes.hint"] = "正在运行的程序的名称。",
         ["process.list.returns.label"] = "要留下的结果",
-        ["process.list.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["process.list.returns.hint"] = ReturnsHintText,
 
         // process.info
         ["process.info.return.info.label"] = "文件",
@@ -3477,13 +3488,13 @@ internal static class ActionStrings
         ["process.info.return.cpuSeconds.label"] = "处理器时间",
         ["process.info.return.cpuSeconds.hint"] = "程序累计用掉的处理器时间，单位是秒。",
         ["process.info.returns.label"] = "要留下的结果",
-        ["process.info.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["process.info.returns.hint"] = ReturnsHintText,
 
         // process.kill
         ["process.kill.return.stopped.label"] = "已结束",
         ["process.kill.return.stopped.hint"] = "一共关掉了几个程序。",
         ["process.kill.returns.label"] = "要留下的结果",
-        ["process.kill.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["process.kill.returns.hint"] = ReturnsHintText,
 
         // command.run
         ["command.run.return.output.label"] = "输出",
@@ -3493,49 +3504,49 @@ internal static class ActionStrings
         ["command.run.return.exitCode.label"] = "退出码",
         ["command.run.return.exitCode.hint"] = "命令结束时返回的代码，0 通常表示成功。",
         ["command.run.returns.label"] = "要留下的结果",
-        ["command.run.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["command.run.returns.hint"] = ReturnsHintText,
 
         // system.info
         ["system.info.return.value.label"] = "值",
         ["system.info.return.value.hint"] = "读到的这项系统信息。",
         ["system.info.returns.label"] = "要留下的结果",
-        ["system.info.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["system.info.returns.hint"] = ReturnsHintText,
 
         // system.environment
         ["system.environment.return.value.label"] = "值",
         ["system.environment.return.value.hint"] = "环境变量的内容；没有设置时为空。",
         ["system.environment.returns.label"] = "要留下的结果",
-        ["system.environment.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["system.environment.returns.hint"] = ReturnsHintText,
 
         // system.volume
         ["system.volume.return.volume.label"] = "音量",
         ["system.volume.return.volume.hint"] = "机器最后停在的音量，0 到 100；只执行静音的步骤也会报它停在哪一级。",
         ["system.volume.returns.label"] = "要留下的结果",
-        ["system.volume.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["system.volume.returns.hint"] = ReturnsHintText,
 
         // system.ime
         ["system.ime.return.ime.label"] = "输入法",
         ["system.ime.return.ime.hint"] = "正在使用的键盘布局，或者可以切换过去的布局列表。",
         ["system.ime.returns.label"] = "要留下的结果",
-        ["system.ime.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["system.ime.returns.hint"] = ReturnsHintText,
 
         // system.brightness
         ["system.brightness.return.brightness.label"] = "亮度",
         ["system.brightness.return.brightness.hint"] = "屏幕最后停在的亮度，0 到 100。",
         ["system.brightness.returns.label"] = "要留下的结果",
-        ["system.brightness.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["system.brightness.returns.hint"] = ReturnsHintText,
 
         // window.exists
         ["window.exists.return.found.label"] = "找到",
         ["window.exists.return.found.hint"] = "有匹配的窗口开着时为真。",
         ["window.exists.returns.label"] = "要留下的结果",
-        ["window.exists.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["window.exists.returns.hint"] = ReturnsHintText,
 
         // window.waitFor
         ["window.waitFor.return.title.label"] = "标题",
         ["window.waitFor.return.title.hint"] = "窗口标题栏上的文字。",
         ["window.waitFor.returns.label"] = "要留下的结果",
-        ["window.waitFor.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["window.waitFor.returns.hint"] = ReturnsHintText,
 
         // window.list
         ["window.list.return.windows.label"] = "窗口列表",
@@ -3547,7 +3558,7 @@ internal static class ActionStrings
             + "那一行的变量格里，下一步就在那个窗口里找）。读其中一条的一个字段用 "
             + "field(get($变量, 0), \"title\")，逐个走一遍用 forEach。",
         ["window.list.returns.label"] = "要留下的结果",
-        ["window.list.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["window.list.returns.hint"] = ReturnsHintText,
 
         // window.info
         ["window.info.return.box.label"] = "窗口矩形",
@@ -3592,7 +3603,7 @@ internal static class ActionStrings
         ["window.info.return.clientHeight.label"] = "客户区高",
         ["window.info.return.clientHeight.hint"] = "客户区的高度，单位是像素。",
         ["window.info.returns.label"] = "要留下的结果",
-        ["window.info.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["window.info.returns.hint"] = ReturnsHintText,
 
         // vision.capture
         ["vision.capture.return.image.label"] = "图片",
@@ -3608,7 +3619,7 @@ internal static class ActionStrings
         ["vision.capture.return.height.label"] = "高",
         ["vision.capture.return.height.hint"] = "截到的那块图片的高度，单位是像素。",
         ["vision.capture.returns.label"] = "要留下的结果",
-        ["vision.capture.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["vision.capture.returns.hint"] = ReturnsHintText,
 
         // vision.captureWindow
         ["vision.captureWindow.return.image.label"] = "图片",
@@ -3622,11 +3633,11 @@ internal static class ActionStrings
         ["vision.captureWindow.return.height.label"] = "高",
         ["vision.captureWindow.return.height.hint"] = "窗口的高度，单位是像素。",
         ["vision.captureWindow.returns.label"] = "要留下的结果",
-        ["vision.captureWindow.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["vision.captureWindow.returns.hint"] = ReturnsHintText,
 
         // vision.findImage
         ["vision.findImage.returns.label"] = "要留下的结果",
-        ["vision.findImage.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["vision.findImage.returns.hint"] = ReturnsHintText,
 
         // vision.waitImage
         ["vision.waitImage.return.match.label"] = HitRecordLabel,
@@ -3634,7 +3645,7 @@ internal static class ActionStrings
         ["vision.waitImage.return.every.label"] = EveryHitLabel,
         ["vision.waitImage.return.every.hint"] = EveryHitHint,
         ["vision.waitImage.returns.label"] = "要留下的结果",
-        ["vision.waitImage.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["vision.waitImage.returns.hint"] = ReturnsHintText,
 
         // vision.clickImage
         ["vision.clickImage.return.match.label"] = HitRecordLabel,
@@ -3642,13 +3653,13 @@ internal static class ActionStrings
         ["vision.clickImage.return.every.label"] = EveryHitLabel,
         ["vision.clickImage.return.every.hint"] = EveryHitHint,
         ["vision.clickImage.returns.label"] = "要留下的结果",
-        ["vision.clickImage.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["vision.clickImage.returns.hint"] = ReturnsHintText,
 
         // vision.getPixel
         ["vision.getPixel.return.color.label"] = "颜色",
         ["vision.getPixel.return.color.hint"] = "这个像素的颜色。",
         ["vision.getPixel.returns.label"] = "要留下的结果",
-        ["vision.getPixel.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["vision.getPixel.returns.hint"] = ReturnsHintText,
 
         // vision.findColor
         ["vision.findColor.return.coverage.label"] = "占比 %",
@@ -3656,7 +3667,7 @@ internal static class ActionStrings
             "整个搜索区域里有多少比例是那个颜色，0–100 保留一位小数，多行区域合起来算一个。"
             + "找没找到都会写，所以占比不够时能读出来看差多少。",
         ["vision.findColor.returns.label"] = "要留下的结果",
-        ["vision.findColor.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["vision.findColor.returns.hint"] = ReturnsHintText,
 
         // ocr.recognize
         ["ocr.recognize.return.text.label"] = "文本",
@@ -3664,11 +3675,11 @@ internal static class ActionStrings
         ["ocr.recognize.return.table.label"] = "表格",
         ["ocr.recognize.return.table.hint"] = "把内容按行列留成表格，每项是一行的单元格；只有勾上“读成表格”才有。",
         ["ocr.recognize.returns.label"] = "要留下的结果",
-        ["ocr.recognize.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["ocr.recognize.returns.hint"] = ReturnsHintText,
 
         // ocr.findText
         ["ocr.findText.returns.label"] = "要留下的结果",
-        ["ocr.findText.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["ocr.findText.returns.hint"] = ReturnsHintText,
 
         // ocr.clickText
         ["ocr.clickText.return.match.label"] = HitRecordLabel,
@@ -3676,23 +3687,23 @@ internal static class ActionStrings
         ["ocr.clickText.return.every.label"] = EveryHitLabel,
         ["ocr.clickText.return.every.hint"] = EveryHitHint,
         ["ocr.clickText.returns.label"] = "要留下的结果",
-        ["ocr.clickText.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["ocr.clickText.returns.hint"] = ReturnsHintText,
 
         // uia.exists
         ["uia.exists.return.exists.label"] = "存在",
         ["uia.exists.return.exists.hint"] = "元素在不在。",
         ["uia.exists.returns.label"] = "要留下的结果",
-        ["uia.exists.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["uia.exists.returns.hint"] = ReturnsHintText,
 
         // uia.find
         ["uia.find.returns.label"] = "要留下的结果",
-        ["uia.find.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["uia.find.returns.hint"] = ReturnsHintText,
 
         // uia.getText
         ["uia.getText.return.text.label"] = "文本",
         ["uia.getText.return.text.hint"] = "元素上的文字。",
         ["uia.getText.returns.label"] = "要留下的结果",
-        ["uia.getText.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["uia.getText.returns.hint"] = ReturnsHintText,
 
         // uia.readTable
         ["uia.readTable.return.table.label"] = "表格",
@@ -3700,19 +3711,19 @@ internal static class ActionStrings
         ["uia.readTable.return.columns.label"] = "列名",
         ["uia.readTable.return.columns.hint"] = "各列的名字，按列的顺序排，宏靠它找到要的那一列。",
         ["uia.readTable.returns.label"] = "要留下的结果",
-        ["uia.readTable.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["uia.readTable.returns.hint"] = ReturnsHintText,
 
         // browser.readText
         ["browser.readText.return.text.label"] = "文本",
         ["browser.readText.return.text.hint"] = "页面上读到的文字。",
         ["browser.readText.returns.label"] = "要留下的结果",
-        ["browser.readText.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["browser.readText.returns.hint"] = ReturnsHintText,
 
         // script.run
         ["script.run.return.output.label"] = "输出",
         ["script.run.return.output.hint"] = "脚本打印的内容，去掉了前后的空行。",
         ["script.run.returns.label"] = "要留下的结果",
-        ["script.run.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
+        ["script.run.returns.hint"] = ReturnsHintText,
 
         // vision.waitImage
 
