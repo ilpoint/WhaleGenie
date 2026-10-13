@@ -40,6 +40,36 @@
 
 ## 阶段表
 
+### 后台消息的鼠标移动说清楚
+
+**现状**　`input.mouseMoveRelative` 在"后台消息"这一档是错的：`MessageInputDevice.MoveMouseRelative(dx, dy)`
+把 `dx, dy` 直接交给 `MoveMouse`（`ScreenToClient` 之后发 `WM_MOUSEMOVE`），于是"相对移动多少"变成了"移到
+那个点"；带路径时（`style` 不是"直接"）`MacroRunner.MovePointerBy` 又拿**真实指针**当起点往前走，可这一档
+走的是窗口收到的消息，指针自己并没有动。前台与驱动级各自读回当前指针再相对移动，都是对的，只有这一条路发错
+数。
+
+**改成什么**　把这一档的相对移动判为不支持，而不是接着发错的数：设计期检查标一次（这是步骤本身就能确定的问
+题），运行时报 `Run.BackgroundNeedsPointer`（将新增的文案键，中英两侧），说明写清改用前台、驱动级，或者把
+坐标写成绝对客户区坐标（`input.mouseMove`）。`MessageInputDevice.MoveMouseRelative` 不再转给 `MoveMouse`：
+这一档收到它就报同一个失败。
+
+**怎么验收**　引擎用例一条（后台消息加 `input.mouseMoveRelative` 报 `Run.BackgroundNeedsPointer`，且没有任
+何鼠标消息发出去）；设计期一条（`MacroCheckTests` 在这一步上标出来）；手动一条（记事本上用前台与驱动级各走
+一次相对移动，动作与今天一致），结论写进提交信息。
+
+### 空手起步：看得见的手册与示例宏
+
+**现状**　帮助菜单的「快速上手」打开的是 GitHub 上的 `doc/manual.md`：没网就什么都没有。包里的手册不存在，
+主列表空着时也只有"新建"，第一次打开程序的人手上没有任何能跑起来的东西。
+
+**改成什么**　打包时把 `doc/manual.md` 放进包（`build/package.ps1`），程序优先打开包内那一份、找不到再回落
+到仓库地址；帮助菜单与空列表各加一条「插入示例宏」（将新增），示例覆盖拾取、找图与找文字、条件、子宏与运行
+调试各一块，插进主列表就能跑。
+
+**怎么验收**　界面用例两条（手册那一份在包内时以它为准；示例宏插进列表后 `MacroCheck` 不报问题）；
+`build/package.ps1 -Tag vTEST` 跑一次，确认包里有 `doc/manual.md`；手动一条（断网时点「快速上手」，打开的
+是包内那一份）。
+
 ### 界面不再点名具体实现
 
 **现状**　除组合根（`WhaleGenie/Execution/SharedDevices.cs`、`App.axaml.cs`，以及 `MacroTriggerService` 与
@@ -64,6 +94,9 @@ Windows 实现。
 - **手柄按键当触发器**：触发器眼下只有热键（键盘与鼠标）。手柄的按键要从共享输入层读出来接到触发上，还要说
   清手柄没连上时这一条怎么办；放这儿是免得漏掉，真做的时候照「工程规矩」写成阶段（验收：替身输入层上一次
   按键触发一次，录制里手柄按键也能配上）。
+- **「怎么比文字」三种词汇**：OCR 与文字条件的 `matchMode`（包含 / 等于 / 正则）、窗口那一格的五档与表达式里
+  的 `contains` / `startsWith` / `match` 说的是同一件事的三套词，看看能不能收成一套；`exact` 这类真需要的差
+  别保留。
 
 ## 明确不做
 

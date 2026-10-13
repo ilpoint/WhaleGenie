@@ -170,7 +170,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.ProcessNote"] = "The macro runs once each time the program starts or stops. "
             + "A program that is already open when the system is switched on is not a start.",
         ["Editor.WindowValue"] = "Match text :",
-        ["Editor.WindowValueHint"] = "part of the title",
+        ["Editor.WindowValueHint"] = "the text to look for",
         ["Editor.WindowHow"] = "Match by :",
         ["Editor.WindowWhen"] = "When :",
         ["Editor.WindowNote"] = "The open windows are looked at twice a second, so a window is "
@@ -1354,7 +1354,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.ProcessWhen"] = "时机：",
         ["Editor.ProcessNote"] = "程序每次启动或退出时执行一遍；启用系统时已在运行的程序不算启动。",
         ["Editor.WindowValue"] = "匹配内容：",
-        ["Editor.WindowValueHint"] = "标题的一部分",
+        ["Editor.WindowValueHint"] = "要找的那段文字",
         ["Editor.WindowHow"] = "匹配方式：",
         ["Editor.WindowWhen"] = "时机：",
         ["Editor.WindowNote"] = "每秒检查两次窗口列表，窗口出现后约半秒内会被检测到；"

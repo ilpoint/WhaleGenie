@@ -132,8 +132,8 @@ internal static class ActionStrings
     private const string WindowHowLabel = "匹配方式";
 
     private const string WindowHowHint =
-        "这个窗口靠什么认出来：「匹配内容」里那段文字和标题、进程名或窗口类名比，比较方式是包含、开头或"
-        + "正则，不区分大小写。标题随文档名或界面语言变化时，改用进程名或窗口类名。";
+        "这个窗口靠什么认出来：「匹配内容」里那段文字和窗口的哪一部分比、怎么比，五档是标题包含、标题开头、"
+        + "标题正则、进程名、窗口类名，不区分大小写。标题随文档名或界面语言变化时，改用进程名或窗口类名。";
 
     private const string WindowHowTitleContains = "标题包含";
     private const string WindowHowTitleStartsWith = "标题开头";
