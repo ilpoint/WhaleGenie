@@ -2788,6 +2788,22 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "uia.invoke",
+            Category = ActionCategory.Uia,
+            DisplayName = "Press Element",
+            Description = "Work a UI Automation element's own action, without moving the mouse.",
+            Parameters =
+            [
+                Window(),
+                Selector(),
+                MatchIndex(),
+                Number("timeoutMs", "Timeout", 5000,
+                    "How long to wait for the element before pressing it, in milliseconds; 5000 by "
+                    + "default."),
+            ],
+        },
+        new()
+        {
             Key = "uia.setText",
             Category = ActionCategory.Uia,
             DisplayName = "Set Text",
@@ -2804,14 +2820,19 @@ public static class ActionCatalog
         },
         new()
         {
-            Key = "uia.getText",
+            Key = "uia.read",
             Returns =
             [
-                Return("text", "Text", primary: true, hint: "The element's text."),
+                Return("element", "Element", primary: true, type: ActionReturnType.Record,
+                    hint: "What the element says about itself, as one record: enabled and visible, "
+                        + "value, name, automationId and controlType, then left, top, width, height "
+                        + "and box. Read one part of it with field($name, \"value\"). value is what "
+                        + "the element holds — the text in a box, the caption of a button — and is "
+                        + "empty for one that keeps nothing."),
             ],
             Category = ActionCategory.Uia,
-            DisplayName = "Get Text",
-            Description = "Read text from a UI Automation element.",
+            DisplayName = "Read Element",
+            Description = "Read everything one UI Automation element says about itself.",
             Parameters =
             [
                 Window(),

@@ -78,9 +78,14 @@ public class PickTestTests
 
         public bool Click(UiQuery query, string button) => found;
 
-        public bool FocusWindow(string title) => found;
+        public bool Invoke(UiQuery query) => found;
 
-        public string? GetText(UiQuery query) => found ? Save.Name : null;
+        public UiElementFacts? Facts(UiQuery query) => found
+            ? new UiElementFacts(true, true, Save.Name, Save.Name, Save.AutomationId,
+                Save.ControlType, Save.Location, Save.Size)
+            : null;
+
+        public bool FocusWindow(string title) => found;
 
         public bool SetText(UiQuery query, string text, bool clearFirst) => found;
 

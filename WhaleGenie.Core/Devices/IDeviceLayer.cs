@@ -116,9 +116,22 @@ public interface IUiDevice
     /// <summary>Clicks an element with one of the mouse buttons.</summary>
     bool Click(UiQuery query, string button);
 
-    bool FocusWindow(string title);
+    /// <summary>
+    /// Works the element's default action without a mouse: the button is pressed the way the
+    /// element itself knows how, so the pointer stays where it was and the window it sits in is
+    /// not brought forward. False when the element offers no way to be worked that way — that is
+    /// an answer about the element rather than a failure of its own.
+    /// </summary>
+    bool Invoke(UiQuery query);
 
-    string? GetText(UiQuery query);
+    /// <summary>
+    /// Everything one element says about itself right now, or null when there is no such element.
+    /// A step that has to decide what to do with a control — is it usable, is it showing, what is
+    /// in it — asks here rather than guessing from what it looked like a moment ago.
+    /// </summary>
+    UiElementFacts? Facts(UiQuery query);
+
+    bool FocusWindow(string title);
 
     /// <summary>Writes into an element, optionally clearing what was there first.</summary>
     bool SetText(UiQuery query, string text, bool clearFirst);
@@ -914,9 +927,11 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public bool Click(UiQuery query, string button) => throw Missing("UI Automation");
 
-        public bool FocusWindow(string title) => throw Missing("UI Automation");
+        public bool Invoke(UiQuery query) => throw Missing("UI Automation");
 
-        public string? GetText(UiQuery query) => throw Missing("UI Automation");
+        public UiElementFacts? Facts(UiQuery query) => throw Missing("UI Automation");
+
+        public bool FocusWindow(string title) => throw Missing("UI Automation");
 
         public bool SetText(UiQuery query, string text, bool clearFirst) => throw Missing("UI Automation");
 

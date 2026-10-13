@@ -1447,12 +1447,16 @@ public sealed class MacroRunner
                 await ClickElement(step, depth, token);
                 return Signal.Normal;
 
+            case "uia.invoke":
+                await InvokeElement(step, depth, token);
+                return Signal.Normal;
+
             case "uia.setText":
                 SetElementText(step, depth);
                 return Signal.Normal;
 
-            case "uia.getText":
-                GetElementText(step, depth);
+            case "uia.read":
+                ReadElement(step, depth);
                 return Signal.Normal;
 
             case "uia.select":
@@ -7155,10 +7159,57 @@ public sealed class MacroRunner
         Log(LogLevel.Info, depth, step.Type, "Run.ElementFilled", step.Text("selector"), text);
     }
 
-    private void GetElementText(ExecutableStep step, int depth)
+    /// <summary>
+    /// Works the element the way the element itself knows how, which is what a step wants when the
+    /// pointer has to stay where it is: a background window's button can be pressed without the
+    /// window coming forward and without the mouse moving.
+    /// </summary>
+    private async Task InvokeElement(ExecutableStep step, int depth, CancellationToken token)
     {
-        var text = _devices.Ui.GetText(Query(step)) ?? string.Empty;
-        Store(step, "text", Value.FromText(text), depth);
+        var query = Query(step);
+        var timeout = Math.Max(0, Number(step, "timeoutMs"));
+
+        if (!await WaitForFlagAsync(() => _devices.Ui.Exists(query, 0), timeout, 200, token))
+        {
+            throw new StepFailure("Run.ElementNotFound", step.Text("selector"));
+        }
+
+        if (!_devices.Ui.Invoke(query))
+        {
+            throw new StepFailure("Run.ElementNotInvocable", step.Text("selector"));
+        }
+
+        Log(LogLevel.Info, depth, step.Type, "Run.InvokedElement", step.Text("selector"));
+    }
+
+    /// <summary>
+    /// Everything an element says about itself, as one record: whether it can be used, whether it
+    /// is showing, what it holds, what it is called and where it sits. One record rather than a
+    /// variable each is the same shape a hit and a window already come in, so a macro reads one
+    /// part of it by name.
+    /// </summary>
+    private void ReadElement(ExecutableStep step, int depth)
+    {
+        var facts = _devices.Ui.Facts(Query(step))
+            ?? throw new StepFailure("Run.ElementNotFound", step.Text("selector"));
+
+        Give(step, "element", Value.FromRecord(
+        [
+            ("enabled", Value.FromBool(facts.Enabled)),
+            ("visible", Value.FromBool(facts.Visible)),
+            ("value", Value.FromText(facts.Value)),
+            ("name", Value.FromText(facts.Name)),
+            ("automationId", Value.FromText(facts.AutomationId)),
+            ("controlType", Value.FromText(facts.ControlType)),
+            ("left", Value.FromNumber(facts.Location.X)),
+            ("top", Value.FromNumber(facts.Location.Y)),
+            ("width", Value.FromNumber(facts.Size.Width)),
+            ("height", Value.FromNumber(facts.Size.Height)),
+            ("box", Value.FromText(
+                $"{facts.Location.X},{facts.Location.Y},{facts.Size.Width},{facts.Size.Height}")),
+        ]));
+
+        Log(LogLevel.Info, depth, step.Type, "Run.ReadElement", step.Text("selector"), facts.Value);
     }
 
     private void FocusWindow(ExecutableStep step, int depth)

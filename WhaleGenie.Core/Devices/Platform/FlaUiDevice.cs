@@ -126,18 +126,73 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         }
     }
 
-    public string? GetText(UiQuery query)
+    /// <summary>
+    /// Works the element's own action, without the mouse. Only the invoke pattern is used: an
+    /// element that does not offer it is answered for rather than clicked, because falling back to
+    /// a mouse click would move the pointer and bring the window forward — the two things this
+    /// exists to avoid. A step that wants the element clicked can say so with the click action.
+    /// </summary>
+    public bool Invoke(UiQuery query)
     {
         Require();
         var element = Find(query) ?? throw new DeviceActionException("Run.ElementNotFound", Describe(query));
 
         try
         {
-            return TextOf(element);
+            if (!element.Patterns.Invoke.IsSupported)
+            {
+                return false;
+            }
+
+            element.Patterns.Invoke.Pattern.Invoke();
+            return true;
         }
         catch (Exception error) when (Recoverable(error))
         {
-            return element.Name;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Everything the element says about itself. Each part is read on its own, because a provider
+    /// that will not answer one question usually answers the others — an element whose value is
+    /// unreadable still knows whether it is enabled.
+    /// </summary>
+    public UiElementFacts? Facts(UiQuery query)
+    {
+        Require();
+        var element = Find(query);
+        if (element is null)
+        {
+            return null;
+        }
+
+        var bounds = Bounds(element);
+        return new UiElementFacts(
+            Flag(() => element.IsEnabled),
+            Flag(() => !element.IsOffscreen),
+            Read(() => TextOf(element)),
+            Read(() => element.Name),
+            Read(() => element.AutomationId),
+            Read(() => element.ControlType.ToString()),
+            new ScreenPoint(bounds.X, bounds.Y),
+            new ScreenSize(bounds.Width, bounds.Height));
+    }
+
+    /// <summary>
+    /// A yes-or-no question put to a provider. An element that refuses to answer counts as asked-
+    /// about and answered "no", which is the safe reading: a macro that waits for something to
+    /// become usable is not helped by being told it is ready when nobody knows.
+    /// </summary>
+    private static bool Flag(Func<bool> read)
+    {
+        try
+        {
+            return read();
+        }
+        catch (Exception error) when (Recoverable(error))
+        {
+            return false;
         }
     }
 

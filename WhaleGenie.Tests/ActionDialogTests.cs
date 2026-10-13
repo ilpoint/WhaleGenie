@@ -1114,9 +1114,12 @@ public class ActionDialogTests
 
         public bool Click(UiQuery query, string button) => true;
 
-        public bool FocusWindow(string title) => true;
+        public bool Invoke(UiQuery query) => true;
 
-        public string? GetText(UiQuery query) => Save.Name;
+        public UiElementFacts? Facts(UiQuery query) => new(true, true, Save.Name, Save.Name,
+            Save.AutomationId, Save.ControlType, Save.Location, Save.Size);
+
+        public bool FocusWindow(string title) => true;
 
         public bool SetText(UiQuery query, string text, bool clearFirst) => true;
 
@@ -1622,7 +1625,7 @@ public class ActionDialogTests
 
             // A plain number carries no unit, so its box steps out of the way. It is the one that
             // is leaving the screen that matters: a hidden box still sits in the tree.
-            viewModel.SelectAction("uia.getText");
+            viewModel.SelectAction("uia.read");
             Dispatcher.UIThread.RunJobs();
 
             Assert.DoesNotContain(window.GetVisualDescendants().OfType<ComboBox>()

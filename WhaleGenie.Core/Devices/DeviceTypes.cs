@@ -411,6 +411,22 @@ public sealed record UiTable(IReadOnlyList<string> Columns, IReadOnlyList<IReadO
     public static UiTable Empty { get; } = new([], []);
 }
 
+/// <summary>
+/// Everything one element will say about itself, for a step that wants to look before it acts:
+/// whether it can be used at all, whether it is on screen, what it holds, what it is called, and
+/// where it sits. A value is whatever the element offers — the text in a box, the caption of a
+/// button — and is empty for an element that keeps no value of its own.
+/// </summary>
+public sealed record UiElementFacts(
+    bool Enabled,
+    bool Visible,
+    string Value,
+    string Name,
+    string AutomationId,
+    string ControlType,
+    ScreenPoint Location,
+    ScreenSize Size);
+
 public sealed record UiElementInfo(
     string Name,
     string AutomationId,

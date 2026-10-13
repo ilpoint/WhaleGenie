@@ -2913,6 +2913,17 @@ internal static class ActionStrings
         ["uia.click.button.label"] = "按键",
         ["uia.click.button.hint"] = MouseButtonHint,
 
+        ["uia.invoke.name"] = "按下元素",
+        ["uia.invoke.desc"] = "用元素自己的方式完成它的默认动作，不移动鼠标。",
+        ["uia.invoke.window.label"] = "窗口",
+        ["uia.invoke.window.hint"] = ElementWindowHint,
+        ["uia.invoke.selector.label"] = "选择器",
+        ["uia.invoke.selector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
+        ["uia.invoke.matchIndex.label"] = "第几个命中",
+        ["uia.invoke.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要按下的是第几个。" + MatchIndexHint,
+        ["uia.invoke.timeoutMs.label"] = "超时",
+        ["uia.invoke.timeoutMs.hint"] = "按下前等这个元素出现多久，单位是毫秒，默认 5000。",
+
         ["uia.setText.name"] = "设置元素文本",
         ["uia.setText.desc"] = "向 UI Automation 元素输入文本。",
         ["uia.setText.window.label"] = "窗口",
@@ -2926,14 +2937,19 @@ internal static class ActionStrings
         ["uia.setText.clearFirst.label"] = "先清空",
         ["uia.setText.clearFirst.hint"] = "写入前先清空元素里已有的内容，默认开；要接着原有内容往下写时关掉它。",
 
-        ["uia.getText.name"] = "读取元素文本",
-        ["uia.getText.desc"] = "读取 UI Automation 元素的文本。",
-        ["uia.getText.window.label"] = "窗口",
-        ["uia.getText.window.hint"] = ElementWindowHint,
-        ["uia.getText.selector.label"] = "选择器",
-        ["uia.getText.selector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
-        ["uia.getText.matchIndex.label"] = "第几个命中",
-        ["uia.getText.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要读取的是第几个。" + MatchIndexHint,
+        ["uia.read.name"] = "读取元素",
+        ["uia.read.desc"] = "读取一个 UI Automation 元素能说出的全部内容。",
+        ["uia.read.window.label"] = "窗口",
+        ["uia.read.window.hint"] = ElementWindowHint,
+        ["uia.read.selector.label"] = "选择器",
+        ["uia.read.selector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
+        ["uia.read.matchIndex.label"] = "第几个命中",
+        ["uia.read.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要读取的是第几个。" + MatchIndexHint,
+        ["uia.read.return.element.label"] = "元素",
+        ["uia.read.return.element.hint"] = "这个元素自己说出的内容，一条记录：enabled 与 visible、"
+            + "value、name、automationId、controlType，以及 left、top、width、height 与 box。"
+            + "取其中一项用 field($变量, \"value\")。value 是元素持有的内容——输入框里的文字、"
+            + "按钮上的标题，元素本身不持有内容时为空。",
 
         ["uia.select.name"] = "选择列表项",
         ["uia.select.desc"] = "在下拉框、列表或选项卡里选中一项。",
@@ -3820,11 +3836,9 @@ internal static class ActionStrings
         ["uia.find.returns.label"] = "要留下的结果",
         ["uia.find.returns.hint"] = ReturnsHintText,
 
-        // uia.getText
-        ["uia.getText.return.text.label"] = "文本",
-        ["uia.getText.return.text.hint"] = "元素上的文字。",
-        ["uia.getText.returns.label"] = "要留下的结果",
-        ["uia.getText.returns.hint"] = ReturnsHintText,
+        // uia.read
+        ["uia.read.returns.label"] = "要留下的结果",
+        ["uia.read.returns.hint"] = ReturnsHintText,
 
         // uia.readTable
         ["uia.readTable.return.table.label"] = "表格",

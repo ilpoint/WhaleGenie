@@ -3276,17 +3276,78 @@ public class DeviceActionTests
         Assert.Contains("ui Button/Save/", found.Calls[0]);
     }
 
+    /// <summary>
+    /// One element is one record, the same shape a window and a hit come in: what it holds, what it
+    /// is called, whether it can be used, and where it sits, all under names.
+    /// </summary>
     [Fact]
-    public async Task Reading_an_element_puts_its_text_in_a_variable()
+    public async Task Reading_an_element_hands_over_one_record_about_it()
     {
-        var devices = new FakeDeviceLayer { ElementText = "12 items" };
+        var devices = new FakeDeviceLayer { ElementText = "12 items", ElementEnabled = false };
+        devices.Elements.Add(new UiElementInfo("Count", "countText", "Text", "TextClass",
+            new ScreenPoint(10, 20), new ScreenSize(80, 24), "Untitled - Notepad"));
+
         var (_, _, store) = await RunAsync(
         [
-            Step("uia.getText", Param("window", ""), Param("selector", "Text[name='Count']"),
-                Returns("text=countText")),
+            Step("uia.read", Param("window", ""), Param("selector", "Text[name='Count']"),
+                Returns("element=found")),
         ], devices);
 
-        Assert.Equal("12 items", store.Local.Values["countText"].AsText());
+        Assert.Equal("12 items", Field(store, "found", "value").AsText());
+        Assert.Equal("Count", Field(store, "found", "name").AsText());
+        Assert.Equal("countText", Field(store, "found", "automationId").AsText());
+        Assert.False(Field(store, "found", "enabled").AsBool());
+        Assert.True(Field(store, "found", "visible").AsBool());
+        Assert.Equal("10,20,80,24", Field(store, "found", "box").AsText());
+        Assert.Equal(80, Field(store, "found", "width").AsNumber());
+    }
+
+    [Fact]
+    public async Task Reading_an_element_that_is_not_there_is_refused()
+    {
+        var (result, _, store) = await RunAsync(
+        [
+            Step("uia.read", Param("window", ""), Param("selector", "Text[name='Count']"),
+                Returns("element=found")),
+        ], new FakeDeviceLayer { ElementExists = false });
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.ElementNotFound", result.Key);
+        Assert.False(store.TryGet("found", out _));
+    }
+
+    /// <summary>
+    /// Pressing an element is the way to work a control without the mouse: the pointer stays where
+    /// it was and the window is not brought forward, which is what a macro driving a background
+    /// window needs.
+    /// </summary>
+    [Fact]
+    public async Task Pressing_an_element_works_it_without_the_mouse()
+    {
+        var devices = new FakeDeviceLayer { ElementExists = true };
+        var (result, _, _) = await RunAsync(
+        [
+            Step("uia.invoke", Param("window", "Notepad"), Param("selector", "Button[name='Save']")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("invoke Save #1", devices.Calls);
+
+        // Nothing was clicked and no key was sent: the element was worked, not aimed at.
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("clickElement", StringComparison.Ordinal));
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("keyPress", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Pressing_an_element_that_cannot_be_worked_that_way_is_refused()
+    {
+        var (result, _, _) = await RunAsync(
+        [
+            Step("uia.invoke", Param("window", "Notepad"), Param("selector", "Button[name='Save']")),
+        ], new FakeDeviceLayer { ElementInvocable = false });
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.ElementNotInvocable", result.Key);
     }
 
     [Fact]
@@ -7024,6 +7085,15 @@ internal sealed class FakeDeviceLayer
     /// <summary>What reading an element gives back.</summary>
     public string? ElementText { get; set; }
 
+    /// <summary>Whether the element can be worked without the mouse.</summary>
+    public bool ElementInvocable { get; set; } = true;
+
+    /// <summary>Whether the element says it can be used.</summary>
+    public bool ElementEnabled { get; set; } = true;
+
+    /// <summary>Whether the element says it is on screen.</summary>
+    public bool ElementVisible { get; set; } = true;
+
     /// <summary>Whether writing into an element is allowed.</summary>
     public bool ElementWritable { get; set; } = true;
 
@@ -7388,10 +7458,25 @@ internal sealed class FakeDeviceLayer
         return WindowFocused;
     }
 
-    public string? GetText(UiQuery query)
+    public bool Invoke(UiQuery query)
+    {
+        Note($"invoke {query.Name} #{query.Index}");
+        return ElementInvocable;
+    }
+
+    public UiElementFacts? Facts(UiQuery query)
     {
         Note($"read {query.Name}");
-        return ElementText;
+        if (!ElementExists)
+        {
+            return null;
+        }
+
+        var place = Elements.Count > 0 ? Elements[0] : null;
+        return new UiElementFacts(ElementEnabled, ElementVisible, ElementText ?? string.Empty,
+            place?.Name ?? string.Empty, place?.AutomationId ?? string.Empty,
+            place?.ControlType ?? string.Empty, place?.Location ?? default,
+            place?.Size ?? default);
     }
 
     public bool SetText(UiQuery query, string text, bool clearFirst)
