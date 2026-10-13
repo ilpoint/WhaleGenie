@@ -328,9 +328,9 @@ public partial class WindowPreviewViewModel : ViewModelBase
         => match switch
         {
             WindowMatch.Process => new WindowPreviewRow(window.Title,
-                Strings.Get("WindowLookup.Process"), windows.ProcessOf(window.Handle)),
+                Strings.Get("WindowPart.Process"), windows.ProcessOf(window.Handle)),
             WindowMatch.ClassName => new WindowPreviewRow(window.Title,
-                Strings.Get("WindowLookup.ClassName"), windows.ClassOf(window.Handle)),
+                Strings.Get("WindowPart.ClassName"), windows.ClassOf(window.Handle)),
             _ => new WindowPreviewRow(window.Title, string.Empty, string.Empty),
         };
 }

@@ -753,7 +753,11 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         }
     }
 
-    /// <summary>The window to search in: the whole desktop unless the query names one.</summary>
+    /// <summary>
+    /// The window to search in: the whole desktop unless the query names one. The window is
+    /// recognised by the same rule the rest of the program recognises one with, so a step that aims
+    /// at a window by its program, by its class or by a pattern finds the window it means.
+    /// </summary>
     private AutomationElement? Root(UiQuery query)
     {
         var desktop = _automation.Value.GetDesktop();
@@ -764,13 +768,43 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
 
         foreach (var window in desktop.FindAllChildren(candidate => candidate.ByControlType(ControlType.Window)))
         {
-            if (window.Name?.Contains(query.WindowTitle, StringComparison.OrdinalIgnoreCase) == true)
+            if (WindowHow.Matches(Part(window, query.WindowMatch), query.WindowTitle,
+                    query.WindowCompare))
             {
                 return window;
             }
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// What a window is held up against: what it is called, the program that owns it, or the class
+    /// that program registered. Reading the program costs a look in the process table, so it is only
+    /// done for a rule that asks about it.
+    /// </summary>
+    private static string Part(AutomationElement window, WindowMatch match) => match switch
+    {
+        WindowMatch.Process => ProcessOf(window),
+        WindowMatch.ClassName => Read(() => window.ClassName),
+        _ => Read(() => window.Name),
+    };
+
+    /// <summary>
+    /// The name of the program that owns a window, without the ".exe", or an empty string when the
+    /// program is gone or the provider will not say which one it is.
+    /// </summary>
+    private static string ProcessOf(AutomationElement window)
+    {
+        try
+        {
+            var id = window.Properties.ProcessId.Value;
+            return id > 0 ? Process.GetProcessById(id).ProcessName : string.Empty;
+        }
+        catch (Exception error) when (Recoverable(error) || error is ArgumentException)
+        {
+            return string.Empty;
+        }
     }
 
     /// <summary>

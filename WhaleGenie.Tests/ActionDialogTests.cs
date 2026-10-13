@@ -1689,7 +1689,7 @@ public class ActionDialogTests
             // while the input goes to whatever is in front, but they are still the tuning of this
             // action rather than something to show without being asked for.
             Assert.Equal(2, viewModel.Rows.Count);
-            Assert.Equal(7, viewModel.AdvancedRows.Count);
+            Assert.Equal(8, viewModel.AdvancedRows.Count);
             Assert.True(viewModel.OnBase);
 
             // The pages are opened by their own tabs rather than by a fold, so a step's settings

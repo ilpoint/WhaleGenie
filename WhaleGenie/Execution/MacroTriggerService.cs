@@ -1116,7 +1116,10 @@ public sealed class MacroTriggerService : IDisposable
             bool there;
             try
             {
-                there = _devices.Windows.Find(value, macro.WindowLookup) is not null;
+                // Recognised the way every window rule is, so a trigger waiting for a window whose
+                // title moves with the document can name the program or a pattern instead.
+                var (match, compare) = WindowHow.Read(macro.WindowHow);
+                there = _devices.Windows.Find(value, match, compare) is not null;
             }
             catch (Exception)
             {

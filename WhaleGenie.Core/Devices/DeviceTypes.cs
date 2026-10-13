@@ -275,7 +275,9 @@ public sealed record TextSpan(string Text, ScreenPoint Location, ScreenSize Size
 /// the same control many times over — five rows of one list, four identical buttons — so
 /// <paramref name="Index"/> says which of the matches a step means, counted the way a person counts
 /// them on screen: across the row first, then down. One is the first one, which is what a step
-/// written before this setting existed still asks for.
+/// written before this setting existed still asks for. The window the search is narrowed to is
+/// recognised by the same rule every other step recognises one with, which is why the two fields of
+/// that rule come along: what the text is held against, and how.
 /// </summary>
 public sealed record UiQuery(
     string? Name = null,
@@ -283,7 +285,9 @@ public sealed record UiQuery(
     string? ControlType = null,
     string? ClassName = null,
     string? WindowTitle = null,
-    int Index = 1)
+    int Index = 1,
+    WindowMatch WindowMatch = WindowMatch.Title,
+    WindowCompare WindowCompare = WindowCompare.Contains)
 {
     /// <summary>True when the query would match anything, which is never what was meant.</summary>
     public bool IsEmpty
@@ -300,7 +304,9 @@ public sealed record UiQuery(
     /// <c>name=value</c>. Anything unrecognised is left out rather than refused, so a selector
     /// with a stray word in it still finds what the rest of it describes.
     /// </summary>
-    public static UiQuery Parse(string? selector, string? windowTitle = null, int index = 1)
+    public static UiQuery Parse(string? selector, string? windowTitle = null, int index = 1,
+        WindowMatch windowMatch = WindowMatch.Title,
+        WindowCompare windowCompare = WindowCompare.Contains)
     {
         var text = (selector ?? string.Empty).Trim();
         string? name = null;
@@ -350,7 +356,8 @@ public sealed record UiQuery(
         }
 
         var title = (windowTitle ?? string.Empty).Trim();
-        return new UiQuery(name, id, type, cls, title.Length == 0 ? null : title, index);
+        return new UiQuery(name, id, type, cls, title.Length == 0 ? null : title, index,
+            windowMatch, windowCompare);
     }
 
     /// <summary>

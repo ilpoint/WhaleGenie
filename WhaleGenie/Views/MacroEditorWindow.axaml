@@ -630,14 +630,57 @@
                                           SelectedIndex="{Binding TriggerIndex}" />
 
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
-                                           Text="{Binding [Editor.WindowLookup], Source={x:Static loc:Strings.Current}}" />
-                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding WindowLookupOptions}"
-                                          SelectedIndex="{Binding WindowLookupIndex}" />
-
-                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            Text="{Binding [Editor.WindowValue], Source={x:Static loc:Strings.Current}}" />
                                 <TextBox Classes="ParamInput" Text="{Binding WindowValue}"
                                          PlaceholderText="{Binding [Editor.WindowValueHint], Source={x:Static loc:Strings.Current}}" />
+
+                                <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
+                                           Text="{Binding [Editor.WindowHow], Source={x:Static loc:Strings.Current}}" />
+                                <ComboBox Classes="OptionSelect" ItemsSource="{Binding WindowHowOptions}"
+                                          SelectedIndex="{Binding WindowHowIndex}" />
+
+                                <!-- The windows this rule picks out right now, so a rule written a
+                                     little too wide is seen while it is being written rather than
+                                     when it fires. -->
+                                <StackPanel Margin="0,8,0,0" Spacing="4">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                        <TextBlock Classes="Muted" VerticalAlignment="Center"
+                                                   TextWrapping="Wrap"
+                                                   Text="{Binding WindowPreview.Summary}" />
+                                        <Button Grid.Column="1" Classes="FlatButton" Height="28"
+                                                Padding="10,0"
+                                                Content="{Binding [WindowPicker.Refresh], Source={x:Static loc:Strings.Current}}"
+                                                ToolTip.Tip="{Binding [WindowPicker.RefreshHint], Source={x:Static loc:Strings.Current}}"
+                                                Command="{Binding WindowPreview.RefreshCommand}" />
+                                    </Grid>
+
+                                    <ItemsControl ItemsSource="{Binding WindowPreview.Rows}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:WindowPreviewRow">
+                                                <StackPanel Margin="2,0,0,0">
+                                                    <TextBlock FontSize="12" Foreground="#E8E8E8"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Text="{Binding Title}" />
+                                                    <StackPanel Orientation="Horizontal" Spacing="5"
+                                                                IsVisible="{Binding HasPart}">
+                                                        <TextBlock Classes="Muted" FontSize="11"
+                                                                   Text="{Binding PartLabel}" />
+                                                        <TextBlock Classes="Muted" FontSize="11"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   Text="{Binding Part}" />
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                               Text="{Binding WindowPreview.More}"
+                                               IsVisible="{Binding WindowPreview.HasMore}" />
+                                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                               Text="{Binding WindowPreview.Note}"
+                                               IsVisible="{Binding WindowPreview.HasNote}" />
+                                </StackPanel>
 
                                 <TextBlock Classes="FieldLabel" Margin="2,12,0,6"
                                            Text="{Binding [Editor.WindowWhen], Source={x:Static loc:Strings.Current}}" />

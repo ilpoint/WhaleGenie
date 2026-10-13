@@ -73,7 +73,6 @@ public class ExpressionFieldTests
         ["condition.compare"] = ["value"],
         ["condition.listContains"] = ["list", "value"],
         ["condition.processRunning"] = ["name"],
-        ["condition.windowExists"] = ["value"],
         ["condition.valueInRange"] = ["value", "min", "max"],
         ["condition.dateCompare"] = ["left", "right"],
     };

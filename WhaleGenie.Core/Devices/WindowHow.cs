@@ -1,3 +1,4 @@
+using System;
 using System.Text.RegularExpressions;
 
 namespace WhaleGenie.Core.Devices;
@@ -27,9 +28,22 @@ public static class WindowHow
     /// <summary>The class the program registered holds the text, such as "Notepad".</summary>
     public const string Class = "class";
 
-    /// <summary>The five, in the order the field offers them.</summary>
-    public static IReadOnlyList<string> Values =>
+    private static readonly string[] Ways =
         [TitleContains, TitleStartsWith, TitleRegex, Process, Class];
+
+    /// <summary>The five, in the order the field offers them.</summary>
+    public static IReadOnlyList<string> Values => Ways;
+
+    /// <summary>
+    /// Where one of the five sits in that order, which is how a list of them is kept in step with
+    /// the values behind it. Anything the five do not name sits at the front, where the way that
+    /// reads as "the title holds the text" already is.
+    /// </summary>
+    public static int IndexOf(string? written)
+    {
+        var at = Array.IndexOf(Ways, (written ?? string.Empty).Trim());
+        return at < 0 ? 0 : at;
+    }
 
     /// <summary>
     /// Reads what a step wrote back into the two parts the window device works with. Anything the

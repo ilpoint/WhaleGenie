@@ -101,7 +101,7 @@ public class WindowPreviewTests
             Assert.Equal(Strings.Format("Add.WindowPreview.Count", 1), preview.Summary);
             var row = Assert.Single(preview.Rows);
             Assert.Equal("Calculator", row.Title);
-            Assert.Equal(Strings.Get("WindowLookup.Process"), row.PartLabel);
+            Assert.Equal(Strings.Get("WindowPart.Process"), row.PartLabel);
             Assert.Equal("calc", row.Part);
         });
     }
@@ -547,6 +547,89 @@ public class WindowPreviewTests
         });
     }
 
+    /// <summary>
+    /// A condition asks about a window with the same two fields a window action acts on, so it gets
+    /// the same list under them: "is this window open" is written the way every other window rule is
+    /// written, and read the way a run would read it.
+    /// </summary>
+    [Fact]
+    public void A_condition_that_asks_about_a_window_shows_the_windows_it_would_ask_about()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("condition.windowExists");
+            viewModel.Windows = Desk()
+                .Add(1, "Notepad - notes.txt", "notepad", "Notepad")
+                .Add(2, "Calculator", "calc", "CalcFrame");
+
+            var text = Parameter(viewModel, "window");
+            Assert.True(text.ShowsWindowPreview);
+
+            // A condition is asked about rather than done, so there is nothing for the run button.
+            Assert.False(viewModel.ShowsRun);
+
+            Choose(viewModel, "how", "process");
+            text.Text = "calc";
+            Dispatcher.UIThread.RunJobs();
+
+            var preview = viewModel.WindowPreview!;
+            preview.RefreshCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(Strings.Format("Add.WindowPreview.Count", 1), preview.Summary);
+            Assert.Equal("Calculator", Assert.Single(preview.Rows).Title);
+        });
+    }
+
+    /// <summary>
+    /// The editor's window trigger lists the windows its rule picks out right now and frames them
+    /// where they sit. A rule written a little too wide fires on a window nobody meant, and both
+    /// halves of the answer — which windows, and where they are — are worth having before the macro
+    /// runs rather than after.
+    /// </summary>
+    [Fact]
+    public void A_window_trigger_lists_and_frames_the_windows_it_would_fire_for()
+    {
+        Ui.Run(() =>
+        {
+            var devices = new ChecksDevices
+            {
+                Windows = Desk()
+                    .Add(1, "Notepad - notes.txt", "notepad", "Notepad")
+                    .Add(2, "Calculator", "calc", "CalcFrame"),
+            };
+
+            var macro = new MacroItem { Name = "probe", TriggerMode = MacroTrigger.Window };
+            var window = new MacroEditorWindow(macro, [macro], null, devices);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (MacroEditorViewModel)window.DataContext!;
+            Assert.True(viewModel.IsWindowTrigger);
+
+            viewModel.WindowHow = WindowHow.Process;
+            viewModel.WindowValue = "calc";
+            Dispatcher.UIThread.RunJobs();
+
+            // A rule that changes while it is being written waits for the typing to pause, so the
+            // button beside the list is what reads it again at once.
+            viewModel.WindowPreview.RefreshCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(Strings.Format("Add.WindowPreview.Count", 1), viewModel.WindowPreview.Summary);
+            Assert.Equal("Calculator", Assert.Single(viewModel.WindowPreview.Rows).Title);
+            Assert.Equal([2L], window.FramedWindows);
+
+            // A trigger that is not a window trigger has no rule to read, and the frames go with the
+            // list rather than standing over a rule nothing reads.
+            viewModel.TriggerMode = MacroTrigger.Timer;
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Empty(viewModel.WindowPreview.Places);
+            Assert.Empty(window.FramedWindows);
+        });
+    }
+
     /// <summary>A step that recognises a window, written the way the fields say and read once.</summary>
     private static (AddActionViewModel ViewModel, WindowPreviewViewModel Preview) Rule(
         WindowsForChecks windows, string text, string how = "titleContains")
@@ -593,99 +676,4 @@ public class WindowPreviewTests
         return window;
     }
 
-    /// <summary>
-    /// A desktop with whatever windows a check asks for, compared the way the real device compares
-    /// them: the list has to answer the same question, or the check would only be checking itself.
-    /// </summary>
-    private sealed class WindowsForChecks : IWindowDevice
-    {
-        private readonly Dictionary<long, (string Process, string Class)> _facts = [];
-
-        /// <summary>The windows on this desktop, frontmost first.</summary>
-        public List<WindowInfo> Open { get; } = [];
-
-        public WindowsForChecks Add(long handle, string title, string process, string className)
-        {
-            Open.Add(new WindowInfo(handle, title, new ScreenPoint(0, 0), new ScreenSize(100, 100),
-                false, false));
-            _facts[handle] = (process, className);
-            return this;
-        }
-
-        /// <summary>Moves one of the windows somewhere, which is what a frame is drawn around.</summary>
-        public WindowsForChecks Place(long handle, int x, int y, int width, int height)
-        {
-            var at = Open.FindIndex(window => window.Handle == handle);
-            Open[at] = Open[at] with
-            {
-                Location = new ScreenPoint(x, y),
-                Size = new ScreenSize(width, height),
-            };
-            return this;
-        }
-
-        /// <summary>Shrinks one of the windows, which takes it off the screen.</summary>
-        public WindowsForChecks Shrink(long handle)
-        {
-            var at = Open.FindIndex(window => window.Handle == handle);
-            Open[at] = Open[at] with { Minimized = true };
-            return this;
-        }
-
-        public IReadOnlyList<WindowInfo> List() => [.. Open];
-
-        public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match, WindowCompare compare,
-            bool everyWhenEmpty = false)
-        {
-            var wanted = (value ?? string.Empty).Trim();
-            if (wanted.Length == 0)
-            {
-                return everyWhenEmpty || Open.Count == 0 ? [.. Open] : [Open[0]];
-            }
-
-            return [.. Open.Where(window => Answers(window, wanted, match, compare))];
-        }
-
-        public WindowInfo? Find(string value, WindowMatch match, WindowCompare compare)
-            => Filter(value, match, compare).FirstOrDefault();
-
-        public string ProcessOf(long handle)
-            => _facts.TryGetValue(handle, out var facts) ? facts.Process : string.Empty;
-
-        public string ClassOf(long handle)
-            => _facts.TryGetValue(handle, out var facts) ? facts.Class : string.Empty;
-
-        private bool Answers(WindowInfo window, string wanted, WindowMatch match, WindowCompare compare)
-        {
-            var text = match switch
-            {
-                WindowMatch.Process => ProcessOf(window.Handle),
-                WindowMatch.ClassName => ClassOf(window.Handle),
-                _ => window.Title,
-            };
-
-            return compare switch
-            {
-                WindowCompare.StartsWith => text.StartsWith(wanted, StringComparison.OrdinalIgnoreCase),
-                WindowCompare.Regex => Regex.IsMatch(text, wanted, RegexOptions.IgnoreCase),
-                _ => text.Contains(wanted, StringComparison.OrdinalIgnoreCase),
-            };
-        }
-
-        public bool Activate(long handle) => true;
-
-        public bool Minimize(long handle) => true;
-
-        public bool Maximize(long handle) => true;
-
-        public bool Restore(long handle) => true;
-
-        public bool Close(long handle) => true;
-
-        public bool Move(long handle, int x, int y, int width, int height) => true;
-
-        public ScreenPoint ClientOrigin(long handle) => new(0, 0);
-
-        public ScreenSize ClientSize(long handle) => new(0, 0);
-    }
 }

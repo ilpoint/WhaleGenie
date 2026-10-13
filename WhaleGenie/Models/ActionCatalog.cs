@@ -2064,7 +2064,7 @@ public static class ActionCatalog
                 Number("y", "Y", 0,
                     "The row of the place to move to, counted from the coordinate origin above, in "
                     + "pixels; 0 by default."),
-                ..Anchor(withElement: true, byTitleOnly: true),
+                ..Anchor(withElement: true),
                 Number("durationMs", "Duration", 0,
                     "How long the pointer takes to travel from where it is to the target, in "
                     + "milliseconds; 0, the default, arrives at once."),
@@ -2109,7 +2109,7 @@ public static class ActionCatalog
                     + "pointer.",
                     "The row of the place to click, counted from the same origin and in the same "
                     + "pixels; 0 by default."),
-                ..Anchor(withElement: true, byTitleOnly: true),
+                ..Anchor(withElement: true),
                 Aim(),
                 PutBack(),
                 Hold(0, "button",
@@ -2135,7 +2135,7 @@ public static class ActionCatalog
                     + "from the pointer.",
                     "The row of the place to double click, counted from the same origin and in the "
                     + "same pixels; 0 by default."),
-                ..Anchor(withElement: true, byTitleOnly: true),
+                ..Anchor(withElement: true),
                 Aim(),
                 PutBack(),
                 ..Beat(),
@@ -2158,7 +2158,7 @@ public static class ActionCatalog
                     + "pointer.",
                     "The row of the place to press, counted from the same origin and in the same "
                     + "pixels; 0 by default."),
-                ..Anchor(withElement: true, byTitleOnly: true),
+                ..Anchor(withElement: true),
                 ..Delivery(),
             ],
         },
@@ -2178,7 +2178,7 @@ public static class ActionCatalog
                     + "the pointer.",
                     "The row of the place to let go at, counted from the same origin and in the same "
                     + "pixels; 0 by default."),
-                ..Anchor(withElement: true, byTitleOnly: true),
+                ..Anchor(withElement: true),
                 ..Delivery(),
             ],
         },
@@ -2210,7 +2210,7 @@ public static class ActionCatalog
                     "The row of the place to scroll at, counted from the same origin and in the same "
                     + "pixels; 0 by default."),
                 AtPointer(),
-                ..Anchor(withElement: true, byTitleOnly: true),
+                ..Anchor(withElement: true),
                 ..Beat(),
                 ..Delivery(),
             ],
@@ -2236,7 +2236,7 @@ public static class ActionCatalog
                 Number("endY", "End Y", 0,
                     "The row of the place the drag ends at, counted from the same origin and in the "
                     + "same pixels; 0 by default."),
-                ..Anchor(withElement: true, byTitleOnly: true),
+                ..Anchor(withElement: true),
                 Button(),
                 Number("durationMs", "Duration", 300,
                     "How long the drag takes, in milliseconds; 300 by default. The pointer travels "
@@ -2747,7 +2747,7 @@ public static class ActionCatalog
             Description = "Check whether a UI Automation element exists.",
             Parameters =
             [
-                Window(),
+                ..WindowFilter(),
                 Selector(),
                 MatchIndex(),
                 Number("timeoutMs", "Timeout", 0,
@@ -2765,7 +2765,7 @@ public static class ActionCatalog
             Description = "Find a UI Automation element and remember where it is.",
             Parameters =
             [
-                Window(),
+                ..WindowFilter(),
                 Selector(),
                 MatchIndex(),
                 Returns(),
@@ -2779,7 +2779,7 @@ public static class ActionCatalog
             Description = "Wait until a UI Automation element exists.",
             Parameters =
             [
-                Window(),
+                ..WindowFilter(),
                 Selector(),
                 MatchIndex(),
                 Number("timeoutMs", "Timeout", 10000,
@@ -2798,7 +2798,7 @@ public static class ActionCatalog
             Description = "Click a UI Automation element.",
             Parameters =
             [
-                Window(),
+                ..WindowFilter(),
                 Selector(),
                 MatchIndex(),
                 Number("timeoutMs", "Timeout", 5000,
@@ -2815,7 +2815,7 @@ public static class ActionCatalog
             Description = "Work a UI Automation element's own action, without moving the mouse.",
             Parameters =
             [
-                Window(),
+                ..WindowFilter(),
                 Selector(),
                 MatchIndex(),
                 Number("timeoutMs", "Timeout", 5000,
@@ -2831,7 +2831,7 @@ public static class ActionCatalog
             Description = "Type text into a UI Automation element.",
             Parameters =
             [
-                Window(),
+                ..WindowFilter(),
                 Selector(),
                 MatchIndex(),
                 Text("text", "Text", "Hello", "Text written into the element.",
@@ -2856,7 +2856,7 @@ public static class ActionCatalog
             Description = "Read everything one UI Automation element says about itself.",
             Parameters =
             [
-                Window(),
+                ..WindowFilter(),
                 Selector(),
                 MatchIndex(),
                 Returns(),
@@ -2870,7 +2870,7 @@ public static class ActionCatalog
             Description = "Pick an entry of a drop-down, a list or a set of tabs.",
             Parameters =
             [
-                Window(),
+                ..WindowFilter(),
                 Selector(),
                 MatchIndex(),
                 Text("item", "Entry", "Ready", required: false,
@@ -2892,7 +2892,7 @@ public static class ActionCatalog
             Description = "Turn a check box, a switch or a radio button on or off.",
             Parameters =
             [
-                Window(),
+                ..WindowFilter(),
                 Selector(),
                 MatchIndex(),
                 Choice("state", "State", ["on", "off", "toggle"], "on",
@@ -2909,7 +2909,7 @@ public static class ActionCatalog
             Description = "Open or close a tree branch, a menu or a collapsed panel.",
             Parameters =
             [
-                Window(),
+                ..WindowFilter(),
                 Selector(),
                 MatchIndex(),
                 Choice("state", "State", ["expand", "collapse", "toggle"], "expand",
@@ -2925,7 +2925,7 @@ public static class ActionCatalog
             Description = "Scroll an element into view inside the list or panel holding it.",
             Parameters =
             [
-                Window(),
+                ..WindowFilter(),
                 Selector(),
                 MatchIndex(),
             ],
@@ -2947,7 +2947,7 @@ public static class ActionCatalog
             Description = "Read a table or a grid into a list of rows.",
             Parameters =
             [
-                Window(),
+                ..WindowFilter(),
                 Selector(),
                 MatchIndex(),
                 Number("maxRows", "Rows to read", 100,
@@ -2967,8 +2967,10 @@ public static class ActionCatalog
             Description = "Bring a window to the front.",
             Parameters =
             [
-                Window(hint: "Window title, or a $variable holding it. The picker fills in one of "
-                             + "the windows that are open.", required: true),
+                ..WindowFilter(
+                    hint: "The window to bring to the front, recognised the way every window rule "
+                        + "is. The picker fills in one of the windows that are open.",
+                    required: true),
             ],
         },
 
@@ -3365,7 +3367,7 @@ public static class ActionCatalog
             Description = "True when a UI Automation element is present.",
             Parameters =
             [
-                Window(),
+                ..WindowFilter(),
                 Selector(),
             ],
         },
@@ -3377,7 +3379,7 @@ public static class ActionCatalog
             Description = "True when a UI Automation element is not present.",
             Parameters =
             [
-                Window(),
+                ..WindowFilter(),
                 Selector(),
             ],
         },
@@ -3577,14 +3579,11 @@ public static class ActionCatalog
             Description = "True when a window is open.",
             Parameters =
             [
-                Choice("match", "Look at", ["title", "process"], "title",
-                    "Whether the value is looked for in the window's title, which is what is written "
-                    + "on it, or in the name of the program that owns it; the title by default.",
-                    labels: ["The title", "The program"]),
-                Text("value", "Window", "Untitled - Notepad",
-                    "Part of it is enough, and case does not matter. Leave it empty to ask "
-                    + "whether any window at all is open.",
-                    required: false, acceptsVariables: true, acceptsFormula: true),
+                MatchText("window", "Match text",
+                    "The text the window is recognised by, held up against its title, the program "
+                    + "that owns it or the class it registered, the way \"Match by\" says, ignoring "
+                    + "case. Leave it empty to ask whether any window at all is open."),
+                MatchByChoice(extra: "A rule with no match text asks about every window there is."),
             ],
         },
         new()
@@ -4422,19 +4421,13 @@ public static class ActionCatalog
     /// <param name="withElement">
     /// True for an action that can measure from a control, which the element picker fills in.
     /// </param>
-    /// <param name="byTitleOnly">
-    /// True for an action whose numbers are a place on the desktop rather than a window to look
-    /// into: the mouse and keyboard steps keep the single window field they have always had, since
-    /// all they need is a corner to count from.
-    /// </param>
     /// <remarks>
-    /// A window is recognised by the same three parts the window actions use — what to look for,
-    /// which part of a window to compare it with, and how to compare them — because the steps that
-    /// look at the screen read their pixels out of the window those numbers are counted from, and a
-    /// title that moves with the document or the interface language is otherwise the only handle
-    /// there is on it.
+    /// A window is recognised by the same two fields the window actions use — what to look for, and
+    /// the one choice that says what it is held against and how — because the steps that look at the
+    /// screen read their pixels out of the window those numbers are counted from, and a title that
+    /// moves with the document or the interface language is otherwise the only handle there is on it.
     /// </remarks>
-    private static ActionParameter[] Anchor(bool withElement = false, bool byTitleOnly = false) =>
+    private static ActionParameter[] Anchor(bool withElement = false) =>
     [
         Choice("anchorMode", "Coordinates from",
             withElement ? ["screen", "window", "client", "element"] : ["screen", "window", "client"],
@@ -4449,28 +4442,13 @@ public static class ActionCatalog
                 ? ["Screen pixels", "Window top-left", "Window client area", "UI element top-left"]
                 : ["Screen pixels", "Window top-left", "Window client area"],
             advanced: true),
-        new()
-        {
-            Name = "anchorWindow",
-            Label = byTitleOnly ? "Anchor window" : "Match text",
-            Kind = ActionParameterKind.Window,
-            Placeholder = "Notepad",
-            Hint = byTitleOnly
-                ? "The window the coordinates are measured from; part of the title is enough. "
-                  + "Leave it empty for the window in front. The screen mode does not use it."
-                : "The text the window is recognised by, held up against its title, the program "
-                  + "that owns it or the class it registered, the way \"Match by\" says, ignoring "
-                  + "case. The pixels this step reads come out of that window. Leave it empty for "
-                  + "the window in front.",
-            Required = false,
-            Advanced = true,
-            AcceptsVariables = true,
-        },
-        ..(byTitleOnly
-            ? Array.Empty<ActionParameter>()
-            : [MatchByChoice("anchorHow", advanced: true, onlyWith: ["window", "client"],
-                onlyField: "anchorMode",
-                extra: "The screen and element origins do not use it.")]),
+        MatchText("anchorWindow", "Match text",
+            "The text the window is recognised by, held up against its title, the program that owns "
+            + "it or the class it registered, the way \"Match by\" says, ignoring case. The pixels "
+            + "this step reads come out of that window. Leave it empty for the window in front.",
+            advanced: true, onlyWith: ["window", "client"], onlyField: "anchorMode"),
+        MatchByChoice("anchorHow", advanced: true, onlyWith: ["window", "client"],
+            onlyField: "anchorMode", extra: "The screen and element origins do not use it."),
         ..(withElement ? AnchorElement() : Array.Empty<ActionParameter>()),
     ];
 
@@ -4811,24 +4789,20 @@ public static class ActionCatalog
         };
 
     /// <summary>
-    /// A window, filled in from the windows that are open by the window picker. The text is written
-    /// in the box the variables are offered in, the way any other piece of text a macro works out
-    /// earlier is: the name of a window worked out by an earlier step goes in as <c>$name</c>.
+    /// The window a UI Automation step looks in, together with how it is recognised: the two fields
+    /// every window rule is made of. The picker fills the text in from the windows that are open,
+    /// and a name an earlier step worked out goes in as <c>$name</c> like any other text.
     /// </summary>
-    private static ActionParameter Window(string name = "window",
-        string hint = "Optional: look only in windows whose title holds this text. Leave it empty "
-            + "to look in every window.",
+    private static ActionParameter[] WindowFilter(
+        string hint = "The window to look in, held up against the window's title, or against the "
+            + "program that owns it or the class it registered, the way \"Match by\" says, ignoring "
+            + "case. Leave it empty to look in every window.",
         bool required = false)
-        => new()
-        {
-            Name = name,
-            Label = "Window",
-            Kind = ActionParameterKind.Window,
-            Placeholder = "Notepad",
-            Hint = hint,
-            Required = required,
-            AcceptsVariables = true,
-        };
+    =>
+    [
+        MatchText("window", "Match text", hint, required: required),
+        MatchByChoice(extra: "A step that names no window looks in every window there is."),
+    ];
 
     /// <summary>
     /// How a step names the window it acts on: the text, and the one choice that says what the text
@@ -4853,8 +4827,12 @@ public static class ActionCatalog
     /// </summary>
     /// <param name="name">Field name, which the macro file stores: what it holds is a window.</param>
     /// <param name="hint">What the field takes, in the words of the family that asks for it.</param>
+    /// <param name="required">
+    /// True for a step that has nothing to do without it, such as bringing a window to the front.
+    /// </param>
     private static ActionParameter MatchText(string name, string label, string hint,
-        bool advanced = false, string[]? onlyWith = null, string onlyField = "algorithm")
+        bool advanced = false, string[]? onlyWith = null, string onlyField = "algorithm",
+        bool required = false)
         => new()
         {
             Name = name,
@@ -4862,7 +4840,7 @@ public static class ActionCatalog
             Kind = ActionParameterKind.Window,
             Placeholder = "Notepad",
             Hint = hint,
-            Required = false,
+            Required = required,
             AcceptsVariables = true,
             Advanced = advanced,
             AppliesWhen = onlyWith is null ? string.Empty : onlyField,

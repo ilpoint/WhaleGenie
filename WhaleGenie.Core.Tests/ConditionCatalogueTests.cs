@@ -172,19 +172,42 @@ public class ConditionCatalogueTests
             new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
         devices.WindowFacts[1] = ("notepad", "Notepad");
 
-        var byTitle = await AskAsync(Condition("condition.windowExists",
-            Param("match", "title"), Param("value", "notepad")), devices: devices);
-        var byProgram = await AskAsync(Condition("condition.windowExists",
-            Param("match", "process"), Param("value", "note")), devices: devices);
-        var any = await AskAsync(Condition("condition.windowExists",
-            Param("match", "title"), Param("value", string.Empty)), devices: devices);
-        var none = await AskAsync(Condition("condition.windowExists",
-            Param("match", "title"), Param("value", "excel")), devices: devices);
+        // The five ways are the same five the window actions ask, read the same way, so each is
+        // asked with a text only that one way answers to.
+        (string How, string Text, bool Holds)[] ways =
+        [
+            (WindowHow.TitleContains, "Notepad", true),
+            (WindowHow.TitleStartsWith, "Untitled", true),
+            (WindowHow.TitleRegex, @"^Untitled - .+$", true),
+            (WindowHow.Process, "note", true),
+            (WindowHow.Class, "Notepad", true),
+            (WindowHow.TitleStartsWith, "Notepad", false),
+            (WindowHow.Process, "excel", false),
+            (WindowHow.Class, "CalcFrame", false),
+        ];
 
-        Assert.True(byTitle.Holds);
-        Assert.True(byProgram.Holds);
+        foreach (var (how, text, holds) in ways)
+        {
+            var one = await AskAsync(
+                Condition("condition.windowExists", Param("window", text), Param("how", how)),
+                devices: devices);
+
+            Assert.Equal(holds, one.Holds);
+        }
+
+        var any = await AskAsync(Condition("condition.windowExists",
+            Param("window", string.Empty)), devices: devices);
+
+        // A rule with no match text asks about every window there is.
         Assert.True(any.Holds);
-        Assert.False(none.Holds);
+
+        // And a pattern that will not read is the same mistake it is wherever a window is named.
+        var (badHolds, bad) = await AskAsync(
+            Condition("condition.windowExists", Param("window", "["), Param("how", WindowHow.TitleRegex)),
+            devices: devices);
+
+        Assert.False(badHolds);
+        Assert.Equal("Run.BadPattern", bad.Key);
     }
 
     [Fact]

@@ -5846,9 +5846,9 @@ public class DeviceActionTests
 
     /// <summary>
     /// The five ways of recognising a window are read the same by every step that names one: what a
-    /// window action acts on, what a step that reads the screen counts its coordinates from, and what
-    /// a step posting its input at a window posts at. One rule, read three ways, is the whole point
-    /// of there being one rule.
+    /// window action acts on, what a step that reads the screen counts its coordinates from, what a
+    /// step posting its input at a window posts at, and which window an element search looks in. One
+    /// rule, read four ways, is the whole point of there being one rule.
     /// </summary>
     [Fact]
     public async Task Every_step_that_names_a_window_reads_the_ways_the_same()
@@ -5889,6 +5889,20 @@ public class DeviceActionTests
                     Param("targetWindow", text), Param("targetHow", how)),
             ], Named());
             Assert.Equal(found, posted.Succeeded);
+
+            // An element search names the window it looks in the same way, and the rule the step
+            // wrote is what the device is asked with.
+            var elements = Named();
+            await RunAsync(
+            [
+                Step("uia.exists", Param("window", text), Param("how", how),
+                    Param("selector", "Button[name='Save']"), Param("timeoutMs", "0")),
+            ], elements);
+
+            var (match, compare) = WindowHow.Read(how);
+            Assert.Equal(match, elements.LastQuery!.WindowMatch);
+            Assert.Equal(compare, elements.LastQuery.WindowCompare);
+            Assert.Equal(text, elements.LastQuery.WindowTitle);
         }
     }
 
@@ -7319,6 +7333,13 @@ internal sealed class FakeDeviceLayer
     /// <summary>Whether UI Automation should say the element is there.</summary>
     public bool ElementExists { get; set; } = true;
 
+    /// <summary>
+    /// The last search the element device was handed, so a check can see the window rule the engine
+    /// read out of the step: which part of a window it is held against and how they are compared is
+    /// the device's business, and what the engine owes it is the rule as the fields stand.
+    /// </summary>
+    public UiQuery? LastQuery { get; private set; }
+
     /// <summary>What a UI Automation search turns up, in the order it reports them.</summary>
     public List<UiElementInfo> Elements { get; } = [];
 
@@ -7699,6 +7720,7 @@ internal sealed class FakeDeviceLayer
 
     public bool Exists(UiQuery query, int timeoutMs)
     {
+        LastQuery = query;
         Note($"ui {query.ControlType}/{query.Name}/{query.AutomationId}");
         return ElementExists;
     }

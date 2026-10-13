@@ -323,7 +323,13 @@ internal static class ActionStrings
     /// in fourteen of them, so it is written once rather than fourteen times the same sentence.
     /// </summary>
     private const string ElementWindowHint =
-        "可选：只在标题里含这段文字的窗口里找；留空表示在所有窗口里找。";
+        "可选：只在认得出的窗口里找，「匹配内容」与「匹配方式」两行一起说怎么认；留空表示在所有窗口里找。";
+
+    /// <summary>
+    /// What an empty match text means to a step that looks inside a window: it looks inside them
+    /// all, which is the answer a step that names no window has always given.
+    /// </summary>
+    private const string ElementLookInExtra = "不填「匹配内容」时在每个窗口里找。";
 
     /// <summary>How a selector is written, as much of it as every element action says.</summary>
     private const string SelectorPickHint =
@@ -2321,8 +2327,7 @@ internal static class ActionStrings
         // ---------------------------------------------------------------------- uia
         ["uia.exists.name"] = "元素是否存在",
         ["uia.exists.desc"] = "判断某个 UI Automation 元素是否存在。",
-        ["uia.exists.window.label"] = "窗口",
-        ["uia.exists.window.hint"] = ElementWindowHint,
+        ["uia.exists.window.label"] = WindowMatchTextLabel,
         ["uia.exists.selector.label"] = "选择器",
         ["uia.exists.selector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
         ["uia.exists.matchIndex.label"] = "第几个命中",
@@ -2332,8 +2337,7 @@ internal static class ActionStrings
 
         ["uia.find.name"] = "查找元素",
         ["uia.find.desc"] = "查找一个 UI Automation 元素，并记住它在屏幕上的位置。",
-        ["uia.find.window.label"] = "窗口",
-        ["uia.find.window.hint"] = ElementWindowHint,
+        ["uia.find.window.label"] = WindowMatchTextLabel,
         ["uia.find.selector.label"] = "选择器",
         ["uia.find.selector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
         ["uia.find.matchIndex.label"] = "第几个命中",
@@ -2345,8 +2349,7 @@ internal static class ActionStrings
 
         ["uia.waitElement.name"] = "等待元素",
         ["uia.waitElement.desc"] = "等待某个 UI Automation 元素出现。",
-        ["uia.waitElement.window.label"] = "窗口",
-        ["uia.waitElement.window.hint"] = ElementWindowHint,
+        ["uia.waitElement.window.label"] = WindowMatchTextLabel,
         ["uia.waitElement.selector.label"] = "选择器",
         ["uia.waitElement.selector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
         ["uia.waitElement.matchIndex.label"] = "第几个命中",
@@ -2359,8 +2362,7 @@ internal static class ActionStrings
 
         ["uia.click.name"] = "点击元素",
         ["uia.click.desc"] = "点击一个 UI Automation 元素。",
-        ["uia.click.window.label"] = "窗口",
-        ["uia.click.window.hint"] = ElementWindowHint,
+        ["uia.click.window.label"] = WindowMatchTextLabel,
         ["uia.click.selector.label"] = "选择器",
         ["uia.click.selector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
         ["uia.click.matchIndex.label"] = "第几个命中",
@@ -2372,8 +2374,7 @@ internal static class ActionStrings
 
         ["uia.invoke.name"] = "按下元素",
         ["uia.invoke.desc"] = "用元素自己的方式完成它的默认动作，不移动鼠标。",
-        ["uia.invoke.window.label"] = "窗口",
-        ["uia.invoke.window.hint"] = ElementWindowHint,
+        ["uia.invoke.window.label"] = WindowMatchTextLabel,
         ["uia.invoke.selector.label"] = "选择器",
         ["uia.invoke.selector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
         ["uia.invoke.matchIndex.label"] = "第几个命中",
@@ -2383,8 +2384,7 @@ internal static class ActionStrings
 
         ["uia.setText.name"] = "设置元素文本",
         ["uia.setText.desc"] = "向 UI Automation 元素输入文本。",
-        ["uia.setText.window.label"] = "窗口",
-        ["uia.setText.window.hint"] = ElementWindowHint,
+        ["uia.setText.window.label"] = WindowMatchTextLabel,
         ["uia.setText.selector.label"] = "选择器",
         ["uia.setText.selector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
         ["uia.setText.matchIndex.label"] = "第几个命中",
@@ -2396,8 +2396,7 @@ internal static class ActionStrings
 
         ["uia.read.name"] = "读取元素",
         ["uia.read.desc"] = "读取一个 UI Automation 元素能说出的全部内容。",
-        ["uia.read.window.label"] = "窗口",
-        ["uia.read.window.hint"] = ElementWindowHint,
+        ["uia.read.window.label"] = WindowMatchTextLabel,
         ["uia.read.selector.label"] = "选择器",
         ["uia.read.selector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
         ["uia.read.matchIndex.label"] = "第几个命中",
@@ -2410,8 +2409,7 @@ internal static class ActionStrings
 
         ["uia.select.name"] = "选择列表项",
         ["uia.select.desc"] = "在下拉框、列表或选项卡里选中一项。",
-        ["uia.select.window.label"] = "窗口",
-        ["uia.select.window.hint"] = ElementWindowHint,
+        ["uia.select.window.label"] = WindowMatchTextLabel,
         ["uia.select.selector.label"] = "选择器",
         ["uia.select.selector.hint"] = "下拉框、列表或选项卡的选择器。" + SelectorPickHint,
         ["uia.select.matchIndex.label"] = "第几个命中",
@@ -2423,8 +2421,7 @@ internal static class ActionStrings
 
         ["uia.check.name"] = "勾选框",
         ["uia.check.desc"] = "把勾选框、开关或单选框打开或关掉。",
-        ["uia.check.window.label"] = "窗口",
-        ["uia.check.window.hint"] = ElementWindowHint,
+        ["uia.check.window.label"] = WindowMatchTextLabel,
         ["uia.check.selector.label"] = "选择器",
         ["uia.check.selector.hint"] = "勾选框、开关或单选框的选择器。" + SelectorPickHint,
         ["uia.check.matchIndex.label"] = "第几个命中",
@@ -2438,8 +2435,7 @@ internal static class ActionStrings
 
         ["uia.expand.name"] = "展开/收起",
         ["uia.expand.desc"] = "展开或收起树节点、菜单、折叠面板。",
-        ["uia.expand.window.label"] = "窗口",
-        ["uia.expand.window.hint"] = ElementWindowHint,
+        ["uia.expand.window.label"] = WindowMatchTextLabel,
         ["uia.expand.selector.label"] = "选择器",
         ["uia.expand.selector.hint"] = "要展开或收起的节点选择器。" + SelectorPickHint,
         ["uia.expand.matchIndex.label"] = "第几个命中",
@@ -2452,8 +2448,7 @@ internal static class ActionStrings
 
         ["uia.scrollIntoView.name"] = "滚动到可见",
         ["uia.scrollIntoView.desc"] = "把列表或面板里的某个元素滚动到看得见的位置。",
-        ["uia.scrollIntoView.window.label"] = "窗口",
-        ["uia.scrollIntoView.window.hint"] = ElementWindowHint,
+        ["uia.scrollIntoView.window.label"] = WindowMatchTextLabel,
         ["uia.scrollIntoView.selector.label"] = "选择器",
         ["uia.scrollIntoView.selector.hint"] = "要滚动到可见的元素选择器。" + SelectorPickHint,
         ["uia.scrollIntoView.matchIndex.label"] = "第几个命中",
@@ -2461,8 +2456,7 @@ internal static class ActionStrings
 
         ["uia.readTable.name"] = "读取表格",
         ["uia.readTable.desc"] = "把表格或网格读成一个按行存放的列表。",
-        ["uia.readTable.window.label"] = "窗口",
-        ["uia.readTable.window.hint"] = ElementWindowHint,
+        ["uia.readTable.window.label"] = WindowMatchTextLabel,
         ["uia.readTable.selector.label"] = "选择器",
         ["uia.readTable.selector.hint"] = "表格或网格的选择器。" + SelectorPickHint,
         ["uia.readTable.matchIndex.label"] = "第几个命中",
@@ -2473,7 +2467,7 @@ internal static class ActionStrings
 
         ["uia.focusWindow.name"] = "窗口置前",
         ["uia.focusWindow.desc"] = "把某个窗口切换到最前面。",
-        ["uia.focusWindow.window.label"] = "窗口",
+        ["uia.focusWindow.window.label"] = WindowMatchTextLabel,
         ["uia.focusWindow.window.hint"] = "窗口标题，或保存标题的 $变量。可以用“拾取窗口”从当前打开的窗口里选一个。",
 
         // ---------------------------------------------------------------- browser
@@ -2657,7 +2651,7 @@ internal static class ActionStrings
 
         ["condition.uiaExists.name"] = "UI 元素存在",
         ["condition.uiaExists.desc"] = "当 UI Automation 元素存在时为真。",
-        ["condition.uiaExists.window.label"] = "窗口",
+        ["condition.uiaExists.window.label"] = WindowMatchTextLabel,
         ["condition.uiaExists.window.hint"] = "可选：只在标题里含这段文字的窗口里找；留空表示在所有窗口里找。",
         ["condition.uiaExists.selector.label"] = "选择器",
         ["condition.uiaExists.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可用“拾取元素”直接在屏幕"
@@ -2719,7 +2713,7 @@ internal static class ActionStrings
 
         ["condition.uiaNotExists.name"] = "UI 元素不存在",
         ["condition.uiaNotExists.desc"] = "当某个 UI Automation 元素不存在时为真。",
-        ["condition.uiaNotExists.window.label"] = "窗口",
+        ["condition.uiaNotExists.window.label"] = WindowMatchTextLabel,
         ["condition.uiaNotExists.window.hint"] = "可选：只在标题里含这段文字的窗口里找；留空表示在所有窗口里找。",
         ["condition.uiaNotExists.selector.label"] = "选择器",
         ["condition.uiaNotExists.selector.hint"] =
@@ -2789,13 +2783,10 @@ internal static class ActionStrings
 
         ["condition.windowExists.name"] = "窗口存在",
         ["condition.windowExists.desc"] = "某个窗口打开着时成立。",
-        ["condition.windowExists.match.label"] = "比什么",
-        ["condition.windowExists.match.hint"] = "在窗口标题里找，还是在拥有它的程序名里找，默认标题。",
-        ["condition.windowExists.match.option.title"] = "标题",
-        ["condition.windowExists.match.option.process"] = "程序名",
-        ["condition.windowExists.value.label"] = "窗口",
-        ["condition.windowExists.value.hint"] =
-            "写出其中一段即可，大小写不敏感；留空表示“有没有任何窗口”。",
+        ["condition.windowExists.window.label"] = WindowMatchTextLabel,
+        ["condition.windowExists.window.hint"] =
+            "窗口靠这段文字认出：它和「匹配方式」里选的那一种比，不区分大小写。留空表示只要有一个窗口"
+            + "开着就成立。",
 
         ["condition.valueInRange.name"] = "值在区间内",
         ["condition.valueInRange.desc"] = "一个值落在另外两个值之间时成立。",
@@ -3379,6 +3370,19 @@ internal static class ActionStrings
         WindowHowFill(Chinese, "how", WindowActions, string.Empty);
         WindowHowFill(Chinese, "anchorHow", AnchorActions, "坐标基准选屏幕像素或界面元素时用不到它。");
         WindowHowFill(Chinese, "targetHow", TargetActions, "只有输入方式选后台消息时用得到它。");
+
+        // The element actions recognise the window they look in with the same two fields the window
+        // actions use, and they all say the same thing about an empty one. Bringing a window to the
+        // front is the one of them with nothing to do without a match text, so its own line says so.
+        WindowHowFill(Chinese, "how", [.. ElementActions, "uia.focusWindow"], ElementLookInExtra);
+        foreach (var action in ElementActions)
+        {
+            Chinese[$"{action}.window.label"] = WindowMatchTextLabel;
+            Chinese[$"{action}.window.hint"] = ElementWindowHint;
+        }
+
+        WindowHowFill(Chinese, "how", ["condition.windowExists"],
+            "不填「匹配内容」时问的是有没有窗口开着。");
     }
 
     private static void WindowHowFill(Dictionary<string, string> table, string name,
@@ -3417,6 +3421,20 @@ internal static class ActionStrings
         "condition.imageExists", "condition.imageNotExists", "condition.textExists",
         "condition.textNotExists", "condition.colorEquals", "condition.colorsMatch",
         "condition.colorsExist", "condition.colorCoverage",
+        "input.mouseMove", "input.mouseClick", "input.mouseDoubleClick", "input.mouseDown",
+        "input.mouseUp", "input.mouseScroll", "input.mouseDrag",
+    ];
+
+    /// <summary>
+    /// The element actions look inside a window of their own, named with the same two fields the
+    /// window actions use. Bringing a window to the front asks the same choice but cannot be left
+    /// without a match text, so it is worded apart from these.
+    /// </summary>
+    private static readonly string[] ElementActions =
+    [
+        "uia.exists", "uia.find", "uia.waitElement", "uia.click", "uia.invoke", "uia.setText",
+        "uia.read", "uia.select", "uia.check", "uia.expand", "uia.scrollIntoView",
+        "uia.readTable", "condition.uiaExists", "condition.uiaNotExists",
     ];
 
     /// <summary>The actions that post their input at a window of their own.</summary>

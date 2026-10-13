@@ -48,6 +48,14 @@ public partial class MacroEditorWindow : Window
     /// </summary>
     private readonly IDeviceLayer? _devices;
 
+    /// <summary>
+    /// The frames standing around the windows a window trigger recognises right now. The trigger is
+    /// the easiest part of a macro to get wrong — a rule written a little too wide fires on a window
+    /// nobody meant — and a frame on each window the rule picks out answers "which ones" without
+    /// waiting for it to happen.
+    /// </summary>
+    private readonly ScreenFrames _triggerFrames = new();
+
     private bool _allowClose;
     private bool _prompting;
     private bool _syncingSelection;
@@ -132,6 +140,25 @@ public partial class MacroEditorWindow : Window
         _devices = devices;
         _viewModel = new MacroEditorViewModel();
         _recovery = new RecoveryWriter(WriteRecovery);
+
+        // The window trigger lists the windows its rule picks out right now, and the frames on the
+        // screen are the half a list cannot say: two windows with the same title read the same in a
+        // list and are told apart on the screen. Handed over before the macro is loaded, so the rule
+        // the file came with is read against the windows there are rather than reported as
+        // unreadable for want of a device.
+        if (_devices is { } layer)
+        {
+            _viewModel.Windows = layer.Windows;
+        }
+
+        _viewModel.WindowPreview.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(WindowPreviewViewModel.Places))
+            {
+                DrawTriggerFrames();
+            }
+        };
+
         if (existing is not null)
         {
             _viewModel.LoadFrom(existing);
@@ -188,6 +215,14 @@ public partial class MacroEditorWindow : Window
         // And so does the recovery draft: once this window is gone, its macro either belongs to
         // the list or was let go, and the next run must not be offered it back.
         Closed += (_, _) => StopRecovery();
+
+        // And the frames it put on the screen: a window that is gone has nothing left to explain
+        // them, and they would go on standing over the windows they were drawn around.
+        Closed += (_, _) =>
+        {
+            _closing = true;
+            _triggerFrames.Dispose();
+        };
 
         // The keys pressed while a macro is being written or a shortcut bound must not set one off.
         MacroTriggerGate.Enter();
@@ -955,6 +990,34 @@ public partial class MacroEditorWindow : Window
         {
             _editorInRecovery = false;
             RecoveryStore.ClearEditor();
+        }
+    }
+
+    /// <summary>Which windows are framed right now, so that a check can count them.</summary>
+    internal IReadOnlyCollection<long> FramedWindows => _triggerFrames.Framed;
+
+    /// <summary>
+    /// Puts a frame around each window the trigger's rule recognises, and takes down the ones that
+    /// have dropped out of it. Nothing is framed while the editor is out of the way — a minimised
+    /// editor with frames left standing would be saying something nobody is reading — and the frames
+    /// go with the trigger pane, which is only on screen while the macro is started by a window.
+    /// </summary>
+    private void DrawTriggerFrames()
+    {
+        IReadOnlyList<FramePlace> places = _closing || !IsVisible || WindowState == WindowState.Minimized
+            ? []
+            : _viewModel.WindowPreview.Places;
+
+        _triggerFrames.Show(places);
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == WindowStateProperty || change.Property == IsVisibleProperty)
+        {
+            DrawTriggerFrames();
         }
     }
 

@@ -14,6 +14,10 @@ using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
+// The choice of how a window is recognised is a property here as well as a type in the engine, so
+// the type is named by an alias rather than being shadowed by the property.
+using WindowWays = WhaleGenie.Core.Devices.WindowHow;
+
 namespace WhaleGenie.ViewModels;
 
 public partial class MacroEditorViewModel : ViewModelBase
@@ -322,30 +326,67 @@ public partial class MacroEditorViewModel : ViewModelBase
     [ObservableProperty]
     public partial int? IdleSeconds { get; set; } = 60;
 
-    /// <summary>What a window trigger compares against the open windows.</summary>
+    /// <summary>What a window trigger recognises its window by.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(WindowRuleNow))]
     public partial string WindowValue { get; set; } = string.Empty;
 
-    public IReadOnlyList<string> WindowLookupOptions { get; } =
-    [
-        Strings.Get("WindowLookup.Title"),
-        Strings.Get("WindowLookup.Process"),
-        Strings.Get("WindowLookup.ClassName"),
-    ];
+    /// <summary>
+    /// The windows this trigger would fire for right now, listed under the fields that say how the
+    /// window is recognised. A window trigger is the easiest thing in a macro to get wrong, since a
+    /// rule written a little too wide fires on a window nobody meant, and the list says what the
+    /// rule comes to without waiting for it to happen.
+    /// </summary>
+    public WindowPreviewViewModel WindowPreview { get; } = new();
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(WindowLookupIndex))]
-    public partial WindowMatch WindowLookup { get; set; } = WindowMatch.Title;
-
-    public int WindowLookupIndex
+    /// <summary>The windows the list is read from, handed over by the editor that opened this.</summary>
+    public IWindowDevice? Windows
     {
-        get => (int)WindowLookup;
+        get => _windows;
         set
         {
-            if (value >= 0 && value < WindowLookupOptions.Count)
+            _windows = value;
+            WindowPreview.Watch(() => _windows);
+        }
+    }
+
+    private IWindowDevice? _windows;
+
+    /// <summary>The five ways a window can be recognised, in the words the interface reads.</summary>
+    public IReadOnlyList<string> WindowHowOptions { get; } =
+    [
+        Strings.Get("WindowHow.TitleContains"),
+        Strings.Get("WindowHow.TitleStartsWith"),
+        Strings.Get("WindowHow.TitleRegex"),
+        Strings.Get("WindowHow.Process"),
+        Strings.Get("WindowHow.Class"),
+    ];
+
+    /// <summary>How this trigger recognises its window: one of the five the engine reads.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(WindowHowIndex))]
+    [NotifyPropertyChangedFor(nameof(WindowRuleNow))]
+    public partial string WindowHow { get; set; } = WindowWays.TitleContains;
+
+    public int WindowHowIndex
+    {
+        get => WindowWays.IndexOf(WindowHow);
+        set
+        {
+            if (value >= 0 && value < WindowHowOptions.Count)
             {
-                WindowLookup = (WindowMatch)value;
+                WindowHow = WindowWays.Values[value];
             }
+        }
+    }
+
+    /// <summary>The rule as the fields stand, which is what the preview of open windows follows.</summary>
+    public WindowRule WindowRuleNow
+    {
+        get
+        {
+            var (match, compare) = WindowWays.Read(WindowHow);
+            return new WindowRule(WindowValue, match, compare, EmptyIsEvery: false);
         }
     }
 
@@ -1379,7 +1420,7 @@ public partial class MacroEditorViewModel : ViewModelBase
             ProcessName = macro.ProcessName;
             ProcessChange = macro.ProcessChange;
             WindowValue = macro.WindowValue;
-            WindowLookup = macro.WindowLookup;
+            WindowHow = macro.WindowHow;
             WindowChange = macro.WindowChange;
             IdleSeconds = macro.IdleSeconds;
             PositionCapture = macro.PositionCapture;
@@ -2088,6 +2129,20 @@ public partial class MacroEditorViewModel : ViewModelBase
         {
             MarkDirty();
         }
+
+        // A window trigger lists the windows its rule recognises right now, so a rule written a
+        // little too wide is seen while it is being written. Only while the trigger is a window
+        // trigger: a rule nothing reads has no windows to list, and a list of them would say the
+        // macro does something it does not.
+        if (e.PropertyName is nameof(WindowValue) or nameof(WindowHow) or nameof(TriggerMode))
+        {
+            var asking = IsWindowTrigger;
+            WindowPreview.Show(asking);
+            if (asking)
+            {
+                WindowPreview.Follow(WindowRuleNow);
+            }
+        }
     }
 
     /// <summary>
@@ -2154,7 +2209,7 @@ public partial class MacroEditorViewModel : ViewModelBase
             ProcessName = ProcessName.Trim(),
             ProcessChange = ProcessChange,
             WindowValue = WindowValue.Trim(),
-            WindowLookup = WindowLookup,
+            WindowHow = WindowHow,
             WindowChange = WindowChange,
             IdleSeconds = Math.Max(1, IdleSeconds ?? 60),
             PositionCapture = PositionCapture,

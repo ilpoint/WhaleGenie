@@ -24,7 +24,7 @@ public class TriggerWatchTests
                 Name = "等一个不存在的窗口",
                 TriggerMode = MacroTrigger.Window,
                 WindowValue = "鲸灵等不到的这个窗口标题",
-                WindowLookup = WindowMatch.Title,
+                WindowHow = WindowHow.TitleContains,
                 WindowChange = WindowChangeKind.Appeared,
             };
             macro.Steps.Add(new MacroStep { Type = "control.stop" });
@@ -40,6 +40,48 @@ public class TriggerWatchTests
             Assert.False(watch.Matched);    // and this one is not there
             Assert.True(watch.Checked >= before);
             Assert.True(watch.Next > watch.Checked);
+        });
+    }
+
+    /// <summary>
+    /// A window trigger recognises its window the way every other window rule does, so a title that
+    /// moves with the document can be answered by the program that owns the window or by a pattern
+    /// instead. What is waited for and what the list says are read off the same rule.
+    /// </summary>
+    [Fact]
+    public void A_window_trigger_is_recognised_the_way_the_rule_says()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var windows = new WindowsForChecks().Add(1, "Untitled - Notepad", "notepad", "Notepad");
+
+            var macro = new MacroItem
+            {
+                Name = "等这个程序",
+                TriggerMode = MacroTrigger.Window,
+                WindowValue = "notepad",
+                WindowHow = WindowHow.Process,
+                WindowChange = WindowChangeKind.Appeared,
+            };
+            macro.Steps.Add(new MacroStep { Type = "control.stop" });
+
+            using var service = new MacroTriggerService(
+                () => [macro], new ChecksDevices { Windows = windows }, new NoWindowEvents());
+
+            service.Look();
+
+            // The window the rule names is open, which is what the reading says: nothing here is
+            // about the title, because the rule is not either.
+            Assert.True(Assert.Single(service.Watches()).Matched);
+
+            // A rule nothing answers to waits, rather than being taken for the window it is not.
+            // The window list is looked at every half second, which is what the wait is for.
+            macro.WindowValue = "excel";
+            await Task.Delay(600);
+            service.Look();
+
+            Assert.False(Assert.Single(service.Watches()).Matched);
+            return true;
         });
     }
 

@@ -2086,13 +2086,8 @@ public sealed class MacroRunner
     /// </summary>
     private bool WindowThere(ExecutableStep condition)
     {
-        var value = Read(condition.Text("value")).AsText().Trim();
-        var match = string.Equals(condition.Text("match").Trim(), "process",
-            StringComparison.OrdinalIgnoreCase)
-            ? WindowMatch.Process
-            : WindowMatch.Title;
-
-        return _devices.Windows.Find(value, match) is not null;
+        var rule = WindowRuleOf(condition, "window", "how");
+        return _devices.Windows.Find(rule.Text, rule.Match, rule.Compare) is not null;
     }
 
     /// <summary>
@@ -7695,20 +7690,27 @@ public sealed class MacroRunner
 
     /// <summary>
     /// Reads a selector such as <c>Button[name='Save']</c> or <c>Edit[automationId='input']</c>,
-    /// together with the optional window title beside it.
+    /// together with the window it is looked for in. That window is recognised by the same rule
+    /// every other step recognises one with, and the search is narrowed by it rather than by a title
+    /// alone: a step that aims at a window by its program or by a pattern finds the same window a
+    /// window action would.
     /// </summary>
     private UiQuery Query(ExecutableStep step)
-        => UiQuery.Parse(
-            step.Text("selector"),
-            Read(step.Text("window")).AsText(),
-            Index(step, "matchIndex", 1));
+    {
+        var rule = WindowRuleOf(step, "window", "how");
+        return UiQuery.Parse(step.Text("selector"), rule.Text, Index(step, "matchIndex", 1),
+            rule.Match, rule.Compare);
+    }
 
     /// <summary>
     /// The same, for the control a step measures its coordinates from. A step that is anchored to a
     /// control keeps its own pair of fields, so the two readings never take each other's values.
     /// </summary>
     private UiQuery AnchorQuery(ExecutableStep step)
-        => UiQuery.Parse(step.Text("anchorSelector"), Read(step.Text("anchorWindow")).AsText());
+    {
+        var rule = WindowRuleOf(step, "anchorWindow", "anchorHow");
+        return UiQuery.Parse(step.Text("anchorSelector"), rule.Text, 1, rule.Match, rule.Compare);
+    }
 
     /// <summary>
     /// Reads a value: a bare variable name, then an expression, then plain text. That is

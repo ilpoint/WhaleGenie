@@ -577,7 +577,7 @@ public class RunLookTests
             new ScreenSize(800, 600), false, false));
         var looks = new Watched();
 
-        await Run(Step("vision.captureWindow", Param("title", "Notepad"), Hit("image", "shot")),
+        await Run(Step("vision.captureWindow", Param("window", "Notepad"), Hit("image", "shot")),
             devices, looks);
 
         // The window comes with the reading rather than its handle alone, so whoever is drawing the

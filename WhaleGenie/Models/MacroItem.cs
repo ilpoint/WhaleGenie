@@ -6,6 +6,10 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 
+// The choice of how a window is recognised is a property here as well as a type in the engine, so
+// the type is named by an alias rather than being shadowed by the property.
+using WindowWays = WhaleGenie.Core.Devices.WindowHow;
+
 namespace WhaleGenie.Models;
 
 public partial class MacroItem : ObservableObject
@@ -94,11 +98,14 @@ public partial class MacroItem : ObservableObject
     /// <summary>Whether the program starting or the program finishing starts the macro.</summary>
     public ProcessChangeKind ProcessChange { get; set; } = ProcessChangeKind.Started;
 
-    /// <summary>What a window trigger compares against the open windows.</summary>
+    /// <summary>What a window trigger recognises its window by.</summary>
     public string WindowValue { get; set; } = string.Empty;
 
-    /// <summary>Which part of a window a window trigger compares: title, program or class.</summary>
-    public WindowMatch WindowLookup { get; set; } = WindowMatch.Title;
+    /// <summary>
+    /// How a window trigger recognises it: the one choice of five every window rule asks, held as
+    /// the macro file writes it.
+    /// </summary>
+    public string WindowHow { get; set; } = WindowWays.TitleContains;
 
     /// <summary>Whether the window appearing or going away starts the macro.</summary>
     public WindowChangeKind WindowChange { get; set; } = WindowChangeKind.Appeared;
@@ -291,7 +298,7 @@ public partial class MacroItem : ObservableObject
             ["window"] = new JsonObject
             {
                 ["value"] = WindowValue,
-                ["lookup"] = WindowLookup.ToString(),
+                ["how"] = WindowHow,
                 ["change"] = WindowChange.ToString(),
             },
             ["idleSeconds"] = IdleSeconds,
@@ -400,7 +407,7 @@ public partial class MacroItem : ObservableObject
             ProcessName = program?["name"]?.GetValue<string>() ?? string.Empty,
             ProcessChange = ReadEnum(program, "change", ProcessChangeKind.Started),
             WindowValue = window?["value"]?.GetValue<string>() ?? string.Empty,
-            WindowLookup = ReadEnum(window, "lookup", WindowMatch.Title),
+            WindowHow = window?["how"]?.GetValue<string>() ?? WindowWays.TitleContains,
             WindowChange = ReadEnum(window, "change", WindowChangeKind.Appeared),
             IdleSeconds = ReadInt(node["idleSeconds"], 60),
             PositionCapture = ReadEnum(node, "positionCapture", MousePositionMode.SaveCurrentPosition),
