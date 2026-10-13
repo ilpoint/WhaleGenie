@@ -2511,6 +2511,34 @@ public class ActionDialogTests
         });
     }
 
+    /// <summary>
+    /// The window stays up from one step to the next, and the next step is a different step: what
+    /// was written into the last call is not something this one said, so naming the same macro again
+    /// starts from the macro's own defaults rather than from the step before it.
+    /// </summary>
+    [Fact]
+    public void A_call_written_next_does_not_inherit_what_the_last_one_was_filled_with()
+    {
+        Ui.Run(() =>
+        {
+            var window = CallWindow();
+            var viewModel = (AddActionViewModel)window.DataContext!;
+
+            Field(viewModel, "macro")!.WriteValue("整理");
+            Dispatcher.UIThread.RunJobs();
+            Field(viewModel, "arg.次数")!.WriteValue("$n");
+
+            window.MintStepId = () => "eeee";
+            window.BeginStep("control.runMacro");
+            Dispatcher.UIThread.RunJobs();
+
+            Field(viewModel, "macro")!.WriteValue("整理");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("3", Field(viewModel, "arg.次数")!.CurrentText);
+        });
+    }
+
     /// <summary>The dialog open on a call, with the project's macros to point it at.</summary>
     private static AddActionWindow CallWindow()
     {

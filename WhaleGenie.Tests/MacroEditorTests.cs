@@ -99,6 +99,11 @@ public class MacroEditorTests
             // that is not there; and the name it brings back is what the step after it reads.
             Assert.Empty(viewModel.Problems.Select(problem => problem.Message));
             Assert.Contains(lifted, window.LiftedMacros);
+
+            // A lift that is undone leaves a macro nothing calls, and a macro nothing calls has no
+            // business joining the project.
+            viewModel.Steps.Remove(call);
+            Assert.Empty(window.LiftedMacros);
         });
     }
 

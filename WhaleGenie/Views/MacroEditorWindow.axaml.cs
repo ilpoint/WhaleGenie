@@ -844,10 +844,18 @@ public partial class MacroEditorWindow : Window
     internal MacroItem? Result { get; private set; }
 
     /// <summary>
-    /// Macros this session made out of stretches of the one being edited. They are part of what the
-    /// session produced, so the project takes them along with the edited macro.
+    /// Macros this session made out of stretches of the one being edited, minus the ones the macro
+    /// no longer calls — a lift that was undone or whose call was written over. What is left is part
+    /// of what the session produced, so the project takes it along with the edited macro.
     /// </summary>
-    internal IReadOnlyList<MacroItem> LiftedMacros => _lifted;
+    internal IReadOnlyList<MacroItem> LiftedMacros
+        => [.. _lifted.Where(macro => _viewModel.Steps.Any(step => Calls(step, macro.Name)))];
+
+    /// <summary>True when this step, or any step inside it, calls the named macro.</summary>
+    private static bool Calls(MacroStep step, string name)
+        => step.Type == "control.runMacro" && string.Equals(step.Text("macro").Trim(), name,
+            StringComparison.OrdinalIgnoreCase)
+           || step.StepLists.Any(list => list.Steps.Any(child => Calls(child, name)));
 
     /// <summary>
     /// True when the main list went into the notification area to make room for this editor, which

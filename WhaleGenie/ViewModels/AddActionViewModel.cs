@@ -42,9 +42,11 @@ public partial class AddActionViewModel : ViewModelBase
     private bool _buildingCallFields;
 
     /// <summary>
-    /// What was filled into one macro's call fields, kept by that macro's name: switching to
-    /// another macro and back leaves the values where the author left them rather than emptying
-    /// the form on the way through.
+    /// What was filled into a call's fields, kept by the step being written and the macro it names:
+    /// switching to another macro and back leaves the values where the author left them rather than
+    /// emptying the form on the way through. The step is part of the key so that the next step
+    /// written in the same window starts empty — a value remembered from another step is the one
+    /// thing about this form that could silently make two steps say different things.
     /// </summary>
     private readonly Dictionary<string, (Dictionary<string, string> Arguments,
         Dictionary<string, string> Results)> _callFill = new(StringComparer.OrdinalIgnoreCase);
@@ -1347,13 +1349,13 @@ public partial class AddActionViewModel : ViewModelBase
             results[row.Key] = row.Name.Trim();
         }
 
-        _callFill[_callMacro] = (arguments, results);
+        _callFill[CallFillKey(_callMacro)] = (arguments, results);
     }
 
     /// <summary>Puts back what was filled in for one macro, if it has been filled in before.</summary>
     private void RestoreCall(string macro)
     {
-        if (!_callFill.TryGetValue(macro, out var filled))
+        if (!_callFill.TryGetValue(CallFillKey(macro), out var filled))
         {
             return;
         }
@@ -1378,6 +1380,9 @@ public partial class AddActionViewModel : ViewModelBase
 
         OnPropertyChanged(nameof(HasReturns));
     }
+
+    /// <summary>Which step and which macro a set of filled-in call values belongs to.</summary>
+    private string CallFillKey(string macro) => _editingId + "\u001f" + macro;
 
     /// <summary>
     /// Lays the parameters out over their pages, a line at a time, keeping the two halves of a
