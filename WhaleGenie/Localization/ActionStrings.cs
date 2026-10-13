@@ -1266,71 +1266,80 @@ internal static class ActionStrings
         ["input.keyPress.name"] = "按键",
         ["input.keyPress.desc"] = "按下并松开一个按键。",
         ["input.keyPress.key.label"] = "按键",
-        ["input.keyPress.key.hint"] = "要按下的键，例如 F5 或 Enter。",
+        ["input.keyPress.key.hint"] = "要按下的键，按键盘上印的名字写，例如 F5、Enter 或 A。拿不准拼法时用"
+            + "旁边的「键盘」点出来。",
         ["input.keyPress.holdMs.label"] = "按住时长",
-        ["input.keyPress.holdMs.hint"] = "按键保持按下的时长。",
+        ["input.keyPress.holdMs.hint"] = "按下之后保持多久才松开，单位是毫秒，默认 50。按下就松开、程序来不及"
+            + "响应的场合调大。",
         ["input.keyPress.repeat.label"] = "重复次数",
-        ["input.keyPress.repeat.hint"] = "这个键连续按几下。",
+        ["input.keyPress.repeat.hint"] = "这个键一共按几下，从 1 起，默认 1。连着按几下时，两次之间停多久由"
+            + "「重复间隔」说。",
         ["input.keyPress.intervalMs.label"] = "重复间隔",
-        ["input.keyPress.intervalMs.hint"] = "每两下之间的等待时间；只按一下就填 0。",
+        ["input.keyPress.intervalMs.hint"] = "两下之间停多久，单位是毫秒，默认 0，即一下接一下地按。",
 
         ["input.keyDown.name"] = "按下按键",
         ["input.keyDown.desc"] = "保持按下某个键，直到对应的“松开按键”步骤。",
         ["input.keyDown.key.label"] = "按键",
+        ["input.keyDown.key.hint"] = "要按住的键，写法与「按键」一致。松开它由对应的「松开按键」步骤负责。",
 
         ["input.keyUp.name"] = "松开按键",
         ["input.keyUp.desc"] = "松开当前处于按下状态的按键。",
         ["input.keyUp.key.label"] = "按键",
+        ["input.keyUp.key.hint"] = "要松开的键，写法与「按键」一致；填前面某一个「按下按键」步骤按住的键。",
 
         ["input.hotkey.name"] = "组合键",
         ["input.hotkey.desc"] = "按下组合键，例如 Ctrl+Shift+S。",
         ["input.hotkey.keys.label"] = "按键组合",
-        ["input.hotkey.keys.hint"] = "用 + 连接，同时按下。旁边的「键盘」可以在画出来的键盘上"
-            + "一个个点出来，不用凭记忆打名字：左右两个 Ctrl、左右两个 Shift 是分开写的，"
-            + "机器分得清它们。",
+        ["input.hotkey.keys.hint"] = "要同时按下的键，用 + 连接，例如 Ctrl+Shift+S。旁边的「键盘」可以在画出来"
+            + "的键盘上逐个点选：左右两个 Ctrl、左右两个 Shift 分开写，机器也分得清它们。",
         ["input.hotkey.holdMs.label"] = "按住时长",
-        ["input.hotkey.holdMs.hint"] = "组合键保持按下的时长。",
+        ["input.hotkey.holdMs.hint"] = "这组键按下之后保持多久才松开，单位是毫秒，默认 50。",
         ["input.hotkey.repeat.label"] = "重复次数",
-        ["input.hotkey.repeat.hint"] = "这组组合键连续发几次。",
+        ["input.hotkey.repeat.hint"] = "这一组一共发几次，从 1 起，默认 1。",
         ["input.hotkey.intervalMs.label"] = "重复间隔",
-        ["input.hotkey.intervalMs.hint"] = "每两次之间的等待时间；只发一次就填 0。",
+        ["input.hotkey.intervalMs.hint"] = "两次之间停多久，单位是毫秒，默认 0。",
 
         ["input.typeText.name"] = "输入文本",
         ["input.typeText.desc"] = "输入一段文字。",
         ["input.typeText.text.label"] = "文本",
-        ["input.typeText.text.hint"] = "要输入的文本。",
+        ["input.typeText.text.hint"] = "要输入的文字，可以写多行，也可以填一个变量或算式。",
         ["input.typeText.intervalMs.label"] = "间隔",
-        ["input.typeText.intervalMs.hint"] = "每个字符之间的间隔。",
+        ["input.typeText.intervalMs.hint"] = "每个字符之间停多久，单位是毫秒，默认 30。输入太快、程序跟不上时"
+            + "调大。",
 
         ["input.keySequence.name"] = "按键序列",
         ["input.keySequence.desc"] = "按顺序发出一串组合键，像游戏里打一套连招那样。",
         ["input.keySequence.keys.label"] = "序列",
-        ["input.keySequence.keys.hint"] = "一行一个组合，按列表顺序发送。按键用旁边画出来的"
-            + "键盘点选，拼写不会错（左右 Ctrl、左右 Shift 名字不同，机器也分得开）。某一行的"
-            + "按住时长或间隔与整体不一样时，就在那一行里单独填；留空表示用整个序列的值。",
+        ["input.keySequence.keys.hint"] = "一行一个组合，按列表顺序发送。按键用旁边的「键盘」点选，拼写不会错"
+            + "（左右 Ctrl、左右 Shift 名字不同，机器也分得开）。某一行的按住时长或间隔与整串不一样时，"
+            + "就在那一行里单独填；留空表示用整串的值。",
         ["input.keySequence.holdMs.label"] = "每个组合按住",
-        ["input.keySequence.holdMs.hint"] = "序列里每个组合保持按下的时长；某一行可以在行内另填。",
+        ["input.keySequence.holdMs.hint"] = "整串里每个组合保持按下多久，单位是毫秒，默认 50；某一行可以在行内"
+            + "另填。",
         ["input.keySequence.gapMs.label"] = "组合之间的间隔",
-        ["input.keySequence.gapMs.hint"] = "一个组合与下一个之间等多久 —— 这是连招的节奏，也是"
-            + "游戏最能察觉的地方：太短几次按键连成一片，太长就不像一套连招了。某一行可以在行内"
-            + "另填；想让间隔每次都不一样，用这个框旁边的 ±（每次运行上下浮动的比例）。",
+        ["input.keySequence.gapMs.hint"] = "一个组合与下一个之间等多久，单位是毫秒，默认 120 —— 这是连招的节奏，"
+            + "也是游戏最能察觉的地方：太短几次按键连成一片，太长就不像一套连招。某一行可以在行内另填；"
+            + "想让间隔每次都不同，用这个框旁边的 ± 填每次运行上下浮动的比例。",
         ["input.keySequence.afterMs.label"] = "整串之后停顿",
-        ["input.keySequence.afterMs.hint"] = "最后一个组合发完，再等多久才走下一步。",
+        ["input.keySequence.afterMs.hint"] = "最后一个组合发完之后再等多久才走下一步，单位是毫秒，默认 0。",
         ["input.keySequence.repeat.label"] = "整串再来几遍",
-        ["input.keySequence.repeat.hint"] = "整个序列连着发几遍。",
+        ["input.keySequence.repeat.hint"] = "整串连着发几遍，从 1 起，默认 1。",
         ["input.keySequence.intervalMs.label"] = "每遍之间",
-        ["input.keySequence.intervalMs.hint"] = "两遍序列之间的等待时间。",
+        ["input.keySequence.intervalMs.hint"] = "两遍之间停多久，单位是毫秒，默认 0。",
 
         ["input.mouseMove.name"] = "鼠标移动到",
         ["input.mouseMove.desc"] = "把光标移动到屏幕上的指定位置。",
         ["input.mouseMove.x.label"] = "X",
-        ["input.mouseMove.x.hint"] = "目标屏幕横坐标。",
+        ["input.mouseMove.x.hint"] = "目标位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。位置固定时填"
+            + "数字；位置会变时改用「坐标基准」，或在这里填一个变量或算式。",
         ["input.mouseMove.y.label"] = "Y",
-        ["input.mouseMove.y.hint"] = "目标屏幕纵坐标。",
+        ["input.mouseMove.y.hint"] = "目标位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["input.mouseMove.durationMs.label"] = "用时",
-        ["input.mouseMove.durationMs.hint"] = "0 表示瞬间跳到目标位置。",
+        ["input.mouseMove.durationMs.hint"] = "从指针当前所在处走到目标位置用多久，单位是毫秒，默认 0，即瞬间"
+            + "到达。",
         ["input.mouseMove.style.label"] = "移动方式",
-        ["input.mouseMove.style.hint"] = "鼠标怎么走过去。弧线会绕开直线；模拟人手在弧线上再带一点抖动、两头慢中间快，看起来不像机器画的。走弧线需要时间，所以瞬时移动会自动借 200 毫秒。",
+        ["input.mouseMove.style.hint"] = "指针怎么走过去，默认直线。弧线：绕开直线走一条曲线。模拟人手：在弧线上再"
+            + "加一点抖动，两头慢中间快。走弧线要占时间，所以「用时」填 0 时会按 200 毫秒走。",
         ["input.mouseMove.style.option.direct"] = "直线",
         ["input.mouseMove.style.option.smooth"] = "弧线",
         ["input.mouseMove.style.option.human"] = "模拟人手",
@@ -1338,13 +1347,17 @@ internal static class ActionStrings
         ["input.mouseMoveRelative.name"] = "鼠标相对移动",
         ["input.mouseMoveRelative.desc"] = "在当前光标位置的基础上偏移一段距离。",
         ["input.mouseMoveRelative.dx.label"] = "横向偏移",
-        ["input.mouseMoveRelative.dx.hint"] = "水平方向移动的像素数。",
+        ["input.mouseMoveRelative.dx.hint"] = "横向移动的像素数，正数向右、负数向左，单位是像素，默认 0，不小于"
+            + " -100000。",
         ["input.mouseMoveRelative.dy.label"] = "纵向偏移",
-        ["input.mouseMoveRelative.dy.hint"] = "垂直方向移动的像素数。",
+        ["input.mouseMoveRelative.dy.hint"] = "纵向移动的像素数，正数向下、负数向上，单位是像素，默认 0，不小于"
+            + " -100000。",
         ["input.mouseMoveRelative.durationMs.label"] = "用时",
-        ["input.mouseMoveRelative.durationMs.hint"] = "0 表示瞬间跳到目标位置。",
+        ["input.mouseMoveRelative.durationMs.hint"] = "从指针当前所在处走到偏移后的位置用多久，单位是毫秒，默认"
+            + " 0，即瞬间到达。",
         ["input.mouseMoveRelative.style.label"] = "移动方式",
-        ["input.mouseMoveRelative.style.hint"] = "鼠标怎么走过去。弧线会绕开直线；模拟人手在弧线上再带一点抖动、两头慢中间快，看起来不像机器画的。走弧线需要时间，所以瞬时移动会自动借 200 毫秒。",
+        ["input.mouseMoveRelative.style.hint"] = "指针怎么走过去，默认直线。弧线：绕开直线走一条曲线。模拟人手："
+            + "在弧线上再加一点抖动，两头慢中间快。走弧线要占时间，所以「用时」填 0 时会按 200 毫秒走。",
         ["input.mouseMoveRelative.style.option.direct"] = "直线",
         ["input.mouseMoveRelative.style.option.smooth"] = "弧线",
         ["input.mouseMoveRelative.style.option.human"] = "模拟人手",
@@ -1355,15 +1368,17 @@ internal static class ActionStrings
         ["input.mouseClick.useCursor.label"] = AtPointerLabel,
         ["input.mouseClick.useCursor.hint"] = AtPointerHint,
         ["input.mouseClick.x.label"] = "X",
-        ["input.mouseClick.x.hint"] = "点击位置的横坐标。",
+        ["input.mouseClick.x.hint"] = "点击位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。位置固定时填"
+            + "数字；勾上「就在指针当前所在位置」时这一格不写进宏文件。",
         ["input.mouseClick.y.label"] = "Y",
-        ["input.mouseClick.y.hint"] = "点击位置的纵坐标。",
+        ["input.mouseClick.y.hint"] = "点击位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["input.mouseClick.repeat.label"] = "重复次数",
-        ["input.mouseClick.repeat.hint"] = "一共发送几次点击。",
+        ["input.mouseClick.repeat.hint"] = "一共点几下，从 1 起，默认 1。点几下时两次之间停多久由「间隔」说。",
         ["input.mouseClick.intervalMs.label"] = "间隔",
-        ["input.mouseClick.intervalMs.hint"] = "连续点击之间的间隔。",
+        ["input.mouseClick.intervalMs.hint"] = "两下之间停多久，单位是毫秒，默认 0，即一下接一下地点。",
         ["input.mouseClick.holdMs.label"] = "按住时长",
-        ["input.mouseClick.holdMs.hint"] = "按下后保持多久才松开。填 0 就是普通的一下快点击；需要长按才响应的按钮，把这里调大。",
+        ["input.mouseClick.holdMs.hint"] = "按下之后保持多久才松开，单位是毫秒，默认 0，即普通的一下快按。对需要"
+            + "长按才响应的按钮调大。",
         ["input.mouseClick.variance.label"] = "落点随机范围",
         ["input.mouseClick.variance.hint"] =
             "实际落点与上面写的坐标最多相差多少个像素，默认 0，即正好点在写的位置上。填了数就每次都"
@@ -1371,8 +1386,8 @@ internal static class ActionStrings
             + "东西里面。",
         ["input.mouseClick.moveBack.label"] = "点完把指针移回原处",
         ["input.mouseClick.moveBack.hint"] =
-            "点完之后把指针移回点击之前的位置，鼠标就留在用户自己放的地方。后台模式下屏幕上指针"
-            + "本来就没动，这个开关不起作用。",
+            "点完之后把指针移回点击之前的位置，鼠标就留在用户自己放的地方，默认关。后台模式下屏幕上指针本来"
+            + "就没有移动，这个开关不起作用。",
 
         ["input.mouseDoubleClick.name"] = "鼠标双击",
         ["input.mouseDoubleClick.desc"] = "在屏幕指定位置双击鼠标按键。",
@@ -1380,21 +1395,22 @@ internal static class ActionStrings
         ["input.mouseDoubleClick.useCursor.label"] = AtPointerLabel,
         ["input.mouseDoubleClick.useCursor.hint"] = AtPointerHint,
         ["input.mouseDoubleClick.x.label"] = "X",
-        ["input.mouseDoubleClick.x.hint"] = "双击位置的横坐标。",
+        ["input.mouseDoubleClick.x.hint"] = "双击位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。位置固定"
+            + "时填数字；勾上「就在指针当前所在位置」时这一格不写进宏文件。",
         ["input.mouseDoubleClick.y.label"] = "Y",
-        ["input.mouseDoubleClick.y.hint"] = "双击位置的纵坐标。",
+        ["input.mouseDoubleClick.y.hint"] = "双击位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["input.mouseDoubleClick.repeat.label"] = "重复次数",
-        ["input.mouseDoubleClick.repeat.hint"] = "连着双击几次；一般填 1，也就是一次双击。",
+        ["input.mouseDoubleClick.repeat.hint"] = "连着双击几次，从 1 起，默认 1，即一次双击。",
         ["input.mouseDoubleClick.intervalMs.label"] = "间隔",
-        ["input.mouseDoubleClick.intervalMs.hint"] = "两次双击之间的等待时间。",
+        ["input.mouseDoubleClick.intervalMs.hint"] = "两次双击之间停多久，单位是毫秒，默认 0。",
         ["input.mouseDoubleClick.variance.label"] = "落点随机范围",
         ["input.mouseDoubleClick.variance.hint"] =
             "实际落点与上面写的坐标最多相差多少个像素，默认 0，即正好点在写的位置上。填了数就"
             + "每次双击都在这个范围内随机取一点。",
         ["input.mouseDoubleClick.moveBack.label"] = "点完把指针移回原处",
         ["input.mouseDoubleClick.moveBack.hint"] =
-            "点完之后把指针移回点击之前的位置，鼠标就留在用户自己放的地方。后台模式下屏幕上指针"
-            + "本来就没动，这个开关不起作用。",
+            "点完之后把指针移回双击之前的位置，鼠标就留在用户自己放的地方，默认关。后台模式下屏幕上指针本来"
+            + "就没有移动，这个开关不起作用。",
 
         ["input.mouseDown.name"] = "按下鼠标",
         ["input.mouseDown.desc"] = "保持按住鼠标按键，直到对应的“松开鼠标”步骤。",
@@ -1402,9 +1418,10 @@ internal static class ActionStrings
         ["input.mouseDown.useCursor.label"] = AtPointerLabel,
         ["input.mouseDown.useCursor.hint"] = AtPointerHint,
         ["input.mouseDown.x.label"] = "X",
-        ["input.mouseDown.x.hint"] = "按下位置的横坐标。",
+        ["input.mouseDown.x.hint"] = "按下位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。勾上「就在指针"
+            + "当前所在位置」时这一格不写进宏文件。",
         ["input.mouseDown.y.label"] = "Y",
-        ["input.mouseDown.y.hint"] = "按下位置的纵坐标。",
+        ["input.mouseDown.y.hint"] = "按下位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
 
         ["input.mouseUp.name"] = "松开鼠标",
         ["input.mouseUp.desc"] = "松开当前处于按住状态的鼠标按键。",
@@ -1412,53 +1429,61 @@ internal static class ActionStrings
         ["input.mouseUp.useCursor.label"] = AtPointerLabel,
         ["input.mouseUp.useCursor.hint"] = AtPointerHint,
         ["input.mouseUp.x.label"] = "X",
-        ["input.mouseUp.x.hint"] = "松开位置的横坐标。",
+        ["input.mouseUp.x.hint"] = "松开位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。勾上「就在指针"
+            + "当前所在位置」时这一格不写进宏文件。",
         ["input.mouseUp.y.label"] = "Y",
-        ["input.mouseUp.y.hint"] = "松开位置的纵坐标。",
+        ["input.mouseUp.y.hint"] = "松开位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
 
         ["input.mouseScroll.name"] = "鼠标滚轮",
         ["input.mouseScroll.desc"] = "滚动鼠标滚轮。",
         ["input.mouseScroll.direction.label"] = "方向",
         ["input.mouseScroll.unit.label"] = "滚轮单位",
-        ["input.mouseScroll.unit.hint"] = "格是滚轮平时一次转动的量；像素把同样的转动量分得更细，120 像素等于一格。只看整数格的程序可能会忽略不足一格的部分。",
+        ["input.mouseScroll.unit.hint"] = "滚多远按什么计算，默认格。格是滚轮平时一次转动的量；像素把同样的转动量"
+            + "分得更细，120 像素等于一格。只看整数格的程序可能会忽略不足一格的部分。",
         ["input.mouseScroll.unit.option.notches"] = "格",
         ["input.mouseScroll.unit.option.pixels"] = "像素",
         ["input.mouseScroll.amount.label"] = "数量",
-        ["input.mouseScroll.amount.hint"] = "滚多远，按上面的单位计算。",
+        ["input.mouseScroll.amount.hint"] = "滚多远，按上面的单位计算，从 1 起，默认 3。",
         ["input.mouseScroll.smoothMs.label"] = "平滑时长",
-        ["input.mouseScroll.smoothMs.hint"] = "把这次滚动分摊到这段时间，分若干小段发送，滚动会呈现平滑效果；填 0 表示一次滚完。",
+        ["input.mouseScroll.smoothMs.hint"] = "把这次滚动分摊到这段时间里分小段发送，单位是毫秒，默认 0，即一次"
+            + "滚完。程序自己带动画时用它。",
         ["input.mouseScroll.x.label"] = "X",
-        ["input.mouseScroll.x.hint"] = "滚动位置的横坐标。",
+        ["input.mouseScroll.x.hint"] = "滚动位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。勾上「就在指针"
+            + "当前所在位置」时这一格不写进宏文件。",
         ["input.mouseScroll.y.label"] = "Y",
-        ["input.mouseScroll.y.hint"] = "滚动位置的纵坐标。",
+        ["input.mouseScroll.y.hint"] = "滚动位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["input.mouseScroll.useCursor.label"] = AtPointerLabel,
         ["input.mouseScroll.useCursor.hint"] = AtPointerHint,
         ["input.mouseScroll.repeat.label"] = "重复次数",
-        ["input.mouseScroll.repeat.hint"] = "这么大的滚动量发几次。",
+        ["input.mouseScroll.repeat.hint"] = "这么大的滚动量发几次，从 1 起，默认 1。",
         ["input.mouseScroll.intervalMs.label"] = "间隔",
-        ["input.mouseScroll.intervalMs.hint"] = "两次滚动之间的等待时间。",
+        ["input.mouseScroll.intervalMs.hint"] = "两次之间停多久，单位是毫秒，默认 0。",
 
         ["input.mouseDrag.name"] = "鼠标拖拽",
         ["input.mouseDrag.desc"] = "在起点按下，拖至终点后松开。",
         ["input.mouseDrag.startX.label"] = "起点 X",
-        ["input.mouseDrag.startX.hint"] = "拖拽起点的横坐标。",
+        ["input.mouseDrag.startX.hint"] = "拖拽起点的横坐标，按「坐标基准」量起，单位是像素，默认 0。位置固定时"
+            + "填数字；位置会变时改用「坐标基准」，或在这里填一个变量或算式。",
         ["input.mouseDrag.startY.label"] = "起点 Y",
-        ["input.mouseDrag.startY.hint"] = "拖拽起点的纵坐标。",
+        ["input.mouseDrag.startY.hint"] = "拖拽起点的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["input.mouseDrag.endX.label"] = "终点 X",
-        ["input.mouseDrag.endX.hint"] = "拖拽终点的横坐标。",
+        ["input.mouseDrag.endX.hint"] = "拖拽终点的横坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["input.mouseDrag.endY.label"] = "终点 Y",
-        ["input.mouseDrag.endY.hint"] = "拖拽终点的纵坐标。",
+        ["input.mouseDrag.endY.hint"] = "拖拽终点的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["input.mouseDrag.button.label"] = "按键",
         ["input.mouseDrag.durationMs.label"] = "用时",
-        ["input.mouseDrag.durationMs.hint"] = "整个拖拽过程的时长。",
+        ["input.mouseDrag.durationMs.hint"] = "整个拖拽用多久，单位是毫秒，默认 300；从起点走到终点就是在这段时间"
+            + "里走完的。",
         ["input.mouseDrag.settleMs.label"] = "到终点先停",
         ["input.mouseDrag.settleMs.hint"] =
             "拖到终点后、松开鼠标键之前先按住不动这么多毫秒，默认 0，即一到就松。要拖进格子里的"
             + "东西，只有指针在格子上停过一下才会被放进去；一到就松会变成从上面滑过去。",
         ["input.mouseDrag.steps.label"] = "移动步数",
-        ["input.mouseDrag.steps.hint"] = "拖拽过程中发送的中间移动事件数量。",
+        ["input.mouseDrag.steps.hint"] = "拖拽过程中发出的中间移动事件数量，从 1 起，默认 20。步数越多，指针"
+            + "走出的路径画得越细。",
         ["input.mouseDrag.style.label"] = "移动方式",
-        ["input.mouseDrag.style.hint"] = "拖拽过程中鼠标的移动方式。曲线路径会偏离直线；“模拟人手”在曲线基础上叠加轻微抖动，使其不呈现机械感。",
+        ["input.mouseDrag.style.hint"] = "拖拽过程中指针怎么走，默认直线。弧线：绕开直线走一条曲线。模拟人手：在"
+            + "弧线上再加一点抖动，两头慢中间快。",
         ["input.mouseDrag.style.option.direct"] = "直线",
         ["input.mouseDrag.style.option.smooth"] = "弧线",
         ["input.mouseDrag.style.option.human"] = "模拟人手",
@@ -1471,7 +1496,7 @@ internal static class ActionStrings
         ["gamepad.button.name"] = "手柄按键",
         ["gamepad.button.desc"] = "按下虚拟手柄上的一个按键、按住不放，或者松开。",
         ["gamepad.button.button.label"] = "按键",
-        ["gamepad.button.button.hint"] = "要按的键，名字和手柄上印的一致。",
+        ["gamepad.button.button.hint"] = "要按的键，名字和手柄上印的一致，默认 A 键。",
         ["gamepad.button.button.option.a"] = "A 键",
         ["gamepad.button.button.option.b"] = "B 键",
         ["gamepad.button.button.option.x"] = "X 键",
@@ -1490,16 +1515,18 @@ internal static class ActionStrings
         ["gamepad.button.button.option.back"] = "Back",
         ["gamepad.button.button.option.guide"] = "Guide",
         ["gamepad.button.mode.label"] = "动作",
-        ["gamepad.button.mode.hint"] = "点一下是按下再松开；按住和松开用于需要跨步骤保持按下的键。",
+        ["gamepad.button.mode.hint"] = "这一步对这个键做什么，默认点按。点按＝按下再松开；按住与松开用于要跨步骤"
+            + "保持按下的键。",
         ["gamepad.button.mode.option.tap"] = "点按",
         ["gamepad.button.mode.option.down"] = "按住",
         ["gamepad.button.mode.option.up"] = "松开",
         ["gamepad.button.holdMs.label"] = "按住时长",
-        ["gamepad.button.holdMs.hint"] = "点按时按键保持按下的时长。",
+        ["gamepad.button.holdMs.hint"] = "点按时按键保持按下多久，单位是毫秒，默认 50；按住与松开两种动作不用"
+            + "它。",
         ["gamepad.button.repeat.label"] = "连按次数",
-        ["gamepad.button.repeat.hint"] = "点按几次；连按就是一次接一次地按，中间隔下面的时长。",
+        ["gamepad.button.repeat.hint"] = "点按几下，从 1 起，默认 1；两次之间停多久由「连按间隔」说。",
         ["gamepad.button.intervalMs.label"] = "连按间隔",
-        ["gamepad.button.intervalMs.hint"] = "两次连按之间停多久。",
+        ["gamepad.button.intervalMs.hint"] = "两次之间停多久，单位是毫秒，默认 0。",
 
         ["gamepad.stick.name"] = "手柄摇杆",
         ["gamepad.stick.desc"] = "把虚拟手柄的一根摇杆拨开，写的是偏离中心百分之多少。",
@@ -1507,9 +1534,11 @@ internal static class ActionStrings
         ["gamepad.stick.stick.option.left"] = "左摇杆",
         ["gamepad.stick.stick.option.right"] = "右摇杆",
         ["gamepad.stick.x.label"] = "X",
-        ["gamepad.stick.x.hint"] = "左右拨多少：100 是最右，-100 是最左，0 是居中。",
+        ["gamepad.stick.x.hint"] = "左右拨多少，用偏离中心的百分数写，范围 -100 到 100，默认 0：100 是最右，"
+            + "-100 是最左。",
         ["gamepad.stick.y.label"] = "Y",
-        ["gamepad.stick.y.hint"] = "上下拨多少：100 是最上，-100 是最下，0 是居中。",
+        ["gamepad.stick.y.hint"] = "上下拨多少，用偏离中心的百分数写，范围 -100 到 100，默认 0：100 是最上，"
+            + "-100 是最下。",
 
         ["gamepad.trigger.name"] = "手柄扳机",
         ["gamepad.trigger.desc"] = "扣下虚拟手柄的一个扳机，或者松开。",
@@ -1517,7 +1546,7 @@ internal static class ActionStrings
         ["gamepad.trigger.trigger.option.left"] = "左扳机 (LT)",
         ["gamepad.trigger.trigger.option.right"] = "右扳机 (RT)",
         ["gamepad.trigger.amount.label"] = "扣下程度",
-        ["gamepad.trigger.amount.hint"] = "扣下多少，按百分数写。",
+        ["gamepad.trigger.amount.hint"] = "扣下多少，用百分数写，范围 0 到 100，默认 100，即扣到底；松开扳机填 0。",
 
         ["gamepad.release.name"] = "松开手柄",
         ["gamepad.release.desc"] = "松开虚拟手柄上所有按键、摇杆和扳机。一次运行结束时本来就会自动松开，"

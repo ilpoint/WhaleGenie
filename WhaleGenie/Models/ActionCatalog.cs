@@ -1770,7 +1770,10 @@ public static class ActionCatalog
             Description = "Press and release a key.",
             Parameters =
             [
-                KeyBind("key", "Key", "Key to press, for example F5 or Enter."),
+                KeyBind("key", "Key",
+                    "The key to press, named the way it is printed on the keyboard, for example F5, "
+                    + "Enter or A. Take it off the keyboard drawn on screen when the spelling is not "
+                    + "obvious."),
                 Hold(50, "key"),
                 ..Beat(),
                 ..Delivery(),
@@ -1784,7 +1787,9 @@ public static class ActionCatalog
             Description = "Hold a key down until a matching Key Up step releases it.",
             Parameters =
             [
-                KeyBind("key", "Key"),
+                KeyBind("key", "Key",
+                    "The key to hold down, named the same way as in a Key Press step. Letting it go "
+                    + "is the matching Key Up step's business."),
                 ..Delivery(),
             ],
         },
@@ -1796,7 +1801,9 @@ public static class ActionCatalog
             Description = "Release a key that is currently held down.",
             Parameters =
             [
-                KeyBind("key", "Key"),
+                KeyBind("key", "Key",
+                    "The key to let go of, named the same way as in a Key Press step; it is one a Key "
+                    + "Down step above has held down."),
                 ..Delivery(),
             ],
         },
@@ -1809,9 +1816,9 @@ public static class ActionCatalog
             Parameters =
             [
                 KeyChord("keys", "Keys",
-                    "Keys joined with + and pressed together. Take them off the keyboard drawn on "
-                    + "screen to be sure of the spelling: the two Ctrl keys and the two Shift keys "
-                    + "are named apart, and the machine tells them apart."),
+                    "The keys to press together, joined with +, for example Ctrl+Shift+S. Take them "
+                    + "off the keyboard drawn on screen to be sure of the spelling: the two Ctrl keys "
+                    + "and the two Shift keys are named apart, and the machine tells them apart."),
                 Hold(50, "combination"),
                 ..Beat(),
                 ..Delivery(),
@@ -1829,20 +1836,22 @@ public static class ActionCatalog
                 KeySequence(),
                 ..Delivery(),
                 Number("holdMs", "Hold each one for", 50,
-                    "How long every combination of the run stays down. A row may say its own."),
+                    "How long every combination of the run stays down, in milliseconds; 50 by "
+                    + "default. A row may say its own."),
                 Number("gapMs", "Gap between them", 120,
-                    "How long the run waits between one combination and the next. This is the beat "
-                    + "of the combo, and it is the part a game notices: too short and the presses "
-                    + "run into one another, too long and they stop being a combo. A row may say "
-                    + "its own, and the give beside this box is what keeps the beat from being the "
-                    + "same number every time a macro plays it."),
+                    "How long the run waits between one combination and the next, in milliseconds; "
+                    + "120 by default. This is the beat of the combo, and it is the part a game "
+                    + "notices: too short and the presses run into one another, too long and they "
+                    + "stop being a combo. A row may say its own, and the give beside this box is "
+                    + "what keeps the beat from being the same number every time a macro plays it."),
                 Number("afterMs", "Pause afterwards", 0,
-                    "How long to wait after the last combination before the next step runs.",
-                    advanced: true),
-                Number("repeat", "Play the run again", 1, "How many times to play the whole run.",
-                    min: 1),
+                    "How long to wait after the last combination before the next step runs, in "
+                    + "milliseconds; 0 by default.", advanced: true),
+                Number("repeat", "Play the run again", 1,
+                    "How many times the whole run is played, from 1 up; 1 by default.", min: 1),
                 Number("intervalMs", "Between runs", 0,
-                    "Pause between one playing of the run and the next."),
+                    "How long to wait between one playing of the run and the next, in milliseconds; "
+                    + "0 by default."),
             ],
         },
         new()
@@ -1853,8 +1862,12 @@ public static class ActionCatalog
             Description = "Type a string of text.",
             Parameters =
             [
-                Multiline("text", "Text", "Text to type.", "Hello world", acceptsFormula: true),
-                Number("intervalMs", "Interval", 30, "Delay between characters."),
+                Multiline("text", "Text",
+                    "The text to type; it may run over several lines, and it may be a variable or an "
+                    + "expression.", "Hello world", acceptsFormula: true),
+                Number("intervalMs", "Interval", 30,
+                    "How long to wait between characters, in milliseconds; 30 by default. Raise it "
+                    + "for an application that misses characters typed too fast."),
                 ..Delivery(),
             ],
         },
@@ -1866,10 +1879,17 @@ public static class ActionCatalog
             Description = "Move the cursor to a screen position.",
             Parameters =
             [
-                Number("x", "X", 0, "Target screen column."),
-                Number("y", "Y", 0, "Target screen row."),
+                Number("x", "X", 0,
+                    "The column of the place to move to, counted from the coordinate origin above, "
+                    + "in pixels; 0 by default. Type a number for a place that does not move, or "
+                    + "change the coordinate origin, or put a variable here, for one that does."),
+                Number("y", "Y", 0,
+                    "The row of the place to move to, counted from the coordinate origin above, in "
+                    + "pixels; 0 by default."),
                 ..Anchor(withElement: true, byTitleOnly: true),
-                Number("durationMs", "Duration", 0, "0 jumps straight to the target."),
+                Number("durationMs", "Duration", 0,
+                    "How long the pointer takes to travel from where it is to the target, in "
+                    + "milliseconds; 0, the default, arrives at once."),
                 Movement(),
                 ..Delivery(),
             ],
@@ -1882,9 +1902,15 @@ public static class ActionCatalog
             Description = "Move the cursor by an offset from its current position.",
             Parameters =
             [
-                Number("dx", "Offset X", 0, "Pixels to move horizontally.", min: -100000m),
-                Number("dy", "Offset Y", 0, "Pixels to move vertically.", min: -100000m),
-                Number("durationMs", "Duration", 0, "0 jumps straight to the target."),
+                Number("dx", "Offset X", 0,
+                    "How far to move sideways, in pixels; positive goes right and negative left, 0 by "
+                    + "default, and no less than -100000.", min: -100000m),
+                Number("dy", "Offset Y", 0,
+                    "How far to move up or down, in pixels; positive goes down and negative up, 0 by "
+                    + "default, and no less than -100000.", min: -100000m),
+                Number("durationMs", "Duration", 0,
+                    "How long the pointer takes to travel to the offset place, in milliseconds; 0, "
+                    + "the default, arrives at once."),
                 Movement(),
                 ..Delivery(),
             ],
@@ -1899,7 +1925,12 @@ public static class ActionCatalog
             [
                 Button(),
                 AtPointer(),
-                ..PointerPosition("Screen column to click.", "Screen row to click."),
+                ..PointerPosition(
+                    "The column of the place to click, counted from the coordinate origin above, in "
+                    + "pixels; 0 by default. Nothing is written here while the place comes from the "
+                    + "pointer.",
+                    "The row of the place to click, counted from the same origin and in the same "
+                    + "pixels; 0 by default."),
                 ..Anchor(withElement: true, byTitleOnly: true),
                 Aim(),
                 PutBack(),
@@ -1920,7 +1951,12 @@ public static class ActionCatalog
             [
                 Button(),
                 AtPointer(),
-                ..PointerPosition("Screen column to click.", "Screen row to click."),
+                ..PointerPosition(
+                    "The column of the place to double click, counted from the coordinate origin "
+                    + "above, in pixels; 0 by default. Nothing is written here while the place comes "
+                    + "from the pointer.",
+                    "The row of the place to double click, counted from the same origin and in the "
+                    + "same pixels; 0 by default."),
                 ..Anchor(withElement: true, byTitleOnly: true),
                 Aim(),
                 PutBack(),
@@ -1938,7 +1974,12 @@ public static class ActionCatalog
             [
                 Button(),
                 AtPointer(),
-                ..PointerPosition("Screen column to press.", "Screen row to press."),
+                ..PointerPosition(
+                    "The column of the place to press, counted from the coordinate origin above, in "
+                    + "pixels; 0 by default. Nothing is written here while the place comes from the "
+                    + "pointer.",
+                    "The row of the place to press, counted from the same origin and in the same "
+                    + "pixels; 0 by default."),
                 ..Anchor(withElement: true, byTitleOnly: true),
                 ..Delivery(),
             ],
@@ -1953,7 +1994,12 @@ public static class ActionCatalog
             [
                 Button(),
                 AtPointer(),
-                ..PointerPosition("Screen column to release at.", "Screen row to release at."),
+                ..PointerPosition(
+                    "The column of the place to let go at, counted from the coordinate origin above, "
+                    + "in pixels; 0 by default. Nothing is written here while the place comes from "
+                    + "the pointer.",
+                    "The row of the place to let go at, counted from the same origin and in the same "
+                    + "pixels; 0 by default."),
                 ..Anchor(withElement: true, byTitleOnly: true),
                 ..Delivery(),
             ],
@@ -1968,15 +2014,22 @@ public static class ActionCatalog
             [
                 Choice("direction", "Direction", ["up", "down", "left", "right"], "down"),
                 Choice("unit", "Unit", ["notches", "pixels"], "notches",
-                    "Notches are the steps a wheel normally turns in. Pixels measure the same " +
-                    "turn more finely, with 120 pixels to a notch; an application that only " +
-                    "looks at whole notches may ignore the smaller amounts."),
-                Number("amount", "Amount", 3, "How far to scroll, counted in the unit above.", min: 1),
+                    "What the amount below is counted in; whole notches by default. Notches are the "
+                    + "steps a wheel normally turns in. Pixels measure the same turn more finely, with "
+                    + "120 pixels to a notch; an application that only looks at whole notches may "
+                    + "ignore the smaller amounts."),
+                Number("amount", "Amount", 3,
+                    "How far to scroll, counted in the unit above, from 1 up; 3 by default.", min: 1),
                 Number("smoothMs", "Smooth", 0,
-                    "Spread the scroll over this many milliseconds instead of sending it in one " +
-                    "jump, so an application that animates its scrolling can follow. 0 sends it " +
-                    "all at once.", advanced: true),
-                ..PointerPosition("Screen column to scroll at.", "Screen row to scroll at."),
+                    "Spread the scroll over this many milliseconds instead of sending it in one "
+                    + "jump, so an application that animates its scrolling can follow; 0, the "
+                    + "default, sends it all at once.", advanced: true),
+                ..PointerPosition(
+                    "The column of the place to scroll at, counted from the coordinate origin above, "
+                    + "in pixels; 0 by default. Nothing is written here while the place comes from "
+                    + "the pointer.",
+                    "The row of the place to scroll at, counted from the same origin and in the same "
+                    + "pixels; 0 by default."),
                 AtPointer(),
                 ..Anchor(withElement: true, byTitleOnly: true),
                 ..Beat(),
@@ -1991,16 +2044,27 @@ public static class ActionCatalog
             Description = "Press at one point, move to another and release.",
             Parameters =
             [
-                Number("startX", "Start X", 0, "Where the drag begins."),
-                Number("startY", "Start Y", 0),
-                Number("endX", "End X", 0, "Where the drag ends."),
-                Number("endY", "End Y", 0),
+                Number("startX", "Start X", 0,
+                    "The column of the place the drag begins at, counted from the coordinate origin "
+                    + "above, in pixels; 0 by default. Type a number for a place that does not move, "
+                    + "or put a variable here, for one that does."),
+                Number("startY", "Start Y", 0,
+                    "The row of the place the drag begins at, counted from the same origin and in the "
+                    + "same pixels; 0 by default."),
+                Number("endX", "End X", 0,
+                    "The column of the place the drag ends at, counted from the same origin and in "
+                    + "the same pixels; 0 by default."),
+                Number("endY", "End Y", 0,
+                    "The row of the place the drag ends at, counted from the same origin and in the "
+                    + "same pixels; 0 by default."),
                 ..Anchor(withElement: true, byTitleOnly: true),
                 Button(),
-                Number("durationMs", "Duration", 300, "How long the drag takes."),
+                Number("durationMs", "Duration", 300,
+                    "How long the drag takes, in milliseconds; 300 by default. The pointer travels "
+                    + "from one end to the other over that time."),
                 Number("steps", "Move steps", 20,
-                    "Intermediate move events sent while dragging, 20 by default.", min: 1,
-                    advanced: true),
+                    "Intermediate move events sent while dragging, from 1 up; 20 by default. The more "
+                    + "of them, the more finely the pointer's path is drawn.", min: 1, advanced: true),
                 Movement(),
                 Settle(),
                 ..Delivery(),
@@ -2031,8 +2095,8 @@ public static class ActionCatalog
             [
                 GamepadButton(),
                 Choice("mode", "Action", ["tap", "down", "up"], "tap",
-                    "A tap presses and lets go; hold and let up are for a button that has to stay "
-                    + "down across other steps.",
+                    "What this step does to the button; a tap by default. A tap presses and lets go; "
+                    + "hold and let up are for a button that has to stay down across other steps.",
                     labels: ["Tap", "Hold down", "Let up"]),
                 Hold(50, "button", "It only applies to a tap."),
                 ..Beat(),
@@ -2049,10 +2113,13 @@ public static class ActionCatalog
                 Choice("stick", "Stick", ["left", "right"], "left",
                     labels: ["Left stick", "Right stick"]),
                 Number("x", "X", 0,
-                    "How far sideways: 100 is all the way right, -100 all the way left, 0 centred.",
+                    "How far sideways the stick is pushed, as whole percent away from its centre, "
+                    + "from -100 to 100; 0 by default, 100 all the way right and -100 all the way "
+                    + "left.",
                     min: -100, max: 100),
                 Number("y", "Y", 0,
-                    "How far up or down: 100 is all the way up, -100 all the way down, 0 centred.",
+                    "How far up or down the stick is pushed, as whole percent away from its centre, "
+                    + "from -100 to 100; 0 by default, 100 all the way up and -100 all the way down.",
                     min: -100, max: 100),
             ],
         },
@@ -2066,8 +2133,9 @@ public static class ActionCatalog
             [
                 Choice("trigger", "Trigger", ["left", "right"], "left",
                     labels: ["Left trigger", "Right trigger"]),
-                Number("amount", "Amount", 100, "How far it is pulled, as a whole percent.",
-                    min: 0, max: 100),
+                Number("amount", "Amount", 100,
+                    "How far the trigger is pulled, as whole percent, from 0 to 100; 100 by default, "
+                    + "which is all the way down. 0 lets it back off.", min: 0, max: 100),
             ],
         },
         new()
@@ -3733,7 +3801,7 @@ public static class ActionCatalog
     /// </summary>
     private static ActionParameter GamepadButton()
         => Choice("button", "Button", [.. GamepadNames.Buttons], "a",
-            "The button to press, named the way it is printed on the pad.",
+            "The button to press, named the way it is printed on the pad; A by default.",
             labels:
             [
                 "A", "B", "X", "Y",
@@ -4139,12 +4207,14 @@ public static class ActionCatalog
     /// <summary>按下去之后停多久。0 是普通的一次快按。</summary>
     private static ActionParameter Hold(decimal defaultMs, string what, string whenZero = "")
         => Number("holdMs", "Hold", defaultMs,
-            $"How long the {what} stays down." + (whenZero.Length > 0 ? " " + whenZero : string.Empty));
+            $"How long the {what} stays down, in milliseconds; {defaultMs:0} by default."
+            + (whenZero.Length > 0 ? " " + whenZero : string.Empty));
 
     /// <summary>重复几次、隔多久。</summary>
     private static ActionParameter[] Beat() =>
     [
-        Number("repeat", "Repeat", 1, "How many times this step is sent in a row.", min: 1),
+        Number("repeat", "Repeat", 1, "How many times this step is sent in a row, from 1 up; 1 by "
+            + "default. How long to wait between one and the next is the interval beside it.", min: 1),
         Number("intervalMs", "Interval", 0,
             "How long to wait between one and the next, in milliseconds; 0, the default, sends them "
             + "one after the other with no pause."),
