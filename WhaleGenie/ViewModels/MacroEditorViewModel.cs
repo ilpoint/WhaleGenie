@@ -194,6 +194,12 @@ public partial class MacroEditorViewModel : ViewModelBase
     private IReadOnlyList<MacroCallable> _projectMacros = [];
 
     /// <summary>
+    /// True when another macro of the same project also sends keys or clicks: the check has to know
+    /// that to say two of them running at once would write their input through each other.
+    /// </summary>
+    private bool _inputShared;
+
+    /// <summary>
     /// What this macro asks a call to fill in. The editor holds it so that opening a macro and
     /// saving it again does not drop what it declares, and so a call this macro makes to itself is
     /// judged by the same list.
@@ -219,9 +225,10 @@ public partial class MacroEditorViewModel : ViewModelBase
     private Dictionary<MacroStep, string> _problemByStep = [];
 
     /// <summary>Hands in the macro names a call may reach, and checks the steps again.</summary>
-    public void SetProjectMacros(IEnumerable<MacroCallable> macros)
+    public void SetProjectMacros(IEnumerable<MacroCallable> macros, bool inputShared = false)
     {
         _projectMacros = [.. macros];
+        _inputShared = inputShared;
         RebuildRows();
     }
 
@@ -577,6 +584,13 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>When set, the macro runs only once instead of repeating.</summary>
     [ObservableProperty]
     public partial bool TriggerOnce { get; set; }
+
+    /// <summary>
+    /// When set, this macro takes turns with the other macros that are set up the same way: only one
+    /// of them sends keys or clicks at a time. It says nothing about when any of them starts.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool ExclusiveInput { get; set; }
 
     /// <summary>Colour watched for the trigger, as a hex string (for example <c>#000000</c>).</summary>
     [ObservableProperty]
@@ -1374,6 +1388,7 @@ public partial class MacroEditorViewModel : ViewModelBase
             ColorPositionY = macro.ColorPositionY.ToString(CultureInfo.InvariantCulture);
             UseCursorPosition = macro.UseCursorPosition;
             TriggerOnce = macro.TriggerOnce;
+            ExclusiveInput = macro.ExclusiveInput;
             HexColor = macro.HexColor;
             ColorTolerance = macro.ColorTolerance.ToString(CultureInfo.InvariantCulture);
             RecordMouseMovement = macro.RecordMouseMovement;
@@ -1848,7 +1863,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     private void RefreshProblems()
     {
-        Problems = MacroCheck.Inspect(Steps, OwnCallable, _projectMacros);
+        Problems = MacroCheck.Inspect(Steps, OwnCallable, _projectMacros, _inputShared);
         _problemByStep = Problems
             .GroupBy(problem => problem.Step)
             .ToDictionary(group => group.Key,
@@ -2148,6 +2163,7 @@ public partial class MacroEditorViewModel : ViewModelBase
             ColorPositionY = ParseCoordinate(ColorPositionY),
             UseCursorPosition = UseCursorPosition,
             TriggerOnce = TriggerOnce,
+            ExclusiveInput = ExclusiveInput,
             HexColor = HexColor,
             ColorTolerance = ParseCoordinate(ColorTolerance),
             RecordMouseMovement = RecordMouseMovement,

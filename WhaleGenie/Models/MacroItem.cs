@@ -56,6 +56,14 @@ public partial class MacroItem : ObservableObject
     /// <summary>When set, the macro runs only once instead of repeating.</summary>
     public bool TriggerOnce { get; set; }
 
+    /// <summary>
+    /// True when this macro waits for the input door the macros set up this way share, so two of
+    /// them running at once do not write their keys and clicks through each other. Off by default:
+    /// it only means anything when more than one macro is running, and a macro on its own should
+    /// not stop for a door that nothing else is knocking on.
+    /// </summary>
+    public bool ExclusiveInput { get; set; }
+
     /// <summary>Whether a timer trigger repeats by the clock or at a set time of day.</summary>
     public ScheduleMode ScheduleMode { get; set; } = ScheduleMode.Interval;
 
@@ -296,6 +304,7 @@ public partial class MacroItem : ObservableObject
             },
             ["useCursorPosition"] = UseCursorPosition,
             ["triggerOnce"] = TriggerOnce,
+            ["exclusiveInput"] = ExclusiveInput,
             ["hexColor"] = HexColor,
             ["colorTolerance"] = ColorTolerance,
             ["delayScale"] = DelayScale,
@@ -400,6 +409,7 @@ public partial class MacroItem : ObservableObject
             ColorPositionY = ReadInt(position?["y"]),
             UseCursorPosition = ReadFlag(node, "useCursorPosition"),
             TriggerOnce = ReadFlag(node, "triggerOnce"),
+            ExclusiveInput = ReadFlag(node, "exclusiveInput"),
             HexColor = node["hexColor"]?.GetValue<string>() ?? "#000000",
             ColorTolerance = ReadInt(node["colorTolerance"]),
             RecordMouseMovement = ReadBool(record?["mouseMovement"], true),

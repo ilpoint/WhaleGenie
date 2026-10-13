@@ -676,6 +676,23 @@
                                            Text="{Binding [Editor.IdleNote], Source={x:Static loc:Strings.Current}}" />
                             </StackPanel>
 
+                            <!-- How this macro behaves when it is running at the same time as
+                                 another one. It is not a trigger: the same question is asked
+                                 whatever starts the macro. -->
+                            <Border Classes="GroupBox">
+                                <StackPanel>
+                                    <TextBlock Classes="GroupHeader" Margin="0,0,0,10"
+                                               Text="{Binding [Editor.RunningTogether], Source={x:Static loc:Strings.Current}}" />
+
+                                    <CheckBox Foreground="#C8C8C8" FontSize="12.5"
+                                              Content="{Binding [Editor.ExclusiveInput], Source={x:Static loc:Strings.Current}}"
+                                              IsChecked="{Binding ExclusiveInput}" />
+
+                                    <TextBlock Classes="Muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Editor.ExclusiveInputNote], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                            </Border>
+
                             <Border Classes="GroupBox">
                                 <StackPanel>
                                     <TextBlock Classes="GroupHeader" Margin="0,0,0,10"

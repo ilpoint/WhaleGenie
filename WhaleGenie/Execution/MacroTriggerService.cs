@@ -1140,6 +1140,8 @@ public sealed class MacroTriggerService : IDisposable
                 {
                     FailureScreenshot = failureScreenshot,
                     FailureFolder = AppPaths.Logs,
+                    RunName = macro.Name,
+                    ExclusiveInput = macro.ExclusiveInput,
                 };
                 var result = await runner.RunAsync(steps, token);
                 if (result.Status != RunStatus.Completed || !repeating || StoppingAfterPass(macro))

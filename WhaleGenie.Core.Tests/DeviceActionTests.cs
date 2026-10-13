@@ -6598,6 +6598,62 @@ public class DeviceActionTests
         Assert.Equal("keyDown Shift", devices.Calls[0]);
         Assert.Equal("keyUp Shift", devices.Calls[^1]);
     }
+
+    /// <summary>One run that presses a key and holds it, with its own answer about taking turns.</summary>
+    private static Task<RunResult> Pressing(FakeDeviceLayer devices, string key, string holdMs,
+        bool exclusive, string name)
+        => new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
+        {
+            RunName = name,
+            ExclusiveInput = exclusive,
+        }.RunAsync([Step("input.keyPress", Param("key", key), Param("holdMs", holdMs))]);
+
+    /// <summary>
+    /// 要求互斥的运行，发输入的那一步会排在门外等：别人还在发的时候，它不会硬挤进去。谁先谁后
+    /// 不能靠运气 —— 收到输入的那一方会看到两个宏的按键穿插在一起。
+    /// </summary>
+    [Fact]
+    public async Task An_input_step_waits_at_the_door_while_another_run_is_inside()
+    {
+        var devices = new FakeDeviceLayer();
+        var inside = await InputGate.Take("别人", default);
+        var run = Pressing(devices, "A", "10", exclusive: true, "第一个");
+
+        try
+        {
+            await Task.Delay(100);
+
+            Assert.False(run.IsCompleted);
+            Assert.Empty(devices.Calls);
+            Assert.Equal("别人", InputGate.Owner);
+        }
+        finally
+        {
+            inside.Dispose();
+        }
+
+        await run;
+
+        Assert.Equal(["keyPress A 10"], devices.Calls);
+
+        // 发完就把门交回去，下一个才进得来。
+        Assert.Equal(string.Empty, InputGate.Owner);
+    }
+
+    /// <summary>
+    /// 没要求互斥的运行站在门外也照发：门只拦要求互斥的那些，一个宏单独跑时不该为它停下来。
+    /// </summary>
+    [Fact]
+    public async Task A_run_that_did_not_ask_to_take_turns_goes_straight_through()
+    {
+        var devices = new FakeDeviceLayer();
+        using var inside = await InputGate.Take("别人", default);
+
+        await Pressing(devices, "A", "10", exclusive: false, "第一个");
+
+        Assert.Equal(["keyPress A 10"], devices.Calls);
+        Assert.Equal("别人", InputGate.Owner);
+    }
 }
 
 /// <summary>

@@ -141,7 +141,8 @@ public partial class MacroEditorWindow : Window
         // one is marked while it is being read rather than when the trigger fires.
         _viewModel.SetProjectMacros(_project
             .Where(macro => !ReferenceEquals(macro, _editing))
-            .Select(macro => macro.Callable));
+            .Select(macro => macro.Callable),
+            OtherMacroSendsInput());
 
         DataContext = _viewModel;
         Title = Strings.Get("Editor.Title");
@@ -634,6 +635,21 @@ public partial class MacroEditorWindow : Window
     private void OnRunMacroRequested() => ShowAddAction(null, null, "control.runMacro");
 
     /// <summary>
+    /// Whether any other macro of this project sends keys or clicks. Two macros that do, running at
+    /// once, write their input through each other, and neither of them looks wrong on its own — so
+    /// the check is handed this rather than left to guess it from the macro being edited.
+    /// </summary>
+    private bool OtherMacroSendsInput()
+        => _project
+            .Where(macro => !ReferenceEquals(macro, _editing))
+            .SelectMany(macro => macro.Steps)
+            .Any(SendsInput);
+
+    private static bool SendsInput(MacroStep step)
+        => MacroRunner.SendsInput(step.Type)
+            || step.StepLists.SelectMany(list => list.Steps).Any(SendsInput);
+
+    /// <summary>
     /// Takes a macro lifted out of this one: it counts as part of the project from here on, so a
     /// later call can be pointed at it and the design-time check knows it is there.
     /// </summary>
@@ -643,7 +659,8 @@ public partial class MacroEditorWindow : Window
         _project.Add(macro);
         _viewModel.SetProjectMacros(_project
             .Where(candidate => !ReferenceEquals(candidate, _editing))
-            .Select(candidate => candidate.Callable));
+            .Select(candidate => candidate.Callable),
+            OtherMacroSendsInput());
     }
 
     /// <summary>

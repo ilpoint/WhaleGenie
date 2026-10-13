@@ -245,6 +245,13 @@
                     <TextBlock Grid.Column="4" Margin="14,0,0,0" VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#C8A165"
                                Text="{Binding Status}" />
+                    <!-- Whose turn it is at the input door. Two macros running at once are two
+                         hands on one keyboard, and this is the line that says which of them is
+                         sending keys right now. -->
+                    <TextBlock Grid.Column="6" Margin="12,0,0,0" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#8FD9A8"
+                               IsVisible="{Binding ShowsInputOwner}"
+                               Text="{Binding InputOwnerLine}" />
                     <Border Grid.Column="5" Margin="10,0,0,0" Padding="8,3" CornerRadius="4"
                             Background="#3A2A10" BorderBrush="#8A6A2A" BorderThickness="1"
                             VerticalAlignment="Center"

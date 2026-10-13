@@ -410,6 +410,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.PickedColor"] = "Color captured: {0}",
         ["Editor.PickFailed"] = "That point could not be read from the screen.",
         ["Editor.RecordActions"] = "Record Actions",
+        ["Editor.RunningTogether"] = "Running next to other macros",
+        ["Editor.ExclusiveInput"] = "Take turns sending input",
+        ["Editor.ExclusiveInputNote"] = "With this on, this macro and every other macro set up the "
+            + "same way send their keys and clicks one step at a time rather than through each "
+            + "other. Looking at the screen is not held back by it. Off by default: a macro running "
+            + "on its own has nobody to wait for.",
         ["Editor.PositionCapture"] = "Mouse Position Capture :",
         ["Editor.MouseMovement"] = "Mouse Movement",
         ["Editor.MouseButtons"] = "Mouse Buttons",
@@ -494,6 +500,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.BreakOutsideLoop"] = "This break is not inside a loop, so there is nothing to leave.",
         ["Editor.Problem.ContinueOutsideLoop"] = "This continue is not inside a loop, so there is no next round to start.",
         ["Editor.Problem.NoMacro"] = "This step does not say which macro to run.",
+        ["Editor.Problem.SharedInput"] = "Another macro of this project sends keys or clicks too. "
+            + "Two of them running at once write their input through each other, so turn on "
+            + "\"Take turns sending input\" on both if they may ever run together.",
         ["Editor.Problem.MacroNotFound"] = "There is no macro called \"{0}\" in this project.",
         ["Editor.Problem.UndeclaredArgument"] =
             "\"{0}\" is not filled in by \"{1}\" as one of its arguments, so nothing reads it.",
@@ -935,6 +944,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.Variables"] = "Variables",
         ["Run.Empty"] = "This macro has no steps yet.",
         ["Run.Ready"] = "Ready",
+        // Whose turn it is at the input door, for the macros that take turns there.
+        ["Run.InputOwner"] = "Sending input: {0}",
+        ["Run.InputOwnerNone"] = "Nobody else is sending input",
         ["Run.Running"] = "Running\u2026",
         ["Run.Paused"] = "Paused before the next step",
         ["Run.BreakpointWhen"] = "Stops here only when: {0}",
@@ -1498,6 +1510,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.PickedColor"] = "已取色：{0}",
         ["Editor.PickFailed"] = "无法读取该位置的屏幕颜色。",
         ["Editor.RecordActions"] = "录制动作",
+        ["Editor.RunningTogether"] = "与别的宏一起跑时",
+        ["Editor.ExclusiveInput"] = "与别的宏互斥发输入",
+        ["Editor.ExclusiveInputNote"] = "勾上后，这个宏与同样勾上的其他宏一步一步轮流发键鼠，"
+            + "不会把自己的按键插进对方中间；看屏幕、识别的动作不受影响。默认不勾：一个宏单独跑时"
+            + "没有要等的人。",
         ["Editor.PositionCapture"] = "鼠标位置记录方式：",
         ["Editor.MouseMovement"] = "鼠标移动",
         ["Editor.MouseButtons"] = "鼠标按键",
@@ -1574,6 +1591,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.BreakOutsideLoop"] = "这个 break 不在任何循环里，没有可以跳出的循环。",
         ["Editor.Problem.ContinueOutsideLoop"] = "这个 continue 不在任何循环里，没有可以进入的下一轮。",
         ["Editor.Problem.NoMacro"] = "这一步没有选要执行的宏。",
+        ["Editor.Problem.SharedInput"] = "这个项目里还有别的宏也会发键鼠；两个同时跑时输入会互相插队。可能一起跑的话，两边都勾上「与别的宏互斥发输入」。",
         ["Editor.Problem.MacroNotFound"] = "本项目里没有名为“{0}”的宏。",
         ["Editor.Problem.UndeclaredArgument"] = "“{1}”没有声明“{0}”这个形参，传过去的这个值没有步骤会读。",
         ["Editor.Problem.UndeclaredResult"] = "“{1}”没有声明要交回“{0}”，这一步取不到它。",
@@ -1974,6 +1992,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.Variables"] = "变量监视",
         ["Run.Empty"] = "这个宏还没有步骤。",
         ["Run.Ready"] = "准备就绪",
+        ["Run.InputOwner"] = "正在发输入：{0}",
+        ["Run.InputOwnerNone"] = "现在没有别的宏在发输入",
         ["Run.Running"] = "运行中…",
         ["Run.Paused"] = "已暂停，等待下一步",
         ["Run.BreakpointWhen"] = "条件成立才停：{0}",

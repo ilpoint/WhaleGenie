@@ -279,6 +279,27 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// </summary>
     private bool _skipThisStep;
 
+    /// <summary>
+    /// Whether the macro being debugged asked to share the input door with the other macros that
+    /// asked for it. A window opened on its own, with no macro behind it, has nothing to share.
+    /// </summary>
+    private bool _exclusiveInput;
+
+    /// <summary>
+    /// Whose turn it is at the input door, as a line to read. It is shown only for the macros that
+    /// asked to share the door, because for any other macro the answer is always the same and says
+    /// nothing.
+    /// </summary>
+    public string InputOwnerLine => InputGate.Owner.Length == 0
+        ? Strings.Get("Run.InputOwnerNone")
+        : Strings.Format("Run.InputOwner", InputGate.Owner);
+
+    /// <summary>True while this macro takes turns at the input door, so the line means something.</summary>
+    public bool ShowsInputOwner => _exclusiveInput;
+
+    /// <summary>The door changed hands, so what the line says has changed with it.</summary>
+    public void RefreshInputOwner() => OnPropertyChanged(nameof(InputOwnerLine));
+
     /// <summary>The names a breakpoint's condition may use, read off the macro being debugged.</summary>
     private IReadOnlyList<VariableChoice> _choices = [];
 
@@ -430,6 +451,9 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
         Load(macro.Steps);
         Debugged = macro.Name;
+        _exclusiveInput = macro.ExclusiveInput;
+        OnPropertyChanged(nameof(ShowsInputOwner));
+        OnPropertyChanged(nameof(InputOwnerLine));
         if (switched)
         {
             _runNote = Strings.Format("Run.DebugSwitched", was, macro.Name);
@@ -723,6 +747,8 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
             {
                 FailureScreenshot = LocalSettings.LoadFailureScreenshot(),
                 FailureFolder = AppPaths.Logs,
+                RunName = Debugged,
+                ExclusiveInput = _exclusiveInput,
             };
 
             // Off the interface thread: a step that talks to a device waits for it right there in

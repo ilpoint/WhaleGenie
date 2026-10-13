@@ -401,4 +401,30 @@ public class MacroEditorTests
     private static List<Avalonia.Controls.Shapes.Path> Marks(Window window)
         => [.. window.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>()
             .Where(path => path.Classes.Contains("ProblemMark"))];
+
+    /// <summary>
+    /// 「与别的宏互斥发输入」写进宏文件：换台机器打开、或者从包里读回来，这个开关还在 —— 它是这个
+    /// 宏自己的性质，不是一个只在这次会话里管用的界面状态。
+    /// </summary>
+    [Fact]
+    public void Taking_turns_sending_input_is_kept_in_the_macro()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = Open();
+            viewModel.ExclusiveInput = true;
+
+            viewModel.SaveCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            var saved = window.Result;
+            Assert.NotNull(saved);
+            Assert.True(saved!.ExclusiveInput);
+            Assert.True(saved.ToJson()["exclusiveInput"]!.GetValue<bool>());
+
+            // 读回来也还在，而且默认是关的：一个宏单独跑时不该为谁停下来。
+            Assert.True(MacroItem.FromJson(saved.ToJson()).ExclusiveInput);
+            Assert.False(new MacroItem { Name = "other" }.ExclusiveInput);
+        });
+    }
 }

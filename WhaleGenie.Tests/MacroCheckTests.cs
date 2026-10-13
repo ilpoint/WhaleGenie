@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Tests;
@@ -70,6 +71,43 @@ public class MacroCheckTests
         params MacroStep[] steps)
         => Ui.Run(() => MacroCheck.Inspect(steps, Callable(ownName), macros));
 
+    /// <summary>
+    /// A step that sends keys, written the way the file writes one. What it sends does not matter to
+    /// the check — that it sends anything at all is the whole of the question.
+    /// </summary>
+    private static MacroStep Pressing()
+        => Step("input.keyPress", Text("key", "F5"));
+
+    /// <summary>
+    /// 项目里还有别的宏也发键鼠时，说一次：两个宏同时跑，输入会写进对方中间，而单看哪一个宏都
+    /// 看不出这件事。提示落在第一次发输入的那一步上，一句话就够。
+    /// </summary>
+    [Fact]
+    public void Sending_input_next_to_another_macro_that_does_is_said_once()
+    {
+        var first = Pressing();
+        var second = Pressing();
+
+        var problems = Ui.Run(() => MacroCheck.Inspect([first, second], null, [], inputShared: true));
+
+        var problem = Assert.Single(problems);
+        Assert.Same(first, problem.Step);
+        Assert.Equal(Strings.Get("Editor.Problem.SharedInput"), problem.Message);
+
+        // 没人跟它抢的时候什么也不说，没勾上的宏也一样。
+        Assert.Empty(Inspect(first, second));
+    }
+
+    /// <summary>
+    /// 只看屏幕的宏不掺和这件事：两边都读屏幕没有任何要排队的地方。
+    /// </summary>
+    [Fact]
+    public void A_macro_that_only_looks_at_the_screen_is_not_warned_about()
+    {
+        var reading = Step("vision.capture");
+
+        Assert.Empty(Ui.Run(() => MacroCheck.Inspect([reading], null, [], inputShared: true)));
+    }
     [Fact]
     public void A_break_outside_a_loop_is_reported()
     {

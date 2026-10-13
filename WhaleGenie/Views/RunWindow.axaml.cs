@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Execution;
@@ -100,6 +102,27 @@ public partial class RunWindow : Window
 
     /// <summary>The form this window is driving.</summary>
     private RunViewModel? Form => DataContext as RunViewModel;
+
+    /// <summary>
+    /// The line that says whose turn it is at the input door is only right while the door is
+    /// watched, so the window listens while it is open and stops when it closes: the event is the
+    /// whole program's, and a closed window listening to it would be a window kept alive for
+    /// nothing.
+    /// </summary>
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+        InputGate.Changed += OnInputGateChanged;
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        InputGate.Changed -= OnInputGateChanged;
+        base.OnClosed(e);
+    }
+
+    private void OnInputGateChanged()
+        => Dispatcher.UIThread.Post(() => Form?.RefreshInputOwner());
 
     /// <summary>
     /// The breakpoint's own menu. Writing the condition is the same dialog the editor writes one in,

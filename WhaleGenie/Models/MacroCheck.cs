@@ -36,8 +36,13 @@ public static class MacroCheck
     /// it declares — and <paramref name="ownName"/> is the macro being edited, which may call itself
     /// and so is judged by <paramref name="own"/>.
     /// </summary>
+    /// <param name="inputShared">
+    /// True when another macro in the same project also sends keys or clicks. Two macros that send
+    /// input at the same time write it through each other, and nothing about either macro looks
+    /// wrong on its own — which is exactly why it has to be said here.
+    /// </param>
     public static IReadOnlyList<MacroProblem> Inspect(IEnumerable<MacroStep> steps,
-        MacroCallable? own, IEnumerable<MacroCallable> macros)
+        MacroCallable? own, IEnumerable<MacroCallable> macros, bool inputShared = false)
     {
         IReadOnlyList<MacroStep> tree = steps as IReadOnlyList<MacroStep> ?? [.. steps];
         var problems = new List<MacroProblem>();
@@ -60,7 +65,28 @@ public static class MacroCheck
         var namesAreOpen = Every(tree).Any(step => step.Type == "file.loadVariables");
 
         Visit(tree, 0);
+        CheckSharedInput();
         return problems;
+
+        void CheckSharedInput()
+        {
+            if (!inputShared)
+            {
+                return;
+            }
+
+            // Said once, on the first step that sends input: a mark on every one of them would be
+            // the same sentence twenty times, and the answer — turn the switch on, or leave the two
+            // macros not running together — is the same for all of them.
+            foreach (var step in Every(tree))
+            {
+                if (MacroRunner.SendsInput(step.Type))
+                {
+                    Add(step, Strings.Get("Editor.Problem.SharedInput"));
+                    return;
+                }
+            }
+        }
 
         void Visit(IReadOnlyList<MacroStep> list, int loops)
         {

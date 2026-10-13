@@ -162,6 +162,20 @@ public sealed class MacroRunner
     public bool FailureScreenshot { get; init; }
 
     /// <summary>
+    /// The name this run goes by on the run list. It is what <see cref="InputGate"/> reports while
+    /// this run is inside, so "which macro is sending input right now" has an answer.
+    /// </summary>
+    public string RunName { get; init; } = string.Empty;
+
+    /// <summary>
+    /// True when this run waits for the one input door that the runs asking for it share, so two
+    /// macros set up that way do not send their keys and clicks through each other. Off by default:
+    /// a single macro never has anything to wait for, and one whose author has not thought about
+    /// running two at once is left doing exactly what it did before.
+    /// </summary>
+    public bool ExclusiveInput { get; init; }
+
+    /// <summary>
     /// How long a move borrows when it was written as an instant jump but asked to travel along a
     /// bent or hand-like path: there is no path to travel without a duration, and quietly going
     /// straight instead would make the style look broken.
@@ -898,6 +912,29 @@ public sealed class MacroRunner
         _takenWindow = string.Empty;
         _takenMethod = null;
 
+        // A step that sends keys or clicks goes through the input door when this run asked to share
+        // it. What is kept apart is the input, so the door is taken and given up around one step
+        // rather than held for the whole macro.
+        if (!ExclusiveInput || !SendsInput(step.Type))
+        {
+            return await Dispatch(step, depth, token);
+        }
+
+        using var inside = await InputGate.Take(RunName, token);
+        return await Dispatch(step, depth, token);
+    }
+
+    /// <summary>
+    /// True for the actions that put something into the machine through the keyboard, the mouse or
+    /// a controller. Everything else — looking at the screen, reading a file, asking a window what
+    /// it is — reads rather than writes and has nothing to keep apart.
+    /// </summary>
+    public static bool SendsInput(string type)
+        => type.StartsWith("input.", StringComparison.Ordinal)
+            || type.StartsWith("gamepad.", StringComparison.Ordinal);
+
+    private async Task<Signal> Dispatch(ExecutableStep step, int depth, CancellationToken token)
+    {
         switch (step.Type)
         {
             case "control.sequence":
