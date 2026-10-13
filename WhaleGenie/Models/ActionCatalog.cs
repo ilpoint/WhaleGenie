@@ -372,6 +372,33 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "control.fail",
+            Category = ActionCategory.Control,
+            DisplayName = "Fail",
+            Description = "Count this step as failed, so the failure rule written on it takes over.",
+            Parameters =
+            [
+                Text("reason", "Reason", hint: "What went wrong, written into the log and into the "
+                    + "step's own error value so later steps can read it. Optional.",
+                    required: false, acceptsFormula: true),
+            ],
+        },
+        new()
+        {
+            Key = "control.note",
+            Category = ActionCategory.Control,
+            DisplayName = "Note",
+            Description = "Leave a line of explanation in the middle of a macro; running it does "
+                + "nothing.",
+            Parameters =
+            [
+                Multiline("text", "Note", "What this part of the macro is for, written for whoever "
+                    + "reads the macro next. It is taken as it stands: no variable is filled in, and "
+                    + "nothing is written to the log.", "Set the export window up first."),
+            ],
+        },
+        new()
+        {
             Key = "control.setVariable",
             Category = ActionCategory.Control,
             DisplayName = "Set Variable",

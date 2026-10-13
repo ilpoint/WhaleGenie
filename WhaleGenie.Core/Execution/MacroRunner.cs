@@ -987,6 +987,16 @@ public sealed class MacroRunner
                     Read(step.Text("reason")).AsText());
                 return Signal.Stop;
 
+            case "control.fail":
+                // The macro says this step did not work. It travels the same way a device failure
+                // does, so whatever the step's failure rule says — retry, carry on, ask — holds for
+                // a step the macro itself called failed.
+                throw new StepFailure("Run.StepFailedByMacro", Read(step.Text("reason")).AsText());
+
+            case "control.note":
+                // A note is for whoever reads the macro. There is nothing to do and nothing to say.
+                return Signal.Normal;
+
             case "control.setVariable":
                 SetVariable(step, depth);
                 return Signal.Normal;

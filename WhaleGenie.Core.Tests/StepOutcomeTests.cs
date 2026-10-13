@@ -45,6 +45,17 @@ public class StepOutcomeTests
             Meta = new StepMeta { OnError = action },
         };
 
+    /// <summary>A step the macro itself calls failed, with the reason written on it.</summary>
+    private static ExecutableStep Failed(string id, string reason,
+        StepErrorAction action = StepErrorAction.Stop)
+        => new()
+        {
+            Type = "control.fail",
+            Id = id,
+            Parameters = [Param("reason", reason)],
+            Meta = new StepMeta { OnError = action },
+        };
+
     private static async Task<VariableStore> RunAsync(ExecutableStep[] steps,
         IMacroLibrary? macros = null, VariableStore? variables = null)
     {
@@ -173,6 +184,49 @@ public class StepOutcomeTests
         await new MacroRunner(store, new SilentRunHost(), null, 1, new OnceMissing()).RunAsync([step]);
 
         Assert.Equal("ok", Outcome(store, "aaaa"));
+    }
+
+    [Fact]
+    public async Task A_step_the_macro_calls_failed_reads_failed_with_its_own_reason()
+    {
+        var store = await RunAsync(
+        [
+            Failed("aaaa", "the export window was not there"),
+            Set("bbbb", "after", "1"),
+        ]);
+
+        Assert.Equal("failed", Outcome(store, "aaaa"));
+        Assert.Equal("Run.StepFailedByMacro", Error(store, "aaaa"));
+        Assert.Equal("skipped", Outcome(store, "bbbb"));
+    }
+
+    [Fact]
+    public async Task A_failure_the_macro_calls_itself_obeys_the_step_rule()
+    {
+        var store = await RunAsync(
+        [
+            Failed("aaaa", "keep going anyway", StepErrorAction.Continue),
+            Set("bbbb", "after", "1"),
+        ]);
+
+        Assert.Equal("failed", Outcome(store, "aaaa"));
+        Assert.Equal("ok", Outcome(store, "bbbb"));
+    }
+
+    [Fact]
+    public async Task A_note_does_nothing_and_still_reads_ok()
+    {
+        // The text is deliberately not a valid expression: a note is taken as it stands, and a
+        // macro that writes brackets in one should not be stopped by them.
+        var store = await RunAsync(
+        [
+            Step("control.note", "aaaa", Param("text", "$((")),
+            Set("bbbb", "n", "1"),
+        ]);
+
+        Assert.Equal("ok", Outcome(store, "aaaa"));
+        Assert.Equal("ok", Outcome(store, "bbbb"));
+        Assert.Equal("1", store.Local.Values["n"].AsText());
     }
 
     [Fact]

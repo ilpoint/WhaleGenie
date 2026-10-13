@@ -144,7 +144,10 @@ public class VariableFieldTests
     {
         string[] notAValue = ["control.forEach.itemVariable", "control.forEach.indexVariable",
             "file.saveVariables.names", "system.environment.name", "script.run.script"];
-        string[] multiline = ["command.run.standardInput"];
+
+        // A note is shown as it was written — a `$name` in it stays a `$name` — so there is nothing
+        // to offer over the box.
+        string[] multiline = ["command.run.standardInput", "control.note.text"];
 
         // The shape a reading has to fit is a pattern rather than a value: the dollar signs its hint
         // uses are the ends of a regular expression, not the start of a variable name.

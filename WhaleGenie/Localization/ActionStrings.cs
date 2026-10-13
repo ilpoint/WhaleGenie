@@ -596,6 +596,18 @@ internal static class ActionStrings
         ["control.log.level.label"] = "级别",
         ["control.log.level.hint"] = "这条日志记成哪一级，默认「信息」。",
 
+        ["control.fail.name"] = "判为失败",
+        ["control.fail.desc"] = "把这一步记成失败，交给这一步的失败策略处理。",
+        ["control.fail.reason.label"] = "失败原因",
+        ["control.fail.reason.hint"] = "哪里不对，写进日志，也写进步骤自己的错误值，后面的步骤读得到。"
+            + "可以不填。",
+
+        ["control.note.name"] = "说明",
+        ["control.note.desc"] = "在宏中间写一行说明，运行时不做事。",
+        ["control.note.text.label"] = "说明",
+        ["control.note.text.hint"] = "这一段是干什么的，写给后面读这个宏的人看。按写下的原文显示："
+            + "不替换变量，也不写进日志。",
+
         ["control.ask.name"] = "询问使用者",
         ["control.ask.desc"] = "问一句话，按对方的回答继续。",
         ["control.ask.message.label"] = "问题",

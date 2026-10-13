@@ -22,6 +22,7 @@ public class ExpressionFieldTests
     {
         ["control.switch"] = ["value"],
         ["control.stop"] = ["reason"],
+        ["control.fail"] = ["reason"],
         ["control.log"] = ["message"],
         ["control.ask"] = ["message", "detail"],
         ["control.input"] = ["message", "default"],
