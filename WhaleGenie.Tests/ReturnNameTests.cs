@@ -99,15 +99,17 @@ public class ReturnNameTests
     {
         Ui.Run(() =>
         {
-            var viewModel = Open("file.readCsv", "k3f9", out var window);
+            // A window's place is handed over as a rectangle and as the four numbers of it, and the
+            // numbers are what a macro reaches for second.
+            var viewModel = Open("window.info", "k3f9", out var window);
 
-            var header = Row(viewModel, "header");
-            Assert.False(header.Ticked);
+            var side = Row(viewModel, "width");
+            Assert.False(side.Ticked);
 
-            header.Ticked = true;
+            side.Ticked = true;
             Dispatcher.UIThread.RunJobs();
 
-            Assert.Equal(VariableNames.ForStep(string.Empty, header.Label, "k3f9"), header.Name);
+            Assert.Equal(VariableNames.ForStep(string.Empty, side.Label, "k3f9"), side.Name);
 
             // And handing nothing over at all is allowed: the step then leaves no result behind.
             foreach (var row in viewModel.ReturnsRows)
@@ -173,9 +175,9 @@ public class ReturnNameTests
     {
         Ui.Run(() =>
         {
-            // Reading a CSV can hand back the rows and the header row, and both would become
-            // variables of their own.
-            var viewModel = Open("file.readCsv", "k3f9", out var window);
+            // Reading a window's place hands back a rectangle and the four numbers it is made of,
+            // and every one of them becomes a variable of its own.
+            var viewModel = Open("window.info", "k3f9", out var window);
             foreach (var row in viewModel.ReturnsRows)
             {
                 row.Ticked = true;
@@ -183,17 +185,16 @@ public class ReturnNameTests
 
             Dispatcher.UIThread.RunJobs();
 
-            var rows = Row(viewModel, "rows").Name;
-            var header = Row(viewModel, "header").Name;
+            // Every one of them gets a name, and no two of them get the same one.
+            var names = viewModel.ReturnsRows.Select(row => row.Name).ToList();
+            Assert.All(names, name => Assert.NotEmpty(name));
+            Assert.Equal(names.Count, names.Distinct(StringComparer.OrdinalIgnoreCase).Count());
 
-            Assert.NotEmpty(rows);
-            Assert.NotEmpty(header);
-            Assert.NotEqual(rows, header, StringComparer.OrdinalIgnoreCase);
-
-            // Both are written into the step, each under its own name.
+            // And each is written into the step under its own name.
             var written = viewModel.BuildStep().Parameters
                 .First(parameter => parameter.Name == "returns");
-            Assert.Equal(["rows", "header"], written.Rows.Select(row => row.Text("key")).ToList());
+            Assert.Equal(viewModel.ReturnsRows.Select(row => row.Key),
+                written.Rows.Select(row => row.Text("key")).ToList());
 
             window.Close();
         });

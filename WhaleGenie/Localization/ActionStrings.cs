@@ -735,7 +735,7 @@ internal static class ActionStrings
         ["file.readCsv.separatorText.hint"] =
             "列表里没有的分隔符写在这里，比如 : 或 #；填了就按这个来，不填就用上面选的。",
         ["file.readCsv.hasHeader.label"] = "首行是表头",
-        ["file.readCsv.hasHeader.hint"] = "结果中不包含第一行，第一行的名字交给返回值页上的“表头”那一项。",
+        ["file.readCsv.hasHeader.hint"] = "结果中不包含第一行，第一行的名字用来给每一行的单元格命名，按名字取单元格靠的就是它。",
         ["file.readCsv.skipBlankLines.label"] = "跳过空行",
         ["file.readCsv.skipBlankLines.hint"] =
             "空行不算一行。别的程序导出的文件常在末尾留一个空行，不跳过就会读出一行空单元格。",
@@ -3318,9 +3318,7 @@ internal static class ActionStrings
 
         // file.readCsv
         ["file.readCsv.return.rows.label"] = "行",
-        ["file.readCsv.return.rows.hint"] = "读到的行，每项是一行的单元格。",
-        ["file.readCsv.return.header.label"] = "表头",
-        ["file.readCsv.return.header.hint"] = "表头那一行的名字，按列的顺序排，宏靠它找到要的那一列；第一行不是表头时为空。",
+        ["file.readCsv.return.rows.hint"] = "读到的行，每行是一条记录：键就是表头那一行里的列名，用 field(行, \"金额\") 按名字取一个单元格；第一行不是表头时列名是 A、B、C。",
         ["file.readCsv.returns.label"] = "要留下的结果",
         ["file.readCsv.returns.hint"] = "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。一个都不勾也可以，这一步就不留下任何结果。",
 

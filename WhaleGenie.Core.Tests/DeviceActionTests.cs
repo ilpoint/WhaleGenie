@@ -4033,8 +4033,8 @@ public class DeviceActionTests
 
         var rows = store.Local.Values["rows"];
         Assert.Equal(2, rows.Items.Count);
-        Assert.Equal("alice", rows.Items[0].Items[0].AsText());
-        Assert.Equal("41", rows.Items[1].Items[1].AsText());
+        Assert.Equal("alice", rows.Items[0].Field("name")!.AsText());
+        Assert.Equal("41", rows.Items[1].Field("age")!.AsText());
     }
 
     [Fact]
@@ -4075,8 +4075,12 @@ public class DeviceActionTests
         Assert.Equal("a,\"b,c\"\r\n", devices.Files["out.csv"]);
     }
 
+    /// <summary>
+    /// A row is a record, so a cell is read by the name above its column rather than by counting
+    /// along the line: the counting is what goes wrong when somebody else's file grows a column.
+    /// </summary>
     [Fact]
-    public async Task Reading_csv_can_hand_back_the_names_in_the_header()
+    public async Task A_row_read_with_a_header_is_read_by_column_name()
     {
         var devices = new FakeDeviceLayer();
         devices.Files["rows.csv"] = "name,age\r\nalice,30";
@@ -4084,18 +4088,39 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             Step("file.readCsv", Param("path", "rows.csv"), Param("separator", "comma"),
-                Param("hasHeader", "true"), Returns("header=columns"),
-                Returns("rows=rows")),
+                Param("hasHeader", "true"), Returns("rows=rows")),
         ], devices);
 
-        var columns = store.Local.Values["columns"].Items;
-        Assert.Equal(2, columns.Count);
-        Assert.Equal("name", columns[0].AsText());
-        Assert.Equal("age", columns[1].AsText());
+        var row = Assert.Single(store.Local.Values["rows"].Items);
+        Assert.Equal(["name", "age"], row.Fields.Select(field => field.Name));
+        Assert.Equal("alice", row.Field("name")!.AsText());
+        Assert.Equal("30", row.Field("age")!.AsText());
 
-        // The names are handed back and the row they were written on is still left out of the
-        // data, which is what the header setting promises.
+        // The row the names were written on is still left out of the data, which is what the header
+        // setting promises.
         Assert.Single(store.Local.Values["rows"].Items);
+    }
+
+    /// <summary>
+    /// A file whose first row is not a header still names its columns, with the letters somebody
+    /// reading the file would use — the same names the "only these columns" field takes.
+    /// </summary>
+    [Fact]
+    public async Task A_row_read_without_a_header_names_its_columns_by_letter()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["plain.csv"] = "alice,30";
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "plain.csv"), Param("separator", "comma"),
+                Param("hasHeader", "false"), Returns("rows=rows")),
+        ], devices);
+
+        var row = Assert.Single(store.Local.Values["rows"].Items);
+        Assert.Equal(["A", "B"], row.Fields.Select(field => field.Name));
+        Assert.Equal("alice", row.Field("A")!.AsText());
+        Assert.Equal("30", row.Field("B")!.AsText());
     }
 
     [Fact]
@@ -4113,8 +4138,8 @@ public class DeviceActionTests
 
         var rows = store.Local.Values["rows"].Items;
         Assert.Equal(2, rows.Count);
-        Assert.Equal("b", rows[0].Items[0].AsText());
-        Assert.Equal("c", rows[1].Items[0].AsText());
+        Assert.Equal("b", rows[0].Field("A")!.AsText());
+        Assert.Equal("c", rows[1].Field("A")!.AsText());
     }
 
     [Fact]
@@ -4150,8 +4175,8 @@ public class DeviceActionTests
         ], devices);
 
         var row = Assert.Single(store.Local.Values["rows"].Items);
-        Assert.Equal(3, row.Items.Count);
-        Assert.Equal("c", row.Items[2].AsText());
+        Assert.Equal(3, row.Fields.Count);
+        Assert.Equal("c", row.Field("C")!.AsText());
     }
 
     [Fact]
@@ -4167,8 +4192,8 @@ public class DeviceActionTests
         ], devices);
 
         var row = Assert.Single(store.Local.Values["rows"].Items);
-        Assert.Equal("a", row.Items[0].AsText());
-        Assert.Equal("b", row.Items[1].AsText());
+        Assert.Equal("a", row.Field("A")!.AsText());
+        Assert.Equal("b", row.Field("B")!.AsText());
     }
 
     /// <summary>
@@ -4272,15 +4297,16 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         devices.Files["log.csv"] = "日期,订单号,金额\r\n2026-01-05,A123,120\r\n";
-        devices.Files["in.csv"] = "B456,80";
+        devices.Files["in.csv"] = "订单号,金额\r\nB456,80";
 
         await RunAsync(
         [
+            // A row carries the names above its columns, so the step does not have to write those
+            // names out again for the file to be added to by name.
             Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
-                Param("hasHeader", "false"), Returns("rows=rows")),
+                Param("hasHeader", "true"), Returns("rows=rows")),
             Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$rows"),
-                Param("header", "订单号,金额"), Param("separator", "comma"),
-                Param("mode", "append"), Param("align", "true")),
+                Param("separator", "comma"), Param("mode", "append"), Param("align", "true")),
         ], devices);
 
         // The date column is the file's own and this step knows nothing about it: it stays empty
@@ -4294,15 +4320,14 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         devices.Files["log.csv"] = "日期,订单号\r\n2026-01-05,A123\r\n";
-        devices.Files["in.csv"] = "1";
+        devices.Files["in.csv"] = "总价\r\n1";
 
         var (result, _, _) = await RunAsync(
         [
             Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
-                Param("hasHeader", "false"), Returns("rows=rows")),
+                Param("hasHeader", "true"), Returns("rows=rows")),
             Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$rows"),
-                Param("header", "总价"), Param("separator", "comma"),
-                Param("mode", "append"), Param("align", "true")),
+                Param("separator", "comma"), Param("mode", "append"), Param("align", "true")),
         ], devices);
 
         Assert.Equal("Run.NoSuchColumn", result.Key);
@@ -4313,12 +4338,13 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         devices.Files["log.csv"] = "日期,订单号\r\n2026-01-05,A123\r\n";
-        devices.Files["in.csv"] = "A1,2";
 
+        // A row of plain cells rather than a record: nothing says what its two cells are called, and
+        // the step names one column for them. Half a name is worse than no name — the other cell
+        // would land in whatever column happens to be second.
         var (result, _, _) = await RunAsync(
         [
-            Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
-                Param("hasHeader", "false"), Returns("rows=rows")),
+            Step("control.listCreate", Param("name", "rows"), Param("items", "[[\"A1\", 2]]")),
             Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$rows"),
                 Param("header", "订单号"), Param("separator", "comma"),
                 Param("mode", "append"), Param("align", "true")),

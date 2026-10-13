@@ -17,20 +17,22 @@ public class SampleCsvTests
         var run = await SampleFiles.RunAsync(
             SampleFiles.Step("file.readCsv", SampleFiles.Param("path", "sample-1.csv"),
                 SampleFiles.Param("separator", "auto"), SampleFiles.Param("hasHeader", "true"),
-                SampleFiles.Returns("header=columns"),
                 SampleFiles.Returns("rows=rows")));
 
         Assert.True(run.Result.Succeeded, run.Result.Detail);
 
-        var columns = run.Texts("columns");
-        Assert.Equal(6, columns.Count);
-        Assert.Equal("Task Name", columns[1]);
-
         var rows = run.Rows("rows");
         Assert.Equal(5, rows.Count);
-        Assert.Equal(6, rows[0].Count);
-        Assert.Equal("Research Topic", rows[0][1].AsText());
-        Assert.Equal("In Progress", rows[0][3].AsText());
+
+        // Every row carries the names the file wrote above its columns, in the file's own order.
+        var first = rows[0];
+        Assert.Equal(6, first.Fields.Count);
+        Assert.Equal("Task Name", first.Fields[1].Name);
+        Assert.Equal("Research Topic", first.Fields[1].Value.AsText());
+        Assert.Equal("In Progress", first.Fields[3].Value.AsText());
+
+        // And a cell is read by that name rather than by counting along the line.
+        Assert.Equal("Research Topic", first.Cell("Task Name").AsText());
     }
 
     [RealSampleFact("sample-1.csv")]
@@ -49,8 +51,8 @@ public class SampleCsvTests
 
         var rows = run.Rows("rows");
         Assert.Equal(6, rows.Count);
-        Assert.Equal(6, rows[0].Count);
-        Assert.Equal("Task ID", rows[0][0].AsText());
+        Assert.Equal(6, rows[0].Fields.Count);
+        Assert.Equal("Task ID", rows[0].Cell("A").AsText());
     }
 
     [RealSampleFact("sample-2.csv")]
@@ -67,18 +69,18 @@ public class SampleCsvTests
 
         var rows = run.Rows("rows");
         Assert.Equal(3, rows.Count);
-        Assert.Equal(10, rows[0].Count);
+        Assert.Equal(10, rows[0].Fields.Count);
 
         var last = rows[2];
-        Assert.Equal("The best image ever", last[0].AsText());
-        Assert.Equal(string.Empty, last[4].AsText());
-        Assert.Equal(string.Empty, last[5].AsText());
-        Assert.Equal("Mary Maryson", last[6].AsText());
-        Assert.Equal("dontknow", last[9].AsText());
+        Assert.Equal("The best image ever", last.Fields[0].Value.AsText());
+        Assert.Equal(string.Empty, last.Fields[4].Value.AsText());
+        Assert.Equal(string.Empty, last.Fields[5].Value.AsText());
+        Assert.Equal("Mary Maryson", last.Fields[6].Value.AsText());
+        Assert.Equal("dontknow", last.Fields[9].Value.AsText());
 
         // And the text in a cell is nobody's business but the file's: a cell holding semicolons
         // stays one cell, because the commas are what separates these.
-        Assert.Equal("Politics; Memes; Cats", last[3].AsText());
+        Assert.Equal("Politics; Memes; Cats", last.Fields[3].Value.AsText());
     }
 
     [RealSampleFact("sample-2.csv")]
@@ -106,11 +108,14 @@ public class SampleCsvTests
         Assert.Equal(rows.Count, again.Count);
         for (var row = 0; row < rows.Count; row++)
         {
-            Assert.Equal(rows[row].Count, again[row].Count);
-            for (var cell = 0; cell < rows[row].Count; cell++)
-            {
-                Assert.Equal(rows[row][cell].AsText(), again[row][cell].AsText());
-            }
+            // The names come back with the cells: a row written out and read back is the same row,
+            // column name for column name.
+            Assert.Equal(
+                rows[row].Fields.Select(field => field.Name),
+                again[row].Fields.Select(field => field.Name));
+            Assert.Equal(
+                rows[row].Fields.Select(field => field.Value.AsText()),
+                again[row].Fields.Select(field => field.Value.AsText()));
         }
     }
 }

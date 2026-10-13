@@ -1991,7 +1991,7 @@ public class ActionDialogTests
 
             // The results the step may hand over are asked for on a page of their own: they are not
             // part of what the step is, they are how the rest of the macro reaches it.
-            Assert.Equal(["rows", "header"],
+            Assert.Equal(["rows"],
                 reading.ReturnsRows.Select(row => row.Key).ToList());
 
             var writing = Open("file.writeCsv");

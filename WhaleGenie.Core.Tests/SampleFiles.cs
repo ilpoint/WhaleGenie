@@ -233,13 +233,17 @@ internal static class SampleVariables
     /// <summary>The value of one variable.</summary>
     public static Value Value(this SampleRun run, string name) => run.Store.Local.Values[name];
 
-    /// <summary>A variable holding a list of lists, as a table read out of a file gives back.</summary>
-    public static IReadOnlyList<IReadOnlyList<Value>> Rows(this SampleRun run, string name)
-        => [.. run.Value(name).Items.Select(row => (IReadOnlyList<Value>)row.Items)];
+    /// <summary>A variable holding a list of rows, as a table read out of a file gives back.</summary>
+    public static IReadOnlyList<Value> Rows(this SampleRun run, string name)
+        => [.. run.Value(name).Items];
 
-    /// <summary>A variable holding a list, as the names of a header row give back.</summary>
-    public static IReadOnlyList<string> Texts(this SampleRun run, string name)
-        => [.. run.Value(name).Items.Select(cell => cell.AsText())];
+    /// <summary>
+    /// One cell of a row, read the way a macro reads it: by the name above the column, or by the
+    /// letter of the column when the file has no header row.
+    /// </summary>
+    public static Value Cell(this Value row, string column)
+        => row.Field(column) ?? throw new InvalidOperationException(
+            $"row {row.AsText()} has no column named {column}");
 }
 
 /// <summary>

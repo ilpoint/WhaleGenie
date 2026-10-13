@@ -5066,11 +5066,6 @@ public sealed class MacroRunner
             body.Select(row => (IReadOnlyList<Value>)[.. row.Select(Value.FromText)]));
         Store(step, "rows", Shaped(step, table, path), depth);
 
-        // Which column holds what is the first thing a macro has to work out about somebody else's
-        // file, and the names are the only place that is written down.
-        Give(step, "header", Value.FromList(
-            (table.Header ?? []).Select(cell => Value.FromText(cell.AsText()))));
-
         Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, table.Rows.Count);
     }
 
@@ -5104,7 +5099,7 @@ public sealed class MacroRunner
             : [];
 
         table.AddRange(rows.Items.Select(row => standing.Count > 0
-            ? Placed(Cells(row), standing, header)
+            ? Placed(Cells(row), standing, RowNames(row, header))
             : (IReadOnlyList<string>)[.. Cells(row).Select(cell => cell.AsText())]));
 
         var text = DelimitedFile.Write(table, separator.ToString(), LineEnding(step),
@@ -5224,22 +5219,63 @@ public sealed class MacroRunner
     /// <summary>
     /// What the result variable holds. A list of rows is what a table is; a plain list of one
     /// column's values is what a macro walks through or adds up, and making that jump through a
-    /// one-cell row first is the difference between reading a column and reading a table.
+    /// one-cell row first is the difference between reading a column and reading a table. A row is a
+    /// record whose keys are the names written above the columns, so a macro reads a cell by the
+    /// name it can see in the file rather than by counting along the line — which is how a table
+    /// comes to be read out of the wrong column without anything saying so.
     /// </summary>
     private Value Shaped(ExecutableStep step, Table table, string path)
     {
-        if (!string.Equals(step.Text("shape").Trim(), "values", StringComparison.OrdinalIgnoreCase))
-        {
-            return Value.FromList([.. table.Rows.Select(Value.FromList)]);
-        }
-
         var width = table.Header?.Count ?? table.Rows.FirstOrDefault()?.Count ?? 0;
-        if (width > 1)
+
+        if (string.Equals(step.Text("shape").Trim(), "values", StringComparison.OrdinalIgnoreCase))
         {
-            throw new StepFailure("Run.OneColumnOnly", path);
+            if (width > 1)
+            {
+                throw new StepFailure("Run.OneColumnOnly", path);
+            }
+
+            return Value.FromList([.. table.Rows.Select(row => Cell(row, 0))]);
         }
 
-        return Value.FromList([.. table.Rows.Select(row => Cell(row, 0))]);
+        var names = ColumnNames(table.Header, width);
+        return Value.FromList(
+        [
+            .. table.Rows.Select(row => Value.FromRecord(
+                Enumerable.Range(0, width).Select(index => (
+                    names[index],
+                    index < row.Count ? row[index] : Value.FromText(string.Empty))))),
+        ]);
+    }
+
+    /// <summary>
+    /// What each cell of a row is called: the name written above it, or — for a file whose first row
+    /// is not a header — the letter of its column, which is the same name the "only these columns"
+    /// field takes. A column nobody named keeps its letter rather than taking the name of the one
+    /// before it, which would put two columns under one name.
+    /// </summary>
+    private static IReadOnlyList<string> ColumnNames(IReadOnlyList<Value>? header, int width)
+    {
+        var names = new List<string>(width);
+        for (var index = 0; index < width; index++)
+        {
+            var written = index < (header?.Count ?? 0) ? header![index].AsText().Trim() : string.Empty;
+            names.Add(written.Length > 0 ? written : Letter(index));
+        }
+
+        return names;
+    }
+
+    /// <summary>The way a person writes a column place on its own: A, B, ... Z, AA.</summary>
+    private static string Letter(int place)
+    {
+        var text = string.Empty;
+        for (var at = place; at >= 0; at = (at / 26) - 1)
+        {
+            text = (char)('A' + (at % 26)) + text;
+        }
+
+        return text;
     }
 
     /// <summary>The columns a step named, in the order it named them; empty means all of them.</summary>
@@ -5333,7 +5369,22 @@ public sealed class MacroRunner
     /// One row of a list as the cells of a line hold them. A row that is not a list is a single
     /// cell, which is what a macro that writes one value means.
     /// </summary>
-    private static IReadOnlyList<Value> Cells(Value row) => row.IsList ? row.Items : [row];
+    private static IReadOnlyList<Value> Cells(Value row) => row.Kind switch
+    {
+        // A record writes its fields in the order they are written in, which is the order the row
+        // was read in: writing back a table read from a file gives the file it came from.
+        ValueKind.Record => [.. row.Fields.Select(field => field.Value)],
+        ValueKind.List => row.Items,
+        _ => [row],
+    };
+
+    /// <summary>
+    /// What each cell of a row is called on its way into a file. A record names its own cells, which
+    /// is what lets a row be put under the file's own columns by name; anything else takes the names
+    /// the step wrote out above them.
+    /// </summary>
+    private static IReadOnlyList<string> RowNames(Value row, IReadOnlyList<string> written)
+        => row.IsRecord ? [.. row.Fields.Select(field => field.Name)] : written;
 
     private void SaveVariables(ExecutableStep step, int depth)
     {

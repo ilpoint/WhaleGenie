@@ -809,10 +809,9 @@ public static class ActionCatalog
             Returns =
             [
                 Return("rows", "Rows", primary: true, type: ActionReturnType.List,
-                    hint: "The rows that were read, each row a list of cells."),
-                Return("header", "Column names", type: ActionReturnType.List,
-                    hint: "The names in the header row, in column order, which is how a macro "
-                        + "finds the column it wants. Empty when the first row is not a header."),
+                    hint: "The rows that were read, each row a record: its keys are the names in the "
+                        + "header row, and field(row, \"金额\") reads one cell by name. A file whose "
+                        + "first row is not a header names its columns A, B, C."),
             ],
             Category = ActionCategory.File,
             DisplayName = "Read CSV",
@@ -821,8 +820,8 @@ public static class ActionCatalog
             [
                 FilePath("path", "File", "rows.csv", "CSV file to read.", PathIntent.Read, "*.csv"),
                 Toggle("hasHeader", "First row is a header", true,
-                    "Leave the first row out of the result, and keep what it says in the names "
-                    + "result on the returns page."),
+                    "Leave the first row out of the result and use it to name the columns of every "
+                    + "row, which is what lets a cell be read by name."),
                 Text("columns", "Only these columns", "金额, 日期", required: false,
                     hint: "The columns to keep, written the way they are named in the header or as "
                         + "the letter they sit under: 金额, or B, or 金额,B. Each row comes back with "
