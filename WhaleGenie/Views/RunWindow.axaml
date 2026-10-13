@@ -297,12 +297,67 @@
                                                             VerticalAlignment="Center"
                                                             ToolTip.Tip="{Binding Label}"
                                                             Command="{Binding $parent[ItemsControl].((vm:RunViewModel)DataContext).ToggleBreakpointCommand}"
-                                                            CommandParameter="{Binding}" />
+                                                            CommandParameter="{Binding}">
+                                                        <!-- The breakpoint's own menu: what it waits for, and
+                                                             what to do while the run is standing in front of it. -->
+                                                        <Button.ContextMenu>
+                                                            <ContextMenu>
+                                                                <MenuItem Header="{Binding [Run.BreakpointCondition], Source={x:Static loc:Strings.Current}}"
+                                                                          Click="OnBreakpointMenuClicked" Tag="condition" />
+                                                                <MenuItem Header="{Binding [Run.BreakpointClear], Source={x:Static loc:Strings.Current}}"
+                                                                          Click="OnBreakpointMenuClicked" Tag="clear" />
+                                                                <MenuItem Header="{Binding [Run.SkipStep], Source={x:Static loc:Strings.Current}}"
+                                                                          Click="OnBreakpointMenuClicked" Tag="skip" />
+                                                            </ContextMenu>
+                                                        </Button.ContextMenu>
+                                                    </Button>
                                                     <StackPanel Grid.Column="1" Margin="{Binding Indent}">
                                                         <TextBlock Text="{Binding Label}" FontSize="12"
                                                                    Foreground="#E4E4E4" />
                                                         <TextBlock Text="{Binding Detail}" Classes="Muted"
                                                                    TextWrapping="Wrap" />
+                                                        <!-- What the breakpoint waits for, when it waits
+                                                             for anything. -->
+                                                        <TextBlock Text="{Binding ConditionNote}" FontSize="11.5"
+                                                                   Foreground="#D8B36A" TextWrapping="Wrap"
+                                                                   IsVisible="{Binding HasCondition}" />
+                                                        <!-- What this step came to, whether or not the
+                                                             macro keeps any of it: a value nobody
+                                                             ticked is still worth looking at, which is
+                                                             the reason to open a debugger. -->
+                                                        <StackPanel IsVisible="{Binding HasRun}" Margin="0,3,0,1">
+                                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                                <TextBlock Text="{Binding OutcomeLabel}" FontSize="11.5"
+                                                                           Foreground="{Binding OutcomeColor}" />
+                                                                <TextBlock Text="{Binding TimeNote}" FontSize="11.5"
+                                                                           Foreground="#9A9A9A" />
+                                                            </StackPanel>
+                                                            <TextBlock Text="{Binding FailureNote}" FontSize="11.5"
+                                                                       Foreground="#E06C75" TextWrapping="Wrap"
+                                                                       IsVisible="{Binding HasFailure}" />
+                                                            <TextBlock Text="{Binding ResultsHeader}" FontSize="11"
+                                                                       Foreground="#9A9A9A" Margin="0,2,0,0"
+                                                                       IsVisible="{Binding HasResults}" />
+                                                            <ItemsControl ItemsSource="{Binding Results}"
+                                                                          IsVisible="{Binding HasResults}">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate x:DataType="vm:RunResultViewModel">
+                                                                        <Grid ColumnDefinitions="Auto,*"
+                                                                              Margin="0,1,0,0"
+                                                                              ToolTip.Tip="{Binding Value}">
+                                                                            <TextBlock Text="{Binding Name}"
+                                                                                       FontSize="11"
+                                                                                       Foreground="{Binding Color}" />
+                                                                            <TextBlock Grid.Column="1" Margin="8,0,0,0"
+                                                                                       Text="{Binding Value}"
+                                                                                       FontSize="11"
+                                                                                       Foreground="#DDDDDD"
+                                                                                       TextTrimming="CharacterEllipsis" />
+                                                                        </Grid>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
                                                     </StackPanel>
                                                     <!-- What this step last looked at. Clicking it
                                                          opens the picture with its marks on. -->

@@ -34,6 +34,13 @@ public sealed class MacroRunner
     private readonly IMacroLibrary _macros;
     private readonly IRunLooks? _looks;
 
+    /// <summary>
+    /// What the step being run has worked out so far, newest last, or null when nobody is watching
+    /// this run. A step that holds steps hands its own list back to the one around it once the steps
+    /// inside are done, so every result is filed under the step that worked it out.
+    /// </summary>
+    private List<StepResult>? _worked;
+
     /// <summary>Pictures captured during the run, kept under the name they were saved to.</summary>
     private readonly Dictionary<string, ImageFrame> _images = new(StringComparer.OrdinalIgnoreCase);
 
@@ -342,6 +349,9 @@ public sealed class MacroRunner
     /// <summary>The other end of an outcome's name.</summary>
     private const string OutcomeSuffix = ".outcome";
 
+    /// <summary>The other end of a failure's name, answered by the same step id.</summary>
+    private const string ErrorSuffix = ".error";
+
     /// <summary>
     /// Where the outcome of the step with this name is written. Anything that lists the run's own
     /// values asks here rather than spelling the name out a second time.
@@ -349,13 +359,23 @@ public sealed class MacroRunner
     public static string OutcomeName(string stepId) => OutcomePrefix + stepId + OutcomeSuffix;
 
     /// <summary>
-    /// True when a value is a step's outcome rather than something the macro made for itself. A
-    /// macro of any length leaves one of these behind for every step, so a list that showed them
-    /// all mixed in with the macro's own values would be mostly outcomes.
+    /// Where the reason a step failed is written, in the same shape and under the same id as its
+    /// outcome: <c>k3f9</c> is answered by <c>step.k3f9.error</c>. It carries the engine's own name
+    /// for the failure rather than the words on screen, so a macro that branches on the reason
+    /// reads the same thing whatever language the interface is in.
     /// </summary>
-    public static bool IsOutcomeName(string name)
+    public static string ErrorName(string stepId) => OutcomePrefix + stepId + ErrorSuffix;
+
+    /// <summary>
+    /// True when a value is one of the names the run keeps about a step — how it ended, and why
+    /// when it did not — rather than something the macro made for itself. A macro of any length
+    /// leaves these behind for every step, so a list that showed them all mixed in with the macro's
+    /// own values would be mostly these.
+    /// </summary>
+    public static bool IsRunStepName(string name)
         => name.StartsWith(OutcomePrefix, StringComparison.Ordinal)
-           && name.EndsWith(OutcomeSuffix, StringComparison.Ordinal);
+           && (name.EndsWith(OutcomeSuffix, StringComparison.Ordinal)
+               || name.EndsWith(ErrorSuffix, StringComparison.Ordinal));
 
     /// <summary>This step did what it was asked to.</summary>
     private const string OutcomeOk = "ok";
@@ -401,8 +421,12 @@ public sealed class MacroRunner
     private static bool IsCondition(ExecutableStep step)
         => step.Type.StartsWith("condition.", StringComparison.Ordinal);
 
-    /// <summary>Writes down how one step ended, for the conditions written after it.</summary>
-    private void WriteOutcome(ExecutableStep step, string outcome)
+    /// <summary>
+    /// Writes down how one step ended and, when it did not work, why — for the conditions written
+    /// after it. A step that worked or was left out says nothing about a reason: what the run did
+    /// not fail at is not a failure to branch on.
+    /// </summary>
+    private void WriteOutcome(ExecutableStep step, string outcome, StepFailure? failure = null)
     {
         // A step without a name cannot be pointed at, so there is nothing to write. The editor
         // gives every step one; this is for a macro built by hand around the engine.
@@ -412,6 +436,7 @@ public sealed class MacroRunner
         }
 
         Variables.Set(OutcomeName(step.Id), Value.FromText(outcome));
+        Variables.Set(ErrorName(step.Id), Value.FromText(failure?.Key ?? string.Empty));
     }
 
     /// <summary>What the failure rule decided for one step.</summary>
@@ -586,12 +611,45 @@ public sealed class MacroRunner
         if (!step.Meta.IsEnabled)
         {
             Log(LogLevel.Debug, depth, step.Type, "Run.Skipped");
+            Report(step, OutcomeSkipped, 0, null, []);
             return Signal.Normal;
         }
 
-        await _host.BeforeStep(step, depth, token);
+        // The host may leave this one step out, which is what "skip this step once" is: the step
+        // did nothing, so it is answered the way a switched-off step is and the run goes on.
+        if (!await _host.BeforeStep(step, depth, token))
+        {
+            Log(LogLevel.Debug, depth, step.Type, "Run.Skipped");
+            Report(step, OutcomeSkipped, 0, null, []);
+            return Signal.Normal;
+        }
+
         await Pause(Pace(step.Meta.DelayBeforeMs), token);
 
+        // What the step works out while it runs is kept for whoever is watching it, and nothing is
+        // kept when nobody is: a macro a trigger started is not made to turn every result into text
+        // so that a window which is not there can ignore it.
+        var outerWorked = _worked;
+        _worked = _looks is null ? null : [];
+        var startedStep = Stopwatch.GetTimestamp();
+        try
+        {
+            return await RunAttempts(step, depth, token, startedStep);
+        }
+        finally
+        {
+            _worked = outerWorked;
+        }
+    }
+
+    /// <summary>
+    /// One step's attempts at its work, from the first try to whichever ending it comes to. The
+    /// clock covers all of them, because "how long did this step take" is answered by the step
+    /// rather than by the last try of it.
+    /// </summary>
+    private async Task<Signal> RunAttempts(ExecutableStep step, int depth, CancellationToken token,
+        long startedStep)
+    {
         for (var attempt = 0; ; attempt++)
         {
             // A step that is allowed so long gets a clock of its own. The limit is what stops it:
@@ -654,11 +712,12 @@ public sealed class MacroRunner
                         continue;
                     }
 
-                    return StepFailed(step, decided);
+                    return StepFailed(step, decided, Elapsed(startedStep));
                 }
 
                 await Pause(Pace(step.Meta.DelayAfterMs), token);
                 WriteOutcome(step, OutcomeOk);
+                Report(step, OutcomeOk, Elapsed(startedStep), null, Worked());
                 return signal;
             }
             catch (StepFailure) when (attempt < step.Meta.RetryCount)
@@ -674,7 +733,7 @@ public sealed class MacroRunner
                 var decision = await Decide(step, token);
                 if (decision is not Decision.Retry)
                 {
-                    return StepFailed(step, decision);
+                    return StepFailed(step, decision, Elapsed(startedStep));
                 }
 
                 await Pause(RetryPause(step, attempt + 1), token);
@@ -728,9 +787,10 @@ public sealed class MacroRunner
     /// inside this one and the one that arrived as an exception come through here, so a condition
     /// written after a step always has an answer by the time it is asked.
     /// </summary>
-    private Signal StepFailed(ExecutableStep step, Decision decided)
+    private Signal StepFailed(ExecutableStep step, Decision decided, double elapsedMs)
     {
-        WriteOutcome(step, OutcomeFailed);
+        WriteOutcome(step, OutcomeFailed, _failure);
+        Report(step, OutcomeFailed, elapsedMs, _failure, Worked());
         return decided switch
         {
             Decision.Skip => Signal.Normal,
@@ -738,6 +798,35 @@ public sealed class MacroRunner
             _ => Signal.Failed,
         };
     }
+
+    /// <summary>
+    /// Hands over what one step came to. The values travel whether or not the macro keeps them:
+    /// ticking a result decides whether it becomes a variable of its own, and never whether it can
+    /// be read afterwards — which is the whole point of the panel a debugger puts this in.
+    /// </summary>
+    private void Report(ExecutableStep step, string outcome, double elapsedMs, StepFailure? failure,
+        IReadOnlyList<StepResult> results)
+    {
+        if (_looks is not { } looks)
+        {
+            return;
+        }
+
+        looks.Ran(new StepRun
+        {
+            StepId = step.Id,
+            StepType = step.Type,
+            Outcome = outcome,
+            ElapsedMs = elapsedMs,
+            FailureKey = failure?.Key ?? string.Empty,
+            FailureDetail = failure?.Detail ?? string.Empty,
+            Results = results,
+        });
+    }
+
+    /// <summary>Everything the step being run has worked out, as it stands.</summary>
+    private IReadOnlyList<StepResult> Worked()
+        => _worked is { Count: > 0 } worked ? [.. worked] : [];
 
     /// <summary>
     /// What the step's failure rule says to do about the failure that just happened. The failure
@@ -2538,12 +2627,56 @@ public sealed class MacroRunner
             : new LookOutcome(null, "Run.NotALookingStep");
     }
 
+    /// <summary>
+    /// Answers one condition the way a run would, on the values in play at that moment and without
+    /// carrying anything out. This is what a breakpoint's own condition is asked with: the debugger
+    /// has the values the run has just written, and none of the run's own machinery. A condition
+    /// that cannot be answered at all comes back saying why rather than throwing, so the caller can
+    /// tell "no" apart from "could not be asked".
+    /// </summary>
+    public static ConditionOutcome AskCondition(ExecutableStep condition, VariableStore variables,
+        IDeviceLayer devices, IMacroLibrary? macros = null)
+    {
+        try
+        {
+            return new ConditionOutcome(new MacroRunner(variables, devices: devices, macros: macros)
+                .Check(condition, 0, CancellationToken.None));
+        }
+        catch (ExpressionException failure)
+        {
+            return new ConditionOutcome(false, "Run.BadExpression", failure.Detail);
+        }
+        catch (DeviceUnavailableException failure)
+        {
+            return new ConditionOutcome(false, "Run.NoDevice", failure.Capability);
+        }
+        catch (DeviceActionException failure)
+        {
+            return new ConditionOutcome(false, failure.Key, failure.Detail);
+        }
+        catch (StepFailure failure)
+        {
+            return new ConditionOutcome(false, failure.Key, failure.Detail);
+        }
+        catch (Exception failure) when (failure is not OperationCanceledException)
+        {
+            // Whatever a device driver throws while a condition is asked, the answer is a message
+            // rather than an exception in the debugger's face.
+            return new ConditionOutcome(false, "Run.DeviceFailed", failure.Message);
+        }
+    }
+
     /// <summary>Where a look goes when the caller only wanted the one.</summary>
     private sealed class Asked(IRunLooks? watch) : IRunLooks
     {
         public StepLook? Seen { get; private set; }
 
         public void Look(StepLook look) => Seen = look;
+
+        /// <summary>Nothing is read from what a step came to; only the one look was wanted.</summary>
+        public void Ran(StepRun run)
+        {
+        }
 
         public void Reading(WindowInfo? window) => watch?.Reading(window);
     }
@@ -6058,7 +6191,9 @@ public sealed class MacroRunner
     /// <summary>
     /// Hands one of a step's results over under the name the step gave it, and does nothing at all
     /// when the step did not ask for that result. An unticked result is not an empty variable, it is
-    /// one this step never makes: a macro that reads it is reading a name no run wrote.
+    /// one this step never makes: a macro that reads it is reading a name no run wrote. What the step
+    /// worked out is kept for the debugger either way, under the name the macro keeps it by when
+    /// there is one, so a result nobody ticked can still be read after the run.
     /// </summary>
     private string Give(ExecutableStep step, string key, Value value)
     {
@@ -6066,6 +6201,24 @@ public sealed class MacroRunner
         if (name.Length > 0)
         {
             Variables.Set(name, value);
+        }
+
+        if (_worked is { } worked)
+        {
+            var workedOut = new StepResult(key, name, value.AsText());
+            var at = worked.FindIndex(result =>
+                string.Equals(result.Key, key, StringComparison.OrdinalIgnoreCase));
+
+            // A step that was retried works the same result out again, and the last one is what it
+            // came to; a result that has never been worked out before goes on the end.
+            if (at < 0)
+            {
+                worked.Add(workedOut);
+            }
+            else
+            {
+                worked[at] = workedOut;
+            }
         }
 
         return name;

@@ -7,7 +7,8 @@ namespace WhaleGenie.Core.Tests;
 
 /// <summary>
 /// What each step leaves behind for the conditions written after it:
-/// <c>step.&lt;id&gt;.outcome</c>, reading <c>ok</c>, <c>failed</c> or <c>skipped</c>.
+/// <c>step.&lt;id&gt;.outcome</c>, reading <c>ok</c>, <c>failed</c> or <c>skipped</c>, and
+/// <c>step.&lt;id&gt;.error</c>, holding what went wrong for the steps that did not work.
 /// </summary>
 public class StepOutcomeTests
 {
@@ -65,6 +66,9 @@ public class StepOutcomeTests
 
     private static string Outcome(VariableStore store, string id)
         => store.Local.Values[$"step.{id}.outcome"].AsText();
+
+    private static string Error(VariableStore store, string id)
+        => store.Local.Values[$"step.{id}.error"].AsText();
 
     [Fact]
     public async Task A_step_that_does_its_work_reads_ok()
@@ -254,7 +258,61 @@ public class StepOutcomeTests
         ]);
 
         Assert.False(store.TryGet("step..outcome", out _));
+        Assert.False(store.TryGet("step..error", out _));
         Assert.Equal("1", store.Local.Values["n"].AsText());
+    }
+
+    [Fact]
+    public async Task Why_a_step_failed_is_written_down_under_it_and_nowhere_else()
+    {
+        var store = await RunAsync(
+        [
+            Broken("aaaa", StepErrorAction.Continue),
+            Set("bbbb", "n", "1"),
+        ]);
+
+        // A key rather than the words on screen, so the macro reads the same thing whatever
+        // language the interface is in.
+        Assert.Equal("Run.NoDevice", Error(store, "aaaa"));
+
+        // A step that worked has nothing to say about a reason.
+        Assert.Equal(string.Empty, Error(store, "bbbb"));
+        Assert.Equal("ok", Outcome(store, "bbbb"));
+    }
+
+    [Fact]
+    public async Task The_steps_that_did_not_run_leave_an_empty_reason_behind()
+    {
+        var store = await RunAsync(
+        [
+            Step("control.stop", "aaaa"),
+            Set("bbbb", "n", "1"),
+        ]);
+
+        Assert.Equal(string.Empty, Error(store, "aaaa"));
+        Assert.Equal(string.Empty, Error(store, "bbbb"));
+    }
+
+    [Fact]
+    public async Task A_step_the_debugger_leaves_out_is_answered_skipped_and_the_run_goes_on()
+    {
+        var store = new VariableStore();
+        var runner = new MacroRunner(store, new LeavingOut("bbbb"), null, 1);
+
+        await runner.RunAsync(
+        [
+            Set("aaaa", "first", "1"),
+            Set("bbbb", "second", "1"),
+            Set("cccc", "third", "1"),
+        ]);
+
+        Assert.Equal("ok", Outcome(store, "aaaa"));
+        Assert.Equal("skipped", Outcome(store, "bbbb"));
+        Assert.Equal("ok", Outcome(store, "cccc"));
+
+        // The step that was left out did nothing at all: nothing it would have set is there.
+        Assert.False(store.TryGet("second", out _));
+        Assert.Equal("1", store.Local.Values["third"].AsText());
     }
 
     private sealed class Library(params (string Name, ExecutableStep[] Steps)[] macros)
@@ -270,6 +328,24 @@ public class StepOutcomeTests
 
         public MacroSignature? Signature(string name)
             => _byName.ContainsKey(name) ? MacroSignature.Empty : null;
+    }
+
+    /// <summary>
+    /// The host a paused debugger is: it lets every step through except the one it was told to
+    /// leave out, which is what "skip this step once" looks like from the engine's side.
+    /// </summary>
+    private sealed class LeavingOut(string id) : IRunHost
+    {
+        public void Log(LogEntry entry)
+        {
+        }
+
+        public Task<bool> BeforeStep(ExecutableStep step, int depth, CancellationToken token)
+            => Task.FromResult(!string.Equals(step.Id, id, StringComparison.OrdinalIgnoreCase));
+
+        public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
+            CancellationToken token)
+            => Task.FromResult(StepErrorChoice.Stop);
     }
 
     /// <summary>A library whose one macro turns up only on the second ask.</summary>

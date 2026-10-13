@@ -145,6 +145,7 @@ public class VariableWallTests
         var rows = VariableChoices.For([step]);
         var result = rows.First(row => row.Name == "上月订单");
         var ending = rows.First(row => row.Name == "step.k3f9.outcome");
+        var reason = rows.First(row => row.Name == "step.k3f9.error");
 
         // Both say which step they came from, which is the one thing a name on its own cannot.
         Assert.Contains("k3f9", result.Source);
@@ -154,6 +155,11 @@ public class VariableWallTests
         Assert.Equal("list", result.Type);
         Assert.True(ending.IsStepResult);
         Assert.Equal(VariableGroup.StepResult, ending.Group);
+
+        // Why it failed sits beside how it ended: a macro that treats one failure differently from
+        // another branches on this one.
+        Assert.True(reason.IsStepResult);
+        Assert.Equal(VariableGroup.StepResult, reason.Group);
 
         // And the ones the macro does not make are offered as well: the fields may read those too.
         Assert.Contains(rows, row => row.Group == VariableGroup.System);

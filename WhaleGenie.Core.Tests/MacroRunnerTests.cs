@@ -1858,10 +1858,10 @@ public class MacroRunnerTests
         {
         }
 
-        public Task BeforeStep(ExecutableStep step, int depth, CancellationToken token)
+        public Task<bool> BeforeStep(ExecutableStep step, int depth, CancellationToken token)
         {
             Seen.Add(step);
-            return Task.CompletedTask;
+            return Task.FromResult(true);
         }
 
         public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
@@ -1883,8 +1883,8 @@ public class MacroRunnerTests
         {
         }
 
-        public Task BeforeStep(ExecutableStep step, int depth, CancellationToken token)
-            => Task.CompletedTask;
+        public Task<bool> BeforeStep(ExecutableStep step, int depth, CancellationToken token)
+            => Task.FromResult(true);
 
         public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
             CancellationToken token)

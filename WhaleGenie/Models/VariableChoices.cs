@@ -201,6 +201,18 @@ public static class VariableChoices
                     Source = step.PickerLabel,
                     IsStepResult = true,
                 });
+
+                // Why it failed sits beside how it ended, under the same step: a macro that treats
+                // one failure differently from another asks this one.
+                rows.Add(new VariableChoice
+                {
+                    Name = MacroRunner.ErrorName(step.Id),
+                    Scope = VariableScope.Local,
+                    Type = "text",
+                    Description = Strings.Get("VarWall.Error"),
+                    Source = step.PickerLabel,
+                    IsStepResult = true,
+                });
             }
         }
     }

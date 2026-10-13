@@ -143,8 +143,13 @@ public interface IRunHost
     /// <summary>Records one line of the run log.</summary>
     void Log(LogEntry entry);
 
-    /// <summary>Called before every step runs, so a debugger can pause or look around.</summary>
-    Task BeforeStep(ExecutableStep step, int depth, CancellationToken token);
+    /// <summary>
+    /// Called before every step runs, so a debugger can pause or look around. Nothing but the
+    /// debugger ever says no: the answer is about this one step, and false means it is not to be
+    /// carried out this time — the run leaves it out, answers for it the way it answers for a
+    /// switched-off step, and goes on to the next one.
+    /// </summary>
+    Task<bool> BeforeStep(ExecutableStep step, int depth, CancellationToken token);
 
     /// <summary>
     /// Asked when a step's failure rule is <see cref="StepErrorAction.AskUser"/>. The reason is
@@ -166,7 +171,8 @@ public sealed class SilentRunHost : IRunHost
 
     public void Log(LogEntry entry) => _entries.Add(entry);
 
-    public Task BeforeStep(ExecutableStep step, int depth, CancellationToken token) => Task.CompletedTask;
+    public Task<bool> BeforeStep(ExecutableStep step, int depth, CancellationToken token)
+        => Task.FromResult(true);
 
     public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
         CancellationToken token)

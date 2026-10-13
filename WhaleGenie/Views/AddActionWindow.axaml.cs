@@ -336,6 +336,11 @@ public partial class AddActionWindow : Window
             // What the trial found is shown by the trial itself; there is nothing to keep here.
         }
 
+        /// <summary>What a trial came to is on the line under it; there is nothing to keep here.</summary>
+        public void Ran(StepRun run)
+        {
+        }
+
         public void Reading(WindowInfo? read)
             => Dispatcher.UIThread.Invoke(() => window.ShowReadWindow(read));
     }

@@ -3,11 +3,13 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
+using Avalonia.Interactivity;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
@@ -98,6 +100,47 @@ public partial class RunWindow : Window
 
     /// <summary>The form this window is driving.</summary>
     private RunViewModel? Form => DataContext as RunViewModel;
+
+    /// <summary>
+    /// The breakpoint's own menu. Writing the condition is the same dialog the editor writes one in,
+    /// held to the conditions: what a breakpoint waits for and what an <c>if</c> waits for are the
+    /// same question, and only the place it is asked from is different.
+    /// </summary>
+    private async void OnBreakpointMenuClicked(object? sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+
+        if (sender is not MenuItem { DataContext: RunStepViewModel row } item || Form is not { } viewModel)
+        {
+            return;
+        }
+
+        switch (item.Tag as string)
+        {
+            case "condition":
+                var dialog = new AddActionWindow(
+                    viewModel.BreakpointCondition(row.Id), ActionCatalog.Conditions, viewModel.Choices,
+                    null, null, ImageAssets.FolderFor(null))
+                {
+                    // The condition is tried out on the devices the run is on: a picture taken for
+                    // its own sake then lands in the program's own folder, which is the one place
+                    // the window knows of.
+                    Devices = viewModel.Devices,
+                };
+                if (await dialog.ShowDialogOver<MacroStep?>(this) is { } condition)
+                {
+                    viewModel.ConditionBreakpoint(row, condition);
+                }
+
+                break;
+            case "clear":
+                viewModel.ClearBreakpointCondition(row);
+                break;
+            case "skip":
+                viewModel.SkipStepCommand.Execute(null);
+                break;
+        }
+    }
 
     /// <summary>
     /// Points the window at a macro and starts debugging it, which is what the card's own menu asks

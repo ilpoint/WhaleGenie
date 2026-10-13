@@ -126,6 +126,14 @@ public interface IRunLooks
     void Look(StepLook look);
 
     /// <summary>
+    /// What the step that has just finished came to: how long it took, how it ended, why if it
+    /// failed, and everything it worked out. Said for every step that ran, not only the ones that
+    /// looked at the screen — the question it answers is "what did this step do and what could it
+    /// have handed over", which no log line and no outcome variable says on its own.
+    /// </summary>
+    void Ran(StepRun run);
+
+    /// <summary>
     /// Which window the step about to look is reading, as it stands for this look, or null when it is
     /// reading the desktop. Said before every picture is taken rather than with the look itself,
     /// because "which window is this reading" is a different answer from "what did it find there": a
@@ -143,3 +151,10 @@ public interface IRunLooks
 /// does, because the engine has no language.
 /// </summary>
 public sealed record LookOutcome(StepLook? Look, string Key = "", string Detail = "");
+
+/// <summary>
+/// What came of asking one condition on its own rather than as part of a step: the answer, or the
+/// message key and its detail saying why it could not be answered at all. The key travels as a key
+/// the way every other run failure does, because the engine has no language.
+/// </summary>
+public sealed record ConditionOutcome(bool Holds, string Key = "", string Detail = "");

@@ -27,10 +27,11 @@ internal sealed class UiThreadRunHost(IRunHost host) : IRunHost
 
     /// <summary>
     /// Waited on, because the answer decides what the run does next: the step the debugger is
-    /// looking at has to be the one it is about to run, and whether to stop has to be asked before
-    /// anything else happens.
+    /// looking at has to be the one it is about to run, whether to stop has to be asked before
+    /// anything else happens, and the answer — carry on with this step or leave it out — is that
+    /// decision.
     /// </summary>
-    public Task BeforeStep(ExecutableStep step, int depth, CancellationToken token)
+    public Task<bool> BeforeStep(ExecutableStep step, int depth, CancellationToken token)
         => Dispatcher.UIThread.InvokeAsync(() => host.BeforeStep(step, depth, token));
 
     public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,

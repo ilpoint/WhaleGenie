@@ -247,4 +247,40 @@ public class ConditionCatalogueTests
         Assert.False(holds);
         Assert.Equal("Run.BadExpression", result.Key);
     }
+
+    [Fact]
+    public void A_condition_can_be_asked_on_its_own_with_the_values_a_run_has_written()
+    {
+        var store = new VariableStore();
+        store.Local.SetNumber("n", 7);
+
+        // Which is what a breakpoint's own condition is asked with: the debugger holds the run's
+        // values and none of the run's machinery.
+        var holds = MacroRunner.AskCondition(
+            Condition("condition.compare",
+                Param("variable", "n"), Param("operator", "greaterThan"), Param("value", "3")),
+            store, NullDeviceLayer.Instance);
+        var doesNot = MacroRunner.AskCondition(
+            Condition("condition.compare",
+                Param("variable", "n"), Param("operator", "greaterThan"), Param("value", "30")),
+            store, NullDeviceLayer.Instance);
+
+        Assert.True(holds.Holds);
+        Assert.False(doesNot.Holds);
+        Assert.Equal(string.Empty, doesNot.Key);
+    }
+
+    [Fact]
+    public void A_condition_that_cannot_be_answered_says_why_rather_than_answering_no()
+    {
+        // The same failure a run would report, so the debugger can tell "no" apart from "this
+        // question cannot be asked".
+        var answer = MacroRunner.AskCondition(
+            Condition("condition.stepResult", Param("step", "zzzz"), Param("expected", "ok")),
+            new VariableStore(), NullDeviceLayer.Instance);
+
+        Assert.False(answer.Holds);
+        Assert.Equal("Run.NoSuchStep", answer.Key);
+        Assert.Equal("zzzz", answer.Detail);
+    }
 }

@@ -46,10 +46,10 @@ public class RunThreadTests
     {
         public void Log(LogEntry entry) => threads.Add(Dispatcher.UIThread.CheckAccess());
 
-        public Task BeforeStep(ExecutableStep step, int depth, CancellationToken token)
+        public Task<bool> BeforeStep(ExecutableStep step, int depth, CancellationToken token)
         {
             threads.Add(Dispatcher.UIThread.CheckAccess());
-            return Task.CompletedTask;
+            return Task.FromResult(true);
         }
 
         public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,

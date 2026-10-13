@@ -19,9 +19,12 @@ public sealed class AskRunHost(Func<string, string, string, string, Task<StepErr
     {
     }
 
-    /// <summary>Nothing pauses a triggered run between its steps: only the debugger does that.</summary>
-    public Task BeforeStep(ExecutableStep step, int depth, CancellationToken token)
-        => Task.CompletedTask;
+    /// <summary>
+    /// Nothing pauses a triggered run between its steps and nothing leaves a step out: only a
+    /// debugger asks for either.
+    /// </summary>
+    public Task<bool> BeforeStep(ExecutableStep step, int depth, CancellationToken token)
+        => Task.FromResult(true);
 
     public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
         CancellationToken token)
