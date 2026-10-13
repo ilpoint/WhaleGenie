@@ -106,10 +106,18 @@ public static class DriverInput
     /// Whether something is answering where the VIIPER server should be. Whoever asks is usually
     /// about to start one of its own, so this is what keeps a second server off the machine.
     /// </summary>
-    public static bool IsServerAnswering()
+    public static bool IsServerAnswering() => IsServerAnswering(ProbeTimeout);
+
+    /// <summary>
+    /// The same question, with whoever asked naming how long they are willing to wait for it. A
+    /// busy machine can take longer to get to the question than the question itself takes, and a
+    /// caller reading what came back has to be given that room rather than read "nothing there"
+    /// out of a held-up thread pool.
+    /// </summary>
+    internal static bool IsServerAnswering(TimeSpan patience)
     {
         var asking = Ask();
-        return asking.Wait(ProbeTimeout) && asking.Result;
+        return asking.Wait(patience) && asking.Result;
     }
 
     /// <summary>

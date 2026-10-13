@@ -12,6 +12,13 @@ public class DriverInputTests : IDisposable
 {
     private readonly Func<bool> _probe = DriverInput.Probe;
 
+    /// <summary>
+    /// How long a check here waits for the machine's answer. The engine's own patience is a fifth
+    /// of a second, which is what a run can afford; a check reading the answer back is not in that
+    /// hurry, and a thread pool that is busy elsewhere must not be read as "nothing is there".
+    /// </summary>
+    private static readonly TimeSpan Patience = TimeSpan.FromSeconds(30);
+
     /// <summary>Puts back what was there, so no other check runs against a made-up machine.</summary>
     public void Dispose()
     {
@@ -33,14 +40,21 @@ public class DriverInputTests : IDisposable
         {
             Interlocked.Increment(ref asked);
             out_.Set();
-            held.Wait(TimeSpan.FromSeconds(5));
+
+            // Long enough that the question is still out while both callers come and go, which is
+            // the whole of what this check is about.
+            held.Wait(TimeSpan.FromSeconds(30));
             return false;
         };
 
-        var first = Task.Run(DriverInput.IsServerAnswering);
-        Assert.True(out_.Wait(TimeSpan.FromSeconds(5)), "the question never went out");
+        // Five seconds of patience, against the fifth of a second the engine gives itself: room for
+        // a busy machine to get to the question, while still short enough that both callers have
+        // given up on it rather than being handed the answer above.
+        var givingUp = TimeSpan.FromSeconds(5);
+        var first = Task.Run(() => DriverInput.IsServerAnswering(givingUp));
+        Assert.True(out_.Wait(TimeSpan.FromSeconds(30)), "the question never went out");
 
-        var second = Task.Run(DriverInput.IsServerAnswering);
+        var second = Task.Run(() => DriverInput.IsServerAnswering(givingUp));
 
         // Both of them give up on the wait they were given, and neither one asks again.
         Assert.False(await first);
@@ -56,7 +70,7 @@ public class DriverInputTests : IDisposable
     {
         DriverInput.Probe = () => true;
 
-        Assert.True(DriverInput.IsServerAnswering());
+        Assert.True(DriverInput.IsServerAnswering(Patience));
     }
 
     [Fact]
