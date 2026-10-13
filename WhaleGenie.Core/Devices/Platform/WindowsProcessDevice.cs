@@ -127,7 +127,28 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
             return [];
         }
 
-        return [.. Snapshot().Where(row => row.Name == wanted).Select(row => row.Id)];
+        // Asking for the programs of one name costs Windows a single listing; reading every program
+        // on the machine to see what each of them is called costs a handle to each of them. A step
+        // that waits for a program to appear asks this question many times a second, and it is that
+        // question the whole of the trigger's timing hangs on, so it is the cheap one that is used.
+        var found = new List<int>();
+        foreach (var process in Process.GetProcessesByName(wanted))
+        {
+            try
+            {
+                found.Add(process.Id);
+            }
+            catch (Exception error) when (Recoverable(error) || error is ArgumentException)
+            {
+                // A program that went away between the listing and this line is simply not running.
+            }
+            finally
+            {
+                process.Dispose();
+            }
+        }
+
+        return found;
     }
 
     public IReadOnlyList<string> List()

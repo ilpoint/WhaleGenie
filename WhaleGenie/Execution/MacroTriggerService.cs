@@ -27,7 +27,22 @@ public sealed class MacroTriggerService : IDisposable
     /// program name or a window class costs a look-up per window, so the window list is not read
     /// as often as a pixel: half a second late is soon enough to notice a window opening.
     /// </summary>
+    /// <remarks>
+    /// This is the fallback, not the way a window is usually noticed: while the machine is willing
+    /// to say when a window changes, the list is read there and then, and this interval only says
+    /// how often the reading happens anyway. See <see cref="IWindowEvents"/>.
+    /// </remarks>
     private static readonly TimeSpan WindowPollInterval = TimeSpan.FromMilliseconds(500);
+
+    /// <summary>
+    /// How often the programs are counted. Asking for the programs of one name costs a single
+    /// listing, while reading every program on the machine costs a handle each, so counting this
+    /// often costs what the older, slower reading cost once every sixty milliseconds. It is worth
+    /// that: a program that starts and quits again inside the wait between two counts is a program
+    /// a trigger never notices, and the difference between sixty milliseconds and thirty is the
+    /// difference between missing such a program and catching it.
+    /// </summary>
+    private static readonly TimeSpan ProgramPollInterval = TimeSpan.FromMilliseconds(30);
 
     /// <summary>A breather between the passes of a macro that repeats, so it cannot spin.</summary>
     private const int RepeatGapMs = 10;
@@ -35,7 +50,10 @@ public sealed class MacroTriggerService : IDisposable
     private readonly Func<IReadOnlyList<MacroItem>> _macros;
     private readonly IDeviceLayer _devices;
     private readonly bool _ownsDevices;
+    private readonly IWindowEvents _windowEvents;
+    private readonly bool _ownsWindowEvents;
     private readonly object _gate = new();
+    private readonly object _windowGate = new();
     private readonly object _keys = new();
     private readonly Dictionary<MacroItem, CancellationTokenSource> _running = [];
     private readonly HashSet<MacroItem> _colourTriggered = [];
@@ -44,14 +62,21 @@ public sealed class MacroTriggerService : IDisposable
     private readonly HashSet<MacroItem> _spent = [];
     private readonly Dictionary<MacroItem, DateTime> _scheduleDue = [];
     private readonly Dictionary<MacroItem, FileWatch> _watches = [];
-    private readonly Dictionary<MacroItem, HashSet<int>> _programsRunning = [];
-    private readonly Dictionary<MacroItem, bool> _windowsThere = [];
+    private readonly ProgramWatches _programsRunning = new();
+    private readonly WindowWatches _windows = new();
     private readonly HashSet<MacroItem> _idleDone = [];
     private readonly HashSet<string> _heldKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly Timer _poll;
+    private readonly Timer _programs;
 
     private IGlobalHook? _hook;
+    private int _windowPass;
+    private int _windowAgain;
     private DateTime _windowsDueAt;
+    private DateTime _windowsCheckedAt;
+    private DateTime _programsCheckedAt;
+    private DateTime _programsDueAt;
+    private DateTime _polledAt;
     private bool _enabled;
     private bool _disposed;
 
@@ -61,12 +86,21 @@ public sealed class MacroTriggerService : IDisposable
     /// </summary>
     public event Action? StatusChanged;
 
-    public MacroTriggerService(Func<IReadOnlyList<MacroItem>> macros, IDeviceLayer? devices = null)
+    /// <param name="windowEvents">
+    /// Where the word that a window changed comes from. A machine that will not say leaves the
+    /// window list to the timer, which is how it has always been noticed; a check that is about
+    /// something else can hand in one of its own.
+    /// </param>
+    public MacroTriggerService(Func<IReadOnlyList<MacroItem>> macros, IDeviceLayer? devices = null,
+        IWindowEvents? windowEvents = null)
     {
         _macros = macros;
         _ownsDevices = devices is null;
         _devices = devices ?? new WindowsDeviceLayer();
+        _ownsWindowEvents = windowEvents is null;
+        _windowEvents = windowEvents ?? new WindowsWindowEvents();
         _poll = new Timer(_ => Poll(), null, Timeout.Infinite, Timeout.Infinite);
+        _programs = new Timer(_ => Programs(), null, Timeout.Infinite, Timeout.Infinite);
     }
 
     /// <summary>
@@ -118,6 +152,59 @@ public sealed class MacroTriggerService : IDisposable
         }
     }
 
+    /// <summary>
+    /// What every armed trigger is waiting for right now, when it was last looked at and when it
+    /// will be looked at again. It is read by the run window, which is where a person goes when a
+    /// macro they were expecting did not run.
+    /// </summary>
+    public IReadOnlyList<TriggerWatch> Watches()
+    {
+        var rows = new List<TriggerWatch>();
+
+        lock (_windowGate)
+        {
+            lock (_gate)
+            {
+                foreach (var macro in Snapshot())
+                {
+                    if (!macro.IsEnabled)
+                    {
+                        continue;
+                    }
+
+                    var looking = macro.TriggerPreview;
+                    switch (macro.TriggerMode)
+                    {
+                        case MacroTrigger.Window:
+                            rows.Add(new TriggerWatch(macro.Name, looking,
+                                _windows.For(macro),
+                                _windowsCheckedAt, _windowsDueAt, _windowEvents.Available));
+                            break;
+
+                        case MacroTrigger.Process:
+                            rows.Add(new TriggerWatch(macro.Name, looking,
+                                _programsRunning.For(macro),
+                                _programsCheckedAt, _programsDueAt, false));
+                            break;
+
+                        case MacroTrigger.ColorPixelChanges:
+                            rows.Add(new TriggerWatch(macro.Name, looking,
+                                _colourTriggered.Contains(macro), _polledAt,
+                                _polledAt + PollInterval, false));
+                            break;
+
+                        case MacroTrigger.Timer:
+                            rows.Add(new TriggerWatch(macro.Name, looking, null, _polledAt,
+                                _scheduleDue.TryGetValue(macro, out var due) ? due : default, false));
+                            break;
+                    }
+                }
+            }
+        }
+
+        return rows;
+    }
+
     /// <summary>Stops a macro the trigger started.</summary>
     public void Stop(MacroItem macro)
     {
@@ -160,7 +247,7 @@ public sealed class MacroTriggerService : IDisposable
             _colourStopping.Clear();
             _scheduleDue.Clear();
             _programsRunning.Clear();
-            _windowsThere.Clear();
+            _windows.Clear();
             _idleDone.Clear();
         }
 
@@ -192,8 +279,8 @@ public sealed class MacroTriggerService : IDisposable
             _colourHeld.Remove(macro);
             _colourStopping.Remove(macro);
             _scheduleDue.Remove(macro);
-            _programsRunning.Remove(macro);
-            _windowsThere.Remove(macro);
+            _programsRunning.Forget(macro);
+            _windows.Forget(macro);
             _idleDone.Remove(macro);
         }
     }
@@ -208,6 +295,12 @@ public sealed class MacroTriggerService : IDisposable
         _disposed = true;
         Detach();
         _poll.Dispose();
+        _programs.Dispose();
+
+        if (_ownsWindowEvents)
+        {
+            _windowEvents.Dispose();
+        }
 
         if (_ownsDevices && _devices is IDisposable owned)
         {
@@ -231,10 +324,11 @@ public sealed class MacroTriggerService : IDisposable
         }
         catch (Exception)
         {
-            // Without a hook there is nothing to answer to; the switch simply does nothing.
+            // A hook that will not go in means no key and no mouse button can be answered to. The
+            // pixels, the windows, the programs and the clock are all watched by looking rather than
+            // by being told, so those keep working: turning the whole system off because one part of
+            // it is missing would stop a macro whose trigger was never about a key.
             _hook = null;
-            _enabled = false;
-            return;
         }
 
         lock (_gate)
@@ -246,10 +340,22 @@ public sealed class MacroTriggerService : IDisposable
         }
 
         _poll.Change(PollInterval, PollInterval);
+
+        _programsDueAt = DateTime.Now + ProgramPollInterval;
+        _programs.Change(ProgramPollInterval, ProgramPollInterval);
+
+        // The machine is asked to say when a window changes, which is what makes a window that is
+        // only up for a moment worth waiting for. It keeps saying so while the switch is on, and
+        // the reading on the timer goes on underneath: a machine that stops saying, or never said,
+        // leaves everything working, only later.
+        _windowEvents.Changed += OnWindowsChanged;
+        _windowEvents.Start();
     }
 
     private void Detach()
     {
+        _windowEvents.Changed -= OnWindowsChanged;
+
         if (_hook is { } hook)
         {
             hook.KeyPressed -= OnKeyPressed;
@@ -261,7 +367,48 @@ public sealed class MacroTriggerService : IDisposable
         }
 
         _poll.Change(Timeout.Infinite, Timeout.Infinite);
+        _programs.Change(Timeout.Infinite, Timeout.Infinite);
         StopAll();
+    }
+
+    /// <summary>
+    /// The machine saying a window has appeared or gone away. The window list is read there and
+    /// then rather than on its next round, because the window worth catching is one that is only up
+    /// for a moment, and by the next round it is gone.
+    /// </summary>
+    private void OnWindowsChanged()
+    {
+        if (!Listening)
+        {
+            return;
+        }
+
+        // A burst of events — one window being made says so several times over — rides along with
+        // the pass that is already under way instead of queueing up behind it, and is answered by
+        // one reading at the end.
+        if (Interlocked.Exchange(ref _windowPass, 1) == 1)
+        {
+            Interlocked.Exchange(ref _windowAgain, 1);
+            return;
+        }
+
+        try
+        {
+            do
+            {
+                Interlocked.Exchange(ref _windowAgain, 0);
+                PollWindows(Snapshot(), straightAway: true);
+            }
+            while (Interlocked.Exchange(ref _windowAgain, 0) == 1);
+        }
+        catch (Exception)
+        {
+            // Being told about a window must never take the program down; the timer goes on.
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _windowPass, 0);
+        }
     }
 
     private void OnKeyPressed(object? sender, KeyboardHookEventArgs e)
@@ -552,6 +699,16 @@ public sealed class MacroTriggerService : IDisposable
             return;
         }
 
+        Look();
+    }
+
+    /// <summary>
+    /// Everything one round of the clock does. Called by the timer, and by the checks, which need a
+    /// round to happen when they say so rather than when a clock says so.
+    /// </summary>
+    internal void Look()
+    {
+        _polledAt = DateTime.Now;
         var macros = Snapshot();
         foreach (var macro in macros)
         {
@@ -636,10 +793,34 @@ public sealed class MacroTriggerService : IDisposable
 
         PollTimers(macros);
         PollFiles(macros);
-        PollProcesses(macros);
         PollWindows(macros);
         PollIdle(macros);
         PruneWatches(macros);
+    }
+
+    /// <summary>The programs, on the clock of their own: this is the one reading whose interval decides
+    /// what is noticed, so it is not tied to the round the pixels and the clock share.</summary>
+    private void Programs()
+    {
+        if (!Listening)
+        {
+            return;
+        }
+
+        LookAtPrograms();
+    }
+
+    /// <summary>Counting the programs once, for the timer and for the checks.</summary>
+    internal void LookAtPrograms()
+    {
+        try
+        {
+            PollProcesses(Snapshot());
+        }
+        catch (Exception)
+        {
+            // Reading another program's list can be refused; the next round tries again.
+        }
     }
 
     /// <summary>True when a running macro has been asked to stop once its current pass ends.</summary>
@@ -801,6 +982,13 @@ public sealed class MacroTriggerService : IDisposable
     /// </summary>
     private void PollProcesses(IReadOnlyList<MacroItem> macros)
     {
+        _programsCheckedAt = DateTime.Now;
+        _programsDueAt = _programsCheckedAt + ProgramPollInterval;
+
+        // Every program a macro asks about is asked about once, so two macros watching the same
+        // program cost one look-up rather than two.
+        var looked = new Dictionary<string, IReadOnlyList<int>>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var macro in macros)
         {
             if (!macro.IsEnabled || macro.TriggerMode != MacroTrigger.Process)
@@ -814,31 +1002,33 @@ public sealed class MacroTriggerService : IDisposable
                 continue;
             }
 
-            HashSet<int> running;
+            IReadOnlyList<int> running;
             try
             {
-                running = [.. _devices.Processes.Find(name)];
+                if (!looked.TryGetValue(name, out var found))
+                {
+                    found = _devices.Processes.Find(name);
+                    looked[name] = found;
+                }
+
+                running = found;
             }
             catch (Exception)
             {
                 continue;   // another program's process list can be refused; the trigger waits
             }
 
-            bool started;
-            bool stopped;
+            (bool Started, bool Stopped)? moved;
             lock (_gate)
             {
-                if (!_programsRunning.TryGetValue(macro, out var before))
-                {
-                    // Counting starts when the system is switched on, so switching it on does not
-                    // set off every macro whose program happens to be open already.
-                    _programsRunning[macro] = running;
-                    continue;
-                }
+                moved = _programsRunning.Changed(macro, running);
+            }
 
-                started = running.Except(before).Any();
-                stopped = before.Except(running).Any();
-                _programsRunning[macro] = running;
+            // Counting starts when the system is switched on, so switching it on does not set off
+            // every macro whose program happens to be open already.
+            if (moved is not { } change)
+            {
+                continue;
             }
 
             // A "once" macro waits to be re-armed rather than watching for ever.
@@ -849,9 +1039,9 @@ public sealed class MacroTriggerService : IDisposable
 
             var wanted = macro.ProcessChange switch
             {
-                ProcessChangeKind.Started => started,
-                ProcessChangeKind.Stopped => stopped,
-                _ => started || stopped,
+                ProcessChangeKind.Started => change.Started,
+                ProcessChangeKind.Stopped => change.Stopped,
+                _ => change.Started || change.Stopped,
             };
 
             if (wanted)
@@ -867,15 +1057,29 @@ public sealed class MacroTriggerService : IDisposable
     /// the macro is waiting for counts as appearing, which is what "wait for the page to load"
     /// means in practice.
     /// </summary>
-    private void PollWindows(IReadOnlyList<MacroItem> macros)
+    /// <param name="straightAway">
+    /// True on the way in from the machine saying a window changed. That is the one moment worth
+    /// reading for, so the interval between rounds is not waited for; everything else about the
+    /// reading is the same.
+    /// </param>
+    private void PollWindows(IReadOnlyList<MacroItem> macros, bool straightAway = false)
     {
-        var now = DateTime.Now;
-        if (now < _windowsDueAt)
+        lock (_windowGate)
         {
-            return;
-        }
+            var now = DateTime.Now;
+            if (!straightAway && now < _windowsDueAt)
+            {
+                return;
+            }
 
-        _windowsDueAt = now + WindowPollInterval;
+            _windowsDueAt = now + WindowPollInterval;
+            _windowsCheckedAt = now;
+            ReadWindows(macros);
+        }
+    }
+
+    private void ReadWindows(IReadOnlyList<MacroItem> macros)
+    {
 
         foreach (var macro in macros)
         {
@@ -900,21 +1104,13 @@ public sealed class MacroTriggerService : IDisposable
                 continue;   // the window list can be refused; the trigger simply waits
             }
 
-            bool before;
+            bool changed;
             lock (_gate)
             {
-                if (!_windowsThere.TryGetValue(macro, out before))
-                {
-                    // What is open when the system is switched on is not something that has just
-                    // appeared.
-                    _windowsThere[macro] = there;
-                    continue;
-                }
-
-                _windowsThere[macro] = there;
+                changed = _windows.Changed(macro, there);
             }
 
-            if (before == there)
+            if (!changed)
             {
                 continue;
             }
@@ -998,7 +1194,7 @@ public sealed class MacroTriggerService : IDisposable
         {
             if (_colourTriggered.Count == 0 && _colourHeld.Count == 0 && _colourStopping.Count == 0
                 && _scheduleDue.Count == 0 && _watches.Count == 0 && _programsRunning.Count == 0
-                && _windowsThere.Count == 0 && _idleDone.Count == 0)
+                && _windows.Count == 0 && _idleDone.Count == 0)
             {
                 return;
             }
@@ -1007,8 +1203,8 @@ public sealed class MacroTriggerService : IDisposable
             tracked.UnionWith(_colourHeld);
             tracked.UnionWith(_colourStopping);
             tracked.UnionWith(_scheduleDue.Keys);
-            tracked.UnionWith(_programsRunning.Keys);
-            tracked.UnionWith(_windowsThere.Keys);
+            tracked.UnionWith(_programsRunning.Macros);
+            tracked.UnionWith(_windows.Macros);
             tracked.UnionWith(_idleDone);
 
             foreach (var item in tracked)
@@ -1019,8 +1215,8 @@ public sealed class MacroTriggerService : IDisposable
                     _colourHeld.Remove(item);
                     _colourStopping.Remove(item);
                     _scheduleDue.Remove(item);
-                    _programsRunning.Remove(item);
-                    _windowsThere.Remove(item);
+                    _programsRunning.Forget(item);
+                    _windows.Forget(item);
                     _idleDone.Remove(item);
                     continue;
                 }
@@ -1041,12 +1237,12 @@ public sealed class MacroTriggerService : IDisposable
 
                 if (item.TriggerMode != MacroTrigger.Process)
                 {
-                    _programsRunning.Remove(item);
+                    _programsRunning.Forget(item);
                 }
 
                 if (item.TriggerMode != MacroTrigger.Window)
                 {
-                    _windowsThere.Remove(item);
+                    _windows.Forget(item);
                 }
 
                 if (item.TriggerMode != MacroTrigger.Idle)
@@ -1192,4 +1388,5 @@ public sealed class MacroTriggerService : IDisposable
             return [];
         }
     }
+
 }

@@ -54,4 +54,57 @@ public class TriggerTests
         Assert.False(Binds("左Ctrl+S", "D", "左Ctrl"));
         Assert.False(Binds("", "S", "左Ctrl"));
     }
+
+    /// <summary>
+    /// A window that is already open when the watching starts is where the counting starts, not an
+    /// appearance. It is also what keeps a burst of events — a window being made says so more than
+    /// once — from setting the same macro off several times over.
+    /// </summary>
+    [Fact]
+    public void A_window_seen_twice_is_one_appearance()
+    {
+        var watches = new WindowWatches();
+        var macro = new MacroItem();
+
+        Assert.False(watches.Changed(macro, true));
+        Assert.True(watches.For(macro));
+
+        Assert.False(watches.Changed(macro, true));
+        Assert.False(watches.Changed(macro, true));
+
+        Assert.True(watches.Changed(macro, false));
+        Assert.False(watches.Changed(macro, false));
+        Assert.True(watches.Changed(macro, true));
+
+        // A macro that is put back in the list starts over rather than being told what it knew.
+        watches.Forget(macro);
+        Assert.Null(watches.For(macro));
+        Assert.False(watches.Changed(macro, true));
+    }
+
+    /// <summary>
+    /// Nothing says when a program starts, so this is a difference against the reading before. The
+    /// same program counted twice is one start, and what was running when the watching began is not
+    /// a start at all: switching the system on must not set off every macro whose program is open.
+    /// </summary>
+    [Fact]
+    public void A_program_already_running_is_not_a_start()
+    {
+        var watches = new ProgramWatches();
+        var macro = new MacroItem();
+
+        Assert.Null(watches.Changed(macro, [7, 8]));
+        Assert.True(watches.For(macro));
+
+        Assert.Equal((false, false), watches.Changed(macro, [7, 8]));
+        Assert.Equal((true, false), watches.Changed(macro, [7, 8, 9]));
+        Assert.Equal((false, true), watches.Changed(macro, [7, 9]));
+        Assert.Equal((true, true), watches.Changed(macro, [9, 10]));
+        Assert.Equal((false, true), watches.Changed(macro, []));
+        Assert.False(watches.For(macro));
+
+        watches.Forget(macro);
+        Assert.Null(watches.For(macro));
+        Assert.Null(watches.Changed(macro, [7]));
+    }
 }
