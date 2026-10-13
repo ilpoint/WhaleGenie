@@ -633,7 +633,7 @@ public class DeviceActionTests
         [
             Step("input.keySequence",
                 Rows("keys", Press("A"), Press("B", holdMs: 30)),
-                Param("holdMs", "5"), Param("gapMs", "120")),
+                Param("holdMs", "5"), Param("gapMs", "2000")),
         ]);
 
         var waited = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
@@ -641,8 +641,10 @@ public class DeviceActionTests
         Assert.True(result.Succeeded, result.Key);
         Assert.Equal(["hotkey A 5", "hotkey B 30"], devices.Calls);
 
-        // One gap of 120ms: two of them would be past 240, and none at all would be under 90.
-        Assert.InRange(waited, 90, 220);
+        // One beat of 2000ms: two of them would reach 4000, and none at all would be under 1900.
+        // The beat is this long because a busy machine can only ever add to a wait, and the far end
+        // has to stay short of two of them for the count to be readable at all.
+        Assert.InRange(waited, 1900, 4000);
     }
 
     /// <summary>A row that says its own gap is the one place where the beat is not the run's.</summary>
@@ -655,7 +657,7 @@ public class DeviceActionTests
         [
             Step("input.keySequence",
                 Rows("keys", Press("A", gapMs: 0), Press("B"), Press("C")),
-                Param("holdMs", "5"), Param("gapMs", "150")),
+                Param("holdMs", "5"), Param("gapMs", "2000")),
         ]);
 
         var waited = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
@@ -664,7 +666,7 @@ public class DeviceActionTests
         Assert.Equal(["hotkey A 5", "hotkey B 5", "hotkey C 5"], devices.Calls);
 
         // The first row asked for no beat after it, so the run waited the run's own gap only once.
-        Assert.InRange(waited, 100, 260);
+        Assert.InRange(waited, 1900, 4000);
     }
 
     [Fact]

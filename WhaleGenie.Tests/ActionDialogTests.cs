@@ -2677,8 +2677,11 @@ public class ActionDialogTests
         /// <summary>Waits for something to have been sent, so a check can see a click's work.</summary>
         public async Task<bool> WaitUntil(Func<bool> done)
         {
+            // The trial runs off this thread, and a machine busy with the rest of the checks can
+            // take a while to get to it: how long that takes says nothing about whether the click
+            // worked, so there is room here rather than a queue that turns into a failure.
             var step = TimeSpan.FromMilliseconds(25);
-            for (var waited = TimeSpan.Zero; waited < TimeSpan.FromSeconds(10); waited += step)
+            for (var waited = TimeSpan.Zero; waited < TimeSpan.FromSeconds(30); waited += step)
             {
                 if (done())
                 {

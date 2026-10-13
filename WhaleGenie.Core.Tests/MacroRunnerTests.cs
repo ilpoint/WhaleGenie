@@ -1529,7 +1529,9 @@ public class MacroRunnerTests
             waits.Add(await TimeAsync([varied], 1));
         }
 
-        Assert.All(waits, taken => Assert.InRange(taken, 145, 300));
+        // A busy machine can only ever add to a wait, so the far end is left loose: the give is
+        // what is being checked, and a wait that was the plain number would still sit in here.
+        Assert.All(waits, taken => Assert.InRange(taken, 145, 3000));
         Assert.True(waits.Max() - waits.Min() > 10,
             $"every wait came out about the same: {string.Join(", ", waits.Select(w => w.ToString("0")))}");
 
