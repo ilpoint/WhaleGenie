@@ -1643,7 +1643,9 @@ public static class ActionCatalog
             Parameters =
             [
                 ..WindowTarget(),
-                Number("timeoutMs", "Timeout", 10000, "How long to wait before giving up."),
+                Number("timeoutMs", "Timeout", 10000,
+                    "How long to wait for the window before giving up, in milliseconds; 10000 by "
+                    + "default."),
                 Returns(),
             ],
         },
@@ -1704,17 +1706,19 @@ public static class ActionCatalog
                 Number("x", "X", 0,
                     "Left edge, in screen pixels, of the rectangle the window is seen at: the "
                     + "border Windows keeps round it for resizing is not drawn and does not count. "
-                    + "The rectangle window.info hands over can be filled in here as it is.",
+                    + "The rectangle window.info hands over can be filled in here as it is; 0 by "
+                    + "default, and anywhere from -100000 to 100000.",
                     min: -100_000m, max: 100_000m),
                 Number("y", "Y", 0,
-                    "Top edge, in screen pixels, counted the way X is.", min: -100_000m,
-                    max: 100_000m),
+                    "Top edge, in screen pixels, counted the way X is; 0 by default, and anywhere "
+                    + "from -100000 to 100000.", min: -100_000m, max: 100_000m),
                 Number("width", "Width", 800,
                     "How wide the window is to become, in pixels, measured the same way: as the "
-                    + "window is seen rather than as Windows stretches it.", min: 1m, max: 100_000m),
+                    + "window is seen rather than as Windows stretches it; 800 by default, and "
+                    + "anywhere from 1 to 100000.", min: 1m, max: 100_000m),
                 Number("height", "Height", 600,
-                    "How tall the window is to become, in pixels, counted the way the width is.",
-                    min: 1m, max: 100_000m),
+                    "How tall the window is to become, in pixels, counted the way the width is; 600 "
+                    + "by default, and anywhere from 1 to 100000.", min: 1m, max: 100_000m),
             ],
         },
         new()
@@ -1748,10 +1752,11 @@ public static class ActionCatalog
             [
                 Text("filter", "Filter", "notepad",
                     "Keep only the windows whose title, process or class contains this text. "
-                    + "Leave it empty for every window.", required: false, acceptsFormula: true),
+                    + "Leave it empty for every window; a variable or an expression may be used.",
+                    required: false, acceptsFormula: true),
                 Choice("filterBy", "Filter by", ["title", "process", "class"], "title",
-                    "Which part of a window the filter text is compared with. This one is always "
-                    + "matched as \"contains\".", advanced: true),
+                    "Which part of a window the filter text is compared with, the title by default. "
+                    + "This one is always matched as \"contains\".", advanced: true),
                 Returns(),
             ],
         },
