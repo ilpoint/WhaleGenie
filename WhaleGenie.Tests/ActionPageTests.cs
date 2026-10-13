@@ -205,6 +205,43 @@ public class ActionPageTests
     }
 
     /// <summary>
+    /// How a step lands and how it beats is one question: how far the click may miss, whether the
+    /// pointer is put back, how long the press is held, how many times it happens, how long it waits
+    /// in between and whether the place still has to be right a moment later. Tuning a step that is
+    /// nearly right used to mean reading that question off two pages, because one field of the run
+    /// happened to be folded away; the run is read together on the basic page and stands in one
+    /// piece there.
+    /// </summary>
+    [Theory]
+    [InlineData("input.keyPress", "holdMs", "repeat", "intervalMs")]
+    [InlineData("input.hotkey", "holdMs", "repeat", "intervalMs")]
+    [InlineData("input.mouseClick", "variance", "moveBack", "holdMs", "repeat", "intervalMs")]
+    [InlineData("input.mouseDoubleClick", "variance", "moveBack", "repeat", "intervalMs")]
+    [InlineData("input.mouseScroll", "repeat", "intervalMs")]
+    [InlineData("input.mouseDrag", "settleMs")]
+    [InlineData("gamepad.button", "holdMs", "repeat", "intervalMs")]
+    [InlineData("vision.clickImage", "variance", "recheckMs")]
+    [InlineData("ocr.clickText", "variance", "recheckMs")]
+    public void How_a_step_lands_and_how_it_beats_are_read_as_one_run(string action,
+        params string[] run)
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open(action);
+            var basic = viewModel.Rows.SelectMany(Names).ToList();
+            var advanced = viewModel.AdvancedRows.SelectMany(Names).ToList();
+
+            // Not one field of the run is folded away, and on the basic page they follow each other
+            // with nothing in between.
+            Assert.Empty(run.Intersect(advanced, StringComparer.Ordinal));
+
+            var at = basic.IndexOf(run[0]);
+            Assert.True(at >= 0, $"{action}: {run[0]} is not on the basic page");
+            Assert.Equal(run, basic.GetRange(at, run.Length));
+        });
+    }
+
+    /// <summary>
     /// The four numbers of a place to look are ordinary fields on the basic page, beside the things
     /// that say what the step is: the rectangle is dragged out and made exact in one place rather
     /// than read on two pages that could disagree.

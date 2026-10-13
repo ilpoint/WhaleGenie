@@ -1772,9 +1772,8 @@ public static class ActionCatalog
             Parameters =
             [
                 KeyBind("key", "Key", "Key to press, for example F5 or Enter."),
-                Number("holdMs", "Hold", 50, "How long the key stays down."),
-                Number("repeat", "Repeat", 1, "How many times to press the key.", min: 1),
-                Number("intervalMs", "Interval", 0, "Pause between repeated presses."),
+                Hold(50, "key"),
+                ..Beat(),
                 ..Delivery(),
             ],
         },
@@ -1814,9 +1813,8 @@ public static class ActionCatalog
                     "Keys joined with + and pressed together. Take them off the keyboard drawn on "
                     + "screen to be sure of the spelling: the two Ctrl keys and the two Shift keys "
                     + "are named apart, and the machine tells them apart."),
-                Number("holdMs", "Hold", 50, "How long the combination stays down."),
-                Number("repeat", "Repeat", 1, "How many times to send the combination.", min: 1),
-                Number("intervalMs", "Interval", 0, "Pause between repeated presses."),
+                Hold(50, "combination"),
+                ..Beat(),
                 ..Delivery(),
             ],
         },
@@ -1904,24 +1902,12 @@ public static class ActionCatalog
                 AtPointer(),
                 ..PointerPosition("Screen column to click.", "Screen row to click."),
                 ..Anchor(withElement: true, byTitleOnly: true),
-                Number("variance", "Aim within", 0,
-                    "How far the click may land from the position above, in pixels; the default is "
-                    + "0, which lands on exactly that position. Given a number, every click is "
-                    + "placed at random within that many pixels either way, so a run of clicks is "
-                    + "spread over the button instead of landing on one pixel — which is what a "
-                    + "button that only counts a press somewhere inside it, and a game that "
-                    + "notices the same pixel every time, are both about. Keep it small enough "
-                    + "that the whole spread stays inside the thing being clicked.",
-                    min: 0, max: 100000),
-                Number("holdMs", "Hold", 0,
-                    "How long the button stays down before it is released. 0 sends a normal "
-                    + "quick click; a longer hold is for buttons that only answer a press-and-hold."),
-                Number("repeat", "Repeat", 1, "How many clicks to send.", min: 1),
-                Number("intervalMs", "Interval", 0, "Pause between repeated clicks."),
-                Toggle("moveBack", "Put the pointer back", false,
-                    "Move the pointer back to where it was before the click, so the mouse is left "
-                    + "where the user left it. It does nothing in background mode, where the "
-                    + "pointer on screen never moved in the first place.", advanced: true),
+                Aim(),
+                PutBack(),
+                Hold(0, "button",
+                    "0 sends a normal quick click; a longer hold is for buttons that only answer a "
+                    + "press-and-hold."),
+                ..Beat(),
                 ..Delivery(),
             ],
         },
@@ -1937,19 +1923,9 @@ public static class ActionCatalog
                 AtPointer(),
                 ..PointerPosition("Screen column to click.", "Screen row to click."),
                 ..Anchor(withElement: true, byTitleOnly: true),
-                Number("variance", "Aim within", 0,
-                    "How far a double click may land from the position above, in pixels; the "
-                    + "default is 0, which lands on exactly that position. Given a number, each "
-                    + "double click is placed at random within that many pixels either way.",
-                    min: 0, max: 100000),
-                Number("repeat", "Repeat", 1,
-                    "How many double clicks to send. 1 is the one a double click usually means.",
-                    min: 1),
-                Number("intervalMs", "Interval", 0, "Pause between repeated double clicks."),
-                Toggle("moveBack", "Put the pointer back", false,
-                    "Move the pointer back to where it was before the click, so the mouse is left "
-                    + "where the user left it. It does nothing in background mode, where the "
-                    + "pointer on screen never moved in the first place.", advanced: true),
+                Aim(),
+                PutBack(),
+                ..Beat(),
                 ..Delivery(),
             ],
         },
@@ -2004,8 +1980,7 @@ public static class ActionCatalog
                 ..PointerPosition("Screen column to scroll at.", "Screen row to scroll at."),
                 AtPointer(),
                 ..Anchor(withElement: true, byTitleOnly: true),
-                Number("repeat", "Repeat", 1, "How many times to send that much scrolling.", min: 1),
-                Number("intervalMs", "Interval", 0, "Pause between repeated scrolls."),
+                ..Beat(),
                 ..Delivery(),
             ],
         },
@@ -2024,17 +1999,11 @@ public static class ActionCatalog
                 ..Anchor(withElement: true, byTitleOnly: true),
                 Button(),
                 Number("durationMs", "Duration", 300, "How long the drag takes."),
-                Number("settleMs", "Hold at the end", 0,
-                    "How long the button stays down at the end of the drag before it is released, "
-                    + "in milliseconds; the default is 0, which lets go as soon as the pointer "
-                    + "arrives. A drop that is only answered once the thing has been held over its "
-                    + "new place for a moment, which is how a drag onto a slot becomes a drop into "
-                    + "that slot rather than a pass over it.",
-                    min: 0),
                 Number("steps", "Move steps", 20,
                     "Intermediate move events sent while dragging, 20 by default.", min: 1,
                     advanced: true),
                 Movement(),
+                Settle(),
                 ..Delivery(),
             ],
         },
@@ -2066,9 +2035,8 @@ public static class ActionCatalog
                     "A tap presses and lets go; hold and let up are for a button that has to stay "
                     + "down across other steps.",
                     labels: ["Tap", "Hold down", "Let up"]),
-                Number("holdMs", "Hold", 50, "How long the button stays down when it is tapped."),
-                Number("repeat", "Repeat", 1, "How many times to tap the button.", min: 1),
-                Number("intervalMs", "Interval", 0, "Pause between repeated taps."),
+                Hold(50, "button", "It only applies to a tap."),
+                ..Beat(),
             ],
         },
         new()
@@ -2241,14 +2209,6 @@ public static class ActionCatalog
                     "Pixels added to the middle of the match before clicking. 0, the default, clicks "
                     + "the middle.", min: -100000m),
                 Number("offsetY", "Offset Y", 0, min: -100000m),
-                Number("variance", "Aim within", 0,
-                    "How far the click may land from the middle of the match, in pixels; the "
-                    + "default is 0, which lands on exactly that point. Given a number, the place "
-                    + "clicked is picked at random within that many pixels either way, so two "
-                    + "clicks in a row do not land on the same pixel. Raise it for a wide button "
-                    + "that should not look machine-clicked; keep it small enough that the whole "
-                    + "spread stays inside the thing being clicked.",
-                    min: 0, max: 100000),
                 MatchAlgorithm(),
                 SkipColour(),
                 MinFeatures(),
@@ -2256,15 +2216,8 @@ public static class ActionCatalog
                 ..Anchor(),
                 MatchIndex(pixelsOnly: true),
                 LookPoll(),
-                Number("recheckMs", "Look again after", 0,
-                    "How long to wait before looking a second time, in milliseconds; the default "
-                    + "is 0, which clicks as soon as the picture turns up. Given a number, the "
-                    + "step waits that long, looks again and clicks only if the picture is still "
-                    + "there — which is how a button that flashes past, or a screen that has "
-                    + "already moved on, is not clicked by mistake. A second look that finds "
-                    + "nothing counts as finding nothing at all: the second look is one look "
-                    + "rather than another wait, so a picture that has gone is not waited for.",
-                    min: 0, advanced: true),
+                Aim(),
+                Recheck("picture"),
                 Returns(),
             ],
         },
@@ -2478,23 +2431,10 @@ public static class ActionCatalog
                 Number("offsetX", "Offset X", 0, "Pixels added to the match centre.",
                     min: -100000m),
                 Number("offsetY", "Offset Y", 0, min: -100000m),
-                Number("variance", "Aim within", 0,
-                    "How far the click may land from the middle of the reading, in pixels; the "
-                    + "default is 0, which lands on exactly that point. Given a number, the place "
-                    + "clicked is picked at random within that many pixels either way, so two "
-                    + "clicks in a row do not land on the same pixel.",
-                    min: 0, max: 100000),
                 ..Anchor(),
                 LookPoll(),
-                Number("recheckMs", "Look again after", 0,
-                    "How long to wait before looking a second time, in milliseconds; the default "
-                    + "is 0, which clicks as soon as the text turns up. Given a number, the step "
-                    + "waits that long, looks again and clicks only if the text is still there — "
-                    + "which is how a line that has already been replaced is not clicked by "
-                    + "mistake. A second look that finds nothing counts as finding nothing at all, "
-                    + "and it is one look rather than another wait, so a line that has gone is not "
-                    + "waited for.",
-                    min: 0, advanced: true),
+                Aim(),
+                Recheck("text"),
                 Preprocess(advanced: true),
                 ColourFilter(advanced: true),
                 ColourTolerance(advanced: true),
@@ -4169,6 +4109,68 @@ public static class ActionCatalog
             + "drew it. A bent path is travelled rather than jumped, so an instant move borrows "
             + "200 ms to have somewhere to bend.",
             labels: ["Straight line", "Bent path", "Hand-like"], advanced: true);
+
+    /// <summary>
+    /// 落手与节奏。Tuning a step that is nearly right means reading these together: how far the
+    /// click may miss the place it aimed at, whether the pointer is put back afterwards, how many
+    /// times the step happens and how long it waits in between, and whether the place still has to
+    /// be right a moment later. Each is declared once here and drawn as one run at the end of the
+    /// basic page, rather than written out again inside every action and split across two pages by
+    /// the one field of the run that happened to be folded away. The names they write into the file
+    /// are unchanged; what changes is where the form draws them.
+    /// </summary>
+    private static ActionParameter Aim()
+        => Number("variance", "Aim within", 0,
+            "How far the click may land from the place it aimed at, in pixels; the default is 0, "
+            + "which lands on exactly that place. Given a number, every click is placed at random "
+            + "within that many pixels either way, so a run of clicks is spread over the button "
+            + "instead of landing on one pixel — which is what a button that only counts a press "
+            + "somewhere inside it, and a game that notices the same pixel every time, are both "
+            + "about. Keep it small enough that the whole spread stays inside the thing being "
+            + "clicked.",
+            min: 0, max: 100000);
+
+    /// <summary>把指针放回原处：落手之后鼠标还在用户离开的地方。</summary>
+    private static ActionParameter PutBack()
+        => Toggle("moveBack", "Put the pointer back", false,
+            "Move the pointer back to where it was before the click, so the mouse is left where the "
+            + "user left it. It does nothing in background mode, where the pointer on screen never "
+            + "moved in the first place.");
+
+    /// <summary>按下去之后停多久。0 是普通的一次快按。</summary>
+    private static ActionParameter Hold(decimal defaultMs, string what, string whenZero = "")
+        => Number("holdMs", "Hold", defaultMs,
+            $"How long the {what} stays down." + (whenZero.Length > 0 ? " " + whenZero : string.Empty));
+
+    /// <summary>重复几次、隔多久。</summary>
+    private static ActionParameter[] Beat() =>
+    [
+        Number("repeat", "Repeat", 1, "How many times this step is sent in a row.", min: 1),
+        Number("intervalMs", "Interval", 0,
+            "How long to wait between one and the next, in milliseconds; 0, the default, sends them "
+            + "one after the other with no pause."),
+    ];
+
+    /// <summary>拖拽到那头之后再按一会儿才松手。</summary>
+    private static ActionParameter Settle()
+        => Number("settleMs", "Hold at the end", 0,
+            "How long the button stays down at the end of the drag before it is released, in "
+            + "milliseconds; the default is 0, which lets go as soon as the pointer arrives. A drop "
+            + "that is only answered once the thing has been held over its new place for a moment, "
+            + "which is how a drag onto a slot becomes a drop into that slot rather than a pass "
+            + "over it.",
+            min: 0);
+
+    /// <summary>看清楚再落手：等一会儿再看一眼，东西还在才动手。</summary>
+    private static ActionParameter Recheck(string what)
+        => Number("recheckMs", "Look again after", 0,
+            $"How long to wait before looking a second time, in milliseconds; the default is 0, "
+            + $"which acts as soon as the {what} turns up. Given a number, the step waits that long, "
+            + $"looks again and acts only if the {what} is still there, so something that flashed "
+            + "past, or a screen that has already moved on, is not acted on by mistake. A second "
+            + "look that finds nothing counts as finding nothing at all: it is one look rather than "
+            + "another wait, so something that has gone is not waited for.",
+            min: 0);
 
     /// <summary>
     /// A file or folder path, which may be written as an expression. The intent decides which
