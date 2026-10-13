@@ -3088,6 +3088,67 @@ internal static class ActionStrings
         ["browser.close.name"] = "关闭浏览器",
         ["browser.close.desc"] = "关闭宏打开的浏览器。",
 
+        ["browser.select.name"] = "下拉选择",
+        ["browser.select.desc"] = "在页面上的下拉框里选中一个选项。",
+        ["browser.select.target.label"] = "选择器",
+        ["browser.select.target.hint"] = "要操作哪个下拉框，写法与「点击元素」相同。",
+        ["browser.select.value.label"] = "选项",
+        ["browser.select.value.hint"] = "要选中哪个选项：值和可见文字正好是这段文字的那一个，或者"
+            + "配合下面的「按序号」写选项的位置；整段按一个值读取，因此可以写变量或算式。",
+        ["browser.select.by.label"] = "按什么选",
+        ["browser.select.by.hint"] = "上面那格怎么匹配。「按值或文字」取第一个值和可见文字正好是"
+            + "所写内容的选项；「按序号」取那个位置上的选项，从上往下数，第一个是 1。页面自己用"
+            + "别的元素画出来的下拉框不属于这一类，那种要按人操作的方式点开再点选。",
+        ["browser.select.by.option.value"] = "按值或文字",
+        ["browser.select.by.option.index"] = "按序号",
+
+        ["browser.check.name"] = "勾选",
+        ["browser.check.desc"] = "把复选框或单选框留在勾上或没勾的状态。",
+        ["browser.check.target.label"] = "选择器",
+        ["browser.check.target.hint"] = "要让哪个框留在该状态，写法与「点击元素」相同。",
+        ["browser.check.checked.label"] = "勾上",
+        ["browser.check.checked.hint"] = "这个框最后是不是要勾上，默认勾上；关掉它表示把已经"
+            + "勾上的框取消勾选。要求的状态与当前相同就什么都不做，不像点击那样把勾着的框点掉。",
+
+        ["browser.hover.name"] = "悬停",
+        ["browser.hover.desc"] = "把指针移到某个元素上并停在那里。",
+        ["browser.hover.target.label"] = "选择器",
+        ["browser.hover.target.hint"] = "要移到哪个元素上，写法与「点击元素」相同。菜单、提示框、"
+            + "整排按钮都是这么出现的；这一步不点击任何东西。",
+
+        ["browser.press.name"] = "页面按键",
+        ["browser.press.desc"] = "向页面里发送一个按键或一个组合键。",
+        ["browser.press.target.label"] = "选择器",
+        ["browser.press.target.hint"] = "发送按键前由哪个元素取得焦点，写法与「点击元素」相同。"
+            + "默认留空，表示把按键发给页面本身。",
+        ["browser.press.key.label"] = "按键",
+        ["browser.press.key.hint"] = "要发送哪个键：键盘选择器里列出的名字（Enter、Esc、F5、"
+            + "Down），或者用「+」连起来的组合键（Ctrl+S）。键盘里没有的名字在运行前就会被拒绝。",
+
+        ["browser.waitFor.name"] = "等待元素",
+        ["browser.waitFor.desc"] = "等待页面上的某个元素出现或消失。",
+        ["browser.waitFor.target.label"] = "选择器",
+        ["browser.waitFor.target.hint"] = "要等哪个元素，写法与「点击元素」相同。页面自己去取内容"
+            + "时要用这一步，而不是固定停一会儿：状态一到，这一步立刻结束。等多久由这一步设置"
+            + "里的「超时」说，默认 15000 毫秒。",
+        ["browser.waitFor.state.label"] = "等到它",
+        ["browser.waitFor.state.hint"] = "等哪一种状态。「可见」是接下来要点击某处时用的；"
+            + "「不可见」用于等一个转圈的进度提示消失；「在页面上」等的是存在但可以没有大小的"
+            + "元素；「不在页面上」等的是已经被拿掉的元素。",
+        ["browser.waitFor.state.option.visible"] = "可见",
+        ["browser.waitFor.state.option.hidden"] = "不可见",
+        ["browser.waitFor.state.option.attached"] = "在页面上",
+        ["browser.waitFor.state.option.detached"] = "不在页面上",
+
+        ["browser.upload.name"] = "上传文件",
+        ["browser.upload.desc"] = "把文件交给页面上的文件选择框。",
+        ["browser.upload.target.label"] = "选择器",
+        ["browser.upload.target.hint"] = "要交给哪个文件选择框，写法与「点击元素」相同。",
+        ["browser.upload.files.label"] = "文件",
+        ["browser.upload.files.hint"] = "一行一个文件的路径，空行会被跳过；相对路径从宏文件所在"
+            + "的文件夹算起，与别的步骤里的路径同一条规则。浏览器的规矩是不许脚本告诉页面一个"
+            + "路径，这一步是绕开这条规矩的唯一办法。",
+
         // ------------------------------------------------------------------ script
         ["script.run.name"] = "运行脚本",
         ["script.run.desc"] = "用选定的解释器运行一段脚本，用于处理动作目录未覆盖的情况。",

@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.GraphicsCapture;
@@ -1510,6 +1511,33 @@ public sealed class MacroRunner
 
             case "browser.readText":
                 BrowserReadText(step, depth);
+                return Signal.Normal;
+
+            case "browser.select":
+                BrowserSelect(step, depth);
+                return Signal.Normal;
+
+            case "browser.check":
+                _devices.Browser.Check(Read(step.Text("target")).AsText(),
+                    Flag(step, "checked", true));
+                Log(LogLevel.Info, depth, step.Type, "Run.BrowserChecked", step.Text("target"));
+                return Signal.Normal;
+
+            case "browser.hover":
+                _devices.Browser.Hover(Read(step.Text("target")).AsText());
+                Log(LogLevel.Info, depth, step.Type, "Run.BrowserHovered", step.Text("target"));
+                return Signal.Normal;
+
+            case "browser.press":
+                BrowserPress(step, depth);
+                return Signal.Normal;
+
+            case "browser.waitFor":
+                BrowserWaitFor(step, depth);
+                return Signal.Normal;
+
+            case "browser.upload":
+                BrowserUpload(step, depth);
                 return Signal.Normal;
 
             case "browser.switchTab":
@@ -7387,6 +7415,91 @@ public sealed class MacroRunner
         var text = _devices.Browser.Text(Read(step.Text("target")).AsText());
         Give(step, "text", Value.FromText(text));
         Log(LogLevel.Info, depth, step.Type, "Run.BrowserRead", text.Length);
+    }
+
+    /// <summary>
+    /// Picks an option of a dropdown. The position is turned into a number here, where the step's
+    /// own name can be put on the failure: a box holding something that is not a whole number is a
+    /// mistake in the step, and the person reading it wants to see which step.
+    /// </summary>
+    private void BrowserSelect(ExecutableStep step, int depth)
+    {
+        var value = Read(step.Text("value")).AsText();
+        var byIndex = step.Text("by").Trim().Equals("index", StringComparison.OrdinalIgnoreCase);
+        if (byIndex && !Position(value))
+        {
+            throw new StepFailure("Run.BadPosition", value);
+        }
+
+        _devices.Browser.Select(Read(step.Text("target")).AsText(), value, byIndex);
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserSelected", step.Text("target"), value);
+    }
+
+    /// <summary>
+    /// Whether a written place in a list is one a person could read off the page: a whole number,
+    /// counted from the top starting at 1.
+    /// </summary>
+    private static bool Position(string value)
+        => int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var at)
+            && at >= 1;
+
+    /// <summary>
+    /// Sends one key, or one chord, into the page. The name is checked against the same list the
+    /// keyboard picker offers before it goes anywhere, so a key name that means nothing is refused
+    /// here rather than arriving as a letter that happens to share its first character.
+    /// </summary>
+    private void BrowserPress(ExecutableStep step, int depth)
+    {
+        var key = step.Text("key").Trim();
+        var keys = KeyNames.ResolveChord(key, out var unknown);
+        if (keys.Count == 0 || unknown is not null)
+        {
+            throw new StepFailure("Run.UnknownKey", unknown ?? key);
+        }
+
+        _devices.Browser.Press(Read(step.Text("target")).AsText(), key);
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserPressed", key);
+    }
+
+    /// <summary>
+    /// Waits for an element of the page to be in the state the step names. The step's own clock is
+    /// what the wait is given, so the browser gives up at the same moment the step would rather
+    /// than half a minute later, and running out is reported as the step having waited too long.
+    /// </summary>
+    private void BrowserWaitFor(ExecutableStep step, int depth)
+    {
+        var state = step.Text("state").Trim().ToLowerInvariant() switch
+        {
+            "hidden" => ElementWait.Hidden,
+            "attached" => ElementWait.Attached,
+            "detached" => ElementWait.Detached,
+            _ => ElementWait.Visible,
+        };
+
+        var selector = Read(step.Text("target")).AsText();
+        _devices.Browser.WaitFor(selector, state, step.Meta.TimeoutMs);
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserWaited", selector);
+    }
+
+    /// <summary>
+    /// Hands files to a file input, one path to a line. A relative path is read from the folder the
+    /// macro file is in, the same as every other path a step is given, so a macro that hands over a
+    /// file beside it can be moved to another machine as it stands.
+    /// </summary>
+    private void BrowserUpload(ExecutableStep step, int depth)
+    {
+        var paths = Lines(Read(step.Text("files")).AsText())
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0)
+            .Select(_devices.Files.Resolve)
+            .ToList();
+        if (paths.Count == 0)
+        {
+            throw new StepFailure("Run.MissingPath");
+        }
+
+        _devices.Browser.Upload(Read(step.Text("target")).AsText(), paths);
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserUploaded", paths.Count);
     }
 
     /// <summary>

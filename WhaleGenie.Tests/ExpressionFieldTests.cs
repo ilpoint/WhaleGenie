@@ -63,6 +63,7 @@ public class ExpressionFieldTests
         ["browser.open"] = ["url"],
         ["browser.goTo"] = ["url"],
         ["browser.fill"] = ["text"],
+        ["browser.select"] = ["value"],
         ["browser.switchTab"] = ["match"],
         ["condition.textExists"] = ["text"],
         ["condition.textNotExists"] = ["text"],

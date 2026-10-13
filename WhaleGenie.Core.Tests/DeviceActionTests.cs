@@ -6833,6 +6833,146 @@ public class DeviceActionTests
         Assert.Equal(2, devices.Calls.Count(call => call is "browserCloseTab" or "browserClose"));
     }
 
+    [Fact]
+    public async Task An_option_can_be_picked_by_its_text_or_by_its_position()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("browser.select", Param("target", "#country"), Param("value", "China")),
+            Step("browser.select", Param("target", "#country"), Param("value", "2"),
+                Param("by", "index")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("browserSelect #country China False", devices.Calls);
+        Assert.Contains("browserSelect #country 2 True", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_position_that_is_not_a_number_stops_the_step()
+    {
+        // The box holds the number of the option when "by number" is picked, so a word left in it is
+        // a mistake in the step rather than a list to search through.
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("browser.select", Param("target", "#country"), Param("value", "second"),
+                Param("by", "index")),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BadPosition", result.Key);
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("browserSelect", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_box_is_left_in_the_state_the_step_asked_for()
+    {
+        // Ticking a box that is already ticked has to leave it ticked, which a click would not: the
+        // step says the state it means to leave behind, and both words for it reach the device.
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("browser.check", Param("target", "#agree")),
+            Step("browser.check", Param("target", "#news"), Param("checked", "false")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("browserCheck #agree True", devices.Calls);
+        Assert.Contains("browserCheck #news False", devices.Calls);
+    }
+
+    [Fact]
+    public async Task Moving_over_an_element_reaches_the_device()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("browser.hover", Param("target", "#menu"))], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("browserHover #menu", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_key_goes_to_the_element_or_to_the_page_itself()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("browser.press", Param("target", "#search"), Param("key", "Enter")),
+            Step("browser.press", Param("key", "Ctrl+S")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("browserPress #search Enter", devices.Calls);
+        Assert.Contains("browserPress  Ctrl+S", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_key_name_the_keyboard_has_nothing_for_stops_the_step()
+    {
+        // The name goes into the page as a key; a name that means nothing would arrive at the
+        // browser as a letter that happens to share its first character, which is worse than
+        // stopping.
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("browser.press", Param("key", "Frobnicate"))], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.UnknownKey", result.Key);
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("browserPress", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Waiting_for_an_element_names_the_state_and_the_step_s_own_clock()
+    {
+        // The wait gets the step's own limit rather than one of its own, which is what the waiting
+        // actions in this catalogue do: "how long this may take" is answered in one place.
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Within(4000, Step("browser.waitFor", Param("target", "#results"))),
+            Within(4000, Step("browser.waitFor", Param("target", "#spinner"),
+                Param("state", "hidden"))),
+            Within(4000, Step("browser.waitFor", Param("target", "#row"),
+                Param("state", "detached"))),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("browserWaitFor #results Visible 4000", devices.Calls);
+        Assert.Contains("browserWaitFor #spinner Hidden 4000", devices.Calls);
+        Assert.Contains("browserWaitFor #row Detached 4000", devices.Calls);
+    }
+
+    [Fact]
+    public async Task Files_are_handed_to_the_page_beside_the_macro()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("browser.upload", Param("target", "input[name=report]"),
+                Param("files", "report.pdf\n\nC:\\Temp\\notes.txt\n")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(
+            $"browserUpload input[name=report] {devices.BaseFolder}\\report.pdf|C:\\Temp\\notes.txt",
+            devices.Calls);
+    }
+
+    [Fact]
+    public async Task An_upload_with_no_files_named_stops_the_step()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("browser.upload", Param("target", "input[name=report]"), Param("files", "  \n"))],
+            devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.MissingPath", result.Key);
+    }
+
     // -------------------------------------------------------------- virtual controller
 
     [Fact]
@@ -7326,6 +7466,23 @@ internal sealed class FakeDeviceLayer
         Note($"browserPick {hint} {timeoutMs}");
         return BrowserPicked;
     }
+
+    void IBrowserDevice.Select(string selector, string value, bool byIndex)
+        => Note($"browserSelect {selector} {value} {byIndex}");
+
+    void IBrowserDevice.Check(string selector, bool wanted)
+        => Note($"browserCheck {selector} {wanted}");
+
+    void IBrowserDevice.Hover(string selector) => Note($"browserHover {selector}");
+
+    void IBrowserDevice.Press(string selector, string key)
+        => Note($"browserPress {selector} {key}");
+
+    void IBrowserDevice.WaitFor(string selector, ElementWait state, int timeoutMs)
+        => Note($"browserWaitFor {selector} {state} {timeoutMs}");
+
+    void IBrowserDevice.Upload(string selector, IReadOnlyList<string> paths)
+        => Note($"browserUpload {selector} {string.Join('|', paths)}");
 
     void IBrowserDevice.Close()
     {

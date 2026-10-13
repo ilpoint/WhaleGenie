@@ -3058,6 +3058,118 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "browser.select",
+            Category = ActionCategory.Browser,
+            DisplayName = "Select Option",
+            Description = "Picks an option of a dropdown.",
+            Parameters =
+            [
+                Text("target", "Selector", "#country",
+                    "Which dropdown to pick from, named the way the click action names one."),
+                Text("value", "Option", "China",
+                    "Which option to pick: the one whose value or visible text is this, or, with "
+                    + "\"By number\" below, the number of the option counted from the top starting "
+                    + "at 1. Read as one value, so a variable or an expression may stand for it.",
+                    acceptsFormula: true),
+                Choice("by", "Pick by", ["value", "index"], "value",
+                    "How the option above is matched. \"By value or text\" takes the first option "
+                    + "whose value or visible text is exactly what is written; \"By number\" takes "
+                    + "the option at that position, counted from the top starting at 1. A dropdown "
+                    + "the page draws out of other elements is not this kind and has to be clicked "
+                    + "open and picked from.",
+                    labels: ["By value or text", "By number"]),
+            ],
+        },
+        new()
+        {
+            Key = "browser.check",
+            Category = ActionCategory.Browser,
+            DisplayName = "Tick or Untick",
+            Description = "Leaves a checkbox or a radio button ticked, or unticked.",
+            Parameters =
+            [
+                Text("target", "Selector", "#agree",
+                    "Which box to leave in that state, named the way the click action names one."),
+                Toggle("checked", "Ticked", true,
+                    "Whether the box should end up ticked. Ticked by default; turn it off to untick "
+                    + "a box that is already ticked. Asking for the state it is already in changes "
+                    + "nothing rather than unticking it, which a click on an already-ticked box "
+                    + "would."),
+            ],
+        },
+        new()
+        {
+            Key = "browser.hover",
+            Category = ActionCategory.Browser,
+            DisplayName = "Move Over Element",
+            Description = "Moves the pointer over an element and leaves it there.",
+            Parameters =
+            [
+                Text("target", "Selector", "#menu",
+                    "Which element to move over, named the way the click action names one. This is "
+                    + "what makes a menu, a tooltip or a row of buttons appear; nothing is clicked."),
+            ],
+        },
+        new()
+        {
+            Key = "browser.press",
+            Category = ActionCategory.Browser,
+            DisplayName = "Press Key",
+            Description = "Sends one key, or one chord, into the page.",
+            Parameters =
+            [
+                Text("target", "Selector", "",
+                    "Which element takes the focus before the key is sent, named the way the click "
+                    + "action names one. Leave it empty, which is the default, to send the key to "
+                    + "the page itself.", required: false),
+                KeyChord("key", "Key",
+                    "Which key to send: one of the names the keyboard picker offers (Enter, Esc, "
+                    + "F5, Down), or several keys joined with \"+\" for one chord (Ctrl+S). A name "
+                    + "the keyboard does not have is refused before the step runs."),
+            ],
+        },
+        new()
+        {
+            Key = "browser.waitFor",
+            Category = ActionCategory.Browser,
+            DisplayName = "Wait For Element",
+            Description = "Waits for an element of the page to appear or to go away.",
+            StepTimeoutMs = 15000,
+            Parameters =
+            [
+                Text("target", "Selector", "#results",
+                    "Which element to wait for, named the way the click action names one. A page "
+                    + "that fetches what it shows needs this rather than a fixed pause: the wait "
+                    + "ends the moment the element is in the state asked for."),
+                Choice("state", "Wait for it to", ["visible", "hidden", "attached", "detached"],
+                    "visible",
+                    "Which state to wait for. Visible is what a step about to click something "
+                    + "wants; \"Not visible\" is for a spinner that has to be gone; \"On the page\" "
+                    + "waits for an element that is there whether or not it takes up room; \"Off "
+                    + "the page\" waits for one that has been taken away.",
+                    labels: ["Be visible", "Not be visible", "Be on the page", "Be off the page"]),
+            ],
+        },
+        new()
+        {
+            Key = "browser.upload",
+            Category = ActionCategory.Browser,
+            DisplayName = "Upload Files",
+            Description = "Hands files to a file input on the page.",
+            Parameters =
+            [
+                Text("target", "Selector", "input[type=file]",
+                    "Which file input to hand them to, named the way the click action names one."),
+                Multiline("files", "Files",
+                    "One path to a file, one to a line; every line is a file, so a blank line is "
+                    + "skipped. A relative path is read from the folder the macro file is in, the "
+                    + "same as every other path a step is given. This is the only way round a "
+                    + "browser's rule that a page may not be told a path by a script.",
+                    "C:\\Users\\me\\report.pdf"),
+            ],
+        },
+        new()
+        {
             Key = "browser.switchTab",
             Category = ActionCategory.Browser,
             DisplayName = "Switch Tab",

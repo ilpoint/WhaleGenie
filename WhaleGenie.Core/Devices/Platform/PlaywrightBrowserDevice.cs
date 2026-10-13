@@ -60,6 +60,41 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// <summary>How often that wait looks whether the tab has turned up.</summary>
     private const int NewTabIntervalMs = 50;
 
+    /// <summary>
+    /// How long a wait for an element waits when the step hands over no length of its own. It is
+    /// Playwright's own default, kept here so a wait written into the device rather than into a step
+    /// does not quietly become a wait of no length at all.
+    /// </summary>
+    private const int DefaultWaitMs = 30000;
+
+    /// <summary>
+    /// The keys whose spelling differs between a macro and the page's own keyboard. Everything else
+    /// a macro can write — the letters, the digits, the function keys, and the keys both sides spell
+    /// the same way ("Enter", "PageUp") — is handed over as it stands, so only the differences are
+    /// written down here.
+    /// </summary>
+    private static readonly Dictionary<string, string> PageKeyNames = new(StringComparer.Ordinal)
+    {
+        ["Ctrl"] = "Control",
+        ["Win"] = "Meta",
+        ["Esc"] = "Escape",
+        ["Up"] = "ArrowUp",
+        ["Down"] = "ArrowDown",
+        ["Left"] = "ArrowLeft",
+        ["Right"] = "ArrowRight",
+        ["-"] = "Minus",
+        ["="] = "Equal",
+        [","] = "Comma",
+        ["."] = "Period",
+        ["/"] = "Slash",
+        [";"] = "Semicolon",
+        ["'"] = "Quote",
+        ["`"] = "Backquote",
+        ["["] = "BracketLeft",
+        ["]"] = "BracketRight",
+        ["\\"] = "Backslash",
+    };
+
     private IPlaywright? _playwright;
     private IBrowser? _browser;
     private IPage? _page;
@@ -198,6 +233,98 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
     public void Fill(string selector, string text)
         => OnPage(async () => await Page().FillAsync(selector, text));
+
+    public void Select(string selector, string value, bool byIndex)
+        => OnPage(async () =>
+        {
+            var page = Page();
+            if (byIndex)
+            {
+                // The page counts the options from the top starting at nought; a macro counts them
+                // the way a person does, from one.
+                await page.SelectOptionAsync(selector,
+                    new SelectOptionValue { Index = Position(value) - 1 });
+                return;
+            }
+
+            // A plain string is matched against the option's value and its visible text both, which
+            // is what the step promises: one box, filled in with whichever of the two the person
+            // writing the macro was reading off the page.
+            await page.SelectOptionAsync(selector, value);
+        });
+
+    /// <summary>
+    /// A position in a list, which is handed over as the text of a field: something that is not a
+    /// whole number counting from 1 is a mistake in the step rather than a list to look through.
+    /// The engine checks this before the step runs, and it is checked again here so that the device
+    /// is not the one place where a macro written by hand can hand over something meaningless.
+    /// </summary>
+    private static int Position(string value)
+        => int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var at)
+           && at >= 1
+            ? at
+            : throw new DeviceActionException("Run.BadPosition", value);
+
+    public void Check(string selector, bool wanted)
+        => OnPage(async () =>
+        {
+            var element = Page().Locator(selector).First;
+            if (wanted)
+            {
+                await element.CheckAsync();
+            }
+            else
+            {
+                await element.UncheckAsync();
+            }
+        });
+
+    public void Hover(string selector) => OnPage(async () => await Page().HoverAsync(selector));
+
+    /// <summary>
+    /// Hands one key, or one chord, to the page. A key a macro writes is its own name for it, and a
+    /// name the page's keyboard has nothing for is refused here rather than sent as a letter that
+    /// happens to share its first character.
+    /// </summary>
+    public void Press(string selector, string key) => OnPage(async () =>
+    {
+        var written = PageKeys(key) ?? throw new DeviceActionException("Run.UnknownPageKey", key);
+        if (string.IsNullOrWhiteSpace(selector))
+        {
+            await Page().Keyboard.PressAsync(written);
+            return;
+        }
+
+        await Page().PressAsync(selector, written);
+    });
+
+    /// <summary>
+    /// Waits for an element to reach the state a step asked for. Running out of time is that answer
+    /// rather than the browser failing, so it is reported as the step having waited too long: a page
+    /// that never showed the element is what the step was asking about, and "it never turned up" is
+    /// what the person reading the failure needs to know.
+    /// </summary>
+    public void WaitFor(string selector, ElementWait state, int timeoutMs)
+    {
+        var patience = timeoutMs > 0 ? timeoutMs : DefaultWaitMs;
+        try
+        {
+            Wait(async () => await Page().Locator(selector).First.WaitForAsync(
+                new LocatorWaitForOptions { State = WaitState(state), Timeout = patience }));
+        }
+        catch (TimeoutException)
+        {
+            throw new DeviceActionException("Run.Timeout",
+                patience.ToString(CultureInfo.InvariantCulture));
+        }
+        catch (PlaywrightException failure)
+        {
+            throw Failed(failure);
+        }
+    }
+
+    public void Upload(string selector, IReadOnlyList<string> paths)
+        => OnPage(async () => await Page().SetInputFilesAsync(selector, paths));
 
     public string Text(string selector) => OnPage(async () =>
     {
@@ -629,6 +756,47 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
     /// <summary>The open page, or a failure that says a browser has to be opened first.</summary>
     private IPage Page() => Current() ?? throw new DeviceActionException("Run.BrowserNotOpen");
+
+    /// <summary>
+    /// One key, or one chord, in the spelling the page's own keyboard knows it by, or null when it
+    /// has nothing of that name. A chord is written the way a macro writes one, with "+" between
+    /// the keys, and is turned into the page's own spelling of the same thing.
+    /// </summary>
+    private static string? PageKeys(string key)
+    {
+        var keys = new List<string>();
+        foreach (var part in key.Split('+',
+                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            // A macro's own name for a key is turned into the canonical one first, so that every
+            // spelling the keyboard picker offers ("Ctrl", "control", "左Ctrl") arrives here as
+            // the same thing.
+            if (SharpKeys.ResolveCode(part) is not { } code)
+            {
+                return null;
+            }
+
+            var written = SharpKeys.Name(code);
+            keys.Add(PageKeyNames.TryGetValue(written, out var page) ? page : Numbered(written));
+        }
+
+        return keys.Count == 0 ? null : string.Join('+', keys);
+    }
+
+    /// <summary>The number pad, which one side spells "NumPad5" and the other "Numpad5".</summary>
+    private static string Numbered(string written)
+        => written.StartsWith("NumPad", StringComparison.Ordinal)
+            ? "Numpad" + written["NumPad".Length..]
+            : written;
+
+    /// <summary>What the page calls the state a step is waiting for.</summary>
+    private static WaitForSelectorState WaitState(ElementWait state) => state switch
+    {
+        ElementWait.Hidden => WaitForSelectorState.Hidden,
+        ElementWait.Attached => WaitForSelectorState.Attached,
+        ElementWait.Detached => WaitForSelectorState.Detached,
+        _ => WaitForSelectorState.Visible,
+    };
 
     /// <summary>
     /// The tabs this browser has, oldest first, with any that turned up since the last look at the

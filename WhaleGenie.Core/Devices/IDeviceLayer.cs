@@ -504,8 +504,69 @@ public interface IBrowserDevice
     /// </summary>
     string Pick(string hint, int timeoutMs);
 
+    /// <summary>
+    /// Picks an option of a dropdown the selector names: the one whose value or visible text is
+    /// <paramref name="value"/>, or the one at that position when <paramref name="byIndex"/> is set,
+    /// counted from the top starting at 1. A dropdown the page itself draws out of other elements
+    /// is not one of these, and is worked the way a person works it — click it, then click the
+    /// option.
+    /// </summary>
+    void Select(string selector, string value, bool byIndex);
+
+    /// <summary>
+    /// Ticks or unticks a checkbox or a radio button, which is what a macro wants instead of
+    /// clicking one: a click on an already-ticked box would untick it, while this says the state
+    /// the macro means to leave behind. Asking for the state a box is already in does nothing
+    /// rather than refusing.
+    /// </summary>
+    void Check(string selector, bool wanted);
+
+    /// <summary>
+    /// Moves the pointer over the element the selector names and leaves it there, which is what
+    /// makes a menu, a tooltip or a row of buttons appear.
+    /// </summary>
+    void Hover(string selector);
+
+    /// <summary>
+    /// Presses one key while the page is the one listening, or while the element the selector names
+    /// is: the element takes the focus first, and an empty selector leaves the focus where it is,
+    /// which is how a macro sends a key to the page itself. The key is a name a macro writes, with
+    /// keys joined by "+" for a chord.
+    /// </summary>
+    void Press(string selector, string key);
+
+    /// <summary>
+    /// Waits for the element the selector names to be in the state asked for, and gives up after
+    /// <paramref name="timeoutMs"/> milliseconds, having waited none of its own. Running out of
+    /// time is reported as such rather than as the browser failing, because what the step asked
+    /// for is an answer to "did it turn up", and "no" is an answer.
+    /// </summary>
+    void WaitFor(string selector, ElementWait state, int timeoutMs);
+
+    /// <summary>
+    /// Hands files to a file input, which is the one thing on a page that cannot be done by typing:
+    /// a browser refuses to be told a path by a script, so this is the way round it.
+    /// </summary>
+    void Upload(string selector, IReadOnlyList<string> paths);
+
     /// <summary>Closes the browser and lets go of it, which a macro does when it is done.</summary>
     void Close();
+}
+
+/// <summary>What a step waits for an element of a page to be.</summary>
+public enum ElementWait
+{
+    /// <summary>On the page and taking up room, so a person could see it.</summary>
+    Visible,
+
+    /// <summary>Gone, or on the page but taking up no room at all.</summary>
+    Hidden,
+
+    /// <summary>On the page, whether or not it can be seen.</summary>
+    Attached,
+
+    /// <summary>Not on the page at all, which is what a page that has thrown something away looks like.</summary>
+    Detached,
 }
 
 /// <summary>Which tab of the open browser a macro asked to move to.</summary>
@@ -745,6 +806,19 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public void CloseTab() => throw Missing("a browser");
 
         public string Pick(string hint, int timeoutMs) => throw Missing("a browser");
+
+        public void Select(string selector, string value, bool byIndex) => throw Missing("a browser");
+
+        public void Check(string selector, bool wanted) => throw Missing("a browser");
+
+        public void Hover(string selector) => throw Missing("a browser");
+
+        public void Press(string selector, string key) => throw Missing("a browser");
+
+        public void WaitFor(string selector, ElementWait state, int timeoutMs)
+            => throw Missing("a browser");
+
+        public void Upload(string selector, IReadOnlyList<string> paths) => throw Missing("a browser");
 
         public void Close() => throw Missing("a browser");
 
