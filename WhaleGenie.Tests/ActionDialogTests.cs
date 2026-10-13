@@ -1967,6 +1967,50 @@ public class ActionDialogTests
             .Any(row => Names(row).Contains(name) && row.IsApplicable);
 
     /// <summary>
+    /// A checksum works out either a piece of text or a file, never both, so the form asks for one
+    /// of them: the box for the other is not drawn and not written into the step, and what was
+    /// typed in it comes back when the step is pointed at it again.
+    /// </summary>
+    [Fact]
+    public void A_checksum_asks_for_a_file_only_when_it_is_working_on_one()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("data.hash");
+
+            Assert.True(Shown(viewModel, "text"));
+            Assert.False(Shown(viewModel, "path"));
+
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "text").Text =
+                "hello";
+            Choose(viewModel, "source", "file");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.False(Shown(viewModel, "text"));
+            Assert.True(Shown(viewModel, "path"));
+
+            MacroStep? saved = null;
+            viewModel.CloseRequested += step => saved = step;
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "path").Text =
+                "report.pdf";
+            viewModel.SaveCommand.Execute(null);
+
+            var names = saved!.Parameters.Select(parameter => parameter.Name).ToList();
+            Assert.Contains("path", names);
+            Assert.DoesNotContain("text", names);
+
+            // Back to a piece of text, and what was typed is still there rather than thrown away.
+            Choose(viewModel, "source", "text");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(Shown(viewModel, "text"));
+            Assert.False(Shown(viewModel, "path"));
+            Assert.Equal("hello",
+                viewModel.Parameters.First(parameter => parameter.Definition.Name == "text").Text);
+        });
+    }
+
+    /// <summary>
     /// What the step is saved as carries only the questions the way it was set up asks: a step that
     /// pairs up features has no room for "the third hit", not even the default one.
     /// </summary>

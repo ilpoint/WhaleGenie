@@ -140,6 +140,17 @@ public sealed class LocalFileDevice : IFileDevice
         return Attempt(path, () => File.ReadAllBytes(full));
     }
 
+    public Stream OpenRead(string path)
+    {
+        var full = Full(path);
+        if (!File.Exists(full))
+        {
+            throw new DeviceActionException("Run.FileNotFound", path);
+        }
+
+        return Attempt(path, () => File.OpenRead(full));
+    }
+
     public void Delete(string path, bool toRecycleBin)
     {
         var full = Full(path);

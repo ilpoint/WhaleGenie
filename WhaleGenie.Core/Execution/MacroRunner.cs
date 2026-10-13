@@ -1370,6 +1370,10 @@ public sealed class MacroRunner
                 Watching(() => CaptureWindow(step, depth));
                 return Signal.Normal;
 
+            case "vision.saveImage":
+                SavePicture(step, depth);
+                return Signal.Normal;
+
             case "vision.getPixel":
                 await Gate(step, token);
                 Watching(() => GetPixel(step, depth));
@@ -3559,6 +3563,27 @@ public sealed class MacroRunner
     }
 
     /// <summary>
+    /// Writes a picture out as a file. The picture is named the same way every other step that
+    /// takes one names it — an image variable from an earlier step, or a file that is already
+    /// there — so a macro can capture, look, and keep the one that turned out to matter. It is
+    /// always a PNG: the format is the small end of what a picture can be written as, and a macro
+    /// that wants something else has a program for it.
+    /// </summary>
+    private void SavePicture(ExecutableStep step, int depth)
+    {
+        var picture = Reference(step);
+        if (picture.IsEmpty)
+        {
+            throw new StepFailure("Run.MissingImage", step.Text("image"));
+        }
+
+        var path = PathOf(step);
+        _devices.Files.WriteBytes(path, PngWriter.Encode(picture));
+        Log(LogLevel.Info, depth, step.Type, "Run.SavedPicture", path,
+            $"{picture.Width}x{picture.Height}");
+    }
+
+    /// <summary>
     /// Keeps a picture under the name a step gave it, with the rectangle it covers beside it, so a
     /// later step can search inside it or hand the region to something else. The size written down
     /// is the picture's own rather than the size that was asked for: a capture that ran off the
@@ -5569,11 +5594,27 @@ public sealed class MacroRunner
         Store(step, "decoded", Value.FromText(Encoding.UTF8.GetString(bytes)), depth);
     }
 
-    /// <summary>Works out the checksum of a piece of text.</summary>
+    /// <summary>
+    /// Works out the checksum of a piece of text or of a file. A file is walked over a piece at a
+    /// time rather than read whole, because the files a checksum is asked about — an installer, a
+    /// download, a backup — are exactly the ones that do not fit in memory.
+    /// </summary>
     private void HashText(ExecutableStep step, int depth)
     {
-        var text = Read(step.Text("text")).AsText();
-        var digest = ComputeHash(step.Text("algorithm"), Encoding.UTF8.GetBytes(text));
+        var algorithm = step.Text("algorithm");
+        byte[] digest;
+        if (string.Equals(step.Text("source").Trim(), "file", StringComparison.OrdinalIgnoreCase))
+        {
+            var path = PathOf(step);
+            using var file = _devices.Files.OpenRead(path);
+            digest = ComputeHash(algorithm, file);
+        }
+        else
+        {
+            var text = Read(step.Text("text")).AsText();
+            digest = ComputeHash(algorithm, new MemoryStream(Encoding.UTF8.GetBytes(text)));
+        }
+
         Store(step, "digest", Value.FromText(Convert.ToHexString(digest).ToLowerInvariant()), depth);
     }
 
@@ -5581,7 +5622,7 @@ public sealed class MacroRunner
     /// The checksum a named algorithm works out. An unrecognized name falls back to SHA-256 rather
     /// than failing: a step that asked for a checksum should get one the macro can compare.
     /// </summary>
-    private static byte[] ComputeHash(string algorithm, byte[] bytes) =>
+    private static byte[] ComputeHash(string algorithm, Stream bytes) =>
         algorithm.Trim().ToLowerInvariant() switch
         {
             "md5" => MD5.HashData(bytes),

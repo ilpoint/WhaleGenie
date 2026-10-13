@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace WhaleGenie.Core.Devices;
 
@@ -195,6 +196,13 @@ public interface IFileDevice
     /// actions cannot do this one: a picture is not text in any encoding.
     /// </summary>
     void WriteBytes(string path, byte[] bytes);
+
+    /// <summary>
+    /// Opens a file for reading a piece at a time, which is what a step that only walks over the
+    /// bytes needs: working out the checksum of a file that does not fit in memory is the reason
+    /// this is here rather than reading the whole thing as <see cref="ReadBytes"/> does.
+    /// </summary>
+    Stream OpenRead(string path);
 
     /// <summary>
     /// Removes a file. A file sent to the recycle bin is still there to be put back, which is what
@@ -738,6 +746,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public byte[] ReadBytes(string path) => throw Missing("files");
 
         public void WriteBytes(string path, byte[] bytes) => throw Missing("files");
+
+        public Stream OpenRead(string path) => throw Missing("files");
 
         public void Delete(string path, bool toRecycleBin) => throw Missing("files");
 

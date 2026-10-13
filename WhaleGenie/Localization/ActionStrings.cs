@@ -963,15 +963,22 @@ internal static class ActionStrings
         ["data.base64Decode.text.hint"] = "要解码的 Base64 文本。按一个值读取，变量或表达式都可以写成它；解出来的文本按 UTF-8 读。",
 
         ["data.hash.name"] = "计算哈希",
-        ["data.hash.desc"] = "算出一段文本的校验和。",
+        ["data.hash.desc"] = "算出一段文本或一个文件的校验和。",
         ["data.hash.algorithm.label"] = "算法",
         ["data.hash.algorithm.hint"] = "用哪种校验和，默认 SHA-256。MD5 和 SHA-1 用来对上别的程序给出的值。",
         ["data.hash.algorithm.option.md5"] = "MD5",
         ["data.hash.algorithm.option.sha1"] = "SHA-1",
         ["data.hash.algorithm.option.sha256"] = "SHA-256",
         ["data.hash.algorithm.option.sha512"] = "SHA-512",
+        ["data.hash.source.label"] = "算什么",
+        ["data.hash.source.hint"] = "校验和算在什么上面：下面这一段文本，还是磁盘上的一个文件，"
+            + "默认算文本。",
+        ["data.hash.source.option.text"] = "一段文本",
+        ["data.hash.source.option.file"] = "一个文件",
         ["data.hash.text.label"] = "文本",
         ["data.hash.text.hint"] = "要算校验和的文本，按 UTF-8 处理。按一个值读取，变量或表达式都可以写成它。",
+        ["data.hash.path.label"] = "文件",
+        ["data.hash.path.hint"] = "要算校验和的文件。按块读取，所以文件多大都不影响这一步跑不跑得成。",
 
         // ---------------------------------------------------------------- clipboard
         ["clipboard.writeText.name"] = "复制到剪贴板",
@@ -2644,6 +2651,13 @@ internal static class ActionStrings
         ["vision.captureWindow.compareBy.option.contains"] = WindowCompareContains,
         ["vision.captureWindow.compareBy.option.startsWith"] = WindowCompareStartsWith,
         ["vision.captureWindow.compareBy.option.regex"] = WindowCompareRegex,
+
+        ["vision.saveImage.name"] = "保存图片",
+        ["vision.saveImage.desc"] = "把一张图片存成 PNG 文件，运行结束之后还在。",
+        ["vision.saveImage.image.label"] = "图片",
+        ["vision.saveImage.image.hint"] = "图片文件，或者前面某一步填好的图像变量。",
+        ["vision.saveImage.path.label"] = "文件",
+        ["vision.saveImage.path.hint"] = "图片写到哪个文件。格式一律是 PNG，同名文件会被替换。",
 
         ["vision.findImage.name"] = "查找图片",
         ["vision.findImage.desc"] = "在屏幕上寻找一张参考图片。",

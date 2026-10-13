@@ -1125,17 +1125,25 @@ public static class ActionCatalog
                     hint: "The checksum, written in lowercase letters and digits."),
             ],
             Category = ActionCategory.Data,
-            DisplayName = "Hash Text",
-            Description = "Work out the checksum of a piece of text.",
+            DisplayName = "Hash",
+            Description = "Work out the checksum of a piece of text or of a file.",
             Parameters =
             [
                 Choice("algorithm", "Algorithm", ["md5", "sha1", "sha256", "sha512"], "sha256",
                     "Which checksum to work out. SHA-256 is the ordinary choice; MD5 and SHA-1 are "
                     + "here for matching a value some other program hands out. SHA-256 by default.",
                     labels: ["MD5", "SHA-1", "SHA-256", "SHA-512"]),
+                Choice("source", "Work out", ["text", "file"], "text",
+                    "What the checksum is worked out over: the text below, or a file on disk. "
+                    + "Text by default.",
+                    labels: ["A piece of text", "A file"]),
                 Text("text", "Text", "hello", "The text to work out the checksum of, read as one "
                     + "value and taken as UTF-8. A variable or an expression may stand for it.",
-                    acceptsFormula: true),
+                    acceptsFormula: true, onlyWith: ["text"], onlyField: "source"),
+                FilePath("path", "File", "report.pdf",
+                    "File to work out the checksum of. It is read a piece at a time, so the size "
+                    + "of the file does not decide whether the step can run.",
+                    PathIntent.Read, "*.pdf", onlyWith: ["file"], onlyField: "source"),
                 Returns(),
             ],
         },
@@ -2341,6 +2349,21 @@ public static class ActionCatalog
                 ..Capture(),
                 LookGap(0),
                 Returns(),
+            ],
+        },
+        new()
+        {
+            Key = "vision.saveImage",
+            Category = ActionCategory.Vision,
+            DisplayName = "Save Picture",
+            Description = "Write a picture out as a PNG file, so it survives the run.",
+            Parameters =
+            [
+                Image("image", "Picture", @"C:\images\ok.png",
+                    "A picture file, or an image variable an earlier step filled in."),
+                FilePath("path", "File", "shot.png",
+                    "File the picture is written to. The format is PNG either way; a file of the "
+                    + "same name is replaced.", PathIntent.Write, "*.png"),
             ],
         },
         new()
@@ -4465,7 +4488,7 @@ public static class ActionCatalog
     /// dialog the button beside the field opens, and the filter which files it shows first.
     /// </summary>
     private static ActionParameter FilePath(string name, string label, string placeholder, string hint,
-        PathIntent intent, string filter = "")
+        PathIntent intent, string filter = "", string[]? onlyWith = null, string onlyField = "algorithm")
         => new()
         {
             Name = name,
@@ -4475,6 +4498,8 @@ public static class ActionCatalog
             Hint = hint + " A path on its own is taken to be inside the macros folder.",
             PathIntent = intent,
             PathFilter = filter,
+            AppliesWhen = onlyWith is null ? string.Empty : onlyField,
+            AppliesWhenValues = onlyWith ?? [],
         };
 
     /// <summary>

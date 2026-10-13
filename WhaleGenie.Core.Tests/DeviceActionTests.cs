@@ -6965,7 +6965,13 @@ internal sealed class FakeDeviceLayer
 
     private readonly RecordingRouter _router;
 
-    public FakeDeviceLayer() => _router = new RecordingRouter(this);
+    private readonly IFileDevice _files;
+
+    public FakeDeviceLayer(IFileDevice? files = null)
+    {
+        _router = new RecordingRouter(this);
+        _files = files ?? this;
+    }
 
     IInputRouter IDeviceLayer.Inputs => _router;
 
@@ -7138,7 +7144,11 @@ internal sealed class FakeDeviceLayer
 
     IUiDevice IDeviceLayer.Ui => this;
 
-    IFileDevice IDeviceLayer.Files => this;
+    /// <summary>
+    /// The files on disk. Normally the fake keeps them in memory; a check that has to walk over a
+    /// real file hands the real device in here and the rest of the layer stays pretended.
+    /// </summary>
+    IFileDevice IDeviceLayer.Files => _files;
 
     IClipboardDevice IDeviceLayer.Clipboard => this;
 
@@ -7461,6 +7471,12 @@ internal sealed class FakeDeviceLayer
     {
         Note($"readBytes {path}");
         return Blobs.TryGetValue(path, out var bytes) ? bytes : [];
+    }
+
+    Stream IFileDevice.OpenRead(string path)
+    {
+        Note($"openRead {path}");
+        return new MemoryStream(Blobs.TryGetValue(path, out var bytes) ? bytes : []);
     }
 
     void IFileDevice.WriteText(string path, string text, bool append, string encoding)
