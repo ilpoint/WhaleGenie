@@ -863,8 +863,9 @@ public static class ActionCatalog
                 FilePath("folder", "Folder", ".", "Folder to look in.", PathIntent.Folder),
                 Text("pattern", "Pattern", "*.txt",
                     "Which files to collect. Wildcards work, and a semi-colon asks for several at "
-                    + "once, for example *.txt; report?.xlsx. *.txt by default.",
-                    acceptsVariables: true),
+                    + "once, for example *.txt; report?.xlsx. Empty, which is the default, collects "
+                    + "every file.",
+                    acceptsVariables: true, required: false),
                 Toggle("recurse", "Include subfolders", false,
                     "Look inside the folders under the one named above as well; off by default, "
                     + "which lists that folder alone."),
@@ -3601,10 +3602,10 @@ public static class ActionCatalog
                 Variable("value", "Value", "$count",
                     "The value to place on the number line.", acceptsFormula: true),
                 Variable("min", "Lowest", "1",
-                    "One end of the range, 1 by default. Either end may be written first.",
+                    "One end of the range, for example 1; either end may be written first.",
                     acceptsFormula: true),
                 Variable("max", "Highest", "10",
-                    "The other end of the range, 10 by default. Both ends count as inside, so a "
+                    "The other end of the range, for example 10. Both ends count as inside, so a "
                     + "range of 1 to 10 holds 1 and 10.", acceptsFormula: true),
             ],
         },
@@ -3626,7 +3627,7 @@ public static class ActionCatalog
                     + "happened today needs.",
                     labels: ["Is before", "Is after", "Is exactly", "Is the same day"]),
                 Variable("right", "Against", "2026-01-01",
-                    "The date it is compared against, written the same ways; 2026-01-01 by default.",
+                    "The date it is compared against, written the same ways, for example 2026-01-01.",
                     acceptsFormula: true),
             ],
         },

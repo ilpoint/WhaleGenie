@@ -239,6 +239,61 @@ public class LocalizationTests
     }
 
     /// <summary>
+    /// A field that has to be filled in may not say in its line that it comes filled in. It is the
+    /// one place such a line does real harm: the reader leaves the field, takes the line at its
+    /// word, and the step will not save. What counts is a value being named as what is already
+    /// there — a line saying that an empty box is the default, or that nothing is required, is
+    /// saying what an empty box means, which is the opposite.
+    /// </summary>
+    [Fact]
+    public void A_field_that_has_to_be_filled_in_does_not_say_that_it_comes_filled_in()
+    {
+        // Two lines say what a length of time already is, that being the step's own timeout rather
+        // than the field: a step that waits has one filled in, and the number is worth reading.
+        string[] aTimeout = ["browser.waitFor.target", "control.waitUntil.condition"];
+
+        var gaps = Ui.Run(() =>
+        {
+            var missing = new List<string>();
+            foreach (var definition in ActionCatalog.Definitions)
+            {
+                foreach (var parameter in definition.Parameters)
+                {
+                    if (!parameter.Required || parameter.DefaultValue.Length > 0
+                        || aTimeout.Contains($"{definition.Key}.{parameter.Name}"))
+                    {
+                        continue;
+                    }
+
+                    // A value written as the default: "10 by default", "*.txt by default",
+                    // "默认 2026-01-01", "默认 10 毫秒".
+                    if (ValueSaidAsDefault.IsMatch(parameter.Hint))
+                    {
+                        missing.Add($"{definition.Key}.{parameter.Name} (English)");
+                    }
+
+                    var key = $"{definition.Key}.{parameter.Name}.hint";
+                    if (ActionStrings.Chinese.TryGetValue(key, out var chinese)
+                        && ChineseValueSaidAsDefault.IsMatch(chinese))
+                    {
+                        missing.Add(key);
+                    }
+                }
+            }
+
+            return missing;
+        });
+
+        Assert.Empty(gaps.Order());
+    }
+
+    /// <summary>A value named as what is already in the box, in either language.</summary>
+    private static readonly Regex ValueSaidAsDefault = new(@"[\d*][^\s]*\s+by default",
+        RegexOptions.IgnoreCase);
+
+    private static readonly Regex ChineseValueSaidAsDefault = new(@"默认\s*[\d*]");
+
+    /// <summary>
     /// Text the user reads is written in the tables rather than on a page, so the marks a note is
     /// written in are not part of it: a dash or a backtick left in one reads as a slip of the pen,
     /// and it lands where the reader is deciding what to type or which button to press. Everything

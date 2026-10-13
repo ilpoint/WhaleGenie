@@ -754,7 +754,7 @@ internal static class ActionStrings
         ["file.listFiles.folder.hint"] = "要在其中查找的文件夹。只写名称时会相对宏文件夹解析。",
         ["file.listFiles.pattern.label"] = "匹配模式",
         ["file.listFiles.pattern.hint"] = "要收集哪些文件，例如 *.txt。可以使用通配符，也可以用分号一次写多个，"
-            + "例如 *.txt; report?.xlsx。默认 *.txt。",
+            + "例如 *.txt; report?.xlsx。默认留空，表示所有文件。",
         ["file.listFiles.recurse.label"] = "包含子文件夹",
         ["file.listFiles.recurse.hint"] = "连上面那个文件夹里的子文件夹一起找，默认关：只列那一个文件夹里的东西。",
         ["file.listFiles.sortBy.label"] = "排序依据",
@@ -2793,9 +2793,9 @@ internal static class ActionStrings
         ["condition.valueInRange.value.label"] = "值",
         ["condition.valueInRange.value.hint"] = "要放到数轴上的值，可以填变量或算式。",
         ["condition.valueInRange.min.label"] = "下限",
-        ["condition.valueInRange.min.hint"] = "区间的一端，默认 1，两端谁先写都可以。",
+        ["condition.valueInRange.min.hint"] = "区间的一端，例如 1。两端谁先写都可以。",
         ["condition.valueInRange.max.label"] = "上限",
-        ["condition.valueInRange.max.hint"] = "区间的另一端，默认 10。两端都算在内，所以 1 到 10 里包含 1 和 10。",
+        ["condition.valueInRange.max.hint"] = "区间的另一端，例如 10。两端都算在内，所以 1 到 10 里包含 1 和 10。",
 
         ["condition.dateCompare.name"] = "日期比较",
         ["condition.dateCompare.desc"] = "比较两个日期、时间或两者。",
@@ -2812,7 +2812,7 @@ internal static class ActionStrings
         ["condition.dateCompare.operator.option.same"] = "正好等于",
         ["condition.dateCompare.operator.option.sameDay"] = "是同一天",
         ["condition.dateCompare.right.label"] = "比较对象",
-        ["condition.dateCompare.right.hint"] = "拿来做比较的日期，写法与上面一样，默认 2026-01-01。",
+        ["condition.dateCompare.right.hint"] = "拿来做比较的日期，写法与上面一样，例如 2026-01-01。",
 
         ["condition.group.name"] = "条件组",
         ["condition.group.desc"] = "用“与 / 或 / 非”把多个条件组合在一起：与＝全部满足，或＝任一满足，非＝全部不满足。",
