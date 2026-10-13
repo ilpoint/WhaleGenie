@@ -2799,9 +2799,10 @@ public static class ActionCatalog
                 Selector(),
                 MatchIndex(),
                 Number("maxRows", "Rows to read", 100,
-                    "Stop after this many rows of data, counted from the top. Rows that hold "
-                    + "nothing at all — the strip the column titles live in, and the empty row "
-                    + "some grids keep at the bottom for typing a new one in — are left out.",
+                    "Stop after this many rows of data, counted from the top, from 1 to 10000 and "
+                    + "100 by default. Rows that hold nothing at all, the strip the column titles live "
+                    + "in and the empty row some grids keep at the bottom for typing a new one in, are "
+                    + "left out.",
                     min: 1, max: 10000, advanced: true),
                 Returns(),
             ],
@@ -2832,14 +2833,16 @@ public static class ActionCatalog
                     ["edge", "chrome", "chromium", "firefox", "webkit"], "edge",
                     "Which browser to drive. Edge is already on every Windows, so nothing has to be "
                     + "installed for it; a machine without Chrome or the engines Playwright fetches "
-                    + "gets a message naming the command that puts them there.",
+                    + "gets a message naming the command that puts them there. Edge is the default.",
                     labels: ["Edge (already on Windows)", "Chrome", "Chromium", "Firefox", "WebKit"]),
                 Text("url", "Address", "https://example.com",
-                    "The page to open. Leave it empty to open the browser without a page yet.",
+                    "The page to open. Empty, which is the default, opens the browser without a "
+                    + "page yet; read as one value, so a variable or an expression may stand for it.",
                     required: false, acceptsFormula: true),
                 Toggle("headless", "Hidden window", false,
                     "Open the browser without showing it. A page kept off the screen is quicker, "
-                    + "but nothing can be watched while the macro runs.", advanced: true),
+                    + "but nothing can be watched while the macro runs. Off by default.",
+                    advanced: true),
             ],
         },
         new()
@@ -2850,8 +2853,8 @@ public static class ActionCatalog
             Description = "Sends the page the browser has open to another address.",
             Parameters =
             [
-                Text("url", "Address", "https://example.com", "The page to open.",
-                    acceptsFormula: true),
+                Text("url", "Address", "https://example.com", "The page to open, read as one "
+                    + "value, so a variable or an expression may stand for it.", acceptsFormula: true),
             ],
         },
         new()
@@ -2878,8 +2881,9 @@ public static class ActionCatalog
                 Text("target", "Selector", "#search",
                     "Which element to type into, named the way the click action names one."),
                 Text("text", "Text", "$query",
-                    "What to type. It is read as one value, so a macro can type what it just read "
-                    + "somewhere else.", acceptsFormula: true),
+                    "What to type. Read as one value, so a macro can type what it just read "
+                    + "somewhere else; a variable or an expression may stand for it.",
+                    acceptsFormula: true),
             ],
         },
         new()
@@ -2896,7 +2900,7 @@ public static class ActionCatalog
             [
                 Text("target", "Selector", "",
                     "Which element to read, named the way the click action names one. Leave it "
-                    + "empty to read the whole page.", required: false),
+                    + "empty, which is the default, reads the whole page.", required: false),
                 Returns(),
             ],
         },
@@ -2909,16 +2913,17 @@ public static class ActionCatalog
             Parameters =
             [
                 Choice("how", "Which tab", ["newest", "index", "title", "url"], "newest",
-                    "Which tab the steps after this one work on. \"The newest one\" is the tab that "
-                    + "appeared last — the one a click leaves behind when it opens a new tab — and "
-                    + "this step waits a few seconds for it, because a tab reaches the browser a "
-                    + "moment after the click that opened it; none turning up is an error rather "
-                    + "than staying where the macro was, which on a site whose pages look alike "
-                    + "would go unnoticed.",
+                    "Which tab the steps after this one work on; the newest one by default. \"The "
+                    + "newest one\" is the tab that appeared last, the one a click leaves behind when "
+                    + "it opens a new tab, and this step waits a few seconds for it, because a tab "
+                    + "reaches the browser a moment after the click that opened it; none turning up "
+                    + "is an error rather than staying where the macro was, which on a site whose "
+                    + "pages look alike would go unnoticed.",
                     labels: ["The newest one", "By number", "By title", "By address"]),
                 Number("index", "Tab number", 1,
                     "Which tab, counted from the left of the tab strip starting at 1. Used with "
-                    + "\"by number\" above.", min: 1, max: 50,
+                    + "\"by number\" above. From 1 to 50; 1 by default.",
+                    min: 1, max: 50,
                     onlyWith: ["index"], onlyField: "how"),
                 Text("match", "Title or address holds", "",
                     "The text the tab's title (or address) has to contain. Used with \"by title\" "
@@ -2961,7 +2966,8 @@ public static class ActionCatalog
                     ["powershell", "cmd", "node", "python", "custom"], "powershell",
                     "Which interpreter runs the script. PowerShell and Command Prompt are on every "
                     + "Windows machine; Node and Python have to be installed first; another "
-                    + "program is for anything else the machine has, such as dotnet-script.",
+                    + "program is for anything else the machine has, such as dotnet-script. "
+                    + "PowerShell by default.",
                     labels: ["PowerShell", "Command Prompt", "Node.js", "Python", "Another program"],
                     advanced: true),
                 Text("interpreter", "Interpreter command", "dotnet-script", required: false,
@@ -2978,7 +2984,8 @@ public static class ActionCatalog
                     "How the interpreter's copy of the script is written. Left to decide for "
                     + "itself, PowerShell gets a byte-order mark and the rest do not, which is what "
                     + "each of them reads correctly; a program that reads the system code page "
-                    + "instead, cscript for one, needs GBK to read Chinese text.",
+                    + "instead, cscript for one, needs GBK to read Chinese text. Reading it as "
+                    + "the interpreter expects is the default.",
                     labels: ["As the interpreter expects", "UTF-8", "UTF-8 with BOM",
                         "GBK (Chinese)", "UTF-16"], advanced: true),
                 Multiline("script", "Script",
@@ -2988,13 +2995,15 @@ public static class ActionCatalog
                     "Write-Host \"Hello\"", foreign: true),
                 Text("arguments", "Arguments", "first second", required: false,
                     hint: "Extra arguments for the script's command line. {{name}} is filled in "
-                          + "here as well.", foreign: true),
+                          + "here as well. Empty, which is the default, passes nothing.",
+                    foreign: true),
                 PickablePath("folder", "Working folder", string.Empty,
-                    "The folder the script runs in. Leave it empty to run it in the macros folder, "
-                    + "or wherever WhaleGenie is when that folder is not there yet.",
+                    "The folder the script runs in. Empty, which is the default, runs it in the "
+                    + "macros folder, or wherever WhaleGenie is when that folder is not there yet.",
                     PathIntent.Folder, required: false, advanced: true),
                 Number("timeoutMs", "Timeout", 60000,
-                    "Stop the script and fail the step after this long."),
+                    "Stop the script and fail the step after this long, in milliseconds; 60000 by "
+                    + "default."),
                 Returns(),
             ],
         },

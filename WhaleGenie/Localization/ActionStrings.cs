@@ -355,7 +355,7 @@ internal static class ActionStrings
             + "每次运行在这两个数之间随机取一个数等下去。",
 
         ["control.repeat.name"] = "重复",
-        ["control.repeat.desc"] = "把子步骤重复执行固定次数 —— 已经知道要跑几遍时用它。",
+        ["control.repeat.desc"] = "把子步骤重复执行固定次数。已经知道要跑几遍时用它。",
         ["control.repeat.times.label"] = "次数",
         ["control.repeat.times.hint"] = "重复执行的次数，从 1 起，默认 10。",
         ["control.repeat.intervalMs.label"] = "间隔",
@@ -364,7 +364,7 @@ internal static class ActionStrings
         ["control.repeat.body.hint"] = "每轮执行一次的子步骤。",
 
         ["control.while.name"] = "当…时循环",
-        ["control.while.desc"] = "条件成立期间反复执行子步骤 —— 要等某个状态变了才停时用它。",
+        ["control.while.desc"] = "条件成立期间反复执行子步骤。要等某个状态变了才停时用它。",
         ["control.while.condition.label"] = "条件",
         ["control.while.condition.hint"] = "每轮开始前判断一次，成立才执行这一轮。",
         ["control.while.maxIterations.label"] = "最大轮数",
@@ -374,7 +374,7 @@ internal static class ActionStrings
         ["control.while.body.hint"] = "条件成立时执行的子步骤。",
 
         ["control.forEach.name"] = "遍历",
-        ["control.forEach.desc"] = "对列表或变量中的每一项各执行一次子步骤 —— 有一批值要逐个处理时用它。",
+        ["control.forEach.desc"] = "对列表或变量中的每一项各执行一次子步骤。有一批值要逐个处理时用它。",
         ["control.forEach.items.label"] = "列表项",
         ["control.forEach.items.hint"] = "一个列表，或保存列表的 $变量。例如 [1, 2, 3]、split($text, \",\") 或 $names。",
         ["control.forEach.itemVariable.label"] = "当前项变量",
@@ -387,7 +387,7 @@ internal static class ActionStrings
         ["control.forEach.body.hint"] = "每一项执行一次的子步骤。",
 
         ["control.for.name"] = "计数循环",
-        ["control.for.desc"] = "从一个数数到另一个数，每数一个执行一遍子步骤 —— 需要“现在是第几轮”时用它。",
+        ["control.for.desc"] = "从一个数数到另一个数，每数一个执行一遍子步骤。需要「现在是第几轮」时用它。",
         ["control.for.from.label"] = "起始值",
         ["control.for.from.hint"] = "计数器第一次取的值，默认 1，不小于 -1000000。",
         ["control.for.to.label"] = "结束值",
@@ -1379,9 +1379,8 @@ internal static class ActionStrings
         ["input.keySequence.holdMs.hint"] = "整串里每个组合保持按下多久，单位是毫秒，默认 50；某一行可以在行内"
             + "另填。",
         ["input.keySequence.gapMs.label"] = "组合之间的间隔",
-        ["input.keySequence.gapMs.hint"] = "一个组合与下一个之间等多久，单位是毫秒，默认 120 —— 这是连招的节奏，"
-            + "也是游戏最能察觉的地方：太短几次按键连成一片，太长就不像一套连招。某一行可以在行内另填；"
-            + "想让间隔每次都不同，用这个框旁边的 ± 填每次运行上下浮动的比例。",
+        ["input.keySequence.gapMs.hint"] = "一个组合与下一个之间等多久，单位毫秒，默认 120；某一行可以在行内另填。太短会把几次按键连成一片，"
+            + "太长就不像一套连招；想让间隔每次都不同，用这个框旁边的 ± 填每次运行上下浮动的比例。",
         ["input.keySequence.afterMs.label"] = "整串之后停顿",
         ["input.keySequence.afterMs.hint"] = "最后一个组合发完之后再等多久才走下一步，单位是毫秒，默认 0。",
         ["input.keySequence.repeat.label"] = "整串再来几遍",
@@ -2879,9 +2878,8 @@ internal static class ActionStrings
         ["uia.readTable.matchIndex.label"] = "第几个命中",
         ["uia.readTable.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要读取的是第几个。" + MatchIndexHint,
         ["uia.readTable.maxRows.label"] = "读取行数",
-        ["uia.readTable.maxRows.hint"] =
-            "最多读取前多少行数据。整行都是空的会被跳过——放列标题的那一行、有些表格底部留着"
-            + "用来输入新记录的空白行，都不是数据。",
+        ["uia.readTable.maxRows.hint"] = "最多读取前多少行数据，范围为 1 到 10000，默认 100。整行都是空的会被跳过："
+            + "放列标题的那一行、有些表格底部留着用来输入新记录的空白行，都不是数据。",
 
         ["uia.focusWindow.name"] = "窗口置前",
         ["uia.focusWindow.desc"] = "把某个窗口切换到最前面。",
@@ -2892,7 +2890,7 @@ internal static class ActionStrings
         ["browser.open.name"] = "打开浏览器",
         ["browser.open.desc"] = "启动浏览器并打开一个网址。",
         ["browser.open.browser.label"] = "浏览器",
-        ["browser.open.browser.hint"] = "驱动哪个浏览器。Edge 是 Windows 自带的，不用装任何东西；"
+        ["browser.open.browser.hint"] = "驱动哪个浏览器，默认 Edge。Edge 是 Windows 自带的，不用装任何东西；"
             + "Chrome 和 Playwright 自己下载的那几个内核，机器上没有时会给出安装命令。",
         ["browser.open.browser.option.edge"] = "Edge（Windows 自带）",
         ["browser.open.browser.option.chrome"] = "Chrome",
@@ -2900,47 +2898,47 @@ internal static class ActionStrings
         ["browser.open.browser.option.firefox"] = "Firefox",
         ["browser.open.browser.option.webkit"] = "WebKit",
         ["browser.open.url.label"] = "网址",
-        ["browser.open.url.hint"] = "要打开的页面。留空表示先只开浏览器，不打开页面。",
+        ["browser.open.url.hint"] = "要打开的页面。默认留空，表示只开浏览器，不打开页面。按一个值读取，变量或表达式都可以写成它。",
         ["browser.open.headless.label"] = "不显示窗口",
-        ["browser.open.headless.hint"] = "不显示浏览器窗口。速度更快，但运行过程中看不到页面。",
+        ["browser.open.headless.hint"] = "不显示浏览器窗口。默认不勾选；勾选后速度更快，但运行过程中看不到页面。",
 
         ["browser.goTo.name"] = "转到网址",
         ["browser.goTo.desc"] = "让浏览器当前页面转到另一个网址。",
         ["browser.goTo.url.label"] = "网址",
-        ["browser.goTo.url.hint"] = "要打开的页面。",
+        ["browser.goTo.url.hint"] = "要让当前页面转到的网址。按一个值读取，变量或表达式都可以写成它。",
 
         ["browser.click.name"] = "点击元素",
         ["browser.click.desc"] = "点击选择器指定的第一个元素。",
         ["browser.click.target.label"] = "选择器",
-        ["browser.click.target.hint"] = "元素在哪。Playwright 的选择器像 CSS，也能按文字找："
-            + "“text=登录”会点第一个显示这段文字的东西。",
+        ["browser.click.target.hint"] = "元素在哪，写法是 Playwright 的选择器。选择器像 CSS，也能按文字找："
+            + "「text=登录」会点第一个显示这段文字的元素。",
 
         ["browser.fill.name"] = "填写",
         ["browser.fill.desc"] = "往选择器指定的元素里输入文本。",
         ["browser.fill.target.label"] = "选择器",
-        ["browser.fill.target.hint"] = "要输入到哪个元素，写法同“点击元素”。",
+        ["browser.fill.target.hint"] = "要输入到哪个元素，写法与「点击元素」相同。",
         ["browser.fill.text.label"] = "文本",
-        ["browser.fill.text.hint"] = "要输入的内容。按一个值读取，所以可以把别处读到的值输入进来。",
+        ["browser.fill.text.hint"] = "要输入的内容。按一个值读取，变量或表达式都可以写成它，所以可以把别处读到的值输入进来。",
 
         ["browser.readText.name"] = "读取文本",
         ["browser.readText.desc"] = "读取某个元素、或整个页面的文本。",
         ["browser.readText.target.label"] = "选择器",
-        ["browser.readText.target.hint"] = "要读取哪个元素，写法同“点击元素”。留空表示读整个页面。",
+        ["browser.readText.target.hint"] = "要读取哪个元素，写法与「点击元素」相同。默认留空，表示读整个页面的文本。",
 
         ["browser.switchTab.name"] = "切换标签页",
         ["browser.switchTab.desc"] = "让后面的步骤改用浏览器里的另一个标签页。",
         ["browser.switchTab.how.label"] = "哪个标签页",
-        ["browser.switchTab.how.hint"] = "后面的步骤在哪个标签页上操作。“最新打开的那个”是最后出现的那一个，"
+        ["browser.switchTab.how.hint"] = "后面的步骤在哪个标签页上操作，默认「最新打开的那个」。「最新打开的那个」是最后出现的页面，"
             + "点击后新开标签页时留下的就是它；标签页要等点击返回后一小会儿才到浏览器，所以这一步会等它几秒，"
-            + "等不到会报错，而不是留在原地——在长得很像的站点上，留在原地是看不出问题的。",
+            + "等不到会报错，而不是留在原地：在长得很像的站点上，留在原地是看不出问题的。",
         ["browser.switchTab.how.option.newest"] = "最新打开的那个",
         ["browser.switchTab.how.option.index"] = "第几个",
         ["browser.switchTab.how.option.title"] = "按标题",
         ["browser.switchTab.how.option.url"] = "按网址",
         ["browser.switchTab.index.label"] = "第几个标签页",
-        ["browser.switchTab.index.hint"] = "从标签栏最左边数起，第一个是 1；配合上面的“第几个”使用。",
+        ["browser.switchTab.index.hint"] = "从标签栏最左边数起，第一个是 1，范围为 1 到 50，配合「第几个」使用。",
         ["browser.switchTab.match.label"] = "标题或网址里包含",
-        ["browser.switchTab.match.hint"] = "标签页的标题（或网址）里要包含的文字；配合上面的“按标题”“按网址”使用。",
+        ["browser.switchTab.match.hint"] = "标签页的标题或网址里要包含的文字，配合「按标题」「按网址」使用。",
 
         ["browser.closeTab.name"] = "关闭标签页",
         ["browser.closeTab.desc"] = "关闭浏览器当前所在的标签页，并转到另一个标签页。",
@@ -2952,18 +2950,21 @@ internal static class ActionStrings
         ["script.run.name"] = "运行脚本",
         ["script.run.desc"] = "用选定的解释器运行一段脚本，用于处理动作目录未覆盖的情况。",
         ["script.run.language.label"] = "解释器",
-        ["script.run.language.hint"] = "运行这段脚本使用的解释器。PowerShell 与命令提示符每台 Windows 都自带；Node.js 与 Python 需要自行安装；自选解释器用于机器上安装的其他程序，例如 dotnet-script。",
+        ["script.run.language.hint"] = "运行这段脚本使用的解释器，默认 PowerShell。PowerShell 与命令提示符每台 Windows 都自带；"
+            + "Node.js 与 Python 需要自行安装；自选解释器用于机器上安装的其他程序，例如 dotnet-script。",
         ["script.run.language.option.powershell"] = "PowerShell",
         ["script.run.language.option.cmd"] = "命令提示符",
         ["script.run.language.option.node"] = "Node.js",
         ["script.run.language.option.python"] = "Python",
         ["script.run.language.option.custom"] = "自选解释器",
         ["script.run.interpreter.label"] = "解释器命令行",
-        ["script.run.interpreter.hint"] = "运行这段脚本的程序，它自己的开关写在前面，配合上面的\"自选解释器\"使用。脚本的路径会接在它后面，和你手打命令行时一样。路径里有空格时用引号括起来。",
+        ["script.run.interpreter.hint"] = "运行这段脚本的程序，它自己的开关写在前面，配合「自选解释器」使用。脚本的路径会接在它后面，"
+            + "与手打命令行时一样；路径里有空格时用引号括起来。",
         ["script.run.extension.label"] = "脚本后缀",
-        ["script.run.extension.hint"] = "那个程序认识的脚本后缀，例如 dotnet-script 用 .csx、cscript 用 .vbs。只在\"自选解释器\"时用得上。",
+        ["script.run.extension.hint"] = "那个程序认识的脚本后缀，例如 dotnet-script 用 .csx、cscript 用 .vbs。只在「自选解释器」时用得上。",
         ["script.run.encoding.label"] = "脚本文件编码",
-        ["script.run.encoding.hint"] = "交给解释器的那份脚本按什么编码写。默认交给解释器自己决定：PowerShell 带 BOM，其余不带，各自都能正确读出中文；像 cscript 这种按系统代码页读文件的程序，要选 GBK。",
+        ["script.run.encoding.hint"] = "交给解释器的那份脚本按什么编码写，默认「按解释器习惯」。按解释器习惯指 PowerShell 带 BOM、"
+            + "其余不带，各自都能正确读出中文；像 cscript 这种按系统代码页读文件的程序，要选 GBK。",
         ["script.run.encoding.option.auto"] = "按解释器习惯",
         ["script.run.encoding.option.utf8"] = "UTF-8",
         ["script.run.encoding.option.utf8bom"] = "UTF-8 带 BOM",
@@ -2972,11 +2973,11 @@ internal static class ActionStrings
         ["script.run.script.label"] = "脚本",
         ["script.run.script.hint"] = "脚本本身。写 {{变量名}} 的地方会在运行前换成那个变量的值，这就是宏的值传进脚本的方式；脚本打印出来的内容会回到下面的结果变量里。",
         ["script.run.arguments.label"] = "参数",
-        ["script.run.arguments.hint"] = "附加在脚本命令行后面的参数。这里也会替换 {{变量名}}。",
+        ["script.run.arguments.hint"] = "附加在脚本命令行后面的参数，其中的 {{变量名}} 也会替换成变量的值。默认留空，表示不传参数。",
         ["script.run.folder.label"] = "工作目录",
-        ["script.run.folder.hint"] = "脚本在哪个目录中运行。留空表示宏所在目录；该目录不存在时，则使用鲸灵自身的工作目录。",
+        ["script.run.folder.hint"] = "脚本在哪个目录中运行。默认留空，表示宏所在的目录；该目录不存在时，改用鲸灵自身的工作目录。",
         ["script.run.timeoutMs.label"] = "超时",
-        ["script.run.timeoutMs.hint"] = "超过这个时长就结束脚本并让这一步失败。",
+        ["script.run.timeoutMs.hint"] = "超过这个时长就结束脚本并判这一步失败，单位毫秒，默认 60000。",
 
         // ---------------------------------------------------------------- condition
         ["condition.imageExists.name"] = "图片存在",
