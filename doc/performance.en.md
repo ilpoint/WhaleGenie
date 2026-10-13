@@ -2,11 +2,12 @@
 
 [English](performance.en.md) | [简体中文](performance.md)
 
-What one look at the screen costs, on which machine these numbers were taken, and how. It is not part
-of CI: after changing how the screen is read (`WhaleGenie.GraphicsCapture`) or how it is matched and
-read as text (`OpenCvVisionDevice`, `PixelSearch`, `PaddleOcrDevice`), leave a new entry here so it
-can be compared with the one before it. For who reads the screen and when, see "Where the picture
-comes from" in [manual.md](manual.md).
+What one look at the screen costs, how often a trigger looks, on which machine these numbers were
+taken, and how. It is not part of CI: after changing how the screen is read
+(`WhaleGenie.GraphicsCapture`), how it is matched and read as text (`OpenCvVisionDevice`,
+`PixelSearch`, `PaddleOcrDevice`), or how long a trigger waits between two looks
+(`MacroTriggerService`), leave a new entry here so it can be compared with the one before it. For
+who reads the screen and when, see "Where the picture comes from" in [manual.md](manual.md).
 
 ## How the numbers were taken
 
@@ -168,6 +169,40 @@ Two switches change that number. Both are on the **Advanced** page and both are 
   it is still 23 ms of blocking. A macro is a sequence anyway, so it only makes that round longer; it
   does not disturb other steps.
 - The text recognition model is read in once per process, paid by the first look.
+
+## How often a trigger looks
+
+A trigger is not told when something happens; it looks every so often — a colour every 60 ms, a
+program every 30 ms, a window every 500 ms. Look less often than the thing lasts and it is missed:
+a program that starts and quits between two looks is never seen at all.
+
+How these were taken: a throwaway harness driving the real `MacroTriggerService` (the real
+`WindowsDeviceLayer`, real windows, real programs) and counting how often it answered. The window
+is opened and closed by the harness on a thread of its own that pumps messages — a window made on a
+thread that never reads its queue is not seen reliably by other threads; the program is a renamed
+copy of `cmd.exe` that starts and quits, and the `Process` handle has to be let go of at once,
+because holding one keeps an exited program in the process list and flatters the number. Results
+(2026-10, the same machine):
+
+| What it waits for | How long it lasted | Before | After |
+| --- | --- | --- | --- |
+| A window opens and stays open | — | 5/5, 300–350 ms late | 5/5, 1–4 ms late |
+| An open window closes | — | 5/5, 315–333 ms late | 5/5, 2–3 ms late |
+| A window that is up for 400 ms | 400 ms | 5/5, 320–350 ms late | 5/5, 1–2 ms late |
+| A window that is up for 100 ms | 100 ms | **0/5, all missed** | 5/5, 1–2 ms late |
+| A program that quits at once | 33 ms (11–33 ms in the process list) | 3/5 (of 20) | 19/20 |
+| A program that lives about 100 ms | 78–173 ms | 5/5 | 5/5 |
+
+Two things followed. **Windows** are now announced by the machine when one appears, goes away or is
+renamed (`WindowsWindowEvents`, `SetWinEventHook`), and the window list is read there and then; the
+500 ms round stays, as the fallback for a machine that will not say, and so that a project of
+window triggers behaves the same before and after. **Programs** have no such announcement to
+listen to — the WMI event subscription that would give one (`Win32_ProcessStartTrace`) needs
+administrator rights and answers "access denied" without them — so the reading itself was made
+cheap: asking for one name rather than opening every process to read its name (263 processes: 2.5 ms
+down to 1.2 ms). Thirty milliseconds a round therefore costs what sixty used to, and misses more
+than halved. Wanting more would mean shortening the wait further: 10 ms a round is a tenth of a core
+kept busy for a 20 ms program, which is why there is no setting for it.
 
 ## Taking the numbers again
 
