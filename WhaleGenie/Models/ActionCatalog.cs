@@ -1014,7 +1014,7 @@ public static class ActionCatalog
             [
                 Text("text", "Text", "hello",
                     "The text to encode. It is read as one value, so a variable or an expression "
-                    + "may stand for it, and the text is taken as UTF-8.", acceptsFormula: true),
+                    + "may stand for it; the text is taken as UTF-8.", acceptsFormula: true),
                 Returns(),
             ],
         },
@@ -1033,7 +1033,8 @@ public static class ActionCatalog
             [
                 Text("text", "Base64", "aGVsbG8=",
                     "The Base64 text to decode. It is read as one value, so a variable or an "
-                    + "expression may stand for it.", acceptsFormula: true),
+                    + "expression may stand for it; the text it holds is read as UTF-8.",
+                    acceptsFormula: true),
                 Returns(),
             ],
         },
@@ -1052,9 +1053,10 @@ public static class ActionCatalog
             [
                 Choice("algorithm", "Algorithm", ["md5", "sha1", "sha256", "sha512"], "sha256",
                     "Which checksum to work out. SHA-256 is the ordinary choice; MD5 and SHA-1 are "
-                    + "here for matching a value some other program hands out.",
+                    + "here for matching a value some other program hands out. SHA-256 by default.",
                     labels: ["MD5", "SHA-1", "SHA-256", "SHA-512"]),
-                Text("text", "Text", "hello", "The text to work out the checksum of.",
+                Text("text", "Text", "hello", "The text to work out the checksum of, read as one "
+                    + "value and taken as UTF-8. A variable or an expression may stand for it.",
                     acceptsFormula: true),
                 Returns(),
             ],
@@ -1069,8 +1071,8 @@ public static class ActionCatalog
             Description = "Put text on the clipboard, the same as copying it.",
             Parameters =
             [
-                Multiline("text", "Text", "Text to put on the clipboard.",
-                    acceptsFormula: true),
+                Multiline("text", "Text", "Text to put on the clipboard, read as one value, so a "
+                    + "variable or an expression may stand for it.", acceptsFormula: true),
             ],
         },
         new()
@@ -1143,8 +1145,8 @@ public static class ActionCatalog
             [
                 Variable("files", "Files", "$files",
                     "A list of paths, or a single path. A relative one is taken from the macros "
-                    + "folder, and every file has to be there: a paste of a path that points "
-                    + "nowhere fails quietly in whatever program receives it.",
+                    + "folder, and every file has to be there, because a paste of a path that "
+                    + "points nowhere fails quietly in whatever program receives it.",
                     namesVariable: false, acceptsFormula: true),
             ],
         },
@@ -1168,7 +1170,9 @@ public static class ActionCatalog
             Description = "Wait until something new is copied to the clipboard.",
             Parameters =
             [
-                Number("timeoutMs", "Timeout", 5000, "How long to wait before giving up."),
+                Number("timeoutMs", "Timeout", 5000,
+                    "How long to wait for the clipboard to change before giving up, in "
+                    + "milliseconds; 5000 by default."),
                 Returns(),
             ],
         },
@@ -1184,9 +1188,12 @@ public static class ActionCatalog
             Description = "Press the copy shortcut, then keep what landed on the clipboard.",
             Parameters =
             [
-                Text("keys", "Shortcut", "Ctrl+C", "Keys joined with + that copy the selection.",
+                Text("keys", "Shortcut", "Ctrl+C",
+                    "Keys joined with + that copy the selection; Ctrl+C by default.",
                     required: true, defaultValue: "Ctrl+C"),
-                Number("timeoutMs", "Timeout", 1500, "How long to wait for the clipboard."),
+                Number("timeoutMs", "Timeout", 1500,
+                    "How long to wait for the clipboard to change after the shortcut, in milliseconds; "
+                    + "1500 by default."),
                 Returns(),
             ],
         },
@@ -1198,9 +1205,10 @@ public static class ActionCatalog
             Description = "Put text on the clipboard and press the paste shortcut.",
             Parameters =
             [
-                Multiline("text", "Text", "Text to paste. Leave empty to paste what is already copied.",
-                    required: false, acceptsFormula: true),
-                Text("keys", "Shortcut", "Ctrl+V", "Keys joined with + that paste.",
+                Multiline("text", "Text", "Text to paste. Empty, which is the default, pastes what "
+                    + "is already on the clipboard.", required: false, acceptsFormula: true),
+                Text("keys", "Shortcut", "Ctrl+V",
+                    "Keys joined with + that paste; Ctrl+V by default.",
                     required: true, defaultValue: "Ctrl+V", advanced: true),
             ],
         },

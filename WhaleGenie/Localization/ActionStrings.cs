@@ -877,31 +877,29 @@ internal static class ActionStrings
         ["data.base64Encode.name"] = "Base64 编码",
         ["data.base64Encode.desc"] = "把文本编码成 Base64，放进 URL 或令牌时常用这种形式。",
         ["data.base64Encode.text.label"] = "文本",
-        ["data.base64Encode.text.hint"] = "要编码的文本。按一个值读取，变量或表达式都可以写成它；"
-            + "编码时按 UTF-8 处理。",
+        ["data.base64Encode.text.hint"] = "要编码的文本。按一个值读取，变量或表达式都可以写成它；编码时按 UTF-8 处理。",
 
         ["data.base64Decode.name"] = "Base64 解码",
         ["data.base64Decode.desc"] = "把 Base64 变回它原本的文本。",
         ["data.base64Decode.text.label"] = "Base64",
-        ["data.base64Decode.text.hint"] = "要解码的 Base64 文本。按一个值读取，变量或表达式都可以写成它。",
+        ["data.base64Decode.text.hint"] = "要解码的 Base64 文本。按一个值读取，变量或表达式都可以写成它；解出来的文本按 UTF-8 读。",
 
         ["data.hash.name"] = "计算哈希",
         ["data.hash.desc"] = "算出一段文本的校验和。",
         ["data.hash.algorithm.label"] = "算法",
-        ["data.hash.algorithm.hint"] = "用哪种校验和。一般用 SHA-256；"
-            + "MD5 和 SHA-1 留着是为了对上别的程序给出的值。",
+        ["data.hash.algorithm.hint"] = "用哪种校验和，默认 SHA-256。MD5 和 SHA-1 用来对上别的程序给出的值。",
         ["data.hash.algorithm.option.md5"] = "MD5",
         ["data.hash.algorithm.option.sha1"] = "SHA-1",
         ["data.hash.algorithm.option.sha256"] = "SHA-256",
         ["data.hash.algorithm.option.sha512"] = "SHA-512",
         ["data.hash.text.label"] = "文本",
-        ["data.hash.text.hint"] = "要算校验和的文本，按 UTF-8 处理。",
+        ["data.hash.text.hint"] = "要算校验和的文本，按 UTF-8 处理。按一个值读取，变量或表达式都可以写成它。",
 
         // ---------------------------------------------------------------- clipboard
         ["clipboard.writeText.name"] = "复制到剪贴板",
         ["clipboard.writeText.desc"] = "把文本放进剪贴板，相当于复制。",
         ["clipboard.writeText.text.label"] = "文本",
-        ["clipboard.writeText.text.hint"] = "要放进剪贴板的文本。",
+        ["clipboard.writeText.text.hint"] = "要放进剪贴板的文本。按一个值读取，变量或表达式都可以写成它。",
 
         ["clipboard.readText.name"] = "读取剪贴板",
         ["clipboard.readText.desc"] = "把剪贴板上的文本读入变量。",
@@ -920,7 +918,8 @@ internal static class ActionStrings
         ["clipboard.writeFiles.name"] = "复制文件到剪贴板",
         ["clipboard.writeFiles.desc"] = "把文件放到剪贴板上，粘贴出来的是文件本身。",
         ["clipboard.writeFiles.files.label"] = "文件",
-        ["clipboard.writeFiles.files.hint"] = "路径列表，也可以只写一个路径。相对路径按宏文件夹解析；每个文件都要真的存在，否则粘贴时会在对方程序里悄悄失败。",
+        ["clipboard.writeFiles.files.hint"] = "路径列表，也可以只写一个路径。只写文件名时会相对宏文件夹解析；每个文件都要真的存在，"
+            + "否则粘贴时会在对方程序里失败。",
 
         ["clipboard.clear.name"] = "清空剪贴板",
         ["clipboard.clear.desc"] = "清空剪贴板内容。",
@@ -928,21 +927,21 @@ internal static class ActionStrings
         ["clipboard.waitChange.name"] = "等待剪贴板",
         ["clipboard.waitChange.desc"] = "等待剪贴板上有新的内容被复制。",
         ["clipboard.waitChange.timeoutMs.label"] = "超时",
-        ["clipboard.waitChange.timeoutMs.hint"] = "最多等待多久，超时即失败。",
+        ["clipboard.waitChange.timeoutMs.hint"] = "最多等多久，单位毫秒，默认 5000；到点即失败。",
 
         ["clipboard.copy.name"] = "复制",
         ["clipboard.copy.desc"] = "发送复制快捷键，并保留复制到的内容。",
         ["clipboard.copy.keys.label"] = "快捷键",
-        ["clipboard.copy.keys.hint"] = "用 + 连接，用于复制所选内容。",
+        ["clipboard.copy.keys.hint"] = "用 + 连接的一组按键，用于复制所选内容，默认 Ctrl+C。",
         ["clipboard.copy.timeoutMs.label"] = "超时",
-        ["clipboard.copy.timeoutMs.hint"] = "等待剪贴板变化的时长。",
+        ["clipboard.copy.timeoutMs.hint"] = "按下快捷键后等待剪贴板变化的时长，单位毫秒，默认 1500。",
 
         ["clipboard.paste.name"] = "粘贴",
         ["clipboard.paste.desc"] = "把文本放进剪贴板，并发送粘贴快捷键。",
         ["clipboard.paste.text.label"] = "文本",
-        ["clipboard.paste.text.hint"] = "要粘贴的文本。留空表示直接粘贴剪贴板里已有的内容。",
+        ["clipboard.paste.text.hint"] = "要粘贴的文本。默认留空，表示直接粘贴剪贴板里已有的内容。",
         ["clipboard.paste.keys.label"] = "快捷键",
-        ["clipboard.paste.keys.hint"] = "用 + 连接，用于粘贴。",
+        ["clipboard.paste.keys.hint"] = "用 + 连接的一组按键，用于粘贴，默认 Ctrl+V。",
 
         // ------------------------------------------------------------------ process
         ["process.start.name"] = "启动程序",
