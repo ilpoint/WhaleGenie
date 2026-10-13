@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:WhaleGenie.ViewModels"
              xmlns:models="using:WhaleGenie.Models"
+             xmlns:loc="using:WhaleGenie.Localization"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="240"
@@ -88,5 +89,29 @@
 
         <TextBlock Text="{Binding Details}" TextWrapping="Wrap" FontSize="11.5"
                    Foreground="#9A9A9A" MinHeight="32" MaxHeight="60" />
+
+        <!-- Which steps read the one under the pointer. A name on a button says nothing about who
+             wants it, and this is the line that answers it; pressing one asks the place the wall
+             stands in to show that step. -->
+        <StackPanel Spacing="4" IsVisible="{Binding HasUses}">
+            <TextBlock FontSize="11.5" Foreground="#8A8A8A"
+                       Text="{Binding [VarWall.UsedBy], Source={x:Static loc:Strings.Current}}" />
+            <ItemsControl ItemsSource="{Binding Uses}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:VariableUse">
+                        <Button Classes="VarButton" Height="24" FontSize="11.5" Margin="0,0,6,6"
+                                Content="{Binding Label}"
+                                ToolTip.Tip="{Binding [VarWall.JumpHint], Source={x:Static loc:Strings.Current}}"
+                                Command="{Binding $parent[ItemsControl].((vm:VariableWallViewModel)DataContext).JumpCommand}"
+                                CommandParameter="{Binding}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
     </StackPanel>
 </UserControl>

@@ -726,6 +726,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["VarWall.Empty"] = "There is nothing in this group yet — try another button above.",
         ["VarWall.Outcome"] = "What this step came to: ok, failed or skipped.",
         ["VarWall.Error"] = "Why this step failed, as WhaleGenie's own name for the failure; empty when it did not fail.",
+        ["VarWall.UsedBy"] = "Steps that read it:",
+        ["VarWall.JumpHint"] = "Show this step in the step list",
         ["ExprBuilder.Title"] = "Expression",
         ["ExprBuilder.Help"] = "Click an operator or a variable to add it at the cursor, or edit "
             + "the expression directly. Hover over an operator to see what it does, and watch the "
@@ -1788,6 +1790,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["VarWall.Empty"] = "这一类现在还没有变量，点上面别的按钮看看。",
         ["VarWall.Outcome"] = "这一步跑完的结局：ok / failed / skipped。",
         ["VarWall.Error"] = "这一步为什么失败，写的是鲸灵自己给这个失败起的名字；没有失败时是空的。",
+        ["VarWall.UsedBy"] = "用到它的步骤：",
+        ["VarWall.JumpHint"] = "在步骤列表里找到这一步",
         ["ExprBuilder.Title"] = "表达式",
         ["ExprBuilder.Help"] = "点运算符或变量即可插入到光标处，也可以直接改下面的表达式。"
             + "鼠标停在运算符上会说明它的作用；输入框下方会显示它算出来的结果。",

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -39,8 +40,21 @@ public partial class VariablePickerWindow : Window
     /// Opens the picker over <paramref name="owner"/> with the variables the macro can read, and
     /// reports the text of the one that was picked, or null when it was dismissed.
     /// </summary>
-    public static Task<string?> ShowFor(Window owner, IReadOnlyList<VariableChoice> variables)
-        => new VariablePickerWindow(new VariablePickerViewModel(variables)).ShowDialogOver<string?>(owner);
+    /// <param name="lookAt">
+    /// What to do with a step somebody asked to be shown from the wall's list of the steps that read
+    /// a variable. Null where there is no step list to show it in.
+    /// </param>
+    public static Task<string?> ShowFor(Window owner, IReadOnlyList<VariableChoice> variables,
+        Action<MacroStep>? lookAt = null)
+    {
+        var viewModel = new VariablePickerViewModel(variables);
+        if (lookAt is not null)
+        {
+            viewModel.Jumped += lookAt;
+        }
+
+        return new VariablePickerWindow(viewModel).ShowDialogOver<string?>(owner);
+    }
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {

@@ -40,10 +40,16 @@ public partial class VariableWallViewModel : ViewModelBase
     /// <summary>Raised with the text of the variable that was picked.</summary>
     public event Action<string>? Chosen;
 
+    /// <summary>Raised with a step somebody asked to be shown, so the place they came from can look.</summary>
+    public event Action<MacroStep>? Jumped;
+
     public IReadOnlyList<VariableFilter> Filters { get; }
 
     /// <summary>The variables on show, which is what the filter leaves of everything known.</summary>
     public ObservableCollection<VariableChoice> Shown { get; } = [];
+
+    /// <summary>The steps that read the variable under the pointer, in the order they run.</summary>
+    public ObservableCollection<VariableUse> Uses { get; } = [];
 
     /// <summary>The variable the pointer is over, whose details are shown underneath.</summary>
     [ObservableProperty]
@@ -67,9 +73,39 @@ public partial class VariableWallViewModel : ViewModelBase
     /// <summary>True while there is nothing to show, so the line says why instead of standing empty.</summary>
     public bool IsEmpty => Shown.Count == 0;
 
+    /// <summary>
+    /// True while the variable under the pointer is one a step reads. "Where is this used" is the
+    /// question that follows "what is this": it is what makes a name safe to change, and what turns
+    /// "unused, so it can go" into something a person can check rather than take on trust.
+    /// </summary>
+    public bool HasUses => Uses.Count > 0;
+
     partial void OnSelectedFilterChanged(VariableFilter? value) => Rebuild();
 
-    partial void OnLookingChanged(VariableChoice? value) => OnPropertyChanged(nameof(Details));
+    partial void OnLookingChanged(VariableChoice? value)
+    {
+        Uses.Clear();
+        if (value is not null)
+        {
+            foreach (var use in value.Uses)
+            {
+                Uses.Add(use);
+            }
+        }
+
+        OnPropertyChanged(nameof(Details));
+        OnPropertyChanged(nameof(HasUses));
+    }
+
+    /// <summary>Somebody pressed one of the steps that reads the variable, to be shown where it is.</summary>
+    [RelayCommand]
+    private void Jump(VariableUse? use)
+    {
+        if (use is not null)
+        {
+            Jumped?.Invoke(use.Step);
+        }
+    }
 
     /// <summary>The variable a button stands for was picked.</summary>
     [RelayCommand]
@@ -92,6 +128,7 @@ public partial class VariableWallViewModel : ViewModelBase
 
         Looking = null;
         OnPropertyChanged(nameof(IsEmpty));
+        OnPropertyChanged(nameof(HasUses));
         OnPropertyChanged(nameof(Details));
     }
 }

@@ -245,4 +245,116 @@ public class VariableWallTests
 
         throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
     }
+
+    private static StepParameter Text(string name, string value)
+        => new() { Name = name, Kind = ActionParameterKind.Text, Value = value };
+
+    private static MacroStep Writes(string name, string id = "")
+        => new()
+        {
+            Type = "control.setVariable",
+            Id = id,
+            Parameters = [Text("name", name), Text("value", "0")],
+        };
+
+    private static MacroStep Reads(string expression, string comment = "")
+        => new()
+        {
+            Type = "control.log",
+            Meta = new WhaleGenie.Core.Execution.StepMeta { Comment = comment },
+            Parameters = [Text("message", expression)],
+        };
+
+    /// <summary>
+    /// 反查：一个变量被哪几步读。按钮上只有一个名字，而"改它的名字安不安全、它还留不留"要靠这一条
+    /// 回答；定义它的那一步不是读它 —— 往变量名的字段里写名字是定义。
+    /// </summary>
+    [Fact]
+    public void A_variable_says_which_steps_read_it()
+    {
+        var writes = Writes("rows", "k3f9");
+        var reads = Reads("这次有 $rows 行", "记一行");
+
+        var rows = VariableChoices.For([writes, reads]).First(choice => choice.Name == "rows");
+
+        var use = Assert.Single(rows.Uses);
+        Assert.Same(reads, use.Step);
+        Assert.Contains("记一行", use.Label);
+        Assert.DoesNotContain(rows.Uses, item => ReferenceEquals(item.Step, writes));
+
+        // 没人读的变量照实说没人读，而不是把定义它的那一步也算上。
+        Assert.Empty(VariableChoices.For([writes]).First(choice => choice.Name == "rows").Uses);
+    }
+
+    /// <summary>那一串步骤是点得动的：点一下就是"让我看看它在哪儿"。</summary>
+    [Fact]
+    public void Pressing_one_of_those_steps_asks_for_it_to_be_shown()
+    {
+        var reads = Reads("$rows");
+        var wall = new VariableWallViewModel(VariableChoices.For([Writes("rows"), reads]));
+        wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.Local);
+
+        // 还没有停在任何一个变量上：没有可反查的东西。
+        Assert.False(wall.HasUses);
+
+        wall.Looking = wall.Shown.First(choice => choice.Token == "$rows");
+
+        Assert.True(wall.HasUses);
+        var use = Assert.Single(wall.Uses);
+
+        MacroStep? asked = null;
+        wall.Jumped += step => asked = step;
+        wall.JumpCommand.Execute(use);
+
+        Assert.Same(reads, asked);
+    }
+
+    /// <summary>
+    /// 反查要真的落到那一步上：藏在折叠块里的步骤，先把块展开再选上，否则"找到了"和"看不见"是
+    /// 同一件事。
+    /// </summary>
+    [Fact]
+    public void Showing_a_step_opens_the_block_it_is_hidden_in()
+    {
+        Ui.Run(() =>
+        {
+            var inside = Reads("$rows");
+            var loop = new MacroStep
+            {
+                Type = "control.repeat",
+                Parameters =
+                [
+                    new StepParameter
+                    {
+                        Name = "body",
+                        Kind = ActionParameterKind.Steps,
+                        Steps = [inside],
+                    },
+                ],
+            };
+
+            var editor = new MacroEditorViewModel();
+            editor.AddStep(loop);
+            editor.SetExpanded(loop, false);
+            Assert.DoesNotContain(editor.Rows, row => row.IsStep && ReferenceEquals(row.Step, inside));
+
+            Assert.True(editor.Reveal(inside));
+            Assert.True(loop.IsExpanded);
+            Assert.Contains(editor.Rows, row => row.IsStep && ReferenceEquals(row.Step, inside));
+
+            // 不在这个宏里的步骤：什么也不做，也不假装找到过。
+            Assert.False(editor.Reveal(Reads("$rows")));
+        });
+    }
+
+    /// <summary>算出来的东西要有地方画：那一串步骤挂在墙上，不是一个只在内存里的列表。</summary>
+    [Fact]
+    public void The_wall_draws_that_list()
+    {
+        var markup = File.ReadAllText(
+            Path.Combine(Repository(), "WhaleGenie", "Views", "VariableWall.axaml"));
+
+        Assert.Contains("ItemsSource=\"{Binding Uses}\"", markup, StringComparison.Ordinal);
+        Assert.Contains("JumpCommand", markup, StringComparison.Ordinal);
+    }
 }

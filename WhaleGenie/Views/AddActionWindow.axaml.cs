@@ -135,6 +135,13 @@ public partial class AddActionWindow : Window
     /// </summary>
     internal Func<string>? MintStepId { get; set; }
 
+    /// <summary>
+    /// What to do with a step somebody asked to be shown while filling a field in — the reverse
+    /// lookup of a variable: which steps read it, and where each of them is. The editor is the only
+    /// one that has a step list, so it answers this; null where there is nothing to show it in.
+    /// </summary>
+    internal Action<MacroStep>? LookAtStep { get; set; }
+
     /// <summary>The form this window is driving.</summary>
     private AddActionViewModel? Form => DataContext as AddActionViewModel;
 
@@ -744,7 +751,7 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (await VariablePickerWindow.ShowFor(this, viewModel.CollectVariables())
+        if (await VariablePickerWindow.ShowFor(this, viewModel.CollectVariables(), LookAtStep)
             is not { Length: > 0 } picked)
         {
             return;

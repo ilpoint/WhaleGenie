@@ -17,10 +17,18 @@ public partial class VariablePickerViewModel : ViewModelBase
     {
         Wall = new VariableWallViewModel(variables);
         Wall.Chosen += token => CloseRequested?.Invoke(token);
+        Wall.Jumped += step => Jumped?.Invoke(step);
     }
 
     /// <summary>Raised with the text to put in the field, or null when nothing was picked.</summary>
     public event Action<string?>? CloseRequested;
+
+    /// <summary>
+    /// Raised with a step somebody asked to be shown. The picker does not close for it: the person
+    /// is still filling a field in, and looking at the step is done beside that rather than instead
+    /// of it.
+    /// </summary>
+    public event Action<MacroStep>? Jumped;
 
     public string Header => Strings.Get("VarPicker.Title");
 

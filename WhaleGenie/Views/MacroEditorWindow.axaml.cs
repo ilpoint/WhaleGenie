@@ -663,6 +663,7 @@ public partial class MacroEditorWindow : Window
                 Macros = BuildLibrary(),
                 MintStepId = _viewModel.NewStepId,
                 PlaceStep = TakeStep,
+                LookAtStep = LookAtStep,
             };
 
             // The layer the whole program shares, when the editor was given one: the trials this
@@ -708,6 +709,29 @@ public partial class MacroEditorWindow : Window
         }
 
         window.Activate();
+    }
+
+    /// <summary>
+    /// Points the list at a step somebody asked to be shown: it is opened out of whatever block it
+    /// sits in, scrolled to and selected. This is the answer to "which steps read this variable" —
+    /// the dialog that asked keeps standing beside the list, so looking at the step is done beside
+    /// filling the field rather than instead of it.
+    /// </summary>
+    private void LookAtStep(MacroStep step)
+    {
+        if (!_viewModel.Reveal(step))
+        {
+            return;
+        }
+
+        _viewModel.SetSelection([step]);
+        _viewModel.RefreshSelection();
+
+        if (_viewModel.Rows.FirstOrDefault(row => row.IsStep && ReferenceEquals(row.Step, step))
+            is { } row)
+        {
+            _stepList?.ScrollIntoView(row);
+        }
     }
 
     /// <summary>

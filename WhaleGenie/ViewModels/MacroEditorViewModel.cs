@@ -810,6 +810,48 @@ public partial class MacroEditorViewModel : ViewModelBase
         SelectionRefreshRequested?.Invoke();
     }
 
+    /// <summary>
+    /// Opens every block a step sits inside, so a step somebody asked to be shown is really on the
+    /// list rather than hidden inside a folded block. Answers false when the step is not part of
+    /// this macro, which is the case for one that has since been replaced.
+    /// </summary>
+    public bool Reveal(MacroStep step)
+    {
+        if (!Opens(Steps, step))
+        {
+            return false;
+        }
+
+        RebuildRows();
+        return true;
+    }
+
+    /// <summary>
+    /// Opens the blocks on the way down to a step. Whatever a step is nested in has to be unfolded
+    /// for it to have a row at all, so the answer is collected on the way back up.
+    /// </summary>
+    private static bool Opens(IEnumerable<MacroStep> steps, MacroStep wanted)
+    {
+        foreach (var candidate in steps)
+        {
+            if (ReferenceEquals(candidate, wanted))
+            {
+                return true;
+            }
+
+            foreach (var list in candidate.StepLists)
+            {
+                if (Opens(list.Steps, wanted))
+                {
+                    candidate.IsExpanded = true;
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>Asks the window to open the run window for the steps as they are now.</summary>
     [RelayCommand]
     private void Run() => RunRequested?.Invoke();

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
@@ -33,6 +34,13 @@ public sealed class VariableChoice
     /// <summary>True for a step's own ending, which a run leaves behind rather than a step naming it.</summary>
     public bool IsStepResult { get; init; }
 
+    /// <summary>
+    /// The steps that read this variable, in the order they run. A name on a button says nothing
+    /// about who wants it, and "where is this used" is the question that follows "what is this" —
+    /// the answer is what makes it safe to rename or drop one.
+    /// </summary>
+    public IReadOnlyList<VariableUse> Uses { get; init; } = [];
+
     /// <summary>What a field holds once this one is chosen.</summary>
     public string Token => "$" + Name;
 
@@ -60,6 +68,9 @@ public sealed class VariableChoice
         }
     }
 }
+
+/// <summary>One step that reads a variable, named the way a step names itself on the list.</summary>
+public sealed record VariableUse(MacroStep Step, string Label);
 
 /// <summary>Which kind of variable a row is, which is also what the picker's buttons filter by.</summary>
 public enum VariableGroup
@@ -89,7 +100,9 @@ public static class VariableChoices
     public static IReadOnlyList<VariableChoice> For(IEnumerable<MacroStep> steps)
     {
         var rows = new List<VariableChoice>();
-        Walk(steps, rows);
+        var uses = new Dictionary<string, List<VariableUse>>(StringComparer.OrdinalIgnoreCase);
+        Read(steps, uses);
+        Walk(steps, rows, uses);
 
         IReadOnlyList<VariableChoice> shared =
         [
@@ -99,6 +112,7 @@ public static class VariableChoices
                 Scope = VariableScope.Global,
                 Type = variable.Type,
                 Description = variable.Description,
+                Uses = UsesOf(uses, variable.Name),
             }),
             .. VariableCatalog.SystemVariables.Select(variable => new VariableChoice
             {
@@ -106,10 +120,82 @@ public static class VariableChoices
                 Scope = VariableScope.System,
                 Type = variable.Type,
                 Description = Strings.Get($"Variable.{variable.Name}.desc", variable.Description),
+                Uses = UsesOf(uses, variable.Name),
             }),
         ];
 
         return Merge(rows, shared);
+    }
+
+    private static IReadOnlyList<VariableUse> UsesOf(
+        Dictionary<string, List<VariableUse>> uses, string name)
+        => uses.TryGetValue(name, out var found) ? found : [];
+
+    /// <summary>
+    /// Walks the steps again, this time looking for the names they read rather than the ones they
+    /// make. A name is read wherever a field may hold one: a whole value that is an expression, or
+    /// text with a name written into the middle of it. What a field that names a variable *defines*
+    /// is not a read, and neither is a script's own `$` — that one belongs to the other language.
+    /// </summary>
+    private static void Read(IEnumerable<MacroStep> steps, Dictionary<string, List<VariableUse>> uses)
+    {
+        foreach (var step in steps)
+        {
+            var use = new VariableUse(step, step.PickerLabel);
+            var reads = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var parameter in step.Parameters)
+            {
+                switch (parameter.Kind)
+                {
+                    case ActionParameterKind.Steps:
+                        Read(parameter.Steps, uses);
+                        continue;
+                    case ActionParameterKind.Condition:
+                        if (parameter.Condition is { } condition)
+                        {
+                            Read([condition], uses);
+                        }
+
+                        continue;
+                }
+
+                if (step.DefinesVariable(parameter)
+                    || step.ParameterDefinition(parameter) is { ForeignText: true })
+                {
+                    continue;
+                }
+
+                foreach (var name in Expression.ReferencedNames(parameter.Value))
+                {
+                    reads.Add(name);
+                }
+
+                // A list of rows holds values of its own — the paths of a set of pictures, the
+                // patterns of a switch — and a name written into one of those is read there too.
+                foreach (var row in parameter.Rows)
+                {
+                    foreach (var value in row.Columns.Values)
+                    {
+                        foreach (var name in Expression.ReferencedNames(value))
+                        {
+                            reads.Add(name);
+                        }
+                    }
+                }
+            }
+
+            foreach (var name in reads)
+            {
+                if (!uses.TryGetValue(name, out var found))
+                {
+                    found = [];
+                    uses[name] = found;
+                }
+
+                found.Add(use);
+            }
+        }
     }
 
     /// <summary>
@@ -134,7 +220,8 @@ public static class VariableChoices
     /// Walks the steps the way the macro is laid out: what a block holds is that block's variables,
     /// and every step that runs leaves an ending behind whether or not anybody asked for one.
     /// </summary>
-    private static void Walk(IEnumerable<MacroStep> steps, List<VariableChoice> rows)
+    private static void Walk(IEnumerable<MacroStep> steps, List<VariableChoice> rows,
+        Dictionary<string, List<VariableUse>> uses)
     {
         foreach (var step in steps)
         {
@@ -142,7 +229,7 @@ public static class VariableChoices
             {
                 if (parameter.Kind is ActionParameterKind.Steps)
                 {
-                    Walk(parameter.Steps, rows);
+                    Walk(parameter.Steps, rows, uses);
                     continue;
                 }
 
@@ -163,6 +250,7 @@ public static class VariableChoices
                             Type = result?.TypeName ?? "text",
                             Description = result?.LocalHint ?? string.Empty,
                             Source = step.PickerLabel,
+                            Uses = UsesOf(uses, name),
                         });
                     }
 
@@ -185,6 +273,7 @@ public static class VariableChoices
                         .FirstOrDefault(candidate => candidate.Name == parameter.Name)
                         ?.LocalHint ?? string.Empty,
                     Source = step.PickerLabel,
+                    Uses = UsesOf(uses, parameter.Value.Trim()),
                 });
             }
 
@@ -200,6 +289,7 @@ public static class VariableChoices
                     Description = Strings.Get("VarWall.Outcome"),
                     Source = step.PickerLabel,
                     IsStepResult = true,
+                    Uses = UsesOf(uses, MacroRunner.OutcomeName(step.Id)),
                 });
 
                 // Why it failed sits beside how it ended, under the same step: a macro that treats
@@ -212,6 +302,7 @@ public static class VariableChoices
                     Description = Strings.Get("VarWall.Error"),
                     Source = step.PickerLabel,
                     IsStepResult = true,
+                    Uses = UsesOf(uses, MacroRunner.ErrorName(step.Id)),
                 });
             }
         }
