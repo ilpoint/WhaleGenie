@@ -1011,6 +1011,12 @@ public sealed class MacroRunner
                 Log(Level(step.Text("level")), depth, step.Type, "Run.Message", Read(step.Text("message")).AsText());
                 return Signal.Normal;
 
+            case "control.ask":
+                return await AskPerson(step, depth, token);
+
+            case "control.input":
+                return await AskForText(step, depth, token);
+
             // ------------------------------------------------------------------- file
             case "file.readText":
                 ReadTextFile(step, depth);
@@ -2225,6 +2231,50 @@ public sealed class MacroRunner
         var value = Read(step.Text("value"));
         Variables.Set(name, value, target);
         Log(LogLevel.Info, depth, step.Type, "Run.Set", name, value.AsText());
+    }
+
+    /// <summary>
+    /// Puts the macro's own question to whoever is at the machine and keeps the answer. The
+    /// question is written by the person who wrote the macro, so it travels as plain text rather
+    /// than as a message key: the engine holds no user-facing words of its own.
+    /// </summary>
+    private async Task<Signal> AskPerson(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var message = Read(step.Text("message")).AsText();
+        var detail = Read(step.Text("detail")).AsText();
+        if (message.Length == 0)
+        {
+            throw new StepFailure("Run.MissingQuestion");
+        }
+
+        var question = detail.Length == 0 ? message : message + "\n\n" + detail;
+        var answer = await _host.AskUser(new AskQuestion(AskKind.Confirm, question, string.Empty), token);
+
+        Store(step, "confirmed", Value.FromBool(answer.Confirmed), depth);
+        Log(LogLevel.Info, depth, step.Type,
+            answer.Confirmed ? "Run.AskedYes" : "Run.AskedNo", question);
+        return Signal.Normal;
+    }
+
+    /// <summary>
+    /// Asks for a line of writing and keeps it. A question nobody answers hands over an empty line
+    /// rather than failing: a macro that needs an answer says so by looking at what it got, and one
+    /// that runs under a trigger never had anybody to ask.
+    /// </summary>
+    private async Task<Signal> AskForText(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var message = Read(step.Text("message")).AsText();
+        if (message.Length == 0)
+        {
+            throw new StepFailure("Run.MissingQuestion");
+        }
+
+        var suggestion = Read(step.Text("default")).AsText();
+        var answer = await _host.AskUser(new AskQuestion(AskKind.Text, message, suggestion), token);
+
+        Store(step, "text", Value.FromText(answer.Text), depth);
+        Log(LogLevel.Info, depth, step.Type, "Run.AskedText", answer.Text);
+        return Signal.Normal;
     }
 
     /// <summary>

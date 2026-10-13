@@ -359,6 +359,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     private CancellationTokenSource? _cancellation;
     private TaskCompletionSource<bool>? _gate;
     private TaskCompletionSource<StepErrorChoice>? _answer;
+    private TaskCompletionSource<AskAnswer>? _asked;
     private TaskCompletionSource? _ended;
     private string? _runNote;
     private bool _stopAtNextStep;
@@ -620,6 +621,18 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     [ObservableProperty]
     public partial bool IsAsking { get; set; }
 
+    /// <summary>Set while the macro itself is waiting for an answer.</summary>
+    [ObservableProperty]
+    public partial bool IsAskingUser { get; set; }
+
+    /// <summary>True when the macro's question wants a line of writing rather than a yes or no.</summary>
+    [ObservableProperty]
+    public partial bool WantsTypedAnswer { get; set; }
+
+    /// <summary>What the answer box holds while the macro waits for a line of writing.</summary>
+    [ObservableProperty]
+    public partial string AnswerText { get; set; } = string.Empty;
+
     [ObservableProperty]
     public partial string Question { get; set; } = string.Empty;
 
@@ -782,6 +795,13 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         });
     }
 
+    /// <summary>Answers the question the macro itself asked.</summary>
+    [RelayCommand]
+    private void AnswerUser(string? choice)
+        => _asked?.TrySetResult(choice == "ok"
+            ? new AskAnswer(true, AnswerText)
+            : new AskAnswer(false, AnswerText));
+
     private async Task RunAsync()
     {
         Lines.Clear();
@@ -799,6 +819,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         IsBusy = true;
         Status = Strings.Get("Run.Running");
         IsAsking = false;
+        IsAskingUser = false;
         CurrentId = null;
 
         using var cancellation = new CancellationTokenSource();
@@ -935,6 +956,28 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         _answer = null;
         IsAsking = false;
         return choice;
+    }
+
+    /// <summary>
+    /// Puts the macro's own question on the run window and waits for the answer. The window is the
+    /// one place a run under the debugger can be answered, and a run that is stopped while the
+    /// question is up reads as unanswered, the same way a failure question reads as "stop".
+    /// </summary>
+    public async Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
+    {
+        Question = question.Message;
+        WantsTypedAnswer = question.Kind is AskKind.Text;
+        AnswerText = question.Default;
+        IsAskingUser = true;
+
+        var answer = new TaskCompletionSource<AskAnswer>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _asked = answer;
+        using var registration = token.Register(() => answer.TrySetResult(AskAnswer.Cancel));
+
+        var given = await answer.Task;
+        _asked = null;
+        IsAskingUser = false;
+        return given;
     }
 
     /// <summary>Writes one translated line into the log.</summary>

@@ -37,4 +37,8 @@ internal sealed class UiThreadRunHost(IRunHost host) : IRunHost
     public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
         CancellationToken token)
         => Dispatcher.UIThread.InvokeAsync(() => host.Ask(step, reason, detail, comment, token));
+
+    /// <summary>Waited on for the same reason a failure question is: the answer is what runs next.</summary>
+    public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
+        => Dispatcher.UIThread.InvokeAsync(() => host.AskUser(question, token));
 }

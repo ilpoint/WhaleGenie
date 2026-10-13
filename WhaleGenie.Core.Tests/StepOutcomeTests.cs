@@ -366,6 +366,9 @@ public class StepOutcomeTests
         public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
             CancellationToken token)
             => Task.FromResult(StepErrorChoice.Stop);
+
+        public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
+            => Task.FromResult(AskAnswer.Cancel);
     }
 
     /// <summary>A library whose one macro turns up only on the second ask.</summary>

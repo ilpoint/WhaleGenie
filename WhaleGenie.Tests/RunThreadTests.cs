@@ -58,5 +58,11 @@ public class RunThreadTests
             threads.Add(Dispatcher.UIThread.CheckAccess());
             return Task.FromResult(StepErrorChoice.Stop);
         }
+
+        public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
+        {
+            threads.Add(Dispatcher.UIThread.CheckAccess());
+            return Task.FromResult(AskAnswer.Cancel);
+        }
     }
 }

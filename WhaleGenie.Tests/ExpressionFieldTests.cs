@@ -23,6 +23,8 @@ public class ExpressionFieldTests
         ["control.switch"] = ["value"],
         ["control.stop"] = ["reason"],
         ["control.log"] = ["message"],
+        ["control.ask"] = ["message", "detail"],
+        ["control.input"] = ["message", "default"],
         ["file.writeText"] = ["text"],
         ["file.appendLog"] = ["text"],
         ["file.readJson"] = ["query"],

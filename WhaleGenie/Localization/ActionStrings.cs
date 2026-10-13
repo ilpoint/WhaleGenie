@@ -596,6 +596,27 @@ internal static class ActionStrings
         ["control.log.level.label"] = "级别",
         ["control.log.level.hint"] = "这条日志记成哪一级，默认「信息」。",
 
+        ["control.ask.name"] = "询问使用者",
+        ["control.ask.desc"] = "问一句话，按对方的回答继续。",
+        ["control.ask.message.label"] = "问题",
+        ["control.ask.message.hint"] = "要问的整句话，宏等回答时显示给坐在电脑前的人。",
+        ["control.ask.detail.label"] = "补充说明",
+        ["control.ask.detail.hint"] = "写在问题下面的补充内容，例如宏接下来要做什么；留空时只显示问题"
+            + "本身。",
+        ["control.ask.return.confirmed.label"] = "是否确定",
+        ["control.ask.return.confirmed.hint"] = "对方点「确定」为真，点「取消」为假；没有人在场可问时"
+            + "也是假，触发器发起的运行就是这样。",
+
+        ["control.input.name"] = "询问文字",
+        ["control.input.desc"] = "要一行文字，存进变量。",
+        ["control.input.message.label"] = "问题",
+        ["control.input.message.hint"] = "要问的整句话，宏等回答时显示给坐在电脑前的人。",
+        ["control.input.default.label"] = "输入框的初始内容",
+        ["control.input.default.hint"] = "对方还没打字时输入框里的内容。它只是一个起点，"
+            + "对方不修改时它也就是回答。",
+        ["control.input.return.text.label"] = "回答",
+        ["control.input.return.text.hint"] = "对方写下的内容。对方取消、或者没有人在场可问时为空。",
+
         ["control.runMacro.name"] = "执行其他宏",
         ["control.runMacro.desc"] = "运行本项目里的另一个宏，效果相当于把它的步骤写在这里。"
             + "被调用的宏使用自己的一套变量：这一步按它声明的形参逐个填值，"
@@ -3456,7 +3477,13 @@ internal static class ActionStrings
         ["control.log.level.option.error"] = "错误",
         ["control.log.level.option.debug"] = "调试",
 
+        // control.ask
+        ["control.ask.returns.label"] = "要留下的结果",
+        ["control.ask.returns.hint"] = ReturnsHintText,
 
+        // control.input
+        ["control.input.returns.label"] = "要留下的结果",
+        ["control.input.returns.hint"] = ReturnsHintText,
 
         // control.waitUntil
         ["control.waitUntil.return.elapsed.label"] = "用时",

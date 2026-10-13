@@ -12,7 +12,15 @@ namespace WhaleGenie.Execution;
 /// or with the run already cancelled — the answer is to stop, which is the one choice that
 /// cannot make things worse on its own.
 /// </summary>
-public sealed class AskRunHost(Func<string, string, string, string, Task<StepErrorChoice>>? ask) : IRunHost
+/// <remarks>
+/// A step that asks the macro's own question reaches the same window through its own callback. A
+/// macro that ran while the window was away reads the question as unanswered rather than stopping
+/// the run: the question belongs to the macro, so what an empty answer means is the macro's to
+/// decide.
+/// </remarks>
+public sealed class AskRunHost(
+    Func<string, string, string, string, Task<StepErrorChoice>>? ask,
+    Func<AskQuestion, Task<AskAnswer>>? askUser = null) : IRunHost
 {
     /// <summary>A triggered run has no log window to write to, so the lines are dropped.</summary>
     public void Log(LogEntry entry)
@@ -31,4 +39,9 @@ public sealed class AskRunHost(Func<string, string, string, string, Task<StepErr
         => ask is null || token.IsCancellationRequested
             ? Task.FromResult(StepErrorChoice.Stop)
             : ask(step, reason, detail, comment);
+
+    public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
+        => askUser is null || token.IsCancellationRequested
+            ? Task.FromResult(AskAnswer.Cancel)
+            : askUser(question);
 }

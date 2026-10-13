@@ -117,6 +117,13 @@ public sealed class MacroTriggerService : IDisposable
     /// </summary>
     public Func<string, string, string, string, Task<StepErrorChoice>>? Ask { get; set; }
 
+    /// <summary>
+    /// Asked when a step of a triggered macro puts the macro's own question to the person. Set by
+    /// the window that can ask; without it the question reads as unanswered, which is what a macro
+    /// running with nobody at the machine should see.
+    /// </summary>
+    public Func<AskQuestion, Task<AskAnswer>>? AskUser { get; set; }
+
     /// <summary>The system switch on the main window.</summary>
     public bool IsEnabled
     {
@@ -1340,7 +1347,7 @@ public sealed class MacroTriggerService : IDisposable
 
             // No debugger is behind a run a trigger started, but a step whose failure rule is
             // "ask me" still has to reach whoever can put the question on screen.
-            var host = new AskRunHost(Ask);
+            var host = new AskRunHost(Ask, AskUser);
 
             while (!token.IsCancellationRequested)
             {

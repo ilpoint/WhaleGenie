@@ -347,6 +347,7 @@ public partial class MainWindow : Window
         // it, so the text recognition models are loaded once rather than once per run.
         _triggers = new MacroTriggerService(() => viewModel.Macros, SharedDevices.Current);
         _triggers.Ask = AskAboutFailedStep;
+        _triggers.AskUser = AskWhatTheMacroWantsToKnow;
         _triggers.StatusChanged += OnTriggerStatusChanged;
         _triggers.IsEnabled = viewModel.IsRunning;
 
@@ -800,6 +801,26 @@ public partial class MainWindow : Window
                 ConfirmChoice.Secondary => StepErrorChoice.Skip,
                 _ => StepErrorChoice.Stop,
             };
+        });
+
+    /// <summary>
+    /// Puts a macro's own question on screen for a run a trigger started, where there is no run
+    /// window to show it in. Closing either dialog is the same as answering no: a question left
+    /// unanswered should not read as a yes.
+    /// </summary>
+    private async Task<AskAnswer> AskWhatTheMacroWantsToKnow(AskQuestion question)
+        => await Dispatcher.UIThread.InvokeAsync(async () =>
+        {
+            if (question.Kind is AskKind.Text)
+            {
+                return await TextPromptDialog.ShowAsync(this, Strings.Get("Main.Title"), question);
+            }
+
+            var choice = await ConfirmDialog.ShowAsync(this, Strings.Get("Main.Title"),
+                question.Message, Strings.Get("Run.AnswerOk"), null, true,
+                Strings.Get("Run.AnswerCancel"));
+
+            return choice is ConfirmChoice.Primary ? new AskAnswer(true, string.Empty) : AskAnswer.Cancel;
         });
 
     private static void OpenFolder(string? folder)

@@ -1880,6 +1880,9 @@ public class MacroRunnerTests
         public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
             CancellationToken token)
             => Task.FromResult(StepErrorChoice.Stop);
+
+        public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
+            => Task.FromResult(AskAnswer.Cancel);
     }
 
     /// <summary>Answers the questions a failure asks, then refuses to answer more.</summary>
@@ -1907,5 +1910,8 @@ public class MacroRunnerTests
             _index++;
             return Task.FromResult(answer);
         }
+
+        public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
+            => Task.FromResult(AskAnswer.Cancel);
     }
 }

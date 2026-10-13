@@ -1,0 +1,96 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:WhaleGenie.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="460" d:DesignHeight="230"
+        x:Class="WhaleGenie.Views.TextPromptDialog"
+        x:DataType="vm:TextPromptViewModel"
+        Title="WhaleGenie"
+        Width="460" Height="{Binding WindowHeight}"
+        WindowStartupLocation="CenterOwner"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        WindowDecorations="BorderOnly"
+        Background="#232323">
+
+    <Design.DataContext>
+        <vm:TextPromptViewModel />
+    </Design.DataContext>
+
+    <Window.Styles>
+        <Style Selector="Button.FlatButton">
+            <Setter Property="Background" Value="#404040" />
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.FlatButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4C4C4C" />
+        </Style>
+
+        <Style Selector="Button.PrimaryButton">
+            <Setter Property="Background" Value="#C8401C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Padding" Value="18,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#D9502A" />
+        </Style>
+
+        <Style Selector="Button.TitleBarButton">
+            <Setter Property="Background" Value="#2C2C2C" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.TitleBarButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4A4A4A" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="38,*">
+        <Grid Grid.Row="0" Background="#202020" ColumnDefinitions="Auto,*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
+                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
+                <TextBlock Text="{Binding Header}" Foreground="#E8E8E8" FontSize="13"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+
+            <Button Grid.Column="2" Classes="TitleBarButton" Name="CloseButton"
+                    Margin="8,0" VerticalAlignment="Center">
+                <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6"
+                      Data="M 1,1 L 7,7 M 1,7 L 7,1" />
+            </Button>
+        </Grid>
+
+        <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto" Margin="20,16,20,20">
+            <ScrollViewer Grid.Row="0" MaxHeight="140" VerticalScrollBarVisibility="Auto">
+                <TextBlock TextWrapping="Wrap" Foreground="#DADADA" FontSize="13"
+                           Text="{Binding Question}" />
+            </ScrollViewer>
+
+            <TextBox Grid.Row="1" Name="AnswerBox" Margin="0,12,0,0" FontSize="13"
+                     VerticalAlignment="Top" Text="{Binding Answer}" />
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8"
+                        HorizontalAlignment="Right" Margin="0,16,0,0">
+                <Button Classes="PrimaryButton" Content="{Binding OkText}" Height="36" MinWidth="92"
+                        Command="{Binding OkCommand}" />
+                <Button Classes="FlatButton" Content="{Binding CancelText}" Height="36" MinWidth="92"
+                        Command="{Binding CancelCommand}" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

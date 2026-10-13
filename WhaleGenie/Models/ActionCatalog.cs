@@ -535,6 +535,54 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "control.ask",
+            Returns =
+            [
+                Return("confirmed", "Confirmed", primary: true, type: ActionReturnType.Flag,
+                    hint: "True when the person said yes, false when they said no — and also false "
+                        + "when there was nobody to ask, which is what a run a trigger started gets."),
+            ],
+            Category = ActionCategory.Control,
+            DisplayName = "Ask the Person",
+            Description = "Ask a yes-or-no question and go on according to the answer.",
+            Parameters =
+            [
+                Multiline("message", "Question",
+                    "The question, written in full. It is shown to whoever is at the machine while "
+                    + "the macro waits for an answer.", "Ready to go on?", acceptsFormula: true),
+                Multiline("detail", "Detail",
+                    "Anything worth adding under the question, such as what the macro is about to "
+                    + "do. Left empty, the question stands on its own.", "", required: false,
+                    acceptsFormula: true),
+                Returns(),
+            ],
+        },
+        new()
+        {
+            Key = "control.input",
+            Returns =
+            [
+                Return("text", "Answer", primary: true,
+                    hint: "What the person wrote. Empty when they cancelled, and when there was "
+                        + "nobody to ask."),
+            ],
+            Category = ActionCategory.Control,
+            DisplayName = "Ask for Text",
+            Description = "Ask for a line of writing and keep it in a variable.",
+            Parameters =
+            [
+                Multiline("message", "Question",
+                    "The question, written in full. It is shown to whoever is at the machine while "
+                    + "the macro waits for an answer.", "Order number?", acceptsFormula: true),
+                Text("default", "Answer box starts with",
+                    "What the answer box holds before the person types anything. It is only a "
+                    + "starting point, and stands as the answer when they leave it alone.",
+                    "A1001", required: false, acceptsFormula: true),
+                Returns(),
+            ],
+        },
+        new()
+        {
             Key = "control.runMacro",
             Category = ActionCategory.Control,
             DisplayName = "Run Another Macro",

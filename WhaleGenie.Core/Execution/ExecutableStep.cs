@@ -137,6 +137,36 @@ public enum StepErrorChoice
     Stop,
 }
 
+/// <summary>What a step that asks the person something is after.</summary>
+public enum AskKind
+{
+    /// <summary>A yes or no: the step goes on when it is yes.</summary>
+    Confirm,
+
+    /// <summary>A line of writing, which the step reads back as it stands.</summary>
+    Text,
+}
+
+/// <summary>
+/// A question the macro itself puts to whoever is at the machine, worded by the step rather than
+/// by the engine: the words are the macro's own, so they travel as plain text and stay in the
+/// language the person who wrote the macro wrote them in. <paramref name="Default"/> is what the
+/// answer box starts with, for a question that usually gets the same answer.
+/// </summary>
+public sealed record AskQuestion(AskKind Kind, string Message, string Default);
+
+/// <summary>
+/// What came back from a question the macro asked. Nobody answering is an answer of its own and
+/// not a failure: <see cref="Cancel"/> is what a run nobody can reach — a triggered run, one whose
+/// macro asked with no window open — reads, and a macro that needs to know the difference asks
+/// once and looks at what it got.
+/// </summary>
+public sealed record AskAnswer(bool Confirmed, string Text)
+{
+    /// <summary>Nobody answered: no confirmation and no writing.</summary>
+    public static AskAnswer Cancel { get; } = new(false, string.Empty);
+}
+
 /// <summary>What the runner needs from whatever is driving it.</summary>
 public interface IRunHost
 {
@@ -159,6 +189,13 @@ public interface IRunHost
     /// </summary>
     Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
         CancellationToken token);
+
+    /// <summary>
+    /// Asked when a step of the macro's own puts a question to the person — "is it time yet?",
+    /// "which order number?". A host with nobody to ask answers
+    /// <see cref="AskAnswer.Cancel"/> rather than waiting, which is what a triggered run does.
+    /// </summary>
+    Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token);
 }
 
 /// <summary>A host that keeps the log and answers nothing, used when nobody is watching.</summary>
@@ -177,6 +214,9 @@ public sealed class SilentRunHost : IRunHost
     public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
         CancellationToken token)
         => Task.FromResult(StepErrorChoice.Stop);
+
+    public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
+        => Task.FromResult(AskAnswer.Cancel);
 }
 
 /// <summary>The outcome of a whole run.</summary>

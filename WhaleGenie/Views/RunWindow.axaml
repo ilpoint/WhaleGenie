@@ -753,6 +753,24 @@
                 </Grid>
             </Border>
 
+            <!-- ===================== The macro's own question ===================== -->
+            <Border Grid.Row="4" Background="#162C3A" BorderBrush="#6590C8" BorderThickness="1"
+                    CornerRadius="6" Margin="14,10,14,0" Padding="14,10"
+                    IsVisible="{Binding IsAskingUser}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{Binding Question}" FontSize="12.5" Foreground="#A8D0F0"
+                               TextWrapping="Wrap" />
+                    <TextBox Text="{Binding AnswerText}" FontSize="12.5"
+                             IsVisible="{Binding WantsTypedAnswer}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                        <Button Classes="PrimaryButton" Content="{Binding [Run.AnswerOk], Source={x:Static loc:Strings.Current}}"
+                                Command="{Binding AnswerUserCommand}" CommandParameter="ok" />
+                        <Button Classes="FlatButton" Content="{Binding [Run.AnswerCancel], Source={x:Static loc:Strings.Current}}"
+                                Command="{Binding AnswerUserCommand}" CommandParameter="cancel" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <!-- ===================== Footer ===================== -->
             <Button Grid.Row="5" Classes="FlatButton" HorizontalAlignment="Right" Margin="14,12,14,14"
                     Content="{Binding [Run.Close], Source={x:Static loc:Strings.Current}}"
