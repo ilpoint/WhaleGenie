@@ -327,8 +327,15 @@
                      screen, and shown underneath so it is clear which one is meant. -->
                 <StackPanel IsVisible="{Binding IsImage}">
                     <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
-                        <TextBox Classes="ParamInput" Text="{Binding Text}"
-                                 PlaceholderText="{Binding Placeholder}" />
+                        <!-- A picture is a file or the picture an earlier Capture saved under a
+                             name, so the names are offered over the box the same way they are over
+                             any other box that takes one. -->
+                        <AutoCompleteBox Classes="VarInput"
+                                         ItemsSource="{Binding NameChoices}"
+                                         Text="{Binding Text}"
+                                         PlaceholderText="{Binding Placeholder}"
+                                         MinimumPrefixLength="{Binding NamePrefix}"
+                                         FilterMode="Contains" />
                         <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
                                 Content="{Binding [Add.BrowseImage], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Add.BrowseImageHint], Source={x:Static loc:Strings.Current}}"
@@ -365,8 +372,12 @@
                                             BorderThickness="1" CornerRadius="4" Padding="2">
                                         <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
                                     </Border>
-                                    <TextBox Grid.Column="1" Classes="ParamInput" Text="{Binding Text}"
-                                             PlaceholderText="{Binding Placeholder}" />
+                                    <AutoCompleteBox Grid.Column="1" Classes="VarInput"
+                                                     ItemsSource="{Binding Suggestions}"
+                                                     Text="{Binding Text}"
+                                                     PlaceholderText="{Binding Placeholder}"
+                                                     MinimumPrefixLength="1"
+                                                     FilterMode="Contains" />
                                     <Button Grid.Column="2" Classes="FlatButton" Height="33"
                                             Padding="11,0"
                                             Content="{Binding [Add.BrowseImage], Source={x:Static loc:Strings.Current}}"
@@ -647,10 +658,10 @@
 
                 <Grid IsVisible="{Binding IsVariable}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
                     <AutoCompleteBox Classes="VarInput"
-                                     ItemsSource="{Binding NameSuggestions}"
+                                     ItemsSource="{Binding NameChoices}"
                                      Text="{Binding Text}"
                                      PlaceholderText="{Binding Placeholder}"
-                                     MinimumPrefixLength="0"
+                                     MinimumPrefixLength="{Binding NamePrefix}"
                                      FilterMode="Contains" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
                         <Button Classes="FlatButton" Height="33" Padding="11,0"

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -21,6 +22,13 @@ public partial class ImageRowViewModel : ViewModelBase
     /// <summary>What a row with nothing in it shows, so the shape of a path is never a guess.</summary>
     [ObservableProperty]
     public partial string Placeholder { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The names this row is offered while it is typed in: a picture an earlier Capture saved goes
+    /// in by name, and a name is not something to spell out from memory. The rows come from the
+    /// parameter this row belongs to, which is what knows the names.
+    /// </summary>
+    public IReadOnlyList<string> Suggestions { get; set; } = [];
 
     /// <summary>
     /// What takes this row out of the list it is in. The list belongs to the parameter, so the row

@@ -333,6 +333,17 @@ public class ActionParameter
     public bool AcceptsFormula { get; init; }
 
     /// <summary>
+    /// True when the box this parameter is edited in offers the names of variables. It is what a
+    /// hint saying "written out or held in a variable" has to be matched by, and it is the rule
+    /// rather than the four editors that offer them: a text box the names stand over, a whole value
+    /// the expression editor can build, a box that holds a variable by name, and a picture, which
+    /// is a file or the name of what an earlier Capture saved.
+    /// </summary>
+    public bool OffersNames => AcceptsVariables || AcceptsFormula
+        || Kind is ActionParameterKind.Variable or ActionParameterKind.Image
+            or ActionParameterKind.Images;
+
+    /// <summary>
     /// True for a number that means "as far as it goes" when it is left empty rather than "nobody
     /// said": the four numbers of a region, where a side left out runs to the edge of the screen.
     /// The dialog says which of the two a field is where it is filled in, because the two look the

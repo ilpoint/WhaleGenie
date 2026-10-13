@@ -36,11 +36,23 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         Definition = definition;
         Variables = variables ?? [];
-        NameSuggestions = [.. Variables.Select(choice => choice.Name)];
+        KnownNames = [.. Variables.Select(choice => choice.Name)];
         Macros = [.. (macros ?? []).Select(call => call.Name)];
         Steps = steps ?? [];
         DurationUnits = DurationUnit.Localized();
         _unit = DurationUnits[0];
+
+        // A box that holds a variable name is offered the names the macro works with, in the form
+        // that box takes: the names themselves where the name is what is written down, and with
+        // their dollar sign where a value is read, because that is how the reader is written. What
+        // WhaleGenie provides itself stays out — a macro may not write those, and the dialog refuses
+        // the name — and so does the ending a step leaves behind, which the engine writes rather
+        // than anyone naming it. Both are read off the wall instead, which shows every scope.
+        var mine = Variables
+            .Where(choice => choice.Scope != VariableScope.System && !choice.IsStepResult)
+            .Select(choice => choice.Name)
+            .ToList();
+        NameChoices = definition.NamesVariable ? mine : [.. mine.Select(name => "$" + name)];
 
         // A field that may name variables offers them; one that is read as a whole value offers the
         // functions as well, because a function name is something the expression reader understands
@@ -52,7 +64,7 @@ public partial class StepParameterViewModel : ViewModelBase
         var suggestions = new List<string>();
         if (knowsFunctions || definition.AcceptsVariables)
         {
-            suggestions.AddRange(NameSuggestions.Select(name => "$" + name));
+            suggestions.AddRange(KnownNames.Select(name => "$" + name));
             if (knowsFunctions)
             {
                 suggestions.AddRange(Expression.Functions.Select(function => function.Name + "("));
@@ -264,12 +276,20 @@ public partial class StepParameterViewModel : ViewModelBase
     public IReadOnlyList<VariableChoice> Variables { get; }
 
     /// <summary>
-    /// The names on their own, which is what the expression reader and the checks use, and what a
-    /// field that takes a variable straight by name offers while it is typed in. The names are
-    /// offered rather than the rows the wall lists: the box holds text, so a row put in it would be
-    /// spelled out as the name of its own type rather than as the variable it stands for.
+    /// The names on their own, which is what the expression reader and the checks use. A name here
+    /// is one the reader knows, whether or not the interface offers it: a hand written
+    /// <c>$sys.dateTime</c> is a value rather than a mistake, so the check has to be able to say so.
     /// </summary>
-    public IReadOnlyList<string> NameSuggestions { get; }
+    public IReadOnlyList<string> KnownNames { get; }
+
+    /// <summary>
+    /// What the box that holds a variable name offers while it is typed in: the macro's own and the
+    /// shared names, in the form this box takes — with a dollar sign where the field is read as a
+    /// value, bare where the name itself is what gets written down. The names are offered rather
+    /// than the rows the wall lists, because the box holds text and a row put in it would be spelled
+    /// out as the name of its own type.
+    /// </summary>
+    public IReadOnlyList<string> NameChoices { get; }
 
     /// <summary>Macro names offered while editing an <see cref="ActionParameterKind.Macro"/>.</summary>
     public IReadOnlyList<string> Macros { get; }
@@ -568,6 +588,10 @@ public partial class StepParameterViewModel : ViewModelBase
         added.Move = MovePicture;
         added.Placeholder = Definition.Placeholder;
         added.AssetFolder = _assetFolder;
+        // A row of pictures says a file or the picture an earlier step saved, and the second one is
+        // a name: the names go over the row's own box the same way they go over any other box that
+        // takes one.
+        added.Suggestions = NameChoices;
         added.PropertyChanged += OnPictureChanged;
         Pictures.Add(added);
         RefreshEnds();
@@ -800,6 +824,14 @@ public partial class StepParameterViewModel : ViewModelBase
     /// it is not something anybody wants to type twice.
     /// </summary>
     public bool IsPath => Definition.PathIntent is not PathIntent.None;
+
+    /// <summary>
+    /// How much has to be typed before the names come up over this box. A box that mostly holds
+    /// written text — a path, a picture reference — waits for the first character, so clicking into
+    /// it to edit the text does not put a list of names over the form; a box that holds nothing but
+    /// a name has no text to type blind, so its names are there as soon as it is opened.
+    /// </summary>
+    public int NamePrefix => IsPath || IsImage ? 1 : 0;
 
     /// <summary>True when this parameter is the list of results the step may hand over.</summary>
     public bool IsReturns => Definition.Kind is ActionParameterKind.Returns;
@@ -1184,7 +1216,7 @@ public partial class StepParameterViewModel : ViewModelBase
 
     private void UpdateExpression(string? source)
     {
-        var (message, failed) = NumberField.Check(source, NameSuggestions);
+        var (message, failed) = NumberField.Check(source, KnownNames);
         HasExpressionError = failed;
         ExpressionMessage = message;
     }

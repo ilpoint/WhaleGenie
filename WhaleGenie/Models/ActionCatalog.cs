@@ -226,13 +226,17 @@ public static class ActionCatalog
                 Expression("items", "Items", "$names",
                     "A list, or a $variable holding one. For example [1, 2, 3], split($text, \",\") "
                     + "or $names."),
-                Text("itemVariable", "Item variable",
-                    hint: "Variable that receives the current item; item by default.",
-                    defaultValue: "item"),
-                Text("indexVariable", "Index variable", required: false,
-                    hint: "Optional variable that receives which round this is, counted from 0 in "
-                          + "the order the items are walked in. Leave it empty to keep the round "
-                          + "number out of the variables."),
+                // Naming a variable rather than putting a value in: the counter of "Count From To"
+                // asks the same question, so it is asked here the same way — a box that offers the
+                // names rather than one that makes the name be spelled out from memory.
+                Variable("itemVariable", "Item variable", "item",
+                    "Variable that receives the current item; item by default.",
+                    namesVariable: true, defaultValue: "item"),
+                Variable("indexVariable", "Index variable", "n",
+                    "Optional variable that receives which round this is, counted from 0 in "
+                    + "the order the items are walked in. Leave it empty to keep the round "
+                    + "number out of the variables.",
+                    required: false, namesVariable: true),
                 Toggle("reverse", "Reverse order", false,
                     "Iterate from the last item to the first; off by default.", advanced: true),
                 Steps("body", "Body steps", "Steps that run once per item."),

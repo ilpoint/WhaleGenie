@@ -162,9 +162,10 @@ public class VariableFieldTests
     /// A field that takes a variable by name is a box of text, so what it is offered has to be the
     /// names: the rows the wall lists would be spelled out as the name of their own type, and one
     /// picked from the dropdown would put that into the macro rather than the variable it stands
-    /// for. Where the name goes in as the name of a variable being written, the wall's dollar sign
-    /// is dropped as well: the engine writes that text down as the name, so <c>$count</c> there
-    /// would make a variable called <c>$count</c> that nothing can read back.
+    /// for. What comes with the name follows what the field does with it: a name being written goes
+    /// in bare — the engine writes that text down as the name, so <c>$count</c> there would make a
+    /// variable called <c>$count</c> that nothing can read back — and a value being read goes in as
+    /// the reader writes it, with the dollar sign the wall hands back.
     /// </summary>
     [Fact]
     public void A_field_that_takes_a_variable_by_name_offers_the_names_and_takes_them_bare()
@@ -174,7 +175,7 @@ public class VariableFieldTests
             // Naming a variable to write: set variable's own name.
             var naming = Parameter(Open("control.setVariable"), "name");
             Assert.True(naming.IsVariable);
-            Assert.Equal(["count", "name"], naming.NameSuggestions.Order(StringComparer.Ordinal));
+            Assert.Equal(["count", "name"], naming.NameChoices.Order(StringComparer.Ordinal));
 
             naming.InsertVariable("$count", 0);
             Assert.Equal("count", naming.Text);
@@ -184,6 +185,76 @@ public class VariableFieldTests
             var reading = Parameter(Open("condition.valueInRange"), "value");
             reading.InsertVariable("$count", 0);
             Assert.Equal("$count", reading.Text);
+            Assert.Equal(["$count", "$name"], reading.NameChoices.Order(StringComparer.Ordinal));
+        });
+    }
+
+    /// <summary>
+    /// A box that holds a name is offered the names the macro works with rather than everything the
+    /// wall can show. What WhaleGenie provides is read-only — the dialog refuses the name the
+    /// moment it is written into a step — and what a step leaves behind is written by the engine
+    /// rather than named by anybody, so neither is a name to pick out of a list. Both are read off
+    /// the wall, which shows every scope.
+    /// </summary>
+    [Fact]
+    public void A_box_that_holds_a_name_is_offered_the_names_the_macro_works_with()
+    {
+        Ui.Run(() =>
+        {
+            var variables = VariableChoices.Merge(
+                VariableChoicesForChecks.Named("count"),
+                [
+                    new VariableChoice { Name = "notes", Scope = VariableScope.Global },
+                    new VariableChoice { Name = "sys.date", Scope = VariableScope.System },
+                    new VariableChoice { Name = "sys.mouseX", Scope = VariableScope.System },
+                    new VariableChoice
+                    {
+                        Name = "step.k3f9.outcome",
+                        Scope = VariableScope.Local,
+                        IsStepResult = true,
+                    },
+                ]);
+
+            var viewModel = new AddActionViewModel(ActionCatalog.Definitions, variables, []);
+
+            // A name being written: the names themselves.
+            viewModel.SelectAction("control.setVariable");
+            Assert.Equal(["count", "notes"], Parameter(viewModel, "name").NameChoices);
+
+            // A value being read out of a box that holds a name: the same names, in the form the
+            // reader writes a variable in. A path is one of these, and a name is not something to
+            // spell from memory.
+            viewModel.SelectAction("vision.saveImage");
+            Assert.Equal(["$count", "$notes"], Parameter(viewModel, "path").NameChoices);
+        });
+    }
+
+    /// <summary>
+    /// A picture is a file or the picture an earlier Capture saved, and the second of those is a
+    /// name: it goes over the box the same way it goes over any other box that takes one, on the
+    /// one picture a step names and on every row of a list of them.
+    /// </summary>
+    [Fact]
+    public void A_picture_box_offers_the_pictures_an_earlier_step_saved()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = new AddActionViewModel(ActionCatalog.Definitions,
+                VariableChoicesForChecks.Named("count", "shot"), []);
+
+            viewModel.SelectAction("vision.saveImage");
+            var picture = Parameter(viewModel, "image");
+            Assert.True(picture.IsImage);
+            Assert.Equal(["$count", "$shot"], picture.NameChoices);
+
+            // Every row of a list has to say it, not only the one the dialog happens to show first.
+            viewModel.SelectAction("vision.findImage");
+            var list = Parameter(viewModel, "image");
+            list.AddPicture();
+            list.AddPicture();
+            Assert.Equal(2, list.Pictures.Count);
+            Assert.All(list.Pictures,
+                row => Assert.Equal(["$count", "$shot"], row.Suggestions));
         });
     }
 
@@ -236,37 +307,60 @@ public class VariableFieldTests
         Assert.True(named >= 0, "the dialog stopped offering variables in the field that names one");
 
         var naming = markup[named..markup.IndexOf("</Grid>", named, StringComparison.Ordinal)];
-        Assert.Contains("ItemsSource=\"{Binding NameSuggestions}\"", naming, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding NameChoices}\"", naming, StringComparison.Ordinal);
         Assert.Contains("Click=\"OnPickVariable\"", naming, StringComparison.Ordinal);
+
+        // And a picture, which is a file or the picture an earlier step saved under a name, is
+        // offered those names as well.
+        var pictured = markup.IndexOf("IsVisible=\"{Binding IsImage}\"", StringComparison.Ordinal);
+        Assert.True(pictured >= 0, "the dialog stopped editing a picture in a box of its own");
+
+        var pictures = markup[pictured..markup.IndexOf("</StackPanel>", pictured,
+            StringComparison.Ordinal)];
+        Assert.Contains("ItemsSource=\"{Binding NameChoices}\"", pictures, StringComparison.Ordinal);
     }
 
     /// <summary>
-    /// Every text field whose hint names variables has to offer them. The ones left out are named
-    /// here with the reason, so leaving another one out by accident fails this check.
+    /// Every field whose hint names variables has to be a box that offers them. The ones left out
+    /// are named here with the reason, so leaving another one out by accident fails this check.
     /// </summary>
     [Fact]
     public void No_field_promising_variables_is_left_without_them()
     {
-        string[] notAValue = ["control.forEach.itemVariable", "control.forEach.indexVariable",
-            "file.saveVariables.names", "system.environment.name", "script.run.script"];
+        // A name of something else: a variable of the machine's own environment, the names a step
+        // writes into a file rather than reads, and the placeholders inside a script, which belong
+        // to the other language.
+        string[] otherNames = ["file.saveVariables.names", "system.environment.name",
+            "script.run.script"];
 
-        // A note is shown as it was written — a `$name` in it stays a `$name` — so there is nothing
-        // to offer over the box.
+        // A box of several lines: a list of names standing over one would be in the way, so these
+        // are written by hand. The first fills a `$name` in, and the second is shown exactly as it
+        // was written.
         string[] multiline = ["command.run.standardInput", "control.note.text"];
 
         // The shape a reading has to fit is a pattern rather than a value: the dollar signs its hint
         // uses are the ends of a regular expression, not the start of a variable name.
         string[] aPattern = ["ocr.findText.expected", "ocr.clickText.expected"];
 
+        // Only the kinds that are a bare box are looked at, because only those can be a box a name
+        // is typed into and nothing offers it: a region says a variable in a cell filled from the
+        // wall, a choice picks one of its own values, a whole value is built in the expression
+        // editor and a list of results is named on its own page, so what their hints say about
+        // variables is prose rather than a promise about a box.
+        ActionParameterKind[] boxes =
+        [
+            ActionParameterKind.Text, ActionParameterKind.MultilineText,
+            ActionParameterKind.Image, ActionParameterKind.Images,
+        ];
+
         var gaps = Ui.Run(() => ActionCatalog.Definitions
             .SelectMany(definition => definition.Parameters.Select(parameter => (definition.Key, parameter)))
-            .Where(row => row.parameter.Kind
-                is ActionParameterKind.Text or ActionParameterKind.MultilineText)
+            .Where(row => boxes.Contains(row.parameter.Kind))
             .Where(row => row.parameter.Hint.Contains("variable", StringComparison.OrdinalIgnoreCase)
                 || row.parameter.Hint.Contains('$'))
-            .Where(row => !row.parameter.AcceptsVariables && !row.parameter.AcceptsFormula)
+            .Where(row => !row.parameter.OffersNames)
             .Select(row => $"{row.Key}.{row.parameter.Name}")
-            .Where(key => !notAValue.Contains(key) && !multiline.Contains(key)
+            .Where(key => !otherNames.Contains(key) && !multiline.Contains(key)
                 && !aPattern.Contains(key))
             .Order()
             .ToList());
