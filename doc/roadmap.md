@@ -43,10 +43,10 @@
 ### 界面不再点名具体实现
 
 **现状**　除组合根（`WhaleGenie/Execution/SharedDevices.cs`、`App.axaml.cs`，以及 `MacroTriggerService` 与
-`RunViewModel` 那两个默认参数）之外，界面还有 12 处直接点名 Windows 的实现：`WindowsScreenDevice.CursorPosition()`
-8 处（取色器 4、宏编辑器 3、添加动作 1）、`new FlaUiDevice()` 3 处（元素拾取 2、添加动作 1）、
-`new InputHookRecorder()` 1 处（宏编辑器）。`WhaleGenie.Core.Devices.Platform` 这个命名空间因此出现在界面里：
-多一个实现或多一个替身时，界面得跟着改。
+`RunViewModel` 那两个默认参数）之外，界面还有 11 处直接点名 Windows 的实现：`WindowsScreenDevice.CursorPosition()`
+8 处（取色器 3、宏编辑器 3、元素拾取 1、添加动作 1）、`new FlaUiDevice()` 2 处（元素拾取 1、添加动作 1）、
+`new InputHookRecorder()` 1 处（宏编辑器）。`WhaleGenie.Core.Devices.Platform` 这个命名空间因此出现在界面里的
+19 个文件里：多一个实现或多一个替身时，界面得跟着改。
 
 **改成什么**　光标只留一个问法——`IScreenDevice` 加一个 `Cursor`（将新增），引擎里 `IInputDevice.Cursor` 改成
 委托它，界面不再自己问 `WindowsScreenDevice`；取色器、元素拾取器与打开它们的窗口从组合根交来的 `IScreenDevice`
@@ -59,7 +59,11 @@ Windows 实现。
 
 ## 零散项
 
-可与任何阶段并行：眼下没有。
+可与任何阶段并行：
+
+- **手柄按键当触发器**：触发器眼下只有热键（键盘与鼠标）。手柄的按键要从共享输入层读出来接到触发上，还要说
+  清手柄没连上时这一条怎么办；放这儿是免得漏掉，真做的时候照「工程规矩」写成阶段（验收：替身输入层上一次
+  按键触发一次，录制里手柄按键也能配上）。
 
 ## 明确不做
 
@@ -72,9 +76,6 @@ Windows 实现。
 - **办公文档解析**：不做 PDF / Word / 工作簿这些文件本身的解析，也不对接企业系统（HTTP 接口 / 数据库 /
   邮件）；数据文件只做 CSV、JSON 与纯文本。窗口里或屏幕上看得见的表格照旧用「读取表格」那一步读。
 - **第二套流程机制**：用户可见的流程控制只有块，加上循环体内的 `break` / `continue` 与「停止整个宏」。
-- **办公向不逐参数对齐**：办公向的骨架（文件、数据、网页、表格）已经进了目录，但不照企业工具的动作库把每一格
-  补齐；浏览器眼下缺下拉选择 / 勾选 / 悬停 / 按键 / 等元素 / 上传文件这几项，不按清单逐条追，其中一项真需要
-  时照这一段的开头写成单独一个阶段。
 - **记住上次填过的值**：填过的值只在这次打开、动作没换的时候留着，关掉再打开或换了动作都回到默认值；再填一遍
   用复制步骤就够了。
 - **不为旧 `.wgmacro` 留兼容读法**：形状换了就换，见 `AGENTS.md` 规范 7。
