@@ -21,24 +21,12 @@ internal static class ActionStrings
         + "需要 usbip-win2 驱动和运行中的 VIIPER 服务端，设置窗口里能看这两样在不在。";
 
     /// <summary>
-    /// The matching hint for the window background input posts its messages at. The window is
-    /// recognised the way a window action recognises one, so the hint says which part is compared
-    /// and how, the same way the window actions' own hint does.
+    /// The hint for the window background input posts its messages at. The window is recognised the
+    /// way a window action recognises one, so the hint says so in the same words.
     /// </summary>
     private const string TargetWindowHint =
-        "后台输入把消息投给哪个窗口，靠下面三行认出，认法与窗口动作一致，不区分大小写。"
-        + "只有输入方式选后台消息时用得到它；标题随文档名或界面语言变化时，改用进程名或窗口类名。";
-
-    /// <summary>What that field is called once the comparing field says the text is a pattern.</summary>
-    private const string TargetWindowRegexLabel = "目标窗口的正则";
-
-    /// <summary>Which part of the window the match text is compared with, for the input actions.</summary>
-    private const string TargetMatchByHint =
-        WindowMatchByHint + "只有输入方式选后台消息时用得到它。";
-
-    /// <summary>How that text is compared, for the input actions.</summary>
-    private const string TargetCompareByHint =
-        WindowCompareHint + "只有输入方式选后台消息时用得到它。";
+        "后台输入把消息投给哪个窗口，靠下面两行认出，认法与窗口动作一致，不区分大小写。"
+        + "只有输入方式选后台消息时用得到它。";
 
     /// <summary>
     /// The hint every action that takes a position or a rectangle shares for its coordinate-origin
@@ -60,23 +48,8 @@ internal static class ActionStrings
     /// it is matters twice over.
     /// </summary>
     private const string AnchorWindowRuleHint =
-        "坐标基准选窗口时才用：这个窗口靠下面三行认出，「匹配内容」和「匹配方式」选中的那一部分按"
-        + "「比较方式」比较，不区分大小写；这一步读到的画面也取自这个窗口。留空表示运行时最前面"
-        + "的那个窗口。";
-
-    /// <summary>Which part of the window the match text is compared with, for the screen steps.</summary>
-    private const string AnchorMatchByHint =
-        WindowMatchByHint + "坐标基准选屏幕像素或界面元素时用不到它。";
-
-    /// <summary>How that text is compared, for the screen steps.</summary>
-    private const string AnchorCompareByHint =
-        WindowCompareHint + "坐标基准选屏幕像素或界面元素时用不到它。";
-
-    /// <summary>
-    /// What the window field is called once the comparing field says the text is a pattern. The
-    /// window it names is the one the coordinates and the picture come from, so it keeps saying so.
-    /// </summary>
-    private const string AnchorWindowRegexLabel = "基准窗口的正则";
+        "坐标基准选窗口时才用：这个窗口靠下面两行认出，认法与窗口动作一致，不区分大小写；"
+        + "这一步读到的画面也取自这个窗口。留空表示运行时最前面的那个窗口。";
 
     /// <summary>
     /// The switch every mouse action shares for taking its place from the pointer rather than from
@@ -140,42 +113,33 @@ internal static class ActionStrings
 
     /// <summary>The hint every window action shares for the text it recognises a window by.</summary>
     private const string WindowTitleHint =
-        "窗口靠这段文字认出：它和「匹配方式」选中的那一部分按「比较方式」比较，不区分大小写。留空表示最前面"
-        + "那个窗口。";
+        "窗口靠这段文字认出：它和「匹配方式」里选的那一种比，不区分大小写。留空表示最前面那个窗口。";
 
     /// <summary>What an empty match text means to a step that lists windows rather than acting on one.</summary>
     private const string WindowListTitleHint =
-        "窗口靠这段文字认出：它和「匹配方式」选中的那一部分按「比较方式」比较，不区分大小写。留空表示所有"
-        + "窗口（一次列完，不做筛选）。";
-
-    /// <summary>The matching hint for the part of a window that text is compared with.</summary>
-    private const string WindowMatchByHint =
-        "「匹配内容」和窗口的哪一部分比较：标题是标题栏上的字；进程名是拥有这个窗口的程序名（不含 .exe）；"
-        + "窗口类名是程序注册的那一类窗口（记事本都是 Notepad）。标题随文档名或界面语言变化时改用它。";
-
-    private const string WindowMatchByTitle = "标题";
-    private const string WindowMatchByProcess = "进程名";
-    private const string WindowMatchByClass = "窗口类名";
+        "窗口靠这段文字认出：它和「匹配方式」里选的那一种比，不区分大小写。留空表示所有窗口（一次列完，"
+        + "不做筛选）。";
 
     /// <summary>The label every window action gives the text its window is recognised by.</summary>
     private const string WindowMatchTextLabel = "匹配内容";
 
     /// <summary>
-    /// The same label and example for the case where that text is a pattern rather than a piece of
-    /// a title: what goes in the field is written differently, so it is not called the same thing.
+    /// The one choice every window rule asks: what the text is held up against, and how. It is
+    /// written once because it is the same five ways wherever a window is recognised, and the three
+    /// families of actions that ask it each add the sentence about what the settings beside the
+    /// field do.
     /// </summary>
-    private const string WindowRegexLabel = "匹配的正则";
+    private const string WindowHowLabel = "匹配方式";
 
-    private const string WindowRegexPlaceholder = @"记事本.*?\.txt";
+    private const string WindowHowHint =
+        "这个窗口靠什么认出来：「匹配内容」里那段文字和标题、进程名或窗口类名比，比较方式是包含、开头或"
+        + "正则，不区分大小写。标题随文档名或界面语言变化时，改用进程名或窗口类名。";
 
-    /// <summary>The comparing hint the window actions share.</summary>
-    private const string WindowCompareHint =
-        "「匹配内容」怎么和那一部分比较。包含：那部分里出现这段文字就算匹配；开头是：那部分从这段文字开头；"
-        + "正则：把这段文字当正则表达式，标题每轮都变时用它。";
-
-    private const string WindowCompareContains = "包含";
-    private const string WindowCompareStartsWith = "开头是";
-    private const string WindowCompareRegex = "正则";
+    private const string WindowHowTitleContains = "标题包含";
+    private const string WindowHowTitleStartsWith = "标题开头";
+    private const string WindowHowTitleRegex = "标题正则";
+    private const string WindowHowProcess = "进程名";
+    private const string WindowHowClass = "窗口类名";
 
     /// <summary>The hint the four text-file actions share for their encoding picker.</summary>
     private const string EncodingHintText =
@@ -1241,125 +1205,41 @@ internal static class ActionStrings
         // ------------------------------------------------------------------ window
         ["window.exists.name"] = "窗口是否存在",
         ["window.exists.desc"] = "检查当前有没有符合匹配内容的窗口。",
-        ["window.exists.title.label"] = WindowMatchTextLabel,
-        ["window.exists.title.regex.label"] = WindowRegexLabel,
-        ["window.exists.title.regex.placeholder"] = WindowRegexPlaceholder,
-        ["window.exists.title.hint"] = WindowTitleHint,
-        ["window.exists.matchBy.label"] = "匹配方式",
-        ["window.exists.matchBy.hint"] = WindowMatchByHint,
-        ["window.exists.matchBy.option.title"] = WindowMatchByTitle,
-        ["window.exists.matchBy.option.process"] = WindowMatchByProcess,
-        ["window.exists.matchBy.option.class"] = WindowMatchByClass,
-        ["window.exists.compareBy.label"] = "比较方式",
-        ["window.exists.compareBy.hint"] = WindowCompareHint,
-        ["window.exists.compareBy.option.contains"] = WindowCompareContains,
-        ["window.exists.compareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["window.exists.compareBy.option.regex"] = WindowCompareRegex,
+        ["window.exists.window.label"] = WindowMatchTextLabel,
+        ["window.exists.window.hint"] = WindowTitleHint,
 
         ["window.waitFor.name"] = "等待窗口",
         ["window.waitFor.desc"] = "等到符合匹配内容的窗口出现为止，超过给定时间算失败。",
-        ["window.waitFor.title.label"] = WindowMatchTextLabel,
-        ["window.waitFor.title.regex.label"] = WindowRegexLabel,
-        ["window.waitFor.title.regex.placeholder"] = WindowRegexPlaceholder,
-        ["window.waitFor.title.hint"] = WindowTitleHint,
-        ["window.waitFor.matchBy.label"] = "匹配方式",
-        ["window.waitFor.matchBy.hint"] = WindowMatchByHint,
-        ["window.waitFor.matchBy.option.title"] = WindowMatchByTitle,
-        ["window.waitFor.matchBy.option.process"] = WindowMatchByProcess,
-        ["window.waitFor.matchBy.option.class"] = WindowMatchByClass,
-        ["window.waitFor.compareBy.label"] = "比较方式",
-        ["window.waitFor.compareBy.hint"] = WindowCompareHint,
-        ["window.waitFor.compareBy.option.contains"] = WindowCompareContains,
-        ["window.waitFor.compareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["window.waitFor.compareBy.option.regex"] = WindowCompareRegex,
+        ["window.waitFor.window.label"] = WindowMatchTextLabel,
+        ["window.waitFor.window.hint"] = WindowTitleHint,
         ["window.waitFor.timeoutMs.label"] = "超时",
         ["window.waitFor.timeoutMs.hint"] = "最多等多久，单位是毫秒，默认 10000；到这个时间窗口还没出现就判"
             + "失败。",
 
         ["window.activate.name"] = "激活窗口",
         ["window.activate.desc"] = "把符合匹配内容的窗口调到最前，已最小化时先恢复。",
-        ["window.activate.title.label"] = WindowMatchTextLabel,
-        ["window.activate.title.regex.label"] = WindowRegexLabel,
-        ["window.activate.title.regex.placeholder"] = WindowRegexPlaceholder,
-        ["window.activate.title.hint"] = WindowTitleHint,
-        ["window.activate.matchBy.label"] = "匹配方式",
-        ["window.activate.matchBy.hint"] = WindowMatchByHint,
-        ["window.activate.matchBy.option.title"] = WindowMatchByTitle,
-        ["window.activate.matchBy.option.process"] = WindowMatchByProcess,
-        ["window.activate.matchBy.option.class"] = WindowMatchByClass,
-        ["window.activate.compareBy.label"] = "比较方式",
-        ["window.activate.compareBy.hint"] = WindowCompareHint,
-        ["window.activate.compareBy.option.contains"] = WindowCompareContains,
-        ["window.activate.compareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["window.activate.compareBy.option.regex"] = WindowCompareRegex,
+        ["window.activate.window.label"] = WindowMatchTextLabel,
+        ["window.activate.window.hint"] = WindowTitleHint,
 
         ["window.minimize.name"] = "最小化窗口",
         ["window.minimize.desc"] = "把符合匹配内容的窗口最小化到任务栏。",
-        ["window.minimize.title.label"] = WindowMatchTextLabel,
-        ["window.minimize.title.regex.label"] = WindowRegexLabel,
-        ["window.minimize.title.regex.placeholder"] = WindowRegexPlaceholder,
-        ["window.minimize.title.hint"] = WindowTitleHint,
-        ["window.minimize.matchBy.label"] = "匹配方式",
-        ["window.minimize.matchBy.hint"] = WindowMatchByHint,
-        ["window.minimize.matchBy.option.title"] = WindowMatchByTitle,
-        ["window.minimize.matchBy.option.process"] = WindowMatchByProcess,
-        ["window.minimize.matchBy.option.class"] = WindowMatchByClass,
-        ["window.minimize.compareBy.label"] = "比较方式",
-        ["window.minimize.compareBy.hint"] = WindowCompareHint,
-        ["window.minimize.compareBy.option.contains"] = WindowCompareContains,
-        ["window.minimize.compareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["window.minimize.compareBy.option.regex"] = WindowCompareRegex,
+        ["window.minimize.window.label"] = WindowMatchTextLabel,
+        ["window.minimize.window.hint"] = WindowTitleHint,
 
         ["window.maximize.name"] = "最大化窗口",
         ["window.maximize.desc"] = "把符合匹配内容的窗口最大化，铺满整个屏幕。",
-        ["window.maximize.title.label"] = WindowMatchTextLabel,
-        ["window.maximize.title.regex.label"] = WindowRegexLabel,
-        ["window.maximize.title.regex.placeholder"] = WindowRegexPlaceholder,
-        ["window.maximize.title.hint"] = WindowTitleHint,
-        ["window.maximize.matchBy.label"] = "匹配方式",
-        ["window.maximize.matchBy.hint"] = WindowMatchByHint,
-        ["window.maximize.matchBy.option.title"] = WindowMatchByTitle,
-        ["window.maximize.matchBy.option.process"] = WindowMatchByProcess,
-        ["window.maximize.matchBy.option.class"] = WindowMatchByClass,
-        ["window.maximize.compareBy.label"] = "比较方式",
-        ["window.maximize.compareBy.hint"] = WindowCompareHint,
-        ["window.maximize.compareBy.option.contains"] = WindowCompareContains,
-        ["window.maximize.compareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["window.maximize.compareBy.option.regex"] = WindowCompareRegex,
+        ["window.maximize.window.label"] = WindowMatchTextLabel,
+        ["window.maximize.window.hint"] = WindowTitleHint,
 
         ["window.restore.name"] = "还原窗口",
         ["window.restore.desc"] = "把符合匹配内容的窗口从最小化或最大化恢复成正常大小。",
-        ["window.restore.title.label"] = WindowMatchTextLabel,
-        ["window.restore.title.regex.label"] = WindowRegexLabel,
-        ["window.restore.title.regex.placeholder"] = WindowRegexPlaceholder,
-        ["window.restore.title.hint"] = WindowTitleHint,
-        ["window.restore.matchBy.label"] = "匹配方式",
-        ["window.restore.matchBy.hint"] = WindowMatchByHint,
-        ["window.restore.matchBy.option.title"] = WindowMatchByTitle,
-        ["window.restore.matchBy.option.process"] = WindowMatchByProcess,
-        ["window.restore.matchBy.option.class"] = WindowMatchByClass,
-        ["window.restore.compareBy.label"] = "比较方式",
-        ["window.restore.compareBy.hint"] = WindowCompareHint,
-        ["window.restore.compareBy.option.contains"] = WindowCompareContains,
-        ["window.restore.compareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["window.restore.compareBy.option.regex"] = WindowCompareRegex,
+        ["window.restore.window.label"] = WindowMatchTextLabel,
+        ["window.restore.window.hint"] = WindowTitleHint,
 
         ["window.move.name"] = "移动窗口",
         ["window.move.desc"] = "把符合匹配内容的窗口移到指定位置，并改成指定大小。",
-        ["window.move.title.label"] = WindowMatchTextLabel,
-        ["window.move.title.regex.label"] = WindowRegexLabel,
-        ["window.move.title.regex.placeholder"] = WindowRegexPlaceholder,
-        ["window.move.title.hint"] = WindowTitleHint,
-        ["window.move.matchBy.label"] = "匹配方式",
-        ["window.move.matchBy.hint"] = WindowMatchByHint,
-        ["window.move.matchBy.option.title"] = WindowMatchByTitle,
-        ["window.move.matchBy.option.process"] = WindowMatchByProcess,
-        ["window.move.matchBy.option.class"] = WindowMatchByClass,
-        ["window.move.compareBy.label"] = "比较方式",
-        ["window.move.compareBy.hint"] = WindowCompareHint,
-        ["window.move.compareBy.option.contains"] = WindowCompareContains,
-        ["window.move.compareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["window.move.compareBy.option.regex"] = WindowCompareRegex,
+        ["window.move.window.label"] = WindowMatchTextLabel,
+        ["window.move.window.hint"] = WindowTitleHint,
         ["window.move.x.label"] = "X",
         ["window.move.x.hint"] = "窗口左边缘的屏幕横坐标，单位像素。按窗口被看见的样子算：Windows 留着"
             + "用来拉伸的那圈边框不画出来也不算；范围 -100000 到 100000，默认 0。window.info 交回来的那组数"
@@ -1375,37 +1255,13 @@ internal static class ActionStrings
 
         ["window.close.name"] = "关闭窗口",
         ["window.close.desc"] = "请求符合匹配内容的窗口关闭，相当于点它的关闭按钮。",
-        ["window.close.title.label"] = WindowMatchTextLabel,
-        ["window.close.title.regex.label"] = WindowRegexLabel,
-        ["window.close.title.regex.placeholder"] = WindowRegexPlaceholder,
-        ["window.close.title.hint"] = WindowTitleHint,
-        ["window.close.matchBy.label"] = "匹配方式",
-        ["window.close.matchBy.hint"] = WindowMatchByHint,
-        ["window.close.matchBy.option.title"] = WindowMatchByTitle,
-        ["window.close.matchBy.option.process"] = WindowMatchByProcess,
-        ["window.close.matchBy.option.class"] = WindowMatchByClass,
-        ["window.close.compareBy.label"] = "比较方式",
-        ["window.close.compareBy.hint"] = WindowCompareHint,
-        ["window.close.compareBy.option.contains"] = WindowCompareContains,
-        ["window.close.compareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["window.close.compareBy.option.regex"] = WindowCompareRegex,
+        ["window.close.window.label"] = WindowMatchTextLabel,
+        ["window.close.window.hint"] = WindowTitleHint,
 
         ["window.list.name"] = "列出窗口",
         ["window.list.desc"] = "把当前打开的窗口收集成一个列表，每个窗口一条记录，可以只留「匹配内容」认到的那些。",
-        ["window.list.title.label"] = WindowMatchTextLabel,
-        ["window.list.title.regex.label"] = WindowRegexLabel,
-        ["window.list.title.regex.placeholder"] = WindowRegexPlaceholder,
-        ["window.list.title.hint"] = WindowListTitleHint,
-        ["window.list.matchBy.label"] = "匹配方式",
-        ["window.list.matchBy.hint"] = WindowMatchByHint,
-        ["window.list.matchBy.option.title"] = WindowMatchByTitle,
-        ["window.list.matchBy.option.process"] = WindowMatchByProcess,
-        ["window.list.matchBy.option.class"] = WindowMatchByClass,
-        ["window.list.compareBy.label"] = "比较方式",
-        ["window.list.compareBy.hint"] = WindowCompareHint,
-        ["window.list.compareBy.option.contains"] = WindowCompareContains,
-        ["window.list.compareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["window.list.compareBy.option.regex"] = WindowCompareRegex,
+        ["window.list.window.label"] = WindowMatchTextLabel,
+        ["window.list.window.hint"] = WindowListTitleHint,
         ["window.list.details.label"] = "每个窗口都读程序名与类名（慢）",
         ["window.list.details.hint"] =
             "把每个窗口的程序名与窗口类名读进记录的「process」与「class」两格。按标题分辨窗口时用不到它们，"
@@ -1413,20 +1269,8 @@ internal static class ActionStrings
 
         ["window.info.name"] = "窗口信息",
         ["window.info.desc"] = "读取符合匹配内容的窗口的位置和大小。",
-        ["window.info.title.label"] = WindowMatchTextLabel,
-        ["window.info.title.regex.label"] = WindowRegexLabel,
-        ["window.info.title.regex.placeholder"] = WindowRegexPlaceholder,
-        ["window.info.title.hint"] = WindowTitleHint,
-        ["window.info.matchBy.label"] = "匹配方式",
-        ["window.info.matchBy.hint"] = WindowMatchByHint,
-        ["window.info.matchBy.option.title"] = WindowMatchByTitle,
-        ["window.info.matchBy.option.process"] = WindowMatchByProcess,
-        ["window.info.matchBy.option.class"] = WindowMatchByClass,
-        ["window.info.compareBy.label"] = "比较方式",
-        ["window.info.compareBy.hint"] = WindowCompareHint,
-        ["window.info.compareBy.option.contains"] = WindowCompareContains,
-        ["window.info.compareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["window.info.compareBy.option.regex"] = WindowCompareRegex,
+        ["window.info.window.label"] = WindowMatchTextLabel,
+        ["window.info.window.hint"] = WindowTitleHint,
 
         // -------------------------------------------------------------------- input
         ["input.keyPress.name"] = "按键",
@@ -1733,18 +1577,6 @@ internal static class ActionStrings
         ["input.keyPress.inputMode.option.driver"] = "驱动级",
         ["input.keyPress.targetWindow.label"] = "目标窗口",
         ["input.keyPress.targetWindow.hint"] = TargetWindowHint,
-        ["input.keyPress.targetWindow.regex.label"] = TargetWindowRegexLabel,
-        ["input.keyPress.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["input.keyPress.targetMatchBy.label"] = "匹配方式",
-        ["input.keyPress.targetMatchBy.hint"] = TargetMatchByHint,
-        ["input.keyPress.targetMatchBy.option.title"] = WindowMatchByTitle,
-        ["input.keyPress.targetMatchBy.option.process"] = WindowMatchByProcess,
-        ["input.keyPress.targetMatchBy.option.class"] = WindowMatchByClass,
-        ["input.keyPress.targetCompareBy.label"] = "比较方式",
-        ["input.keyPress.targetCompareBy.hint"] = TargetCompareByHint,
-        ["input.keyPress.targetCompareBy.option.contains"] = WindowCompareContains,
-        ["input.keyPress.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["input.keyPress.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.keySequence.inputMode.label"] = "输入方式",
         ["input.keySequence.inputMode.hint"] = InputModeHint,
@@ -1753,18 +1585,6 @@ internal static class ActionStrings
         ["input.keySequence.inputMode.option.driver"] = "驱动级",
         ["input.keySequence.targetWindow.label"] = "目标窗口",
         ["input.keySequence.targetWindow.hint"] = TargetWindowHint,
-        ["input.keySequence.targetWindow.regex.label"] = TargetWindowRegexLabel,
-        ["input.keySequence.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["input.keySequence.targetMatchBy.label"] = "匹配方式",
-        ["input.keySequence.targetMatchBy.hint"] = TargetMatchByHint,
-        ["input.keySequence.targetMatchBy.option.title"] = WindowMatchByTitle,
-        ["input.keySequence.targetMatchBy.option.process"] = WindowMatchByProcess,
-        ["input.keySequence.targetMatchBy.option.class"] = WindowMatchByClass,
-        ["input.keySequence.targetCompareBy.label"] = "比较方式",
-        ["input.keySequence.targetCompareBy.hint"] = TargetCompareByHint,
-        ["input.keySequence.targetCompareBy.option.contains"] = WindowCompareContains,
-        ["input.keySequence.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["input.keySequence.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.keyDown.inputMode.label"] = "输入方式",
         ["input.keyDown.inputMode.hint"] = InputModeHint,
@@ -1773,18 +1593,6 @@ internal static class ActionStrings
         ["input.keyDown.inputMode.option.driver"] = "驱动级",
         ["input.keyDown.targetWindow.label"] = "目标窗口",
         ["input.keyDown.targetWindow.hint"] = TargetWindowHint,
-        ["input.keyDown.targetWindow.regex.label"] = TargetWindowRegexLabel,
-        ["input.keyDown.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["input.keyDown.targetMatchBy.label"] = "匹配方式",
-        ["input.keyDown.targetMatchBy.hint"] = TargetMatchByHint,
-        ["input.keyDown.targetMatchBy.option.title"] = WindowMatchByTitle,
-        ["input.keyDown.targetMatchBy.option.process"] = WindowMatchByProcess,
-        ["input.keyDown.targetMatchBy.option.class"] = WindowMatchByClass,
-        ["input.keyDown.targetCompareBy.label"] = "比较方式",
-        ["input.keyDown.targetCompareBy.hint"] = TargetCompareByHint,
-        ["input.keyDown.targetCompareBy.option.contains"] = WindowCompareContains,
-        ["input.keyDown.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["input.keyDown.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.keyUp.inputMode.label"] = "输入方式",
         ["input.keyUp.inputMode.hint"] = InputModeHint,
@@ -1793,18 +1601,6 @@ internal static class ActionStrings
         ["input.keyUp.inputMode.option.driver"] = "驱动级",
         ["input.keyUp.targetWindow.label"] = "目标窗口",
         ["input.keyUp.targetWindow.hint"] = TargetWindowHint,
-        ["input.keyUp.targetWindow.regex.label"] = TargetWindowRegexLabel,
-        ["input.keyUp.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["input.keyUp.targetMatchBy.label"] = "匹配方式",
-        ["input.keyUp.targetMatchBy.hint"] = TargetMatchByHint,
-        ["input.keyUp.targetMatchBy.option.title"] = WindowMatchByTitle,
-        ["input.keyUp.targetMatchBy.option.process"] = WindowMatchByProcess,
-        ["input.keyUp.targetMatchBy.option.class"] = WindowMatchByClass,
-        ["input.keyUp.targetCompareBy.label"] = "比较方式",
-        ["input.keyUp.targetCompareBy.hint"] = TargetCompareByHint,
-        ["input.keyUp.targetCompareBy.option.contains"] = WindowCompareContains,
-        ["input.keyUp.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["input.keyUp.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.hotkey.inputMode.label"] = "输入方式",
         ["input.hotkey.inputMode.hint"] = InputModeHint,
@@ -1813,18 +1609,6 @@ internal static class ActionStrings
         ["input.hotkey.inputMode.option.driver"] = "驱动级",
         ["input.hotkey.targetWindow.label"] = "目标窗口",
         ["input.hotkey.targetWindow.hint"] = TargetWindowHint,
-        ["input.hotkey.targetWindow.regex.label"] = TargetWindowRegexLabel,
-        ["input.hotkey.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["input.hotkey.targetMatchBy.label"] = "匹配方式",
-        ["input.hotkey.targetMatchBy.hint"] = TargetMatchByHint,
-        ["input.hotkey.targetMatchBy.option.title"] = WindowMatchByTitle,
-        ["input.hotkey.targetMatchBy.option.process"] = WindowMatchByProcess,
-        ["input.hotkey.targetMatchBy.option.class"] = WindowMatchByClass,
-        ["input.hotkey.targetCompareBy.label"] = "比较方式",
-        ["input.hotkey.targetCompareBy.hint"] = TargetCompareByHint,
-        ["input.hotkey.targetCompareBy.option.contains"] = WindowCompareContains,
-        ["input.hotkey.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["input.hotkey.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.typeText.inputMode.label"] = "输入方式",
         ["input.typeText.inputMode.hint"] = InputModeHint,
@@ -1833,18 +1617,6 @@ internal static class ActionStrings
         ["input.typeText.inputMode.option.driver"] = "驱动级",
         ["input.typeText.targetWindow.label"] = "目标窗口",
         ["input.typeText.targetWindow.hint"] = TargetWindowHint,
-        ["input.typeText.targetWindow.regex.label"] = TargetWindowRegexLabel,
-        ["input.typeText.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["input.typeText.targetMatchBy.label"] = "匹配方式",
-        ["input.typeText.targetMatchBy.hint"] = TargetMatchByHint,
-        ["input.typeText.targetMatchBy.option.title"] = WindowMatchByTitle,
-        ["input.typeText.targetMatchBy.option.process"] = WindowMatchByProcess,
-        ["input.typeText.targetMatchBy.option.class"] = WindowMatchByClass,
-        ["input.typeText.targetCompareBy.label"] = "比较方式",
-        ["input.typeText.targetCompareBy.hint"] = TargetCompareByHint,
-        ["input.typeText.targetCompareBy.option.contains"] = WindowCompareContains,
-        ["input.typeText.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["input.typeText.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.mouseMove.inputMode.label"] = "输入方式",
         ["input.mouseMove.inputMode.hint"] = InputModeHint
@@ -1854,18 +1626,6 @@ internal static class ActionStrings
         ["input.mouseMove.inputMode.option.driver"] = "驱动级",
         ["input.mouseMove.targetWindow.label"] = "目标窗口",
         ["input.mouseMove.targetWindow.hint"] = TargetWindowHint,
-        ["input.mouseMove.targetWindow.regex.label"] = TargetWindowRegexLabel,
-        ["input.mouseMove.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["input.mouseMove.targetMatchBy.label"] = "匹配方式",
-        ["input.mouseMove.targetMatchBy.hint"] = TargetMatchByHint,
-        ["input.mouseMove.targetMatchBy.option.title"] = WindowMatchByTitle,
-        ["input.mouseMove.targetMatchBy.option.process"] = WindowMatchByProcess,
-        ["input.mouseMove.targetMatchBy.option.class"] = WindowMatchByClass,
-        ["input.mouseMove.targetCompareBy.label"] = "比较方式",
-        ["input.mouseMove.targetCompareBy.hint"] = TargetCompareByHint,
-        ["input.mouseMove.targetCompareBy.option.contains"] = WindowCompareContains,
-        ["input.mouseMove.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["input.mouseMove.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.mouseMoveRelative.inputMode.label"] = "输入方式",
         ["input.mouseMoveRelative.inputMode.hint"] = InputModeHint
@@ -1875,18 +1635,6 @@ internal static class ActionStrings
         ["input.mouseMoveRelative.inputMode.option.driver"] = "驱动级",
         ["input.mouseMoveRelative.targetWindow.label"] = "目标窗口",
         ["input.mouseMoveRelative.targetWindow.hint"] = TargetWindowHint,
-        ["input.mouseMoveRelative.targetWindow.regex.label"] = TargetWindowRegexLabel,
-        ["input.mouseMoveRelative.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["input.mouseMoveRelative.targetMatchBy.label"] = "匹配方式",
-        ["input.mouseMoveRelative.targetMatchBy.hint"] = TargetMatchByHint,
-        ["input.mouseMoveRelative.targetMatchBy.option.title"] = WindowMatchByTitle,
-        ["input.mouseMoveRelative.targetMatchBy.option.process"] = WindowMatchByProcess,
-        ["input.mouseMoveRelative.targetMatchBy.option.class"] = WindowMatchByClass,
-        ["input.mouseMoveRelative.targetCompareBy.label"] = "比较方式",
-        ["input.mouseMoveRelative.targetCompareBy.hint"] = TargetCompareByHint,
-        ["input.mouseMoveRelative.targetCompareBy.option.contains"] = WindowCompareContains,
-        ["input.mouseMoveRelative.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["input.mouseMoveRelative.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.mouseClick.inputMode.label"] = "输入方式",
         ["input.mouseClick.inputMode.hint"] = InputModeHint,
@@ -1895,18 +1643,6 @@ internal static class ActionStrings
         ["input.mouseClick.inputMode.option.driver"] = "驱动级",
         ["input.mouseClick.targetWindow.label"] = "目标窗口",
         ["input.mouseClick.targetWindow.hint"] = TargetWindowHint,
-        ["input.mouseClick.targetWindow.regex.label"] = TargetWindowRegexLabel,
-        ["input.mouseClick.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["input.mouseClick.targetMatchBy.label"] = "匹配方式",
-        ["input.mouseClick.targetMatchBy.hint"] = TargetMatchByHint,
-        ["input.mouseClick.targetMatchBy.option.title"] = WindowMatchByTitle,
-        ["input.mouseClick.targetMatchBy.option.process"] = WindowMatchByProcess,
-        ["input.mouseClick.targetMatchBy.option.class"] = WindowMatchByClass,
-        ["input.mouseClick.targetCompareBy.label"] = "比较方式",
-        ["input.mouseClick.targetCompareBy.hint"] = TargetCompareByHint,
-        ["input.mouseClick.targetCompareBy.option.contains"] = WindowCompareContains,
-        ["input.mouseClick.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["input.mouseClick.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.mouseDoubleClick.inputMode.label"] = "输入方式",
         ["input.mouseDoubleClick.inputMode.hint"] = InputModeHint,
@@ -1915,18 +1651,6 @@ internal static class ActionStrings
         ["input.mouseDoubleClick.inputMode.option.driver"] = "驱动级",
         ["input.mouseDoubleClick.targetWindow.label"] = "目标窗口",
         ["input.mouseDoubleClick.targetWindow.hint"] = TargetWindowHint,
-        ["input.mouseDoubleClick.targetWindow.regex.label"] = TargetWindowRegexLabel,
-        ["input.mouseDoubleClick.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["input.mouseDoubleClick.targetMatchBy.label"] = "匹配方式",
-        ["input.mouseDoubleClick.targetMatchBy.hint"] = TargetMatchByHint,
-        ["input.mouseDoubleClick.targetMatchBy.option.title"] = WindowMatchByTitle,
-        ["input.mouseDoubleClick.targetMatchBy.option.process"] = WindowMatchByProcess,
-        ["input.mouseDoubleClick.targetMatchBy.option.class"] = WindowMatchByClass,
-        ["input.mouseDoubleClick.targetCompareBy.label"] = "比较方式",
-        ["input.mouseDoubleClick.targetCompareBy.hint"] = TargetCompareByHint,
-        ["input.mouseDoubleClick.targetCompareBy.option.contains"] = WindowCompareContains,
-        ["input.mouseDoubleClick.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["input.mouseDoubleClick.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.mouseDown.inputMode.label"] = "输入方式",
         ["input.mouseDown.inputMode.hint"] = InputModeHint,
@@ -1935,18 +1659,6 @@ internal static class ActionStrings
         ["input.mouseDown.inputMode.option.driver"] = "驱动级",
         ["input.mouseDown.targetWindow.label"] = "目标窗口",
         ["input.mouseDown.targetWindow.hint"] = TargetWindowHint,
-        ["input.mouseDown.targetWindow.regex.label"] = TargetWindowRegexLabel,
-        ["input.mouseDown.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["input.mouseDown.targetMatchBy.label"] = "匹配方式",
-        ["input.mouseDown.targetMatchBy.hint"] = TargetMatchByHint,
-        ["input.mouseDown.targetMatchBy.option.title"] = WindowMatchByTitle,
-        ["input.mouseDown.targetMatchBy.option.process"] = WindowMatchByProcess,
-        ["input.mouseDown.targetMatchBy.option.class"] = WindowMatchByClass,
-        ["input.mouseDown.targetCompareBy.label"] = "比较方式",
-        ["input.mouseDown.targetCompareBy.hint"] = TargetCompareByHint,
-        ["input.mouseDown.targetCompareBy.option.contains"] = WindowCompareContains,
-        ["input.mouseDown.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["input.mouseDown.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.mouseUp.inputMode.label"] = "输入方式",
         ["input.mouseUp.inputMode.hint"] = InputModeHint,
@@ -1955,18 +1667,6 @@ internal static class ActionStrings
         ["input.mouseUp.inputMode.option.driver"] = "驱动级",
         ["input.mouseUp.targetWindow.label"] = "目标窗口",
         ["input.mouseUp.targetWindow.hint"] = TargetWindowHint,
-        ["input.mouseUp.targetWindow.regex.label"] = TargetWindowRegexLabel,
-        ["input.mouseUp.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["input.mouseUp.targetMatchBy.label"] = "匹配方式",
-        ["input.mouseUp.targetMatchBy.hint"] = TargetMatchByHint,
-        ["input.mouseUp.targetMatchBy.option.title"] = WindowMatchByTitle,
-        ["input.mouseUp.targetMatchBy.option.process"] = WindowMatchByProcess,
-        ["input.mouseUp.targetMatchBy.option.class"] = WindowMatchByClass,
-        ["input.mouseUp.targetCompareBy.label"] = "比较方式",
-        ["input.mouseUp.targetCompareBy.hint"] = TargetCompareByHint,
-        ["input.mouseUp.targetCompareBy.option.contains"] = WindowCompareContains,
-        ["input.mouseUp.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["input.mouseUp.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.mouseScroll.inputMode.label"] = "输入方式",
         ["input.mouseScroll.inputMode.hint"] = InputModeHint,
@@ -1975,18 +1675,6 @@ internal static class ActionStrings
         ["input.mouseScroll.inputMode.option.driver"] = "驱动级",
         ["input.mouseScroll.targetWindow.label"] = "目标窗口",
         ["input.mouseScroll.targetWindow.hint"] = TargetWindowHint,
-        ["input.mouseScroll.targetWindow.regex.label"] = TargetWindowRegexLabel,
-        ["input.mouseScroll.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["input.mouseScroll.targetMatchBy.label"] = "匹配方式",
-        ["input.mouseScroll.targetMatchBy.hint"] = TargetMatchByHint,
-        ["input.mouseScroll.targetMatchBy.option.title"] = WindowMatchByTitle,
-        ["input.mouseScroll.targetMatchBy.option.process"] = WindowMatchByProcess,
-        ["input.mouseScroll.targetMatchBy.option.class"] = WindowMatchByClass,
-        ["input.mouseScroll.targetCompareBy.label"] = "比较方式",
-        ["input.mouseScroll.targetCompareBy.hint"] = TargetCompareByHint,
-        ["input.mouseScroll.targetCompareBy.option.contains"] = WindowCompareContains,
-        ["input.mouseScroll.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["input.mouseScroll.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         ["input.mouseDrag.inputMode.label"] = "输入方式",
         ["input.mouseDrag.inputMode.hint"] = InputModeHint,
@@ -1995,18 +1683,6 @@ internal static class ActionStrings
         ["input.mouseDrag.inputMode.option.driver"] = "驱动级",
         ["input.mouseDrag.targetWindow.label"] = "目标窗口",
         ["input.mouseDrag.targetWindow.hint"] = TargetWindowHint,
-        ["input.mouseDrag.targetWindow.regex.label"] = TargetWindowRegexLabel,
-        ["input.mouseDrag.targetWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["input.mouseDrag.targetMatchBy.label"] = "匹配方式",
-        ["input.mouseDrag.targetMatchBy.hint"] = TargetMatchByHint,
-        ["input.mouseDrag.targetMatchBy.option.title"] = WindowMatchByTitle,
-        ["input.mouseDrag.targetMatchBy.option.process"] = WindowMatchByProcess,
-        ["input.mouseDrag.targetMatchBy.option.class"] = WindowMatchByClass,
-        ["input.mouseDrag.targetCompareBy.label"] = "比较方式",
-        ["input.mouseDrag.targetCompareBy.hint"] = TargetCompareByHint,
-        ["input.mouseDrag.targetCompareBy.option.contains"] = WindowCompareContains,
-        ["input.mouseDrag.targetCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["input.mouseDrag.targetCompareBy.option.regex"] = WindowCompareRegex,
 
         // 坐标基准：所有带坐标或矩形的动作共用一组文案。
         ["input.mouseMove.anchorMode.label"] = "坐标基准",
@@ -2096,18 +1772,6 @@ internal static class ActionStrings
         ["vision.capture.anchorMode.option.client"] = "窗口客户区",
         ["vision.capture.anchorWindow.label"] = WindowMatchTextLabel,
         ["vision.capture.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["vision.capture.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["vision.capture.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["vision.capture.anchorMatchBy.label"] = "匹配方式",
-        ["vision.capture.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["vision.capture.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["vision.capture.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["vision.capture.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["vision.capture.anchorCompareBy.label"] = "比较方式",
-        ["vision.capture.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["vision.capture.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["vision.capture.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["vision.capture.anchorCompareBy.option.regex"] = WindowCompareRegex,
 
         ["vision.findImage.anchorMode.label"] = "坐标基准",
         ["vision.findImage.anchorMode.hint"] = AnchorModeHint,
@@ -2116,18 +1780,6 @@ internal static class ActionStrings
         ["vision.findImage.anchorMode.option.client"] = "窗口客户区",
         ["vision.findImage.anchorWindow.label"] = WindowMatchTextLabel,
         ["vision.findImage.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["vision.findImage.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["vision.findImage.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["vision.findImage.anchorMatchBy.label"] = "匹配方式",
-        ["vision.findImage.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["vision.findImage.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["vision.findImage.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["vision.findImage.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["vision.findImage.anchorCompareBy.label"] = "比较方式",
-        ["vision.findImage.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["vision.findImage.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["vision.findImage.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["vision.findImage.anchorCompareBy.option.regex"] = WindowCompareRegex,
 
         ["vision.getPixel.anchorMode.label"] = "坐标基准",
         ["vision.getPixel.anchorMode.hint"] = AnchorModeHint,
@@ -2136,18 +1788,6 @@ internal static class ActionStrings
         ["vision.getPixel.anchorMode.option.client"] = "窗口客户区",
         ["vision.getPixel.anchorWindow.label"] = WindowMatchTextLabel,
         ["vision.getPixel.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["vision.getPixel.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["vision.getPixel.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["vision.getPixel.anchorMatchBy.label"] = "匹配方式",
-        ["vision.getPixel.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["vision.getPixel.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["vision.getPixel.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["vision.getPixel.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["vision.getPixel.anchorCompareBy.label"] = "比较方式",
-        ["vision.getPixel.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["vision.getPixel.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["vision.getPixel.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["vision.getPixel.anchorCompareBy.option.regex"] = WindowCompareRegex,
 
         ["vision.waitColor.anchorMode.label"] = "坐标基准",
         ["vision.waitColor.anchorMode.hint"] = AnchorModeHint,
@@ -2156,18 +1796,6 @@ internal static class ActionStrings
         ["vision.waitColor.anchorMode.option.client"] = "窗口客户区",
         ["vision.waitColor.anchorWindow.label"] = WindowMatchTextLabel,
         ["vision.waitColor.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["vision.waitColor.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["vision.waitColor.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["vision.waitColor.anchorMatchBy.label"] = "匹配方式",
-        ["vision.waitColor.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["vision.waitColor.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["vision.waitColor.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["vision.waitColor.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["vision.waitColor.anchorCompareBy.label"] = "比较方式",
-        ["vision.waitColor.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["vision.waitColor.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["vision.waitColor.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["vision.waitColor.anchorCompareBy.option.regex"] = WindowCompareRegex,
 
         ["ocr.recognize.anchorMode.label"] = "坐标基准",
         ["ocr.recognize.anchorMode.hint"] = AnchorModeHint,
@@ -2176,18 +1804,6 @@ internal static class ActionStrings
         ["ocr.recognize.anchorMode.option.client"] = "窗口客户区",
         ["ocr.recognize.anchorWindow.label"] = WindowMatchTextLabel,
         ["ocr.recognize.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["ocr.recognize.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["ocr.recognize.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["ocr.recognize.anchorMatchBy.label"] = "匹配方式",
-        ["ocr.recognize.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["ocr.recognize.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["ocr.recognize.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["ocr.recognize.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["ocr.recognize.anchorCompareBy.label"] = "比较方式",
-        ["ocr.recognize.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["ocr.recognize.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["ocr.recognize.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["ocr.recognize.anchorCompareBy.option.regex"] = WindowCompareRegex,
 
         ["ocr.findText.anchorMode.label"] = "坐标基准",
         ["ocr.findText.anchorMode.hint"] = AnchorModeHint,
@@ -2196,18 +1812,6 @@ internal static class ActionStrings
         ["ocr.findText.anchorMode.option.client"] = "窗口客户区",
         ["ocr.findText.anchorWindow.label"] = WindowMatchTextLabel,
         ["ocr.findText.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["ocr.findText.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["ocr.findText.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["ocr.findText.anchorMatchBy.label"] = "匹配方式",
-        ["ocr.findText.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["ocr.findText.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["ocr.findText.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["ocr.findText.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["ocr.findText.anchorCompareBy.label"] = "比较方式",
-        ["ocr.findText.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["ocr.findText.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["ocr.findText.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["ocr.findText.anchorCompareBy.option.regex"] = WindowCompareRegex,
 
         ["condition.imageExists.anchorMode.label"] = "坐标基准",
         ["condition.imageExists.anchorMode.hint"] = AnchorModeHint,
@@ -2216,18 +1820,6 @@ internal static class ActionStrings
         ["condition.imageExists.anchorMode.option.client"] = "窗口客户区",
         ["condition.imageExists.anchorWindow.label"] = WindowMatchTextLabel,
         ["condition.imageExists.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["condition.imageExists.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["condition.imageExists.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["condition.imageExists.anchorMatchBy.label"] = "匹配方式",
-        ["condition.imageExists.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["condition.imageExists.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["condition.imageExists.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["condition.imageExists.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["condition.imageExists.anchorCompareBy.label"] = "比较方式",
-        ["condition.imageExists.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["condition.imageExists.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["condition.imageExists.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["condition.imageExists.anchorCompareBy.option.regex"] = WindowCompareRegex,
 
         ["condition.textExists.anchorMode.label"] = "坐标基准",
         ["condition.textExists.anchorMode.hint"] = AnchorModeHint,
@@ -2236,18 +1828,6 @@ internal static class ActionStrings
         ["condition.textExists.anchorMode.option.client"] = "窗口客户区",
         ["condition.textExists.anchorWindow.label"] = WindowMatchTextLabel,
         ["condition.textExists.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["condition.textExists.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["condition.textExists.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["condition.textExists.anchorMatchBy.label"] = "匹配方式",
-        ["condition.textExists.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["condition.textExists.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["condition.textExists.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["condition.textExists.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["condition.textExists.anchorCompareBy.label"] = "比较方式",
-        ["condition.textExists.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["condition.textExists.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["condition.textExists.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["condition.textExists.anchorCompareBy.option.regex"] = WindowCompareRegex,
 
         ["condition.colorEquals.anchorMode.label"] = "坐标基准",
         ["condition.colorEquals.anchorMode.hint"] = AnchorModeHint,
@@ -2256,18 +1836,6 @@ internal static class ActionStrings
         ["condition.colorEquals.anchorMode.option.client"] = "窗口客户区",
         ["condition.colorEquals.anchorWindow.label"] = WindowMatchTextLabel,
         ["condition.colorEquals.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["condition.colorEquals.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["condition.colorEquals.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["condition.colorEquals.anchorMatchBy.label"] = "匹配方式",
-        ["condition.colorEquals.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["condition.colorEquals.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["condition.colorEquals.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["condition.colorEquals.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["condition.colorEquals.anchorCompareBy.label"] = "比较方式",
-        ["condition.colorEquals.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["condition.colorEquals.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["condition.colorEquals.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["condition.colorEquals.anchorCompareBy.option.regex"] = WindowCompareRegex,
 
         // ------------------------------------- 找图 / 找色做厚：多命中、多区域、多点比色
         // 识别算法：找图那三个动作共用一组文案。
@@ -2331,18 +1899,6 @@ internal static class ActionStrings
         ["vision.waitImage.anchorMode.option.client"] = "窗口客户区",
         ["vision.waitImage.anchorWindow.label"] = WindowMatchTextLabel,
         ["vision.waitImage.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["vision.waitImage.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["vision.waitImage.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["vision.waitImage.anchorMatchBy.label"] = "匹配方式",
-        ["vision.waitImage.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["vision.waitImage.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["vision.waitImage.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["vision.waitImage.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["vision.waitImage.anchorCompareBy.label"] = "比较方式",
-        ["vision.waitImage.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["vision.waitImage.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["vision.waitImage.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["vision.waitImage.anchorCompareBy.option.regex"] = WindowCompareRegex,
 
         ["vision.clickImage.region.label"] = "搜索区域",
         ["vision.clickImage.region.hint"] = RegionHintText,
@@ -2376,18 +1932,6 @@ internal static class ActionStrings
         ["vision.clickImage.anchorMode.option.client"] = "窗口客户区",
         ["vision.clickImage.anchorWindow.label"] = WindowMatchTextLabel,
         ["vision.clickImage.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["vision.clickImage.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["vision.clickImage.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["vision.clickImage.anchorMatchBy.label"] = "匹配方式",
-        ["vision.clickImage.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["vision.clickImage.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["vision.clickImage.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["vision.clickImage.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["vision.clickImage.anchorCompareBy.label"] = "比较方式",
-        ["vision.clickImage.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["vision.clickImage.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["vision.clickImage.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["vision.clickImage.anchorCompareBy.option.regex"] = WindowCompareRegex,
 
         ["vision.findColor.name"] = "查找颜色",
         ["vision.findColor.desc"] = "在屏幕的一块区域里找某个颜色。",
@@ -2421,18 +1965,6 @@ internal static class ActionStrings
         ["vision.findColor.anchorMode.option.client"] = "窗口客户区",
         ["vision.findColor.anchorWindow.label"] = WindowMatchTextLabel,
         ["vision.findColor.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["vision.findColor.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["vision.findColor.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["vision.findColor.anchorMatchBy.label"] = "匹配方式",
-        ["vision.findColor.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["vision.findColor.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["vision.findColor.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["vision.findColor.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["vision.findColor.anchorCompareBy.label"] = "比较方式",
-        ["vision.findColor.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["vision.findColor.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["vision.findColor.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["vision.findColor.anchorCompareBy.option.regex"] = WindowCompareRegex,
 
         ["vision.findColors.name"] = "多点找色",
         ["vision.findColors.desc"] = "找一个颜色，并要求它周围指定的位置上也各有指定的颜色。",
@@ -2468,18 +2000,6 @@ internal static class ActionStrings
         ["vision.findColors.anchorMode.option.client"] = "窗口客户区",
         ["vision.findColors.anchorWindow.label"] = WindowMatchTextLabel,
         ["vision.findColors.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["vision.findColors.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["vision.findColors.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["vision.findColors.anchorMatchBy.label"] = "匹配方式",
-        ["vision.findColors.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["vision.findColors.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["vision.findColors.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["vision.findColors.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["vision.findColors.anchorCompareBy.label"] = "比较方式",
-        ["vision.findColors.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["vision.findColors.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["vision.findColors.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["vision.findColors.anchorCompareBy.option.regex"] = WindowCompareRegex,
         ["vision.findColors.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
         ["vision.findColors.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
         ["vision.findColors.returns.label"] = "要留下的结果",
@@ -2508,18 +2028,6 @@ internal static class ActionStrings
         ["vision.waitStable.anchorMode.option.client"] = "窗口客户区",
         ["vision.waitStable.anchorWindow.label"] = WindowMatchTextLabel,
         ["vision.waitStable.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["vision.waitStable.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["vision.waitStable.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["vision.waitStable.anchorMatchBy.label"] = "匹配方式",
-        ["vision.waitStable.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["vision.waitStable.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["vision.waitStable.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["vision.waitStable.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["vision.waitStable.anchorCompareBy.label"] = "比较方式",
-        ["vision.waitStable.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["vision.waitStable.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["vision.waitStable.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["vision.waitStable.anchorCompareBy.option.regex"] = WindowCompareRegex,
 
         ["condition.colorsMatch.name"] = "多点比色",
         ["condition.colorsMatch.desc"] = "当若干个点都显示指定的颜色时为真。",
@@ -2539,18 +2047,6 @@ internal static class ActionStrings
         ["condition.colorsMatch.anchorMode.option.client"] = "窗口客户区",
         ["condition.colorsMatch.anchorWindow.label"] = WindowMatchTextLabel,
         ["condition.colorsMatch.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["condition.colorsMatch.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["condition.colorsMatch.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["condition.colorsMatch.anchorMatchBy.label"] = "匹配方式",
-        ["condition.colorsMatch.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["condition.colorsMatch.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["condition.colorsMatch.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["condition.colorsMatch.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["condition.colorsMatch.anchorCompareBy.label"] = "比较方式",
-        ["condition.colorsMatch.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["condition.colorsMatch.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["condition.colorsMatch.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["condition.colorsMatch.anchorCompareBy.option.regex"] = WindowCompareRegex,
 
         ["condition.colorsExist.name"] = "颜色组合存在",
         ["condition.colorsExist.desc"] = "当某个颜色在屏幕上、且它周围指定的位置上也各有指定的颜色时为真。",
@@ -2574,18 +2070,6 @@ internal static class ActionStrings
         ["condition.colorsExist.anchorMode.option.client"] = "窗口客户区",
         ["condition.colorsExist.anchorWindow.label"] = WindowMatchTextLabel,
         ["condition.colorsExist.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["condition.colorsExist.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["condition.colorsExist.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["condition.colorsExist.anchorMatchBy.label"] = "匹配方式",
-        ["condition.colorsExist.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["condition.colorsExist.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["condition.colorsExist.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["condition.colorsExist.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["condition.colorsExist.anchorCompareBy.label"] = "比较方式",
-        ["condition.colorsExist.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["condition.colorsExist.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["condition.colorsExist.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["condition.colorsExist.anchorCompareBy.option.regex"] = WindowCompareRegex,
         ["condition.colorsExist.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
         ["condition.colorsExist.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
 
@@ -2612,18 +2096,6 @@ internal static class ActionStrings
         ["condition.colorCoverage.anchorMode.option.client"] = "窗口客户区",
         ["condition.colorCoverage.anchorWindow.label"] = WindowMatchTextLabel,
         ["condition.colorCoverage.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["condition.colorCoverage.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["condition.colorCoverage.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["condition.colorCoverage.anchorMatchBy.label"] = "匹配方式",
-        ["condition.colorCoverage.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["condition.colorCoverage.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["condition.colorCoverage.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["condition.colorCoverage.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["condition.colorCoverage.anchorCompareBy.label"] = "比较方式",
-        ["condition.colorCoverage.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["condition.colorCoverage.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["condition.colorCoverage.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["condition.colorCoverage.anchorCompareBy.option.regex"] = WindowCompareRegex,
         ["condition.colorCoverage.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
         ["condition.colorCoverage.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
 
@@ -2646,20 +2118,8 @@ internal static class ActionStrings
 
         ["vision.captureWindow.name"] = "截取窗口",
         ["vision.captureWindow.desc"] = "把整个窗口连着标题栏一起截取到图像变量里。",
-        ["vision.captureWindow.title.label"] = WindowMatchTextLabel,
-        ["vision.captureWindow.title.regex.label"] = WindowRegexLabel,
-        ["vision.captureWindow.title.regex.placeholder"] = WindowRegexPlaceholder,
-        ["vision.captureWindow.title.hint"] = WindowTitleHint,
-        ["vision.captureWindow.matchBy.label"] = "匹配方式",
-        ["vision.captureWindow.matchBy.hint"] = WindowMatchByHint,
-        ["vision.captureWindow.matchBy.option.title"] = WindowMatchByTitle,
-        ["vision.captureWindow.matchBy.option.process"] = WindowMatchByProcess,
-        ["vision.captureWindow.matchBy.option.class"] = WindowMatchByClass,
-        ["vision.captureWindow.compareBy.label"] = "比较方式",
-        ["vision.captureWindow.compareBy.hint"] = WindowCompareHint,
-        ["vision.captureWindow.compareBy.option.contains"] = WindowCompareContains,
-        ["vision.captureWindow.compareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["vision.captureWindow.compareBy.option.regex"] = WindowCompareRegex,
+        ["vision.captureWindow.window.label"] = WindowMatchTextLabel,
+        ["vision.captureWindow.window.hint"] = WindowTitleHint,
 
         ["vision.saveImage.name"] = "保存图片",
         ["vision.saveImage.desc"] = "把一张图片存成 PNG 文件，运行结束之后还在。",
@@ -2817,18 +2277,6 @@ internal static class ActionStrings
         ["ocr.clickText.anchorMode.option.client"] = "窗口客户区",
         ["ocr.clickText.anchorWindow.label"] = WindowMatchTextLabel,
         ["ocr.clickText.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["ocr.clickText.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["ocr.clickText.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["ocr.clickText.anchorMatchBy.label"] = "匹配方式",
-        ["ocr.clickText.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["ocr.clickText.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["ocr.clickText.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["ocr.clickText.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["ocr.clickText.anchorCompareBy.label"] = "比较方式",
-        ["ocr.clickText.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["ocr.clickText.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["ocr.clickText.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["ocr.clickText.anchorCompareBy.option.regex"] = WindowCompareRegex,
         ["ocr.clickText.matchMode.label"] = "匹配方式",
         ["ocr.clickText.matchMode.hint"] = "识别结果与搜索文字怎么比：包含、完全相等，还是按正则表达式匹配。默认「包含」。",
         ["ocr.clickText.expected.label"] = "整段须匹配",
@@ -3249,18 +2697,6 @@ internal static class ActionStrings
         ["condition.imageNotExists.anchorMode.option.client"] = "窗口客户区",
         ["condition.imageNotExists.anchorWindow.label"] = WindowMatchTextLabel,
         ["condition.imageNotExists.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["condition.imageNotExists.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["condition.imageNotExists.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["condition.imageNotExists.anchorMatchBy.label"] = "匹配方式",
-        ["condition.imageNotExists.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["condition.imageNotExists.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["condition.imageNotExists.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["condition.imageNotExists.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["condition.imageNotExists.anchorCompareBy.label"] = "比较方式",
-        ["condition.imageNotExists.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["condition.imageNotExists.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["condition.imageNotExists.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["condition.imageNotExists.anchorCompareBy.option.regex"] = WindowCompareRegex,
 
         ["condition.textNotExists.name"] = "文字不存在",
         ["condition.textNotExists.desc"] = "当屏幕上没有指定文字时为真。",
@@ -3280,18 +2716,6 @@ internal static class ActionStrings
         ["condition.textNotExists.anchorMode.option.client"] = "窗口客户区",
         ["condition.textNotExists.anchorWindow.label"] = WindowMatchTextLabel,
         ["condition.textNotExists.anchorWindow.hint"] = AnchorWindowRuleHint,
-        ["condition.textNotExists.anchorWindow.regex.label"] = AnchorWindowRegexLabel,
-        ["condition.textNotExists.anchorWindow.regex.placeholder"] = WindowRegexPlaceholder,
-        ["condition.textNotExists.anchorMatchBy.label"] = "匹配方式",
-        ["condition.textNotExists.anchorMatchBy.hint"] = AnchorMatchByHint,
-        ["condition.textNotExists.anchorMatchBy.option.title"] = WindowMatchByTitle,
-        ["condition.textNotExists.anchorMatchBy.option.process"] = WindowMatchByProcess,
-        ["condition.textNotExists.anchorMatchBy.option.class"] = WindowMatchByClass,
-        ["condition.textNotExists.anchorCompareBy.label"] = "比较方式",
-        ["condition.textNotExists.anchorCompareBy.hint"] = AnchorCompareByHint,
-        ["condition.textNotExists.anchorCompareBy.option.contains"] = WindowCompareContains,
-        ["condition.textNotExists.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
-        ["condition.textNotExists.anchorCompareBy.option.regex"] = WindowCompareRegex,
 
         ["condition.uiaNotExists.name"] = "UI 元素不存在",
         ["condition.uiaNotExists.desc"] = "当某个 UI Automation 元素不存在时为真。",
@@ -3942,4 +3366,65 @@ internal static class ActionStrings
             + "每一项在本宏里各自成为一个变量，名字由这一行决定。一个都不勾也可以，"
             + "这一步就不带回任何值。",
     };
+
+    /// <summary>
+    /// The one choice every window rule asks is the same five ways wherever a window is recognised,
+    /// so it is worded once and written into the table for each action that asks it — sixty fields
+    /// with the same five lines written out is sixty chances for the wording to drift apart. What
+    /// the settings beside the field do differs from one family to the next, which is the sentence
+    /// each of them adds.
+    /// </summary>
+    static ActionStrings()
+    {
+        WindowHowFill(Chinese, "how", WindowActions, string.Empty);
+        WindowHowFill(Chinese, "anchorHow", AnchorActions, "坐标基准选屏幕像素或界面元素时用不到它。");
+        WindowHowFill(Chinese, "targetHow", TargetActions, "只有输入方式选后台消息时用得到它。");
+    }
+
+    private static void WindowHowFill(Dictionary<string, string> table, string name,
+        string[] actions, string extra)
+    {
+        var hint = extra.Length == 0 ? WindowHowHint : WindowHowHint + extra;
+        foreach (var action in actions)
+        {
+            table[$"{action}.{name}.label"] = WindowHowLabel;
+            table[$"{action}.{name}.hint"] = hint;
+            table[$"{action}.{name}.option.titleContains"] = WindowHowTitleContains;
+            table[$"{action}.{name}.option.titleStartsWith"] = WindowHowTitleStartsWith;
+            table[$"{action}.{name}.option.titleRegex"] = WindowHowTitleRegex;
+            table[$"{action}.{name}.option.process"] = WindowHowProcess;
+            table[$"{action}.{name}.option.class"] = WindowHowClass;
+        }
+    }
+
+    /// <summary>The actions that name the one window they act on.</summary>
+    private static readonly string[] WindowActions =
+    [
+        "window.exists", "window.waitFor", "window.activate", "window.minimize", "window.maximize",
+        "window.restore", "window.move", "window.close", "window.list", "window.info",
+        "vision.captureWindow",
+    ];
+
+    /// <summary>
+    /// The steps that name the window their coordinates are counted from, which is also the window
+    /// their pixels come out of.
+    /// </summary>
+    private static readonly string[] AnchorActions =
+    [
+        "vision.capture", "vision.findImage", "vision.waitImage", "vision.clickImage",
+        "vision.getPixel", "vision.waitColor", "vision.findColor", "vision.findColors",
+        "vision.waitStable", "ocr.recognize", "ocr.findText", "ocr.clickText",
+        "condition.imageExists", "condition.imageNotExists", "condition.textExists",
+        "condition.textNotExists", "condition.colorEquals", "condition.colorsMatch",
+        "condition.colorsExist", "condition.colorCoverage",
+    ];
+
+    /// <summary>The actions that post their input at a window of their own.</summary>
+    private static readonly string[] TargetActions =
+    [
+        "input.keyPress", "input.keyDown", "input.keyUp", "input.keySequence", "input.hotkey",
+        "input.typeText", "input.mouseMove", "input.mouseMoveRelative", "input.mouseClick",
+        "input.mouseDoubleClick", "input.mouseDown", "input.mouseUp", "input.mouseScroll",
+        "input.mouseDrag",
+    ];
 }

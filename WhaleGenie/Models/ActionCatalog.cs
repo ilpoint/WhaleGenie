@@ -4396,40 +4396,15 @@ public static class ActionCatalog
     /// </summary>
     private static ActionParameter[] TargetWindowRule() =>
     [
-        new()
-        {
-            Name = "targetWindow",
-            Label = "Target window",
-            Kind = ActionParameterKind.Window,
-            Placeholder = "Notepad",
-            // Once the comparing field says "regular expression", this field asks for a pattern
-            // rather than for the text of a title bar, and the person writing the step should not
-            // have to work out that the pattern goes here.
-            Variant = new ActionParameterVariant("targetCompareBy", "regex", "Match pattern",
-                @"Notepad.*?\.txt"),
-            Hint = "The window background input posts its messages at, recognised with the same "
-                   + "three fields a window action uses: the text is compared with the part "
-                   + "\"Match by\" names, the way \"Compare\" says, ignoring case. Only the "
-                   + "background mode reads it, and a background step that names no window fails "
-                   + "before it sends anything.",
-            Required = false,
-            Advanced = true,
-            AppliesWhen = "inputMode",
-            AppliesWhenValues = [BackgroundMode],
-        },
-        Choice("targetMatchBy", "Match by", ["title", "process", "class"], "title",
-            "Which part of a window the match text is compared with: its title, the name of the "
-            + "program that owns it, or the window class that program registered. Change it when "
-            + "the title moves with the document or the language. Only the background input mode "
-            + "uses it.",
-            labels: ["Title", "Process name", "Window class"],
+        MatchText("targetWindow", "Target window",
+            "The window background input posts its messages at, recognised with the same two "
+            + "fields a window action uses: the text is held up against the window's title, or "
+            + "against the program that owns it or the class it registered, the way \"Match by\" "
+            + "says, ignoring case. Only the background mode reads it, and a background step that "
+            + "names no window fails before it sends anything.",
             advanced: true, onlyWith: [BackgroundMode], onlyField: "inputMode"),
-        Choice("targetCompareBy", "Compare", ["contains", "startsWith", "regex"], "contains",
-            "How the match text is compared with that part: contained in it, the start of it, or a "
-            + "regular expression matched against it. Use a pattern when the title carries "
-            + "something that changes from run to run. Only the background input mode uses it.",
-            labels: ["Contains", "Starts with", "Regular expression"],
-            advanced: true, onlyWith: [BackgroundMode], onlyField: "inputMode"),
+        MatchByChoice("targetHow", advanced: true, onlyWith: [BackgroundMode],
+            onlyField: "inputMode", extra: "Only the background input mode uses it."),
     ];
 
     /// <summary>What the input mode says while the messages are posted at the named window.</summary>
@@ -4480,43 +4455,23 @@ public static class ActionCatalog
             Label = byTitleOnly ? "Anchor window" : "Match text",
             Kind = ActionParameterKind.Window,
             Placeholder = "Notepad",
-            Variant = byTitleOnly
-                ? null
-                : new ActionParameterVariant("anchorCompareBy", "regex", "Anchor pattern",
-                    @"Notepad.*?\.txt"),
             Hint = byTitleOnly
                 ? "The window the coordinates are measured from; part of the title is enough. "
                   + "Leave it empty for the window in front. The screen mode does not use it."
-                : "The text the window is recognised by. It is compared with the part chosen by "
-                  + "\"Match by\", the way \"Compare\" says, ignoring case, and the pixels this step "
-                  + "reads come out of that window. Leave it empty for the window in front.",
+                : "The text the window is recognised by, held up against its title, the program "
+                  + "that owns it or the class it registered, the way \"Match by\" says, ignoring "
+                  + "case. The pixels this step reads come out of that window. Leave it empty for "
+                  + "the window in front.",
             Required = false,
             Advanced = true,
+            AcceptsVariables = true,
         },
-        ..(byTitleOnly ? Array.Empty<ActionParameter>() : AnchorWindowRule()),
+        ..(byTitleOnly
+            ? Array.Empty<ActionParameter>()
+            : [MatchByChoice("anchorHow", advanced: true, onlyWith: ["window", "client"],
+                onlyField: "anchorMode",
+                extra: "The screen and element origins do not use it.")]),
         ..(withElement ? AnchorElement() : Array.Empty<ActionParameter>()),
-    ];
-
-    /// <summary>
-    /// The other two parts of the window a step reads its pixels out of: which part of a window the
-    /// text is compared with, and how the two are compared. They are asked for only while the
-    /// coordinate origin is a window, because the other origins do not read that window at all.
-    /// </summary>
-    private static ActionParameter[] AnchorWindowRule() =>
-    [
-        Choice("anchorMatchBy", "Match by", ["title", "process", "class"], "title",
-            "Which part of a window the match text is compared with: its title, the name of the "
-            + "program that owns it, or the window class that program registered. Change it when "
-            + "the title moves with the document or the language. The screen and element origins do "
-            + "not use it.",
-            labels: ["Title", "Process name", "Window class"],
-            advanced: true, onlyWith: ["window", "client"], onlyField: "anchorMode"),
-        Choice("anchorCompareBy", "Compare", ["contains", "startsWith", "regex"], "contains",
-            "How the match text is compared with that part: contained in it, the start of it, or a "
-            + "regular expression matched against it. Use a pattern when the title carries "
-            + "something that changes from run to run. The screen and element origins do not use it.",
-            labels: ["Contains", "Starts with", "Regular expression"],
-            advanced: true, onlyWith: ["window", "client"], onlyField: "anchorMode"),
     ];
 
     /// <summary>
@@ -4855,7 +4810,11 @@ public static class ActionCatalog
                 + "gradient or with anti-aliased edges.",
         };
 
-    /// <summary>A window title, filled in from the windows that are open by the window picker.</summary>
+    /// <summary>
+    /// A window, filled in from the windows that are open by the window picker. The text is written
+    /// in the box the variables are offered in, the way any other piece of text a macro works out
+    /// earlier is: the name of a window worked out by an earlier step goes in as <c>$name</c>.
+    /// </summary>
     private static ActionParameter Window(string name = "window",
         string hint = "Optional: look only in windows whose title holds this text. Leave it empty "
             + "to look in every window.",
@@ -4868,49 +4827,75 @@ public static class ActionCatalog
             Placeholder = "Notepad",
             Hint = hint,
             Required = required,
+            AcceptsVariables = true,
         };
 
     /// <summary>
-    /// The window a window-management action works on, together with how to recognise it. A title
-    /// is what a person reads off the title bar, but it changes with the document and the language;
-    /// the program that owns the window and the class it registered hold still, which is what a
-    /// macro wants when the same window keeps coming back under a different name.
-    /// </summary>
-    /// <summary>
-    /// How a step names the window it acts on: the text, the part of a window it is held against,
-    /// and how. <paramref name="emptyMeans"/> finishes the sentence about an empty text, which
-    /// stands for the window in front to a step that acts on one window and for every window to a
-    /// step that lists them.
+    /// How a step names the window it acts on: the text, and the one choice that says what the text
+    /// is held against and how. <paramref name="emptyMeans"/> finishes the sentence about an empty
+    /// text, which stands for the window in front to a step that acts on one window and for every
+    /// window to a step that lists them.
     /// </summary>
     private static ActionParameter[] WindowTarget(string emptyMeans = "the window in front") =>
     [
-        new()
+        MatchText("window", "Match text",
+            "The text the window is recognised by, held up against the window's title, or against "
+            + "the program that owns it or the class it registered, the way \"Match by\" says, "
+            + "ignoring case. Leave it empty for " + emptyMeans + "."),
+        MatchByChoice(),
+    ];
+
+    /// <summary>
+    /// The text a window is recognised by, one of the two fields every window rule is made of. It
+    /// is text rather than a value read as a whole: a name written as <c>$variable</c> is filled in
+    /// where it stands, which is what a macro that recognises a window by a title it worked out
+    /// earlier wants to write.
+    /// </summary>
+    /// <param name="name">Field name, which the macro file stores: what it holds is a window.</param>
+    /// <param name="hint">What the field takes, in the words of the family that asks for it.</param>
+    private static ActionParameter MatchText(string name, string label, string hint,
+        bool advanced = false, string[]? onlyWith = null, string onlyField = "algorithm")
+        => new()
         {
-            Name = "title",
-            Label = "Match text",
+            Name = name,
+            Label = label,
             Kind = ActionParameterKind.Window,
             Placeholder = "Notepad",
-            // Once the comparing field says "regular expression", this field asks for a pattern
-            // rather than for the text of a title bar, and the person writing the step should not
-            // have to work out that the pattern goes here.
-            Variant = new ActionParameterVariant("compareBy", "regex", "Match pattern",
-                @"Notepad.*?\.txt"),
-            Hint = "The text the window is recognised by. It is compared with the part chosen by "
-                   + "\"Match by\", the way \"Compare\" says, ignoring case. Leave it empty for "
-                   + emptyMeans + ".",
+            Hint = hint,
             Required = false,
-        },
-        Choice("matchBy", "Match by", ["title", "process", "class"], "title",
-            "Which part of a window the match text is compared with: its title, the name of the "
-            + "program that owns it, or the window class that program registered. Change it when "
-            + "the title moves with the document or the language.",
-            labels: ["Title", "Process name", "Window class"]),
-        Choice("compareBy", "Compare", ["contains", "startsWith", "regex"], "contains",
-            "How the match text is compared with that part: contained in it, the start of it, or a "
-            + "regular expression matched against it. Use a pattern when the title carries "
-            + "something that changes from run to run.",
-            labels: ["Contains", "Starts with", "Regular expression"]),
-    ];
+            AcceptsVariables = true,
+            Advanced = advanced,
+            AppliesWhen = onlyWith is null ? string.Empty : onlyField,
+            AppliesWhenValues = onlyWith ?? [],
+        };
+
+    /// <summary>
+    /// How a window is recognised, the other of the two fields. "The title holds this" is what a
+    /// macro nearly always means and "the program that owns it" is what it means when the title
+    /// moves with the document or with the language, so the five ways a window can be recognised
+    /// are one choice rather than one choice about the part and another about the comparing: two
+    /// fields asking one question is two fields to get wrong, and nine arrangements of them for one
+    /// thing a macro needs to say.
+    /// </summary>
+    /// <param name="extra">What the settings beside this field do when they are set otherwise.</param>
+    private static ActionParameter MatchByChoice(string name = "how", bool advanced = false,
+        string[]? onlyWith = null, string onlyField = "algorithm",
+        string extra = "Change it when the title moves with the document or the interface "
+            + "language.")
+        => Choice(name, "Match by", [.. WindowHow.Values], WindowHow.TitleContains,
+            "How the window is recognised: the text is held up against the window's title, or "
+            + "against the name of the program that owns it or the class that program registered, "
+            + "contained in it, at its start, or as a regular expression matched against it. "
+            + extra,
+            labels:
+            [
+                "Title contains",
+                "Title starts with",
+                "Title matches a pattern",
+                "Process name",
+                "Window class",
+            ],
+            advanced: advanced, onlyWith: onlyWith, onlyField: onlyField);
 
     /// <summary>Name of another macro in the project, chosen from a list while staying editable.</summary>
     private static ActionParameter MacroName(string name, string label, string hint)

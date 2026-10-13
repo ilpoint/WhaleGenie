@@ -1,3 +1,4 @@
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -74,6 +75,72 @@ public class VariableFieldTests
                 Assert.Equal("$shot", region.Regions[0].ToRow().Text("text"));
             }
         });
+    }
+
+    /// <summary>
+    /// The text a window is recognised by is written like any other text a macro works out earlier:
+    /// a name goes in as it is typed and the window picker stands beside the same box. The whole
+    /// value is not read as one, so the expression editor stays away from it: a window name is a
+    /// name rather than a calculation, and $name in it is filled in where it stands.
+    /// </summary>
+    [Fact]
+    public void A_window_is_named_in_the_box_the_variables_are_offered_in()
+    {
+        Ui.Run(() =>
+        {
+            foreach (var (key, name) in new[]
+                     {
+                         ("window.exists", "window"),
+                         ("vision.findImage", "anchorWindow"),
+                         ("input.keyPress", "targetWindow"),
+                     })
+            {
+                var field = Parameter(Open(key), name);
+
+                Assert.True(field.IsWindow, $"{key}'s {name} is not a window field");
+                Assert.True(field.OffersVariables, $"{key}'s {name} offers no variables");
+                Assert.False(field.OffersFormula, $"{key}'s {name} offers the expression editor");
+                Assert.False(field.IsPlainText, $"{key}'s {name} went back to a plain box");
+                Assert.Contains(field.ExpressionSuggestions, entry => entry == "$count");
+            }
+        });
+    }
+
+    /// <summary>
+    /// How a window is recognised is one choice of five, the same five wherever a window is named:
+    /// a window action, a step that reads the screen and one that posts its input at a window all
+    /// offer the values the engine reads, in the order it reads them.
+    /// </summary>
+    [Fact]
+    public void Every_window_rule_offers_the_same_five_ways()
+    {
+        var wrong = Ui.Run(() =>
+        {
+            var found = new List<string>();
+            foreach (var definition in ActionCatalog.Definitions)
+            {
+                // "How" is also the word a browser step uses for which tab it switches to, which is
+                // a different question: a window rule is found by the window field beside it.
+                if (!definition.Parameters.Any(parameter =>
+                        parameter.Kind is ActionParameterKind.Window))
+                {
+                    continue;
+                }
+
+                foreach (var way in definition.Parameters.Where(parameter =>
+                             parameter.Name is "how" or "anchorHow" or "targetHow"))
+                {
+                    if (!way.Options.SequenceEqual(WindowHow.Values))
+                    {
+                        found.Add($"{definition.Key}.{way.Name}");
+                    }
+                }
+            }
+
+            return found;
+        });
+
+        Assert.Empty(wrong);
     }
 
     /// <summary>
@@ -167,6 +234,18 @@ public class VariableFieldTests
             .ToList());
 
         Assert.Empty(gaps);
+
+        // A window is written in the box the variables are offered in, so every field that names one
+        // says it takes them: that answer is what puts the list of names over the box.
+        var silent = Ui.Run(() => ActionCatalog.Definitions
+            .SelectMany(definition => definition.Parameters.Select(parameter => (definition.Key, parameter)))
+            .Where(row => row.parameter.Kind is ActionParameterKind.Window)
+            .Where(row => !row.parameter.AcceptsVariables)
+            .Select(row => $"{row.Key}.{row.parameter.Name}")
+            .Order()
+            .ToList());
+
+        Assert.Empty(silent);
     }
 
     private static StepParameterViewModel Parameter(AddActionViewModel viewModel, string name)

@@ -26,9 +26,6 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>True while a whole value is being put in at once, rather than typed a character at a time.</summary>
     private bool _writing;
 
-    /// <summary>True while the field beside this one says this field goes by its other name.</summary>
-    private bool _variantSays;
-
     private WindowPreviewViewModel? _windowPreview;
 
     public StepParameterViewModel(ActionParameter definition,
@@ -491,9 +488,10 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>
     /// True when the field is offered the variables it may name. A hint that says "written out or
     /// held in a variable" is only honest if the name can be picked instead of remembered, which
-    /// is what this drives.
+    /// is what this drives. A window is one of these: the text it is recognised by is written like
+    /// any other piece of text, and a title worked out by an earlier step goes in as a name.
     /// </summary>
-    public bool OffersVariables => IsText
+    public bool OffersVariables => (IsText || IsWindow)
         && !IsSelector
         && (Definition.AcceptsVariables || Definition.AcceptsFormula);
 
@@ -619,7 +617,11 @@ public partial class StepParameterViewModel : ViewModelBase
     private void OnPictureChanged(object? sender, PropertyChangedEventArgs e)
         => OnPropertyChanged(nameof(HasPictures));
 
-    /// <summary>True when this parameter names a window, which the window picker can fill in.</summary>
+    /// <summary>
+    /// True when this parameter names a window, which the window picker can fill in. The text is
+    /// written in the same box every other piece of text a macro works out earlier is written in,
+    /// and this is what puts the picker beside that box.
+    /// </summary>
     public bool IsWindow => Definition.Kind is ActionParameterKind.Window;
 
     /// <summary>
@@ -958,9 +960,7 @@ public partial class StepParameterViewModel : ViewModelBase
     public decimal Increment => Definition.Increment;
 
     /// <summary>The name this field goes by right now, which a field beside it can change.</summary>
-    public string Label => Name(_variantSays && Definition.Variant is not null
-        ? Definition.LocalVariantLabel
-        : Definition.LocalLabel);
+    public string Label => Name(Definition.LocalLabel);
 
     /// <summary>
     /// What the field says under itself: first what a field of this kind takes and what an empty
@@ -1002,34 +1002,11 @@ public partial class StepParameterViewModel : ViewModelBase
         }
     }
 
-    public string Placeholder => _variantSays && Definition.Variant is not null
-        ? Definition.LocalVariantPlaceholder
-        : Definition.Placeholder;
+    public string Placeholder => Definition.Placeholder;
 
     /// <summary>An optional field says so, whichever of its names is the one showing.</summary>
     private string Name(string label)
         => Definition.Required ? label : Strings.Format("Common.OptionalSuffix", label);
-
-    /// <summary>
-    /// Reacts to the field this one is renamed by: a window's text is called one thing while it is
-    /// compared literally and another while it is a pattern, so which name shows follows the answer
-    /// the comparing field holds.
-    /// </summary>
-    public void UpdateVariant(string? siblingValue)
-    {
-        var says = Definition.Variant is { } variant
-            && string.Equals(siblingValue?.Trim() ?? string.Empty, variant.When,
-                StringComparison.OrdinalIgnoreCase);
-
-        if (says == _variantSays)
-        {
-            return;
-        }
-
-        _variantSays = says;
-        OnPropertyChanged(nameof(Label));
-        OnPropertyChanged(nameof(Placeholder));
-    }
 
     /// <summary>What the expression editor of a number field hints at.</summary>
     public string FormulaPlaceholder => Strings.Get("Add.FormulaPlaceholder");

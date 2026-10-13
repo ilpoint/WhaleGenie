@@ -60,8 +60,10 @@ public sealed class WindowsWindowDevice : IWindowDevice
     /// <summary>
     /// Whether one window answers to the value a step wrote. Title is the cheap one, since the
     /// listing already holds it; a process name costs a lookup per window, so it is only paid for
-    /// when a step actually asks to match that way. A pattern the machine cannot read comes back
-    /// as <see cref="ArgumentException"/>, which is the run's to report.
+    /// when a step actually asks to match that way. How the two are held up against each other is
+    /// the same question for every device that recognises a window, so it lives in one place. A
+    /// pattern the machine cannot read comes back as <see cref="ArgumentException"/>, which is the
+    /// run's to report.
     /// </summary>
     private bool Matches(WindowInfo window, string wanted, WindowMatch match, WindowCompare compare)
     {
@@ -72,12 +74,7 @@ public sealed class WindowsWindowDevice : IWindowDevice
             _ => window.Title,
         };
 
-        return compare switch
-        {
-            WindowCompare.StartsWith => text.StartsWith(wanted, StringComparison.OrdinalIgnoreCase),
-            WindowCompare.Regex => Regex.IsMatch(text, wanted, RegexOptions.IgnoreCase),
-            _ => text.Contains(wanted, StringComparison.OrdinalIgnoreCase),
-        };
+        return WindowHow.Matches(text, wanted, compare);
     }
 
     public string ProcessOf(long handle) => ProcessName(handle);

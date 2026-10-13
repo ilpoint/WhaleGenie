@@ -81,35 +81,32 @@ public class ActionDialogTests
     private static string Value(AddActionViewModel viewModel, string name)
         => viewModel.Parameters.First(parameter => parameter.Definition.Name == name).CurrentText;
 
+    /// <summary>
+    /// A window is recognised by two fields and no more: the text, which keeps its name and its
+    /// example whatever the other field says, and the one choice of the five ways. A pattern is one
+    /// of those five rather than a second name for the same box, so nothing on the page changes
+    /// name while the step is being written.
+    /// </summary>
     [Fact]
-    public void A_window_text_is_called_a_pattern_while_the_comparing_field_says_so()
+    public void A_window_text_keeps_its_name_however_the_window_is_recognised()
     {
         Ui.Run(() =>
         {
             var viewModel = Open("window.exists");
-            var text = viewModel.Parameters.First(parameter => parameter.Definition.Name == "title");
-            var variant = text.Definition.Variant!;
+            var text = viewModel.Parameters.First(parameter => parameter.Definition.Name == "window");
 
-            // A field that may be left empty says so, whichever of its two names is showing.
+            // A field that may be left empty says so.
             Assert.Equal(Strings.Format("Common.OptionalSuffix", text.Definition.LocalLabel),
                 text.Label);
             Assert.Equal("Notepad", text.Placeholder);
 
-            Choose(viewModel, "compareBy", "regex");
-
-            // What goes in the field is a pattern now, and it should not go on being called the
-            // text of a title bar while that is what it wants.
-            Assert.Equal(Strings.Format("Common.OptionalSuffix",
-                Strings.Get("window.exists.title.regex.label", variant.Label)), text.Label);
-            Assert.Equal(Strings.Get("window.exists.title.regex.placeholder", variant.Placeholder),
-                text.Placeholder);
-
-            Choose(viewModel, "compareBy", "startsWith");
-            Assert.Equal(Strings.Format("Common.OptionalSuffix", text.Definition.LocalLabel),
-                text.Label);
-
-            Choose(viewModel, "compareBy", "contains");
-            Assert.Equal("Notepad", text.Placeholder);
+            foreach (var how in new[] { "titleRegex", "titleStartsWith", "titleContains" })
+            {
+                Choose(viewModel, "how", how);
+                Assert.Equal(Strings.Format("Common.OptionalSuffix", text.Definition.LocalLabel),
+                    text.Label);
+                Assert.Equal("Notepad", text.Placeholder);
+            }
         });
     }
 
@@ -1688,11 +1685,11 @@ public class ActionDialogTests
             // x and y share a line, so where the pointer goes and how long it takes read as two
             // lines while the advanced page holds the rest: what the coordinates are measured from,
             // how the pointer travels, where the input is sent, and — for a step that posts it at a
-            // window — which window that is and how it is recognised. The last three are off the form
+            // window — which window that is and how it is recognised. The last two are off the form
             // while the input goes to whatever is in front, but they are still the tuning of this
             // action rather than something to show without being asked for.
             Assert.Equal(2, viewModel.Rows.Count);
-            Assert.Equal(8, viewModel.AdvancedRows.Count);
+            Assert.Equal(7, viewModel.AdvancedRows.Count);
             Assert.True(viewModel.OnBase);
 
             // The pages are opened by their own tabs rather than by a fold, so a step's settings
@@ -1808,7 +1805,7 @@ public class ActionDialogTests
     }
 
     /// <summary>
-    /// A step that sends its input to a window names that window with the same three parts a window
+    /// A step that sends its input to a window names that window with the same two fields a window
     /// action uses, and they are asked for only while that is where its input goes: the other input
     /// modes send to whatever has the focus, so the window below is never read while they are on.
     /// </summary>
@@ -1820,29 +1817,25 @@ public class ActionDialogTests
             var viewModel = Open("input.keyPress");
 
             Assert.False(Shown(viewModel, "targetWindow"));
-            Assert.False(Shown(viewModel, "targetMatchBy"));
-            Assert.False(Shown(viewModel, "targetCompareBy"));
+            Assert.False(Shown(viewModel, "targetHow"));
 
             Choose(viewModel, "inputMode", "background");
             Dispatcher.UIThread.RunJobs();
 
             Assert.True(Shown(viewModel, "targetWindow"));
-            Assert.True(Shown(viewModel, "targetMatchBy"));
-            Assert.True(Shown(viewModel, "targetCompareBy"));
+            Assert.True(Shown(viewModel, "targetHow"));
 
-            // All three are tuning rather than what the step is, so they are behind the fold.
+            // Both are tuning rather than what the step is, so they are behind the fold.
             var folded = viewModel.AdvancedRows.SelectMany(Names).ToList();
             Assert.Contains("targetWindow", folded);
-            Assert.Contains("targetMatchBy", folded);
-            Assert.Contains("targetCompareBy", folded);
+            Assert.Contains("targetHow", folded);
 
-            // Back to sending in front, and the three go with the mode that reads them.
+            // Back to sending in front, and the two go with the mode that reads them.
             Choose(viewModel, "inputMode", "foreground");
             Dispatcher.UIThread.RunJobs();
 
             Assert.False(Shown(viewModel, "targetWindow"));
-            Assert.False(Shown(viewModel, "targetMatchBy"));
-            Assert.False(Shown(viewModel, "targetCompareBy"));
+            Assert.False(Shown(viewModel, "targetHow"));
         });
     }
 
@@ -1861,16 +1854,13 @@ public class ActionDialogTests
                 .First(parameter => parameter.Definition.Name == "targetWindow");
 
             Choose(viewModel, "inputMode", "background");
-            Choose(viewModel, "targetMatchBy", "process");
-            Choose(viewModel, "targetCompareBy", "regex");
+            Choose(viewModel, "targetHow", "titleRegex");
             text.Text = @"^notepad$";
             Dispatcher.UIThread.RunJobs();
 
-            // A pattern in that box is not a title bar, and the field says so — the same way a window
-            // action's does.
-            Assert.Equal(Strings.Format("Common.OptionalSuffix",
-                Strings.Get("input.keyPress.targetWindow.regex.label",
-                    text.Definition.Variant!.Label)), text.Label);
+            // The text keeps its name; what the field wants is what the choice beside it says.
+            Assert.Equal(Strings.Format("Common.OptionalSuffix", text.Definition.LocalLabel),
+                text.Label);
 
             MacroStep? posted = null;
             viewModel.CloseRequested += step => posted = step;
@@ -1880,24 +1870,21 @@ public class ActionDialogTests
                 parameter => parameter.Value, StringComparer.Ordinal);
             Assert.Equal("background", written["inputMode"]);
             Assert.Equal(@"^notepad$", written["targetWindow"]);
-            Assert.Equal("process", written["targetMatchBy"]);
-            Assert.Equal("regex", written["targetCompareBy"]);
+            Assert.Equal("titleRegex", written["targetHow"]);
 
             // Told again to send in front, the step carries nothing about a window it does not read.
             Choose(viewModel, "inputMode", "foreground");
             Dispatcher.UIThread.RunJobs();
 
             Assert.DoesNotContain("targetWindow", viewModel.JsonPreview, StringComparison.Ordinal);
-            Assert.DoesNotContain("targetMatchBy", viewModel.JsonPreview, StringComparison.Ordinal);
-            Assert.DoesNotContain("targetCompareBy", viewModel.JsonPreview, StringComparison.Ordinal);
+            Assert.DoesNotContain("targetHow", viewModel.JsonPreview, StringComparison.Ordinal);
 
             MacroStep? inFront = null;
             viewModel.CloseRequested += step => inFront = step;
             viewModel.SaveCommand.Execute(null);
 
             Assert.DoesNotContain(inFront!.Parameters, parameter => parameter.Name == "targetWindow");
-            Assert.DoesNotContain(inFront.Parameters, parameter => parameter.Name == "targetMatchBy");
-            Assert.DoesNotContain(inFront.Parameters, parameter => parameter.Name == "targetCompareBy");
+            Assert.DoesNotContain(inFront.Parameters, parameter => parameter.Name == "targetHow");
         });
     }
 

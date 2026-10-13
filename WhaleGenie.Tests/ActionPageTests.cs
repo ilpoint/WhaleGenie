@@ -85,8 +85,8 @@ public class ActionPageTests
     private static readonly string[] Tuning =
     [
         "minFeatures", "ignoreColor", "matchIndex", "orderBy",
-        "anchorMode", "anchorWindow", "anchorMatchBy", "anchorCompareBy", "anchorSelector",
-        "inputMode", "targetWindow", "targetMatchBy", "targetCompareBy", "style",
+        "anchorMode", "anchorWindow", "anchorHow", "anchorSelector",
+        "inputMode", "targetWindow", "targetHow", "style",
         "frameMaxAgeMs", "preprocess", "colorFilter", "colorTolerance", "fixText",
         "expected", "minScore", "contentPattern", "encoding", "outputEncoding", "lineEnding", "quoteAll",
         "emptyCells", "align", "separator", "depth", "sortBy", "descending", "withinCount",
@@ -113,9 +113,9 @@ public class ActionPageTests
     }
 
     /// <summary>
-    /// A listing names its windows with the same three fields the other window actions use, so what
-    /// to match, which part of a window to match it against and how all stand on the basic page next
-    /// to what the step is; whether every program and class is read as well is tuning.
+    /// A listing names its windows with the same two fields the other window actions use, so what to
+    /// match and how the window is recognised both stand on the basic page next to what the step is;
+    /// whether every program and class is read as well is tuning.
     /// </summary>
     [Fact]
     public void A_listing_names_its_windows_the_way_the_window_actions_do()
@@ -123,13 +123,11 @@ public class ActionPageTests
         var list = Ui.Run(() => ActionCatalog.Find("window.list")!);
 
         var basic = On(list, viewModel => viewModel.Rows);
-        Assert.Contains("title", basic);
-        Assert.Contains("matchBy", basic);
-        Assert.Contains("compareBy", basic);
+        Assert.Contains("window", basic);
+        Assert.Contains("how", basic);
 
         var advanced = On(list, viewModel => viewModel.AdvancedRows);
-        Assert.DoesNotContain("matchBy", advanced);
-        Assert.DoesNotContain("compareBy", advanced);
+        Assert.DoesNotContain("how", advanced);
         Assert.Contains("details", advanced);
     }
 
@@ -346,8 +344,8 @@ public class ActionPageTests
 
     /// <summary>
     /// Which window a step works on, and how that window is recognised, is what the step is rather
-    /// than how it does it: a window named wrongly is a step that quietly does nothing, so all three
-    /// parts of the name are read on the basic page.
+    /// than how it does it: a window named wrongly is a step that quietly does nothing, so both
+    /// fields of the name are read on the basic page.
     /// </summary>
     [Fact]
     public void How_a_window_is_recognised_is_on_the_basic_page()
@@ -356,14 +354,18 @@ public class ActionPageTests
 
         foreach (var action in Ui.Run(() => ActionCatalog.RunnableActions.ToList()))
         {
-            var basic = On(action, viewModel => viewModel.Rows);
-            var advanced = On(action, viewModel => viewModel.AdvancedRows);
-            if (!basic.Concat(advanced).Contains("compareBy", StringComparer.Ordinal))
+            // "How" is a word other actions use for other questions, such as which tab a browser
+            // step switches to, so the rule is found by the window field it stands beside rather
+            // than by that name alone.
+            if (!action.Parameters.Any(parameter => parameter.Name == "window"
+                    && parameter.Kind is ActionParameterKind.Window)
+                || action.Parameters.All(parameter => parameter.Name != "how"))
             {
                 continue;
             }
 
-            misplaced.AddRange(new[] { "title", "matchBy", "compareBy" }
+            var basic = On(action, viewModel => viewModel.Rows);
+            misplaced.AddRange(new[] { "window", "how" }
                 .Where(name => !basic.Contains(name, StringComparer.Ordinal))
                 .Select(name => $"{action.Key}: {name}"));
         }

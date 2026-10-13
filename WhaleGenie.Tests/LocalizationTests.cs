@@ -57,16 +57,6 @@ public class LocalizationTests
                 {
                     Wanted(missing, $"{definition.Key}.{parameter.Name}.label");
 
-                    // A field that goes by another name while a field beside it says something is
-                    // named twice, and the one that shows up under a pattern is the one a person
-                    // reading the interface is least likely to find missing.
-                    if (parameter.Variant is { } variant)
-                    {
-                        Wanted(missing, $"{definition.Key}.{parameter.Name}.{variant.When}.label");
-                        Wanted(missing,
-                            $"{definition.Key}.{parameter.Name}.{variant.When}.placeholder");
-                    }
-
                     foreach (var choice in parameter.OptionChoices)
                     {
                         Wanted(missing, $"{definition.Key}.{parameter.Name}.option.{choice.Value}");
@@ -119,12 +109,6 @@ public class LocalizationTests
                 {
                     known.Add($"{definition.Key}.{parameter.Name}.label");
                     known.Add($"{definition.Key}.{parameter.Name}.hint");
-
-                    if (parameter.Variant is { } variant)
-                    {
-                        known.Add($"{definition.Key}.{parameter.Name}.{variant.When}.label");
-                        known.Add($"{definition.Key}.{parameter.Name}.{variant.When}.placeholder");
-                    }
 
                     foreach (var choice in parameter.OptionChoices)
                     {

@@ -38,15 +38,18 @@ public class PickerTests
     [Fact]
     public void Window_parameters_are_edited_with_the_window_picker()
     {
+        string[] windowFields = ["window", "title", "anchorWindow", "targetWindow"];
+
         var parameters = Ui.Run(() => ActionCatalog.Definitions
             .SelectMany(definition => definition.Parameters)
-            .Where(parameter => parameter.Name is "window" or "title")
+            .Where(parameter => windowFields.Contains(parameter.Name, StringComparer.Ordinal))
             .ToList());
 
         Assert.NotEmpty(parameters);
         Assert.All(parameters, parameter => Assert.Equal(ActionParameterKind.Window, parameter.Kind));
         Assert.Contains(parameters, parameter => parameter.Name == "window");
-        Assert.Contains(parameters, parameter => parameter.Name == "title");
+        Assert.Contains(parameters, parameter => parameter.Name == "anchorWindow");
+        Assert.Contains(parameters, parameter => parameter.Name == "targetWindow");
     }
 
     [Fact]
@@ -178,16 +181,17 @@ public class PickerTests
         {
             var viewModel = new AddActionViewModel(ActionCatalog.Definitions, [], []);
             viewModel.SelectAction("window.exists");
+            var text = viewModel.Parameters.First(parameter => parameter.Definition.Name == "window");
 
             // A step that says nothing about it reads titles, and the picker takes a title.
-            Assert.Equal(WindowMatch.Title, viewModel.WindowMatchFor());
+            Assert.Equal(WindowMatch.Title, viewModel.WindowMatchFor(text));
 
-            var matchBy = viewModel.Parameters.First(parameter => parameter.Definition.Name == "matchBy");
-            matchBy.Option = matchBy.Choices.First(choice => choice.Value == "process");
-            Assert.Equal(WindowMatch.Process, viewModel.WindowMatchFor());
+            var how = viewModel.Parameters.First(parameter => parameter.Definition.Name == "how");
+            how.Option = how.Choices.First(choice => choice.Value == "process");
+            Assert.Equal(WindowMatch.Process, viewModel.WindowMatchFor(text));
 
-            matchBy.Option = matchBy.Choices.First(choice => choice.Value == "class");
-            Assert.Equal(WindowMatch.ClassName, viewModel.WindowMatchFor());
+            how.Option = how.Choices.First(choice => choice.Value == "class");
+            Assert.Equal(WindowMatch.ClassName, viewModel.WindowMatchFor(text));
         });
     }
 

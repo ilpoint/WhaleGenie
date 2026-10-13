@@ -2580,29 +2580,17 @@ public sealed class MacroRunner
         }
 
         // Posting messages needs a window to post them at. The step names it the way the window
-        // actions name one — the text compared with the part it says to compare, the way it says to
-        // compare it — so a step that types into a window whose title moves with the document is
-        // not left without a handle on it.
-        var text = Read(step.Text("targetWindow")).AsText().Trim();
-        if (text.Length == 0)
+        // actions name one — the text held up against the window the way it says to hold it up —
+        // so a step that types into a window whose title moves with the document is not left
+        // without a handle on it.
+        var rule = WindowRuleOf(step, "targetWindow", "targetHow");
+        if (rule.Text.Length == 0)
         {
             throw new StepFailure("Run.MissingTargetWindow");
         }
 
-        WindowInfo window;
-        try
-        {
-            window = _devices.Windows.Find(text, WindowMatchOf(step.Text("targetMatchBy")),
-                         WindowCompareOf(step.Text("targetCompareBy")))
-                     ?? throw new StepFailure("Run.WindowNotFound", text);
-        }
-        catch (ArgumentException)
-        {
-            // A pattern the machine cannot read is the macro's problem to see, not a stack trace to
-            // puzzle over, so it comes back as a failed step — the same words the window actions
-            // report it with, and before anything is typed into the wrong window.
-            throw new StepFailure("Run.BadPattern", text);
-        }
+        var window = _devices.Windows.Find(rule.Text, rule.Match, rule.Compare)
+                     ?? throw new StepFailure("Run.WindowNotFound", rule.Text);
 
         return new InputRoute(InputDelivery.Background, window.Handle);
     }
@@ -2639,25 +2627,11 @@ public sealed class MacroRunner
             return (null, null);
         }
 
-        // The window is recognised the way the window actions recognise one: the text compared with
-        // the part the step names, the way it says to compare it. A step written before those two
-        // fields existed reads titles the way it always did, and no text at all means the window in
-        // front, the same way every other window field reads.
-        var title = Read(step.Text("anchorWindow")).AsText().Trim();
-        WindowInfo window;
-        try
-        {
-            window = _devices.Windows.Find(title, WindowMatchOf(step.Text("anchorMatchBy")),
-                         WindowCompareOf(step.Text("anchorCompareBy")))
-                     ?? throw new StepFailure("Run.WindowNotFound", title);
-        }
-        catch (ArgumentException)
-        {
-            // A pattern the machine cannot read is the macro's problem to see, not a stack trace to
-            // puzzle over, so it comes back as a failed step — the same words the window actions
-            // report it with.
-            throw new StepFailure("Run.BadPattern", title);
-        }
+        // The window is recognised the way the window actions recognise one, and no text at all
+        // means the window in front, the same way every other window field reads.
+        var rule = WindowRuleOf(step, "anchorWindow", "anchorHow");
+        var window = _devices.Windows.Find(rule.Text, rule.Match, rule.Compare)
+                     ?? throw new StepFailure("Run.WindowNotFound", rule.Text);
 
         var corner = mode == "client" ? _devices.Windows.ClientOrigin(window.Handle)
             : window.Location;
@@ -6637,7 +6611,7 @@ public sealed class MacroRunner
     /// </summary>
     private void ListWindows(ExecutableStep step, int depth)
     {
-        var windows = Matching(step, WindowText(step));
+        var windows = Matching(step);
 
         // The program and the class of a window are read only when the step keeps the list and asks
         // for them, because looking either of them up costs a look at the window. Every entry is
@@ -6659,10 +6633,11 @@ public sealed class MacroRunner
     /// The windows a listing hands over, in the order the system gives them: the ones the step's
     /// text picks out, or every window there is when it names none.
     /// </summary>
-    private IReadOnlyList<WindowInfo> Matching(ExecutableStep step, string wanted)
-        => Patterned(wanted, () => _devices.Windows.Filter(wanted,
-            WindowMatchOf(step.Text("matchBy")), WindowCompareOf(step.Text("compareBy")),
-            everyWhenEmpty: true));
+    private IReadOnlyList<WindowInfo> Matching(ExecutableStep step)
+    {
+        var rule = WindowRuleOf(step, "window", "how");
+        return _devices.Windows.Filter(rule.Text, rule.Match, rule.Compare, everyWhenEmpty: true);
+    }
 
     /// <summary>Does something to the window a step names, or fails the step when it is not open.</summary>
     private void Act(ExecutableStep step, int depth, string message, Func<WindowInfo, bool> action)
@@ -6679,8 +6654,7 @@ public sealed class MacroRunner
 
     /// <summary>
     /// The window a step names, or a failure saying which one could not be found. "Match by" says
-    /// whether the text is part of the title, the name of the program that owns the window, or the
-    /// class that program registered; an empty text means whatever window is in front.
+    /// what the text is held up against and how; an empty text means whatever window is in front.
     /// </summary>
     private WindowInfo Locate(ExecutableStep step)
         => Lookup(step) ?? throw new StepFailure("Run.WindowNotFound", WindowText(step));
@@ -6688,48 +6662,40 @@ public sealed class MacroRunner
     /// <summary>The same, for the steps that report rather than fail when no window matches.</summary>
     private WindowInfo? Lookup(ExecutableStep step)
     {
-        var wanted = WindowText(step);
-        return Patterned(wanted, () => _devices.Windows.Find(wanted,
-            WindowMatchOf(step.Text("matchBy")), WindowCompareOf(step.Text("compareBy"))));
+        var rule = WindowRuleOf(step, "window", "how");
+        return _devices.Windows.Find(rule.Text, rule.Match, rule.Compare);
     }
 
     /// <summary>
-    /// Reads windows with a rule that may hold a pattern. One the machine cannot read is the macro's
-    /// problem to see, not a stack trace to puzzle over, so it comes back as a failed step — the
-    /// same words whichever window action asked.
+    /// The window a step names, read off the two fields the rule is made of: the text, with the
+    /// variables in it filled in, and the one choice that says what the text is held up against and
+    /// how. The step families that name a window — a window action, a step that reads the screen
+    /// and one that posts its input at a window — say it in these same two fields, so they are read
+    /// in this one place.
     /// </summary>
-    private static T Patterned<T>(string text, Func<T> look)
+    private (string Text, WindowMatch Match, WindowCompare Compare) WindowRuleOf(ExecutableStep step,
+        string textField, string howField)
     {
+        var text = Read(step.Text(textField)).AsText().Trim();
+        var (match, compare) = WindowHow.Read(step.Text(howField));
+
+        // A pattern the machine cannot read is the macro's problem to see, not a stack trace to
+        // puzzle over, so it comes back as a failed step before anything is looked at — the same
+        // words whichever step asked.
         try
         {
-            return look();
+            WindowHow.Check(text, compare);
         }
         catch (ArgumentException)
         {
             throw new StepFailure("Run.BadPattern", text);
         }
+
+        return (text, match, compare);
     }
 
     /// <summary>What a step wrote into its window field, with the variables in it resolved.</summary>
-    private string WindowText(ExecutableStep step) => Read(step.Text("title")).AsText().Trim();
-
-    private static WindowMatch WindowMatchOf(string text) => text.Trim().ToLowerInvariant() switch
-    {
-        "process" => WindowMatch.Process,
-        "class" => WindowMatch.ClassName,
-        _ => WindowMatch.Title,
-    };
-
-    /// <summary>
-    /// How the text is held up against the part of the window it named. Anything unrecognised reads
-    /// as "contains", which is what a macro written before there was a choice meant.
-    /// </summary>
-    private static WindowCompare WindowCompareOf(string text) => text.Trim().ToLowerInvariant() switch
-    {
-        "startswith" => WindowCompare.StartsWith,
-        "regex" => WindowCompare.Regex,
-        _ => WindowCompare.Contains,
-    };
+    private string WindowText(ExecutableStep step) => Read(step.Text("window")).AsText().Trim();
 
     /// <summary>
     /// Reads where a window is and how big it is. The rectangle is written the way a search region

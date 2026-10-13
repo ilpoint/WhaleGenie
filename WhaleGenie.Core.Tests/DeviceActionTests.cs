@@ -396,7 +396,7 @@ public class DeviceActionTests
         [
             Step("input.keyPress", Param("key", "F5"), Param("holdMs", "10"),
                 Param("inputMode", "background"), Param("targetWindow", "notepad"),
-                Param("targetMatchBy", "process")),
+                Param("targetHow", "process")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -405,8 +405,8 @@ public class DeviceActionTests
 
     /// <summary>
     /// A pattern the machine cannot read is the macro's problem to see, and it is seen before
-    /// anything is typed: the step fails in the same words the window actions use rather than
-    /// posting the keys at whichever window happened to match.
+    /// anything is looked at or typed: the step fails in the same words the window actions use
+    /// rather than posting the keys at whichever window happened to match.
     /// </summary>
     [Fact]
     public async Task Background_input_with_a_pattern_it_cannot_read_stops_the_step()
@@ -418,14 +418,15 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("input.keyPress", Param("key", "F5"), Param("inputMode", "background"),
-                Param("targetWindow", "Notepad["), Param("targetCompareBy", "regex")),
+                Param("targetWindow", "Notepad["), Param("targetHow", "titleRegex")),
         ], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.BadPattern", result.Key);
 
-        // It looked the window up and stopped there: nothing was posted at whatever came back.
-        Assert.Equal(["findWindow Notepad["], devices.Calls);
+        // The pattern was refused before the windows were even read, so nothing was posted at
+        // whatever came back.
+        Assert.Empty(devices.Calls);
     }
 
     [Fact]
@@ -1056,7 +1057,7 @@ public class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Region((10, 20, 30, 40)),
                 Param("anchorMode", "window"), Param("anchorWindow", "notepad"),
-                Param("anchorMatchBy", "process"), Hit("match", "where")),
+                Param("anchorHow", "process"), Hit("match", "where")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -1079,7 +1080,7 @@ public class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"),
                 Param("anchorMode", "window"), Param("anchorWindow", "Notepad["),
-                Param("anchorCompareBy", "regex")),
+                Param("anchorHow", "titleRegex")),
         ], devices);
 
         Assert.False(result.Succeeded);
@@ -5745,8 +5746,8 @@ public class DeviceActionTests
             new ScreenPoint(10, 20), new ScreenSize(300, 200), false, false));
         var (_, _, store) = await RunAsync(
         [
-            Step("window.exists", Param("title", "notepad"), Returns("found=here")),
-            Step("window.exists", Param("title", "calculator"), Returns("found=there")),
+            Step("window.exists", Param("window", "notepad"), Returns("found=here")),
+            Step("window.exists", Param("window", "calculator"), Returns("found=there")),
         ], devices);
 
         Assert.True(store.Local.Values["here"].Flag);
@@ -5763,7 +5764,7 @@ public class DeviceActionTests
         };
         var (result, _, store) = await RunAsync(
         [
-            Step("window.waitFor", Param("title", "notepad"), Param("timeoutMs", "2000"),
+            Step("window.waitFor", Param("window", "notepad"), Param("timeoutMs", "2000"),
                 Returns("title=win")),
         ], devices);
 
@@ -5780,11 +5781,11 @@ public class DeviceActionTests
         devices.WindowFacts[1] = ("notes-app", "WhaleGenieNotes");
         var (_, _, store) = await RunAsync(
         [
-            Step("window.exists", Param("title", "notes-app"), Param("matchBy", "process"),
+            Step("window.exists", Param("window", "notes-app"), Param("how", "process"),
                 Returns("found=byProcess")),
-            Step("window.exists", Param("title", "whalegenie"), Param("matchBy", "class"),
+            Step("window.exists", Param("window", "whalegenie"), Param("how", "class"),
                 Returns("found=byClass")),
-            Step("window.exists", Param("title", "notes"), Param("matchBy", "title"),
+            Step("window.exists", Param("window", "notes"), Param("how", "titleContains"),
                 Returns("found=byTitle")),
         ], devices);
 
@@ -5800,13 +5801,13 @@ public class DeviceActionTests
         var (_, _, store) = await RunAsync(
         [
             // The one window is called "Notepad - notes.txt".
-            Step("window.exists", Param("title", "notepad"), Param("compareBy", "startsWith"),
+            Step("window.exists", Param("window", "notepad"), Param("how", "titleStartsWith"),
                 Returns("found=fromStart")),
-            Step("window.exists", Param("title", "notes"), Param("compareBy", "startsWith"),
+            Step("window.exists", Param("window", "notes"), Param("how", "titleStartsWith"),
                 Returns("found=notFromStart")),
-            Step("window.exists", Param("title", "notes\\.txt$"), Param("compareBy", "regex"),
+            Step("window.exists", Param("window", "notes\\.txt$"), Param("how", "titleRegex"),
                 Returns("found=byPattern")),
-            Step("window.exists", Param("title", "notes"), Returns("found=byText")),
+            Step("window.exists", Param("window", "notes"), Returns("found=byText")),
         ], devices);
 
         Assert.True(store.Local.Values["fromStart"].Flag);
@@ -5822,7 +5823,7 @@ public class DeviceActionTests
         devices.WindowFacts[1] = ("notepad", "Notepad");
         var (result, _, _) = await RunAsync(
         [
-            Step("window.exists", Param("title", "notes("), Param("compareBy", "regex"),
+            Step("window.exists", Param("window", "notes("), Param("how", "titleRegex"),
                 Returns("found=found")),
         ], devices);
 
@@ -5836,11 +5837,75 @@ public class DeviceActionTests
         devices.WindowFacts[1] = ("notepad", "Notepad");
         var (_, _, store) = await RunAsync(
         [
-            Step("window.exists", Param("title", "explorer"), Param("matchBy", "process"),
+            Step("window.exists", Param("window", "explorer"), Param("how", "process"),
                 Returns("found=found")),
         ], devices);
 
         Assert.False(store.Local.Values["found"].Flag);
+    }
+
+    /// <summary>
+    /// The five ways of recognising a window are read the same by every step that names one: what a
+    /// window action acts on, what a step that reads the screen counts its coordinates from, and what
+    /// a step posting its input at a window posts at. One rule, read three ways, is the whole point
+    /// of there being one rule.
+    /// </summary>
+    [Fact]
+    public async Task Every_step_that_names_a_window_reads_the_ways_the_same()
+    {
+        // The one window is "Notepad - notes.txt", owned by "notepad", registered as "Notepad", so
+        // each way is asked with a text only that way answers to.
+        (string How, string Text, bool Found)[] ways =
+        [
+            (WindowHow.TitleContains, "notes", true),
+            (WindowHow.TitleStartsWith, "Notepad", true),
+            (WindowHow.TitleRegex, @"^Notepad - notes\.txt$", true),
+            (WindowHow.Process, "notepad", true),
+            (WindowHow.Class, "Notepad", true),
+            (WindowHow.TitleStartsWith, "notes", false),
+            (WindowHow.Process, "explorer", false),
+            (WindowHow.Class, "CalcFrame", false),
+        ];
+
+        foreach (var (how, text, found) in ways)
+        {
+            var (acted, _, store) = await RunAsync(
+            [
+                Step("window.exists", Param("window", text), Param("how", how),
+                    Returns("found=hit")),
+            ], Named());
+            Assert.Equal(found, store.Local.Values["hit"].Flag);
+
+            var (looked, _, _) = await RunAsync(
+            [
+                Step("vision.findImage", Pictures("ok.png"), Param("anchorMode", "window"),
+                    Param("anchorWindow", text), Param("anchorHow", how)),
+            ], Looking());
+            Assert.Equal(found, looked.Succeeded);
+
+            var (posted, _, _) = await RunAsync(
+            [
+                Step("input.keyPress", Param("key", "F5"), Param("inputMode", "background"),
+                    Param("targetWindow", text), Param("targetHow", how)),
+            ], Named());
+            Assert.Equal(found, posted.Succeeded);
+        }
+    }
+
+    /// <summary>One window, which can be named by its title, by its program or by its class.</summary>
+    private static FakeDeviceLayer Named()
+    {
+        var devices = WithAWindow();
+        devices.WindowFacts[1] = ("notepad", "Notepad");
+        return devices;
+    }
+
+    /// <summary>The same, with a picture waiting to be found in it.</summary>
+    private static FakeDeviceLayer Looking()
+    {
+        var devices = Named();
+        devices.Match = new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(4, 4));
+        return devices;
     }
 
     [Fact]
@@ -5848,7 +5913,7 @@ public class DeviceActionTests
     {
         var devices = WithAWindow();
         var (result, _, store) = await RunAsync(
-            [Step("window.info", Param("title", "Notepad"), Parts("window", "win"))], devices);
+            [Step("window.info", Param("window", "Notepad"), Parts("window", "win"))], devices);
 
         Assert.True(result.Succeeded);
 
@@ -5877,7 +5942,7 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("window.info", Param("title", "Notepad"), Returns("window=win")),
+            Step("window.info", Param("window", "Notepad"), Returns("window=win")),
             Step("window.list", Returns("windows=list")),
         ], devices);
 
@@ -5896,7 +5961,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var (result, _, _) = await RunAsync(
-            [Step("window.info", Param("title", "ghost"), Parts("window", "win"))], devices);
+            [Step("window.info", Param("window", "ghost"), Parts("window", "win"))], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.WindowNotFound", result.Key);
@@ -5907,7 +5972,7 @@ public class DeviceActionTests
     {
         var devices = WithAWindow();
         var (result, _, store) = await RunAsync(
-            [Step("vision.captureWindow", Param("title", "Notepad"), Parts("image", "shot"))], devices);
+            [Step("vision.captureWindow", Param("window", "Notepad"), Parts("image", "shot"))], devices);
 
         Assert.True(result.Succeeded);
         Assert.Contains("capture 1000 500 800 600", devices.Calls);
@@ -5923,7 +5988,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var (result, _, _) = await RunAsync(
-            [Step("vision.captureWindow", Param("title", "ghost"), Parts("image", "shot"))], devices);
+            [Step("vision.captureWindow", Param("window", "ghost"), Parts("image", "shot"))], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.WindowNotFound", result.Key);
@@ -5934,7 +5999,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var (result, _, _) = await RunAsync(
-            [Step("window.waitFor", Param("title", "ghost"), Param("timeoutMs", "0"))], devices);
+            [Step("window.waitFor", Param("window", "ghost"), Param("timeoutMs", "0"))], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.WindowTimeout", result.Key);
@@ -5946,7 +6011,7 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer();
         devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
         var (result, _, _) = await RunAsync(
-            [Step("window.activate", Param("title", "note"))], devices);
+            [Step("window.activate", Param("window", "note"))], devices);
 
         Assert.True(result.Succeeded);
         Assert.Contains("activateWindow 21", devices.Calls);
@@ -5957,7 +6022,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
-        await RunAsync([Step("window.maximize", Param("title", "Notepad"))], devices);
+        await RunAsync([Step("window.maximize", Param("window", "Notepad"))], devices);
 
         Assert.Contains("maximizeWindow 21", devices.Calls);
     }
@@ -5967,7 +6032,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
-        await RunAsync([Step("window.minimize", Param("title", "Notepad"))], devices);
+        await RunAsync([Step("window.minimize", Param("window", "Notepad"))], devices);
 
         Assert.Contains("minimizeWindow 21", devices.Calls);
     }
@@ -5979,7 +6044,7 @@ public class DeviceActionTests
         devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
         await RunAsync(
         [
-            Step("window.move", Param("title", "Notepad"), Param("x", "100"), Param("y", "50"),
+            Step("window.move", Param("window", "Notepad"), Param("x", "100"), Param("y", "50"),
                 Param("width", "640"), Param("height", "480")),
         ], devices);
 
@@ -5991,7 +6056,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
-        await RunAsync([Step("window.close", Param("title", "Notepad"))], devices);
+        await RunAsync([Step("window.close", Param("window", "Notepad"))], devices);
 
         Assert.Contains("closeWindow 21", devices.Calls);
     }
@@ -6001,7 +6066,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var (result, _, _) = await RunAsync(
-            [Step("window.close", Param("title", "ghost"))], devices);
+            [Step("window.close", Param("window", "ghost"))], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.WindowNotFound", result.Key);
@@ -6014,7 +6079,7 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer { WindowActionWorks = false };
         devices.Windows.Add(new WindowInfo(5, "Locked", new ScreenPoint(), new ScreenSize(), false, false));
         var (result, _, _) = await RunAsync(
-            [Step("window.restore", Param("title", "Locked"))], devices);
+            [Step("window.restore", Param("window", "Locked"))], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.WindowFailed", result.Key);
@@ -6165,7 +6230,7 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("window.info", Param("title", "Notepad"),
+            Step("window.info", Param("window", "Notepad"),
                 Returns("window=win")),
         ], devices);
 
@@ -6195,12 +6260,12 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("window.list", Param("title", "notepad"), Returns("windows=byTitle")),
-            Step("window.list", Param("title", "calc"), Param("matchBy", "process"),
+            Step("window.list", Param("window", "notepad"), Returns("windows=byTitle")),
+            Step("window.list", Param("window", "calc"), Param("how", "process"),
                 Param("details", "true"), Returns("windows=byProcess")),
-            Step("window.list", Param("title", "CalcFrame"), Param("matchBy", "class"),
+            Step("window.list", Param("window", "CalcFrame"), Param("how", "class"),
                 Param("details", "true"), Returns("windows=byClass")),
-            Step("window.list", Param("title", @"^Note.*notes\.txt$"), Param("compareBy", "regex"),
+            Step("window.list", Param("window", @"^Note.*notes\.txt$"), Param("how", "titleRegex"),
                 Returns("windows=byPattern")),
         ], devices);
 
@@ -6232,7 +6297,7 @@ public class DeviceActionTests
         devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
 
         var (result, _, _) = await RunAsync(
-            [Step("window.list", Param("title", "notes("), Param("compareBy", "regex"))], devices);
+            [Step("window.list", Param("window", "notes("), Param("how", "titleRegex"))], devices);
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.BadPattern", result.Key);
@@ -8183,8 +8248,8 @@ internal sealed class FakeDeviceLayer
     /// <summary>
     /// Whether a fake window answers to a value. A title is always there; the process name and the
     /// class name have to be handed in through <see cref="WindowFacts"/>, the way the real device
-    /// has to look them up. The comparing is the device's job, so it is done the same three ways
-    /// here as the real one does it.
+    /// has to look them up. How the two are held up against each other is the device's job, so it
+    /// is the same reading the real device does rather than a second one that could disagree.
     /// </summary>
     private bool Answers(WindowInfo window, string wanted, WindowMatch match, WindowCompare compare)
     {
@@ -8195,12 +8260,7 @@ internal sealed class FakeDeviceLayer
             _ => window.Title,
         };
 
-        return compare switch
-        {
-            WindowCompare.StartsWith => text.StartsWith(wanted, StringComparison.OrdinalIgnoreCase),
-            WindowCompare.Regex => Regex.IsMatch(text, wanted, RegexOptions.IgnoreCase),
-            _ => text.Contains(wanted, StringComparison.OrdinalIgnoreCase),
-        };
+        return WindowHow.Matches(text, wanted, compare);
     }
 
     private (string Process, string ClassName) Facts(WindowInfo window)

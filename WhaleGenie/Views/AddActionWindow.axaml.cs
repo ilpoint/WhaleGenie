@@ -1311,7 +1311,7 @@ public partial class AddActionWindow : Window
 
         // The picker takes the part this step compares its text with, so what it hands back can be
         // written straight into the field.
-        var match = (DataContext as AddActionViewModel)?.WindowMatchFor() ?? WindowMatch.Title;
+        var match = (DataContext as AddActionViewModel)?.WindowMatchFor(parameter) ?? WindowMatch.Title;
         if (await WindowPickerWindow.PickAsync(this, match) is { Length: > 0 } picked)
         {
             parameter.Text = picked;

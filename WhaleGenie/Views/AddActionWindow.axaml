@@ -147,8 +147,10 @@
                 </Grid>
 
                 <!-- A value that may name variables: the names are offered while it is typed in,
-                     and a whole value may be built with the expression editor. -->
-                <Grid IsVisible="{Binding OffersVariables}" ColumnDefinitions="*,Auto,Auto"
+                     and a whole value may be built with the expression editor. A window is written
+                     here like anything else, with the picker beside it that fills in one of the
+                     windows that are open right now. -->
+                <Grid IsVisible="{Binding OffersVariables}" ColumnDefinitions="*,Auto,Auto,Auto"
                       ColumnSpacing="6">
                     <AutoCompleteBox Classes="VarInput"
                                      ItemsSource="{Binding ExpressionSuggestions}"
@@ -157,11 +159,16 @@
                                      MinimumPrefixLength="1"
                                      FilterMode="Contains" />
                     <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                            IsVisible="{Binding IsWindow}"
+                            Content="{Binding [Add.PickWindow], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.PickWindowHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnPickWindow" />
+                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
                             IsVisible="{Binding OffersFormula}"
                             Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenExpressionBuilder" />
-                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                    <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
                             Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnPickVariable" />
@@ -401,20 +408,6 @@
                                    IsVisible="{Binding !HasPictures}" />
                     </Grid>
                 </StackPanel>
-
-                <!-- A window, which the picker fills in from what is open right now. -->
-                <Grid IsVisible="{Binding IsWindow}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                    <TextBox Classes="ParamInput" Text="{Binding Text}"
-                             PlaceholderText="{Binding Placeholder}" />
-                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
-                            Content="{Binding [Add.PickWindow], Source={x:Static loc:Strings.Current}}"
-                            ToolTip.Tip="{Binding [Add.PickWindowHint], Source={x:Static loc:Strings.Current}}"
-                            Click="OnPickWindow" />
-                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
-                            Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
-                            ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
-                            Click="OnPickVariable" />
-                </Grid>
 
                 <!-- Whether the step recognises the right window is otherwise only visible by
                      running the macro, so the windows this rule picks out right now are listed

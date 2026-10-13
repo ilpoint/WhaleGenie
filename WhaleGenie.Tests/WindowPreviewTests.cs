@@ -66,7 +66,7 @@ public class WindowPreviewTests
                 .Add(1, "Notepad - notes.txt", "notepad", "Notepad")
                 .Add(2, "Notepad - other.txt", "notepad", "Notepad");
 
-            var (_, preview) = Rule(windows, @"^Notepad - notes", compareBy: "regex");
+            var (_, preview) = Rule(windows, @"^Notepad - notes", how: "titleRegex");
 
             Assert.Equal(Strings.Format("Add.WindowPreview.Count", 1), preview.Summary);
             Assert.Equal("Notepad - notes.txt", Assert.Single(preview.Rows).Title);
@@ -79,7 +79,7 @@ public class WindowPreviewTests
         Ui.Run(() =>
         {
             var (_, preview) = Rule(Desk().Add(1, "Notepad", "notepad", "Notepad"), "[",
-                compareBy: "regex");
+                how: "titleRegex");
 
             // The same words the run reports it with, because it is the same mistake.
             Assert.Equal(Strings.Format("Run.BadPattern", "["), preview.Summary);
@@ -96,7 +96,7 @@ public class WindowPreviewTests
                 .Add(1, "Notepad - notes.txt", "notepad", "Notepad")
                 .Add(2, "Calculator", "calc", "CalcFrame");
 
-            var (_, preview) = Rule(windows, "calc", matchBy: "process");
+            var (_, preview) = Rule(windows, "calc", how: "process");
 
             Assert.Equal(Strings.Format("Add.WindowPreview.Count", 1), preview.Summary);
             var row = Assert.Single(preview.Rows);
@@ -268,7 +268,7 @@ public class WindowPreviewTests
 
             var text = Parameter(viewModel, "targetWindow");
             Choose(viewModel, "inputMode", "background");
-            Choose(viewModel, "targetMatchBy", "process");
+            Choose(viewModel, "targetHow", "process");
             text.Text = "notepad";
             Dispatcher.UIThread.RunJobs();
 
@@ -300,7 +300,7 @@ public class WindowPreviewTests
                 .Add(1, "Notepad - notes.txt", "notepad", "Notepad")
                 .Add(2, "Notepad - other.txt", "notepad", "Notepad");
 
-            Parameter(viewModel, "title").Text = "Notepad";
+            Parameter(viewModel, "window").Text = "Notepad";
             var preview = viewModel.WindowPreview!;
             preview.RefreshCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
@@ -364,13 +364,16 @@ public class WindowPreviewTests
 
             double Top(Control control) => control.TranslatePoint(default, window)!.Value.Y;
 
-            var box = window.GetVisualDescendants().OfType<TextBox>()
-                .First(one => one.IsEffectivelyVisible && ReferenceEquals(one.DataContext,
-                    Parameter(viewModel, "title")));
+            // The window's text is written in the box the variables are offered in, like any other
+            // text a macro works out earlier: what matters is that the list stands under that box.
+            var box = window.GetVisualDescendants().OfType<Control>()
+                .First(one => one.IsEffectivelyVisible
+                    && one is TextBox or AutoCompleteBox
+                    && ReferenceEquals(one.DataContext, Parameter(viewModel, "window")));
             var list = window.GetVisualDescendants().OfType<TextBlock>()
                 .First(one => one.IsEffectivelyVisible && one.Text == preview.Summary);
             var comparing = window.GetVisualDescendants().OfType<ComboBox>()
-                .First(one => ReferenceEquals(one.DataContext, Parameter(viewModel, "compareBy")));
+                .First(one => ReferenceEquals(one.DataContext, Parameter(viewModel, "how")));
 
             // Under the box it is about, rather than between a field and the editor of that field.
             Assert.True(Top(list) > Top(box), "the list is not under the match text");
@@ -409,7 +412,7 @@ public class WindowPreviewTests
                 .Add(1, "Notepad - notes.txt", "notepad", "Notepad")
                 .Add(2, "Calculator", "calc", "CalcFrame");
 
-            var text = Parameter(viewModel, "title");
+            var text = Parameter(viewModel, "window");
             Assert.True(text.ShowsWindowPreview);
 
             var preview = viewModel.WindowPreview!;
@@ -421,7 +424,7 @@ public class WindowPreviewTests
             Assert.Equal(Strings.Get("Add.WindowPreview.Every"), preview.Note);
 
             // Narrowed down by program name: the same three fields the other window actions use.
-            Choose(viewModel, "matchBy", "process");
+            Choose(viewModel, "how", "process");
             text.Text = "calc";
             Dispatcher.UIThread.RunJobs();
             preview.RefreshCommand.Execute(null);
@@ -454,7 +457,7 @@ public class WindowPreviewTests
             Assert.False(text.ShowsWindowPreview);
 
             Choose(viewModel, "inputMode", "background");
-            Choose(viewModel, "targetMatchBy", "process");
+            Choose(viewModel, "targetHow", "process");
             text.Text = "notepad";
             Dispatcher.UIThread.RunJobs();
 
@@ -465,7 +468,7 @@ public class WindowPreviewTests
             Assert.True(text.ShowsWindowPreview);
             Assert.Equal(Strings.Format("Add.WindowPreview.Count", 1), preview.Summary);
             Assert.Equal("笔记 - 第 3 关", Assert.Single(preview.Rows).Title);
-            Assert.Equal(WindowMatch.Process, viewModel.WindowMatchFor());
+            Assert.Equal(WindowMatch.Process, viewModel.WindowMatchFor(text));
 
             // Back to sending in front, and the list goes with the rule.
             Choose(viewModel, "inputMode", "foreground");
@@ -497,7 +500,7 @@ public class WindowPreviewTests
             Assert.False(text.ShowsWindowPreview);
 
             Choose(viewModel, "anchorMode", "window");
-            Choose(viewModel, "anchorMatchBy", "process");
+            Choose(viewModel, "anchorHow", "process");
             text.Text = "notepad";
             Dispatcher.UIThread.RunJobs();
 
@@ -508,7 +511,7 @@ public class WindowPreviewTests
             Assert.True(text.ShowsWindowPreview);
             Assert.Equal(Strings.Format("Add.WindowPreview.Count", 1), preview.Summary);
             Assert.Equal("笔记 - 第 3 关", Assert.Single(preview.Rows).Title);
-            Assert.Equal(WindowMatch.Process, viewModel.WindowMatchFor());
+            Assert.Equal(WindowMatch.Process, viewModel.WindowMatchFor(text));
 
             // Back to counting from the screen, and the list goes with the rule.
             Choose(viewModel, "anchorMode", "screen");
@@ -534,7 +537,7 @@ public class WindowPreviewTests
             var viewModel = Open("vision.getPixel");
             viewModel.Windows = windows;
             Choose(viewModel, "anchorMode", "window");
-            Choose(viewModel, "anchorMatchBy", "process");
+            Choose(viewModel, "anchorHow", "process");
             Parameter(viewModel, "anchorWindow").Text = "notepad";
 
             Assert.True(viewModel.ApplyCursorPosition(1010, 520));
@@ -546,12 +549,11 @@ public class WindowPreviewTests
 
     /// <summary>A step that recognises a window, written the way the fields say and read once.</summary>
     private static (AddActionViewModel ViewModel, WindowPreviewViewModel Preview) Rule(
-        WindowsForChecks windows, string text, string matchBy = "title", string compareBy = "contains")
+        WindowsForChecks windows, string text, string how = "titleContains")
     {
         var viewModel = Open("window.exists");
         viewModel.Windows = windows;
-        Choose(viewModel, "matchBy", matchBy);
-        Choose(viewModel, "compareBy", compareBy);
+        Choose(viewModel, "how", how);
         Typing(viewModel, text);
 
         var preview = viewModel.WindowPreview!;
@@ -561,7 +563,7 @@ public class WindowPreviewTests
     }
 
     private static void Typing(AddActionViewModel viewModel, string text)
-        => viewModel.Parameters.First(parameter => parameter.Definition.Name == "title").Text = text;
+        => viewModel.Parameters.First(parameter => parameter.Definition.Name == "window").Text = text;
 
     private static void Choose(AddActionViewModel viewModel, string name, string value)
     {

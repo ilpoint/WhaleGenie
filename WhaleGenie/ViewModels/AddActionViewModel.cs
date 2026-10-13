@@ -719,37 +719,26 @@ public partial class AddActionViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Which part of a window the action compares its text with, which is what the window picker has
-    /// to take away from here: a class picked while the step compares titles would match nothing. A
-    /// step that says nothing about it reads titles, the way it always did. The steps that look at
-    /// the screen say it beside their coordinate origin rather than as part of a window of their
-    /// own, and the steps that post their input at a window say it beside the input mode. All three
-    /// readings are the same rule, so the picker and the preview answer it the same way wherever the
-    /// field it belongs to sits.
+    /// The field that says how the window written in <paramref name="text"/> is recognised. The two
+    /// fields of a window rule sit together, and a step can name two windows at once — the one it
+    /// counts its coordinates from and the one it posts its input at — so each of those pairs keeps
+    /// its own answer rather than taking the other's.
     /// </summary>
-    public WindowMatch WindowMatchFor()
-        => (Parameter("matchBy") ?? Parameter("anchorMatchBy") ?? Parameter("targetMatchBy"))
-            ?.CurrentText
-            .Trim().ToLowerInvariant() switch
+    private StepParameterViewModel? HowField(StepParameterViewModel text)
+        => Parameter(text.Definition.Name switch
         {
-            "process" => WindowMatch.Process,
-            "class" => WindowMatch.ClassName,
-            _ => WindowMatch.Title,
-        };
+            "anchorWindow" => "anchorHow",
+            "targetWindow" => "targetHow",
+            _ => "how",
+        });
 
     /// <summary>
-    /// How the action compares its text with that part, which is the other half of the rule the
-    /// window picker and the preview of recognised windows are read against.
+    /// Which part of a window one of the step's window fields is held against, which is what the
+    /// window picker has to take away from that field: a class picked while the step compares
+    /// titles would match nothing.
     /// </summary>
-    public WindowCompare WindowCompareFor()
-        => (Parameter("compareBy") ?? Parameter("anchorCompareBy") ?? Parameter("targetCompareBy"))
-            ?.CurrentText
-            .Trim().ToLowerInvariant() switch
-        {
-            "startswith" => WindowCompare.StartsWith,
-            "regex" => WindowCompare.Regex,
-            _ => WindowCompare.Contains,
-        };
+    public WindowMatch WindowMatchFor(StepParameterViewModel text)
+        => WindowHow.Read(HowField(text)?.CurrentText).Match;
 
     /// <summary>
     /// The windows this step would recognise right now, which is shown under the field that
@@ -795,14 +784,14 @@ public partial class AddActionViewModel : ViewModelBase
         _previewField = null;
         _previewGate = PreviewGate.Always;
 
-        var text = Parameter("title");
-        if (text is null && Parameter("anchorMatchBy") is not null)
+        var text = Parameter("window");
+        if (text is null && Parameter("anchorHow") is not null)
         {
             text = Parameter("anchorWindow");
             _previewGate = PreviewGate.AnchorOrigin;
         }
 
-        if (text is null && Parameter("targetMatchBy") is not null)
+        if (text is null && Parameter("targetHow") is not null)
         {
             text = Parameter("targetWindow");
             _previewGate = PreviewGate.BackgroundPost;
@@ -1677,7 +1666,12 @@ public partial class AddActionViewModel : ViewModelBase
             return null;
         }
 
-        var title = Parameter("anchorWindow")?.Text?.Trim() ?? string.Empty;
+        if (Parameter("anchorWindow") is not { } text)
+        {
+            return null;
+        }
+
+        var title = text.Text?.Trim() ?? string.Empty;
         if (title.Length == 0)
         {
             return null;
@@ -1687,7 +1681,8 @@ public partial class AddActionViewModel : ViewModelBase
         {
             // Recognised the way the run will recognise it, so a position taken off the screen is
             // counted from the same corner the step will count from.
-            if (Windows.Find(title, WindowMatchFor(), WindowCompareFor()) is not { } window)
+            var (match, compare) = WindowHow.Read(HowField(text)?.CurrentText);
+            if (Windows.Find(title, match, compare) is not { } window)
             {
                 return null;
             }
@@ -1800,15 +1795,6 @@ public partial class AddActionViewModel : ViewModelBase
                     rows++;
                 }
             }
-
-            // What a field is called can follow a field beside it as well: the text a window is
-            // recognised by is a pattern once the comparing field says so, and it should not go on
-            // being called the same thing while that is what it holds.
-            if (editor.Definition.Variant is { } named)
-            {
-                editor.UpdateVariant(Parameters.FirstOrDefault(parameter =>
-                    parameter.Definition.Name == named.Sibling)?.CurrentText);
-            }
         }
 
         // Which windows the step recognises is read off all three of those fields, so it is asked
@@ -1828,7 +1814,8 @@ public partial class AddActionViewModel : ViewModelBase
             preview.Show(asking);
             if (asking)
             {
-                preview.Follow(new WindowRule(text.CurrentText, WindowMatchFor(), WindowCompareFor(),
+                var (match, compare) = WindowHow.Read(HowField(text)?.CurrentText);
+                preview.Follow(new WindowRule(text.CurrentText, match, compare,
                     SelectedDefinition?.Key == ListWindowsKey));
             }
         }
