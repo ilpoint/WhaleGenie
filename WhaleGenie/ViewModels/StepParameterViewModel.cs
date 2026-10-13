@@ -36,7 +36,7 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         Definition = definition;
         Variables = variables ?? [];
-        Named = [.. Variables.Select(choice => choice.Name)];
+        NameSuggestions = [.. Variables.Select(choice => choice.Name)];
         Macros = [.. (macros ?? []).Select(call => call.Name)];
         Steps = steps ?? [];
         DurationUnits = DurationUnit.Localized();
@@ -52,7 +52,7 @@ public partial class StepParameterViewModel : ViewModelBase
         var suggestions = new List<string>();
         if (knowsFunctions || definition.AcceptsVariables)
         {
-            suggestions.AddRange(Named.Select(name => "$" + name));
+            suggestions.AddRange(NameSuggestions.Select(name => "$" + name));
             if (knowsFunctions)
             {
                 suggestions.AddRange(Expression.Functions.Select(function => function.Name + "("));
@@ -263,8 +263,13 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </summary>
     public IReadOnlyList<VariableChoice> Variables { get; }
 
-    /// <summary>The names on their own, which is what the expression reader and the checks use.</summary>
-    private IReadOnlyList<string> Named { get; }
+    /// <summary>
+    /// The names on their own, which is what the expression reader and the checks use, and what a
+    /// field that takes a variable straight by name offers while it is typed in. The names are
+    /// offered rather than the rows the wall lists: the box holds text, so a row put in it would be
+    /// spelled out as the name of its own type rather than as the variable it stands for.
+    /// </summary>
+    public IReadOnlyList<string> NameSuggestions { get; }
 
     /// <summary>Macro names offered while editing an <see cref="ActionParameterKind.Macro"/>.</summary>
     public IReadOnlyList<string> Macros { get; }
@@ -850,11 +855,18 @@ public partial class StepParameterViewModel : ViewModelBase
     /// Puts a chosen variable into the field at the caret. A field that is being built out of
     /// several pieces — a folder, a slash and a name — is why this is not simply an append.
     /// </summary>
+    /// <remarks>
+    /// A field that names a variable takes the name itself: the engine writes that text down as the
+    /// name, so the <c>$name</c> the wall hands back would make a variable called <c>$count</c>,
+    /// which nothing can read back and which the variable list shows beside the real ones. Every
+    /// other field takes the <c>$name</c> form, which is what the reader understands.
+    /// </remarks>
     public void InsertVariable(string token, int caret)
     {
+        var text = Definition.NamesVariable && token.StartsWith('$') ? token[1..] : token;
         var current = Text ?? string.Empty;
         var at = Math.Clamp(caret, 0, current.Length);
-        Text = current[..at] + token + current[at..];
+        Text = current[..at] + text + current[at..];
     }
 
     /// <summary>What the button beside the field should say.</summary>
@@ -1172,7 +1184,7 @@ public partial class StepParameterViewModel : ViewModelBase
 
     private void UpdateExpression(string? source)
     {
-        var (message, failed) = NumberField.Check(source, Named);
+        var (message, failed) = NumberField.Check(source, NameSuggestions);
         HasExpressionError = failed;
         ExpressionMessage = message;
     }

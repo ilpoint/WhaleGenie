@@ -159,6 +159,35 @@ public class VariableFieldTests
     }
 
     /// <summary>
+    /// A field that takes a variable by name is a box of text, so what it is offered has to be the
+    /// names: the rows the wall lists would be spelled out as the name of their own type, and one
+    /// picked from the dropdown would put that into the macro rather than the variable it stands
+    /// for. Where the name goes in as the name of a variable being written, the wall's dollar sign
+    /// is dropped as well: the engine writes that text down as the name, so <c>$count</c> there
+    /// would make a variable called <c>$count</c> that nothing can read back.
+    /// </summary>
+    [Fact]
+    public void A_field_that_takes_a_variable_by_name_offers_the_names_and_takes_them_bare()
+    {
+        Ui.Run(() =>
+        {
+            // Naming a variable to write: set variable's own name.
+            var naming = Parameter(Open("control.setVariable"), "name");
+            Assert.True(naming.IsVariable);
+            Assert.Equal(["count", "name"], naming.NameSuggestions.Order(StringComparer.Ordinal));
+
+            naming.InsertVariable("$count", 0);
+            Assert.Equal("count", naming.Text);
+
+            // Reading one: a value compared against a number takes the reader's own form, which is
+            // what the wall hands back.
+            var reading = Parameter(Open("condition.valueInRange"), "value");
+            reading.InsertVariable("$count", 0);
+            Assert.Equal("$count", reading.Text);
+        });
+    }
+
+    /// <summary>
     /// Working a value out is one expression, now that the expression editor exists: the operands
     /// and the operator they were picked from are gone, and the whole value is offered the builder
     /// the same way storing a value is.
@@ -200,6 +229,15 @@ public class VariableFieldTests
         Assert.Contains("ItemsSource=\"{Binding ExpressionSuggestions}\"", block, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding OffersFormula}\"", block, StringComparison.Ordinal);
         Assert.Contains("Click=\"OnOpenExpressionBuilder\"", block, StringComparison.Ordinal);
+
+        // And a field that holds a variable by name offers the names: the box holds text, so the
+        // rows of the wall listed there would be written into the macro as the name of their type.
+        var named = markup.IndexOf("IsVisible=\"{Binding IsVariable}\"", StringComparison.Ordinal);
+        Assert.True(named >= 0, "the dialog stopped offering variables in the field that names one");
+
+        var naming = markup[named..markup.IndexOf("</Grid>", named, StringComparison.Ordinal)];
+        Assert.Contains("ItemsSource=\"{Binding NameSuggestions}\"", naming, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnPickVariable\"", naming, StringComparison.Ordinal);
     }
 
     /// <summary>
