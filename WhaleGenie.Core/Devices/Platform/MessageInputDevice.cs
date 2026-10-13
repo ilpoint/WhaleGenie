@@ -232,9 +232,15 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
 
     /// <summary>The virtual key code a macro's key name stands for.</summary>
     private static int VirtualKey(string key)
-        => SharpKeys.ResolveCode(key) is { } code
-            ? (int)code
-            : throw new DeviceActionException("Run.UnknownKey", key);
+    {
+        // A posted key message carries the code Windows numbers the key with, which is not the code
+        // the hook library numbers it with: sending the library's own code would press another key.
+        var code = SharpKeys.ResolveCode(key)
+            ?? throw new DeviceActionException("Run.UnknownKey", key);
+
+        return WindowsKeys.VirtualKey(code)
+            ?? throw new DeviceActionException("Run.UnknownKey", key);
+    }
 
     private static bool IsAlt(int virtualKey) => virtualKey is VkAlt or VkMenu;
 
