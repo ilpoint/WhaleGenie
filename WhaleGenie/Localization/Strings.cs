@@ -947,6 +947,17 @@ public sealed class Strings : INotifyPropertyChanged
         // Whose turn it is at the input door, for the macros that take turns there.
         ["Run.InputOwner"] = "Sending input: {0}",
         ["Run.InputOwnerNone"] = "Nobody else is sending input",
+        // What each armed trigger is waiting for, and when the thing it waits for was last looked at.
+        ["Run.Triggers"] = "Triggers waiting to be wanted",
+        ["Run.TriggersHint"] =
+            "One line for each armed trigger that something looks at on a clock: what it waits for, "
+            + "whether that is true right now, when it was last looked at and when it will be looked "
+            + "at again. When a window is watched, the machine also says when one changes.",
+        ["Run.TriggerThere"] = "there now",
+        ["Run.TriggerAway"] = "not there now",
+        ["Run.TriggerLooked"] = "last looked {0}, next {1}",
+        ["Run.TriggerNoClock"] = "not on a clock",
+        ["Run.TriggerTold"] = "the machine says when a window changes",
         ["Run.Running"] = "Running\u2026",
         ["Run.Paused"] = "Paused before the next step",
         ["Run.BreakpointWhen"] = "Stops here only when: {0}",
@@ -1994,6 +2005,14 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.Ready"] = "准备就绪",
         ["Run.InputOwner"] = "正在发输入：{0}",
         ["Run.InputOwnerNone"] = "现在没有别的宏在发输入",
+        ["Run.Triggers"] = "等触发的宏",
+        ["Run.TriggersHint"] = "开着的宏里，靠定时去看的那几种各占一行：等的是什么、现在成不成立、上次去看是什么时候、"
+            + "下次什么时候去看。窗口这一类另有机器在变化时先说一声，不等下一次去看。",
+        ["Run.TriggerThere"] = "现在在",
+        ["Run.TriggerAway"] = "现在不在",
+        ["Run.TriggerLooked"] = "上次判定 {0}，下次 {1}",
+        ["Run.TriggerNoClock"] = "没有排在钟上",
+        ["Run.TriggerTold"] = "窗口有变化时机器会先说一声",
         ["Run.Running"] = "运行中…",
         ["Run.Paused"] = "已暂停，等待下一步",
         ["Run.BreakpointWhen"] = "条件成立才停：{0}",

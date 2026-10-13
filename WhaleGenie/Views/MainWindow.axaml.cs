@@ -497,7 +497,8 @@ public partial class MainWindow : Window
 
         // The layer the whole program shares, so a debug run reads with the same loaded models the
         // rest of the program uses rather than loading a second copy of them.
-        var window = new RunWindow([], SharedDevices.Current, listed: [.. viewModel.Macros]);
+        var window = new RunWindow([], SharedDevices.Current, listed: [.. viewModel.Macros],
+            triggers: _triggers);
         _runDebug = window;
         window.Closed += (_, _) =>
         {

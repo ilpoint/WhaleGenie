@@ -233,6 +233,36 @@ public sealed record StepOutcome(string Name, string Label, string Value)
 }
 
 /// <summary>
+/// One line of what a trigger is waiting for, already written out. The words come from the text
+/// table, so the two languages read alike and the line is not put together twice.
+/// </summary>
+public sealed record TriggerWatchLine(string Text)
+{
+    public static TriggerWatchLine Of(TriggerWatch watch)
+    {
+        var parts = new List<string> { watch.Macro, watch.Looking };
+
+        if (watch.Matched is { } matched)
+        {
+            parts.Add(Strings.Get(matched ? "Run.TriggerThere" : "Run.TriggerAway"));
+        }
+
+        parts.Add(Strings.Format("Run.TriggerLooked", Moment(watch.Checked), Moment(watch.Next)));
+
+        if (watch.Told)
+        {
+            parts.Add(Strings.Get("Run.TriggerTold"));
+        }
+
+        return new TriggerWatchLine(string.Join(" · ", parts.Where(part => part.Length > 0)));
+    }
+
+    /// <summary>A time of day, or the words for a trigger nothing is on a clock for.</summary>
+    private static string Moment(DateTime moment)
+        => moment == default ? Strings.Get("Run.TriggerNoClock") : moment.ToString("HH:mm:ss");
+}
+
+/// <summary>
 /// Backs the run window: it drives a <see cref="MacroRunner"/>, shows what the macro did,
 /// and lets the user watch it one step at a time. It is the runner's host, so the engine
 /// asks it to pause between steps and to hand a failure to the user.
@@ -316,6 +346,9 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// asks what the whole project can use, not only what the macro being debugged touches.</summary>
     private readonly IReadOnlyList<MacroItem> _listed;
 
+    /// <summary>The trigger service of the main window, when there is one to ask.</summary>
+    private readonly MacroTriggerService? _triggers;
+
     /// <summary>How big the screen is, for the two rows that report it.</summary>
     private readonly int _screenWidth;
     private readonly int _screenHeight;
@@ -373,14 +406,21 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         }
     }
 
+    /// <param name="triggers">
+    /// The service that watches for the macros of the list to be wanted. Handed in so the window can
+    /// say what each armed trigger is waiting for: when a macro that was expected did not run, the
+    /// answer is nearly always in that list.
+    /// </param>
     public RunViewModel(IEnumerable<MacroStep> steps, IDeviceLayer? devices = null, double delayScale = 1,
-        IMacroLibrary? macros = null, IReadOnlyList<MacroItem>? listed = null)
+        IMacroLibrary? macros = null, IReadOnlyList<MacroItem>? listed = null,
+        MacroTriggerService? triggers = null)
     {
         _ownsDevices = devices is null;
         _devices = devices ?? new WindowsDeviceLayer();
         _delayScale = delayScale;
         _macros = macros;
         _listed = listed ?? [];
+        _triggers = triggers;
         _variables = MacroVariables.Seed();
         NewType = Types[0];
 
@@ -518,6 +558,32 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
     [ObservableProperty]
     public partial bool ShowStepOutcomes { get; set; }
+
+    /// <summary>
+    /// What each armed trigger is waiting for, one line each. A macro that was expected to run and
+    /// did not is nearly always a trigger whose waiting is not true, and this is where that is read.
+    /// Only the triggers something looks at on a clock are here: a key binding answers a key, so
+    /// there is no moment it was last looked at.
+    /// </summary>
+    public ObservableCollection<TriggerWatchLine> Triggers { get; } = [];
+
+    public bool HasTriggers => Triggers.Count > 0;
+
+    /// <summary>Reads the trigger service again, which the window does while it is open.</summary>
+    public void RefreshTriggers()
+    {
+        Triggers.Clear();
+
+        if (_triggers is { } service)
+        {
+            foreach (var watch in service.Watches())
+            {
+                Triggers.Add(TriggerWatchLine.Of(watch));
+            }
+        }
+
+        OnPropertyChanged(nameof(HasTriggers));
+    }
 
     [RelayCommand]
     private void ToggleStepOutcomes() => ShowStepOutcomes = !ShowStepOutcomes;

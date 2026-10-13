@@ -27,6 +27,15 @@ public partial class RunWindow : Window
     /// <summary>The frame around the window the run is reading right now.</summary>
     private readonly ScreenFrames _frames = new();
 
+    /// <summary>Reads what the armed triggers are waiting for again, while the window is up.</summary>
+    private readonly DispatcherTimer _triggers = new();
+
+    /// <summary>
+    /// Whether there is a trigger service to read. A window opened on its own has none, and a clock
+    /// that wakes up to read nothing is a clock nobody needs.
+    /// </summary>
+    private readonly bool _watchesTriggers;
+
     /// <summary>The macros the list holds, which is what the variables in use are read off.</summary>
     private readonly IReadOnlyList<MacroItem> _listed;
 
@@ -42,13 +51,15 @@ public partial class RunWindow : Window
     /// window opened from the button on the main window: variables only, with nothing to run.
     /// </summary>
     public RunWindow(IEnumerable<MacroStep> steps, IDeviceLayer? devices = null, double delayScale = 1,
-        IMacroLibrary? macros = null, IReadOnlyList<MacroItem>? listed = null)
+        IMacroLibrary? macros = null, IReadOnlyList<MacroItem>? listed = null,
+        MacroTriggerService? triggers = null)
     {
         InitializeComponent();
 
         _listed = listed ?? [];
-        var viewModel = new RunViewModel(steps, devices, delayScale, macros, _listed);
+        var viewModel = new RunViewModel(steps, devices, delayScale, macros, _listed, triggers);
         DataContext = viewModel;
+        _watchesTriggers = triggers is not null;
         Title = Strings.Get("Run.Title");
 
         viewModel.CloseRequested += Close;
@@ -113,16 +124,31 @@ public partial class RunWindow : Window
     {
         base.OnOpened(e);
         InputGate.Changed += OnInputGateChanged;
+
+        // What the triggers are waiting for changes on its own, so the lines are read again while
+        // the window is up rather than once when it opens. A second is often enough to watch a
+        // window being waited for.
+        if (_watchesTriggers)
+        {
+            Form?.RefreshTriggers();
+            _triggers.Interval = TimeSpan.FromSeconds(1);
+            _triggers.Tick += OnTriggerTick;
+            _triggers.Start();
+        }
     }
 
     protected override void OnClosed(EventArgs e)
     {
         InputGate.Changed -= OnInputGateChanged;
+        _triggers.Stop();
+        _triggers.Tick -= OnTriggerTick;
         base.OnClosed(e);
     }
 
     private void OnInputGateChanged()
         => Dispatcher.UIThread.Post(() => Form?.RefreshInputOwner());
+
+    private void OnTriggerTick(object? sender, EventArgs e) => Form?.RefreshTriggers();
 
     /// <summary>
     /// The breakpoint's own menu. Writing the condition is the same dialog the editor writes one in,
