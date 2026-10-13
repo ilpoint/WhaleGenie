@@ -124,7 +124,9 @@ public static class ActionCatalog
             Description = "Run a list of child steps in order.",
             Parameters =
             [
-                Text("name", "Name", hint: "Optional label shown in the step list.", required: false),
+                Text("name", "Name",
+                    hint: "Optional label shown in the step list; leaving it empty shows the "
+                          + "action's own name.", required: false),
                 Steps("steps", "Steps", "Child steps that run in order."),
             ],
         },
@@ -136,7 +138,7 @@ public static class ActionCatalog
             Description = "Wait a fixed amount of time before the next step runs.",
             Parameters =
             [
-                Number("ms", "Wait", 1000, "How long to wait."),
+                Number("ms", "Wait", 1000, "How long to wait, in milliseconds; 1000 by default."),
             ],
         },
         new()
@@ -147,8 +149,11 @@ public static class ActionCatalog
             Description = "Wait a random amount of time so the macro looks less mechanical.",
             Parameters =
             [
-                Number("minMs", "Shortest wait", 400, "Shortest wait."),
-                Number("maxMs", "Longest wait", 1200, "Longest wait."),
+                Number("minMs", "Shortest wait", 400,
+                    "Shortest wait, in milliseconds; 400 by default."),
+                Number("maxMs", "Longest wait", 1200,
+                    "Longest wait, in milliseconds; 1200 by default, and no shorter than the "
+                    + "shortest wait. Each run picks a number between the two and waits that long."),
             ],
         },
         new()
@@ -168,8 +173,9 @@ public static class ActionCatalog
                 Condition("condition", "Condition", "Asked again and again until it holds. "
                     + "Any condition can be waited on: a colour, a picture, a piece of text, an "
                     + "element on screen, or a comparison between variables."),
-                Number("pollMs", "Check every", 200, "How long to wait between two checks.",
-                    min: 10m, max: 60000m, advanced: true),
+                Number("pollMs", "Check every", 200,
+                    "How long to wait between two checks, in milliseconds; 200 by default, and "
+                    + "anywhere from 10 to 60000.", min: 10m, max: 60000m, advanced: true),
                 Returns(),
             ],
         },
@@ -182,8 +188,11 @@ public static class ActionCatalog
                 + "how many rounds it takes.",
             Parameters =
             [
-                Number("times", "Times", 10, "How many iterations to run.", min: 1),
-                Number("intervalMs", "Interval", 0, "Pause between iterations.", advanced: true),
+                Number("times", "Times", 10, "How many iterations to run, from 1 up; 10 by default.",
+                    min: 1),
+                Number("intervalMs", "Interval", 0,
+                    "How long to wait between iterations, in milliseconds; 0 by default.",
+                    advanced: true),
                 Steps("body", "Body steps", "Steps that run once per iteration."),
             ],
         },
@@ -196,8 +205,12 @@ public static class ActionCatalog
                 + "state decides when to stop.",
             Parameters =
             [
-                Condition("condition", "Condition", "Checked before every iteration."),
-                Number("maxIterations", "Max iterations", 1000, "Safety cap that stops runaway loops.", min: 1),
+                Condition("condition", "Condition",
+                    "Checked before every iteration; the round runs only while it holds."),
+                Number("maxIterations", "Max iterations", 1000,
+                    "Most rounds this loop runs, from 1 up; 1000 by default. Reaching it ends the "
+                    + "loop rather than failing, which is what keeps a condition that never goes "
+                    + "false from running on.", min: 1),
                 Steps("body", "Body steps", "Steps that run while the condition holds."),
             ],
         },
@@ -213,14 +226,15 @@ public static class ActionCatalog
                 Expression("items", "Items", "$names",
                     "A list, or a $variable holding one. For example [1, 2, 3], split($text, \",\") "
                     + "or $names."),
-                Text("itemVariable", "Item variable", hint: "Variable that receives the current item.",
+                Text("itemVariable", "Item variable",
+                    hint: "Variable that receives the current item; item by default.",
                     defaultValue: "item"),
                 Text("indexVariable", "Index variable", required: false,
                     hint: "Optional variable that receives which round this is, counted from 0 in "
                           + "the order the items are walked in. Leave it empty to keep the round "
                           + "number out of the variables."),
-                Toggle("reverse", "Reverse order", false, "Iterate from the last item to the first.",
-                    advanced: true),
+                Toggle("reverse", "Reverse order", false,
+                    "Iterate from the last item to the first; off by default.", advanced: true),
                 Steps("body", "Body steps", "Steps that run once per item."),
             ],
         },
@@ -233,17 +247,21 @@ public static class ActionCatalog
                 + "for when the steps need the number of the round they are on.",
             Parameters =
             [
-                Number("from", "From", 1, "The first value the counter takes.", min: -1000000),
+                Number("from", "From", 1,
+                    "The first value the counter takes; 1 by default, and no less than -1000000.",
+                    min: -1000000),
                 Number("to", "To", 5,
-                    "The last value the counter takes, included, so counting 1 to 3 runs three "
-                    + "times.", min: -1000000),
+                    "The last value the counter takes; 5 by default, and the value itself is "
+                    + "included, so counting 1 to 3 runs three times.", min: -1000000),
                 Number("step", "Step", 1,
-                    "What the counter is increased by each round. A negative step counts down; "
-                    + "0 means \"count upwards, or downwards when From is above To\".", min: -1000000,
-                    advanced: true),
-                Number("intervalMs", "Interval", 0, "Pause between rounds.", advanced: true),
+                    "What the counter is increased by each round; 1 by default. A negative step "
+                    + "counts down; 0 works the direction out from the two ends, counting down when "
+                    + "From is above To.", min: -1000000, advanced: true),
+                Number("intervalMs", "Interval", 0,
+                    "How long to wait between rounds, in milliseconds; 0 by default.", advanced: true),
                 Variable("variable", "Counter variable", "i",
-                    "Variable that receives the value of this round.",
+                    "Variable that receives the value of this round; i by default, and the child "
+                    + "steps can read it.",
                     namesVariable: true, defaultValue: "i"),
                 Steps("body", "Body steps", "Steps that run once per round."),
             ],
@@ -256,7 +274,9 @@ public static class ActionCatalog
             Description = "Run one of two child blocks depending on a condition.",
             Parameters =
             [
-                Condition("condition", "Condition", "Checked once when the step runs."),
+                Condition("condition", "Condition",
+                    "Checked once when the step runs: true runs the Then steps, false runs the "
+                    + "Else steps."),
                 Steps("then", "Then steps", "Steps to run when the condition is true."),
                 Steps("else", "Else steps", "Steps to run when the condition is false."),
             ],
@@ -363,10 +383,13 @@ public static class ActionCatalog
                     + "add them in the Variable Center.",
                     namesVariable: true),
                 Choice("scope", "Scope", ["local", "global"], "local",
-                    "Local values belong to this macro, global values are shared by every macro.",
+                    "Which layer the value goes in; local by default. Local values belong to this "
+                    + "macro; global values are shared by every macro and must be created in the "
+                    + "Variable Center first.",
                     labels: ["Local (this macro)", "Global (shared)"]),
                 Expression("value", "Value", "3",
-                    "A number, text, $variable, or a formula such as $count + 1 or upper($name)."),
+                    "The value to store: a number, text, a $variable, or a formula such as "
+                    + "$count + 1 or upper($name)."),
             ],
         },
         new()
@@ -379,10 +402,13 @@ public static class ActionCatalog
             [
                 Variable("name", "Variable name", "count",
                     "Where the answer is stored. Local variables are created here; global "
-                    + "variables must exist already, add them in the Variable Center.",
+                    + "variables must exist already, add them in the Variable Center, and every "
+                    + "macro shares them.",
                     namesVariable: true),
                 Choice("scope", "Scope", ["local", "global"], "local",
-                    "Local values belong to this macro, global values are shared by every macro.",
+                    "Which layer the value goes in; local by default. Local values belong to this "
+                    + "macro; global values are shared by every macro and must be created in the "
+                    + "Variable Center first.",
                     labels: ["Local (this macro)", "Global (shared)"]),
                 Expression("value", "Expression", "$count + 1",
                     "A formula to work out, such as $count + 1, $total * 0.85 or concat($first, \" \", $last). "
@@ -399,14 +425,17 @@ public static class ActionCatalog
             [
                 Variable("name", "Variable name", "names",
                     "Local lists belong to this macro; global lists are shared by every macro. "
-                    + "Lists hold any mixture of values.",
+                    + "The name is created here for a local list; a global list must exist already, "
+                    + "added in the Variable Center. Lists hold any mixture of values.",
                     namesVariable: true),
                 Choice("scope", "Scope", ["local", "global"], "local",
-                    "Local lists belong to this macro, global lists are shared by every macro.",
+                    "Which layer the list goes in; local by default. Local lists belong to this "
+                    + "macro; global lists are shared by every macro and must be created in the "
+                    + "Variable Center first.",
                     labels: ["Local (this macro)", "Global (shared)"]),
                 Expression("items", "Starting items", "[1, 2, 3]",
-                    "Values the list starts with. Leave empty to start with an empty list.",
-                    required: false),
+                    "What the list starts with, written as a list or a $variable; leaving it empty "
+                    + "starts an empty list.", required: false),
             ],
         },
         new()
@@ -417,8 +446,11 @@ public static class ActionCatalog
             Description = "Add one or more values to the end of a list.",
             Parameters =
             [
-                Variable("name", "List variable", "names", "The list the macro sees.", namesVariable: true),
-                Expression("value", "Value", "$item", "Value put at the end of the list."),
+                Variable("name", "List variable", "names",
+                    "The list to add to; the list offers the ones the macro can see.",
+                    namesVariable: true),
+                Expression("value", "Value", "$item",
+                    "Value put at the end of the list; a variable or an expression may be used."),
             ],
         },
         new()
@@ -429,9 +461,14 @@ public static class ActionCatalog
             Description = "Put a value into a list at a chosen position.",
             Parameters =
             [
-                Variable("name", "List variable", "names", "The list the macro sees.", namesVariable: true),
-                Expression("index", "Index", "0", "Position to insert at; 0 is the front."),
-                Expression("value", "Value", "$item", "Value inserted at that position."),
+                Variable("name", "List variable", "names",
+                    "The list to insert into; the list offers the ones the macro can see.",
+                    namesVariable: true),
+                Expression("index", "Index", "0",
+                    "Position to insert at, counted from 0; 0 is the front. Write a position between "
+                    + "0 and the list's length; anything further out is taken as the nearest end."),
+                Expression("value", "Value", "$item",
+                    "Value inserted at that position; whatever was there moves along one."),
             ],
         },
         new()
@@ -442,8 +479,11 @@ public static class ActionCatalog
             Description = "Take the item at a chosen position out of a list.",
             Parameters =
             [
-                Variable("name", "List variable", "names", "The list the macro sees.", namesVariable: true),
-                Expression("index", "Index", "0", "Position to remove; -1 removes the last item."),
+                Variable("name", "List variable", "names",
+                    "The list to take something out of; the list offers the ones the macro can see.",
+                    namesVariable: true),
+                Expression("index", "Index", "0",
+                    "Position to remove, counted from 0; -1 removes the last item."),
             ],
         },
         new()
@@ -454,11 +494,14 @@ public static class ActionCatalog
             Description = "Put another value in one position of a list, leaving the rest alone.",
             Parameters =
             [
-                Variable("name", "List variable", "names", "The list the macro sees.", namesVariable: true),
+                Variable("name", "List variable", "names",
+                    "The list to change; the list offers the ones the macro can see.",
+                    namesVariable: true),
                 Expression("index", "Index", "0",
                     "Position to change, counted from 0; -1 is the last item. A position the list "
                     + "has not got stops the step rather than quietly doing nothing."),
-                Expression("value", "Value", "$item", "Value put at that position."),
+                Expression("value", "Value", "$item",
+                    "Value put at that position; the rest of the list is left alone."),
             ],
         },
         new()
@@ -469,7 +512,10 @@ public static class ActionCatalog
             Description = "Empty a list without removing the variable itself.",
             Parameters =
             [
-                Variable("name", "List variable", "names", "The list the macro sees.", namesVariable: true),
+                Variable("name", "List variable", "names",
+                    "The list to empty; the list offers the ones the macro can see. The variable "
+                    + "itself stays, it is only what is inside it that goes.",
+                    namesVariable: true),
             ],
         },
         new()
@@ -480,8 +526,9 @@ public static class ActionCatalog
             Description = "Write a message to the WhaleGenie log.",
             Parameters =
             [
-                Multiline("message", "Message", "Text written to the log.", "Loop finished",
-                    acceptsFormula: true),
+                Multiline("message", "Message",
+                    "Text written to the log; it may run over several lines, and it may be a "
+                    + "variable or an expression.", "Loop finished", acceptsFormula: true),
                 Choice("level", "Level", ["info", "warn", "error", "debug"], "info"),
             ],
         },
