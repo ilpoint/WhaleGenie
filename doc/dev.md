@@ -180,12 +180,16 @@ WhaleGenie\
     WhaleGenie.dll
     WhaleGenie.deps.json
     WhaleGenie.runtimeconfig.json
-    LICENSE.txt                 ← 程序自己的许可，AGPL-3.0 全文
+    LICENSE.txt                 ← 程序自己的许可，AGPL-3.0 原文
+    NOTICE                      ← 项目名与版权署名
     THIRD-PARTY-NOTICES.md      ← 用到的别人的东西
     lib\                    ← 程序用到的 dll 都在这一层文件夹里
 ```
 
-程序按 AGPL-3.0 授权，全文随包里的 `LICENSE.txt` 一起发；对应源码就是本仓库里这个标签。
+程序按 AGPL-3.0 授权：条款原文随包里的 `LICENSE.txt` 发，署名在 `NOTICE` 里，两份都放在包根；对应源码就是
+本仓库里这个标签。`LICENSE.txt` 是许可原文，一字未改——GitHub 是靠文件内容认协议的，在它前后加项目名或
+版权行会让主页显示成"Other"，所以这两份的行尾转换在 `.gitattributes` 里关掉了，仓库里存什么字节，取出来
+就是什么字节。
 
 自带运行时的那一个，根目录还会多出 .NET 运行时自己的十来个文件（`hostfxr.dll`、`coreclr.dll`
 这些）。它们必须和 exe 放在一起：宿主是先找 `hostpolicy`、再找 `coreclr`、再由 `coreclr` 找

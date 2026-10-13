@@ -135,8 +135,8 @@ function New-PortableFolder([string]$Published, [string]$Package) {
 
     Assert-OnePlatformDriver $app
 
-    # 自己的许可和第三方说明必须跟着程序走：分发时不给出这两样，等于没写。
-    foreach ($document in @('LICENSE.txt', 'THIRD-PARTY-NOTICES.md')) {
+    # 自己的许可、署名和第三方说明必须跟着程序走：分发时不给出这三样，等于没写。
+    foreach ($document in @('LICENSE.txt', 'NOTICE', 'THIRD-PARTY-NOTICES.md')) {
         Copy-Item -Path (Join-Path $PSScriptRoot "..\$document") -Destination $app
     }
 

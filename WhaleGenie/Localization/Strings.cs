@@ -97,8 +97,9 @@ public sealed class Strings : INotifyPropertyChanged
             + "WhaleGenie.\n\nTurn keyboard, mouse, screen and window actions into step-by-step "
             + "macros, and start them with a hotkey, a mouse button, the wheel, or the colour of a "
             + "pixel on the screen.\n\nThis program is licensed under AGPL-3.0; the full text is "
-            + "LICENSE.txt beside the program.\n\nVersion {0}\nIcon: the pixel-art whale emoji by "
-            + "Emojiall, under CC BY 4.0, scaled and modified.",
+            + "LICENSE.txt beside the program, and the copyright notice is NOTICE beside it.\n\n"
+            + "Version {0}\nIcon: the pixel-art whale emoji by Emojiall, under CC BY 4.0, scaled "
+            + "and modified.",
         ["Main.AboutOpenPage"] = "Open the project page",
         ["Main.AboutNotices"] = "Third-party components",
         ["Main.AboutUnknownVersion"] = "unknown",
@@ -1215,7 +1216,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.About"] = "关于",
         ["Main.AboutText"] = "DeepSeek 帮忙写的小助手，所以是鲸灵啦。\n\n把键盘、鼠标、屏幕和窗口上的"
             + "操作编成一步步的宏，用热键、鼠标按键、滚轮，或屏幕上某个像素的颜色触发它。\n\n"
-            + "本程序按 AGPL-3.0 授权，全文见程序目录下的 LICENSE.txt。\n\n"
+            + "本程序按 AGPL-3.0 授权，条款原文见程序目录下的 LICENSE.txt，版权署名见同目录的 NOTICE。\n\n"
             + "版本 {0}\n图标：像素风的鲸鱼 emoji 由 Emojiall 创作，采用 CC BY 4.0 协议，已缩放修改。",
         ["Main.AboutOpenPage"] = "打开项目主页",
         ["Main.AboutNotices"] = "第三方组件",

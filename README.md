@@ -45,5 +45,5 @@ Windows 上的通用宏 / 自动化工具：把键盘、鼠标、手柄、屏幕
 
 「DeepSeek 帮忙写的小助手，所以是鲸灵啦。」
 
-程序本身按 AGPL-3.0 授权，全文见 `LICENSE.txt`，随发布包一起发；对应源码就是本仓库。图标是 Emojiall 的
-像素风鲸鱼 emoji，按 CC BY 4.0 使用，已缩放修改。
+程序本身按 AGPL-3.0 授权，条款原文见 `LICENSE.txt`，版权归 ilpoint 所有（署名写在 `NOTICE` 里），两份都
+随发布包一起发；对应源码就是本仓库。图标是 Emojiall 的像素风鲸鱼 emoji，按 CC BY 4.0 使用，已缩放修改。

@@ -58,12 +58,31 @@ public class ThirdPartyNoticesTests
     [Fact]
     public void The_release_carries_the_licence_and_the_notices()
     {
-        // The two documents only do their job when they are unpacked beside the executable, which
-        // is what the packaging script decides.
+        // The three documents only do their job when they are unpacked beside the executable, which
+        // is what the packaging script decides. The quotes around NOTICE matter: without them the
+        // assertion would be satisfied by THIRD-PARTY-NOTICES.md carrying the substring.
         var script = File.ReadAllText(Path.Combine(Repository(), "build", "package.ps1"));
 
         Assert.Contains("LICENSE.txt", script, StringComparison.Ordinal);
+        Assert.Contains("'NOTICE'", script, StringComparison.Ordinal);
         Assert.Contains("THIRD-PARTY-NOTICES.md", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_licence_file_holds_the_licence_text_and_the_credits_stay_apart()
+    {
+        // What a repository is licensed under is decided from these bytes. Anything in front of the
+        // licence's own text — a project name, a copyright line — is enough to make that come back
+        // as "Other", so the credits live in NOTICE and this file starts where the licence starts.
+        var licence = Normalize(File.ReadAllText(Path.Combine(Repository(), "LICENSE.txt")));
+        var notice = Normalize(File.ReadAllText(Path.Combine(Repository(), "NOTICE")));
+
+        Assert.StartsWith("GNU AFFERO GENERAL PUBLIC LICENSE", licence.TrimStart(), StringComparison.Ordinal);
+        Assert.DoesNotContain("WhaleGenie", licence, StringComparison.Ordinal);
+
+        Assert.Contains("WhaleGenie", notice, StringComparison.Ordinal);
+        Assert.Contains("Copyright (C) 2026 ilpoint", notice, StringComparison.Ordinal);
+        Assert.Contains("AGPL-3.0", notice, StringComparison.Ordinal);
     }
 
     [Fact]
