@@ -4,6 +4,7 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -657,4 +658,58 @@ public class StepTreeTests
             Assert.Same(loop, Assert.Single(editor.Steps));
         });
     }
+
+    /// <summary>
+    /// 步骤行上写着这一步的输入往哪儿送。手点没问题、写进宏却不动，是写宏最容易踩的坑，而三种送法
+    /// 的代价各不一样：前台要求窗口在最前，后台消息要求窗口名字对，驱动级要求装了驱动、开着服务端。
+    /// 所以它像步骤名一样写在行上，不用打开这一步就能看见。
+    /// </summary>
+    [Fact]
+    public void A_step_row_says_where_its_input_goes()
+    {
+        Ui.Run(() =>
+        {
+            var editor = new MacroEditorViewModel();
+            editor.AddStep(Step("input.keyPress"));
+            editor.AddStep(Step("input.keyPress", InputMode("background")));
+            editor.AddStep(Step("control.log"));
+
+            var rows = editor.Rows.Where(row => row.IsStep).ToList();
+
+            // 目录里那一格默认就是前台，所以没写这个字段的按键步骤也是前台；记一行日志的动作
+            // 根本没有这一格，行上什么也不画。
+            Assert.Equal(Strings.Get("Editor.InputForeground"), rows[0].InputMark);
+            Assert.Equal(Strings.Get("Editor.InputBackground"), rows[1].InputMark);
+            Assert.Equal(Strings.Get("Editor.InputDriver"),
+                Step("input.keyPress", InputMode("driver")).InputMark);
+            Assert.False(rows[2].HasInputMark);
+            Assert.Empty(rows[2].InputMark);
+        });
+    }
+
+    /// <summary>The mark is only worth having if the list draws it.</summary>
+    [Fact]
+    public void The_step_list_draws_the_input_mark()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "marks" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            editor.AddStep(Step("input.keyPress", InputMode("driver")));
+            Dispatcher.UIThread.RunJobs();
+
+            var drawn = window.GetVisualDescendants().OfType<TextBlock>()
+                .Select(block => block.Text)
+                .ToList();
+
+            Assert.Contains(Strings.Get("Editor.InputDriver"), drawn);
+        });
+    }
+
+    private static StepParameter InputMode(string value)
+        => new() { Name = "inputMode", Kind = ActionParameterKind.Text, Value = value };
 }

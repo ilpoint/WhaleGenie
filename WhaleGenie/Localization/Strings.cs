@@ -441,6 +441,15 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.JsonTree"] = "JSON Tree",
         ["Editor.NoSteps"] = "No steps yet.",
         ["Editor.StepDisabled"] = "skipped",
+        // Where a step's input goes. It is the first thing to check when a step that works by hand
+        // does nothing in a macro, so it is written on the row rather than left inside the step.
+        ["Editor.InputForeground"] = "in front",
+        ["Editor.InputBackground"] = "background",
+        ["Editor.InputDriver"] = "driver",
+        ["Editor.InputMarkHint"] = "This step sends its input {0}. In front goes to whichever window "
+            + "has the focus; background posts it at the window the step names, which needs no focus "
+            + "and leaves the pointer where it is; the driver goes through a virtual USB device, "
+            + "which needs the usbip-win2 driver and the VIIPER server running.",
         // The two ends of a block. They are what makes "inside the loop" and "after the loop"
         // two different places on the list.
         ["Editor.BlockEnd"] = "end of {0}",
@@ -1514,6 +1523,13 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.JsonTree"] = "JSON 树",
         ["Editor.NoSteps"] = "还没有步骤。",
         ["Editor.StepDisabled"] = "已停用",
+        // 输入往哪儿送。一个手点没问题、写进宏却不动的步骤，先看的就是这一处，所以写在步骤行上。
+        ["Editor.InputForeground"] = "前台",
+        ["Editor.InputBackground"] = "后台消息",
+        ["Editor.InputDriver"] = "驱动级",
+        ["Editor.InputMarkHint"] = "这一步的输入方式：{0}。前台发给当时获得焦点的那个窗口；后台消息"
+            + "按名字投递给目标窗口，不要求它在最前，也不动屏幕上的指针；驱动级走虚拟 USB 设备，"
+            + "要装好 usbip-win2 驱动并开着 VIIPER 服务端。",
         // 块的两端。有了它们，“在循环里”和“在循环后面”才是列表上两个不同的位置。
         ["Editor.BlockEnd"] = "{0} 结束",
         ["Editor.Fold"] = "收起里面的步骤",

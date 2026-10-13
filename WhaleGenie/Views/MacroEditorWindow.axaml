@@ -905,6 +905,16 @@
                                                                  FontFamily="Consolas,Menlo,monospace"
                                                                  Foreground="#8FB3D9" />
                                                   </Border>
+                                                  <!-- Where this step's input goes. It costs
+                                                       different things in each of the three ways,
+                                                       so it is read off the row like the name. -->
+                                                  <Border Background="#26332A" CornerRadius="3" Padding="5,0"
+                                                          VerticalAlignment="Center"
+                                                          ToolTip.Tip="{Binding InputMarkHint}"
+                                                          IsVisible="{Binding HasInputMark}">
+                                                      <TextBlock Text="{Binding InputMark}" FontSize="10.5"
+                                                                 Foreground="#8FD9A8" />
+                                                  </Border>
                                               </StackPanel>
                                               <TextBlock Text="{Binding Detail}" Classes="Muted"
                                                          TextWrapping="Wrap" />

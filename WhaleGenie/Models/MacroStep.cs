@@ -362,6 +362,43 @@ public class MacroStep : INotifyPropertyChanged
     /// <summary>Marker drawn on a step the macro will skip.</summary>
     public string SkipLabel => Strings.Get("Editor.StepDisabled");
 
+    /// <summary>Name of the field that says where a step's input is sent.</summary>
+    private const string InputModeParameter = "inputMode";
+
+    /// <summary>
+    /// 这一步的输入往哪儿送：前台 / 后台消息 / 驱动级。Empty for a step that sends no input at
+    /// all, and for an action that has no such field.
+    /// </summary>
+    /// <remarks>
+    /// Whether the input goes in front, is posted at a window, or goes through the virtual device is
+    /// what the user pays for — a window that has to be in front, a window that has to be named
+    /// rightly, or a driver installed and a server running — and it is the first thing to check when
+    /// a step that works by hand does nothing in a macro. Reading it off the row beats opening the
+    /// step. A step that never wrote the field is in front, because that is what the catalogue
+    /// starts the field at.
+    /// </remarks>
+    public string InputMark
+    {
+        get
+        {
+            var parameter = Parameters.FirstOrDefault(item => item.Name == InputModeParameter);
+            if (parameter is null)
+            {
+                var declared = Definition?.Parameters
+                    .Any(item => item.Name == InputModeParameter) ?? false;
+                return declared ? Strings.Get("Editor.InputForeground") : string.Empty;
+            }
+
+            return parameter.Value switch
+            {
+                "foreground" => Strings.Get("Editor.InputForeground"),
+                "background" => Strings.Get("Editor.InputBackground"),
+                "driver" => Strings.Get("Editor.InputDriver"),
+                _ => string.Empty,
+            };
+        }
+    }
+
     /// <summary>A skipped step fades so it is easy to tell apart while reading the list.</summary>
     public double RowOpacity => Meta.IsEnabled ? 1 : 0.45;
 

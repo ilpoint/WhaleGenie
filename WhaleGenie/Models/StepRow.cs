@@ -131,5 +131,14 @@ public sealed class StepRow
 
     public string SkipLabel => Step.SkipLabel;
 
+    /// <summary>Where the step's input goes, written on the row so it need not be opened to be read.</summary>
+    public string InputMark => Step.InputMark;
+
+    public bool HasInputMark => IsStep && InputMark.Length > 0;
+
+    public string InputMarkHint => HasInputMark
+        ? Strings.Format("Editor.InputMarkHint", InputMark)
+        : string.Empty;
+
     public double RowOpacity => Step.RowOpacity;
 }
