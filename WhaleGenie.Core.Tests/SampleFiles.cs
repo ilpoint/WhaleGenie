@@ -143,11 +143,12 @@ internal static class SampleFiles
         => every ? Returns($"{key}={name}", $"every={name}.every") : Returns($"{key}={name}");
 
     /// <summary>
-    /// The results of a step that hands a value over along with every part of it under a name of its
-    /// own — <c>name.x</c>, <c>name.id</c> and so on. Measuring and copying still hand their numbers
-    /// over one variable each, because four numbers about a rectangle are the whole of what they
-    /// say; a hit is the one that became a record. A key an action does not hand over is simply
-    /// never asked for.
+    /// The results of a step that hands a value over along with the other results it can hand over —
+    /// <c>name.place</c> beside a picture, <c>name.every</c> beside a hit, <c>name.program</c> and
+    /// <c>name.window</c> for one program or one window, <c>name.table</c> for the rows read,
+    /// <c>name.method</c> for the way a picture was taken, and <c>name.width</c> with
+    /// <c>name.height</c> for how big a picture read off the clipboard is. A key an action does not
+    /// hand over is simply never written, so one list serves them all.
     /// </summary>
     public static ExecutableParameter Parts(string key, string name) => Returns(
     [
@@ -157,10 +158,7 @@ internal static class SampleFiles
 
     private static readonly string[] PartNames =
     [
-        "x", "y", "width", "height", "box", "window", "method", "title",
-        "process", "class", "handle", "minimized", "maximized",
-        "clientBox", "clientX", "clientY", "clientWidth", "clientHeight",
-        "id", "name", "memoryMb", "cpuSeconds",
+        "every", "place", "program", "table", "window", "method", "width", "height",
     ];
 
     private static IReadOnlyDictionary<string, string> Result(string written)

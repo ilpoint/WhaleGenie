@@ -352,6 +352,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.WindowPreview.More"] = "{0} more",
         ["Add.WindowPreview.Front"] =
             "With the match text empty, the window in front is the one taken.",
+        ["Add.WindowPreview.Every"] =
+            "With the match text empty, every window there is gets listed.",
         ["Add.WindowPreview.Variable"] =
             "The field holds a variable; what it comes to is only known when the macro runs, so the "
             + "text is read as it stands here.",
@@ -1476,6 +1478,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.WindowPreview.None"] = "现在没有窗口匹配这条规则。",
         ["Add.WindowPreview.More"] = "还有 {0} 个",
         ["Add.WindowPreview.Front"] = "匹配内容留空：取最前面那个窗口。",
+        ["Add.WindowPreview.Every"] = "匹配内容留空：列出所有窗口。",
         ["Add.WindowPreview.Variable"] =
             "字段里写着变量，它是什么要等宏跑起来才知道，这里按字面看。",
         ["Add.WindowPreview.Unreadable"] = "现在读不到窗口列表。",

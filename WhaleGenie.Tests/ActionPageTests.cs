@@ -92,7 +92,7 @@ public class ActionPageTests
         "emptyCells", "align", "separator", "depth", "sortBy", "descending", "withinCount",
         "withinUnit", "minKb", "maxKb", "relative", "columns", "matchColumn", "matchValue",
         "maxRows", "headless", "storeAs", "limit", "skipBlankLines", "trim", "shape", "pollMs",
-        "afterMs", "hidden", "runAsAdmin",
+        "afterMs", "hidden", "runAsAdmin", "details",
     ];
 
     [Fact]
@@ -110,6 +110,27 @@ public class ActionPageTests
         }
 
         Assert.Empty(misplaced);
+    }
+
+    /// <summary>
+    /// A listing names its windows with the same three fields the other window actions use, so what
+    /// to match, which part of a window to match it against and how all stand on the basic page next
+    /// to what the step is; whether every program and class is read as well is tuning.
+    /// </summary>
+    [Fact]
+    public void A_listing_names_its_windows_the_way_the_window_actions_do()
+    {
+        var list = Ui.Run(() => ActionCatalog.Find("window.list")!);
+
+        var basic = On(list, viewModel => viewModel.Rows);
+        Assert.Contains("title", basic);
+        Assert.Contains("matchBy", basic);
+        Assert.Contains("compareBy", basic);
+
+        var advanced = On(list, viewModel => viewModel.AdvancedRows);
+        Assert.DoesNotContain("matchBy", advanced);
+        Assert.DoesNotContain("compareBy", advanced);
+        Assert.Contains("details", advanced);
     }
 
     /// <summary>

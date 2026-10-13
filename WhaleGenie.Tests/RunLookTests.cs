@@ -242,7 +242,8 @@ public class RunLookTests
 
         public IReadOnlyList<WindowInfo> List() => [Here()];
 
-        public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match, WindowCompare compare)
+        public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match, WindowCompare compare,
+            bool everyWhenEmpty = false)
             => [Here()];
 
         public WindowInfo? Find(string value, WindowMatch match, WindowCompare compare)
@@ -338,7 +339,8 @@ public class RunLookTests
     {
         public IReadOnlyList<WindowInfo> List() => [.. windows];
 
-        public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match, WindowCompare compare)
+        public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match, WindowCompare compare,
+            bool everyWhenEmpty = false)
             => [.. windows.Where(window => window.Title.Contains(value ?? string.Empty,
                 StringComparison.OrdinalIgnoreCase))];
 

@@ -3516,10 +3516,17 @@ public sealed class MacroRunner
             _images[name] = frame;
         }
 
-        Give(step, "x", Value.FromNumber(corner.X));
-        Give(step, "y", Value.FromNumber(corner.Y));
-        Give(step, "width", Value.FromNumber(frame.Width));
-        Give(step, "height", Value.FromNumber(frame.Height));
+        // Where the picture sits is one record beside the picture, so it can be handed to a search
+        // region as it stands or read one part at a time.
+        Give(step, "place", Value.FromRecord(
+        [
+            ("left", Value.FromNumber(corner.X)),
+            ("top", Value.FromNumber(corner.Y)),
+            ("width", Value.FromNumber(frame.Width)),
+            ("height", Value.FromNumber(frame.Height)),
+            ("box", Value.FromText($"{corner.X},{corner.Y},{frame.Width},{frame.Height}")),
+        ]));
+
         GiveTaken(step);
         Saw(step, LookKind.Capture, frame, corner,
             [new LookBox(new ImageMatch(0, corner, new ScreenSize(frame.Width, frame.Height)), LookRole.Area)],
@@ -5289,15 +5296,19 @@ public sealed class MacroRunner
     /// What each cell of a row is called: the name written above it, or — for a file whose first row
     /// is not a header — the letter of its column, which is the same name the "only these columns"
     /// field takes. A column nobody named keeps its letter rather than taking the name of the one
-    /// before it, which would put two columns under one name.
+    /// before it, and so does a column that repeats a name already taken: two columns under one name
+    /// would put one of them out of reach of a record.
     /// </summary>
     private static IReadOnlyList<string> ColumnNames(IReadOnlyList<Value>? header, int width)
     {
         var names = new List<string>(width);
+        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         for (var index = 0; index < width; index++)
         {
             var written = index < (header?.Count ?? 0) ? header![index].AsText().Trim() : string.Empty;
-            names.Add(written.Length > 0 ? written : Letter(index));
+            var name = written.Length > 0 && taken.Add(written) ? written : Letter(index);
+            names.Add(name);
+            taken.Add(name);
         }
 
         return names;
@@ -5985,11 +5996,17 @@ public sealed class MacroRunner
         var details = _devices.Processes.Details(target)
             ?? throw new StepFailure("Run.NoSuchProcess", target);
 
-        Store(step, "info", Value.FromText(details.Path), depth);
-        Give(step, "id", Value.FromNumber(details.Id));
-        Give(step, "name", Value.FromText(details.Name));
-        Give(step, "memoryMb", Value.FromNumber(details.MemoryMb));
-        Give(step, "cpuSeconds", Value.FromNumber(details.CpuSeconds));
+        // One program is one record, the way one window is: what it is called, what it is, and what
+        // it is costing are answers to the same question and travel together.
+        Give(step, "program", Value.FromRecord(
+        [
+            ("info", Value.FromText(details.Path)),
+            ("id", Value.FromNumber(details.Id)),
+            ("name", Value.FromText(details.Name)),
+            ("memoryMb", Value.FromNumber(details.MemoryMb)),
+            ("cpuSeconds", Value.FromNumber(details.CpuSeconds)),
+        ]));
+
         Log(LogLevel.Info, depth, step.Type, "Run.ProgramDetails", details.Name, details.Id);
     }
 
@@ -6326,19 +6343,6 @@ public sealed class MacroRunner
     private static bool Wants(ExecutableStep step, string key) => step.Return(key).Length > 0;
 
     /// <summary>
-    /// Hands a result over when the step asks for it, and works it out only then: what a part costs
-    /// — looking a window's process up, asking where its content starts — is not paid by a step
-    /// that does not keep that part.
-    /// </summary>
-    private void GiveAsked(ExecutableStep step, string key, Func<Value> value)
-    {
-        if (Wants(step, key))
-        {
-            Give(step, key, value());
-        }
-    }
-
-    /// <summary>
     /// Hands over what a search found as one record: where it was, the four sides of the rectangle
     /// it was found in, how sure the reading was, and the writing that was read where there was any.
     /// All of it about one hit, so it travels together under the names a macro reads with
@@ -6457,56 +6461,40 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// Collects the open windows into a list, narrowed down to the ones a step asks for, each window
-    /// as a record of its own: its title, the program and class it belongs to, what the system knows
-    /// it by and where it sits. Two windows with the same title are two windows, so each gets a
-    /// record of its own. Looking a process or a class up costs a look at the window, so neither is
-    /// read for a step that keeps no window at all.
+    /// Collects the open windows into a list, narrowed down to the ones a step names, each window as
+    /// a record of its own: its title, where it sits, what the system knows it by, and — when the
+    /// step asks for them — the program and the class behind it. Two windows with the same title are
+    /// two windows, so each gets a record of its own. A text nobody wrote means every window here,
+    /// where it means the window in front to a step that acts on one of them.
     /// </summary>
     private void ListWindows(ExecutableStep step, int depth)
     {
-        var windows = _devices.Windows
-            .List()
-            .Where(window => Keeps(window, Read(step.Text("filter")).AsText().Trim(),
-                WindowMatchOf(step.Text("filterBy"))))
-            .ToList();
+        var windows = Matching(step, WindowText(step));
 
-        // The program and the class of a window are only read when the step keeps the list, because
-        // looking either of them up costs a look at the window. The record holds all five parts of a
-        // window, so a step that keeps the list keeps everything about it.
+        // The program and the class of a window are read only when the step keeps the list and asks
+        // for them, because looking either of them up costs a look at the window. Every entry is
+        // then the whole of one window, the same record window.info hands over for a single one; a
+        // step that leaves them out gets two empty fields rather than missing ones.
         if (Wants(step, "windows"))
         {
-            Store(step, "windows", Value.FromList(windows.Select(window => Value.FromRecord(
-                [
-                    ("title", Value.FromText(window.Title)),
-                    ("process", Value.FromText(_devices.Windows.ProcessOf(window.Handle))),
-                    ("class", Value.FromText(_devices.Windows.ClassOf(window.Handle))),
-                    ("handle", Value.FromNumber(window.Handle)),
-                    ("box", Value.FromText(
-                        $"{window.Location.X},{window.Location.Y},{window.Size.Width},{window.Size.Height}")),
-                ]))), depth);
+            var details = Flag(step, "details", false);
+            Store(step, "windows", Value.FromList(windows.Select(window => WindowRecord(window,
+                details ? _devices.Windows.ProcessOf(window.Handle) : string.Empty,
+                details ? _devices.Windows.ClassOf(window.Handle) : string.Empty,
+                string.Empty))), depth);
         }
 
         Log(LogLevel.Info, depth, step.Type, "Run.ListedWindows", windows.Count);
     }
 
-    /// <summary>Whether a window survives a listing filter; an empty filter keeps every one.</summary>
-    private bool Keeps(WindowInfo window, string filter, WindowMatch match)
-    {
-        if (filter.Length == 0)
-        {
-            return true;
-        }
-
-        var text = match switch
-        {
-            WindowMatch.Process => _devices.Windows.ProcessOf(window.Handle),
-            WindowMatch.ClassName => _devices.Windows.ClassOf(window.Handle),
-            _ => window.Title,
-        };
-
-        return text.Contains(filter, StringComparison.OrdinalIgnoreCase);
-    }
+    /// <summary>
+    /// The windows a listing hands over, in the order the system gives them: the ones the step's
+    /// text picks out, or every window there is when it names none.
+    /// </summary>
+    private IReadOnlyList<WindowInfo> Matching(ExecutableStep step, string wanted)
+        => Patterned(wanted, () => _devices.Windows.Filter(wanted,
+            WindowMatchOf(step.Text("matchBy")), WindowCompareOf(step.Text("compareBy")),
+            everyWhenEmpty: true));
 
     /// <summary>Does something to the window a step names, or fails the step when it is not open.</summary>
     private void Act(ExecutableStep step, int depth, string message, Func<WindowInfo, bool> action)
@@ -6532,16 +6520,25 @@ public sealed class MacroRunner
     /// <summary>The same, for the steps that report rather than fail when no window matches.</summary>
     private WindowInfo? Lookup(ExecutableStep step)
     {
+        var wanted = WindowText(step);
+        return Patterned(wanted, () => _devices.Windows.Find(wanted,
+            WindowMatchOf(step.Text("matchBy")), WindowCompareOf(step.Text("compareBy"))));
+    }
+
+    /// <summary>
+    /// Reads windows with a rule that may hold a pattern. One the machine cannot read is the macro's
+    /// problem to see, not a stack trace to puzzle over, so it comes back as a failed step — the
+    /// same words whichever window action asked.
+    /// </summary>
+    private static T Patterned<T>(string text, Func<T> look)
+    {
         try
         {
-            return _devices.Windows.Find(WindowText(step), WindowMatchOf(step.Text("matchBy")),
-                WindowCompareOf(step.Text("compareBy")));
+            return look();
         }
         catch (ArgumentException)
         {
-            // A pattern the machine cannot read is the macro's problem to see, not a stack trace to
-            // puzzle over, so it comes back as a failed step.
-            throw new StepFailure("Run.BadPattern", WindowText(step));
+            throw new StepFailure("Run.BadPattern", text);
         }
     }
 
@@ -6571,48 +6568,66 @@ public sealed class MacroRunner
     /// is spelled, so it can be handed straight to the vision actions, and each part gets a name of
     /// its own for the arithmetic a macro wants to do with it.
     /// </summary>
+    /// <summary>
+    /// Where a window sits and what it is, handed over as one record — the same shape a listing
+    /// gives each window it finds, so the rectangle goes into a search region as it stands and one
+    /// part of it is read by name.
+    /// </summary>
     private void WindowBox(ExecutableStep step, int depth)
     {
         var window = Locate(step);
+        var box = $"{window.Location.X},{window.Location.Y},{window.Size.Width},{window.Size.Height}";
+
+        if (Wants(step, "window"))
+        {
+            // The program, the class and the part inside the border cost a look at the window each,
+            // so they are worked out only when the record is kept at all.
+            var client = _devices.Windows.ClientOrigin(window.Handle);
+            var inner = _devices.Windows.ClientSize(window.Handle);
+            Give(step, "window", WindowRecord(window,
+                _devices.Windows.ProcessOf(window.Handle),
+                _devices.Windows.ClassOf(window.Handle),
+                $"{client.X},{client.Y},{inner.Width},{inner.Height}"));
+        }
+
+        Log(LogLevel.Info, depth, step.Type, "Run.WindowBox", window.Title, box);
+    }
+
+    /// <summary>
+    /// One window as a record: what it is — the title, the program and the class behind it, what the
+    /// system knows it by, whether it is shrunk or spread — and where it sits, both as the four
+    /// numbers of its rectangle and as the text a search region is spelled with. The part inside
+    /// the border goes in when the caller has read it; a listing leaves it out, because reading it
+    /// costs a look at every window found.
+    /// </summary>
+    private static Value WindowRecord(WindowInfo window, string program, string kind, string clientBox)
+    {
         var left = window.Location.X;
         var top = window.Location.Y;
         var width = window.Size.Width;
         var height = window.Size.Height;
 
-        Give(step, "box", Value.FromText($"{left},{top},{width},{height}"));
-        Give(step, "x", Value.FromNumber(left));
-        Give(step, "y", Value.FromNumber(top));
-        Give(step, "width", Value.FromNumber(width));
-        Give(step, "height", Value.FromNumber(height));
-        Give(step, "title", Value.FromText(window.Title));
+        List<(string Name, Value Value)> fields =
+        [
+            ("title", Value.FromText(window.Title)),
+            ("process", Value.FromText(program)),
+            ("class", Value.FromText(kind)),
+            ("handle", Value.FromNumber(window.Handle)),
+            ("minimized", Value.FromBool(window.Minimized)),
+            ("maximized", Value.FromBool(window.Maximized)),
+            ("left", Value.FromNumber(left)),
+            ("top", Value.FromNumber(top)),
+            ("width", Value.FromNumber(width)),
+            ("height", Value.FromNumber(height)),
+            ("box", Value.FromText($"{left},{top},{width},{height}")),
+        ];
 
-        // What the window is as well as where it is: a title says which document is open, these say
-        // which program and which kind of window — what a step filtering by process name or class
-        // compares against. Looking a process up costs more than reading a title, so neither is
-        // worked out for a step that does not keep it.
-        GiveAsked(step, "process", () => Value.FromText(_devices.Windows.ProcessOf(window.Handle)));
-        GiveAsked(step, "class", () => Value.FromText(_devices.Windows.ClassOf(window.Handle)));
-        Give(step, "handle", Value.FromNumber(window.Handle));
-        Give(step, "minimized", Value.FromBool(window.Minimized));
-        Give(step, "maximized", Value.FromBool(window.Maximized));
-
-        // The part of the window inside its border, which is where a search anchored to the window
-        // looks: the title bar and the border are not something the window draws on. Reading it
-        // costs a look at the window, so it is only read when one of its parts is kept.
-        if (Wants(step, "clientBox") || Wants(step, "clientX") || Wants(step, "clientY")
-            || Wants(step, "clientWidth") || Wants(step, "clientHeight"))
+        if (clientBox.Length > 0)
         {
-            var client = _devices.Windows.ClientOrigin(window.Handle);
-            var inner = _devices.Windows.ClientSize(window.Handle);
-            Give(step, "clientBox",
-                Value.FromText($"{client.X},{client.Y},{inner.Width},{inner.Height}"));
-            Give(step, "clientX", Value.FromNumber(client.X));
-            Give(step, "clientY", Value.FromNumber(client.Y));
-            Give(step, "clientWidth", Value.FromNumber(inner.Width));
-            Give(step, "clientHeight", Value.FromNumber(inner.Height));
+            fields.Add(("clientBox", Value.FromText(clientBox)));
         }
 
-        Log(LogLevel.Info, depth, step.Type, "Run.WindowBox", window.Title, $"{left},{top},{width},{height}");
+        return Value.FromRecord(fields);
     }
 
     // ---------------------------------------------------------------------- ocr
@@ -6796,14 +6811,17 @@ public sealed class MacroRunner
         Saw(step, LookKind.Text, area, corner, Marks([(area, corner)], TextMarks(spans, corner), 0), 0,
             note: text, minimum: Number(step, "minScore"));
 
-        // Read as a table, the result holds rows of cells — the shape reading a table through UI
-        // Automation gives. Read as text it holds the writing, and either way the writing itself is
-        // handed over as well, so a macro can take it both ways round.
+        // Read as a table, the result holds rows, each one a record keyed by where its cells sit —
+        // the shape reading a table through UI Automation gives. Read as text it holds the writing,
+        // and either way the writing itself is handed over as well, so a macro can take it both
+        // ways round.
         if (Flag(step, "table", false))
         {
+            // A page read off the screen has no strip of column names, so the places its cells sit
+            // in name them: A, B, C, the same names a file with no header gets.
             var rows = OcrReading.Rows(spans);
-            Give(step, "table", Value.FromList(rows.Select(row =>
-                Value.FromList(row.Select(Value.FromText)))));
+            Give(step, "table", Value.FromList(rows.Select(row => Value.FromRecord(
+                row.Select((cell, index) => (Letter(index), Value.FromText(cell)))))));
             text = string.Join('\n', rows.Select(row => string.Join('\t', row)));
             Log(LogLevel.Info, depth, step.Type, "Run.ReadTable", rows.Count);
         }
@@ -7087,8 +7105,9 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// Reads a table into a variable as a list of rows, each row a list of cells, which is the
-    /// same shape the CSV reader hands back so the same steps can walk either one.
+    /// Reads a table into a variable as a list of rows, each row a record whose keys are the names
+    /// the table writes above its columns — the same shape the CSV reader hands back, so the same
+    /// steps walk either one and a cell is read by name rather than by counting along the line.
     /// </summary>
     private void ReadElementTable(ExecutableStep step, int depth)
     {
@@ -7097,12 +7116,18 @@ public sealed class MacroRunner
         var limit = Math.Clamp(OptionalNumber(step, "maxRows", DefaultRows), 1, MaxRows);
         var table = _devices.Ui.ReadTable(Query(step), limit);
 
-        var name = Give(step, "table", Value.FromList(
-            table.Rows.Select(row => Value.FromList(row.Select(Value.FromText)))));
+        // A grid that keeps no strip of column names still has columns: they are the places its
+        // cells sit in, so the widest row says how many there are.
+        var width = table.Columns.Count > 0
+            ? table.Columns.Count
+            : table.Rows.Count == 0 ? 0 : table.Rows.Max(row => row.Count);
+        var names = ColumnNames([.. table.Columns.Select(Value.FromText)], width);
 
-        // The names a table keeps above its data are the only place that says which column is
-        // which, and they are not a row of it.
-        Give(step, "columns", Value.FromList(table.Columns.Select(Value.FromText)));
+        var name = Give(step, "table", Value.FromList(
+            table.Rows.Select(row => Value.FromRecord(
+                Enumerable.Range(0, width).Select(index => (
+                    names[index],
+                    Value.FromText(index < row.Count ? row[index] : string.Empty)))))));
 
         Log(LogLevel.Info, depth, step.Type, "Run.ReadTable", name, table.Rows.Count);
     }

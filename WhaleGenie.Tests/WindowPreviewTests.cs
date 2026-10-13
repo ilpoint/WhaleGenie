@@ -383,7 +383,7 @@ public class WindowPreviewTests
     {
         Ui.Run(() =>
         {
-            foreach (var key in new[] { "control.delay", "window.list" })
+            foreach (var key in new[] { "control.delay", "file.readText" })
             {
                 var viewModel = Open(key);
 
@@ -391,6 +391,44 @@ public class WindowPreviewTests
                 Assert.All(viewModel.Parameters,
                     parameter => Assert.False(parameter.ShowsWindowPreview));
             }
+        });
+    }
+
+    /// <summary>
+    /// A listing recognises windows with the same three fields as every other window action, so it
+    /// gets the same list under the same field — and the list has to mean what the run means by an
+    /// empty match text, which for a listing is every window rather than the one in front.
+    /// </summary>
+    [Fact]
+    public void A_listing_shows_the_windows_it_would_hand_over()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("window.list");
+            viewModel.Windows = Desk()
+                .Add(1, "Notepad - notes.txt", "notepad", "Notepad")
+                .Add(2, "Calculator", "calc", "CalcFrame");
+
+            var text = Parameter(viewModel, "title");
+            Assert.True(text.ShowsWindowPreview);
+
+            var preview = viewModel.WindowPreview!;
+            preview.RefreshCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            // Nothing written: every window is listed, and the line under the box says so.
+            Assert.Equal(2, preview.Rows.Count);
+            Assert.Equal(Strings.Get("Add.WindowPreview.Every"), preview.Note);
+
+            // Narrowed down by program name: the same three fields the other window actions use.
+            Choose(viewModel, "matchBy", "process");
+            text.Text = "calc";
+            Dispatcher.UIThread.RunJobs();
+            preview.RefreshCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(["Calculator"], preview.Rows.Select(row => row.Title));
+            Assert.Equal("calc", preview.Rows[0].Part);
         });
     }
 
@@ -594,12 +632,13 @@ public class WindowPreviewTests
 
         public IReadOnlyList<WindowInfo> List() => [.. Open];
 
-        public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match, WindowCompare compare)
+        public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match, WindowCompare compare,
+            bool everyWhenEmpty = false)
         {
             var wanted = (value ?? string.Empty).Trim();
             if (wanted.Length == 0)
             {
-                return Open.Count > 0 ? [Open[0]] : [];
+                return everyWhenEmpty || Open.Count == 0 ? [.. Open] : [Open[0]];
             }
 
             return [.. Open.Where(window => Answers(window, wanted, match, compare))];

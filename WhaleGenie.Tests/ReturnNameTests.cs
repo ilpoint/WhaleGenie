@@ -99,11 +99,11 @@ public class ReturnNameTests
     {
         Ui.Run(() =>
         {
-            // A window's place is handed over as a rectangle and as the four numbers of it, and the
-            // numbers are what a macro reaches for second.
-            var viewModel = Open("window.info", "k3f9", out var window);
+            // A search hands over the one hit it went with, and — for a step that asks for them —
+            // the list of every hit there was; the list is what a macro reaches for second.
+            var viewModel = Open("vision.findImage", "k3f9", out var window);
 
-            var side = Row(viewModel, "width");
+            var side = Row(viewModel, "every");
             Assert.False(side.Ticked);
 
             side.Ticked = true;
@@ -175,9 +175,9 @@ public class ReturnNameTests
     {
         Ui.Run(() =>
         {
-            // Reading a window's place hands back a rectangle and the four numbers it is made of,
-            // and every one of them becomes a variable of its own.
-            var viewModel = Open("window.info", "k3f9", out var window);
+            // A search hands back the hit it went with and the list of every hit there was, and
+            // every one of them becomes a variable of its own.
+            var viewModel = Open("vision.findImage", "k3f9", out var window);
             foreach (var row in viewModel.ReturnsRows)
             {
                 row.Ticked = true;

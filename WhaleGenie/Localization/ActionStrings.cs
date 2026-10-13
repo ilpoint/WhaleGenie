@@ -143,6 +143,11 @@ internal static class ActionStrings
         "窗口靠这段文字认出：它和「匹配方式」选中的那一部分按「比较方式」比较，不区分大小写。留空表示最前面"
         + "那个窗口。";
 
+    /// <summary>What an empty match text means to a step that lists windows rather than acting on one.</summary>
+    private const string WindowListTitleHint =
+        "窗口靠这段文字认出：它和「匹配方式」选中的那一部分按「比较方式」比较，不区分大小写。留空表示所有"
+        + "窗口（一次列完，不做筛选）。";
+
     /// <summary>The matching hint for the part of a window that text is compared with.</summary>
     private const string WindowMatchByHint =
         "「匹配内容」和窗口的哪一部分比较：标题是标题栏上的字；进程名是拥有这个窗口的程序名（不含 .exe）；"
@@ -791,9 +796,9 @@ internal static class ActionStrings
             "要保留的列，按表头里的名字写，或者按它所在的字母写：金额、B、金额,B。每一行只留这几列，"
             + "顺序按这里写的来；留空表示所有列。",
         ["file.readCsv.shape.label"] = "结果形状",
-        ["file.readCsv.shape.hint"] = "给出行列表，或者在只点名了一列时，直接给出那一列的值（一个普通列表，可以直接遍历或求和）。"
-            + "默认「每行一个列表」。",
-        ["file.readCsv.shape.option.rows"] = "每行一个列表",
+        ["file.readCsv.shape.hint"] = "给出每行一条记录的表，或者在只点名了一列时，直接给出那一列的值（一个普通"
+            + "列表，可以直接遍历或求和）。默认「每行一条记录」。",
+        ["file.readCsv.shape.option.rows"] = "每行一条记录",
         ["file.readCsv.shape.option.values"] = "一列的值",
         ["file.readCsv.matchColumn.label"] = "只读这些行",
         ["file.readCsv.matchColumn.hint"] = "只读这一列的单元格等于下面那个值的行，列名写法与上面一样。"
@@ -1303,15 +1308,25 @@ internal static class ActionStrings
         ["window.close.compareBy.option.regex"] = WindowCompareRegex,
 
         ["window.list.name"] = "列出窗口",
-        ["window.list.desc"] = "把当前打开的窗口收集成一个列表，每个窗口一条记录，可以只留符合筛选条件的那些。",
-        ["window.list.filter.label"] = "筛选文字",
-        ["window.list.filter.hint"] = "只留下标题、进程名或窗口类名里含这段文字的窗口；留空表示所有窗口都要。"
-            + "可以填变量或算式。",
-        ["window.list.filterBy.label"] = "按什么筛选",
-        ["window.list.filterBy.hint"] = "筛选文字与窗口的哪一部分比，默认标题。这一项只按包含匹配。",
-        ["window.list.filterBy.option.title"] = WindowMatchByTitle,
-        ["window.list.filterBy.option.process"] = WindowMatchByProcess,
-        ["window.list.filterBy.option.class"] = WindowMatchByClass,
+        ["window.list.desc"] = "把当前打开的窗口收集成一个列表，每个窗口一条记录，可以只留「匹配内容」认到的那些。",
+        ["window.list.title.label"] = WindowMatchTextLabel,
+        ["window.list.title.regex.label"] = WindowRegexLabel,
+        ["window.list.title.regex.placeholder"] = WindowRegexPlaceholder,
+        ["window.list.title.hint"] = WindowListTitleHint,
+        ["window.list.matchBy.label"] = "匹配方式",
+        ["window.list.matchBy.hint"] = WindowMatchByHint,
+        ["window.list.matchBy.option.title"] = WindowMatchByTitle,
+        ["window.list.matchBy.option.process"] = WindowMatchByProcess,
+        ["window.list.matchBy.option.class"] = WindowMatchByClass,
+        ["window.list.compareBy.label"] = "比较方式",
+        ["window.list.compareBy.hint"] = WindowCompareHint,
+        ["window.list.compareBy.option.contains"] = WindowCompareContains,
+        ["window.list.compareBy.option.startsWith"] = WindowCompareStartsWith,
+        ["window.list.compareBy.option.regex"] = WindowCompareRegex,
+        ["window.list.details.label"] = "每个窗口都读程序名与类名（慢）",
+        ["window.list.details.hint"] =
+            "把每个窗口的程序名与窗口类名读进记录的「process」与「class」两格。按标题分辨窗口时用不到它们，"
+            + "读一次要给每个窗口问一次系统，所以默认关；要按程序名或按类名分辨窗口时打开它。",
 
         ["window.info.name"] = "窗口信息",
         ["window.info.desc"] = "读取符合匹配内容的窗口的位置和大小。",
@@ -2643,9 +2658,9 @@ internal static class ActionStrings
             + "只留下数字本身（货币符号、千位分隔符和旁边的文字都去掉），一个数字也没有的片段"
             + "直接不要。全角数字按普通数字读。",
         ["ocr.recognize.table.label"] = "按表格读",
-        ["ocr.recognize.table.hint"] = "按屏幕上的位置分行分列：$变量是表格（每行一项、每项"
-            + "一行单元格，和读表格同一种形状），$变量.text 是同样的内容按行拼成的文本"
-            + "（行与行之间换行、单元格之间制表符）。没有表格线也能用，靠的是文字的位置。",
+        ["ocr.recognize.table.hint"] = "按屏幕上的位置分行分列：$变量是表格（每行一项、每项是一条"
+            + "记录，键是格子的列号 A、B、C），$变量.text 是同样的内容按行拼成的文本（行与行之间换行、"
+            + "单元格之间制表符）。没有表格线也能用，靠的是文字的位置。",
         ["ocr.recognize.preprocess.label"] = "画面预处理",
         ["ocr.recognize.preprocess.hint"] = "识别前的画面处理：灰度化去掉颜色；黑白在灰度化后"
             + "再拉开明暗对比（分界值取整幅图的平均亮度，因此深色与浅色主题均可使用）；"
@@ -3518,16 +3533,11 @@ internal static class ActionStrings
         ["process.list.returns.hint"] = ReturnsHintText,
 
         // process.info
-        ["process.info.return.info.label"] = "文件",
-        ["process.info.return.info.hint"] = "程序所在的文件；Windows 不肯说时为空。",
-        ["process.info.return.id.label"] = "进程号",
-        ["process.info.return.id.hint"] = "程序的编号。",
-        ["process.info.return.name.label"] = "名称",
-        ["process.info.return.name.hint"] = "程序的名称。",
-        ["process.info.return.memoryMb.label"] = "内存",
-        ["process.info.return.memoryMb.hint"] = "程序占用的内存，单位是兆字节。",
-        ["process.info.return.cpuSeconds.label"] = "处理器时间",
-        ["process.info.return.cpuSeconds.hint"] = "程序累计用掉的处理器时间，单位是秒。",
+        ["process.info.return.program.label"] = "程序",
+        ["process.info.return.program.hint"] =
+            "这个程序，一条记录：「info」（程序所在的文件，Windows 不肯说时为空）、「id」（进程号）、"
+            + "「name」（名称）、「memoryMb」（占用的内存，单位是兆字节）、「cpuSeconds」（累计用掉的处理器"
+            + "时间，单位是秒）。取其中一项用 field($变量, \"id\")。",
         ["process.info.returns.label"] = "要留下的结果",
         ["process.info.returns.hint"] = ReturnsHintText,
 
@@ -3592,87 +3602,51 @@ internal static class ActionStrings
         // window.list
         ["window.list.return.windows.label"] = "窗口列表",
         ["window.list.return.windows.hint"] =
-            "匹配到的窗口，一个窗口一条记录，按系统列出的顺序排。同名窗口是两个窗口，各占一条。"
-            + "每条记录里有「title」（标题）、「process」（程序名，不含 .exe）、「class」（窗口"
-            + "类名，说明窗口的种类而不是里面的文档，记事本改了名也还是 Notepad）、「handle」"
-            + "（句柄，标题相同时用它区分）和「box」（位置与大小，写成 左,上,宽,高，填进搜索区域"
-            + "那一行的变量格里，下一步就在那个窗口里找）。读其中一条的一个字段用 "
+            "匹配到的窗口，一个窗口一条记录，按系统列出的顺序排。同名窗口是两个窗口，各占一条。每条记录与"
+            + "window.info 给的那一条同形（少一个客户区）：「title」（标题）、「handle」（句柄，标题相同时"
+            + "用它区分）、「minimized」「maximized」（是否收进任务栏、是否铺满屏幕）、「left」「top」"
+            + "「width」「height」（矩形四个数）与「box」（同一个矩形，写成 左,上,宽,高，填进搜索区域那一"
+            + "行的变量格里，下一步就在那个窗口里找），再加上「process」（程序名，不含 .exe）与「class」"
+            + "（窗口类名，说明窗口的种类而不是里面的文档，记事本改了名也还是 Notepad）——这两格要勾上"
+            + "「每个窗口都读程序名与类名（慢）」才有，没读的留空。读其中一条的一个字段用 "
             + "field(get($变量, 0), \"title\")，逐个走一遍用 forEach。",
         ["window.list.returns.label"] = "要留下的结果",
         ["window.list.returns.hint"] = ReturnsHintText,
 
         // window.info
-        ["window.info.return.box.label"] = "窗口矩形",
-        ["window.info.return.box.hint"] = "窗口的整块，写成 左,上,宽,高（也就是 屏幕 x,屏幕 y,宽,"
-            + "高）：填进搜索区域那一行的变量格里，下一步就在窗口里找。给的是窗口被看见的那个"
-            + "矩形：Windows 留着用来拉伸的那圈边框不画出来也不算，最大化的窗口按它在屏幕上的"
-            + "样子量。",
-        ["window.info.return.x.label"] = "左边界",
-        ["window.info.return.x.hint"] = "窗口左边界在屏幕上的横坐标，单位是屏幕像素。",
-        ["window.info.return.y.label"] = "上边界",
-        ["window.info.return.y.hint"] = "窗口上边界在屏幕上的纵坐标，单位是屏幕像素。",
-        ["window.info.return.width.label"] = "宽",
-        ["window.info.return.width.hint"] = "窗口的宽度，单位是像素。",
-        ["window.info.return.height.label"] = "高",
-        ["window.info.return.height.hint"] = "窗口的高度，单位是像素。",
-        ["window.info.return.title.label"] = "标题",
-        ["window.info.return.title.hint"] = "窗口标题栏上的文字。",
-        ["window.info.return.process.label"] = "程序名",
-        ["window.info.return.process.hint"] =
-            "窗口所属的程序名，不含 .exe，也就是按进程名筛选时比较的那一项。",
-        ["window.info.return.class.label"] = "窗口类名",
-        ["window.info.return.class.hint"] =
-            "窗口注册的窗口类名，例如 Notepad：说明的是窗口的种类而不是里面的文档。",
-        ["window.info.return.handle.label"] = "句柄",
-        ["window.info.return.handle.hint"] =
-            "窗口在系统里的句柄。两个窗口标题相同时用它区分。",
-        ["window.info.return.minimized.label"] = "已最小化",
-        ["window.info.return.minimized.hint"] = "窗口收进任务栏时是真的。",
-        ["window.info.return.maximized.label"] = "已最大化",
-        ["window.info.return.maximized.hint"] = "窗口铺满屏幕时是真的。",
-        ["window.info.return.clientBox.label"] = "客户区矩形",
-        ["window.info.return.clientBox.hint"] =
-            "窗口边框以内、标题栏以下的那一块，写成 左,上,宽,高：坐标基准选窗口客户区的这一步"
-            + "看的就是这块画面。",
-        ["window.info.return.clientX.label"] = "客户区左边界",
-        ["window.info.return.clientX.hint"] =
-            "客户区左边界在屏幕上的横坐标，单位是屏幕像素：和坐标基准里的“窗口客户区”同一个口径。",
-        ["window.info.return.clientY.label"] = "客户区上边界",
-        ["window.info.return.clientY.hint"] = "客户区上边界在屏幕上的纵坐标，单位是屏幕像素。",
-        ["window.info.return.clientWidth.label"] = "客户区宽",
-        ["window.info.return.clientWidth.hint"] = "客户区的宽度，单位是像素。",
-        ["window.info.return.clientHeight.label"] = "客户区高",
-        ["window.info.return.clientHeight.hint"] = "客户区的高度，单位是像素。",
+        ["window.info.return.window.label"] = "窗口",
+        ["window.info.return.window.hint"] =
+            "这个窗口，一条记录（与窗口列表里的一条同形，另加一个客户区）：「title」（标题）、「process」"
+            + "（程序名，不含 .exe，也就是按进程名筛选时比较的那一项）、「class」（窗口类名，例如 Notepad，"
+            + "说明的是窗口的种类而不是里面的文档）、「handle」（句柄，标题相同时用它区分）、「minimized」"
+            + "「maximized」（是否收进任务栏、是否铺满屏幕）、「left」「top」「width」「height」（矩形四个"
+            + "数）、「box」（同一个矩形，写成 左,上,宽,高，整条记录直接填进搜索区域那一行的变量格即可看同一"
+            + "块）与「clientBox」（窗口边框以内、标题栏以下的那一块，写成 左,上,宽,高，坐标基准选「窗口客户"
+            + "区」的这一步看的就是它）。取其中一项用 field($变量, \"left\")。给的是窗口被看见的那个矩形："
+            + "Windows 留着用来拉伸的那圈边框不画出来也不算，最大化的窗口按它在屏幕上的样子量。",
         ["window.info.returns.label"] = "要留下的结果",
         ["window.info.returns.hint"] = ReturnsHintText,
 
         // vision.capture
         ["vision.capture.return.image.label"] = "图片",
         ["vision.capture.return.image.hint"] = "截到的图片，可以拿去搜索，也可以写进文件。",
-        ["vision.capture.return.x.label"] = "X",
-        ["vision.capture.return.x.hint"] = "截到的那块图片的左上角在屏幕上的横坐标，单位是屏幕"
-            + "像素，和搜索区域的「左上角 X」同一个口径。",
-        ["vision.capture.return.y.label"] = "Y",
-        ["vision.capture.return.y.hint"] = "截到的那块图片的左上角在屏幕上的纵坐标，单位是屏幕"
-            + "像素，和搜索区域的「左上角 Y」同一个口径。",
-        ["vision.capture.return.width.label"] = "宽",
-        ["vision.capture.return.width.hint"] = "截到的那块图片的宽度，单位是像素。",
-        ["vision.capture.return.height.label"] = "高",
-        ["vision.capture.return.height.hint"] = "截到的那块图片的高度，单位是像素。",
+        ["vision.capture.return.place.label"] = "位置",
+        ["vision.capture.return.place.hint"] =
+            "截到的那块在哪里，一条记录：「left」「top」（左上角在屏幕上的位置，单位是屏幕像素，和搜索区域"
+            + "的「左上角 X」「左上角 Y」同一个口径）、「width」「height」（大小，单位是像素；给的是图片自己"
+            + "的大小，贴着屏幕边缘截时可能比要的小）、「box」（整块写成 左,上,宽,高，填进搜索区域那一行的"
+            + "变量格即可看同一块）。取其中一项用 field($变量, \"left\")。",
         ["vision.capture.returns.label"] = "要留下的结果",
         ["vision.capture.returns.hint"] = ReturnsHintText,
 
         // vision.captureWindow
         ["vision.captureWindow.return.image.label"] = "图片",
         ["vision.captureWindow.return.image.hint"] = "截到的整窗图片，连标题栏一起。",
-        ["vision.captureWindow.return.x.label"] = "X",
-        ["vision.captureWindow.return.x.hint"] = "窗口左边界在屏幕上的横坐标，单位是屏幕像素。",
-        ["vision.captureWindow.return.y.label"] = "Y",
-        ["vision.captureWindow.return.y.hint"] = "窗口上边界在屏幕上的纵坐标，单位是屏幕像素。",
-        ["vision.captureWindow.return.width.label"] = "宽",
-        ["vision.captureWindow.return.width.hint"] = "窗口的宽度，单位是像素。",
-        ["vision.captureWindow.return.height.label"] = "高",
-        ["vision.captureWindow.return.height.hint"] = "窗口的高度，单位是像素。",
+        ["vision.captureWindow.return.place.label"] = "位置",
+        ["vision.captureWindow.return.place.hint"] =
+            "窗口在哪里，一条记录：「left」「top」（窗口左上角在屏幕上的位置，单位是屏幕像素）、「width」"
+            + "「height」（窗口的大小，单位是像素）、「box」（整块写成 左,上,宽,高，填进搜索区域那一行的"
+            + "变量格即可在窗口里找）。取其中一项用 field($变量, \"left\")。",
         ["vision.captureWindow.returns.label"] = "要留下的结果",
         ["vision.captureWindow.returns.hint"] = ReturnsHintText,
 
@@ -3714,7 +3688,8 @@ internal static class ActionStrings
         ["ocr.recognize.return.text.label"] = "文本",
         ["ocr.recognize.return.text.hint"] = "识别出来的文字。",
         ["ocr.recognize.return.table.label"] = "表格",
-        ["ocr.recognize.return.table.hint"] = "把内容按行列留成表格，每项是一行的单元格；只有勾上“读成表格”才有。",
+        ["ocr.recognize.return.table.hint"] = "把内容按行列留成表格，每项是一条记录，键是格子的列号"
+            + "（A、B、C），与没有表头的文件同一套叫法；只有勾上“按表格读”才有。",
         ["ocr.recognize.returns.label"] = "要留下的结果",
         ["ocr.recognize.returns.hint"] = ReturnsHintText,
 
@@ -3748,9 +3723,9 @@ internal static class ActionStrings
 
         // uia.readTable
         ["uia.readTable.return.table.label"] = "表格",
-        ["uia.readTable.return.table.hint"] = "读到的行，每项是一行的单元格，形状和读 CSV 一样。",
-        ["uia.readTable.return.columns.label"] = "列名",
-        ["uia.readTable.return.columns.hint"] = "各列的名字，按列的顺序排，宏靠它找到要的那一列。",
+        ["uia.readTable.return.table.hint"] = "读到的行，每行是一条记录：键就是表格列标题那一行写的"
+            + "列名，用 field(get($变量, 0), \"金额\") 按名字取一个单元格；没有列标题时列名是 A、B、C，"
+            + "列名为空或与前面重名的列也用它的列号。",
         ["uia.readTable.returns.label"] = "要留下的结果",
         ["uia.readTable.returns.hint"] = ReturnsHintText,
 

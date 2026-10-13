@@ -509,13 +509,14 @@ public interface IWindowDevice
     /// <summary>
     /// Every window that matches <paramref name="value"/> the way <paramref name="match"/> and
     /// <paramref name="compare"/> say, ignoring case, in the order <see cref="List"/> gives them,
-    /// or nothing when none does. An empty value matches the frontmost window alone, which is the
-    /// same answer <see cref="Find"/> gives: it is the one window a step that says nothing means.
-    /// The interface asks for all of them so that what a step would recognise can be shown rather
-    /// than guessed at, and the rule itself stays in one place.
+    /// or nothing when none does. An empty value matches the frontmost window alone — the one window
+    /// a step that says nothing means — unless <paramref name="everyWhenEmpty"/> is set, which is
+    /// what a step that lists windows means by saying nothing: every window there is. The interface
+    /// asks for all of them so that what a step would recognise can be shown rather than guessed at,
+    /// and the rule itself stays in one place.
     /// </summary>
     IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match,
-        WindowCompare compare = WindowCompare.Contains);
+        WindowCompare compare = WindowCompare.Contains, bool everyWhenEmpty = false);
 
     /// <summary>
     /// The first window that matches <paramref name="value"/> the way <paramref name="match"/>
@@ -825,7 +826,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
         IReadOnlyList<WindowInfo> IWindowDevice.List() => throw Missing("windows");
 
         IReadOnlyList<WindowInfo> IWindowDevice.Filter(string value, WindowMatch match,
-            WindowCompare compare) => throw Missing("windows");
+            WindowCompare compare, bool everyWhenEmpty) => throw Missing("windows");
 
         WindowInfo? IWindowDevice.Find(string value, WindowMatch match, WindowCompare compare)
             => throw Missing("windows");

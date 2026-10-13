@@ -34,6 +34,13 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     private const string RunMacroKey = "control.runMacro";
 
+    /// <summary>
+    /// The action that lists windows rather than acting on one of them. Nothing written in its match
+    /// text means every window there is, so the list under that field has to say so rather than say
+    /// "the window in front", which is what the same empty text means to every other window action.
+    /// </summary>
+    private const string ListWindowsKey = "window.list";
+
     /// <summary>The macro the call's own fields were built for, so a change to it can be noticed.</summary>
     private string _callMacro = string.Empty;
 
@@ -1821,7 +1828,8 @@ public partial class AddActionViewModel : ViewModelBase
             preview.Show(asking);
             if (asking)
             {
-                preview.Follow(text.CurrentText, WindowMatchFor(), WindowCompareFor());
+                preview.Follow(new WindowRule(text.CurrentText, WindowMatchFor(), WindowCompareFor(),
+                    SelectedDefinition?.Key == ListWindowsKey));
             }
         }
 

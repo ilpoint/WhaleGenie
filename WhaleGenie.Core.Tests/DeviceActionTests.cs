@@ -50,6 +50,10 @@ public class DeviceActionTests
     private static string Centre(VariableStore store, string name)
         => $"{Field(store, name, "x").AsText()},{Field(store, name, "y").AsText()}";
 
+    /// <summary>Where a place starts, written "left,top" the way a search region counts from.</summary>
+    private static string Corner(VariableStore store, string name)
+        => $"{Field(store, name, "left").AsText()},{Field(store, name, "top").AsText()}";
+
     /// <summary>The middle of every hit in one "every match" list, in the order they are counted in.</summary>
     private static string Centres(VariableStore store, string name)
         => string.Join(", ", store.Local.Values[name + ".every"].AsList()
@@ -2164,8 +2168,7 @@ public class DeviceActionTests
         Assert.Equal((0, 0, 100, 50), (asked.X, asked.Y, asked.Width, asked.Height));
 
         // Both steps were answered out of that one picture, cut where each of them asked.
-        Assert.Equal("10", store.Local.Values["shot.x"].AsText());
-        Assert.Equal("10", store.Local.Values["shot.y"].AsText());
+        Assert.Equal("10,10", Corner(store, "shot.place"));
         Assert.Equal("32,8", Centre(store, "match"));
     }
 
@@ -3010,8 +3013,14 @@ public class DeviceActionTests
 
         var rows = store.Local.Values["sheet"].AsList();
         Assert.Equal(2, rows.Count);
-        Assert.Equal(["名称", "数量"], rows[0].AsList().Select(cell => cell.AsText()));
-        Assert.Equal(["苹果", "3"], rows[1].AsList().Select(cell => cell.AsText()));
+
+        // A row is a record keyed by the place each cell sits in: a page read off the screen has no
+        // strip of column names to key it by.
+        Assert.Equal(["A", "B"], rows[0].Fields.Select(field => field.Name));
+        Assert.Equal("名称", rows[0].Field("A")!.AsText());
+        Assert.Equal("数量", rows[0].Field("B")!.AsText());
+        Assert.Equal("苹果", rows[1].Field("A")!.AsText());
+        Assert.Equal("3", rows[1].Field("B")!.AsText());
 
         // The writing is still there as text, one line per row, which is what a macro shows or
         // writes to a file.
@@ -3335,12 +3344,14 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
 
-        // The shape is the same as the CSV reader's: a row per entry, a cell per entry inside it.
+        // The shape is the same as the CSV reader's: one record per row, a field per cell. This grid
+        // keeps no strip of column names, so the places its cells sit in key them: A, B.
         var table = store.Local.Values["people"];
         Assert.True(table.IsList);
         Assert.Equal(2, table.Items.Count);
-        Assert.Equal("Name", table.Items[0].Items[0].AsText());
-        Assert.Equal("31", table.Items[1].Items[1].AsText());
+        Assert.Equal(["A", "B"], table.Items[0].Fields.Select(field => field.Name));
+        Assert.Equal("Name", table.Items[0].Field("A")!.AsText());
+        Assert.Equal("31", table.Items[1].Field("B")!.AsText());
     }
 
     [Fact]
@@ -3361,12 +3372,13 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// A table keeps the names of its columns in a strip of its own, which is not a row of data.
-    /// They are the only place that says which column is which, so they are handed over separately
-    /// rather than left inside the rows or dropped along with the empty ones.
+    /// A table keeps the names of its columns in a strip of its own, which is not a row of data, and
+    /// they are what every row is keyed by: a cell is read by the name a person sees rather than by
+    /// counting along the line, which is how a table comes to be read out of the wrong column
+    /// without anything saying so.
     /// </summary>
     [Fact]
-    public async Task Reading_a_table_can_hand_back_the_names_of_its_columns()
+    public async Task Reading_a_table_keys_every_row_by_its_column_names()
     {
         var devices = new FakeDeviceLayer();
         devices.Columns.AddRange(["Name", "Age"]);
@@ -3375,16 +3387,41 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("uia.readTable", Param("selector", "Table[automationId='people']"),
-                Returns("columns=titles"), Returns("table=people")),
+                Returns("table=people")),
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(["Name", "Age"],
-            store.Local.Values["titles"].Items.Select(cell => cell.AsText()));
 
-        // And the row that was read is the data, with no title strip left over in it.
-        var table = store.Local.Values["people"];
-        Assert.Equal("Ann", Assert.Single(table.Items).Items[0].AsText());
+        // The title strip is not a row: the one row that came back is the data, and its keys are
+        // the names written above its columns.
+        var row = Assert.Single(store.Local.Values["people"].AsList());
+        Assert.Equal(["Name", "Age"], row.Fields.Select(field => field.Name));
+        Assert.Equal("Ann", row.Field("Name")!.AsText());
+        Assert.Equal("31", row.Field("Age")!.AsText());
+    }
+
+    /// <summary>
+    /// A strip with a gap in it, or one that writes the same name twice, cannot key two cells the
+    /// same way: the column nobody named, and the one repeating a name already taken, keep the
+    /// letter of their place rather than putting a cell out of reach.
+    /// </summary>
+    [Fact]
+    public async Task A_blank_or_repeated_column_name_takes_the_letter_of_its_place()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Columns.AddRange(["Name", "", "Name"]);
+        devices.Table.Add(["Ann", "31", "x"]);
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("uia.readTable", Param("selector", "Table[automationId='people']"),
+                Returns("table=people")),
+        ], devices);
+
+        var row = Assert.Single(store.Local.Values["people"].AsList());
+        Assert.Equal(["Name", "B", "C"], row.Fields.Select(field => field.Name));
+        Assert.Equal("31", row.Field("B")!.AsText());
+        Assert.Equal("x", row.Field("C")!.AsText());
     }
 
     [Fact]
@@ -4903,21 +4940,26 @@ public class DeviceActionTests
         Assert.Equal(["calc", "notepad"], names.Items.Select(item => item.AsText()));
     }
 
+    /// <summary>
+    /// One program is one record, the way one window is: what it is called, what it is, and what it
+    /// is costing are answers to the same question and travel together, so a part of it is read by
+    /// name rather than out of the right one of five separate results.
+    /// </summary>
     [Fact]
-    public async Task Reading_a_programs_details_fills_the_parts_it_is_broken_into()
+    public async Task Reading_a_programs_details_hands_it_over_as_one_record()
     {
         var devices = new FakeDeviceLayer();
         devices.Running["notepad"] = [42];
         var (result, _, store) = await RunAsync(
-            [Step("process.info", Param("target", "notepad"), Parts("info", "note"))],
+            [Step("process.info", Param("target", "notepad"), Parts("program", "note"))],
             devices);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(@"C:\fake\notepad.exe", store.Local.Values["note"].AsText());
-        Assert.Equal(42d, store.Local.Values["note.id"].Number);
-        Assert.Equal("notepad", store.Local.Values["note.name"].AsText());
-        Assert.Equal(12.5d, store.Local.Values["note.memoryMb"].Number);
-        Assert.Equal(3.4d, store.Local.Values["note.cpuSeconds"].Number);
+        Assert.Equal(@"C:\fake\notepad.exe", Field(store, "note", "info").AsText());
+        Assert.Equal(42d, Field(store, "note", "id").Number);
+        Assert.Equal("notepad", Field(store, "note", "name").AsText());
+        Assert.Equal(12.5d, Field(store, "note", "memoryMb").Number);
+        Assert.Equal(3.4d, Field(store, "note", "cpuSeconds").Number);
     }
 
     [Fact]
@@ -4925,12 +4967,12 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var (result, _, store) = await RunAsync(
-            [Step("process.info", Param("target", "ghost"), Parts("info", "info"))],
+            [Step("process.info", Param("target", "ghost"), Parts("program", "note"))],
             devices);
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.NoSuchProcess", result.Key);
-        Assert.False(store.TryGet("info", out _));
+        Assert.False(store.TryGet("note", out _));
     }
 
     [Fact]
@@ -5590,17 +5632,47 @@ public class DeviceActionTests
     {
         var devices = WithAWindow();
         var (result, _, store) = await RunAsync(
-            [Step("window.info", Param("title", "Notepad"), Parts("box", "box"))], devices);
+            [Step("window.info", Param("title", "Notepad"), Parts("window", "win"))], devices);
 
         Assert.True(result.Succeeded);
 
         // The rectangle is written the way a search region is spelled, so it can be used as one.
-        Assert.Equal("1000,500,800,600", store.Local.Values["box"].AsText());
-        Assert.Equal(1000, store.Local.Values["box.x"].AsNumber());
-        Assert.Equal(500, store.Local.Values["box.y"].AsNumber());
-        Assert.Equal(800, store.Local.Values["box.width"].AsNumber());
-        Assert.Equal(600, store.Local.Values["box.height"].AsNumber());
-        Assert.Equal("Notepad - notes.txt", store.Local.Values["box.title"].AsText());
+        Assert.Equal("1000,500,800,600", Field(store, "win", "box").AsText());
+        Assert.Equal(1000, Field(store, "win", "left").AsNumber());
+        Assert.Equal(500, Field(store, "win", "top").AsNumber());
+        Assert.Equal(800, Field(store, "win", "width").AsNumber());
+        Assert.Equal(600, Field(store, "win", "height").AsNumber());
+        Assert.Equal("Notepad - notes.txt", Field(store, "win", "title").AsText());
+    }
+
+    /// <summary>
+    /// One window is one record however it was come by: asked for by name it carries the part inside
+    /// its border as well, and a listing leaves that out because reading it costs a look at every
+    /// window found. Everything else is the same field for field, so a macro reads a listed window
+    /// and a named one the same way.
+    /// </summary>
+    [Fact]
+    public async Task A_window_asked_for_by_name_is_shaped_like_one_from_a_listing()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(10, 20),
+            new ScreenSize(300, 200), false, true));
+        devices.WindowFacts[42] = ("notepad", "Notepad");
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("window.info", Param("title", "Notepad"), Returns("window=win")),
+            Step("window.list", Returns("windows=list")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        var listed = store.Local.Values["list"].AsList()[0];
+        var fields = listed.Fields.Select(field => field.Name).ToList();
+
+        Assert.Equal([.. fields, "clientBox"],
+            store.Local.Values["win"].Fields.Select(field => field.Name));
+        Assert.Equal(Field(store, "win", "title").AsText(), listed.Field("title")!.AsText());
+        Assert.Equal(Field(store, "win", "handle").Number, listed.Field("handle")!.Number);
     }
 
     [Fact]
@@ -5608,7 +5680,7 @@ public class DeviceActionTests
     {
         var devices = new FakeDeviceLayer();
         var (result, _, _) = await RunAsync(
-            [Step("window.info", Param("title", "ghost"), Parts("box", "box"))], devices);
+            [Step("window.info", Param("title", "ghost"), Parts("window", "win"))], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.WindowNotFound", result.Key);
@@ -5623,10 +5695,11 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Contains("capture 1000 500 800 600", devices.Calls);
-        Assert.Equal(1000, store.Local.Values["shot.x"].AsNumber());
-        Assert.Equal(500, store.Local.Values["shot.y"].AsNumber());
-        Assert.Equal(800, store.Local.Values["shot.width"].AsNumber());
-        Assert.Equal(600, store.Local.Values["shot.height"].AsNumber());
+        Assert.Equal(1000, Field(store, "shot.place", "left").AsNumber());
+        Assert.Equal(500, Field(store, "shot.place", "top").AsNumber());
+        Assert.Equal(800, Field(store, "shot.place", "width").AsNumber());
+        Assert.Equal(600, Field(store, "shot.place", "height").AsNumber());
+        Assert.Equal("1000,500,800,600", Field(store, "shot.place", "box").AsText());
     }
 
     [Fact]
@@ -5751,8 +5824,31 @@ public class DeviceActionTests
     }
 
     /// <summary>
+    /// A text nobody wrote means every window to a listing, where it means the window in front to a
+    /// step that acts on one window. Both readings belong to the device, so what the run does and
+    /// what the dialog shows come from the same rule.
+    /// </summary>
+    [Fact]
+    public async Task An_empty_match_text_lists_every_window_and_names_the_front_one()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Windows.Add(new WindowInfo(2, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("window.list", Returns("windows=all")),
+            Step("window.activate"),
+        ], devices);
+
+        Assert.Equal(["Notepad", "Calculator"], Titles(store, "all"));
+        Assert.Contains("activateWindow 1", devices.Calls);
+    }
+
+    /// <summary>
     /// Each window is one record holding what it is and where it sits, so the second title, the
     /// second program and the second rectangle are the same window without anything being counted.
+    /// The program and the class are in it because the step says to read them.
     /// </summary>
     [Fact]
     public async Task Listing_windows_can_say_what_each_one_is_and_where_it_sits()
@@ -5767,7 +5863,7 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("window.list", Returns("windows=listed")),
+            Step("window.list", Param("details", "true"), Returns("windows=listed")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -5795,9 +5891,9 @@ public class DeviceActionTests
 
         await RunAsync([Step("window.list")], devices);
 
-        // The list itself is still read — a step that keeps nothing still ran — but nothing about
-        // the windows in it was looked up.
-        Assert.Contains(devices.Calls, call => call == "listWindows");
+        // The windows are still read — a step that keeps nothing still ran — but nothing about the
+        // ones found was looked up.
+        Assert.Contains(devices.Calls, call => call.StartsWith("filterWindows", StringComparison.Ordinal));
 
         Assert.DoesNotContain(devices.Calls,
             call => call.StartsWith("processOf", StringComparison.Ordinal));
@@ -5806,8 +5902,39 @@ public class DeviceActionTests
     }
 
     /// <summary>
+    /// A title is there for the reading, but a program name and a window class are a look at the
+    /// machine each, so a listing that was not told to read them leaves those two parts of the
+    /// record empty and asks nothing: telling windows apart by title need not be paid for twice.
+    /// </summary>
+    [Fact]
+    public async Task A_listing_reads_no_program_or_class_until_it_is_told_to()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.Windows.Add(new WindowInfo(2, "Calculator", new ScreenPoint(), new ScreenSize(), false, false));
+        devices.WindowFacts[1] = ("notepad", "Notepad");
+        devices.WindowFacts[2] = ("calc", "CalcFrame");
+
+        var (result, _, store) = await RunAsync(
+            [Step("window.list", Returns("windows=listed"))], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.DoesNotContain(devices.Calls,
+            call => call.StartsWith("processOf", StringComparison.Ordinal));
+        Assert.DoesNotContain(devices.Calls,
+            call => call.StartsWith("classOf", StringComparison.Ordinal));
+
+        // Empty rather than missing: one window is still one record of the same shape.
+        var listed = store.Local.Values["listed"].AsList();
+        Assert.Equal(["Notepad", "Calculator"],
+            listed.Select(window => window.Field("title")!.AsText()));
+        Assert.All(listed, window => Assert.Equal(string.Empty, window.Field("process")!.AsText()));
+        Assert.All(listed, window => Assert.Equal(string.Empty, window.Field("class")!.AsText()));
+    }
+
+    /// <summary>
     /// A window has a program and a kind as well as a place, and the part of it inside its border is
-    /// where a search anchored to it looks. Each is handed over under a name of its own, so a step
+    /// where a search anchored to it looks. All of it is handed over in the one record, so a step
     /// that wants one of them is not made to read a line of punctuation to find it.
     /// </summary>
     [Fact]
@@ -5823,24 +5950,23 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("window.info", Param("title", "Notepad"),
-                Returns("process=program", "class=kind", "handle=id", "minimized=shrunk",
-                    "maximized=full", "clientBox=content", "clientX=left", "clientY=top",
-                    "clientWidth=wide", "clientHeight=tall")),
+                Returns("window=win")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.Equal("notepad", store.Local.Values["program"].AsText());
-        Assert.Equal("Notepad", store.Local.Values["kind"].AsText());
-        Assert.Equal(42, store.Local.Values["id"].AsNumber());
-        Assert.False(store.Local.Values["shrunk"].AsBool());
-        Assert.True(store.Local.Values["full"].AsBool());
-        Assert.Equal("14,51,292,160", store.Local.Values["content"].AsText());
-        Assert.Equal(14, store.Local.Values["left"].AsNumber());
-        Assert.Equal(51, store.Local.Values["top"].AsNumber());
-        Assert.Equal(292, store.Local.Values["wide"].AsNumber());
-        Assert.Equal(160, store.Local.Values["tall"].AsNumber());
+        Assert.Equal("notepad", Field(store, "win", "process").AsText());
+        Assert.Equal("Notepad", Field(store, "win", "class").AsText());
+        Assert.Equal(42, Field(store, "win", "handle").AsNumber());
+        Assert.False(Field(store, "win", "minimized").AsBool());
+        Assert.True(Field(store, "win", "maximized").AsBool());
+        Assert.Equal("14,51,292,160", Field(store, "win", "clientBox").AsText());
     }
 
+    /// <summary>
+    /// A listing is narrowed down the way every other window action names its window: the text, the
+    /// part of a window it is held against, and how. One rule in one place, so the same text picks
+    /// out the same windows whether the step acts on one of them or lists them all.
+    /// </summary>
     [Fact]
     public async Task Listing_windows_can_be_narrowed_down()
     {
@@ -5853,26 +5979,47 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("window.list", Param("filter", "notepad"), Param("filterBy", "title"),
-                Returns("windows=byTitle")),
-            Step("window.list", Param("filter", "calc"), Param("filterBy", "process"),
-                Returns("windows=byProcess")),
-            Step("window.list", Param("filter", "CalcFrame"), Param("filterBy", "class"),
-                Returns("windows=byClass")),
+            Step("window.list", Param("title", "notepad"), Returns("windows=byTitle")),
+            Step("window.list", Param("title", "calc"), Param("matchBy", "process"),
+                Param("details", "true"), Returns("windows=byProcess")),
+            Step("window.list", Param("title", "CalcFrame"), Param("matchBy", "class"),
+                Param("details", "true"), Returns("windows=byClass")),
+            Step("window.list", Param("title", @"^Note.*notes\.txt$"), Param("compareBy", "regex"),
+                Returns("windows=byPattern")),
         ], devices);
 
         Assert.Equal(["Notepad", "Notepad - notes.txt"], Titles(store, "byTitle"));
         Assert.Equal(["Calculator"], Titles(store, "byProcess"));
         Assert.Equal(["Calculator"], Titles(store, "byClass"));
+        Assert.Equal(["Notepad - notes.txt"], Titles(store, "byPattern"));
 
-        // One window is one record, so the title, the program, the class, the handle and the
-        // rectangle all come out of one list rather than five that have to be lined up by counting.
+        // One window is one record, so the title, the handle and the rectangle all come out of one
+        // list rather than five that have to be lined up by counting, and the program and the class
+        // sit in the same record when the step asks for them.
         var calculator = store.Local.Values["byProcess"].AsList()[0];
         Assert.Equal("Calculator", calculator.Field("title")!.AsText());
         Assert.Equal("calc-app", calculator.Field("process")!.AsText());
         Assert.Equal("CalcFrame", calculator.Field("class")!.AsText());
         Assert.Equal(2, calculator.Field("handle")!.AsNumber());
         Assert.Equal("0,0,0,0", calculator.Field("box")!.AsText());
+    }
+
+    /// <summary>
+    /// The text a listing is narrowed down by may be a pattern as well, and one the machine cannot
+    /// read is a failed step rather than a stack trace — the same words the other window actions
+    /// report it with.
+    /// </summary>
+    [Fact]
+    public async Task A_listing_whose_pattern_will_not_read_fails_the_step()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(1, "Notepad", new ScreenPoint(), new ScreenSize(), false, false));
+
+        var (result, _, _) = await RunAsync(
+            [Step("window.list", Param("title", "notes("), Param("compareBy", "regex"))], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BadPattern", result.Key);
     }
 
     [Fact]
@@ -7592,19 +7739,24 @@ internal sealed class FakeDeviceLayer
     }
 
     IReadOnlyList<WindowInfo> IWindowDevice.Filter(string value, WindowMatch match,
-        WindowCompare compare)
+        WindowCompare compare, bool everyWhenEmpty)
     {
         Note($"filterWindows {value}");
-        return Matching(value, match, compare);
+        return Matching(value, match, compare, everyWhenEmpty);
     }
 
-    /// <summary>The windows that answer to a value, in the order the fake lists them.</summary>
-    private List<WindowInfo> Matching(string value, WindowMatch match, WindowCompare compare)
+    /// <summary>
+    /// The windows that answer to a value, in the order the fake lists them. A value nobody wrote
+    /// means the window in front, which is what a step that names none acts on; a step that lists
+    /// windows means every one of them by it.
+    /// </summary>
+    private List<WindowInfo> Matching(string value, WindowMatch match, WindowCompare compare,
+        bool everyWhenEmpty = false)
     {
         var wanted = (value ?? string.Empty).Trim();
         if (wanted.Length == 0)
         {
-            return Windows.Count > 0 ? [Windows[0]] : [];
+            return everyWhenEmpty || Windows.Count == 0 ? [.. Windows] : [Windows[0]];
         }
 
         return [.. Windows.Where(window => Answers(window, wanted, match, compare))];

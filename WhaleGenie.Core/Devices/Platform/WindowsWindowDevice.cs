@@ -39,18 +39,19 @@ public sealed class WindowsWindowDevice : IWindowDevice
         => Filter(value, match, compare).FirstOrDefault();
 
     public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match,
-        WindowCompare compare = WindowCompare.Contains)
+        WindowCompare compare = WindowCompare.Contains, bool everyWhenEmpty = false)
     {
         Require();
 
         var wanted = (value ?? string.Empty).Trim();
         var windows = EveryWindow();
 
-        // An empty value means "whatever is in front", which is what a macro usually means
-        // when it says "the active window".
+        // An empty value means "whatever is in front", which is what a macro usually means when it
+        // says "the active window" — the one window a step that names none acts on. A step that
+        // lists windows means every window by it instead, and says so.
         if (wanted.Length == 0)
         {
-            return windows.Count > 0 ? [windows[0]] : [];
+            return everyWhenEmpty || windows.Count == 0 ? windows : [windows[0]];
         }
 
         return [.. windows.Where(window => Matches(window, wanted, match, compare))];

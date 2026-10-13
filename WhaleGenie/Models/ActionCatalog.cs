@@ -914,10 +914,10 @@ public static class ActionCatalog
                     + "by default.",
                     advanced: true),
                 Choice("shape", "Result shape", ["rows", "values"], "rows",
-                    "A list of rows, or, when exactly one column was named above, the values of "
-                    + "that column as one plain list, ready to walk through or add up. A list of rows "
-                    + "by default.",
-                    labels: ["One list per row", "The values of one column"], advanced: true),
+                    "One record per row, or, when exactly one column was named above, the values of "
+                    + "that column as one plain list, ready to walk through or add up. A record per "
+                    + "row by default.",
+                    labels: ["One record per row", "The values of one column"], advanced: true),
                 Choice("matchMode", "Matches", MatchModes, "equals",
                     "How the cell is compared against the value: exactly, or parts of it. "
                     + "Exactly by default.",
@@ -1338,15 +1338,11 @@ public static class ActionCatalog
             Key = "process.info",
             Returns =
             [
-                Return("info", "File", primary: true,
-                    hint: "The program's file. Empty when Windows will not say it."),
-                Return("id", "Process id", type: ActionReturnType.Number,
-                    hint: "The program's id."),
-                Return("name", "Name", hint: "The program's name."),
-                Return("memoryMb", "Memory", type: ActionReturnType.Number,
-                    hint: "How much memory the program is using, in megabytes."),
-                Return("cpuSeconds", "Processor time", type: ActionReturnType.Number,
-                    hint: "How much processor time the program has used, in seconds."),
+                Return("program", "Program", primary: true, type: ActionReturnType.Record,
+                    hint: "The program as one record: info is its file, empty when Windows will not "
+                        + "say it; then id, name, memoryMb — the memory it holds, in megabytes — and "
+                        + "cpuSeconds, the processor time it has used. Read one part of it with "
+                        + "field($name, \"id\")."),
             ],
             Category = ActionCategory.Process,
             DisplayName = "Program Details",
@@ -1785,25 +1781,28 @@ public static class ActionCatalog
             Returns =
             [
                 Return("windows", "Windows", primary: true, type: ActionReturnType.List,
-                    hint: "The windows that matched, each as a record of its own with the fields "
-                        + "title, process, class, handle and box, in the order the system lists "
-                        + "them. Two windows with the same title are two windows and get a record "
-                        + "each. Read one field of one of them with "
+                    hint: "The windows that matched, each as a record of its own — the same shape "
+                        + "window.info hands over for one window, without the part inside its "
+                        + "border — with the fields title, handle, minimized, maximized, left, top, "
+                        + "width, height and box, plus process and class when the step is told to "
+                        + "read them, in the order the system lists them. Two windows with the same "
+                        + "title are two windows and get a record each. Read one field of one of "
+                        + "them with "
                         + "field(get($name, 0), \"title\"), and walk them all with forEach."),
             ],
             Category = ActionCategory.Window,
             DisplayName = "List Windows",
             Description = "Collect the open windows into a list, one record each, or only the ones "
-                + "that match the filter.",
+                + "the match text picks out.",
             Parameters =
             [
-                Text("filter", "Filter", "notepad",
-                    "Keep only the windows whose title, process or class contains this text. "
-                    + "Leave it empty for every window; a variable or an expression may be used.",
-                    required: false, acceptsFormula: true),
-                Choice("filterBy", "Filter by", ["title", "process", "class"], "title",
-                    "Which part of a window the filter text is compared with, the title by default. "
-                    + "This one is always matched as \"contains\".", advanced: true),
+                ..WindowTarget("every window"),
+                Toggle("details", "Read every program and class (slow)", false,
+                    "Read the program name and the window class of every window found into the "
+                    + "process and the class of its record. Telling windows apart by title does not "
+                    + "need them, and reading them asks the system once per window, so this is off "
+                    + "by default and belongs on when the macro goes by program or by class.",
+                    advanced: true),
                 Returns(),
             ],
         },
@@ -1812,43 +1811,17 @@ public static class ActionCatalog
             Key = "window.info",
             Returns =
             [
-                Return("box", "Rectangle", primary: true,
-                    hint: "The window's rectangle, written as x,y,width,height so it can be used "
-                        + "as a search region. It is the rectangle the window is seen at: the "
-                        + "border Windows keeps round it for resizing is not drawn and does not "
-                        + "count, and a maximized window is measured as it looks."),
-                Return("x", "Left", type: ActionReturnType.Number,
-                    hint: "The left edge of the window, in screen pixels."),
-                Return("y", "Top", type: ActionReturnType.Number,
-                    hint: "The top edge of the window, in screen pixels."),
-                Return("width", "Width", type: ActionReturnType.Number,
-                    hint: "How wide the window is, in pixels."),
-                Return("height", "Height", type: ActionReturnType.Number,
-                    hint: "How tall the window is, in pixels."),
-                Return("title", "Title", hint: "What the window's title bar says."),
-                Return("process", "Program", hint: "The program that owns the window, without the "
-                    + ".exe: what a step filtering by process name compares against."),
-                Return("class", "Window class", hint: "The class the window was registered under, "
-                    + "such as Notepad: the kind of window rather than the document in it."),
-                Return("handle", "Handle", type: ActionReturnType.Number,
-                    hint: "What the system knows the window by. Two windows with the same title are "
-                        + "told apart by it."),
-                Return("minimized", "Minimized", type: ActionReturnType.Flag,
-                    hint: "True while the window is shrunk to the taskbar."),
-                Return("maximized", "Maximized", type: ActionReturnType.Flag,
-                    hint: "True while the window fills the screen."),
-                Return("clientBox", "Content rectangle", hint: "The part of the window inside its "
-                    + "border and under its title bar, written as left,top,width,height: the area "
-                    + "a search anchored to this window looks at."),
-                Return("clientX", "Content left", type: ActionReturnType.Number,
-                    hint: "The left edge of that part, in screen pixels: the corner a \"window "
-                        + "client area\" coordinate origin counts from."),
-                Return("clientY", "Content top", type: ActionReturnType.Number,
-                    hint: "The top edge of that part, in screen pixels."),
-                Return("clientWidth", "Content width", type: ActionReturnType.Number,
-                    hint: "How wide that part is, in pixels."),
-                Return("clientHeight", "Content height", type: ActionReturnType.Number,
-                    hint: "How tall that part is, in pixels."),
+                Return("window", "Window", primary: true, type: ActionReturnType.Record,
+                    hint: "The window as one record — the shape a listing hands over for each window "
+                        + "it finds, with the part inside its border added: title, process, class, "
+                        + "handle, minimized, maximized, left, top, width, height, box and clientBox. "
+                        + "Read one part of it with field($name, \"left\"). box is the rectangle "
+                        + "written as left,top,width,height, which a search region takes as it "
+                        + "stands; it is the rectangle the window is seen at, so the border Windows "
+                        + "keeps round it for resizing is not drawn and does not count and a "
+                        + "maximized window is measured as it looks. clientBox is the part inside "
+                        + "that border and under the title bar, which is where a search anchored to "
+                        + "the window looks."),
             ],
             Category = ActionCategory.Window,
             DisplayName = "Window Info",
@@ -2257,7 +2230,7 @@ public static class ActionCatalog
             [
                 Return("image", "Picture", primary: true, type: ActionReturnType.Image,
                     hint: "The picture that was captured, ready to be searched for or written out."),
-                ..CoveredBox(),
+                ..Place(),
             ],
             Category = ActionCategory.Vision,
             DisplayName = "Capture",
@@ -2278,7 +2251,7 @@ public static class ActionCatalog
             [
                 Return("image", "Picture", primary: true, type: ActionReturnType.Image,
                     hint: "The picture that was captured, title bar and all."),
-                ..CoveredBox(),
+                ..Place(),
             ],
             Category = ActionCategory.Vision,
             DisplayName = "Capture Window",
@@ -2539,8 +2512,9 @@ public static class ActionCatalog
             [
                 Return("text", "Text", primary: true, hint: "The writing that was read."),
                 Return("table", "Table", type: ActionReturnType.List,
-                    hint: "The writing kept as rows of cells, one list per row. Only filled in when "
-                        + "the step is told to read a table."),
+                    hint: "The writing kept as rows, each one a record keyed by where its cells sit — "
+                        + "A, B, C, the shape a file with no header gets. Only filled in when the "
+                        + "step is told to read a table."),
             ],
             Category = ActionCategory.Ocr,
             DisplayName = "Recognize",
@@ -2551,9 +2525,10 @@ public static class ActionCatalog
                 Choice("language", "Language", ["auto", "en", "zh"], "auto", advanced: true),
                 Content(),
                 Toggle("table", "Read as a table", false,
-                    "Keep the lines and columns the writing was read in: the variable holds rows of "
-                    + "cells — the same shape as reading a table through UI Automation — and "
-                    + "the text result holds the whole lot as text, one line per row."),
+                    "Keep the lines and columns the writing was read in: the table result holds one "
+                        + "record per row, keyed by where each cell sits — A, B, C, the way a table "
+                        + "through UI Automation is keyed by its column names — and the text result "
+                        + "holds the whole lot as text, one line per row."),
                 ..Anchor(),
                 ..Capture(),
                 LookGap(0),
@@ -2812,11 +2787,11 @@ public static class ActionCatalog
             Returns =
             [
                 Return("table", "Table", primary: true, type: ActionReturnType.List,
-                    hint: "The rows that were read, each a list of cells, the same shape the CSV "
-                        + "reader gives back."),
-                Return("columns", "Column names", type: ActionReturnType.List,
-                    hint: "The names of the columns, in column order, which is how a macro finds "
-                        + "the column it wants."),
+                    hint: "The rows that were read, each a record whose keys are the names written "
+                        + "above its columns — the same shape the CSV reader gives back, so "
+                        + "field(get($name, 0), \"Name\") reads one cell by name. A table with no "
+                        + "strip of names gets A, B, C instead, and a column whose name is blank or "
+                        + "repeats one already taken keeps the letter of its place."),
             ],
             Category = ActionCategory.Uia,
             DisplayName = "Read Table",
@@ -3913,19 +3888,19 @@ public static class ActionCatalog
     ];
 
     /// <summary>
-    /// The four numbers of the rectangle a picture covered, handed over beside the picture itself so
-    /// a later step can search the same place without working the position out again.
+    /// Where the picture sits, handed over beside the picture itself so a later step can search the
+    /// same place without working the position out again: one record, so the rectangle goes into a
+    /// search region as it stands.
     /// </summary>
-    private static ActionReturn[] CoveredBox() =>
+    private static ActionReturn[] Place() =>
     [
-        Return("x", "Left", type: ActionReturnType.Number,
-            hint: "The left edge of the covered rectangle, in screen pixels."),
-        Return("y", "Top", type: ActionReturnType.Number,
-            hint: "The top edge of the covered rectangle, in screen pixels."),
-        Return("width", "Width", type: ActionReturnType.Number,
-            hint: "How wide the covered rectangle was, in pixels."),
-        Return("height", "Height", type: ActionReturnType.Number,
-            hint: "How tall the covered rectangle was, in pixels."),
+        Return("place", "Place", type: ActionReturnType.Record,
+            hint: "Where the picture was taken, as one record. left and top are the corner it "
+                + "starts at and width and height are its size in screen pixels — the picture's own "
+                + "size, so a capture that ran off the edge of the screen comes back smaller than "
+                + "it asked for — and box is the whole rectangle written as left,top,width,height, "
+                + "ready to be used as a search region. Read one part of it with "
+                + "field($name, \"left\")."),
     ];
 
     /// <summary>
@@ -4601,7 +4576,13 @@ public static class ActionCatalog
     /// the program that owns the window and the class it registered hold still, which is what a
     /// macro wants when the same window keeps coming back under a different name.
     /// </summary>
-    private static ActionParameter[] WindowTarget() =>
+    /// <summary>
+    /// How a step names the window it acts on: the text, the part of a window it is held against,
+    /// and how. <paramref name="emptyMeans"/> finishes the sentence about an empty text, which
+    /// stands for the window in front to a step that acts on one window and for every window to a
+    /// step that lists them.
+    /// </summary>
+    private static ActionParameter[] WindowTarget(string emptyMeans = "the window in front") =>
     [
         new()
         {
@@ -4615,8 +4596,8 @@ public static class ActionCatalog
             Variant = new ActionParameterVariant("compareBy", "regex", "Match pattern",
                 @"Notepad.*?\.txt"),
             Hint = "The text the window is recognised by. It is compared with the part chosen by "
-                   + "\"Match by\", the way \"Compare\" says, ignoring case. Leave it empty for the "
-                   + "window in front.",
+                   + "\"Match by\", the way \"Compare\" says, ignoring case. Leave it empty for "
+                   + emptyMeans + ".",
             Required = false,
         },
         Choice("matchBy", "Match by", ["title", "process", "class"], "title",

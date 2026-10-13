@@ -45,7 +45,6 @@ public class ExpressionFieldTests
         ["system.environment"] = ["name"],
         ["system.notify"] = ["heading", "message"],
         ["system.ime"] = ["layout"],
-        ["window.list"] = ["filter"],
         ["input.typeText"] = ["text"],
         ["vision.findImage"] = ["ignoreColor"],
         ["vision.waitImage"] = ["ignoreColor"],

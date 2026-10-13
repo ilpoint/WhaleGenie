@@ -37,7 +37,7 @@ Windows 上的通用宏 / 自动化工具：把键盘、鼠标、手柄、屏幕
 | --- | --- |
 | [doc/manual.md](doc/manual.md) | 用这个程序的人：宏包格式、拾取器、落点与落手、返回值、运行与调试、画面从哪来怎么取、CSV、程序自己的文件放哪儿 |
 | [doc/dev.md](doc/dev.md) | 改这个仓库的人：命令、工程结构、依赖的包、测试分层、怎么量性能、代码约定、提交与发布 |
-| [doc/roadmap.md](doc/roadmap.md) | 想知道接下来做什么的人：还没做的阶段、明确不做的范围 |
+| [doc/roadmap.md](doc/roadmap.md) | 想知道接下来做什么的人：还没做的阶段、可与阶段并行的零散项、明确不做的范围 |
 | [doc/performance.md](doc/performance.md)（[English](doc/performance.en.md)） | 一次"看屏幕"的单位成本与量法 |
 | [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) | 用到的别人的东西与图标出处 |
 
