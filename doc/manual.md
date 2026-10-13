@@ -390,6 +390,107 @@ GDI / PrintWindow / Graphics Capture / 桌面复制（DXGI）），找不着时�
 原始字节，和别的程序算出来的值对得上（MD5 / SHA-1 / SHA-256 / SHA-512）。文件是一块一块读的，多大的
 文件都不会把内存占满——校验安装包、下载文件、备份包时用它。
 
+## 表达式函数一览
+
+下表是表达式里可以直接用的全部内置函数，与表达式编辑器里列出的那一份相同（编辑器按同一套分组列出，
+点一条就把它的名字和左括号插到光标处，剩下的参数自己填）。写法里 `[, ]` 之间的参数可以不写，`...`
+表示可以接着往下写更多个。函数名不分大小写。
+
+### 文本
+
+| 写法 | 说明 |
+| --- | --- |
+| `upper(text)` | 把值写成大写字母。 |
+| `lower(text)` | 把值写成小写字母。 |
+| `trim(text)` | 去掉两端的空格。 |
+| `length(value)` | 一个值有多少个字符，或一个列表有多少项。 |
+| `substring(text, start [, length])` | 取一部分文字，起点从 0 数起，不写长度就取到末尾。 |
+| `replace(text, old, new)` | 把每一处旧文字换成新文字。 |
+| `replaceRegex(text, pattern, replacement)` | 按正则替换，替换里用 `$1`、`$2` 引用括号里抓到的那几段；正则前面写 `(?i)` 表示不区分大小写。 |
+| `split(text, separator)` | 按分隔符切成一个列表。 |
+| `join(list, separator)` | 把列表的每一项接成一段文字。 |
+| `contains(value, needle)` | 文字或列表里有没有这一段。 |
+| `startsWith(text, prefix)` | 文字是不是以这一段开头。 |
+| `endsWith(text, suffix)` | 文字是不是以这一段结尾。 |
+| `indexOf(value, needle)` | 这一段在第几个字符上，找不到是 -1。 |
+| `repeat(text, times)` | 把同一段文字重复若干遍。 |
+| `concat(value, ...)` | 把每一个参数接成一段文字。 |
+| `format(template, ...)` | 把模板里的 `{0}`、`{1}` 换成后面的参数。 |
+| `match(text, pattern)` | 正则有没有匹配到这段文字。 |
+| `extract(text, pattern)` | 正则匹配到的第一段文字。 |
+
+### 数字
+
+| 写法 | 说明 |
+| --- | --- |
+| `abs(number)` | 一个数离零有多远。 |
+| `round(number [, digits])` | 四舍五入到整数，或到指定位数的小数。 |
+| `floor(number)` | 向下取整。 |
+| `ceil(number)` | 向上取整。 |
+| `sqrt(number)` | 平方根。 |
+| `pow(number, power)` | 一个数的若干次方。 |
+| `min(number, ...)` | 这些数里最小的一个。 |
+| `max(number, ...)` | 这些数里最大的一个。 |
+| `sum(list)` | 把一个列表里的数加起来。 |
+| `random([min, max])` | 一个随机数；写了范围就是该范围内的整数。 |
+
+### 列表
+
+| 写法 | 说明 |
+| --- | --- |
+| `list(...values)` | 把这些参数做成一个列表。 |
+| `count(list)` | 列表里有几项。 |
+| `append(list, ...values)` | 在末尾加上若干项之后的副本。 |
+| `insertAt(list, index, value)` | 在某一位上插入一项之后的副本。 |
+| `removeAt(list, index)` | 去掉某一位上那一项之后的副本。 |
+| `get(list, index)` | 某一位上的那一项。 |
+| `first(list)` | 第一项。 |
+| `last(list)` | 最后一项。 |
+| `sort(list)` | 从小到大排好的副本。 |
+| `sortDesc(list)` | 从大到小排好的副本。 |
+| `reverse(list)` | 前后颠倒的副本。 |
+| `unique(list)` | 去掉重复项之后的副本。 |
+| `slice(list, start [, length])` | 取列表的一部分，起点从 0 数起，不写长度就取到末尾。 |
+
+### 日期
+
+| 写法 | 说明 |
+| --- | --- |
+| `now()` | 当前日期与时间，写作 `yyyy-MM-dd HH:mm:ss`。 |
+| `today()` | 今天的日期，写作 `yyyy-MM-dd`。 |
+| `year(date)` | 某个日期的年份。 |
+| `month(date)` | 月份，1 到 12。 |
+| `day(date)` | 几号，1 到 31。 |
+| `hour(date)` | 小时，0 到 23。 |
+| `minute(date)` | 分钟，0 到 59。 |
+| `second(date)` | 秒，0 到 59。 |
+| `weekday(date)` | 星期几，按 ISO 数：1 是星期一，7 是星期日。 |
+| `dateAdd(date, amount, unit)` | 往后或往前挪一段时间；单位是 `seconds`、`minutes`、`hours`、`days`、`weeks`、`months` 或 `years`。 |
+| `dateDiff(from, to, unit)` | 两个日期相差多少个单位。 |
+| `formatDate(date, pattern)` | 按 `yyyy/MM/dd` 这样的写法把日期写成文字。 |
+| `parseDate(text, pattern)` | 按同一种写法从文字里读出日期，读出来就能直接交给 `dateAdd`、`dateDiff` 或比较。 |
+
+### 记录
+
+| 写法 | 说明 |
+| --- | --- |
+| `jsonGet(json, path)` | 按 `a.b[0].c` 这样的路径取 JSON 里的一项；取到的如果是对象或列表，交的是它自己的 JSON 文字。 |
+| `jsonKeys(json)` | JSON 对象的字段名，按写下来的顺序。 |
+| `jsonHas(json, path)` | 这条路径在 JSON 里有没有。 |
+| `jsonSet(json, path, value)` | JSON 的一份副本，把这条路径设成某个值，路上缺的字段会补出来。 |
+| `jsonOf(name, value, ...)` | 名字与值轮流写，拼成一个 JSON 对象。 |
+| `toJson(value)` | 把一个值写成 JSON 文字，列表因此变成数组。 |
+| `field(record, name)` | 取记录里的一项，比如一次命中的 `x`；名字写错时报错并列出可用的字段名。 |
+
+### 值与选择
+
+| 写法 | 说明 |
+| --- | --- |
+| `number(value)` | 把一个值按数字读。 |
+| `text(value)` | 把一个值按文字读。 |
+| `bool(value)` | 把一个值按真假读。 |
+| `if(condition, whenTrue, whenFalse)` | 按条件在两个值里挑一个。 |
+
 ## 程序自己的文件放哪儿
 
 `settings.json`（设置窗口里的选择）和 `logs`（运行失败时的截图）都写在 `WhaleGenie.exe` 所在的

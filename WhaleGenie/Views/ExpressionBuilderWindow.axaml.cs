@@ -57,6 +57,18 @@ public partial class ExpressionBuilderWindow : Window
         }
     }
 
+    /// <summary>
+    /// Drops a function's name and its opening bracket in at the caret, leaving it where the
+    /// arguments go: the reader fills them in, which is what the next thing they type would do.
+    /// </summary>
+    private void OnInsertFunction(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: ExpressionFunctionChoice item })
+        {
+            InsertAtCursor(item.Insert);
+        }
+    }
+
     private void InsertAtCursor(string text)
     {
         if (this.FindControl<TextBox>("ExpressionBox") is not { } box)

@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -29,6 +31,7 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
         _known = new KnownVariables([.. variables.Select(choice => choice.Name)]);
         Wall = new VariableWallViewModel(variables);
         Operators = BuildOperators();
+        Functions = BuildFunctions();
         Expression = expression ?? string.Empty;
     }
 
@@ -45,6 +48,10 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
 
     public string VariablesHeader => Strings.Get("ExprBuilder.Variables");
 
+    public string FunctionsHeader => Strings.Get("ExprBuilder.Functions");
+
+    public string FunctionsFilterHint => Strings.Get("ExprBuilder.FunctionsFilter");
+
     public string InsertLabel => Strings.Get("ExprBuilder.Insert");
 
     public string Placeholder => Strings.Get("ExprBuilder.Placeholder");
@@ -54,6 +61,13 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
 
     /// <summary>Every variable the macro can read, with what a person choosing one needs to know.</summary>
     public IReadOnlyList<VariableChoice> Variables { get; }
+
+    /// <summary>
+    /// The built-in functions, one heading to a group, which is what the filter above them narrows
+    /// down. Narrowing rebuilds the list rather than hiding rows, so a heading whose every function
+    /// was filtered out goes away with them rather than standing over nothing.
+    /// </summary>
+    public ObservableCollection<ExpressionFunctionGroup> Functions { get; }
 
     /// <summary>The wall of variable buttons, which drops the one that was picked in at the caret.</summary>
     public VariableWallViewModel Wall { get; }
@@ -79,7 +93,13 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// <summary>True while the line under the box is worth showing in green.</summary>
     public bool ShowOk => !HasError && Message.Length > 0;
 
+    /// <summary>What is typed into the filter above the function list, empty to show them all.</summary>
+    [ObservableProperty]
+    public partial string FunctionFilter { get; set; } = string.Empty;
+
     partial void OnExpressionChanged(string value) => Recheck();
+
+    partial void OnFunctionFilterChanged(string value) => Refill();
 
     [RelayCommand]
     private void Confirm() => CloseRequested?.Invoke(Expression);
@@ -139,6 +159,90 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
         new("[ ]", "[]", "Expr.Op.List"),
         new("\"{ }\"", "\"\"", "Expr.Op.Text"),
     ];
+
+    /// <summary>
+    /// Every built-in function, in the order the table is written: the groups come out in the order
+    /// their first function does, which is the order the manual lists them in as well.
+    /// </summary>
+    private static ObservableCollection<ExpressionFunctionGroup> BuildFunctions()
+    {
+        var groups = new List<ExpressionFunctionGroup>();
+        // Written out in full because this dialog's own Expression property is the text being
+        // edited, which hides the static class of the same name.
+        foreach (var function in WhaleGenie.Core.Expressions.Expression.Functions)
+        {
+            var group = groups.LastOrDefault(entry => entry.Group == function.Group);
+            if (group is null)
+            {
+                group = new ExpressionFunctionGroup(function.Group,
+                    Strings.Get($"Expr.Group.{function.Group}"));
+                groups.Add(group);
+            }
+
+            group.Functions.Add(new ExpressionFunctionChoice(function));
+        }
+
+        return [.. groups];
+    }
+
+    /// <summary>
+    /// Narrows the list to the functions whose name or signature holds what was typed. Nothing
+    /// typed is the whole table, which is what the dialog opens with.
+    /// </summary>
+    private void Refill()
+    {
+        var tables = BuildFunctions();
+        var wanted = FunctionFilter.Trim();
+        Functions.Clear();
+        foreach (var group in tables)
+        {
+            group.Functions = [.. group.Functions.Where(function =>
+                wanted.Length == 0
+                || function.Name.Contains(wanted, StringComparison.OrdinalIgnoreCase)
+                || function.Signature.Contains(wanted, StringComparison.OrdinalIgnoreCase))];
+            if (group.Functions.Count > 0)
+            {
+                Functions.Add(group);
+            }
+        }
+    }
+}
+
+/// <summary>One heading of the function list, and the functions written under it.</summary>
+public sealed class ExpressionFunctionGroup(string group, string header)
+{
+    /// <summary>The key every function of this group shares, such as <c>text</c>.</summary>
+    public string Group { get; } = group;
+
+    /// <summary>What the group is called in the reader's own language.</summary>
+    public string Header { get; } = header;
+
+    /// <summary>The functions written under this heading.</summary>
+    public List<ExpressionFunctionChoice> Functions { get; set; } = [];
+}
+
+/// <summary>
+/// One function button: what it is called, how it is written, and the text one click drops into the
+/// expression. The description the manual carries is left out — it is written in English, and the
+/// signature is a piece of code rather than a sentence, so the signature is what the button shows.
+/// </summary>
+public sealed class ExpressionFunctionChoice
+{
+    public ExpressionFunctionChoice(ExpressionFunction function)
+    {
+        Name = function.Name;
+        Signature = function.Signature;
+        Insert = function.Name + "(";
+    }
+
+    /// <summary>The name the function is called by.</summary>
+    public string Name { get; }
+
+    /// <summary>How it is written, with the arguments it takes.</summary>
+    public string Signature { get; }
+
+    /// <summary>What one click leaves in the expression, with the caret after the bracket.</summary>
+    public string Insert { get; }
 }
 
 /// <summary>One operator button on the expression builder: what it looks like, what it inserts, and what it means.</summary>

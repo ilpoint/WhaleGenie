@@ -9,11 +9,21 @@ using System.Text.RegularExpressions;
 
 namespace WhaleGenie.Core.Expressions;
 
-/// <summary>Everything a user can see about a built-in expression function.</summary>
-public sealed record ExpressionFunction(string Name, string Signature, string Description);
+/// <summary>
+/// Everything a user can see about a built-in expression function: what it is called, how it is
+/// written, one line saying what it does, and which group it belongs in. The group is a plain key
+/// rather than a name, because the name is written in the reader's language and the key is what
+/// the editor groups by.
+/// </summary>
+public sealed record ExpressionFunction(
+    string Name,
+    string Signature,
+    string Description,
+    string Group);
 
 /// <summary>One entry of the built-in function table.</summary>
 internal sealed record FunctionEntry(
+    string Group,
     string Name,
     string Signature,
     string Description,
@@ -29,168 +39,189 @@ internal static class FunctionLibrary
 {
     private const int Any = int.MaxValue;
 
+    /// <summary>
+    /// The groups the table is laid out in, in the order the editor offers them. A key rather than
+    /// a name: what the reader sees is <c>Expr.Group.&lt;key&gt;</c> out of the text tables, so the
+    /// editor has nothing in it that only one language can read.
+    /// </summary>
+    internal const string TextGroup = "text";
+
+    internal const string MathsGroup = "maths";
+
+    internal const string ListsGroup = "lists";
+
+    internal const string DatesGroup = "dates";
+
+    internal const string RecordsGroup = "records";
+
+    /// <summary>
+    /// The ones that are about a value rather than about a kind of thing: reading one as another,
+    /// and choosing between two.
+    /// </summary>
+    internal const string OtherGroup = "other";
+
     private static readonly FunctionEntry[] Entries =
     [
         // -------------------------------------------------------------------- text
-        Fn("upper", "upper(text)", "Write a value in capitals.", 1, 1,
+        Fn(TextGroup, "upper", "upper(text)", "Write a value in capitals.", 1, 1,
             args => Value.FromText(S(args, 0).ToUpperInvariant())),
-        Fn("lower", "lower(text)", "Write a value in small letters.", 1, 1,
+        Fn(TextGroup, "lower", "lower(text)", "Write a value in small letters.", 1, 1,
             args => Value.FromText(S(args, 0).ToLowerInvariant())),
-        Fn("trim", "trim(text)", "Drop the spaces from both ends.", 1, 1,
+        Fn(TextGroup, "trim", "trim(text)", "Drop the spaces from both ends.", 1, 1,
             args => Value.FromText(S(args, 0).Trim())),
-        Fn("length", "length(value)", "How many characters, or how many items a list holds.", 1, 1,
+        Fn(TextGroup, "length", "length(value)", "How many characters, or how many items a list holds.", 1, 1,
             args => Value.FromNumber(Length(V(args, 0)))),
-        Fn("substring", "substring(text, start [, length])", "Part of some text; start counts from 0.", 2, 3,
+        Fn(TextGroup, "substring", "substring(text, start [, length])", "Part of some text; start counts from 0.", 2, 3,
             args => Value.FromText(Substring(args))),
-        Fn("replace", "replace(text, old, new)", "Swap every occurrence of one piece of text for another.", 3, 3,
+        Fn(TextGroup, "replace", "replace(text, old, new)", "Swap every occurrence of one piece of text for another.", 3, 3,
             args => Value.FromText(S(args, 0).Replace(S(args, 1), S(args, 2), StringComparison.OrdinalIgnoreCase))),
-        Fn("replaceRegex", "replaceRegex(text, pattern, replacement)",
+        Fn(TextGroup, "replaceRegex", "replaceRegex(text, pattern, replacement)",
             "Swap everything the regular expression matches for the replacement, which can name the "
             + "pieces it captured as $1, $2 and so on. Write (?i) at the front of the pattern to "
             + "ignore case.", 3, 3,
             args => Value.FromText(Regex.Replace(S(args, 0), S(args, 1), S(args, 2)))),
-        Fn("split", "split(text, separator)", "Break text into a list.", 2, 2,
+        Fn(TextGroup, "split", "split(text, separator)", "Break text into a list.", 2, 2,
             args => Value.FromList(Split(args))),
-        Fn("join", "join(list, separator)", "Glue the items of a list into one text.", 2, 2,
+        Fn(TextGroup, "join", "join(list, separator)", "Glue the items of a list into one text.", 2, 2,
             args => Value.FromText(string.Join(S(args, 1), L(args, 0).Select(item => item.AsText())))),
-        Fn("contains", "contains(value, needle)", "True when the text, or a list item, holds the needle.", 2, 2,
+        Fn(TextGroup, "contains", "contains(value, needle)", "True when the text, or a list item, holds the needle.", 2, 2,
             args => Value.FromBool(Contains(V(args, 0), S(args, 1)))),
-        Fn("startsWith", "startsWith(text, prefix)", "True when the text begins with the prefix.", 2, 2,
+        Fn(TextGroup, "startsWith", "startsWith(text, prefix)", "True when the text begins with the prefix.", 2, 2,
             args => Value.FromBool(S(args, 0).StartsWith(S(args, 1), StringComparison.OrdinalIgnoreCase))),
-        Fn("endsWith", "endsWith(text, suffix)", "True when the text ends with the suffix.", 2, 2,
+        Fn(TextGroup, "endsWith", "endsWith(text, suffix)", "True when the text ends with the suffix.", 2, 2,
             args => Value.FromBool(S(args, 0).EndsWith(S(args, 1), StringComparison.OrdinalIgnoreCase))),
-        Fn("indexOf", "indexOf(value, needle)", "Where the needle sits, or -1 when it is missing.", 2, 2,
+        Fn(TextGroup, "indexOf", "indexOf(value, needle)", "Where the needle sits, or -1 when it is missing.", 2, 2,
             args => Value.FromNumber(IndexOf(V(args, 0), S(args, 1)))),
-        Fn("repeat", "repeat(text, times)", "Write the same text several times over.", 2, 2,
+        Fn(TextGroup, "repeat", "repeat(text, times)", "Write the same text several times over.", 2, 2,
             args => Value.FromText(Repeat(S(args, 0), (int)N(args, 1)))),
-        Fn("concat", "concat(value, ...)", "Join every argument into one text.", 1, Any,
+        Fn(TextGroup, "concat", "concat(value, ...)", "Join every argument into one text.", 1, Any,
             args => Value.FromText(string.Concat(args.Select(argument => argument().AsText())))),
-        Fn("format", "format(template, ...)", "Replace {0}, {1} and so on in a template.", 1, Any,
+        Fn(TextGroup, "format", "format(template, ...)", "Replace {0}, {1} and so on in a template.", 1, Any,
             args => Value.FromText(Format(args))),
-        Fn("match", "match(text, pattern)", "True when the regular expression matches the text.", 2, 2,
+        Fn(TextGroup, "match", "match(text, pattern)", "True when the regular expression matches the text.", 2, 2,
             args => Value.FromBool(Regex.IsMatch(S(args, 0), S(args, 1)))),
-        Fn("extract", "extract(text, pattern)", "The first piece of text the regular expression matches.", 2, 2,
+        Fn(TextGroup, "extract", "extract(text, pattern)", "The first piece of text the regular expression matches.", 2, 2,
             args => Value.FromText(Extract(args))),
 
         // -------------------------------------------------------------------- maths
-        Fn("abs", "abs(number)", "How far the number is from zero.", 1, 1,
+        Fn(MathsGroup, "abs", "abs(number)", "How far the number is from zero.", 1, 1,
             args => Value.FromNumber(Math.Abs(N(args, 0)))),
-        Fn("round", "round(number [, digits])", "Round to a whole number, or to some decimal places.", 1, 2,
+        Fn(MathsGroup, "round", "round(number [, digits])", "Round to a whole number, or to some decimal places.", 1, 2,
             args => Value.FromNumber(Round(args))),
-        Fn("floor", "floor(number)", "Round down.", 1, 1,
+        Fn(MathsGroup, "floor", "floor(number)", "Round down.", 1, 1,
             args => Value.FromNumber(Math.Floor(N(args, 0)))),
-        Fn("ceil", "ceil(number)", "Round up.", 1, 1,
+        Fn(MathsGroup, "ceil", "ceil(number)", "Round up.", 1, 1,
             args => Value.FromNumber(Math.Ceiling(N(args, 0)))),
-        Fn("sqrt", "sqrt(number)", "Square root.", 1, 1,
+        Fn(MathsGroup, "sqrt", "sqrt(number)", "Square root.", 1, 1,
             args => Value.FromNumber(Math.Sqrt(N(args, 0)))),
-        Fn("pow", "pow(number, power)", "Raise a number to a power.", 2, 2,
+        Fn(MathsGroup, "pow", "pow(number, power)", "Raise a number to a power.", 2, 2,
             args => Value.FromNumber(Math.Pow(N(args, 0), N(args, 1)))),
-        Fn("min", "min(number, ...)", "The smallest of the arguments.", 1, Any,
+        Fn(MathsGroup, "min", "min(number, ...)", "The smallest of the arguments.", 1, Any,
             args => Value.FromNumber(args.Select(argument => argument().AsNumber()).Min())),
-        Fn("max", "max(number, ...)", "The largest of the arguments.", 1, Any,
+        Fn(MathsGroup, "max", "max(number, ...)", "The largest of the arguments.", 1, Any,
             args => Value.FromNumber(args.Select(argument => argument().AsNumber()).Max())),
-        Fn("sum", "sum(list)", "Add up every number in a list.", 1, 1,
+        Fn(MathsGroup, "sum", "sum(list)", "Add up every number in a list.", 1, 1,
             args => Value.FromNumber(L(args, 0).Sum(item => item.AsNumber()))),
-        Fn("random", "random([min, max])", "A random number; with bounds, a whole number in that range.", 0, 2,
+        Fn(MathsGroup, "random", "random([min, max])", "A random number; with bounds, a whole number in that range.", 0, 2,
             args => Value.FromNumber(Random(args))),
 
         // -------------------------------------------------------------------- lists
-        Fn("list", "list(...values)", "Build a list out of the arguments.", 0, Any,
+        Fn(ListsGroup, "list", "list(...values)", "Build a list out of the arguments.", 0, Any,
             args => Value.FromList(args.Select(argument => argument()))),
-        Fn("count", "count(list)", "How many items a list holds.", 1, 1,
+        Fn(ListsGroup, "count", "count(list)", "How many items a list holds.", 1, 1,
             args => Value.FromNumber(V(args, 0).AsList().Count)),
-        Fn("append", "append(list, ...values)", "A copy of the list with values added at the end.", 1, Any,
+        Fn(ListsGroup, "append", "append(list, ...values)", "A copy of the list with values added at the end.", 1, Any,
             args => Append(args)),
-        Fn("insertAt", "insertAt(list, index, value)", "A copy with one value inserted at the index.", 3, 3,
+        Fn(ListsGroup, "insertAt", "insertAt(list, index, value)", "A copy with one value inserted at the index.", 3, 3,
             args => InsertAt(args)),
-        Fn("removeAt", "removeAt(list, index)", "A copy without the item at the index.", 2, 2,
+        Fn(ListsGroup, "removeAt", "removeAt(list, index)", "A copy without the item at the index.", 2, 2,
             args => RemoveAt(args)),
-        Fn("get", "get(list, index)", "The item at the index.", 2, 2,
+        Fn(ListsGroup, "get", "get(list, index)", "The item at the index.", 2, 2,
             args => At(L(args, 0), (int)N(args, 1), "get")),
-        Fn("first", "first(list)", "The first item.", 1, 1,
+        Fn(ListsGroup, "first", "first(list)", "The first item.", 1, 1,
             args => At(L(args, 0), 0, "first")),
-        Fn("last", "last(list)", "The last item.", 1, 1,
+        Fn(ListsGroup, "last", "last(list)", "The last item.", 1, 1,
             args => At(L(args, 0), -1, "last")),
-        Fn("sort", "sort(list)", "A copy sorted from small to large.", 1, 1,
+        Fn(ListsGroup, "sort", "sort(list)", "A copy sorted from small to large.", 1, 1,
             args => Value.FromList(Sort(L(args, 0), descending: false))),
-        Fn("sortDesc", "sortDesc(list)", "A copy sorted from large to small.", 1, 1,
+        Fn(ListsGroup, "sortDesc", "sortDesc(list)", "A copy sorted from large to small.", 1, 1,
             args => Value.FromList(Sort(L(args, 0), descending: true))),
-        Fn("reverse", "reverse(list)", "A copy with the items in the other order.", 1, 1,
+        Fn(ListsGroup, "reverse", "reverse(list)", "A copy with the items in the other order.", 1, 1,
             args => Value.FromList(L(args, 0).Reverse())),
-        Fn("unique", "unique(list)", "A copy without the repeated items.", 1, 1,
+        Fn(ListsGroup, "unique", "unique(list)", "A copy without the repeated items.", 1, 1,
             args => Value.FromList(Unique(L(args, 0)))),
-        Fn("slice", "slice(list, start [, length])", "Part of a list; start counts from 0.", 2, 3,
+        Fn(ListsGroup, "slice", "slice(list, start [, length])", "Part of a list; start counts from 0.", 2, 3,
             args => Slice(args)),
 
         // ------------------------------------------------------------- conversion
-        Fn("number", "number(value)", "Read a value as a number.", 1, 1,
+        Fn(OtherGroup, "number", "number(value)", "Read a value as a number.", 1, 1,
             args => Value.FromNumber(N(args, 0))),
-        Fn("text", "text(value)", "Read a value as text.", 1, 1,
+        Fn(OtherGroup, "text", "text(value)", "Read a value as text.", 1, 1,
             args => Value.FromText(S(args, 0))),
-        Fn("bool", "bool(value)", "Read a value as true or false.", 1, 1,
+        Fn(OtherGroup, "bool", "bool(value)", "Read a value as true or false.", 1, 1,
             args => Value.FromBool(V(args, 0).AsBool())),
-        Fn("if", "if(condition, whenTrue, whenFalse)", "Pick one of two values.", 3, 3,
+        Fn(OtherGroup, "if", "if(condition, whenTrue, whenFalse)", "Pick one of two values.", 3, 3,
             args => V(args, 0).AsBool() ? V(args, 1) : V(args, 2)),
 
         // -------------------------------------------------------------------- dates
-        Fn("now", "now()", "The current date and time, as yyyy-MM-dd HH:mm:ss.", 0, 0,
+        Fn(DatesGroup, "now", "now()", "The current date and time, as yyyy-MM-dd HH:mm:ss.", 0, 0,
             args => Value.FromText(Stamp(DateTimeOffset.Now))),
-        Fn("today", "today()", "Today's date, as yyyy-MM-dd.", 0, 0,
+        Fn(DatesGroup, "today", "today()", "Today's date, as yyyy-MM-dd.", 0, 0,
             args => Value.FromText(DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))),
-        Fn("year", "year(date)", "The year of a date.", 1, 1,
+        Fn(DatesGroup, "year", "year(date)", "The year of a date.", 1, 1,
             args => Value.FromNumber(Moment(S(args, 0)).Year)),
-        Fn("month", "month(date)", "The month of a date, 1 to 12.", 1, 1,
+        Fn(DatesGroup, "month", "month(date)", "The month of a date, 1 to 12.", 1, 1,
             args => Value.FromNumber(Moment(S(args, 0)).Month)),
-        Fn("day", "day(date)", "The day of the month, 1 to 31.", 1, 1,
+        Fn(DatesGroup, "day", "day(date)", "The day of the month, 1 to 31.", 1, 1,
             args => Value.FromNumber(Moment(S(args, 0)).Day)),
-        Fn("hour", "hour(date)", "The hour of a date, 0 to 23.", 1, 1,
+        Fn(DatesGroup, "hour", "hour(date)", "The hour of a date, 0 to 23.", 1, 1,
             args => Value.FromNumber(Moment(S(args, 0)).Hour)),
-        Fn("minute", "minute(date)", "The minute of a date, 0 to 59.", 1, 1,
+        Fn(DatesGroup, "minute", "minute(date)", "The minute of a date, 0 to 59.", 1, 1,
             args => Value.FromNumber(Moment(S(args, 0)).Minute)),
-        Fn("second", "second(date)", "The second of a date, 0 to 59.", 1, 1,
+        Fn(DatesGroup, "second", "second(date)", "The second of a date, 0 to 59.", 1, 1,
             args => Value.FromNumber(Moment(S(args, 0)).Second)),
-        Fn("weekday", "weekday(date)",
+        Fn(DatesGroup, "weekday", "weekday(date)",
             "The day of the week, counted the ISO way: 1 is Monday and 7 is Sunday.", 1, 1,
             args => Value.FromNumber(Weekday(Moment(S(args, 0))))),
-        Fn("dateAdd", "dateAdd(date, amount, unit)",
+        Fn(DatesGroup, "dateAdd", "dateAdd(date, amount, unit)",
             "A date moved forward or back; the unit is seconds, minutes, hours, days, weeks, "
             + "months or years.", 3, 3,
             args => Value.FromText(Stamp(Shifted(args)))),
-        Fn("dateDiff", "dateDiff(from, to, unit)",
+        Fn(DatesGroup, "dateDiff", "dateDiff(from, to, unit)",
             "How far apart two dates are, counted in the unit.", 3, 3,
             args => Value.FromNumber(Distance(args))),
-        Fn("formatDate", "formatDate(date, pattern)",
+        Fn(DatesGroup, "formatDate", "formatDate(date, pattern)",
             "A date written out in a pattern such as yyyy/MM/dd.", 2, 2,
             args => Value.FromText(Formatted(args))),
-        Fn("parseDate", "parseDate(text, pattern)",
+        Fn(DatesGroup, "parseDate", "parseDate(text, pattern)",
             "Read a date out of text written in a pattern such as yyyy/MM/dd. The answer is a date "
             + "like every other date function reads and writes, so it can go straight into "
             + "dateAdd, dateDiff or a comparison.", 2, 2,
             args => Value.FromText(Parsed(args))),
 
         // -------------------------------------------------------------------- json
-        Fn("jsonGet", "jsonGet(json, path)",
+        Fn(RecordsGroup, "jsonGet", "jsonGet(json, path)",
             "A value inside JSON text, found by a path such as a.b[0].c. A field holding an "
             + "object or a list comes back as its own JSON text.", 2, 2,
             args => JsonGet(args)),
-        Fn("jsonKeys", "jsonKeys(json)",
+        Fn(RecordsGroup, "jsonKeys", "jsonKeys(json)",
             "The names of the fields of a JSON object, in the order they are written.", 1, 1,
             args => Value.FromList(JsonKeys(S(args, 0)))),
-        Fn("jsonHas", "jsonHas(json, path)", "True when the path is present in JSON text.", 2, 2,
+        Fn(RecordsGroup, "jsonHas", "jsonHas(json, path)", "True when the path is present in JSON text.", 2, 2,
             args => Value.FromBool(Located(args).Found)),
-        Fn("jsonSet", "jsonSet(json, path, value)",
+        Fn(RecordsGroup, "jsonSet", "jsonSet(json, path, value)",
             "A copy of JSON text with the path set to a value, making the fields on the way.",
             3, 3, args => Value.FromText(JsonSet(args))),
-        Fn("jsonOf", "jsonOf(name, value, ...)",
+        Fn(RecordsGroup, "jsonOf", "jsonOf(name, value, ...)",
             "Names and values in turn, put together into one JSON object: jsonOf(\"a\", 1, "
             + "\"b\", 2) is {\"a\":1,\"b\":2}. This is how a macro keeps several things in one "
             + "variable and reads the fields back with jsonGet. A field holding another object "
             + "or a list is made with jsonSet and a path, because a value that is text stays "
             + "text.", 2, Any, args => Value.FromText(JsonOf(args))),
-        Fn("toJson", "toJson(value)",
+        Fn(RecordsGroup, "toJson", "toJson(value)",
             "A value written as JSON text, so a list becomes an array.", 1, 1,
             args => Value.FromText(JsonValues.Written(V(args, 0)))),
-        Fn("field", "field(record, name)", "One field of a record, such as the x of a hit. The "
+        Fn(RecordsGroup, "field", "field(record, name)", "One field of a record, such as the x of a hit. The "
             + "fields the record does have are listed when the name is not one of them.", 2, 2,
             args => Field(args)),
     ];
@@ -200,7 +231,8 @@ internal static class FunctionLibrary
 
     /// <summary>Names and signatures the expression editor offers as suggestions.</summary>
     public static IReadOnlyList<ExpressionFunction> Metadata { get; } =
-        [.. Entries.Select(entry => new ExpressionFunction(entry.Name, entry.Signature, entry.Description))];
+        [.. Entries.Select(entry =>
+            new ExpressionFunction(entry.Name, entry.Signature, entry.Description, entry.Group))];
 
     public static bool TryGet(string name, out FunctionEntry entry)
     {
@@ -214,9 +246,9 @@ internal static class FunctionLibrary
         return false;
     }
 
-    private static FunctionEntry Fn(string name, string signature, string description, int min, int max,
-        Func<IReadOnlyList<Func<Value>>, Value> body)
-        => new(name, signature, description, min, max, body);
+    private static FunctionEntry Fn(string group, string name, string signature, string description,
+        int min, int max, Func<IReadOnlyList<Func<Value>>, Value> body)
+        => new(group, name, signature, description, min, max, body);
 
     private static Value V(IReadOnlyList<Func<Value>> args, int index) => args[index]();
 

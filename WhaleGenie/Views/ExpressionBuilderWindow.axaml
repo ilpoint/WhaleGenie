@@ -5,11 +5,11 @@
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="470"
+        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="560"
         x:Class="WhaleGenie.Views.ExpressionBuilderWindow"
         x:DataType="vm:ExpressionBuilderViewModel"
         Title="WhaleGenie"
-        Width="560" Height="470"
+        Width="560" Height="560"
         MinWidth="460" MinHeight="360"
         WindowStartupLocation="CenterOwner"
         ExtendClientAreaToDecorationsHint="True"
@@ -167,6 +167,38 @@
                      one click drops the name in at the caret, and hovering one says what it is. A
                      list behind a dropdown made the reader open it, read a name, and hope. -->
                 <views:VariableWall DataContext="{Binding Wall}" />
+
+                <TextBlock Classes="FieldLabel" Margin="2,16,0,6"
+                           Text="{Binding FunctionsHeader}" />
+                <!-- What the language can already do, so a formula is not written from memory. Only
+                     the name and the signature are shown: a function's own line of description is
+                     written in English, which this interface never shows. -->
+                <TextBox Classes="ExprInput" Margin="0,0,0,8"
+                         PlaceholderText="{Binding FunctionsFilterHint}"
+                         Text="{Binding FunctionFilter}" />
+                <ItemsControl ItemsSource="{Binding Functions}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ExpressionFunctionGroup">
+                            <StackPanel Margin="0,0,0,8">
+                                <TextBlock Classes="Muted" Text="{Binding Header}" />
+                                <ItemsControl ItemsSource="{Binding Functions}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ExpressionFunctionChoice">
+                                            <Button Classes="OpButton" Margin="0,6,6,0"
+                                                    Content="{Binding Signature}"
+                                                    Click="OnInsertFunction" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </StackPanel>
         </ScrollViewer>
 
