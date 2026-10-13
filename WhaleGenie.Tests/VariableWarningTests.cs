@@ -38,6 +38,46 @@ public class VariableWarningTests
     }
 
     [Fact]
+    public void A_name_a_macro_may_not_write_is_a_problem_wherever_it_is_named()
+    {
+        Ui.Run(() =>
+        {
+            // Naming a variable to write is the same question in every action that does it, so the
+            // answer may not depend on which one the user happens to be in: the counter of a loop
+            // and the item of "for each" are asked the same way "Set Variable" is.
+            foreach (var (key, field) in new[]
+                     {
+                         ("control.setVariable", "name"),
+                         ("control.for", "variable"),
+                         ("control.forEach", "itemVariable"),
+                         ("control.forEach", "indexVariable"),
+                     })
+            {
+                var viewModel = new AddActionViewModel(ActionCatalog.Definitions,
+                    VariableChoicesForChecks.Named("count"), []);
+                viewModel.SelectAction(key);
+                viewModel.Parameters.First(parameter => parameter.Definition.Name == field).Text =
+                    "sys.date";
+
+                Assert.False(viewModel.CanSave, $"{key}.{field} lets a macro write what it only reads");
+                Assert.Equal(Strings.Format("Add.SystemReadOnly", "sys.date"),
+                    viewModel.ValidationMessage);
+            }
+
+            // Reading one is not: that is what those values are for.
+            var reading = new AddActionViewModel(ActionCatalog.Definitions,
+                VariableChoicesForChecks.Named("count"), []);
+            reading.SelectAction("condition.dateCompare");
+            reading.Parameters.First(parameter => parameter.Definition.Name == "left").Text =
+                "$sys.dateTime";
+            reading.Parameters.First(parameter => parameter.Definition.Name == "right").Text =
+                "2026-01-01";
+
+            Assert.True(reading.CanSave, reading.ValidationMessage);
+        });
+    }
+
+    [Fact]
     public void The_read_only_lines_are_written_in_red()
     {
         // The dialog that refuses to store into one, and the panel that lists them.

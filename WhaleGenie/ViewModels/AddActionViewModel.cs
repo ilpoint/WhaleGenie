@@ -1924,13 +1924,33 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     private string? ScopeError()
     {
-        // Every action that stores a value into a named variable asks the same two questions:
-        // whether the name belongs to WhaleGenie itself, and whether a shared name exists to write
-        // to. Reading it off the parameters rather than listing the actions means a new one that
-        // stores a value gets the same answers without being remembered here.
-        if (SelectedDefinition is not { } definition
-            || definition.Parameters.All(parameter => parameter.Name != "name")
-            || definition.Parameters.All(parameter => parameter.Name != "scope"))
+        if (SelectedDefinition is null)
+        {
+            return null;
+        }
+
+        // The name a step writes may not be one WhaleGenie provides: those are read-only, and a
+        // macro holding its own copy of the date or the clipboard under that name reads it back
+        // everywhere else as if it were the real one. A counter, a list and an item of a loop all
+        // name a variable the same way, so the question is asked of every field that has the step
+        // create one rather than of a list of actions kept here. What a field reads is not one of
+        // these: reading $sys.date is what those values are for.
+        foreach (var parameter in Parameters.Where(parameter => parameter.IsIncluded))
+        {
+            var written = parameter.CurrentText.Trim();
+            if (written.Length > 0 && VariableCatalog.IsSystem(written)
+                && MacroStep.DefinesVariable(SelectedDefinition.Key, parameter.Definition.Name))
+            {
+                return Strings.Format("Add.SystemReadOnly", written);
+            }
+        }
+
+        // A shared name has to exist before a step may write to it, and the Variable Center is
+        // where shared variables are created. The actions that say where a value is stored are the
+        // ones that have both fields; reading it off the parameters means a new one gets the same
+        // answer without being remembered here.
+        if (SelectedDefinition.Parameters.All(parameter => parameter.Name != "name")
+            || SelectedDefinition.Parameters.All(parameter => parameter.Name != "scope"))
         {
             return null;
         }
@@ -1938,20 +1958,10 @@ public partial class AddActionViewModel : ViewModelBase
         var name = Parameters.FirstOrDefault(parameter => parameter.Definition.Name == "name")
             ?.CurrentText.Trim() ?? string.Empty;
 
-        if (name.Length == 0)
-        {
-            return null;
-        }
-
-        if (VariableCatalog.IsSystem(name))
-        {
-            return Strings.Format("Add.SystemReadOnly", name);
-        }
-
         var scope = Parameters.FirstOrDefault(parameter => parameter.Definition.Name == "scope")
             ?.CurrentText;
 
-        return scope == "global" && !VariableCatalog.IsGlobal(name)
+        return name.Length > 0 && scope == "global" && !VariableCatalog.IsGlobal(name)
             ? Strings.Format("Add.GlobalMustExist", name)
             : null;
     }

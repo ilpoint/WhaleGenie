@@ -566,11 +566,18 @@ public class MacroStep : INotifyPropertyChanged
     /// that are part of writing the step itself: the loop's own variables, and the name a "set
     /// variable", "calculate" or "create list" step writes into.
     /// </summary>
-    public bool DefinesVariable(StepParameter parameter) => parameter.Name switch
+    public bool DefinesVariable(StepParameter parameter) => DefinesVariable(Type, parameter.Name);
+
+    /// <summary>
+    /// The same question asked of a step that is still being written, which is a type and a field
+    /// name rather than a step: the dialog has both while the step is on the screen, and asking it
+    /// this way keeps one answer to "which fields have a macro make a variable" rather than two.
+    /// </summary>
+    public static bool DefinesVariable(string? type, string parameterName) => parameterName switch
     {
         "itemVariable" or "indexVariable" => true,
-        "name" => Type is "control.setVariable" or "control.calculate" or "control.listCreate",
-        "variable" => Type is "control.for",
+        "name" => type is "control.setVariable" or "control.calculate" or "control.listCreate",
+        "variable" => type is "control.for",
         _ => false,
     };
 
