@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 
@@ -31,19 +32,25 @@ public static class MacroCheck
 
     /// <summary>
     /// Everything wrong with the macro, in the order the steps are written.
-    /// <paramref name="macroNames"/> is every macro a call can reach — the project list — and
-    /// <paramref name="ownName"/> is the macro being edited, which may call itself.
+    /// <paramref name="macros"/> is every macro a call can reach — the project list, each with what
+    /// it declares — and <paramref name="ownName"/> is the macro being edited, which may call itself
+    /// and so is judged by <paramref name="own"/>.
     /// </summary>
     public static IReadOnlyList<MacroProblem> Inspect(IEnumerable<MacroStep> steps,
-        IEnumerable<string> macroNames, string ownName)
+        MacroCallable? own, IEnumerable<MacroCallable> macros)
     {
         IReadOnlyList<MacroStep> tree = steps as IReadOnlyList<MacroStep> ?? [.. steps];
         var problems = new List<MacroProblem>();
 
-        var reachable = new HashSet<string>(macroNames, StringComparer.OrdinalIgnoreCase);
-        if (ownName.Trim().Length > 0)
+        var reachable = new Dictionary<string, MacroCallable?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var macro in macros)
         {
-            reachable.Add(ownName.Trim());
+            reachable[macro.Name.Trim()] = macro;
+        }
+
+        if (own?.Name.Trim() is { Length: > 0 } ownName)
+        {
+            reachable[ownName] = own;
         }
 
         var defined = DefinedVariables(tree);
@@ -107,14 +114,47 @@ public static class MacroCheck
                 return;
             }
 
-            var name = Text(step, "macro").Trim();
+            var name = step.Text("macro").Trim();
             if (name.Length == 0)
             {
                 Add(step, Strings.Get("Editor.Problem.NoMacro"));
+                return;
             }
-            else if (!reachable.Contains(name))
+
+            if (!reachable.TryGetValue(name, out var called))
             {
                 Add(step, Strings.Format("Editor.Problem.MacroNotFound", name));
+                return;
+            }
+
+            // What a call passes and asks for is read against what the macro declares: a name the
+            // macro never mentioned is a mistake in the call, and the run would report it far from
+            // here if it were left to be found out then.
+            if (called is null)
+            {
+                return;
+            }
+
+            foreach (var parameter in step.Parameters)
+            {
+                if (!parameter.Name.StartsWith(MacroCallFields.ArgumentPrefix, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var passed = parameter.Name[MacroCallFields.ArgumentPrefix.Length..];
+                if (called.Parameter(passed) is null)
+                {
+                    Add(step, Strings.Format("Editor.Problem.UndeclaredArgument", passed, name));
+                }
+            }
+
+            foreach (var (result, _) in Wanted(step))
+            {
+                if (!called.Offers(result))
+                {
+                    Add(step, Strings.Format("Editor.Problem.UndeclaredResult", result, name));
+                }
             }
         }
 
@@ -202,14 +242,33 @@ public static class MacroCheck
 
         foreach (var step in Every(steps).Where(step => step.Type == "control.runMacro"))
         {
-            foreach (var name in Text(step, "returns").Split(',',
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            foreach (var (_, name) in Wanted(step))
             {
                 defined.Add(name);
             }
         }
 
         return defined;
+    }
+
+    /// <summary>
+    /// The results a call asks to have back, one row per result: what the called macro calls the
+    /// value, and the name the caller wants it under. A row without both is not asking for anything.
+    /// </summary>
+    private static IEnumerable<(string Result, string Name)> Wanted(MacroStep step)
+    {
+        foreach (var parameter in step.Parameters.Where(parameter => parameter.Name == "returns"))
+        {
+            foreach (var row in parameter.Rows)
+            {
+                var result = row.Text("key").Trim();
+                var name = row.Text("name").Trim();
+                if (result.Length > 0 && name.Length > 0)
+                {
+                    yield return (result, name);
+                }
+            }
+        }
     }
 
     /// <summary>Every step of the macro, nested ones and conditions included.</summary>
@@ -237,7 +296,4 @@ public static class MacroCheck
         }
     }
 
-    /// <summary>The text of a named parameter, or empty when the step has no such parameter.</summary>
-    private static string Text(MacroStep step, string name)
-        => step.Parameters.FirstOrDefault(parameter => parameter.Name == name)?.Value ?? string.Empty;
 }

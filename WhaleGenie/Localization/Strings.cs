@@ -483,6 +483,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.ContinueOutsideLoop"] = "This continue is not inside a loop, so there is no next round to start.",
         ["Editor.Problem.NoMacro"] = "This step does not say which macro to run.",
         ["Editor.Problem.MacroNotFound"] = "There is no macro called \"{0}\" in this project.",
+        ["Editor.Problem.UndeclaredArgument"] =
+            "\"{0}\" is not filled in by \"{1}\" as one of its arguments, so nothing reads it.",
+        ["Editor.Problem.UndeclaredResult"] =
+            "\"{1}\" does not offer to hand back \"{0}\", so this call gets nothing.",
         ["Editor.Problem.UndefinedVariable"] = "Nothing defines \"${0}\", so it reads as nothing.",
 
         ["Trigger.Keys"] = "Keystrokes / Button Inputs",
@@ -1159,7 +1163,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.CalledMacro"] = "Running \"{0}\": {1} steps.",
         ["Run.MacroNotFound"] = "There is no macro called \"{0}\" in this project.",
         ["Run.MacroTooDeep"] = "The macros call each other too many times over: {0}",
-        ["Run.BadMacroArgument"] = "This is not a NAME=value line to pass to the macro: {0}",
+        ["Run.MissingArgument"] =
+            "This call leaves out \"{0}\", which the macro it calls has to be given.",
+        ["Run.UndeclaredResult"] =
+            "The macro this step calls does not say it hands back \"{0}\".",
         ["Run.BreakOutsideLoop"] = "A break ran with no loop to leave: this step is not inside one.",
         ["Run.ContinueOutsideLoop"] = "A continue ran with no loop to skip ahead in: this step is not inside one.",
         ["Run.DeviceFailed"] = "A component outside WhaleGenie failed: {0}",
@@ -1532,6 +1539,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.ContinueOutsideLoop"] = "这个 continue 不在任何循环里，没有可以进入的下一轮。",
         ["Editor.Problem.NoMacro"] = "这一步没有选要执行的宏。",
         ["Editor.Problem.MacroNotFound"] = "本项目里没有名为“{0}”的宏。",
+        ["Editor.Problem.UndeclaredArgument"] = "“{1}”没有声明“{0}”这个形参，传过去的这个值没有步骤会读。",
+        ["Editor.Problem.UndeclaredResult"] = "“{1}”没有声明要交回“{0}”，这一步取不到它。",
         ["Editor.Problem.UndefinedVariable"] = "没有定义“${0}”，读到的会是空的。",
 
         ["Trigger.Keys"] = "键盘 / 鼠标输入",
@@ -2156,7 +2165,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.CalledMacro"] = "正在执行“{0}”：{1} 个步骤。",
         ["Run.MacroNotFound"] = "本项目里没有名为“{0}”的宏。",
         ["Run.MacroTooDeep"] = "宏之间的互相调用层级过深：{0}",
-        ["Run.BadMacroArgument"] = "这一行不是传给宏的 NAME=value 写法：{0}",
+        ["Run.MissingArgument"] = "被调用的宏要求“{0}”，这一步没有填。",
+        ["Run.UndeclaredResult"] = "被调用的宏没有声明要交回“{0}”。",
         ["Run.BreakOutsideLoop"] = "break 不在任何循环里，没有可以跳出的循环。",
         ["Run.ContinueOutsideLoop"] = "continue 不在任何循环里，没有可以跳到下一轮的循环。",
         ["Run.DeviceFailed"] = "鲸灵之外的组件出错：{0}",

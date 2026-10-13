@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Tests;
@@ -27,19 +29,46 @@ public class MacroCheckTests
     private static MacroStep Repeat(params MacroStep[] body)
         => Step("control.repeat", Text("times", "3"), Steps("body", body));
 
-    private static MacroStep Call(string macro, string returns = "")
-        => Step("control.runMacro", Text("macro", macro), Text("returns", returns));
+    /// <summary>A call to another macro, asking for whatever of its results are named.</summary>
+    private static MacroStep Call(string macro, params string[] wants)
+        => Step("control.runMacro", Text("macro", macro), Results(wants));
+
+    /// <summary>The results a step hands over, one row each, named the way the file writes them.</summary>
+    private static StepParameter Results(params string[] names)
+        => new()
+        {
+            Name = "returns",
+            Kind = ActionParameterKind.Returns,
+            Rows =
+            [
+                .. names.Select(name => new StepParameterRow
+                {
+                    Columns = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["key"] = name,
+                        ["name"] = name,
+                    },
+                }),
+            ],
+        };
+
+    /// <summary>What one macro of the project asks a call to fill in and offers to hand back.</summary>
+    private static MacroCallable Callable(string name, string[]? parameters = null,
+        string[]? results = null)
+        => new(name,
+            [.. (parameters ?? []).Select(parameter => new MacroParameter { Name = parameter })],
+            [.. (results ?? []).Select(result => new MacroResult { Name = result })]);
 
     /// <summary>
     /// Runs the check on the thread the headless session owns: it reads the action catalogue,
     /// whose icons are Avalonia geometries.
     /// </summary>
     private static IReadOnlyList<MacroProblem> Inspect(params MacroStep[] steps)
-        => Ui.Run(() => MacroCheck.Inspect(steps, [], ""));
+        => Ui.Run(() => MacroCheck.Inspect(steps, null, []));
 
-    private static IReadOnlyList<MacroProblem> Against(string ownName, string[] macros,
+    private static IReadOnlyList<MacroProblem> Against(string ownName, MacroCallable[] macros,
         params MacroStep[] steps)
-        => Ui.Run(() => MacroCheck.Inspect(steps, macros, ownName));
+        => Ui.Run(() => MacroCheck.Inspect(steps, Callable(ownName), macros));
 
     [Fact]
     public void A_break_outside_a_loop_is_reported()
@@ -81,8 +110,8 @@ public class MacroCheckTests
     {
         // The called macro has a loop of its own, so its break is fine even though the call
         // sits at the top of this one.
-        Assert.Empty(Against("调用者", ["半途"], Call("半途")));
-        Assert.Empty(Against("半途", ["调用者"], Repeat(Step("control.break"))));
+        Assert.Empty(Against("调用者", [Callable("半途")], Call("半途")));
+        Assert.Empty(Against("半途", [Callable("调用者")], Repeat(Step("control.break"))));
     }
 
     [Fact]
@@ -90,14 +119,14 @@ public class MacroCheckTests
     {
         var missing = Call("没有这个宏");
 
-        var problem = Assert.Single(Against("自己", ["另一个"], missing));
+        var problem = Assert.Single(Against("自己", [Callable("另一个")], missing));
 
         Assert.Same(missing, problem.Step);
     }
 
     [Fact]
     public void A_call_to_a_macro_that_is_there_is_left_alone()
-        => Assert.Empty(Against("自己", ["另一个"], Call("另一个")));
+        => Assert.Empty(Against("自己", [Callable("另一个")], Call("另一个")));
 
     [Fact]
     public void A_macro_calling_itself_is_left_alone()
@@ -105,7 +134,29 @@ public class MacroCheckTests
 
     [Fact]
     public void A_call_that_names_no_macro_is_reported()
-        => Assert.Single(Against("自己", ["另一个"], Call("")));
+        => Assert.Single(Against("自己", [Callable("另一个")], Call("")));
+
+    [Fact]
+    public void A_call_that_fills_in_a_name_the_called_macro_never_declared_is_reported()
+    {
+        var passed = Step("control.runMacro",
+            Text("macro", "另一个"), Value("arg.别的", "1"));
+
+        var problem = Assert.Single(Against("自己", [Callable("另一个", parameters: ["次数"])], passed));
+
+        Assert.Same(passed, problem.Step);
+    }
+
+    [Fact]
+    public void A_call_that_asks_for_a_result_the_called_macro_never_offered_is_reported()
+    {
+        var asked = Call("另一个", "别的");
+
+        var problem = Assert.Single(Against("自己",
+            [Callable("另一个", results: ["答案"])], asked));
+
+        Assert.Same(asked, problem.Step);
+    }
 
     [Fact]
     public void A_variable_nothing_defines_is_reported()
@@ -162,8 +213,8 @@ public class MacroCheckTests
 
     [Fact]
     public void A_name_a_called_macro_brings_back_is_left_alone()
-        => Assert.Empty(Against("自己", ["另一个"],
-            Call("另一个", returns: "答案"),
+        => Assert.Empty(Against("自己", [Callable("另一个", results: ["答案"])],
+            Call("另一个", "答案"),
             Set("结果", "$答案 + 1")));
 
     [Fact]

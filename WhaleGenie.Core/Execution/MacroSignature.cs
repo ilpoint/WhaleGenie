@@ -32,3 +32,18 @@ public sealed record MacroSignature(
         => Results.Any(result =>
             string.Equals(result.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
 }
+
+/// <summary>
+/// What a call writes the values it passes under. The called macro's argument names are its own,
+/// so they go under a prefix instead of standing beside the call's own settings: a caller that
+/// happens to have a value called <c>macro</c> or <c>returns</c> cannot then write over the name of
+/// the macro being called or the list of what it asks to have back.
+/// </summary>
+public static class MacroCallFields
+{
+    /// <summary>What the parameter holding the value passed for one argument starts with.</summary>
+    public const string ArgumentPrefix = "arg.";
+
+    /// <summary>The call's parameter for one argument of the called macro.</summary>
+    public static string Argument(string name) => ArgumentPrefix + name;
+}

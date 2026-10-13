@@ -179,7 +179,20 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// waiting for the trigger to fire. The macro being edited is added by the check itself,
     /// because a macro may call itself.
     /// </summary>
-    private IReadOnlyList<string> _projectMacros = [];
+    private IReadOnlyList<MacroCallable> _projectMacros = [];
+
+    /// <summary>
+    /// What this macro asks a call to fill in. The editor holds it so that opening a macro and
+    /// saving it again does not drop what it declares, and so a call this macro makes to itself is
+    /// judged by the same list.
+    /// </summary>
+    public List<MacroParameter> DeclaredParameters { get; } = [];
+
+    /// <summary>The names this macro offers to hand back to a call.</summary>
+    public List<MacroResult> DeclaredResults { get; } = [];
+
+    /// <summary>This macro's own declarations, in the shape a call to it is read against.</summary>
+    private MacroCallable OwnCallable => new(Name, DeclaredParameters, DeclaredResults);
 
     /// <summary>What the design-time check has to say about the steps as they stand now.</summary>
     public IReadOnlyList<MacroProblem> Problems { get; private set; } = [];
@@ -194,9 +207,9 @@ public partial class MacroEditorViewModel : ViewModelBase
     private Dictionary<MacroStep, string> _problemByStep = [];
 
     /// <summary>Hands in the macro names a call may reach, and checks the steps again.</summary>
-    public void SetProjectMacros(IEnumerable<string> names)
+    public void SetProjectMacros(IEnumerable<MacroCallable> macros)
     {
-        _projectMacros = [.. names];
+        _projectMacros = [.. macros];
         RebuildRows();
     }
 
@@ -1155,6 +1168,11 @@ public partial class MacroEditorViewModel : ViewModelBase
             RecordIgnoreInjected = macro.RecordIgnoreInjected;
             DelayScale = macro.DelayScale;
 
+            DeclaredParameters.Clear();
+            DeclaredParameters.AddRange(macro.Parameters);
+            DeclaredResults.Clear();
+            DeclaredResults.AddRange(macro.Results);
+
             Steps.Clear();
             foreach (var step in macro.Steps)
             {
@@ -1614,7 +1632,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     private void RefreshProblems()
     {
-        Problems = MacroCheck.Inspect(Steps, _projectMacros, Name);
+        Problems = MacroCheck.Inspect(Steps, OwnCallable, _projectMacros);
         _problemByStep = Problems
             .GroupBy(problem => problem.Step)
             .ToDictionary(group => group.Key,
@@ -1929,6 +1947,9 @@ public partial class MacroEditorViewModel : ViewModelBase
         {
             macro.Steps.Add(step);
         }
+
+        macro.Parameters.AddRange(DeclaredParameters);
+        macro.Results.AddRange(DeclaredResults);
 
         return macro;
     }

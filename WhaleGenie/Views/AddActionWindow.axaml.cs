@@ -143,7 +143,7 @@ public partial class AddActionWindow : Window
     /// restricted to a catalogue subset, such as the condition actions.
     /// </summary>
     public AddActionWindow(MacroStep? existing, IReadOnlyList<ActionDefinition>? actions = null,
-        IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<string>? macros = null,
+        IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<MacroCallable>? macros = null,
         string? presetKey = null, string? assetFolder = null,
         IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
     {
@@ -420,7 +420,7 @@ public partial class AddActionWindow : Window
     /// list behind it is still being worked on.
     /// </summary>
     internal void Retarget(IReadOnlyList<ActionDefinition>? actions,
-        IReadOnlyList<VariableChoice>? variables, IReadOnlyList<string>? macros,
+        IReadOnlyList<VariableChoice>? variables, IReadOnlyList<MacroCallable>? macros,
         IReadOnlyList<ActionParameterOption>? steps, string? assetFolder)
         => Form?.Retarget(actions, variables, macros, steps, assetFolder);
 

@@ -1176,7 +1176,7 @@ public sealed class MacroTriggerService : IDisposable
     private IMacroLibrary Library()
         => new ProjectMacroLibrary(Snapshot()
             .Where(macro => macro.Name.Trim().Length > 0)
-            .Select(macro => (macro.Name.Trim(), macro.Steps.ToExecutable())));
+            .Select(macro => (macro.Name.Trim(), macro.Steps.ToExecutable(), macro.Callable.Signature)));
 
     private IReadOnlyList<MacroItem> Snapshot()
     {

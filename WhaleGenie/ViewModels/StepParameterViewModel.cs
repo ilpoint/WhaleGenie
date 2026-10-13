@@ -33,13 +33,14 @@ public partial class StepParameterViewModel : ViewModelBase
 
     public StepParameterViewModel(ActionParameter definition,
         IReadOnlyList<VariableChoice>? variables = null,
-        IReadOnlyList<string>? macros = null, IReadOnlyList<ActionParameterOption>? steps = null,
+        IReadOnlyList<MacroCallable>? macros = null,
+        IReadOnlyList<ActionParameterOption>? steps = null,
         IReadOnlyList<ActionReturn>? results = null)
     {
         Definition = definition;
         Variables = variables ?? [];
         Named = [.. Variables.Select(choice => choice.Name)];
-        Macros = macros ?? [];
+        Macros = [.. (macros ?? []).Select(call => call.Name)];
         Steps = steps ?? [];
         DurationUnits = DurationUnit.Localized();
         _unit = DurationUnits[0];

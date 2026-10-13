@@ -49,6 +49,50 @@ dotnet run --project WhaleGenie                  # 启动程序
 这些包各自带进来的原生库（`OpenCvSharpExtern.dll`、`uiohook.dll`、Playwright 的驱动等）
 和许可原文，列在 `THIRD-PARTY-NOTICES.md` 里。
 
+## 宏文件的形状
+
+一个宏是一份 JSON（打包后叫 `<宏名>.json`），顶层节点分三块：触发与节奏（`triggerMode`、`schedule`、
+`watch`、`program`、`window`、`record` 等，对应编辑器里触发那一页）、**调用声明**、以及 `steps`。声明是
+这个宏对调用者的要求，形状如下：
+
+```json
+{
+  "arguments": [
+    { "name": "次数", "default": "3", "required": false, "hint": "要做多少遍。" },
+    { "name": "标签", "default": "", "required": true, "hint": "写在每一项前面的文字。" }
+  ],
+  "returns": [
+    { "name": "答案", "hint": "整理完留下的数。", "type": "Number" }
+  ]
+}
+```
+
+两边都为空就写空数组，没在调用的宏因此不会多出什么。同一个声明在代码里有两份读法：引擎读的是
+`WhaleGenie.Core/Execution/MacroSignature.cs` 里的 `MacroSignature`（只要名字、默认值、是否必填），
+编辑器与设计期检查读的是 `WhaleGenie/Models/MacroCallable.cs` 里的 `MacroCallable`（多一列说明，
+调用处的表单拿它当字段的提示），两者都由 `MacroItem` 读写。
+
+调用另一个宏的步骤（`control.runMacro`）写三个部分：
+
+```json
+{
+  "type": "control.runMacro",
+  "params": {
+    "macro": "整理",
+    "arg.次数": "$n",
+    "arg.标签": "开始",
+    "returns": [ { "key": "答案", "name": "答案" } ]
+  }
+}
+```
+
+`macro` 是被调用宏的名字；每一个形参各占一格，名字是 `arg.<形参名>`——带前缀是因为形参名是被调用宏
+自己的，不加前缀就会和 `macro`、`returns` 这些调用自己的键撞上。`returns` 一行一个要取回的结果：
+`key` 是被调用宏那边叫这个名字，`name` 是本宏这边落在哪个变量里。引擎按被调用宏声明的形参逐个读
+`arg.<名字>`（留空用默认值，必填留空报 `Run.MissingArgument`），并从 `returns` 的每一行取回一个值
+（名字没被声明过报 `Run.UndeclaredResult`），要取回什么在调用开始之前就说清楚，出错因此发生在送输入
+之前。
+
 ## 测试分层
 
 | 层 | 项目 | 验证内容 |

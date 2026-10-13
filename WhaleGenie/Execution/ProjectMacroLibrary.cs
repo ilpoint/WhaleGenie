@@ -11,17 +11,17 @@ namespace WhaleGenie.Execution;
 /// </summary>
 public sealed class ProjectMacroLibrary : IMacroLibrary
 {
-    private readonly Dictionary<string, IReadOnlyList<ExecutableStep>> _byName =
-        new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, (IReadOnlyList<ExecutableStep> Steps, MacroSignature Signature)>
+        _byName = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly List<string> _names = [];
 
     public ProjectMacroLibrary(
-        IEnumerable<(string Name, IReadOnlyList<ExecutableStep> Steps)> macros)
+        IEnumerable<(string Name, IReadOnlyList<ExecutableStep> Steps, MacroSignature Signature)> macros)
     {
-        foreach (var (name, steps) in macros)
+        foreach (var (name, steps, signature) in macros)
         {
-            if (name.Length == 0 || !_byName.TryAdd(name, steps))
+            if (name.Length == 0 || !_byName.TryAdd(name, (steps, signature)))
             {
                 continue;
             }
@@ -33,5 +33,8 @@ public sealed class ProjectMacroLibrary : IMacroLibrary
     public IReadOnlyList<string> Names => _names;
 
     public IReadOnlyList<ExecutableStep>? Steps(string name)
-        => name.Length > 0 && _byName.TryGetValue(name, out var steps) ? steps : null;
+        => name.Length > 0 && _byName.TryGetValue(name, out var macro) ? macro.Steps : null;
+
+    public MacroSignature? Signature(string name)
+        => name.Length > 0 && _byName.TryGetValue(name, out var macro) ? macro.Signature : null;
 }

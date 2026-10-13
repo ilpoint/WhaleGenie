@@ -462,15 +462,20 @@ public sealed class MacroRunner
             throw new StepFailure("Run.MacroTooDeep", name);
         }
 
+        // What the call may ask to have back is settled before anything runs: a name the called
+        // macro never offered is a mistake in the call, and saying so now keeps it from turning
+        // into a half-finished call or, worse, hiding the failure that was already on its way.
+        var signature = _macros.Signature(name) ?? MacroSignature.Empty;
+        var wanted = WantedResults(step, signature);
+
         // Read the arguments while the caller's values are still the ones in force, then hand the
         // called macro a table of its own holding just those. A macro's own values are its own —
         // that is why one macro cannot read another's — so a call says what goes in and what
         // comes back rather than leaning on whatever happened to be left lying around.
-        var arguments = ArgumentsOf(step);
         var called = new VariableBag();
-        foreach (var (argument, value) in arguments)
+        foreach (var argument in signature.Arguments)
         {
-            called.Set(argument, value);
+            called.Set(argument.Name, ArgumentValue(step, argument));
         }
 
         var caller = Variables.SwapLocal(called);
@@ -502,69 +507,73 @@ public sealed class MacroRunner
         {
             _loops = outerLoops;
             _callDepth--;
-            Take(step, Variables.SwapLocal(caller));
+            Take(wanted, Variables.SwapLocal(caller));
         }
     }
 
     /// <summary>
-    /// What a step hands the macro it calls, written one <c>NAME=value</c> per line. The name is
-    /// the one the called macro reads, and the value is read the way every other value field is,
-    /// so <c>count=$n + 1</c> passes a number and <c>xs=$list</c> passes the list itself rather
-    /// than its text. Blank lines and lines starting with <c>#</c> are skipped, so a line a macro
-    /// has switched off can sit next to the ones in use.
+    /// What one argument of a call says, read the way every other value field is: <c>$n + 1</c>
+    /// passes a number and <c>$list</c> passes the list itself rather than its text. A call that
+    /// leaves the field empty gets the argument's default; a required argument with no default is
+    /// the mistake the declaration exists to catch, so it stops the call before the called macro
+    /// runs at all.
     /// </summary>
-    private List<(string Name, Value Value)> ArgumentsOf(ExecutableStep step)
+    private Value ArgumentValue(ExecutableStep step, MacroArgument argument)
     {
-        var text = step.Text("arguments");
-        var passed = new List<(string Name, Value Value)>();
-        if (text.Trim().Length == 0)
+        var written = step.Text(MacroCallFields.Argument(argument.Name)).Trim();
+        if (written.Length > 0)
         {
-            return passed;
+            return Read(written);
         }
 
-        foreach (var line in Lines(text))
+        if (argument.Required)
         {
-            var pair = line.Trim();
-            if (pair.Length == 0 || pair.StartsWith('#'))
+            throw new StepFailure("Run.MissingArgument", argument.Name);
+        }
+
+        return argument.Default.Trim().Length > 0 ? Read(argument.Default) : Value.Null;
+    }
+
+    /// <summary>
+    /// The results a call asks to have back, in the order it asked: one per row of the step's
+    /// <c>returns</c>, each row carrying the called macro's own name for the value and the name the
+    /// caller wants it under. A name the called macro does not offer is a mistake in the call.
+    /// </summary>
+    private static List<(string Result, string Name)> WantedResults(ExecutableStep step,
+        MacroSignature signature)
+    {
+        var wanted = new List<(string Result, string Name)>();
+        foreach (var row in step.Rows("returns"))
+        {
+            var result = row.TryGetValue("key", out var key) ? key.Trim() : string.Empty;
+            var name = row.TryGetValue("name", out var written) ? written.Trim() : string.Empty;
+            if (result.Length == 0 || name.Length == 0)
             {
                 continue;
             }
 
-            var cut = pair.IndexOf('=');
-            if (cut <= 0)
+            if (!signature.Offers(result))
             {
-                throw new StepFailure("Run.BadMacroArgument", pair);
+                throw new StepFailure("Run.UndeclaredResult", result);
             }
 
-            passed.Add((pair[..cut].Trim(), Read(pair[(cut + 1)..].Trim())));
+            wanted.Add((result, name));
         }
 
-        return passed;
+        return wanted;
     }
 
     /// <summary>
     /// Copies the values a call asked to get back into the caller's own table. A name the called
-    /// macro never set comes back empty rather than missing, so the step after the call reads this
-    /// call's answer and not whatever an earlier pass left behind.
+    /// macro offers but never set comes back empty rather than missing, so the step after the call
+    /// reads this call's answer and not whatever an earlier pass left behind.
     /// </summary>
-    private void Take(ExecutableStep step, VariableBag produced)
+    private void Take(List<(string Result, string Name)> wanted, VariableBag produced)
     {
-        var wanted = step.Text("bringBack").Trim();
-        if (wanted.Length == 0)
+        foreach (var (result, name) in wanted)
         {
-            return;
-        }
-
-        foreach (var name in wanted.Split(',',
-            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            if (produced.TryGet(name, out var value) && value is not null)
-            {
-                Variables.Local.Set(name, value);
-                continue;
-            }
-
-            Variables.Local.Set(name, Value.Null);
+            Variables.Local.Set(name,
+                produced.TryGet(result, out var value) && value is not null ? value : Value.Null);
         }
     }
 

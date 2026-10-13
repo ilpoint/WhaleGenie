@@ -520,14 +520,11 @@ internal static class ActionStrings
 
         ["control.runMacro.name"] = "执行其他宏",
         ["control.runMacro.desc"] = "运行本项目里的另一个宏，效果相当于把它的步骤写在这里。"
-            + "被调用的宏使用自己的一套变量：可读取下方“参数”中传入的值，"
-            + "其最终留下的值通过“返回”取回。",
+            + "被调用的宏使用自己的一套变量：这一步按它声明的形参逐个填值，"
+            + "再勾选要取回的结果。",
         ["control.runMacro.macro.label"] = "宏",
-        ["control.runMacro.macro.hint"] = "本项目里的另一个宏。改名或删除后这里需要跟着改。",
-        ["control.runMacro.arguments.label"] = "参数",
-        ["control.runMacro.arguments.hint"] = "一行一个 NAME=value，作为被调用宏自身的变量传入。"
-            + "值按与其他字段相同的规则读取：count=$n + 1 传入的是数字，xs=$list 传入的是列表本身；"
-            + "无法写成 NAME=value 的行会使这一步失败。# 开头的行会被跳过。",
+        ["control.runMacro.macro.hint"] = "本项目里的另一个宏；下面的形参与结果都由它声明。"
+            + "改名或删除后这里需要跟着改。",
 
         // --------------------------------------------------------------------- file
         ["file.readText.name"] = "读取文本",
@@ -3661,7 +3658,9 @@ internal static class ActionStrings
         // ocr.clickText
 
         // control.runMacro
-        ["control.runMacro.bringBack.label"] = "结果",
-        ["control.runMacro.bringBack.hint"] = "被调用宏要带回本宏的变量名，用逗号隔开。名字写错或没设过时带回空值。",
+        ["control.runMacro.returns.label"] = "要带回的结果",
+        ["control.runMacro.returns.hint"] = "勾上被调用的宏声明过、这一步要取回的结果："
+            + "每一项在本宏里各自成为一个变量，名字由这一行决定。一个都不勾也可以，"
+            + "这一步就不带回任何值。",
     };
 }

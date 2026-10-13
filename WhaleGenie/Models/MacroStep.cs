@@ -461,6 +461,14 @@ public class MacroStep : INotifyPropertyChanged
         => Definition?.Parameters.FirstOrDefault(parameterDefinition =>
             parameterDefinition.Name == parameter.Name);
 
+    /// <summary>The text of a named parameter, or nothing when the step has no such parameter.</summary>
+    /// <remarks>
+    /// Read by the things that look at a step without running it — the design-time check and the
+    /// dialog that fills one in — which is the same question the engine asks of the step it runs.
+    /// </remarks>
+    public string Text(string name)
+        => Parameters.FirstOrDefault(parameter => parameter.Name == name)?.Value ?? string.Empty;
+
     /// <summary>
     /// Collects the variables this step creates, including the ones nested inside it,
     /// so the variable pickers can offer them.

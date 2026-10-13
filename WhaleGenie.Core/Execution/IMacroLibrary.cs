@@ -17,6 +17,14 @@ public interface IMacroLibrary
     /// macro. An empty name means "no macro was chosen" and is never a match.
     /// </summary>
     IReadOnlyList<ExecutableStep>? Steps(string name);
+
+    /// <summary>
+    /// What the macro with this name asks a call to fill in and offers to hand back, or null when
+    /// there is no such macro. A call is read against this rather than against whatever the caller
+    /// felt like writing, which is what turns a misspelled name into a failure instead of a value
+    /// nobody reads.
+    /// </summary>
+    MacroSignature? Signature(string name);
 }
 
 /// <summary>A library with nothing in it, for a run that has no project behind it.</summary>
@@ -27,4 +35,6 @@ public sealed class EmptyMacroLibrary : IMacroLibrary
     public IReadOnlyList<string> Names => Array.Empty<string>();
 
     public IReadOnlyList<ExecutableStep>? Steps(string name) => null;
+
+    public MacroSignature? Signature(string name) => null;
 }

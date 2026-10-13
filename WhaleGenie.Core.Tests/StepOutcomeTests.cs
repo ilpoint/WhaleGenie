@@ -162,8 +162,6 @@ public class StepOutcomeTests
             Parameters =
             [
                 Param("macro", "later"),
-                Param("arguments", string.Empty),
-                Param("results", string.Empty),
             ],
             Meta = new StepMeta { RetryCount = 1, RetryDelayMs = 0, OnError = StepErrorAction.Continue },
         };
@@ -234,8 +232,7 @@ public class StepOutcomeTests
         await new MacroRunner(store, new SilentRunHost(), null, 1, library).RunAsync(
         [
             Step("control.runMacro", "aaaa",
-                Param("macro", "other"), Param("arguments", string.Empty),
-                Param("results", string.Empty)),
+                Param("macro", "other")),
             Set("bbbb", "after", "1"),
         ]);
 
@@ -270,6 +267,9 @@ public class StepOutcomeTests
 
         public IReadOnlyList<ExecutableStep>? Steps(string name)
             => _byName.TryGetValue(name, out var steps) ? steps : null;
+
+        public MacroSignature? Signature(string name)
+            => _byName.ContainsKey(name) ? MacroSignature.Empty : null;
     }
 
     /// <summary>A library whose one macro turns up only on the second ask.</summary>
@@ -283,5 +283,7 @@ public class StepOutcomeTests
             => ++_asks == 1
                 ? null
                 : [Set("eeee", "called", "1")];
+
+        public MacroSignature? Signature(string name) => MacroSignature.Empty;
     }
 }

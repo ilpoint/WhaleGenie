@@ -22,10 +22,32 @@ namespace WhaleGenie.ViewModels;
 public partial class AddActionViewModel : ViewModelBase
 {
     private IReadOnlyList<VariableChoice> _variables;
-    private IReadOnlyList<string> _macros;
+    private IReadOnlyList<MacroCallable> _macros;
     private IReadOnlyList<ActionDefinition> _availableActions = [];
     private IReadOnlyList<ActionParameterOption> _steps = [];
     private string _assetFolder = string.Empty;
+
+    /// <summary>
+    /// The action whose fields depend on which macro it calls. What a call asks for is that
+    /// macro's own declarations, so the form is built from the answer to "which macro" rather than
+    /// from the catalogue alone.
+    /// </summary>
+    private const string RunMacroKey = "control.runMacro";
+
+    /// <summary>The macro the call's own fields were built for, so a change to it can be noticed.</summary>
+    private string _callMacro = string.Empty;
+
+    /// <summary>True while a call's fields are being rebuilt, so putting the name back is not taken
+    /// for the user picking another macro.</summary>
+    private bool _buildingCallFields;
+
+    /// <summary>
+    /// What was filled into one macro's call fields, kept by that macro's name: switching to
+    /// another macro and back leaves the values where the author left them rather than emptying
+    /// the form on the way through.
+    /// </summary>
+    private readonly Dictionary<string, (Dictionary<string, string> Arguments,
+        Dictionary<string, string> Results)> _callFill = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Raised with the step to add, or <c>null</c> when the dialog is cancelled.</summary>
     public event Action<MacroStep?>? CloseRequested;
@@ -43,7 +65,7 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>Creates the dialog, optionally restricted to a catalogue subset.</summary>
     public AddActionViewModel(IReadOnlyList<ActionDefinition>? actions,
-        IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<string>? macros = null,
+        IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<MacroCallable>? macros = null,
         IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
     {
         // Steps, not the whole catalogue: a condition says what has to be true and only means
@@ -125,7 +147,7 @@ public partial class AddActionViewModel : ViewModelBase
     /// takes, the names its fields may offer, and where a picture taken from the screen is kept.
     /// </summary>
     public void Retarget(IReadOnlyList<ActionDefinition>? actions,
-        IReadOnlyList<VariableChoice>? variables, IReadOnlyList<string>? macros,
+        IReadOnlyList<VariableChoice>? variables, IReadOnlyList<MacroCallable>? macros,
         IReadOnlyList<ActionParameterOption>? steps, string? assetFolder)
     {
         AvailableActions = actions ?? ActionCatalog.RunnableActions;
@@ -1085,6 +1107,13 @@ public partial class AddActionViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasStepId));
         SelectedDefinition = ActionCatalog.Find(step.Type);
 
+        // A call's arguments and results are the called macro's own declarations, so the name goes
+        // into the form first: the fields the file is about to fill in only exist because of it.
+        if (SelectedDefinition?.Key == RunMacroKey && Parameter("macro") is { } called)
+        {
+            called.WriteValue(step.Text("macro"));
+        }
+
         foreach (var editor in Parameters)
         {
             var stored = step.Parameters.FirstOrDefault(parameter => parameter.Name == editor.Definition.Name);
@@ -1139,23 +1168,38 @@ public partial class AddActionViewModel : ViewModelBase
             var variables = CollectVariables();
             var steps = StepsOfferedTo(definition);
 
-            foreach (var parameter in definition.Parameters)
+            // A call's form is built for whichever macro it names, so the name is put back into the
+            // box it was read from before the fields that only exist because of it.
+            var calling = definition.Key == RunMacroKey;
+            _buildingCallFields = calling;
+            try
             {
-                var editor = new StepParameterViewModel(parameter, variables, _macros, steps,
-                    results: definition.Returns);
-                editor.AssetFolder = _assetFolder;
-                editor.PropertyChanged += OnParameterChanged;
-
-                if (editor.List is not null)
+                foreach (var parameter in definition.Parameters)
                 {
-                    editor.List.PropertyChanged += OnParameterChanged;
-                    editor.List.AddRequested += OnNestedAddRequested;
-                    editor.List.EditRequested += OnNestedEditRequested;
-                }
+                    // A call's arguments are that macro's declarations, so they belong between "which
+                    // macro" and the results: one end asks what goes in and the other asks what comes
+                    // back out, and both are read off the macro being called.
+                    if (parameter.Kind is ActionParameterKind.Returns)
+                    {
+                        foreach (var argument in CallArguments())
+                        {
+                            AddEditor(argument, [], variables, steps);
+                        }
+                    }
 
-                Parameters.Add(editor);
+                    var editor = AddEditor(parameter, CalledResults(definition), variables, steps);
+                    if (calling && parameter.Name == "macro" && _callMacro.Length > 0)
+                    {
+                        editor.WriteValue(_callMacro);
+                    }
+                }
+            }
+            finally
+            {
+                _buildingCallFields = false;
             }
 
+            _callMacro = Parameter("macro")?.CurrentText.Trim() ?? string.Empty;
             MarkCoordinates();
             MarkRegion();
             MarkOffset();
@@ -1177,6 +1221,162 @@ public partial class AddActionViewModel : ViewModelBase
         BuildRows();
         OpenFirstPage();
         OnParameterChanged(this, new PropertyChangedEventArgs(nameof(Parameters)));
+    }
+
+    /// <summary>Puts one field of the form up, and has the dialog follow it.</summary>
+    private StepParameterViewModel AddEditor(ActionParameter parameter,
+        IReadOnlyList<ActionReturn> results,
+        IReadOnlyList<VariableChoice> variables, IReadOnlyList<ActionParameterOption> steps)
+    {
+        var editor = new StepParameterViewModel(parameter, variables, _macros, steps, results);
+        editor.AssetFolder = _assetFolder;
+        editor.PropertyChanged += OnParameterChanged;
+
+        if (editor.List is not null)
+        {
+            editor.List.PropertyChanged += OnParameterChanged;
+            editor.List.AddRequested += OnNestedAddRequested;
+            editor.List.EditRequested += OnNestedEditRequested;
+        }
+
+        Parameters.Add(editor);
+        return editor;
+    }
+
+    /// <summary>The macro the call names right now, or null while it names one that is not there.</summary>
+    private MacroCallable? CalledMacro()
+    {
+        var wanted = Parameter("macro")?.CurrentText.Trim() ?? string.Empty;
+        return wanted.Length == 0
+            ? null
+            : _macros.FirstOrDefault(call =>
+                string.Equals(call.Name.Trim(), wanted, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// The fields a call fills in: one per value the called macro says it wants, named the way the
+    /// engine reads them and carrying the macro's own words about what each one is. A macro that
+    /// declares nothing asks for nothing, so the form says only which macro and what to bring back.
+    /// </summary>
+    private IReadOnlyList<ActionParameter> CallArguments()
+    {
+        if (CalledMacro() is not { } call)
+        {
+            return [];
+        }
+
+        return
+        [
+            .. call.Parameters
+                .Where(parameter => parameter.Name.Trim().Length > 0)
+                .Select(parameter => new ActionParameter
+                {
+                    Name = MacroCallFields.Argument(parameter.Name.Trim()),
+                    Label = parameter.Name.Trim(),
+                    Kind = ActionParameterKind.Expression,
+                    Hint = parameter.Description,
+                    Required = parameter.Required,
+                    DefaultValue = parameter.Default,
+                }),
+        ];
+    }
+
+    /// <summary>
+    /// What the results page of this step lists: an ordinary action's own declared results, or —
+    /// for a call — the names the called macro offers to hand back, so the ticks are exactly the
+    /// ones that call can make.
+    /// </summary>
+    private IReadOnlyList<ActionReturn> CalledResults(ActionDefinition definition)
+    {
+        if (definition.Key != RunMacroKey || CalledMacro() is not { } call)
+        {
+            return definition.Returns;
+        }
+
+        return
+        [
+            .. call.Results
+                .Where(result => result.Name.Trim().Length > 0)
+                .Select(result => new ActionReturn
+                {
+                    Key = result.Name.Trim(),
+                    Label = result.Name.Trim(),
+                    Hint = result.Description,
+                    Type = result.Type,
+                }),
+        ];
+    }
+
+    /// <summary>
+    /// Rebuilds a call's own fields when the macro it names changes. The values are kept per macro
+    /// on the way out and put back on the way in, so what was typed for one macro is not lost by
+    /// looking at another.
+    /// </summary>
+    private void RefreshCallFields()
+    {
+        var wanted = Parameter("macro")?.CurrentText.Trim() ?? string.Empty;
+        RememberCall();
+
+        // The fields are built for the macro being named, so the name is settled before the build:
+        // what the build reads off "which macro" decides the fields that come after it.
+        _callMacro = wanted;
+        BuildParameters(SelectedDefinition);
+        RestoreCall(wanted);
+        OnPropertyChanged(nameof(CanSave));
+        SaveCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>Keeps what the call's own fields hold, under the macro they were filled in for.</summary>
+    private void RememberCall()
+    {
+        if (_callMacro.Length == 0)
+        {
+            return;
+        }
+
+        var arguments = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var editor in Parameters.Where(editor => editor.Definition.Name.StartsWith(
+            MacroCallFields.ArgumentPrefix, StringComparison.Ordinal)))
+        {
+            arguments[editor.Definition.Name] = editor.CurrentText;
+        }
+
+        var results = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var row in ReturnsRows.Where(row => row.Ticked && row.Name.Trim().Length > 0))
+        {
+            results[row.Key] = row.Name.Trim();
+        }
+
+        _callFill[_callMacro] = (arguments, results);
+    }
+
+    /// <summary>Puts back what was filled in for one macro, if it has been filled in before.</summary>
+    private void RestoreCall(string macro)
+    {
+        if (!_callFill.TryGetValue(macro, out var filled))
+        {
+            return;
+        }
+
+        foreach (var (name, text) in filled.Arguments)
+        {
+            Parameter(name)?.WriteValue(text);
+        }
+
+        if (ReturnsField is not { } returns)
+        {
+            return;
+        }
+
+        foreach (var row in returns.ReturnsRows)
+        {
+            if (filled.Results.TryGetValue(row.Key, out var name))
+            {
+                row.Load(name);
+            }
+        }
+
+        OnPropertyChanged(nameof(HasReturns));
     }
 
     /// <summary>
@@ -1634,6 +1834,18 @@ public partial class AddActionViewModel : ViewModelBase
 
     private void OnParameterChanged(object? sender, PropertyChangedEventArgs e)
     {
+        // A call's fields are the called macro's declarations, so the form is rebuilt the moment
+        // the macro it names changes. The rebuild says everything a change says and the fields this
+        // event came from are gone with it, so nothing else is done here.
+        if (!_buildingCallFields
+            && SelectedDefinition?.Key == RunMacroKey
+            && !string.Equals(Parameter("macro")?.CurrentText.Trim() ?? string.Empty, _callMacro,
+                StringComparison.Ordinal))
+        {
+            RefreshCallFields();
+            return;
+        }
+
         RefreshGates();
         RefreshPages();
         // A result ticked a moment ago has no name yet, and a name typed a moment ago may now be

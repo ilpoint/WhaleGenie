@@ -1581,16 +1581,14 @@ public class MacroRunnerTests
     {
         var store = Store(("n", 0));
         var library = new Library(
-            ("双击", [AddOne("n"), AddOne("n")]),
-            ("清空", [Set("n", "0")]));
+            Takes("双击", ["n"], ["n"], AddOne("n"), AddOne("n")),
+            Takes("清空", ["n"], ["n"], Set("n", "0")));
 
         var (result, _) = await RunAsync(
         [
-            Step("control.runMacro", Param("macro", "双击"), Param("arguments", "n=$n"),
-                Param("bringBack", "n")),
+            Call("双击", Param("arg.n", "$n"), Returns("n=n")),
             Set("中间", "$n"),
-            Step("control.runMacro", Param("macro", "清空"), Param("arguments", "n=$n"),
-                Param("bringBack", "n")),
+            Call("清空", Param("arg.n", "$n"), Returns("n=n")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
@@ -1602,12 +1600,11 @@ public class MacroRunnerTests
     public async Task A_called_macro_reads_what_it_is_passed_and_gives_back_what_is_asked_for()
     {
         var store = Store(("我的数", 41));
-        var library = new Library(("加一", [Set("结果", "$输入 + 1")]));
+        var library = new Library(Takes("加一", ["输入"], ["结果"], Set("结果", "$输入 + 1")));
 
         var (result, _) = await RunAsync(
         [
-            Step("control.runMacro", Param("macro", "加一"), Param("arguments", "输入=$我的数"),
-                Param("bringBack", "结果")),
+            Call("加一", Param("arg.输入", "$我的数"), Returns("结果=结果")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
@@ -1615,14 +1612,62 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task An_argument_the_call_leaves_out_of_an_optional_one_is_its_default()
+    {
+        var store = Store();
+        var library = new Library(("倍数", new MacroSignature(
+            [new MacroArgument("倍数", "5", false)], ["结果"]), [Set("结果", "$倍数 * 2")]));
+
+        var (result, _) = await RunAsync(
+            [Call("倍数", Returns("结果=结果"))], variables: store, macros: library);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(10, N(store, "结果"));
+    }
+
+    [Fact]
+    public async Task An_argument_the_macro_requires_stops_the_call_when_it_is_left_out()
+    {
+        var store = Store();
+        var library = new Library(Takes("甲", ["次数"], [], Set("痕迹", "1")));
+
+        var (result, _) = await RunAsync([Call("甲")], variables: store, macros: library);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.MissingArgument", result.Key);
+        Assert.Equal("次数", result.Detail);
+
+        // Read before the call went anywhere, so the called macro never started.
+        Assert.False(store.TryGet("痕迹", out _));
+    }
+
+    [Fact]
+    public async Task A_result_the_macro_never_offered_stops_the_call_before_it_runs()
+    {
+        var store = Store();
+        var library = new Library(Takes("甲", [], ["结果"], Set("结果", "1")));
+
+        var (result, _) = await RunAsync(
+            [Call("甲", Returns("别的=别的"))], variables: store, macros: library);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.UndeclaredResult", result.Key);
+        Assert.Equal("别的", result.Detail);
+
+        // The name was settled before the call went anywhere, so nothing of it ran.
+        Assert.False(store.TryGet("结果", out _));
+        Assert.False(store.TryGet("别的", out _));
+    }
+
+    [Fact]
     public async Task A_called_macro_cannot_read_the_callers_own_values()
     {
-        var library = new Library(("读", [Set("结果", "$只有调用者有 + 1")]));
+        var library = new Library(Takes("读", [], ["结果"], Set("结果", "$只有调用者有 + 1")));
 
         var (result, _) = await RunAsync(
         [
             Set("只有调用者有", "7"),
-            Step("control.runMacro", Param("macro", "读"), Param("bringBack", "结果")),
+            Call("读", Returns("结果=结果")),
         ], macros: library);
 
         Assert.Equal(RunStatus.Failed, result.Status);
@@ -1633,10 +1678,10 @@ public class MacroRunnerTests
     public async Task What_a_called_macro_leaves_behind_stays_inside_it()
     {
         var store = Store();
-        var library = new Library(("留一手", [Set("临时", "9")]));
+        var library = new Library(Plain("留一手", Set("临时", "9")));
 
         var (result, _) = await RunAsync(
-            [Step("control.runMacro", Param("macro", "留一手"))], variables: store, macros: library);
+            [Call("留一手")], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
         Assert.False(store.TryGet("临时", out _));
@@ -1646,10 +1691,10 @@ public class MacroRunnerTests
     public async Task A_result_the_called_macro_never_set_comes_back_empty()
     {
         var store = Store();
-        var library = new Library(("空手", [Set("别的", "1")]));
+        var library = new Library(Takes("空手", [], ["答案"], Set("别的", "1")));
 
         var (result, _) = await RunAsync(
-            [Step("control.runMacro", Param("macro", "空手"), Param("bringBack", "答案"))],
+            [Call("空手", Returns("答案=答案"))],
             variables: store, macros: library);
 
         Assert.True(result.Succeeded);
@@ -1661,13 +1706,12 @@ public class MacroRunnerTests
     public async Task An_argument_keeps_the_kind_of_value_it_was_given()
     {
         var store = Store();
-        var library = new Library(("数个数", [Set("个数", "count($项目)")]));
+        var library = new Library(Takes("数个数", ["项目"], ["个数"], Set("个数", "count($项目)")));
 
         var (result, _) = await RunAsync(
         [
             Set("项目", "list(1, 2, 3)"),
-            Step("control.runMacro", Param("macro", "数个数"), Param("arguments", "项目=$项目"),
-                Param("bringBack", "个数")),
+            Call("数个数", Param("arg.项目", "$项目"), Returns("个数=个数")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
@@ -1675,21 +1719,10 @@ public class MacroRunnerTests
     }
 
     [Fact]
-    public async Task An_argument_line_that_is_not_a_pair_fails_the_step()
-    {
-        var (result, _) = await RunAsync(
-            [Step("control.runMacro", Param("macro", "甲"), Param("arguments", "这一行没有等号"))],
-            macros: new Library(("甲", [])));
-
-        Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.Equal("Run.BadMacroArgument", result.Key);
-    }
-
-    [Fact]
     public async Task Calling_a_macro_that_is_not_there_fails_the_step()
     {
         var (result, _) = await RunAsync(
-            [Step("control.runMacro", Param("macro", "不存在"))], macros: new Library());
+            [Call("不存在")], macros: new Library());
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.MacroNotFound", result.Key);
@@ -1699,7 +1732,7 @@ public class MacroRunnerTests
     public async Task Calling_no_macro_at_all_fails_the_step()
     {
         var (result, _) = await RunAsync(
-            [Step("control.runMacro", Param("macro", ""))], macros: new Library(("甲", [])));
+            [Call("")], macros: new Library(Plain("甲")));
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.MacroNotFound", result.Key);
@@ -1708,10 +1741,10 @@ public class MacroRunnerTests
     [Fact]
     public async Task Macros_that_call_round_in_circles_are_stopped()
     {
-        var library = new Library(("循环", [Step("control.runMacro", Param("macro", "循环"))]));
+        var library = new Library(Plain("循环", Call("循环")));
 
         var (result, _) = await RunAsync(
-            [Step("control.runMacro", Param("macro", "循环"))], macros: library);
+            [Call("循环")], macros: library);
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.MacroTooDeep", result.Key);
@@ -1721,11 +1754,11 @@ public class MacroRunnerTests
     public async Task A_stop_inside_a_called_macro_stops_the_whole_run()
     {
         var store = Store();
-        var library = new Library(("停下", [Step("control.stop", Param("reason", "够了"))]));
+        var library = new Library(Plain("停下", Step("control.stop", Param("reason", "够了"))));
 
         var (result, _) = await RunAsync(
         [
-            Step("control.runMacro", Param("macro", "停下")),
+            Call("停下"),
             Set("after", "1"),
         ], variables: store, macros: library);
 
@@ -1739,14 +1772,14 @@ public class MacroRunnerTests
         // The called macro loops five times, so if its counter were left behind the caller
         // would carry on with 4 instead of its own round number.
         var store = Store();
-        var library = new Library(("子循环",
-            [Step("control.repeat", Param("times", "5"), Body("body"))]));
+        var library = new Library(Plain("子循环",
+            Step("control.repeat", Param("times", "5"), Body("body"))));
 
         var (result, _) = await RunAsync(
         [
             Set("记录", "0"),
             Step("control.repeat", Param("times", "3"), Body("body",
-                Step("control.runMacro", Param("macro", "子循环")),
+                Call("子循环"),
                 Set("记录", "$记录 * 10 + $sys.loopIndex"))),
         ], variables: store, macros: library);
 
@@ -1758,13 +1791,13 @@ public class MacroRunnerTests
     public async Task A_break_inside_a_called_macro_that_has_no_loop_fails_the_call()
     {
         var store = Store();
-        var library = new Library(("半途", [Step("control.break"), Set("子", "1")]));
+        var library = new Library(Plain("半途", Step("control.break"), Set("子", "1")));
 
         var (result, _) = await RunAsync(
         [
             Set("轮", "0"),
             Step("control.repeat", Param("times", "3"), Body("body",
-                Step("control.runMacro", Param("macro", "半途")),
+                Call("半途"),
                 Set("轮", "$轮 + 1"))),
         ], variables: store, macros: library);
 
@@ -1776,24 +1809,45 @@ public class MacroRunnerTests
         Assert.Equal(0, N(store, "轮"));
     }
 
+    /// <summary>A call to another macro of the stand-in project.</summary>
+    private static ExecutableStep Call(string macro, params ExecutableParameter[] more)
+        => Step("control.runMacro", [Param("macro", macro), .. more]);
+
+    /// <summary>
+    /// A macro that declares what a call has to fill in and may ask for. Every argument is
+    /// required, which is what a macro that reads a value it was handed tends to want.
+    /// </summary>
+    private static (string Name, MacroSignature Signature, ExecutableStep[] Steps) Takes(
+        string name, string[] arguments, string[] results, params ExecutableStep[] steps)
+        => (name, new MacroSignature(
+            [.. arguments.Select(argument => new MacroArgument(argument, string.Empty, true))],
+            results), steps);
+
+    /// <summary>The same for a macro that asks for nothing, which is a macro called for what it does.</summary>
+    private static (string Name, MacroSignature Signature, ExecutableStep[] Steps) Plain(
+        string name, params ExecutableStep[] steps) => (name, MacroSignature.Empty, steps);
+
     /// <summary>A stand-in for the macros of one project, so a call can be tested on its own.</summary>
     private sealed class Library : IMacroLibrary
     {
-        private readonly Dictionary<string, IReadOnlyList<ExecutableStep>> _byName =
-            new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, (IReadOnlyList<ExecutableStep> Steps,
+            MacroSignature Signature)> _byName = new(StringComparer.OrdinalIgnoreCase);
 
-        public Library(params (string Name, ExecutableStep[] Steps)[] macros)
+        public Library(params (string Name, MacroSignature Signature, ExecutableStep[] Steps)[] macros)
         {
-            foreach (var (name, steps) in macros)
+            foreach (var (name, signature, steps) in macros)
             {
-                _byName[name] = steps;
+                _byName[name] = (steps, signature);
             }
         }
 
         public IReadOnlyList<string> Names => [.. _byName.Keys];
 
         public IReadOnlyList<ExecutableStep>? Steps(string name)
-            => _byName.TryGetValue(name, out var steps) ? steps : null;
+            => _byName.TryGetValue(name, out var macro) ? macro.Steps : null;
+
+        public MacroSignature? Signature(string name)
+            => _byName.TryGetValue(name, out var macro) ? macro.Signature : null;
     }
 
     private sealed class WatchingHost : IRunHost

@@ -134,7 +134,7 @@ public partial class MacroEditorWindow : Window
         // one is marked while it is being read rather than when the trigger fires.
         _viewModel.SetProjectMacros(_project
             .Where(macro => !ReferenceEquals(macro, _editing))
-            .Select(macro => macro.Name));
+            .Select(macro => macro.Callable));
 
         DataContext = _viewModel;
         Title = Strings.Get("Editor.Title");
@@ -635,7 +635,7 @@ public partial class MacroEditorWindow : Window
     {
         if (_addWindow is not { } window)
         {
-            window = new AddActionWindow(editing, actions, _viewModel.CollectVariables(), MacroNames(),
+            window = new AddActionWindow(editing, actions, _viewModel.CollectVariables(), MacroCalls(),
                 presetKey, _assetFolder, _viewModel.StepChoices(), _viewModel.NewStepId())
             {
                 StaysOpen = true,
@@ -666,7 +666,7 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        window.Retarget(actions, _viewModel.CollectVariables(), MacroNames(), _viewModel.StepChoices(),
+        window.Retarget(actions, _viewModel.CollectVariables(), MacroCalls(), _viewModel.StepChoices(),
             _assetFolder);
         window.Macros = BuildLibrary();
 
@@ -707,30 +707,39 @@ public partial class MacroEditorWindow : Window
             return null;
         }
 
-        _addWindow?.Retarget(_viewModel.InsertChoices, _viewModel.CollectVariables(), MacroNames(),
+        _addWindow?.Retarget(_viewModel.InsertChoices, _viewModel.CollectVariables(), MacroCalls(),
             _viewModel.StepChoices(), _assetFolder);
         return refusal;
     }
 
-    /// <summary>The macro names a "run another macro" step can be pointed at.</summary>
-    private IReadOnlyList<string> MacroNames()
+    /// <summary>
+    /// The macros a "run another macro" step can be pointed at, with what each of them declares:
+    /// the dialog builds the call's form out of that, so a step calls a macro by the values that
+    /// macro asks for rather than by whatever the author remembers to write.
+    /// </summary>
+    private IReadOnlyList<MacroCallable> MacroCalls()
     {
-        var names = new List<string>();
+        var calls = new List<MacroCallable>();
         foreach (var macro in _project)
         {
-            if (macro.Name.Length > 0 && !names.Contains(macro.Name, StringComparer.OrdinalIgnoreCase))
+            if (macro.Name.Length > 0
+                && !calls.Any(call => string.Equals(call.Name, macro.Name,
+                    StringComparison.OrdinalIgnoreCase)))
             {
-                names.Add(macro.Name);
+                calls.Add(macro.Callable);
             }
         }
 
+        // The macro being edited is offered as it stands, so a call can be pointed at the very
+        // macro it is being written in without saving first.
         var current = _viewModel.Name.Trim();
-        if (current.Length > 0 && !names.Contains(current, StringComparer.OrdinalIgnoreCase))
+        if (current.Length > 0
+            && !calls.Any(call => string.Equals(call.Name, current, StringComparison.OrdinalIgnoreCase)))
         {
-            names.Add(current);
+            calls.Add(_viewModel.BuildMacro().Callable);
         }
 
-        return names;
+        return calls;
     }
 
     /// <summary>
@@ -740,7 +749,8 @@ public partial class MacroEditorWindow : Window
     private ProjectMacroLibrary BuildLibrary()
     {
         var current = _viewModel.Name.Trim();
-        var entries = new List<(string Name, IReadOnlyList<ExecutableStep> Steps)>();
+        var entries = new List<(string Name, IReadOnlyList<ExecutableStep> Steps,
+            MacroSignature Signature)>();
 
         foreach (var macro in _project)
         {
@@ -750,12 +760,13 @@ public partial class MacroEditorWindow : Window
                 continue;
             }
 
-            entries.Add((macro.Name, macro.Steps.ToExecutable()));
+            entries.Add((macro.Name, macro.Steps.ToExecutable(), macro.Callable.Signature));
         }
 
         if (current.Length > 0)
         {
-            entries.Add((current, _viewModel.Steps.ToExecutable()));
+            var edited = _viewModel.BuildMacro();
+            entries.Add((current, _viewModel.Steps.ToExecutable(), edited.Callable.Signature));
         }
 
         return new ProjectMacroLibrary(entries);

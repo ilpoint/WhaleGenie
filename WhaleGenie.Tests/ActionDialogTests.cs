@@ -2425,6 +2425,133 @@ public class ActionDialogTests
         });
     }
 
+    /// <summary>
+    /// A call to another macro is a form of that macro's own declarations: naming a macro is what
+    /// puts its arguments and its results on the form, and naming another one replaces them. What
+    /// was filled in for a macro is still there on the way back, so looking at another one does not
+    /// throw away what the author had written.
+    /// </summary>
+    [Fact]
+    public void A_calls_fields_are_the_declarations_of_the_macro_it_names()
+    {
+        Ui.Run(() =>
+        {
+            var window = CallWindow();
+            var viewModel = (AddActionViewModel)window.DataContext!;
+
+            // Nothing is asked for until a macro is named: what a call fills in is that macro's list.
+            Assert.Null(Field(viewModel, "arg.次数"));
+            Assert.Empty(viewModel.ReturnsRows);
+
+            Field(viewModel, "macro")!.WriteValue("整理");
+            Dispatcher.UIThread.RunJobs();
+
+            var times = Field(viewModel, "arg.次数");
+            Assert.NotNull(times);
+            Assert.Equal("3", times!.CurrentText);
+            Assert.False(times.Definition.Required);
+            Assert.True(Field(viewModel, "arg.标签")!.Definition.Required);
+            Assert.Equal("答案", Assert.Single(viewModel.ReturnsRows).Key);
+
+            times.WriteValue("$n");
+
+            // Another macro is another form...
+            Field(viewModel, "macro")!.WriteValue("清空");
+            Dispatcher.UIThread.RunJobs();
+            Assert.Null(Field(viewModel, "arg.次数"));
+            Assert.Empty(viewModel.ReturnsRows);
+
+            // ...and coming back does not empty the fields that were filled in.
+            Field(viewModel, "macro")!.WriteValue("整理");
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("$n", Field(viewModel, "arg.次数")!.CurrentText);
+        });
+    }
+
+    [Fact]
+    public void A_call_saves_what_was_filled_in_and_opens_again_the_same_way()
+    {
+        Ui.Run(() =>
+        {
+            var window = CallWindow();
+            var viewModel = (AddActionViewModel)window.DataContext!;
+
+            Field(viewModel, "macro")!.WriteValue("整理");
+            Dispatcher.UIThread.RunJobs();
+            Field(viewModel, "arg.次数")!.WriteValue("$n");
+            Field(viewModel, "arg.标签")!.WriteValue("开始");
+            viewModel.ReturnsRows[0].Ticked = true;
+            viewModel.ReturnsRows[0].Name = "答案";
+
+            MacroStep? saved = null;
+            viewModel.CloseRequested += step => saved = step;
+            viewModel.SaveCommand.Execute(null);
+
+            Assert.NotNull(saved);
+            Assert.Equal("整理", saved!.Text("macro"));
+            Assert.Equal("$n", saved.Text("arg.次数"));
+            Assert.Equal("开始", saved.Text("arg.标签"));
+
+            // An argument nobody filled in is not written at all, which is how the engine tells
+            // "use the default" from "pass this value".
+            Assert.DoesNotContain(saved.Parameters, parameter => parameter.Name == "arg.可省");
+            var row = Assert.Single(saved.Parameters.First(parameter => parameter.Name == "returns").Rows);
+            Assert.Equal("答案", row.Text("key"));
+            Assert.Equal("答案", row.Text("name"));
+
+            var reopened = new AddActionWindow(saved, ActionCatalog.Definitions, [], Macros());
+            reopened.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var again = (AddActionViewModel)reopened.DataContext!;
+            Assert.Equal("整理", Field(again, "macro")!.CurrentText);
+            Assert.Equal("$n", Field(again, "arg.次数")!.CurrentText);
+            Assert.Equal("开始", Field(again, "arg.标签")!.CurrentText);
+            Assert.True(Assert.Single(again.ReturnsRows).Ticked);
+        });
+    }
+
+    /// <summary>The dialog open on a call, with the project's macros to point it at.</summary>
+    private static AddActionWindow CallWindow()
+    {
+        var window = new AddActionWindow(null, ActionCatalog.Definitions, [], Macros());
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var viewModel = (AddActionViewModel)window.DataContext!;
+        viewModel.SelectAction("control.runMacro");
+        Dispatcher.UIThread.RunJobs();
+        return window;
+    }
+
+    /// <summary>The macros a call can be pointed at, with what each of them declares.</summary>
+    private static IReadOnlyList<MacroCallable> Macros() =>
+    [
+        new MacroCallable("整理",
+            [
+                new MacroParameter
+                {
+                    Name = "次数",
+                    Default = "3",
+                    Required = false,
+                    Description = "要做多少遍。",
+                },
+                new MacroParameter { Name = "标签", Description = "写在每一项前面的文字。" },
+                new MacroParameter { Name = "可省", Required = false },
+            ],
+            [new MacroResult
+            {
+                Name = "答案",
+                Description = "整理完留下的数。",
+                Type = ActionReturnType.Number,
+            }]),
+        new MacroCallable("清空", [], []),
+    ];
+
+    /// <summary>One field of the open form, or null when this action has no such field.</summary>
+    private static StepParameterViewModel? Field(AddActionViewModel viewModel, string name)
+        => viewModel.Parameters.FirstOrDefault(parameter => parameter.Definition.Name == name);
+
     /// <summary>The "test" button that belongs to one parameter, the way the user finds it.</summary>
     private static Button TestButton(Window window, StepParameterViewModel parameter)
         => window.GetVisualDescendants().OfType<Button>()
