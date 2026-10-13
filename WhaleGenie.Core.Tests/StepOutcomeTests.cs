@@ -226,6 +226,26 @@ public class StepOutcomeTests
         Assert.Equal("ok", Outcome(store, "aaaa"));
     }
 
+    /// <summary>
+    /// Why it failed is read in the catch the same way how it ended is: a macro that answers one
+    /// kind of failure differently from another asks this one, which is what the outcome on its own
+    /// could not say.
+    /// </summary>
+    [Fact]
+    public async Task The_catch_of_a_try_can_read_why_the_failed_step_failed()
+    {
+        var store = await RunAsync(
+        [
+            Step("control.try", "aaaa",
+                Body("body", Broken("bbbb")),
+                Body("catch", Set("cccc", "seen", "$step.bbbb.error"))),
+        ]);
+
+        Assert.Equal("failed", Outcome(store, "bbbb"));
+        Assert.Equal("Run.NoDevice", store.Local.Values["seen"].AsText());
+        Assert.Equal("ok", Outcome(store, "cccc"));
+    }
+
     [Fact]
     public async Task A_macro_that_is_called_keeps_its_own_outcomes_to_itself()
     {
