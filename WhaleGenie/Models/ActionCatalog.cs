@@ -529,7 +529,8 @@ public static class ActionCatalog
                 Multiline("message", "Message",
                     "Text written to the log; it may run over several lines, and it may be a "
                     + "variable or an expression.", "Loop finished", acceptsFormula: true),
-                Choice("level", "Level", ["info", "warn", "error", "debug"], "info"),
+                Choice("level", "Level", ["info", "warn", "error", "debug"], "info",
+                    "How the line is marked in the log; information by default."),
             ],
         },
         new()
@@ -2110,7 +2111,8 @@ public static class ActionCatalog
             Description = "Scroll the mouse wheel.",
             Parameters =
             [
-                Choice("direction", "Direction", ["up", "down", "left", "right"], "down"),
+                Choice("direction", "Direction", ["up", "down", "left", "right"], "down",
+                    "Which way the wheel turns; down by default."),
                 Choice("unit", "Unit", ["notches", "pixels"], "notches",
                     "What the amount below is counted in; whole notches by default. Notches are the "
                     + "steps a wheel normally turns in. Pixels measure the same turn more finely, with "
@@ -2373,7 +2375,9 @@ public static class ActionCatalog
                 Number("offsetX", "Offset X", 0,
                     "Pixels added to the middle of the match before clicking. 0, the default, clicks "
                     + "the middle.", min: -100000m),
-                Number("offsetY", "Offset Y", 0, min: -100000m),
+                Number("offsetY", "Offset Y", 0,
+                    "Pixels added to the middle of the match before clicking, downwards for a "
+                    + "positive number; 0, the default, clicks the middle.", min: -100000m),
                 MatchAlgorithm(),
                 SkipColour(),
                 MinFeatures(),
@@ -2400,13 +2404,18 @@ public static class ActionCatalog
             Description = "Read the colour of a pixel.",
             Parameters =
             [
-                Number("x", "X", 0, "Screen column to sample."),
-                Number("y", "Y", 0, "Screen row to sample."),
+                Number("x", "X", 0,
+                    "The column to sample, counted from the coordinate origin above, in pixels; 0 by "
+                    + "default."),
+                Number("y", "Y", 0,
+                    "The row to sample, counted from the same origin and in the same pixels; 0 by "
+                    + "default."),
                 ..Anchor(),
                 ..Capture(),
                 LookGap(0),
                 Returns(),
-                Toggle("asHex", "Store as hex", true, "Store #RRGGBB instead of raw colour channels."),
+                Toggle("asHex", "Store as hex", true,
+                    "Store #RRGGBB instead of raw colour channels. On by default."),
             ],
         },
         new()
@@ -2419,9 +2428,14 @@ public static class ActionCatalog
             StepTimeoutMs = 5000,
             Parameters =
             [
-                Number("x", "X", 0, "Screen column to watch."),
-                Number("y", "Y", 0, "Screen row to watch."),
-                ColorPick("color", "Colour", "#000000", "Colour the pixel has to show."),
+                Number("x", "X", 0,
+                    "The column to watch, counted from the coordinate origin above, in pixels; 0 by "
+                    + "default."),
+                Number("y", "Y", 0,
+                    "The row to watch, counted from the same origin and in the same pixels; 0 by "
+                    + "default."),
+                ColorPick("color", "Colour", "#000000",
+                    "Colour the pixel has to show, written as #RRGGBB; #000000 by default."),
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100),
                 ..Anchor(),
                 ..Capture(),
@@ -2559,7 +2573,10 @@ public static class ActionCatalog
             Description = "Search the screen for text.",
             Parameters =
             [
-                Text("text", "Text to find", "Save", "Text to look for.", acceptsFormula: true),
+                Text("text", "Text to find", "Save",
+                    "Text to look for, read as one value, so a variable or an expression may stand "
+                    + "for it; the match mode below says how it is compared.",
+                    acceptsFormula: true),
                 Region(),
                 ..Capture(),
                 LookGap(0),
@@ -2587,15 +2604,20 @@ public static class ActionCatalog
             StepTimeoutMs = 5000,
             Parameters =
             [
-                Text("text", "Text to find", "Save", acceptsFormula: true),
+                Text("text", "Text to find", "Save",
+                    "Text to look for, read as one value, so a variable or an expression may stand "
+                    + "for it.", acceptsFormula: true),
                 Region(),
                 ..Capture(),
                 TextMatch(),
                 Content(),
                 Button(),
-                Number("offsetX", "Offset X", 0, "Pixels added to the match centre.",
+                Number("offsetX", "Offset X", 0,
+                    "Pixels added to the match centre; 0, the default, clicks the centre.",
                     min: -100000m),
-                Number("offsetY", "Offset Y", 0, min: -100000m),
+                Number("offsetY", "Offset Y", 0,
+                    "Pixels added to the middle of the match before clicking, downwards for a "
+                    + "positive number; 0, the default, clicks the middle.", min: -100000m),
                 ..Anchor(),
                 LookPoll(),
                 Aim(),
@@ -2658,8 +2680,12 @@ public static class ActionCatalog
                 Window(),
                 Selector(),
                 MatchIndex(),
-                Number("timeoutMs", "Timeout", 10000, "Give up after this long."),
-                Number("pollMs", "Check every", 200, "Delay between checks.", advanced: true),
+                Number("timeoutMs", "Timeout", 10000,
+                    "How long to wait for the element before giving up, in milliseconds; 10000 by "
+                    + "default."),
+                Number("pollMs", "Check every", 200,
+                    "How long to leave between two checks, in milliseconds; 200 by default.",
+                    advanced: true),
             ],
         },
         new()
@@ -2673,7 +2699,9 @@ public static class ActionCatalog
                 Window(),
                 Selector(),
                 MatchIndex(),
-                Number("timeoutMs", "Timeout", 5000, "Wait this long for the element before clicking."),
+                Number("timeoutMs", "Timeout", 5000,
+                    "How long to wait for the element before clicking, in milliseconds; 5000 by "
+                    + "default."),
                 Button(),
             ],
         },
@@ -3143,7 +3171,7 @@ public static class ActionCatalog
                     "100,200,#FF0000; 300,400,#00FF00"),
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100, advanced: true),
                 Choice("mode", "Mode", ["all", "any"], "all",
-                    "Whether every point has to match or one is enough.",
+                    "Whether every point has to match or one is enough; every point by default.",
                     labels: ["Every point", "Any point"]),
                 ..Anchor(),
                 ..Capture(),
@@ -3379,7 +3407,9 @@ public static class ActionCatalog
             Description = "True at random, with a fixed probability.",
             Parameters =
             [
-                Number("percent", "Chance %", 50, "Probability that the condition is true.", max: 100),
+                Number("percent", "Chance %", 50,
+                    "Probability that the condition is true, as a whole percent from 0 to 100; 50 by "
+                    + "default.", max: 100),
             ],
         },
     ];
@@ -3913,7 +3943,8 @@ public static class ActionCatalog
 
     /// <summary>Mouse button picker shared by every input action that clicks.</summary>
     private static ActionParameter Button()
-        => Choice("button", "Button", ["left", "right", "middle", "back", "forward"], "left");
+        => Choice("button", "Button", ["left", "right", "middle", "back", "forward"], "left",
+                    "Which mouse button; the left one by default.");
 
     /// <summary>
     /// The button of the virtual controller, listed with the names the macro writes, which are the
@@ -4435,8 +4466,9 @@ public static class ActionCatalog
     /// <summary>How OCR text searches compare their match.</summary>
     private static ActionParameter TextMatch()
         => Choice("matchMode", "Match mode", ["contains", "exact", "regex"], "contains",
-            "How the text that was read is compared against the text being looked for; by default "
-            + "it has to contain it.");
+            "How the text that was read is compared against the text being looked for: "
+            + "contained in it, exactly it, or matching it as a regular expression; contained "
+            + "in it by default.");
 
     /// <summary>
     /// Whether a step wants everything that can be read, or only the numbers. Shared by the three

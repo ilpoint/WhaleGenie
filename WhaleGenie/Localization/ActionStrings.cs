@@ -93,6 +93,12 @@ internal static class ActionStrings
     /// rather than forty-seven times, so the way a result is named is described in one place: the
     /// name of the note and the name of the result, which the row itself may override.
     /// </summary>
+    /// <summary>
+    /// The hint the nine actions that pick a mouse button share. Written once rather than nine
+    /// times so the wording cannot drift apart.
+    /// </summary>
+    private const string MouseButtonHint = "用哪个鼠标键，默认左键。";
+
     private const string ReturnsHintText =
         "勾上这一步要留下的结果：每一项各自成为一个变量，名字默认取这一步的备注与这个结果的名字，"
         + "重名时补上步骤标识，也可以在下面每一行自己改，后面的步骤按这个名字取用。"
@@ -1268,7 +1274,7 @@ internal static class ActionStrings
         ["window.move.compareBy.option.regex"] = WindowCompareRegex,
         ["window.move.x.label"] = "X",
         ["window.move.x.hint"] = "窗口左边缘的屏幕横坐标，单位像素。按窗口被看见的样子算：Windows 留着"
-            + "用来拉伸的那圈边框不画出来也不算；范围 -100000 到 100000，默认 0。`window.info` 交回来的那组数"
+            + "用来拉伸的那圈边框不画出来也不算；范围 -100000 到 100000，默认 0。window.info 交回来的那组数"
             + "可以原样填在这里。",
         ["window.move.y.label"] = "Y",
         ["window.move.y.hint"] = "窗口上边缘的屏幕纵坐标，单位像素，和 X 一样按窗口被看见的样子算，范围"
@@ -1426,6 +1432,7 @@ internal static class ActionStrings
         ["input.mouseClick.name"] = "鼠标点击",
         ["input.mouseClick.desc"] = "在屏幕指定位置点击鼠标按键。",
         ["input.mouseClick.button.label"] = "按键",
+        ["input.mouseClick.button.hint"] = MouseButtonHint,
         ["input.mouseClick.useCursor.label"] = AtPointerLabel,
         ["input.mouseClick.useCursor.hint"] = AtPointerHint,
         ["input.mouseClick.x.label"] = "X",
@@ -1453,6 +1460,7 @@ internal static class ActionStrings
         ["input.mouseDoubleClick.name"] = "鼠标双击",
         ["input.mouseDoubleClick.desc"] = "在屏幕指定位置双击鼠标按键。",
         ["input.mouseDoubleClick.button.label"] = "按键",
+        ["input.mouseDoubleClick.button.hint"] = MouseButtonHint,
         ["input.mouseDoubleClick.useCursor.label"] = AtPointerLabel,
         ["input.mouseDoubleClick.useCursor.hint"] = AtPointerHint,
         ["input.mouseDoubleClick.x.label"] = "X",
@@ -1476,6 +1484,7 @@ internal static class ActionStrings
         ["input.mouseDown.name"] = "按下鼠标",
         ["input.mouseDown.desc"] = "保持按住鼠标按键，直到对应的“松开鼠标”步骤。",
         ["input.mouseDown.button.label"] = "按键",
+        ["input.mouseDown.button.hint"] = MouseButtonHint,
         ["input.mouseDown.useCursor.label"] = AtPointerLabel,
         ["input.mouseDown.useCursor.hint"] = AtPointerHint,
         ["input.mouseDown.x.label"] = "X",
@@ -1487,6 +1496,7 @@ internal static class ActionStrings
         ["input.mouseUp.name"] = "松开鼠标",
         ["input.mouseUp.desc"] = "松开当前处于按住状态的鼠标按键。",
         ["input.mouseUp.button.label"] = "按键",
+        ["input.mouseUp.button.hint"] = MouseButtonHint,
         ["input.mouseUp.useCursor.label"] = AtPointerLabel,
         ["input.mouseUp.useCursor.hint"] = AtPointerHint,
         ["input.mouseUp.x.label"] = "X",
@@ -1532,6 +1542,7 @@ internal static class ActionStrings
         ["input.mouseDrag.endY.label"] = "终点 Y",
         ["input.mouseDrag.endY.hint"] = "拖拽终点的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["input.mouseDrag.button.label"] = "按键",
+        ["input.mouseDrag.button.hint"] = MouseButtonHint,
         ["input.mouseDrag.durationMs.label"] = "用时",
         ["input.mouseDrag.durationMs.hint"] = "整个拖拽用多久，单位是毫秒，默认 300；从起点走到终点就是在这段时间"
             + "里走完的。",
@@ -2387,7 +2398,8 @@ internal static class ActionStrings
         ["vision.waitStable.tolerance.hint"] = "像素颜色差多少以内还算同一个像素，0–100（百分比），默认 5。",
         ["vision.waitStable.changedPercent.label"] = "允许变化 %",
         ["vision.waitStable.changedPercent.hint"] =
-            "整块区域里最多有多少比例的像素在动还算静止。转圈、滚动、进度条都超过这个数。",
+            "整块区域里最多有多少比例的像素在动还算静止，0–100（百分比），默认 0.1。"
+            + "转动的圆圈、滚动的列表、走动的进度条都会超过这个数。",
         ["vision.waitStable.anchorMode.label"] = "坐标基准",
         ["vision.waitStable.anchorMode.hint"] = AnchorModeHint,
         ["vision.waitStable.anchorMode.option.screen"] = "屏幕像素",
@@ -2414,9 +2426,9 @@ internal static class ActionStrings
         ["condition.colorsMatch.points.hint"] =
             "每个点写成 x,y,#RRGGBB，用分号或换行分开。",
         ["condition.colorsMatch.tolerance.label"] = "容差 %",
-        ["condition.colorsMatch.tolerance.hint"] = "允许的颜色偏差。",
+        ["condition.colorsMatch.tolerance.hint"] = "允许的颜色偏差，0–100（百分比），默认 5。",
         ["condition.colorsMatch.mode.label"] = "满足方式",
-        ["condition.colorsMatch.mode.hint"] = "每个点都要匹配，还是有一个匹配就算满足。",
+        ["condition.colorsMatch.mode.hint"] = "每个点都要匹配，还是有一个匹配就算满足。默认「每个点都要匹配」。",
         ["condition.colorsMatch.mode.option.all"] = "全部匹配",
         ["condition.colorsMatch.mode.option.any"] = "任意一个匹配",
         ["condition.colorsMatch.anchorMode.label"] = "坐标基准",
@@ -2553,7 +2565,7 @@ internal static class ActionStrings
         ["vision.findImage.image.label"] = "图片文件",
         ["vision.findImage.image.hint"] = "参考图片：文件路径，或截图动作保存的变量（如 $shot）。",
         ["vision.findImage.confidence.label"] = "相似度 %",
-        ["vision.findImage.confidence.hint"] = "要求的最低匹配度。",
+        ["vision.findImage.confidence.hint"] = "要求的相似度下限，写成 0 到 100 的百分数，默认 90；屏幕上的样子画得略有不同时调低。",
         ["vision.findImage.region.label"] = "搜索区域",
         ["vision.findImage.region.hint"] = RegionHintText,
 
@@ -2563,17 +2575,18 @@ internal static class ActionStrings
         ["vision.waitImage.image.label"] = "图片文件",
         ["vision.waitImage.image.hint"] = "要等待的参考图片：文件路径，或截图动作保存的变量。",
         ["vision.waitImage.confidence.label"] = "相似度 %",
-        ["vision.waitImage.confidence.hint"] = "要求的最低匹配度。",
+        ["vision.waitImage.confidence.hint"] = "要求的相似度下限，写成 0 到 100 的百分数，默认 90；屏幕上的样子画得略有不同时调低。",
 
         ["vision.clickImage.name"] = "点击图片",
         ["vision.clickImage.desc"] =
             "在屏幕上找到参考图片并点击它，最多等到步骤设置里的「超时」；到点这一步算失败。",
         ["vision.clickImage.image.label"] = "图片文件",
         ["vision.clickImage.confidence.label"] = "相似度 %",
-        ["vision.clickImage.confidence.hint"] = "要求的最低匹配度。",
+        ["vision.clickImage.confidence.hint"] = "要求的相似度下限，写成 0 到 100 的百分数，默认 90；屏幕上的样子画得略有不同时调低。",
         ["vision.clickImage.offsetX.label"] = "横向偏移",
-        ["vision.clickImage.offsetX.hint"] = "在匹配中心基础上水平偏移的像素。",
+        ["vision.clickImage.offsetX.hint"] = "点击位置在匹配中心基础上水平偏移的像素数，默认 0，即点在匹配中心。",
         ["vision.clickImage.offsetY.label"] = "纵向偏移",
+        ["vision.clickImage.offsetY.hint"] = "点击位置在匹配中心基础上垂直偏移的像素数，正数向下，默认 0，即点在匹配中心。",
         ["vision.clickImage.variance.label"] = "落点随机范围",
         ["vision.clickImage.variance.hint"] =
             "落点与匹配中心最多相差多少个像素，默认 0，即正好点在那个点上。填了数就在这个范围内"
@@ -2585,25 +2598,26 @@ internal static class ActionStrings
             + "看一眼，这次仍认得才点；这次认不得按没找到处理。用于按钮一闪而过、或者画面其实"
             + "已经翻过去的情况。第二次查看只查一次、不再等，所以画面已经变过就直接算没找到。",
         ["vision.clickImage.button.label"] = "按键",
+        ["vision.clickImage.button.hint"] = MouseButtonHint,
 
         ["vision.getPixel.name"] = "取色",
         ["vision.getPixel.desc"] = "读取某个像素的颜色。",
         ["vision.getPixel.x.label"] = "X",
-        ["vision.getPixel.x.hint"] = "取样点的横坐标。",
+        ["vision.getPixel.x.hint"] = "取样点的横坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["vision.getPixel.y.label"] = "Y",
-        ["vision.getPixel.y.hint"] = "取样点的纵坐标。",
+        ["vision.getPixel.y.hint"] = "取样点的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["vision.getPixel.asHex.label"] = "存为十六进制",
-        ["vision.getPixel.asHex.hint"] = "存成 #RRGGBB，而不是原始通道值。",
+        ["vision.getPixel.asHex.hint"] = "存成 #RRGGBB，而不是原始通道值。默认勾选。",
 
         ["vision.waitColor.name"] = "等待颜色",
         ["vision.waitColor.desc"] =
             "等待某个像素变成指定颜色，最多等到步骤设置里的「超时」；到点这一步算失败。",
         ["vision.waitColor.x.label"] = "X",
-        ["vision.waitColor.x.hint"] = "监视点的横坐标。",
+        ["vision.waitColor.x.hint"] = "监视点的横坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["vision.waitColor.y.label"] = "Y",
-        ["vision.waitColor.y.hint"] = "监视点的纵坐标。",
+        ["vision.waitColor.y.hint"] = "监视点的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["vision.waitColor.color.label"] = "颜色",
-        ["vision.waitColor.color.hint"] = "像素需要显示的颜色。",
+        ["vision.waitColor.color.hint"] = "像素需要显示的颜色，按 #RRGGBB 写，默认 #000000。",
         ["vision.waitColor.tolerance.label"] = "容差 %",
         ["vision.waitColor.tolerance.hint"] = "允许的颜色偏差，0–100（百分比），默认 5。",
 
@@ -2647,11 +2661,11 @@ internal static class ActionStrings
         ["ocr.findText.name"] = "查找文字",
         ["ocr.findText.desc"] = "在屏幕上搜索指定文字。",
         ["ocr.findText.text.label"] = "要查找的文字",
-        ["ocr.findText.text.hint"] = "要搜索的文字。",
+        ["ocr.findText.text.hint"] = "要搜索的文字。按一个值读取，变量或表达式都可以写成它；怎么比由下面的「匹配方式」决定。",
         ["ocr.findText.region.label"] = "搜索区域",
         ["ocr.findText.region.hint"] = RegionHintText,
         ["ocr.findText.matchMode.label"] = "匹配方式",
-        ["ocr.findText.matchMode.hint"] = "识别结果与搜索文字的比较方式。",
+        ["ocr.findText.matchMode.hint"] = "识别结果与搜索文字怎么比：包含、完全相等，还是按正则表达式匹配。默认「包含」。",
         ["ocr.findText.expected.label"] = "整段须匹配",
         ["ocr.findText.expected.hint"] = ExpectedHint,
         ["ocr.findText.return.match.label"] = HitRecordLabel,
@@ -2707,12 +2721,13 @@ internal static class ActionStrings
         ["ocr.clickText.anchorCompareBy.option.startsWith"] = WindowCompareStartsWith,
         ["ocr.clickText.anchorCompareBy.option.regex"] = WindowCompareRegex,
         ["ocr.clickText.matchMode.label"] = "匹配方式",
-        ["ocr.clickText.matchMode.hint"] = "识别结果与搜索文字的比较方式。",
+        ["ocr.clickText.matchMode.hint"] = "识别结果与搜索文字怎么比：包含、完全相等，还是按正则表达式匹配。默认「包含」。",
         ["ocr.clickText.expected.label"] = "整段须匹配",
         ["ocr.clickText.expected.hint"] = ExpectedHint,
         ["ocr.clickText.offsetX.label"] = "横向偏移",
-        ["ocr.clickText.offsetX.hint"] = "在匹配中心基础上水平偏移的像素。",
+        ["ocr.clickText.offsetX.hint"] = "点击位置在匹配中心基础上水平偏移的像素数，默认 0，即点在匹配中心。",
         ["ocr.clickText.offsetY.label"] = "纵向偏移",
+        ["ocr.clickText.offsetY.hint"] = "点击位置在匹配中心基础上垂直偏移的像素数，正数向下，默认 0，即点在匹配中心。",
         ["ocr.clickText.variance.label"] = "落点随机范围",
         ["ocr.clickText.variance.hint"] =
             "落点与读到的文字中心最多相差多少个像素，默认 0，即正好点在那个点上。填了数就在"
@@ -2744,6 +2759,7 @@ internal static class ActionStrings
         ["ocr.clickText.fixText.label"] = "纠错表",
         ["ocr.clickText.fixText.hint"] = FixTextHint,
         ["ocr.clickText.button.label"] = "按键",
+        ["ocr.clickText.button.hint"] = MouseButtonHint,
 
         // ---------------------------------------------------------------------- uia
         ["uia.exists.name"] = "元素是否存在",
@@ -2795,6 +2811,7 @@ internal static class ActionStrings
         ["uia.click.timeoutMs.label"] = "超时",
         ["uia.click.timeoutMs.hint"] = "点击前等这个元素出现多久，单位是毫秒，默认 5000。",
         ["uia.click.button.label"] = "按键",
+        ["uia.click.button.hint"] = MouseButtonHint,
 
         ["uia.setText.name"] = "设置元素文本",
         ["uia.setText.desc"] = "向 UI Automation 元素输入文本。",
@@ -3204,7 +3221,7 @@ internal static class ActionStrings
         ["condition.randomChance.name"] = "随机概率",
         ["condition.randomChance.desc"] = "按固定概率随机为真。",
         ["condition.randomChance.percent.label"] = "概率 %",
-        ["condition.randomChance.percent.hint"] = "条件为真的概率。",
+        ["condition.randomChance.percent.hint"] = "条件为真的概率，0–100（百分比），默认 50。",
 
         // --------------------------------------------------- 抓屏方式（看屏幕的步骤都有这一个字段）
 
