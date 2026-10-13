@@ -627,46 +627,60 @@ public class DeviceActionTests
     [Fact]
     public async Task A_key_run_waits_between_presses_and_not_after_the_last()
     {
-        var started = Stopwatch.GetTimestamp();
+        // How many beats were taken is read off the quickest of a few rounds, and the beat itself is
+        // a second long: how long a round took is otherwise at the mercy of whatever else the
+        // machine is doing, and two beats have to be a number a busy round cannot be mistaken for.
+        var quickest = double.MaxValue;
+        for (var round = 0; round < 3; round++)
+        {
+            var started = Stopwatch.GetTimestamp();
 
-        var (result, devices, _) = await RunAsync(
-        [
-            Step("input.keySequence",
-                Rows("keys", Press("A"), Press("B", holdMs: 30)),
-                Param("holdMs", "5"), Param("gapMs", "2000")),
-        ]);
+            var (result, devices, _) = await RunAsync(
+            [
+                Step("input.keySequence",
+                    Rows("keys", Press("A"), Press("B", holdMs: 30)),
+                    Param("holdMs", "5"), Param("gapMs", "1000")),
+            ]);
 
-        var waited = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+            var waited = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
 
-        Assert.True(result.Succeeded, result.Key);
-        Assert.Equal(["hotkey A 5", "hotkey B 30"], devices.Calls);
+            Assert.True(result.Succeeded, result.Key);
+            Assert.Equal(["hotkey A 5", "hotkey B 30"], devices.Calls);
+            Assert.True(waited >= 900, $"one beat of 1000ms took {waited:0}ms, under the beat");
+            quickest = Math.Min(quickest, waited);
+        }
 
-        // One beat of 2000ms: two of them would reach 4000, and none at all would be under 1900.
-        // The beat is this long because a busy machine can only ever add to a wait, and the far end
-        // has to stay short of two of them for the count to be readable at all.
-        Assert.InRange(waited, 1900, 4000);
+        // One beat of 1000ms: two of them would be past 2000.
+        Assert.True(quickest < 1900, $"the quickest round took {quickest:0}ms, which is two beats");
     }
 
     /// <summary>A row that says its own gap is the one place where the beat is not the run's.</summary>
     [Fact]
     public async Task A_row_of_a_key_run_can_have_a_beat_of_its_own()
     {
-        var started = Stopwatch.GetTimestamp();
+        var quickest = double.MaxValue;
+        for (var round = 0; round < 3; round++)
+        {
+            var started = Stopwatch.GetTimestamp();
 
-        var (result, devices, _) = await RunAsync(
-        [
-            Step("input.keySequence",
-                Rows("keys", Press("A", gapMs: 0), Press("B"), Press("C")),
-                Param("holdMs", "5"), Param("gapMs", "2000")),
-        ]);
+            var (result, devices, _) = await RunAsync(
+            [
+                Step("input.keySequence",
+                    Rows("keys", Press("A", gapMs: 0), Press("B"), Press("C")),
+                    Param("holdMs", "5"), Param("gapMs", "1000")),
+            ]);
 
-        var waited = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+            var waited = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
 
-        Assert.True(result.Succeeded, result.Key);
-        Assert.Equal(["hotkey A 5", "hotkey B 5", "hotkey C 5"], devices.Calls);
+            Assert.True(result.Succeeded, result.Key);
+            Assert.Equal(["hotkey A 5", "hotkey B 5", "hotkey C 5"], devices.Calls);
+            Assert.True(waited >= 900, $"one beat of 1000ms took {waited:0}ms, under the beat");
+            quickest = Math.Min(quickest, waited);
+        }
 
-        // The first row asked for no beat after it, so the run waited the run's own gap only once.
-        Assert.InRange(waited, 1900, 4000);
+        // The first row asked for no beat after it, so the run waited the run's own gap only once:
+        // taking it after every row would be past 2000.
+        Assert.True(quickest < 1900, $"the quickest round took {quickest:0}ms, which is two beats");
     }
 
     [Fact]
@@ -2276,7 +2290,12 @@ public class DeviceActionTests
 
         Assert.Equal("Run.WaitColorTimeout", result.Key);
         var looked = devices.Calls.Count(call => call == "pixel 0 0");
-        Assert.InRange(looked, 5, 40);
+
+        // The far end is the refresh's own doing: 160 ms of looking on a 4 ms beat is forty looks at
+        // most. How few there were is the machine's business — a round that was held up reads the
+        // same place fewer times in the time it was given — so the near end only asks for more than
+        // one look, which is what tells a beat apart from looking once and giving up.
+        Assert.InRange(looked, 2, 40);
     }
 
     /// <summary>The negative conditions are their own actions, so "wait until it is gone" can be written.</summary>

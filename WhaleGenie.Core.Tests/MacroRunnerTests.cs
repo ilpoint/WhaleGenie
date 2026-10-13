@@ -101,6 +101,20 @@ public class MacroRunnerTests
         return shortest;
     }
 
+    /// <summary>
+    /// Holds a set of waits to the length they were written as. Every round has to reach the short
+    /// end — no wait ever comes back before it was asked for — while the far end is read off the
+    /// quickest round, because a busy machine can only ever add to a wait: a round that happened to
+    /// be held up says nothing about the number the macro was written with.
+    /// </summary>
+    private static void AssertWaitsAreSpaced(List<double> waits, double shortest, double longest)
+    {
+        Assert.All(waits, taken => Assert.True(taken >= shortest,
+            $"waited {taken:0}ms, before the short end"));
+        Assert.True(waits.Min() <= longest,
+            $"the quickest of {waits.Count} waits was {waits.Min():0}ms, past the long end");
+    }
+
     [Fact]
     public async Task Steps_run_from_top_to_bottom()
     {
@@ -1509,8 +1523,7 @@ public class MacroRunnerTests
             waits.Add(await TimeAsync([step], 1));
         }
 
-        Assert.All(waits, taken => Assert.True(taken >= 25, $"waited {taken:0}ms, before the short end"));
-        Assert.All(waits, taken => Assert.True(taken <= 3000, $"waited {taken:0}ms, past the long end"));
+        AssertWaitsAreSpaced(waits, 25, 1000);
         Assert.True(waits.Max() - waits.Min() > 20,
             $"every wait came out about the same: {string.Join(", ", waits.Select(w => w.ToString("0")))}");
     }
@@ -1529,9 +1542,7 @@ public class MacroRunnerTests
             waits.Add(await TimeAsync([varied], 1));
         }
 
-        // A busy machine can only ever add to a wait, so the far end is left loose: the give is
-        // what is being checked, and a wait that was the plain number would still sit in here.
-        Assert.All(waits, taken => Assert.InRange(taken, 145, 3000));
+        AssertWaitsAreSpaced(waits, 145, 1000);
         Assert.True(waits.Max() - waits.Min() > 10,
             $"every wait came out about the same: {string.Join(", ", waits.Select(w => w.ToString("0")))}");
 
