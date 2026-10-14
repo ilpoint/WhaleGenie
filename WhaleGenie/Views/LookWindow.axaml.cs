@@ -11,6 +11,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.GraphicsCapture;
@@ -30,9 +31,21 @@ public partial class LookWindow : Window
     /// <summary>How small a mark may be drawn: a colour hit is one pixel of a whole screen.</summary>
     private const double SmallestMark = 9;
 
-    private readonly StepLook _look;
-    private readonly WriteableBitmap? _frame;
-    private readonly WriteableBitmap? _needle;
+    /// <summary>The room the writing drawn over the picture takes, and the gap above its box.</summary>
+    private const double LabelHeight = 18;
+    private const double LabelGap = 2;
+
+    /// <summary>
+    /// The step this window was opened on, and the machine it looks at, when whoever opened it had
+    /// them: with both of these the window can look again by itself. Null when the picture belongs
+    /// to a run rather than to a step being written, and then there is nothing to look again at.
+    /// </summary>
+    private readonly ExecutableStep? _step;
+    private readonly IDeviceLayer? _devices;
+
+    private StepLook _look;
+    private WriteableBitmap? _frame;
+    private WriteableBitmap? _needle;
 
     private ScrollViewer? _scroll;
     private Canvas? _board;
@@ -40,10 +53,23 @@ public partial class LookWindow : Window
     private TextBlock? _zoomText;
     private Border? _needleFrame;
     private Image? _needleShot;
+    private StackPanel? _textPanel;
 
     private readonly List<(LookBox Box, Border Visual)> _drawn = [];
 
     private double _zoom = 1;
+
+    /// <summary>Whether the zoom on show is the one that fits; anything else is the user's own.</summary>
+    private bool _fitted = true;
+
+    /// <summary>Whether the writing that was read is drawn over the picture as well as listed.</summary>
+    private bool _labelsOnPicture;
+
+    /// <summary>What was read off this picture, one reading to a line, for taking away.</summary>
+    private string _readText = string.Empty;
+
+    /// <summary>True while a second look is being taken, so one press is one look.</summary>
+    private bool _looking;
 
     public LookWindow()
     {
@@ -52,10 +78,22 @@ public partial class LookWindow : Window
     }
 
     public LookWindow(StepLook look)
+        : this(look, null, null)
+    {
+    }
+
+    /// <summary>
+    /// What one step saw, with the step itself and the machine to look at when the window is meant
+    /// to be able to look again. The picture and the step are handed over together because a second
+    /// look is the same step asked again, and only the window opened on that step has it.
+    /// </summary>
+    public LookWindow(StepLook look, ExecutableStep? step, IDeviceLayer? devices)
     {
         InitializeComponent();
 
         _look = look;
+        _step = step;
+        _devices = devices;
         _frame = look.Frame.IsEmpty ? null : ImageAssets.ToBitmap(look.Frame);
         _needle = look.Needle is { IsEmpty: false } needle ? ImageAssets.ToBitmap(needle) : null;
 
@@ -65,11 +103,14 @@ public partial class LookWindow : Window
         _zoomText = this.FindControl<TextBlock>("ZoomText");
         _needleFrame = this.FindControl<Border>("NeedleFrame");
         _needleShot = this.FindControl<Image>("NeedleShot");
+        _textPanel = this.FindControl<StackPanel>("TextPanel");
 
         Title = Strings.Get("Look.Title");
-        FillHeader(look);
         ShowFullScreenLabel();
-        Zoom(Fit(), false);
+        FillHeader(look);
+        FillText(look);
+        ShowNeedle();
+        Zoom(Fit(), false, fitted: true);
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
 
         // Double-clicking the picture is the zoom everybody already knows from a viewer: it goes
@@ -78,6 +119,24 @@ public partial class LookWindow : Window
         {
             _board.PointerPressed += OnPicturePressed;
         }
+
+        // A second look needs the step and something to look with, and is offered only when the
+        // window was opened with both. Everything else this window shows works without them.
+        if (this.FindControl<Button>("Again") is { } again)
+        {
+            again.IsVisible = _step is not null && _devices is not null;
+        }
+
+        // How much room the picture has is not known until the window has been laid out, so the fit
+        // worked out above is a guess and these are the correction: one for the first layout, and
+        // one for every change of size after it — a window made smaller with a picture at the size
+        // that used to fit shows a corner of it and nothing to say so.
+        if (_scroll is not null)
+        {
+            _scroll.SizeChanged += (_, _) => FitToRoom();
+        }
+
+        Avalonia.Threading.Dispatcher.UIThread.Post(FitToRoom, DispatcherPriority.Loaded);
     }
 
     /// <summary>
@@ -93,6 +152,22 @@ public partial class LookWindow : Window
         }
 
         new LookWindow(look).ShowOver(owner);
+    }
+
+    /// <summary>
+    /// The same, for the window that has the step in hand: it can be looked at again from here, so
+    /// a threshold that was set too high is tried again without closing this window and going back
+    /// to the one underneath it.
+    /// </summary>
+    public static void Show(StepLook look, Window owner, ExecutableStep step, IDeviceLayer devices)
+    {
+        var open = owner.OwnedWindows.OfType<LookWindow>().FirstOrDefault();
+        if (open is not null)
+        {
+            open.Close();
+        }
+
+        new LookWindow(look, step, devices).ShowOver(owner);
     }
 
     protected override void OnClosed(EventArgs e)
@@ -133,11 +208,126 @@ public partial class LookWindow : Window
             }
         }
 
-        if (_needle is not null && _needleShot is not null && _needleFrame is not null)
+    }
+
+    /// <summary>
+    /// The reference picture, small, beside what the step was after: it says at a glance which of
+    /// several pictures the step went with, and there is nothing to show for the steps that were
+    /// not looking for one.
+    /// </summary>
+    private void ShowNeedle()
+    {
+        if (_needleShot is null || _needleFrame is null)
         {
-            _needleShot.Source = _needle;
-            _needleFrame.IsVisible = true;
+            return;
         }
+
+        _needleShot.Source = _needle;
+        _needleFrame.IsVisible = _needle is not null;
+    }
+
+    /// <summary>
+    /// The writing this look read, one reading to a line, and the box it is read out of. A step
+    /// that read writing is the one case where what is on the picture is meant to be taken away:
+    /// a line read off the screen is usually wanted for somewhere else, and this is the way out
+    /// that does not go through the picture.
+    /// </summary>
+    private void FillText(StepLook look)
+    {
+        if (_textPanel is not { } panel)
+        {
+            return;
+        }
+
+        // Every reading the engine handed over, in the order it read them, which is also what the
+        // marks on the picture are made of.
+        _readText = string.Join(Environment.NewLine,
+            look.Boxes.Select(box => box.Label).Where(label => !string.IsNullOrEmpty(label)));
+
+        panel.IsVisible = _readText.Length > 0;
+        if (this.FindControl<TextBox>("ReadText") is { } box)
+        {
+            box.Text = _readText;
+        }
+    }
+
+    /// <summary>
+    /// Takes a fresh look at the screen and fills this window in with it, in place rather than as
+    /// another window: what is being tried over and over is one step's own reading.
+    /// </summary>
+    private async void OnLookAgain(object? sender, RoutedEventArgs e)
+    {
+        if (_looking || _step is not { } step || _devices is not { } devices)
+        {
+            return;
+        }
+
+        _looking = true;
+        SetStatus(Strings.Get("Look.AgainBusy"));
+        try
+        {
+            // Off the thread that draws the window, the same way the dialog's own run does it, and
+            // through the same entrance: looking and nothing else — no click, no key, no variable.
+            var outcome = await Task.Run(() => MacroRunner.LookOnce(step, devices));
+            if (outcome.Look is { } look)
+            {
+                Refill(look);
+                SetStatus(string.Empty);
+            }
+            else
+            {
+                SetStatus(Strings.Format("Look.AgainFailed", Strings.Get(outcome.Key)));
+            }
+        }
+        catch (Exception error) when (error is IOException or InvalidOperationException)
+        {
+            SetStatus(Strings.Format("Look.AgainFailed", error.Message));
+        }
+        finally
+        {
+            _looking = false;
+        }
+    }
+
+    /// <summary>
+    /// Replaces everything this window is showing with another look at the same step: the picture,
+    /// the header, the marks and the writing that was read.
+    /// </summary>
+    private void Refill(StepLook look)
+    {
+        _look = look;
+        _frame?.Dispose();
+        _needle?.Dispose();
+        _frame = look.Frame.IsEmpty ? null : ImageAssets.ToBitmap(look.Frame);
+        _needle = look.Needle is { IsEmpty: false } needle ? ImageAssets.ToBitmap(needle) : null;
+
+        FillHeader(look);
+        FillText(look);
+        ShowNeedle();
+        Draw();
+    }
+
+    /// <summary>Puts what was read on the clipboard, which is where the person reading it wants it.</summary>
+    private void OnCopyText(object? sender, RoutedEventArgs e)
+    {
+        if (_devices?.Clipboard is not { } clipboard || _readText.Length == 0)
+        {
+            return;
+        }
+
+        clipboard.WriteText(_readText);
+        SetStatus(Strings.Get("Look.TextCopied"));
+    }
+
+    /// <summary>
+    /// Shows the writing over the picture as well, or stops showing it, when the switch on the
+    /// toolbar is used. Off by default: the writing is what the box on the picture is for reading,
+    /// and a label drawn over it is in the way of exactly that.
+    /// </summary>
+    private void OnToggleLabels(object? sender, RoutedEventArgs e)
+    {
+        _labelsOnPicture = sender is CheckBox { IsChecked: true };
+        Draw();
     }
 
     private void Set(string name, string text)
@@ -227,10 +417,25 @@ public partial class LookWindow : Window
             (room.Width > 0 ? room.Width : 640) - 8, (room.Height > 0 ? room.Height : 400) - 8);
     }
 
-    private void Zoom(double zoom, bool keepPlace)
+    /// <summary>
+    /// Fits the picture to the room there really is for it, once the window has been laid out or
+    /// changed size. It is the correction to the fit worked out when the window was built, which
+    /// had no room to measure yet. A size the person chose by hand is left alone: the picture was
+    /// zoomed in on purpose, and moving the window is not asking for that to be undone.
+    /// </summary>
+    private void FitToRoom()
+    {
+        if (_fitted)
+        {
+            Zoom(Fit(), false, fitted: true);
+        }
+    }
+
+    private void Zoom(double zoom, bool keepPlace, bool fitted = false)
     {
         var was = _zoom;
         _zoom = Math.Clamp(zoom, LookGeometry.SmallestZoom, LookGeometry.LargestZoom);
+        _fitted = fitted;
 
         if (_zoomText is not null)
         {
@@ -291,10 +496,25 @@ public partial class LookWindow : Window
             var place = LookGeometry.Place(_look.Origin, box.Match.Location, box.Match.Size, _zoom);
             var visible = LookGeometry.Visible(place, SmallestMark);
             var visual = MarkVisual(box, visible, chosen);
+            visual.Tag = index;
 
             Canvas.SetLeft(visual, visible.X);
             Canvas.SetTop(visual, visible.Y);
             _board.Children.Add(visual);
+
+            // The writing, when it is asked for, goes over the picture above the box it belongs to.
+            // Inside the box is where the writing that was read is, and covering it is exactly what
+            // this window is for looking at.
+            if (_labelsOnPicture && Label(box) is { } label)
+            {
+                var above = visible.Y - LabelHeight - LabelGap;
+                // The writing and its box carry the same number, so which writing belongs over
+                // which box is a question with one answer rather than a guess from the positions.
+                label.Tag = index;
+                Canvas.SetLeft(label, visible.X);
+                Canvas.SetTop(label, above >= 0 ? above : visible.Y + visible.Height + LabelGap);
+                _board.Children.Add(label);
+            }
 
             var row = MarkRow(index, box, chosen, visible);
             _marks.Children.Add(row);
@@ -318,7 +538,10 @@ public partial class LookWindow : Window
         _ => Color.Parse("#8A8A8A"),
     });
 
-    /// <summary>One mark: a box, with what was read inside it when there is something to read.</summary>
+    /// <summary>
+    /// One mark: a box, and nothing else. What was read where the box is sits over the box rather
+    /// than in it, and only when it was asked for — see <see cref="Label"/>.
+    /// </summary>
     private static Border MarkVisual(LookBox box, LookRect rect, bool chosen)
     {
         var mark = new Border
@@ -345,21 +568,35 @@ public partial class LookWindow : Window
                 VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
             };
         }
-        else if (!string.IsNullOrEmpty(box.Label))
-        {
-            mark.Child = new TextBlock
-            {
-                Text = box.Label,
-                FontSize = 11,
-                Foreground = new SolidColorBrush(Color.Parse("#F0F0F0")),
-                Background = new SolidColorBrush(Color.FromArgb(200, 20, 20, 20)),
-                Padding = new Thickness(3, 0),
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
-                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
-            };
-        }
 
         return mark;
+    }
+
+    /// <summary>
+    /// What was read where a mark is, ready to be put over the picture above the mark's own box, or
+    /// null when there is nothing to write or the writing is not being shown on the picture. Named
+    /// so that what is drawn over the picture can be told apart from everything else on it.
+    /// </summary>
+    private TextBlock? Label(LookBox box)
+    {
+        if (string.IsNullOrEmpty(box.Label))
+        {
+            return null;
+        }
+
+        return new TextBlock
+        {
+            Name = "MarkText",
+            Text = box.Label,
+            // Fixed height, so where the writing ends and the box begins is the same every time:
+            // the two must not overlap, and a line whose height follows its glyphs would decide
+            // that for itself.
+            Height = LabelHeight,
+            FontSize = 11,
+            Foreground = new SolidColorBrush(Color.Parse("#F0F0F0")),
+            Background = new SolidColorBrush(Color.FromArgb(200, 20, 20, 20)),
+            Padding = new Thickness(3, 0),
+        };
     }
 
     /// <summary>
@@ -420,6 +657,32 @@ public partial class LookWindow : Window
             TextWrapping = TextWrapping.Wrap,
         });
 
+        // What was read here, written out in the list as well as on the picture: this is the line
+        // somebody wants to copy, and reading it off a picture is not copying it.
+        if (!string.IsNullOrEmpty(box.Label))
+        {
+            words.Children.Add(new TextBlock
+            {
+                Text = box.Label,
+                FontSize = 11.5,
+                Foreground = new SolidColorBrush(Color.Parse("#BFE3BF")),
+                TextWrapping = TextWrapping.Wrap,
+            });
+        }
+
+        // How far this one was from counting, for the steps that named a score to reach. The line
+        // at the top says what the best of them was; this says what each one needed.
+        if (Short(box) is { } short_)
+        {
+            words.Children.Add(new TextBlock
+            {
+                Text = short_,
+                FontSize = 11.5,
+                Foreground = new SolidColorBrush(Color.Parse("#D8B36A")),
+                TextWrapping = TextWrapping.Wrap,
+            });
+        }
+
         Grid.SetColumn(words, 2);
         grid.Children.Add(words);
 
@@ -449,6 +712,23 @@ public partial class LookWindow : Window
             ? string.Create(CultureInfo.CurrentCulture, $"({box.Match.Location.X}, {box.Match.Location.Y})")
             : string.Create(CultureInfo.CurrentCulture,
                 $"{box.Match.Location.X}, {box.Match.Location.Y}  {box.Match.Size.Width}x{box.Match.Size.Height}");
+
+    /// <summary>
+    /// How far one candidate was from the score the step asked for, or null when it is not a
+    /// candidate at all or the step never named a score: a search area was never compared with
+    /// anything, and a step without a threshold has nothing for a mark to fall short of.
+    /// </summary>
+    private string? Short(LookBox box)
+    {
+        if (_look.Minimum is not { } needed
+            || box.Role is not (LookRole.Candidate or LookRole.Hit)
+            || box.Match.Score >= needed)
+        {
+            return null;
+        }
+
+        return Strings.Format("Look.Short", Score(needed - box.Match.Score, _look.Kind));
+    }
 
     private void Light(int index, bool on)
     {
@@ -684,10 +964,22 @@ public partial class LookWindow : Window
             var place = LookGeometry.Place(_look.Origin, box.Match.Location, box.Match.Size, zoom);
             var visible = LookGeometry.Visible(place, SmallestMark);
             var mark = MarkVisual(box, visible, index + 1 == _look.ChosenIndex);
+            mark.Tag = index;
 
             Canvas.SetLeft(mark, visible.X);
             Canvas.SetTop(mark, visible.Y);
             board.Children.Add(mark);
+
+            // The same writing the window is showing goes into the picture it saves, so what is
+            // handed to somebody else is what is on the screen here.
+            if (_labelsOnPicture && Label(box) is { } label)
+            {
+                var above = visible.Y - LabelHeight - LabelGap;
+                label.Tag = index;
+                Canvas.SetLeft(label, visible.X);
+                Canvas.SetTop(label, above >= 0 ? above : visible.Y + visible.Height + LabelGap);
+                board.Children.Add(label);
+            }
         }
 
         return board;

@@ -994,7 +994,10 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        LookWindow.Show(outcome.Look, this);
+        // The step and the machine go along with the look, which is what lets this window look
+        // again: what is being tried is this very step, and the threshold on it is usually the
+        // thing being changed to get a better answer.
+        LookWindow.Show(outcome.Look, this, step, Devices);
     }
 
     /// <summary>

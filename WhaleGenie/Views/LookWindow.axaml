@@ -83,6 +83,18 @@
         <Style Selector="Border.MarkRow.chosen">
             <Setter Property="BorderBrush" Value="#3FBF5F" />
         </Style>
+
+        <!-- The writing the step read, in a box it can be copied out of. -->
+        <Style Selector="TextBox.ReadText">
+            <Setter Property="Background" Value="#1F1F1F" />
+            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="MinHeight" Value="58" />
+        </Style>
     </Window.Styles>
 
     <Border Background="#232323" CornerRadius="8">
@@ -147,18 +159,34 @@
                 </Border>
 
                 <Border Grid.Column="1" Classes="Panel" Margin="10,0,0,0">
-                    <Grid RowDefinitions="Auto,*">
+                    <Grid RowDefinitions="Auto,*,Auto">
                         <TextBlock Grid.Row="0" Classes="SectionHeader"
                                    Text="{Binding [Look.Marks], Source={x:Static loc:Strings.Current}}" />
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                             <StackPanel Name="Marks" Spacing="0" />
                         </ScrollViewer>
+                        <!-- What was read, somewhere it can be taken away from: the marks on the
+                             picture are for looking at, and a line of text read off the screen is
+                             usually wanted for something else. -->
+                        <StackPanel Grid.Row="2" Name="TextPanel" Spacing="5" Margin="0,8,0,0"
+                                    IsVisible="False">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Classes="SectionHeader" VerticalAlignment="Center"
+                                           Text="{Binding [Look.ReadText], Source={x:Static loc:Strings.Current}}" />
+                                <Button Grid.Column="1" Name="CopyText" Classes="FlatButton"
+                                        Click="OnCopyText"
+                                        Content="{Binding [Look.CopyText], Source={x:Static loc:Strings.Current}}" />
+                            </Grid>
+                            <TextBox Name="ReadText" Classes="ReadText" IsReadOnly="True"
+                                     AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="150" />
+                        </StackPanel>
                     </Grid>
                 </Border>
             </Grid>
 
             <!-- zoom, and saving the picture -->
-            <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" Margin="14,0,14,12">
+            <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto"
+                  Margin="14,0,14,12">
                 <Button Grid.Column="0" Classes="FlatButton" Content="−" Width="34"
                         Click="OnZoomOut" />
                 <TextBlock Grid.Column="1" Name="ZoomText" MinWidth="54" Margin="8,0"
@@ -169,13 +197,23 @@
                 <Button Grid.Column="3" Classes="FlatButton" Margin="8,0,0,0"
                         Click="OnZoomFit"
                         Content="{Binding [Look.ZoomFit], Source={x:Static loc:Strings.Current}}" />
-                <TextBlock Grid.Column="4" Name="Status" Margin="14,0,10,0"
+                <!-- Only the window opened on the step just written can look a second time: it was
+                     handed that step, and the picture belongs to a reading that has just been asked
+                     for. The one opened from a run shows a picture that belongs to that run. -->
+                <Button Grid.Column="4" Name="Again" Classes="FlatButton" Margin="8,0,0,0"
+                        IsVisible="False" Click="OnLookAgain"
+                        Content="{Binding [Look.Again], Source={x:Static loc:Strings.Current}}" />
+                <CheckBox Grid.Column="5" Name="LabelsOnPicture" Margin="12,0,0,0" FontSize="12"
+                          Foreground="#C8C8C8" VerticalAlignment="Center" Click="OnToggleLabels"
+                          Content="{Binding [Look.LabelsOnPicture], Source={x:Static loc:Strings.Current}}"
+                          ToolTip.Tip="{Binding [Look.LabelsHint], Source={x:Static loc:Strings.Current}}" />
+                <TextBlock Grid.Column="6" Name="Status" Margin="14,0,10,0"
                            VerticalAlignment="Center" FontSize="12" Foreground="#BFE3BF"
                            TextTrimming="CharacterEllipsis" />
-                <Button Grid.Column="5" Name="SaveRaw" Classes="FlatButton" Margin="0,0,8,0"
+                <Button Grid.Column="7" Name="SaveRaw" Classes="FlatButton" Margin="0,0,8,0"
                         Click="OnSaveRaw"
                         Content="{Binding [Look.SaveRaw], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="6" Name="SaveMarked" Classes="PrimaryButton"
+                <Button Grid.Column="8" Name="SaveMarked" Classes="PrimaryButton"
                         Click="OnSave"
                         Content="{Binding [Look.Save], Source={x:Static loc:Strings.Current}}" />
             </Grid>

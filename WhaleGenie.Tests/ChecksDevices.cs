@@ -140,13 +140,16 @@ internal sealed class ChecksDevices : IDeviceLayer
 
     public IVisionDevice Vision => NullDeviceLayer.Instance.Vision;
 
-    public IOcrDevice Ocr => NullDeviceLayer.Instance.Ocr;
+    /// <summary>The reading of writing a check puts on the machine, when what is being checked is
+    /// what a step read off the screen.</summary>
+    public IOcrDevice Ocr { get; set; } = NullDeviceLayer.Instance.Ocr;
 
     public IUiDevice Ui { get; set; } = NullDeviceLayer.Instance.Ui;
 
     public IFileDevice Files => NullDeviceLayer.Instance.Files;
 
-    public IClipboardDevice Clipboard => NullDeviceLayer.Instance.Clipboard;
+    /// <summary>The clipboard a check can look at, when what is being checked is text being copied.</summary>
+    public IClipboardDevice Clipboard { get; set; } = NullDeviceLayer.Instance.Clipboard;
 
     public IProcessDevice Processes => NullDeviceLayer.Instance.Processes;
 

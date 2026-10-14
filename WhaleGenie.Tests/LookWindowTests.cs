@@ -1,3 +1,5 @@
+using System.Globalization;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
@@ -6,6 +8,8 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Execution;
+using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -118,6 +122,295 @@ public class LookWindowTests
     };
 
     /// <summary>
+    /// 只有从添加动作窗口开的那一份拿得到「再看一次」，因为它手上有那一步与那台机器 —— 画面是刚写下
+    /// 的这一步看的，门槛没调对时重看一遍比关掉这扇窗、回去再按一次「运行」近得多。运行调试打开的那
+    /// 一份不给：那幅画面属于那一次运行，重看会得到与当时不同的东西。
+    /// </summary>
+    [Fact]
+    public void Only_the_window_that_holds_the_step_looks_again()
+    {
+        var answer = Ui.RunAsync(async () =>
+        {
+            var plain = new LookWindow(Found());
+            plain.Show();
+            Dispatcher.UIThread.RunJobs();
+            var withoutStep = plain.FindControl<Button>("Again")!.IsEffectivelyVisible;
+            plain.Close();
+
+            var (window, reading, _) = TextWindow();
+            var before = reading.Looked;
+
+            window.FindControl<Button>("Again")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            var again = await Until(() => reading.Looked > before);
+
+            var shown = window.FindControl<Button>("Again")!.IsEffectivelyVisible;
+            window.Close();
+            return (shown, withoutStep, before, after: reading.Looked, again);
+        });
+
+        Assert.False(answer.withoutStep, "没有步骤的那一份不该有「再看一次」");
+        Assert.True(answer.shown, "手上有步骤的那一份该有它");
+        Assert.True(answer.again, $"按一次该真的重看一遍：{answer.before} → {answer.after}");
+    }
+
+    /// <summary>
+    /// 读到的字得能带走：右边每一行标记写出它读到的那一行，另有一个只读的框把这一次读到的字一行一条
+    /// 列出来，可以选中，也可以按「复制」放进剪贴板。图上的字是给眼睛看的，带不走。
+    /// </summary>
+    [Fact]
+    public void What_was_read_is_listed_and_can_be_copied()
+    {
+        var answer = Ui.Run(() =>
+        {
+            var (window, _, clipboard) = TextWindow();
+
+            var written = window.FindControl<TextBox>("ReadText")!.Text ?? string.Empty;
+            var rows = window.FindControl<StackPanel>("Marks")!
+                .GetVisualDescendants().OfType<TextBlock>()
+                .Select(text => text.Text ?? string.Empty)
+                .ToList();
+
+            window.FindControl<Button>("CopyText")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            var copied = clipboard.Text;
+
+            window.Close();
+            return (Written: written, Rows: rows, Copied: copied);
+        });
+
+        // 引擎交出的 span 一条一行，顺序也一样。
+        Assert.Equal(string.Join(Environment.NewLine, "订单号", "A-1024"), answer.Written);
+
+        // 每一行标记把自己读到的字写出来。
+        Assert.Contains("订单号", answer.Rows);
+        Assert.Contains("A-1024", answer.Rows);
+
+        // 「复制」放走的是同一段字。
+        Assert.Equal(answer.Written, answer.Copied);
+    }
+
+    /// <summary>
+    /// 图上的字默认不画：框里就是刚读到的那几行字，标签压在框里正好挡住要对着看的东西。要用带字的图给
+    /// 人看时打开开关，字画在框的上沿外侧；上沿放不下就落到下沿外侧，始终不落进框里。
+    /// </summary>
+    [Fact]
+    public void The_writing_is_only_drawn_over_the_picture_when_it_is_asked_for()
+    {
+        var answer = Ui.Run(() =>
+        {
+            var (window, _, _) = TextWindow();
+            var board = window.FindControl<Canvas>("Board")!;
+            var toggle = window.FindControl<CheckBox>("LabelsOnPicture")!;
+
+            var before = Writing(board).Count;
+
+            toggle.IsChecked = true;
+            toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            var pairs = Pairs(board);
+            var apart = pairs.All(pair => !pair.Text.Intersects(pair.Box)
+                && (pair.Text.Bottom <= pair.Box.Top || pair.Text.Top >= pair.Box.Bottom));
+
+            window.Close();
+            return (Before: before, Drawn: pairs.Count, Apart: apart);
+        });
+
+        Assert.Equal(0, answer.Before);
+        Assert.Equal(2, answer.Drawn);
+        Assert.True(answer.Apart, "画在框外的字不该压进它自己那个框里");
+    }
+
+    /// <summary>
+    /// 每一条候选写出它离门槛还差多少：顶上那句"最高 0.62，需要 0.90"是整张画面的答案，落不到某一条
+    /// 候选上；没写门槛的步骤（例如抓图）没有可差的，就不写这一行。
+    /// </summary>
+    [Fact]
+    public void A_candidate_says_how_far_short_it_fell()
+    {
+        var answer = Ui.Run(() =>
+        {
+            var look = Found() with
+            {
+                Minimum = 0.9,
+                Boxes =
+                [
+                    new LookBox(new ImageMatch(0.62, new ScreenPoint(4, 3), new ScreenSize(6, 4)),
+                        LookRole.Candidate),
+                    new LookBox(new ImageMatch(0.95, new ScreenPoint(9, 6), new ScreenSize(6, 4)),
+                        LookRole.Hit),
+                ],
+                ChosenIndex = 2,
+            };
+
+            var window = new LookWindow(look);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var rows = window.FindControl<StackPanel>("Marks")!
+                .GetVisualDescendants().OfType<TextBlock>()
+                .Select(text => text.Text ?? string.Empty)
+                .ToList();
+
+            var without = new LookWindow(Found());
+            without.Show();
+            Dispatcher.UIThread.RunJobs();
+            var plain = without.FindControl<StackPanel>("Marks")!
+                .GetVisualDescendants().OfType<TextBlock>()
+                .Select(text => text.Text ?? string.Empty)
+                .ToList();
+
+            window.Close();
+            without.Close();
+            return (Rows: rows, Plain: plain, Short: Strings.Format("Look.Short", "28%"));
+        });
+
+        // 差的那一条写着差多少，够的那一条不写。
+        Assert.Contains(answer.Short, answer.Rows);
+        Assert.Single(answer.Rows, text => text.Contains(answer.Short, StringComparison.Ordinal));
+
+        // 没写门槛的步骤不写这一行。
+        Assert.DoesNotContain(answer.Plain,
+            text => text.Contains(answer.Short, StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// 一扇从"刚写下的这一步"开的识别结果窗口：一台会读两行字、并记住被问过几次的机器，与一个记账的
+    /// 剪贴板，都装进一台除了它们什么都不做的机器里。
+    /// </summary>
+    private static (LookWindow Window, ReadingForChecks Reading, ClipboardForChecks Clipboard) TextWindow()
+    {
+        var reading = new ReadingForChecks("订单号", "A-1024");
+        var clipboard = new ClipboardForChecks();
+        var devices = new ChecksDevices
+        {
+            Screen = new ScreenForChecks(),
+            Ocr = reading,
+            Clipboard = clipboard,
+        };
+
+        var step = new[] { Recognize() }.ToExecutable()[0];
+        var look = MacroRunner.LookOnce(step, devices).Look!;
+        var window = new LookWindow(look, step, devices);
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        return (window, reading, clipboard);
+    }
+
+    /// <summary>读屏幕左上角一块的识别步骤，写给上面那台会读字的机器用。</summary>
+    private static MacroStep Recognize() => new()
+    {
+        Type = "ocr.recognize",
+        Parameters =
+        [
+            new StepParameter { Name = "x", Kind = ActionParameterKind.Number, Value = "0" },
+            new StepParameter { Name = "y", Kind = ActionParameterKind.Number, Value = "0" },
+            new StepParameter { Name = "width", Kind = ActionParameterKind.Number, Value = "120" },
+            new StepParameter { Name = "height", Kind = ActionParameterKind.Number, Value = "20" },
+        ],
+    };
+
+    /// <summary>画面上那些写着字的控件。</summary>
+    private static List<TextBlock> Writing(Canvas board)
+        => [.. board.Children.OfType<TextBlock>().Where(text => text.Name == "MarkText")];
+
+    /// <summary>画面上那些框，各按它被摆到哪儿量。</summary>
+    private static List<(Rect Text, Rect Box)> Pairs(Canvas board)
+        => [.. Writing(board).Select(text => (Where(text),
+            Where(board.Children.OfType<Border>()
+                .Single(box => Equals(box.Tag, text.Tag)))))];
+
+    private static Rect Where(Control control)
+        => new(Canvas.GetLeft(control), Canvas.GetTop(control), control.Bounds.Width,
+            control.Bounds.Height);
+
+    /// <summary>
+    /// 一台会读字的机器：每一次读都交出同样那几行，并记住被问过几次 —— "再看一次"到底看没看，看的就是
+    /// 这个数。
+    /// </summary>
+    private sealed class ReadingForChecks(params string[] words) : IOcrDevice
+    {
+        /// <summary>How many times the screen has been read.</summary>
+        public int Looked { get; private set; }
+
+        public IReadOnlyList<TextSpan> Recognize(ImageFrame frame)
+        {
+            Looked++;
+            return
+            [
+                .. words.Select((word, index) => new TextSpan(word, new ScreenPoint(index * 40, 2),
+                    new ScreenSize(36, 8), 0.9)),
+            ];
+        }
+    }
+
+    /// <summary>A screen with one plain picture on it, which is all a reading of writing needs.</summary>
+    private sealed class ScreenForChecks : IScreenDevice
+    {
+        public ScreenLayout Desktop { get; } = new(new ScreenArea(0, 0, 120, 40),
+            [new ScreenDisplay(new ScreenArea(0, 0, 120, 40), true)]);
+
+        public ScreenPoint Cursor => default;
+
+        public PixelColor PixelAt(int x, int y) => default;
+
+        public ImageFrame Capture(int x, int y, int width, int height)
+            => new(width, height, new byte[width * height * 4]);
+
+        public ScreenShot Capture(ScreenCaptureRequest request)
+            => new(new ImageFrame(request.Width, request.Height,
+                new byte[request.Width * request.Height * 4]), new ScreenPoint(request.X, request.Y),
+                CaptureWay.Gdi);
+
+        public ImageFrame? Load(string path) => new(4, 4, new byte[64]);
+    }
+
+    /// <summary>记账的剪贴板：谁往里写过什么，这是唯一看得到的东西。</summary>
+    private sealed class ClipboardForChecks : IClipboardDevice
+    {
+        public string Text { get; private set; } = string.Empty;
+
+        public int ChangeCount => 0;
+
+        public bool HasText => Text.Length > 0;
+
+        public string ReadText() => Text;
+
+        public ImageFrame? ReadImage() => null;
+
+        public void WriteText(string text) => Text = text;
+
+        public void WriteImage(ImageFrame image)
+        {
+        }
+
+        public IReadOnlyList<string> ReadFiles() => [];
+
+        public void WriteFiles(IReadOnlyList<string> paths)
+        {
+        }
+
+        public void Clear() => Text = string.Empty;
+    }
+
+    /// <summary>
+    /// Waits for something a second look does on a pool thread, giving up rather than hanging.
+    /// </summary>
+    private static async Task<bool> Until(Func<bool> ready, int milliseconds = 5000)
+    {
+        for (var waited = 0; waited < milliseconds; waited += 10)
+        {
+            if (ready())
+            {
+                return true;
+            }
+
+            await Task.Delay(10);
+        }
+
+        return ready();
+    }
+
+    /// <summary>
     /// The window is put away on its own rather than closed, so what was found can be held up
     /// against the screen it came from and read again afterwards. A window filling the screen has no
     /// title bar to come back to, so it goes back to its normal size on the way out.
@@ -184,6 +477,66 @@ public class LookWindowTests
             window.ToggleRealSize();
             Assert.NotEqual("100%", window.FindControl<TextBlock>("ZoomText")!.Text);
         });
+    }
+
+    /// <summary>
+    /// 打开时就该铺满：构造函数跑的时候图片区还没有尺寸，"适应窗口"只好按一对兜底数字算，得出的
+    /// 是个猜的缩放。第一次布局过去之后要按真实空间重算一遍。
+    /// </summary>
+    [Fact]
+    public void The_window_opens_fitted_to_the_room_it_really_has()
+    {
+        Ui.Run(() =>
+        {
+            var window = new LookWindow(Found() with
+            {
+                Frame = new ImageFrame(1920, 1080, new byte[1920 * 1080 * 4]),
+            });
+
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(Zoom(window, 1920, 1080), window.FindControl<TextBlock>("ZoomText")!.Text);
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// 窗口改小之后缩放跟着重算：窗口小了而画面还是按原来那块地方算的大小，看到的就只是画面的一个角，
+    /// 而窗口自己不说这件事。
+    /// </summary>
+    [Fact]
+    public void Making_the_window_smaller_fits_the_picture_again()
+    {
+        Ui.Run(() =>
+        {
+            var window = new LookWindow(Found() with
+            {
+                Frame = new ImageFrame(1920, 1080, new byte[1920 * 1080 * 4]),
+            });
+
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            var was = window.FindControl<TextBlock>("ZoomText")!.Text;
+
+            window.Width = 640;
+            window.Height = 460;
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(Zoom(window, 1920, 1080), window.FindControl<TextBlock>("ZoomText")!.Text);
+            Assert.NotEqual(was, window.FindControl<TextBlock>("ZoomText")!.Text);
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// 按这扇窗现在真实的图片区算出来的缩放，写成窗口上那种百分比，好跟它写出来的那个比。
+    /// </summary>
+    private static string Zoom(Window window, int width, int height)
+    {
+        var room = window.FindControl<ScrollViewer>("Scroll")!.Viewport;
+        return (LookGeometry.Fit(width, height, room.Width - 8, room.Height - 8) * 100)
+            .ToString("0", CultureInfo.CurrentCulture) + "%";
     }
 
     /// <summary>
