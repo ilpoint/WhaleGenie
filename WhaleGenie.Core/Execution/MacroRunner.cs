@@ -2979,15 +2979,18 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// One end of a drag. A place is read the way a search region is read rather than as one value:
-    /// written as <c>x,y</c>, or handed a record that says where it is. Every record that carries a
-    /// rectangle carries the middle of it under <c>x</c> and <c>y</c>, so a hit, a window or an
-    /// element goes in as it stands — "drag what was just found onto that window" is one field each
-    /// end instead of four numbers worked out from other numbers. A value that is empty is reported
-    /// as the step before it having found nothing, which is what it means, rather than as a place
-    /// nobody could read.
+    /// One end of a drag, in the screen pixels the devices ask for. A place is read the way a search
+    /// region is read rather than as one value: written as <c>x,y</c>, or handed a record that says
+    /// where it is. Every record that carries a rectangle carries the middle of it under <c>x</c>
+    /// and <c>y</c>, so a hit, a window or an element goes in as it stands — "drag what was just
+    /// found onto that window" is one field each end instead of four numbers worked out from other
+    /// numbers. A record's numbers are screen pixels, the way every record's are; numbers written
+    /// out are counted from <paramref name="origin"/>, which is the corner the step says its own
+    /// numbers are measured from and is read once so both ends share it. A value that is empty is
+    /// reported as the step before it having found nothing, which is what it means, rather than as
+    /// a place nobody could read.
     /// </summary>
-    private ScreenPoint PointOf(ExecutableStep step, string name)
+    private ScreenPoint PointOf(ExecutableStep step, string name, ScreenPoint? origin)
     {
         var raw = step.Text(name);
         if (raw.Trim().Length == 0)
@@ -3012,7 +3015,7 @@ public sealed class MacroRunner
         return sides.Length == 2
             && int.TryParse(sides[0], out var column)
             && int.TryParse(sides[1], out var row)
-                ? new ScreenPoint(column, row)
+                ? Placed(origin, column, row)
                 : throw new StepFailure("Run.BadPoint", named);
     }
 
@@ -3076,12 +3079,13 @@ public sealed class MacroRunner
     /// <summary>Presses, travels, and lets go: the same shape of path as a plain move.</summary>
     private async Task DragPointer(ExecutableStep step, CancellationToken token)
     {
-        // Both ends are measured from the same corner, so a drag across a window stays inside it.
+        // Both ends are measured from the same corner, so a drag across a window stays inside it —
+        // and a record handed to one of them says where on the screen it is, so it comes back
+        // already in screen pixels rather than moved by that corner a second time. The corner is
+        // read once, here, rather than once per end.
         var origin = Anchor(step);
-        var start = PointOf(step, "start");
-        var from = Placed(origin, start.X, start.Y);
-        var end = PointOf(step, "end");
-        var to = Placed(origin, end.X, end.Y);
+        var from = PointOf(step, "start", origin);
+        var to = PointOf(step, "end", origin);
         var duration = Pace(Number(step, "durationMs"));
         var settle = Pace(OptionalNumber(step, "settleMs", 0));
         var steps = Math.Clamp(Number(step, "steps"), 1, 200);
@@ -4651,7 +4655,13 @@ public sealed class MacroRunner
         if (record.Field("left") is { } left && record.Field("top") is { } top
             && record.Field("width") is { } width && record.Field("height") is { } height)
         {
-            return Capture(step, Whole(left), Whole(top), Whole(width), Whole(height));
+            // The record's own numbers are where the rectangle is on screen, the way a hit's are:
+            // the step's coordinate origin moves the four numbers it is given as text, not this.
+            // Which window the picture is read out of is a different question, and stays the
+            // step's own answer.
+            var shot = Shot(step, Whole(left), Whole(top), Whole(width), Whole(height),
+                AnchorOf(step).Window);
+            return (shot.Frame, shot.Origin);
         }
 
         var box = record.Field("box")?.AsText().Trim() ?? string.Empty;

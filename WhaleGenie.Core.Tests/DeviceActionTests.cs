@@ -947,6 +947,31 @@ public class DeviceActionTests
     }
 
     /// <summary>
+    /// 一条记录说的是屏幕上的那一点，只有写出来的数字才从「坐标基准」量起：命中记录的 x、y 是屏幕像素
+    /// （同一条命中在窗口基准下交出来的也是屏幕像素），坐标基准选窗口时若再量一次，起点就整个偏了一个
+    /// 窗口的位置 —— 在默认的屏幕基准下对，换个基准就拖到别处去了。
+    /// </summary>
+    [Fact]
+    public async Task A_drag_from_a_record_starts_where_the_record_says_whatever_the_anchor()
+    {
+        var devices = WithAWindow();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
+            Step("input.mouseDrag", Param("start", "$spot"), Param("end", "30,40"),
+                Param("durationMs", "0"), Param("steps", "2"),
+                Param("anchorMode", "window"), Param("anchorWindow", "Notepad")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+
+        // 起点是那条记录自己的中心 (35,50)；终点是写出来的两个数，照旧从窗口角 (1000,500) 量起。
+        Assert.Equal("drag left 35 50 1030 540 0 2", devices.Calls[^1]);
+    }
+
+    /// <summary>
     /// 两头照同一个「坐标基准」量起，窗口挪到别处之后这一次拖拽的四个数跟着挪，所以"从窗口里的哪个
     /// 地方拖到窗口里的哪个地方"在两个窗口位置上说的是同一件事。
     /// </summary>
@@ -1231,6 +1256,33 @@ public class DeviceActionTests
         // The second search looked at the rectangle the first one found — whose top-left corner is
         // what a region counts from — rather than at the whole screen.
         Assert.Contains("capture 10 20 4 6", devices.Calls);
+    }
+
+    /// <summary>
+    /// 搜索区域那一格交给一条记录时，看的是记录自己那一块（屏幕像素），不是从窗口角再量一次：
+    /// "在刚找到的那块里再找一遍"因此在哪个坐标基准下看的都是同一块画面 —— 记录里的数是屏幕上量出来的，
+    /// 窗口角只挪写出来的四个数。
+    /// </summary>
+    [Fact]
+    public async Task A_region_handed_a_record_reads_where_the_record_says_whatever_the_anchor()
+    {
+        var devices = WithAWindow();
+        devices.Match = new ImageMatch(0.99, new ScreenPoint(10, 20), new ScreenSize(4, 6));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("a.png"), Region((0, 0, 40, 30)),
+                Hit("match", "spot")),
+            Step("vision.findImage", Pictures("b.png"), RegionFrom("$spot"),
+                Param("anchorMode", "window"), Param("anchorWindow", "Notepad"),
+                Hit("match", "again")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+
+        // 第二遍看的是那条记录自己那一块，而不是它加上窗口角之后的那一块。
+        Assert.Contains("capture 10 20 4 6", devices.Calls);
+        Assert.DoesNotContain("capture 1010 520 4 6", devices.Calls);
     }
 
     [Fact]
