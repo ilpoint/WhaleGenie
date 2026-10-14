@@ -133,7 +133,7 @@ internal static class ActionStrings
 
     /// <summary>
     /// The one choice every window rule asks: what the text is held up against, and how. It is
-    /// written once because it is the same five ways wherever a window is recognised, and the three
+    /// written once because it is the same nine ways wherever a window is recognised, and the three
     /// families of actions that ask it each add the sentence about what the settings beside the
     /// field do.
     /// </summary>
@@ -143,6 +143,17 @@ internal static class ActionStrings
         "这个窗口靠什么认出来：「匹配内容」里那段文字和窗口的哪一部分比、怎么比，不区分大小写。标题上有"
         + "五档：包含、开头、结尾、等于、正则；进程名与窗口类名各两档：包含或等于。标题随文档名或界面语言"
         + "变化时，改用进程名或窗口类名；名字会带上版本号之类的尾巴时，用「等于」而不是「包含」。";
+
+    /// <summary>
+    /// How the writing a step read is held up against the writing it looks for. Written once because
+    /// the five ways are the whole program's (the engine's <c>TextCompare</c>): the two actions that
+    /// read the screen and the two conditions about writing ask exactly the same question.
+    /// </summary>
+    private const string TextMatchHint =
+        "读到的文字与要查找的文字怎么比，五档：包含（默认）、以…开头、以…结尾、等于、正则匹配，都不区分"
+        + "大小写。「等于」在比之前去掉两端的空格，屏幕上读到的字常带着边上的空白。只看一头时用「以…开头」"
+        + "或「以…结尾」，不必写正则；这一段要当通配用才选「正则匹配」。这一格留空按「包含」走；手写的宏"
+        + "文件里写了这五档以外的字，这一步失败并写出为什么。";
 
     private const string WindowHowTitleContains = "标题包含";
     private const string WindowHowTitleStartsWith = "标题开头";
@@ -856,7 +867,9 @@ internal static class ActionStrings
         ["file.readCsv.matchValue.label"] = "等于",
         ["file.readCsv.matchValue.hint"] = "这些行里那个单元格要等于的值，也可以写成 $变量。",
         ["file.readCsv.matchMode.label"] = "匹配方式",
-        ["file.readCsv.matchMode.hint"] = "单元格与这个值怎么比：完全相等，还是比其中一段。默认「等于」。",
+        ["file.readCsv.matchMode.hint"] = "单元格与这个值怎么比：比文字的几档是等于、包含、以…开头、以…结尾、"
+            + "正则匹配（与别处用的是同一批词，都不区分大小写，「等于」比之前去掉两端的空格），另有不等于、"
+            + "大于、小于那几档，只能从这个下拉框里选。默认「等于」。",
         ["file.readCsv.matchMode.option.equals"] = "等于",
         ["file.readCsv.matchMode.option.notEquals"] = "不等于",
         ["file.readCsv.matchMode.option.contains"] = "包含",
@@ -2252,7 +2265,7 @@ internal static class ActionStrings
         ["ocr.findText.region.label"] = "搜索区域",
         ["ocr.findText.region.hint"] = RegionHintText,
         ["ocr.findText.matchMode.label"] = "匹配方式",
-        ["ocr.findText.matchMode.hint"] = "识别结果与搜索文字怎么比：包含、完全相等，还是按正则表达式匹配。默认「包含」。",
+        ["ocr.findText.matchMode.hint"] = TextMatchHint,
         ["ocr.findText.expected.label"] = "整段须匹配",
         ["ocr.findText.expected.hint"] = ExpectedHint,
         ["ocr.findText.return.match.label"] = HitRecordLabel,
@@ -2297,7 +2310,7 @@ internal static class ActionStrings
         ["ocr.clickText.anchorWindow.label"] = WindowMatchTextLabel,
         ["ocr.clickText.anchorWindow.hint"] = AnchorWindowRuleHint,
         ["ocr.clickText.matchMode.label"] = "匹配方式",
-        ["ocr.clickText.matchMode.hint"] = "识别结果与搜索文字怎么比：包含、完全相等，还是按正则表达式匹配。默认「包含」。",
+        ["ocr.clickText.matchMode.hint"] = TextMatchHint,
         ["ocr.clickText.expected.label"] = "整段须匹配",
         ["ocr.clickText.expected.hint"] = ExpectedHint,
         ["ocr.clickText.offsetX.label"] = "横向偏移",
@@ -2661,7 +2674,7 @@ internal static class ActionStrings
         ["condition.textExists.region.label"] = "搜索区域",
         ["condition.textExists.region.hint"] = RegionHintText,
         ["condition.textExists.matchMode.label"] = "匹配方式",
-        ["condition.textExists.matchMode.hint"] = "读到的文字与上面要查找的文字怎么比，默认包含。",
+        ["condition.textExists.matchMode.hint"] = TextMatchHint,
 
         ["condition.uiaExists.name"] = "UI 元素存在",
         ["condition.uiaExists.desc"] = "当 UI Automation 元素存在时为真。",
@@ -2713,7 +2726,7 @@ internal static class ActionStrings
         ["condition.textNotExists.region.label"] = "搜索区域",
         ["condition.textNotExists.region.hint"] = RegionHintText,
         ["condition.textNotExists.matchMode.label"] = "匹配方式",
-        ["condition.textNotExists.matchMode.hint"] = "读到的文字与上面要查找的文字怎么比，默认包含。",
+        ["condition.textNotExists.matchMode.hint"] = TextMatchHint,
         ["condition.textNotExists.matchMode.option.contains"] = "包含",
         ["condition.textNotExists.matchMode.option.startsWith"] = "以…开头",
         ["condition.textNotExists.matchMode.option.endsWith"] = "以…结尾",
