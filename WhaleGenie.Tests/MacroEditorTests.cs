@@ -12,9 +12,9 @@ using WhaleGenie.Views;
 namespace WhaleGenie.Tests;
 
 /// <summary>
-/// The editor's "set key" button, driven with real key events. The release of the key that was
-/// just bound has to be swallowed, or a focused button reads Space as a click and arms the
-/// capture all over again.
+/// The editor's "set key" button, driven with real key events: one key or a combination of one.
+/// The release of the key that was just bound has to be swallowed, or a focused button reads Space
+/// as a click and arms the capture all over again.
 /// </summary>
 public class MacroEditorTests
 {
@@ -217,6 +217,78 @@ public class MacroEditorTests
             // Duplicating and copying were the same idea twice; only Ctrl + C is left.
             Assert.Single(viewModel.ActionPalette, entry => entry.Key == "copy");
             Assert.DoesNotContain(viewModel.ActionPalette, entry => entry.Key == "duplicate");
+        });
+    }
+
+    [Fact]
+    public void A_binding_takes_the_modifiers_that_are_down_when_its_last_key_arrives()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = Open();
+            viewModel.SetKeyCommand.Execute(null);
+
+            // Ctrl and Shift go down and stay down: pressing a modifier does not finish the capture,
+            // because it may be the front of a combination.
+            window.KeyPressQwerty(PhysicalKey.ControlLeft, RawInputModifiers.None);
+            window.KeyPressQwerty(PhysicalKey.ShiftLeft, RawInputModifiers.Control);
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(viewModel.IsCapturingKey, "a modifier on its own finished the capture");
+
+            window.KeyPressQwerty(PhysicalKey.S, RawInputModifiers.Control | RawInputModifiers.Shift);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("Ctrl+Shift+S", viewModel.BindKey);
+            Assert.Equal("Ctrl+Shift+S", viewModel.BindKeyDisplay);
+            Assert.False(viewModel.IsCapturingKey);
+
+            // Letting the keys go afterwards binds nothing again: the capture was already over.
+            window.KeyReleaseQwerty(PhysicalKey.S, RawInputModifiers.Control | RawInputModifiers.Shift);
+            window.KeyReleaseQwerty(PhysicalKey.ShiftLeft, RawInputModifiers.Control);
+            window.KeyReleaseQwerty(PhysicalKey.ControlLeft, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("Ctrl+Shift+S", viewModel.BindKey);
+        });
+    }
+
+    [Fact]
+    public void A_modifier_held_before_the_capture_started_still_counts()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = Open();
+            viewModel.SetKeyCommand.Execute(null);
+
+            // Ctrl went down before the button was pressed, so this window never saw it go down;
+            // only the event itself can say that it is held.
+            window.KeyPressQwerty(PhysicalKey.S, RawInputModifiers.Control);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("Ctrl+S", viewModel.BindKey);
+            Assert.False(viewModel.IsCapturingKey);
+        });
+    }
+
+    [Fact]
+    public void A_modifier_that_nothing_follows_is_the_binding_on_its_own()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = Open();
+            viewModel.SetKeyCommand.Execute(null);
+
+            window.KeyPressQwerty(PhysicalKey.ControlLeft, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(viewModel.IsCapturingKey);
+
+            // Let go of with nothing pressed in between: that is the binding, kept with the side it
+            // was pressed on, the way a trigger bound to Right Shift reads.
+            window.KeyReleaseQwerty(PhysicalKey.ControlLeft, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("左Ctrl", viewModel.BindKey);
+            Assert.False(viewModel.IsCapturingKey);
         });
     }
 

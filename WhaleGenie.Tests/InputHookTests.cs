@@ -96,6 +96,56 @@ public class InputHookTests
         });
     }
 
+    [Fact]
+    public void A_combination_binding_answers_only_while_its_modifiers_are_down()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var macro = new MacroItem
+            {
+                Name = "组合键触发的",
+                TriggerMode = MacroTrigger.KeystrokesButtonInputs,
+                BindKey = "Ctrl+Shift+S",
+            };
+
+            macro.Steps.Add(new MacroStep
+            {
+                Type = "control.delay",
+                Parameters =
+                [
+                    new StepParameter
+                    {
+                        Name = "ms",
+                        Kind = ActionParameterKind.Number,
+                        Value = "800",
+                    },
+                ],
+            });
+
+            var hook = new FakeInputHook();
+            using var service = new MacroTriggerService(
+                () => [macro], NullDeviceLayer.Instance, new NoWindowEvents(), hook);
+
+            service.IsEnabled = true;
+
+            // The last key on its own is not the combination.
+            service.Answer(Key("S"), pressed: true);
+            await Task.Delay(200);
+            Assert.False(service.IsRunning(macro));
+
+            // With the modifiers down it is, and which side of each was pressed does not matter:
+            // a combination writes its modifiers without a side.
+            service.Answer(Key("左Ctrl"), pressed: true);
+            service.Answer(Key("右Shift"), pressed: true);
+            service.Answer(Key("S"), pressed: true);
+
+            Assert.True(await Started(service, macro), "the combination did not start its macro");
+
+            service.StopAll();
+            return true;
+        });
+    }
+
     /// <summary>True when a file under the interface project carries the library's name.</summary>
     private static bool Said(string path)
     {

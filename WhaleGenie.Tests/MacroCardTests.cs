@@ -16,6 +16,20 @@ public class MacroCardTests
         Assert.Equal("右Shift", macro.TriggerPreview);
     }
 
+    /// <summary>
+    /// A trigger bound to a combination is still a keyboard trigger: nothing in its name says
+    /// "mouse", so the card keeps the keyboard icon and previews the combination as it was bound.
+    /// </summary>
+    [Fact]
+    public void A_combination_binding_is_previewed_with_the_keyboard_icon()
+    {
+        var macro = new MacroItem { BindKey = "Ctrl+Shift+S" };
+
+        Assert.True(macro.IsKeyboardTrigger);
+        Assert.False(macro.IsMouseTrigger);
+        Assert.Equal("Ctrl+Shift+S", macro.TriggerPreview);
+    }
+
     [Theory]
     [InlineData("Mouse Left")]
     [InlineData("Mouse Wheel Up")]

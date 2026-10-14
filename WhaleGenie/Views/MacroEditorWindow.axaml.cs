@@ -71,10 +71,19 @@ public partial class MacroEditorWindow : Window
     private bool _editorInRecovery;
 
     /// <summary>
-    /// A key that was just taken as the trigger still sends its release, and a focused button
-    /// treats Space on release as a click — which would arm the capture all over again.
+    /// The modifier keys held down while a binding is being taken. A trigger can be a combination,
+    /// so pressing Ctrl does not end the capture — it may be the front of one. Whether it was is
+    /// settled either by the key that finishes the combination or, when nothing follows it, by the
+    /// release: a lone modifier is a binding of its own, and its two halves are two keys.
     /// </summary>
-    private bool _swallowCapturedKeyUp;
+    private readonly List<Key> _captureModifiers = [];
+
+    /// <summary>
+    /// The keys the binding just taken was made of, still to see their release. A focused button
+    /// treats Space and Enter on release as a click — which would arm the capture all over again —
+    /// and a combination sends one release per key.
+    /// </summary>
+    private readonly List<Key> _swallowReleases = [];
 
     /// <summary>The input hook, up only while a recording is in progress.</summary>
     private IInputRecorder? _recorder;
@@ -197,6 +206,13 @@ public partial class MacroEditorWindow : Window
         // it changes. This window is the only place it can be kept: it is not in the list yet.
         _viewModel.PropertyChanged += (_, args) =>
         {
+            if (args.PropertyName == nameof(MacroEditorViewModel.IsCapturingKey) && _viewModel.IsCapturingKey)
+            {
+                // A capture starts with nothing held: whatever the last one took is over by now.
+                _captureModifiers.Clear();
+                _swallowReleases.Clear();
+            }
+
             if (args.PropertyName == nameof(MacroEditorViewModel.IsDirty))
             {
                 SyncRecovery();
@@ -335,6 +351,8 @@ public partial class MacroEditorWindow : Window
             ? (HookWheelAxis.Horizontal, e.Delta.X < 0 ? 1 : -1)
             : (HookWheelAxis.Vertical, e.Delta.Y >= 0 ? 1 : -1);
 
+        // A wheel binding is one name, so the modifiers of a combination being built do not go on.
+        _captureModifiers.Clear();
         viewModel.CaptureKey(KeyNames.WheelName(axis, rotation));
         e.Handled = true;
     }
@@ -362,23 +380,38 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
+        // A mouse binding is one name, so the modifiers of a combination being built do not go on.
+        _captureModifiers.Clear();
         viewModel.CaptureKey(KeyNames.MouseName(pressed));
         e.Handled = true;
     }
 
     /// <summary>
-    /// Swallows the release that follows a captured press. A focused button reads Space on
-    /// release as a click, which would arm the very capture the user just finished.
+    /// Lets go of a modifier that nothing followed — which makes it the binding, the way a trigger
+    /// bound to Right Shift reads — and swallows the releases that follow a captured press. A
+    /// focused button reads Space or Enter on release as a click, which would arm the very capture
+    /// the user just finished.
     /// </summary>
     private void OnPreviewKeyUp(object? sender, KeyEventArgs e)
     {
-        if (!_swallowCapturedKeyUp)
+        if (DataContext is MacroEditorViewModel viewModel && viewModel.IsCapturingKey
+            && IsModifier(e.Key))
         {
+            if (_captureModifiers.Remove(e.Key) && _captureModifiers.Count == 0)
+            {
+                viewModel.CaptureKey(DescribeKey(e.Key));
+            }
+
+            // Either it was part of a combination still being built, or it was already down when
+            // the capture started; neither is what finishes the binding.
+            e.Handled = true;
             return;
         }
 
-        _swallowCapturedKeyUp = false;
-        e.Handled = true;
+        if (_swallowReleases.Remove(e.Key))
+        {
+            e.Handled = true;
+        }
     }
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
@@ -390,8 +423,24 @@ public partial class MacroEditorWindow : Window
 
         if (viewModel.IsCapturingKey)
         {
-            viewModel.CaptureKey(DescribeKey(e.Key));
-            _swallowCapturedKeyUp = true;
+            if (IsModifier(e.Key))
+            {
+                // Held back rather than taken: Ctrl, Shift, Alt and Win may be the front of a
+                // combination, and which it was is only known once the capture ends.
+                if (!_captureModifiers.Contains(e.Key))
+                {
+                    _captureModifiers.Add(e.Key);
+                }
+
+                e.Handled = true;
+                return;
+            }
+
+            viewModel.CaptureKey(Chord(e.Key, Held(e)));
+            _swallowReleases.Clear();
+            _swallowReleases.AddRange(_captureModifiers);
+            _swallowReleases.Add(e.Key);
+            _captureModifiers.Clear();
             e.Handled = true;
             return;
         }
@@ -560,6 +609,64 @@ public partial class MacroEditorWindow : Window
         {
             return false;
         }
+    }
+
+    /// <summary>The modifiers a combination is written with, in the order a binding reads them.</summary>
+    private static readonly (KeyModifiers Flag, string Name)[] ChordModifiers =
+    [
+        (KeyModifiers.Control, "Ctrl"),
+        (KeyModifiers.Shift, "Shift"),
+        (KeyModifiers.Alt, "Alt"),
+        (KeyModifiers.Meta, "Win"),
+    ];
+
+    /// <summary>Whether the key is one of the eight halves of Ctrl, Shift, Alt and Win.</summary>
+    private static bool IsModifier(Key key) => ModifierFlag(key) != KeyModifiers.None;
+
+    /// <summary>The group a modifier key belongs to; None for anything that is not one.</summary>
+    private static KeyModifiers ModifierFlag(Key key) => key switch
+    {
+        Key.LeftCtrl or Key.RightCtrl => KeyModifiers.Control,
+        Key.LeftShift or Key.RightShift => KeyModifiers.Shift,
+        Key.LeftAlt or Key.RightAlt => KeyModifiers.Alt,
+        Key.LWin or Key.RWin => KeyModifiers.Meta,
+        _ => KeyModifiers.None,
+    };
+
+    /// <summary>
+    /// Everything held when a key was pressed: what the event itself carries, plus the modifiers
+    /// this window saw go down, so a modifier pressed before the capture started still counts.
+    /// </summary>
+    private KeyModifiers Held(KeyEventArgs e)
+    {
+        var held = e.KeyModifiers;
+        foreach (var modifier in _captureModifiers)
+        {
+            held |= ModifierFlag(modifier);
+        }
+
+        return held;
+    }
+
+    /// <summary>
+    /// The binding a key press makes: the modifiers held at that moment, then the key itself. Each
+    /// modifier is written without its side — either Ctrl answers it — which is how a recorded
+    /// combination is written too; a lone modifier, where the two sides are two different keys,
+    /// keeps its side in <see cref="DescribeKey"/>.
+    /// </summary>
+    private static string Chord(Key key, KeyModifiers held)
+    {
+        var parts = new List<string>(ChordModifiers.Length + 1);
+        foreach (var (flag, name) in ChordModifiers)
+        {
+            if (held.HasFlag(flag))
+            {
+                parts.Add(name);
+            }
+        }
+
+        parts.Add(DescribeKey(key));
+        return string.Join("+", parts);
     }
 
     private static string DescribeKey(Key key) => key switch
