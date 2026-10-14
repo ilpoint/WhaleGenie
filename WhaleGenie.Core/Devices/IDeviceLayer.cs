@@ -709,6 +709,14 @@ public interface IDeviceLayer
     IWindowEvents WindowEvents { get; }
 
     /// <summary>
+    /// The controller in the person's hands, read rather than listened to. It is here beside the
+    /// hook for the same reason the hook is: a trigger bound to a controller button and a recording
+    /// of one both read it, and a layer handed in by a check carries a controller the check can
+    /// play rather than the one on the machine.
+    /// </summary>
+    IGamepadReading GamepadReading { get; }
+
+    /// <summary>
     /// Driver-level input, which rests on two pieces of other projects: a kernel driver that is
     /// installed once, and a server that has to be running. Holding it here is what lets the window
     /// that explains it be driven without either one being on the machine.
@@ -803,6 +811,12 @@ public sealed class NullDeviceLayer : IDeviceLayer
     /// the caller keeps looking on its own, exactly as it would on a Windows too old to say.
     /// </summary>
     public IWindowEvents WindowEvents { get; } = new NoWindowEvents();
+
+    /// <summary>
+    /// No controller to read, which is an answer rather than a refusal: a trigger bound to a
+    /// controller button is simply never answered, the way it is on a machine with nothing plugged in.
+    /// </summary>
+    public IGamepadReading GamepadReading { get; } = new NoGamepadReading();
 
     public IDriverInput Driver => _refusal;
 

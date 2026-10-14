@@ -34,6 +34,8 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
 
     private readonly Lazy<IWindowEvents> _windowEvents = new(() => new WindowsWindowEvents());
 
+    private readonly Lazy<IGamepadReading> _gamepadReading = new(() => new XInputGamepadReading());
+
     private readonly Lazy<IDriverInput> _driver = new(() => new ViiperDriver());
 
     public WindowsDeviceLayer()
@@ -63,6 +65,9 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
 
     /// <summary>What the machine says when the windows change, which is a listener rather than a device.</summary>
     public IWindowEvents WindowEvents => _windowEvents.Value;
+
+    /// <summary>The controller in the person's hands, which holds nothing and is read where it is wanted.</summary>
+    public IGamepadReading GamepadReading => _gamepadReading.Value;
 
     /// <summary>The driver and the server behind driver-level input, which stand beside the pair they carry.</summary>
     public IDriverInput Driver => _driver.Value;

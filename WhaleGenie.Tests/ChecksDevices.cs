@@ -126,6 +126,13 @@ internal sealed class ChecksDevices : IDeviceLayer
 
     public IWindowEvents WindowEvents { get; set; } = new NoWindowEvents();
 
+    /// <summary>
+    /// The controller a check can play, so a binding taken from it, a trigger bound to one of its
+    /// buttons and a recording of one all work with no controller plugged in. Left alone it answers
+    /// the way a machine with nothing plugged in does.
+    /// </summary>
+    public IGamepadReading GamepadReading { get; set; } = new NoGamepadReading();
+
     public IDriverInput Driver => NullDeviceLayer.Instance.Driver;
 
     public IInputDevice Input { get; set; } = NullDeviceLayer.Instance.Input;

@@ -110,6 +110,115 @@ public static class GamepadNames
         GamepadButtons.Guide => "guide",
         _ => string.Empty,
     };
+
+    /// <summary>
+    /// The name a trigger is bound to, which carries "Pad" the way a mouse button's name carries
+    /// "Mouse": a binding then says which device it is about without anyone having to be told, and
+    /// the shared comparison keeps the two vocabularies apart — a binding of <c>Pad A</c> is not the
+    /// letter key <c>A</c>.
+    /// </summary>
+    /// <remarks>
+    /// The Guide button has no name here. Windows keeps that button to itself — it never appears in
+    /// what <c>XInputGetState</c> reports, which is where a bound button is read from — so offering
+    /// it would be offering a binding that can never fire.
+    /// </remarks>
+    public static string Binding(GamepadButtons button) => button switch
+    {
+        GamepadButtons.A => "Pad A",
+        GamepadButtons.B => "Pad B",
+        GamepadButtons.X => "Pad X",
+        GamepadButtons.Y => "Pad Y",
+        GamepadButtons.LeftBumper => "Pad LB",
+        GamepadButtons.RightBumper => "Pad RB",
+        GamepadButtons.LeftTrigger => "Pad LT",
+        GamepadButtons.RightTrigger => "Pad RT",
+        GamepadButtons.LeftStick => "Pad LS",
+        GamepadButtons.RightStick => "Pad RS",
+        GamepadButtons.Up => "Pad Up",
+        GamepadButtons.Down => "Pad Down",
+        GamepadButtons.Left => "Pad Left",
+        GamepadButtons.Right => "Pad Right",
+        GamepadButtons.Start => "Pad Start",
+        GamepadButtons.Back => "Pad Back",
+        _ => string.Empty,
+    };
+}
+
+/// <summary>
+/// The controller in the person's hands, as this machine reports it: what a trigger bound to a
+/// controller button answers to, what the editor takes a binding from, and what a recording writes
+/// down. It is read rather than subscribed to, because Windows has no word for "a controller button
+/// went down" — what there is, is the state of the controller at a moment.
+/// </summary>
+/// <remarks>
+/// It sits on the device layer beside the hook rather than inside the virtual controller: the
+/// virtual one is what a macro drives, this is what the person at the machine drives. It is also
+/// what makes the whole thing checkable — a check hands in a controller it can play, and nothing
+/// about a trigger or a recording then needs a controller to be plugged in.
+/// </remarks>
+public interface IGamepadReading
+{
+    /// <summary>True when a controller is plugged in for there to be anything to read.</summary>
+    bool Connected { get; }
+
+    /// <summary>
+    /// Which buttons are held down at this moment, or none when no controller is plugged in. A
+    /// trigger counts as held once it is pulled past a little of its travel, because a binding has
+    /// two states and a trigger has a range.
+    /// </summary>
+    GamepadButtons Held();
+}
+
+/// <summary>A machine with no controller to read, which is what a check gets unless it brings one.</summary>
+public sealed class NoGamepadReading : IGamepadReading
+{
+    public bool Connected => false;
+
+    public GamepadButtons Held() => GamepadButtons.None;
+}
+
+/// <summary>
+/// Turns what a controller is doing now into what changed since it was last looked at: which
+/// buttons went down and which came back up.
+/// </summary>
+/// <remarks>
+/// A reading is a snapshot, so a press only exists as the difference between two of them, and
+/// somebody has to hold the earlier one. Doing that here keeps the trigger, the picker and the
+/// recorder from each folding the same two snapshots in their own way — and it is the whole of what
+/// a controller contributes that can be worked out without a controller, so it is where the
+/// headless checks have something to hold on to.
+/// </remarks>
+public sealed class GamepadButtonWatch
+{
+    private GamepadButtons _held;
+
+    /// <summary>Forgets what was held, as if the controller had just been picked up.</summary>
+    public void Forget() => _held = GamepadButtons.None;
+
+    /// <summary>
+    /// What changed between the last reading and this one: each button with whether it is now down.
+    /// A button that was already held stays quiet — holding a button is one press, however many
+    /// times it is read while it is down.
+    /// </summary>
+    public IEnumerable<(GamepadButtons Button, bool Down)> Changed(GamepadButtons now)
+    {
+        var pressed = now & ~_held;
+        var released = _held & ~now;
+        _held = now;
+
+        for (var bit = 1; bit <= (int)GamepadButtons.Guide; bit <<= 1)
+        {
+            var button = (GamepadButtons)bit;
+            if ((pressed & button) != 0)
+            {
+                yield return (button, true);
+            }
+            else if ((released & button) != 0)
+            {
+                yield return (button, false);
+            }
+        }
+    }
 }
 
 /// <summary>A virtual controller a macro drives, the way a person would with their hands.</summary>

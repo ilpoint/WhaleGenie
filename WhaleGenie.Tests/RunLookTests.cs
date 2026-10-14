@@ -352,6 +352,8 @@ public class RunLookTests
 
         public IWindowEvents WindowEvents { get; } = new NoWindowEvents();
 
+        public IGamepadReading GamepadReading { get; } = new NoGamepadReading();
+
         public IDriverInput Driver => NullDeviceLayer.Instance.Driver;
 
         public IVisionDevice Vision => this;

@@ -7758,6 +7758,9 @@ internal sealed class FakeDeviceLayer
 
     IWindowEvents IDeviceLayer.WindowEvents => new NoWindowEvents();
 
+    /// <summary>No controller is in a macro's steps, so this layer answers as a machine with none.</summary>
+    IGamepadReading IDeviceLayer.GamepadReading => new NoGamepadReading();
+
     IDriverInput IDeviceLayer.Driver => NullDeviceLayer.Instance.Driver;
 
     IVisionDevice IDeviceLayer.Vision => this;
