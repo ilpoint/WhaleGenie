@@ -467,6 +467,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.MouseMovement"] = "Mouse Movement",
         ["Editor.MouseButtons"] = "Mouse Buttons",
         ["Editor.KeyboardKeys"] = "Keyboard Keys",
+        ["Editor.GamepadButtons"] = "Controller Buttons",
         ["Editor.Delays"] = "Wait Time/Delays",
         ["Editor.IgnoreInjected"] = "Ignore Other Programs' Input",
         ["Editor.Tip.IgnoreInjected"] = "Leave out input the system marks as injected, so a macro "
@@ -1678,6 +1679,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.MouseMovement"] = "鼠标移动",
         ["Editor.MouseButtons"] = "鼠标按键",
         ["Editor.KeyboardKeys"] = "键盘按键",
+        ["Editor.GamepadButtons"] = "手柄按键",
         ["Editor.Delays"] = "等待时间 / 延迟",
         ["Editor.IgnoreInjected"] = "忽略其他程序的输入",
         ["Editor.Tip.IgnoreInjected"] = "忽略被系统标记为程序注入的输入，避免把正在运行的宏回放"

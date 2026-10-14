@@ -60,8 +60,11 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
     /// </summary>
     public IInputHook Hook => GlobalInputHook.Shared;
 
-    /// <summary>A recorder over that hook, made for one recording at a time.</summary>
-    public IInputRecorder CreateRecorder() => new InputHookRecorder();
+    /// <summary>
+    /// A recorder over that hook, made for one recording at a time. The controller is read rather than
+    /// listened to, so the recorder is handed this machine's own reading of it.
+    /// </summary>
+    public IInputRecorder CreateRecorder() => new InputHookRecorder(GamepadReading);
 
     /// <summary>What the machine says when the windows change, which is a listener rather than a device.</summary>
     public IWindowEvents WindowEvents => _windowEvents.Value;

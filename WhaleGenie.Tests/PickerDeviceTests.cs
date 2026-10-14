@@ -111,6 +111,59 @@ public class PickerDeviceTests
     }
 
     /// <summary>
+    /// A controller button is recorded too, and becomes the step that presses the virtual one. Windows
+    /// reports no controller button, so what the recorder hands over comes from reading the controller;
+    /// from there a recording is the same as any other — a quick press becomes one tap, and the panel's
+    /// controller switch takes the controller out of the recording altogether.
+    /// </summary>
+    [Fact]
+    public void A_recorded_controller_button_becomes_a_step()
+    {
+        Ui.Run(() =>
+        {
+            var recorder = new Recorder();
+            var devices = new ChecksDevices { Recorder = recorder };
+            var macro = new MacroItem { Name = "录手柄的" };
+
+            var window = new MacroEditorWindow(macro, [macro], null, devices);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = Assert.IsType<MacroEditorViewModel>(window.DataContext);
+            viewModel.ToggleRecordCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(recorder.RecordController, "the panel did not ask for the controller");
+
+            recorder.Play(RecordedInput.GamepadDown("a", 0));
+            recorder.Play(RecordedInput.GamepadUp("a", 120));
+
+            viewModel.StopRecording();
+            Dispatcher.UIThread.RunJobs();
+
+            var step = Assert.Single(viewModel.Steps, step => step.Type == "gamepad.button");
+            Assert.Equal("a", step.Parameters.Single(parameter => parameter.Name == "button").Value);
+            Assert.Equal("tap", step.Parameters.Single(parameter => parameter.Name == "mode").Value);
+            Assert.Equal("120", step.Parameters.Single(parameter => parameter.Name == "holdMs").Value);
+
+            // With the switch off the recorder is told so, and a button pressed while recording is
+            // not written down at all.
+            viewModel.RecordGamepadButtons = false;
+            viewModel.ToggleRecordCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(recorder.RecordController, "the panel's switch did not reach the recorder");
+
+            recorder.Play(RecordedInput.GamepadDown("b", 0));
+            recorder.Play(RecordedInput.GamepadUp("b", 60));
+
+            viewModel.StopRecording();
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Single(viewModel.Steps, step => step.Type == "gamepad.button");
+        });
+    }
+
+    /// <summary>
     /// A machine that answers with what a check put in it: one colour everywhere, the pointer at one
     /// place, one control under it, and every way of sending input written down rather than sent.
     /// Everything that is not one of those is refused the way a machine with no devices refuses it.
@@ -261,6 +314,9 @@ public class PickerDeviceTests
         public bool IsRunning { get; private set; }
 
         public bool IgnoreInjected { get; set; }
+
+        /// <summary>What the editor asked for, so the panel's controller switch can be read back.</summary>
+        public bool RecordController { get; set; }
 
         public bool Disposed { get; private set; }
 

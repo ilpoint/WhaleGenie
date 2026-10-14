@@ -650,6 +650,10 @@ public partial class MacroEditorViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool RecordKeyboardKeys { get; set; } = true;
 
+    /// <summary>Whether the buttons of the controller in the person's hands are recorded.</summary>
+    [ObservableProperty]
+    public partial bool RecordGamepadButtons { get; set; } = true;
+
     [ObservableProperty]
     public partial bool RecordDelays { get; set; } = true;
 
@@ -1435,6 +1439,7 @@ public partial class MacroEditorViewModel : ViewModelBase
             RecordMouseMovement = macro.RecordMouseMovement;
             RecordMouseButtons = macro.RecordMouseButtons;
             RecordKeyboardKeys = macro.RecordKeyboardKeys;
+            RecordGamepadButtons = macro.RecordGamepadButtons;
             RecordDelays = macro.RecordDelays;
             IgnoreDelaysBelowMs = macro.IgnoreDelaysBelowMs;
             RecordIgnoreInjected = macro.RecordIgnoreInjected;
@@ -2224,6 +2229,7 @@ public partial class MacroEditorViewModel : ViewModelBase
             RecordMouseMovement = RecordMouseMovement,
             RecordMouseButtons = RecordMouseButtons,
             RecordKeyboardKeys = RecordKeyboardKeys,
+            RecordGamepadButtons = RecordGamepadButtons,
             RecordDelays = RecordDelays,
             IgnoreDelaysBelowMs = (int)(IgnoreDelaysBelowMs ?? 0),
             RecordIgnoreInjected = RecordIgnoreInjected,

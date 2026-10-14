@@ -908,6 +908,12 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public bool IgnoreInjected { get; set; }
 
+        /// <summary>
+        /// A machine with no recorder records no controller either; the switch is answered rather than
+        /// refused because getting a recorder at all is what is refused, before this is ever asked.
+        /// </summary>
+        public bool RecordController { get; set; } = true;
+
         event Action<RecordedInput>? IInputRecorder.Captured
         {
             add => throw Missing("a recorder");

@@ -746,7 +746,7 @@
                                     <ComboBox Classes="OptionSelect" ItemsSource="{Binding PositionCaptureOptions}"
                                               SelectedIndex="{Binding PositionCaptureIndex}" Margin="0,0,0,6" />
 
-                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="6" RowDefinitions="Auto,Auto" RowSpacing="4">
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="6" RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
                                         <Border Grid.Row="0" Grid.Column="0" Classes="ActionCell">
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
@@ -806,6 +806,22 @@
                                                               Width="40"
                                                               OnContent="" OffContent=""
                                                               IsChecked="{Binding RecordDelays}" />
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Grid.Row="2" Grid.Column="0" Classes="ActionCell">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
+                                                            Opacity="{Binding RecordGamepadButtons, Converter={StaticResource RowOpacity}}">
+                                                    <!-- Controller seen from above: grip body, d-pad and two buttons -->
+                                                    <Path Classes="RecordIcon" Data="M9,7 H15 C16.8,7 18.1,8.2 18.4,9.8 L19.2,13.6 C19.5,15.4 18.3,16.9 16.6,16.9 C15.5,16.9 14.8,16.2 14.2,15.4 L13.4,14.4 H10.6 L9.8,15.4 C9.2,16.2 8.5,16.9 7.4,16.9 C5.7,16.9 4.5,15.4 4.8,13.6 L5.6,9.8 C5.9,8.2 7.2,7 9,7 Z M8.6,9.9 V13.1 M7,11.5 H10.2 M15.6,10.4 A0.8,0.8 0 1 1 15.6,12 A0.8,0.8 0 1 1 15.6,10.4 Z" />
+                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                               Text="{Binding [Editor.GamepadButtons], Source={x:Static loc:Strings.Current}}" />
+                                                </StackPanel>
+                                                <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                                              Width="40"
+                                                              OnContent="" OffContent=""
+                                                              IsChecked="{Binding RecordGamepadButtons}" />
                                             </Grid>
                                         </Border>
                                     </Grid>

@@ -97,6 +97,19 @@ public static class RecordingStepBuilder
                 ("x", Number(action.X)),
                 ("y", Number(action.Y))),
 
+        RecordedActionKind.GamepadPress =>
+            Build(
+                "gamepad.button",
+                ("button", action.Key),
+                ("mode", "tap"),
+                ("holdMs", Number(action.DurationMs))),
+
+        RecordedActionKind.GamepadDown =>
+            Build("gamepad.button", ("button", action.Key), ("mode", "down")),
+
+        RecordedActionKind.GamepadUp =>
+            Build("gamepad.button", ("button", action.Key), ("mode", "up")),
+
         _ => throw new ArgumentOutOfRangeException(nameof(action), action.Kind, "Unknown recorded action."),
     };
 

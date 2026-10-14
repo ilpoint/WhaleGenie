@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Recording;
 
 namespace WhaleGenie.Core.Tests;
@@ -315,6 +317,107 @@ public class RecordingTests
             RecordedInput.Scroll("up", 1, 80, 10, 130));
 
         Assert.Empty(actions);
+    }
+
+    /// <summary>
+    /// A controller button pressed and let go again quickly is one tap, the way a key is. The button
+    /// travels named the way a macro names it, so the step that comes of it presses the same button.
+    /// </summary>
+    [Fact]
+    public void A_controller_button_pressed_quickly_becomes_one_tap()
+    {
+        var actions = Translate(
+            Quiet,
+            RecordedInput.GamepadDown("a", 100),
+            RecordedInput.GamepadUp("a", 160));
+
+        var tap = Assert.Single(actions);
+        Assert.Equal(RecordedActionKind.GamepadPress, tap.Kind);
+        Assert.Equal("a", tap.Key);
+        Assert.Equal(60, tap.DurationMs);
+    }
+
+    /// <summary>
+    /// A button held longer than a tap stays down until it is let go, like a key: that is what a macro
+    /// needs for a button a game reads while other steps run.
+    /// </summary>
+    [Fact]
+    public void A_controller_button_held_stays_down_until_it_is_let_go()
+    {
+        var actions = Translate(
+            Quiet,
+            RecordedInput.GamepadDown("lb", 0),
+            RecordedInput.GamepadUp("lb", 2000));
+
+        Assert.Equal(
+            [RecordedActionKind.GamepadDown, RecordedActionKind.GamepadUp],
+            actions.Select(action => action.Kind));
+    }
+
+    /// <summary>A release for a button that was already down when recording started writes nothing.</summary>
+    [Fact]
+    public void A_controller_release_with_no_press_behind_it_writes_nothing()
+    {
+        var actions = Translate(Quiet, RecordedInput.GamepadUp("a", 10));
+
+        Assert.Empty(actions);
+    }
+
+    /// <summary>The controller switch turns controller steps off, the way the mouse one does.</summary>
+    [Fact]
+    public void The_controller_switch_turns_controller_steps_off()
+    {
+        var actions = Translate(
+            new RecordingOptions { GamepadButtons = false },
+            RecordedInput.GamepadDown("a", 0),
+            RecordedInput.GamepadUp("a", 60));
+
+        Assert.Empty(actions);
+    }
+
+    /// <summary>
+    /// The recorder writes down the controller as well as the keyboard and the mouse. Windows reports
+    /// no controller button, so the recorder reads it while a recording is going; what it was holding
+    /// when the reading began is taken up rather than written down, the way a key already down is.
+    /// </summary>
+    [Fact]
+    public void The_recorder_writes_down_the_controller_it_was_given()
+    {
+        var pad = new PlayedPad { Down = GamepadButtons.A };
+        var recorder = new InputHookRecorder(pad);
+        var captured = new List<RecordedInput>();
+        recorder.Captured += captured.Add;
+
+        recorder.TakeUpController();
+        recorder.ReadButtons();
+        Assert.Empty(captured);
+
+        pad.Down = GamepadButtons.None;
+        recorder.ReadButtons();
+        pad.Down = GamepadButtons.LeftBumper;
+        recorder.ReadButtons();
+
+        Assert.Equal(2, captured.Count);
+        Assert.Equal(RecordedInputKind.GamepadUp, captured[0].Kind);
+        Assert.Equal("a", captured[0].Key);
+        Assert.Equal(RecordedInputKind.GamepadDown, captured[1].Kind);
+        Assert.Equal("lb", captured[1].Key);
+
+        // The panel can leave the controller out of a recording altogether.
+        recorder.RecordController = false;
+        pad.Down = GamepadButtons.None;
+        recorder.ReadButtons();
+        Assert.Equal(2, captured.Count);
+    }
+
+    /// <summary>A controller a check plays: what is held is whatever the check last set.</summary>
+    private sealed class PlayedPad : IGamepadReading
+    {
+        public bool Connected { get; set; } = true;
+
+        public GamepadButtons Down { get; set; }
+
+        public GamepadButtons Held() => Connected ? Down : GamepadButtons.None;
     }
 
     [Fact]

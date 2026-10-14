@@ -225,6 +225,9 @@ public partial class MacroItem : ObservableObject
 
     public bool RecordKeyboardKeys { get; set; } = true;
 
+    /// <summary>The buttons of the controller in the person's hands, read while a recording is going.</summary>
+    public bool RecordGamepadButtons { get; set; } = true;
+
     public bool RecordDelays { get; set; } = true;
 
     /// <summary>
@@ -333,6 +336,7 @@ public partial class MacroItem : ObservableObject
                 ["mouseMovement"] = RecordMouseMovement,
                 ["mouseButtons"] = RecordMouseButtons,
                 ["keyboardKeys"] = RecordKeyboardKeys,
+                ["gamepadButtons"] = RecordGamepadButtons,
                 ["delays"] = RecordDelays,
                 ["ignoreDelaysBelowMs"] = IgnoreDelaysBelowMs,
                 ["ignoreInjected"] = RecordIgnoreInjected,
@@ -435,6 +439,7 @@ public partial class MacroItem : ObservableObject
             RecordMouseMovement = ReadBool(record?["mouseMovement"], true),
             RecordMouseButtons = ReadBool(record?["mouseButtons"], true),
             RecordKeyboardKeys = ReadBool(record?["keyboardKeys"], true),
+            RecordGamepadButtons = ReadBool(record?["gamepadButtons"], true),
             RecordDelays = ReadBool(record?["delays"], true),
             IgnoreDelaysBelowMs = ReadInt(record?["ignoreDelaysBelowMs"], 50),
             RecordIgnoreInjected = ReadBool(record?["ignoreInjected"], true),

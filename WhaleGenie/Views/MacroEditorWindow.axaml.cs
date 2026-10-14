@@ -1328,6 +1328,7 @@ public partial class MacroEditorWindow : Window
         recorder.Captured += OnCaptured;
         recorder.StopRequested += OnRecorderStopRequested;
         recorder.IgnoreInjected = _viewModel.RecordIgnoreInjected;
+        recorder.RecordController = _viewModel.RecordGamepadButtons;
 
         try
         {
@@ -1423,6 +1424,7 @@ public partial class MacroEditorWindow : Window
         MouseMovement = _viewModel.RecordMouseMovement,
         MouseButtons = _viewModel.RecordMouseButtons,
         KeyboardKeys = _viewModel.RecordKeyboardKeys,
+        GamepadButtons = _viewModel.RecordGamepadButtons,
         Delays = _viewModel.RecordDelays,
         IgnoreDelaysBelowMs = (int)(_viewModel.IgnoreDelaysBelowMs ?? 0),
         RelativeMovement = _viewModel.PositionCapture == MousePositionMode.SavePositionDifferences,

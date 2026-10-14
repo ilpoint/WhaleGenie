@@ -9,6 +9,12 @@ public enum RecordedInputKind
     MouseUp,
     MouseMove,
     MouseScroll,
+
+    /// <summary>A controller button going down, read rather than reported: see the note below.</summary>
+    GamepadDown,
+
+    /// <summary>That button coming back up.</summary>
+    GamepadUp,
 }
 
 /// <summary>
@@ -43,6 +49,17 @@ public readonly record struct RecordedInput(
 
     public static RecordedInput Scroll(string direction, int amount, int x, int y, long at)
         => new(RecordedInputKind.MouseScroll, string.Empty, string.Empty, direction, amount, x, y, at);
+
+    /// <summary>
+    /// A controller button, named the way a macro names it (<c>a</c>, <c>lb</c>). Windows has no word
+    /// for a controller button going down, so these come from reading the controller rather than from
+    /// the hook, and they carry a reading's timing rather than the press's.
+    /// </summary>
+    public static RecordedInput GamepadDown(string button, long at)
+        => new(RecordedInputKind.GamepadDown, button, string.Empty, string.Empty, 0, 0, 0, at);
+
+    public static RecordedInput GamepadUp(string button, long at)
+        => new(RecordedInputKind.GamepadUp, button, string.Empty, string.Empty, 0, 0, 0, at);
 }
 
 /// <summary>Tells the modifier keys apart from the keys a chord is built around.</summary>

@@ -24,6 +24,7 @@ public sealed class RecordingTranslator
     private readonly List<Placed> _placed = [];
     private readonly Dictionary<string, Held> _pressed = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _downKeys = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _downButtons = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<Placed> _dragPath = [];
 
     private PendingClick? _pendingClick;
@@ -120,6 +121,24 @@ public sealed class RecordingTranslator
                 if (_options.MouseButtons)
                 {
                     Scroll(input.Direction, input.Amount, input.X, input.Y, input.At);
+                }
+
+                break;
+
+            case RecordedInputKind.GamepadDown:
+                if (_options.GamepadButtons && _downButtons.Add(input.Key))
+                {
+                    Place(new RecordedAction(RecordedActionKind.GamepadDown, Key: input.Key), input.At);
+                }
+
+                break;
+
+            case RecordedInputKind.GamepadUp:
+                // A release for a button that was already down when the recording started has no
+                // press to match it, the same as a key.
+                if (_options.GamepadButtons && _downButtons.Remove(input.Key))
+                {
+                    Place(new RecordedAction(RecordedActionKind.GamepadUp, Key: input.Key), input.At);
                 }
 
                 break;
@@ -364,11 +383,56 @@ public sealed class RecordingTranslator
                 continue;
             }
 
+            if (TryButtonTap(index, out var buttonTap))
+            {
+                result.Add(buttonTap);
+                index += 2;
+                continue;
+            }
+
             result.Add(_placed[index]);
             index++;
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Folds a controller button pressed and let go again into one tap, the way a key is folded. A
+    /// button held longer than a tap stays down as a step of its own and is let go by a later one:
+    /// that is what a macro wants for a button held across other steps, such as one a game reads
+    /// while the stick is moved.
+    /// </summary>
+    private bool TryButtonTap(int index, out Placed tap)
+    {
+        tap = default;
+        if (index + 1 >= _placed.Count)
+        {
+            return false;
+        }
+
+        var down = _placed[index];
+        var up = _placed[index + 1];
+        if (down.Action.Kind != RecordedActionKind.GamepadDown
+            || up.Action.Kind != RecordedActionKind.GamepadUp
+            || !string.Equals(down.Action.Key, up.Action.Key, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var hold = up.At - down.At;
+        if (hold > _options.KeyTapMaxHoldMs)
+        {
+            return false;
+        }
+
+        tap = new Placed(
+            new RecordedAction(
+                RecordedActionKind.GamepadPress,
+                Key: down.Action.Key,
+                DurationMs: (int)Math.Max(0, hold)),
+            down.At);
+        return true;
     }
 
     private bool TryChord(int index, out Placed chord, out int consumed)

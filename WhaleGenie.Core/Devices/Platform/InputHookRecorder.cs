@@ -22,14 +22,27 @@ public sealed class InputHookRecorder : IInputRecorder
     /// <summary>One wheel notch, as the platform reports it.</summary>
     private const int Notch = 120;
 
+    /// <summary>
+    /// How often the controller is read while a recording is going. Windows reports no controller
+    /// button, so a recording has to look as well as listen; this is the pace the triggers read it
+    /// at, and one reading costs a fraction of what one look at the screen does.
+    /// </summary>
+    private const int ButtonReadIntervalMs = 30;
+
     /// <summary>Most notches written into a single scroll step, however fast the wheel spun.</summary>
     private const int MaxScrollNotches = 60;
 
     private readonly Stopwatch _clock = new();
     private readonly HashSet<HookKey> _down = [];
+    private readonly IGamepadReading _controller;
+    private readonly GamepadButtonWatch _buttons = new();
 
     /// <summary>The shared hook while this recorder is listening to it.</summary>
     private IInputHook? _hook;
+
+    /// <summary>The reading of the controller, up only while a recording is going.</summary>
+    private Timer? _buttonTimer;
+
     private int _cursorX;
     private int _cursorY;
     private bool _hasCursor;
@@ -42,6 +55,13 @@ public sealed class InputHookRecorder : IInputRecorder
     private static readonly HookKey LeftControl = SharpKeys.Key(KeyCode.VcLeftControl);
     private static readonly HookKey RightControl = SharpKeys.Key(KeyCode.VcRightControl);
 
+    /// <param name="controller">
+    /// The controller in the person's hands, which is read while a recording is going. A recorder made
+    /// without one records the keyboard and the mouse alone, as a machine with no controller would.
+    /// </param>
+    public InputHookRecorder(IGamepadReading? controller = null)
+        => _controller = controller ?? new NoGamepadReading();
+
     public bool IsRunning { get; private set; }
 
     /// <summary>
@@ -50,6 +70,9 @@ public sealed class InputHookRecorder : IInputRecorder
     /// virtual machine can turn it off, at the price of recording a running macro as well.
     /// </summary>
     public bool IgnoreInjected { get; set; } = true;
+
+    /// <summary>Whether the controller is written down as well; the recording panel turns it off.</summary>
+    public bool RecordController { get; set; } = true;
 
     public event Action<RecordedInput>? Captured;
 
@@ -80,6 +103,10 @@ public sealed class InputHookRecorder : IInputRecorder
         _stopRaised = 0;
         _clock.Restart();
         _hook = hook;
+
+        TakeUpController();
+        _buttonTimer = new Timer(_ => ReadButtons(), null, ButtonReadIntervalMs, ButtonReadIntervalMs);
+
         IsRunning = true;
     }
 
@@ -94,6 +121,8 @@ public sealed class InputHookRecorder : IInputRecorder
         IsRunning = false;
         _hook = null;
         _clock.Stop();
+        _buttonTimer?.Dispose();
+        _buttonTimer = null;
         Detach(hook);
     }
 
@@ -204,6 +233,60 @@ public sealed class InputHookRecorder : IInputRecorder
         if (amount > 0)
         {
             Raise(RecordedInput.Scroll(direction, amount, e.X, e.Y, Now));
+        }
+    }
+
+    /// <summary>
+    /// One reading of the controller, written down as whatever changed since the reading before.
+    /// Nothing is read while the panel has controller buttons switched off.
+    /// </summary>
+    /// <summary>
+    /// Takes up whatever the controller is holding without writing it down: a button that was already
+    /// down when the recording started has no press of ours to match, and writing its release on its
+    /// own would confuse whatever is being driven.
+    /// </summary>
+    internal void TakeUpController() => _buttons.Take(Held());
+
+    /// <summary>
+    /// One reading of the controller, written down as whatever changed since the reading before. It is
+    /// called by the timer, which is up only between the start and the stop of a recording, and by the
+    /// checks, which need a reading to happen when they say so. Nothing is read while the panel has
+    /// controller buttons switched off.
+    /// </summary>
+    internal void ReadButtons()
+    {
+        if (!RecordController)
+        {
+            return;
+        }
+
+        foreach (var (button, down) in _buttons.Changed(Held()))
+        {
+            // A button with no name is one no macro could ask for, and there is nothing to write down.
+            var name = GamepadNames.Name(button);
+            if (name.Length == 0)
+            {
+                continue;
+            }
+
+            Raise(down
+                ? RecordedInput.GamepadDown(name, Now)
+                : RecordedInput.GamepadUp(name, Now));
+        }
+    }
+
+    /// <summary>What the controller is holding, or nothing when it cannot be read or is not there.</summary>
+    private GamepadButtons Held()
+    {
+        try
+        {
+            return _controller.Held();
+        }
+        catch (Exception)
+        {
+            // A controller that cannot be read is a controller with nothing to say, which is the same
+            // answer as a machine with none plugged in: the recording goes on without it.
+            return GamepadButtons.None;
         }
     }
 

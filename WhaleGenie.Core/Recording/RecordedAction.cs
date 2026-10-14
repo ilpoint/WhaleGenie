@@ -38,6 +38,15 @@ public enum RecordedActionKind
 
     /// <summary>The wheel turned.</summary>
     Scroll,
+
+    /// <summary>A controller button pressed and let go again quickly.</summary>
+    GamepadPress,
+
+    /// <summary>A controller button held down until a later GamepadUp, for a button that stays down.</summary>
+    GamepadDown,
+
+    /// <summary>A controller button let go of.</summary>
+    GamepadUp,
 }
 
 /// <summary>

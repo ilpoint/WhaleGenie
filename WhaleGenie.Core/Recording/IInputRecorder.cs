@@ -17,6 +17,13 @@ public interface IInputRecorder : IDisposable
     /// </summary>
     bool IgnoreInjected { get; set; }
 
+    /// <summary>
+    /// Whether the buttons of the controller in the person's hands are written down as well. It is on
+    /// by default: a recording of a game is mostly the controller, and a machine with none plugged in
+    /// has nothing to write down either way.
+    /// </summary>
+    bool RecordController { get; set; }
+
     /// <summary>Raised for every captured event, in the order it happened.</summary>
     event Action<RecordedInput>? Captured;
 

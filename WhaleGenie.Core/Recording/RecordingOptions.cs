@@ -16,6 +16,9 @@ public sealed record RecordingOptions
     /// <summary>Write keys, held keys and chords.</summary>
     public bool KeyboardKeys { get; init; } = true;
 
+    /// <summary>Write the buttons of the controller in the person's hands.</summary>
+    public bool GamepadButtons { get; init; } = true;
+
     /// <summary>Write pauses between the captured actions as delay steps.</summary>
     public bool Delays { get; init; } = true;
 
@@ -46,6 +49,6 @@ public sealed record RecordingOptions
     /// <summary>Wheel turns of the same direction this close together become one step.</summary>
     public int ScrollCoalesceMs { get; init; } = 400;
 
-    /// <summary>Longest a key may be held and still be recorded as a single press.</summary>
+    /// <summary>Longest a key or a controller button may be held and still be recorded as a single press.</summary>
     public int KeyTapMaxHoldMs { get; init; } = 700;
 }
