@@ -480,8 +480,8 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// Opens the run-and-debug window, or brings the one already open to the front. Asked for
-    /// without a macro it shows the variables and nothing to run: where a debug run starts from is
-    /// the card's own menu, which says which macro it is about.
+    /// without a macro it shows the variables and nothing to run, and offers to pick one and start
+    /// it; the card's own button and menu hand in the macro they are on instead.
     /// </summary>
     private async Task ShowRunDebugAsync(MacroItem? macro = null)
     {
@@ -1050,8 +1050,8 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Debugs a macro: the one thing the card's own buttons do not do, so it lives in the menu a
-    /// right click opens. The window keeps the whole list, which is what its variables half lists.
+    /// Debugs a macro, which is what the card's own button and the menu a right click opens both
+    /// ask for. The window keeps the whole list, which is what its variables half lists.
     /// </summary>
     private async void OnDebugMacroClicked(object? sender, RoutedEventArgs e)
     {

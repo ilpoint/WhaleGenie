@@ -151,6 +151,53 @@ public partial class RunWindow : Window
     /// <summary>The form this window is driving.</summary>
     private RunViewModel? Form => DataContext as RunViewModel;
 
+    /// <summary>Starts the run this window was opened on, which is what the editor's own F5 asks for.</summary>
+    internal void StartRun() => Form?.RunCommand.Execute(null);
+
+    /// <summary>
+    /// The three keys a debugger is driven with, doing exactly what the three buttons on the
+    /// tool bar do: F10 does one step, Shift+F5 stops, and F5 is run or carry on. F5 stands for two
+    /// buttons at once, so which of them it is follows from where the run is — carrying on is what
+    /// it means once something has stopped it.
+    /// </summary>
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.Handled || Form is not { } viewModel)
+        {
+            return;
+        }
+
+        switch (e.Key)
+        {
+            case Key.F10:
+                Act(viewModel.StepCommand);
+                break;
+            case Key.F5 when e.KeyModifiers.HasFlag(KeyModifiers.Shift):
+                Act(viewModel.StopCommand);
+                break;
+            case Key.F5 when !Act(viewModel.ContinueCommand):
+                Act(viewModel.RunCommand);
+                break;
+            default:
+                return;
+        }
+
+        e.Handled = true;
+    }
+
+    /// <summary>Does what one of the run buttons would do, if it would do anything at all.</summary>
+    private static bool Act(System.Windows.Input.ICommand command)
+    {
+        if (!command.CanExecute(null))
+        {
+            return false;
+        }
+
+        command.Execute(null);
+        return true;
+    }
+
     /// <summary>
     /// The line that says whose turn it is at the input door is only right while the door is
     /// watched, so the window listens while it is open and stops when it closes: the event is the

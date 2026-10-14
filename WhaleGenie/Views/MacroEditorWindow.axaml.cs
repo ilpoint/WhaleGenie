@@ -972,7 +972,11 @@ public partial class MacroEditorWindow : Window
         return new ProjectMacroLibrary(entries);
     }
 
-    /// <summary>Opens the run window on the steps as they stand, without saving first.</summary>
+    /// <summary>
+    /// Opens the run window on the steps as they stand, without saving first, and starts it: F5 in
+    /// the editor means the same thing as the card's own menu, which loads the macro into the window
+    /// and runs it. Whoever wants to go one step at a time presses Step in the window it opens.
+    /// </summary>
     private void OnRunRequested()
     {
         if (_viewModel.Steps.Count == 0)
@@ -980,8 +984,10 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        new RunWindow(_viewModel.Steps, Layer, _viewModel.DelayScale, BuildLibrary(),
-            macroName: _editing?.Name ?? string.Empty).ShowOver(this);
+        var window = new RunWindow(_viewModel.Steps, Layer, _viewModel.DelayScale, BuildLibrary(),
+            macroName: _editing?.Name ?? string.Empty);
+        window.ShowOver(this);
+        window.StartRun();
     }
 
     /// <summary>Opens the run-speed dialog and keeps whatever factor it was given.</summary>

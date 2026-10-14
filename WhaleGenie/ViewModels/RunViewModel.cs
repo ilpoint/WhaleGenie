@@ -562,6 +562,29 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     }
 
     /// <summary>
+    /// The macros a debug run can be started on when this window was opened without one, in the
+    /// order the main list shows them. Whether a macro is armed makes no difference here: that is
+    /// the switch on its trigger, not whether the macro itself can be run.
+    /// </summary>
+    public IReadOnlyList<MacroItem> DebugChoices => _listed;
+
+    /// <summary>The macro the picker is standing on, or null while nobody has chosen one.</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(StartDebugCommand))]
+    public partial MacroItem? ChosenMacro { get; set; }
+
+    /// <summary>Starting a debug run needs a macro to run.</summary>
+    public bool CanStartDebug => ChosenMacro is not null;
+
+    /// <summary>
+    /// Starts debugging the macro the picker is on, which is what the window opened from the main
+    /// window offers instead of the run controls. It takes the card menu's own road, because it is
+    /// the same thing asked for from a different place.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanStartDebug))]
+    private Task StartDebug() => ChosenMacro is { } macro ? DebugAsync(macro) : Task.CompletedTask;
+
+    /// <summary>
     /// The macros a run may call: the ones in the list as they stand, so a macro that was just
     /// edited is the one called. A window handed its own library uses that instead, which is what
     /// the editor's own run does — it knows exactly which steps are being run, saved or not.

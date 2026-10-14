@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
@@ -41,7 +43,7 @@ public class RunDebugTests
 
             Assert.False(Find<Border>(window, "RunToolbar").IsVisible);
             Assert.False(Find<Border>(window, "PageTabs").IsVisible);
-            Assert.True(Find<TextBlock>(window, "DebugFromCardNote").IsVisible);
+            Assert.True(Find<TextBlock>(window, "DebugFromCardNote").IsEffectivelyVisible);
 
             window.Close();
         });
@@ -61,7 +63,7 @@ public class RunDebugTests
             Assert.True(viewModel.IsDebugPage);
             Assert.True(viewModel.HasSteps);
             Assert.True(Find<Border>(window, "RunToolbar").IsVisible);
-            Assert.False(Find<TextBlock>(window, "DebugFromCardNote").IsVisible);
+            Assert.False(Find<TextBlock>(window, "DebugFromCardNote").IsEffectivelyVisible);
 
             viewModel.SelectPageCommand.Execute("Variables");
             Dispatcher.UIThread.RunJobs();
@@ -446,6 +448,106 @@ public class RunDebugTests
     }
 
     /// <summary>
+    /// 从主界面标题栏开的那扇窗是空手开的，它得给出"从哪儿开始"的入口：一个列出项目里所有宏的下拉，
+    /// 加一枚「开始调试」。装上宏之后这两样让位给运行控制，与从卡片开的那扇一样。
+    /// </summary>
+    [Fact]
+    public void An_empty_window_offers_a_macro_to_debug_and_gives_way_to_the_run_controls()
+    {
+        var answer = Ui.Run(() =>
+        {
+            var armed = new MacroItem { Name = "对账单" };
+            var unarmed = new MacroItem { Name = "另存的", IsEnabled = false };
+            armed.Steps.Add(SlowStep(5));
+            unarmed.Steps.Add(SlowStep(5));
+
+            var window = new RunWindow([], NullDeviceLayer.Instance, listed: [armed, unarmed]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var picker = Find<ComboBox>(window, "MacroPicker");
+            var start = Find<Button>(window, "StartDebugButton");
+            var empty = (
+                Shown: picker.IsEffectivelyVisible && start.IsEffectivelyVisible,
+                Choices: picker.ItemsSource!.Cast<MacroItem>().Select(macro => macro.Name).ToList(),
+                Ready: start.Command!.CanExecute(null),
+                Toolbar: Find<Border>(window, "RunToolbar").IsVisible);
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            viewModel.ChosenMacro = armed;
+            Dispatcher.UIThread.RunJobs();
+            var ready = start.Command!.CanExecute(null);
+
+            viewModel.DebugAsync(armed).GetAwaiter().GetResult();
+            Dispatcher.UIThread.RunJobs();
+
+            var after = (
+                Picker: picker.IsEffectivelyVisible,
+                Start: start.IsEffectivelyVisible,
+                Toolbar: Find<Border>(window, "RunToolbar").IsVisible);
+
+            window.Close();
+            return (Empty: empty, Ready: ready, After: after);
+        });
+
+        // 空手开着：选宏与开始调试都在，宏按主列表的顺序列出来 —— 没启用的也列，那是触发器上的开关，
+        // 不是能不能跑。
+        Assert.True(answer.Empty.Shown, "空手开着的窗口该给出选宏与开始调试");
+        Assert.Equal(["对账单", "另存的"], answer.Empty.Choices);
+        Assert.False(answer.Empty.Ready, "还没选宏时不该能开始");
+        Assert.False(answer.Empty.Toolbar);
+
+        // 选了宏就能开始；装上之后这两样让位给运行控制。
+        Assert.True(answer.Ready, "选了宏之后该能开始");
+        Assert.False(answer.After.Picker, "装上宏之后选宏该让位");
+        Assert.False(answer.After.Start);
+        Assert.True(answer.After.Toolbar, "装上宏之后运行控制该出现");
+    }
+
+    /// <summary>
+    /// 下拉里站着哪个宏，「开始调试」按下就装上哪个、跑的就是哪个：与卡片右键走的是同一条路。
+    /// </summary>
+    [Fact]
+    public void The_picker_starts_the_macro_it_is_standing_on()
+    {
+        var answer = Ui.RunAsync(async () =>
+        {
+            var first = new MacroItem { Name = "first" };
+            first.Steps.Add(Count("a", "1"));
+            var second = new MacroItem { Name = "second" };
+            second.Steps.Add(Count("b", "1"));
+            second.Steps.Add(Count("c", "1"));
+            StepIds.Settle([.. first.Steps, .. second.Steps]);
+
+            var window = new RunWindow([], NullDeviceLayer.Instance, listed: [first, second]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            Find<ComboBox>(window, "MacroPicker").SelectedItem = second;
+            Dispatcher.UIThread.RunJobs();
+
+            Find<Button>(window, "StartDebugButton").Command!.Execute(null);
+
+            // 等它真的跑过：刚按下时那扇窗还没开始跑，"不在忙"那一刻什么都还没发生。
+            var done = await Until(() =>
+                viewModel.Steps.Count > 0 && viewModel.Steps.All(step => step.HasRun));
+            var ran = viewModel.Steps.All(step => step.HasRun);
+            var ids = viewModel.Steps.Select(step => step.Id).ToList();
+            var answer = (Done: done, Ran: ran, Ids: ids, Debugged: viewModel.Debugged,
+                Wanted: second.Steps.Select(step => step.Id).ToList());
+
+            window.Close();
+            return answer;
+        });
+
+        Assert.True(answer.Done, "按下之后那扇窗该跑起来");
+        Assert.Equal("second", answer.Debugged);
+        Assert.Equal(answer.Wanted, answer.Ids);
+        Assert.True(answer.Ran, "两个步骤都该跑过");
+    }
+
+    /// <summary>
     /// 从主界面开的那扇窗是空手开的，宏装进去之后工具栏与「单步」这枚按钮才该画出来 —— 卡片上的
     /// 「运行调试」走的正是这条路：先开一扇空的，再把宏装进去。照"没有步骤"画出来的东西得有人告诉它
     /// 改口，不然装上宏之后窗口里还是没有"开始"的地方。
@@ -466,13 +568,13 @@ public class RunDebugTests
 
             var viewModel = (RunViewModel)window.DataContext!;
             var before = (Toolbar: Find<Border>(window, "RunToolbar").IsVisible,
-                Note: Find<TextBlock>(window, "DebugFromCardNote").IsVisible);
+                Note: Find<TextBlock>(window, "DebugFromCardNote").IsEffectivelyVisible);
 
             viewModel.DebugAsync(macro).GetAwaiter().GetResult();
             Dispatcher.UIThread.RunJobs();
 
             var after = (Toolbar: Find<Border>(window, "RunToolbar").IsVisible,
-                Note: Find<TextBlock>(window, "DebugFromCardNote").IsVisible);
+                Note: Find<TextBlock>(window, "DebugFromCardNote").IsEffectivelyVisible);
 
             window.Close();
             return (Before: before, After: after);
@@ -606,6 +708,134 @@ public class RunDebugTests
         Assert.Equal("对账单", answer.Wall);
         Assert.Equal("对账单", answer.Kept);
         Assert.Contains("对账单", answer.Title, System.StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// 「跳过这一步」上了工具栏，与圆点右键那一份是同一件事：停住时可点，没停住时不可点。
+    /// </summary>
+    [Fact]
+    public void Skip_this_step_is_only_clickable_while_the_run_is_paused()
+    {
+        var answer = Ui.RunAsync(async () =>
+        {
+            var held = Count("n", "1");
+            var next = Count("after", "1");
+            StepIds.Settle([held, next]);
+
+            var window = new RunWindow([held, next], NullDeviceLayer.Instance);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            var button = Find<Button>(window, "SkipStepButton");
+            var wired = ReferenceEquals(button.Command, viewModel.SkipStepCommand);
+            var before = button.Command!.CanExecute(null);
+
+            viewModel.ToggleBreakpointCommand.Execute(viewModel.Steps.First(step => step.Id == held.Id));
+            viewModel.RunCommand.Execute(null);
+            var paused = await Until(() => viewModel.IsPaused);
+            var during = button.Command!.CanExecute(null);
+
+            button.Command.Execute(null);
+            var done = await Until(() => !viewModel.IsBusy);
+            var after = button.Command!.CanExecute(null);
+            var label = viewModel.Steps.First(step => step.Id == held.Id).OutcomeLabel;
+
+            window.Close();
+            return (Wired: wired, Before: before, paused, during, done, After: after, Label: label,
+                Wanted: Strings.Get("Run.OutcomeSkipped"));
+        });
+
+        Assert.True(answer.Wired, "工具栏那枚按钮接的该是同一个命令");
+        Assert.False(answer.Before, "还没停住时不该能跳过");
+        Assert.True(answer.paused, "断点该让运行停住");
+        Assert.True(answer.during, "停住时该能跳过");
+        Assert.True(answer.done, "跳过之后该接着跑完");
+        Assert.False(answer.After, "跑完之后又该不能跳过");
+        Assert.Equal(answer.Wanted, answer.Label);
+    }
+
+    /// <summary>
+    /// 这扇窗接上三个快捷键，做的事与工具栏上那三枚按钮一模一样：F10 单步、F5 运行或继续、Shift+F5
+    /// 停止。F5 一个键管两枚按钮，按下算哪一枚看运行停没停。
+    /// </summary>
+    [Fact]
+    public void The_keys_do_what_the_run_buttons_do()
+    {
+        var answer = Ui.RunAsync(async () =>
+        {
+            var first = Count("n", "1");
+            var second = Count("m", "1");
+            StepIds.Settle([first, second]);
+
+            var window = new RunWindow([first, second], NullDeviceLayer.Instance);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            RunStepViewModel Row(string id) => viewModel.Steps.First(step => step.Id == id);
+
+            // F10：先停在第一步之前，什么都还没做 —— 与「单步」按钮一样。
+            window.KeyPressQwerty(PhysicalKey.F10, RawInputModifiers.None);
+            var ready = await Until(() => viewModel.IsPaused);
+            var nothing = !Row(first.Id).HasRun && !Row(second.Id).HasRun;
+
+            // 再按一次：做一步，停在第二步之前。
+            window.KeyPressQwerty(PhysicalKey.F10, RawInputModifiers.None);
+            var oneStep = await Until(() => viewModel.IsPaused && Row(first.Id).HasRun);
+            var later = Row(second.Id).HasRun;
+
+            // F5：接着跑完，与「继续」按钮一样。
+            window.KeyPressQwerty(PhysicalKey.F5, RawInputModifiers.None);
+            var finished = await Until(() => !viewModel.IsBusy && Row(second.Id).HasRun);
+
+            // Shift+F5：把正在跑的那一次停住，与「停止」按钮一样。
+            var slow = SlowStep(5000);
+            StepIds.Settle([slow]);
+            var running = new RunWindow([slow], NullDeviceLayer.Instance);
+            running.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var other = (RunViewModel)running.DataContext!;
+            other.RunCommand.Execute(null);
+            var going = await Until(() => other.IsBusy);
+            running.KeyPressQwerty(PhysicalKey.F5, RawInputModifiers.Shift);
+            var halted = await Until(() => !other.IsBusy);
+
+            running.Close();
+            window.Close();
+            return (ready, nothing, oneStep, later, finished, going, halted);
+        });
+
+        Assert.True(answer.ready, "F10 该让运行停住");
+        Assert.True(answer.nothing, "刚停住时什么都还没做");
+        Assert.True(answer.oneStep, "再按一次 F10 该只做一步并停住");
+        Assert.False(answer.later, "第二步不该在单步里跑掉");
+        Assert.True(answer.finished, "F5 该从停下的地方接着跑完");
+        Assert.True(answer.going, "那个慢宏该跑起来");
+        Assert.True(answer.halted, "Shift+F5 该把它停住");
+    }
+
+    /// <summary>
+    /// 步骤行左边那枚圆点是唯一说"能在这里下断点"的地方，它的提示就得说清点一下会发生什么 ——
+    /// 原来写的是这一步的名字，点下去会怎样只能靠猜。
+    /// </summary>
+    [Fact]
+    public void The_dot_says_what_clicking_it_does()
+    {
+        var markup = File.ReadAllText(
+            Path.Combine(Repository(), "WhaleGenie", "Views", "RunWindow.axaml"));
+
+        var dot = markup[markup.IndexOf("<Button Classes=\"Breakpoint\"", StringComparison.Ordinal)..];
+        dot = dot[..dot.IndexOf('>', StringComparison.Ordinal)];
+
+        Assert.Contains("[Run.BreakpointDot]", dot, StringComparison.Ordinal);
+        Assert.DoesNotContain("Binding Label", dot, StringComparison.Ordinal);
+
+        // 提示里写着"下断点"这件事，两种语言都是。
+        Assert.Contains("breakpoint", Strings.English["Run.BreakpointDot"],
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("断点", Strings.Chinese["Run.BreakpointDot"], StringComparison.Ordinal);
     }
 
     /// <summary>The repository root, found by walking up from the test binaries.</summary>

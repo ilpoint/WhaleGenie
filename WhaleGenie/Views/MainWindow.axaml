@@ -301,8 +301,7 @@
                     <DataTemplate x:DataType="models:MacroItem">
                         <Border Background="#2A2A2A" CornerRadius="6" Padding="12" Margin="0,0,0,8">
                             <!-- The same three things the card's own buttons do, where a right click
-                                 goes looking for them: debugging a macro is the one that has no
-                                 button of its own. -->
+                                 goes looking for them. -->
                             <Border.ContextMenu>
                                 <ContextMenu>
                                     <MenuItem Header="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}"
@@ -333,6 +332,12 @@
                                         </Border>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                        <Button Classes="CardButton"
+                                                ToolTip.Tip="{Binding [Main.RunDebug], Source={x:Static loc:Strings.Current}}"
+                                                Click="OnDebugMacroClicked">
+                                            <Path Width="12" Height="13" Fill="#DADADA"
+                                                  Data="M 1,0.5 L 11.5,6.5 L 1,12.5 Z" />
+                                        </Button>
                                         <Button Classes="CardButton"
                                                 ToolTip.Tip="{Binding [Main.EditTip], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnEditMacroClicked">

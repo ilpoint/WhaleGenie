@@ -231,26 +231,36 @@
                     IsVisible="{Binding HasSteps}">
                 <!-- Buttons, then what the run is doing, then the two notes about this run: how
                      fast it is being played, and whose turn it is at the input door. One column
-                     each, seven in all, because Avalonia puts whatever is past the last column in
+                     each, eight in all, because Avalonia puts whatever is past the last column in
                      that last column — two of these landing on top of each other is how the note
                      about the input door came to be drawn over the speed badge. -->
-                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto">
-                    <Button Classes="PrimaryButton"
+                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto">
+                    <Button Classes="PrimaryButton" Name="RunButton"
                             Content="{Binding [Run.Run], Source={x:Static loc:Strings.Current}}"
-                            Command="{Binding RunCommand}" />
+                            Command="{Binding RunCommand}"
+                            ToolTip.Tip="{Binding [Run.RunTip], Source={x:Static loc:Strings.Current}}" />
                     <Button Grid.Column="1" Classes="FlatButton" Margin="8,0,0,0"
                             Content="{Binding [Run.Step], Source={x:Static loc:Strings.Current}}"
-                            Command="{Binding StepCommand}" />
+                            Command="{Binding StepCommand}"
+                            ToolTip.Tip="{Binding [Run.StepTip], Source={x:Static loc:Strings.Current}}" />
                     <Button Grid.Column="2" Classes="FlatButton" Margin="8,0,0,0"
                             Content="{Binding [Run.Continue], Source={x:Static loc:Strings.Current}}"
-                            Command="{Binding ContinueCommand}" />
+                            Command="{Binding ContinueCommand}"
+                            ToolTip.Tip="{Binding [Run.ContinueTip], Source={x:Static loc:Strings.Current}}" />
                     <Button Grid.Column="3" Classes="FlatButton" Margin="8,0,0,0"
                             Content="{Binding [Run.Stop], Source={x:Static loc:Strings.Current}}"
-                            Command="{Binding StopCommand}" />
-                    <TextBlock Grid.Column="4" Margin="14,0,0,0" VerticalAlignment="Center"
+                            Command="{Binding StopCommand}"
+                            ToolTip.Tip="{Binding [Run.StopTip], Source={x:Static loc:Strings.Current}}" />
+                    <!-- Skipping the step a breakpoint stopped in front of lives here as well as in
+                         the dot's own menu: where it is wanted is right after a run has stopped, and
+                         that is when this window is being looked at, not the dot. -->
+                    <Button Grid.Column="4" Classes="FlatButton" Name="SkipStepButton" Margin="8,0,0,0"
+                            Content="{Binding [Run.SkipStep], Source={x:Static loc:Strings.Current}}"
+                            Command="{Binding SkipStepCommand}" />
+                    <TextBlock Grid.Column="5" Margin="14,0,0,0" VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#C8A165"
                                Text="{Binding Status}" />
-                    <Border Grid.Column="5" Name="SpeedBadge" Margin="10,0,0,0" Padding="8,3"
+                    <Border Grid.Column="6" Name="SpeedBadge" Margin="10,0,0,0" Padding="8,3"
                             CornerRadius="4"
                             Background="#3A2A10" BorderBrush="#8A6A2A" BorderThickness="1"
                             VerticalAlignment="Center"
@@ -261,7 +271,7 @@
                     <!-- Whose turn it is at the input door. Two macros running at once are two
                          hands on one keyboard, and this is the line that says which of them is
                          sending keys right now. -->
-                    <TextBlock Grid.Column="6" Name="InputOwnerText" Margin="12,0,0,0"
+                    <TextBlock Grid.Column="7" Name="InputOwnerText" Margin="12,0,0,0"
                                VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#8FD9A8"
                                IsVisible="{Binding ShowsInputOwner}"
@@ -284,11 +294,30 @@
             </Border>
 
             <!-- Opened from the button on its own there is nothing to debug, and this is how a
-                 macro gets in: the card in the list carries the same words in its own menu. -->
-            <TextBlock Grid.Row="2" Name="DebugFromCardNote" Margin="16,0,14,10" VerticalAlignment="Center"
-                       TextWrapping="Wrap" FontSize="12" Foreground="#9A9A9A"
-                       IsVisible="{Binding !HasSteps}"
-                       Text="{Binding [Run.DebugFromCard], Source={x:Static loc:Strings.Current}}" />
+                 macro gets in: pick one and start it, which is what the card's own menu does with
+                 the macro it was opened on. -->
+            <StackPanel Grid.Row="2" Margin="16,0,14,12" Spacing="9"
+                        IsVisible="{Binding !HasSteps}">
+                <TextBlock Name="DebugFromCardNote" TextWrapping="Wrap" FontSize="12"
+                           Foreground="#9A9A9A"
+                           Text="{Binding [Run.DebugFromCard], Source={x:Static loc:Strings.Current}}" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ComboBox Name="MacroPicker" Classes="VarSelect" MinWidth="220"
+                              VerticalAlignment="Center"
+                              ItemsSource="{Binding DebugChoices}"
+                              SelectedItem="{Binding ChosenMacro}"
+                              PlaceholderText="{Binding [Run.PickMacro], Source={x:Static loc:Strings.Current}}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:MacroItem">
+                                <TextBlock Text="{Binding Name}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Button Classes="PrimaryButton" Name="StartDebugButton"
+                            Content="{Binding [Run.StartDebug], Source={x:Static loc:Strings.Current}}"
+                            Command="{Binding StartDebugCommand}" />
+                </StackPanel>
+            </StackPanel>
 
             <!-- ===================== Steps, variables and log ===================== -->
             <Grid Grid.Row="3" ColumnDefinitions="340,*" Margin="14,0,14,0"
@@ -312,7 +341,7 @@
                                                     <Button Classes="Breakpoint" Classes.on="{Binding HasBreakpoint}"
                                                             VerticalAlignment="Center"
                                                             IsVisible="{Binding CanBreak}"
-                                                            ToolTip.Tip="{Binding Label}"
+                                                            ToolTip.Tip="{Binding [Run.BreakpointDot], Source={x:Static loc:Strings.Current}}"
                                                             Command="{Binding $parent[ItemsControl].((vm:RunViewModel)DataContext).ToggleBreakpointCommand}"
                                                             CommandParameter="{Binding}">
                                                         <!-- The breakpoint's own menu: what it waits for, and

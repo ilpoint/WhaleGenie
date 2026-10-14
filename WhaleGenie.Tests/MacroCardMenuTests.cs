@@ -9,9 +9,9 @@ namespace WhaleGenie.Tests;
 
 /// <summary>
 /// What a right click on a macro card offers. Editing and deleting already have a button each, so
-/// the menu is another way to the same two things plus the one that has no button: debugging the
-/// macro. Which macro it is about is the card that was right-clicked, and the menu is a popup, so
-/// that answer has to travel out of the list with it.
+/// the menu is another way to the same three things those buttons now do. Which macro it is about is
+/// the card that was right-clicked, and the menu is a popup, so that answer has to travel out of the
+/// list with it.
 /// </summary>
 public class MacroCardMenuTests
 {
@@ -29,6 +29,24 @@ public class MacroCardMenuTests
         Assert.Contains("Click=\"OnEditMacroClicked\"", menu, StringComparison.Ordinal);
         Assert.Contains("Click=\"OnDeleteMacroClicked\"", menu, StringComparison.Ordinal);
         Assert.Contains("[Main.RunDebug]", menu, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// 卡片自己那排按钮也把「运行调试」画出来了，接的是与右键菜单同一段代码：两处进的必须是同一扇窗、
+    /// 同一个宏，所以它们点名的是同一个处理函数。
+    /// </summary>
+    [Fact]
+    public void The_card_has_a_run_button_that_goes_where_the_menu_goes()
+    {
+        var markup = File.ReadAllText(
+            Path.Combine(Repository(), "WhaleGenie", "Views", "MainWindow.axaml"));
+
+        var buttons = markup[markup.IndexOf("<StackPanel Grid.Column=\"1\" Orientation=\"Horizontal\"",
+            StringComparison.Ordinal)..];
+        buttons = buttons[..buttons.IndexOf("</StackPanel>", StringComparison.Ordinal)];
+
+        Assert.Contains("Click=\"OnDebugMacroClicked\"", buttons, StringComparison.Ordinal);
+        Assert.Contains("[Main.RunDebug]", buttons, StringComparison.Ordinal);
     }
 
     [Fact]
