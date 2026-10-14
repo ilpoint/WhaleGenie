@@ -737,7 +737,10 @@ public partial class AddActionWindow : Window
     /// <summary>
     /// Opens the variable picker on the box of a row of places to look, and drops the name in where
     /// the caret is. The box belongs to the row rather than to a field of its own, so its caret is
-    /// read off the row the button stands in.
+    /// read off the row the button stands in. A row is filled in with a name rather than worked out:
+    /// what it holds is a rectangle written out, the name of a picture taken earlier, or the name of
+    /// a record that says where to look — a formula in it is not read as one, so the picker offers
+    /// no expression editor here.
     /// </summary>
     private async void OnPickRegionVariable(object? sender, RoutedEventArgs e)
     {
@@ -747,26 +750,9 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        // Where the rectangle is said by one value, that value may be worked out like any other, so
-        // the picker offers the expression editor as well.
-        if (await VariablePickerWindow.ShowFor(this, viewModel.CollectVariables(), LookAtStep,
-                offerBuilder: true) is not { } picked)
-        {
-            return;
-        }
-
-        if (picked.WantsExpression)
-        {
-            if (await ExpressionBuilderWindow.ShowFor(this, row.OrVariable,
-                    viewModel.CollectVariables()) is { } built)
-            {
-                row.OrVariable = built;
-            }
-
-            return;
-        }
-
-        if (picked.Token.Length == 0)
+        if (await VariablePickerWindow.ShowFor(this, viewModel.CollectVariables(), LookAtStep)
+                is not { } picked
+            || picked.Token.Length == 0)
         {
             return;
         }
