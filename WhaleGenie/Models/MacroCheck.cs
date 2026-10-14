@@ -60,6 +60,17 @@ public static class MacroCheck
 
         var defined = DefinedVariables(tree);
 
+        // What the macro declares is a name it reads like any other: the caller hands a value to it
+        // under that name and the steps inside read $name. A macro lifted out of a stretch of steps
+        // is exactly this shape, so without this it would be told that the names it was made for
+        // are ones nothing defines.
+        if (own is not null)
+        {
+            defined.UnionWith(own.Parameters
+                .Select(parameter => parameter.Name.Trim())
+                .Where(name => name.Length > 0));
+        }
+
         // A step that loads variables from a file can bring in any name at all, so nothing can be
         // said about which names the rest of the macro is allowed to read.
         var namesAreOpen = Every(tree).Any(step => step.Type == "file.loadVariables");

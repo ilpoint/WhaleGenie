@@ -259,6 +259,21 @@ public class MacroCheckTests
     public void A_variable_the_macro_defines_itself_is_left_alone()
         => Assert.Empty(Inspect(Set("计数", "0"), Set("结果", "$计数 + 1")));
 
+    /// <summary>
+    /// 宏自己的形参就是它读得到的名字：调用方把值交给这个名字，宏里的步骤照 $名字 读。少了这一条，
+    /// 「提为子宏」提出来的那个宏一读自己的参数就被标成"没人定义"，而那正是提子宏这一步做出来的
+    /// 形状；没声明过、别人也没交过来的名字照旧要报。
+    /// </summary>
+    [Fact]
+    public void A_macro_may_read_the_names_it_declares()
+    {
+        var reading = Step("control.log", Value("message", "$谁"));
+        var own = Callable("自己", parameters: ["谁"]);
+
+        Assert.Empty(Ui.Run(() => MacroCheck.Inspect([reading], own, [own])));
+        Assert.Single(Against("自己", [], reading));
+    }
+
     [Fact]
     public void A_system_variable_is_left_alone()
         => Assert.Empty(Inspect(Set("结果", "$sys.date")));
