@@ -2073,7 +2073,8 @@ public static class ActionCatalog
                 Number("x", "X", 0,
                     "The column of the place to move to, counted from the coordinate origin above, "
                     + "in pixels; 0 by default. Type a number for a place that does not move, or "
-                    + "change the coordinate origin, or put a variable here, for one that does."),
+                    + "change the coordinate origin, or put a variable here, for one that does."
+                    + PairRecordHint),
                 Number("y", "Y", 0,
                     "The row of the place to move to, counted from the coordinate origin above, in "
                     + "pixels; 0 by default."),
@@ -2504,7 +2505,7 @@ public static class ActionCatalog
             [
                 Number("x", "X", 0,
                     "The column to sample, counted from the coordinate origin above, in pixels; 0 by "
-                    + "default."),
+                    + "default." + PairRecordHint),
                 Number("y", "Y", 0,
                     "The row to sample, counted from the same origin and in the same pixels; 0 by "
                     + "default."),
@@ -2528,7 +2529,7 @@ public static class ActionCatalog
             [
                 Number("x", "X", 0,
                     "The column to watch, counted from the coordinate origin above, in pixels; 0 by "
-                    + "default."),
+                    + "default." + PairRecordHint),
                 Number("y", "Y", 0,
                     "The row to watch, counted from the same origin and in the same pixels; 0 by "
                     + "default."),
@@ -4068,6 +4069,20 @@ public static class ActionCatalog
         };
 
     /// <summary>
+    /// What a field that writes a place as two numbers says about the record it also takes: a hit,
+    /// a window or an element goes into either half as it stands, because the middle of what was
+    /// found is what every one of them carries under <c>x</c> and <c>y</c>. One sentence written
+    /// once rather than once per field, so "click what was just found" is described in the same
+    /// words wherever the pair is written down. It opens with a space, being put after a sentence
+    /// that is already there.
+    /// </summary>
+    private const string PairRecordHint =
+        " One of the two may be given a record with x and y in it instead (a hit, a window or an "
+        + "element, whose x and y are the middle of what was found), and the record then says the "
+        + "whole place, so the other one is left empty. A record says where it is on the screen, "
+        + "so the coordinate origin above moves the numbers written out and not a record.";
+
+    /// <summary>
     /// The one part of the screen a step reads or copies, written as four numbers it works on
     /// directly rather than as a rectangle of its own: the corners are ordinary number fields, each
     /// of which may be written as an expression, and the region picker fills all four at once. They
@@ -4510,7 +4525,8 @@ public static class ActionCatalog
     /// </summary>
     private static ActionParameter[] PointerPosition(string xHint, string yHint) =>
     [
-        Number("x", "X", 0, xHint, onlyWith: [CursorPlaceOff], onlyField: CursorPlaceToggle),
+        Number("x", "X", 0, xHint + PairRecordHint,
+            onlyWith: [CursorPlaceOff], onlyField: CursorPlaceToggle),
         Number("y", "Y", 0, yHint, onlyWith: [CursorPlaceOff], onlyField: CursorPlaceToggle),
     ];
 

@@ -52,6 +52,17 @@ internal static class ActionStrings
         + "这一步读到的画面也取自这个窗口。留空表示运行时最前面的那个窗口。";
 
     /// <summary>
+    /// The sentence every field that writes a place as two numbers shares for the record it also
+    /// takes: a hit, a window or an element goes into either half as it stands, and the record then
+    /// says the whole place. Written once rather than once per field, so "把刚找到的东西点一下" reads
+    /// the same wherever the pair of numbers is written down.
+    /// </summary>
+    private const string PairRecordHint =
+        "两格里也可以只填其中一格，交给它一条带 x、y 的记录（命中、窗口、元素都能直接填，取的是那块"
+        + "矩形的中心）：这时整条位置由记录说了算，另一格留空。记录里的数是屏幕像素，所以「坐标基准」"
+        + "只挪写出来的那两个数。";
+
+    /// <summary>
     /// The switch every mouse action shares for taking its place from the pointer rather than from
     /// numbers, which is what a macro means when the place is wherever the user left the mouse.
     /// </summary>
@@ -1374,7 +1385,7 @@ internal static class ActionStrings
         ["input.mouseMove.desc"] = "把光标移动到屏幕上的指定位置。",
         ["input.mouseMove.x.label"] = "X",
         ["input.mouseMove.x.hint"] = "目标位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。位置固定时填"
-            + "数字；位置会变时改用「坐标基准」，或在这里填一个变量或算式。",
+            + "数字；位置会变时改用「坐标基准」，或在这里填一个变量或算式。" + PairRecordHint,
         ["input.mouseMove.y.label"] = "Y",
         ["input.mouseMove.y.hint"] = "目标位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["input.mouseMove.durationMs.label"] = "用时",
@@ -1413,7 +1424,7 @@ internal static class ActionStrings
         ["input.mouseClick.useCursor.hint"] = AtPointerHint,
         ["input.mouseClick.x.label"] = "X",
         ["input.mouseClick.x.hint"] = "点击位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。位置固定时填"
-            + "数字；勾上「就在指针当前所在位置」时这一格不写进宏文件。",
+            + "数字；勾上「就在指针当前所在位置」时这一格不写进宏文件。" + PairRecordHint,
         ["input.mouseClick.y.label"] = "Y",
         ["input.mouseClick.y.hint"] = "点击位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["input.mouseClick.repeat.label"] = "重复次数",
@@ -1441,7 +1452,7 @@ internal static class ActionStrings
         ["input.mouseDoubleClick.useCursor.hint"] = AtPointerHint,
         ["input.mouseDoubleClick.x.label"] = "X",
         ["input.mouseDoubleClick.x.hint"] = "双击位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。位置固定"
-            + "时填数字；勾上「就在指针当前所在位置」时这一格不写进宏文件。",
+            + "时填数字；勾上「就在指针当前所在位置」时这一格不写进宏文件。" + PairRecordHint,
         ["input.mouseDoubleClick.y.label"] = "Y",
         ["input.mouseDoubleClick.y.hint"] = "双击位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["input.mouseDoubleClick.repeat.label"] = "重复次数",
@@ -1465,7 +1476,7 @@ internal static class ActionStrings
         ["input.mouseDown.useCursor.hint"] = AtPointerHint,
         ["input.mouseDown.x.label"] = "X",
         ["input.mouseDown.x.hint"] = "按下位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。勾上「就在指针"
-            + "当前所在位置」时这一格不写进宏文件。",
+            + "当前所在位置」时这一格不写进宏文件。" + PairRecordHint,
         ["input.mouseDown.y.label"] = "Y",
         ["input.mouseDown.y.hint"] = "按下位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
 
@@ -1477,7 +1488,7 @@ internal static class ActionStrings
         ["input.mouseUp.useCursor.hint"] = AtPointerHint,
         ["input.mouseUp.x.label"] = "X",
         ["input.mouseUp.x.hint"] = "松开位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。勾上「就在指针"
-            + "当前所在位置」时这一格不写进宏文件。",
+            + "当前所在位置」时这一格不写进宏文件。" + PairRecordHint,
         ["input.mouseUp.y.label"] = "Y",
         ["input.mouseUp.y.hint"] = "松开位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
 
@@ -1497,7 +1508,7 @@ internal static class ActionStrings
             + "滚完。程序自己带动画时用它。",
         ["input.mouseScroll.x.label"] = "X",
         ["input.mouseScroll.x.hint"] = "滚动位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。勾上「就在指针"
-            + "当前所在位置」时这一格不写进宏文件。",
+            + "当前所在位置」时这一格不写进宏文件。" + PairRecordHint,
         ["input.mouseScroll.y.label"] = "Y",
         ["input.mouseScroll.y.hint"] = "滚动位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["input.mouseScroll.useCursor.label"] = AtPointerLabel,
@@ -2206,7 +2217,8 @@ internal static class ActionStrings
         ["vision.getPixel.name"] = "取色",
         ["vision.getPixel.desc"] = "读取某个像素的颜色。",
         ["vision.getPixel.x.label"] = "X",
-        ["vision.getPixel.x.hint"] = "取样点的横坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["vision.getPixel.x.hint"] = "取样点的横坐标，按「坐标基准」量起，单位是像素，默认 0。"
+            + PairRecordHint,
         ["vision.getPixel.y.label"] = "Y",
         ["vision.getPixel.y.hint"] = "取样点的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["vision.getPixel.asHex.label"] = "存为十六进制",
@@ -2216,7 +2228,8 @@ internal static class ActionStrings
         ["vision.waitColor.desc"] =
             "等待某个像素变成指定颜色，最多等到步骤设置里的「超时」；到点这一步算失败。",
         ["vision.waitColor.x.label"] = "X",
-        ["vision.waitColor.x.hint"] = "监视点的横坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["vision.waitColor.x.hint"] = "监视点的横坐标，按「坐标基准」量起，单位是像素，默认 0。"
+            + PairRecordHint,
         ["vision.waitColor.y.label"] = "Y",
         ["vision.waitColor.y.hint"] = "监视点的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["vision.waitColor.color.label"] = "颜色",
