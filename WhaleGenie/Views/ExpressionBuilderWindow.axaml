@@ -170,9 +170,10 @@
 
                 <TextBlock Classes="FieldLabel" Margin="2,16,0,6"
                            Text="{Binding FunctionsHeader}" />
-                <!-- What the language can already do, so a formula is not written from memory. Only
-                     the name and the signature are shown: a function's own line of description is
-                     written in English, which this interface never shows. -->
+                <!-- What the language can already do, so a formula is not written from memory. The
+                     button carries the signature, which is the piece of code being written, and the
+                     line saying what the function does is on the tooltip: names alone would leave
+                     trim, slice and substring looking like the same thing. -->
                 <TextBox Classes="ExprInput" Margin="0,0,0,8"
                          PlaceholderText="{Binding FunctionsFilterHint}"
                          Text="{Binding FunctionFilter}" />
@@ -191,6 +192,7 @@
                                         <DataTemplate x:DataType="vm:ExpressionFunctionChoice">
                                             <Button Classes="OpButton" Margin="0,6,6,0"
                                                     Content="{Binding Signature}"
+                                                    ToolTip.Tip="{Binding Hint}"
                                                     Click="OnInsertFunction" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>

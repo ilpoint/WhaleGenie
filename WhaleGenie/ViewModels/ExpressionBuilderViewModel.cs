@@ -223,8 +223,9 @@ public sealed class ExpressionFunctionGroup(string group, string header)
 
 /// <summary>
 /// One function button: what it is called, how it is written, and the text one click drops into the
-/// expression. The description the manual carries is left out — it is written in English, and the
-/// signature is a piece of code rather than a sentence, so the signature is what the button shows.
+/// expression. The signature is what the button shows, because that is the piece of code being
+/// written; the sentence that says what the function does is on the tooltip, where it does not take
+/// up room on the wall of buttons.
 /// </summary>
 public sealed class ExpressionFunctionChoice
 {
@@ -233,6 +234,9 @@ public sealed class ExpressionFunctionChoice
         Name = function.Name;
         Signature = function.Signature;
         Insert = function.Name + "(";
+        // The Chinese line lives in the text table and the English one beside the function in the
+        // engine, the way the built-in variables are written: one sentence per language, no copies.
+        Hint = Strings.Get($"Expr.Fn.{function.Name}", function.Description);
     }
 
     /// <summary>The name the function is called by.</summary>
@@ -243,6 +247,9 @@ public sealed class ExpressionFunctionChoice
 
     /// <summary>What one click leaves in the expression, with the caret after the bracket.</summary>
     public string Insert { get; }
+
+    /// <summary>One line saying what the function does, shown when the pointer rests on it.</summary>
+    public string Hint { get; }
 }
 
 /// <summary>One operator button on the expression builder: what it looks like, what it inserts, and what it means.</summary>

@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Localization;
 
 namespace WhaleGenie.Tests;
 
@@ -30,6 +31,61 @@ public class FunctionTableTests
             Assert.True(row.Groups[2].Value.Trim().Length > 0,
                 $"{row.Groups[1].Value} has no line saying what it does");
         }
+    }
+
+    /// <summary>
+    /// The editor shows the same sentence on the tooltip of a function's button, so the manual and the
+    /// tooltip have to be one text rather than two that drift: what the manual writes for a function is
+    /// what the table holds for it. The manual writes it with code marks where they help the reader —
+    /// <c>yyyy-MM-dd</c> reads better as code — and a tooltip carries plain text, so the comparison is
+    /// on the words rather than on those marks.
+    /// </summary>
+    [Fact]
+    public void The_tooltip_says_what_the_manual_says()
+    {
+        var wrong = new List<string>();
+        foreach (Match row in Rows())
+        {
+            var name = row.Groups[1].Value;
+            var manual = row.Groups[2].Value.Replace("`", string.Empty, StringComparison.Ordinal).Trim();
+            if (!Strings.Chinese.TryGetValue($"Expr.Fn.{name}", out var table))
+            {
+                wrong.Add($"{name} has no line in the text table");
+            }
+            else if (!string.Equals(manual, table, StringComparison.Ordinal))
+            {
+                wrong.Add($"{name}: the manual says \"{manual}\" and the table says \"{table}\"");
+            }
+        }
+
+        Assert.Empty(wrong);
+    }
+
+    /// <summary>
+    /// Every function has one of those lines and nothing holds a line for a function that is gone, so
+    /// adding one to the engine without its sentence — or deleting one and leaving the sentence behind
+    /// — is caught here rather than by a reader noticing an English tooltip.
+    /// </summary>
+    [Fact]
+    public void Every_function_has_a_line_and_no_line_is_left_over()
+    {
+        var wanted = Expression.Functions
+            .Select(function => $"Expr.Fn.{function.Name}")
+            .ToHashSet(StringComparer.Ordinal);
+        var held = Strings.Chinese.Keys
+            .Where(key => key.StartsWith("Expr.Fn.", StringComparison.Ordinal))
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Empty(wanted.Except(held).Order());
+        Assert.Empty(held.Except(wanted).Order());
+
+        // The English half of a tooltip is the sentence the engine carries, so it has to be there too.
+        var silent = Expression.Functions
+            .Where(function => string.IsNullOrWhiteSpace(function.Description))
+            .Select(function => function.Name)
+            .Order()
+            .ToList();
+        Assert.Empty(silent);
     }
 
     /// <summary>The function names the manual's table spells out.</summary>

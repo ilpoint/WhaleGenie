@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -102,16 +104,35 @@ public class ExpressionBuilderTests
             var offered = viewModel.Functions.Sum(group => group.Functions.Count);
 
             // Every function is on the list, and every one of them says how it is written: the
-            // signature is the whole of what the button shows, because the description the table
-            // carries is written in English and this interface never shows English.
+            // signature is what the button shows, and the sentence saying what the function does is
+            // one hover away — names alone leave trim, slice and substring looking alike.
             Assert.Equal(WhaleGenie.Core.Expressions.Expression.Functions.Count, offered);
             Assert.All(viewModel.Functions,
                 group => Assert.False(string.IsNullOrWhiteSpace(group.Header)));
             Assert.All(viewModel.Functions.SelectMany(group => group.Functions),
                 choice => Assert.Equal(choice.Name + "(", choice.Insert));
+            Assert.All(viewModel.Functions.SelectMany(group => group.Functions),
+                choice => Assert.False(string.IsNullOrWhiteSpace(choice.Hint)));
             Assert.Contains(viewModel.Functions.SelectMany(group => group.Functions),
                 choice => choice is { Name: "upper", Signature: "upper(text)" });
         });
+    }
+
+    /// <summary>
+    /// The line is on the button rather than only in the view model: a sentence nobody shows is the
+    /// same as no sentence, and the markup is where that is decided.
+    /// </summary>
+    [Fact]
+    public void The_function_buttons_carry_the_line_that_explains_them()
+    {
+        var markup = File.ReadAllText(Path.Combine(
+            Repository(), "WhaleGenie", "Views", "ExpressionBuilderWindow.axaml"));
+
+        var start = markup.IndexOf("vm:ExpressionFunctionChoice", StringComparison.Ordinal);
+        Assert.True(start >= 0, "the window stopped listing the functions");
+
+        var block = markup[start..markup.IndexOf("</DataTemplate>", start, StringComparison.Ordinal)];
+        Assert.Contains("ToolTip.Tip=\"{Binding Hint}\"", block, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -159,5 +180,19 @@ public class ExpressionBuilderTests
             Assert.Equal("upper(", box!.Text);
             Assert.Equal(6, box.CaretIndex);
         });
+    }
+
+    /// <summary>The repository root, found by walking up from the test binaries.</summary>
+    private static string Repository()
+    {
+        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
+        {
+            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
+            {
+                return at.FullName;
+            }
+        }
+
+        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
     }
 }
