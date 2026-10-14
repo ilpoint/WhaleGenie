@@ -140,14 +140,19 @@ internal static class ActionStrings
     private const string WindowHowLabel = "匹配方式";
 
     private const string WindowHowHint =
-        "这个窗口靠什么认出来：「匹配内容」里那段文字和窗口的哪一部分比、怎么比，五档是标题包含、标题开头、"
-        + "标题正则、进程名、窗口类名，不区分大小写。标题随文档名或界面语言变化时，改用进程名或窗口类名。";
+        "这个窗口靠什么认出来：「匹配内容」里那段文字和窗口的哪一部分比、怎么比，不区分大小写。标题上有"
+        + "五档：包含、开头、结尾、等于、正则；进程名与窗口类名各两档：包含或等于。标题随文档名或界面语言"
+        + "变化时，改用进程名或窗口类名；名字会带上版本号之类的尾巴时，用「等于」而不是「包含」。";
 
     private const string WindowHowTitleContains = "标题包含";
     private const string WindowHowTitleStartsWith = "标题开头";
+    private const string WindowHowTitleEndsWith = "标题结尾";
+    private const string WindowHowTitleEquals = "标题等于";
     private const string WindowHowTitleRegex = "标题正则";
     private const string WindowHowProcess = "进程名";
+    private const string WindowHowProcessEquals = "进程名等于";
     private const string WindowHowClass = "窗口类名";
+    private const string WindowHowClassEquals = "窗口类名等于";
 
     /// <summary>The hint the four text-file actions share for their encoding picker.</summary>
     private const string EncodingHintText =
@@ -2710,7 +2715,9 @@ internal static class ActionStrings
         ["condition.textNotExists.matchMode.label"] = "匹配方式",
         ["condition.textNotExists.matchMode.hint"] = "读到的文字与上面要查找的文字怎么比，默认包含。",
         ["condition.textNotExists.matchMode.option.contains"] = "包含",
-        ["condition.textNotExists.matchMode.option.exact"] = "完全匹配",
+        ["condition.textNotExists.matchMode.option.startsWith"] = "以…开头",
+        ["condition.textNotExists.matchMode.option.endsWith"] = "以…结尾",
+        ["condition.textNotExists.matchMode.option.equals"] = "等于",
         ["condition.textNotExists.matchMode.option.regex"] = "正则匹配",
         ["condition.textNotExists.anchorMode.label"] = "坐标基准",
         ["condition.textNotExists.anchorMode.hint"] = AnchorModeHint,
@@ -2754,7 +2761,7 @@ internal static class ActionStrings
         ["condition.compare.operator.option.contains"] = "包含",
         ["condition.compare.operator.option.notContains"] = "不包含",
         ["condition.compare.operator.option.exists"] = "变量存在",
-        ["condition.compare.operator.option.regexMatch"] = "正则匹配",
+        ["condition.compare.operator.option.regex"] = "正则匹配",
 
         ["condition.stepResult.name"] = "步骤结果",
         ["condition.stepResult.desc"] = "判断本宏里某一步跑完的结果。",
@@ -2999,13 +3006,19 @@ internal static class ActionStrings
         ["ocr.clickText.preprocess.option.upscaleBinarize"] = "放大两倍并黑白",
 
         ["ocr.findText.matchMode.option.contains"] = "包含",
-        ["ocr.findText.matchMode.option.exact"] = "完全匹配",
+        ["ocr.findText.matchMode.option.startsWith"] = "以…开头",
+        ["ocr.findText.matchMode.option.endsWith"] = "以…结尾",
+        ["ocr.findText.matchMode.option.equals"] = "等于",
         ["ocr.findText.matchMode.option.regex"] = "正则匹配",
         ["ocr.clickText.matchMode.option.contains"] = "包含",
-        ["ocr.clickText.matchMode.option.exact"] = "完全匹配",
+        ["ocr.clickText.matchMode.option.startsWith"] = "以…开头",
+        ["ocr.clickText.matchMode.option.endsWith"] = "以…结尾",
+        ["ocr.clickText.matchMode.option.equals"] = "等于",
         ["ocr.clickText.matchMode.option.regex"] = "正则匹配",
         ["condition.textExists.matchMode.option.contains"] = "包含",
-        ["condition.textExists.matchMode.option.exact"] = "完全匹配",
+        ["condition.textExists.matchMode.option.startsWith"] = "以…开头",
+        ["condition.textExists.matchMode.option.endsWith"] = "以…结尾",
+        ["condition.textExists.matchMode.option.equals"] = "等于",
         ["condition.textExists.matchMode.option.regex"] = "正则匹配",
 
         ["control.log.level.option.info"] = "信息",
@@ -3408,9 +3421,13 @@ internal static class ActionStrings
             table[$"{action}.{name}.hint"] = hint;
             table[$"{action}.{name}.option.titleContains"] = WindowHowTitleContains;
             table[$"{action}.{name}.option.titleStartsWith"] = WindowHowTitleStartsWith;
+            table[$"{action}.{name}.option.titleEndsWith"] = WindowHowTitleEndsWith;
+            table[$"{action}.{name}.option.titleEquals"] = WindowHowTitleEquals;
             table[$"{action}.{name}.option.titleRegex"] = WindowHowTitleRegex;
             table[$"{action}.{name}.option.process"] = WindowHowProcess;
+            table[$"{action}.{name}.option.processEquals"] = WindowHowProcessEquals;
             table[$"{action}.{name}.option.class"] = WindowHowClass;
+            table[$"{action}.{name}.option.classEquals"] = WindowHowClassEquals;
         }
     }
 

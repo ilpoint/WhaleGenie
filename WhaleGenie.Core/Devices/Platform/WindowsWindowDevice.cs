@@ -35,11 +35,11 @@ public sealed class WindowsWindowDevice : IWindowDevice
     }
 
     public WindowInfo? Find(string value, WindowMatch match,
-        WindowCompare compare = WindowCompare.Contains)
+        string compare = TextCompare.Contains)
         => Filter(value, match, compare).FirstOrDefault();
 
     public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match,
-        WindowCompare compare = WindowCompare.Contains, bool everyWhenEmpty = false)
+        string compare = TextCompare.Contains, bool everyWhenEmpty = false)
     {
         Require();
 
@@ -65,7 +65,7 @@ public sealed class WindowsWindowDevice : IWindowDevice
     /// pattern the machine cannot read comes back as <see cref="ArgumentException"/>, which is the
     /// run's to report.
     /// </summary>
-    private bool Matches(WindowInfo window, string wanted, WindowMatch match, WindowCompare compare)
+    private bool Matches(WindowInfo window, string wanted, WindowMatch match, string compare)
     {
         var text = match switch
         {

@@ -352,17 +352,21 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     private IWindowDevice? _windows;
 
-    /// <summary>The five ways a window can be recognised, in the words the interface reads.</summary>
+    /// <summary>The ways a window can be recognised, in the words the interface reads.</summary>
     public IReadOnlyList<string> WindowHowOptions { get; } =
     [
         Strings.Get("WindowHow.TitleContains"),
         Strings.Get("WindowHow.TitleStartsWith"),
+        Strings.Get("WindowHow.TitleEndsWith"),
+        Strings.Get("WindowHow.TitleEquals"),
         Strings.Get("WindowHow.TitleRegex"),
         Strings.Get("WindowHow.Process"),
+        Strings.Get("WindowHow.ProcessEquals"),
         Strings.Get("WindowHow.Class"),
+        Strings.Get("WindowHow.ClassEquals"),
     ];
 
-    /// <summary>How this trigger recognises its window: one of the five the engine reads.</summary>
+    /// <summary>How this trigger recognises its window: one of the ways the engine reads.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WindowHowIndex))]
     [NotifyPropertyChangedFor(nameof(WindowRuleNow))]

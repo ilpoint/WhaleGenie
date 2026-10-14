@@ -24,7 +24,7 @@ public sealed record WindowPreviewRow(string Title, string PartLabel, string Par
 /// on one window means the one in front by saying nothing; a step that lists them means every window
 /// there is, and the list has to say the same thing the run would do.
 /// </summary>
-public readonly record struct WindowRule(string Text, WindowMatch Match, WindowCompare Compare,
+public readonly record struct WindowRule(string Text, WindowMatch Match, string Compare,
     bool EmptyIsEvery);
 
 /// <summary>

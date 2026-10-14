@@ -82,15 +82,15 @@ public static class ActionCatalog
     /// <summary>Comparison operators offered by <c>condition.compare</c>, written to JSON as-is.</summary>
     private static readonly string[] ComparisonOperators =
     [
-        "equals", "notEquals", "greaterThan", "greaterOrEqual", "lessThan", "lessOrEqual",
-        "contains", "notContains", "exists", "regexMatch",
+        TextCompare.Exactly, "notEquals", "greaterThan", "greaterOrEqual", "lessThan", "lessOrEqual",
+        TextCompare.Contains, "notContains", "exists", TextCompare.Regex,
     ];
 
     /// <summary>English fallback text for <see cref="ComparisonOperators"/>; the UI translates it.</summary>
     private static readonly string[] ComparisonOperatorLabels =
     [
         "Equals", "Not equals", "Greater than", "Greater or equal", "Less than", "Less or equal",
-        "Contains", "Does not contain", "Exists", "Regex match",
+        "Contains", "Does not contain", "Exists", "Regex",
     ];
 
     /// <summary>
@@ -99,10 +99,16 @@ public static class ActionCatalog
     /// and it stays one reading per branch: the value on the left is the switch's, the operator
     /// and the value on the right are the branch's.
     /// </summary>
+    /// <remarks>
+    /// The ways of comparing text among them are the ones the whole program shares
+    /// (<see cref="TextCompare"/>), spelled by that list rather than again here. The rest are a
+    /// different question: what two numbers do about each other, and what "not" does to either.
+    /// </remarks>
     private static readonly string[] MatchModes =
     [
-        "equals", "notEquals", "contains", "startsWith", "endsWith",
-        "greaterThan", "greaterOrEqual", "lessThan", "lessOrEqual", "regex",
+        TextCompare.Exactly, "notEquals", TextCompare.Contains, TextCompare.StartsWith,
+        TextCompare.EndsWith, "greaterThan", "greaterOrEqual", "lessThan", "lessOrEqual",
+        TextCompare.Regex,
     ];
 
     /// <summary>English fallback text for <see cref="MatchModes"/>; the UI translates it.</summary>
@@ -4675,12 +4681,18 @@ public static class ActionCatalog
             + "another machine exported still reads.",
             labels: ["UTF-8", "UTF-8 with BOM", "GBK (Chinese)", "UTF-16"], advanced: true);
 
-    /// <summary>How OCR text searches compare their match.</summary>
+    /// <summary>
+    /// How a piece of writing that was read is held up against the text a step looks for. It is the
+    /// same five ways every other field in the program offers (<see cref="TextCompare"/>), so that
+    /// "starts with" means one thing wherever it is written.
+    /// </summary>
     private static ActionParameter TextMatch()
-        => Choice("matchMode", "Match mode", ["contains", "exact", "regex"], "contains",
-            "How the text that was read is compared against the text being looked for: "
-            + "contained in it, exactly it, or matching it as a regular expression; contained "
-            + "in it by default.");
+        => Choice("matchMode", "Match mode", [.. TextCompare.Values], TextCompare.Contains,
+            "How the text that was read is compared against the text being looked for: contained in "
+            + "it, starting with it, ending with it, exactly it, or matching it as a regular "
+            + "expression; contained in it by default. A word that is none of the five stops the "
+            + "step and says so.",
+            labels: [.. TextCompare.Labels]);
 
     /// <summary>
     /// What a step keeps of each piece it reads: the writing as it stands, one kind of character out
@@ -4894,17 +4906,10 @@ public static class ActionCatalog
             + "language.")
         => Choice(name, "Match by", [.. WindowHow.Values], WindowHow.TitleContains,
             "How the window is recognised: the text is held up against the window's title, or "
-            + "against the name of the program that owns it or the class that program registered, "
-            + "contained in it, at its start, or as a regular expression matched against it. "
-            + extra,
-            labels:
-            [
-                "Title contains",
-                "Title starts with",
-                "Title matches a pattern",
-                "Process name",
-                "Window class",
-            ],
+            + "against the name of the program that owns it or the class that program registered. "
+            + "Contained in it and exactly it are the two that work on all three; a title can also "
+            + "be held up to its start or its end, or matched as a regular expression. " + extra,
+            labels: [.. WindowHow.Labels],
             advanced: advanced, onlyWith: onlyWith, onlyField: onlyField);
 
     /// <summary>Name of another macro in the project, chosen from a list while staying editable.</summary>

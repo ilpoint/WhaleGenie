@@ -593,7 +593,7 @@ public class MacroRunnerTests
         var contains = Step("condition.compare",
             Param("variable", "name"), Param("operator", "contains"), Param("value", "ad"));
         var regex = Step("condition.compare",
-            Param("variable", "name"), Param("operator", "regexMatch"), Param("value", "^A.*a$"));
+            Param("variable", "name"), Param("operator", "regex"), Param("value", "^A.*a$"));
 
         var (_, _) = await RunAsync(
             [

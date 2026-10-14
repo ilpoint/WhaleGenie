@@ -3059,7 +3059,7 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("ocr.findText", Param("text", "GOLD 100"), Param("matchMode", "exact"),
+            Step("ocr.findText", Param("text", "GOLD 100"), Param("matchMode", "equals"),
                 Param("fixText", "G0LD = GOLD\nl00 = 100"), Hit("match", "where")),
         ], devices);
 
@@ -3301,7 +3301,7 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("ocr.findText", Param("text", "SN"), Param("matchMode", "exact"),
+            Step("ocr.findText", Param("text", "SN"), Param("matchMode", "equals"),
                 Param("content", "letters"), Hit("match", "where")),
         ], devices);
 
@@ -3412,8 +3412,12 @@ public class DeviceActionTests
         Assert.Equal(4, Field(store, "spot", "height").AsNumber());
     }
 
+    /// <summary>
+    /// The ways of comparing text are the ones the whole program shares: exactly the text (spacing
+    /// at either end aside), or matching it as a pattern, or containing it.
+    /// </summary>
     [Fact]
-    public async Task A_text_search_can_be_exact_or_a_pattern()
+    public async Task A_text_search_compares_the_way_the_step_says()
     {
         var devices = new FakeDeviceLayer
         {
@@ -3422,8 +3426,12 @@ public class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("ocr.findText", Param("text", "Run"), Param("matchMode", "exact"),
+            Step("ocr.findText", Param("text", "Run"), Param("matchMode", "equals"),
                 Hit("match", "exactHit")),
+            Step("ocr.findText", Param("text", "Run"), Param("matchMode", "startsWith"),
+                Hit("match", "startHit")),
+            Step("ocr.findText", Param("text", "ning"), Param("matchMode", "endsWith"),
+                Hit("match", "endHit")),
             Step("ocr.findText", Param("text", "^Run"), Param("matchMode", "regex"),
                 Hit("match", "patternHit")),
             Step("ocr.findText", Param("text", "nope"), Param("matchMode", "contains"),
@@ -3431,8 +3439,44 @@ public class DeviceActionTests
         ], devices);
 
         Assert.Equal(string.Empty, store.Local.Values["exactHit"].AsText());
+        Assert.Equal("5,2", Centre(store, "startHit"));
+        Assert.Equal("5,2", Centre(store, "endHit"));
         Assert.Equal("5,2", Centre(store, "patternHit"));
         Assert.Equal(string.Empty, store.Local.Values["miss"].AsText());
+    }
+
+    /// <summary>
+    /// A way of comparing that is none of the five stops the step and says which word it could not
+    /// read, rather than quietly comparing some other way — "exact" was a way once and now means
+    /// nothing, and a macro that says it must be told so rather than reading as "contained in it".
+    /// Leaving the field out is not a wrong word: it means the default, as it does everywhere.
+    /// </summary>
+    [Fact]
+    public async Task A_match_mode_that_is_none_of_the_five_stops_the_step()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans = [new TextSpan("Save the file", new ScreenPoint(0, 0), new ScreenSize(40, 8), 0.9)],
+        };
+
+        var (refused, _, _) = await RunAsync(
+        [
+            Step("ocr.findText", Param("text", "Save"), Param("matchMode", "exact"),
+                Hit("match", "where")),
+        ], devices);
+
+        Assert.False(refused.Succeeded);
+        Assert.Equal("Run.BadMatchMode", refused.Key);
+        Assert.Equal("exact", refused.Detail);
+
+        // Said nothing, which is what a field nobody filled in looks like: contained in it.
+        var (asked, _, store) = await RunAsync(
+        [
+            Step("ocr.findText", Param("text", "the"), Hit("match", "where")),
+        ], devices);
+
+        Assert.True(asked.Succeeded);
+        Assert.Equal("20,4", Centre(store, "where"));
     }
 
     [Fact]
@@ -6087,7 +6131,33 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// The five ways of recognising a window are read the same by every step that names one: what a
+    /// A name read whole and a name read for a piece of it are two different questions: a macro that
+    /// means notepad does not mean notepad++ , which is why the name of a program can also be asked
+    /// for exactly.
+    /// </summary>
+    [Fact]
+    public async Task A_programs_name_can_be_asked_for_exactly()
+    {
+        var devices = WithAWindow();
+        devices.WindowFacts[1] = ("notepad-plus-plus", "Notepad");
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("window.exists", Param("window", "notepad"), Param("how", WindowHow.Process),
+                Returns("found=contained")),
+            Step("window.exists", Param("window", "notepad"), Param("how", WindowHow.ProcessEquals),
+                Returns("found=exactly")),
+            Step("window.exists", Param("window", "notepad-plus-plus"),
+                Param("how", WindowHow.ProcessEquals), Returns("found=whole")),
+        ], devices);
+
+        Assert.True(store.Local.Values["contained"].Flag);
+        Assert.False(store.Local.Values["exactly"].Flag);
+        Assert.True(store.Local.Values["whole"].Flag);
+    }
+
+    /// <summary>
+    /// The ways of recognising a window are read the same by every step that names one: what a
     /// window action acts on, what a step that reads the screen counts its coordinates from, what a
     /// step posting its input at a window posts at, and which window an element search looks in. One
     /// rule, read four ways, is the whole point of there being one rule.
@@ -6101,12 +6171,20 @@ public class DeviceActionTests
         [
             (WindowHow.TitleContains, "notes", true),
             (WindowHow.TitleStartsWith, "Notepad", true),
+            (WindowHow.TitleEndsWith, "notes.txt", true),
+            (WindowHow.TitleEquals, "Notepad - notes.txt", true),
             (WindowHow.TitleRegex, @"^Notepad - notes\.txt$", true),
             (WindowHow.Process, "notepad", true),
+            (WindowHow.ProcessEquals, "notepad", true),
             (WindowHow.Class, "Notepad", true),
+            (WindowHow.ClassEquals, "Notepad", true),
             (WindowHow.TitleStartsWith, "notes", false),
+            (WindowHow.TitleEndsWith, "Notepad", false),
+            (WindowHow.TitleEquals, "Notepad", false),
             (WindowHow.Process, "explorer", false),
+            (WindowHow.ProcessEquals, "notepad-plus-plus", false),
             (WindowHow.Class, "CalcFrame", false),
+            (WindowHow.ClassEquals, "Note", false),
         ];
 
         foreach (var (how, text, found) in ways)
@@ -8539,7 +8617,7 @@ internal sealed class FakeDeviceLayer
         return [.. Windows];
     }
 
-    WindowInfo? IWindowDevice.Find(string value, WindowMatch match, WindowCompare compare)
+    WindowInfo? IWindowDevice.Find(string value, WindowMatch match, string compare)
     {
         Note($"findWindow {value}");
         _windowReads++;
@@ -8555,7 +8633,7 @@ internal sealed class FakeDeviceLayer
     }
 
     IReadOnlyList<WindowInfo> IWindowDevice.Filter(string value, WindowMatch match,
-        WindowCompare compare, bool everyWhenEmpty)
+        string compare, bool everyWhenEmpty)
     {
         Note($"filterWindows {value}");
         return Matching(value, match, compare, everyWhenEmpty);
@@ -8566,7 +8644,7 @@ internal sealed class FakeDeviceLayer
     /// means the window in front, which is what a step that names none acts on; a step that lists
     /// windows means every one of them by it.
     /// </summary>
-    private List<WindowInfo> Matching(string value, WindowMatch match, WindowCompare compare,
+    private List<WindowInfo> Matching(string value, WindowMatch match, string compare,
         bool everyWhenEmpty = false)
     {
         var wanted = (value ?? string.Empty).Trim();
@@ -8584,7 +8662,7 @@ internal sealed class FakeDeviceLayer
     /// has to look them up. How the two are held up against each other is the device's job, so it
     /// is the same reading the real device does rather than a second one that could disagree.
     /// </summary>
-    private bool Answers(WindowInfo window, string wanted, WindowMatch match, WindowCompare compare)
+    private bool Answers(WindowInfo window, string wanted, WindowMatch match, string compare)
     {
         var text = match switch
         {

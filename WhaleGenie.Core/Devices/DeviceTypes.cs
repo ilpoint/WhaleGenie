@@ -287,7 +287,7 @@ public sealed record UiQuery(
     string? WindowTitle = null,
     int Index = 1,
     WindowMatch WindowMatch = WindowMatch.Title,
-    WindowCompare WindowCompare = WindowCompare.Contains)
+    string WindowCompare = TextCompare.Contains)
 {
     /// <summary>True when the query would match anything, which is never what was meant.</summary>
     public bool IsEmpty
@@ -306,7 +306,7 @@ public sealed record UiQuery(
     /// </summary>
     public static UiQuery Parse(string? selector, string? windowTitle = null, int index = 1,
         WindowMatch windowMatch = WindowMatch.Title,
-        WindowCompare windowCompare = WindowCompare.Contains)
+        string windowCompare = TextCompare.Contains)
     {
         var text = (selector ?? string.Empty).Trim();
         string? name = null;
@@ -589,23 +589,6 @@ public enum WindowMatch
 
     /// <summary>The window class the owning program registered, such as "Notepad".</summary>
     ClassName,
-}
-
-/// <summary>
-/// How the text a step wrote is held up against the part of the window it named. "Contains" is what
-/// a person means when they type part of a title; a regular expression is for the windows whose
-/// titles carry something that changes from run to run.
-/// </summary>
-public enum WindowCompare
-{
-    /// <summary>The part holds the text, ignoring case.</summary>
-    Contains,
-
-    /// <summary>The part begins with the text, ignoring case.</summary>
-    StartsWith,
-
-    /// <summary>The text is a regular expression matched against the part, ignoring case.</summary>
-    Regex,
 }
 
 /// <summary>

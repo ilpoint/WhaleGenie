@@ -1852,11 +1852,10 @@ public sealed class MacroRunner
             case "notequals":
                 return !value.NumericEquals(Value.FromText(wanted));
             case "contains":
-                return value.AsText().Contains(wanted, StringComparison.OrdinalIgnoreCase);
             case "startswith":
-                return value.AsText().StartsWith(wanted, StringComparison.OrdinalIgnoreCase);
             case "endswith":
-                return value.AsText().EndsWith(wanted, StringComparison.OrdinalIgnoreCase);
+                // The ways of comparing text are the ones the whole program shares.
+                return TextCompare.Matches(value.AsText(), wanted, mode);
             case "greaterthan":
                 return Order(value.AsText(), wanted) > 0;
             case "greaterorequal":
@@ -1868,7 +1867,7 @@ public sealed class MacroRunner
             case "regex":
                 try
                 {
-                    return Regex.IsMatch(value.AsText(), wanted, RegexOptions.IgnoreCase);
+                    return TextCompare.Matches(value.AsText(), wanted, TextCompare.Regex);
                 }
                 catch (ArgumentException)
                 {
@@ -2166,8 +2165,28 @@ public sealed class MacroRunner
     private bool TextThere(ExecutableStep condition)
     {
         var wanted = Read(condition.Text("text")).AsText();
-        var mode = condition.Text("matchMode");
-        return ReadSpans(condition).Any(span => Matches(span.Text, wanted, mode));
+        var way = TextWay(condition, wanted);
+        return ReadSpans(condition).Any(span => Matches(span.Text, wanted, way));
+    }
+
+    /// <summary>
+    /// The way a step looks for text, read and checked before anything is looked at: a word that is
+    /// none of the five, or a pattern the machine cannot read, is refused here rather than after a
+    /// screen has been read and compared.
+    /// </summary>
+    private static string TextWay(ExecutableStep step, string wanted)
+    {
+        var way = Way(step.Text("matchMode"));
+        try
+        {
+            TextCompare.Check(wanted, way);
+        }
+        catch (ArgumentException)
+        {
+            throw new StepFailure("Run.BadPattern", wanted);
+        }
+
+        return way;
     }
 
     /// <summary>
@@ -2244,12 +2263,31 @@ public sealed class MacroRunner
             "greaterOrEqual" => left.AsNumber() >= right.AsNumber(),
             "lessThan" => left.AsNumber() < right.AsNumber(),
             "lessOrEqual" => left.AsNumber() <= right.AsNumber(),
-            "contains" => left.AsText().Contains(right.AsText(), StringComparison.OrdinalIgnoreCase),
-            "notContains" => !left.AsText().Contains(right.AsText(), StringComparison.OrdinalIgnoreCase),
+            // The text comparisons are the ones the whole program shares, so a pattern in a condition
+            // and the same pattern in a text search cannot come to mean two different things.
+            TextCompare.Contains => Compare(left, right, TextCompare.Contains),
+            "notContains" => !Compare(left, right, TextCompare.Contains),
             "exists" => !left.IsNull && left.AsText().Length > 0,
-            "regexMatch" => Regex.IsMatch(left.AsText(), right.AsText()),
+            TextCompare.Regex => Compare(left, right, TextCompare.Regex),
             _ => false,
         };
+    }
+
+    /// <summary>
+    /// Holds two values together the way <see cref="TextCompare"/> says, turning a pattern the machine
+    /// cannot read into a failed step rather than a stack trace — the same answer the steps that look
+    /// for text give.
+    /// </summary>
+    private static bool Compare(Value left, Value right, string way)
+    {
+        try
+        {
+            return TextCompare.Matches(left.AsText(), right.AsText(), way);
+        }
+        catch (ArgumentException)
+        {
+            throw new StepFailure("Run.BadPattern", right.AsText());
+        }
     }
 
     private bool Group(ExecutableStep step, int depth, CancellationToken token)
@@ -2891,12 +2929,13 @@ public sealed class MacroRunner
     /// <summary>Hands over what a step looking for writing would find right now.</summary>
     private void SawSought(ExecutableStep step)
     {
+        var wanted = Read(step.Text("text")).AsText();
+        var way = TextWay(step, wanted);
         var readings = ReadSpans(step);
-        var (_, chosen) = Counting(step, readings, Read(step.Text("text")).AsText(),
-            step.Text("matchMode"));
+        var (_, chosen) = Counting(step, readings, wanted, way);
 
         SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen,
-            Read(step.Text("text")).AsText(), minimum: Number(step, "minScore"));
+            wanted, minimum: Number(step, "minScore"));
     }
 
     /// <summary>Where the pixel a step watches sits on the screen, window anchoring and all.</summary>
@@ -6776,7 +6815,7 @@ public sealed class MacroRunner
     /// and one that posts its input at a window — say it in these same two fields, so they are read
     /// in this one place.
     /// </summary>
-    private (string Text, WindowMatch Match, WindowCompare Compare) WindowRuleOf(ExecutableStep step,
+    private (string Text, WindowMatch Match, string Compare) WindowRuleOf(ExecutableStep step,
         string textField, string howField)
     {
         var text = Read(step.Text(textField)).AsText().Trim();
@@ -7102,13 +7141,13 @@ public sealed class MacroRunner
     private void FindText(ExecutableStep step, int depth)
     {
         var wanted = Read(step.Text("text")).AsText();
-        var mode = step.Text("matchMode");
+        var way = TextWay(step, wanted);
 
         // Every reading is kept, not only the ones the step is willing to act on: a look that
         // shows what the model made of the screen is what tells a step that found nothing whether
         // the writing was missing or the reading was.
         var readings = ReadSpans(step);
-        var (hits, chosen) = Counting(step, readings, wanted, mode);
+        var (hits, chosen) = Counting(step, readings, wanted, way);
 
         SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen, wanted,
             minimum: Number(step, "minScore"));
@@ -7148,7 +7187,7 @@ public sealed class MacroRunner
     private async Task ClickText(ExecutableStep step, int depth, CancellationToken token)
     {
         var wanted = Read(step.Text("text")).AsText();
-        var mode = step.Text("matchMode");
+        var way = TextWay(step, wanted);
         var interval = LookBeat(step);
 
         // The readings of the last look are kept, so the look handed over at the end is of the
@@ -7160,7 +7199,7 @@ public sealed class MacroRunner
         TextSpan? Look()
         {
             readings = ReadSpans(step);
-            (hits, chosen) = Counting(step, readings, wanted, mode);
+            (hits, chosen) = Counting(step, readings, wanted, way);
             return hits.Count > 0 ? hits[0] : null;
         }
 
@@ -7194,13 +7233,42 @@ public sealed class MacroRunner
         Log(LogLevel.Info, depth, step.Type, "Run.ClickedText", wanted, $"{at.X},{at.Y}");
     }
 
-    /// <summary>Compares found text against what was asked for, the way the step chose.</summary>
-    private static bool Matches(string found, string wanted, string mode) => mode.Trim().ToLowerInvariant() switch
+    /// <summary>
+    /// Compares found text against what was asked for, the way the step chose. The five ways
+    /// themselves live in one place (<see cref="TextCompare"/>); what is added here is what each
+    /// kind of mistake means: a word that is none of the five, or a pattern the machine cannot read,
+    /// comes back as a failed step rather than as a stack trace or, worse, as some other way of
+    /// comparing than the one that was written.
+    /// </summary>
+    private static bool Matches(string found, string wanted, string mode)
     {
-        "exact" => string.Equals(found.Trim(), wanted.Trim(), StringComparison.OrdinalIgnoreCase),
-        "regex" => Regex.IsMatch(found, wanted, RegexOptions.IgnoreCase),
-        _ => found.Contains(wanted, StringComparison.OrdinalIgnoreCase),
-    };
+        var way = Way(mode);
+        try
+        {
+            return TextCompare.Matches(found, wanted, way);
+        }
+        catch (ArgumentException)
+        {
+            throw new StepFailure("Run.BadPattern", wanted);
+        }
+    }
+
+    /// <summary>
+    /// One of the five ways of comparing text, as the step wrote it. An unanswered field reads as
+    /// "contained in it"; anything else the five do not name is worth saying out loud, because
+    /// quietly comparing in some other way would turn "exactly this" into "this is part of it".
+    /// </summary>
+    private static string Way(string written)
+    {
+        try
+        {
+            return TextCompare.Read(written);
+        }
+        catch (ArgumentException)
+        {
+            throw new StepFailure("Run.BadMatchMode", written.Trim());
+        }
+    }
 
     // ---------------------------------------------------------------------- uia
 

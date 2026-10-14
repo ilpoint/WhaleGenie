@@ -630,17 +630,17 @@ public interface IWindowDevice
     /// and the rule itself stays in one place.
     /// </summary>
     IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match,
-        WindowCompare compare = WindowCompare.Contains, bool everyWhenEmpty = false);
+        string compare = TextCompare.Contains, bool everyWhenEmpty = false);
 
     /// <summary>
     /// The first window that matches <paramref name="value"/> the way <paramref name="match"/>
     /// and <paramref name="compare"/> say, ignoring case, or null when nothing does. An empty value
     /// matches the frontmost window, whichever of the three parts it is asked to look at. A
-    /// <paramref name="compare"/> of <see cref="WindowCompare.Regex"/> with a pattern the machine
+    /// <paramref name="compare"/> of <see cref="TextCompare.Regex"/> with a pattern the machine
     /// cannot read throws <see cref="ArgumentException"/>, which the run turns into a failed step.
     /// </summary>
     WindowInfo? Find(string value, WindowMatch match,
-        WindowCompare compare = WindowCompare.Contains);
+        string compare = TextCompare.Contains);
 
     /// <summary>
     /// The name of the program that owns a window, without the ".exe", or an empty string when the
@@ -1103,9 +1103,9 @@ public sealed class NullDeviceLayer : IDeviceLayer
         IReadOnlyList<WindowInfo> IWindowDevice.List() => throw Missing("windows");
 
         IReadOnlyList<WindowInfo> IWindowDevice.Filter(string value, WindowMatch match,
-            WindowCompare compare, bool everyWhenEmpty) => throw Missing("windows");
+            string compare, bool everyWhenEmpty) => throw Missing("windows");
 
-        WindowInfo? IWindowDevice.Find(string value, WindowMatch match, WindowCompare compare)
+        WindowInfo? IWindowDevice.Find(string value, WindowMatch match, string compare)
             => throw Missing("windows");
 
         string IWindowDevice.ProcessOf(long handle) => throw Missing("windows");

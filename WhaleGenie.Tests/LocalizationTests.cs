@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -78,6 +79,47 @@ public class LocalizationTests
         });
 
         Assert.Empty(gaps);
+    }
+
+    /// <summary>
+    /// The fields that ask how writing is compared offer the same ways, in the same order, and each
+    /// way has a word in Chinese. One question with one list of answers is the whole point: "starts
+    /// with" may not read as one thing in a search and another in a condition about writing.
+    /// </summary>
+    [Fact]
+    public void The_fields_that_compare_writing_offer_the_same_ways()
+    {
+        string[] textMatchFields =
+        [
+            "ocr.findText", "ocr.clickText", "condition.textExists", "condition.textNotExists",
+        ];
+
+        Ui.Run(() =>
+        {
+            foreach (var action in textMatchFields)
+            {
+                var parameter = ActionCatalog.Find(action)!
+                    .Parameters.Single(item => item.Name == "matchMode");
+
+                Assert.Equal(TextCompare.Values, parameter.Options);
+
+                foreach (var choice in parameter.OptionChoices)
+                {
+                    var key = $"{action}.matchMode.option.{choice.Value}";
+                    Assert.True(ActionStrings.Chinese.ContainsKey(key), key);
+                }
+            }
+
+            // A branch and a table's rows are compared with operators, and the ways of comparing text
+            // among them are the same words rather than a second set that could drift apart.
+            foreach (var action in new[] { "control.switch", "file.readCsv" })
+            {
+                var options = ActionCatalog.Find(action)!
+                    .Parameters.Single(item => item.Name == "matchMode").Options;
+
+                Assert.All(TextCompare.Values, way => Assert.Contains(way, options));
+            }
+        });
     }
 
     [Fact]
