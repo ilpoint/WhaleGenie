@@ -7,7 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
+using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Views;
@@ -38,9 +38,12 @@ public sealed class ElementPickerWindow : Window
     private static readonly HookKey Escape = KeyNames.Resolve("Esc") ?? default;
 
     private readonly Func<int, int, UiElementInfo?> _look;
-    private readonly FlaUiDevice? _device;
+
+    /// <summary>The hook the click that takes a control is read from, or null for a probe-driven picker.</summary>
+    private readonly IInputHook? _hookSource;
+
     private readonly bool _listen;
-    private readonly IScreenDevice _screen = new WindowsScreenDevice();
+    private readonly IScreenDevice _screen;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(70) };
     private readonly TextBlock _readoutText = new();
 
@@ -58,41 +61,34 @@ public sealed class ElementPickerWindow : Window
     private volatile Box? _readoutBox;
 
     public ElementPickerWindow()
-        : this(null)
+        : this(SharedDevices.Current)
     {
     }
 
     /// <summary>
-    /// Creates the picker over the desktop's UI Automation, or over a reader handed in by a test,
-    /// which is what lets the picking be driven without a real screen.
+    /// Creates the picker over the devices handed in: the reader is the layer's UI Automation, the
+    /// click is taken from the layer's hook, and the frames are measured against the layer's screen.
     /// </summary>
-    internal ElementPickerWindow(Func<int, int, UiElementInfo?>? look)
+    internal ElementPickerWindow(IDeviceLayer devices)
     {
-        Title = Strings.Get("Element.Title");
-        Background = new SolidColorBrush(Color.FromRgb(0x0A, 0x84, 0xFF));
-        WindowDecorations = WindowDecorations.None;
-        CanResize = false;
-        ShowInTaskbar = false;
-        ShowActivated = false;
-        Topmost = true;
-        Width = 240;
-        Height = 90;
+        _screen = devices.Screen;
+        _hookSource = devices.Hook;
+        _look = devices.Ui.ElementAt;
+        _listen = true;
+        Build();
+    }
 
-        if (look is null)
-        {
-            _device = new FlaUiDevice();
-            _look = _device.ElementAt;
-            _listen = true;
-        }
-        else
-        {
-            // A reader handed in by a test drives the picker a probe at a time, so there is no
-            // pointer to follow and no hook to take.
-            _look = look;
-            _listen = false;
-        }
-
-        _timer.Tick += (_, _) => FollowPointer();
+    /// <summary>
+    /// Creates the picker over a reader handed in by a check, which drives it a probe at a time: so
+    /// there is no pointer to follow and no hook to take. The screen is only used to keep the
+    /// readout on the desk when the session will not say how big it is.
+    /// </summary>
+    internal ElementPickerWindow(Func<int, int, UiElementInfo?> look, IScreenDevice? screen = null)
+    {
+        _screen = screen ?? SharedDevices.Current.Screen;
+        _look = look;
+        _listen = false;
+        Build();
     }
 
     /// <summary>What the picker took: the selector to write, and the window the control sits in.</summary>
@@ -108,14 +104,14 @@ public sealed class ElementPickerWindow : Window
     /// Shows the picker over <paramref name="owner"/> and reports the control that was clicked.
     /// The owner steps out of the way, because the control being picked is usually behind it.
     /// </summary>
-    public static async Task<Pick?> PickAsync(Window owner)
+    public static async Task<Pick?> PickAsync(Window owner, IDeviceLayer devices)
     {
         var previous = owner.WindowState;
         owner.WindowState = WindowState.Minimized;
 
         try
         {
-            return await new ElementPickerWindow(null).ShowDialogOver<Pick?>(owner);
+            return await new ElementPickerWindow(devices).ShowDialogOver<Pick?>(owner);
         }
         finally
         {
@@ -157,13 +153,28 @@ public sealed class ElementPickerWindow : Window
         _readout?.Close();
         _readout = null;
         _readoutBox = null;
-        _device?.Dispose();
+    }
+
+    /// <summary>The window itself, which is the same whichever way the reader is reached.</summary>
+    private void Build()
+    {
+        Title = Strings.Get("Element.Title");
+        Background = new SolidColorBrush(Color.FromRgb(0x0A, 0x84, 0xFF));
+        WindowDecorations = WindowDecorations.None;
+        CanResize = false;
+        ShowInTaskbar = false;
+        ShowActivated = false;
+        Topmost = true;
+        Width = 240;
+        Height = 90;
+
+        _timer.Tick += (_, _) => FollowPointer();
     }
 
     /// <summary>Looks at the pointer and redraws the outline around whatever is under it.</summary>
     private void FollowPointer()
     {
-        var point = WindowsScreenDevice.CursorPosition();
+        var point = _screen.Cursor;
         ProbeAt(point.X, point.Y);
     }
 
@@ -428,7 +439,12 @@ public sealed class ElementPickerWindow : Window
     {
         try
         {
-            var hook = GlobalInputHook.Shared;
+            if (_hookSource is not { } hook)
+            {
+                _hook = null;
+                return;
+            }
+
             hook.MouseDown += OnMouseDown;
             hook.KeyDown += OnKeyDown;
             _hook = hook;

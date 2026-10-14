@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Recording;
 
 namespace WhaleGenie.Tests;
 
@@ -111,7 +112,23 @@ internal sealed class ChecksDevices : IDeviceLayer
 {
     public IWindowDevice Windows { get; set; } = NullDeviceLayer.Instance.Windows;
 
-    public IInputDevice Input => NullDeviceLayer.Instance.Input;
+    /// <summary>
+    /// A hook a check can drive, so a trigger bound to a key or a button can be answered without a
+    /// real keyboard being pressed. The rest of the watching devices answer the way a machine with
+    /// nothing to say does, which leaves the caller looking on its own.
+    /// </summary>
+    public IInputHook Hook { get; set; } = NullDeviceLayer.Instance.Hook;
+
+    /// <summary>The recorder the editor is handed, when what is being checked is recording.</summary>
+    public IInputRecorder? Recorder { get; set; }
+
+    public IInputRecorder CreateRecorder() => Recorder ?? NullDeviceLayer.Instance.CreateRecorder();
+
+    public IWindowEvents WindowEvents { get; set; } = new NoWindowEvents();
+
+    public IDriverInput Driver => NullDeviceLayer.Instance.Driver;
+
+    public IInputDevice Input { get; set; } = NullDeviceLayer.Instance.Input;
 
     public IInputRouter Inputs => NullDeviceLayer.Instance.Inputs;
 
@@ -119,13 +136,13 @@ internal sealed class ChecksDevices : IDeviceLayer
 
     public ICaptureChoice Capture => NullDeviceLayer.Instance.Capture;
 
-    public IScreenDevice Screen => NullDeviceLayer.Instance.Screen;
+    public IScreenDevice Screen { get; set; } = NullDeviceLayer.Instance.Screen;
 
     public IVisionDevice Vision => NullDeviceLayer.Instance.Vision;
 
     public IOcrDevice Ocr => NullDeviceLayer.Instance.Ocr;
 
-    public IUiDevice Ui => NullDeviceLayer.Instance.Ui;
+    public IUiDevice Ui { get; set; } = NullDeviceLayer.Instance.Ui;
 
     public IFileDevice Files => NullDeviceLayer.Instance.Files;
 

@@ -11,7 +11,6 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
@@ -290,8 +289,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     private readonly VariableStore _variables;
     private readonly IDeviceLayer _devices;
     private readonly double _delayScale;
-    private readonly bool _ownsDevices;
-
     /// <summary>The steps a run stops in front of, named the way a step's results name it.</summary>
     private readonly HashSet<string> _breakpoints = new(StringComparer.OrdinalIgnoreCase);
 
@@ -395,18 +392,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         ? Strings.Get("Run.Title")
         : $"{Strings.Get("Run.Title")} · {Debugged}";
 
-    /// <summary>
-    /// Called once the window is gone. The device layer is only let go when this window made
-    /// it, so a layer handed in from outside stays the caller's to dispose.
-    /// </summary>
-    public void ReleaseDevices()
-    {
-        if (_ownsDevices && _devices is IDisposable owned)
-        {
-            owned.Dispose();
-        }
-    }
-
     /// <param name="triggers">
     /// The service that watches for the macros of the list to be wanted. Handed in so the window can
     /// say what each armed trigger is waiting for: when a macro that was expected did not run, the
@@ -417,12 +402,11 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// it is editing, so a run started there says which macro it is; a card's 「运行调试」 says so
     /// through its own call.
     /// </param>
-    public RunViewModel(IEnumerable<MacroStep> steps, IDeviceLayer? devices = null, double delayScale = 1,
+    public RunViewModel(IEnumerable<MacroStep> steps, IDeviceLayer devices, double delayScale = 1,
         IMacroLibrary? macros = null, IReadOnlyList<MacroItem>? listed = null,
         MacroTriggerService? triggers = null, string macroName = "")
     {
-        _ownsDevices = devices is null;
-        _devices = devices ?? new WindowsDeviceLayer();
+        _devices = devices;
         _delayScale = delayScale;
         _macros = macros;
         _listed = listed ?? [];

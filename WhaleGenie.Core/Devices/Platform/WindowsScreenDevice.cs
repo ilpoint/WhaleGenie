@@ -33,8 +33,11 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         }
     }
 
-    /// <summary>Where the pointer is, as a plain call so other devices can share it.</summary>
-    public static ScreenPoint CursorPosition()
+    /// <summary>Where the pointer is: the one place in the engine that asks Windows this.</summary>
+    public ScreenPoint Cursor => CursorPosition();
+
+    /// <summary>The call itself, so every device that hands the pointer on reads the same thing.</summary>
+    private static ScreenPoint CursorPosition()
         => OperatingSystem.IsWindows() && GetCursorPos(out var point)
             ? new ScreenPoint(point.X, point.Y)
             : default;

@@ -91,14 +91,18 @@ public class PathPickerTests
     [Fact]
     public void A_file_inside_the_macros_folder_is_stored_by_its_place_in_it()
     {
-        var inside = Path.Combine(MacroPaths.Folder, "data", "report.csv");
+        // Which folder it is does not matter — the device layer hands in the one a macro's own paths
+        // are read from — so this is the same arithmetic on a folder of its own.
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-macros");
+        var inside = Path.Combine(folder, "data", "report.csv");
 
-        Assert.Equal(Path.Combine("data", "report.csv"), MacroPaths.ForMacro(inside));
-        Assert.Equal(@"D:\somewhere else\report.csv", MacroPaths.ForMacro(@"D:\somewhere else\report.csv"));
-        Assert.Equal(string.Empty, MacroPaths.ForMacro("   "));
+        Assert.Equal(Path.Combine("data", "report.csv"), MacroPaths.ForMacro(inside, folder));
+        Assert.Equal(@"D:\somewhere else\report.csv",
+            MacroPaths.ForMacro(@"D:\somewhere else\report.csv", folder));
+        Assert.Equal(string.Empty, MacroPaths.ForMacro("   ", folder));
 
         // Above the folders a relative path only reads as dots, so the full one is kept.
-        var above = Path.Combine(MacroPaths.Folder, "..", "elsewhere", "report.csv");
-        Assert.True(Path.IsPathRooted(MacroPaths.ForMacro(above)));
+        var above = Path.Combine(folder, "..", "elsewhere", "report.csv");
+        Assert.True(Path.IsPathRooted(MacroPaths.ForMacro(above, folder)));
     }
 }

@@ -1,4 +1,4 @@
-namespace WhaleGenie.Core.Devices.Platform;
+namespace WhaleGenie.Core.Devices;
 
 /// <summary>
 /// One key, as the hook reports it and as a trigger binding and a recording name it.

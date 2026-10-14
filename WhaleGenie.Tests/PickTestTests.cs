@@ -76,6 +76,8 @@ public class PickTestTests
 
         public bool Exists(UiQuery query, int timeoutMs) => found;
 
+        public UiElementInfo? ElementAt(int x, int y) => found ? Save : null;
+
         public bool Click(UiQuery query, string button) => found;
 
         public bool Invoke(UiQuery query) => found;

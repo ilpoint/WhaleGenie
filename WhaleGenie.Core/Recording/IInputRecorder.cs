@@ -11,6 +11,12 @@ public interface IInputRecorder : IDisposable
     /// <summary>True between <see cref="Start"/> and <see cref="Stop"/>.</summary>
     bool IsRunning { get; }
 
+    /// <summary>
+    /// Whether input a program sent is left out. It is on by default: a macro that is clicked off
+    /// while something else is typing would otherwise write that typing down as the user's own.
+    /// </summary>
+    bool IgnoreInjected { get; set; }
+
     /// <summary>Raised for every captured event, in the order it happened.</summary>
     event Action<RecordedInput>? Captured;
 

@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using WhaleGenie.Core.Devices.Platform;
 
 namespace WhaleGenie.Storage;
 
@@ -15,11 +14,12 @@ namespace WhaleGenie.Storage;
 /// </remarks>
 public static class MacroPaths
 {
-    /// <summary>The folder relative paths are read from, which is where the macros live.</summary>
-    public static string Folder => LocalFileDevice.DefaultBaseFolder;
-
-    /// <summary>The value to store for a file or folder the user picked out of a dialog.</summary>
-    public static string ForMacro(string picked)
+    /// <summary>
+    /// The value to store for a file or folder the user picked out of a dialog.
+    /// <paramref name="folder"/> is the folder relative paths are read from, which is the one the
+    /// device layer resolves a macro's own paths against.
+    /// </summary>
+    public static string ForMacro(string picked, string folder)
     {
         var full = (picked ?? string.Empty).Trim();
         if (full.Length == 0)
@@ -29,7 +29,7 @@ public static class MacroPaths
 
         try
         {
-            var from = Path.GetFullPath(Folder);
+            var from = Path.GetFullPath(folder);
             var to = Path.GetFullPath(full);
             var relative = Path.GetRelativePath(from, to);
 

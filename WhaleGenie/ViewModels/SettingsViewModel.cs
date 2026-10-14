@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Execution;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
@@ -29,14 +28,23 @@ public sealed record CaptureOption(CaptureWay Way, string Key)
 public partial class SettingsViewModel : ViewModelBase
 {
     public SettingsViewModel()
-        : this(DriverInput.Check, DriverInput.IsServerAnswering, ProcessRights.IsElevated)
+        : this(SharedDevices.Current.Driver)
     {
     }
 
     /// <summary>
-    /// The same, with the answers about driver-level input handed in, so a check can describe a
-    /// machine that is not this one instead of asking the registry and the network — and with what
-    /// rights the program has, which a check cannot give itself either.
+    /// The same, over whatever stands behind driver-level input: the program's own, or one a check
+    /// hands in so that a machine which has neither the driver nor the server can be described.
+    /// </summary>
+    internal SettingsViewModel(IDriverInput driver, bool? elevated = null)
+        : this(() => driver.State, driver.IsServerAnswering, elevated)
+    {
+    }
+
+    /// <summary>
+    /// The same, with the two answers about driver-level input handed in separately, so a check can
+    /// describe a machine that is not this one instead of asking the registry and the network — and
+    /// with what rights the program has, which a check cannot give itself either.
     /// </summary>
     internal SettingsViewModel(Func<DriverInputState> driverInput, Func<bool> serverAnswering,
         bool? elevated = null)

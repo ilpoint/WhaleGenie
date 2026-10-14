@@ -7,7 +7,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
+using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Views;
@@ -66,7 +66,7 @@ public partial class RegionPickerWindow : Window
         SouthWest,
     }
 
-    private readonly IScreenDevice _screen = new WindowsScreenDevice();
+    private readonly IScreenDevice _screen;
     private readonly Border[] _handles;
 
     /// <summary>Where the screen starts, in screen pixels; the window sits exactly there.</summary>
@@ -96,7 +96,17 @@ public partial class RegionPickerWindow : Window
     private bool _done;
 
     public RegionPickerWindow()
+        : this(SharedDevices.Current)
     {
+    }
+
+    /// <summary>
+    /// The picker over the desk the device layer describes, which is what a check hands over when it
+    /// wants a rectangle drawn against a desk of its own.
+    /// </summary>
+    internal RegionPickerWindow(IDeviceLayer devices)
+    {
+        _screen = devices.Screen;
         InitializeComponent();
 
         Title = Strings.Get("Region.Title");
@@ -150,14 +160,14 @@ public partial class RegionPickerWindow : Window
     /// Shows the picker over <paramref name="owner"/> and reports the rectangle that was dragged.
     /// The owner steps out of the way, because the region being picked is usually behind it.
     /// </summary>
-    public static async Task<Region?> PickAsync(Window owner)
+    public static async Task<Region?> PickAsync(Window owner, IDeviceLayer devices)
     {
         var previous = owner.WindowState;
         owner.WindowState = WindowState.Minimized;
 
         try
         {
-            return await new RegionPickerWindow().ShowDialogOver<Region?>(owner);
+            return await new RegionPickerWindow(devices).ShowDialogOver<Region?>(owner);
         }
         finally
         {

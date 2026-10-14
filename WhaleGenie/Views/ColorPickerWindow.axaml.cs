@@ -10,7 +10,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
+using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Views;
@@ -28,7 +28,10 @@ public partial class ColorPickerWindow : Window
     /// <summary>How far from the pointer the magnifier sits, so it never covers its own target.</summary>
     private const int Offset = 28;
 
-    private readonly IScreenDevice _screen = new WindowsScreenDevice();
+    /// <summary>The devices the magnifier reads and nudges the pointer through.</summary>
+    private readonly IDeviceLayer _devices;
+
+    private readonly IScreenDevice _screen;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(40) };
 
     private Image? _preview;
@@ -43,8 +46,25 @@ public partial class ColorPickerWindow : Window
     private PixelColor _colour;
     private bool _done;
 
+    /// <summary>
+    /// The colour the magnifier is reading now, which is what a check about a stand-in screen
+    /// reads back: the window itself only ever shows it.
+    /// </summary>
+    internal PixelColor Colour => _colour;
+
     public ColorPickerWindow()
+        : this(SharedDevices.Current)
     {
+    }
+
+    /// <summary>
+    /// The magnifier over the devices handed in, which is how a check drives it without a real
+    /// screen: the pixels, the pointer and the click all come from the same layer a run would use.
+    /// </summary>
+    internal ColorPickerWindow(IDeviceLayer devices)
+    {
+        _devices = devices;
+        _screen = devices.Screen;
         InitializeComponent();
 
         Title = Strings.Get("Picker.Title");
@@ -59,7 +79,7 @@ public partial class ColorPickerWindow : Window
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
 
         // Placed before the window appears, so it never sits under the pointer for a frame.
-        Place(WindowsScreenDevice.CursorPosition());
+        Place(_screen.Cursor);
     }
 
     /// <summary>
@@ -67,14 +87,14 @@ public partial class ColorPickerWindow : Window
     /// is put out of the way for as long as the picker is up, because the colour being looked for
     /// is usually behind the window that asked for it.
     /// </summary>
-    public static async Task<PixelColor?> PickAsync(Window owner)
+    public static async Task<PixelColor?> PickAsync(Window owner, IDeviceLayer devices)
     {
         var previous = owner.WindowState;
         owner.WindowState = WindowState.Minimized;
 
         try
         {
-            return await new ColorPickerWindow().ShowDialogOver<PixelColor?>(owner);
+            return await new ColorPickerWindow(devices).ShowDialogOver<PixelColor?>(owner);
         }
         finally
         {
@@ -110,7 +130,7 @@ public partial class ColorPickerWindow : Window
     /// <summary>Reads the pointer, redraws the magnifier and moves it along with the pointer.</summary>
     private void Refresh()
     {
-        var point = WindowsScreenDevice.CursorPosition();
+        var point = _screen.Cursor;
         _colour = ReadColour(point);
 
         DrawRegion(point);
@@ -282,9 +302,9 @@ public partial class ColorPickerWindow : Window
     /// Moves the pointer a pixel at a time, so a colour can be taken from a spot a mouse cannot
     /// be settled on exactly. Holding Shift moves ten pixels at a time for the longer trips.
     /// </summary>
-    private void Nudge(Key key, int step)
+    internal void Nudge(Key key, int step)
     {
-        var point = WindowsScreenDevice.CursorPosition();
+        var point = _screen.Cursor;
         var (dx, dy) = key switch
         {
             Key.Left => (-step, 0),
@@ -293,7 +313,14 @@ public partial class ColorPickerWindow : Window
             _ => (0, step),
         };
 
-        if (!OperatingSystem.IsWindows() || !SetCursorPos(point.X + dx, point.Y + dy))
+        // The pointer is moved through the same device a macro's mouse step uses, so the picker
+        // and a run move it the same way, and a layer handed in by a check writes it down rather
+        // than moving anything.
+        try
+        {
+            _devices.Input.MoveMouse(point.X + dx, point.Y + dy, 0);
+        }
+        catch (Exception)
         {
             return;
         }
@@ -340,7 +367,7 @@ public partial class ColorPickerWindow : Window
     {
         try
         {
-            var hook = GlobalInputHook.Shared;
+            var hook = _devices.Hook;
             hook.MouseDown += OnMouseDown;
             _hook = hook;
         }
@@ -359,7 +386,4 @@ public partial class ColorPickerWindow : Window
             _hook = null;
         }
     }
-
-    [DllImport("user32.dll")]
-    private static extern bool SetCursorPos(int x, int y);
 }

@@ -7,19 +7,6 @@ using Microsoft.Win32;
 
 namespace WhaleGenie.Core.Devices.Platform;
 
-/// <summary>How far this machine is from taking input that looks like real hardware.</summary>
-public enum DriverInputState
-{
-    /// <summary>The kernel driver is installed and a VIIPER server is answering.</summary>
-    Ready,
-
-    /// <summary>No usbip-win2 kernel driver, so there is no virtual USB device to send into.</summary>
-    DriverMissing,
-
-    /// <summary>The driver is there, but nothing is answering where the VIIPER server should be.</summary>
-    ServerMissing,
-}
-
 /// <summary>
 /// Driver-level input rests on two pieces WhaleGenie neither ships nor installs by itself: the
 /// usbip-win2 kernel driver and a running VIIPER server. Both belong to their own projects and both

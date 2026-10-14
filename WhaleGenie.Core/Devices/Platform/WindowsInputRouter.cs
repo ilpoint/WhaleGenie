@@ -8,7 +8,8 @@ namespace WhaleGenie.Core.Devices.Platform;
 /// the background device posts messages at one window; the driver device sends it through a
 /// virtual USB device.
 /// </summary>
-internal sealed class WindowsInputRouter(IInputDevice front) : IInputRouter, IDisposable
+internal sealed class WindowsInputRouter(IInputDevice front, IScreenDevice screen)
+    : IInputRouter, IDisposable
 {
     private readonly object _gate = new();
 
@@ -39,7 +40,7 @@ internal sealed class WindowsInputRouter(IInputDevice front) : IInputRouter, IDi
             {
                 if (_driver is null)
                 {
-                    _driver = SharedDriverInput.Take();
+                    _driver = SharedDriverInput.Take(screen);
                     _tookDriver = true;
                 }
 

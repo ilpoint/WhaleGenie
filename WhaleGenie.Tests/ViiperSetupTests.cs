@@ -1,3 +1,4 @@
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
@@ -73,24 +74,25 @@ public class ViiperSetupTests
         // so a choice that was only stored would leave driver-level input unable to start anything.
         InOwnFile(path =>
         {
-            var engine = ViiperServer.Executable;
+            var driver = SharedDevices.Current.Driver;
+            var engine = driver.Executable;
             try
             {
-                ViiperServer.Executable = null;
-                ViiperSetup.Store(path);
+                driver.Executable = null;
+                ViiperSetup.Store(driver, path);
 
                 Assert.Equal(path, LocalSettings.LoadViiperPath());
-                Assert.Equal(path, ViiperServer.Executable);
+                Assert.Equal(path, driver.Executable);
 
                 // And the other way round: what is stored is what a fresh start hands over.
-                ViiperServer.Executable = null;
-                ViiperSetup.Load();
+                driver.Executable = null;
+                ViiperSetup.Load(driver);
 
-                Assert.Equal(path, ViiperServer.Executable);
+                Assert.Equal(path, driver.Executable);
             }
             finally
             {
-                ViiperServer.Executable = engine;
+                driver.Executable = engine;
             }
         });
     }
@@ -102,7 +104,7 @@ public class ViiperSetupTests
         // started is closed there rather than left running behind the user's back.
         var program = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Program.cs"));
 
-        Assert.Contains("ViiperServer.Stop()", program, StringComparison.Ordinal);
+        Assert.Contains(".Driver.Stop()", program, StringComparison.Ordinal);
     }
 
     [Fact]

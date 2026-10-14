@@ -18,20 +18,6 @@ namespace WhaleGenie.Core.Devices.Platform;
 public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 {
     /// <summary>
-    /// The browsers this program has a page open in, oldest first.
-    /// </summary>
-    /// <remarks>
-    /// A macro and the editor's element picker reach the browser through separate device layers,
-    /// but they are the same person looking at the same page. So the picker asks here first and
-    /// works on the page a macro opened, instead of starting a second browser with none of the
-    /// pages, and none of the logins, the macro had brought up.
-    /// </remarks>
-    private static readonly List<PlaywrightBrowserDevice> Opened = [];
-
-    /// <summary>Guards the list, which a macro's own thread and the editor both reach.</summary>
-    private static readonly object OpenedGate = new();
-
-    /// <summary>
     /// Playwright's own step from an <c>iframe</c> element down into the document inside it. Chained
     /// selectors do not take it on their own — without this, a click aimed at a frame waits for an
     /// element of that name in the top document and times out.
@@ -219,7 +205,6 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             });
             _headless = headless;
             _page = await _browser.NewPageAsync();
-            Remember();
             if (!string.IsNullOrWhiteSpace(url))
             {
                 await _page.GotoAsync(url);
@@ -660,7 +645,6 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
     public void Close()
     {
-        Forget();
         if (_page is null && _browser is null)
         {
             return;
@@ -679,38 +663,6 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         _headless = false;
         _listening = false;
         _tabs.Clear();
-    }
-
-    /// <summary>
-    /// The page this program already has open and shown, for whoever wants to work on it rather
-    /// than start a browser of their own. A browser opened without a window is not one of these:
-    /// there is nothing on screen to work on.
-    /// </summary>
-    public static PlaywrightBrowserDevice? OpenPage()
-    {
-        lock (OpenedGate)
-        {
-            return Opened.LastOrDefault(device => device.IsOpen && !device.IsHeadless);
-        }
-    }
-
-    /// <summary>Adds this device to the ones with a page open, newest last.</summary>
-    private void Remember()
-    {
-        lock (OpenedGate)
-        {
-            Opened.Remove(this);
-            Opened.Add(this);
-        }
-    }
-
-    /// <summary>Takes this device off the ones with a page open.</summary>
-    private void Forget()
-    {
-        lock (OpenedGate)
-        {
-            Opened.Remove(this);
-        }
     }
 
     public void Dispose()

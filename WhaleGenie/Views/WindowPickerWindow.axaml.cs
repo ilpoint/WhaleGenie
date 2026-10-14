@@ -52,10 +52,13 @@ public partial class WindowPickerWindow : Window
 
     /// <summary>
     /// Shows the picker over <paramref name="owner"/> and reports the part of the window that was
-    /// picked, taken from whichever part <paramref name="match"/> names.
+    /// picked, taken from whichever part <paramref name="match"/> names. The list comes from the
+    /// window device handed in, which is the one a run would recognise windows with.
     /// </summary>
-    public static Task<string?> PickAsync(Window owner, WindowMatch match = WindowMatch.Title)
-        => new WindowPickerWindow(new WindowPickerViewModel(null, match)).ShowDialogOver<string?>(owner);
+    public static Task<string?> PickAsync(Window owner, WindowMatch match, IWindowDevice windows)
+        => new WindowPickerWindow(
+                new WindowPickerViewModel(() => WindowPickerViewModel.From(windows), match))
+            .ShowDialogOver<string?>(owner);
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {

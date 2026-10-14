@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Recording;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -290,6 +291,17 @@ public class RunLookTests
     private sealed class LookingDevices : IDeviceLayer, IScreenDevice, IVisionDevice
     {
         public IScreenDevice Screen => this;
+
+        /// <summary>Nowhere, which is what a check that is about looking at pixels needs.</summary>
+        public ScreenPoint Cursor => default;
+
+        public IInputHook Hook => NullDeviceLayer.Instance.Hook;
+
+        public IInputRecorder CreateRecorder() => NullDeviceLayer.Instance.CreateRecorder();
+
+        public IWindowEvents WindowEvents { get; } = new NoWindowEvents();
+
+        public IDriverInput Driver => NullDeviceLayer.Instance.Driver;
 
         public IVisionDevice Vision => this;
 

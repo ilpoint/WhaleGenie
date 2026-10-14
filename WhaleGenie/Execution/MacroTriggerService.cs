@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -48,9 +47,7 @@ public sealed class MacroTriggerService : IDisposable
 
     private readonly Func<IReadOnlyList<MacroItem>> _macros;
     private readonly IDeviceLayer _devices;
-    private readonly bool _ownsDevices;
     private readonly IWindowEvents _windowEvents;
-    private readonly bool _ownsWindowEvents;
     private readonly object _gate = new();
     private readonly object _windowGate = new();
     private readonly object _keys = new();
@@ -88,24 +85,28 @@ public sealed class MacroTriggerService : IDisposable
     /// </summary>
     public event Action? StatusChanged;
 
-    /// <param name="windowEvents">
-    /// Where the word that a window changed comes from. A machine that will not say leaves the
-    /// window list to the timer, which is how it has always been noticed; a check that is about
-    /// something else can hand in one of its own.
+    /// <param name="devices">
+    /// The devices to watch and to run with. The program hands over the one layer it holds, so a
+    /// triggered run uses the same devices — and the same loaded models — as a run started by hand;
+    /// a check hands over a layer of its own, which is also where the hook and the word about
+    /// windows changing come from.
     /// </param>
     /// <param name="hook">
     /// The keyboard and the mouse, as the bound keys and buttons are answered from. The whole
     /// program shares the one hook the machine allows, so only a check that wants to drive the
-    /// events itself hands in one of its own.
+    /// events itself hands in one of its own; with none, the layer's own hook is used.
     /// </param>
-    public MacroTriggerService(Func<IReadOnlyList<MacroItem>> macros, IDeviceLayer? devices = null,
+    /// <param name="windowEvents">
+    /// Where the word that a window changed comes from, or null for the layer's own. A check that is
+    /// about something else hands in a machine with nothing to say, which leaves the window list to
+    /// the timer exactly as a Windows too old to say anything does.
+    /// </param>
+    public MacroTriggerService(Func<IReadOnlyList<MacroItem>> macros, IDeviceLayer devices,
         IWindowEvents? windowEvents = null, IInputHook? hook = null)
     {
         _macros = macros;
-        _ownsDevices = devices is null;
-        _devices = devices ?? new WindowsDeviceLayer();
-        _ownsWindowEvents = windowEvents is null;
-        _windowEvents = windowEvents ?? new WindowsWindowEvents();
+        _devices = devices;
+        _windowEvents = windowEvents ?? devices.WindowEvents;
         _hookSource = hook;
         _poll = new Timer(_ => Poll(), null, Timeout.Infinite, Timeout.Infinite);
         _programs = new Timer(_ => Programs(), null, Timeout.Infinite, Timeout.Infinite);
@@ -311,16 +312,6 @@ public sealed class MacroTriggerService : IDisposable
         Detach();
         _poll.Dispose();
         _programs.Dispose();
-
-        if (_ownsWindowEvents)
-        {
-            _windowEvents.Dispose();
-        }
-
-        if (_ownsDevices && _devices is IDisposable owned)
-        {
-            owned.Dispose();
-        }
     }
 
     // ---------------------------------------------------------------- hooking
@@ -329,7 +320,7 @@ public sealed class MacroTriggerService : IDisposable
     {
         try
         {
-            var hook = _hookSource ?? GlobalInputHook.Shared;
+            var hook = _hookSource ?? _devices.Hook;
             hook.KeyDown += OnKeyDown;
             hook.KeyUp += OnKeyUp;
             hook.MouseDown += OnMouseDown;

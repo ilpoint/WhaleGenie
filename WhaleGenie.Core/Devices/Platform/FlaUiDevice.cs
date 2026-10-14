@@ -35,7 +35,10 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
 
     public FlaUiDevice(IInputDevice? input = null)
     {
-        _input = new Lazy<IInputDevice>(() => input ?? new SharpHookInputDevice());
+        // A device made without one of its own borrows the mouse that is already on this machine;
+        // the pointer it reads is the screen's, the same answer every other device gets.
+        _input = new Lazy<IInputDevice>(() =>
+            input ?? new SharpHookInputDevice(new WindowsScreenDevice()));
     }
 
     public bool Exists(UiQuery query, int timeoutMs)

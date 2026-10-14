@@ -20,7 +20,16 @@ public sealed class SharpHookInputDevice : IInputDevice
     /// <summary>The one simulator this device reuses, since setting one up is not cheap.</summary>
     private readonly IEventSimulator _simulator = EventSimulator.Create("WhaleGenie");
 
-    public ScreenPoint Cursor => WindowsScreenDevice.CursorPosition();
+    /// <summary>
+    /// The screen this device reads the pointer from. Sending input and reading where the pointer is
+    /// are two questions, and the second one is the screen's: a device that answered it itself would
+    /// be a second answer to the same question.
+    /// </summary>
+    private readonly IScreenDevice _screen;
+
+    public SharpHookInputDevice(IScreenDevice screen) => _screen = screen;
+
+    public ScreenPoint Cursor => _screen.Cursor;
 
     public void KeyPress(string key, int holdMs)
     {

@@ -8,6 +8,7 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Recording;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.GraphicsCapture;
 
@@ -7746,6 +7747,19 @@ internal sealed class FakeDeviceLayer
 
     IScreenDevice IDeviceLayer.Screen => this;
 
+    /// <summary>
+    /// A hook, a recorder and driver-level input are not something a macro's steps reach for, so
+    /// this layer answers the way a machine with no devices would: it refuses. A check that needs
+    /// one of them drives it through a layer of its own.
+    /// </summary>
+    IInputHook IDeviceLayer.Hook => NullDeviceLayer.Instance.Hook;
+
+    IInputRecorder IDeviceLayer.CreateRecorder() => NullDeviceLayer.Instance.CreateRecorder();
+
+    IWindowEvents IDeviceLayer.WindowEvents => new NoWindowEvents();
+
+    IDriverInput IDeviceLayer.Driver => NullDeviceLayer.Instance.Driver;
+
     IVisionDevice IDeviceLayer.Vision => this;
 
     IOcrDevice IDeviceLayer.Ocr => this;
@@ -7828,6 +7842,12 @@ internal sealed class FakeDeviceLayer
     {
         Note($"browserPick {hint} {timeoutMs}");
         return BrowserPicked;
+    }
+
+    bool IBrowserDevice.Highlight(string selector)
+    {
+        Note($"browserHighlight {selector}");
+        return BrowserOpen;
     }
 
     void IBrowserDevice.Select(string selector, string value, bool byIndex)
@@ -8000,6 +8020,16 @@ internal sealed class FakeDeviceLayer
         LastQuery = query;
         Note($"ui {query.ControlType}/{query.Name}/{query.AutomationId}");
         return ElementExists;
+    }
+
+    /// <summary>The control the element picker would find under a place, which is what the picker
+    /// asks for; a check that is about the picker sets it.</summary>
+    public UiElementInfo? ElementUnderPointer { get; set; }
+
+    public UiElementInfo? ElementAt(int x, int y)
+    {
+        Note($"elementAt {x},{y}");
+        return ElementUnderPointer;
     }
 
     public bool Click(UiQuery query, string button)

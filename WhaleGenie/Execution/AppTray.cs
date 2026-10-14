@@ -5,7 +5,6 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Execution;
@@ -69,9 +68,12 @@ public sealed class AppTray : IDisposable
     /// <summary>
     /// Puts the icon in the notification area for this program, or answers null when there is no
     /// notification area to put it in. A program that cannot keep an icon still runs; it just
-    /// closes the ordinary way instead.
+    /// closes the ordinary way instead. The area itself is made by whoever calls this, so that the
+    /// one implementation of it — and the words on its menu — stay where the program is assembled
+    /// rather than here.
     /// </summary>
-    public static AppTray? Attach(Window window, IClassicDesktopStyleApplicationLifetime desktop)
+    public static AppTray? Attach(Window window, IClassicDesktopStyleApplicationLifetime desktop,
+        Func<INotificationArea> makeArea)
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -80,10 +82,8 @@ public sealed class AppTray : IDisposable
 
         try
         {
-            var area = new WindowsTray(
-                Strings.Get("Tray.Tooltip"), Strings.Get("Tray.Show"), Strings.Get("Tray.Exit"));
             AppTray? tray = null;
-            tray = new AppTray(window, area, () => tray!.Leave(desktop));
+            tray = new AppTray(window, makeArea(), () => tray!.Leave(desktop));
             return tray;
         }
         catch (Exception)

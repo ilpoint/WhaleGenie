@@ -17,12 +17,15 @@ internal static class SharedDriverInput
 
     private static int _shares;
 
-    /// <summary>Takes a share of the virtual keyboard and mouse.</summary>
-    public static ViiperInputDevice Take()
+    /// <summary>
+    /// Takes a share of the virtual keyboard and mouse. The screen is the one the pair reads the
+    /// pointer from, which every caller here is the same layer's.
+    /// </summary>
+    public static ViiperInputDevice Take(IScreenDevice screen)
     {
         lock (Pool)
         {
-            _device ??= new ViiperInputDevice();
+            _device ??= new ViiperInputDevice(screen);
             _shares++;
             return _device;
         }

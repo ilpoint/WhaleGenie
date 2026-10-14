@@ -1,6 +1,7 @@
 using System.Collections.Generic;
+using WhaleGenie.Core.Devices.Platform;
 
-namespace WhaleGenie.Core.Devices.Platform;
+namespace WhaleGenie.Core.Devices;
 
 /// <summary>
 /// Turns the key names a macro writes into the keys the hook and a recording hand over, and back

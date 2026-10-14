@@ -85,8 +85,8 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
     private GamepadState _gamepad = GamepadState.Neutral;
 
     /// <summary>Connects to the server on this machine the first time a step needs it.</summary>
-    public ViiperInputDevice()
-        : this(ViiperLink.Open)
+    public ViiperInputDevice(IScreenDevice screen)
+        : this(() => ViiperLink.Open(screen))
     {
     }
 

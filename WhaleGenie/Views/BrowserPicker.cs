@@ -5,45 +5,39 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using WhaleGenie.Core.Devices.Platform;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Views;
 
 /// <summary>
 /// The page elements are picked off. When a macro already has a browser open — the one the step is
-/// about — that is the page picked on; a browser of this picker's own is only opened when the
-/// program has none, and that one is closed with the dialog that opened it.
+/// about — that is the page picked on; one is started only when the program has none open, and it
+/// is the page the macro goes on to use.
 /// </summary>
 /// <remarks>
 /// The picking itself is the page's own work: the device hands the page a script that outlines
 /// whatever the pointer is over and answers with a selector when something is clicked. Nothing
 /// here reads the screen, which is what makes this different from the UI Automation picker next to
 /// it — a page drawn by a browser is not a window full of controls.
+///
+/// The page is the one the program's device layer holds, which is the very page a <c>browser.*</c>
+/// step drives. A page opened here is therefore the page a run uses, rather than a second one
+/// beside it: what was picked on is what the macro acts on, logins and all. It is left open
+/// between picks and let go of with the layer, because fetching it and signing in again for every
+/// field would be worse than leaving a window up.
 /// </remarks>
 internal static class BrowserPicker
 {
     /// <summary>How long a pick waits for a click before giving up.</summary>
     private const int PickTimeoutMs = 120_000;
 
-    /// <summary>The browser this picker opened for itself, when the program had none open.</summary>
-    private static PlaywrightBrowserDevice? _own;
-
     /// <summary>
     /// Goes to the page the step is about and answers with the selector of the element that was
     /// clicked on it, or an empty string when the person gave up.
     /// </summary>
-    public static async Task<string> PickAsync(string url)
+    public static async Task<string> PickAsync(IBrowserDevice browser, string url)
     {
-        // The page a macro has open is the page the step is about, so it is picked on rather than
-        // opened again: a browser of this picker's own would be a second, empty one, without the
-        // pages the macro brought up and without the logins that went with them.
-        var browser = _own ?? PlaywrightBrowserDevice.OpenPage();
-        if (browser is null)
-        {
-            browser = _own = new PlaywrightBrowserDevice();
-        }
-
         var address = Address(url);
         if (!browser.IsOpen)
         {
@@ -66,37 +60,18 @@ internal static class BrowserPicker
     }
 
     /// <summary>
-    /// Lets go of the page this picker opened for itself, at the end of the session.
-    /// </summary>
-    /// <remarks>
-    /// Deliberately not when a dialog closes. Elements are picked one after another while a macro
-    /// is being written, and taking the page down between them would mean fetching it again — and
-    /// signing in again — for every field. So the page waits for the next pick, and the person can
-    /// close the window whenever they like: a page that is gone is not one the next pick will try
-    /// to use, it opens another. A page the program already had open is left alone in any case; it
-    /// belongs to the macro that opened it.
-    /// </remarks>
-    public static void Close()
-    {
-        _own?.Dispose();
-        _own = null;
-    }
-
-    /// <summary>
     /// Outlines the element a selector names on the page a macro has open, which is what the
     /// "test" button next to the picker asks for. False when there is no page to look on or nothing
     /// there matches.
     /// </summary>
     /// <remarks>
-    /// It works on the same page the pick does — the one the macro opened, and the picker's own
-    /// when there was none — so what is checked is what a run would find. The pin comes off while
-    /// the frame is up, so the page can come in front of this program's own windows instead of
-    /// staying behind the dialog the button was pressed in.
+    /// It works on the same page the pick does, so what is checked is what a run would find. The pin
+    /// comes off while the frame is up, so the page can come in front of this program's own windows
+    /// instead of staying behind the dialog the button was pressed in.
     /// </remarks>
-    public static async Task<bool> HighlightAsync(string selector)
+    public static async Task<bool> HighlightAsync(IBrowserDevice browser, string selector)
     {
-        var browser = _own is { IsOpen: true } own ? own : PlaywrightBrowserDevice.OpenPage();
-        if (browser is null)
+        if (!browser.IsOpen)
         {
             return false;
         }

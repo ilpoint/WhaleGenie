@@ -1,15 +1,16 @@
 using System;
+using WhaleGenie.Core.Recording;
 
 namespace WhaleGenie.Core.Devices.Platform;
 
 /// <summary>The devices a Windows desktop app can use, all of them real.</summary>
 public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
 {
-    private readonly Lazy<IInputDevice> _input = new(() => new SharpHookInputDevice());
+    private readonly Lazy<IInputDevice> _input;
 
     private readonly Lazy<IInputRouter> _inputs;
 
-    private readonly Lazy<ViiperInputDevice> _gamepad = new(() => SharedDriverInput.Take());
+    private readonly Lazy<ViiperInputDevice> _gamepad;
 
     private readonly Lazy<IScreenDevice> _screen = new(() => new WindowsScreenDevice());
 
@@ -31,15 +32,40 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
 
     private readonly Lazy<IBrowserDevice> _browser = new(() => new PlaywrightBrowserDevice());
 
+    private readonly Lazy<IWindowEvents> _windowEvents = new(() => new WindowsWindowEvents());
+
+    private readonly Lazy<IDriverInput> _driver = new(() => new ViiperDriver());
+
     public WindowsDeviceLayer()
     {
-        _inputs = new Lazy<IInputRouter>(() => new WindowsInputRouter(_input.Value));
+        // The pointer is read from the screen: one device answers where it is, whether a step is
+        // about to send input or a picker is following it.
+        _input = new Lazy<IInputDevice>(() => new SharpHookInputDevice(_screen.Value));
+        _gamepad = new Lazy<ViiperInputDevice>(() => SharedDriverInput.Take(_screen.Value));
+        _inputs = new Lazy<IInputRouter>(() => new WindowsInputRouter(_input.Value, _screen.Value));
 
         // UI Automation borrows the mouse for the buttons it has no click of its own for.
         _ui = new Lazy<FlaUiDevice>(() => new FlaUiDevice(_input.Value));
     }
 
     public IInputDevice Input => _input.Value;
+
+    /// <summary>
+    /// The one hook the process installs, shared with every other part of the program: the machine
+    /// does not hand a global hook over cleanly twice, so this is not a device to make again. It is
+    /// not disposed with the layer for the same reason — it belongs to the process, and the parts
+    /// that use it unsubscribe when they are done.
+    /// </summary>
+    public IInputHook Hook => GlobalInputHook.Shared;
+
+    /// <summary>A recorder over that hook, made for one recording at a time.</summary>
+    public IInputRecorder CreateRecorder() => new InputHookRecorder();
+
+    /// <summary>What the machine says when the windows change, which is a listener rather than a device.</summary>
+    public IWindowEvents WindowEvents => _windowEvents.Value;
+
+    /// <summary>The driver and the server behind driver-level input, which stand beside the pair they carry.</summary>
+    public IDriverInput Driver => _driver.Value;
 
     /// <summary>Input sent the way each step asks: in front, to one window, or through a driver.</summary>
     public IInputRouter Inputs => _inputs.Value;
@@ -131,6 +157,12 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
         if (_browser.IsValueCreated && _browser.Value is IDisposable browser)
         {
             browser.Dispose();
+        }
+
+        // The listener that watches for windows changing is an event hook of its own.
+        if (_windowEvents.IsValueCreated)
+        {
+            _windowEvents.Value.Dispose();
         }
     }
 }

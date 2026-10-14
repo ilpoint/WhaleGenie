@@ -40,7 +40,7 @@ public partial class RunWindow : Window
     private readonly IReadOnlyList<MacroItem> _listed;
 
     public RunWindow()
-        : this([])
+        : this([], SharedDevices.Current)
     {
     }
 
@@ -58,8 +58,8 @@ public partial class RunWindow : Window
         InitializeComponent();
 
         _listed = listed ?? [];
-        var viewModel = new RunViewModel(steps, devices, delayScale, macros, _listed, triggers,
-            macroName);
+        var viewModel = new RunViewModel(steps, devices ?? SharedDevices.Current, delayScale, macros,
+            _listed, triggers, macroName);
         DataContext = viewModel;
         _watchesTriggers = triggers is not null;
         Title = Strings.Get("Run.Title");
@@ -80,7 +80,6 @@ public partial class RunWindow : Window
         Closing += (_, _) => viewModel.StopCommand.Execute(null);
         Closed += (_, _) =>
         {
-            viewModel.ReleaseDevices();
             viewModel.ReleaseLooks();
             _frames.Dispose();
         };

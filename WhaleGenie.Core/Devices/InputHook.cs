@@ -1,6 +1,6 @@
 using System;
 
-namespace WhaleGenie.Core.Devices.Platform;
+namespace WhaleGenie.Core.Devices;
 
 /// <summary>
 /// The keyboard and the mouse as the operating system sees them: what the triggers, the pickers

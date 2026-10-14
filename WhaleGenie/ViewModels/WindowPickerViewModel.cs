@@ -5,7 +5,6 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.ViewModels;
@@ -33,25 +32,68 @@ public partial class WindowPickerViewModel : ViewModelBase
     private readonly List<WindowEntry> _all;
     private readonly WindowMatch _match;
 
+    /// <summary>
+    /// How the list is read. Asked again when the reload button is used, because a window that was
+    /// opened while the picker was up is exactly what somebody reloads it to find.
+    /// </summary>
+    private readonly Func<IReadOnlyList<WindowEntry>> _read;
+
     /// <summary>Raised with the part of the window that was picked, or null when nothing was.</summary>
     public event Action<string?>? CloseRequested;
 
     public WindowPickerViewModel()
-        : this(null, WindowMatch.Title)
+        : this([], WindowMatch.Title)
     {
     }
 
     /// <summary>
-    /// Creates the picker over a given list, or over the windows the desktop has open, to take the
-    /// part <paramref name="match"/> names. Which part is taken is decided by the field the picker
-    /// was opened from, because a macro compares the text it holds with that one part.
+    /// Creates the picker over a given list, to take the part <paramref name="match"/> names. Which
+    /// part is taken is decided by the field the picker was opened from, because a macro compares
+    /// the text it holds with that one part. The list comes from <see cref="From"/>, which is the
+    /// only place that reads a desktop.
     /// </summary>
-    public WindowPickerViewModel(IReadOnlyList<WindowEntry>? windows,
+    public WindowPickerViewModel(IReadOnlyList<WindowEntry> windows,
+        WindowMatch match = WindowMatch.Title)
+        : this(() => windows, match)
+    {
+    }
+
+    /// <summary>The same, over a reader that is asked again whenever the list is read.</summary>
+    public WindowPickerViewModel(Func<IReadOnlyList<WindowEntry>> windows,
         WindowMatch match = WindowMatch.Title)
     {
         _match = match;
-        _all = [.. windows ?? ReadWindows()];
+        _read = windows;
+        _all = [.. _read()];
         Reapply();
+    }
+
+    /// <summary>
+    /// The windows a device has open right now, as the picker lists them. A machine that will not
+    /// hand its windows over simply has nothing to offer, which is the same as a desktop with
+    /// nothing on it rather than a failure to open the picker.
+    /// </summary>
+    public static IReadOnlyList<WindowEntry> From(IWindowDevice windows)
+    {
+        IReadOnlyList<WindowInfo> open;
+        try
+        {
+            open = windows.List();
+        }
+        catch (Exception)
+        {
+            return [];
+        }
+
+        return
+        [
+            .. open.Select(window => new WindowEntry(
+                window.Handle,
+                window.Title,
+                windows.ProcessOf(window.Handle),
+                windows.ClassOf(window.Handle),
+                Describe(window))),
+        ];
     }
 
     /// <summary>The windows the filter lets through, in the order the desktop listed them.</summary>
@@ -86,7 +128,7 @@ public partial class WindowPickerViewModel : ViewModelBase
     private void Reload()
     {
         _all.Clear();
-        _all.AddRange(ReadWindows());
+        _all.AddRange(_read());
         Reapply();
     }
 
@@ -131,31 +173,6 @@ public partial class WindowPickerViewModel : ViewModelBase
         => entry.Title.Contains(text, StringComparison.OrdinalIgnoreCase)
            || entry.Process.Contains(text, StringComparison.OrdinalIgnoreCase)
            || entry.Class.Contains(text, StringComparison.OrdinalIgnoreCase);
-
-    /// <summary>Every visible top-level window, with the program behind it as a label.</summary>
-    private static List<WindowEntry> ReadWindows()
-    {
-        IReadOnlyList<WindowInfo> windows;
-        try
-        {
-            windows = new WindowsWindowDevice().List();
-        }
-        catch (Exception)
-        {
-            // A machine that will not hand its windows over simply has nothing to offer.
-            return [];
-        }
-
-        return
-        [
-            .. windows.Select(window => new WindowEntry(
-                window.Handle,
-                window.Title,
-                WindowsWindowDevice.ProcessName(window.Handle),
-                new WindowsWindowDevice().ClassOf(window.Handle),
-                Describe(window))),
-        ];
-    }
 
     private static string Describe(WindowInfo window)
     {

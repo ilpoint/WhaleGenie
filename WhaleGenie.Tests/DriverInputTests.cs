@@ -1,5 +1,6 @@
 using System.IO;
 using Avalonia.Controls;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;

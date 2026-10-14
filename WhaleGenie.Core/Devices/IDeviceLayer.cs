@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using WhaleGenie.Core.Recording;
 using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Devices;
@@ -69,6 +70,14 @@ public interface IScreenDevice
     /// <summary>The colour of one pixel.</summary>
     PixelColor PixelAt(int x, int y);
 
+    /// <summary>
+    /// Where the pointer is right now, in screen pixels. It is a fact about the screen rather than
+    /// about the way input is sent, so it is asked here and nowhere else: the three ways of sending
+    /// input and the windows whose pickers follow the pointer all mean the same position, and one
+    /// place to read it is what keeps them from drifting apart.
+    /// </summary>
+    ScreenPoint Cursor { get; }
+
     /// <summary>Copies a region of the desktop, the way this machine reads it by itself.</summary>
     ImageFrame Capture(int x, int y, int width, int height);
 
@@ -117,6 +126,13 @@ public interface IOcrDevice
 public interface IUiDevice
 {
     bool Exists(UiQuery query, int timeoutMs);
+
+    /// <summary>
+    /// The element at one place on the screen, or null when nothing Automation can name is there.
+    /// This is the question the element picker asks while the pointer moves: it is about a place
+    /// rather than about a rule, which is the other way round from every other call here.
+    /// </summary>
+    UiElementInfo? ElementAt(int x, int y);
 
     /// <summary>Clicks an element with one of the mouse buttons.</summary>
     bool Click(UiQuery query, string button);
@@ -509,6 +525,13 @@ public interface IBrowserDevice
     string Pick(string hint, int timeoutMs);
 
     /// <summary>
+    /// Outlines the first element the selector names on the open page, so a selector can be checked
+    /// against the page it was taken from without a run being started. False when there is no page
+    /// open or nothing there matches.
+    /// </summary>
+    bool Highlight(string selector);
+
+    /// <summary>
     /// Picks an option of a dropdown the selector names: the one whose value or visible text is
     /// <paramref name="value"/>, or the one at that position when <paramref name="byIndex"/> is set,
     /// counted from the top starting at 1. A dropdown the page itself draws out of other elements
@@ -662,6 +685,36 @@ public interface IWindowDevice
 /// <summary>Everything a macro can do to the machine, in one place.</summary>
 public interface IDeviceLayer
 {
+    /// <summary>
+    /// The keyboard and the mouse as this machine reports them, which is what the triggers, the
+    /// pickers and the recorder listen to. It is here rather than inside the devices because the
+    /// machine allows one global hook per process: whatever needs the events subscribes to this
+    /// one while it works, and a layer handed in by a check can carry a hook that is not the real
+    /// one.
+    /// </summary>
+    IInputHook Hook { get; }
+
+    /// <summary>
+    /// A recorder for this machine's input, one per recording. Recording is not something a macro
+    /// does while it runs, so it is made on demand rather than held: a recorder that outlived its
+    /// recording would go on taking subscriptions for a keyboard nobody is writing down.
+    /// </summary>
+    IInputRecorder CreateRecorder();
+
+    /// <summary>
+    /// The word that something about the windows changed, which is how a window that appears and
+    /// goes again between two looks is still noticed. A machine with nothing to say answers with
+    /// one whose <see cref="IWindowEvents.Available"/> is false, and the caller goes on looking.
+    /// </summary>
+    IWindowEvents WindowEvents { get; }
+
+    /// <summary>
+    /// Driver-level input, which rests on two pieces of other projects: a kernel driver that is
+    /// installed once, and a server that has to be running. Holding it here is what lets the window
+    /// that explains it be driven without either one being on the machine.
+    /// </summary>
+    IDriverInput Driver { get; }
+
     IInputDevice Input { get; }
 
     /// <summary>
@@ -737,6 +790,22 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
     private readonly Refusal _refusal = new();
 
+    /// <summary>
+    /// A hook that refuses every subscription, the way the rest of this layer refuses every call:
+    /// a machine with no devices has nothing to say about the keyboard either.
+    /// </summary>
+    public IInputHook Hook => _refusal;
+
+    public IInputRecorder CreateRecorder() => _refusal;
+
+    /// <summary>
+    /// A machine that says nothing about its windows, which is an answer rather than a refusal:
+    /// the caller keeps looking on its own, exactly as it would on a Windows too old to say.
+    /// </summary>
+    public IWindowEvents WindowEvents { get; } = new NoWindowEvents();
+
+    public IDriverInput Driver => _refusal;
+
     public IInputDevice Input => _refusal;
 
     /// <summary>This layer has no second way to send input, so every route is refused alike.</summary>
@@ -775,8 +844,88 @@ public sealed class NullDeviceLayer : IDeviceLayer
     private sealed class Refusal
         : IInputDevice, IGamepadDevice, IScreenDevice, IVisionDevice, IOcrDevice, IUiDevice,
           IFileDevice, IClipboardDevice, IProcessDevice, ISystemDevice, IWindowDevice,
-          IBrowserDevice
+          IBrowserDevice, IInputHook, IInputRecorder, IDriverInput
     {
+        // Named through the interface because the input device already has a KeyDown and a KeyUp
+        // that send a key rather than report one.
+        event Action<KeyHookEvent>? IInputHook.KeyDown
+        {
+            add => throw Missing("the keyboard");
+            remove => throw Missing("the keyboard");
+        }
+
+        event Action<KeyHookEvent>? IInputHook.KeyUp
+        {
+            add => throw Missing("the keyboard");
+            remove => throw Missing("the keyboard");
+        }
+
+        event Action<MouseHookEvent>? IInputHook.MouseDown
+        {
+            add => throw Missing("the mouse");
+            remove => throw Missing("the mouse");
+        }
+
+        event Action<MouseHookEvent>? IInputHook.MouseUp
+        {
+            add => throw Missing("the mouse");
+            remove => throw Missing("the mouse");
+        }
+
+        event Action<MouseMovedHookEvent>? IInputHook.Moved
+        {
+            add => throw Missing("the mouse");
+            remove => throw Missing("the mouse");
+        }
+
+        event Action<MouseMovedRelativeHookEvent>? IInputHook.MovedRelative
+        {
+            add => throw Missing("the mouse");
+            remove => throw Missing("the mouse");
+        }
+
+        event Action<WheelHookEvent>? IInputHook.Wheel
+        {
+            add => throw Missing("the mouse");
+            remove => throw Missing("the mouse");
+        }
+
+        public bool IsRunning => false;
+
+        public bool IgnoreInjected { get; set; }
+
+        event Action<RecordedInput>? IInputRecorder.Captured
+        {
+            add => throw Missing("a recorder");
+            remove => throw Missing("a recorder");
+        }
+
+        event Action? IInputRecorder.StopRequested
+        {
+            add => throw Missing("a recorder");
+            remove => throw Missing("a recorder");
+        }
+
+        public void Start() => throw Missing("a recorder");
+
+        public void Stop() => throw Missing("a recorder");
+
+        public void Dispose() => throw Missing("a recorder");
+
+        public DriverInputState State => throw Missing("driver-level input");
+
+        public bool IsServerAnswering() => throw Missing("driver-level input");
+
+        public string? Executable
+        {
+            get => throw Missing("driver-level input");
+            set => throw Missing("driver-level input");
+        }
+
+        public System.Threading.Tasks.Task WarmUp() => throw Missing("driver-level input");
+
+        public void HandOver() => throw Missing("driver-level input");
+
         public void Connect() => throw Missing("a controller");
 
         public void Button(string button, bool down) => throw Missing("a controller");
@@ -810,6 +959,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public void CloseTab() => throw Missing("a browser");
 
         public string Pick(string hint, int timeoutMs) => throw Missing("a browser");
+
+        public bool Highlight(string selector) => throw Missing("a browser");
 
         public void Select(string selector, string value, bool byIndex) => throw Missing("a browser");
 
@@ -1007,6 +1158,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public IReadOnlyList<TextSpan> Recognize(ImageFrame frame) => throw Missing("text recognition");
 
         public bool Exists(UiQuery query, int timeoutMs) => throw Missing("UI Automation");
+
+        public UiElementInfo? ElementAt(int x, int y) => throw Missing("UI Automation");
 
         public bool Click(UiQuery query, string button) => throw Missing("UI Automation");
 

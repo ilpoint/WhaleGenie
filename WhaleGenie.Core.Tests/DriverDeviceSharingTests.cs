@@ -13,13 +13,20 @@ public class DriverDeviceSharingTests
 {
     private static InputRoute Driver => new(InputDelivery.Driver, 0);
 
+    /// <summary>
+    /// One stand-in for the machine, used as both the front device and the screen: the pair of
+    /// virtual devices is put on the bus by a run, and where the pointer is is the screen's answer,
+    /// so the same stand-in can be both without a second one being written.
+    /// </summary>
+    private static WindowsInputRouter Router(FakeDeviceLayer devices) => new(devices, devices);
+
     [Fact]
     public void Two_runs_in_the_program_are_given_the_same_virtual_keyboard_and_mouse()
     {
         var front = new FakeDeviceLayer();
 
-        using var first = new WindowsInputRouter(front);
-        using var second = new WindowsInputRouter(front);
+        using var first = Router(front);
+        using var second = Router(front);
 
         Assert.Same(first.For(Driver), second.For(Driver));
     }
@@ -27,7 +34,7 @@ public class DriverDeviceSharingTests
     [Fact]
     public void A_run_is_given_the_same_device_for_every_step_that_asks_for_it()
     {
-        using var router = new WindowsInputRouter(new FakeDeviceLayer());
+        using var router = Router(new FakeDeviceLayer());
 
         Assert.Same(router.For(Driver), router.For(Driver));
     }
@@ -37,10 +44,10 @@ public class DriverDeviceSharingTests
     {
         var front = new FakeDeviceLayer();
 
-        var first = new WindowsInputRouter(front);
+        var first = Router(front);
         var device = first.For(Driver);
 
-        var second = new WindowsInputRouter(front);
+        var second = Router(front);
         Assert.Same(device, second.For(Driver));
 
         // The run that opened a device layer of its own is done, while the other is still using the
@@ -48,7 +55,7 @@ public class DriverDeviceSharingTests
         // nothing.
         first.Dispose();
 
-        var third = new WindowsInputRouter(front);
+        var third = Router(front);
         Assert.Same(device, third.For(Driver));
 
         second.Dispose();
@@ -56,7 +63,7 @@ public class DriverDeviceSharingTests
 
         // Nobody is holding them now, so the next run gets the pair that is put on the machine for
         // it rather than one left over from before.
-        var later = new WindowsInputRouter(front);
+        var later = Router(front);
         Assert.NotSame(device, later.For(Driver));
         later.Dispose();
     }
@@ -66,15 +73,15 @@ public class DriverDeviceSharingTests
     {
         var front = new FakeDeviceLayer();
 
-        var holder = new WindowsInputRouter(front);
+        var holder = Router(front);
         var device = holder.For(Driver);
 
-        using (var other = new WindowsInputRouter(front))
+        using (var other = Router(front))
         {
             _ = other.For(InputRoute.Front);
         }
 
-        var next = new WindowsInputRouter(front);
+        var next = Router(front);
         Assert.Same(device, next.For(Driver));
 
         holder.Dispose();

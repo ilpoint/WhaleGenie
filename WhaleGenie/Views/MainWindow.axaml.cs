@@ -11,7 +11,7 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using WhaleGenie.Core.Devices.Platform;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
@@ -384,7 +384,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            var hook = GlobalInputHook.Shared;
+            var hook = SharedDevices.Current.Hook;
             hook.KeyDown += OnSystemHotkeyDown;
             _hotkeyHook = hook;
         }

@@ -71,8 +71,15 @@ public sealed class ViiperLink : IViiperLink
     private ViiperDevice? _gamepad;
     private string _gamepadId = string.Empty;
 
+    /// <summary>
+    /// The screen the pointer is read from. The virtual mouse moves the machine's own pointer, so
+    /// where it is is a fact about the screen rather than about this link, and the answer comes from
+    /// the same place every other device gets it from.
+    /// </summary>
+    private readonly IScreenDevice _screen;
+
     private ViiperLink(ViiperClient client, uint bus, string keyboardId, ViiperDevice keyboard,
-        string mouseId, ViiperDevice mouse)
+        string mouseId, ViiperDevice mouse, IScreenDevice screen)
     {
         _client = client;
         _bus = bus;
@@ -80,9 +87,10 @@ public sealed class ViiperLink : IViiperLink
         _keyboard = keyboard;
         _mouseId = mouseId;
         _mouse = mouse;
+        _screen = screen;
     }
 
-    public ScreenPoint Cursor => WindowsScreenDevice.CursorPosition();
+    public ScreenPoint Cursor => _screen.Cursor;
 
     public void SendKeyboard(byte modifiers, IReadOnlyList<byte> keys)
         => Wait(() => _keyboard.SendAsync(new KeyboardInput
@@ -132,7 +140,7 @@ public sealed class ViiperLink : IViiperLink
     /// rather than a new one every time, so a machine that runs macros all day does not collect
     /// buses it never removed.
     /// </summary>
-    public static IViiperLink Open()
+    public static IViiperLink Open(IScreenDevice screen)
     {
         var state = DriverInput.Check();
 
@@ -171,7 +179,8 @@ public sealed class ViiperLink : IViiperLink
                 keyboard.DevID,
                 Wait(() => client.ConnectDeviceAsync(bus, keyboard.DevID)),
                 mouse.DevID,
-                Wait(() => client.ConnectDeviceAsync(bus, mouse.DevID)));
+                Wait(() => client.ConnectDeviceAsync(bus, mouse.DevID)),
+                screen);
         }
         catch (Exception failure) when (failure is not DeviceActionException)
         {

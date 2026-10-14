@@ -1,4 +1,4 @@
-using WhaleGenie.Core.Devices.Platform;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Execution;
@@ -11,12 +11,12 @@ namespace WhaleGenie.Execution;
 public static class ViiperSetup
 {
     /// <summary>Reads the stored choice and gives it to the engine.</summary>
-    public static void Load() => ViiperServer.Executable = LocalSettings.LoadViiperPath();
+    public static void Load(IDriverInput driver) => driver.Executable = LocalSettings.LoadViiperPath();
 
     /// <summary>Stores a new choice and gives it to the engine.</summary>
-    public static void Store(string path)
+    public static void Store(IDriverInput driver, string path)
     {
         LocalSettings.StoreViiperPath(path);
-        ViiperServer.Executable = path;
+        driver.Executable = path;
     }
 }

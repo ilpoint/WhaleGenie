@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using Avalonia;
-using WhaleGenie.Core.Devices.Platform;
+using WhaleGenie.Execution;
 
 namespace WhaleGenie;
 
@@ -34,8 +34,9 @@ sealed class Program
 
         // A VIIPER server that this program started is closed with it: the user asked for
         // driver-level input, not for another project's server to keep running after WhaleGenie is
-        // gone. One that was already there when we looked was never ours and is left alone.
-        ViiperServer.Stop();
+        // gone. One that was already there when we looked was never ours and is left alone. The
+        // program's own device layer is what knows about it, so that is where this is asked.
+        SharedDevices.Current.Driver.Stop();
     }
 
     /// <summary>

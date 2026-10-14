@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Recording;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -1168,6 +1169,8 @@ public class ActionDialogTests
             "ButtonClass", new ScreenPoint(1000, 500), new ScreenSize(80, 24), "Notepad");
 
         public bool Exists(UiQuery query, int timeoutMs) => true;
+
+        public UiElementInfo? ElementAt(int x, int y) => Save;
 
         public bool Click(UiQuery query, string button) => true;
 
@@ -2746,6 +2749,16 @@ public class ActionDialogTests
         public RecordingDevices() => Inputs = new SingleInputRouter(this);
 
         public List<string> Calls { get; } = [];
+
+        /// <summary>Nothing watches this machine but the trial itself: the hook and the word about
+        /// windows changing answer the way a machine with nothing to say does.</summary>
+        public IInputHook Hook => NullDeviceLayer.Instance.Hook;
+
+        public IInputRecorder CreateRecorder() => NullDeviceLayer.Instance.CreateRecorder();
+
+        public IWindowEvents WindowEvents { get; } = new NoWindowEvents();
+
+        public IDriverInput Driver => NullDeviceLayer.Instance.Driver;
 
         public IInputRouter Inputs { get; }
 

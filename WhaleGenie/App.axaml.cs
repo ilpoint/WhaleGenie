@@ -23,7 +23,7 @@ public partial class App : Application
         // Where this machine's viiper.exe is was chosen in the settings window and written beside
         // the program; the engine does not read that file, so it is told here, before anything can
         // ask for driver-level input.
-        ViiperSetup.Load();
+        ViiperSetup.Load(SharedDevices.Current.Driver);
 
         // How this machine reads the screen was chosen in the same window, and is told to the
         // engine the same way: a macro reads it before the settings window has ever been opened.
@@ -31,7 +31,7 @@ public partial class App : Application
 
         // And then it is given a head start: starting that server is what makes the first
         // driver-level move of a macro wait a second and a half.
-        _ = ViiperServer.WarmUp();
+        _ = SharedDevices.Current.Driver.WarmUp();
 
         // Reading text loads a model, which costs a moment the first step that reads would
         // otherwise pay. Only when the setting says so: the models stay in memory for the rest of
@@ -54,7 +54,8 @@ public partial class App : Application
             // the notification area is how it comes back and how the program is stopped. The window
             // is given the icon as well, because the icon's menu is the one close that really
             // leaves — and that is the one time the window has to ask about work that is not saved.
-            window.Tray = AppTray.Attach(window, desktop);
+            window.Tray = AppTray.Attach(window, desktop, () => new WindowsTray(
+                Strings.Get("Tray.Tooltip"), Strings.Get("Tray.Show"), Strings.Get("Tray.Exit")));
 
             // The list starts empty, so if the last run was stopped without saving, the work it
             // was holding is offered back here — once the window is up, because it is a dialog.
@@ -65,7 +66,6 @@ public partial class App : Application
             desktop.Exit += (_, _) =>
             {
                 window.Tray?.Dispose();
-                BrowserPicker.Close();
 
                 // The program owns the device layer every window ran on, so this is where the
                 // models it loaded and the capture sessions it opened are let go.

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 
-namespace WhaleGenie.Core.Devices.Platform;
+namespace WhaleGenie.Core.Devices;
 
 /// <summary>
 /// Remembers the input WhaleGenie itself has just sent, so the parts of the app that watch the

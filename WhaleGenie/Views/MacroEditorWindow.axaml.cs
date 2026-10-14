@@ -11,7 +11,6 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.Execution;
@@ -43,10 +42,13 @@ public partial class MacroEditorWindow : Window
 
     /// <summary>
     /// The layer the trials and runs started from here use, handed in by the window this was
-    /// opened from. Null when nobody handed one in, which is how a check opens the editor: the
-    /// dialogs then make their own.
+    /// opened from. Null when nobody handed one in, which is how a check opens the editor; the
+    /// program's own layer answers for it then, so a picker or a recorder still works.
     /// </summary>
     private readonly IDeviceLayer? _devices;
+
+    /// <summary>The devices to work through: the ones handed in, or the ones the program holds.</summary>
+    private IDeviceLayer Layer => _devices ?? SharedDevices.Current;
 
     /// <summary>
     /// The frames standing around the windows a window trigger recognises right now. The trigger is
@@ -696,7 +698,7 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        var colour = await ColorPickerWindow.PickAsync(this);
+        var colour = await ColorPickerWindow.PickAsync(this, Layer);
         Activate();
 
         if (colour is not { } picked)
@@ -704,7 +706,7 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        var point = WindowsScreenDevice.CursorPosition();
+        var point = Layer.Screen.Cursor;
         viewModel.HexColor = picked.ToHex();
         viewModel.ColorPositionX = point.X.ToString(CultureInfo.InvariantCulture);
         viewModel.ColorPositionY = point.Y.ToString(CultureInfo.InvariantCulture);
@@ -714,7 +716,7 @@ public partial class MacroEditorWindow : Window
     /// <summary>Alt + X: the pointer's current screen position becomes the watched position.</summary>
     private void CaptureCursorPosition(MacroEditorViewModel viewModel)
     {
-        var position = WindowsScreenDevice.CursorPosition();
+        var position = Layer.Screen.Cursor;
         viewModel.ColorPositionX = position.X.ToString(CultureInfo.InvariantCulture);
         viewModel.ColorPositionY = position.Y.ToString(CultureInfo.InvariantCulture);
         ShowPickStatus(Strings.Format("Editor.PickedPosition", position.X, position.Y));
@@ -726,11 +728,11 @@ public partial class MacroEditorWindow : Window
     /// </summary>
     private void CaptureCursorColour(MacroEditorViewModel viewModel)
     {
-        var position = WindowsScreenDevice.CursorPosition();
+        var position = Layer.Screen.Cursor;
         PixelColor colour;
         try
         {
-            colour = new WindowsScreenDevice().PixelAt(position.X, position.Y);
+            colour = Layer.Screen.PixelAt(position.X, position.Y);
         }
         catch (Exception)
         {
@@ -822,12 +824,9 @@ public partial class MacroEditorWindow : Window
                 LookAtStep = LookAtStep,
             };
 
-            // The layer the whole program shares, when the editor was given one: the trials this
-            // window sends run on the same devices as everything else, models and all.
-            if (_devices is { } shared)
-            {
-                window.Devices = shared;
-            }
+            // The layer the whole program shares: the trials this window sends, and the pickers in
+            // it, run on the same devices as everything else, models and all.
+            window.Devices = Layer;
 
             // The window belongs to the editor, so it goes when the editor does; the field is
             // cleared with it so a later step opens a fresh one rather than a closed window.
@@ -981,7 +980,7 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        new RunWindow(_viewModel.Steps, _devices, _viewModel.DelayScale, BuildLibrary(),
+        new RunWindow(_viewModel.Steps, Layer, _viewModel.DelayScale, BuildLibrary(),
             macroName: _editing?.Name ?? string.Empty).ShowOver(this);
     }
 
@@ -1213,7 +1212,9 @@ public partial class MacroEditorWindow : Window
             _captured.Clear();
         }
 
-        var recorder = new InputHookRecorder();
+        // The recorder comes from the device layer, so a layer handed in by a check records what
+        // the check plays into it rather than what a real keyboard is doing.
+        var recorder = Layer.CreateRecorder();
         recorder.Captured += OnCaptured;
         recorder.StopRequested += OnRecorderStopRequested;
         recorder.IgnoreInjected = _viewModel.RecordIgnoreInjected;

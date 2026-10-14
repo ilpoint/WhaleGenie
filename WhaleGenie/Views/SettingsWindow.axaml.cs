@@ -4,7 +4,6 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.ViewModels;
@@ -17,7 +16,7 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
 
-        DataContext = new SettingsViewModel();
+        DataContext = new SettingsViewModel(SharedDevices.Current.Driver);
         Title = Strings.Get("Settings.Title");
 
         var closeButton = this.FindControl<Button>("CloseButton");
@@ -82,7 +81,7 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        ViiperSetup.Store(path);
+        ViiperSetup.Store(SharedDevices.Current.Driver, path);
 
         if (DataContext is SettingsViewModel viewModel)
         {
@@ -103,7 +102,7 @@ public partial class SettingsWindow : Window
         // The server goes first: the copy that takes over starts its own, and a server left over
         // from this one would be closed on the way out, right under the new copy. It is a hand-over
         // rather than the way out, because saying no at the UAC prompt leaves this copy running.
-        ViiperServer.HandOver();
+        SharedDevices.Current.Driver.HandOver();
 
         if (!ProcessRights.RestartElevated())
         {

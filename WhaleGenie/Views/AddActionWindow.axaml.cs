@@ -11,7 +11,6 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
@@ -61,40 +60,20 @@ public partial class AddActionWindow : Window
 
     private IDeviceLayer? _devices;
 
-    /// <summary>
-    /// Whether the layer is this dialog's own to let go of. The editor hands over the layer the
-    /// whole program shares, and a dialog that disposed that on closing would take the loaded text
-    /// recognition models with it.
-    /// </summary>
-    private bool _ownsDevices;
-
     public AddActionWindow()
         : this(null, null, null, null, null, null)
     {
     }
 
     /// <summary>
-    /// The devices the test button sends through — the real ones unless a check has put its own
-    /// here. Made the first time the button is used, so opening the dialog costs nothing.
+    /// The devices the test button sends through, and the ones the pickers work over: the layer the
+    /// editor handed in, or the layer the whole program shares. A check puts its own here, which is
+    /// how a trial is driven without a real keyboard, mouse or screen being touched.
     /// </summary>
     internal IDeviceLayer Devices
     {
-        get
-        {
-            if (_devices is null)
-            {
-                _devices = new WindowsDeviceLayer();
-                _ownsDevices = true;
-            }
-
-            return _devices;
-        }
-
-        set
-        {
-            _devices = value;
-            _ownsDevices = false;
-        }
+        get => _devices ??= SharedDevices.Current;
+        set => _devices = value;
     }
 
     /// <summary>
@@ -162,8 +141,8 @@ public partial class AddActionWindow : Window
         // Picking a position has to know where the window a step is anchored to sits right now,
         // so what the pointer is over is stored the way the engine will read it back. The same goes
         // for a step anchored to a control, which needs the control's own rectangle.
-        viewModel.Windows = new WindowsWindowDevice();
-        viewModel.Ui = new FlaUiDevice();
+        viewModel.Windows = Devices.Windows;
+        viewModel.Ui = Devices.Ui;
 
         if (existing is not null)
         {
@@ -454,6 +433,10 @@ public partial class AddActionWindow : Window
         var steps = (DataContext as AddActionViewModel)?.StepChoices;
         var dialog = new AddActionWindow(null, list.Catalog, variables, null, null, assets, steps,
             FreeStepId(steps));
+
+        // The trial inside the dialog that opened this one runs on the same devices, so a nested
+        // step's "run it" behaves the way the outer step's does.
+        dialog.Devices = Devices;
         var step = await dialog.ShowDialogOver<MacroStep?>(this);
 
         if (step is not null)
@@ -478,6 +461,7 @@ public partial class AddActionWindow : Window
         var assets = (DataContext as AddActionViewModel)?.AssetFolder;
         var steps = (DataContext as AddActionViewModel)?.StepChoices;
         var dialog = new AddActionWindow(step, null, variables, null, null, assets, steps);
+        dialog.Devices = Devices;
         var edited = await dialog.ShowDialogOver<MacroStep?>(this);
 
         if (edited is null || DataContext is not AddActionViewModel viewModel)
@@ -518,7 +502,7 @@ public partial class AddActionWindow : Window
     {
         if (DataContext is AddActionViewModel viewModel)
         {
-            var point = WindowsScreenDevice.CursorPosition();
+            var point = Devices.Screen.Cursor;
             viewModel.ApplyCursorPosition(point.X, point.Y);
         }
     }
@@ -531,7 +515,7 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        var region = await RegionPickerWindow.PickAsync(this);
+        var region = await RegionPickerWindow.PickAsync(this, Devices);
         if (region is { } picked)
         {
             viewModel.ApplyRegion(picked.X, picked.Y, picked.Width, picked.Height);
@@ -591,14 +575,14 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (await RegionPickerWindow.PickAsync(this) is not { } region)
+        if (await RegionPickerWindow.PickAsync(this, Devices) is not { } region)
         {
             return;
         }
 
         try
         {
-            row.Text = ImageAssets.Capture(new WindowsScreenDevice(),
+            row.Text = ImageAssets.Capture(Devices.Screen,
                 region.X, region.Y, region.Width, region.Height, viewModel.AssetFolder);
         }
         catch (Exception)
@@ -694,7 +678,7 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (await RegionPickerWindow.PickAsync(this) is { } picked)
+        if (await RegionPickerWindow.PickAsync(this, Devices) is { } picked)
         {
             row.Put(picked.X, picked.Y, picked.Width, picked.Height);
         }
@@ -851,7 +835,7 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        var colour = await ColorPickerWindow.PickAsync(this);
+        var colour = await ColorPickerWindow.PickAsync(this, Devices);
         if (colour is { } picked)
         {
             parameter.Text = picked.ToHex();
@@ -1185,7 +1169,7 @@ public partial class AddActionWindow : Window
 
         if (picked is { Length: > 0 })
         {
-            parameter.Text = MacroPaths.ForMacro(picked);
+            parameter.Text = MacroPaths.ForMacro(picked, Devices.Files.BaseFolder);
         }
     }
 
@@ -1300,14 +1284,14 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (await RegionPickerWindow.PickAsync(this) is not { } region)
+        if (await RegionPickerWindow.PickAsync(this, Devices) is not { } region)
         {
             return;
         }
 
         try
         {
-            parameter.Text = ImageAssets.Capture(new WindowsScreenDevice(),
+            parameter.Text = ImageAssets.Capture(Devices.Screen,
                 region.X, region.Y, region.Width, region.Height, viewModel.AssetFolder);
         }
         catch (Exception)
@@ -1337,7 +1321,7 @@ public partial class AddActionWindow : Window
         // The picker takes the part this step compares its text with, so what it hands back can be
         // written straight into the field.
         var match = (DataContext as AddActionViewModel)?.WindowMatchFor(parameter) ?? WindowMatch.Title;
-        if (await WindowPickerWindow.PickAsync(this, match) is { Length: > 0 } picked)
+        if (await WindowPickerWindow.PickAsync(this, match, Devices.Windows) is { Length: > 0 } picked)
         {
             parameter.Text = picked;
         }
@@ -1357,7 +1341,7 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (await ElementPickerWindow.PickAsync(this) is not { } picked)
+        if (await ElementPickerWindow.PickAsync(this, Devices) is not { } picked)
         {
             return;
         }
@@ -1393,7 +1377,7 @@ public partial class AddActionWindow : Window
 
         try
         {
-            if (await BrowserPicker.PickAsync(url) is { Length: > 0 } selector)
+            if (await BrowserPicker.PickAsync(Devices.Browser, url) is { Length: > 0 } selector)
             {
                 parameter.Text = selector;
             }
@@ -1491,7 +1475,7 @@ public partial class AddActionWindow : Window
         var found = false;
         try
         {
-            found = await BrowserPicker.HighlightAsync(selector);
+            found = await BrowserPicker.HighlightAsync(Devices.Browser, selector);
         }
         catch (Exception)
         {
@@ -1545,14 +1529,9 @@ public partial class AddActionWindow : Window
         _previewFrames.Dispose();
         _trialFrames.Dispose();
 
-        // The devices a trial used go with the dialog, so a controller it put on the machine does
-        // not outlive the window that asked for it. A layer that was handed in belongs to whoever
-        // handed it over, which is the program itself.
-        if (_ownsDevices)
-        {
-            (_devices as IDisposable)?.Dispose();
-        }
-
+        // The layer is not the dialog's to let go of: it is the one the whole program shares, so
+        // disposing it here would take the loaded models with it. Letting go of the reference is
+        // all that is needed, and a trial's controller goes when the program does.
         _devices = null;
 
         base.OnClosed(e);
