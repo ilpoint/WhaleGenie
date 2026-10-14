@@ -350,24 +350,32 @@ public class RunDebugTests
     }
 
     /// <summary>
-    /// The breakpoint's own menu, and the panel under a step's row. Both are what a debugger is
-    /// read with, so both are checked where they are written rather than only through the view
-    /// model: a menu item pointing at the wrong handler looks right until it is clicked.
+    /// The breakpoint's menu — the one a step's row carries — and the panel under a step's row. Both
+    /// are what a debugger is read with, so both are checked where they are written rather than only
+    /// through the view model: a menu item pointing at the wrong handler looks right until it is
+    /// clicked.
     /// </summary>
     [Fact]
-    public void The_breakpoint_offers_a_condition_a_clear_and_a_skip_and_the_row_shows_a_panel()
+    public void The_row_menu_offers_the_breakpoint_and_the_row_shows_a_panel()
     {
         var markup = File.ReadAllText(
             Path.Combine(Repository(), "WhaleGenie", "Views", "RunWindow.axaml"));
 
-        var menu = markup[markup.IndexOf("<Button.ContextMenu>", System.StringComparison.Ordinal)..];
-        menu = menu[..menu.IndexOf("</Button.ContextMenu>", System.StringComparison.Ordinal)];
+        var menu = markup[markup.IndexOf("<Border.ContextMenu>", System.StringComparison.Ordinal)..];
+        menu = menu[..menu.IndexOf("</Border.ContextMenu>", System.StringComparison.Ordinal)];
 
         Assert.Contains("Click=\"OnBreakpointMenuClicked\"", menu, System.StringComparison.Ordinal);
+        Assert.Contains("Tag=\"toggle\"", menu, System.StringComparison.Ordinal);
         Assert.Contains("Tag=\"condition\"", menu, System.StringComparison.Ordinal);
         Assert.Contains("Tag=\"clear\"", menu, System.StringComparison.Ordinal);
-        Assert.Contains("Tag=\"skip\"", menu, System.StringComparison.Ordinal);
+        Assert.Contains("[Run.BreakpointSet]", menu, System.StringComparison.Ordinal);
+        Assert.Contains("[Run.BreakpointOff]", menu, System.StringComparison.Ordinal);
         Assert.Contains("[Run.BreakpointCondition]", menu, System.StringComparison.Ordinal);
+        Assert.DoesNotContain("Tag=\"skip\"", menu, System.StringComparison.Ordinal);
+        Assert.DoesNotContain("[Run.RunTo]", markup, System.StringComparison.Ordinal);
+
+        // 圆点自己不再挂菜单：它只有 16 像素宽，右键它沿控件树落到这一行上。
+        Assert.DoesNotContain("<Button.ContextMenu>", markup, System.StringComparison.Ordinal);
 
         // The panel: what the step came to, whatever the macro keeps of it.
         Assert.Contains("IsVisible=\"{Binding HasRun}\"", markup, System.StringComparison.Ordinal);
@@ -789,73 +797,6 @@ public class RunDebugTests
         Assert.True(answer.done, "跳过之后该接着跑完");
         Assert.False(answer.After, "跑完之后又该不能跳过");
         Assert.Equal(answer.Wanted, answer.Label);
-    }
-
-    /// <summary>
-    /// 「一直跑到这里」是步骤行自己那个右键菜单里的一项：跑起来、停在那一步之前，与先在那里下断点
-    /// 再跑一遍是同一件事，区别在它是一次性的 —— 停过一次就没有了，那一步身上不会留下断点。
-    /// </summary>
-    [Fact]
-    public void Running_to_a_step_stops_in_front_of_it_once()
-    {
-        var answer = Ui.RunAsync(async () =>
-        {
-            var steps = new[] { Count("a", "1"), Count("b", "1"), Count("c", "1") };
-            StepIds.Settle(steps);
-
-            var window = new RunWindow(steps, NullDeviceLayer.Instance);
-            window.Show();
-            Dispatcher.UIThread.RunJobs();
-
-            var viewModel = (RunViewModel)window.DataContext!;
-            var wanted = viewModel.Steps[2];
-            RunStepViewModel Row(string id) => viewModel.Steps.First(step => step.Id == id);
-
-            // 右键那一步，点菜单里那一项。菜单是弹出来的，点的是哪一步随弹出去的那份数据走，所以
-            // 这里照真点一次：先弹出菜单，再点那一项。
-            var row = window.GetVisualDescendants().OfType<Border>()
-                .First(border => ReferenceEquals(border.DataContext, wanted));
-            var menu = row.ContextMenu!;
-            var item = menu.Items.OfType<MenuItem>().Single();
-            menu.Open(row);
-            Dispatcher.UIThread.RunJobs();
-            var asked = ReferenceEquals(item.DataContext, wanted);
-            item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
-            menu.Close();
-
-            var stopped = await Until(() => viewModel.IsPaused);
-            var answer = (
-                Asked: asked,
-                Label: item.Header as string,
-                Wanted: wanted.Id,
-                Current: viewModel.Steps.First(step => step.IsCurrent).Id,
-                Ran: new[] { Row(steps[0].Id).HasRun, Row(steps[1].Id).HasRun, Row(steps[2].Id).HasRun },
-                Breakpoint: wanted.HasBreakpoint);
-
-            // 接着跑完，再从头跑一次：那次请求用过就没了，不会又停在第三步。
-            viewModel.ContinueCommand.Execute(null);
-            var done = await Until(() => !viewModel.IsBusy);
-            viewModel.RunCommand.Execute(null);
-            var again = !await Until(() => viewModel.IsPaused, milliseconds: 300);
-            var ranToTheEnd = await Until(() => !viewModel.IsBusy);
-
-            window.Close();
-            return (answer, Stopped: stopped, Done: done, Again: again, ToTheEnd: ranToTheEnd);
-        });
-
-        Assert.Equal(Strings.Get("Run.RunTo"), answer.answer.Label);
-
-        // 停下的那一行就是点右键的那一行：它前面的都跑过，它自己还没跑。
-        Assert.True(answer.answer.Asked, "菜单里那一项该带着被右键的那一步");
-        Assert.True(answer.Stopped, "该停在那一步之前");
-        Assert.Equal(answer.answer.Wanted, answer.answer.Current);
-        Assert.Equal([true, true, false], answer.answer.Ran);
-
-        // 它不是断点：那一步身上没有留下任何东西，跑完再从头跑也不停。
-        Assert.False(answer.answer.Breakpoint, "「一直跑到这里」不该留下断点");
-        Assert.True(answer.Done, "接着跑该跑完");
-        Assert.True(answer.Again, "再运行一次不该又停在那一步");
-        Assert.True(answer.ToTheEnd, "第二次运行该跑到头");
     }
 
     /// <summary>

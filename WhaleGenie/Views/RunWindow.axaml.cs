@@ -283,9 +283,10 @@ public partial class RunWindow : Window
     private void OnTriggerTick(object? sender, EventArgs e) => Form?.RefreshTriggers();
 
     /// <summary>
-    /// The breakpoint's own menu. Writing the condition is the same dialog the editor writes one in,
-    /// held to the conditions: what a breakpoint waits for and what an <c>if</c> waits for are the
-    /// same question, and only the place it is asked from is different.
+    /// A step row's own menu, which is where the breakpoint's three things are asked for. Writing the
+    /// condition is the same dialog the editor writes one in, held to the conditions: what a breakpoint
+    /// waits for and what an <c>if</c> waits for are the same question, and only the place it is asked
+    /// from is different.
     /// </summary>
     private async void OnBreakpointMenuClicked(object? sender, RoutedEventArgs e)
     {
@@ -298,6 +299,9 @@ public partial class RunWindow : Window
 
         switch (item.Tag as string)
         {
+            case "toggle":
+                viewModel.ToggleBreakpointCommand.Execute(row);
+                break;
             case "condition":
                 var dialog = new AddActionWindow(
                     viewModel.BreakpointCondition(row.Id), ActionCatalog.Conditions, viewModel.Choices,
@@ -317,23 +321,6 @@ public partial class RunWindow : Window
             case "clear":
                 viewModel.ClearBreakpointCondition(row);
                 break;
-            case "skip":
-                viewModel.SkipStepCommand.Execute(null);
-                break;
-        }
-    }
-
-    /// <summary>
-    /// Runs to the step that was right-clicked: the run goes from wherever it is and stops in front
-    /// of it, which is what a breakpoint there would do without leaving one behind.
-    /// </summary>
-    private void OnRunToClicked(object? sender, RoutedEventArgs e)
-    {
-        e.Handled = true;
-
-        if (sender is MenuItem { DataContext: RunStepViewModel row })
-        {
-            Form?.RunTo(row);
         }
     }
 

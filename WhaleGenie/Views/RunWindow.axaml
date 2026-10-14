@@ -178,6 +178,20 @@
             <Setter Property="Background" Value="#E06C75" />
             <Setter Property="BorderBrush" Value="#E06C75" />
         </Style>
+        <!-- 断点的红色要压过悬停与按下的颜色：主题把这两态画在 ContentPresenter 上，只给 Button
+             自己上色的话，指针还停在圆点上时那一点的先后看不出来 —— 点完要等鼠标移开才变红。 -->
+        <Style Selector="Button.Breakpoint.on /template/ ContentPresenter">
+            <Setter Property="Background" Value="#E06C75" />
+            <Setter Property="BorderBrush" Value="#E06C75" />
+        </Style>
+        <Style Selector="Button.Breakpoint.on:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#E06C75" />
+            <Setter Property="BorderBrush" Value="#E06C75" />
+        </Style>
+        <Style Selector="Button.Breakpoint.on:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#E06C75" />
+            <Setter Property="BorderBrush" Value="#E06C75" />
+        </Style>
 
         <Style Selector="Border.Panel">
             <Setter Property="Background" Value="#292929" />
@@ -353,14 +367,25 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:RunStepViewModel">
                                             <Border Classes="RunRow" Classes.current="{Binding IsCurrent}">
-                                                <!-- Right-clicking the step itself is where "go up
-                                                     to here" is asked for: the dot on its left is
-                                                     about stopping there every time round, and
-                                                     this is about this once. -->
+                                                <!-- The breakpoint's three things are asked for on the
+                                                     row itself: the dot on the left is 16 pixels, and
+                                                     a menu only it carries is a menu most people
+                                                     never find. The dot keeps no menu of its own, so
+                                                     right-clicking it lands here as well. -->
                                                 <Border.ContextMenu>
                                                     <ContextMenu>
-                                                        <MenuItem Header="{Binding [Run.RunTo], Source={x:Static loc:Strings.Current}}"
-                                                                  Click="OnRunToClicked" />
+                                                        <MenuItem Header="{Binding [Run.BreakpointSet], Source={x:Static loc:Strings.Current}}"
+                                                                  IsVisible="{Binding !HasBreakpoint}"
+                                                                  Click="OnBreakpointMenuClicked" Tag="toggle" />
+                                                        <MenuItem Header="{Binding [Run.BreakpointOff], Source={x:Static loc:Strings.Current}}"
+                                                                  IsVisible="{Binding HasBreakpoint}"
+                                                                  Click="OnBreakpointMenuClicked" Tag="toggle" />
+                                                        <MenuItem Header="{Binding [Run.BreakpointCondition], Source={x:Static loc:Strings.Current}}"
+                                                                  IsVisible="{Binding CanBreak}"
+                                                                  Click="OnBreakpointMenuClicked" Tag="condition" />
+                                                        <MenuItem Header="{Binding [Run.BreakpointClear], Source={x:Static loc:Strings.Current}}"
+                                                                  IsVisible="{Binding HasCondition}"
+                                                                  Click="OnBreakpointMenuClicked" Tag="clear" />
                                                     </ContextMenu>
                                                 </Border.ContextMenu>
                                                 <Grid ColumnDefinitions="24,*,Auto">
@@ -370,18 +395,6 @@
                                                             ToolTip.Tip="{Binding [Run.BreakpointDot], Source={x:Static loc:Strings.Current}}"
                                                             Command="{Binding $parent[ItemsControl].((vm:RunViewModel)DataContext).ToggleBreakpointCommand}"
                                                             CommandParameter="{Binding}">
-                                                        <!-- The breakpoint's own menu: what it waits for, and
-                                                             what to do while the run is standing in front of it. -->
-                                                        <Button.ContextMenu>
-                                                            <ContextMenu>
-                                                                <MenuItem Header="{Binding [Run.BreakpointCondition], Source={x:Static loc:Strings.Current}}"
-                                                                          Click="OnBreakpointMenuClicked" Tag="condition" />
-                                                                <MenuItem Header="{Binding [Run.BreakpointClear], Source={x:Static loc:Strings.Current}}"
-                                                                          Click="OnBreakpointMenuClicked" Tag="clear" />
-                                                                <MenuItem Header="{Binding [Run.SkipStep], Source={x:Static loc:Strings.Current}}"
-                                                                          Click="OnBreakpointMenuClicked" Tag="skip" />
-                                                            </ContextMenu>
-                                                        </Button.ContextMenu>
                                                     </Button>
                                                     <StackPanel Grid.Column="1" Margin="{Binding Indent}">
                                                         <TextBlock Text="{Binding Label}" FontSize="12"
