@@ -7818,17 +7818,16 @@ public sealed class MacroRunner
         return result;
     }
 
+    /// <summary>
+    /// A number a step names, read the way every other field is: as a value. A field nobody
+    /// answered is a zero, because "nothing was said" is not the same as "this cannot be read".
+    /// A value that cannot be worked out is left as the broken expression it is, so the step
+    /// reports <c>Run.BadExpression</c> like a text field would — swallowing it into a zero is how
+    /// a click meant for something that was found ends up at the corner of the screen, with
+    /// nothing anywhere saying why.
+    /// </summary>
     private int Number(ExecutableStep step, string name)
-    {
-        try
-        {
-            return Vary(step, name, (int)Read(step.Text(name)).AsNumber());
-        }
-        catch (ExpressionException)
-        {
-            return 0;
-        }
-    }
+        => Vary(step, name, (int)Read(step.Text(name)).AsNumber());
 
     /// <summary>
     /// Bends a number by whatever slack the step asked for. Only lengths of time are written with
