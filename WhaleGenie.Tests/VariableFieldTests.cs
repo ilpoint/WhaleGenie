@@ -224,7 +224,7 @@ public class VariableFieldTests
             // A value being read out of a box that holds a name: the same names, in the form the
             // reader writes a variable in. A path is one of these, and a name is not something to
             // spell from memory.
-            viewModel.SelectAction("vision.saveImage");
+            viewModel.SelectAction("file.writeText");
             Assert.Equal(["$count", "$notes"], Parameter(viewModel, "path").NameChoices);
         });
     }
@@ -241,7 +241,7 @@ public class VariableFieldTests
         Ui.Run(() =>
         {
             // Read as a whole, so a value worked out from variables and functions belongs here.
-            Assert.True(Parameter(Open("vision.saveImage"), "path").OffersBuilder);
+            Assert.True(Parameter(Open("file.writeText"), "path").OffersBuilder);
             Assert.True(Parameter(Open("system.notify"), "message").OffersBuilder);
 
             // A name being written, and a window recognised by text: both take the picker, neither
@@ -265,7 +265,7 @@ public class VariableFieldTests
             var viewModel = new AddActionViewModel(ActionCatalog.Definitions,
                 VariableChoicesForChecks.Named("count", "shot"), []);
 
-            viewModel.SelectAction("vision.saveImage");
+            viewModel.SelectAction("clipboard.writeImage");
             var picture = Parameter(viewModel, "image");
             Assert.True(picture.IsImage);
             Assert.Equal(["$count", "$shot"], picture.NameChoices);

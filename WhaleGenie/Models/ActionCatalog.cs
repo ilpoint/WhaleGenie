@@ -2353,6 +2353,7 @@ public static class ActionCatalog
                 ..RegionNumbers(),
                 ..Anchor(withElement: true),
                 ..Capture(),
+                CaptureFile(),
                 LookGap(0),
                 Returns(),
             ],
@@ -2373,23 +2374,9 @@ public static class ActionCatalog
             [
                 ..WindowTarget(),
                 ..Capture(),
+                CaptureFile(),
                 LookGap(0),
                 Returns(),
-            ],
-        },
-        new()
-        {
-            Key = "vision.saveImage",
-            Category = ActionCategory.Vision,
-            DisplayName = "Save Picture",
-            Description = "Write a picture out as a PNG file, so it survives the run.",
-            Parameters =
-            [
-                Image("image", "Picture", @"C:\images\ok.png",
-                    "A picture file, or an image variable an earlier step filled in."),
-                FilePath("path", "File", "shot.png",
-                    "File the picture is written to. The format is PNG either way; a file of the "
-                    + "same name is replaced.", PathIntent.Write, "*.png"),
             ],
         },
         new()
@@ -4275,6 +4262,18 @@ public static class ActionCatalog
     private static ActionParameter[] Capture() => [FrameMaxAge()];
 
     /// <summary>
+    /// Where a picture that was just taken is written out, for a macro that wants it to outlive the
+    /// run. Left empty the picture only goes to the variable, which is what a step that captures
+    /// something to look at it right away wants; filled in it is written as a PNG beside it, so one
+    /// step takes the picture and keeps it.
+    /// </summary>
+    private static ActionParameter CaptureFile()
+        => FilePath("path", "Save to file", "shot.png",
+            "File the picture is written to; empty by default, which keeps it in the variable "
+            + "alone. The format is PNG either way, and a file of the same name is replaced.",
+            PathIntent.Write, "*.png", required: false);
+
+    /// <summary>
     /// How long a picture a step reads may have been taken already, shared by every step that looks
     /// at the screen: what makes a macro that looks at the same window several times in a row read
     /// it once instead.
@@ -4580,7 +4579,8 @@ public static class ActionCatalog
     /// dialog the button beside the field opens, and the filter which files it shows first.
     /// </summary>
     private static ActionParameter FilePath(string name, string label, string placeholder, string hint,
-        PathIntent intent, string filter = "", string[]? onlyWith = null, string onlyField = "algorithm")
+        PathIntent intent, string filter = "", string[]? onlyWith = null,
+        string onlyField = "algorithm", bool required = true)
         => new()
         {
             Name = name,
@@ -4588,6 +4588,7 @@ public static class ActionCatalog
             Kind = ActionParameterKind.Variable,
             Placeholder = placeholder,
             Hint = hint + " A path on its own is taken to be inside the macros folder.",
+            Required = required,
             PathIntent = intent,
             PathFilter = filter,
             AppliesWhen = onlyWith is null ? string.Empty : onlyField,

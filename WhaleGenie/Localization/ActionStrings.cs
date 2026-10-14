@@ -120,6 +120,14 @@ internal static class ActionStrings
         "窗口靠这段文字认出：它和「匹配方式」里选的那一种比，不区分大小写。留空表示所有窗口（一次列完，"
         + "不做筛选）。";
 
+    /// <summary>
+    /// Where the picture a capture step just took is written out. The two capture steps ask it the
+    /// same way, so the line under it is written once.
+    /// </summary>
+    private const string CaptureFileHint =
+        "这张图写到哪个文件；留空就只交给变量、不写文件（默认留空）。格式一律是 PNG，"
+        + "同名文件会被替换。";
+
     /// <summary>The label every window action gives the text its window is recognised by.</summary>
     private const string WindowMatchTextLabel = "匹配内容";
 
@@ -2126,13 +2134,11 @@ internal static class ActionStrings
         ["vision.captureWindow.desc"] = "把整个窗口连着标题栏一起截取到图像变量里。",
         ["vision.captureWindow.window.label"] = WindowMatchTextLabel,
         ["vision.captureWindow.window.hint"] = WindowTitleHint,
+        ["vision.captureWindow.path.label"] = "存到文件",
+        ["vision.captureWindow.path.hint"] = CaptureFileHint,
 
-        ["vision.saveImage.name"] = "保存图片",
-        ["vision.saveImage.desc"] = "把一张图片存成 PNG 文件，运行结束之后还在。",
-        ["vision.saveImage.image.label"] = "图片",
-        ["vision.saveImage.image.hint"] = "图片文件，或者前面某一步填好的图像变量。",
-        ["vision.saveImage.path.label"] = "文件",
-        ["vision.saveImage.path.hint"] = "图片写到哪个文件。格式一律是 PNG，同名文件会被替换。",
+        ["vision.capture.path.label"] = "存到文件",
+        ["vision.capture.path.hint"] = CaptureFileHint,
 
         ["vision.findImage.name"] = "查找图片",
         ["vision.findImage.desc"] = "在屏幕上寻找一张参考图片。",

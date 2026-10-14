@@ -8,8 +8,9 @@ using WhaleGenie.Core.Variables;
 namespace WhaleGenie.Core.Tests;
 
 /// <summary>
-/// Two steps that put something on disk in a shape a later step can read back: a picture written
-/// out as a PNG, and a checksum that can be worked out over a file as well as over a piece of text.
+/// Two ways of putting something on disk in a shape a later step can read back: a picture written
+/// out as a PNG while it is being taken, and a checksum that can be worked out over a file as well
+/// as over a piece of text.
 /// </summary>
 public class PictureAndHashTests
 {
@@ -39,13 +40,12 @@ public class PictureAndHashTests
     }
 
     [Fact]
-    public async Task A_picture_a_step_captured_is_written_out_as_a_file()
+    public async Task A_picture_is_written_out_while_it_is_being_taken()
     {
         var (result, devices, _) = await RunAsync(
         [
             Step("vision.capture", Param("x", "0"), Param("y", "0"), Param("width", "10"),
-                Param("height", "10"), Parts("image", "shot")),
-            Step("vision.saveImage", Param("image", "$shot"), Param("path", @"shots\out.png")),
+                Param("height", "10"), Parts("image", "shot"), Param("path", @"shots\out.png")),
         ]);
 
         Assert.True(result.Succeeded);
@@ -54,37 +54,43 @@ public class PictureAndHashTests
     }
 
     /// <summary>
-    /// A picture that is already a file counts as a picture too, the same way it does for the
-    /// step that puts one on the clipboard: what comes out is re-encoded from the pixels, so a
-    /// macro that has a JPEG in hand still ends up with a PNG.
+    /// A capture that names no file writes none: the picture goes to the variable and stays there,
+    /// which is what a step that takes one to look at it right away wants.
     /// </summary>
     [Fact]
-    public async Task A_picture_that_is_already_a_file_is_written_out_again()
-    {
-        var devices = new FakeDeviceLayer();
-
-        var (result, _, _) = await RunAsync(
-        [
-            Step("vision.saveImage", Param("image", @"C:\pictures\ok.png"),
-                Param("path", "copy.png")),
-        ], devices);
-
-        Assert.True(result.Succeeded);
-        Assert.Contains(@"load C:\pictures\ok.png", devices.Calls);
-        Assert.Equal(Png, devices.Blobs["copy.png"][..8]);
-    }
-
-    [Fact]
-    public async Task A_step_with_no_picture_to_write_fails_and_writes_nothing()
+    public async Task A_capture_that_names_no_file_writes_none()
     {
         var (result, devices, _) = await RunAsync(
         [
-            Step("vision.saveImage", Param("image", ""), Param("path", "out.png")),
+            Step("vision.capture", Param("x", "0"), Param("y", "0"), Param("width", "10"),
+                Param("height", "10"), Parts("image", "shot")),
         ]);
 
-        Assert.False(result.Succeeded);
-        Assert.Equal("Run.MissingImage", result.Key);
+        Assert.True(result.Succeeded);
         Assert.Empty(devices.Blobs);
+    }
+
+    /// <summary>
+    /// A window is taken and kept the same way a rectangle is: the two capture steps ask the one
+    /// question about where the file goes, so a macro that keeps what it captured does not have to
+    /// remember which of them it used.
+    /// </summary>
+    [Fact]
+    public async Task A_window_is_written_out_while_it_is_being_taken()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WhaleGenie.Core.Devices.WindowInfo(1, "Notepad - notes.txt",
+            new WhaleGenie.Core.Devices.ScreenPoint(1000, 500),
+            new WhaleGenie.Core.Devices.ScreenSize(800, 600), false, false));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.captureWindow", Param("window", "Notepad"), Parts("image", "shot"),
+                Param("path", "window.png")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(Png, devices.Blobs["window.png"][..8]);
     }
 
     /// <summary>

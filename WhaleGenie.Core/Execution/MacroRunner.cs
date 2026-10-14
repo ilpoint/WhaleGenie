@@ -1389,10 +1389,6 @@ public sealed class MacroRunner
                 Watching(() => CaptureWindow(step, depth));
                 return Signal.Normal;
 
-            case "vision.saveImage":
-                SavePicture(step, depth);
-                return Signal.Normal;
-
             case "vision.getPixel":
                 await Gate(step, token);
                 Watching(() => GetPixel(step, depth));
@@ -3582,27 +3578,6 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// Writes a picture out as a file. The picture is named the same way every other step that
-    /// takes one names it — an image variable from an earlier step, or a file that is already
-    /// there — so a macro can capture, look, and keep the one that turned out to matter. It is
-    /// always a PNG: the format is the small end of what a picture can be written as, and a macro
-    /// that wants something else has a program for it.
-    /// </summary>
-    private void SavePicture(ExecutableStep step, int depth)
-    {
-        var picture = Reference(step);
-        if (picture.IsEmpty)
-        {
-            throw new StepFailure("Run.MissingImage", step.Text("image"));
-        }
-
-        var path = PathOf(step);
-        _devices.Files.WriteBytes(path, PngWriter.Encode(picture));
-        Log(LogLevel.Info, depth, step.Type, "Run.SavedPicture", path,
-            $"{picture.Width}x{picture.Height}");
-    }
-
-    /// <summary>
     /// Keeps a picture under the name a step gave it, with the rectangle it covers beside it, so a
     /// later step can search inside it or hand the region to something else. The size written down
     /// is the picture's own rather than the size that was asked for: a capture that ran off the
@@ -3639,6 +3614,27 @@ public sealed class MacroRunner
         {
             Log(LogLevel.Info, depth, step.Type, "Run.Capture", name, $"{frame.Width}x{frame.Height}");
         }
+
+        KeepFile(step, depth, frame);
+    }
+
+    /// <summary>
+    /// Writes the picture out where the step asked for a file, when it asked for one: one step takes
+    /// the picture and keeps it, rather than a capture followed by a step that writes what it left
+    /// behind. It is always a PNG, which is the small end of what a picture can be written as, and a
+    /// file of that name is replaced — the same answer every other step that writes a file gives.
+    /// </summary>
+    private void KeepFile(ExecutableStep step, int depth, ImageFrame frame)
+    {
+        var path = PathOf(step);
+        if (path.Trim().Length == 0)
+        {
+            return;
+        }
+
+        _devices.Files.WriteBytes(path, PngWriter.Encode(frame));
+        Log(LogLevel.Info, depth, step.Type, "Run.SavedPicture", path,
+            $"{frame.Width}x{frame.Height}");
     }
 
     private void GetPixel(ExecutableStep step, int depth)
