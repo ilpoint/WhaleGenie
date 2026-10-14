@@ -1039,6 +1039,97 @@ public class DeviceActionTests
     }
 
     /// <summary>
+    /// 鼠标动作的两格位置也收一条记录：找图留下的那条命中带着 x、y（矩形中心），填进 X 就是"把刚找到
+    /// 的东西点一下"，另一格留空。以前只能把同一件事写两遍（field($命中, "x") 与 field($命中, "y")），
+    /// 其中一格写错，点下去的地方就不是找到的那一处。
+    /// </summary>
+    [Fact]
+    public async Task A_click_can_go_where_something_was_just_found()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
+            Step("input.mouseClick", Param("button", "left"), Param("x", "$spot"), Param("y", "")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+
+        // 命中的中心是 (35, 50)。
+        Assert.Equal("click left 35 50 1 0", devices.Calls[^1]);
+    }
+
+    /// <summary>
+    /// 两格收一条记录时的读法与拖拽那一端一致：记录说的是屏幕上的那一点，只有写出来的数字才从「坐标
+    /// 基准」量起。命中记录在窗口基准下交出来的 x、y 也是屏幕像素，再按窗口量一次，指针就落在偏出
+    /// 一个窗口的位置上。
+    /// </summary>
+    [Fact]
+    public async Task A_record_in_a_mouse_step_says_where_it_is_whatever_the_anchor()
+    {
+        var devices = WithAWindow();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
+            Step("input.mouseMove", Param("x", "$spot"), Param("y", ""),
+                Param("anchorMode", "window"), Param("anchorWindow", "Notepad")),
+            Step("input.mouseMove", Param("x", "30"), Param("y", "40"),
+                Param("anchorMode", "window"), Param("anchorWindow", "Notepad")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+
+        // 第一条落在记录自己的中心 (35,50)；第二条是写出来的两个数，照旧从窗口角 (1000,500) 量起。
+        Assert.Equal(["move 35 50 0", "move 1030 540 0"],
+            devices.Calls.Where(call => call.StartsWith("move", StringComparison.Ordinal)));
+    }
+
+    /// <summary>
+    /// 一格是记录、另一格也写了东西时报 Run.BadPointTwice，并且一个按键都不发：两个答案指着两个地方，
+    /// 挑一个用就是把"点在别处"说成跑通。这句错话要能照着改，所以它说的是留下哪一格、空哪一格。
+    /// </summary>
+    [Fact]
+    public async Task A_place_with_a_record_in_one_half_and_a_number_in_the_other_is_refused()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
+            Step("input.mouseClick", Param("button", "left"), Param("x", "$spot"), Param("y", "100")),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BadPointTwice", result.Key);
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("click", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// 看一个像素的两格是同一个读法：上一步找到的东西，这一步直接读它中心那一个像素的颜色。
+    /// </summary>
+    [Fact]
+    public async Task A_pixel_can_be_read_where_something_was_just_found()
+    {
+        var devices = new FakeDeviceLayer { Pixel = new PixelColor(0xAB, 0xCD, 0xEF) };
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
+            Step("vision.getPixel", Param("x", "$spot"), Param("y", ""), Returns("color=tone")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("pixel 35 50", devices.Calls[^1]);
+        Assert.Equal("#ABCDEF", store.Local.Values["tone"].AsText());
+    }
+
+    /// <summary>
     /// The whole point of anchoring: the window is dragged somewhere else between two runs and
     /// the same macro still aims at the same place inside it.
     /// </summary>

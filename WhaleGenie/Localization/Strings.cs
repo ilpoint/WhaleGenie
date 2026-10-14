@@ -1141,8 +1141,12 @@ public sealed class Strings : INotifyPropertyChanged
             + "10 2004 or later and a Direct3D 11 device, and cannot read a display the graphics card "
             + "will not duplicate either.",
         ["Run.BadRegion"] = "A search region reads as x,y,width,height: {0}",
-        ["Run.BadPoint"] = "This end of the drag reads as x,y, or as a record with x and y in it "
-            + "(a hit, a window, an element): {0}",
+        ["Run.BadPoint"] = "A place reads as x,y, or as a record with x and y in it "
+            + "(a hit, a window, an element, whose x and y are the middle of what it names): {0}",
+        ["Run.BadPointTwice"] = "A place written in two fields takes one answer: this step was given "
+            + "a record with x and y in it and something in the other field as well. Leave the other "
+            + "field empty, or fill both of them with numbers instead. The field that got in the "
+            + "way reads: {0}",
         ["Run.BadPointEmpty"] = "This end of the drag has no value: the step before it found "
             + "nothing there. Let it find something first, or write the place as x,y.",
         ["Run.BadPoints"] = "Every point of a colour comparison reads as x,y,#RRGGBB: {0}",
@@ -2366,8 +2370,10 @@ public sealed class Strings : INotifyPropertyChanged
             "这台机器用这种方式读不到画面：{0}。Graphics Capture 需要 Windows 10 2004 或更高版本"
             + "与 Direct3D 11 设备；显卡不肯交出的显示器它也读不到。",
         ["Run.BadRegion"] = "搜索区域要写成 x,y,宽,高 的形式：{0}",
-        ["Run.BadPoint"] = "拖拽的这一端要写成 x,y，或者交给它一条带 x、y 的记录（命中、窗口、"
-            + "元素都可以）：{0}",
+        ["Run.BadPoint"] = "一个位置要写成 x,y，或者交给它一条带 x、y 的记录（命中、窗口、元素都可以，"
+            + "取的是那块矩形的中心）：{0}",
+        ["Run.BadPointTwice"] = "位置分成两格写时只要一个答案：这一步既交给它一条带 x、y 的记录，"
+            + "另一格里也写了东西。把另一格留空，或者两格都填数字。多出来的那一格读出来是：{0}",
         ["Run.BadPointEmpty"] = "拖拽的这一端没有值：上一步什么都没找到。先让它找到东西，或者把这个"
             + "位置直接写成 x,y。",
         ["Run.BadPoints"] = "多点比色里的每个点要写成 x,y,#RRGGBB 的形式：{0}",

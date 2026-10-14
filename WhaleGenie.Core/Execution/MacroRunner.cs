@@ -1314,7 +1314,7 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "input.mouseMove":
-                MovePointer(step, Place(step, Number(step, "x"), Number(step, "y")));
+                MovePointer(step, Pair(step, Anchor(step), "x", "y"));
                 return Signal.Normal;
 
             case "input.mouseMoveRelative":
@@ -2938,17 +2938,15 @@ public sealed class MacroRunner
             wanted, minimum: Number(step, "minScore"));
     }
 
-    /// <summary>Where the pixel a step watches sits on the screen, window anchoring and all.</summary>
-    private ScreenPoint PixelPoint(ExecutableStep step) => Spot(step).Corner;
-
     /// <summary>
-    /// The same, with the window the point was counted from when there was one, which is also the
-    /// window its colour has to be read out of.
+    /// Where the pixel a step watches sits on the screen, window anchoring and all, with the window
+    /// the point was counted from when there was one, which is also the window its colour has to be
+    /// read out of.
     /// </summary>
     private (ScreenPoint Corner, WindowInfo? Window) Spot(ExecutableStep step)
     {
         var anchor = AnchorOf(step);
-        return (Placed(anchor.Corner, Number(step, "x"), Number(step, "y")), anchor.Window);
+        return (Pair(step, anchor.Corner, "x", "y"), anchor.Window);
     }
 
     /// <summary>
@@ -2969,7 +2967,66 @@ public sealed class MacroRunner
         var y = step.Text(yName).Trim();
         return x.Length == 0 && y.Length == 0
             ? Input(step).Cursor
-            : Place(step, Number(step, xName), Number(step, yName));
+            : Pair(step, Anchor(step), xName, yName);
+    }
+
+    /// <summary>
+    /// The place a step writes in two number fields, read the way a drag's end is read: either the
+    /// two numbers, each of which may be an expression, or one record that says where the place is.
+    /// Every record that carries a rectangle carries the middle of it under <c>x</c> and <c>y</c>,
+    /// so a hit, a window or an element goes in as it stands — "click what was just found" is one
+    /// field instead of the same reading written out twice, once per half. A record's numbers are
+    /// screen pixels, the way every record's are; numbers written out are counted from
+    /// <paramref name="origin"/>, which is the corner the step says its own numbers are measured
+    /// from.
+    /// </summary>
+    private ScreenPoint Pair(ExecutableStep step, ScreenPoint? origin, string xName, string yName)
+    {
+        var x = step.Text(xName).Trim();
+        var y = step.Text(yName).Trim();
+        var record = Record(x);
+        var written = x;
+        var other = y;
+        if (record is null)
+        {
+            record = Record(y);
+            written = y;
+            other = x;
+        }
+
+        if (record is null)
+        {
+            return Placed(origin, Number(step, xName), Number(step, yName));
+        }
+
+        // The record answers the whole question, so the other half has to have been left alone: two
+        // answers to one question is a step that reads as if one of them had been lost, and picking
+        // between them is how a click lands somewhere nobody named.
+        if (other.Length > 0)
+        {
+            throw new StepFailure("Run.BadPointTwice", other);
+        }
+
+        return RecordPoint(record, written);
+    }
+
+    /// <summary>
+    /// The record a written place is, when it is one rather than a number. A place is read as text
+    /// rather than as one value, so what the text turns out to hold is asked here instead of being
+    /// assumed from the shape of the field.
+    /// </summary>
+    private Value? Record(string text)
+        => text.Length > 0 && Read(text) is { IsRecord: true } record ? record : null;
+
+    /// <summary>The point a record says it is at, in screen pixels: its <c>x</c> and <c>y</c>.</summary>
+    private static ScreenPoint RecordPoint(Value record, string written)
+    {
+        if (record.Field("x") is not { } x || record.Field("y") is not { } y)
+        {
+            throw new StepFailure("Run.BadPoint", written);
+        }
+
+        return new ScreenPoint(Whole(x), Whole(y));
     }
 
     private static string Button(ExecutableStep step)
@@ -2998,14 +3055,9 @@ public sealed class MacroRunner
             throw new StepFailure("Run.BadPointEmpty", name);
         }
 
-        if (Read(raw) is { IsRecord: true } record)
+        if (Record(raw) is { } record)
         {
-            if (record.Field("x") is not { } x || record.Field("y") is not { } y)
-            {
-                throw new StepFailure("Run.BadPoint", raw);
-            }
-
-            return new ScreenPoint(Whole(x), Whole(y));
+            return RecordPoint(record, raw);
         }
 
         // A written place is interpolated rather than read as a whole expression: its comma would
