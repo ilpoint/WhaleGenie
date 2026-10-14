@@ -40,23 +40,6 @@
 
 ## 阶段表
 
-### 界面不再点名具体实现
-
-**现状**　除组合根（`WhaleGenie/Execution/SharedDevices.cs`、`App.axaml.cs`，以及 `MacroTriggerService` 与
-`RunViewModel` 那两个默认参数）之外，界面还有 11 处直接点名 Windows 的实现：`WindowsScreenDevice.CursorPosition()`
-8 处（取色器 3、宏编辑器 3、元素拾取 1、添加动作 1）、`new FlaUiDevice()` 2 处（元素拾取 1、添加动作 1）、
-`new InputHookRecorder()` 1 处（宏编辑器）。`WhaleGenie.Core.Devices.Platform` 这个命名空间因此出现在界面里的
-19 个文件里：多一个实现或多一个替身时，界面得跟着改。
-
-**改成什么**　光标只留一个问法——`IScreenDevice` 加一个 `Cursor`（将新增），引擎里 `IInputDevice.Cursor` 改成
-委托它，界面不再自己问 `WindowsScreenDevice`；取色器、元素拾取器与打开它们的窗口从组合根交来的 `IScreenDevice`
-与 `IUiDevice` 取用；录制器由设备层交出（`IDeviceLayer` 多一个口，将新增）。组合根照旧由程序决定用哪一套
-Windows 实现。
-
-**怎么验收**　界面里除组合根那两个文件外不再出现 `WhaleGenie.Core.Devices.Platform`，加一条扫源码的用例卡住；
-取色器、元素拾取器、录制各一条替身用例；真实桌面按 `AGENTS.md` 规范 5 过一遍三个拾取器与录制，结论写进提交
-信息。
-
 ### 运行调试窗口：跑到哪一步看得见，算了什么看得清
 
 **现状**　三处：

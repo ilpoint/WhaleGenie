@@ -98,7 +98,7 @@ dotnet run --project WhaleGenie                  # 启动程序
 | --- | --- | --- |
 | 纯逻辑 | `WhaleGenie.Core.Tests` | 引擎每一步、变量与表达式、宏包往返；跑在替身设备层上，断言的是"引擎要求了什么"，不是"桌面上发生了什么" |
 | 画面获取 | `WhaleGenie.GraphicsCapture.Tests` | 选路次序、会话缓存与复用、图片落位、矩形越界；真正调用 Windows 取画面那几条按手动用例过 |
-| 界面 | `WhaleGenie.Tests` | 参数成型、触发器比对、卡片显示、文案完整性，以及无头会话里的界面逻辑与 Avalonia 输入（`Ui.Run` 是入口） |
+| 界面 | `WhaleGenie.Tests` | 参数成型、触发器比对、卡片显示、文案完整性，无头会话里的界面逻辑与 Avalonia 输入（`Ui.Run` 是入口），以及拾取器与录制器交来替身设备层后的情形 |
 | 真的驱动别的程序 | `BrowserTabTests` | 唯一一套：开一个不显示窗口的 Edge，跑浏览器动作 |
 | 手动 | — | 真实输入、抓屏取色、UIA 拾取、页面拾取、录制、窗口布局 |
 
@@ -121,6 +121,9 @@ dotnet run --project WhaleGenie                  # 启动程序
 - 格式与风格写在 `.editorconfig`，CI 会跑 `dotnet format --verify-no-changes` 卡住不合规的提交。
 - 每个项目共用的构建属性写在 `Directory.Build.props`，单个项目只留自己特有的部分。
 - 注释写"为什么"，不写"做了什么"；用户能看到的文字一律走文案表，不写死在代码或 XAML 里。
+- 界面只认引擎交出的接口：屏幕、UIA、窗口表、录制器、全局钩子、驱动级输入与浏览器都由组合根
+  （`WhaleGenie/Execution/SharedDevices.cs` 与 `App.axaml.cs`）交来，窗口、视图模型与拾取器里不出现
+  `WhaleGenie.Core.Devices.Platform`——`LayeringTests` 扫源码卡住这一条，替身设备层也就够驱动它们。
 
 ## 性能怎么量
 
