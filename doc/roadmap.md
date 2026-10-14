@@ -40,13 +40,52 @@
 
 ## 阶段表
 
+### 怎么比文字：一套词
+
+**现状**　"这一段文字跟那一段怎么比"这件事，程序里有四套说法，而且缺一档：
+
+- OCR 与两个文字条件的 `matchMode` 只有三档（`contains` / `exact` / `regex`）：想找"以…开头"的文字只能
+  写正则（`^Save`），而"等于"在这里叫 `exact`（还会顺手去掉两端的空格），同一个意思在 `control.switch`
+  与 `file.readCsv` 里叫 `equals`。
+- `control.switch` / `file.readCsv` 的 `matchMode` 有十档：文本那几档（`contains` / `startsWith` /
+  `endsWith` / `regex`）词与别处一样，另有 `notEquals` 与四个数量比较 —— 那是取反与数字的事，另算。
+- 窗口那一格 `how` 是五档（标题包含 / 标题开头 / 标题正则 / 进程名 / 窗口类名）：进程名与类名只有"包含"，
+  "进程名正好是 notepad"写不出来，写 `notepad` 也会命中 `notepad++`。
+- 引擎里 `WindowCompare`（Contains / StartsWith / Regex）与 `MacroRunner.Matches` 各写一份"开头""正则"
+  怎么算，两份语义靠人眼对齐。
+- 表达式函数 `contains` / `startsWith` / `endsWith` / `match` 是调用而不是档位。
+
+**改成什么**　引擎里只留一套"怎么比文字"：
+
+1. 新增 `TextCompare`（`WhaleGenie.Core`），五档 —— `contains`（默认）/ `startsWith` / `endsWith` /
+   `equals` / `regex`，每种怎么算只写在这里（一律忽略大小写，`equals` 两端去空格）。`WindowCompare`
+   删掉：窗口设备、UI Automation 的窗口搜索与窗口预览一律改用 `TextCompare`，`WindowHow.Matches` /
+   `Check` 转发过去；`MacroRunner.Matches`（OCR 与文字条件）与 `control.switch` 的文本那几档也改用它 ——
+   "开头"于是全程序只有一个意思。
+2. OCR 与两个文字条件的 `matchMode` 换成这五档，`exact` 去掉（它就是这个 `equals`；`.wgmacro` 尚未
+   发布，不留双读）。文案键两边一起加 `...option.startsWith` / `endsWith` / `equals`，删 `...option.exact`。
+3. 认不出来的 `matchMode` 当场报错（新文案键 `Run.BadMatchMode`，文字里列出五档）：静默按"包含"走会把
+   "等于"悄悄写成别的东西，而这种错只可能来自手写文件，报出来最省事；留空仍旧是"没说"，按默认的包含走。
+4. 窗口那五档扩成九档：标题五档、进程名两档（包含 / 等于）、类名两档（包含 / 等于）。老的四条写法
+   （`titleContains` / `titleStartsWith` / `titleRegex` / `process` / `class`）一个不动，新增
+   `titleEndsWith` / `titleEquals` / `processEquals` / `classEquals`；认不出的 `how` 仍旧按最老的"标题包含"
+   走（这条兜底写在 `WindowHow` 与手册里，不动）。
+5. `control.switch` / `file.readCsv` 的文本那几档改成引用这一套里的同名字面量（顺序与今天一致），所以各处
+   的"包含 / 开头 / 结尾 / 等于 / 正则"是同一批字；`notEquals` 与四个数量比较留着。
+6. 表达式函数不动：调用不是档位，词也已经与这套对齐，只有 `match` 与 `regex` 不同名，而"这个正则匹配得上
+   吗"本来就读作 match。
+
+**怎么验收**　引擎用例：找文字"以…开头 / 以…结尾"各一条（大小写不敏感）、"等于"仍按去空格比较；两个文字
+条件各一条用到新档；`control.switch` 的 `startsWith` / `endsWith` 与窗口的"开头"用的是同一套算法；窗口九
+档里新增的四档（标题结尾 / 标题等于 / 进程名等于 / 类名等于）各一条，`notepad` 不再命中 `notepad++`；认不
+出来的 `matchMode` 报 `Run.BadMatchMode`，留空按包含走。文案用例：`LocalizationTests` 的选项名单跟着改，
+四处 OCR/条件的 `matchMode` 中英标签逐条对上。手动一条：真桌面上找一个标题以固定后缀结尾的窗口，用"标题
+结尾"认它。
+
 ## 零散项
 
 可与任何阶段并行：
 
-- **「怎么比文字」三种词汇**：OCR 与文字条件的 `matchMode`（包含 / 等于 / 正则）、窗口那一格的五档与表达式里
-  的 `contains` / `startsWith` / `match` 说的是同一件事的三套词，看看能不能收成一套；`exact` 这类真需要的差
-  别保留。
 - **其余"要一个位置"的字段也收一条记录**：`input.mouseMove` / `mouseClick` / `mouseDown` / `mouseUp` /
   `mouseScroll` 的 x、y 一对，以及 `vision.getPixel` 的 x、y，是否也各收一条记录（与拖拽的起点终点同一套
   读法）。先做拖拽那一版，用过之后再决定要不要铺开——一次只改一处，改完的东西才好判。
