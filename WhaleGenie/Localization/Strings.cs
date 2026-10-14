@@ -314,6 +314,10 @@ public sealed class Strings : INotifyPropertyChanged
 
         // ------------------------------------------------------------- what a step saw
         ["Look.Title"] = "What the step saw",
+        // Where a mark is, in the numbers a step's own fields take: the middle first, because that
+        // is the point a click or a drag aims at.
+        ["Look.Centre"] = "Centre {0}",
+        ["Look.Box"] = "Centre {0}, top left {1}, {2}x{3}",
         ["Look.Step"] = "{0}  ·  step {1}",
         ["Look.Looking"] = "Looking for: {0}",
         ["Look.Where"] = "Read from {0}, taken with {1}.",
@@ -523,6 +527,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Clear"] = "Clear",
         ["Editor.Tip.SetKey"] = "Choose the key, combination or controller button that starts this macro",
         ["Editor.Tip.Save"] = "Save this macro and close the editor",
+        ["Editor.RunDebug"] = "Run and debug",
+        ["Editor.Tip.RunDebug"] = "Load these steps into the run and debug window and start running "
+            + "them, without saving first. F5.",
         ["Editor.Tip.Record"] = "Start or stop recording what you do on screen (Ctrl + F10)",
         ["Editor.UnsavedMessage"] = "This macro has changes that are not saved yet.",
         ["Editor.Discard"] = "Discard",
@@ -1027,6 +1034,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.Minimize"] = "Minimize. The run carries on, and the window comes back from the taskbar.",
         ["Run.Steps"] = "Steps",
         ["Run.Log"] = "Log",
+        ["Run.CopyLog"] = "Copy log",
+        ["Run.CopyValue"] = "Copy",
         ["Run.Variables"] = "Variables",
         ["Run.Empty"] = "This macro has no steps yet.",
         ["Run.Ready"] = "Ready",
@@ -1554,6 +1563,9 @@ public sealed class Strings : INotifyPropertyChanged
 
         // ------------------------------------------------------------- 这一步看到了什么
         ["Look.Title"] = "这一步看到了什么",
+        // 一条标记落在哪儿，用的就是这一步自己的字段收的那几个数：中心写在前面，因为要点、要拖的是它。
+        ["Look.Centre"] = "中心 {0}",
+        ["Look.Box"] = "中心 {0}　左上角 {1}　{2}×{3}",
         ["Look.Step"] = "{0}　·　步骤 {1}",
         ["Look.Looking"] = "在找：{0}",
         ["Look.Picture"] = "参考图 {0}/{1}：{2}",
@@ -1733,6 +1745,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Clear"] = "清空",
         ["Editor.Tip.SetKey"] = "选择启动这个宏的按键、组合键或手柄按键",
         ["Editor.Tip.Save"] = "保存这个宏并关闭编辑器",
+        ["Editor.RunDebug"] = "运行调试",
+        ["Editor.Tip.RunDebug"] = "把这里的步骤装进运行与调试窗口并开始跑，不用先保存。快捷键 F5。",
         ["Editor.Tip.Record"] = "开始或停止录制屏幕上的操作（Ctrl + F10）",
         ["Editor.UnsavedMessage"] = "这个宏有尚未保存的修改。",
         ["Editor.Discard"] = "放弃修改",
@@ -2256,6 +2270,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.Minimize"] = "最小化。宏照常往下跑，窗口从任务栏拿回来。",
         ["Run.Steps"] = "步骤",
         ["Run.Log"] = "运行日志",
+        ["Run.CopyLog"] = "复制日志",
+        ["Run.CopyValue"] = "复制",
         ["Run.Variables"] = "变量监视",
         ["Run.Empty"] = "这个宏还没有步骤。",
         ["Run.Ready"] = "准备就绪",
