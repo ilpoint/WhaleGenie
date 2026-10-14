@@ -1312,7 +1312,7 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "input.mouseMove":
-                MovePointer(step, Pair(step, Anchor(step), "x", "y"));
+                MovePointer(step, MovePlace(step));
                 return Signal.Normal;
 
             case "input.mouseMoveRelative":
@@ -2944,7 +2944,9 @@ public sealed class MacroRunner
     private (ScreenPoint Corner, WindowInfo? Window) Spot(ExecutableStep step)
     {
         var anchor = AnchorOf(step);
-        return (Pair(step, anchor.Corner, "x", "y"), anchor.Window);
+        return (FromRecord(step)
+            ? RecordPlace(step, "record")
+            : Placed(anchor.Corner, Number(step, "x"), Number(step, "y")), anchor.Window);
     }
 
     /// <summary>
@@ -2952,7 +2954,10 @@ public sealed class MacroRunner
     /// which is what a click or a press with no coordinates written down means; a step that says so
     /// outright reads the pointer the same way, whatever its numbers hold. Asking for the pointer is
     /// answered before anything is measured from, so a step that says it works at the pointer does
-    /// not need the window its numbers would have been counted from to be there at all.
+    /// not need the window its numbers would have been counted from to be there at all. After the
+    /// pointer comes the record, and the numbers last: a step that takes its place from the pointer
+    /// works there whatever else it carries, and a step that takes it from a record does not read the
+    /// numbers at all.
     /// </summary>
     private ScreenPoint Point(ExecutableStep step, string xName, string yName)
     {
@@ -2961,62 +2966,65 @@ public sealed class MacroRunner
             return Input(step).Cursor;
         }
 
+        if (FromRecord(step))
+        {
+            return RecordPlace(step, "record");
+        }
+
         var x = step.Text(xName).Trim();
         var y = step.Text(yName).Trim();
         return x.Length == 0 && y.Length == 0
             ? Input(step).Cursor
-            : Pair(step, Anchor(step), xName, yName);
+            : Placed(Anchor(step), Number(step, xName), Number(step, yName));
     }
 
     /// <summary>
-    /// The place a step writes in two number fields, read the way a drag's end is read: either the
-    /// two numbers, each of which may be an expression, or one record that says where the place is.
-    /// Every record that carries a rectangle carries the middle of it under <c>x</c> and <c>y</c>,
-    /// so a hit, a window or an element goes in as it stands — "click what was just found" is one
-    /// field instead of the same reading written out twice, once per half. A record's numbers are
-    /// screen pixels, the way every record's are; numbers written out are counted from
-    /// <paramref name="origin"/>, which is the corner the step says its own numbers are measured
-    /// from.
+    /// Where a move lands: the place a record says, or the two numbers the step writes down, which
+    /// are counted from the corner it names and are read as zero where they were not written. A
+    /// move has no "wherever the pointer already is" of its own, so both numbers missing is a move
+    /// to the corner the step counts from rather than to nowhere.
     /// </summary>
-    private ScreenPoint Pair(ExecutableStep step, ScreenPoint? origin, string xName, string yName)
+    private ScreenPoint MovePlace(ExecutableStep step)
     {
-        var x = step.Text(xName).Trim();
-        var y = step.Text(yName).Trim();
-        var record = Record(x);
-        var written = x;
-        var other = y;
-        if (record is null)
-        {
-            record = Record(y);
-            written = y;
-            other = x;
-        }
-
-        if (record is null)
-        {
-            return Placed(origin, Number(step, xName), Number(step, yName));
-        }
-
-        // The record answers the whole question, so the other half has to have been left alone: two
-        // answers to one question is a step that reads as if one of them had been lost, and picking
-        // between them is how a click lands somewhere nobody named.
-        if (other.Length > 0)
-        {
-            throw new StepFailure("Run.BadPointTwice", other);
-        }
-
-        return RecordPoint(record, written);
+        return FromRecord(step)
+            ? RecordPlace(step, "record")
+            : Placed(Anchor(step), Number(step, "x"), Number(step, "y"));
     }
 
     /// <summary>
-    /// The record a written place is, when it is one rather than a number. A place is read as text
-    /// rather than as one value, so what the text turns out to hold is asked here instead of being
-    /// assumed from the shape of the field.
+    /// Whether a step takes its place or its rectangle from a record. The switch is off where it was
+    /// never written, which is how a macro that spells the numbers out goes on being read as numbers
+    /// rather than as a record field nobody filled in.
     /// </summary>
-    private Value? Record(string text)
-        => text.Length > 0 && Read(text) is { IsRecord: true } record ? record : null;
+    private static bool FromRecord(ExecutableStep step, string name = "useRecord")
+        => Flag(step, name, false);
 
-    /// <summary>The point a record says it is at, in screen pixels: its <c>x</c> and <c>y</c>.</summary>
+    /// <summary>
+    /// Where a step that takes its place from a record says it is. Which field the record came in is
+    /// named so that a drag can say which of its two ends is the one with nothing in it. A record
+    /// field nobody filled in means the step before this one handed nothing over, which is said as
+    /// that rather than as a place that could not be read; anything else that is not a record saying
+    /// where it is is reported as a place with no <c>x</c> and <c>y</c> in it.
+    /// </summary>
+    private ScreenPoint RecordPlace(ExecutableStep step, string name)
+    {
+        var raw = step.Text(name).Trim();
+        if (raw.Length == 0)
+        {
+            throw new StepFailure("Run.BadPointEmpty", name);
+        }
+
+        return Read(raw) is { IsRecord: true } record
+            ? RecordPoint(record, raw)
+            : throw new StepFailure("Run.BadPoint", raw);
+    }
+
+    /// <summary>
+    /// The point a record says it is at, in screen pixels: its <c>x</c> and <c>y</c>, which every
+    /// record that names a rectangle carries as the middle of it rather than as a corner. A record
+    /// without them is refused here, and what was handed over is said so that a macro that aimed at
+    /// the wrong thing can be read back from its own log.
+    /// </summary>
     private static ScreenPoint RecordPoint(Value record, string written)
     {
         if (record.Field("x") is not { } x || record.Field("y") is not { } y)
@@ -3034,39 +3042,21 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// One end of a drag, in the screen pixels the devices ask for. A place is read the way a search
-    /// region is read rather than as one value: written as <c>x,y</c>, or handed a record that says
-    /// where it is. Every record that carries a rectangle carries the middle of it under <c>x</c>
-    /// and <c>y</c>, so a hit, a window or an element goes in as it stands — "drag what was just
-    /// found onto that window" is one field each end instead of four numbers worked out from other
-    /// numbers. A record's numbers are screen pixels, the way every record's are; numbers written
-    /// out are counted from <paramref name="origin"/>, which is the corner the step says its own
-    /// numbers are measured from and is read once so both ends share it. A value that is empty is
-    /// reported as the step before it having found nothing, which is what it means, rather than as
-    /// a place nobody could read.
+    /// One end of a drag, in the screen pixels the devices ask for: the record that end takes its
+    /// place from, or the two numbers written for it, each of which may be an expression. Every
+    /// record that carries a rectangle carries the middle of it under <c>x</c> and <c>y</c>, so a
+    /// hit, a window or an element goes in as it stands — "drag what was just found onto that
+    /// window" is one field each end instead of four numbers worked out from other numbers. A
+    /// record's numbers are screen pixels, the way every record's are; numbers written out are
+    /// counted from <paramref name="origin"/>, which is the corner the step says its own numbers are
+    /// measured from and is read once so both ends share it. <paramref name="end"/> names which end
+    /// this is, because a drag has two of everything and the fields are read by name.
     /// </summary>
-    private ScreenPoint PointOf(ExecutableStep step, string name, ScreenPoint? origin)
+    private ScreenPoint DragPlace(ExecutableStep step, string end, ScreenPoint? origin)
     {
-        var raw = step.Text(name);
-        if (raw.Trim().Length == 0)
-        {
-            throw new StepFailure("Run.BadPointEmpty", name);
-        }
-
-        if (Record(raw) is { } record)
-        {
-            return RecordPoint(record, raw);
-        }
-
-        // A written place is interpolated rather than read as a whole expression: its comma would
-        // stop an expression at the first number.
-        var named = Interpolate(raw).Trim();
-        var sides = named.Split(',', StringSplitOptions.TrimEntries);
-        return sides.Length == 2
-            && int.TryParse(sides[0], out var column)
-            && int.TryParse(sides[1], out var row)
-                ? Placed(origin, column, row)
-                : throw new StepFailure("Run.BadPoint", named);
+        return FromRecord(step, end + "FromRecord")
+            ? RecordPlace(step, end + "Record")
+            : Placed(origin, Number(step, end + "X"), Number(step, end + "Y"));
     }
 
     /// <summary>
@@ -3134,8 +3124,8 @@ public sealed class MacroRunner
         // already in screen pixels rather than moved by that corner a second time. The corner is
         // read once, here, rather than once per end.
         var origin = Anchor(step);
-        var from = PointOf(step, "start", origin);
-        var to = PointOf(step, "end", origin);
+        var from = DragPlace(step, "start", origin);
+        var to = DragPlace(step, "end", origin);
         var duration = Pace(Number(step, "durationMs"));
         var settle = Pace(OptionalNumber(step, "settleMs", 0));
         var steps = Math.Clamp(Number(step, "steps"), 1, 200);
@@ -3719,47 +3709,32 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// The rectangle a step names in four number fields, whether it reads or copies one part of the
-    /// screen or tells a window where to go: the four numbers it writes down, or one record that says
-    /// where the rectangle is. Every record that
-    /// carries a rectangle carries all four sides of it, so a hit, a window or a picture taken
-    /// earlier goes in as it stands — "read the writing on what was just found" is one field rather
-    /// than four readings of <c>field()</c> with a chance of one of them being the neighbour's. A
-    /// record's numbers are screen pixels, the way every record's are; numbers written out are
-    /// counted from <paramref name="origin"/>, which is the corner the step says its own numbers
-    /// are measured from. What a number nobody wrote comes to is the one thing the steps that write
-    /// four numbers do not agree on, so <paramref name="toTheEdge"/> says which of them this is: a
-    /// step reading the screen reads to the edge of it, while a window told to take a size stays at
-    /// least one pixel wide. A record says all four numbers either way.
+    /// The rectangle a step names, whether it reads or copies one part of the screen or tells a
+    /// window where to go: the record it takes the rectangle from, or the four numbers it writes
+    /// down. Every record that carries a rectangle carries all four sides of it, so a hit, a window
+    /// or a picture taken earlier goes in as it stands — "read the writing on what was just found"
+    /// is one field rather than four readings of <c>field()</c> with a chance of one of them being
+    /// the neighbour's. A record's numbers are screen pixels, the way every record's are; numbers
+    /// written out are counted from <paramref name="origin"/>, which is the corner the step says its
+    /// own numbers are measured from. What a number nobody wrote comes to is the one thing the steps
+    /// that write four numbers do not agree on, so <paramref name="toTheEdge"/> says which of them
+    /// this is: a step reading the screen reads to the edge of it, while a window told to take a size
+    /// stays at least one pixel wide.
     /// </summary>
     private (ScreenPoint Corner, int Width, int Height) Box(ExecutableStep step, ScreenPoint? origin,
         bool toTheEdge = true)
     {
-        string[] fields = ["x", "y", "width", "height"];
-        var written = Array.ConvertAll(fields, name => step.Text(name).Trim());
-        for (var at = 0; at < fields.Length; at++)
+        if (FromRecord(step))
         {
-            if (Record(written[at]) is not { } record)
+            var raw = step.Text("record").Trim();
+            if (raw.Length == 0)
             {
-                continue;
+                throw new StepFailure("Run.BadPointEmpty", "record");
             }
 
-            // One record is one answer to "which rectangle". A number written beside it is a second
-            // answer to the same question, and choosing between the two would be a step that reads
-            // the neighbouring part of the screen with nothing anywhere saying why, so which field
-            // is in the way is said rather than guessed at.
-            for (var other = 0; other < fields.Length; other++)
+            if (Read(raw) is not { IsRecord: true } record || Sides(record) is not { } sides)
             {
-                if (other != at && written[other].Length > 0)
-                {
-                    throw new StepFailure("Run.BadRegionTwice",
-                        $"{fields[other]} = {written[other]}");
-                }
-            }
-
-            if (Sides(record) is not { } sides)
-            {
-                throw new StepFailure("Run.BadRegion", written[at]);
+                throw new StepFailure("Run.BadRegion", raw);
             }
 
             return (new ScreenPoint(sides.Left, sides.Top), sides.Width, sides.Height);

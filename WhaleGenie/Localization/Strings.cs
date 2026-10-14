@@ -1140,19 +1140,13 @@ public sealed class Strings : INotifyPropertyChanged
             "The screen cannot be read this way on this machine: {0}. Graphics Capture needs Windows "
             + "10 2004 or later and a Direct3D 11 device, and cannot read a display the graphics card "
             + "will not duplicate either.",
-        ["Run.BadRegion"] = "A rectangle reads as x,y,width,height, or as a record with left, top, "
-            + "width and height in it (a hit, a window, a picture taken earlier): {0}",
-        ["Run.BadRegionTwice"] = "A rectangle written in four fields takes one answer: this step was "
-            + "given a record with the four sides in it together with {0}. Leave the other three "
-            + "fields empty, or fill all four of them with numbers.",
-        ["Run.BadPoint"] = "A place reads as x,y, or as a record with x and y in it "
-            + "(a hit, a window, an element, whose x and y are the middle of what it names): {0}",
-        ["Run.BadPointTwice"] = "A place written in two fields takes one answer: this step was given "
-            + "a record with x and y in it and something in the other field as well. Leave the other "
-            + "field empty, or fill both of them with numbers instead. The field that got in the "
-            + "way reads: {0}",
-        ["Run.BadPointEmpty"] = "This end of the drag has no value: the step before it found "
-            + "nothing there. Let it find something first, or write the place as x,y.",
+        ["Run.BadRegion"] = "The record this step takes its rectangle from has no left, top, width "
+            + "and height in it (a hit, a window and a picture taken earlier all do): {0}",
+        ["Run.BadPoint"] = "The record this step takes its place from has no x and y in it (a hit, "
+            + "a window and an element carry the middle of what they name there): {0}",
+        ["Run.BadPointEmpty"] = "The {0} field is empty: this step takes its place from a record and "
+            + "none was handed to it. Let the step before it find something first, or turn the "
+            + "switch off and write the numbers instead.",
         ["Run.BadPoints"] = "Every point of a colour comparison reads as x,y,#RRGGBB: {0}",
         ["Run.BadPattern"] = "That is not a usable match pattern: {0}",
         ["Run.BadMatchMode"] = "That is not a way of comparing text: {0}. Write contains, "
@@ -2373,16 +2367,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.NoGraphicsCapture"] =
             "这台机器用这种方式读不到画面：{0}。Graphics Capture 需要 Windows 10 2004 或更高版本"
             + "与 Direct3D 11 设备；显卡不肯交出的显示器它也读不到。",
-        ["Run.BadRegion"] = "一块矩形要写成 x,y,宽,高 的形式，或者交给它一条带 left、top、width、"
-            + "height 的记录（命中、窗口、之前截下的画面都可以）：{0}",
-        ["Run.BadRegionTwice"] = "矩形分成四格写时只要一个答案：这一步既交给它一条带 left、top、"
-            + "width、height 的记录，另一格里还写着 {0}。把其余三格留空，或者四格都填数字。",
-        ["Run.BadPoint"] = "一个位置要写成 x,y，或者交给它一条带 x、y 的记录（命中、窗口、元素都可以，"
-            + "取的是那块矩形的中心）：{0}",
-        ["Run.BadPointTwice"] = "位置分成两格写时只要一个答案：这一步既交给它一条带 x、y 的记录，"
-            + "另一格里也写了东西。把另一格留空，或者两格都填数字。多出来的那一格读出来是：{0}",
-        ["Run.BadPointEmpty"] = "拖拽的这一端没有值：上一步什么都没找到。先让它找到东西，或者把这个"
-            + "位置直接写成 x,y。",
+        ["Run.BadRegion"] = "交给它的那条记录里没有 left、top、width、height（命中、窗口、之前截下"
+            + "的画面都会带着这四个数）：{0}",
+        ["Run.BadPoint"] = "交给它的那条记录里没有 x、y（命中、窗口、元素都会带着这两个数，取的是"
+            + "那块矩形的中心）：{0}",
+        ["Run.BadPointEmpty"] = "{0} 这一格是空的：这一步的位置要取自一条记录，却什么都没交给它。"
+            + "先让上一步找到东西，或者关掉那个开关、直接写数字。",
         ["Run.BadPoints"] = "多点比色里的每个点要写成 x,y,#RRGGBB 的形式：{0}",
         ["Run.BadPattern"] = "这不是一个可用的匹配模式：{0}",
         ["Run.BadMatchMode"] = "这不是一种比对文字的方式：{0}。可以写的是 contains、startsWith、"
