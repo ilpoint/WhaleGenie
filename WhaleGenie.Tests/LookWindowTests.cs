@@ -189,6 +189,55 @@ public class LookWindowTests
     }
 
     /// <summary>
+    /// 每一条标记都要写出它那块矩形的**中心**：往鼠标动作的起点终点里填的是中心（命中记录自带的
+    /// x、y 就是它），而界面上原来只有左上角与宽高，要填那一对数得自己把宽高折半加上去。左上角与
+    /// 宽高照旧写着，中心取整用的是引擎那一条算法（奇数宽高落在矩形内偏左上的那一格）。
+    /// </summary>
+    [Fact]
+    public void Every_mark_says_where_its_middle_is()
+    {
+        var answer = Ui.Run(() =>
+        {
+            var devices = new ChecksDevices
+            {
+                Screen = new ScreenForChecks(),
+                Ocr = new ReadingForChecks("订单号", "A-1024"),
+            };
+
+            var step = new[] { Recognize() }.ToExecutable()[0];
+            var look = MacroRunner.LookOnce(step, devices).Look!;
+
+            var window = new LookWindow(look);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var rows = window.FindControl<StackPanel>("Marks")!
+                .GetVisualDescendants()
+                .OfType<Border>()
+                .Where(row => row.Classes.Contains("MarkRow"))
+                .Select(row => string.Join(" ", row.GetVisualDescendants()
+                    .OfType<TextBlock>()
+                    .Select(text => text.Text ?? string.Empty)))
+                .ToList();
+
+            window.Close();
+            return (Middles: look.Boxes
+                    .Select(box => $"({box.Match.Center.X}, {box.Match.Center.Y})")
+                    .ToList(),
+                Rows: rows);
+        });
+
+        // 这一份至少有读到的两行字加一处要找的地方，每一条都该有自己那一行。
+        Assert.NotEmpty(answer.Middles);
+        Assert.Equal(answer.Middles.Count, answer.Rows.Count);
+
+        for (var index = 0; index < answer.Middles.Count; index++)
+        {
+            Assert.Contains(answer.Middles[index], answer.Rows[index], StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>
     /// 图上的字默认不画：框里就是刚读到的那几行字，标签压在框里正好挡住要对着看的东西。要用带字的图给
     /// 人看时打开开关，字画在框的上沿外侧；上沿放不下就落到下沿外侧，始终不落进框里。
     /// </summary>
