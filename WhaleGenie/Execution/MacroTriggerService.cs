@@ -11,9 +11,9 @@ using WhaleGenie.Models;
 namespace WhaleGenie.Execution;
 
 /// <summary>
-/// Watches the keyboard, the watched pixels and the clock for what the macros in the list are
-/// waiting for, and runs them the way their trigger settings ask. The main window's system switch
-/// turns the whole thing on and off.
+/// Watches the keyboard, the controller, the watched pixels and the clock for what the macros in
+/// the list are waiting for, and runs them the way their trigger settings ask. The main window's
+/// system switch turns the whole thing on and off.
 /// </summary>
 public sealed class MacroTriggerService : IDisposable
 {
@@ -42,12 +42,28 @@ public sealed class MacroTriggerService : IDisposable
     /// </summary>
     private static readonly TimeSpan ProgramPollInterval = TimeSpan.FromMilliseconds(30);
 
+    /// <summary>
+    /// How often the controller is read. A controller button is read rather than reported — Windows
+    /// has no word for one going down — so a press that starts and ends between two readings is a
+    /// press nothing saw. This is the pace the programs are counted at, for the same reason: it is
+    /// short enough for the quickest press a hand makes, and one reading is a fraction of the cost of
+    /// one look at a pixel.
+    /// </summary>
+    private static readonly TimeSpan PadPollInterval = TimeSpan.FromMilliseconds(30);
+
     /// <summary>A breather between the passes of a macro that repeats, so it cannot spin.</summary>
     private const int RepeatGapMs = 10;
 
     private readonly Func<IReadOnlyList<MacroItem>> _macros;
     private readonly IDeviceLayer _devices;
     private readonly IWindowEvents _windowEvents;
+
+    /// <summary>The controller in the person's hands, read on its own timer.</summary>
+    private readonly IGamepadReading _pads;
+
+    /// <summary>What that controller was holding at the last reading, so a press can be told from a hold.</summary>
+    private readonly GamepadButtonWatch _padHeld = new();
+
     private readonly object _gate = new();
     private readonly object _windowGate = new();
     private readonly object _keys = new();
@@ -64,6 +80,7 @@ public sealed class MacroTriggerService : IDisposable
     private readonly HashSet<string> _heldKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly Timer _poll;
     private readonly Timer _programs;
+    private readonly Timer _padTimer;
 
     /// <summary>The hook handed in for this service, or null to share the one the program keeps.</summary>
     private readonly IInputHook? _hookSource;
@@ -107,9 +124,11 @@ public sealed class MacroTriggerService : IDisposable
         _macros = macros;
         _devices = devices;
         _windowEvents = windowEvents ?? devices.WindowEvents;
+        _pads = devices.GamepadReading;
         _hookSource = hook;
         _poll = new Timer(_ => Poll(), null, Timeout.Infinite, Timeout.Infinite);
         _programs = new Timer(_ => Programs(), null, Timeout.Infinite, Timeout.Infinite);
+        _padTimer = new Timer(_ => Pad(), null, Timeout.Infinite, Timeout.Infinite);
     }
 
     /// <summary>
@@ -312,6 +331,7 @@ public sealed class MacroTriggerService : IDisposable
         Detach();
         _poll.Dispose();
         _programs.Dispose();
+        _padTimer.Dispose();
     }
 
     // ---------------------------------------------------------------- hooking
@@ -350,6 +370,11 @@ public sealed class MacroTriggerService : IDisposable
         _programsDueAt = DateTime.Now + ProgramPollInterval;
         _programs.Change(ProgramPollInterval, ProgramPollInterval);
 
+        // What the controller is holding is taken up here rather than counted as pressed: a button
+        // that was down before the switch went on is not somebody asking for something now.
+        _padHeld.Forget();
+        _padTimer.Change(PadPollInterval, PadPollInterval);
+
         // The machine is asked to say when a window changes, which is what makes a window that is
         // only up for a moment worth waiting for. It keeps saying so while the switch is on, and
         // the reading on the timer goes on underneath: a machine that stops saying, or never said,
@@ -374,6 +399,7 @@ public sealed class MacroTriggerService : IDisposable
 
         _poll.Change(Timeout.Infinite, Timeout.Infinite);
         _programs.Change(Timeout.Infinite, Timeout.Infinite);
+        _padTimer.Change(Timeout.Infinite, Timeout.Infinite);
         StopAll();
     }
 
@@ -830,6 +856,64 @@ public sealed class MacroTriggerService : IDisposable
         catch (Exception)
         {
             // Reading another program's list can be refused; the next round tries again.
+        }
+    }
+
+    /// <summary>The controller, on a clock of its own, for the same reason the programs have one.</summary>
+    private void Pad()
+    {
+        if (!Listening)
+        {
+            return;
+        }
+
+        LookAtGamepad();
+    }
+
+    /// <summary>
+    /// Reads the controller once, for the timer and for the checks. A button going down and coming
+    /// back up are answered the way a key is, so a binding of <c>Pad A</c> behaves like any other
+    /// binding: the loop modes ("while holding", "until pressed again", "on release") say what
+    /// happens, and a chord may hold a controller button and a key together.
+    /// </summary>
+    internal void LookAtGamepad()
+    {
+        GamepadButtons held;
+        try
+        {
+            held = _pads.Held();
+        }
+        catch (Exception)
+        {
+            // A controller that cannot be read is a controller with nothing to say — the same
+            // answer as a machine with none plugged in — so the next round tries again rather than
+            // the timer dying.
+            return;
+        }
+
+        foreach (var (button, down) in _padHeld.Changed(held))
+        {
+            var name = GamepadNames.Binding(button);
+            if (name.Length == 0)
+            {
+                continue;
+            }
+
+            // Written down the way a key is, so a combination that holds a controller button down
+            // answers the same as one that holds a key.
+            lock (_keys)
+            {
+                if (down)
+                {
+                    _heldKeys.Add(name);
+                }
+                else
+                {
+                    _heldKeys.Remove(name);
+                }
+            }
+
+            Fire(name, down);
         }
     }
 

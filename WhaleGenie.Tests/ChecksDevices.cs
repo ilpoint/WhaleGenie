@@ -164,3 +164,19 @@ internal sealed class ChecksDevices : IDeviceLayer
 
     public IBrowserDevice Browser => NullDeviceLayer.Instance.Browser;
 }
+
+/// <summary>
+/// A controller a check plays by hand: what is "held" is whatever the check last set, so a trigger
+/// bound to a controller button, a binding taken from one, and a recording of one can all be
+/// checked with no controller plugged in and nothing pressed.
+/// </summary>
+internal sealed class FakeGamepad : IGamepadReading
+{
+    /// <summary>True unless a check is checking what a machine with nothing plugged in does.</summary>
+    public bool Connected { get; set; } = true;
+
+    /// <summary>The buttons the person is holding, which the check sets between readings.</summary>
+    public GamepadButtons Down { get; set; }
+
+    public GamepadButtons Held() => Connected ? Down : GamepadButtons.None;
+}
