@@ -30,10 +30,58 @@ namespace WhaleGenie.ViewModels;
 public sealed record RunResultViewModel(string Name, string Value, bool Kept)
 {
     /// <summary>
+    /// The fields of a record result, one line each, or empty when the result is one piece of data
+    /// whose text is the whole of it. A hit is several answers about one thing — where it is, how
+    /// sure the reading was — and a line that ran them together is exactly what cannot be read.
+    /// </summary>
+    public IReadOnlyList<RunResultLine> Lines { get; init; } = [];
+
+    /// <summary>
     /// The colour the name reads in: a value the macro keeps under a name of its own stands out
     /// from one that is only here to be looked at.
     /// </summary>
     public string Color => Kept ? "#BFE3BF" : "#8FB3D9";
+}
+
+/// <summary>
+/// One line under a step's result: a field of a record, or one entry of a list of them, indented by
+/// how deep it sits.
+/// </summary>
+public sealed record RunResultLine(string Name, string Value, Thickness Indent);
+
+/// <summary>
+/// Turns the fields of a record into those lines. It is arithmetic of its own rather than a
+/// walk over the panel's controls, because the shape is what is worth checking: a hit is three
+/// answers about one place, and a list of hits is three places with each one's answers under it.
+/// </summary>
+public static class RunResultLines
+{
+    /// <summary>How far in one level of nesting puts a line.</summary>
+    private const double IndentStep = 16;
+
+    /// <summary>The lines for the fields of one result, the fields themselves one level in.</summary>
+    public static IReadOnlyList<RunResultLine> Of(IReadOnlyList<JsonTreeNode> fields)
+    {
+        var lines = new List<RunResultLine>();
+        Add(fields, depth: 1, lines);
+        return lines;
+    }
+
+    private static void Add(IReadOnlyList<JsonTreeNode> nodes, int depth, List<RunResultLine> lines)
+    {
+        foreach (var node in nodes)
+        {
+            lines.Add(new RunResultLine(node.Name, node.Preview,
+                new Thickness(depth * IndentStep, 0, 0, 0)));
+
+            // A field that is a record or a list of them keeps its own name and puts what is inside
+            // it on the lines below, so a list of hits reads as hits rather than as one long line.
+            if (node.Children.Count > 0)
+            {
+                Add(node.Children, depth + 1, lines);
+            }
+        }
+    }
 }
 
 /// <summary>One step in the debugger's list.</summary>
@@ -152,7 +200,14 @@ public partial class RunStepViewModel : ObservableObject
             // A result the macro keeps reads as the name it goes by; one nobody ticked reads as the
             // engine's own name for it, which is what there is to call it.
             var kept = result.Name.Length > 0;
-            Results.Add(new RunResultViewModel(kept ? result.Name : result.Key, result.Text, kept));
+            var fields = result.Data is { } data ? RunResultLines.Of(JsonTreeNode.Fields(data)) : [];
+            Results.Add(new RunResultViewModel(kept ? result.Name : result.Key,
+                fields.Count == 0 ? result.Text : string.Empty, kept)
+            {
+                // A record's own text is the whole of it written as JSON, which is longer and less
+                // readable than the fields it is made of: the fields are what the row shows.
+                Lines = fields,
+            });
         }
 
         OnPropertyChanged(nameof(HasResults));
@@ -451,6 +506,16 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         // about the variables, because there is nothing else to show.
         Page = _steps.Count == 0 ? RunPage.Variables : RunPage.Debug;
         Status = _steps.Count == 0 ? Strings.Get("Run.Empty") : Strings.Get("Run.Ready");
+
+        // Whether there is anything to run is only known here, and the window was drawn before that
+        // when a macro is loaded into one that had none: the toolbar and the run buttons are drawn
+        // for "nothing to run" and would stay that way without being told. The card's own menu takes
+        // exactly that road — it opens the window empty and then loads the macro into it.
+        OnPropertyChanged(nameof(HasSteps));
+        OnPropertyChanged(nameof(CanStart));
+        OnPropertyChanged(nameof(CanStep));
+        RunCommand.NotifyCanExecuteChanged();
+        StepCommand.NotifyCanExecuteChanged();
     }
 
     /// <summary>
@@ -992,6 +1057,13 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     public event Action<StepLook>? LookRequested;
 
     /// <summary>
+    /// Raised when the run moves to another step, with that step's row, or null when it is not
+    /// standing in front of one any more. The list follows the run rather than making the person
+    /// hunt for the row: a long macro says nothing about where it is if the row is below the fold.
+    /// </summary>
+    public event Action<RunStepViewModel?>? CurrentChanged;
+
+    /// <summary>
     /// Where the window the run is reading right now sits, or null when it is reading nothing: a
     /// step that does not look at the screen, the desktop, or a window that has gone. A step's own
     /// picture says what was found, and this says where the engine was looking for it — which is the
@@ -1107,10 +1179,17 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
             }
 
             _currentId = value;
+            RunStepViewModel? current = null;
             foreach (var row in Steps)
             {
                 row.IsCurrent = string.Equals(row.Id, value, StringComparison.Ordinal);
+                if (row.IsCurrent)
+                {
+                    current = row;
+                }
             }
+
+            CurrentChanged?.Invoke(current);
         }
     }
 

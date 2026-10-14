@@ -91,6 +91,57 @@ public class RunLookTests
         Assert.Equal(LookRole.Hit, look!.Boxes[1].Role);
     }
 
+    /// <summary>
+    /// 一条命中在步骤行上展开成一行一个字段：记录的文字是一串 JSON，挤在 340 宽的一行里读不出"命中
+    /// 在哪"；展开后 x、y、score 各占一行。行上因此不再另画那段文字，免得同一件事说两遍。
+    /// </summary>
+    [Fact]
+    public void A_hit_is_unfolded_into_its_fields_on_the_step_row()
+    {
+        var answer = Ui.RunAsync(async () =>
+        {
+            var find = new MacroStep
+            {
+                Type = "vision.findImage",
+                Parameters =
+                [
+                    new StepParameter
+                    {
+                        Name = "image",
+                        Kind = ActionParameterKind.Images,
+                        Rows = [StepParameterRow.Of("image", @"C:\images\ok.png")],
+                    },
+                    Number("confidence", "90"),
+                    Handed("match", "match"),
+                ],
+            };
+            StepIds.Settle([find]);
+
+            var viewModel = new RunViewModel([find], new LookingDevices());
+            viewModel.RunCommand.Execute(null);
+            while (viewModel.IsBusy)
+            {
+                await Task.Delay(10);
+            }
+
+            var row = viewModel.Steps.First(step => step.Id == find.Id);
+            var result = row.Results.Single(value => value.Name == "match");
+            return (
+                Lines: result.Lines.Select(line => (line.Name, line.Value)).ToList(),
+                Indent: result.Lines[0].Indent.Left,
+                result.Value);
+        });
+
+        // 命中交出的记录：字段一个一行，值就是数本身，不裹引号也不接成一串 JSON。
+        Assert.Contains(("x", "12"), answer.Lines);
+        Assert.Contains(("y", "14"), answer.Lines);
+        Assert.Contains(("score", "0.95"), answer.Lines);
+
+        // 字段比记录本身那串 JSON 好读，所以行上只画字段：字段一级缩进，文字那一栏留空。
+        Assert.Equal(16, answer.Indent);
+        Assert.Equal(string.Empty, answer.Value);
+    }
+
     [Fact]
     public void A_run_that_keeps_looking_does_not_hold_every_picture_it_ever_took()
     {

@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Execution;
@@ -38,6 +40,9 @@ public partial class RunWindow : Window
 
     /// <summary>The macros the list holds, which is what the variables in use are read off.</summary>
     private readonly IReadOnlyList<MacroItem> _listed;
+
+    /// <summary>The list the steps are shown in, kept so the run can be followed down it.</summary>
+    private readonly ScrollViewer? _stepScroll;
 
     public RunWindow()
         : this([], SharedDevices.Current)
@@ -106,6 +111,41 @@ public partial class RunWindow : Window
         {
             viewModel.Lines.CollectionChanged += (_, _) => logScroll.ScrollToEnd();
         }
+
+        // The steps list follows the run for the same reason: a row highlighted below the fold says
+        // nothing about where the run is.
+        _stepScroll = this.FindControl<ScrollViewer>("StepScroll");
+        viewModel.CurrentChanged += row => Follow(row);
+    }
+
+    /// <summary>
+    /// Brings the row the run is standing in front of into view, with a row of room on each side of
+    /// it. The row's place is only known once the layout has run — a step that has just finished has
+    /// written its result into the row, which makes it taller — so this waits for that pass rather
+    /// than measuring against the list as it was before the step ran.
+    /// </summary>
+    private void Follow(RunStepViewModel? row)
+    {
+        if (_stepScroll is not { } scroll || row is null || Form is not { } viewModel)
+        {
+            return;
+        }
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (this.FindControl<ItemsControl>("StepList") is not { } list
+                || list.ContainerFromIndex(viewModel.Steps.IndexOf(row)) is not { } container
+                || container.TranslatePoint(default, scroll) is not { } place)
+            {
+                return;
+            }
+
+            // The place comes back in the space the list is shown in, which the scroll offset has
+            // already moved; where the row sits down the whole list is what the arithmetic wants.
+            var top = place.Y + scroll.Offset.Y;
+            scroll.Offset = new Vector(0, RunScroll.Where(
+                scroll.Offset.Y, top, container.Bounds.Height, scroll.Viewport.Height));
+        }, DispatcherPriority.Loaded);
     }
 
     /// <summary>The form this window is driving.</summary>

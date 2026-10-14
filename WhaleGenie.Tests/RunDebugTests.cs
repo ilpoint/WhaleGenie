@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -442,6 +443,128 @@ public class RunDebugTests
 
             window.Close();
         });
+    }
+
+    /// <summary>
+    /// 从主界面开的那扇窗是空手开的，宏装进去之后工具栏与「单步」这枚按钮才该画出来 —— 卡片上的
+    /// 「运行调试」走的正是这条路：先开一扇空的，再把宏装进去。照"没有步骤"画出来的东西得有人告诉它
+    /// 改口，不然装上宏之后窗口里还是没有"开始"的地方。
+    /// </summary>
+    [Fact]
+    public void Loading_a_macro_into_an_empty_window_draws_the_run_controls()
+    {
+        var answer = Ui.Run(() =>
+        {
+            var step = SlowStep(5);
+            StepIds.Settle([step]);
+            var macro = new MacroItem { Name = "对账单" };
+            macro.Steps.Add(step);
+
+            var window = new RunWindow([], NullDeviceLayer.Instance, listed: [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            var before = (Toolbar: Find<Border>(window, "RunToolbar").IsVisible,
+                Note: Find<TextBlock>(window, "DebugFromCardNote").IsVisible);
+
+            viewModel.DebugAsync(macro).GetAwaiter().GetResult();
+            Dispatcher.UIThread.RunJobs();
+
+            var after = (Toolbar: Find<Border>(window, "RunToolbar").IsVisible,
+                Note: Find<TextBlock>(window, "DebugFromCardNote").IsVisible);
+
+            window.Close();
+            return (Before: before, After: after);
+        });
+
+        Assert.False(answer.Before.Toolbar);
+        Assert.True(answer.Before.Note, "空手开着的那扇窗本来该写着从卡片开始调试");
+
+        Assert.True(answer.After.Toolbar, "装上宏之后工具栏该出现");
+        Assert.False(answer.After.Note);
+    }
+
+    /// <summary>
+    /// 工具栏那一行按「按钮 / 状态 / 倍速 / 谁在发输入」排开：倍速徽标与"现在是谁在发输入"各占自己
+    /// 那格，两个都画出来时不该叠在一起。Avalonia 把超出列数的东西全归到最后一列，原来那两行因此落
+    /// 在同一个位置上 —— 所以这里量的是无头会话里真实的矩形，而不是数一数列号。
+    /// </summary>
+    [Fact]
+    public void The_speed_badge_and_the_input_line_are_not_drawn_on_each_other()
+    {
+        var answer = Ui.Run(() =>
+        {
+            var step = SlowStep(5);
+            StepIds.Settle([step]);
+
+            // 勾了「与别的宏互斥发输入」，那一行才画；速度调过，徽标才画。
+            var macro = new MacroItem { Name = "取订单", ExclusiveInput = true };
+            macro.Steps.Add(step);
+
+            var window = new RunWindow([], NullDeviceLayer.Instance, 2, null, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            viewModel.DebugAsync(macro).GetAwaiter().GetResult();
+            Dispatcher.UIThread.RunJobs();
+
+            var badge = Find<Border>(window, "SpeedBadge");
+            var owner = Find<TextBlock>(window, "InputOwnerText");
+            var answer = (
+                Both: badge.IsEffectivelyVisible && owner.IsEffectivelyVisible,
+                Badge: new Rect(badge.TranslatePoint(default, window) ?? default, badge.Bounds.Size),
+                Owner: new Rect(owner.TranslatePoint(default, window) ?? default,
+                    owner.Bounds.Size));
+
+            window.Close();
+            return answer;
+        });
+
+        // 两个都画出来才量得出它们是不是叠在一起，所以先确认这一点，否则这一条什么都没看。
+        Assert.True(answer.Both, "倍速徽标与输入那一行都该画出来");
+        Assert.True(answer.Badge.Width > 0 && answer.Owner.Width > 0, "两个都该有自己的宽度");
+        Assert.False(answer.Badge.Intersects(answer.Owner),
+            $"倍速徽标 {answer.Badge} 与输入那一行 {answer.Owner} 叠在一起了");
+    }
+
+    /// <summary>
+    /// 步骤列表跟着当前行走：正在跑的那一行滚进视野，上下各留一行余量；已经在视野里就不动。滚到哪儿
+    /// 是纯函数算的（与 `LookGeometry` 同一路），所以这里喂进几种行号与视口高度，量的是"那一行整行
+    /// 落在可视区里"，而不是"它滚过一下"。
+    /// </summary>
+    [Fact]
+    public void The_list_scrolls_the_current_row_in_with_a_row_of_room_around_it()
+    {
+        // 一行 20 像素、视野 100 像素：一次看得见五行。
+        const double row = 20;
+        const double room = 100;
+
+        // 已经在视野正中，不动；这一步是"列表不跟着跳"的那一半。
+        Assert.Equal(240, RunScroll.Where(240, 300, row, room));
+
+        // 在下面看不见：滚下来，让它下面留一行。
+        Assert.Equal(240, RunScroll.Where(0, 300, row, room));
+
+        // 在上面看不见：滚回去，让它上面留一行。
+        Assert.Equal(80, RunScroll.Where(400, 100, row, room));
+
+        // 视野比一行还矮：尽量让它进来，位置不拉到负数。
+        Assert.Equal(510, RunScroll.Where(0, 500, row, 10));
+        Assert.Equal(0, RunScroll.Where(-30, 0, row, room));
+
+        // 从哪里滚过来都一样：停下时那一行整行都在视野里。
+        foreach (var offset in new[] { 0d, 7, 60, 240, 900 })
+        {
+            foreach (var top in new[] { 0d, 19, 20, 300, 480, 900 })
+            {
+                var at = RunScroll.Where(offset, top, row, room);
+                Assert.True(at >= 0, $"偏移不该是负的，得到 {at}");
+                Assert.True(top - at >= 0 && top + row - at <= room,
+                    $"行顶 {top} 在偏移 {at} 时越出视野");
+            }
+        }
     }
 
     /// <summary>

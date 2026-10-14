@@ -229,7 +229,12 @@
             <Border Grid.Row="1" Name="RunToolbar"
                     Background="#1E1E1E" CornerRadius="6" Margin="14,0,14,10" Padding="12,10"
                     IsVisible="{Binding HasSteps}">
-                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto">
+                <!-- Buttons, then what the run is doing, then the two notes about this run: how
+                     fast it is being played, and whose turn it is at the input door. One column
+                     each, seven in all, because Avalonia puts whatever is past the last column in
+                     that last column — two of these landing on top of each other is how the note
+                     about the input door came to be drawn over the speed badge. -->
+                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto">
                     <Button Classes="PrimaryButton"
                             Content="{Binding [Run.Run], Source={x:Static loc:Strings.Current}}"
                             Command="{Binding RunCommand}" />
@@ -245,20 +250,22 @@
                     <TextBlock Grid.Column="4" Margin="14,0,0,0" VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#C8A165"
                                Text="{Binding Status}" />
-                    <!-- Whose turn it is at the input door. Two macros running at once are two
-                         hands on one keyboard, and this is the line that says which of them is
-                         sending keys right now. -->
-                    <TextBlock Grid.Column="6" Margin="12,0,0,0" VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#8FD9A8"
-                               IsVisible="{Binding ShowsInputOwner}"
-                               Text="{Binding InputOwnerLine}" />
-                    <Border Grid.Column="5" Margin="10,0,0,0" Padding="8,3" CornerRadius="4"
+                    <Border Grid.Column="5" Name="SpeedBadge" Margin="10,0,0,0" Padding="8,3"
+                            CornerRadius="4"
                             Background="#3A2A10" BorderBrush="#8A6A2A" BorderThickness="1"
                             VerticalAlignment="Center"
                             IsVisible="{Binding IsSpeedAdjusted}"
                             ToolTip.Tip="{Binding [Run.SpeedTip], Source={x:Static loc:Strings.Current}}">
                         <TextBlock FontSize="11.5" Foreground="#E0B080" Text="{Binding SpeedNote}" />
                     </Border>
+                    <!-- Whose turn it is at the input door. Two macros running at once are two
+                         hands on one keyboard, and this is the line that says which of them is
+                         sending keys right now. -->
+                    <TextBlock Grid.Column="6" Name="InputOwnerText" Margin="12,0,0,0"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#8FD9A8"
+                               IsVisible="{Binding ShowsInputOwner}"
+                               Text="{Binding InputOwnerLine}" />
                 </Grid>
             </Border>
 
@@ -290,12 +297,14 @@
                     <Grid RowDefinitions="Auto,*">
                         <TextBlock Classes="SectionHeader"
                                    Text="{Binding [Run.Steps], Source={x:Static loc:Strings.Current}}" />
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <!-- Named so the window can follow the run down it: the row the run is
+                             standing in front of is kept in view as it moves. -->
+                        <ScrollViewer Grid.Row="1" Name="StepScroll" VerticalScrollBarVisibility="Auto">
                             <StackPanel>
                                 <TextBlock Classes="Muted" TextWrapping="Wrap"
                                            IsVisible="{Binding !HasSteps}"
                                            Text="{Binding [Run.Empty], Source={x:Static loc:Strings.Current}}" />
-                                <ItemsControl ItemsSource="{Binding Steps}">
+                                <ItemsControl Name="StepList" ItemsSource="{Binding Steps}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:RunStepViewModel">
                                             <Border Classes="RunRow" Classes.current="{Binding IsCurrent}">
@@ -350,18 +359,40 @@
                                                                           IsVisible="{Binding HasResults}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate x:DataType="vm:RunResultViewModel">
-                                                                        <Grid ColumnDefinitions="Auto,*"
-                                                                              Margin="0,1,0,0"
-                                                                              ToolTip.Tip="{Binding Value}">
-                                                                            <TextBlock Text="{Binding Name}"
-                                                                                       FontSize="11"
-                                                                                       Foreground="{Binding Color}" />
-                                                                            <TextBlock Grid.Column="1" Margin="8,0,0,0"
-                                                                                       Text="{Binding Value}"
-                                                                                       FontSize="11"
-                                                                                       Foreground="#DDDDDD"
-                                                                                       TextTrimming="CharacterEllipsis" />
-                                                                        </Grid>
+                                                                        <StackPanel Margin="0,1,0,0">
+                                                                            <Grid ColumnDefinitions="Auto,*">
+                                                                                <TextBlock Text="{Binding Name}"
+                                                                                           FontSize="11"
+                                                                                           Foreground="{Binding Color}" />
+                                                                                <TextBlock Grid.Column="1" Margin="8,0,0,0"
+                                                                                           Text="{Binding Value}"
+                                                                                           FontSize="11"
+                                                                                           Foreground="#DDDDDD"
+                                                                                           TextWrapping="Wrap" />
+                                                                            </Grid>
+                                                                            <!-- A value made of named fields is shown as the fields, one
+                                                                                 to a line, so a hit reads as the place, the size and
+                                                                                 how sure the reading was rather than as one long
+                                                                                 run of JSON. Nothing is cut off: a line that does
+                                                                                 not fit wraps. -->
+                                                                            <ItemsControl ItemsSource="{Binding Lines}">
+                                                                                <ItemsControl.ItemTemplate>
+                                                                                    <DataTemplate x:DataType="vm:RunResultLine">
+                                                                                        <Grid ColumnDefinitions="Auto,*"
+                                                                                              Margin="{Binding Indent}">
+                                                                                            <TextBlock Text="{Binding Name}"
+                                                                                                       FontSize="11"
+                                                                                                       Foreground="#8FB3D9" />
+                                                                                            <TextBlock Grid.Column="1" Margin="8,0,0,0"
+                                                                                                       Text="{Binding Value}"
+                                                                                                       FontSize="11"
+                                                                                                       Foreground="#DDDDDD"
+                                                                                                       TextWrapping="Wrap" />
+                                                                                        </Grid>
+                                                                                    </DataTemplate>
+                                                                                </ItemsControl.ItemTemplate>
+                                                                            </ItemsControl>
+                                                                        </StackPanel>
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
                                                             </ItemsControl>
