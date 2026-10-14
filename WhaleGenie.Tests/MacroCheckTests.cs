@@ -108,6 +108,31 @@ public class MacroCheckTests
 
         Assert.Empty(Ui.Run(() => MacroCheck.Inspect([reading], null, [], inputShared: true)));
     }
+
+    /// <summary>
+    /// 相对移动在后台这一档做不了：位置会算错，而且错得看不出来。步骤自己的设置就能判定，所以
+    /// 写宏的时候就标出来；把输入方式改成前台或驱动级（或者根本没写这一格）就不标。
+    /// </summary>
+    [Fact]
+    public void A_relative_move_posted_at_a_window_is_reported()
+    {
+        var posted = Step("input.mouseMoveRelative",
+            Text("dx", "200"), Text("inputMode", "background"), Text("targetWindow", "Notepad"));
+
+        var problem = Assert.Single(Inspect(posted));
+
+        Assert.Same(posted, problem.Step);
+        Assert.Equal(Strings.Get("Editor.Problem.PostedMove"), problem.Message);
+
+        // 前台与驱动级各自都是从指针当前位置往前走的，不标；别的动手的事也问不到这一条。
+        Assert.Empty(Inspect(Step("input.mouseMoveRelative", Text("dx", "200"))));
+        Assert.Empty(Inspect(Step("input.mouseMoveRelative",
+            Text("dx", "200"), Text("inputMode", "driver"))));
+        Assert.Empty(Inspect(Step("input.mouseMove",
+            Text("x", "10"), Text("y", "20"), Text("inputMode", "background"),
+            Text("targetWindow", "Notepad"))));
+    }
+
     [Fact]
     public void A_break_outside_a_loop_is_reported()
     {

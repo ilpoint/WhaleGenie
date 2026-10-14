@@ -95,6 +95,7 @@ public static class MacroCheck
                 CheckLoopControl(step, loops);
                 CheckCall(step);
                 CheckNames(step, namesAreOpen);
+                CheckPostedMove(step);
 
                 // Every list of child steps is walked from inside the loop it sits in, whichever
                 // parameter holds it: a body, an if branch, a switch case and a try block all let
@@ -208,6 +209,20 @@ public static class MacroCheck
                         Add(step, Strings.Format("Editor.Problem.UndefinedVariable", name));
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// 相对移动与后台这一档合不来：后台方式是把消息投给窗口，屏幕上的指针从来没有动过，而
+        /// "偏移多少"问的正是指针现在在哪儿。这是步骤自己的设置就能判定的事，所以写宏的时候就
+        /// 说出来，不必等跑到这一步才发现位置是错的。
+        /// </summary>
+        void CheckPostedMove(MacroStep step)
+        {
+            if (step.Type == "input.mouseMoveRelative"
+                && step.Text("inputMode").Trim().Equals("background", StringComparison.OrdinalIgnoreCase))
+            {
+                Add(step, Strings.Get("Editor.Problem.PostedMove"));
             }
         }
 
