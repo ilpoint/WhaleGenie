@@ -6539,7 +6539,10 @@ public sealed class MacroRunner
 
         if (_worked is { } worked)
         {
-            var workedOut = new StepResult(key, name, value.AsText());
+            var workedOut = new StepResult(key, name, value.AsText())
+            {
+                Data = Structured(value) ? JsonValues.Node(value) : null,
+            };
             var at = worked.FindIndex(result =>
                 string.Equals(result.Key, key, StringComparison.OrdinalIgnoreCase));
 
@@ -6557,6 +6560,19 @@ public sealed class MacroRunner
 
         return name;
     }
+
+    /// <summary>
+    /// True when a value is made of named fields rather than being one piece of data: a record, or a
+    /// list or record that holds one somewhere inside it. What a step hands over is shown when it is
+    /// this shape — the debugger puts one field on each line — where a list of plain numbers reads
+    /// better as the line of text it already is.
+    /// </summary>
+    private static bool Structured(Value value) => value.Kind switch
+    {
+        ValueKind.Record => true,
+        ValueKind.List => value.Items.Any(Structured),
+        _ => false,
+    };
 
     /// <summary>Hands one result over and says so in the log, the way storing a value does.</summary>
     private void Store(ExecutableStep step, string key, Value value, int depth)

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace WhaleGenie.Core.Execution;
 
@@ -11,7 +12,22 @@ namespace WhaleGenie.Core.Execution;
 /// debugger is for: what a step <em>could</em> have handed over, without ticking something and
 /// running the macro again.
 /// </remarks>
-public sealed record StepResult(string Key, string Name, string Text);
+public sealed record StepResult(string Key, string Name, string Text)
+{
+    /// <summary>
+    /// The value's own shape, when it has one: a record of named fields, or a list holding one.
+    /// Null when the value is a single piece of text, a number or a flag, whose
+    /// <see cref="Text"/> is the whole of it.
+    /// </summary>
+    /// <remarks>
+    /// A debugger shows a hit as the fields it is made of, one to a line. It cannot read that out of
+    /// the text: the text of a record is JSON and could be read back, but the text of a list of
+    /// records is the records one after another, separated by commas, and no reader could tell where
+    /// one ends. So the shape travels beside the text rather than instead of it — the text stays
+    /// what a person reads at a glance, and the shape is what the panel unfolds.
+    /// </remarks>
+    public JsonNode? Data { get; init; }
+}
 
 /// <summary>
 /// What one step of a run came to: how long it took, how it ended, why if it failed, and everything

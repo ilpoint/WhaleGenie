@@ -463,6 +463,33 @@ public class RunLookTests
         Assert.NotEmpty(method.Text);
     }
 
+    /// <summary>
+    /// A result that is a record travels as its shape as well as its text, because the text of a
+    /// record is JSON but the text of a list of them is the records one after another, which cannot
+    /// be read back into fields. A result that is one piece of data has no shape: its text is the
+    /// whole of it, and a debugger showing it as a one-field record would be inventing a field.
+    /// </summary>
+    [Fact]
+    public async Task A_result_that_is_a_record_is_handed_over_with_its_fields()
+    {
+        var devices = Screen(match: new ImageMatch(0.95, new ScreenPoint(30, 40), new ScreenSize(2, 2)));
+        var looks = new Watched();
+
+        await Run(Find(), devices, looks);
+
+        var run = Assert.Single(looks.Runs);
+        var hit = Assert.IsType<System.Text.Json.Nodes.JsonObject>(
+            Assert.Single(run.Results, result => result.Key == "match").Data);
+
+        // Numbers travel as numbers, the way every other record's do.
+        Assert.Equal(31d, hit["x"]!.GetValue<double>());
+        Assert.Equal(41d, hit["y"]!.GetValue<double>());
+        Assert.Equal("0.95", hit["score"]!.GetValue<double>().ToString(CultureInfo.InvariantCulture));
+
+        // The method is one word, so there is nothing to unfold.
+        Assert.Null(Assert.Single(run.Results, result => result.Key == "method").Data);
+    }
+
     /// <summary>A step that failed says why and how long it took, which is what its row could not say.</summary>
     [Fact]
     public async Task A_step_that_failed_is_handed_over_with_its_reason_and_its_time()
