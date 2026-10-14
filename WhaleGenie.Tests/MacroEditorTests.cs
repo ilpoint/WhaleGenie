@@ -190,6 +190,77 @@ public class MacroEditorTests
     }
 
     /// <summary>
+    /// 编辑器里起一次调试不能只靠记住 F5：左侧「保存」下面那枚「运行调试」走的是同一条路 —— 把编辑器
+    /// 手里的步骤（不先保存）装进运行与调试窗口并开跑。没有步骤时它按不动，有步骤之后按下去就该开出
+    /// 一扇装着这些步骤的窗口。
+    /// </summary>
+    [Fact]
+    public void The_editor_has_the_run_button_the_keyboard_has()
+    {
+        var answer = Ui.RunAsync(async () =>
+        {
+            // 空宏上那枚按钮按不动，写的宏才按得动。
+            var (bare, _) = Open();
+            var empty = RunButton(bare).IsEnabled;
+            bare.Close();
+
+            var macro = new MacroItem { Name = "probe" };
+            macro.Steps.Add(Set("total", "7"));
+            StepIds.Settle(macro.Steps);
+
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (MacroEditorViewModel)window.DataContext!;
+            var button = RunButton(window);
+            var ready = button.IsEnabled;
+            button.Command!.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            var running = window.OwnedWindows.OfType<RunWindow>().FirstOrDefault();
+            var debugger = running is null ? null : (RunViewModel)running.DataContext!;
+            var done = debugger is null || await Until(() => !debugger.IsBusy);
+            var answer = (Empty: empty, Ready: ready, Found: running is not null, Done: done,
+                Wanted: viewModel.Steps.Select(step => step.Id).ToList(),
+                Loaded: debugger?.Steps.Select(step => step.Id).ToList() ?? []);
+
+            running?.Close();
+            window.Close();
+            return answer;
+        });
+
+        Assert.False(answer.Empty, "没有步骤时那枚按钮该按不动");
+        Assert.True(answer.Ready, "写了步骤之后该能按");
+        Assert.True(answer.Found, "按下去该开出一扇运行与调试窗口");
+        Assert.True(answer.Done, "步骤装进去之后该跑完");
+        Assert.NotEmpty(answer.Wanted);
+        Assert.Equal(answer.Wanted, answer.Loaded);
+    }
+
+    /// <summary>The editor's own way into a run, found the way a person finds it: on the window.</summary>
+    private static Button RunButton(Window window)
+        => window.GetVisualDescendants()
+            .OfType<Button>()
+            .Single(found => found.Name == "RunDebugButton");
+
+    /// <summary>Waits for something the run does on its own thread, giving up rather than hanging.</summary>
+    private static async Task<bool> Until(Func<bool> ready, int milliseconds = 5000)
+    {
+        for (var waited = 0; waited < milliseconds; waited += 10)
+        {
+            if (ready())
+            {
+                return true;
+            }
+
+            await Task.Delay(10);
+        }
+
+        return ready();
+    }
+
+    /// <summary>
     /// A controller button can be the binding. Nothing tells the editor about one — Windows has no
     /// event for it — so the editor reads the controller while it is waiting, and the first button
     /// it finds going down is the binding, exactly as the first key is.
