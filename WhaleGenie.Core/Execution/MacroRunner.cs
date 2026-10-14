@@ -3715,10 +3715,57 @@ public sealed class MacroRunner
     private (ImageFrame Frame, ScreenPoint Corner) CaptureBox(ExecutableStep step)
     {
         var anchor = AnchorOf(step);
-        var corner = Placed(anchor.Corner, Number(step, "x"), Number(step, "y"));
-        var (width, height) = Extent(step, corner);
+        var (corner, width, height) = Box(step, anchor.Corner);
         var shot = Shot(step, corner.X, corner.Y, width, height, anchor.Window);
         return (shot.Frame, shot.Origin);
+    }
+
+    /// <summary>
+    /// The rectangle a step reads or copies, in the screen pixels the devices ask for: the four
+    /// numbers it writes down, or one record that says where the rectangle is. Every record that
+    /// carries a rectangle carries all four sides of it, so a hit, a window or a picture taken
+    /// earlier goes in as it stands — "read the writing on what was just found" is one field rather
+    /// than four readings of <c>field()</c> with a chance of one of them being the neighbour's. A
+    /// record's numbers are screen pixels, the way every record's are; numbers written out are
+    /// counted from <paramref name="origin"/>, which is the corner the step says its own numbers
+    /// are measured from. A number nobody wrote reaches the edge of the screen, and that is a
+    /// question only the written numbers answer: a record says all four of them.
+    /// </summary>
+    private (ScreenPoint Corner, int Width, int Height) Box(ExecutableStep step, ScreenPoint? origin)
+    {
+        string[] fields = ["x", "y", "width", "height"];
+        var written = Array.ConvertAll(fields, name => step.Text(name).Trim());
+        for (var at = 0; at < fields.Length; at++)
+        {
+            if (Record(written[at]) is not { } record)
+            {
+                continue;
+            }
+
+            // One record is one answer to "which rectangle". A number written beside it is a second
+            // answer to the same question, and choosing between the two would be a step that reads
+            // the neighbouring part of the screen with nothing anywhere saying why, so which field
+            // is in the way is said rather than guessed at.
+            for (var other = 0; other < fields.Length; other++)
+            {
+                if (other != at && written[other].Length > 0)
+                {
+                    throw new StepFailure("Run.BadRegionTwice",
+                        $"{fields[other]} = {written[other]}");
+                }
+            }
+
+            if (Sides(record) is not { } sides)
+            {
+                throw new StepFailure("Run.BadRegion", written[at]);
+            }
+
+            return (new ScreenPoint(sides.Left, sides.Top), sides.Width, sides.Height);
+        }
+
+        var corner = Placed(origin, Number(step, "x"), Number(step, "y"));
+        var (width, height) = Extent(step, corner);
+        return (corner, width, height);
     }
 
     /// <summary>
@@ -4704,14 +4751,13 @@ public sealed class MacroRunner
     /// </summary>
     private (ImageFrame Frame, ScreenPoint Origin)? Held(ExecutableStep step, Value record)
     {
-        if (record.Field("left") is { } left && record.Field("top") is { } top
-            && record.Field("width") is { } width && record.Field("height") is { } height)
+        if (Sides(record) is { } sides)
         {
             // The record's own numbers are where the rectangle is on screen, the way a hit's are:
             // the step's coordinate origin moves the four numbers it is given as text, not this.
             // Which window the picture is read out of is a different question, and stays the
             // step's own answer.
-            var shot = Shot(step, Whole(left), Whole(top), Whole(width), Whole(height),
+            var shot = Shot(step, sides.Left, sides.Top, sides.Width, sides.Height,
                 AnchorOf(step).Window);
             return (shot.Frame, shot.Origin);
         }
@@ -4722,6 +4768,25 @@ public sealed class MacroRunner
 
     /// <summary>One side of a rectangle held in a record, in whole screen pixels.</summary>
     private static int Whole(Value side) => (int)Math.Round(side.AsNumber());
+
+    /// <summary>
+    /// The four sides a record says a rectangle has, in whole screen pixels: the corner it starts at
+    /// and how far it reaches from there. Every record that carries a rectangle carries all four of
+    /// them, which is what lets a hit, a window or a picture taken earlier say where a step has to
+    /// look without the macro spelling the numbers out again. Nothing when the record is not a
+    /// rectangle, so a record of some other shape is refused by whoever asked for one. A rectangle
+    /// with no width or no height is one pixel wide, the way a width nobody wrote is read.
+    /// </summary>
+    private static (int Left, int Top, int Width, int Height)? Sides(Value record)
+    {
+        if (record.Field("left") is not { } left || record.Field("top") is not { } top
+            || record.Field("width") is not { } width || record.Field("height") is not { } height)
+        {
+            return null;
+        }
+
+        return (Whole(left), Whole(top), Math.Max(1, Whole(width)), Math.Max(1, Whole(height)));
+    }
 
     /// <summary>One region written as four numbers, captured where on the screen it says.</summary>
     private (ImageFrame Frame, ScreenPoint Origin) Rectangle(ExecutableStep step,
@@ -7072,8 +7137,7 @@ public sealed class MacroRunner
         ExecutableStep step)
     {
         var anchor = AnchorOf(step);
-        var corner = Placed(anchor.Corner, Number(step, "x"), Number(step, "y"));
-        var (width, height) = Extent(step, corner);
+        var (corner, width, height) = Box(step, anchor.Corner);
         var shot = Shot(step, corner.X, corner.Y, width, height, anchor.Window);
         return (shot.Origin, shot.Frame, ReadFrame(step, shot.Frame));
     }

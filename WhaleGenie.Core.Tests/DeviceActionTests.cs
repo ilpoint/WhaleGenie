@@ -1130,6 +1130,130 @@ public class DeviceActionTests
     }
 
     /// <summary>
+    /// 要截的那一块也收一条记录：找图留下的命中带着 left、top、width、height，填进 X 就是"把刚找到的
+    /// 那一块截下来"，其余三格留空。以前要在四格里各写一遍 field()，四格错一格，截下来的就是旁边那一块。
+    /// </summary>
+    [Fact]
+    public async Task A_picture_can_be_taken_of_what_was_just_found()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
+            Step("vision.capture", Param("x", "$spot"), Returns("place=cut")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+
+        // 截的是命中那一块：左上角 (30,40)，10×20；留下的「位置」说的也是这一块。
+        var asked = devices.Captures[^1];
+        Assert.Equal((30, 40, 10, 20), (asked.X, asked.Y, asked.Width, asked.Height));
+        Assert.Equal("30,40,10,20", Field(store, "cut", "box").AsText());
+    }
+
+    /// <summary>
+    /// 读文字的那一块是同一个读法：上一步找到的东西，这一步直接读它上面的字。
+    /// </summary>
+    [Fact]
+    public async Task Reading_can_be_aimed_at_what_was_just_found()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Display = Picture("#FFFFFF,#FFFFFF"),
+            Spans = [new TextSpan("42", new ScreenPoint(0, 0), new ScreenSize(2, 1), 40)],
+        };
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
+            Step("ocr.recognize", Param("x", "$spot"), Returns("text=words")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+
+        var asked = devices.Captures[^1];
+        Assert.Equal((30, 40, 10, 20), (asked.X, asked.Y, asked.Width, asked.Height));
+        Assert.Equal("42", store.Local.Values["words"].AsText());
+    }
+
+    /// <summary>
+    /// 四格收一条记录时的读法同样与拖拽、鼠标那两处一致：记录说的是屏幕上那一块，「坐标基准」只挪写出来
+    /// 的四个数。命中记录在窗口基准下交出来的 left、top 也是屏幕像素，再按窗口量一次就截到旁边去了。
+    /// </summary>
+    [Fact]
+    public async Task A_rectangle_from_a_record_says_where_it_is_whatever_the_anchor()
+    {
+        var devices = WithAWindow();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
+            Step("vision.capture", Param("x", "$spot"),
+                Param("anchorMode", "window"), Param("anchorWindow", "Notepad"),
+                Returns("image=cut")),
+            Step("vision.capture", Param("x", "10"), Param("y", "20"), Param("width", "30"),
+                Param("height", "40"),
+                Param("anchorMode", "window"), Param("anchorWindow", "Notepad"),
+                Returns("image=cut")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+
+        // 前几次是找图那一步自己的事；第一条截图截的是记录自己那一块 (30,40,10,20)，第二条是写出来的
+        // 四个数，照旧从窗口角 (1000,500) 量起。
+        Assert.Equal(3, devices.Captures.Count);
+        Assert.Equal((30, 40, 10, 20), (devices.Captures[1].X, devices.Captures[1].Y,
+            devices.Captures[1].Width, devices.Captures[1].Height));
+        Assert.Equal((1010, 520, 30, 40), (devices.Captures[2].X, devices.Captures[2].Y,
+            devices.Captures[2].Width, devices.Captures[2].Height));
+    }
+
+    /// <summary>
+    /// 一格是记录、另外几格里也写了东西时报 Run.BadRegionTwice，并说出是哪一格，且一次截图都不发生：
+    /// 两个答案指着两块地方，挑一个用就是把"读错了地方"说成跑通。
+    /// </summary>
+    [Fact]
+    public async Task A_rectangle_with_a_record_in_one_field_and_a_number_beside_it_is_refused()
+    {
+        var devices = WithAWindow();
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("window.info", Param("window", "Notepad"), Returns("window=win")),
+            Step("vision.capture", Param("x", "$win"), Param("width", "40"), Returns("image=cut")),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BadRegionTwice", result.Key);
+        Assert.Empty(devices.Captures);
+    }
+
+    /// <summary>
+    /// 一条里面没有矩形的记录（例如 CSV 的一行）当"哪一块"用时报 Run.BadRegion，并把它读到的东西写出来：
+    /// 静默地按 (0,0) 读下去，读的就是屏幕左上角那一块，谁也不知道为什么。
+    /// </summary>
+    [Fact]
+    public async Task A_record_with_no_rectangle_in_it_is_refused_where_a_rectangle_is_read()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["in.csv"] = "name,age\nAda,36\n";
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "in.csv"), Returns("rows=table")),
+            Step("ocr.recognize", Param("x", "get($table, 0)"), Returns("text=words")),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BadRegion", result.Key);
+        Assert.Empty(devices.Captures);
+    }
+
+    /// <summary>
     /// The whole point of anchoring: the window is dragged somewhere else between two runs and
     /// the same macro still aims at the same place inside it.
     /// </summary>
