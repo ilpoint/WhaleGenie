@@ -77,33 +77,11 @@ public class HelpMenuTests
     [InlineData("OnUpdatesClicked")]
     [InlineData("OnFeedbackClicked")]
     [InlineData("OnGetStartedClicked")]
-    [InlineData("OnInsertSampleClicked")]
     [InlineData("OnAboutClicked")]
     public void The_window_answers_a_click_on_each_help_item(string handler)
     {
         var xaml = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", "MainWindow.axaml"));
         Assert.Contains($"Click=\"{handler}\"", xaml, StringComparison.Ordinal);
-    }
-
-    /// <summary>
-    /// 空列表上也要有这一条：手上什么都没有的人最先看到的就是那一页，示例宏只在帮助菜单里的人
-    /// 找不到它。按钮与菜单项走的是同一个方法，所以两边不会各说各的。
-    /// </summary>
-    [Fact]
-    public void An_empty_macro_list_offers_the_sample_as_well()
-    {
-        var xaml = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", "MainWindow.axaml"));
-
-        var empty = xaml.IndexOf("IsVisible=\"{Binding !HasMacros}\"", StringComparison.Ordinal);
-        Assert.True(empty >= 0, "the empty state of the macro list is gone");
-
-        var state = xaml[empty..xaml.IndexOf("</StackPanel>", empty, StringComparison.Ordinal)];
-        Assert.Contains("Name=\"InsertSampleButton\"", state, StringComparison.Ordinal);
-        Assert.Contains("Main.InsertSample", state, StringComparison.Ordinal);
-
-        var code = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
-            "MainWindow.axaml.cs"));
-        Assert.Contains("InsertSampleButton", code, StringComparison.Ordinal);
     }
 
     [Fact]

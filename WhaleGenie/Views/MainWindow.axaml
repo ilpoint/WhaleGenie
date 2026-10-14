@@ -247,13 +247,6 @@
                                   Data="M 8,1.5 A 6.5,6.5 0 1 0 8,14.5 A 6.5,6.5 0 0 0 8,1.5 M 6.2,6 A 1.9,1.9 0 1 1 8,7.9 V 9.2 M 8,11 V 12" />
                         </MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem Header="{Binding [Main.InsertSample], Source={x:Static loc:Strings.Current}}"
-                              Click="OnInsertSampleClicked">
-                        <MenuItem.Icon>
-                            <Path Width="15" Height="15" Stroke="#DADADA" StrokeThickness="1.4"
-                                  Data="M 2,2.5 H 14 V 13.5 H 2 Z M 4.5,5.5 H 11.5 M 4.5,8 H 11.5 M 4.5,10.5 H 8.5" />
-                        </MenuItem.Icon>
-                    </MenuItem>
                     <MenuItem Header="{Binding [Main.About], Source={x:Static loc:Strings.Current}}"
                               Click="OnAboutClicked">
                         <MenuItem.Icon>
@@ -435,11 +428,6 @@
                 <TextBlock Text="{Binding [Main.EmptyHint], Source={x:Static loc:Strings.Current}}"
                            Foreground="#9A9A9A" FontSize="11.5" HorizontalAlignment="Center"
                            TextAlignment="Center" />
-                <!-- Nothing to run and nothing to read: the sample is what a first macro is
-                     written against, so it is offered here rather than only in the help menu. -->
-                <Button Name="InsertSampleButton" Margin="0,10,0,0" Padding="14,7"
-                        HorizontalAlignment="Center"
-                        Content="{Binding [Main.InsertSample], Source={x:Static loc:Strings.Current}}" />
             </StackPanel>
 
             <!-- What the search box did, when there are macros but none of them match -->

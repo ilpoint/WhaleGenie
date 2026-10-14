@@ -106,9 +106,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.SearchPlaceholder"] = "Type to search..",
         ["Main.EmptyTitle"] = "No macros yet.",
         ["Main.NoMatch"] = "No macro matches what you typed.",
-        ["Main.EmptyHint"] = "Use Add New Macro below to build your first macro, or insert a sample "
-            + "one that runs as it stands.",
-        ["Main.InsertSample"] = "Insert a Sample Macro",
+        ["Main.EmptyHint"] = "Use Add New Macro below to build your first macro.",
         ["Main.EditTip"] = "Edit",
         ["Main.DeleteTip"] = "Delete",
         ["Main.AddMacro"] = "Add New Macro",
@@ -120,38 +118,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.RunDebug"] = "Run and Debug",
         ["Main.AlwaysOnTop"] = "Always on Top",
         ["Main.AlwaysOnTopCancel"] = "Stop Staying on Top",
-
-        // ------------------------------------------------------------------- sample macro
-        ["Sample.Main.Name"] = "Sample: a fact, a condition and a call",
-        ["Sample.Sub.Name"] = "Sample: the macro that is called",
-        ["Sample.Variable.User"] = "user",
-        ["Sample.Variable.Window"] = "window",
-        ["Sample.Person"] = "who",
-        ["Sample.Person.Description"] = "The name the caller passes in.",
-        ["Sample.Main.Note1"] = "This macro is a sample: it reads a fact about this machine, goes "
-            + "one way or the other on a condition, runs a loop, and calls another macro. It runs "
-            + "as it stands; open it in Run and Debug to follow it step by step.",
-        ["Sample.Main.Note2"] = "The condition below asks whether a window is open. A window is "
-            + "recognised by two fields, the match text (notepad) and how it is matched (by "
-            + "process name); the window picker fills both in, and every step that works on a "
-            + "window asks for them the same way.",
-        ["Sample.Main.Then"] = "Notepad is open, so this half runs. Your own steps go here: this "
-            + "is where a click, an input or a picture taken off the screen belongs.",
-        ["Sample.Main.Call"] = "A call hands values to another macro by name, and can ask for "
-            + "results back. This one passes the user name read above, under the name \"who\".",
-        ["Sample.Main.Else"] = "Notepad is not open, so this half runs instead. Open it and run "
-            + "the macro again to see the other half.",
-        ["Sample.Main.Note3"] = "The block below runs its steps twice. Blocks are folded in the "
-            + "editor, and what is indented under one is what it holds.",
-        ["Sample.Main.Note4"] = "The last two steps are switched off (the switch is in Other "
-            + "settings). One looks for a reference picture and one for a line of text on screen, "
-            + "and each needs something of your own first: point \"Pick region\" at it, check it "
-            + "with \"Test\", then switch the step on.",
-        ["Sample.Main.Log"] = "The sample loop ran once.",
-        ["Sample.Main.FindText"] = "Save",
-        ["Sample.Sub.Note"] = "This macro is called by the sample. Anything you want to use from "
-            + "more than one place goes here.",
-        ["Sample.Sub.Log"] = "The sample macro was called by {0}.",
 
         // ----------------------------------------------------------- notification area
         ["Tray.Tooltip"] = "WhaleGenie",
@@ -1386,8 +1352,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.SearchPlaceholder"] = "输入以搜索..",
         ["Main.EmptyTitle"] = "还没有宏。",
         ["Main.NoMatch"] = "没有宏匹配你输入的内容。",
-        ["Main.EmptyHint"] = "点击下方的“新建宏”创建第一个宏，也可以插入一份马上能跑的示例宏。",
-        ["Main.InsertSample"] = "插入示例宏",
+        ["Main.EmptyHint"] = "点击下方的“新建宏”创建第一个宏。",
         ["Main.EditTip"] = "编辑",
         ["Main.DeleteTip"] = "删除",
         ["Main.AddMacro"] = "新建宏",
@@ -1399,33 +1364,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.RunDebug"] = "运行调试",
         ["Main.AlwaysOnTop"] = "窗口置顶",
         ["Main.AlwaysOnTopCancel"] = "取消置顶",
-
-        // ------------------------------------------------------------------- 示例宏
-        ["Sample.Main.Name"] = "示例：读一条事实、走一次条件、调一个子宏",
-        ["Sample.Sub.Name"] = "示例：被调用的子宏",
-        ["Sample.Variable.User"] = "当前用户",
-        ["Sample.Variable.Window"] = "窗口",
-        ["Sample.Person"] = "人名",
-        ["Sample.Person.Description"] = "调用方传进来的名字。",
-        ["Sample.Main.Note1"] = "这是一份示例宏：读一条这台机器上的事实，按条件走一条分支，跑一遍"
-            + "循环，再调用另一个宏。它现在就能跑；想一步步看它做了什么，用「运行调试」打开它。",
-        ["Sample.Main.Note2"] = "下面这一步问的是有没有某个窗口。认窗口靠两格：「匹配内容」是"
-            + "notepad，「匹配方式」选的是进程名；拾取窗口的按钮填的就是这两格，所有窗口动作都"
-            + "按这一对认。",
-        ["Sample.Main.Then"] = "记事本开着，所以走这一半。你自己的步骤放这里：点击、输入、"
-            + "在屏幕上截图，都是这一半里的东西。",
-        ["Sample.Main.Call"] = "「调用宏」把值按名字交给另一个宏，也可以要回它的结果。这一步把"
-            + "上面读到的用户名用「人名」这个名字传过去。",
-        ["Sample.Main.Else"] = "记事本没开着，所以走这一半。打开记事本再跑一次，就能看到另一半。",
-        ["Sample.Main.Note3"] = "下面这一块把里面的步骤跑两遍。块在编辑器里可以折叠，缩进在它"
-            + "里面的就是它的内容。",
-        ["Sample.Main.Note4"] = "最后两步默认关着（开关在「其它设置」里）。一条找参考图，一条找"
-            + "屏幕上的文字，各自都要先有你自己的一份东西：用「框选区域」指给它，用「试找一下」"
-            + "确认找得到，再把这一步打开。",
-        ["Sample.Main.Log"] = "示例循环跑过一次。",
-        ["Sample.Main.FindText"] = "保存",
-        ["Sample.Sub.Note"] = "这个宏是被示例调用的。要重复用的步骤放在这里。",
-        ["Sample.Sub.Log"] = "示例宏被 {0} 调用了。",
 
         // ----------------------------------------------------------- 通知区域
         ["Tray.Tooltip"] = "鲸灵",
