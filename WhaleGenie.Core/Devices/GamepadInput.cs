@@ -192,8 +192,12 @@ public sealed class GamepadButtonWatch
 {
     private GamepadButtons _held;
 
-    /// <summary>Forgets what was held, as if the controller had just been picked up.</summary>
-    public void Forget() => _held = GamepadButtons.None;
+    /// <summary>
+    /// Takes up what is held now without reporting it, which is how a watch starts: a button that is
+    /// already down when the watching begins is not a press, and the next reading is compared against
+    /// this one. Passing none is how a watch is let go of.
+    /// </summary>
+    public void Take(GamepadButtons now) => _held = now;
 
     /// <summary>
     /// What changed between the last reading and this one: each button with whether it is now down.

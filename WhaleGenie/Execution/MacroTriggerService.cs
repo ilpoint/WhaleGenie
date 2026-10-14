@@ -372,7 +372,7 @@ public sealed class MacroTriggerService : IDisposable
 
         // What the controller is holding is taken up here rather than counted as pressed: a button
         // that was down before the switch went on is not somebody asking for something now.
-        _padHeld.Forget();
+        TakeUpGamepad();
         _padTimer.Change(PadPollInterval, PadPollInterval);
 
         // The machine is asked to say when a window changes, which is what makes a window that is
@@ -868,6 +868,23 @@ public sealed class MacroTriggerService : IDisposable
         }
 
         LookAtGamepad();
+    }
+
+    /// <summary>
+    /// Takes up what the controller is holding without reporting it, so that switching the system on
+    /// in the middle of a press does not set off the macro bound to that button. A controller that
+    /// cannot be read counts as nothing held, which is what the next reading will find anyway.
+    /// </summary>
+    private void TakeUpGamepad()
+    {
+        try
+        {
+            _padHeld.Take(_pads.Held());
+        }
+        catch (Exception)
+        {
+            _padHeld.Take(GamepadButtons.None);
+        }
     }
 
     /// <summary>

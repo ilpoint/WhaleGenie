@@ -54,6 +54,26 @@ public class GamepadReadingTests
     }
 
     /// <summary>
+    /// Starting to watch in the middle of a press is not a press: what is held is taken up, and only
+    /// what changes after that is reported. Without it, switching the triggers on with a button
+    /// already down would set off its macro, and so would arming a binding with a finger on the pad.
+    /// </summary>
+    [Fact]
+    public void What_is_held_when_a_watch_starts_is_not_a_press()
+    {
+        var watch = new GamepadButtonWatch();
+        watch.Take(GamepadButtons.A);
+
+        Assert.Empty(Changes(watch, GamepadButtons.A));
+
+        var released = Assert.Single(Changes(watch, GamepadButtons.None));
+        Assert.Equal(GamepadButtons.A, released.Button);
+        Assert.False(released.Down);
+
+        Assert.Single(Changes(watch, GamepadButtons.A));
+    }
+
+    /// <summary>
     /// Nobody touching the controller says nothing, which is what a machine with nothing plugged in
     /// looks like: the trigger never fires and a held macro is let go of.
     /// </summary>

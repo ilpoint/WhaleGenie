@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -185,6 +186,54 @@ public class MacroEditorTests
 
             Assert.Equal("Enter", viewModel.BindKey);
             Assert.False(viewModel.IsCapturingKey);
+        });
+    }
+
+    /// <summary>
+    /// A controller button can be the binding. Nothing tells the editor about one — Windows has no
+    /// event for it — so the editor reads the controller while it is waiting, and the first button
+    /// it finds going down is the binding, exactly as the first key is.
+    /// </summary>
+    [Fact]
+    public void A_controller_button_can_be_taken_as_the_binding()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+
+            // Held before the waiting starts, so what happens to a button that was already down can
+            // be seen as well.
+            var pad = new FakeGamepad { Down = GamepadButtons.A };
+            var window = new MacroEditorWindow(macro, [macro], null,
+                new ChecksDevices { GamepadReading = pad });
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (MacroEditorViewModel)window.DataContext!;
+            viewModel.SetKeyCommand.Execute(null);
+            Assert.True(viewModel.IsCapturingKey, "the editor is not waiting for a binding");
+
+            // A button that was already down when the waiting started is not a press: it has to come
+            // up and go down again, the way a key somebody is resting a finger on has to.
+            window.LookAtController();
+            Assert.True(viewModel.IsCapturingKey, "a button that was already down finished the capture");
+
+            // Nor is a button nobody is touching.
+            pad.Down = GamepadButtons.None;
+            window.LookAtController();
+            Assert.True(viewModel.IsCapturingKey);
+
+            pad.Down = GamepadButtons.LeftBumper;
+            window.LookAtController();
+
+            Assert.Equal("Pad LB", viewModel.BindKey);
+            Assert.Equal("Pad LB", viewModel.BindKeyDisplay);
+            Assert.False(viewModel.IsCapturingKey, "the capture stayed open after the button");
+
+            // And a button pressed after the capture is over binds nothing again.
+            pad.Down = GamepadButtons.B;
+            window.LookAtController();
+            Assert.Equal("Pad LB", viewModel.BindKey);
         });
     }
 

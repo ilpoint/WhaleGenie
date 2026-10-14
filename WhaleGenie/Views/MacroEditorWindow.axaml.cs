@@ -90,6 +90,16 @@ public partial class MacroEditorWindow : Window
     /// <summary>The input hook, up only while a recording is in progress.</summary>
     private IInputRecorder? _recorder;
 
+    /// <summary>
+    /// The controller, read while the editor is waiting for a binding. Windows has no word for a
+    /// controller button going down, so this is a reading on a clock; what it was holding at the
+    /// reading before is kept here, which is the only way a press can be told from a hold.
+    /// </summary>
+    private readonly GamepadButtonWatch _padHeld = new();
+
+    /// <summary>The reading of the controller while the editor waits, or null when it is not waiting.</summary>
+    private DispatcherTimer? _padTimer;
+
     /// <summary>What the hook has captured so far, in the order it happened.</summary>
     private readonly List<RecordedInput> _captured = [];
     private readonly object _captureLock = new();
@@ -208,11 +218,16 @@ public partial class MacroEditorWindow : Window
         // it changes. This window is the only place it can be kept: it is not in the list yet.
         _viewModel.PropertyChanged += (_, args) =>
         {
-            if (args.PropertyName == nameof(MacroEditorViewModel.IsCapturingKey) && _viewModel.IsCapturingKey)
+            if (args.PropertyName == nameof(MacroEditorViewModel.IsCapturingKey))
             {
-                // A capture starts with nothing held: whatever the last one took is over by now.
-                _captureModifiers.Clear();
-                _swallowReleases.Clear();
+                if (_viewModel.IsCapturingKey)
+                {
+                    // A capture starts with nothing held: whatever the last one took is over by now.
+                    _captureModifiers.Clear();
+                    _swallowReleases.Clear();
+                }
+
+                WatchController(_viewModel.IsCapturingKey);
             }
 
             if (args.PropertyName == nameof(MacroEditorViewModel.IsDirty))
@@ -229,6 +244,9 @@ public partial class MacroEditorWindow : Window
         // If the editor goes away by any route, the hook has to go with it. There is no point
         // telling the user an empty recording was empty once the editor is gone.
         Closed += (_, _) => StopRecorder(announceEmpty: false);
+
+        // And the reading of the controller, which has nothing left to tell once the window is gone.
+        Closed += (_, _) => WatchController(false);
 
         // And so does the recovery draft: once this window is gone, its macro either belongs to
         // the list or was let go, and the next run must not be offered it back.
@@ -337,6 +355,92 @@ public partial class MacroEditorWindow : Window
 
         // The wheel is a trigger of its own: a notch up or down can start a macro.
         AddHandler(PointerWheelChangedEvent, OnPreviewPointerWheel, RoutingStrategies.Tunnel);
+    }
+
+    /// <summary>
+    /// Reads the controller while a binding is being taken, or stops reading it. A check that opened
+    /// the editor without handing a layer in has no controller to read and none is asked for.
+    /// </summary>
+    private void WatchController(bool watching)
+    {
+        if (!watching || _devices is not { } layer)
+        {
+            _padTimer?.Stop();
+            _padTimer = null;
+            _padHeld.Take(GamepadButtons.None);
+            return;
+        }
+
+        if (_padTimer is not null)
+        {
+            return;
+        }
+
+        // Whatever is held when the capture starts is not a press. The keyboard path only sees keys
+        // going down after the button was pressed, and a controller button that is already down is
+        // the same "already there" as a key somebody is resting a finger on.
+        try
+        {
+            _padHeld.Take(layer.GamepadReading.Held());
+        }
+        catch (Exception)
+        {
+            _padHeld.Take(GamepadButtons.None);
+        }
+
+        // The pace the triggers read it at: quicker than a hand presses one button twice, and one
+        // reading of a controller is a fraction of the cost of one look at a pixel.
+        _padTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(30) };
+        _padTimer.Tick += (_, _) => ReadController(layer);
+        _padTimer.Start();
+    }
+
+    /// <summary>
+    /// One reading of the controller, for the timer and for the checks. The first button found going
+    /// down is the binding and ends the capture, the way the first key or mouse button does.
+    /// </summary>
+    internal void LookAtController()
+    {
+        if (_devices is { } layer)
+        {
+            ReadController(layer);
+        }
+    }
+
+    private void ReadController(IDeviceLayer layer)
+    {
+        if (!_viewModel.IsCapturingKey)
+        {
+            return;
+        }
+
+        GamepadButtons held;
+        try
+        {
+            held = layer.GamepadReading.Held();
+        }
+        catch (Exception)
+        {
+            // A controller that cannot be read is a controller with nothing to say; the next reading
+            // tries again rather than the timer dying.
+            return;
+        }
+
+        foreach (var (button, down) in _padHeld.Changed(held))
+        {
+            var name = down ? GamepadNames.Binding(button) : string.Empty;
+            if (name.Length == 0)
+            {
+                continue;
+            }
+
+            // A controller button is one name, so the modifiers of a combination being built do not
+            // go on — the same as a binding taken from the wheel or a mouse button.
+            _captureModifiers.Clear();
+            _viewModel.CaptureKey(name);
+            WatchController(false);
+            return;
+        }
     }
 
     /// <summary>Takes one notch of the wheel as the trigger while the editor is waiting for one.</summary>
