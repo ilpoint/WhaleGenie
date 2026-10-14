@@ -63,6 +63,13 @@ public partial class MacroEditorWindow : Window
     private bool _syncingSelection;
     private bool _closing;
 
+    /// <summary>
+    /// The run window this editor opened, kept so that pressing 「运行调试」 twice does not leave two
+    /// of them behind: the one already open is closed — which stops whatever it was running — and the
+    /// same button then opens a fresh one on the steps as they now stand.
+    /// </summary>
+    private RunWindow? _running;
+
     /// <summary>Writes the macro being edited out as it changes, while it is not saved.</summary>
     private readonly RecoveryWriter _recovery;
 
@@ -628,9 +635,6 @@ public partial class MacroEditorWindow : Window
             case Key.E when control:
                 viewModel.ToggleStepEnabledCommand.Execute(null);
                 break;
-            case Key.F5:
-                viewModel.RunCommand.Execute(null);
-                break;
             case Key.Up when control:
                 viewModel.MoveSelectedUpCommand.Execute(null);
                 break;
@@ -1077,9 +1081,15 @@ public partial class MacroEditorWindow : Window
     }
 
     /// <summary>
-    /// Opens the run window on the steps as they stand, without saving first, and starts it: F5 in
-    /// the editor means the same thing as the card's own menu, which loads the macro into the window
-    /// and runs it. Whoever wants to go one step at a time presses Step in the window it opens.
+    /// Opens the run window on the steps as they stand, without saving first. It loads them and stops
+    /// there, the way the card's own menu does: a run that starts on its own has already done
+    /// something by the time anyone has read the first step, and the reason to open this window is
+    /// usually to look at the steps, put a breakpoint in and then press 「运行」. What to do with the
+    /// macro is the window's business from then on.
+    ///
+    /// One of these windows is open at a time, so pressing the button twice does not leave two of
+    /// them behind: the one already open is closed first — which stops whatever it was running — and
+    /// the steps as they now stand go into a fresh window.
     /// </summary>
     private void OnRunRequested()
     {
@@ -1088,10 +1098,19 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
+        _running?.Close();
         var window = new RunWindow(_viewModel.Steps, Layer, _viewModel.DelayScale, BuildLibrary(),
             macroName: _editing?.Name ?? string.Empty);
+        _running = window;
+        window.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_running, window))
+            {
+                _running = null;
+            }
+        };
+
         window.ShowOver(this);
-        window.StartRun();
     }
 
     /// <summary>Opens the run-speed dialog and keeps whatever factor it was given.</summary>

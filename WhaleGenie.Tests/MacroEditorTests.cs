@@ -190,9 +190,9 @@ public class MacroEditorTests
     }
 
     /// <summary>
-    /// 编辑器里起一次调试不能只靠记住 F5：左侧「保存」下面那枚「运行调试」走的是同一条路 —— 把编辑器
-    /// 手里的步骤（不先保存）装进运行与调试窗口并开跑。没有步骤时它按不动，有步骤之后按下去就该开出
-    /// 一扇装着这些步骤的窗口。
+    /// 编辑器里起一次调试只有一条路：左侧「保存」下面那枚「运行调试」——把编辑器手里的步骤（不先
+    /// 保存）装进运行与调试窗口并停在那儿。没有步骤时它按不动，有步骤之后按下去就该开出一扇装着这些
+    /// 步骤的窗口，窗口自己不开跑。
     /// </summary>
     [Fact]
     public void The_editor_has_the_run_button_the_keyboard_has()
@@ -220,12 +220,24 @@ public class MacroEditorTests
 
             var running = window.OwnedWindows.OfType<RunWindow>().FirstOrDefault();
             var debugger = running is null ? null : (RunViewModel)running.DataContext!;
-            var done = debugger is null || await Until(() => !debugger.IsBusy);
-            var answer = (Empty: empty, Ready: ready, Found: running is not null, Done: done,
+            var idle = debugger is { IsBusy: false }
+                && debugger.Status == WhaleGenie.Localization.Strings.Get("Run.Ready");
+
+            // 再按一次：旧的那扇关掉，只留一扇装着当前步骤的窗口，不该越按越多。
+            button.Command!.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            var open = window.OwnedWindows.OfType<RunWindow>().Where(one => one.IsVisible).ToList();
+
+            var answer = (Empty: empty, Ready: ready, Found: running is not null, Idle: idle,
+                Ones: open.Count, Fresh: !ReferenceEquals(open[0], running),
                 Wanted: viewModel.Steps.Select(step => step.Id).ToList(),
                 Loaded: debugger?.Steps.Select(step => step.Id).ToList() ?? []);
 
-            running?.Close();
+            foreach (var one in open)
+            {
+                one.Close();
+            }
+
             window.Close();
             return answer;
         });
@@ -233,7 +245,9 @@ public class MacroEditorTests
         Assert.False(answer.Empty, "没有步骤时那枚按钮该按不动");
         Assert.True(answer.Ready, "写了步骤之后该能按");
         Assert.True(answer.Found, "按下去该开出一扇运行与调试窗口");
-        Assert.True(answer.Done, "步骤装进去之后该跑完");
+        Assert.True(answer.Idle, "步骤装进去之后该停着不跑");
+        Assert.Equal(1, answer.Ones);
+        Assert.True(answer.Fresh, "再按一次该换成一扇新的、只留一扇");
         Assert.NotEmpty(answer.Wanted);
         Assert.Equal(answer.Wanted, answer.Loaded);
     }

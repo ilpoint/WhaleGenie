@@ -81,14 +81,6 @@ public partial class MacroEditorViewModel : ViewModelBase
         new() { Icon = G("M5,5 L19,19 M19,5 L5,19"),
                 LabelKey = "Palette.Clear", Key = "clear", NeedsSteps = true },
 
-        // A bug, because this is the entry that starts debugging the macro.
-        new() { Icon = G("M12,6.5 A5.5,5.5 0 1 0 12,17.5 A5.5,5.5 0 1 0 12,6.5 "
-                         + "M12,6.5 L12,17.5 "
-                         + "M9,7.4 L8,4.6 M15,7.4 L16,4.6 "
-                         + "M6.7,10.4 L4.3,9.7 M6.7,13.6 L4.3,14.3 "
-                         + "M17.3,10.4 L19.7,9.7 M17.3,13.6 L19.7,14.3"),
-                LabelKey = "Palette.Run", Key = "run", NeedsSteps = true, IsPrimary = true },
-
         new() { Icon = G("M12,3 A9,9 0 1 0 12,21 A9,9 0 1 0 12,3 M12,7 L12,12 L15,14"),
                 LabelKey = "Palette.AdjustDelays", Key = "adjustDelays",
                 NeedsSteps = true },
@@ -775,9 +767,6 @@ public partial class MacroEditorViewModel : ViewModelBase
             case "clear":
                 ClearStepsCommand.Execute(null);
                 break;
-            case "run":
-                RunRequested?.Invoke();
-                break;
             case "adjustDelays":
                 AdjustDelaysRequested?.Invoke();
                 break;
@@ -915,7 +904,12 @@ public partial class MacroEditorViewModel : ViewModelBase
         return false;
     }
 
-    /// <summary>Asks the window to open the run window for the steps as they are now.</summary>
+    /// <summary>
+    /// Asks the window to open the run window for the steps as they are now, which is what the button
+    /// beside 「保存」 does, and it loads the steps there rather than running them. It is the only way
+    /// into a run from this window: the palette had a second entry for it and F5 a third, and all
+    /// three asked for the same window.
+    /// </summary>
     [RelayCommand]
     private void Run() => RunRequested?.Invoke();
 

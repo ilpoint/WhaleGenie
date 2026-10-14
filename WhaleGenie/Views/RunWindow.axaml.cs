@@ -155,9 +155,6 @@ public partial class RunWindow : Window
     /// <summary>The form this window is driving.</summary>
     private RunViewModel? Form => DataContext as RunViewModel;
 
-    /// <summary>Starts the run this window was opened on, which is what the editor's own F5 asks for.</summary>
-    internal void StartRun() => Form?.RunCommand.Execute(null);
-
     /// <summary>
     /// Takes one row's value away. What lands on the clipboard is the value beside the button that
     /// was pressed rather than whichever row happens to be selected: a run is read back row by row,

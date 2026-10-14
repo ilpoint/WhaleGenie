@@ -63,6 +63,13 @@ public class RunDebugTests
 
             Assert.True(viewModel.IsDebugPage);
             Assert.True(viewModel.HasSteps);
+
+            // 装着步骤开着也不跑：谁想先看一眼、先下个断点，窗口不该已经动手了。
+            Assert.False(viewModel.IsBusy);
+            Assert.Equal(Strings.Get("Run.Ready"), viewModel.Status);
+            Assert.True(viewModel.CanStart);
+            Assert.True(viewModel.CanStep);
+
             Assert.True(Find<Border>(window, "RunToolbar").IsVisible);
             Assert.False(Find<TextBlock>(window, "DebugFromCardNote").IsEffectivelyVisible);
 
@@ -80,9 +87,11 @@ public class RunDebugTests
     }
 
     /// <summary>
-    /// The same window debugs the second macro: there is one of these at a time, and the run that
-    /// was going is stopped to make room for the other macro's steps. Why it stopped is written into
-    /// the log, because a run that ends early by itself looks like a failure.
+    /// The same window takes the second macro: there is one of these at a time, and the run that was
+    /// going is stopped to make room for the other macro's steps. Why it stopped is written into the
+    /// log of the next run, because a run that ends early by itself looks like a failure. Loading a
+    /// macro does not itself start anything, so the second macro is loaded and stands there until
+    /// 「运行」 is pressed.
     /// </summary>
     [Fact]
     public void Debugging_another_macro_stops_the_run_and_says_why()
@@ -98,16 +107,27 @@ public class RunDebugTests
             var viewModel = new RunViewModel([], NullDeviceLayer.Instance, 1, null, [first, second]);
 
             await viewModel.DebugAsync(first);
-            Assert.True(viewModel.IsBusy);
             Assert.Equal("first", viewModel.Debugged);
             Assert.Equal("first", first.Name);
             Assert.True(viewModel.HasSteps);
             Assert.Contains("first", viewModel.WindowTitle, System.StringComparison.Ordinal);
 
+            // 装载不再自己跑起来：装完是停着的，跑要按「运行」。
+            Assert.False(viewModel.IsBusy);
+            Assert.True(viewModel.CanStart);
+            Assert.Equal(Strings.Get("Run.Ready"), viewModel.Status);
+
+            viewModel.RunCommand.Execute(null);
+            Assert.True(viewModel.IsBusy);
+
             await viewModel.DebugAsync(second);
             Assert.Equal("second", viewModel.Debugged);
+            Assert.False(viewModel.IsBusy);
 
-            // What the log opens with is the reason the run before it ended.
+            // 换成第二个宏之后停着，跑起来时日志开头写的是上一个宏为什么停了。
+            viewModel.RunCommand.Execute(null);
+            Assert.True(viewModel.IsBusy);
+
             Assert.Contains(viewModel.Lines,
                 line => line.Text == WhaleGenie.Localization.Strings.Format(
                     "Run.DebugSwitched", "first", "second"));
@@ -506,10 +526,11 @@ public class RunDebugTests
     }
 
     /// <summary>
-    /// 下拉里站着哪个宏，「开始调试」按下就装上哪个、跑的就是哪个：与卡片右键走的是同一条路。
+    /// 下拉里站着哪个宏，「载入这个宏」按下就装上哪个：与卡片右键走的是同一条路。装完停着，
+    /// 要跑得在窗口里按「运行」。
     /// </summary>
     [Fact]
-    public void The_picker_starts_the_macro_it_is_standing_on()
+    public void The_picker_loads_the_macro_it_is_standing_on()
     {
         var answer = Ui.RunAsync(async () =>
         {
@@ -530,19 +551,33 @@ public class RunDebugTests
 
             Find<Button>(window, "StartDebugButton").Command!.Execute(null);
 
+            // 装载就是装载：步骤进来了，一行都还没跑过，窗口也不忙。
+            var loaded = viewModel.Steps.Select(step => step.Id).ToList();
+            var idle = (Busy: viewModel.IsBusy, Ran: viewModel.Steps.Any(step => step.HasRun),
+                Status: viewModel.Status, CanStart: viewModel.CanStart, CanStep: viewModel.CanStep);
+
+            viewModel.RunCommand.Execute(null);
+
             // 等它真的跑过：刚按下时那扇窗还没开始跑，"不在忙"那一刻什么都还没发生。
             var done = await Until(() =>
                 viewModel.Steps.Count > 0 && viewModel.Steps.All(step => step.HasRun));
             var ran = viewModel.Steps.All(step => step.HasRun);
             var ids = viewModel.Steps.Select(step => step.Id).ToList();
             var answer = (Done: done, Ran: ran, Ids: ids, Debugged: viewModel.Debugged,
-                Wanted: second.Steps.Select(step => step.Id).ToList());
+                Loaded: loaded, Idle: idle, Wanted: second.Steps.Select(step => step.Id).ToList());
 
             window.Close();
             return answer;
         });
 
-        Assert.True(answer.Done, "按下之后那扇窗该跑起来");
+        Assert.False(answer.Idle.Busy, "装进去之后窗口该停着不跑");
+        Assert.False(answer.Idle.Ran, "装进去之后一行都还没跑过");
+        Assert.Equal(Strings.Get("Run.Ready"), answer.Idle.Status);
+        Assert.True(answer.Idle.CanStart, "装进去之后该能按「运行」");
+        Assert.True(answer.Idle.CanStep, "装进去之后该能单步");
+        Assert.Equal(answer.Wanted, answer.Loaded);
+
+        Assert.True(answer.Done, "按下「运行」之后那扇窗该跑起来");
         Assert.Equal("second", answer.Debugged);
         Assert.Equal(answer.Wanted, answer.Ids);
         Assert.True(answer.Ran, "两个步骤都该跑过");

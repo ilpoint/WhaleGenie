@@ -908,8 +908,8 @@
                         </StackPanel>
                     </ScrollViewer>
 
-                    <!-- Save, and the run beside it: the editor's F5 does the same thing, and one
-                         that can only be asked for by keyboard is a way into a run nobody finds. -->
+                    <!-- Save, and the run beside it. This is the one way into the run window: it loads
+                         the steps and stops there, and the run itself is asked for in that window. -->
                     <StackPanel Grid.Row="1" Margin="18,8,18,16" Spacing="6">
                         <Button Classes="SaveButton"
                                 Content="{Binding [Editor.Save], Source={x:Static loc:Strings.Current}}"

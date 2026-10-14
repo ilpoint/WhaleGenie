@@ -527,10 +527,16 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     }
 
     /// <summary>
-    /// Debugs a macro, which is what the card's own menu asks for. One of these windows is open at a
-    /// time, so asking for a second macro puts its steps in this window and starts again; the run
-    /// that was going is stopped first, and the reason the log begins with is that a run which ends
-    /// early by itself looks like a failure.
+    /// Points the window at a macro without running it, which is what all three ways in ask for: the
+    /// card's own menu, the editor's 「运行调试」 button and the picker in a window that was opened
+    /// empty. Loading and running are two things here, because the first thing a run is wanted for is
+    /// often a look at the steps and a breakpoint or two — and a run that starts before anyone can
+    /// say that is a run that has already done something. Where the run begins is this window's own
+    /// 「运行」/「单步」/F5.
+    ///
+    /// One of these windows is open at a time, so asking for a second macro stops the run that was
+    /// going first. Why it stopped is kept for the next run's log rather than written now: a run that
+    /// ends early by itself looks like a failure, and the log is read from the top when it starts.
     /// </summary>
     public async Task DebugAsync(MacroItem macro)
     {
@@ -560,12 +566,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         if (switched)
         {
             _runNote = Strings.Format("Run.DebugSwitched", was, macro.Name);
-            Status = _runNote;
-        }
-
-        if (RunCommand.CanExecute(null))
-        {
-            RunCommand.Execute(null);
         }
     }
 
@@ -585,9 +585,10 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     public bool CanStartDebug => ChosenMacro is not null;
 
     /// <summary>
-    /// Starts debugging the macro the picker is on, which is what the window opened from the main
-    /// window offers instead of the run controls. It takes the card menu's own road, because it is
-    /// the same thing asked for from a different place.
+    /// Loads the macro the picker is on, which is what the window opened from the main window offers
+    /// instead of the run controls. It takes the card menu's own road, because it is the same thing
+    /// asked for from a different place — and like that road it stops there rather than starting
+    /// anything.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanStartDebug))]
     private Task StartDebug() => ChosenMacro is { } macro ? DebugAsync(macro) : Task.CompletedTask;
@@ -777,6 +778,9 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         Release();
     }
 
+    [RelayCommand]
+    private void Close() => CloseRequested?.Invoke();
+
     /// <summary>
     /// Runs to one step: the run goes from wherever it is — the first step when nothing is going,
     /// on from the pause when something is — and stops in front of that step, the same way a
@@ -810,9 +814,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
             RunCommand.Execute(null);
         }
     }
-
-    [RelayCommand]
-    private void Close() => CloseRequested?.Invoke();
 
     [RelayCommand]
     private void ToggleBreakpoint(RunStepViewModel? row)
