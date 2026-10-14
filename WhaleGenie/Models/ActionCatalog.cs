@@ -4083,6 +4083,18 @@ public static class ActionCatalog
         + "so the coordinate origin above moves the numbers written out and not a record.";
 
     /// <summary>
+    /// The same for a rectangle written down as four numbers: a hit, a window or a picture taken
+    /// earlier carries all four sides of it, so "read the writing on what was just found" is one
+    /// field rather than four readings with a chance of one of them being the neighbour's. Written
+    /// once for the same reason, and it opens with a space for the same reason.
+    /// </summary>
+    private const string RegionRecordHint =
+        " One of the four may be given a record with left, top, width and height in it instead (a "
+        + "hit, a window or a picture taken earlier), and the record then says the whole rectangle, "
+        + "so the other three are left empty. A record says where it is on the screen, so the "
+        + "coordinate origin above moves the numbers written out and not a record.";
+
+    /// <summary>
     /// The one part of the screen a step reads or copies, written as four numbers it works on
     /// directly rather than as a rectangle of its own: the corners are ordinary number fields, each
     /// of which may be written as an expression, and the region picker fills all four at once. They
@@ -4097,7 +4109,8 @@ public static class ActionCatalog
             hint: "How far the left edge of the region is from the left of the screen, in pixels. Under "
             + "a window anchor it is counted from that window's own left edge. Left out, counting "
             + "starts at that edge, and with the other three left out too the whole screen is read. "
-            + "“Pick region” fills all four in at once.", required: false, emptiesToEdge: true),
+            + "“Pick region” fills all four in at once." + RegionRecordHint,
+            required: false, emptiesToEdge: true),
         Number("y", "Top-left Y",
             hint: "How far the top edge of the region is from the top of the screen, in pixels. Under a "
             + "window anchor it is counted from that window's own top edge. Left out, counting "

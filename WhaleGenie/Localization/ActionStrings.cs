@@ -63,6 +63,16 @@ internal static class ActionStrings
         + "只挪写出来的那两个数。";
 
     /// <summary>
+    /// The same sentence for a rectangle written down as four numbers, which is what reading or
+    /// copying one part of the screen asks for: a hit, a window or a picture taken earlier carries
+    /// all four sides, so "读刚找到的那一块" is one field rather than four.
+    /// </summary>
+    private const string RegionRecordHint =
+        "四格里也可以只填其中一格，交给它一条带 left、top、width、height 的记录（命中、窗口、之前截下"
+        + "的画面都能直接填）：这时整块矩形由记录说了算，其余三格留空。记录里的数是屏幕像素，所以"
+        + "「坐标基准」只挪写出来的那几个数。";
+
+    /// <summary>
     /// The switch every mouse action shares for taking its place from the pointer rather than from
     /// numbers, which is what a macro means when the place is wherever the user left the mouse.
     /// </summary>
@@ -2152,7 +2162,7 @@ internal static class ActionStrings
         ["vision.capture.x.label"] = "左上角 X",
         ["vision.capture.x.hint"] = "要截取的那块屏幕的左边界距屏幕左边多少像素；坐标基准选"
             + "窗口时，从窗口自己的左边算起。留空就从那条边开始，四个数都留空则读整块屏幕。"
-            + "用「框选区域」拖一次会把四个数一起填好。",
+            + "用「框选区域」拖一次会把四个数一起填好。" + RegionRecordHint,
         ["vision.capture.y.label"] = "左上角 Y",
         ["vision.capture.y.hint"] = "要截取的那块屏幕的上边界距屏幕上边多少像素；坐标基准选"
             + "窗口时，从窗口自己的上边算起。留空就从那条边开始。",
@@ -2243,7 +2253,7 @@ internal static class ActionStrings
         ["ocr.recognize.x.label"] = "左上角 X",
         ["ocr.recognize.x.hint"] = "要读的那块屏幕的左边界距屏幕左边多少像素；坐标基准选窗口"
             + "时，从窗口自己的左边算起。留空就从那条边开始，四个数都留空则读整块屏幕。"
-            + "用「框选区域」拖一次会把四个数一起填好。",
+            + "用「框选区域」拖一次会把四个数一起填好。" + RegionRecordHint,
         ["ocr.recognize.y.label"] = "左上角 Y",
         ["ocr.recognize.y.hint"] = "要读的那块屏幕的上边界距屏幕上边多少像素；坐标基准选窗口"
             + "时，从窗口自己的上边算起。留空就从那条边开始。",
