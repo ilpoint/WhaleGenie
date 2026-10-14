@@ -141,11 +141,14 @@ public partial class MacroItem : ObservableObject
     /// <summary>True when the macro is started by the machine going untouched.</summary>
     public bool IsIdleTrigger => TriggerMode == MacroTrigger.Idle;
 
+    /// <summary>True when the macro is started by input and the binding is a controller button.</summary>
+    public bool IsGamepadTrigger => IsKeyTrigger && LooksLikeGamepadButton(BindKey);
+
     /// <summary>True when the macro is started by input and the binding is a mouse button.</summary>
-    public bool IsMouseTrigger => IsKeyTrigger && LooksLikeMouseButton(BindKey);
+    public bool IsMouseTrigger => IsKeyTrigger && !IsGamepadTrigger && LooksLikeMouseButton(BindKey);
 
     /// <summary>True when the macro is started by input and the binding is anything else.</summary>
-    public bool IsKeyboardTrigger => IsKeyTrigger && !IsMouseTrigger;
+    public bool IsKeyboardTrigger => IsKeyTrigger && !IsGamepadTrigger && !IsMouseTrigger;
 
     /// <summary>
     /// What the macro card previews next to the trigger icon: the bound key (for example
@@ -183,6 +186,15 @@ public partial class MacroItem : ObservableObject
                    || text.Contains("button", System.StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// Whether a binding names a controller button. Every one of those names starts with the same
+    /// word, which is what the card reads rather than a list of buttons: a later button joins the
+    /// vocabulary by having a name like the others.
+    /// </summary>
+    private static bool LooksLikeGamepadButton(string binding)
+        => (binding ?? string.Empty).Trim()
+            .StartsWith("Pad ", System.StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Keeps the card's icon and preview in step with the settings behind them.</summary>
     partial void OnTriggerModeChanged(MacroTrigger value) => RefreshTriggerDisplay();
 
@@ -199,6 +211,7 @@ public partial class MacroItem : ObservableObject
         OnPropertyChanged(nameof(IsWindowTrigger));
         OnPropertyChanged(nameof(IsIdleTrigger));
         OnPropertyChanged(nameof(IsMouseTrigger));
+        OnPropertyChanged(nameof(IsGamepadTrigger));
         OnPropertyChanged(nameof(IsKeyboardTrigger));
         OnPropertyChanged(nameof(TriggerPreview));
     }

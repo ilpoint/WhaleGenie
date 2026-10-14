@@ -43,6 +43,24 @@ public class MacroCardTests
         Assert.False(macro.IsKeyboardTrigger);
     }
 
+    /// <summary>
+    /// A binding taken from a controller is neither a key nor a mouse button, so the card draws the
+    /// controller and previews the button by the name the trigger is bound to.
+    /// </summary>
+    [Theory]
+    [InlineData("Pad A")]
+    [InlineData("Pad LB")]
+    [InlineData("Pad Start")]
+    public void A_controller_binding_is_previewed_with_the_controller_icon(string binding)
+    {
+        var macro = new MacroItem { BindKey = binding };
+
+        Assert.True(macro.IsGamepadTrigger);
+        Assert.False(macro.IsMouseTrigger);
+        Assert.False(macro.IsKeyboardTrigger);
+        Assert.Equal(binding, macro.TriggerPreview);
+    }
+
     [Fact]
     public void A_macro_without_a_binding_says_so()
     {
@@ -78,6 +96,7 @@ public class MacroCardTests
 
         Assert.Contains(nameof(MacroItem.TriggerPreview), refreshed);
         Assert.Contains(nameof(MacroItem.IsMouseTrigger), refreshed);
+        Assert.Contains(nameof(MacroItem.IsGamepadTrigger), refreshed);
         Assert.Contains(nameof(MacroItem.IsKeyboardTrigger), refreshed);
     }
 }
