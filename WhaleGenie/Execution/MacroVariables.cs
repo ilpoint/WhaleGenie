@@ -7,20 +7,30 @@ using WhaleGenie.Models;
 namespace WhaleGenie.Execution;
 
 /// <summary>
-/// Builds the variables a macro starts from: the built-in ones read live, and the shared ones at
-/// the values the Variable Center holds. Every run begins here, whether it was started from the
-/// run window or by a trigger on the main window.
+/// Builds the variables a macro starts from: the built-in ones, the shared ones at the values the
+/// Variable Center holds, and — when the caller has one — the reader that answers the built-in ones
+/// at the moment a step reads them. Every run begins here, whether it was started from the run
+/// window or by a trigger on the main window.
 /// </summary>
 public static class MacroVariables
 {
-    public static VariableStore Seed()
+    /// <param name="system">
+    /// Where the values that move are read from. Left out by a caller that has no devices — a check
+    /// that drives the engine directly — and then the built-in variables hold their declared
+    /// starting values and nothing is read off a machine.
+    /// </param>
+    public static VariableStore Seed(SystemVariableReader? system = null)
     {
         var store = new VariableStore();
 
+        // The declared values are what a machine that cannot answer falls back on; the reader, when
+        // there is one, is asked before them every time a step reads a built-in variable.
         foreach (var definition in VariableCatalog.SystemVariables)
         {
-            store.System.Set(definition.Name, Convert(definition.Type, Read(definition)));
+            store.System.Set(definition.Name, Convert(definition.Type, definition.DefaultValue));
         }
+
+        store.Live = system;
 
         foreach (var definition in VariableCatalog.Globals)
         {
@@ -28,19 +38,6 @@ public static class MacroVariables
         }
 
         return store;
-    }
-
-    private static string Read(VariableDefinition definition)
-    {
-        try
-        {
-            return SystemVariableReader.Read(definition.Name, 0, 0);
-        }
-        catch
-        {
-            // Screen and clipboard reads can fail outside a session; the default will do.
-            return definition.DefaultValue;
-        }
     }
 
     private static Value Convert(string type, string text) => type switch

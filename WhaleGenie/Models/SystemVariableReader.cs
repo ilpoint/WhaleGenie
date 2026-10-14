@@ -1,72 +1,122 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
-using System.Runtime.InteropServices;
+using System.Linq;
+using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
 
 /// <summary>
-/// Reads the current value of a built-in variable, so the Variable Center can show the
-/// state of the machine before a macro runs.
+/// Reads the value of a built-in variable at the moment it is asked for, which is what makes one of
+/// these a value rather than a number that was true when the run started: the pointer moves, the
+/// clipboard changes, the clock goes on, and a macro that reads them twice means to see that.
 /// </summary>
-public static class SystemVariableReader
+/// <remarks>
+/// What it reads, it reads through the device layer, which is where looking at the machine belongs:
+/// this class knows which variable means what, and the devices know how to look. A machine that
+/// cannot answer — no session, a stand-in layer in a check, a window list that has gone — gives the
+/// variable its declared starting value instead of failing the step that read it.
+/// </remarks>
+public sealed class SystemVariableReader : ILiveVariables
 {
-    /// <summary>Value of <paramref name="name"/> right now, or empty when it is not known yet.</summary>
-    public static string Read(string name, int screenWidth, int screenHeight)
+    /// <summary>The names this knows, so a name that is not one of them is left alone.</summary>
+    private static readonly Dictionary<string, VariableDefinition> Known =
+        VariableCatalog.SystemVariables.ToDictionary(variable => variable.Name,
+            StringComparer.OrdinalIgnoreCase);
+
+    private readonly IDeviceLayer _devices;
+
+    public SystemVariableReader(IDeviceLayer devices) => _devices = devices;
+
+    /// <summary>The value right now, as text.</summary>
+    public string Read(string name)
+        => Known.TryGetValue(name, out var definition) ? ReadValue(definition).AsText() : string.Empty;
+
+    /// <summary>
+    /// The value right now, or false for a name that is not one of WhaleGenie's own: a name it does
+    /// not know has to keep travelling, so a macro that misspelled one is told about it rather than
+    /// reading nothing.
+    /// </summary>
+    public bool TryGet(string name, out Value value)
+    {
+        if (!Known.TryGetValue(name, out var definition))
+        {
+            value = Value.Null;
+            return false;
+        }
+
+        value = ReadValue(definition);
+        return true;
+    }
+
+    private Value ReadValue(VariableDefinition definition)
+    {
+        try
+        {
+            return Convert(definition.Type, Reading(definition.Name));
+        }
+        catch (Exception)
+        {
+            return Convert(definition.Type, definition.DefaultValue);
+        }
+    }
+
+    /// <summary>One value, read off the machine. Each name here is one question with one answer.</summary>
+    private string Reading(string name)
     {
         var now = DateTime.Now;
         var culture = Culture();
 
-        switch (name)
+        return name switch
         {
-            case "sys.macroLoop":
-            case "sys.loopIndex":
-                // Only meaningful while a macro is running.
-                return "0";
-            case "sys.date":
-                return now.ToString("yyyy-MM-dd", culture);
-            case "sys.dateLong":
-                return now.ToString("yyyy-MM-dd dddd", culture);
-            case "sys.time":
-                return now.ToString("HH:mm:ss", culture);
-            case "sys.dateTime":
-                return now.ToString("yyyy-MM-dd HH:mm:ss", culture);
-            case "sys.year":
-                return now.Year.ToString(CultureInfo.InvariantCulture);
-            case "sys.month":
-                return now.Month.ToString(CultureInfo.InvariantCulture);
-            case "sys.day":
-                return now.Day.ToString(CultureInfo.InvariantCulture);
-            case "sys.weekday":
-                return now.ToString("dddd", culture);
-            case "sys.hour":
-                return now.Hour.ToString(CultureInfo.InvariantCulture);
-            case "sys.minute":
-                return now.Minute.ToString(CultureInfo.InvariantCulture);
-            case "sys.second":
-                return now.Second.ToString(CultureInfo.InvariantCulture);
-            case "sys.timestamp":
-                return DateTimeOffset.Now.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
-            case "sys.screenWidth":
-                return screenWidth > 0 ? screenWidth.ToString(CultureInfo.InvariantCulture) : string.Empty;
-            case "sys.screenHeight":
-                return screenHeight > 0 ? screenHeight.ToString(CultureInfo.InvariantCulture) : string.Empty;
-            case "sys.machineName":
-                return Environment.MachineName;
-            case "sys.userName":
-                return Environment.UserName;
-            case "sys.random":
-                return Random.Shared.NextDouble().ToString("0.###", CultureInfo.InvariantCulture);
-            case "sys.mouseX":
-                return TryGetCursor(out var x, out _) ? x.ToString(CultureInfo.InvariantCulture) : string.Empty;
-            case "sys.mouseY":
-                return TryGetCursor(out _, out var y) ? y.ToString(CultureInfo.InvariantCulture) : string.Empty;
-            case "sys.mouseColor":
-                return TryGetCursor(out x, out y) ? ReadColour(x, y) : string.Empty;
-            default:
-                return string.Empty;
-        }
+            // Only meaningful inside a loop, where the engine writes the round number into the
+            // macro's own values: what this answers is a step that asks for it outside one.
+            "sys.loopIndex" => "0",
+            "sys.macroFolder" => _devices.Files.BaseFolder,
+            "sys.activeWindow" => Foreground()?.Title ?? string.Empty,
+            "sys.activeProcess" => Foreground() is { } window
+                ? _devices.Windows.ProcessOf(window.Handle)
+                : string.Empty,
+            "sys.date" => now.ToString("yyyy-MM-dd", culture),
+            "sys.dateLong" => now.ToString("yyyy-MM-dd dddd", culture),
+            "sys.time" => now.ToString("HH:mm:ss", culture),
+            "sys.dateTime" => now.ToString("yyyy-MM-dd HH:mm:ss", culture),
+            "sys.year" => now.Year.ToString(CultureInfo.InvariantCulture),
+            "sys.month" => now.Month.ToString(CultureInfo.InvariantCulture),
+            "sys.day" => now.Day.ToString(CultureInfo.InvariantCulture),
+            "sys.weekday" => now.ToString("dddd", culture),
+            "sys.hour" => now.Hour.ToString(CultureInfo.InvariantCulture),
+            "sys.minute" => now.Minute.ToString(CultureInfo.InvariantCulture),
+            "sys.second" => now.Second.ToString(CultureInfo.InvariantCulture),
+            "sys.timestamp" => DateTimeOffset.Now.ToUnixTimeSeconds()
+                .ToString(CultureInfo.InvariantCulture),
+            "sys.mouseX" => _devices.Input.Cursor.X.ToString(CultureInfo.InvariantCulture),
+            "sys.mouseY" => _devices.Input.Cursor.Y.ToString(CultureInfo.InvariantCulture),
+            "sys.mouseColor" => Colour(_devices.Input.Cursor),
+            "sys.screenWidth" => _devices.Screen.Desktop.Bounds.Width
+                .ToString(CultureInfo.InvariantCulture),
+            "sys.screenHeight" => _devices.Screen.Desktop.Bounds.Height
+                .ToString(CultureInfo.InvariantCulture),
+            "sys.machineName" => Environment.MachineName,
+            "sys.userName" => Environment.UserName,
+            "sys.clipboard" => _devices.Clipboard.ReadText(),
+            _ => string.Empty,
+        };
     }
+
+    /// <summary>Colour of the pixel the pointer is over, as #RRGGBB.</summary>
+    private string Colour(ScreenPoint point)
+        => _devices.Screen.PixelAt(point.X, point.Y).ToHex();
+
+    /// <summary>
+    /// The window in front right now. An empty match is the frontmost window, which is what the
+    /// window device means by it — the same answer a step that names no window gets.
+    /// </summary>
+    private WindowInfo? Foreground()
+        => _devices.Windows.Filter(string.Empty, WindowMatch.Title).FirstOrDefault();
 
     /// <summary>Date text follows the interface language, so the weekday name matches it.</summary>
     private static CultureInfo Culture()
@@ -74,66 +124,16 @@ public static class SystemVariableReader
             ? CultureInfo.GetCultureInfo("zh-CN")
             : CultureInfo.GetCultureInfo("en-US");
 
-    private static bool TryGetCursor(out int x, out int y)
+    private static Value Convert(string type, string text) => type switch
     {
-        x = 0;
-        y = 0;
-
-        if (!OperatingSystem.IsWindows() || !GetCursorPos(out var point))
-        {
-            return false;
-        }
-
-        x = point.X;
-        y = point.Y;
-        return true;
-    }
-
-    /// <summary>Colour of the pixel under the cursor, as #RRGGBB.</summary>
-    private static string ReadColour(int x, int y)
-    {
-        var screen = GetDC(IntPtr.Zero);
-        if (screen == IntPtr.Zero)
-        {
-            return string.Empty;
-        }
-
-        try
-        {
-            var pixel = GetPixel(screen, x, y);
-            if (pixel == uint.MaxValue)
-            {
-                return string.Empty;
-            }
-
-            // COLORREF stores the channels as 0x00BBGGRR.
-            var red = pixel & 0xFF;
-            var green = (pixel >> 8) & 0xFF;
-            var blue = (pixel >> 16) & 0xFF;
-            return $"#{red:X2}{green:X2}{blue:X2}";
-        }
-        finally
-        {
-            ReleaseDC(IntPtr.Zero, screen);
-        }
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct Point
-    {
-        public int X;
-        public int Y;
-    }
-
-    [DllImport("user32.dll")]
-    private static extern bool GetCursorPos(out Point point);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr GetDC(IntPtr window);
-
-    [DllImport("user32.dll")]
-    private static extern int ReleaseDC(IntPtr window, IntPtr deviceContext);
-
-    [DllImport("gdi32.dll")]
-    private static extern uint GetPixel(IntPtr deviceContext, int x, int y);
+        "number" => double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture,
+            out var number)
+            ? Value.FromNumber(number)
+            : Value.FromNumber(0),
+        "bool" => Value.FromBool(string.Equals(text, "true", StringComparison.OrdinalIgnoreCase)),
+        "list" => ListText.TryParse(text, out var items, out _)
+            ? Value.FromList(items)
+            : Value.FromList([]),
+        _ => Value.FromText(text),
+    };
 }

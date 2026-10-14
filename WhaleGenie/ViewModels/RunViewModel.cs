@@ -349,12 +349,12 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// <summary>The trigger service of the main window, when there is one to ask.</summary>
     private readonly MacroTriggerService? _triggers;
 
-    /// <summary>How big the screen is, for the two rows that report it.</summary>
-    private readonly int _screenWidth;
-    private readonly int _screenHeight;
-
-    private string _clipboard = string.Empty;
-    private readonly List<VariableDefinition> _clipboardRows = [];
+    /// <summary>
+    /// Where a built-in variable is read for the rows of the variables page. The rows ask the run's own
+    /// values first and fall back to this, so what the page shows is what a macro would read at that
+    /// moment — the round of a loop and the name of the macro included.
+    /// </summary>
+    private readonly SystemVariableReader _system;
 
     private CancellationTokenSource? _cancellation;
     private TaskCompletionSource<bool>? _gate;
@@ -412,9 +412,14 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// say what each armed trigger is waiting for: when a macro that was expected did not run, the
     /// answer is nearly always in that list.
     /// </param>
+    /// <param name="macroName">
+    /// The name of the macro these steps belong to, where there is one. The editor hands in the macro
+    /// it is editing, so a run started there says which macro it is; a card's 「运行调试」 says so
+    /// through its own call.
+    /// </param>
     public RunViewModel(IEnumerable<MacroStep> steps, IDeviceLayer? devices = null, double delayScale = 1,
         IMacroLibrary? macros = null, IReadOnlyList<MacroItem>? listed = null,
-        MacroTriggerService? triggers = null)
+        MacroTriggerService? triggers = null, string macroName = "")
     {
         _ownsDevices = devices is null;
         _devices = devices ?? new WindowsDeviceLayer();
@@ -422,10 +427,10 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         _macros = macros;
         _listed = listed ?? [];
         _triggers = triggers;
-        _variables = MacroVariables.Seed();
+        Debugged = macroName;
+        _system = new SystemVariableReader(_devices);
+        _variables = MacroVariables.Seed(_system);
         NewType = Types[0];
-
-        (_screenWidth, _screenHeight) = ScreenSize();
 
         // Nothing is loaded yet, so the compiler is told what every path sets before it reads them.
         _steps = [];
@@ -504,26 +509,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         if (RunCommand.CanExecute(null))
         {
             RunCommand.Execute(null);
-        }
-    }
-
-    /// <summary>
-    /// How big the screen is, for the rows that report it. A machine that hands out no screen — a
-    /// run driven by a check on one, or a desktop opened without one — answers zero rather than
-    /// failing the window that asked.
-    /// </summary>
-    private (int Width, int Height) ScreenSize()
-    {
-        try
-        {
-            // The desk rather than one display: a macro's coordinates are counted across every
-            // display, so the width and height a macro can aim within are the desk's own.
-            var desk = _devices.Screen.Desktop.Bounds;
-            return (desk.Width, desk.Height);
-        }
-        catch (Exception)
-        {
-            return (0, 0);
         }
     }
 
@@ -1465,7 +1450,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     public void Rebuild()
     {
         SystemVariables.Clear();
-        _clipboardRows.Clear();
 
         Globals.Clear();
         foreach (var shared in VariableCatalog.Globals)
@@ -1484,14 +1468,12 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                 DefaultValue = variable.DefaultValue,
             };
 
-            row.CurrentValue = variable.Name == "sys.clipboard"
-                ? _clipboard
-                : SystemVariableReader.Read(variable.Name, _screenWidth, _screenHeight);
-
-            if (variable.Name == "sys.clipboard")
-            {
-                _clipboardRows.Add(row);
-            }
+            // What a macro would read right now, which is what this page is about: the value a step
+            // has left in place comes first — the round of a loop, the macro being run — and behind it
+            // the ones read off the machine as they are asked for.
+            row.CurrentValue = _variables.TryGet(variable.Name, out var value)
+                ? value.AsText()
+                : _system.Read(variable.Name);
 
             SystemVariables.Add(row);
         }
@@ -1589,11 +1571,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                 Type = TypeOf(usage, system, globals),
                 CurrentValue = ValueOf(usage, system, globals, live),
             };
-
-            if (usage.Scope is VariableScope.System && usage.Name == "sys.clipboard")
-            {
-                _clipboardRows.Add(row);
-            }
 
             CurrentVariables.Add(row);
         }
@@ -1747,16 +1724,6 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         public VariableScope Scope { get; } = scope;
 
         public SortedSet<string> Owners { get; } = new(StringComparer.OrdinalIgnoreCase);
-    }
-
-    /// <summary>Fills in the clipboard text, which cannot be read while the rows are built.</summary>
-    public void SetClipboard(string text)
-    {
-        _clipboard = text;
-        foreach (var row in _clipboardRows)
-        {
-            row.CurrentValue = text;
-        }
     }
 
     [RelayCommand]

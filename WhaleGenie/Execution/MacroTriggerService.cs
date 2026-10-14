@@ -1354,7 +1354,9 @@ public sealed class MacroTriggerService : IDisposable
 
             while (!token.IsCancellationRequested)
             {
-                var runner = new MacroRunner(MacroVariables.Seed(), host, _devices, macro.DelayScale, library)
+                var runner = new MacroRunner(
+                    MacroVariables.Seed(new SystemVariableReader(_devices)), host, _devices,
+                    macro.DelayScale, library)
                 {
                     FailureScreenshot = failureScreenshot,
                     FailureFolder = AppPaths.Logs,

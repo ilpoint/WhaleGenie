@@ -2348,8 +2348,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.MissingCondition"] = "这一步没有填写要等待的条件。",
 
         // system variable descriptions
-        ["Variable.sys.macroLoop.desc"] = "整个宏已经循环的次数。",
         ["Variable.sys.loopIndex.desc"] = "当前循环体执行到第几轮，只在循环体内部可见。",
+        ["Variable.sys.macroName.desc"] = "正在跑的这个宏的名字，子宏里读到的是子宏自己的名字。",
+        ["Variable.sys.macroFolder.desc"] = "文件动作写相对路径时，从哪个文件夹算起。",
+        ["Variable.sys.activeWindow.desc"] = "当前在最前面的那个窗口的标题。",
+        ["Variable.sys.activeProcess.desc"] = "最前面那个窗口属于哪个程序（不带 .exe）。",
         ["Variable.sys.date.desc"] = "当前日期，例如 2026-10-05。",
         ["Variable.sys.dateLong.desc"] = "当前日期和星期，例如 2026-10-05 星期一。",
         ["Variable.sys.time.desc"] = "当前时间，例如 09:30:00。",
@@ -2370,6 +2373,5 @@ public sealed class Strings : INotifyPropertyChanged
         ["Variable.sys.machineName.desc"] = "计算机名。",
         ["Variable.sys.userName.desc"] = "当前登录用户名。",
         ["Variable.sys.clipboard.desc"] = "剪贴板中的文本。",
-        ["Variable.sys.random.desc"] = "0 到 1 之间的随机数。",
     };
 }

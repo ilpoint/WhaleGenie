@@ -444,6 +444,47 @@ public class RunDebugTests
         });
     }
 
+    /// <summary>
+    /// A run answers with the name of the macro it is, so a step can write its own name into a log
+    /// line or a file. The page that lists WhaleGenie's own variables shows that same answer rather
+    /// than one read off the machine, which is what makes the wall worth looking at while a macro
+    /// runs: it shows what a macro would read right now.
+    /// </summary>
+    [Fact]
+    public void A_run_says_which_macro_it_is()
+    {
+        var answer = Ui.RunAsync(async () =>
+        {
+            var keeps = Count("留名", "$sys.macroName");
+            StepIds.Settle([keeps]);
+
+            var window = new RunWindow([keeps], NullDeviceLayer.Instance, macroName: "对账单");
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            viewModel.RunCommand.Execute(null);
+            while (viewModel.IsBusy)
+            {
+                await Task.Delay(10);
+            }
+
+            viewModel.RefreshCommand.Execute(null);
+
+            var wall = viewModel.SystemVariables
+                .First(row => row.Name == "sys.macroName").CurrentValue;
+            var kept = viewModel.Variables.First(row => row.Name == "留名").Value;
+            var title = viewModel.WindowTitle;
+
+            window.Close();
+            return (Wall: wall, Kept: kept, Title: title);
+        });
+
+        Assert.Equal("对账单", answer.Wall);
+        Assert.Equal("对账单", answer.Kept);
+        Assert.Contains("对账单", answer.Title, System.StringComparison.Ordinal);
+    }
+
     /// <summary>The repository root, found by walking up from the test binaries.</summary>
     private static string Repository()
     {

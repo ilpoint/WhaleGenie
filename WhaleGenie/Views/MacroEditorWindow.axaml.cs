@@ -874,7 +874,8 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        new RunWindow(_viewModel.Steps, _devices, _viewModel.DelayScale, BuildLibrary()).ShowOver(this);
+        new RunWindow(_viewModel.Steps, _devices, _viewModel.DelayScale, BuildLibrary(),
+            macroName: _editing?.Name ?? string.Empty).ShowOver(this);
     }
 
     /// <summary>Opens the run-speed dialog and keeps whatever factor it was given.</summary>

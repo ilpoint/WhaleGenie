@@ -240,6 +240,15 @@ public sealed class MacroRunner
         _images.Clear();
         _frames.Clear();
         _looked.Clear();
+
+        // Which macro is running, for the steps that want to say so in a log line or a file name. It
+        // is this run's own name, written into the macro's values so a called macro's own name — put
+        // there by the call itself — takes over while that macro runs and this one is back afterwards.
+        if (RunName.Trim().Length > 0)
+        {
+            Variables.Local.Set("sys.macroName", Value.FromText(RunName));
+        }
+
         PrepareOutcomes(steps);
         Log(LogLevel.Info, 0, string.Empty, "Run.Start", steps.Count);
         if (Math.Abs(DelayScale - 1) > 0.001)
@@ -517,6 +526,11 @@ public sealed class MacroRunner
         {
             called.Set(argument.Name, ArgumentValue(step, argument));
         }
+
+        // The name of the macro that is running right now, which is what a macro writing a log line
+        // or naming a file means by it. It goes in the called macro's own table, so the caller reads
+        // its own name again the moment the call is over — the table swap below is what restores it.
+        called.Set("sys.macroName", Value.FromText(name));
 
         var caller = Variables.SwapLocal(called);
         _callDepth++;

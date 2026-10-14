@@ -1048,7 +1048,7 @@ public partial class AddActionWindow : Window
             // Off the thread that draws the window: a device call can wait on hardware, and the
             // dialog has to stay able to come back when it is done.
             outcome = await Task.Run(() => MacroRunner.TryAsync(step, Devices,
-                variables: MacroVariables.Seed(), macros: Macros));
+                variables: MacroVariables.Seed(new SystemVariableReader(Devices)), macros: Macros));
         }
         finally
         {

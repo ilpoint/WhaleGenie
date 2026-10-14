@@ -14,10 +14,19 @@ public static class VariableCatalog
     /// <summary>Built-in variables, read-only inside a macro.</summary>
     public static IReadOnlyList<VariableDefinition> SystemVariables { get; } =
     [
-        SystemVariable("sys.macroLoop", "number", "How many times the whole macro has looped.",
-            "0"),
         SystemVariable("sys.loopIndex", "number",
             "Which round of the innermost loop is running. Only visible inside a loop body.", "0"),
+        SystemVariable("sys.macroName", "text",
+            "The name of the macro that is running right now. A macro called by another one answers "
+            + "with its own name.", string.Empty),
+        SystemVariable("sys.macroFolder", "text",
+            "The folder a path is counted from when a file step is given a relative one.",
+            string.Empty),
+
+        SystemVariable("sys.activeWindow", "text",
+            "The title of the window that is in front right now.", string.Empty),
+        SystemVariable("sys.activeProcess", "text",
+            "The program that owns the window in front, without the .exe.", string.Empty),
 
         SystemVariable("sys.date", "text", "Today's date, as yyyy-MM-dd.", "2026-10-05"),
         SystemVariable("sys.dateLong", "text", "Today's date with the weekday, for example 2026-10-05 Monday.",
@@ -47,7 +56,6 @@ public static class VariableCatalog
         SystemVariable("sys.machineName", "text", "Name of this computer.", string.Empty),
         SystemVariable("sys.userName", "text", "Name of the logged-in user.", string.Empty),
         SystemVariable("sys.clipboard", "text", "Current clipboard text.", string.Empty),
-        SystemVariable("sys.random", "number", "Random number between 0 and 1.", "0"),
     ];
 
     private static readonly Dictionary<string, VariableDefinition> SystemByName =

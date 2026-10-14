@@ -48,16 +48,18 @@ public partial class RunWindow : Window
     /// Opens the window on a set of steps. A device layer can be handed in so the run can be
     /// driven without touching the real keyboard, mouse or screen, and the macros of the list can be
     /// handed in so the variables half can say which of them uses what. No steps and no layer is the
-    /// window opened from the button on the main window: variables only, with nothing to run.
+    /// window opened from the button on the main window: variables only, with nothing to run. The
+    /// name the steps belong to is handed in where there is one, so a run says which macro it is.
     /// </summary>
     public RunWindow(IEnumerable<MacroStep> steps, IDeviceLayer? devices = null, double delayScale = 1,
         IMacroLibrary? macros = null, IReadOnlyList<MacroItem>? listed = null,
-        MacroTriggerService? triggers = null)
+        MacroTriggerService? triggers = null, string macroName = "")
     {
         InitializeComponent();
 
         _listed = listed ?? [];
-        var viewModel = new RunViewModel(steps, devices, delayScale, macros, _listed, triggers);
+        var viewModel = new RunViewModel(steps, devices, delayScale, macros, _listed, triggers,
+            macroName);
         DataContext = viewModel;
         _watchesTriggers = triggers is not null;
         Title = Strings.Get("Run.Title");
@@ -105,10 +107,6 @@ public partial class RunWindow : Window
         {
             viewModel.Lines.CollectionChanged += (_, _) => logScroll.ScrollToEnd();
         }
-
-        // Reading the clipboard cannot be done while the rows are built, so the row that reports it
-        // is filled in once the window is up.
-        _ = LoadClipboardAsync();
     }
 
     /// <summary>The form this window is driving.</summary>
@@ -197,26 +195,6 @@ public partial class RunWindow : Window
     /// other macro's steps in it rather than a second window over the same list.
     /// </summary>
     internal Task DebugAsync(MacroItem macro) => Form?.DebugAsync(macro) ?? Task.CompletedTask;
-
-    /// <summary>Fills in the clipboard text, which cannot be read while the rows are built.</summary>
-    private async Task LoadClipboardAsync()
-    {
-        if (Form is not { } viewModel)
-        {
-            return;
-        }
-
-        try
-        {
-            var text = await Clipboard!.TryGetTextAsync();
-            viewModel.SetClipboard(text ?? string.Empty);
-        }
-        catch
-        {
-            // The clipboard may be locked by another process, or not be there at all; the row that
-            // reports it simply stays empty.
-        }
-    }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {

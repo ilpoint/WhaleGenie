@@ -64,11 +64,14 @@ public class MacroRunnerTests
 
     private static async Task<(RunResult Result, SilentRunHost Host)> RunAsync(
         ExecutableStep[] steps, IRunHost? host = null, VariableStore? variables = null,
-        IMacroLibrary? macros = null)
+        IMacroLibrary? macros = null, string runName = "")
     {
         var store = variables ?? Store();
         var silent = host as SilentRunHost ?? new SilentRunHost();
-        var result = await new MacroRunner(store, host ?? silent, null, 1, macros).RunAsync(steps);
+        var result = await new MacroRunner(store, host ?? silent, null, 1, macros)
+        {
+            RunName = runName,
+        }.RunAsync(steps);
         return (result, silent);
     }
 
@@ -1798,6 +1801,31 @@ public class MacroRunnerTests
 
         Assert.True(result.Succeeded);
         Assert.Equal(12, N(store, "记录"));
+    }
+
+    /// <summary>
+    /// A macro can say which macro it is — the name a log line or a file name wants — and a macro that
+    /// was called says its own name rather than the caller's. What the caller reads is its own name
+    /// again the moment the call is over, which is what the two reads around the call check.
+    /// </summary>
+    [Fact]
+    public async Task A_macro_reads_its_own_name_while_it_runs()
+    {
+        var store = Store();
+        var library = new Library(("对账", new MacroSignature([], ["看到的"]),
+            [Set("看到的", "$sys.macroName")]));
+
+        var (result, _) = await RunAsync(
+        [
+            Set("外手", "$sys.macroName"),
+            Call("对账", Returns("看到的=里手")),
+            Set("回来", "$sys.macroName"),
+        ], variables: store, macros: library, runName: "外层");
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("对账", store.Local.Values["里手"].AsText());
+        Assert.Equal("外层", store.Local.Values["外手"].AsText());
+        Assert.Equal("外层", store.Local.Values["回来"].AsText());
     }
 
     [Fact]
