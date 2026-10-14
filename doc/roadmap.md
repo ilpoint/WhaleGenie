@@ -40,23 +40,6 @@
 
 ## 阶段表
 
-### 后台消息的鼠标移动说清楚
-
-**现状**　`input.mouseMoveRelative` 在"后台消息"这一档是错的：`MessageInputDevice.MoveMouseRelative(dx, dy)`
-把 `dx, dy` 直接交给 `MoveMouse`（`ScreenToClient` 之后发 `WM_MOUSEMOVE`），于是"相对移动多少"变成了"移到
-那个点"；带路径时（`style` 不是"直接"）`MacroRunner.MovePointerBy` 又拿**真实指针**当起点往前走，可这一档
-走的是窗口收到的消息，指针自己并没有动。前台与驱动级各自读回当前指针再相对移动，都是对的，只有这一条路发错
-数。
-
-**改成什么**　把这一档的相对移动判为不支持，而不是接着发错的数：设计期检查标一次（这是步骤本身就能确定的问
-题），运行时报 `Run.BackgroundNeedsPointer`（将新增的文案键，中英两侧），说明写清改用前台、驱动级，或者把
-坐标写成绝对客户区坐标（`input.mouseMove`）。`MessageInputDevice.MoveMouseRelative` 不再转给 `MoveMouse`：
-这一档收到它就报同一个失败。
-
-**怎么验收**　引擎用例一条（后台消息加 `input.mouseMoveRelative` 报 `Run.BackgroundNeedsPointer`，且没有任
-何鼠标消息发出去）；设计期一条（`MacroCheckTests` 在这一步上标出来）；手动一条（记事本上用前台与驱动级各走
-一次相对移动，动作与今天一致），结论写进提交信息。
-
 ### 数字字段里的算式：写的时候不误报，跑的时候不当 0
 
 **现状**　"把一个坐标从记录里取出来、填进数字格"这条路两头都对不上：
