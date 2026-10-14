@@ -1868,7 +1868,7 @@ public static class ActionCatalog
                     "Left edge, in screen pixels, of the rectangle the window is seen at: the "
                     + "border Windows keeps round it for resizing is not drawn and does not count. "
                     + "The rectangle window.info hands over can be filled in here as it is; 0 by "
-                    + "default, and anywhere from -100000 to 100000.",
+                    + "default, and anywhere from -100000 to 100000." + WindowRectangleHint,
                     min: -100_000m, max: 100_000m),
                 Number("y", "Y", 0,
                     "Top edge, in screen pixels, counted the way X is; 0 by default, and anywhere "
@@ -4093,6 +4093,16 @@ public static class ActionCatalog
         + "hit, a window or a picture taken earlier), and the record then says the whole rectangle, "
         + "so the other three are left empty. A record says where it is on the screen, so the "
         + "coordinate origin above moves the numbers written out and not a record.";
+
+    /// <summary>
+    /// The same for the four fields a window's own rectangle is written in. Nothing moves a written
+    /// rectangle here: those numbers are the window seen on the screen, which is exactly what a
+    /// window record says, so one field stands for all four.
+    /// </summary>
+    private const string WindowRectangleHint =
+        " The whole rectangle may also be given to one of the four as a record with left, top, width "
+        + "and height in it (window.info and every window window.list names hand over one), and the "
+        + "other three are then left empty.";
 
     /// <summary>
     /// The one part of the screen a step reads or copies, written as four numbers it works on

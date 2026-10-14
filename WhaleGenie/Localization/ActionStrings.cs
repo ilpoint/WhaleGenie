@@ -73,6 +73,14 @@ internal static class ActionStrings
         + "「坐标基准」只挪写出来的那几个数。";
 
     /// <summary>
+    /// The same sentence for the four fields a window's own rectangle is written in, where the
+    /// numbers are the window as it is seen and a window record says exactly the same four things.
+    /// </summary>
+    private const string WindowRectangleHint =
+        "整块矩形也可以只填其中一格，交给它一条带 left、top、width、height 的记录（window.info 与"
+        + "window.list 里的每一条都是这样一条记录）：这时位置与大小都由记录说了算，其余三格留空。";
+
+    /// <summary>
     /// The switch every mouse action shares for taking its place from the pointer rather than from
     /// numbers, which is what a macro means when the place is wherever the user left the mouse.
     /// </summary>
@@ -1298,7 +1306,7 @@ internal static class ActionStrings
         ["window.move.x.label"] = "X",
         ["window.move.x.hint"] = "窗口左边缘的屏幕横坐标，单位像素。按窗口被看见的样子算：Windows 留着"
             + "用来拉伸的那圈边框不画出来也不算；范围 -100000 到 100000，默认 0。window.info 交回来的那组数"
-            + "可以原样填在这里。",
+            + "可以原样填在这里。" + WindowRectangleHint,
         ["window.move.y.label"] = "Y",
         ["window.move.y.hint"] = "窗口上边缘的屏幕纵坐标，单位像素，和 X 一样按窗口被看见的样子算，范围"
             + " -100000 到 100000，默认 0。",
