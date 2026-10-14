@@ -3624,9 +3624,14 @@ public sealed class MacroRunner
         }
 
         // Where the picture sits is one record beside the picture, so it can be handed to a search
-        // region as it stands or read one part at a time.
+        // region as it stands or read one part at a time. The middle is in it beside the corner:
+        // that is the point a step aims at, and a macro that means the middle of what it just took
+        // should not have to work it out of two halves of the rectangle.
+        var middle = Middle(corner, new ScreenSize(frame.Width, frame.Height));
         Give(step, "place", Value.FromRecord(
         [
+            ("x", Value.FromNumber(middle.X)),
+            ("y", Value.FromNumber(middle.Y)),
             ("left", Value.FromNumber(corner.X)),
             ("top", Value.FromNumber(corner.Y)),
             ("width", Value.FromNumber(frame.Width)),
@@ -6212,7 +6217,8 @@ public sealed class MacroRunner
     /// screen can find out where it is instead of having the numbers written into it. The rectangle
     /// is in desktop coordinates, which is what every other coordinate in a macro is written in —
     /// a display to the left of the primary one starts at a negative number, and that is exactly the
-    /// number a step aiming at it needs.
+    /// number a step aiming at it needs. The middle of it is in the record as well, so aiming at
+    /// "the middle of that screen" is one field rather than four numbers and an arithmetic problem.
     /// </summary>
     private void ListDisplays(ExecutableStep step, int depth)
     {
@@ -6220,18 +6226,26 @@ public sealed class MacroRunner
 
         Give(step, "displays", Value.FromList(
         [
-            .. desk.Displays.Select(display => Value.FromRecord(
-            [
-                ("left", Value.FromNumber(display.Bounds.Left)),
-                ("top", Value.FromNumber(display.Bounds.Top)),
-                ("width", Value.FromNumber(display.Bounds.Width)),
-                ("height", Value.FromNumber(display.Bounds.Height)),
-                ("right", Value.FromNumber(display.Bounds.Right)),
-                ("bottom", Value.FromNumber(display.Bounds.Bottom)),
-                ("primary", Value.FromBool(display.Primary)),
-                ("box", Value.FromText(
-                    $"{display.Bounds.Left},{display.Bounds.Top},{display.Bounds.Width},{display.Bounds.Height}")),
-            ])),
+            .. desk.Displays.Select(display =>
+            {
+                var area = display.Bounds;
+                var middle = Middle(new ScreenPoint(area.Left, area.Top),
+                    new ScreenSize(area.Width, area.Height));
+
+                return Value.FromRecord(
+                [
+                    ("x", Value.FromNumber(middle.X)),
+                    ("y", Value.FromNumber(middle.Y)),
+                    ("left", Value.FromNumber(area.Left)),
+                    ("top", Value.FromNumber(area.Top)),
+                    ("width", Value.FromNumber(area.Width)),
+                    ("height", Value.FromNumber(area.Height)),
+                    ("right", Value.FromNumber(area.Right)),
+                    ("bottom", Value.FromNumber(area.Bottom)),
+                    ("primary", Value.FromBool(display.Primary)),
+                    ("box", Value.FromText($"{area.Left},{area.Top},{area.Width},{area.Height}")),
+                ]);
+            }),
         ]));
 
         Log(LogLevel.Info, depth, step.Type, "Run.ListedDisplays",
@@ -6763,9 +6777,9 @@ public sealed class MacroRunner
     /// <summary>
     /// One window as a record: what it is — the title, the program and the class behind it, what the
     /// system knows it by, whether it is shrunk or spread — and where it sits, both as the four
-    /// numbers of its rectangle and as the text a search region is spelled with. The part inside
-    /// the border goes in when the caller has read it; a listing leaves it out, because reading it
-    /// costs a look at every window found.
+    /// numbers of its rectangle, as the middle of that rectangle under x and y, and as the text a
+    /// search region is spelled with. The part inside the border goes in when the caller has read
+    /// it; a listing leaves it out, because reading it costs a look at every window found.
     /// </summary>
     private static Value WindowRecord(WindowInfo window, string program, string kind, string clientBox)
     {
@@ -6773,6 +6787,7 @@ public sealed class MacroRunner
         var top = window.Location.Y;
         var width = window.Size.Width;
         var height = window.Size.Height;
+        var middle = Middle(window.Location, window.Size);
 
         List<(string Name, Value Value)> fields =
         [
@@ -6782,6 +6797,8 @@ public sealed class MacroRunner
             ("handle", Value.FromNumber(window.Handle)),
             ("minimized", Value.FromBool(window.Minimized)),
             ("maximized", Value.FromBool(window.Maximized)),
+            ("x", Value.FromNumber(middle.X)),
+            ("y", Value.FromNumber(middle.Y)),
             ("left", Value.FromNumber(left)),
             ("top", Value.FromNumber(top)),
             ("width", Value.FromNumber(width)),
@@ -7255,6 +7272,7 @@ public sealed class MacroRunner
         var facts = _devices.Ui.Facts(Query(step))
             ?? throw new StepFailure("Run.ElementNotFound", step.Text("selector"));
 
+        var middle = Middle(facts.Location, facts.Size);
         Give(step, "element", Value.FromRecord(
         [
             ("enabled", Value.FromBool(facts.Enabled)),
@@ -7263,6 +7281,8 @@ public sealed class MacroRunner
             ("name", Value.FromText(facts.Name)),
             ("automationId", Value.FromText(facts.AutomationId)),
             ("controlType", Value.FromText(facts.ControlType)),
+            ("x", Value.FromNumber(middle.X)),
+            ("y", Value.FromNumber(middle.Y)),
             ("left", Value.FromNumber(facts.Location.X)),
             ("top", Value.FromNumber(facts.Location.Y)),
             ("width", Value.FromNumber(facts.Size.Width)),

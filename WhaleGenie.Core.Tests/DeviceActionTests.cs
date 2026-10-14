@@ -51,6 +51,10 @@ public class DeviceActionTests
     private static string Centre(VariableStore store, string name)
         => $"{Field(store, name, "x").AsText()},{Field(store, name, "y").AsText()}";
 
+    /// <summary>The middle a record says about itself, the same way, for one already in hand.</summary>
+    private static string MiddleOf(Value record)
+        => $"{record.Field("x")!.AsText()},{record.Field("y")!.AsText()}";
+
     /// <summary>Where a place starts, written "left,top" the way a search region counts from.</summary>
     private static string Corner(VariableStore store, string name)
         => $"{Field(store, name, "left").AsText()},{Field(store, name, "top").AsText()}";
@@ -2184,6 +2188,26 @@ public class DeviceActionTests
     }
 
     /// <summary>
+    /// 截图留下的「位置」除了左上角与大小，还带着这块画面的中心：下一步"移到刚截的这块正中"因此
+    /// 写两格字段就够，不必自己拿 left 与 width 算一半。宽高是奇数时中心按整数除法取整，与命中
+    /// 那条路（MacroRunner.Middle）同一个算法，两处不会差一个像素。
+    /// </summary>
+    [Fact]
+    public async Task The_place_a_picture_was_taken_at_carries_its_middle()
+    {
+        var devices = new FakeDeviceLayer();
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("vision.capture", Param("x", "10"), Param("y", "5"), Param("width", "61"),
+                Param("height", "25"), Returns("place=spot")),
+        ], devices);
+
+        Assert.Equal("40,17", Centre(store, "spot"));
+        Assert.Equal("10,5,61,25", Field(store, "spot", "box").AsText());
+    }
+
+    /// <summary>
     /// A result says which window the picture came out of and how it was taken, because a step that
     /// found nothing is answered by asking whether it was even looking at the right window.
     /// </summary>
@@ -3421,6 +3445,9 @@ public class DeviceActionTests
         Assert.True(Field(store, "found", "visible").AsBool());
         Assert.Equal("10,20,80,24", Field(store, "found", "box").AsText());
         Assert.Equal(80, Field(store, "found", "width").AsNumber());
+
+        // 元素记录也带着它的中心，与命中同一条算法："点这个按钮正中"是一格字段。
+        Assert.Equal("50,32", Centre(store, "found"));
     }
 
     [Fact]
@@ -5600,6 +5627,10 @@ public class DeviceActionTests
         Assert.Equal("300", displays[1].Field("right")!.AsText());
         Assert.True(displays[0].Field("primary")!.AsBool());
         Assert.False(displays[1].Field("primary")!.AsBool());
+
+        // 每一块显示器也带着自己的中心，跟在别处从矩形算出来的一样。
+        Assert.Equal("50,50", MiddleOf(displays[0]));
+        Assert.Equal("200,50", MiddleOf(displays[1]));
     }
 
     [Fact]
@@ -6100,6 +6131,32 @@ public class DeviceActionTests
             store.Local.Values["win"].Fields.Select(field => field.Name));
         Assert.Equal(Field(store, "win", "title").AsText(), listed.Field("title")!.AsText());
         Assert.Equal(Field(store, "win", "handle").Number, listed.Field("handle")!.Number);
+    }
+
+    /// <summary>
+    /// 一条窗口记录里关于位置有三种说法，各说各的：中心（x、y，动作要点的那个点）、左上角
+    /// （left、top，搜索区域从那里量起）、整块矩形（box）。中心按整数除法取，宽高是奇数时也一样，
+    /// 所以"点窗口正中"写两格字段就够；列表里的每一条是同一形状，中心也照同一处算。
+    /// </summary>
+    [Fact]
+    public async Task A_window_record_says_the_middle_of_the_window_as_well_as_its_corner()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(7, 9),
+            new ScreenSize(301, 201), false, false));
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("window.info", Param("window", "Notepad"), Returns("window=win")),
+            Step("window.list", Returns("windows=list")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("157,109", Centre(store, "win"));
+        Assert.Equal("7,9,301,201", Field(store, "win", "box").AsText());
+
+        var listed = store.Local.Values["list"].AsList()[0];
+        Assert.Equal("157,109", MiddleOf(listed));
     }
 
     [Fact]
