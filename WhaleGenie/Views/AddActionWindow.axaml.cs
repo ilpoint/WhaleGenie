@@ -713,11 +713,7 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (await ExpressionBuilderWindow.ShowFor(this, parameter.CurrentText,
-                parameter.Variables) is { } built)
-        {
-            parameter.WriteValue(built);
-        }
+        await BuildExpression(parameter);
     }
 
     /// <summary>
@@ -751,15 +747,33 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (await VariablePickerWindow.ShowFor(this, viewModel.CollectVariables(), LookAtStep)
-            is not { Length: > 0 } picked)
+        // Where the rectangle is said by one value, that value may be worked out like any other, so
+        // the picker offers the expression editor as well.
+        if (await VariablePickerWindow.ShowFor(this, viewModel.CollectVariables(), LookAtStep,
+                offerBuilder: true) is not { } picked)
+        {
+            return;
+        }
+
+        if (picked.WantsExpression)
+        {
+            if (await ExpressionBuilderWindow.ShowFor(this, row.OrVariable,
+                    viewModel.CollectVariables()) is { } built)
+            {
+                row.OrVariable = built;
+            }
+
+            return;
+        }
+
+        if (picked.Token.Length == 0)
         {
             return;
         }
 
         var caret = button.FindAncestorOfType<WrapPanel>(true)?.GetVisualDescendants()
             .OfType<TextBox>().FirstOrDefault()?.CaretIndex;
-        row.InsertVariable(picked, caret ?? row.OrVariable.Length);
+        row.InsertVariable(picked.Token, caret ?? row.OrVariable.Length);
     }
 
     /// <summary>
@@ -775,8 +789,19 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (await VariablePickerWindow.ShowFor(this, viewModel.CollectVariables())
-            is not { Length: > 0 } picked)
+        if (await VariablePickerWindow.ShowFor(this, viewModel.CollectVariables(),
+                offerBuilder: parameter.OffersBuilder) is not { } picked)
+        {
+            return;
+        }
+
+        if (picked.WantsExpression)
+        {
+            await BuildExpression(parameter);
+            return;
+        }
+
+        if (picked.Token.Length == 0)
         {
             return;
         }
@@ -785,7 +810,21 @@ public partial class AddActionWindow : Window
         // holds one value per row, so the one on this row is the one that was being filled in.
         var caret = button.FindAncestorOfType<Grid>(true)?.GetVisualDescendants()
             .OfType<AutoCompleteBox>().FirstOrDefault()?.CaretIndex;
-        parameter.InsertVariable(picked, caret ?? (parameter.Text ?? string.Empty).Length);
+        parameter.InsertVariable(picked.Token, caret ?? (parameter.Text ?? string.Empty).Length);
+    }
+
+    /// <summary>
+    /// Opens the expression editor on a field and keeps what it hands back. Two ways in lead here —
+    /// the button beside a whole-value field and the one inside the variable picker — and both mean
+    /// the same thing, so the field reads back the same way.
+    /// </summary>
+    private async Task BuildExpression(StepParameterViewModel parameter)
+    {
+        if (await ExpressionBuilderWindow.ShowFor(this, parameter.CurrentText,
+                parameter.Variables) is { } built)
+        {
+            parameter.WriteValue(built);
+        }
     }
 
     /// <summary>Folds one group of the action picker open or shut.</summary>

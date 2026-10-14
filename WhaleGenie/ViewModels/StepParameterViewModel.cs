@@ -521,6 +521,14 @@ public partial class StepParameterViewModel : ViewModelBase
         && (Definition.AcceptsVariables || Definition.AcceptsFormula);
 
     /// <summary>
+    /// True when the picker beside this field may also open the expression editor, which it does for
+    /// the fields whose whole value is read as one. Two kinds are left out: a field that matches a
+    /// window by text, because that text is filled in with names rather than worked out, and a field
+    /// that names a variable to write, where a formula would become the name of the variable itself.
+    /// </summary>
+    public bool OffersBuilder => (OffersVariables || IsVariable) && !IsWindow && !Definition.NamesVariable;
+
+    /// <summary>
     /// True when the whole value is read as one, so the expression editor may build it: what it
     /// makes there is what the engine reads. Text that is only filled in stays out, because a
     /// formula written into it would be taken literally. It holds for a value written in a text

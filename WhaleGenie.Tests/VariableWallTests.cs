@@ -232,6 +232,59 @@ public class VariableWallTests
         });
     }
 
+    /// <summary>
+    /// A field that reads its whole value at once may hold something no name can stand for, so the
+    /// picker hands the request for the expression editor back rather than writing into anything: the
+    /// dialog that owns the field is what opens that editor and keeps what it makes. What the wall
+    /// hands back for a name is unchanged — the two answers have to be told apart, and the record is
+    /// how.
+    /// </summary>
+    [Fact]
+    public void The_picker_can_ask_for_a_value_worked_out_instead_of_a_name()
+    {
+        var asked = new List<VariablePick?>();
+        var picker = new VariablePickerViewModel(VariableChoicesForChecks.Named("rows", "total"),
+            offerBuilder: true);
+        picker.CloseRequested += pick => asked.Add(pick);
+
+        Assert.True(picker.OfferBuilder);
+
+        picker.UseExpressionCommand.Execute(null);
+        Assert.Equal(new VariablePick(string.Empty, true), Assert.Single(asked));
+
+        asked.Clear();
+        picker.Wall.ChooseCommand.Execute(
+            picker.Wall.Shown.First(choice => choice.Name == "rows"));
+        Assert.Equal(new VariablePick("$rows", false), Assert.Single(asked));
+    }
+
+    /// <summary>
+    /// The button stands in the picker only where a value may be worked out: a name-writing field and
+    /// one that matches a window by text are asked the same question by a different pair of buttons,
+    /// and a formula written into either would mean something else.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void The_expression_button_stands_only_in_a_picker_that_offers_it(bool offerBuilder)
+    {
+        Ui.Run(() =>
+        {
+            var window = new VariablePickerWindow(new VariablePickerViewModel(
+                VariableChoicesForChecks.Named("rows"), offerBuilder));
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            // The button is in the window's markup either way and the flag decides whether it is
+            // shown, which is what the question is about.
+            var button = window.GetVisualDescendants().OfType<Button>()
+                .FirstOrDefault(control => control.Content as string == Strings.Get("Add.UseExpression"));
+            Assert.Equal(offerBuilder, button?.IsVisible ?? false);
+
+            window.Close();
+        });
+    }
+
     /// <summary>The repository root, found by walking up from the test binaries.</summary>
     private static string Repository()
     {

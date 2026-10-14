@@ -38,22 +38,27 @@ public partial class VariablePickerWindow : Window
 
     /// <summary>
     /// Opens the picker over <paramref name="owner"/> with the variables the macro can read, and
-    /// reports the text of the one that was picked, or null when it was dismissed.
+    /// reports what was picked, or null when it was dismissed.
     /// </summary>
     /// <param name="lookAt">
     /// What to do with a step somebody asked to be shown from the wall's list of the steps that read
     /// a variable. Null where there is no step list to show it in.
     /// </param>
-    public static Task<string?> ShowFor(Window owner, IReadOnlyList<VariableChoice> variables,
-        Action<MacroStep>? lookAt = null)
+    /// <param name="offerBuilder">
+    /// True for a field whose whole value is read at once, where the picker also offers the
+    /// expression editor: a name is what this wall has, and a field like that can hold a value
+    /// worked out with a function as well.
+    /// </param>
+    public static Task<VariablePick?> ShowFor(Window owner, IReadOnlyList<VariableChoice> variables,
+        Action<MacroStep>? lookAt = null, bool offerBuilder = false)
     {
-        var viewModel = new VariablePickerViewModel(variables);
+        var viewModel = new VariablePickerViewModel(variables, offerBuilder);
         if (lookAt is not null)
         {
             viewModel.Jumped += lookAt;
         }
 
-        return new VariablePickerWindow(viewModel).ShowDialogOver<string?>(owner);
+        return new VariablePickerWindow(viewModel).ShowDialogOver<VariablePick?>(owner);
     }
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)

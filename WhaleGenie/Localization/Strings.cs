@@ -725,6 +725,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.VariablePicker"] = "Variables",
         ["Add.VariablePickerHint"] = "Pick one of the variables the macro can read and put its name "
             + "in at the cursor.",
+        ["Add.UseExpression"] = "Work out a value",
+        ["Add.UseExpressionHint"] = "Open the expression editor on this field instead of putting a "
+            + "name in it: what it hands back is a value worked out from variables, operators and "
+            + "functions.",
         ["VarPicker.Title"] = "Pick a variable",
         ["VarPicker.Help"] = "Click a variable to put it in the field, and hover over one to see "
             + "what it is, what it holds and which step left it there.",
@@ -1845,6 +1849,9 @@ public sealed class Strings : INotifyPropertyChanged
             + "列表，不用凭记忆手写。字段保留它交回来的内容，写回一个普通数字就回到数字框。",
         ["Add.VariablePicker"] = "变量",
         ["Add.VariablePickerHint"] = "从宏能读到的变量里挑一个，把名字插到光标处。",
+        ["Add.UseExpression"] = "用表达式取值",
+        ["Add.UseExpressionHint"] = "不插变量名，改在这个字段上打开表达式编辑器：交回来的是"
+            + "由变量、运算符与函数算出的值。",
         ["VarPicker.Title"] = "选择变量",
         ["VarPicker.Help"] = "点一个变量就插进字段里；悬浮在按钮上能看见它是什么、装什么、"
             + "是哪一步留下的。",

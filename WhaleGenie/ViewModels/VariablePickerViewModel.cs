@@ -13,15 +13,17 @@ namespace WhaleGenie.ViewModels;
 /// </summary>
 public partial class VariablePickerViewModel : ViewModelBase
 {
-    public VariablePickerViewModel(IReadOnlyList<VariableChoice>? variables = null)
+    public VariablePickerViewModel(IReadOnlyList<VariableChoice>? variables = null,
+        bool offerBuilder = false)
     {
+        OfferBuilder = offerBuilder;
         Wall = new VariableWallViewModel(variables);
-        Wall.Chosen += token => CloseRequested?.Invoke(token);
+        Wall.Chosen += token => CloseRequested?.Invoke(new VariablePick(token, false));
         Wall.Jumped += step => Jumped?.Invoke(step);
     }
 
-    /// <summary>Raised with the text to put in the field, or null when nothing was picked.</summary>
-    public event Action<string?>? CloseRequested;
+    /// <summary>Raised with what was picked, or null when the dialog was dismissed.</summary>
+    public event Action<VariablePick?>? CloseRequested;
 
     /// <summary>
     /// Raised with a step somebody asked to be shown. The picker does not close for it: the person
@@ -34,8 +36,30 @@ public partial class VariablePickerViewModel : ViewModelBase
 
     public string Help => Strings.Get("VarPicker.Help");
 
+    /// <summary>
+    /// The button that asks for the expression editor instead of a name, which is what a field whose
+    /// whole value is read at once needs: a value worked out with a function or a calculation is
+    /// something this wall of names cannot offer. Kept away from fields that take a name to write
+    /// down and from the ones that match a window by text, where a formula would mean something else.
+    /// </summary>
+    public bool OfferBuilder { get; }
+
+    public string BuilderLabel => Strings.Get("Add.UseExpression");
+
+    public string BuilderHint => Strings.Get("Add.UseExpressionHint");
+
     public VariableWallViewModel Wall { get; }
 
     [RelayCommand]
     private void Cancel() => CloseRequested?.Invoke(null);
+
+    [RelayCommand]
+    private void UseExpression() => CloseRequested?.Invoke(new VariablePick(string.Empty, true));
 }
+
+/// <summary>
+/// What the picker hands back: the text of a variable to drop into the field, or the request that
+/// the expression editor be opened on it instead. The field itself is untouched either way — the
+/// dialog that owns the field is the only thing that writes into it.
+/// </summary>
+public sealed record VariablePick(string Token, bool WantsExpression);

@@ -230,6 +230,29 @@ public class VariableFieldTests
     }
 
     /// <summary>
+    /// The picker opens the expression editor for the fields whose whole value is read at once, and
+    /// only for those. A box that writes a variable's name is left out — a formula there would become
+    /// the name itself, and nothing would ever read it back — and so is the box that recognises a
+    /// window by text, which is filled in with names rather than worked out.
+    /// </summary>
+    [Fact]
+    public void The_picker_offers_the_expression_editor_where_a_whole_value_is_read()
+    {
+        Ui.Run(() =>
+        {
+            // Read as a whole, so a value worked out from variables and functions belongs here.
+            Assert.True(Parameter(Open("vision.saveImage"), "path").OffersBuilder);
+            Assert.True(Parameter(Open("system.notify"), "message").OffersBuilder);
+
+            // A name being written, and a window recognised by text: both take the picker, neither
+            // takes a formula.
+            Assert.False(Parameter(Open("control.setVariable"), "name").OffersBuilder);
+            Assert.False(Parameter(Open("control.for"), "variable").OffersBuilder);
+            Assert.False(Parameter(Open("window.exists"), "window").OffersBuilder);
+        });
+    }
+
+    /// <summary>
     /// A picture is a file or the picture an earlier Capture saved, and the second of those is a
     /// name: it goes over the box the same way it goes over any other box that takes one, on the
     /// one picture a step names and on every row of a list of them.
