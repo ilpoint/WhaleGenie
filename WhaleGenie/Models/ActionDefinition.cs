@@ -304,6 +304,17 @@ public class ActionParameter
     public IReadOnlyList<string> AppliesWhenValues { get; init; } = [];
 
     /// <summary>
+    /// A second sibling field this one also follows, for the few fields that are drawn only while
+    /// two switches both say what they answer to: a mouse step's numbers are written only while the
+    /// place is not taken from the pointer and not taken from a record, and either switch on its own
+    /// leaves them as a question nothing reads. Empty means this field follows one switch or none.
+    /// </summary>
+    public string AppliesWhenAlso { get; init; } = string.Empty;
+
+    /// <summary>The values of the field named by <see cref="AppliesWhenAlso"/> this field belongs to.</summary>
+    public IReadOnlyList<string> AppliesWhenAlsoValues { get; init; } = [];
+
+    /// <summary>
     /// A value of <see cref="AppliesWhenValues"/> that stands for "the field it follows has
     /// anything in it". A question that only exists once the one above it is answered — how many
     /// rows deep, which entry the number names — is asked that way rather than being drawn empty.

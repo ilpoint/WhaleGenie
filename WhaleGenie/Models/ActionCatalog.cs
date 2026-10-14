@@ -1867,19 +1867,23 @@ public static class ActionCatalog
                 Number("x", "X", 0,
                     "Left edge, in screen pixels, of the rectangle the window is seen at: the "
                     + "border Windows keeps round it for resizing is not drawn and does not count. "
-                    + "The rectangle window.info hands over can be filled in here as it is; 0 by "
-                    + "default, and anywhere from -100000 to 100000." + WindowRectangleHint,
-                    min: -100_000m, max: 100_000m),
+                    + "0 by default, and anywhere from -100000 to 100000.",
+                    min: -100_000m, max: 100_000m,
+                    onlyWith: [RecordPlaceOff, string.Empty], onlyField: RecordPlaceToggle),
                 Number("y", "Y", 0,
                     "Top edge, in screen pixels, counted the way X is; 0 by default, and anywhere "
-                    + "from -100000 to 100000.", min: -100_000m, max: 100_000m),
+                    + "from -100000 to 100000.", min: -100_000m, max: 100_000m,
+                    onlyWith: [RecordPlaceOff, string.Empty], onlyField: RecordPlaceToggle),
                 Number("width", "Width", 800,
                     "How wide the window is to become, in pixels, measured the same way: as the "
                     + "window is seen rather than as Windows stretches it; 800 by default, and "
-                    + "anywhere from 1 to 100000.", min: 1m, max: 100_000m),
+                    + "anywhere from 1 to 100000.", min: 1m, max: 100_000m,
+                    onlyWith: [RecordPlaceOff, string.Empty], onlyField: RecordPlaceToggle),
                 Number("height", "Height", 600,
                     "How tall the window is to become, in pixels, counted the way the width is; 600 "
-                    + "by default, and anywhere from 1 to 100000.", min: 1m, max: 100_000m),
+                    + "by default, and anywhere from 1 to 100000.", min: 1m, max: 100_000m,
+                    onlyWith: [RecordPlaceOff, string.Empty], onlyField: RecordPlaceToggle),
+                .. BoxRecord("Take the place and size from a record", RecordFieldLabel),
             ],
         },
         new()
@@ -2073,11 +2077,13 @@ public static class ActionCatalog
                 Number("x", "X", 0,
                     "The column of the place to move to, counted from the coordinate origin above, "
                     + "in pixels; 0 by default. Type a number for a place that does not move, or "
-                    + "change the coordinate origin, or put a variable here, for one that does."
-                    + PairRecordHint),
+                    + "change the coordinate origin, or put a variable here, for one that does.",
+                    onlyWith: [RecordPlaceOff, string.Empty], onlyField: RecordPlaceToggle),
                 Number("y", "Y", 0,
                     "The row of the place to move to, counted from the coordinate origin above, in "
-                    + "pixels; 0 by default."),
+                    + "pixels; 0 by default.",
+                    onlyWith: [RecordPlaceOff, string.Empty], onlyField: RecordPlaceToggle),
+                ..PlaceRecord(RecordPlaceLabel, RecordFieldLabel),
                 ..Anchor(withElement: true),
                 Number("durationMs", "Duration", 0,
                     "How long the pointer takes to travel from where it is to the target, in "
@@ -2126,6 +2132,7 @@ public static class ActionCatalog
                     + "pointer.",
                     "The row of the place to click, counted from the same origin and in the same "
                     + "pixels; 0 by default."),
+                ..CursorRecord(),
                 ..Anchor(withElement: true),
                 Aim(),
                 PutBack(),
@@ -2152,6 +2159,7 @@ public static class ActionCatalog
                     + "from the pointer.",
                     "The row of the place to double click, counted from the same origin and in the "
                     + "same pixels; 0 by default."),
+                ..CursorRecord(),
                 ..Anchor(withElement: true),
                 Aim(),
                 PutBack(),
@@ -2175,6 +2183,7 @@ public static class ActionCatalog
                     + "pointer.",
                     "The row of the place to press, counted from the same origin and in the same "
                     + "pixels; 0 by default."),
+                ..CursorRecord(),
                 ..Anchor(withElement: true),
                 ..Delivery(),
             ],
@@ -2195,6 +2204,7 @@ public static class ActionCatalog
                     + "the pointer.",
                     "The row of the place to let go at, counted from the same origin and in the same "
                     + "pixels; 0 by default."),
+                ..CursorRecord(),
                 ..Anchor(withElement: true),
                 ..Delivery(),
             ],
@@ -2227,6 +2237,7 @@ public static class ActionCatalog
                     "The row of the place to scroll at, counted from the same origin and in the same "
                     + "pixels; 0 by default."),
                 AtPointer(),
+                ..CursorRecord(),
                 ..Anchor(withElement: true),
                 ..Beat(),
                 ..Delivery(),
@@ -2240,18 +2251,32 @@ public static class ActionCatalog
             Description = "Press at one point, move to another and release.",
             Parameters =
             [
-                WrittenPlace("start", "Start",
-                    "Where the drag begins, in screen pixels counted from the coordinate origin "
-                    + "above: x,y. A record with x and y in it may be given instead of the two "
-                    + "numbers (a hit, a window or an element, whose x and y are the middle of what "
-                    + "was found), which is how \"drag what was just found\" is written. A variable "
-                    + "holding either also goes here, and is substituted rather than read as an "
-                    + "expression. A record says where it is on the screen, so the coordinate "
-                    + "origin above moves the two numbers written out and not a record. “Pick "
-                    + "region” fills both ends in at once."),
-                WrittenPlace("end", "End",
-                    "Where the drag ends, written the same way and counted from the same origin as "
-                    + "the start."),
+                Number("startX", "Start X", 0,
+                    "The column the drag begins at, counted from the coordinate origin above, in "
+                    + "pixels; 0 by default. “Pick region” fills both ends in at once: the corner the "
+                    + "rectangle was dragged from goes here.", min: -100_000m, max: 100_000m,
+                    onlyWith: [RecordPlaceOff, string.Empty], onlyField: "startFromRecord"),
+                Number("startY", "Start Y", 0,
+                    "The row the drag begins at, counted from the same origin and in the same pixels; "
+                    + "0 by default.", min: -100_000m, max: 100_000m,
+                    onlyWith: [RecordPlaceOff, string.Empty], onlyField: "startFromRecord"),
+                Toggle("startFromRecord", "Start from a record", false, RecordPlaceSwitchHint),
+                Text("startRecord", "The start record", string.Empty, RecordPlaceFieldHint,
+                    required: false, acceptsFormula: true,
+                    onlyWith: ["true"], onlyField: "startFromRecord"),
+                Number("endX", "End X", 0,
+                    "The column the drag ends at, counted from the same origin and in the same "
+                    + "pixels as the start; 0 by default. “Pick region” puts the corner the rectangle "
+                    + "reached here.", min: -100_000m, max: 100_000m,
+                    onlyWith: [RecordPlaceOff, string.Empty], onlyField: "endFromRecord"),
+                Number("endY", "End Y", 0,
+                    "The row the drag ends at, counted the same way; 0 by default.",
+                    min: -100_000m, max: 100_000m,
+                    onlyWith: [RecordPlaceOff, string.Empty], onlyField: "endFromRecord"),
+                Toggle("endFromRecord", "End from a record", false, RecordPlaceSwitchHint),
+                Text("endRecord", "The end record", string.Empty, RecordPlaceFieldHint,
+                    required: false, acceptsFormula: true,
+                    onlyWith: ["true"], onlyField: "endFromRecord"),
                 ..Anchor(withElement: true),
                 Button(),
                 Number("durationMs", "Duration", 300,
@@ -2505,10 +2530,13 @@ public static class ActionCatalog
             [
                 Number("x", "X", 0,
                     "The column to sample, counted from the coordinate origin above, in pixels; 0 by "
-                    + "default." + PairRecordHint),
+                    + "default.",
+                    onlyWith: [RecordPlaceOff, string.Empty], onlyField: RecordPlaceToggle),
                 Number("y", "Y", 0,
                     "The row to sample, counted from the same origin and in the same pixels; 0 by "
-                    + "default."),
+                    + "default.",
+                    onlyWith: [RecordPlaceOff, string.Empty], onlyField: RecordPlaceToggle),
+                .. PlaceRecord(RecordPlaceLabel, RecordFieldLabel),
                 ..Anchor(),
                 ..Capture(),
                 LookGap(0),
@@ -2529,10 +2557,13 @@ public static class ActionCatalog
             [
                 Number("x", "X", 0,
                     "The column to watch, counted from the coordinate origin above, in pixels; 0 by "
-                    + "default." + PairRecordHint),
+                    + "default.",
+                    onlyWith: [RecordPlaceOff, string.Empty], onlyField: RecordPlaceToggle),
                 Number("y", "Y", 0,
                     "The row to watch, counted from the same origin and in the same pixels; 0 by "
-                    + "default."),
+                    + "default.",
+                    onlyWith: [RecordPlaceOff, string.Empty], onlyField: RecordPlaceToggle),
+                .. PlaceRecord(RecordPlaceLabel, RecordFieldLabel),
                 ColorPick("color", "Colour", "#000000",
                     "Colour the pixel has to show, written as #RRGGBB; #000000 by default."),
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100),
@@ -3730,7 +3761,8 @@ public static class ActionCatalog
     private static ActionParameter Text(string name, string label, string placeholder = "",
         string hint = "", bool required = true, string defaultValue = "", bool advanced = false,
         bool foreign = false, bool acceptsVariables = false, bool acceptsFormula = false,
-        string[]? onlyWith = null, string onlyField = "algorithm")
+        string[]? onlyWith = null, string onlyField = "algorithm",
+        string[]? alsoWith = null, string alsoField = "algorithm")
         => new()
         {
             Name = name,
@@ -3746,6 +3778,8 @@ public static class ActionCatalog
             AcceptsFormula = acceptsFormula,
             AppliesWhen = onlyWith is null ? string.Empty : onlyField,
             AppliesWhenValues = onlyWith ?? [],
+            AppliesWhenAlso = alsoWith is null ? string.Empty : alsoField,
+            AppliesWhenAlsoValues = alsoWith ?? [],
         };
 
     private static ActionParameter Multiline(string name, string label, string hint = "",
@@ -3884,7 +3918,8 @@ public static class ActionCatalog
     private static ActionParameter Number(string name, string label, decimal? defaultValue = null,
         string hint = "", decimal min = 0m, decimal max = StepMeta.LongestPauseMs,
         bool advanced = false, string[]? onlyWith = null, string onlyField = "algorithm",
-        bool required = true, bool emptiesToEdge = false)
+        bool required = true, bool emptiesToEdge = false,
+        string[]? alsoWith = null, string alsoField = "algorithm")
         => new()
         {
             Name = name,
@@ -3905,6 +3940,8 @@ public static class ActionCatalog
             Advanced = advanced,
             AppliesWhen = onlyWith is null ? string.Empty : onlyField,
             AppliesWhenValues = onlyWith ?? [],
+            AppliesWhenAlso = alsoWith is null ? string.Empty : alsoField,
+            AppliesWhenAlsoValues = alsoWith ?? [],
         };
 
     private static ActionParameter Toggle(string name, string label, bool defaultValue = false,
@@ -4052,57 +4089,64 @@ public static class ActionCatalog
         };
 
     /// <summary>
-    /// A place a step hands over as one field rather than as a pair of numbers: written as x,y, or
-    /// given a record that says where it is. It is text rather than a value field, because the comma
-    /// of a written place would stop an expression at its first number; a variable in it is
-    /// substituted, and so is the record it holds. The field is answered: a place that was left
-    /// blank is a step with nothing to do, and the engine says so rather than aiming at a corner.
+    /// The switch and the field every place written as two numbers gains for taking that place from
+    /// a record instead: a hit, a window or an element carries the middle of what it names under
+    /// <c>x</c> and <c>y</c>, which is where a step has to aim. Written once per shape rather than
+    /// once per action, so "click what was just found" is described in the same words wherever a
+    /// place is written down. The switch is asked for plainly because it is what the other field
+    /// answers to, and the field is named for what goes in it rather than for what it does.
     /// </summary>
-    private static ActionParameter WrittenPlace(string name, string label, string hint)
-        => new()
-        {
-            Name = name,
-            Label = label,
-            Kind = ActionParameterKind.Text,
-            Hint = hint,
-            AcceptsVariables = true,
-        };
+    private const string RecordPlaceSwitchHint =
+        "With this on, the place comes from the record in the field below, and the numbers above are "
+        + "not written and not read. Use it when the place is wherever an earlier step found "
+        + "something.";
+
+    private const string RecordPlaceFieldHint =
+        "The record the place is taken from: a hit, a window or an element carries x and y, the "
+        + "middle of what it names, in screen pixels. An expression that works one out goes here as "
+        + "well. A record says where it is on the screen, so the coordinate origin above moves the "
+        + "numbers written out and not a record.";
 
     /// <summary>
-    /// What a field that writes a place as two numbers says about the record it also takes: a hit,
-    /// a window or an element goes into either half as it stands, because the middle of what was
-    /// found is what every one of them carries under <c>x</c> and <c>y</c>. One sentence written
-    /// once rather than once per field, so "click what was just found" is described in the same
-    /// words wherever the pair is written down. It opens with a space, being put after a sentence
-    /// that is already there.
-    /// </summary>
-    private const string PairRecordHint =
-        " One of the two may be given a record with x and y in it instead (a hit, a window or an "
-        + "element, whose x and y are the middle of what was found), and the record then says the "
-        + "whole place, so the other one is left empty. A record says where it is on the screen, "
-        + "so the coordinate origin above moves the numbers written out and not a record.";
-
-    /// <summary>
-    /// The same for a rectangle written down as four numbers: a hit, a window or a picture taken
+    /// The same pair for a rectangle written as four numbers: a hit, a window or a picture taken
     /// earlier carries all four sides of it, so "read the writing on what was just found" is one
-    /// field rather than four readings with a chance of one of them being the neighbour's. Written
-    /// once for the same reason, and it opens with a space for the same reason.
+    /// field rather than four readings with a chance of one of them being the neighbour's.
     /// </summary>
-    private const string RegionRecordHint =
-        " One of the four may be given a record with left, top, width and height in it instead (a "
-        + "hit, a window or a picture taken earlier), and the record then says the whole rectangle, "
-        + "so the other three are left empty. A record says where it is on the screen, so the "
-        + "coordinate origin above moves the numbers written out and not a record.";
+    private const string RecordBoxSwitchHint =
+        "With this on, the rectangle comes from the record in the field below, and the four numbers "
+        + "above are not written and not read. Use it when the rectangle is the one an earlier step "
+        + "found or read.";
+
+    private const string RecordBoxFieldHint =
+        "The record the rectangle is taken from: a hit, a window or a picture taken earlier carries "
+        + "left, top, width and height, in screen pixels. An expression that works one out goes here "
+        + "as well. A record says where it is on the screen, so the coordinate origin above moves "
+        + "the numbers written out and not a record.";
 
     /// <summary>
-    /// The same for the four fields a window's own rectangle is written in. Nothing moves a written
-    /// rectangle here: those numbers are the window seen on the screen, which is exactly what a
-    /// window record says, so one field stands for all four.
+    /// The switch and the field that take a place written as two numbers from a record instead. The
+    /// numbers answer to the switch, so they are drawn only while it is off; a step that also has
+    /// the pointer switch answers to both, which is what <paramref name="alsoWith"/> is for.
     /// </summary>
-    private const string WindowRectangleHint =
-        " The whole rectangle may also be given to one of the four as a record with left, top, width "
-        + "and height in it (window.info and every window window.list names hand over one), and the "
-        + "other three are then left empty.";
+    private static ActionParameter[] PlaceRecord(string switchLabel, string fieldLabel,
+        string[]? onlyWith = null, string onlyField = "algorithm")
+        =>
+        [
+            Toggle("useRecord", switchLabel, false, RecordPlaceSwitchHint,
+                onlyWith: onlyWith, onlyField: onlyField),
+            Text("record", fieldLabel, string.Empty, RecordPlaceFieldHint, required: false,
+                acceptsFormula: true, onlyWith: ["true"], onlyField: "useRecord",
+                alsoWith: onlyWith, alsoField: onlyField),
+        ];
+
+    /// <summary>The same pair for a rectangle written as four numbers.</summary>
+    private static ActionParameter[] BoxRecord(string switchLabel, string fieldLabel)
+        =>
+        [
+            Toggle("useRecord", switchLabel, false, RecordBoxSwitchHint),
+            Text("record", fieldLabel, string.Empty, RecordBoxFieldHint, required: false,
+                acceptsFormula: true, onlyWith: ["true"], onlyField: "useRecord"),
+        ];
 
     /// <summary>
     /// The one part of the screen a step reads or copies, written as four numbers it works on
@@ -4119,20 +4163,23 @@ public static class ActionCatalog
             hint: "How far the left edge of the region is from the left of the screen, in pixels. Under "
             + "a window anchor it is counted from that window's own left edge. Left out, counting "
             + "starts at that edge, and with the other three left out too the whole screen is read. "
-            + "“Pick region” fills all four in at once." + RegionRecordHint,
-            required: false, emptiesToEdge: true),
+            + "“Pick region” fills all four in at once.",
+            required: false, emptiesToEdge: true,
+            onlyWith: [RecordPlaceOff, string.Empty], onlyField: RecordPlaceToggle),
         Number("y", "Top-left Y",
             hint: "How far the top edge of the region is from the top of the screen, in pixels. Under a "
             + "window anchor it is counted from that window's own top edge. Left out, counting "
-            + "starts at that edge.", required: false, emptiesToEdge: true),
+            + "starts at that edge.", required: false, emptiesToEdge: true,
+            onlyWith: [RecordPlaceOff, string.Empty], onlyField: RecordPlaceToggle),
         Number("width", "Width to the right",
             hint: "How wide the region is, in pixels: the distance from the left edge to the right one. "
             + "Left out, it reaches the right edge of the screen. At least 1.", min: 1, required: false,
-            emptiesToEdge: true),
+            emptiesToEdge: true, onlyWith: [RecordPlaceOff, string.Empty], onlyField: RecordPlaceToggle),
         Number("height", "Height downward",
             hint: "How tall the region is, in pixels: the distance from the top edge to the bottom one. "
             + "Left out, it reaches the bottom edge of the screen. At least 1.", min: 1, required: false,
-            emptiesToEdge: true),
+            emptiesToEdge: true, onlyWith: [RecordPlaceOff, string.Empty], onlyField: RecordPlaceToggle),
+        .. BoxRecord("Take the rectangle from a record", RecordFieldLabel),
     ];
 
     /// <summary>
@@ -4544,17 +4591,41 @@ public static class ActionCatalog
 
     /// <summary>
     /// The two halves of the place a mouse action acts on. They are asked for only while that place
-    /// is not taken from the pointer, so a step set that way carries no coordinates at all.
+    /// is not taken from the pointer nor from a record, so a step set either of those ways carries
+    /// no coordinates at all.
     /// </summary>
     private static ActionParameter[] PointerPosition(string xHint, string yHint) =>
     [
-        Number("x", "X", 0, xHint + PairRecordHint,
-            onlyWith: [CursorPlaceOff], onlyField: CursorPlaceToggle),
-        Number("y", "Y", 0, yHint, onlyWith: [CursorPlaceOff], onlyField: CursorPlaceToggle),
+        Number("x", "X", 0, xHint,
+            onlyWith: [CursorPlaceOff], onlyField: CursorPlaceToggle,
+            alsoWith: [RecordPlaceOff, string.Empty], alsoField: RecordPlaceToggle),
+        Number("y", "Y", 0, yHint,
+            onlyWith: [CursorPlaceOff], onlyField: CursorPlaceToggle,
+            alsoWith: [RecordPlaceOff, string.Empty], alsoField: RecordPlaceToggle),
     ];
+
+    /// <summary>
+    /// The switch and the field that take a mouse action's place from a record, asked for only while
+    /// the step does not work at the pointer: a step that says "wherever the pointer is" has already
+    /// said where it acts, so a record beside it would be a second answer nothing reads.
+    /// </summary>
+    private static ActionParameter[] CursorRecord()
+        => PlaceRecord(RecordPlaceLabel, RecordFieldLabel,
+            onlyWith: [CursorPlaceOff, string.Empty], onlyField: CursorPlaceToggle);
 
     /// <summary>Name of the switch that takes a mouse step's place from the pointer.</summary>
     private const string CursorPlaceToggle = "useCursor";
+
+    /// <summary>Name of the switch that takes a step's place or rectangle from a record.</summary>
+    private const string RecordPlaceToggle = "useRecord";
+
+    /// <summary>What that switch says while the place is still written as numbers.</summary>
+    private const string RecordPlaceOff = "false";
+
+    /// <summary>The two names those fields go by on seven actions, so they read alike.</summary>
+    private const string RecordPlaceLabel = "Take the place from a record";
+
+    private const string RecordFieldLabel = "The record";
 
     /// <summary>What that switch says while the step is still counting from its own numbers.</summary>
     private const string CursorPlaceOff = "false";

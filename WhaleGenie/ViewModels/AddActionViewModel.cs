@@ -1602,7 +1602,7 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>
     /// Notes the parameters that name a rectangle, so one button can take all of them from a drag
-    /// on the screen: x, y, width and height; the start and end of a drag; or a single
+    /// on the screen: x, y, width and height; the two places a drag writes; or a single
     /// "x,y,width,height" field.
     /// </summary>
     private void MarkRegion()
@@ -1612,8 +1612,8 @@ public partial class AddActionViewModel : ViewModelBase
             Parameters.Any(parameter => parameter.Definition.Name == "width") &&
             Parameters.Any(parameter => parameter.Definition.Name == "height")
                 ? corner
-                : Parameter("start") is { } start && Parameter("end") is not null
-                    ? start
+                : Pair("startX", "startY") is { } from && Parameter("endX") is not null
+                    ? from
                     : Parameter("region");
 
         if (anchor is not null)
@@ -1622,8 +1622,11 @@ public partial class AddActionViewModel : ViewModelBase
         }
 
         // How far a rectangle reaches is one thing said in two numbers, so the two read better side
-        // by side, the way x and y already do.
+        // by side, the way x and y already do. A drag writes two places rather than a corner and a
+        // size, and each place is the same pair of numbers standing the same way.
         PairRow("width", "height");
+        PairRow("startX", "startY");
+        PairRow("endX", "endY");
 
         StepParameterViewModel? Pair(string first, string second)
             => Parameter(first) is not null && Parameter(second) is not null ? Parameter(first) : null;
@@ -1666,7 +1669,24 @@ public partial class AddActionViewModel : ViewModelBase
             filled = true;
         }
 
+        // A number just read off the screen is the answer the user wanted, so a switch that would
+        // have taken the same place from a record is turned off with it: a record left on from before
+        // would otherwise keep saying somewhere else, and nothing on the form would show it going by.
+        if (filled)
+        {
+            SwitchOff("useRecord");
+        }
+
         return filled;
+    }
+
+    /// <summary>Turns a switch off, for the fields the screen picker just answered itself.</summary>
+    private void SwitchOff(string name)
+    {
+        if (Parameter(name) is { } toggle)
+        {
+            toggle.Flag = false;
+        }
     }
 
     /// <summary>
@@ -1772,19 +1792,28 @@ public partial class AddActionViewModel : ViewModelBase
             }
         }
 
-        // The two ends of a drag are places rather than numbers, and the rectangle dragged on the
-        // screen says both of them: the corner it started at and the corner it reached.
-        foreach (var (name, value) in new (string Name, string Value)[]
+        // A drag writes the same rectangle as two places rather than as a corner and a size: the
+        // corner the rectangle was dragged from, and the corner it was dragged to.
+        foreach (var (name, value) in new (string Name, int Value)[]
                  {
-                     ("start", $"{left},{top}"), ("end", $"{left + width},{top + height}"),
+                     ("startX", left), ("startY", top),
+                     ("endX", left + width), ("endY", top + height),
                  })
         {
-            if (Parameter(name) is { IsNumber: false } place
-                && place.Definition.Kind is ActionParameterKind.Text)
+            if (Parameter(name) is { IsNumber: true } parameter)
             {
-                place.WriteValue(value);
+                parameter.SetNumber(value);
                 filled = true;
             }
+        }
+
+        // The four numbers are the user's own answer, so whichever switch would have taken the
+        // rectangle from a record is turned off along with them.
+        if (filled)
+        {
+            SwitchOff("useRecord");
+            SwitchOff("startFromRecord");
+            SwitchOff("endFromRecord");
         }
 
         if (!filled && Parameter("region") is { } region)
@@ -1820,12 +1849,19 @@ public partial class AddActionViewModel : ViewModelBase
 
             // What a field follows is a value rather than a count: the ways of recognising a
             // picture ask different questions, and a question nothing reads is not drawn.
-            if (editor.Definition.AppliesWhen is { Length: > 0 } followedBy)
+            if (editor.Definition.AppliesWhen.Length > 0
+                || editor.Definition.AppliesWhenAlso.Length > 0)
             {
                 var followed = Parameters.FirstOrDefault(parameter =>
-                    parameter.Definition.Name == followedBy);
+                    parameter.Definition.Name == editor.Definition.AppliesWhen);
 
-                if (editor.UpdateApplicability(followed?.CurrentText))
+                var alsoBy = editor.Definition.AppliesWhenAlso;
+                var also = alsoBy.Length == 0
+                    ? null
+                    : Parameters.FirstOrDefault(parameter => parameter.Definition.Name == alsoBy)
+                        ?.CurrentText;
+
+                if (editor.UpdateApplicability(followed?.CurrentText, also))
                 {
                     rows++;
                 }

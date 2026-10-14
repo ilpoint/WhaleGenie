@@ -321,17 +321,16 @@ public partial class StepParameterViewModel : ViewModelBase
     public bool IsApplicable { get; private set; } = true;
 
     /// <summary>
-    /// Recomputes <see cref="IsApplicable"/> from what the field it follows says, and reports
-    /// whether that changed anything — the dialog counts its rows from this.
+    /// Recomputes <see cref="IsApplicable"/> from what the fields it follows say, and reports
+    /// whether that changed anything — the dialog counts its rows from this. A field that follows
+    /// two switches is answered by both of them: it is drawn only where the two of them agree with
+    /// a way of writing it, which is what keeps the numbers off a step that takes its place from the
+    /// pointer and the record field off a step that does not take one at all.
     /// </summary>
-    public bool UpdateApplicability(string? followed)
+    public bool UpdateApplicability(string? followed, string? also = null)
     {
-        var said = followed?.Trim() ?? string.Empty;
-        var applies = Definition.AppliesWhen.Length == 0
-            || (followed is not null
-                && (Definition.AppliesWhenValues.Contains(said, StringComparer.OrdinalIgnoreCase)
-                    || (said.Length > 0 && Definition.AppliesWhenValues.Contains(
-                        ActionParameter.AnyValue, StringComparer.Ordinal))));
+        var applies = Answers(Definition.AppliesWhen, Definition.AppliesWhenValues, followed)
+            && Answers(Definition.AppliesWhenAlso, Definition.AppliesWhenAlsoValues, also);
 
         if (applies == IsApplicable)
         {
@@ -343,6 +342,25 @@ public partial class StepParameterViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsMissing));
         OnPropertyChanged(nameof(IsIncluded));
         return true;
+    }
+
+    /// <summary>
+    /// Whether one field this one follows lets it take part: the switch it names says one of the
+    /// values it lists, where those values may name "anything in it" rather than a word. A field
+    /// that follows nothing always takes part.
+    /// </summary>
+    private static bool Answers(string follows, IReadOnlyList<string> values, string? said)
+    {
+        if (follows.Length == 0)
+        {
+            return true;
+        }
+
+        var text = said?.Trim() ?? string.Empty;
+        return said is not null
+            && (values.Contains(text, StringComparer.OrdinalIgnoreCase)
+                || (text.Length > 0
+                    && values.Contains(ActionParameter.AnyValue, StringComparer.Ordinal)));
     }
 
     [ObservableProperty]

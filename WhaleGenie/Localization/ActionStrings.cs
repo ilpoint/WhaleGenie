@@ -52,33 +52,44 @@ internal static class ActionStrings
         + "这一步读到的画面也取自这个窗口。留空表示运行时最前面的那个窗口。";
 
     /// <summary>
-    /// The sentence every field that writes a place as two numbers shares for the record it also
-    /// takes: a hit, a window or an element goes into either half as it stands, and the record then
-    /// says the whole place. Written once rather than once per field, so "把刚找到的东西点一下" reads
-    /// the same wherever the pair of numbers is written down.
+    /// The switch every step that writes its place as two numbers gains for taking that place from
+    /// a record instead, and what that record says. Written once rather than once per field, so
+    /// "把刚找到的东西点一下" is described in the same words wherever a place is written down.
     /// </summary>
-    private const string PairRecordHint =
-        "两格里也可以只填其中一格，交给它一条带 x、y 的记录（命中、窗口、元素都能直接填，取的是那块"
-        + "矩形的中心）：这时整条位置由记录说了算，另一格留空。记录里的数是屏幕像素，所以「坐标基准」"
-        + "只挪写出来的那两个数。";
+    private const string RecordPlaceSwitchLabel = "位置取自一条记录";
+
+    private const string RecordPlaceSwitchHint =
+        "勾上后位置取自下面那一格里的记录，上面的数字不写进宏文件，也不再参与。位置就是上一步刚找到"
+        + "的东西时用它。";
+
+    private const string RecordFieldLabel = "记录";
+
+    private const string RecordPlaceFieldHint =
+        "取出位置的那条记录：命中、窗口、元素都带着 x、y，取的是那块矩形的中心，单位是屏幕像素。"
+        + "算出这条记录的算式也可以填在这里。记录里的数是屏幕像素，所以「坐标基准」只挪写出来的"
+        + "数字。";
 
     /// <summary>
-    /// The same sentence for a rectangle written down as four numbers, which is what reading or
-    /// copying one part of the screen asks for: a hit, a window or a picture taken earlier carries
-    /// all four sides, so "读刚找到的那一块" is one field rather than four.
+    /// The same pair for a rectangle written down as four numbers, which is what reading or copying
+    /// one part of the screen asks for: a hit, a window or a picture taken earlier carries all four
+    /// sides, so "读刚找到的那一块" is one field rather than four.
     /// </summary>
-    private const string RegionRecordHint =
-        "四格里也可以只填其中一格，交给它一条带 left、top、width、height 的记录（命中、窗口、之前截下"
-        + "的画面都能直接填）：这时整块矩形由记录说了算，其余三格留空。记录里的数是屏幕像素，所以"
-        + "「坐标基准」只挪写出来的那几个数。";
+    private const string RecordBoxSwitchLabel = "矩形取自一条记录";
+
+    private const string RecordBoxSwitchHint =
+        "勾上后矩形取自下面那一格里的记录，上面四个数不写进宏文件，也不再参与。矩形就是上一步刚找到"
+        + "或刚读出来的那一块时用它。";
+
+    private const string RecordBoxFieldHint =
+        "取出矩形的那条记录：命中、窗口、之前截下的画面都带着 left、top、width、height，单位是屏幕"
+        + "像素。算出这条记录的算式也可以填在这里。记录里的数是屏幕像素，所以「坐标基准」只挪写出来"
+        + "的数字。";
 
     /// <summary>
-    /// The same sentence for the four fields a window's own rectangle is written in, where the
-    /// numbers are the window as it is seen and a window record says exactly the same four things.
+    /// The same pair for the four fields a window's own rectangle is written in, where the numbers
+    /// are the window as it is seen and a window record says exactly the same four things.
     /// </summary>
-    private const string WindowRectangleHint =
-        "整块矩形也可以只填其中一格，交给它一条带 left、top、width、height 的记录（window.info 与"
-        + "window.list 里的每一条都是这样一条记录）：这时位置与大小都由记录说了算，其余三格留空。";
+    private const string WindowRecordSwitchLabel = "位置与大小取自一条记录";
 
     /// <summary>
     /// The switch every mouse action shares for taking its place from the pointer rather than from
@@ -1306,7 +1317,7 @@ internal static class ActionStrings
         ["window.move.x.label"] = "X",
         ["window.move.x.hint"] = "窗口左边缘的屏幕横坐标，单位像素。按窗口被看见的样子算：Windows 留着"
             + "用来拉伸的那圈边框不画出来也不算；范围 -100000 到 100000，默认 0。window.info 交回来的那组数"
-            + "可以原样填在这里。" + WindowRectangleHint,
+            + "可以原样填在这里。",
         ["window.move.y.label"] = "Y",
         ["window.move.y.hint"] = "窗口上边缘的屏幕纵坐标，单位像素，和 X 一样按窗口被看见的样子算，范围"
             + " -100000 到 100000，默认 0。",
@@ -1315,6 +1326,10 @@ internal static class ActionStrings
             + "边框不算；范围 1 到 100000，默认 800。",
         ["window.move.height.label"] = "高度",
         ["window.move.height.hint"] = "窗口要改成多高，单位像素，和宽度一样算，范围 1 到 100000，默认 600。",
+        ["window.move.useRecord.label"] = WindowRecordSwitchLabel,
+        ["window.move.useRecord.hint"] = RecordBoxSwitchHint,
+        ["window.move.record.label"] = RecordFieldLabel,
+        ["window.move.record.hint"] = RecordBoxFieldHint,
 
         ["window.close.name"] = "关闭窗口",
         ["window.close.desc"] = "请求符合匹配内容的窗口关闭，相当于点它的关闭按钮。",
@@ -1403,9 +1418,13 @@ internal static class ActionStrings
         ["input.mouseMove.desc"] = "把光标移动到屏幕上的指定位置。",
         ["input.mouseMove.x.label"] = "X",
         ["input.mouseMove.x.hint"] = "目标位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。位置固定时填"
-            + "数字；位置会变时改用「坐标基准」，或在这里填一个变量或算式。" + PairRecordHint,
+            + "数字；位置会变时改用「坐标基准」，或在这里填一个变量或算式。",
         ["input.mouseMove.y.label"] = "Y",
         ["input.mouseMove.y.hint"] = "目标位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["input.mouseMove.useRecord.label"] = RecordPlaceSwitchLabel,
+        ["input.mouseMove.useRecord.hint"] = RecordPlaceSwitchHint,
+        ["input.mouseMove.record.label"] = RecordFieldLabel,
+        ["input.mouseMove.record.hint"] = RecordPlaceFieldHint,
         ["input.mouseMove.durationMs.label"] = "用时",
         ["input.mouseMove.durationMs.hint"] = "从指针当前所在处走到目标位置用多久，单位是毫秒，默认 0，即瞬间"
             + "到达。",
@@ -1442,9 +1461,13 @@ internal static class ActionStrings
         ["input.mouseClick.useCursor.hint"] = AtPointerHint,
         ["input.mouseClick.x.label"] = "X",
         ["input.mouseClick.x.hint"] = "点击位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。位置固定时填"
-            + "数字；勾上「就在指针当前所在位置」时这一格不写进宏文件。" + PairRecordHint,
+            + "数字；勾上「就在指针当前所在位置」时这一格不写进宏文件。",
         ["input.mouseClick.y.label"] = "Y",
         ["input.mouseClick.y.hint"] = "点击位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["input.mouseClick.useRecord.label"] = RecordPlaceSwitchLabel,
+        ["input.mouseClick.useRecord.hint"] = RecordPlaceSwitchHint,
+        ["input.mouseClick.record.label"] = RecordFieldLabel,
+        ["input.mouseClick.record.hint"] = RecordPlaceFieldHint,
         ["input.mouseClick.repeat.label"] = "重复次数",
         ["input.mouseClick.repeat.hint"] = "一共点几下，从 1 起，默认 1。点几下时两次之间停多久由「间隔」说。",
         ["input.mouseClick.intervalMs.label"] = "间隔",
@@ -1470,9 +1493,13 @@ internal static class ActionStrings
         ["input.mouseDoubleClick.useCursor.hint"] = AtPointerHint,
         ["input.mouseDoubleClick.x.label"] = "X",
         ["input.mouseDoubleClick.x.hint"] = "双击位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。位置固定"
-            + "时填数字；勾上「就在指针当前所在位置」时这一格不写进宏文件。" + PairRecordHint,
+            + "时填数字；勾上「就在指针当前所在位置」时这一格不写进宏文件。",
         ["input.mouseDoubleClick.y.label"] = "Y",
         ["input.mouseDoubleClick.y.hint"] = "双击位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["input.mouseDoubleClick.useRecord.label"] = RecordPlaceSwitchLabel,
+        ["input.mouseDoubleClick.useRecord.hint"] = RecordPlaceSwitchHint,
+        ["input.mouseDoubleClick.record.label"] = RecordFieldLabel,
+        ["input.mouseDoubleClick.record.hint"] = RecordPlaceFieldHint,
         ["input.mouseDoubleClick.repeat.label"] = "重复次数",
         ["input.mouseDoubleClick.repeat.hint"] = "连着双击几次，从 1 起，默认 1，即一次双击。",
         ["input.mouseDoubleClick.intervalMs.label"] = "间隔",
@@ -1494,9 +1521,13 @@ internal static class ActionStrings
         ["input.mouseDown.useCursor.hint"] = AtPointerHint,
         ["input.mouseDown.x.label"] = "X",
         ["input.mouseDown.x.hint"] = "按下位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。勾上「就在指针"
-            + "当前所在位置」时这一格不写进宏文件。" + PairRecordHint,
+            + "当前所在位置」时这一格不写进宏文件。",
         ["input.mouseDown.y.label"] = "Y",
         ["input.mouseDown.y.hint"] = "按下位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["input.mouseDown.useRecord.label"] = RecordPlaceSwitchLabel,
+        ["input.mouseDown.useRecord.hint"] = RecordPlaceSwitchHint,
+        ["input.mouseDown.record.label"] = RecordFieldLabel,
+        ["input.mouseDown.record.hint"] = RecordPlaceFieldHint,
 
         ["input.mouseUp.name"] = "松开鼠标",
         ["input.mouseUp.desc"] = "松开当前处于按住状态的鼠标按键。",
@@ -1506,9 +1537,13 @@ internal static class ActionStrings
         ["input.mouseUp.useCursor.hint"] = AtPointerHint,
         ["input.mouseUp.x.label"] = "X",
         ["input.mouseUp.x.hint"] = "松开位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。勾上「就在指针"
-            + "当前所在位置」时这一格不写进宏文件。" + PairRecordHint,
+            + "当前所在位置」时这一格不写进宏文件。",
         ["input.mouseUp.y.label"] = "Y",
         ["input.mouseUp.y.hint"] = "松开位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["input.mouseUp.useRecord.label"] = RecordPlaceSwitchLabel,
+        ["input.mouseUp.useRecord.hint"] = RecordPlaceSwitchHint,
+        ["input.mouseUp.record.label"] = RecordFieldLabel,
+        ["input.mouseUp.record.hint"] = RecordPlaceFieldHint,
 
         ["input.mouseScroll.name"] = "鼠标滚轮",
         ["input.mouseScroll.desc"] = "滚动鼠标滚轮。",
@@ -1526,9 +1561,13 @@ internal static class ActionStrings
             + "滚完。程序自己带动画时用它。",
         ["input.mouseScroll.x.label"] = "X",
         ["input.mouseScroll.x.hint"] = "滚动位置的横坐标，按「坐标基准」量起，单位是像素，默认 0。勾上「就在指针"
-            + "当前所在位置」时这一格不写进宏文件。" + PairRecordHint,
+            + "当前所在位置」时这一格不写进宏文件。",
         ["input.mouseScroll.y.label"] = "Y",
         ["input.mouseScroll.y.hint"] = "滚动位置的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["input.mouseScroll.useRecord.label"] = RecordPlaceSwitchLabel,
+        ["input.mouseScroll.useRecord.hint"] = RecordPlaceSwitchHint,
+        ["input.mouseScroll.record.label"] = RecordFieldLabel,
+        ["input.mouseScroll.record.hint"] = RecordPlaceFieldHint,
         ["input.mouseScroll.useCursor.label"] = AtPointerLabel,
         ["input.mouseScroll.useCursor.hint"] = AtPointerHint,
         ["input.mouseScroll.repeat.label"] = "重复次数",
@@ -1538,15 +1577,24 @@ internal static class ActionStrings
 
         ["input.mouseDrag.name"] = "鼠标拖拽",
         ["input.mouseDrag.desc"] = "在起点按下，拖至终点后松开。",
-        ["input.mouseDrag.start.label"] = "起点",
-        ["input.mouseDrag.start.hint"] = "拖拽从哪里开始：写成 x,y，单位是像素，按「坐标基准」量起。"
-            + "也可以交给它一条带 x、y 的记录（命中、窗口、元素都能直接填，取的是那块矩形的中心），"
-            + "「把刚找到的东西拖走」就是这么写的；记录里的数是屏幕像素，所以「坐标基准」只挪写出来的"
-            + "两个数字。装着这两样之一的变量同样可以填，这里不做算式计算，只把变量换进来。"
-            + "「框选区域」把起点与终点一次填满，起点是矩形的左上角。",
-        ["input.mouseDrag.end.label"] = "终点",
-        ["input.mouseDrag.end.hint"] = "拖拽到哪里结束：写法与起点相同。写出来的数字按同一个「坐标基准」"
-            + "量起，一条记录则按屏幕像素读。「框选区域」填的是矩形的右下角。",
+        ["input.mouseDrag.startX.label"] = "起点 X",
+        ["input.mouseDrag.startX.hint"] = "拖拽从哪一列开始，按「坐标基准」量起，单位是像素，默认 0。"
+            + "「框选区域」把两端一次填满：拖出来的那个矩形的左上角填在这里。",
+        ["input.mouseDrag.startY.label"] = "起点 Y",
+        ["input.mouseDrag.startY.hint"] = "拖拽从哪一行开始，和起点的横坐标一样量，单位是像素，默认 0。",
+        ["input.mouseDrag.startFromRecord.label"] = RecordPlaceSwitchLabel,
+        ["input.mouseDrag.startFromRecord.hint"] = RecordPlaceSwitchHint,
+        ["input.mouseDrag.startRecord.label"] = "起点记录",
+        ["input.mouseDrag.startRecord.hint"] = RecordPlaceFieldHint,
+        ["input.mouseDrag.endX.label"] = "终点 X",
+        ["input.mouseDrag.endX.hint"] = "拖拽到哪一列结束，和起点一样量，单位是像素，默认 0。"
+            + "「框选区域」填的是拖出来的那个矩形的右下角。",
+        ["input.mouseDrag.endY.label"] = "终点 Y",
+        ["input.mouseDrag.endY.hint"] = "拖拽到哪一行结束，和起点一样量，单位是像素，默认 0。",
+        ["input.mouseDrag.endFromRecord.label"] = RecordPlaceSwitchLabel,
+        ["input.mouseDrag.endFromRecord.hint"] = RecordPlaceSwitchHint,
+        ["input.mouseDrag.endRecord.label"] = "终点记录",
+        ["input.mouseDrag.endRecord.hint"] = RecordPlaceFieldHint,
         ["input.mouseDrag.button.label"] = "按键",
         ["input.mouseDrag.button.hint"] = MouseButtonHint,
         ["input.mouseDrag.durationMs.label"] = "用时",
@@ -2170,7 +2218,7 @@ internal static class ActionStrings
         ["vision.capture.x.label"] = "左上角 X",
         ["vision.capture.x.hint"] = "要截取的那块屏幕的左边界距屏幕左边多少像素；坐标基准选"
             + "窗口时，从窗口自己的左边算起。留空就从那条边开始，四个数都留空则读整块屏幕。"
-            + "用「框选区域」拖一次会把四个数一起填好。" + RegionRecordHint,
+            + "用「框选区域」拖一次会把四个数一起填好。",
         ["vision.capture.y.label"] = "左上角 Y",
         ["vision.capture.y.hint"] = "要截取的那块屏幕的上边界距屏幕上边多少像素；坐标基准选"
             + "窗口时，从窗口自己的上边算起。留空就从那条边开始。",
@@ -2180,6 +2228,10 @@ internal static class ActionStrings
         ["vision.capture.height.label"] = "向下的高",
         ["vision.capture.height.hint"] = "要截取的那块屏幕有多高，单位像素，至少 1；从左上角向"
             + "下量，留空就一直量到屏幕下边缘。",
+        ["vision.capture.useRecord.label"] = RecordBoxSwitchLabel,
+        ["vision.capture.useRecord.hint"] = RecordBoxSwitchHint,
+        ["vision.capture.record.label"] = RecordFieldLabel,
+        ["vision.capture.record.hint"] = RecordBoxFieldHint,
 
         ["vision.captureWindow.name"] = "截取窗口",
         ["vision.captureWindow.desc"] = "把整个窗口连着标题栏一起截取到图像变量里。",
@@ -2235,10 +2287,13 @@ internal static class ActionStrings
         ["vision.getPixel.name"] = "取色",
         ["vision.getPixel.desc"] = "读取某个像素的颜色。",
         ["vision.getPixel.x.label"] = "X",
-        ["vision.getPixel.x.hint"] = "取样点的横坐标，按「坐标基准」量起，单位是像素，默认 0。"
-            + PairRecordHint,
+        ["vision.getPixel.x.hint"] = "取样点的横坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["vision.getPixel.y.label"] = "Y",
         ["vision.getPixel.y.hint"] = "取样点的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["vision.getPixel.useRecord.label"] = RecordPlaceSwitchLabel,
+        ["vision.getPixel.useRecord.hint"] = RecordPlaceSwitchHint,
+        ["vision.getPixel.record.label"] = RecordFieldLabel,
+        ["vision.getPixel.record.hint"] = RecordPlaceFieldHint,
         ["vision.getPixel.asHex.label"] = "存为十六进制",
         ["vision.getPixel.asHex.hint"] = "存成 #RRGGBB，而不是原始通道值。默认勾选。",
 
@@ -2246,10 +2301,13 @@ internal static class ActionStrings
         ["vision.waitColor.desc"] =
             "等待某个像素变成指定颜色，最多等到步骤设置里的「超时」；到点这一步算失败。",
         ["vision.waitColor.x.label"] = "X",
-        ["vision.waitColor.x.hint"] = "监视点的横坐标，按「坐标基准」量起，单位是像素，默认 0。"
-            + PairRecordHint,
+        ["vision.waitColor.x.hint"] = "监视点的横坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["vision.waitColor.y.label"] = "Y",
         ["vision.waitColor.y.hint"] = "监视点的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["vision.waitColor.useRecord.label"] = RecordPlaceSwitchLabel,
+        ["vision.waitColor.useRecord.hint"] = RecordPlaceSwitchHint,
+        ["vision.waitColor.record.label"] = RecordFieldLabel,
+        ["vision.waitColor.record.hint"] = RecordPlaceFieldHint,
         ["vision.waitColor.color.label"] = "颜色",
         ["vision.waitColor.color.hint"] = "像素需要显示的颜色，按 #RRGGBB 写，默认 #000000。",
         ["vision.waitColor.tolerance.label"] = "容差 %",
@@ -2261,7 +2319,7 @@ internal static class ActionStrings
         ["ocr.recognize.x.label"] = "左上角 X",
         ["ocr.recognize.x.hint"] = "要读的那块屏幕的左边界距屏幕左边多少像素；坐标基准选窗口"
             + "时，从窗口自己的左边算起。留空就从那条边开始，四个数都留空则读整块屏幕。"
-            + "用「框选区域」拖一次会把四个数一起填好。" + RegionRecordHint,
+            + "用「框选区域」拖一次会把四个数一起填好。",
         ["ocr.recognize.y.label"] = "左上角 Y",
         ["ocr.recognize.y.hint"] = "要读的那块屏幕的上边界距屏幕上边多少像素；坐标基准选窗口"
             + "时，从窗口自己的上边算起。留空就从那条边开始。",
@@ -2271,6 +2329,10 @@ internal static class ActionStrings
         ["ocr.recognize.height.label"] = "向下的高",
         ["ocr.recognize.height.hint"] = "要读的那块屏幕有多高，单位像素，至少 1；从左上角向下"
             + "量，留空就一直量到屏幕下边缘。",
+        ["ocr.recognize.useRecord.label"] = RecordBoxSwitchLabel,
+        ["ocr.recognize.useRecord.hint"] = RecordBoxSwitchHint,
+        ["ocr.recognize.record.label"] = RecordFieldLabel,
+        ["ocr.recognize.record.hint"] = RecordBoxFieldHint,
         ["ocr.recognize.content.label"] = "读取内容",
         ["ocr.recognize.content.hint"] = ContentHint,
         ["ocr.recognize.contentPattern.label"] = ContentPatternLabel,

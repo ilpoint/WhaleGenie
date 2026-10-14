@@ -194,8 +194,10 @@ public class ActionPageTests
         // Where the drag starts and ends is what the step is, so it is on the basic page along with
         // the button it presses.
         var basic = On(drag, viewModel => viewModel.Rows);
-        Assert.Contains("start", basic);
-        Assert.Contains("end", basic);
+        Assert.Contains("startX", basic);
+        Assert.Contains("startY", basic);
+        Assert.Contains("endX", basic);
+        Assert.Contains("endY", basic);
     }
 
     /// <summary>
