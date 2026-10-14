@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Recording;
+using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Tests;
 
@@ -174,4 +175,37 @@ internal sealed class FakeGamepad : IGamepadReading
     public GamepadButtons Down { get; set; }
 
     public GamepadButtons Held() => Connected ? Down : GamepadButtons.None;
+}
+
+/// <summary>
+/// A clipboard that keeps what was written to it. What a window puts there is the whole question a
+/// check about copying asks, and there is no other way to see it: the real clipboard belongs to the
+/// machine, not to the program.
+/// </summary>
+internal sealed class RecordingClipboard : IClipboardDevice
+{
+    /// <summary>The last thing written, which is what the window being checked put there.</summary>
+    public string Text { get; private set; } = string.Empty;
+
+    public int ChangeCount => 0;
+
+    public bool HasText => Text.Length > 0;
+
+    public string ReadText() => Text;
+
+    public ImageFrame? ReadImage() => null;
+
+    public void WriteText(string text) => Text = text;
+
+    public void WriteImage(ImageFrame image)
+    {
+    }
+
+    public IReadOnlyList<string> ReadFiles() => [];
+
+    public void WriteFiles(IReadOnlyList<string> paths)
+    {
+    }
+
+    public void Clear() => Text = string.Empty;
 }

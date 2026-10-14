@@ -170,6 +170,22 @@ public partial class LookWindow : Window
         new LookWindow(look, step, devices).ShowOver(owner);
     }
 
+    /// <summary>
+    /// The same, for a window that has the machine but not the step: the picture a run took belongs
+    /// to that run and there is nothing to look at again, but what was read off it is still worth
+    /// being able to take away. Without the machine the 「复制」 that is drawn there would do nothing.
+    /// </summary>
+    public static void Show(StepLook look, Window owner, IDeviceLayer devices)
+    {
+        var open = owner.OwnedWindows.OfType<LookWindow>().FirstOrDefault();
+        if (open is not null)
+        {
+            open.Close();
+        }
+
+        new LookWindow(look, null, devices).ShowOver(owner);
+    }
+
     protected override void OnClosed(EventArgs e)
     {
         base.OnClosed(e);

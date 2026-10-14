@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -70,7 +71,10 @@ public partial class RunWindow : Window
         Title = Strings.Get("Run.Title");
 
         viewModel.CloseRequested += Close;
-        viewModel.LookRequested += look => LookWindow.Show(look, this);
+        // The machine comes along so the window that shows what a step saw can put the writing it
+        // read on the clipboard: that copy is the whole point of listing it, and the picture belongs
+        // to this run rather than to a step being written, so there is no step to hand over.
+        viewModel.LookRequested += look => LookWindow.Show(look, this, viewModel.Devices);
         viewModel.WindowRead += place =>
         {
             if (place is { } found)
@@ -153,6 +157,53 @@ public partial class RunWindow : Window
 
     /// <summary>Starts the run this window was opened on, which is what the editor's own F5 asks for.</summary>
     internal void StartRun() => Form?.RunCommand.Execute(null);
+
+    /// <summary>
+    /// Takes one row's value away. What lands on the clipboard is the value beside the button that
+    /// was pressed rather than whichever row happens to be selected: a run is read back row by row,
+    /// and a value that has to be found first is not one anybody can use.
+    /// </summary>
+    private void OnCopyValueClicked(object? sender, RoutedEventArgs e)
+    {
+        var value = sender switch
+        {
+            // The watch panel and the variables page show the same thing in two shapes: the live
+            // value the run has left behind, and the definition the page describes a variable with.
+            Button { DataContext: WatchedVariable watched } => watched.Value,
+            Button { DataContext: VariableDefinition variable } => variable.CurrentValue,
+            _ => null,
+        };
+
+        if (value is { Length: > 0 })
+        {
+            Copy(value);
+        }
+    }
+
+    /// <summary>
+    /// The whole log, times and all. Reading a run back is what a log is for, and when each line was
+    /// written is half of what it says, so a copy carries both rather than the words alone.
+    /// </summary>
+    private void OnCopyLogClicked(object? sender, RoutedEventArgs e)
+    {
+        if (Form is { Lines.Count: > 0 } viewModel)
+        {
+            Copy(string.Join(Environment.NewLine,
+                viewModel.Lines.Select(line => $"{line.Time}  {line.Text}")));
+        }
+    }
+
+    /// <summary>
+    /// Puts text where the rest of the window's clipboard work goes: through the device layer, so
+    /// the clipboard this writes to is the one the run's own steps read and write.
+    /// </summary>
+    private void Copy(string text)
+    {
+        if (Form is { } viewModel && text.Length > 0)
+        {
+            viewModel.Devices.Clipboard.WriteText(text);
+        }
+    }
 
     /// <summary>
     /// The three keys a debugger is driven with, doing exactly what the three buttons on the
