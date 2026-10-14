@@ -1602,7 +1602,7 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>
     /// Notes the parameters that name a rectangle, so one button can take all of them from a drag
-    /// on the screen: x, y, width and height; the two corners of a drag; or a single
+    /// on the screen: x, y, width and height; the start and end of a drag; or a single
     /// "x,y,width,height" field.
     /// </summary>
     private void MarkRegion()
@@ -1612,10 +1612,8 @@ public partial class AddActionViewModel : ViewModelBase
             Parameters.Any(parameter => parameter.Definition.Name == "width") &&
             Parameters.Any(parameter => parameter.Definition.Name == "height")
                 ? corner
-                : Pair("startX", "startY") is { } drag &&
-                  Parameters.Any(parameter => parameter.Definition.Name == "endX") &&
-                  Parameters.Any(parameter => parameter.Definition.Name == "endY")
-                    ? drag
+                : Parameter("start") is { } start && Parameter("end") is not null
+                    ? start
                     : Parameter("region");
 
         if (anchor is not null)
@@ -1623,11 +1621,9 @@ public partial class AddActionViewModel : ViewModelBase
             anchor.IsRegionAnchor = true;
         }
 
-        // How far a rectangle reaches is one thing said in two numbers, and so is a drag's other
-        // corner: both read better side by side, the way x and y already do.
+        // How far a rectangle reaches is one thing said in two numbers, so the two read better side
+        // by side, the way x and y already do.
         PairRow("width", "height");
-        PairRow("startX", "startY");
-        PairRow("endX", "endY");
 
         StepParameterViewModel? Pair(string first, string second)
             => Parameter(first) is not null && Parameter(second) is not null ? Parameter(first) : null;
@@ -1753,7 +1749,7 @@ public partial class AddActionViewModel : ViewModelBase
 
     /// <summary>
     /// Writes a rectangle that was dragged on the screen into whichever shape this action uses:
-    /// x/y/width/height, the two corners of a drag, or one more place to look. A window-anchored
+    /// x/y/width/height, the two ends of a drag, or one more place to look. A window-anchored
     /// action has the window's corner taken off first, the same way the position shortcut does.
     /// Returns false when the action has nowhere to put it.
     /// </summary>
@@ -1767,13 +1763,26 @@ public partial class AddActionViewModel : ViewModelBase
         foreach (var (name, value) in new (string Name, int Value)[]
                  {
                      ("x", left), ("y", top), ("width", width), ("height", height),
-                     ("startX", left), ("startY", top),
-                     ("endX", left + width), ("endY", top + height),
                  })
         {
             if (Parameter(name) is { IsNumber: true } parameter)
             {
                 parameter.SetNumber(value);
+                filled = true;
+            }
+        }
+
+        // The two ends of a drag are places rather than numbers, and the rectangle dragged on the
+        // screen says both of them: the corner it started at and the corner it reached.
+        foreach (var (name, value) in new (string Name, string Value)[]
+                 {
+                     ("start", $"{left},{top}"), ("end", $"{left + width},{top + height}"),
+                 })
+        {
+            if (Parameter(name) is { IsNumber: false } place
+                && place.Definition.Kind is ActionParameterKind.Text)
+            {
+                place.WriteValue(value);
                 filled = true;
             }
         }

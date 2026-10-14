@@ -1217,7 +1217,7 @@ public class ActionDialogTests
     [InlineData("condition.imageExists", "region")]
     [InlineData("vision.capture", "x")]
     [InlineData("ocr.recognize", "x")]
-    [InlineData("input.mouseDrag", "startX")]
+    [InlineData("input.mouseDrag", "start")]
     public void The_region_picker_sits_on_the_row_that_names_a_rectangle(string key, string anchor)
     {
         Ui.Run(() =>
@@ -1360,17 +1360,16 @@ public class ActionDialogTests
     }
 
     [Fact]
-    public void A_rectangle_fills_both_corners_of_a_drag()
+    public void A_rectangle_fills_both_ends_of_a_drag()
     {
         Ui.Run(() =>
         {
             var viewModel = Open("input.mouseDrag");
 
+            // 框选一次填满两格：起点是矩形的左上角，终点是右下角，两头照同一个「坐标基准」量。
             Assert.True(viewModel.ApplyRegion(10, 20, 30, 40));
-            Assert.Equal("10", Value(viewModel, "startX"));
-            Assert.Equal("20", Value(viewModel, "startY"));
-            Assert.Equal("40", Value(viewModel, "endX"));
-            Assert.Equal("60", Value(viewModel, "endY"));
+            Assert.Equal("10,20", Value(viewModel, "start"));
+            Assert.Equal("40,60", Value(viewModel, "end"));
         });
     }
 

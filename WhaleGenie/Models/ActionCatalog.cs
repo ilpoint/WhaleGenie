@@ -2233,19 +2233,16 @@ public static class ActionCatalog
             Description = "Press at one point, move to another and release.",
             Parameters =
             [
-                Number("startX", "Start X", 0,
-                    "The column of the place the drag begins at, counted from the coordinate origin "
-                    + "above, in pixels; 0 by default. Type a number for a place that does not move, "
-                    + "or put a variable here, for one that does."),
-                Number("startY", "Start Y", 0,
-                    "The row of the place the drag begins at, counted from the same origin and in the "
-                    + "same pixels; 0 by default."),
-                Number("endX", "End X", 0,
-                    "The column of the place the drag ends at, counted from the same origin and in "
-                    + "the same pixels; 0 by default."),
-                Number("endY", "End Y", 0,
-                    "The row of the place the drag ends at, counted from the same origin and in the "
-                    + "same pixels; 0 by default."),
+                WrittenPlace("start", "Start",
+                    "Where the drag begins, in screen pixels counted from the coordinate origin "
+                    + "above: x,y. A record with x and y in it may be given instead of the two "
+                    + "numbers (a hit, a window or an element, whose x and y are the middle of what "
+                    + "was found), which is how \"drag what was just found\" is written. A variable "
+                    + "holding either also goes here, and is substituted rather than read as an "
+                    + "expression. “Pick region” fills both ends in at once."),
+                WrittenPlace("end", "End",
+                    "Where the drag ends, written the same way and counted from the same origin as "
+                    + "the start."),
                 ..Anchor(withElement: true),
                 Button(),
                 Number("durationMs", "Duration", 300,
@@ -4043,6 +4040,23 @@ public static class ActionCatalog
             Kind = ActionParameterKind.Region,
             Hint = RegionHint,
             Required = false,
+        };
+
+    /// <summary>
+    /// A place a step hands over as one field rather than as a pair of numbers: written as x,y, or
+    /// given a record that says where it is. It is text rather than a value field, because the comma
+    /// of a written place would stop an expression at its first number; a variable in it is
+    /// substituted, and so is the record it holds. The field is answered: a place that was left
+    /// blank is a step with nothing to do, and the engine says so rather than aiming at a corner.
+    /// </summary>
+    private static ActionParameter WrittenPlace(string name, string label, string hint)
+        => new()
+        {
+            Name = name,
+            Label = label,
+            Kind = ActionParameterKind.Text,
+            Hint = hint,
+            AcceptsVariables = true,
         };
 
     /// <summary>

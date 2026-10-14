@@ -1490,15 +1490,14 @@ internal static class ActionStrings
 
         ["input.mouseDrag.name"] = "鼠标拖拽",
         ["input.mouseDrag.desc"] = "在起点按下，拖至终点后松开。",
-        ["input.mouseDrag.startX.label"] = "起点 X",
-        ["input.mouseDrag.startX.hint"] = "拖拽起点的横坐标，按「坐标基准」量起，单位是像素，默认 0。位置固定时"
-            + "填数字；位置会变时改用「坐标基准」，或在这里填一个变量或算式。",
-        ["input.mouseDrag.startY.label"] = "起点 Y",
-        ["input.mouseDrag.startY.hint"] = "拖拽起点的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
-        ["input.mouseDrag.endX.label"] = "终点 X",
-        ["input.mouseDrag.endX.hint"] = "拖拽终点的横坐标，按「坐标基准」量起，单位是像素，默认 0。",
-        ["input.mouseDrag.endY.label"] = "终点 Y",
-        ["input.mouseDrag.endY.hint"] = "拖拽终点的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
+        ["input.mouseDrag.start.label"] = "起点",
+        ["input.mouseDrag.start.hint"] = "拖拽从哪里开始：写成 x,y，单位是像素，按「坐标基准」量起。"
+            + "也可以交给它一条带 x、y 的记录（命中、窗口、元素都能直接填，取的是那块矩形的中心），"
+            + "「把刚找到的东西拖走」就是这么写的；装着这两样之一的变量同样可以填，这里不做算式"
+            + "计算，只把变量换进来。「框选区域」把起点与终点一次填满，起点是矩形的左上角。",
+        ["input.mouseDrag.end.label"] = "终点",
+        ["input.mouseDrag.end.hint"] = "拖拽到哪里结束：写法与起点相同，按同一个「坐标基准」量起。"
+            + "「框选区域」填的是矩形的右下角。",
         ["input.mouseDrag.button.label"] = "按键",
         ["input.mouseDrag.button.hint"] = MouseButtonHint,
         ["input.mouseDrag.durationMs.label"] = "用时",
