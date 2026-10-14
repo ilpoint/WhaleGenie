@@ -276,6 +276,20 @@ public partial class RunWindow : Window
     }
 
     /// <summary>
+    /// Runs to the step that was right-clicked: the run goes from wherever it is and stops in front
+    /// of it, which is what a breakpoint there would do without leaving one behind.
+    /// </summary>
+    private void OnRunToClicked(object? sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+
+        if (sender is MenuItem { DataContext: RunStepViewModel row })
+        {
+            Form?.RunTo(row);
+        }
+    }
+
+    /// <summary>
     /// Points the window at a macro and starts debugging it, which is what the card's own menu asks
     /// for: one of these windows at a time, so debugging a second macro is this window with the
     /// other macro's steps in it rather than a second window over the same list.

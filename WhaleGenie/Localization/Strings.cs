@@ -1008,6 +1008,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.Step"] = "Step",
         ["Run.Continue"] = "Continue",
         ["Run.SkipStep"] = "Skip this step once",
+        ["Run.RunTo"] = "Run to this step",
         ["Run.Stop"] = "Stop",
         // What each of the run buttons does, and the key that does the same thing.
         ["Run.RunTip"] = "Run the macro from its first step. F5.",
@@ -2232,6 +2233,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.Step"] = "单步",
         ["Run.Continue"] = "继续",
         ["Run.SkipStep"] = "跳过这一步（这一次）",
+        ["Run.RunTo"] = "一直跑到这里",
         ["Run.Stop"] = "停止",
         ["Run.RunTip"] = "从这个宏的第一步开始跑。快捷键 F5。",
         ["Run.ContinueTip"] = "从停下的那一步接着往下跑。快捷键 F5。",

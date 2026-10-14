@@ -420,6 +420,13 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// <summary>Raised when the window should close itself.</summary>
     public event Action? CloseRequested;
 
+    /// <summary>
+    /// The one step this run is asked to stop in front of, or null when it is asked to stop nowhere
+    /// in particular. It is what the steps list's own menu says: "run to this step" is one thing to
+    /// ask for, where a breakpoint is a promise to stop there every time round.
+    /// </summary>
+    private string? _runTo;
+
     private string _debugged = string.Empty;
 
     /// <summary>The name of the macro being debugged, or empty when this window has none.</summary>
@@ -495,6 +502,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
         _breakpoints.Clear();
         _breakpointConditions.Clear();
+        _runTo = null;
         Steps.Clear();
         Lines.Clear();
         ShowStepOutcomes = false;
@@ -769,6 +777,40 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         Release();
     }
 
+    /// <summary>
+    /// Runs to one step: the run goes from wherever it is — the first step when nothing is going,
+    /// on from the pause when something is — and stops in front of that step, the same way a
+    /// breakpoint there would. It is asked for rather than remembered: once it has stopped there it
+    /// is done, so nothing has to be cleared up afterwards and the next run goes from the top.
+    /// </summary>
+    public void RunTo(RunStepViewModel? row)
+    {
+        if (row is null)
+        {
+            return;
+        }
+
+        _runTo = row.Id;
+
+        if (IsBusy)
+        {
+            // Already going: carrying on is what gets there, and a pause in the way of that is
+            // released the way "continue" releases it.
+            if (IsPaused)
+            {
+                _stopAtNextStep = false;
+                Release();
+            }
+
+            return;
+        }
+
+        if (RunCommand.CanExecute(null))
+        {
+            RunCommand.Execute(null);
+        }
+    }
+
     [RelayCommand]
     private void Close() => CloseRequested?.Invoke();
 
@@ -910,6 +952,9 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
             ended.TrySetResult();
             IsBusy = false;
             _stopAtNextStep = false;
+            // A run that ended before it got there leaves the ask behind rather than carrying it
+            // into the next run, which would stop somewhere nothing asked it to.
+            _runTo = null;
             CurrentId = null;
 
             // The run is over, so nothing is being read any more.
@@ -934,12 +979,18 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         CurrentId = step.Id;
         RefreshVariables();
 
-        if (!_stopAtNextStep && !StopsHere(step.Id))
+        // This step is the one the run was asked to reach, which is a stop in front of it like any
+        // other: the ask is used up here, whether the run then carries on or is left standing.
+        var asked = _runTo is { } target
+            && string.Equals(target, step.Id, StringComparison.OrdinalIgnoreCase);
+
+        if (!_stopAtNextStep && !asked && !StopsHere(step.Id))
         {
             return true;
         }
 
         _stopAtNextStep = false;
+        _runTo = null;
         Status = Strings.Get("Run.Paused");
 
         var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);

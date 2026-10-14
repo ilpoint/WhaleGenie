@@ -337,6 +337,16 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:RunStepViewModel">
                                             <Border Classes="RunRow" Classes.current="{Binding IsCurrent}">
+                                                <!-- Right-clicking the step itself is where "go up
+                                                     to here" is asked for: the dot on its left is
+                                                     about stopping there every time round, and
+                                                     this is about this once. -->
+                                                <Border.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="{Binding [Run.RunTo], Source={x:Static loc:Strings.Current}}"
+                                                                  Click="OnRunToClicked" />
+                                                    </ContextMenu>
+                                                </Border.ContextMenu>
                                                 <Grid ColumnDefinitions="24,*,Auto">
                                                     <Button Classes="Breakpoint" Classes.on="{Binding HasBreakpoint}"
                                                             VerticalAlignment="Center"
