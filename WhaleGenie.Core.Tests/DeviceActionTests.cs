@@ -810,7 +810,7 @@ public class DeviceActionTests
             Step("input.mouseMove", Param("x", "11"), Param("y", "22"), Param("durationMs", "30")),
             Step("input.mouseMoveRelative", Param("dx", "3"), Param("dy", "-4"), Param("durationMs", "0")),
             Step("input.mouseDrag",
-                Param("startX", "1"), Param("startY", "2"), Param("endX", "3"), Param("endY", "4"),
+                Param("start", "1,2"), Param("end", "3,4"),
                 Param("button", "left"), Param("durationMs", "200"), Param("steps", "10")),
             Step("input.mouseScroll", Param("direction", "up"), Param("amount", "3"),
                 Param("x", "5"), Param("y", "6")),
@@ -913,13 +913,103 @@ public class DeviceActionTests
         var (_, _, _) = await RunAsync(
         [
             Step("input.mouseDrag",
-                Param("startX", "10"), Param("startY", "20"),
-                Param("endX", "30"), Param("endY", "40"),
+                Param("start", "10,20"), Param("end", "30,40"),
                 Param("button", "left"), Param("durationMs", "0"), Param("steps", "2"),
                 Param("anchorMode", "window"), Param("anchorWindow", "Notepad")),
         ], devices);
 
         Assert.Equal(["findWindow Notepad", "drag left 1010 520 1030 540 0 2"], devices.Calls);
+    }
+
+    /// <summary>
+    /// 拖拽的两头各收一条记录：找图留下的那条命中带着 x、y（矩形中心），填进「起点」就是"把刚找到的
+    /// 东西从那儿拖走"，不必再把坐标抄一遍。四格数字做不到这件事——要把一条记录的字段取出来，得先
+    /// 知道字段名，再一格一格写。
+    /// </summary>
+    [Fact]
+    public async Task A_drag_can_start_where_something_was_just_found()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
+            Step("input.mouseDrag", Param("start", "$spot"), Param("end", "300,400"),
+                Param("durationMs", "0"), Param("steps", "4")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+
+        // 命中的中心是 (35, 50)，终点照 x,y 文本读；前面几次是找图那一步自己的事。
+        Assert.Equal("drag left 35 50 300 400 0 4", devices.Calls[^1]);
+    }
+
+    /// <summary>
+    /// 两头照同一个「坐标基准」量起，窗口挪到别处之后这一次拖拽的四个数跟着挪，所以"从窗口里的哪个
+    /// 地方拖到窗口里的哪个地方"在两个窗口位置上说的是同一件事。
+    /// </summary>
+    [Fact]
+    public async Task A_drag_inside_a_window_is_carried_along_when_the_window_moves()
+    {
+        var devices = WithAWindow();
+        var step = Step("input.mouseDrag", Param("start", "10,20"), Param("end", "30,40"),
+            Param("durationMs", "0"), Param("steps", "2"),
+            Param("anchorMode", "window"), Param("anchorWindow", "Notepad"));
+
+        await RunAsync([step], devices);
+        devices.Windows[0] = devices.Windows[0] with { Location = new ScreenPoint(300, 400) };
+        await RunAsync([step], devices);
+
+        Assert.Equal(
+        [
+            "findWindow Notepad", "drag left 1010 520 1030 540 0 2",
+            "findWindow Notepad", "drag left 310 420 330 440 0 2",
+        ], devices.Calls);
+    }
+
+    /// <summary>
+    /// 一格没有值时，失败说的是"上一步什么都没找到"，而不是"这里写错了"：这两件事在写宏的人眼里
+    /// 完全不一样，前者要回去让上一次查找找到东西，后者才是这一格的字写错了。
+    /// </summary>
+    [Fact]
+    public async Task A_drag_end_with_no_value_says_the_step_before_found_nothing()
+    {
+        var devices = new FakeDeviceLayer();
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.mouseDrag", Param("start", ""), Param("end", "300,0"),
+                Param("durationMs", "0"), Param("steps", "3")),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BadPointEmpty", result.Key);
+
+        // 一头读不出来就什么都不做，不会按半个拖拽发出按键。
+        Assert.Empty(devices.Calls);
+    }
+
+    /// <summary>
+    /// 一格既不是 x,y 也不是一条带 x、y 的记录时报 Run.BadPoint，并把它读到的东西写出来：一条 CSV
+    /// 的行也是一条记录，但里面没有 x、y，拿它当位置用不该静默地拖到 (0,0)。
+    /// </summary>
+    [Fact]
+    public async Task A_drag_end_that_is_not_a_place_is_refused()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["in.csv"] = "name,age\nAda,36\n";
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "in.csv"), Returns("rows=table")),
+            Step("input.mouseDrag", Param("start", "get($table, 0)"), Param("end", "300,0"),
+                Param("durationMs", "0"), Param("steps", "3")),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BadPoint", result.Key);
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("drag", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -6930,8 +7020,8 @@ public class DeviceActionTests
     {
         var (result, devices, _) = await RunAsync(
         [
-            Step("input.mouseDrag", Param("startX", "0"), Param("startY", "0"), Param("endX", "300"),
-                Param("endY", "0"), Param("durationMs", "300"), Param("steps", "30")),
+            Step("input.mouseDrag", Param("start", "0,0"), Param("end", "300,0"),
+                Param("durationMs", "300"), Param("steps", "30")),
         ]);
 
         Assert.True(result.Succeeded);
@@ -6949,9 +7039,8 @@ public class DeviceActionTests
         var started = Stopwatch.GetTimestamp();
         var (result, devices, _) = await RunAsync(
         [
-            Step("input.mouseDrag", Param("startX", "0"), Param("startY", "0"), Param("endX", "300"),
-                Param("endY", "0"), Param("durationMs", "0"), Param("steps", "3"),
-                Param("settleMs", "60")),
+            Step("input.mouseDrag", Param("start", "0,0"), Param("end", "300,0"),
+                Param("durationMs", "0"), Param("steps", "3"), Param("settleMs", "60")),
         ]);
 
         var took = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
@@ -6971,9 +7060,8 @@ public class DeviceActionTests
     {
         var (result, devices, _) = await RunAsync(
         [
-            Step("input.mouseDrag", Param("startX", "0"), Param("startY", "0"), Param("endX", "300"),
-                Param("endY", "0"), Param("durationMs", "300"), Param("steps", "30"),
-                Param("style", "human")),
+            Step("input.mouseDrag", Param("start", "0,0"), Param("end", "300,0"),
+                Param("durationMs", "300"), Param("steps", "30"), Param("style", "human")),
         ]);
 
         Assert.True(result.Succeeded);

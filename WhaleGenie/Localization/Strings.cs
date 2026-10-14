@@ -1071,6 +1071,10 @@ public sealed class Strings : INotifyPropertyChanged
             + "10 2004 or later and a Direct3D 11 device, and cannot read a display the graphics card "
             + "will not duplicate either.",
         ["Run.BadRegion"] = "A search region reads as x,y,width,height: {0}",
+        ["Run.BadPoint"] = "This end of the drag reads as x,y, or as a record with x and y in it "
+            + "(a hit, a window, an element): {0}",
+        ["Run.BadPointEmpty"] = "This end of the drag has no value: the step before it found "
+            + "nothing there. Let it find something first, or write the place as x,y.",
         ["Run.BadPoints"] = "Every point of a colour comparison reads as x,y,#RRGGBB: {0}",
         ["Run.BadPattern"] = "That is not a usable match pattern: {0}",
         ["Run.Capture"] = "Captured into {0}: {1}",
@@ -2233,6 +2237,10 @@ public sealed class Strings : INotifyPropertyChanged
             "这台机器用这种方式读不到画面：{0}。Graphics Capture 需要 Windows 10 2004 或更高版本"
             + "与 Direct3D 11 设备；显卡不肯交出的显示器它也读不到。",
         ["Run.BadRegion"] = "搜索区域要写成 x,y,宽,高 的形式：{0}",
+        ["Run.BadPoint"] = "拖拽的这一端要写成 x,y，或者交给它一条带 x、y 的记录（命中、窗口、"
+            + "元素都可以）：{0}",
+        ["Run.BadPointEmpty"] = "拖拽的这一端没有值：上一步什么都没找到。先让它找到东西，或者把这个"
+            + "位置直接写成 x,y。",
         ["Run.BadPoints"] = "多点比色里的每个点要写成 x,y,#RRGGBB 的形式：{0}",
         ["Run.BadPattern"] = "这不是一个可用的匹配模式：{0}",
         ["Run.Capture"] = "已截图到 {0}：{1}",

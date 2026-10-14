@@ -2940,6 +2940,44 @@ public sealed class MacroRunner
     }
 
     /// <summary>
+    /// One end of a drag. A place is read the way a search region is read rather than as one value:
+    /// written as <c>x,y</c>, or handed a record that says where it is. Every record that carries a
+    /// rectangle carries the middle of it under <c>x</c> and <c>y</c>, so a hit, a window or an
+    /// element goes in as it stands — "drag what was just found onto that window" is one field each
+    /// end instead of four numbers worked out from other numbers. A value that is empty is reported
+    /// as the step before it having found nothing, which is what it means, rather than as a place
+    /// nobody could read.
+    /// </summary>
+    private ScreenPoint PointOf(ExecutableStep step, string name)
+    {
+        var raw = step.Text(name);
+        if (raw.Trim().Length == 0)
+        {
+            throw new StepFailure("Run.BadPointEmpty", name);
+        }
+
+        if (Read(raw) is { IsRecord: true } record)
+        {
+            if (record.Field("x") is not { } x || record.Field("y") is not { } y)
+            {
+                throw new StepFailure("Run.BadPoint", raw);
+            }
+
+            return new ScreenPoint(Whole(x), Whole(y));
+        }
+
+        // A written place is interpolated rather than read as a whole expression: its comma would
+        // stop an expression at the first number.
+        var named = Interpolate(raw).Trim();
+        var sides = named.Split(',', StringSplitOptions.TrimEntries);
+        return sides.Length == 2
+            && int.TryParse(sides[0], out var column)
+            && int.TryParse(sides[1], out var row)
+                ? new ScreenPoint(column, row)
+                : throw new StepFailure("Run.BadPoint", named);
+    }
+
+    /// <summary>
     /// Moves the pointer to a point. A straight move is handed to the device exactly as it always
     /// was; a bent or hand-like one is worked out into a path first, because the shape of that
     /// path is the whole point of those styles.
@@ -3001,8 +3039,10 @@ public sealed class MacroRunner
     {
         // Both ends are measured from the same corner, so a drag across a window stays inside it.
         var origin = Anchor(step);
-        var from = Placed(origin, Number(step, "startX"), Number(step, "startY"));
-        var to = Placed(origin, Number(step, "endX"), Number(step, "endY"));
+        var start = PointOf(step, "start");
+        var from = Placed(origin, start.X, start.Y);
+        var end = PointOf(step, "end");
+        var to = Placed(origin, end.X, end.Y);
         var duration = Pace(Number(step, "durationMs"));
         var settle = Pace(OptionalNumber(step, "settleMs", 0));
         var steps = Math.Clamp(Number(step, "steps"), 1, 200);
