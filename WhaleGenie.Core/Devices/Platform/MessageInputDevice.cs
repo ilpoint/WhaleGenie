@@ -94,7 +94,14 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
         }
     }
 
-    public void MoveMouseRelative(int dx, int dy, int durationMs) => MoveMouse(dx, dy, durationMs);
+    /// <summary>
+    /// Refused rather than sent: the messages this device posts tell a window where the pointer is,
+    /// and an offset is a question about the pointer itself — which this mode never moves. Handing
+    /// the offsets to <see cref="MoveMouse"/> is how "200 to the right" arrived as "go to (200, 0)",
+    /// so a macro that wants to move by an offset is told to use a mode that has a pointer.
+    /// </summary>
+    public void MoveMouseRelative(int dx, int dy, int durationMs)
+        => throw new DeviceActionException("Run.BackgroundNeedsPointer");
 
     public void MouseDown(string button, int x, int y) => Press(button, down: true, x, y);
 

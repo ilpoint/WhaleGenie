@@ -1121,6 +1121,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.EmptySelector"] = "No element selector was given.",
         ["Run.MissingWindow"] = "No window title was given: {0}",
         ["Run.MissingTargetWindow"] = "Background input needs a window to post its messages at; fill in the target window title.",
+        ["Run.BackgroundNeedsPointer"] =
+            "Background input does not move the pointer: it posts messages at the window, and the "
+            + "pointer on screen stays where it is. A relative move asks where the pointer is, so "
+            + "use foreground or driver input for it, or write the whole place with Mouse Move.",
         ["Run.ReadFile"] = "Read {0}, {1} characters long.",
         ["Run.ReadFileLines"] = "Read {0}, {1} lines long.",
         ["Run.WroteFile"] = "Wrote {0}, {1} characters long.",
@@ -2273,6 +2277,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.EmptySelector"] = "没有填写要查找的元素选择器。",
         ["Run.MissingWindow"] = "没有填写窗口标题：{0}",
         ["Run.MissingTargetWindow"] = "后台输入需要目标窗口，请先填写目标窗口的标题。",
+        ["Run.BackgroundNeedsPointer"] = "「后台消息」这一档不做相对移动：它只把消息投给窗口，屏幕上的"
+            + "指针并没有动过。相对移动问的是指针现在在哪儿，改用前台或驱动级，或者用「鼠标移动到」把"
+            + "位置按绝对坐标写全。",
         ["Run.ReadFile"] = "已读取 {0}，共 {1} 个字符。",
         ["Run.ReadFileLines"] = "已读取 {0}，共 {1} 行。",
         ["Run.WroteFile"] = "已写入 {0}，共 {1} 个字符。",

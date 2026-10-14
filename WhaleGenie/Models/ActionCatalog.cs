@@ -2095,7 +2095,10 @@ public static class ActionCatalog
                     "How long the pointer takes to travel to the offset place, in milliseconds; 0, "
                     + "the default, arrives at once."),
                 Movement(),
-                ..Delivery(),
+                ..Delivery(
+                    "This step cannot use the background mode: a move by an offset asks where the "
+                    + "pointer is now, and that mode never moves it. Use in-front or driver input, "
+                    + "or write the whole place out with Mouse Move."),
             ],
         },
         new()
@@ -4378,14 +4381,20 @@ public static class ActionCatalog
     /// otherwise the only handle there is on it. Only the background mode reads that window, so
     /// the three are asked for only while that is how this step's input is sent.
     /// </remarks>
-    private static ActionParameter[] Delivery() =>
+    /// <param name="extra">
+    /// One more sentence for the mode picker, for a step the posted-input mode cannot carry out:
+    /// that mode hands the window messages and never moves the pointer, so everything a step asks
+    /// about the pointer itself has to be said here rather than found out at the end of a run.
+    /// </param>
+    private static ActionParameter[] Delivery(string extra = "") =>
     [
         Choice("inputMode", "Input mode", ["foreground", "background", "driver"], "foreground",
             "How this step's input is sent. In front goes to whatever window has the focus. "
             + "Background posts the messages at the target window instead, which needs no focus "
             + "and leaves the on-screen pointer where it is. Driver sends it through a virtual "
             + "USB device, which needs the usbip-win2 driver and the VIIPER server; the settings "
-            + "window shows whether this machine has them.",
+            + "window shows whether this machine has them."
+            + (extra.Length > 0 ? " " + extra : string.Empty),
             labels: ["In front", "Background (posted)", "Driver (virtual device)"],
             advanced: true),
         ..TargetWindowRule(),

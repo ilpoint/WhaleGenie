@@ -1643,7 +1643,9 @@ internal static class ActionStrings
 
         ["input.mouseMoveRelative.inputMode.label"] = "输入方式",
         ["input.mouseMoveRelative.inputMode.hint"] = InputModeHint
-            + "后台方式下屏幕上的鼠标不会移动，只是让窗口以为鼠标到了那里。",
+            + "后台方式下屏幕上的鼠标不会移动，只是让窗口以为鼠标到了那里。这一步不能用后台消息："
+            + "相对移动问的是指针现在在哪儿，而这一档从来没让指针动过。改用前台或驱动级，或者用"
+            + "「鼠标移动到」把位置按绝对坐标写全。",
         ["input.mouseMoveRelative.inputMode.option.foreground"] = "前台",
         ["input.mouseMoveRelative.inputMode.option.background"] = "后台消息",
         ["input.mouseMoveRelative.inputMode.option.driver"] = "驱动级",

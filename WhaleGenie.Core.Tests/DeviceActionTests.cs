@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
@@ -437,6 +438,67 @@ public class DeviceActionTests
 
         Assert.False(result.Succeeded);
         Assert.Empty(devices.Calls);
+    }
+
+    /// <summary>
+    /// 相对移动问的是指针现在在哪儿，后台那一档只把消息投给窗口、指针自己没动过：把偏移当成
+    /// 绝对坐标发出去就成了"去 (200, 0) 这个点"，发错数还看不出来。所以这一档干脆说做不了，
+    /// 一个鼠标消息也不发。
+    /// </summary>
+    [Fact]
+    public async Task Background_input_cannot_move_the_pointer_by_an_offset()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(4242, "Notepad - notes.txt",
+            new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.mouseMoveRelative", Param("dx", "200"), Param("dy", "0"),
+                Param("inputMode", "background"), Param("targetWindow", "Notepad")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.BackgroundNeedsPointer", result.Key);
+        Assert.Empty(devices.Calls);
+    }
+
+    /// <summary>
+    /// 走弧线的相对移动也算相对移动：前台那一路是读回指针当前位置自己往前推，而后台这一档的
+    /// 指针位置根本不是它自己的。两条路一起判，免得只剩其中一条还在发错的数。
+    /// </summary>
+    [Fact]
+    public async Task Background_input_cannot_bend_a_relative_move_either()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(4242, "Notepad - notes.txt",
+            new ScreenPoint(0, 0), new ScreenSize(100, 100), false, false));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.mouseMoveRelative", Param("dx", "200"), Param("dy", "0"),
+                Param("style", "smooth"), Param("durationMs", "100"),
+                Param("inputMode", "background"), Param("targetWindow", "Notepad")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.BackgroundNeedsPointer", result.Key);
+        Assert.Empty(devices.Paths);
+        Assert.Empty(devices.Calls);
+    }
+
+    /// <summary>
+    /// 设备自己那一层也拒：真到了它手上，宁可报同一句话，也不要把偏移当成"移到那个点"发出去。
+    /// </summary>
+    [Fact]
+    public void Posted_messages_refuse_a_relative_move_at_the_device_too()
+    {
+        var device = new MessageInputDevice(IntPtr.Zero, new FakeDeviceLayer());
+
+        var refused = Assert.Throws<DeviceActionException>(
+            () => device.MoveMouseRelative(200, 0, 0));
+
+        Assert.Equal("Run.BackgroundNeedsPointer", refused.Key);
     }
 
     [Fact]

@@ -2573,13 +2573,13 @@ public sealed class MacroRunner
     /// <summary>Where a step wants its input to go. Anything unset means the front window.</summary>
     private InputRoute Route(ExecutableStep step)
     {
-        var mode = step.Text("inputMode").Trim().ToLowerInvariant();
-        if (mode == "driver")
+        var mode = DeliveryMode(step);
+        if (mode == DriverMode)
         {
             return new InputRoute(InputDelivery.Driver, 0);
         }
 
-        if (mode != "background")
+        if (mode != BackgroundMode)
         {
             return InputRoute.Front;
         }
@@ -2599,6 +2599,24 @@ public sealed class MacroRunner
 
         return new InputRoute(InputDelivery.Background, window.Handle);
     }
+
+    /// <summary>What a step's input mode says it wants, as the file writes it.</summary>
+    private static string DeliveryMode(ExecutableStep step)
+        => step.Text("inputMode").Trim().ToLowerInvariant();
+
+    /// <summary>
+    /// Whether this step's input is posted at a window as messages rather than driving the desktop.
+    /// The two things this mode cannot do — report where the pointer is, and move it — are asked
+    /// about before the window is looked up, so a step that cannot work is turned down on the
+    /// strength of its own settings rather than of what happens to be open.
+    /// </summary>
+    private static bool PostsMessages(ExecutableStep step) => DeliveryMode(step) == BackgroundMode;
+
+    /// <summary>What the input mode is written as when the messages are posted at a window.</summary>
+    private const string BackgroundMode = "background";
+
+    /// <summary>What the input mode is written as when a virtual device sends the input.</summary>
+    private const string DriverMode = "driver";
 
     /// <summary>
     /// The corner a step's numbers are measured from, or <c>null</c> when they are screen pixels
@@ -2942,6 +2960,16 @@ public sealed class MacroRunner
     /// <summary>The same, for a move written as an offset from wherever the pointer is.</summary>
     private void MovePointerBy(ExecutableStep step)
     {
+        // "By how much" is a question about the pointer, and the posted-input mode never moves the
+        // pointer: it tells the window what happened, so the pointer a relative move counts from is
+        // not its own. Sending the offsets on anyway is how "move 200 to the right" becomes "go to
+        // the point (200, 0)" — the wrong place, arrived at silently — so this mode says what it
+        // cannot do instead, whichever way the move was asked to travel.
+        if (PostsMessages(step))
+        {
+            throw new StepFailure("Run.BackgroundNeedsPointer");
+        }
+
         var dx = Number(step, "dx");
         var dy = Number(step, "dy");
         var route = MousePath.Route(step.Text("style"));
