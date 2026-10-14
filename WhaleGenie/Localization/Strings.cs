@@ -620,6 +620,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.AddStepToBlockHint"] = "Appends a step to the end of this block. Their order and "
             + "deleting them are done in the editor's list, where the shape of the macro shows.",
         ["Add.ExpressionValid"] = "Expression is valid",
+        ["Add.ExpressionWhenRun"] = "This reads as an expression; what it works out to is known "
+            + "when the macro runs.",
         ["Add.ExpressionResult"] = "= {0}",
         ["Add.FormulaNumber"] = "This box holds an expression. Clear it, or write a plain number, "
             + "to go back to the spinner.",
@@ -1761,6 +1763,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.AddStepToBlockHint"] = "把一步添加到这一块的末尾。这些步骤的前后顺序与删除在编辑器"
             + "列表中调整，宏的结构在那里最直观。",
         ["Add.ExpressionValid"] = "表达式有效",
+        ["Add.ExpressionWhenRun"] = "这一段读得通；算出来是什么，要等跑起来才知道。",
         ["Add.ExpressionResult"] = "= {0}",
         ["Add.FormulaNumber"] = "这个框里是一个表达式；清空它，或写一个普通数字，就回到数字框。",
         ["Add.FormulaMilliseconds"] = "表达式按毫秒计算。",

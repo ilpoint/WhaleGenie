@@ -307,6 +307,66 @@ public class ActionDialogTests
         });
     }
 
+    /// <summary>
+    /// 数字格里写"从一条记录里取出一个坐标"是正常的写法：写宏的时候没有哪一步真的跑过，一个名字里
+    /// 装着什么形状没有人知道，所以这种读法只可能是"要跑起来才知道"，不是错误。以前这里一律把已知
+    /// 名字当成数字 0，于是唯一正确的写法 field($hit, "x") 反而当场标红，说的还是"0 不是记录"。
+    /// </summary>
+    [Fact]
+    public void A_number_read_from_a_record_is_not_marked_wrong_while_the_macro_is_being_written()
+    {
+        Ui.Run(() =>
+        {
+            var x = Number("input.mouseMove", "x", "hit");
+
+            x.WriteValue("field($hit, \"x\")");
+
+            Assert.False(x.HasExpressionError);
+            Assert.False(x.ShowExpressionError);
+            Assert.Equal(Strings.Get("Add.ExpressionWhenRun"), x.ExpressionMessage);
+        });
+    }
+
+    /// <summary>
+    /// 读不通的地方照旧当场标红：算式没写完、名字不存在、函数不存在、参数个数不对，这四种写宏的人
+    /// 当场就能改，不必等到跑起来。
+    /// </summary>
+    [Fact]
+    public void A_number_that_cannot_be_read_at_all_is_still_marked_while_the_macro_is_being_written()
+    {
+        Ui.Run(() =>
+        {
+            var x = Number("input.mouseMove", "x", "hit");
+
+            x.WriteValue("$count +");
+            Assert.True(x.HasExpressionError);
+            Assert.NotEqual(string.Empty, x.ExpressionMessage);
+
+            x.WriteValue("field($nowhere, \"x\")");
+            Assert.True(x.HasExpressionError);
+            Assert.NotEqual(Strings.Get("Add.ExpressionWhenRun"), x.ExpressionMessage);
+        });
+    }
+
+    /// <summary>
+    /// 一个动作的一个数字格，放在一扇名单里只有这些名字的对话框上：这两条检查问的是"这一格对一个
+    /// 形状还不知道的名字说了什么"，所以名字得由检查自己给。
+    /// </summary>
+    private static StepParameterViewModel Number(string key, string name, params string[] variables)
+    {
+        var window = new AddActionWindow(null, ActionCatalog.Definitions,
+            VariableChoicesForChecks.Named(variables), []);
+
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var viewModel = (AddActionViewModel)window.DataContext!;
+        viewModel.SelectAction(key);
+        Dispatcher.UIThread.RunJobs();
+
+        return viewModel.Parameters.First(parameter => parameter.Definition.Name == name);
+    }
+
     [Fact]
     public void A_new_step_starts_by_pausing_and_asking_if_it_fails()
     {

@@ -17,8 +17,8 @@ namespace WhaleGenie.ViewModels;
 /// </summary>
 public partial class ExpressionBuilderViewModel : ViewModelBase
 {
-    /// <summary>The value the macro knows the names of, so a half-written formula can be checked.</summary>
-    private readonly KnownVariables _known;
+    /// <summary>The names the macro knows, so a half-written formula can be checked here.</summary>
+    private readonly IReadOnlyList<string> _names;
 
     public ExpressionBuilderViewModel()
         : this(string.Empty, [])
@@ -28,7 +28,7 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     public ExpressionBuilderViewModel(string expression, IReadOnlyList<VariableChoice> variables)
     {
         Variables = variables;
-        _known = new KnownVariables([.. variables.Select(choice => choice.Name)]);
+        _names = [.. variables.Select(choice => choice.Name)];
         Wall = new VariableWallViewModel(variables);
         Operators = BuildOperators();
         Functions = BuildFunctions();
@@ -113,25 +113,9 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// </summary>
     private void Recheck()
     {
-        Message = string.Empty;
-        HasError = false;
-
-        if (string.IsNullOrWhiteSpace(Expression))
-        {
-            return;
-        }
-
-        if (!WhaleGenie.Core.Expressions.Expression.TryEvaluate(Expression, _known, out var value,
-                out var error))
-        {
-            HasError = true;
-            Message = ExpressionText.Describe(error!);
-            return;
-        }
-
-        Message = Expression.Contains('$')
-            ? Strings.Get("Add.ExpressionValid")
-            : Strings.Format("Add.ExpressionResult", value.AsText());
+        var (message, failed) = NumberField.Check(Expression, _names);
+        Message = message;
+        HasError = failed;
     }
 
     /// <summary>
