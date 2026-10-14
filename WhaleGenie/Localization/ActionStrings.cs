@@ -189,7 +189,8 @@ internal static class ActionStrings
     private const string RegionHintText =
         "搜索范围，一行一块，可以填多块。每行填 x、y、宽、高四个数字，或用“框选”拖出来；"
         + "一行也可以填变量：图片变量（在前一步截取的那张图上搜索）或写成 x,y,宽,高 的矩形"
-        + "变量。留空表示整个屏幕（默认）。";
+        + "变量，还可以填一条带矩形的记录（命中、窗口、元素都行）。记录里的数是屏幕像素，"
+        + "「坐标基准」只挪写出来的四个数字。留空表示整个屏幕（默认）。";
 
     /// <summary>The hint the "which hit" fields share.</summary>
     private const string MatchIndexHint =
@@ -1511,11 +1512,12 @@ internal static class ActionStrings
         ["input.mouseDrag.start.label"] = "起点",
         ["input.mouseDrag.start.hint"] = "拖拽从哪里开始：写成 x,y，单位是像素，按「坐标基准」量起。"
             + "也可以交给它一条带 x、y 的记录（命中、窗口、元素都能直接填，取的是那块矩形的中心），"
-            + "「把刚找到的东西拖走」就是这么写的；装着这两样之一的变量同样可以填，这里不做算式"
-            + "计算，只把变量换进来。「框选区域」把起点与终点一次填满，起点是矩形的左上角。",
+            + "「把刚找到的东西拖走」就是这么写的；记录里的数是屏幕像素，所以「坐标基准」只挪写出来的"
+            + "两个数字。装着这两样之一的变量同样可以填，这里不做算式计算，只把变量换进来。"
+            + "「框选区域」把起点与终点一次填满，起点是矩形的左上角。",
         ["input.mouseDrag.end.label"] = "终点",
-        ["input.mouseDrag.end.hint"] = "拖拽到哪里结束：写法与起点相同，按同一个「坐标基准」量起。"
-            + "「框选区域」填的是矩形的右下角。",
+        ["input.mouseDrag.end.hint"] = "拖拽到哪里结束：写法与起点相同。写出来的数字按同一个「坐标基准」"
+            + "量起，一条记录则按屏幕像素读。「框选区域」填的是矩形的右下角。",
         ["input.mouseDrag.button.label"] = "按键",
         ["input.mouseDrag.button.hint"] = MouseButtonHint,
         ["input.mouseDrag.durationMs.label"] = "用时",

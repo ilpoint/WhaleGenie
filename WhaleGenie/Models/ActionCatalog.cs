@@ -2245,7 +2245,9 @@ public static class ActionCatalog
                     + "numbers (a hit, a window or an element, whose x and y are the middle of what "
                     + "was found), which is how \"drag what was just found\" is written. A variable "
                     + "holding either also goes here, and is substituted rather than read as an "
-                    + "expression. “Pick region” fills both ends in at once."),
+                    + "expression. A record says where it is on the screen, so the coordinate "
+                    + "origin above moves the two numbers written out and not a record. “Pick "
+                    + "region” fills both ends in at once."),
                 WrittenPlace("end", "End",
                     "Where the drag ends, written the same way and counted from the same origin as "
                     + "the start."),
@@ -4232,8 +4234,10 @@ public static class ActionCatalog
         "Where to look: one row per place, and there may be several. A row is x, y, width and "
         + "height, dragged out with “pick region” or typed in; a row may also name a variable, "
         + "either one holding a picture an earlier Capture took, which is searched inside, or one "
-        + "holding a rectangle written as x,y,width,height. Empty searches the whole screen, which "
-        + "is the default.";
+        + "holding a rectangle written as x,y,width,height, or a record carrying one (a hit, a "
+        + "window, an element). A record's numbers are where it is on the screen, so the coordinate "
+        + "origin moves the four numbers written out and not a record. Empty searches the whole "
+        + "screen, which is the default.";
 
     /// <summary>
     /// The three ways that compare the two pictures pixel for pixel. They are the ones a search can
