@@ -131,6 +131,12 @@ public partial class MainWindow : Window
             addMacroButton.Click += (_, _) => OpenEditor(null, null, draft: false);
         }
 
+        var insertSampleButton = this.FindControl<Button>("InsertSampleButton");
+        if (insertSampleButton is not null)
+        {
+            insertSampleButton.Click += (_, _) => InsertSample();
+        }
+
         // Clicking a macro card arms or disarms it; the card buttons opt out below.
         var macroList = this.FindControl<ItemsControl>("MacroList");
         if (macroList is not null)
@@ -855,11 +861,36 @@ public partial class MainWindow : Window
         => WebPage.Open(ProjectLinks.Feedback);
 
     /// <summary>
-    /// Opens the manual. "Get started" says what the item is about; the manual is where the program
-    /// explains itself, and it lives in the repository so it can be searched and linked to.
+    /// Opens the manual. "Get started" says what the item is about, and the manual is where the
+    /// program explains itself: the copy that came with the program when there is one, the page in
+    /// the repository otherwise.
     /// </summary>
     private void OnGetStartedClicked(object? sender, RoutedEventArgs e)
-        => WebPage.Open(ProjectLinks.Manual);
+        => WebPage.Open(Manual.Where());
+
+    /// <summary>
+    /// Puts the sample macros into the list: the main one and the sub-macro it calls. Somebody who
+    /// has just installed this has nothing to run and nothing to compare their own first macro
+    /// with, and a macro that is already there answers both.
+    /// </summary>
+    private void OnInsertSampleClicked(object? sender, RoutedEventArgs e) => InsertSample();
+
+    /// <summary>
+    /// Adds everything the sample is made of to the macro list, which is also what the empty list
+    /// offers. It is one method so the menu item and the button cannot drift apart.
+    /// </summary>
+    private void InsertSample()
+    {
+        if (DataContext is not MainViewModel viewModel)
+        {
+            return;
+        }
+
+        foreach (var macro in SampleMacro.All())
+        {
+            viewModel.AddMacro(macro);
+        }
+    }
 
     /// <summary>
     /// Says what the program is and offers the two documents that belong with it: the project page,

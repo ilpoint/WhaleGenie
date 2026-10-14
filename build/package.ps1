@@ -140,6 +140,12 @@ function New-PortableFolder([string]$Published, [string]$Package) {
         Copy-Item -Path (Join-Path $PSScriptRoot "..\$document") -Destination $app
     }
 
+    # 手册也要跟着走：帮助菜单的「快速上手」打开的是包里的这一份（WhaleGenie/Execution/Manual.cs），
+    # 装好程序的人手上没有仓库可翻，也不一定有网。它按 exe 旁边的 doc\manual.md 找，路径别改。
+    $packagedManual = Join-Path $app 'doc'
+    [System.IO.Directory]::CreateDirectory($packagedManual) | Out-Null
+    Copy-Item -Path (Join-Path $PSScriptRoot '..\doc\manual.md') -Destination $packagedManual
+
     $moved = @(Get-ChildItem $Published -File |
         Where-Object { $_.Extension -eq '.dll' -and $_.Name -notin $stayWithExe -and -not (Test-HostFile $_.Name) } |
         ForEach-Object { $_.Name })

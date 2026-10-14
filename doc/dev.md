@@ -184,6 +184,7 @@ WhaleGenie\
     LICENSE.txt                 ← 程序自己的许可，AGPL-3.0 原文
     NOTICE                      ← 项目名与版权署名
     THIRD-PARTY-NOTICES.md      ← 用到的别人的东西
+    doc\manual.md               ← 使用说明，帮助菜单的「快速上手」打开的就是这一份
     lib\                    ← 程序用到的 dll 都在这一层文件夹里
 ```
 
