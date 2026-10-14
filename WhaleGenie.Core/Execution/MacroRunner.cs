@@ -1271,12 +1271,10 @@ public sealed class MacroRunner
 
             case "window.move":
                 {
-                    var x = Number(step, "x");
-                    var y = Number(step, "y");
-                    var width = Math.Max(1, Number(step, "width"));
-                    var height = Math.Max(1, Number(step, "height"));
+                    var (corner, width, height) = Box(step, null, toTheEdge: false);
                     Act(step, depth, "Run.MovedWindow",
-                        window => _devices.Windows.Move(window.Handle, x, y, width, height));
+                        window => _devices.Windows.Move(window.Handle, corner.X, corner.Y,
+                            width, height));
                     return Signal.Normal;
                 }
 
@@ -3721,17 +3719,21 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// The rectangle a step reads or copies, in the screen pixels the devices ask for: the four
-    /// numbers it writes down, or one record that says where the rectangle is. Every record that
+    /// The rectangle a step names in four number fields, whether it reads or copies one part of the
+    /// screen or tells a window where to go: the four numbers it writes down, or one record that says
+    /// where the rectangle is. Every record that
     /// carries a rectangle carries all four sides of it, so a hit, a window or a picture taken
     /// earlier goes in as it stands — "read the writing on what was just found" is one field rather
     /// than four readings of <c>field()</c> with a chance of one of them being the neighbour's. A
     /// record's numbers are screen pixels, the way every record's are; numbers written out are
     /// counted from <paramref name="origin"/>, which is the corner the step says its own numbers
-    /// are measured from. A number nobody wrote reaches the edge of the screen, and that is a
-    /// question only the written numbers answer: a record says all four of them.
+    /// are measured from. What a number nobody wrote comes to is the one thing the steps that write
+    /// four numbers do not agree on, so <paramref name="toTheEdge"/> says which of them this is: a
+    /// step reading the screen reads to the edge of it, while a window told to take a size stays at
+    /// least one pixel wide. A record says all four numbers either way.
     /// </summary>
-    private (ScreenPoint Corner, int Width, int Height) Box(ExecutableStep step, ScreenPoint? origin)
+    private (ScreenPoint Corner, int Width, int Height) Box(ExecutableStep step, ScreenPoint? origin,
+        bool toTheEdge = true)
     {
         string[] fields = ["x", "y", "width", "height"];
         var written = Array.ConvertAll(fields, name => step.Text(name).Trim());
@@ -3764,8 +3766,13 @@ public sealed class MacroRunner
         }
 
         var corner = Placed(origin, Number(step, "x"), Number(step, "y"));
-        var (width, height) = Extent(step, corner);
-        return (corner, width, height);
+        if (toTheEdge)
+        {
+            var (width, height) = Extent(step, corner);
+            return (corner, width, height);
+        }
+
+        return (corner, Math.Max(1, Number(step, "width")), Math.Max(1, Number(step, "height")));
     }
 
     /// <summary>

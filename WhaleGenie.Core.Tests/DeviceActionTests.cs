@@ -6690,6 +6690,76 @@ public class DeviceActionTests
         Assert.Contains("moveWindow 21 100 50 640 480", devices.Calls);
     }
 
+    /// <summary>
+    /// 窗口挪到哪儿的四格也收一条记录：`window.info` 交出来的那条记录里正好是这四个数，填进 X 就是"把
+    /// 这个窗口摆成刚读到的那个窗口那样"，不必在四格里各写一遍 field()（四格错一格，窗口就摆到别处或
+    /// 变成另一个大小）。
+    /// </summary>
+    [Fact]
+    public async Task A_window_can_be_moved_where_a_record_says()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
+            new ScreenSize(800, 600), false, false));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("window.info", Param("window", "Notepad"), Returns("window=place")),
+            Step("window.move", Param("window", "Notepad"), Param("x", "$place")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+
+        // 与写四个数字的那条用例得到同一个结果：位置与大小都按记录自己的数来。
+        Assert.Contains("moveWindow 21 1000 500 800 600", devices.Calls);
+    }
+
+    /// <summary>
+    /// 一格是记录、另外几格里也写了数字时报 Run.BadRegionTwice，并且窗口一次都没被动过：两个答案指着
+    /// 两块地方，挑一个用就是把"摆到别处"说成跑通。
+    /// </summary>
+    [Fact]
+    public async Task A_window_move_with_a_record_and_a_number_beside_it_is_refused()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
+            new ScreenSize(800, 600), false, false));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("window.info", Param("window", "Notepad"), Returns("window=place")),
+            Step("window.move", Param("window", "Notepad"), Param("x", "$place"),
+                Param("height", "300")),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BadRegionTwice", result.Key);
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("moveWindow", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// 一条里面没有矩形的记录（例如 CSV 的一行）当"挪到哪儿"用时报 Run.BadRegion，并把它读到的东西写
+    /// 出来：静默地按 (0,0) 摆过去，窗口就自己跑到屏幕左上角了。
+    /// </summary>
+    [Fact]
+    public async Task A_record_with_no_rectangle_in_it_is_refused_as_a_window_rectangle()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files["in.csv"] = "name,age\nAda,36\n";
+        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
+            new ScreenSize(800, 600), false, false));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("file.readCsv", Param("path", "in.csv"), Returns("rows=table")),
+            Step("window.move", Param("window", "Notepad"), Param("x", "get($table, 0)")),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BadRegion", result.Key);
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("moveWindow", StringComparison.Ordinal));
+    }
+
     [Fact]
     public async Task Closing_a_window_uses_its_handle()
     {
