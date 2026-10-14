@@ -1121,7 +1121,8 @@ internal static class ActionStrings
         ["screen.list.returns.hint"] = ReturnsHintText,
         ["screen.list.return.displays.label"] = "显示器",
         ["screen.list.return.displays.hint"] = "一块显示器一条记录，顺序就是 Windows 列出的顺序："
-            + "left、top、width、height、right、bottom、primary，以及 box，也就是那块矩形写成"
+            + "x、y（这块显示器的中心），然后是 left、top、width、height、right、bottom、primary，"
+            + "以及 box，也就是那块矩形写成"
             + "「左,上,宽,高」，区域那一格可以直接用它。主显示器左边的显示器 left 是负数，"
             + "瞄准它时那正是要填的数。取其中一块的一项用 field(get($变量, 0), \"left\")，"
             + "全部走一遍用 forEach。",
@@ -2411,7 +2412,8 @@ internal static class ActionStrings
         ["uia.read.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要读取的是第几个。" + MatchIndexHint,
         ["uia.read.return.element.label"] = "元素",
         ["uia.read.return.element.hint"] = "这个元素自己说出的内容，一条记录：enabled 与 visible、"
-            + "value、name、automationId、controlType，以及 left、top、width、height 与 box。"
+            + "value、name、automationId、controlType，然后是 x、y（它的中心），以及 left、top、"
+            + "width、height 与 box。"
             + "取其中一项用 field($变量, \"value\")。value 是元素持有的内容，输入框里的文字、"
             + "按钮上的标题，元素本身不持有内容时为空。",
 
@@ -3218,7 +3220,8 @@ internal static class ActionStrings
         ["window.list.return.windows.hint"] =
             "匹配到的窗口，一个窗口一条记录，按系统列出的顺序排。同名窗口是两个窗口，各占一条。每条记录与"
             + "window.info 给的那一条同形（少一个客户区）：「title」（标题）、「handle」（句柄，标题相同时"
-            + "用它区分）、「minimized」「maximized」（是否收进任务栏、是否铺满屏幕）、「left」「top」"
+            + "用它区分）、「minimized」「maximized」（是否收进任务栏、是否铺满屏幕）、「x」「y」（窗口"
+            + "矩形的中心，也就是动作要点的那一点）、「left」「top」"
             + "「width」「height」（矩形四个数）与「box」（同一个矩形，写成 左,上,宽,高，填进搜索区域那一"
             + "行的变量格里，下一步就在那个窗口里找），再加上「process」（程序名，不含 .exe）与「class」"
             + "（窗口类名，说明窗口的种类而不是里面的文档，记事本改了名也还是 Notepad），这两格要勾上"
@@ -3233,7 +3236,8 @@ internal static class ActionStrings
             "这个窗口，一条记录（与窗口列表里的一条同形，另加一个客户区）：「title」（标题）、「process」"
             + "（程序名，不含 .exe，也就是按进程名筛选时比较的那一项）、「class」（窗口类名，例如 Notepad，"
             + "说明的是窗口的种类而不是里面的文档）、「handle」（句柄，标题相同时用它区分）、「minimized」"
-            + "「maximized」（是否收进任务栏、是否铺满屏幕）、「left」「top」「width」「height」（矩形四个"
+            + "「maximized」（是否收进任务栏、是否铺满屏幕）、「x」「y」（窗口矩形的中心，也就是动作要点"
+            + "的那一点）、「left」「top」「width」「height」（矩形四个"
             + "数）、「box」（同一个矩形，写成 左,上,宽,高，整条记录直接填进搜索区域那一行的变量格即可看同一"
             + "块）与「clientBox」（窗口边框以内、标题栏以下的那一块，写成 左,上,宽,高，坐标基准选「窗口客户"
             + "区」的这一步看的就是它）。取其中一项用 field($变量, \"left\")。给的是窗口被看见的那个矩形："
@@ -3246,7 +3250,8 @@ internal static class ActionStrings
         ["vision.capture.return.image.hint"] = "截到的图片，可以拿去搜索，也可以写进文件。",
         ["vision.capture.return.place.label"] = "位置",
         ["vision.capture.return.place.hint"] =
-            "截到的那块在哪里，一条记录：「left」「top」（左上角在屏幕上的位置，单位是屏幕像素，和搜索区域"
+            "截到的那块在哪里，一条记录：「x」「y」（这块画面的中心，也就是动作要点的那一点）、「left」"
+            + "「top」（左上角在屏幕上的位置，单位是屏幕像素，和搜索区域"
             + "的「左上角 X」「左上角 Y」同一个口径）、「width」「height」（大小，单位是像素；给的是图片自己"
             + "的大小，贴着屏幕边缘截时可能比要的小）、「box」（整块写成 左,上,宽,高，填进搜索区域那一行的"
             + "变量格即可看同一块）。取其中一项用 field($变量, \"left\")。",
@@ -3258,7 +3263,8 @@ internal static class ActionStrings
         ["vision.captureWindow.return.image.hint"] = "截到的整窗图片，连标题栏一起。",
         ["vision.captureWindow.return.place.label"] = "位置",
         ["vision.captureWindow.return.place.hint"] =
-            "窗口在哪里，一条记录：「left」「top」（窗口左上角在屏幕上的位置，单位是屏幕像素）、「width」"
+            "窗口在哪里，一条记录：「x」「y」（窗口矩形的中心，也就是动作要点的那一点）、「left」「top」"
+            + "（窗口左上角在屏幕上的位置，单位是屏幕像素）、「width」"
             + "「height」（窗口的大小，单位是像素）、「box」（整块写成 左,上,宽,高，填进搜索区域那一行的"
             + "变量格即可在窗口里找）。取其中一项用 field($变量, \"left\")。",
         ["vision.captureWindow.returns.label"] = "要留下的结果",

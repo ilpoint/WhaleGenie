@@ -1560,12 +1560,13 @@ public static class ActionCatalog
             Returns =
             [
                 Return("displays", "Displays", primary: true, type: ActionReturnType.List,
-                    hint: "One record to a display, in the order Windows lists them: left, top, "
-                        + "width, height, right, bottom, primary, and box, the rectangle written as "
-                        + "left,top,width,height, which a region field takes as it stands. A display "
-                        + "to the left of the primary one starts at a negative left, which is what a "
-                        + "step aiming at it needs. Read one part of one of them with "
-                        + "field(get($name, 0), \"left\"), and walk them all with forEach."),
+                    hint: "One record to a display, in the order Windows lists them: x and y, the "
+                        + "middle of the display, then left, top, width, height, right, bottom, "
+                        + "primary, and box, the rectangle written as left,top,width,height, which "
+                        + "a region field takes as it stands. A display to the left of the primary "
+                        + "one starts at a negative left, which is what a step aiming at it needs. "
+                        + "Read one part of one of them with field(get($name, 0), \"left\"), and walk "
+                        + "them all with forEach."),
             ],
             Category = ActionCategory.System,
             DisplayName = "List Displays",
@@ -1894,11 +1895,11 @@ public static class ActionCatalog
                 Return("windows", "Windows", primary: true, type: ActionReturnType.List,
                     hint: "The windows that matched, each as a record of its own: the same shape "
                         + "window.info hands over for one window, without the part inside its "
-                        + "border, with the fields title, handle, minimized, maximized, left, top, "
-                        + "width, height and box, plus process and class when the step is told to "
-                        + "read them, in the order the system lists them. Two windows with the same "
-                        + "title are two windows and get a record each. Read one field of one of "
-                        + "them with "
+                        + "border, with the fields title, handle, minimized, maximized, x and y "
+                        + "(the middle of the window), left, top, width, height and box, plus "
+                        + "process and class when the step is told to read them, in the order the "
+                        + "system lists them. Two windows with the same title are two windows and "
+                        + "get a record each. Read one field of one of them with "
                         + "field(get($name, 0), \"title\"), and walk them all with forEach."),
             ],
             Category = ActionCategory.Window,
@@ -1925,8 +1926,9 @@ public static class ActionCatalog
                 Return("window", "Window", primary: true, type: ActionReturnType.Record,
                     hint: "The window as one record, the shape a listing hands over for each window "
                         + "it finds, with the part inside its border added: title, process, class, "
-                        + "handle, minimized, maximized, left, top, width, height, box and clientBox. "
-                        + "Read one part of it with field($name, \"left\"). box is the rectangle "
+                        + "handle, minimized, maximized, x and y (the middle of the window), left, "
+                        + "top, width, height, box and clientBox. Read one part of it with "
+                        + "field($name, \"left\"). box is the rectangle "
                         + "written as left,top,width,height, which a search region takes as it "
                         + "stands; it is the rectangle the window is seen at, so the border Windows "
                         + "keeps round it for resizing is not drawn and does not count and a "
@@ -2841,8 +2843,9 @@ public static class ActionCatalog
             [
                 Return("element", "Element", primary: true, type: ActionReturnType.Record,
                     hint: "What the element says about itself, as one record: enabled and visible, "
-                        + "value, name, automationId and controlType, then left, top, width, height "
-                        + "and box. Read one part of it with field($name, \"value\"). value is what "
+                        + "value, name, automationId and controlType, then x and y, the middle of "
+                        + "it, then left, top, width, height and box. Read one part of it with "
+                        + "field($name, \"value\"). value is what "
                         + "the element holds (the text in a box, the caption of a button), and is "
                         + "empty for one that keeps nothing."),
             ],
@@ -4159,12 +4162,12 @@ public static class ActionCatalog
     private static ActionReturn[] Place() =>
     [
         Return("place", "Place", type: ActionReturnType.Record,
-            hint: "Where the picture was taken, as one record. left and top are the corner it "
-                + "starts at and width and height are its size in screen pixels: the picture's own "
-                + "size, so a capture that ran off the edge of the screen comes back smaller than "
-                + "it asked for; box is the whole rectangle written as left,top,width,height, "
-                + "ready to be used as a search region. Read one part of it with "
-                + "field($name, \"left\")."),
+            hint: "Where the picture was taken, as one record. x and y are the middle of it, which "
+                + "is the point a step aims at; left and top are the corner it starts at and width "
+                + "and height are its size in screen pixels: the picture's own size, so a capture "
+                + "that ran off the edge of the screen comes back smaller than it asked for; box "
+                + "is the whole rectangle written as left,top,width,height, ready to be used as a "
+                + "search region. Read one part of it with field($name, \"left\")."),
     ];
 
     /// <summary>

@@ -96,6 +96,28 @@ public class ReturnsPageTests
         });
     }
 
+    /// <summary>
+    /// 一条记录带着矩形的中心之后，「返回值」页那一行说明得说清 x、y 是什么：写宏的人是从这一行
+    /// 知道 field($窗口, "x") 读得到东西的，少写一句就是一条没人找得到字段。带矩形的返回值一共有
+    /// 五个，各写一遍。中英两侧都算数（这一行的文字按界面语言取，两边都写过）。
+    /// </summary>
+    [Theory]
+    [InlineData("window.info", "window")]
+    [InlineData("window.list", "windows")]
+    [InlineData("uia.read", "element")]
+    [InlineData("vision.capture", "place")]
+    [InlineData("screen.list", "displays")]
+    public void The_line_about_a_record_with_a_rectangle_names_its_middle(string action, string key)
+    {
+        Ui.Run(() =>
+        {
+            var row = Open(action).ReturnsRows.First(one => one.Key == key);
+
+            Assert.Matches(@"\bx\b", row.Hint);
+            Assert.Matches(@"\by\b", row.Hint);
+        });
+    }
+
     [Fact]
     public void The_results_a_step_hands_over_survive_the_file()
     {
