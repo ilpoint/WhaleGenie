@@ -414,6 +414,8 @@ public class StepOutcomeTests
         {
         }
 
+        public string Text(LogEntry entry) => entry.Key;
+
         public Task<bool> BeforeStep(ExecutableStep step, int depth, CancellationToken token)
             => Task.FromResult(!string.Equals(step.Id, id, StringComparison.OrdinalIgnoreCase));
 

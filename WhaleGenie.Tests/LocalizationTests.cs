@@ -1,5 +1,7 @@
 using System.Text.RegularExpressions;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Execution;
+using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -212,6 +214,30 @@ public class LocalizationTests
             .ToList();
 
         Assert.Empty(gaps);
+    }
+
+    /// <summary>
+    /// The engine records a run as a key and its arguments, so the text of every line — the ones a
+    /// failed run writes into its own file included — comes from the wording table. A host that
+    /// dropped the arguments would leave a log line saying "Run.Start" where the person expects the
+    /// macro's own story.
+    /// </summary>
+    [Fact]
+    public void A_line_of_a_run_log_reads_the_way_the_window_shows_it()
+    {
+        var entry = new LogEntry(DateTimeOffset.Now, LogLevel.Info, 0, "control.delay", "Run.Start", [3]);
+
+        var worded = RunLogText.Of(entry);
+        Assert.NotEqual(entry.Key, worded);
+        Assert.Contains("3", worded, StringComparison.Ordinal);
+
+        // A run a trigger started has no window to show its lines in, and words them the same way:
+        // the file it leaves behind has to read like the window would have.
+        Assert.Equal(worded, new AskRunHost(null).Text(entry));
+
+        // The header of that file goes through the same table, so both languages carry its parts.
+        Assert.Contains("{0}", Strings.Chinese["Run.LogFileHeader"], StringComparison.Ordinal);
+        Assert.Contains("{1}", Strings.Chinese["Run.LogFileHeader"], StringComparison.Ordinal);
     }
 
     /// <summary>

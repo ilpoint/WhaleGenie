@@ -1899,6 +1899,8 @@ public class MacroRunnerTests
         {
         }
 
+        public string Text(LogEntry entry) => entry.Key;
+
         public Task<bool> BeforeStep(ExecutableStep step, int depth, CancellationToken token)
         {
             Seen.Add(step);
@@ -1926,6 +1928,8 @@ public class MacroRunnerTests
         public void Log(LogEntry entry)
         {
         }
+
+        public string Text(LogEntry entry) => entry.Key;
 
         public Task<bool> BeforeStep(ExecutableStep step, int depth, CancellationToken token)
             => Task.FromResult(true);

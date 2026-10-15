@@ -17,6 +17,12 @@ public static class TextEncoding
     public const string Default = "utf8";
 
     /// <summary>
+    /// UTF-8 with a byte-order mark, which is what the program writes its own text files in: a
+    /// file a person is meant to open by double-clicking has to say what it is.
+    /// </summary>
+    public const string Utf8Bom = "utf8bom";
+
+    /// <summary>
     /// The name for the code page this machine's own console programs write in, which is what a
     /// macro needs when it reads what cmd.exe or Windows PowerShell printed.
     /// </summary>

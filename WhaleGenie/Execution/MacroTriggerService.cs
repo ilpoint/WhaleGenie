@@ -1436,10 +1436,6 @@ public sealed class MacroTriggerService : IDisposable
             var steps = macro.Steps.ToExecutable();
             var library = Library();
 
-            // Read once for the whole stay: a macro that repeats for an hour has no reason to
-            // keep asking the settings file, and a change made while it runs can wait.
-            var failureScreenshot = LocalSettings.LoadFailureScreenshot();
-
             // No debugger is behind a run a trigger started, but a step whose failure rule is
             // "ask me" still has to reach whoever can put the question on screen.
             var host = new AskRunHost(Ask, AskUser);
@@ -1450,8 +1446,7 @@ public sealed class MacroTriggerService : IDisposable
                     MacroVariables.Seed(new SystemVariableReader(_devices)), host, _devices,
                     macro.DelayScale, library)
                 {
-                    FailureScreenshot = failureScreenshot,
-                    FailureFolder = AppPaths.Logs,
+                    FailureLogFolder = AppPaths.Logs,
                     RunName = macro.Name,
                     ExclusiveInput = macro.ExclusiveInput,
                 };

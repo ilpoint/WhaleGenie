@@ -839,9 +839,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.Capture.graphicsCapture"] = "Graphics Capture",
         ["Settings.Capture.desktopDuplication"] = "Desktop duplication (DXGI)",
         ["Settings.Capture.gdi"] = "Desktop (GDI)",
-        ["Settings.FailureScreenshot"] = "Save a picture of the screen when a run fails",
-        ["Settings.FailureScreenshotHint"] =
-            "Kept in the logs folder beside the program. Nothing is written while a macro runs well.",
         ["Settings.PreloadOcr"] = "Load text recognition in the background at startup",
         ["Settings.PreloadOcrHint"] =
             "Loading the models takes a moment, and the first step that reads text would otherwise "
@@ -1026,8 +1023,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.Finished"] = "Finished. {0} step(s) ran.",
         ["Run.Stopped"] = "Stopped. {0} step(s) ran.",
         ["Run.Aborted"] = "Aborted. {0} step(s) ran.",
-        ["Run.FailurePicture"] = "Saved a picture of the screen to {0}",
-        ["Run.FailurePictureFailed"] = "Could not save a picture of the screen: {0}",
+        ["Run.LogFileHeader"] = "Macro {0}: the run failed at {1}",
+        ["Run.FailureLog"] = "Saved the run log to {0}",
+        ["Run.FailureLogFailed"] = "Could not save the run log: {0}",
         ["Run.Skipped"] = "Skipped: the step is turned off",
         ["Run.Retry"] = "Retry {0}",
         ["Run.StopRequested"] = "The macro asked to stop. {0}",
@@ -2086,8 +2084,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.Capture.graphicsCapture"] = "Graphics Capture",
         ["Settings.Capture.desktopDuplication"] = "桌面复制（DXGI）",
         ["Settings.Capture.gdi"] = "桌面（GDI）",
-        ["Settings.FailureScreenshot"] = "运行失败时保存屏幕截图",
-        ["Settings.FailureScreenshotHint"] = "保存到程序所在目录下的 logs 文件夹。宏运行顺利时不会写入任何文件。",
         ["Settings.PreloadOcr"] = "启动时在后台预加载文字识别",
         ["Settings.PreloadOcrHint"] = "加载模型要一点时间，不预加载的话就由第一步读取文字的步骤来等。默认关闭："
             + "模型会一直占着内存，直到程序退出。",
@@ -2250,8 +2246,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.Finished"] = "运行结束，共执行 {0} 个步骤。",
         ["Run.Stopped"] = "已停止，共执行 {0} 个步骤。",
         ["Run.Aborted"] = "运行中断，共执行 {0} 个步骤。",
-        ["Run.FailurePicture"] = "已把屏幕截图存到 {0}",
-        ["Run.FailurePictureFailed"] = "屏幕截图没能保存：{0}",
+        ["Run.LogFileHeader"] = "宏 {0}：运行失败，时间 {1}",
+        ["Run.FailureLog"] = "已把运行日志存到 {0}",
+        ["Run.FailureLogFailed"] = "运行日志没能保存：{0}",
         ["Run.Skipped"] = "已跳过：这一步处于停用状态",
         ["Run.Retry"] = "第 {0} 次重试",
         ["Run.StopRequested"] = "宏主动要求停止。{0}",

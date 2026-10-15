@@ -26,6 +26,12 @@ internal sealed class UiThreadRunHost(IRunHost host) : IRunHost
     public void Log(LogEntry entry) => Dispatcher.UIThread.Post(() => host.Log(entry));
 
     /// <summary>
+    /// Answered here rather than posted, and on whichever thread asks: it is wording, not window
+    /// state, and the run wants it while it is writing the file it leaves behind.
+    /// </summary>
+    public string Text(LogEntry entry) => host.Text(entry);
+
+    /// <summary>
     /// Waited on, because the answer decides what the run does next: the step the debugger is
     /// looking at has to be the one it is about to run, whether to stop has to be asked before
     /// anything else happens, and the answer — carry on with this step or leave it out — is that

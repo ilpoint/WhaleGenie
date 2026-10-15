@@ -27,16 +27,6 @@ public static class LocalSettings
     public static void Store(Language language) => Write(model => model.Language = language.ToString());
 
     /// <summary>
-    /// Whether a run that stops on a failure leaves a picture of the screen behind. On by default:
-    /// a failure nobody can see is the one a picture helps with most.
-    /// </summary>
-    public static bool LoadFailureScreenshot() => Read().FailureScreenshot;
-
-    /// <summary>Stores that choice. Failures are ignored on purpose.</summary>
-    public static void StoreFailureScreenshot(bool value)
-        => Write(model => model.FailureScreenshot = value);
-
-    /// <summary>
     /// Whether the text recognition models are loaded in the background as the program starts. Off
     /// by default: loading them holds memory for the whole run, and a machine that never reads text
     /// should not pay for a machine that does.
@@ -115,8 +105,6 @@ public static class LocalSettings
     private sealed class Model
     {
         public string Language { get; set; } = nameof(Localization.Language.English);
-
-        public bool FailureScreenshot { get; set; } = true;
 
         public bool PreloadOcr { get; set; }
 

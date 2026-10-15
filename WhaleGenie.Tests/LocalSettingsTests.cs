@@ -22,23 +22,17 @@ public class LocalSettingsTests
     {
         InOwnFile(_ =>
         {
+            LocalSettings.StorePreloadOcr(true);
             LocalSettings.Store(Language.Chinese);
-            LocalSettings.StoreFailureScreenshot(false);
 
             Assert.Equal(Language.Chinese, LocalSettings.Load());
-            Assert.False(LocalSettings.LoadFailureScreenshot());
+            Assert.True(LocalSettings.LoadPreloadOcr());
 
-            // And the other way round: the language going back must not put the picture back.
+            // And the other way round: the language going back must not move the other choice.
             LocalSettings.Store(Language.English);
             Assert.Equal(Language.English, LocalSettings.Load());
-            Assert.False(LocalSettings.LoadFailureScreenshot());
+            Assert.True(LocalSettings.LoadPreloadOcr());
         });
-    }
-
-    [Fact]
-    public void A_choice_that_was_never_made_keeps_the_failure_picture_on()
-    {
-        InOwnFile(_ => Assert.True(LocalSettings.LoadFailureScreenshot()));
     }
 
     [Fact]
@@ -49,23 +43,7 @@ public class LocalSettingsTests
             File.WriteAllText(path, "{}");
 
             Assert.Equal(Language.English, LocalSettings.Load());
-            Assert.True(LocalSettings.LoadFailureScreenshot());
             Assert.Equal(CaptureWay.Auto, LocalSettings.LoadCaptureWindow());
-        });
-    }
-
-    [Fact]
-    public void The_settings_window_turns_the_failure_picture_on_and_off()
-    {
-        InOwnFile(_ =>
-        {
-            LocalSettings.StoreFailureScreenshot(false);
-
-            var viewModel = new SettingsViewModel();
-            Assert.False(viewModel.FailureScreenshot);
-
-            viewModel.FailureScreenshot = true;
-            Assert.True(LocalSettings.LoadFailureScreenshot());
         });
     }
 

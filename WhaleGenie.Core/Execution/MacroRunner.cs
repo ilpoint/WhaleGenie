@@ -125,6 +125,14 @@ public sealed class MacroRunner
     private IReadOnlyList<ExecutableStep> _steps = [];
 
     /// <summary>
+    /// The lines this run has written so far, kept so that one which stops on a failure can leave
+    /// the whole of them behind as a text file. A run the debugger is watching shows the same lines
+    /// in its window, and one a trigger started has no window at all — there this file is the only
+    /// account of what happened.
+    /// </summary>
+    private readonly List<LogEntry> _log = [];
+
+    /// <summary>
     /// Whether a step a script ran asked for the whole macro to stop. A script runs to its own end —
     /// it is a program in a process of its own and there is no stopping it politely — so the answer
     /// is carried out of the step that ran it and ends the macro once that step is over.
@@ -164,17 +172,11 @@ public sealed class MacroRunner
     private const double LargestScale = 10;
 
     /// <summary>
-    /// Where the pictures of failed runs are written. Relative by default, which puts them beside
-    /// the macro's own data; the application hands in an absolute folder so they land in the
-    /// program's folder instead of inside a project somebody may well be sharing.
+    /// Where the logs of failed runs are written. Relative by default, which puts them beside the
+    /// macro's own data; the application hands in an absolute folder so they land in the program's
+    /// folder instead of inside a project somebody may well be sharing.
     /// </summary>
-    public string FailureFolder { get; init; } = "logs";
-
-    /// <summary>
-    /// True when a run that stops on a failure should leave a picture of the screen behind, so the
-    /// user can see what was on it at the time. Nothing is written while a macro is running well.
-    /// </summary>
-    public bool FailureScreenshot { get; init; }
+    public string FailureLogFolder { get; init; } = "logs";
 
     /// <summary>
     /// The name this run goes by on the run list. It is what <see cref="InputGate"/> reports while
@@ -251,6 +253,7 @@ public sealed class MacroRunner
         _executed = 0;
         _loops = 0;
         _failure = null;
+        _log.Clear();
         _images.Clear();
         _frames.Clear();
         _looked.Clear();
@@ -293,12 +296,13 @@ public sealed class MacroRunner
                 _ => new RunResult(RunStatus.Completed, "Run.Finished", string.Empty, _executed),
             };
 
+            Log(LogLevel.Info, 0, string.Empty, SummaryKey(outcome.Status), _executed);
+
             if (outcome.Status is RunStatus.Failed)
             {
-                LeaveFailurePicture();
+                LeaveFailureLog();
             }
 
-            Log(LogLevel.Info, 0, string.Empty, SummaryKey(outcome.Status), _executed);
             return outcome;
         }
         catch (OperationCanceledException)
@@ -325,46 +329,88 @@ public sealed class MacroRunner
     private static string LoopControlKey(Signal signal)
         => signal is Signal.Break ? "Run.BreakOutsideLoop" : "Run.ContinueOutsideLoop";
 
+    /// <summary>How much of the macro's name a file name keeps before it is cut short.</summary>
+    private const int LongestNameInFile = 40;
+
     /// <summary>
-    /// Leaves a picture of the screen behind when a run stops on a failure.
+    /// Leaves the whole log of this run behind as a text file when it stops on a failure.
     /// </summary>
     /// <remarks>
-    /// The primary screen is what is taken: it is where a macro that fails is nearly always
-    /// working, and covering every monitor costs more to take and more to look at. The picture is
-    /// written whether or not anything went wrong while taking it — a run that has already failed
-    /// must not be brought down by the act of recording it, so a failure here is only logged.
+    /// Everything the run wrote goes down, not only the line that failed: what went wrong is read
+    /// next to the steps that led up to it. The file is written whether or not anything goes wrong
+    /// while writing it — a run that has already failed must not be brought down by the act of
+    /// recording it, so a failure here is only logged.
     /// </remarks>
-    private void LeaveFailurePicture()
+    private void LeaveFailureLog()
     {
-        if (!FailureScreenshot)
-        {
-            return;
-        }
-
         try
         {
-            var desk = _devices.Screen.Desktop.Bounds;
-            var frame = _devices.Screen.Capture(desk.Left, desk.Top, desk.Width, desk.Height);
-            if (frame.IsEmpty)
+            var now = DateTimeOffset.Now;
+            var stem = "failure-" + NameForFile()
+                + now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+            var relative = Path.Combine(FailureLogFolder, stem + ".log");
+            for (var counter = 1; _devices.Files.Exists(relative); counter++)
             {
-                return;
+                relative = Path.Combine(FailureLogFolder,
+                    string.Create(CultureInfo.InvariantCulture, $"{stem}-{counter}.log"));
             }
 
-            var name = "failure-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
-            var relative = Path.Combine(FailureFolder, name + ".png");
-            for (var counter = 1; _devices.Files.Exists(_devices.Files.Resolve(relative)); counter++)
-            {
-                relative = Path.Combine(FailureFolder,
-                    string.Create(CultureInfo.InvariantCulture, $"{name}-{counter}.png"));
-            }
-
-            _devices.Files.WriteBytes(relative, PngWriter.Encode(frame));
-            Log(LogLevel.Info, 0, string.Empty, "Run.FailurePicture", _devices.Files.Resolve(relative));
+            _devices.Files.WriteText(relative, FailureLogText(now), append: false, TextEncoding.Utf8Bom);
+            Log(LogLevel.Info, 0, string.Empty, "Run.FailureLog", _devices.Files.Resolve(relative));
         }
         catch (Exception failure)
         {
-            Log(LogLevel.Warn, 0, string.Empty, "Run.FailurePictureFailed", failure.Message);
+            Log(LogLevel.Warn, 0, string.Empty, "Run.FailureLogFailed", failure.Message);
         }
+    }
+
+    /// <summary>
+    /// What the file a failed run leaves behind says: which macro it was and when, then every line
+    /// the run wrote with the time it was written. The lines are indented by two spaces for each
+    /// level, because a text file has no other way of saying that a step is inside a block.
+    /// </summary>
+    private string FailureLogText(DateTimeOffset when)
+    {
+        var text = new StringBuilder();
+        text.Append(_host.Text(new LogEntry(when, LogLevel.Info, 0, string.Empty, "Run.LogFileHeader",
+                [RunName, when.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)])))
+            .Append(Environment.NewLine)
+            .Append(Environment.NewLine);
+
+        foreach (var entry in _log)
+        {
+            text.Append(entry.Time.ToString("HH:mm:ss", CultureInfo.InvariantCulture))
+                .Append("  ")
+                .Append(' ', entry.Depth * 2)
+                .Append(_host.Text(entry))
+                .Append(Environment.NewLine);
+        }
+
+        return text.ToString();
+    }
+
+    /// <summary>
+    /// The run's own name cut down to what a file name can carry, with a dash after it, or nothing
+    /// at all when the name has nothing usable in it. The name is the user's, so anything a file
+    /// name cannot hold becomes an underscore rather than stopping the file from being written.
+    /// </summary>
+    private string NameForFile()
+    {
+        var forbidden = Path.GetInvalidFileNameChars();
+        var kept = new StringBuilder();
+        foreach (var letter in RunName.Trim())
+        {
+            if (kept.Length == LongestNameInFile)
+            {
+                break;
+            }
+
+            kept.Append(forbidden.Contains(letter) ? '_' : letter);
+        }
+
+        // A name may not end in a dot or a space: Windows reads that as the end of the name.
+        var name = kept.ToString().Trim(' ', '.');
+        return name.Length == 0 ? string.Empty : name + "-";
     }
 
     /// <summary>What a step tells the runner to do next.</summary>
@@ -8643,7 +8689,14 @@ public sealed class MacroRunner
     }
 
     private void Log(LogLevel level, int depth, string step, string key, params object[] arguments)
-        => _host.Log(new LogEntry(DateTimeOffset.Now, level, depth, step, key, arguments));
+    {
+        var entry = new LogEntry(DateTimeOffset.Now, level, depth, step, key, arguments);
+
+        // Kept beside being handed to the host: a run that ends on a failure writes all of this to
+        // a file afterwards, and a run nobody is watching has no host that keeps it.
+        _log.Add(entry);
+        _host.Log(entry);
+    }
 
     /// <summary>Why a step could not run. The key is translated by the interface.</summary>
     private sealed class StepFailure : Exception

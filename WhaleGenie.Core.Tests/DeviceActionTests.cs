@@ -1,7 +1,7 @@
-using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
@@ -149,79 +149,209 @@ public class DeviceActionTests
         return (result, layer, store);
     }
 
+    /// <summary>
+    /// What a run asked the devices for, without the text file a failed run leaves behind. These
+    /// cases are each about one request, and that file is about the run's own ending rather than
+    /// about the request, so leaving it out keeps them about what they are about.
+    /// </summary>
+    private static string[] Asked(FakeDeviceLayer devices)
+        => [.. devices.Calls.Where(call => !call.Contains(@"logs\failure-", StringComparison.Ordinal))];
+
     [Fact]
-    public async Task A_run_that_stops_on_a_failure_leaves_a_picture_of_the_screen()
+    public async Task A_run_that_stops_on_a_failure_leaves_its_log_behind()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#00FF00") };
+        var devices = new FakeDeviceLayer();
         var host = new SilentRunHost();
 
         var result = await new MacroRunner(new VariableStore(), host, devices)
         {
-            FailureScreenshot = true,
+            RunName = "订单导出",
         }.RunAsync([Step("nope.unknown")]);
 
         Assert.Equal(RunStatus.Failed, result.Status);
 
-        // The picture is the whole primary screen, written as a PNG inside the log folder.
-        var picture = Assert.Single(devices.Blobs);
-        Assert.StartsWith("logs", picture.Key);
-        Assert.Contains("failure", picture.Key);
-        Assert.EndsWith(".png", picture.Key);
-        Assert.Equal(100, BinaryPrimitives.ReadInt32BigEndian(picture.Value.AsSpan(16)));
-        Assert.Equal(50, BinaryPrimitives.ReadInt32BigEndian(picture.Value.AsSpan(20)));
+        // The whole run is written as text into the log folder, under the macro's own name, in the
+        // encoding a person can open by double-clicking.
+        var written = Assert.Single(devices.Files);
+        Assert.StartsWith("logs", written.Key);
+        Assert.Contains("failure-订单导出-", written.Key);
+        Assert.EndsWith(".log", written.Key);
+        Assert.Contains(devices.Calls,
+            call => call.StartsWith("writeFile logs", StringComparison.Ordinal)
+                && call.EndsWith(" False utf8bom", StringComparison.Ordinal));
+
+        // Which macro it was and when come first, then every line the run wrote under its own time.
+        var lines = written.Value.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+        Assert.StartsWith("Run.LogFileHeader 订单导出 ", lines[0]);
+        Assert.Contains(lines, line => line.Contains("Run.Start", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("Run.Aborted", StringComparison.Ordinal));
+        Assert.All(lines.Skip(1), line => Assert.Matches(@"^\d\d:\d\d:\d\d  ", line));
 
         // The log says where it went, which is how the user finds it.
-        Assert.Contains(host.Entries, entry => entry.Key == "Run.FailurePicture");
+        Assert.Contains(host.Entries, entry => entry.Key == "Run.FailureLog");
     }
 
     [Fact]
-    public async Task A_picture_goes_to_the_folder_the_program_asks_for()
+    public async Task Lines_of_a_block_are_indented_by_their_depth()
     {
-        // The application hands in a folder of its own, so the pictures land beside the program
-        // instead of inside a project that somebody may well be sharing.
-        var devices = new FakeDeviceLayer { Display = Picture("#FF0000,#00FF00") };
+        var devices = new FakeDeviceLayer();
+
+        await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
+            .RunAsync([Step("control.repeat", Param("times", "1"), Body("body", Step("nope.unknown")))]);
+
+        var lines = Assert.Single(devices.Files).Value
+            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+
+        // The step inside the block is one level in, which is two more spaces after the time.
+        Assert.Contains(lines, line => line[10..].StartsWith("  Run.", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line[10..].StartsWith("Run.Start", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_log_goes_to_the_folder_the_program_asks_for()
+    {
+        // The application hands in a folder of its own, so the logs land beside the program instead
+        // of inside a project that somebody may well be sharing.
+        var devices = new FakeDeviceLayer();
         var folder = Path.Combine("C:", "whalegenie", "logs");
 
         var result = await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
         {
-            FailureScreenshot = true,
-            FailureFolder = folder,
+            FailureLogFolder = folder,
         }.RunAsync([Step("nope.unknown")]);
 
         Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.StartsWith(folder, Assert.Single(devices.Blobs).Key, StringComparison.Ordinal);
+        Assert.StartsWith(folder, Assert.Single(devices.Files).Key, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task A_run_that_finishes_leaves_no_picture()
+    public async Task A_run_that_finishes_leaves_no_log()
     {
-        var devices = new FakeDeviceLayer { Display = Picture("#FF0000") };
+        var devices = new FakeDeviceLayer();
 
         var result = await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
-        {
-            FailureScreenshot = true,
-        }.RunAsync([Step("control.delay", Param("ms", "0"))]);
+            .RunAsync([Step("control.delay", Param("ms", "0"))]);
 
         Assert.True(result.Succeeded);
-        Assert.Empty(devices.Blobs);
+        Assert.Empty(devices.Files);
     }
 
     [Fact]
-    public async Task A_picture_that_cannot_be_taken_does_not_bring_the_run_down()
+    public async Task A_run_the_user_stopped_leaves_no_log()
     {
-        // Everything the fake is asked for is refused, so taking the picture fails too. The run
-        // has already failed, and recording that must not be able to make it worse.
+        var devices = new FakeDeviceLayer();
+
+        var result = await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
+            .RunAsync([Step("control.stop")]);
+
+        Assert.Equal(RunStatus.Stopped, result.Status);
+        Assert.Empty(devices.Files);
+    }
+
+    [Fact]
+    public async Task A_log_that_cannot_be_written_does_not_bring_the_run_down()
+    {
+        // Everything the fake is asked for is refused, so writing the log fails too. The run has
+        // already failed, and recording that must not be able to make it worse.
         var devices = new FakeDeviceLayer { Unavailable = true };
         var host = new SilentRunHost();
 
         var result = await new MacroRunner(new VariableStore(), host, devices)
-        {
-            FailureScreenshot = true,
-        }.RunAsync([Step("nope.unknown")]);
+            .RunAsync([Step("nope.unknown")]);
 
         Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.Empty(devices.Blobs);
-        Assert.Contains(host.Entries, entry => entry.Key == "Run.FailurePictureFailed");
+        Assert.Empty(devices.Files);
+        Assert.Contains(host.Entries, entry => entry.Key == "Run.FailureLogFailed");
+    }
+
+    [Fact]
+    public async Task A_macro_name_a_file_cannot_carry_is_made_into_one()
+    {
+        var devices = new FakeDeviceLayer();
+
+        await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
+        {
+            RunName = "a/b:c*?d",
+        }.RunAsync([Step("nope.unknown")]);
+
+        Assert.Contains("failure-a_b_c__d-", Assert.Single(devices.Files).Key);
+    }
+
+    [Fact]
+    public async Task An_overlong_macro_name_is_cut_short_in_the_file_name()
+    {
+        var devices = new FakeDeviceLayer();
+
+        await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
+        {
+            RunName = new string('x', 60),
+        }.RunAsync([Step("nope.unknown")]);
+
+        Assert.Contains("failure-" + new string('x', 40) + "-", Assert.Single(devices.Files).Key);
+    }
+
+    [Fact]
+    public async Task A_second_log_of_the_same_second_is_written_beside_the_first()
+    {
+        var devices = new FakeDeviceLayer();
+
+        // Two logs in one second would take the same name. The clock cannot be moved, so the timing
+        // is waited out instead: the seeding and the run after it have to fall inside one second,
+        // and starting just after a second began leaves the whole of it for them.
+        while (DateTime.Now.Millisecond > 250)
+        {
+            await Task.Delay(20);
+        }
+
+        var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+        var taken = Path.Combine("logs", $"failure-{stamp}.log");
+        devices.Files[taken] = "an older log";
+
+        var result = await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
+            .RunAsync([Step("nope.unknown")]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Contains(devices.Files.Keys,
+            path => path.EndsWith($"failure-{stamp}-1.log", StringComparison.Ordinal));
+        Assert.Equal("an older log", devices.Files[taken]);
+    }
+
+    /// <summary>
+    /// The log goes through the real file device as well, so what it claims about its encoding is
+    /// what lands on disk: a person double-clicking the file must read the macro's name and the
+    /// steps it took, not a page of question marks where the writing was.
+    /// </summary>
+    [Fact]
+    public async Task The_log_of_a_failed_run_is_a_text_file_a_person_can_open()
+    {
+        var folder = Directory.CreateTempSubdirectory("whalegenie-log-");
+        try
+        {
+            var devices = new FakeDeviceLayer(new LocalFileDevice(folder.FullName));
+
+            var result = await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
+            {
+                FailureLogFolder = folder.FullName,
+                RunName = "订单导出",
+            }.RunAsync([Step("nope.unknown")]);
+
+            Assert.Equal(RunStatus.Failed, result.Status);
+
+            var which = Assert.Single(Directory.GetFiles(folder.FullName, "*.log"));
+            Assert.Contains("failure-订单导出-", Path.GetFileName(which), StringComparison.Ordinal);
+
+            // UTF-8 with a byte-order mark, which is what a double-click has to be able to read.
+            var bytes = File.ReadAllBytes(which);
+            Assert.Equal([0xEF, 0xBB, 0xBF], bytes[..3]);
+
+            var text = Encoding.UTF8.GetString(bytes[3..]);
+            Assert.StartsWith("Run.LogFileHeader 订单导出 ", text, StringComparison.Ordinal);
+            Assert.Contains("Run.Aborted", text, StringComparison.Ordinal);
+        }
+        finally
+        {
+            folder.Delete(recursive: true);
+        }
     }
 
     [Fact]
@@ -296,7 +426,7 @@ public class DeviceActionTests
         // in a state the user cannot see or undo.
         Assert.Equal(
             ["keyDown Ctrl", "down right 3 4", "keyUp Ctrl", "up right 3 4"],
-            devices.Calls);
+            Asked(devices));
     }
 
     [Fact]
@@ -432,7 +562,7 @@ public class DeviceActionTests
 
         // The pattern was refused before the windows were even read, so nothing was posted at
         // whatever came back.
-        Assert.Empty(devices.Calls);
+        Assert.Empty(Asked(devices));
     }
 
     [Fact]
@@ -442,7 +572,7 @@ public class DeviceActionTests
             [Step("input.keyPress", Param("key", "F5"), Param("inputMode", "background"))]);
 
         Assert.False(result.Succeeded);
-        Assert.Empty(devices.Calls);
+        Assert.Empty(Asked(devices));
     }
 
     /// <summary>
@@ -465,7 +595,7 @@ public class DeviceActionTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.BackgroundNeedsPointer", result.Key);
-        Assert.Empty(devices.Calls);
+        Assert.Empty(Asked(devices));
     }
 
     /// <summary>
@@ -489,7 +619,7 @@ public class DeviceActionTests
         Assert.False(result.Succeeded);
         Assert.Equal("Run.BackgroundNeedsPointer", result.Key);
         Assert.Empty(devices.Paths);
-        Assert.Empty(devices.Calls);
+        Assert.Empty(Asked(devices));
     }
 
     /// <summary>
@@ -1064,7 +1194,7 @@ public class DeviceActionTests
         Assert.Equal("Run.BadPointEmpty", result.Key);
 
         // 一头读不出来就什么都不做，不会按半个拖拽发出按键。
-        Assert.Empty(devices.Calls);
+        Assert.Empty(Asked(devices));
     }
 
     /// <summary>
@@ -1343,7 +1473,7 @@ public class DeviceActionTests
         Assert.False(result.Succeeded);
 
         // The window was looked for and nothing else was touched.
-        Assert.Equal(["findWindow Gone"], devices.Calls);
+        Assert.Equal(["findWindow Gone"], Asked(devices));
     }
 
     [Fact]
@@ -1463,7 +1593,7 @@ public class DeviceActionTests
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.BadExpression", result.Key);
 
-        Assert.Empty(devices.Calls);
+        Assert.Empty(Asked(devices));
     }
 
     /// <summary>
@@ -6130,7 +6260,8 @@ public class DeviceActionTests
             // Nothing was written and nothing was started: a machine without the program is not a
             // command line that failed, it is a step that could not be run.
             Assert.DoesNotContain(devices.Calls, call => call.StartsWith("start"));
-            Assert.Empty(devices.Files);
+            Assert.DoesNotContain(devices.Files.Keys,
+                path => path.EndsWith(".ahk", StringComparison.Ordinal));
         });
     }
 
@@ -6553,7 +6684,7 @@ public class DeviceActionTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.UnknownPowerAction", result.Key);
-        Assert.Empty(devices.Calls);
+        Assert.Empty(Asked(devices));
     }
 
     [Fact]
@@ -6615,7 +6746,7 @@ public class DeviceActionTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.UnknownVolumeAction", result.Key);
-        Assert.Empty(devices.Calls);
+        Assert.Empty(Asked(devices));
     }
 
     [Fact]
@@ -6642,7 +6773,7 @@ public class DeviceActionTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.UnknownSound", result.Key);
-        Assert.Empty(devices.Calls);
+        Assert.Empty(Asked(devices));
     }
 
     [Fact]
@@ -6672,7 +6803,7 @@ public class DeviceActionTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.UnknownNotification", result.Key);
-        Assert.Empty(devices.Calls);
+        Assert.Empty(Asked(devices));
     }
 
     [Fact]
@@ -6728,7 +6859,7 @@ public class DeviceActionTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.UnknownInputMethodAction", result.Key);
-        Assert.Empty(devices.Calls);
+        Assert.Empty(Asked(devices));
     }
 
     [Fact]
@@ -6771,7 +6902,7 @@ public class DeviceActionTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.UnknownBrightnessAction", result.Key);
-        Assert.Empty(devices.Calls);
+        Assert.Empty(Asked(devices));
     }
 
     [Fact]

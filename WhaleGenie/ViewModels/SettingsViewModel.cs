@@ -49,7 +49,6 @@ public partial class SettingsViewModel : ViewModelBase
     internal SettingsViewModel(Func<DriverInputState> driverInput, bool? elevated = null)
     {
         SelectedLanguage = Languages.First(option => option.Language == Strings.Current.Language);
-        FailureScreenshot = LocalSettings.LoadFailureScreenshot();
         PreloadOcr = LocalSettings.LoadPreloadOcr();
         AttachDriverAtStart = LocalSettings.LoadDriverAttachAtStart();
         SelectedWindowWay = WindowWays.First(option => option.Way == CaptureChoice.Current.Window);
@@ -107,12 +106,6 @@ public partial class SettingsViewModel : ViewModelBase
     public partial LanguageOption SelectedLanguage { get; set; }
 
     /// <summary>
-    /// Whether a run that stops on a failure leaves a picture of the screen in the log folder.
-    /// </summary>
-    [ObservableProperty]
-    public partial bool FailureScreenshot { get; set; }
-
-    /// <summary>
     /// Whether the text recognition models are loaded in the background as the program starts.
     /// </summary>
     [ObservableProperty]
@@ -150,18 +143,6 @@ public partial class SettingsViewModel : ViewModelBase
 
     partial void OnSelectedLanguageChanged(LanguageOption value)
         => Strings.Current.Language = value.Language;
-
-    /// <summary>
-    /// Writes the choice down, but only when it really changed: opening the window reads the
-    /// stored value into this property, and that must not count as the user asking for something.
-    /// </summary>
-    partial void OnFailureScreenshotChanged(bool value)
-    {
-        if (value != LocalSettings.LoadFailureScreenshot())
-        {
-            LocalSettings.StoreFailureScreenshot(value);
-        }
-    }
 
     /// <summary>The same, for the choice that holds the text recognition models in memory.</summary>
     partial void OnPreloadOcrChanged(bool value)

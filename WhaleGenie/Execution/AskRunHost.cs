@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Localization;
 
 namespace WhaleGenie.Execution;
 
@@ -26,6 +27,12 @@ public sealed class AskRunHost(
     public void Log(LogEntry entry)
     {
     }
+
+    /// <summary>
+    /// Wanted all the same: a triggered run that fails leaves its whole log behind as a file, and
+    /// that file is worded in the language the interface is in.
+    /// </summary>
+    public string Text(LogEntry entry) => RunLogText.Of(entry);
 
     /// <summary>
     /// Nothing pauses a triggered run between its steps and nothing leaves a step out: only a

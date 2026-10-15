@@ -892,8 +892,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
             var runner = new MacroRunner(
                 _variables, new UiThreadRunHost(this), _devices, _delayScale, Library, this)
             {
-                FailureScreenshot = LocalSettings.LoadFailureScreenshot(),
-                FailureFolder = AppPaths.Logs,
+                FailureLogFolder = AppPaths.Logs,
                 RunName = Debugged,
                 ExclusiveInput = _exclusiveInput,
             };
@@ -1042,17 +1041,18 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
     /// <summary>Writes one translated line into the log.</summary>
     public void Log(LogEntry entry)
-    {
-        var text = entry.Arguments.Count == 0
-            ? Strings.Get(entry.Key)
-            : Strings.Format(entry.Key, [.. entry.Arguments]);
-
-        Lines.Add(new RunLineViewModel(
+        => Lines.Add(new RunLineViewModel(
             entry.Time.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
             entry.Level,
             new Thickness(entry.Depth * 14, 0, 0, 0),
-            text));
-    }
+            RunLogText.Of(entry)));
+
+    /// <summary>
+    /// The same wording the window shows, for the engine to put in the file a failed run leaves
+    /// behind. It reads the wording table and touches nothing of the window, so the thread the run
+    /// is on may ask for it while the window is drawing.
+    /// </summary>
+    public string Text(LogEntry entry) => RunLogText.Of(entry);
 
     /// <summary>
     /// Takes what a step saw and puts it on that step's row. Called from the thread the run is on,

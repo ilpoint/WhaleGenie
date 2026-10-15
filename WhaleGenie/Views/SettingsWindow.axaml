@@ -114,12 +114,6 @@
                            Text="{Binding [Settings.CaptureScreenHint], Source={x:Static loc:Strings.Current}}" />
 
                 <CheckBox Margin="2,18,0,0" Foreground="#C8C8C8" FontSize="12.5"
-                          IsChecked="{Binding FailureScreenshot}"
-                          Content="{Binding [Settings.FailureScreenshot], Source={x:Static loc:Strings.Current}}" />
-                <TextBlock Classes="Muted" Margin="2,7,0,0" TextWrapping="Wrap"
-                           Text="{Binding [Settings.FailureScreenshotHint], Source={x:Static loc:Strings.Current}}" />
-
-                <CheckBox Margin="2,18,0,0" Foreground="#C8C8C8" FontSize="12.5"
                           Name="PreloadOcrCheck"
                           IsChecked="{Binding PreloadOcr}"
                           Content="{Binding [Settings.PreloadOcr], Source={x:Static loc:Strings.Current}}" />

@@ -46,6 +46,8 @@ public class RunThreadTests
     {
         public void Log(LogEntry entry) => threads.Add(Dispatcher.UIThread.CheckAccess());
 
+        public string Text(LogEntry entry) => entry.Key;
+
         public Task<bool> BeforeStep(ExecutableStep step, int depth, CancellationToken token)
         {
             threads.Add(Dispatcher.UIThread.CheckAccess());

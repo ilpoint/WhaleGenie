@@ -174,6 +174,14 @@ public interface IRunHost
     void Log(LogEntry entry);
 
     /// <summary>
+    /// One line of the log worded for whoever reads it, in the language the interface is in. The
+    /// engine has no words of its own: it records lines as a key and its arguments, and a run that
+    /// fails asks here for the text of every line it wrote so the file it leaves behind reads the
+    /// way the run window does.
+    /// </summary>
+    string Text(LogEntry entry);
+
+    /// <summary>
     /// Called before every step runs, so a debugger can pause or look around. Nothing but the
     /// debugger ever says no: the answer is about this one step, and false means it is not to be
     /// carried out this time — the run leaves it out, answers for it the way it answers for a
@@ -207,6 +215,12 @@ public sealed class SilentRunHost : IRunHost
     public IReadOnlyList<LogEntry> Entries => _entries;
 
     public void Log(LogEntry entry) => _entries.Add(entry);
+
+    /// <summary>Nobody is translating, so the key and its arguments stand in for the wording.</summary>
+    public string Text(LogEntry entry)
+        => entry.Arguments.Count == 0
+            ? entry.Key
+            : entry.Key + " " + string.Join(" ", entry.Arguments);
 
     public Task<bool> BeforeStep(ExecutableStep step, int depth, CancellationToken token)
         => Task.FromResult(true);
