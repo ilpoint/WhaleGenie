@@ -1,88 +1,65 @@
-using System.Diagnostics;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
 
 namespace WhaleGenie.Core.Tests;
 
 /// <summary>
-/// Asking this machine whether something is answering where the VIIPER server should be. Nothing
-/// here starts a server: the question is handed in, so how often the machine is really asked — and
-/// what the callers in between read — can be read without one being there.
+/// Which piece driver-level input is still missing on a machine. Both answers come from the machine
+/// — one out of the registry, one out of the folder the program sits in — so both are handed in here
+/// and the combination is what is read.
 /// </summary>
+/// <remarks>
+/// The collection keeps this class from running beside the checks that stand a library in for the
+/// real one: both hand in the answers about this machine, and there is one of each to hand in.
+/// </remarks>
+[Collection("driver-level input")]
 public class DriverInputTests : IDisposable
 {
-    private readonly Func<bool> _probe = DriverInput.Probe;
-
-    /// <summary>
-    /// How long a check here waits for the machine's answer. The engine's own patience is a fifth
-    /// of a second, which is what a run can afford; a check reading the answer back is not in that
-    /// hurry, and a thread pool that is busy elsewhere must not be read as "nothing is there".
-    /// </summary>
-    private static readonly TimeSpan Patience = TimeSpan.FromSeconds(30);
+    private readonly Func<bool> _driverInstalled = DriverInput.DriverInstalled;
+    private readonly Func<bool> _libraryPresent = DriverInput.LibraryPresent;
 
     /// <summary>Puts back what was there, so no other check runs against a made-up machine.</summary>
     public void Dispose()
     {
-        DriverInput.Probe = _probe;
+        DriverInput.DriverInstalled = _driverInstalled;
+        DriverInput.LibraryPresent = _libraryPresent;
         GC.SuppressFinalize(this);
     }
 
     [Fact]
-    public async Task A_question_that_is_still_out_is_not_asked_again()
+    public void Without_the_driver_the_library_is_not_worth_looking_for()
     {
-        // A window opening, a warm-up and a run all ask the same thing, and a machine with nothing
-        // listening spends about two seconds per connection before it refuses: a thread per caller
-        // left holding one of those is what emptied the thread pool and put unrelated work in a
-        // queue behind it.
-        var asked = 0;
-        using var out_ = new ManualResetEventSlim();
-        using var held = new ManualResetEventSlim();
-        DriverInput.Probe = () =>
-        {
-            Interlocked.Increment(ref asked);
-            out_.Set();
+        // The library is useless on a machine with nothing to put its devices into, and the user has
+        // one thing to install either way: the driver.
+        DriverInput.DriverInstalled = () => false;
+        DriverInput.LibraryPresent = () => false;
 
-            // Long enough that the question is still out while both callers come and go, which is
-            // the whole of what this check is about.
-            held.Wait(TimeSpan.FromSeconds(30));
-            return false;
-        };
-
-        // Five seconds of patience, against the fifth of a second the engine gives itself: room for
-        // a busy machine to get to the question, while still short enough that both callers have
-        // given up on it rather than being handed the answer above.
-        var givingUp = TimeSpan.FromSeconds(5);
-        var first = Task.Run(() => DriverInput.IsServerAnswering(givingUp));
-        Assert.True(out_.Wait(TimeSpan.FromSeconds(30)), "the question never went out");
-
-        var second = Task.Run(() => DriverInput.IsServerAnswering(givingUp));
-
-        // Both of them give up on the wait they were given, and neither one asks again.
-        Assert.False(await first);
-        Assert.False(await second);
-        Assert.Equal(1, asked);
-
-        // Nothing is left waiting on the question above.
-        held.Set();
+        Assert.Equal(DriverInputState.DriverMissing, DriverInput.Check());
     }
 
     [Fact]
-    public void What_comes_back_from_the_machine_is_what_is_reported()
+    public void A_driver_without_the_library_that_came_with_the_program_is_reported_as_such()
     {
-        DriverInput.Probe = () => true;
+        DriverInput.DriverInstalled = () => true;
+        DriverInput.LibraryPresent = () => false;
 
-        Assert.True(DriverInput.IsServerAnswering(Patience));
+        Assert.Equal(DriverInputState.LibraryMissing, DriverInput.Check());
     }
 
     [Fact]
-    public void Asking_about_this_machine_gives_up_rather_than_waiting_the_system_out()
+    public void Both_pieces_together_are_what_driver_level_input_waits_for()
     {
-        // Windows spends about two seconds on a connection to a port nothing is listening on, which
-        // is longer than whoever asked is willing to wait. What the machine answers is another
-        // matter; this is about not holding the thread that asked for those two seconds.
-        var asking = Stopwatch.StartNew();
-        DriverInput.IsServerAnswering();
-        asking.Stop();
+        DriverInput.DriverInstalled = () => true;
+        DriverInput.LibraryPresent = () => true;
 
-        Assert.True(asking.Elapsed < TimeSpan.FromSeconds(1.5), $"asking took {asking.Elapsed}");
+        Assert.Equal(DriverInputState.Ready, DriverInput.Check());
+    }
+
+    [Fact]
+    public void Asking_about_this_machine_answers_rather_than_failing()
+    {
+        // Reading one registry key and looking for one file: whatever this machine has, asking has to
+        // come back with one of the three answers rather than with an exception.
+        Assert.True(Enum.IsDefined(DriverInput.Check()));
     }
 }

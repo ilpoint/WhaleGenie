@@ -47,13 +47,15 @@ public static class LocalSettings
     public static void StorePreloadOcr(bool value) => Write(model => model.PreloadOcr = value);
 
     /// <summary>
-    /// Where this machine's copy of viiper.exe is, or empty while nobody has said. WhaleGenie does
-    /// not go looking for another project's program, so this is the only way it hears about one.
+    /// Whether the virtual keyboard and mouse are put on the machine as the program starts. Off by
+    /// default: a machine that never uses driver-level input should not have virtual devices on it,
+    /// and putting them on is a wait only the first driver-level step of a macro would pay for.
     /// </summary>
-    public static string LoadViiperPath() => Read().ViiperPath;
+    public static bool LoadDriverAttachAtStart() => Read().DriverAttachAtStart;
 
     /// <summary>Stores that choice. Failures are ignored on purpose.</summary>
-    public static void StoreViiperPath(string path) => Write(model => model.ViiperPath = path);
+    public static void StoreDriverAttachAtStart(bool value)
+        => Write(model => model.DriverAttachAtStart = value);
 
     /// <summary>
     /// How this machine reads a picture of a window. Automatic by default, which is the order the
@@ -118,7 +120,7 @@ public static class LocalSettings
 
         public bool PreloadOcr { get; set; }
 
-        public string ViiperPath { get; set; } = string.Empty;
+        public bool DriverAttachAtStart { get; set; }
 
         public string CaptureWindow { get; set; } = string.Empty;
 

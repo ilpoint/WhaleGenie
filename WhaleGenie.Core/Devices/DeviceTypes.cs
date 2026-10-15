@@ -139,9 +139,9 @@ public interface ICaptureChoice
 
 /// <summary>
 /// The choice the program is running with. The engine cannot read the settings file — where it
-/// lives is the interface's business — so the two answers are handed over here, the way the viiper
-/// path is: once when the program starts and again whenever the settings change. What the test
-/// devices answer with is their own, so a check can put any of the ways behind a step.
+/// lives is the interface's business — so the two answers are handed over here: once when the
+/// program starts and again whenever the settings change. What the test devices answer with is their
+/// own, so a check can put any of the ways behind a step.
 /// </summary>
 public sealed class CaptureChoice : ICaptureChoice
 {

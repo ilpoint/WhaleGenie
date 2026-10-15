@@ -17,8 +17,6 @@ internal sealed class WindowsInputRouter(IInputDevice front, IScreenDevice scree
 
     private ViiperInputDevice? _driver;
 
-    private bool _tookDriver;
-
     public IInputDevice For(InputRoute route) => route.Delivery switch
     {
         InputDelivery.Background => Posting(route.WindowHandle),
@@ -27,10 +25,9 @@ internal sealed class WindowsInputRouter(IInputDevice front, IScreenDevice scree
     };
 
     /// <summary>
-    /// The virtual keyboard and mouse, asked for once and kept between steps: putting them on the
-    /// machine opens a connection and a pair of devices, and a macro that sends input step after
-    /// step should pay for that once. The pair itself belongs to the whole program, because the
-    /// machine only answers one — see <see cref="SharedDriverInput"/>.
+    /// The virtual keyboard and mouse, asked for once and kept between steps: a macro that sends
+    /// input step after step should reach for the devices once. The pair itself belongs to the whole
+    /// program and stays on the machine — see <see cref="SharedDriverInput"/>.
     /// </summary>
     private ViiperInputDevice Driver
     {
@@ -38,13 +35,7 @@ internal sealed class WindowsInputRouter(IInputDevice front, IScreenDevice scree
         {
             lock (_gate)
             {
-                if (_driver is null)
-                {
-                    _driver = SharedDriverInput.Take(screen);
-                    _tookDriver = true;
-                }
-
-                return _driver;
+                return _driver ??= SharedDriverInput.Take(screen);
             }
         }
     }
@@ -69,20 +60,15 @@ internal sealed class WindowsInputRouter(IInputDevice front, IScreenDevice scree
         return device;
     }
 
-    /// <summary>Gives back the program's virtual keyboard and mouse, if this ever asked for them.</summary>
+    /// <summary>
+    /// Lets go of what this run reached for. The virtual keyboard and mouse are not given back:
+    /// they belong to the program and stay on the machine until it is done with them.
+    /// </summary>
     public void Dispose()
     {
         lock (_gate)
         {
             _driver = null;
-            if (!_tookDriver)
-            {
-                return;
-            }
-
-            _tookDriver = false;
         }
-
-        SharedDriverInput.Give();
     }
 }

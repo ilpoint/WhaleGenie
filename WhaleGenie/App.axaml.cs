@@ -20,17 +20,18 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        // Where this machine's viiper.exe is was chosen in the settings window and written beside
-        // the program; the engine does not read that file, so it is told here, before anything can
-        // ask for driver-level input.
-        ViiperSetup.Load(SharedDevices.Current.Driver);
+        // Whether the virtual keyboard and mouse are to be put on the machine at startup was chosen
+        // in the settings window and written beside the program; the engine does not read that file,
+        // so it is told here, before anything can ask for driver-level input.
+        SharedDevices.Current.Driver.AttachAtStart = LocalSettings.LoadDriverAttachAtStart();
 
         // How this machine reads the screen was chosen in the same window, and is told to the
         // engine the same way: a macro reads it before the settings window has ever been opened.
         CaptureSetup.Load();
 
-        // And then it is given a head start: starting that server is what makes the first
-        // driver-level move of a macro wait a second and a half.
+        // And then it is given a head start: putting the virtual keyboard and mouse on the machine
+        // is what the first driver-level move of a macro would otherwise wait for. Nothing is done
+        // unless the settings window asked for it.
         _ = SharedDevices.Current.Driver.WarmUp();
 
         // Reading text loads a model, which costs a moment the first step that reads would

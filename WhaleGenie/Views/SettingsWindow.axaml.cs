@@ -3,7 +3,6 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Platform.Storage;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.ViewModels;
@@ -56,40 +55,6 @@ public partial class SettingsWindow : Window
         => WebPage.Open(ProjectLinks.DriverDownload);
 
     /// <summary>
-    /// Sends the user to VIIPER's own download page. WhaleGenie does not fetch the zip: which folder
-    /// it is unzipped into is the person's choice, and picking the program out of it is the one
-    /// thing they have to do once — everything after that is started and stopped for them.
-    /// </summary>
-    private void OnDownloadViiperClicked(object? sender, RoutedEventArgs e)
-        => WebPage.Open(ProjectLinks.ViiperDownload);
-
-    /// <summary>Remembers which viiper.exe this machine has, and lets the engine start it.</summary>
-    private async void OnChooseViiperClicked(object? sender, RoutedEventArgs e)
-    {
-        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = Strings.Get("Settings.ServerChoose"),
-            AllowMultiple = false,
-            FileTypeFilter = [new FilePickerFileType(Strings.Get("Settings.ServerFilter"))
-            {
-                Patterns = ["viiper*.exe", "*.exe"],
-            }],
-        });
-
-        if (files.Count == 0 || files[0].TryGetLocalPath() is not { Length: > 0 } path)
-        {
-            return;
-        }
-
-        ViiperSetup.Store(SharedDevices.Current.Driver, path);
-
-        if (DataContext is SettingsViewModel viewModel)
-        {
-            viewModel.ViiperPath = path;
-        }
-    }
-
-    /// <summary>
     /// Starts a second copy of WhaleGenie with the UAC prompt in front of it, and closes this one.
     ///
     /// This is the only way to get the rights: a process cannot be given an administrator token
@@ -99,9 +64,10 @@ public partial class SettingsWindow : Window
     /// </summary>
     private void OnRestartElevatedClicked(object? sender, RoutedEventArgs e)
     {
-        // The server goes first: the copy that takes over starts its own, and a server left over
-        // from this one would be closed on the way out, right under the new copy. It is a hand-over
-        // rather than the way out, because saying no at the UAC prompt leaves this copy running.
+        // The virtual devices go first: the copy that takes over puts on its own, and a pair left
+        // over from this one would be taken off the machine on the way out, right under the new
+        // copy. It is a hand-over rather than the way out, because saying no at the UAC prompt
+        // leaves this copy running.
         SharedDevices.Current.Driver.HandOver();
 
         if (!ProcessRights.RestartElevated())

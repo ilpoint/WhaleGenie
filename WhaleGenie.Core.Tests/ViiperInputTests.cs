@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using SharpHook.Data;
-using Viiper.Client.Devices.Keyboard;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
 
@@ -8,38 +7,39 @@ namespace WhaleGenie.Core.Tests;
 
 /// <summary>
 /// Driver-level input: the key names a macro writes turned into what a virtual USB device sends,
-/// and the reports the device comes out with. A connection of its own needs a server and a kernel
-/// driver on the machine, so what is checked here is everything up to the wire — the device is
-/// handed a link that writes down what it was told instead of sending it.
+/// and the reports the device comes out with. Putting either on a real machine needs a kernel driver
+/// and a server that is really listening, so what is checked here is everything up to that — the
+/// device is handed a link that writes down what it was told instead of sending it.
 /// </summary>
 public class ViiperInputTests
 {
     [Theory]
-    [InlineData("A", Key.A)]
-    [InlineData("z", Key.Z)]
-    [InlineData("1", Key.Num1)]
-    [InlineData("0", Key.Num0)]
-    [InlineData("F1", Key.F1)]
-    [InlineData("F24", Key.F24)]
-    [InlineData("Enter", Key.Enter)]
-    [InlineData("Esc", Key.Escape)]
-    [InlineData("Space", Key.Space)]
-    [InlineData("Tab", Key.Tab)]
-    [InlineData("Up", Key.Up)]
-    [InlineData("-", Key.Minus)]
-    [InlineData("[", Key.LeftBrace)]
-    [InlineData("NumPad5", Key.Kp5)]
-    public void The_names_a_macro_writes_reach_the_device(string name, Key expected)
+    [InlineData("A", HidUsage.A)]
+    [InlineData("z", HidUsage.Z)]
+    [InlineData("1", HidUsage.Num1)]
+    [InlineData("0", HidUsage.Num0)]
+    [InlineData("F1", HidUsage.F1)]
+    [InlineData("F24", HidUsage.F24)]
+    [InlineData("Enter", HidUsage.Enter)]
+    [InlineData("Esc", HidUsage.Escape)]
+    [InlineData("Space", HidUsage.Space)]
+    [InlineData("Tab", HidUsage.Tab)]
+    [InlineData("Up", HidUsage.Up)]
+    [InlineData("-", HidUsage.Minus)]
+    [InlineData("[", HidUsage.LeftBrace)]
+    [InlineData("NumPad5", HidUsage.Kp5)]
+    public void The_names_a_macro_writes_reach_the_device(string name, HidUsage expected)
         => Assert.Equal(expected, ViiperKeys.Usage(SharpKeys.ResolveCode(name)!.Value));
 
     [Theory]
-    [InlineData("Ctrl", Mod.LeftCtrl)]
-    [InlineData("Shift", Mod.LeftShift)]
-    [InlineData("Alt", Mod.LeftAlt)]
-    [InlineData("Win", Mod.LeftGUI)]
-    [InlineData("RightCtrl", Mod.RightCtrl)]
-    [InlineData("右Shift", Mod.RightShift)]
-    public void A_modifier_travels_in_the_modifier_byte_instead_of_the_key_list(string name, Mod expected)
+    [InlineData("Ctrl", LibViiper.ModifierLeftCtrl)]
+    [InlineData("Shift", LibViiper.ModifierLeftShift)]
+    [InlineData("Alt", LibViiper.ModifierLeftAlt)]
+    [InlineData("Win", LibViiper.ModifierLeftGui)]
+    [InlineData("RightCtrl", LibViiper.ModifierRightCtrl)]
+    [InlineData("右Shift", LibViiper.ModifierRightShift)]
+    public void A_modifier_travels_in_the_modifier_byte_instead_of_the_key_list(
+        string name, byte expected)
     {
         var code = SharpKeys.ResolveCode(name)!.Value;
 
@@ -60,15 +60,15 @@ public class ViiperInputTests
     }
 
     [Theory]
-    [InlineData('a', Key.A, false)]
-    [InlineData('A', Key.A, true)]
-    [InlineData('7', Key.Num7, false)]
-    [InlineData('!', Key.Num1, true)]
-    [InlineData('?', Key.Slash, true)]
-    [InlineData(' ', Key.Space, false)]
-    [InlineData('\n', Key.Enter, false)]
+    [InlineData('a', HidUsage.A, false)]
+    [InlineData('A', HidUsage.A, true)]
+    [InlineData('7', HidUsage.Num7, false)]
+    [InlineData('!', HidUsage.Num1, true)]
+    [InlineData('?', HidUsage.Slash, true)]
+    [InlineData(' ', HidUsage.Space, false)]
+    [InlineData('\n', HidUsage.Enter, false)]
     public void A_character_knows_its_key_and_whether_shift_goes_with_it(
-        char character, Key key, bool shift)
+        char character, HidUsage key, bool shift)
         => Assert.Equal((key, shift), ViiperKeys.Typing(character));
 
     [Fact]
@@ -76,7 +76,7 @@ public class ViiperInputTests
         => Assert.Null(ViiperKeys.Typing('中'));
 
     [Fact]
-    public void The_server_is_only_connected_to_when_a_step_needs_it()
+    public void The_devices_go_on_the_machine_only_when_a_step_needs_them()
     {
         var opened = 0;
         using var device = new ViiperInputDevice(() =>
@@ -289,8 +289,8 @@ public class ViiperInputTests
     [Fact]
     public void A_device_the_machine_never_notices_is_reported_rather_than_typed_into_nothing()
     {
-        // A VIIPER server started without its auto-attach flag leaves a device on a bus that the
-        // machine never sees. Nothing would come of sending into it, so this has to fail instead.
+        // A device that was put on a bus and never attached is one the machine never sees. Nothing
+        // would come of sending into it, so this has to fail instead.
         using var device = new ViiperInputDevice(() => new DeafLink());
 
         var failure = Assert.Throws<DeviceActionException>(() => device.KeyDown("A"));

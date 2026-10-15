@@ -31,6 +31,17 @@ Windows 上的通用宏 / 自动化工具：把键盘、鼠标、手柄、屏幕
 到 [Releases](https://github.com/ilpoint/WhaleGenie/releases) 下载，解压即用：里面是一个 `WhaleGenie`
 文件夹，`WhaleGenie.exe` 就在最外层，双击它。
 
+## 用了谁的库
+
+执行引擎用到的：SharpHook（全局钩子与前台注入）、libVIIPER（驱动级输入用的虚拟 USB 键鼠与手柄，
+随包分发）、OpenCvSharp5 与 OpenCV（找图找色）、PaddleOCR（屏幕取字）、FlaUI（UI Automation）、
+Microsoft.Playwright（浏览器动作）、CsvHelper（CSV）；画面获取用 Vortice 调 Windows 自带的
+Direct3D 11 与 DXGI，不另带原生库。界面用 Avalonia（连带 SkiaSharp、HarfBuzz 与 Inter 字体）和
+CommunityToolkit.Mvvm。
+
+每个库的许可与协议原文地址、以及随包分发的原生库，见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)；
+版本与各自在引擎里干什么见 [doc/dev.md](doc/dev.md) 的依赖表。
+
 ## 文档
 
 | 文档 | 给谁看 |

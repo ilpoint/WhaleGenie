@@ -140,6 +140,12 @@ function New-PortableFolder([string]$Published, [string]$Package) {
         Copy-Item -Path (Join-Path $PSScriptRoot "..\$document") -Destination $app
     }
 
+    # 驱动级输入那份虚拟 USB 库是别人的，而且按 GPL-3.0 授权：它自己的许可说明也要跟着它的
+    # dll 一起走，改个名字放在包根，一眼能看出是谁的。dll 本身由下面那条"原生库一律进 lib"
+    # 的规则搬走，这里只多这一份说明。
+    Copy-Item -Path (Join-Path $PSScriptRoot '..\third_party\libVIIPER\licenses.txt') `
+        -Destination (Join-Path $app 'libVIIPER-LICENSES.txt')
+
     # 手册也要跟着走：帮助菜单的「快速上手」打开的是包里的这一份（WhaleGenie/Execution/Manual.cs），
     # 装好程序的人手上没有仓库可翻，也不一定有网。它按 exe 旁边的 doc\manual.md 找，路径别改。
     $packagedManual = Join-Path $app 'doc'

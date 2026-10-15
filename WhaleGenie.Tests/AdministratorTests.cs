@@ -26,7 +26,7 @@ public class AdministratorTests
     [InlineData(false, "Settings.AdminNo")]
     public void The_panel_says_which_rights_the_program_has(bool elevated, string key)
     {
-        var viewModel = new SettingsViewModel(() => DriverInputState.Ready, () => true, elevated);
+        var viewModel = new SettingsViewModel(() => DriverInputState.Ready, elevated);
 
         Assert.Equal(elevated, viewModel.IsElevated);
         Assert.Equal(Strings.Get(key), viewModel.AdminStatus);

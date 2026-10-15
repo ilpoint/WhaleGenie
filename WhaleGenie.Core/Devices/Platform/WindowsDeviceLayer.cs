@@ -36,7 +36,7 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
 
     private readonly Lazy<IGamepadReading> _gamepadReading = new(() => new XInputGamepadReading());
 
-    private readonly Lazy<IDriverInput> _driver = new(() => new ViiperDriver());
+    private readonly Lazy<IDriverInput> _driver;
 
     public WindowsDeviceLayer()
     {
@@ -45,6 +45,7 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
         _input = new Lazy<IInputDevice>(() => new SharpHookInputDevice(_screen.Value));
         _gamepad = new Lazy<ViiperInputDevice>(() => SharedDriverInput.Take(_screen.Value));
         _inputs = new Lazy<IInputRouter>(() => new WindowsInputRouter(_input.Value, _screen.Value));
+        _driver = new Lazy<IDriverInput>(() => new ViiperDriver(() => _screen.Value));
 
         // UI Automation borrows the mouse for the buttons it has no click of its own for.
         _ui = new Lazy<FlaUiDevice>(() => new FlaUiDevice(_input.Value));
@@ -131,11 +132,6 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
         if (_inputs.IsValueCreated && _inputs.Value is IDisposable inputs)
         {
             inputs.Dispose();
-        }
-
-        if (_gamepad.IsValueCreated)
-        {
-            SharedDriverInput.Give();
         }
 
         // Reading a window through graphics capture opens a graphics device of its own; a run that

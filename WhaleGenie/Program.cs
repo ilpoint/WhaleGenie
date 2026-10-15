@@ -32,10 +32,11 @@ sealed class Program
     {
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
 
-        // A VIIPER server that this program started is closed with it: the user asked for
-        // driver-level input, not for another project's server to keep running after WhaleGenie is
-        // gone. One that was already there when we looked was never ours and is left alone. The
-        // program's own device layer is what knows about it, so that is where this is asked.
+        // The virtual keyboard, mouse and controller this program put on the machine come off it
+        // again, and the USB server it runs inside itself is closed: the user asked for driver-level
+        // input while using WhaleGenie, not for virtual devices left plugged into their machine
+        // afterwards. The program's own device layer is what knows about them, so that is where this
+        // is asked.
         SharedDevices.Current.Driver.Stop();
     }
 

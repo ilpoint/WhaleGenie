@@ -473,7 +473,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.InputMarkHint"] = "This step sends its input {0}. In front goes to whichever window "
             + "has the focus; background posts it at the window the step names, which needs no focus "
             + "and leaves the pointer where it is; the driver goes through a virtual USB device, "
-            + "which needs the usbip-win2 driver and the VIIPER server running.",
+            + "which needs the usbip-win2 driver installed.",
         // The two ends of a block. They are what makes "inside the loop" and "after the loop"
         // two different places on the list.
         ["Editor.BlockEnd"] = "end of {0}",
@@ -848,33 +848,24 @@ public sealed class Strings : INotifyPropertyChanged
             + "be the one to wait. Off by default, because the models stay in memory while the "
             + "program runs.",
         ["Settings.Driver"] = "Driver-level input",
-        ["Settings.DriverReady"] = "usbip-win2 driver installed, VIIPER server answering.",
+        ["Settings.DriverReady"] = "usbip-win2 driver installed, so driver-level input can be used.",
         ["Settings.DriverMissing"] = "The usbip-win2 driver is not installed.",
-        ["Settings.DriverServerMissing"] =
-            "The usbip-win2 driver is installed, but no VIIPER server is answering.",
+        ["Settings.DriverLibraryMissing"] =
+            "The usbip-win2 driver is installed, but the virtual USB library this program carries "
+            + "(libVIIPER.dll) is not beside it: unpack the release again, in one piece.",
         ["Settings.DriverInstall"] = "Install driver...",
         ["Settings.DriverHint"] =
             "Driver-level input makes the target program see real hardware. Install the usbip-win2 "
             + "driver by hand (administrator rights, a brief USB disconnect, possibly a restart), "
-            + "and that is the only piece that has to be. The server below is started and stopped "
-            + "for you.",
-        ["Settings.Server"] = "VIIPER server",
-        ["Settings.ServerReady"] = "A VIIPER server is answering on this machine.",
-        ["Settings.ServerWillStart"] =
-            "Not running. WhaleGenie starts it as soon as it starts itself, and stops it again when "
-            + "it exits.",
-        ["Settings.ServerNotSet"] =
-            "Not running, and no viiper.exe chosen yet: pick the file below, or start the server "
-            + "yourself.",
-        ["Settings.ServerDownload"] = "Download VIIPER...",
-        ["Settings.ServerChoose"] = "Choose viiper.exe...",
-        ["Settings.ServerFilter"] = "Program",
-        ["Settings.ServerHint"] =
-            "VIIPER is another project: its program is downloaded by hand, and where it lands does "
-            + "not matter. Point at viiper.exe once and WhaleGenie runs it as \"viiper.exe server "
-            + "--api.auto-attach-local-client\" whenever it starts up, so the first driver-level "
-            + "move of a macro is not the one that waits for it. A server that was already running "
-            + "is left alone.",
+            + "and that is the only piece that has to be. The virtual keyboard, mouse and "
+            + "controller, and the server they live on, come with this program.",
+        ["Settings.DriverAttachAtStart"] =
+            "Put the virtual keyboard and mouse on the machine at startup",
+        ["Settings.DriverAttachAtStartHint"] =
+            "Whether the virtual keyboard and mouse go on the machine while the program starts, so "
+            + "that the first step using driver-level input does not wait for the machine to notice "
+            + "them. Off by default: a program that never uses driver-level input then never has "
+            + "virtual devices on the machine. A change takes effect at the next start.",
         ["Settings.Admin"] = "Administrator",
         ["Settings.AdminYes"] = "Running as administrator.",
         ["Settings.AdminNo"] = "Not running as administrator.",
@@ -1081,14 +1072,17 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.NoDevice"] = "This machine cannot do that: {0} is not connected.",
         ["Run.NoDriver"] =
             "Driver-level input needs the usbip-win2 driver: the settings window has its download.",
+        ["Run.NoDriverLibrary"] =
+            "Driver-level input cannot find the library that brings the virtual USB devices with it "
+            + "(libVIIPER.dll): unpack the release again, in one piece.",
         ["Run.NoDriverServer"] =
-            "Driver-level input cannot reach the VIIPER server on this machine: choose viiper.exe "
-            + "in the settings window, or start the server yourself.",
+            "Driver-level input could not put its server and its devices on this machine: close "
+            + "whatever else is driving virtual devices (another copy of WhaleGenie, or a VIIPER "
+            + "server started by hand) and try again.",
         ["Run.NoDriverAttached"] =
-            "Driver-level input is not reaching this machine: it is not using the virtual keyboard "
-            + "and mouse. Start the VIIPER server as \"viiper.exe server "
-            + "--api.auto-attach-local-client\", and close any other program that is driving "
-            + "virtual devices.",
+            "Driver-level input is not reaching this machine: it is the virtual keyboard and mouse "
+            + "that carry it, and the machine has not taken them. Check that the usbip-win2 driver "
+            + "is installed, and close any other program that is driving virtual devices.",
         ["Run.NoDriverKey"] = "A virtual keyboard has no such key: {0}",
         ["Run.NoDriverTyping"] = "Driver-level input cannot type this character: {0}",
         ["Run.NoGamepad"] = "No virtual controller is on the machine yet.",
@@ -1667,7 +1661,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.InputDriver"] = "驱动级",
         ["Editor.InputMarkHint"] = "这一步的输入方式：{0}。前台发给当时获得焦点的那个窗口；后台消息"
             + "按名字投递给目标窗口，不要求它在最前，也不动屏幕上的指针；驱动级走虚拟 USB 设备，"
-            + "要装好 usbip-win2 驱动并开着 VIIPER 服务端。",
+            + "只要装好 usbip-win2 驱动。",
         // 块的两端。有了它们，“在循环里”和“在循环后面”才是列表上两个不同的位置。
         ["Editor.BlockEnd"] = "{0} 结束",
         ["Editor.Fold"] = "收起里面的步骤",
@@ -2076,25 +2070,19 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.PreloadOcrHint"] = "加载模型要一点时间，不预加载的话就由第一步读取文字的步骤来等。默认关闭："
             + "模型会一直占着内存，直到程序退出。",
         ["Settings.Driver"] = "驱动级输入",
-        ["Settings.DriverReady"] = "usbip-win2 驱动已安装，VIIPER 服务端正在应答。",
+        ["Settings.DriverReady"] = "usbip-win2 驱动已安装，驱动级输入可以用。",
         ["Settings.DriverMissing"] = "尚未安装 usbip-win2 驱动。",
-        ["Settings.DriverServerMissing"] = "usbip-win2 驱动已安装，但没有 VIIPER 服务端在应答。",
+        ["Settings.DriverLibraryMissing"] = "usbip-win2 驱动已安装，但程序自带的虚拟 USB 库"
+            + "（libVIIPER.dll）不在它旁边：重新完整解压一次发布包。",
         ["Settings.DriverInstall"] = "安装驱动…",
         ["Settings.DriverHint"] =
             "驱动级输入让目标程序把输入当成真实硬件。usbip-win2 驱动要手动安装：需要管理员权限，"
-            + "会短暂断开 USB 设备，可能要求重启；只有这一样是非手动不可的，下面的服务端鲸灵自己"
-            + "启动、自己关掉。",
-        ["Settings.Server"] = "VIIPER 服务端",
-        ["Settings.ServerReady"] = "VIIPER 服务端正在应答。",
-        ["Settings.ServerWillStart"] = "还没在运行。鲸灵启动时就会把它跑起来，退出鲸灵时关掉。",
-        ["Settings.ServerNotSet"] = "没在运行，也还没选过 viiper.exe：选一下下面的文件，或者自己把它跑起来。",
-        ["Settings.ServerDownload"] = "下载 VIIPER…",
-        ["Settings.ServerChoose"] = "选择 viiper.exe…",
-        ["Settings.ServerFilter"] = "程序",
-        ["Settings.ServerHint"] =
-            "VIIPER 也是别人的项目：程序自己下载，放在哪都行。选一次 viiper.exe，以后鲸灵一启动就用"
-            + "“viiper.exe server --api.auto-attach-local-client”把它跑起来，宏里第一次用驱动级"
-            + "输入才不用在那儿等它；本来就在运行的那个不动它。",
+            + "会短暂断开 USB 设备，可能要求重启；只有这一样是非手动不可的，虚拟键鼠、虚拟手柄"
+            + "和它们所在的服务端都随程序带。",
+        ["Settings.DriverAttachAtStart"] = "启动时先把虚拟键鼠装上机器",
+        ["Settings.DriverAttachAtStartHint"] = "勾上以后，程序启动时就把虚拟键鼠装上机器，宏里第一次用"
+            + "驱动级输入就不必再等机器认领它们。默认不勾：不用驱动级输入的人，机器上不会凭空多出"
+            + "虚拟设备。改过之后下次启动生效。",
         ["Settings.Admin"] = "管理员权限",
         ["Settings.AdminYes"] = "正以管理员身份运行。",
         ["Settings.AdminNo"] = "没有以管理员身份运行。",
@@ -2283,12 +2271,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.OneColumnOnly"] = "把一列的值做成一个普通列表，只能点名一列，这一步点了不止一列（{0}）。",
         ["Run.NoDevice"] = "这台机器暂不支持该操作：{0} 尚未接入。",
         ["Run.NoDriver"] = "驱动级输入需要先装好 usbip-win2 驱动，设置窗口里有下载入口。",
-        ["Run.NoDriverServer"] =
-            "驱动级输入连不上本机的 VIIPER 服务端：设置窗口里选一次 viiper.exe，或者自己把它跑起来。",
-        ["Run.NoDriverAttached"] =
-            "驱动级输入没有送达这台机器：系统没有在用这套虚拟键盘和鼠标。"
-            + "请用“viiper.exe server --api.auto-attach-local-client”启动 VIIPER 服务端，"
-            + "并关掉其它正在使用虚拟设备的程序。",
+        ["Run.NoDriverLibrary"] = "驱动级输入找不到自带虚拟 USB 设备的库（libVIIPER.dll）："
+            + "重新完整解压一次发布包。",
+        ["Run.NoDriverServer"] = "驱动级输入没能把它的服务端和设备装到这台机器上：关掉别的正在驱动"
+            + "虚拟设备的程序（另一个鲸灵，或者自己跑着的 VIIPER 服务端）再试一次。",
+        ["Run.NoDriverAttached"] = "驱动级输入没有送达这台机器：送它的是虚拟键鼠，机器没有认领它们。"
+            + "确认 usbip-win2 驱动装好了，并关掉其它正在使用虚拟设备的程序。",
         ["Run.NoDriverKey"] = "虚拟键盘没有这个键：{0}",
         ["Run.NoDriverTyping"] = "驱动级输入打不出这个字符：{0}",
         ["Run.NoGamepad"] = "本机还没有接上虚拟手柄。",

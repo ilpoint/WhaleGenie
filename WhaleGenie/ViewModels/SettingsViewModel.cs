@@ -34,25 +34,24 @@ public partial class SettingsViewModel : ViewModelBase
 
     /// <summary>
     /// The same, over whatever stands behind driver-level input: the program's own, or one a check
-    /// hands in so that a machine which has neither the driver nor the server can be described.
+    /// hands in so that a machine which is not this one can be described.
     /// </summary>
     internal SettingsViewModel(IDriverInput driver, bool? elevated = null)
-        : this(() => driver.State, driver.IsServerAnswering, elevated)
+        : this(() => driver.State, elevated)
     {
     }
 
     /// <summary>
-    /// The same, with the two answers about driver-level input handed in separately, so a check can
-    /// describe a machine that is not this one instead of asking the registry and the network — and
-    /// with what rights the program has, which a check cannot give itself either.
+    /// The same, with what this machine has of driver-level input handed in, so a check can describe
+    /// a machine that is not this one instead of asking the registry — and with what rights the
+    /// program has, which a check cannot give itself either.
     /// </summary>
-    internal SettingsViewModel(Func<DriverInputState> driverInput, Func<bool> serverAnswering,
-        bool? elevated = null)
+    internal SettingsViewModel(Func<DriverInputState> driverInput, bool? elevated = null)
     {
         SelectedLanguage = Languages.First(option => option.Language == Strings.Current.Language);
         FailureScreenshot = LocalSettings.LoadFailureScreenshot();
         PreloadOcr = LocalSettings.LoadPreloadOcr();
-        ViiperPath = LocalSettings.LoadViiperPath();
+        AttachDriverAtStart = LocalSettings.LoadDriverAttachAtStart();
         SelectedWindowWay = WindowWays.First(option => option.Way == CaptureChoice.Current.Window);
         SelectedScreenWay = ScreenWays.First(option => option.Way == CaptureChoice.Current.Screen);
         IsElevated = elevated ?? ProcessRights.IsElevated;
@@ -62,11 +61,9 @@ public partial class SettingsViewModel : ViewModelBase
         DriverStatus = Strings.Get(DriverState switch
         {
             DriverInputState.DriverMissing => "Settings.DriverMissing",
-            DriverInputState.ServerMissing => "Settings.DriverServerMissing",
+            DriverInputState.LibraryMissing => "Settings.DriverLibraryMissing",
             _ => "Settings.DriverReady",
         });
-
-        ServerAnswering = serverAnswering();
     }
 
     public IReadOnlyList<LanguageOption> Languages { get; } =
@@ -134,24 +131,12 @@ public partial class SettingsViewModel : ViewModelBase
     public string DriverStatus { get; }
 
     /// <summary>
-    /// Whether a VIIPER server is answering right now. Read once with the rest: whether one is
-    /// running is a fact about this moment, and the panel is not a live view.
+    /// Whether the virtual keyboard and mouse are put on the machine as the program starts. The
+    /// switch is about the next start rather than this one: the devices go on while the program is
+    /// starting up, and flipping it here would not put them on any sooner.
     /// </summary>
-    public bool ServerAnswering { get; }
-
-    /// <summary>
-    /// The line above the server's buttons: a server that is up needs nothing, one that is not says
-    /// whether WhaleGenie can start it by itself.
-    /// </summary>
-    public string ServerStatus => Strings.Get(ServerAnswering
-        ? "Settings.ServerReady"
-        : HasViiperPath ? "Settings.ServerWillStart" : "Settings.ServerNotSet");
-
-    /// <summary>Where viiper.exe is, or empty while nobody has chosen one.</summary>
     [ObservableProperty]
-    public partial string ViiperPath { get; set; }
-
-    public bool HasViiperPath => ViiperPath.Length > 0;
+    public partial bool AttachDriverAtStart { get; set; }
 
     /// <summary>
     /// Whether this copy of the program was started as an administrator, which decides whether a
@@ -165,13 +150,6 @@ public partial class SettingsViewModel : ViewModelBase
 
     partial void OnSelectedLanguageChanged(LanguageOption value)
         => Strings.Current.Language = value.Language;
-
-    /// <summary>Choosing a file changes both lines the panel shows, so both are announced again.</summary>
-    partial void OnViiperPathChanged(string value)
-    {
-        OnPropertyChanged(nameof(HasViiperPath));
-        OnPropertyChanged(nameof(ServerStatus));
-    }
 
     /// <summary>
     /// Writes the choice down, but only when it really changed: opening the window reads the
@@ -191,6 +169,18 @@ public partial class SettingsViewModel : ViewModelBase
         if (value != LocalSettings.LoadPreloadOcr())
         {
             LocalSettings.StorePreloadOcr(value);
+        }
+    }
+
+    /// <summary>
+    /// The same, for the choice that puts the virtual keyboard and mouse on the machine at startup.
+    /// The engine hears about it when the program starts, which is also when it acts on it.
+    /// </summary>
+    partial void OnAttachDriverAtStartChanged(bool value)
+    {
+        if (value != LocalSettings.LoadDriverAttachAtStart())
+        {
+            LocalSettings.StoreDriverAttachAtStart(value);
         }
     }
 

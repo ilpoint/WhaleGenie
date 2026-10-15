@@ -5,9 +5,9 @@ namespace WhaleGenie.Core.Devices.Platform;
 ///
 /// The machine answers only the pair that got to it first: a second pair arrives attached and is
 /// then ignored, and stays that way until the first one goes away. So the whole program takes
-/// shares in one pair rather than each run putting on its own, and the pair leaves the machine only
-/// when the last share is given back — otherwise a run that opened its own device layer would take
-/// a working keyboard and mouse away from a macro that is still using them.
+/// shares in one pair rather than each run putting on its own — and the pair stays on the machine
+/// once it is there, rather than being taken off at the end of every run and put back on by the
+/// next one, which is a wait the first driver-level step of every run would pay for.
 /// </summary>
 internal static class SharedDriverInput
 {
@@ -15,42 +15,29 @@ internal static class SharedDriverInput
 
     private static ViiperInputDevice? _device;
 
-    private static int _shares;
-
     /// <summary>
-    /// Takes a share of the virtual keyboard and mouse. The screen is the one the pair reads the
-    /// pointer from, which every caller here is the same layer's.
+    /// The pair, taken on the first ask. The screen is the one the pair reads the pointer from,
+    /// which every caller here is the same layer's.
     /// </summary>
     public static ViiperInputDevice Take(IScreenDevice screen)
     {
         lock (Pool)
         {
-            _device ??= new ViiperInputDevice(screen);
-            _shares++;
-            return _device;
+            return _device ??= new ViiperInputDevice(screen);
         }
     }
 
     /// <summary>
-    /// Gives back a share taken with <see cref="Take"/>. The one who gives back the last share takes
-    /// the devices off the machine.
+    /// Lets the pair go: it comes off the machine, and whoever asks next gets a fresh one. This is
+    /// for the moments when this program is done with driver-level input — the way out, and handing
+    /// over to a copy of the program that runs with higher rights, which has to be the one the
+    /// machine answers.
     /// </summary>
-    public static void Give()
+    public static void Release()
     {
         ViiperInputDevice? leaving;
         lock (Pool)
         {
-            // A share given back that was never taken would take the pair off a run still using it.
-            if (_shares == 0)
-            {
-                return;
-            }
-
-            if (--_shares > 0)
-            {
-                return;
-            }
-
             leaving = _device;
             _device = null;
         }

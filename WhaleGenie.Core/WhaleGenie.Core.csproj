@@ -12,7 +12,17 @@
     <PackageReference Include="Sdcb.SimdPaddleOCR" Version="2.0.0" />
     <PackageReference Include="Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny" Version="1.0.0" />
     <PackageReference Include="SharpHook" Version="8.0.0" />
-    <PackageReference Include="Viiper.Client" Version="0.9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      驱动级输入的那份原生库：虚拟 USB 的服务端就装在程序自己的进程里，不是另一个程序。
+      它不分平台、只有 Windows 这一份，来自上游 v0.9.0 的发行包，见
+      third_party/libVIIPER/README.md。放在 exe 旁边；发布包里会被打包脚本收进 lib，由
+      Program.HookLibraryFolder 交给 Windows 的查找路径。
+    -->
+    <None Include="..\third_party\libVIIPER\libVIIPER.dll" Link="libVIIPER.dll"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

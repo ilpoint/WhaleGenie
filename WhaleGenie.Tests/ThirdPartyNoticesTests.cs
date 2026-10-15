@@ -56,6 +56,37 @@ public class ThirdPartyNoticesTests
     }
 
     [Fact]
+    public void The_library_that_carries_driver_level_input_is_named_with_its_licence()
+    {
+        // It is not a package and not fetched by NuGet: it travels in the repository and in the
+        // release, and it is the one component the program links against that is licensed under the
+        // GPL rather than permissively, so it has to be named with where it came from.
+        var notices = Notices();
+
+        Assert.Contains("libVIIPER", notices, StringComparison.Ordinal);
+        Assert.Contains("GPL-3.0", notices, StringComparison.Ordinal);
+        Assert.Contains("https://github.com/Alia5/VIIPER", notices, StringComparison.Ordinal);
+
+        // And the driver, which is not ours and is still the user's to install, stays on the list.
+        Assert.Contains("usbip-win2", notices, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_release_carries_the_library_and_its_own_licence_file()
+    {
+        // The notices say the library is distributed with the program; the packaging script is what
+        // makes that true. The DLL is moved into lib by the rule that moves every native library, so
+        // what is pinned down here is the licence file that has to travel beside it.
+        var script = File.ReadAllText(Path.Combine(Repository(), "build", "package.ps1"));
+        var project = File.ReadAllText(
+            Path.Combine(Repository(), "WhaleGenie.Core", "WhaleGenie.Core.csproj"));
+
+        Assert.Contains("third_party\\libVIIPER\\libVIIPER.dll", project, StringComparison.Ordinal);
+        Assert.Contains("libVIIPER-LICENSES.txt", script, StringComparison.Ordinal);
+        Assert.Contains("third_party\\libVIIPER\\licenses.txt", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_release_carries_the_licence_and_the_notices()
     {
         // The three documents only do their job when they are unpacked beside the executable, which

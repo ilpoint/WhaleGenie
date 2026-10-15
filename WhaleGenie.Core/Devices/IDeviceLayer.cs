@@ -934,9 +934,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public DriverInputState State => throw Missing("driver-level input");
 
-        public bool IsServerAnswering() => throw Missing("driver-level input");
-
-        public string? Executable
+        public bool AttachAtStart
         {
             get => throw Missing("driver-level input");
             set => throw Missing("driver-level input");

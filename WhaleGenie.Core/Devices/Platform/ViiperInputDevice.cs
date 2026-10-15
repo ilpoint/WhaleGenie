@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using SharpHook.Data;
-using Viiper.Client.Devices.Keyboard;
-using Viiper.Client.Devices.Mouse;
 
 namespace WhaleGenie.Core.Devices.Platform;
 
@@ -84,17 +82,31 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
     /// <summary>What the controller is doing, kept here because a report is the whole picture of it.</summary>
     private GamepadState _gamepad = GamepadState.Neutral;
 
-    /// <summary>Connects to the server on this machine the first time a step needs it.</summary>
+    /// <summary>Puts the virtual keyboard and mouse on this machine the first time a step needs them.</summary>
     public ViiperInputDevice(IScreenDevice screen)
         : this(() => ViiperLink.Open(screen))
     {
     }
 
     /// <summary>
-    /// The same, with the way to the server handed in, so a check can watch what the device sends
-    /// without a server to send it to.
+    /// The same, with the way to the machine handed in, so a check can watch what the device sends
+    /// without any of those devices existing.
     /// </summary>
     public ViiperInputDevice(Func<IViiperLink> connect) => _connect = connect;
+
+    /// <summary>
+    /// Puts the keyboard and mouse on the machine now rather than at the first report, which is what
+    /// the settings window's switch asks for when the program starts: waiting for the machine to
+    /// notice a device that has just been plugged in is the one part of driver-level input a user
+    /// sees, and paying for it here costs nobody anything.
+    /// </summary>
+    public void Prepare()
+    {
+        lock (_gate)
+        {
+            _ = Link();
+        }
+    }
 
     public ScreenPoint Cursor
     {
@@ -180,8 +192,10 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
                 // the triggers compare typed text against.
                 WhaleGenieInputGate.Note(character.ToString());
 
-                var modifiers = wanted.Shift ? (byte)(_modifiers | (byte)Mod.LeftShift) : _modifiers;
-                SendKeyboard(modifiers, [(byte)wanted.Key]);
+                var modifiers = wanted.Shift
+                    ? (byte)(_modifiers | LibViiper.ModifierLeftShift)
+                    : _modifiers;
+                SendKeyboard(modifiers, [(byte)wanted.Usage]);
                 Sleep(TypingHoldMs);
                 SendKeyboard(_modifiers, []);
                 Sleep(intervalMs);
@@ -586,11 +600,11 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
     /// <summary>The virtual mouse's bit for a button, and the name WhaleGenie calls that button by.</summary>
     private static (byte Bit, string Name) Button(string button) => button.Trim().ToLowerInvariant() switch
     {
-        "right" => ((byte)Btn.Right, SharpKeys.MouseName(MouseButton.Button2)),
-        "middle" => ((byte)Btn.Middle, SharpKeys.MouseName(MouseButton.Button3)),
-        "middle2" or "back" => ((byte)Btn.Back, SharpKeys.MouseName(MouseButton.Button4)),
-        "forward" => ((byte)Btn.Forward, SharpKeys.MouseName(MouseButton.Button5)),
-        _ => ((byte)Btn.Left, SharpKeys.MouseName(MouseButton.Button1)),
+        "right" => (LibViiper.MouseRight, SharpKeys.MouseName(MouseButton.Button2)),
+        "middle" => (LibViiper.MouseMiddle, SharpKeys.MouseName(MouseButton.Button3)),
+        "middle2" or "back" => (LibViiper.MouseBack, SharpKeys.MouseName(MouseButton.Button4)),
+        "forward" => (LibViiper.MouseForward, SharpKeys.MouseName(MouseButton.Button5)),
+        _ => (LibViiper.MouseLeft, SharpKeys.MouseName(MouseButton.Button1)),
     };
 
     /// <summary>The most one report has room for.</summary>
@@ -605,9 +619,10 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
     }
 
     /// <summary>
-    /// The connection to the server, opened and woken the first time a step needs it. Opening it is
-    /// what fails when the driver or the server is missing, so it happens here rather than when the
-    /// device is made — and the run reports it on the step that asked for driver-level input.
+    /// The keyboard and mouse, opened and woken the first time a step — or the warm-up, when the
+    /// settings window asked for one — needs them. Opening them is what fails when the driver is
+    /// missing or the library will not start, so it happens here rather than when this device is
+    /// made, and the run reports it on the step that asked for driver-level input.
     /// </summary>
     private IViiperLink Link()
     {
@@ -641,8 +656,8 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
     /// not happen. Nothing can be read back from a keyboard, but the pointer can be asked to move
     /// and put back, which is what this does — both ways round, in case one of them is off the edge
     /// of the screen, and wait as long as a device takes to be noticed. A device the machine never
-    /// notices never moves at all, which is what a VIIPER server started without its auto-attach
-    /// flag leaves behind.
+    /// notices never moves at all, which is what a device that was never attached to this machine
+    /// rather than put on its bus looks like.
     /// </summary>
     private void Wake()
     {

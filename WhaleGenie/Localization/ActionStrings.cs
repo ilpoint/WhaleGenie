@@ -18,7 +18,7 @@ internal static class ActionStrings
     private const string InputModeHint =
         "这一步的输入怎么送出去。前台发给当前有焦点的窗口；后台把消息投给下面的目标窗口，"
         + "不用抢焦点，屏幕上的鼠标也不会真的移动；驱动级通过虚拟 USB 设备发送，"
-        + "需要 usbip-win2 驱动和运行中的 VIIPER 服务端，设置窗口里能看这两样在不在。";
+        + "需要 usbip-win2 驱动，设置窗口里能看它在不在。";
 
     /// <summary>
     /// The hint for the window background input posts its messages at. The window is recognised the
@@ -1617,7 +1617,7 @@ internal static class ActionStrings
         ["gamepad.connect.name"] = "连接虚拟手柄",
         ["gamepad.connect.desc"] = "在本机接上一只虚拟手柄（Xbox 360），后面的按键、摇杆、扳机步骤本来就会"
             + "自己把它接上；这一步用于「游戏只在启动时认一次手柄」的场合。和虚拟键盘一样属于驱动级"
-            + "输入，需要 usbip-win2 驱动和运行中的 VIIPER 服务端。",
+            + "输入，需要 usbip-win2 驱动。",
 
         ["gamepad.button.name"] = "手柄按键",
         ["gamepad.button.desc"] = "按下虚拟手柄上的一个按键、按住不放，或者松开。",

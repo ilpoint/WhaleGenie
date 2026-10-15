@@ -6,9 +6,15 @@ namespace WhaleGenie.Core.Tests;
 /// <summary>
 /// Which virtual keyboard and mouse a run is handed, and when the pair leaves the machine. The
 /// machine answers only the pair that got on its bus first — a second pair arrives attached and then
-/// does nothing — so the program keeps one. Nothing here talks to a server: what is checked is who
-/// holds the pair, not what was sent through it.
+/// does nothing — so the program keeps one, and keeps it on the machine until the program itself is
+/// done with driver-level input. Nothing here talks to a server: what is checked is who holds the
+/// pair, not what was sent through it.
 /// </summary>
+/// <remarks>
+/// The collection keeps this class from running beside the checks that stand a library in for the one
+/// this program loads, since both reach into the same program-wide pair.
+/// </remarks>
+[Collection("driver-level input")]
 public class DriverDeviceSharingTests
 {
     private static InputRoute Driver => new(InputDelivery.Driver, 0);
@@ -40,7 +46,7 @@ public class DriverDeviceSharingTests
     }
 
     [Fact]
-    public void The_devices_stay_on_the_machine_until_the_last_run_lets_go_of_them()
+    public void The_devices_stay_on_the_machine_after_a_run_is_done_with_them()
     {
         var front = new FakeDeviceLayer();
 
@@ -50,9 +56,8 @@ public class DriverDeviceSharingTests
         var second = Router(front);
         Assert.Same(device, second.For(Driver));
 
-        // The run that opened a device layer of its own is done, while the other is still using the
-        // keyboard and mouse: taking them off the machine here would leave that run typing into
-        // nothing.
+        // A run that is over is not the end of the pair: putting it on the machine is what the first
+        // driver-level step of every run would otherwise wait for.
         first.Dispose();
 
         var third = Router(front);
@@ -60,9 +65,20 @@ public class DriverDeviceSharingTests
 
         second.Dispose();
         third.Dispose();
+    }
 
-        // Nobody is holding them now, so the next run gets the pair that is put on the machine for
-        // it rather than one left over from before.
+    [Fact]
+    public void Letting_go_of_the_pair_is_what_takes_it_off_the_machine()
+    {
+        var front = new FakeDeviceLayer();
+
+        using var router = Router(front);
+        var device = router.For(Driver);
+
+        // The way out of the program, or handing over to a copy running with higher rights: nobody
+        // is left to use the pair, and the machine has to answer whoever asks next.
+        SharedDriverInput.Release();
+
         var later = Router(front);
         Assert.NotSame(device, later.For(Driver));
         later.Dispose();

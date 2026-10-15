@@ -1,21 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using Viiper.Client;
-using Viiper.Client.Devices.Keyboard;
-using Viiper.Client.Devices.Mouse;
-using Viiper.Client.Types;
-using Xbox = Viiper.Client.Devices.Xbox360;
 
 namespace WhaleGenie.Core.Devices.Platform;
 
 /// <summary>
-/// The way driver-level reports reach the machine: one connection to the VIIPER server with a
-/// keyboard and a mouse on it, which the machine takes for hardware that is really there.
+/// The way driver-level reports reach the machine: a virtual keyboard and a mouse on the bus of the
+/// USB server this program runs in itself, which the machine takes for hardware that is really there.
 /// </summary>
 /// <remarks>
 /// Kept behind an interface so the device's own bookkeeping — which keys are held, how far the
-/// pointer still has to go — can be checked without a server to send anything to.
+/// pointer still has to go — can be checked without any of those devices existing.
 /// </remarks>
 public interface IViiperLink : IDisposable
 {
@@ -23,8 +17,9 @@ public interface IViiperLink : IDisposable
     ScreenPoint Cursor { get; }
 
     /// <summary>
-    /// Sends one keyboard report: the whole picture of what is held down, not what changed,
-    /// because that is what a keyboard sends.
+    /// Sends one keyboard report: the whole picture of what is held down, not what changed, because
+    /// that is what a keyboard sends. The keys are HID usage codes; the modifiers travel in their
+    /// own byte.
     /// </summary>
     void SendKeyboard(byte modifiers, IReadOnlyList<byte> keys);
 
@@ -35,7 +30,7 @@ public interface IViiperLink : IDisposable
     void SendMouse(byte buttons, short dx, short dy, short wheel, short pan);
 
     /// <summary>
-    /// Puts the virtual controller on the bus. Asking for one that is already there changes
+    /// Puts the virtual controller on the machine. Asking for one that is already there changes
     /// nothing.
     /// </summary>
     void ConnectGamepad();
@@ -48,28 +43,16 @@ public interface IViiperLink : IDisposable
 }
 
 /// <summary>
-/// A real connection to the VIIPER server running on this machine: a bus with a virtual keyboard
-/// and a virtual mouse on it. Neither the driver nor the server is WhaleGenie's to install or start,
-/// so when one of them is missing the failure says which.
+/// A real keyboard and mouse on this machine's virtual USB bus. The driver the machine needs is
+/// still the user's to install — WhaleGenie only says where it comes from — but the server and the
+/// devices come with the program: there is no second program to have running, and nothing to point
+/// at before driver-level input works.
 /// </summary>
 public sealed class ViiperLink : IViiperLink
 {
-    /// <summary>What the server calls one keyboard and one mouse.</summary>
-    private const string Keyboard = "keyboard";
-
-    private const string Mouse = "mouse";
-
-    /// <summary>The name the server knows the controller by.</summary>
-    private const string Xbox360Type = "xbox360";
-
-    private readonly ViiperClient _client;
-    private readonly ViiperDevice _keyboard;
-    private readonly ViiperDevice _mouse;
-    private readonly uint _bus;
-    private readonly string _keyboardId;
-    private readonly string _mouseId;
-    private ViiperDevice? _gamepad;
-    private string _gamepadId = string.Empty;
+    private readonly ViiperUsbServer _server;
+    private readonly IntPtr _keyboard;
+    private readonly IntPtr _mouse;
 
     /// <summary>
     /// The screen the pointer is read from. The virtual mouse moves the machine's own pointer, so
@@ -78,14 +61,13 @@ public sealed class ViiperLink : IViiperLink
     /// </summary>
     private readonly IScreenDevice _screen;
 
-    private ViiperLink(ViiperClient client, uint bus, string keyboardId, ViiperDevice keyboard,
-        string mouseId, ViiperDevice mouse, IScreenDevice screen)
+    /// <summary>The controller, once a macro has asked for one.</summary>
+    private IntPtr _gamepad;
+
+    private ViiperLink(ViiperUsbServer server, IntPtr keyboard, IntPtr mouse, IScreenDevice screen)
     {
-        _client = client;
-        _bus = bus;
-        _keyboardId = keyboardId;
+        _server = server;
         _keyboard = keyboard;
-        _mouseId = mouseId;
         _mouse = mouse;
         _screen = screen;
     }
@@ -93,15 +75,24 @@ public sealed class ViiperLink : IViiperLink
     public ScreenPoint Cursor => _screen.Cursor;
 
     public void SendKeyboard(byte modifiers, IReadOnlyList<byte> keys)
-        => Wait(() => _keyboard.SendAsync(new KeyboardInput
+    {
+        var state = new LibViiper.KeyboardDeviceState
         {
             Modifiers = modifiers,
-            Count = (byte)keys.Count,
-            Keys = [.. keys],
-        }));
+            Keys = new byte[32],
+        };
+
+        foreach (var key in keys)
+        {
+            // A report has one bit per HID usage code: the byte it lands in, and the bit within it.
+            state.Keys[key / 8] |= (byte)(1 << (key % 8));
+        }
+
+        Sent(_server.SetKeyboard(_keyboard, state));
+    }
 
     public void SendMouse(byte buttons, short dx, short dy, short wheel, short pan)
-        => Wait(() => _mouse.SendAsync(new MouseInput
+        => Sent(_server.SetMouse(_mouse, new LibViiper.MouseDeviceState
         {
             Buttons = buttons,
             Dx = dx,
@@ -112,157 +103,147 @@ public sealed class ViiperLink : IViiperLink
 
     public void ConnectGamepad()
     {
-        if (_gamepad is not null)
+        if (_gamepad != IntPtr.Zero)
         {
             return;
         }
 
-        var added = Wait(() => _client.BusDeviceAddAsync(_bus,
-            new DeviceCreateRequest { Type = Xbox360Type }));
-
-        _gamepadId = added.DevID;
-        _gamepad = Wait(() => _client.ConnectDeviceAsync(_bus, added.DevID));
-    }
-
-    public void SendGamepad(GamepadState state)
-    {
-        if (_gamepad is not { } gamepad)
+        // The controller goes on the machine when a macro asks for one rather than with the
+        // keyboard and mouse: a macro that only clicks and types never puts a pad on the machine.
+        _gamepad = _server.AddXbox360();
+        if (_gamepad == IntPtr.Zero)
         {
-            throw new DeviceActionException("Run.NoGamepad");
-        }
-
-        Wait(() => gamepad.SendAsync(ForXbox360(state)));
-    }
-
-
-    /// <summary>
-    /// Opens a keyboard and a mouse on the server. The devices go on the bus that is already there
-    /// rather than a new one every time, so a machine that runs macros all day does not collect
-    /// buses it never removed.
-    /// </summary>
-    public static IViiperLink Open(IScreenDevice screen)
-    {
-        var state = DriverInput.Check();
-
-        // A server that is not there is the one piece of this that WhaleGenie can deal with by
-        // itself: the settings window says where viiper.exe is, and this starts it. Asking the user
-        // to have launched something first is what made driver-level input look broken.
-        if (state == DriverInputState.ServerMissing && ViiperServer.Ensure())
-        {
-            state = DriverInputState.Ready;
-        }
-
-        switch (state)
-        {
-            case DriverInputState.DriverMissing:
-                throw new DeviceActionException("Run.NoDriver");
-            case DriverInputState.ServerMissing:
-                throw new DeviceActionException("Run.NoDriverServer");
-        }
-
-        var client = new ViiperClient(DriverInput.ServerHost, DriverInput.ServerPort);
-        try
-        {
-            var existing = Wait(() => client.BusListAsync()).Buses;
-            var bus = existing.Length > 0
-                ? existing[0]
-                : Wait(() => client.BusCreateAsync(null)).BusID;
-
-            var keyboard =
-                Wait(() => client.BusDeviceAddAsync(bus, new DeviceCreateRequest { Type = Keyboard }));
-            var mouse =
-                Wait(() => client.BusDeviceAddAsync(bus, new DeviceCreateRequest { Type = Mouse }));
-
-            return new ViiperLink(
-                client,
-                bus,
-                keyboard.DevID,
-                Wait(() => client.ConnectDeviceAsync(bus, keyboard.DevID)),
-                mouse.DevID,
-                Wait(() => client.ConnectDeviceAsync(bus, mouse.DevID)),
-                screen);
-        }
-        catch (Exception failure) when (failure is not DeviceActionException)
-        {
-            client.Dispose();
             throw new DeviceActionException("Run.NoDriverServer");
         }
     }
 
-    /// <summary>
-    /// Takes the two devices off the bus and closes the connection. The server would clear the
-    /// devices up on its own once the streams are closed, but saying so is quicker and leaves
-    /// nothing behind for the next run to wonder about.
-    /// </summary>
-    public void Dispose()
+    public void SendGamepad(GamepadState state)
     {
-        Do(() =>
+        if (_gamepad == IntPtr.Zero)
         {
-            _keyboard.Dispose();
-            _mouse.Dispose();
-            _gamepad?.Dispose();
-        });
-
-        Remove(_keyboardId);
-        Remove(_mouseId);
-
-        if (_gamepad is not null)
-        {
-            Remove(_gamepadId);
-            _gamepad = null;
+            throw new DeviceActionException("Run.NoGamepad");
         }
 
-        _client.Dispose();
+        Sent(_server.SetXbox360(_gamepad, ForXbox360(state)));
     }
 
     /// <summary>
-    /// Takes one device off the bus. The server would clear the devices up on its own once their
-    /// streams are closed, so a removal that fails is left alone rather than raised.
+    /// Opens a keyboard and a mouse on the machine's virtual USB bus.
+    ///
+    /// The server is brought up here rather than when the program starts, so a machine that never
+    /// asks for driver-level input never has one; everything after that shares it.
     /// </summary>
-    private void Remove(string device)
+    public static IViiperLink Open(IScreenDevice screen)
     {
+        var state = DriverInput.Check();
+        switch (state)
+        {
+            case DriverInputState.DriverMissing:
+                throw new DeviceActionException("Run.NoDriver");
+            case DriverInputState.LibraryMissing:
+                throw new DeviceActionException("Run.NoDriverLibrary");
+        }
+
+        ViiperUsbServer? server;
         try
         {
-            Wait(() => _client.BusDeviceRemoveAsync(_bus, device));
+            server = ViiperServer.Ensure();
         }
-        catch
+        catch (Exception failure) when (failure is DllNotFoundException
+            or BadImageFormatException or EntryPointNotFoundException)
         {
-            // A device that cannot be taken off a server that is going away anyway is not worth
-            // failing a run over.
+            // The file is where it should be and Windows will not have it: an install that was cut
+            // short, or a library of another shape. The run cannot do anything about that either.
+            throw new DeviceActionException("Run.NoDriverLibrary");
+        }
+
+        if (server is null)
+        {
+            throw new DeviceActionException("Run.NoDriverServer");
+        }
+
+        var keyboard = server.AddKeyboard();
+        var mouse = server.AddMouse();
+        if (keyboard == IntPtr.Zero || mouse == IntPtr.Zero)
+        {
+            // Half a pair on the machine is worse than none: the machine answers the pair that got
+            // there first, and it would be answering this one.
+            if (keyboard != IntPtr.Zero)
+            {
+                server.RemoveKeyboard(keyboard);
+            }
+
+            if (mouse != IntPtr.Zero)
+            {
+                server.RemoveMouse(mouse);
+            }
+
+            throw new DeviceActionException("Run.NoDriverServer");
+        }
+
+        return new ViiperLink(server, keyboard, mouse, screen);
+    }
+
+    /// <summary>
+    /// Takes the three devices off the machine. The server stays: it belongs to the program, and
+    /// the next link puts its own devices on the same bus.
+    /// </summary>
+    public void Dispose()
+    {
+        _server.RemoveKeyboard(_keyboard);
+        _server.RemoveMouse(_mouse);
+
+        if (_gamepad != IntPtr.Zero)
+        {
+            _server.RemoveXbox360(_gamepad);
+            _gamepad = IntPtr.Zero;
+        }
+    }
+
+    /// <summary>
+    /// What the library answers when a report is sent: false means the device is not there any
+    /// more, so the input did not happen and the step has to hear about it rather than carry on as
+    /// if it had.
+    /// </summary>
+    private static void Sent(bool sent)
+    {
+        if (!sent)
+        {
+            throw new DeviceActionException("Run.NoDriverAttached");
         }
     }
 
     /// <summary>The controller state written the way an Xbox 360 pad reports it.</summary>
-    private static Xbox.Xbox360Input ForXbox360(GamepadState state)
+    private static LibViiper.Xbox360DeviceState ForXbox360(GamepadState state)
     {
         var held = state.Buttons;
         var buttons = 0u;
 
-        if ((held & GamepadButtons.A) != 0) buttons |= (uint)Xbox.Button.A;
-        if ((held & GamepadButtons.B) != 0) buttons |= (uint)Xbox.Button.B;
-        if ((held & GamepadButtons.X) != 0) buttons |= (uint)Xbox.Button.X;
-        if ((held & GamepadButtons.Y) != 0) buttons |= (uint)Xbox.Button.Y;
-        if ((held & GamepadButtons.LeftBumper) != 0) buttons |= (uint)Xbox.Button.LShoulder;
-        if ((held & GamepadButtons.RightBumper) != 0) buttons |= (uint)Xbox.Button.RShoulder;
-        if ((held & GamepadButtons.LeftStick) != 0) buttons |= (uint)Xbox.Button.LThumb;
-        if ((held & GamepadButtons.RightStick) != 0) buttons |= (uint)Xbox.Button.RThumb;
-        if ((held & GamepadButtons.Up) != 0) buttons |= (uint)Xbox.Button.DPadUp;
-        if ((held & GamepadButtons.Down) != 0) buttons |= (uint)Xbox.Button.DPadDown;
-        if ((held & GamepadButtons.Left) != 0) buttons |= (uint)Xbox.Button.DPadLeft;
-        if ((held & GamepadButtons.Right) != 0) buttons |= (uint)Xbox.Button.DPadRight;
-        if ((held & GamepadButtons.Start) != 0) buttons |= (uint)Xbox.Button.Start;
-        if ((held & GamepadButtons.Back) != 0) buttons |= (uint)Xbox.Button.Back;
-        if ((held & GamepadButtons.Guide) != 0) buttons |= (uint)Xbox.Button.Guide;
+        if ((held & GamepadButtons.A) != 0) buttons |= LibViiper.PadA;
+        if ((held & GamepadButtons.B) != 0) buttons |= LibViiper.PadB;
+        if ((held & GamepadButtons.X) != 0) buttons |= LibViiper.PadX;
+        if ((held & GamepadButtons.Y) != 0) buttons |= LibViiper.PadY;
+        if ((held & GamepadButtons.LeftBumper) != 0) buttons |= LibViiper.PadLeftShoulder;
+        if ((held & GamepadButtons.RightBumper) != 0) buttons |= LibViiper.PadRightShoulder;
+        if ((held & GamepadButtons.LeftStick) != 0) buttons |= LibViiper.PadLeftThumb;
+        if ((held & GamepadButtons.RightStick) != 0) buttons |= LibViiper.PadRightThumb;
+        if ((held & GamepadButtons.Up) != 0) buttons |= LibViiper.PadUp;
+        if ((held & GamepadButtons.Down) != 0) buttons |= LibViiper.PadDown;
+        if ((held & GamepadButtons.Left) != 0) buttons |= LibViiper.PadLeft;
+        if ((held & GamepadButtons.Right) != 0) buttons |= LibViiper.PadRight;
+        if ((held & GamepadButtons.Start) != 0) buttons |= LibViiper.PadStart;
+        if ((held & GamepadButtons.Back) != 0) buttons |= LibViiper.PadBack;
+        if ((held & GamepadButtons.Guide) != 0) buttons |= LibViiper.PadGuide;
 
-        return new Xbox.Xbox360Input
+        return new LibViiper.Xbox360DeviceState
         {
             Buttons = buttons,
-            Lt = Ample(state.LeftTrigger),
-            Rt = Ample(state.RightTrigger),
-            Lx = Lean(state.LeftX),
-            Ly = Lean(state.LeftY),
-            Rx = Lean(state.RightX),
-            Ry = Lean(state.RightY),
+            LeftTrigger = Ample(state.LeftTrigger),
+            RightTrigger = Ample(state.RightTrigger),
+            LeftX = Lean(state.LeftX),
+            LeftY = Lean(state.LeftY),
+            RightX = Lean(state.RightX),
+            RightY = Lean(state.RightY),
             Reserved = new byte[6],
         };
     }
@@ -272,21 +253,4 @@ public sealed class ViiperLink : IViiperLink
 
     /// <summary>A stick axis, from the centre, in the range this pad reports.</summary>
     private static short Lean(int percent) => (short)(Math.Clamp(percent, -100, 100) * 32767 / 100);
-
-    /// <summary>
-    /// Waits for one request. Everything here is a step in a macro, which is a sequential affair
-    /// that asks for results rather than for tasks, so the work is waited out rather than passed on
-    /// — but it is waited out on a thread of the pool, because the client's own waiting comes back
-    /// through whatever context the call was made on, and a run started from the editor happens on
-    /// the thread that draws the window: block that one and the client would be waiting for work
-    /// that only the blocked thread could run.
-    /// </summary>
-    private static T Wait<T>(Func<Task<T>> request) => Task.Run(request).GetAwaiter().GetResult();
-
-    private static void Wait(Func<Task> request) => Task.Run(request).GetAwaiter().GetResult();
-
-    /// <summary>
-    /// The same again, for a call into the client that comes back on its own rather than as a task.
-    /// </summary>
-    private static void Do(Action work) => Task.Run(work).GetAwaiter().GetResult();
 }

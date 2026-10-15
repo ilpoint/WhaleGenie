@@ -2301,7 +2301,7 @@ public static class ActionCatalog
                 + "steps after this one press the buttons of. The steps that drive a controller "
                 + "put it there by themselves, so this is for a game that only looks at what is "
                 + "connected when it starts. It is the same driver-level input as a virtual "
-                + "keyboard: the usbip-win2 driver and the VIIPER server have to be there.",
+                + "keyboard: the usbip-win2 driver has to be installed.",
             Parameters = [],
         },
         new()
@@ -4504,8 +4504,8 @@ public static class ActionCatalog
             "How this step's input is sent. In front goes to whatever window has the focus. "
             + "Background posts the messages at the target window instead, which needs no focus "
             + "and leaves the on-screen pointer where it is. Driver sends it through a virtual "
-            + "USB device, which needs the usbip-win2 driver and the VIIPER server; the settings "
-            + "window shows whether this machine has them."
+            + "USB device, which needs the usbip-win2 driver; the settings window shows whether "
+            + "this machine has it."
             + (extra.Length > 0 ? " " + extra : string.Empty),
             labels: ["In front", "Background (posted)", "Driver (virtual device)"],
             advanced: true),

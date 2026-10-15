@@ -31,13 +31,13 @@ dotnet run --project WhaleGenie                  # 启动程序
 ## 依赖的包
 
 `WhaleGenie.Core` 真正依赖的就这么几个，每个都对应一类碰机器的设备；版本写在
-`WhaleGenie.Core/WhaleGenie.Core.csproj` 里，这里不抄第二遍（画面获取那两个写在
-`WhaleGenie.GraphicsCapture/WhaleGenie.GraphicsCapture.csproj` 里）：
+`WhaleGenie.Core/WhaleGenie.Core.csproj` 或 `WhaleGenie.GraphicsCapture/WhaleGenie.GraphicsCapture.csproj`
+里，这里不抄第二遍。只有 `libVIIPER` 不是 NuGet 包：它是别人编译好的原生库，跟着仓库走。
 
 | 包 | 在引擎里干什么 |
 | --- | --- |
 | `SharpHook` | 全局键盘鼠标钩子与注入：热键 / 鼠标按键 / 滚轮这些触发器，`input.*` 的前台路径，录制，以及各种拾取。名字只出现在引擎的钩子与注入实现里：钩子交出的是引擎自己的 `IInputHook` 与 `HookKey`、`HookMouseButton`、`HookWheelAxis` |
-| `Viiper.Client` | 驱动级输入：连本机 VIIPER 服务端，把按键和指针交给虚拟键鼠对（`input.*` 的"驱动级"），以及虚拟手柄（`gamepad.*`，一只 Xbox 360） |
+| `libVIIPER` | 驱动级输入：把按键和指针交给虚拟键鼠对（`input.*` 的"驱动级"），以及虚拟手柄（`gamepad.*`，一只 Xbox 360）。它不是 NuGet 包，是上游 v0.9.0 的 Windows 原生库，放在 `third_party/libVIIPER/`（dll、头文件、它自己的许可说明和一份来源说明），由 `WhaleGenie.Core.csproj` 拷到 exe 旁边；服务端在程序自己的进程里跑，没有第二个程序 |
 | `OpenCvSharp5.Windows` | 找图、找色、等图这类画面动作：OpenCV 的托管 API（`Cv2`、`Mat`）和它的 Windows 原生库 |
 | `Sdcb.SimdPaddleOCR`、`Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny` | 屏幕取字（OCR）：识别库和随包带的中文模型，不联网下载 |
 | `FlaUI.UIA3` | UI Automation：元素的取值、选择、勾选、展开、滚动到可见、读表格 |
@@ -100,7 +100,7 @@ dotnet run --project WhaleGenie                  # 启动程序
 | 画面获取 | `WhaleGenie.GraphicsCapture.Tests` | 选路次序、会话缓存与复用、图片落位、矩形越界；真正调用 Windows 取画面那几条按手动用例过 |
 | 界面 | `WhaleGenie.Tests` | 参数成型、触发器比对、卡片显示、文案完整性，无头会话里的界面逻辑与 Avalonia 输入（`Ui.Run` 是入口），以及拾取器与录制器交来替身设备层后的情形 |
 | 真的驱动别的程序 | `BrowserTabTests` | 唯一一套：开一个不显示窗口的 Edge，跑浏览器动作 |
-| 手动 | — | 真实输入、抓屏取色、UIA 拾取、页面拾取、录制、窗口布局 |
+| 手动 | — | 真实输入、抓屏取色、UIA 拾取、页面拾取、录制、窗口布局，以及驱动级输入：真机装一次 usbip-win2 驱动，勾上/不勾「启动时先把虚拟键鼠装上机器」各跑一次运行，键鼠四种动作（点击、打字、拖拽、滚轮）与手柄各来一次，退出程序后看设备管理器里虚拟设备是不是没了 |
 
 界面用例走的是 Avalonia 自己的输入管线，不是系统里的鼠标与按键：真的注入按键、真的抓屏取色这类事情在
 无头会话里验不了，只能按手动用例过。因此**能在无头会话里跑到的部分要有用例**，只留人眼能判的那一档给
@@ -187,9 +187,15 @@ WhaleGenie\
     LICENSE.txt                 ← 程序自己的许可，AGPL-3.0 原文
     NOTICE                      ← 项目名与版权署名
     THIRD-PARTY-NOTICES.md      ← 用到的别人的东西
+    libVIIPER-LICENSES.txt      ← 虚拟 USB 库自己的许可说明（它的 dll 在 lib 里）
     doc\manual.md               ← 使用说明，帮助菜单的「快速上手」打开的就是这一份
     lib\                    ← 程序用到的 dll 都在这一层文件夹里
 ```
+
+驱动级输入那个 `libVIIPER.dll` 也在 `lib` 里：它是原生库，跟着其余 dll 一起搬过去，程序启动时
+把 `lib` 交给 Windows 的查找路径（`Program.HookLibraryFolder`），按名字就能找到它。开发目录里
+它就在 exe 旁边，两种形状都认（`DriverInput.LibraryPresent`）。包根那份 `libVIIPER-LICENSES.txt`
+是打包脚本从 `third_party/libVIIPER/licenses.txt` 抄过来的。
 
 程序按 AGPL-3.0 授权：条款原文随包里的 `LICENSE.txt` 发，署名在 `NOTICE` 里，两份都放在包根；对应源码就是
 本仓库里这个标签。`LICENSE.txt` 是许可原文，一字未改——GitHub 是靠文件内容认协议的，在它前后加项目名或

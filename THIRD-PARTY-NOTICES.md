@@ -4,7 +4,9 @@
 LICENSE.txt 一起放到 WhaleGenie.exe 旁边，程序里的「关于 → 第三方组件」显示的就是这一份。
 
 每条后面是那个东西自己的许可协议，再下一行是能找到协议原文的地址。协议写着 LGPL / GPL 的，
-都是独立文件（dll 或 exe）而不是并进程序里的代码，换掉对应的文件就是换掉那一份组件。
+都是独立文件（dll 或 exe）而不是并进程序里的代码，换掉对应的文件就是换掉那一份组件；其中
+GPL-3.0 的那一份与程序链接在一起，所以程序本身要是 GPL 兼容的才行，而它是 AGPL-3.0
+（见下面 libVIIPER 那一条）。
 
 ## 图标素材
 
@@ -41,8 +43,13 @@ The icon was scaled and modified from the original.
   <https://github.com/TolikPylypchuk/SharpHook>
   它自带的 Windows 原生库 uiohook.dll 来自 libuiohook，按 LGPL-3.0 授权：
   <https://github.com/kwhat/libuiohook>
-- Viiper.Client — MIT
+- libVIIPER（随包分发的 libVIIPER.dll，以及仓库里的 libVIIPER.h 与 licenses.txt）— GPL-3.0
   <https://github.com/Alia5/VIIPER>
+  驱动级输入（`input.*` 的「驱动级」与 `gamepad.*`）用的虚拟 USB 键鼠与手柄由它提供：它是一个
+  独立的 dll，鲸灵按名字加载它并调用它，它是上游 v0.9.0 发行包里的那一份，一字未改，
+  对应的源码见上面那个地址的 v0.9.0 标签。它按 GPL-3.0 授权，而本程序按 AGPL-3.0 授权：
+  AGPL-3.0 第 13 节允许把两者合成一个作品，合成后的整体仍按 AGPL-3.0 发布。
+  它自己的许可说明随包放在 libVIIPER-LICENSES.txt。
 - OpenCvSharp5（OpenCvSharp5、OpenCvSharp5.Windows 等）— Apache-2.0
   <https://github.com/shimat/opencvsharp>
   原生库 OpenCvSharpExtern.dll 里的 OpenCV 按 Apache-2.0 授权：
@@ -88,12 +95,10 @@ The icon was scaled and modified from the original.
 
 ## 用户自己装的组件
 
-驱动级输入要用到下面两样，它们不跟着本程序分发，程序里给的是下载入口：
+驱动级输入还用到一个东西，它不跟着本程序分发，程序里给的是下载入口：
 
 - usbip-win2（USB/IP 内核驱动）— BSD-2-Clause
   <https://github.com/vadimgrn/usbip-win2>
-- VIIPER 服务端 — GPL-3.0
-  <https://github.com/Alia5/VIIPER>
 
 浏览器动作要用到下面这些，同样不跟着本程序分发，程序里给的是安装命令：
 

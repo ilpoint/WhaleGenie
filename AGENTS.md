@@ -153,19 +153,19 @@ DXGI，整屏 2 毫秒）、**屏幕 GDI** 与 **PrintWindow**。`ScreenGrabber`
 时再拿回来（`ComeBack`，程序正在退出时不拿）。编辑器因此**不**是主窗口的子窗口
 （`DialogWindow.ShowAsPeer`）：带属主的窗口会随属主一起被收起，而两者要能分开最小化。编辑器一次只开一个，
 保存的东西从 `MacroEditorWindow.Result` 读。程序在通知区域保留一个图标（`WindowsTray`）；关窗与最小化只把窗
-口 `Hide`，真正退出只有图标菜单里那一项，退出前关掉程序自己启动的 VIIPER 服务端，并先问过还有未保存东西的
-窗口（否掉这次关闭的窗口就是在问用户话，要按这个判而不是 `IsVisible`）。
+口 `Hide`，真正退出只有图标菜单里那一项，退出前先问过还有未保存东西的窗口（否掉这次关闭的窗口就是在问用户
+话，要按这个判而不是 `IsVisible`），并把虚拟键鼠与手柄从机器上摘下来、关掉程序自己跑着的 USB 服务端。
 
 **崩溃恢复快照**　`RecoveryStore` 把未保存的项目与编辑器里正在编辑的宏写进 `recovery.json`，下次启动问是否
 找回。写不写看内容有没有变：第一次变脏立即写一次，此后等这一串变化停下来写一次。
 
-**驱动级输入（VIIPER）**　`input.*` 的"驱动级"与 `gamepad.*` 走 `ViiperInputDevice`：连本机 VIIPER 服务
-端，在一条总线上放一个虚拟键盘、一个虚拟鼠标与一只手柄。驱动（usbip-win2）是内核驱动，要装一次、要管理员权
-限；服务端（VIIPER）由鲸灵管：选一次 `viiper.exe` 记在 `settings.json`，启动时后台拉起，退出时关掉。一台
-机器同一时刻只有一对虚拟键鼠能用，所以全程序共用一对（`SharedDriverInput`）；手柄只做 Xbox 360。鼠标报文是
-相对增量，"移动到坐标"要先读指针再算差值，落点要"发一次、读回来、补差"（`Seek`）。`ViiperLink` 里所有调用
-都丢到线程池上等，因为客户端库的等待会回到发起调用时的同步上下文。对话框的「测试」走
-`MacroRunner.TryAsync`，真的发一次而不是预览；选择器的「测试」则是高亮而不是点击。
+**驱动级输入（VIIPER）**　`input.*` 的"驱动级"与 `gamepad.*` 走 `ViiperInputDevice`，在一台机器里放一个虚拟
+键盘、一个虚拟鼠标与一只手柄。驱动（usbip-win2）是内核驱动，要装一次、要管理员权限，是用户唯一要装的东西；
+服务端由鲸灵自己带（`libVIIPER.dll` 在程序自己的进程里跑，见 `third_party/libVIIPER/`），没有第二个程序要指
+路径或拉起、关掉。一台机器同一时刻只有一对虚拟键鼠能用，所以全程序共用一对（`SharedDriverInput`），第一次真
+的用到才装上、装上就留到程序退出；设置里那个默认关闭的勾选项让它在启动时就装上（`IDriverInput.AttachAtStart`）。
+手柄只做 Xbox 360。鼠标报文是相对增量，"移动到坐标"要先读指针再算差值，落点要"发一次、读回来、补差"
+（`Seek`）。对话框的「测试」走 `MacroRunner.TryAsync`，真的发一次而不是预览；选择器的「测试」则是高亮而不是点击。
 
 **浏览器（Playwright）**　`browser.*` 走 `PlaywrightBrowserDevice`（Microsoft.Playwright）；选择器参数叫
 `target` 而不是 `selector`（否则会多出一个用不上的 UIA 元素拾取按钮）。默认走系统自带的 Edge，只有选
