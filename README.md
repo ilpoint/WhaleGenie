@@ -33,22 +33,26 @@ Windows 上的通用宏 / 自动化工具：把键盘、鼠标、手柄、屏幕
 
 ## 用了谁的库
 
-程序是 .NET 10 上的 C#，除自己写的部分外，靠别人的地方都在这张表里。每一层的版本写在
-[doc/dev.md](doc/dev.md) 的「依赖的包」一节，不在这里抄第二遍。
+程序是 .NET 10 上的 C#，除自己写的部分外，靠别人的地方都在这几行里：蓝是执行引擎、青是画面获取，
+紫是界面、灰是测试与开发；徽章点开就是那个库的仓库。版本写在 [doc/dev.md](doc/dev.md) 的
+「依赖的包」一节，不在这里抄第二遍。
 
-| 库 | 在哪一层 | 干什么 |
-| --- | --- | --- |
-| SharpHook | 执行引擎 | 全局键盘鼠标钩子与前台注入：热键、鼠标按键、滚轮这些触发器，以及录制与拾取 |
-| libVIIPER | 执行引擎 | 驱动级输入用的虚拟 USB 键鼠与手柄。上游编译好的原生库，随包分发 |
-| OpenCvSharp5（含 OpenCV） | 执行引擎 | 找图（四种算法）、找色与占比、多点找色、等画面静止 |
-| PaddleOCR（Sdcb.SimdPaddleOCR 连同中文模型） | 执行引擎 | 屏幕取字。模型随包带，不联网下载 |
-| FlaUI | 执行引擎 | UI Automation：元素的取值、选择、勾选、展开、读表格 |
-| Microsoft.Playwright | 执行引擎 | 浏览器动作。驱动随包带，默认开系统自带的 Edge |
-| CsvHelper | 执行引擎 | 读写 CSV：引号、单元格里的换行、行尾与空行 |
-| Vortice | 画面获取 | 调 Windows 自带的 Direct3D 11 与 DXGI 做 Graphics Capture 与桌面复制，不另带原生库 |
-| Avalonia | 界面 | 窗口、控件与渲染；底层是自带的 SkiaSharp 与 HarfBuzz，字体用 Inter |
-| CommunityToolkit.Mvvm | 界面 | 视图模型里的属性与命令 |
-| xunit、Microsoft.NET.Test.Sdk、coverlet.collector、Avalonia.Headless | 测试 | 三项全绿的用例与覆盖率；界面用例跑在 Avalonia 的无头平台上 |
+[![SharpHook](https://img.shields.io/badge/SharpHook-%E5%85%A8%E5%B1%80%E9%92%A9%E5%AD%90%E4%B8%8E%E6%B3%A8%E5%85%A5-1F6FEB)](https://github.com/TolikPylypchuk/SharpHook)
+[![libVIIPER](https://img.shields.io/badge/libVIIPER-%E9%A9%B1%E5%8A%A8%E7%BA%A7%E8%99%9A%E6%8B%9F%20USB-1F6FEB)](https://github.com/Alia5/VIIPER)
+[![OpenCvSharp5](https://img.shields.io/badge/OpenCvSharp5-%E6%89%BE%E5%9B%BE%E4%B8%8E%E6%89%BE%E8%89%B2-1F6FEB)](https://github.com/shimat/opencvsharp)
+[![PaddleOCR](https://img.shields.io/badge/PaddleOCR-%E5%B1%8F%E5%B9%95%E5%8F%96%E5%AD%97-1F6FEB)](https://github.com/sdcb/PaddleSharp)
+[![FlaUI](https://img.shields.io/badge/FlaUI-UI%20Automation-1F6FEB)](https://github.com/FlaUI/FlaUI)
+[![Microsoft.Playwright](https://img.shields.io/badge/Microsoft.Playwright-%E6%B5%8F%E8%A7%88%E5%99%A8%E5%8A%A8%E4%BD%9C-1F6FEB)](https://github.com/microsoft/playwright-dotnet)
+[![CsvHelper](https://img.shields.io/badge/CsvHelper-CSV%20%E8%AF%BB%E5%86%99-1F6FEB)](https://github.com/JoshClose/CsvHelper)
+
+[![Vortice](https://img.shields.io/badge/Vortice-%E7%94%BB%E9%9D%A2%E8%8E%B7%E5%8F%96%20D3D11%2FDXGI-0E7490)](https://github.com/amerkoleci/Vortice.Windows)
+[![Avalonia](https://img.shields.io/badge/Avalonia-%E7%95%8C%E9%9D%A2-6D28D9)](https://github.com/AvaloniaUI/Avalonia)
+[![CommunityToolkit.Mvvm](https://img.shields.io/badge/CommunityToolkit.Mvvm-MVVM-6D28D9)](https://github.com/CommunityToolkit/dotnet)
+
+[![xunit](https://img.shields.io/badge/xunit-%E7%94%A8%E4%BE%8B-6B7280)](https://github.com/xunit/xunit)
+[![Microsoft.NET.Test.Sdk](https://img.shields.io/badge/Microsoft.NET.Test.Sdk-%E8%B7%91%E6%B5%8B%E8%AF%95-6B7280)](https://github.com/microsoft/vstest)
+[![coverlet.collector](https://img.shields.io/badge/coverlet.collector-%E8%A6%86%E7%9B%96%E7%8E%87-6B7280)](https://github.com/coverlet-coverage/coverlet)
+[![Avalonia.Headless](https://img.shields.io/badge/Avalonia.Headless-%E6%97%A0%E5%A4%B4%E7%95%8C%E9%9D%A2%E7%94%A8%E4%BE%8B-6B7280)](https://github.com/AvaloniaUI/Avalonia)
 
 别人随包带进来的原生库（OpenCV、SharpHook 的 `uiohook.dll`、Playwright 的驱动、`libVIIPER.dll`、
 OCR 模型）与每个库的许可、协议原文地址，见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
