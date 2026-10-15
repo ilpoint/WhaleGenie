@@ -2744,6 +2744,16 @@ internal static class ActionStrings
         ["script.run.script.label"] = "脚本",
         ["script.run.script.hint"] = "脚本正文，交给上面那个程序运行。写 {{变量名}} 的地方会在运行前换成那个变量的值，这就是宏的值传进脚本的方式；"
             + "脚本打印出来的内容在能回收的那几种类型上回到「输出」里。",
+        ["script.run.source.label"] = "脚本来源",
+        ["script.run.source.hint"] = "这一步跑什么：写在下面的一段脚本，还是这台机器上已有的一个脚本文件。"
+            + "选文件时那个文件就地运行，它旁边读什么、里面 include 什么、它自己的目录是哪里都不变，"
+            + "里面的 {{变量名}} 也不会替换。默认「写在下面」。",
+        ["script.run.source.option.text"] = "写在下面",
+        ["script.run.source.option.file"] = "一个脚本文件",
+        ["script.run.file.label"] = "脚本文件",
+        ["script.run.file.hint"] = "要运行的那个脚本文件，写它现在所在的位置；谁运行它由上面的「脚本类型」说了算，"
+            + "不再看文件自己的后缀。写相对路径时从宏文件所在的目录算起。要跑的是别人一直在维护的脚本、"
+            + "或者太长不方便写进步骤里的脚本时用它。",
         ["script.run.arguments.label"] = "参数",
         ["script.run.arguments.hint"] = "附加在脚本命令行后面的参数，其中的 {{变量名}} 也会替换成变量的值。默认留空，表示不传参数。",
         ["script.run.folder.label"] = "工作目录",
@@ -2832,6 +2842,36 @@ internal static class ActionStrings
             + "可能会跑更久的脚本填 0，表示不限时。",
         ["script.csharp.folder.label"] = "工作目录",
         ["script.csharp.folder.hint"] = "脚本在哪个目录中运行。默认留空，表示宏所在的目录；该目录不存在时，"
+            + "改用鲸灵自身的工作目录。",
+        ["script.ahk.name"] = "运行 AHK 脚本",
+        ["script.ahk.desc"] = "运行一段 AutoHotkey v2 脚本，运行期间脚本能读写宏的变量、调用宏的步骤。",
+        ["script.ahk.script.label"] = "脚本",
+        ["script.ahk.script.hint"] = "脚本本身，按 AutoHotkey v2 写。脚本打印的内容会逐行写进运行日志；"
+            + "运行期间宏就在它旁边：GetProperty(\"名字\") 读一个宏变量，SetProperty(\"名字\", 值) 写一个，"
+            + "StepExecute(\"标识\") 跑本宏里的某一步，Print(文字) 往运行日志写一行，"
+            + "SetResult(值) 交回这一步要留下的结果。宏里的列表与记录在这边是它们的 JSON 文字。",
+        ["script.ahk.script.default"] =
+            "; 读一个宏变量的值\n"
+            + "; variable := GetProperty(\"变量名\")\n\n"
+            + "; 写一个宏变量，后面的步骤读得到\n"
+            + "; SetProperty(\"变量名\", \"新值\")\n\n"
+            + "; 调用本宏的某一步，写它的四字符标识\n"
+            + "; StepExecute(\"a7k2\")\n\n"
+            + "; 往运行日志写一行\n"
+            + "Print(\"Hello World\")\n\n"
+            + "; 交回这一步要留下的结果\n"
+            + "; SetResult(\"结果\")\n",
+        ["script.ahk.arguments.label"] = "参数",
+        ["script.ahk.arguments.hint"] = "附加在脚本命令行后面的参数，脚本在 A_Args 里读到它们，"
+            + "与从命令行启动一个程序时一样。默认留空，表示不传参数。",
+        ["script.ahk.ahk.label"] = "AutoHotkey 命令",
+        ["script.ahk.ahk.hint"] = "这一步用哪个 AutoHotkey 运行，它自己的开关写在前面；路径里有空格时用引号括起来。"
+            + "默认留空，表示用这台机器上找到的那个 AutoHotkey。",
+        ["script.ahk.timeoutMs.label"] = "超时",
+        ["script.ahk.timeoutMs.hint"] = "超过这个时长就结束脚本并判这一步失败，单位毫秒，默认 60000；"
+            + "可能会跑更久的脚本填 0，表示不限时。",
+        ["script.ahk.folder.label"] = "工作目录",
+        ["script.ahk.folder.hint"] = "脚本在哪个目录中运行。默认留空，表示宏所在的目录；该目录不存在时，"
             + "改用鲸灵自身的工作目录。",
         ["script.nuget.name"] = "下载 NuGet 包",
         ["script.nuget.desc"] = "看一下要用的 NuGet 包在不在，缺的连同它们自己依赖的包一起下下来，"
@@ -3616,6 +3656,19 @@ internal static class ActionStrings
             + "所以这一项是在失败策略放行之后读的。",
         ["script.csharp.returns.label"] = "要留下的结果",
         ["script.csharp.returns.hint"] = ReturnsHintText,
+
+        // script.ahk
+        ["script.ahk.return.value.label"] = "返回值",
+        ["script.ahk.return.value.hint"] = "脚本用 SetResult 交回的那个值，原样保留：数字、文字、真假、列表，"
+            + "或者一条带字段的记录。脚本没交过就是空的。",
+        ["script.ahk.return.error.label"] = "错误消息",
+        ["script.ahk.return.error.hint"] = "脚本在错误输出上写的内容，AutoHotkey 报的错就写在这里，"
+            + "带着出错的行号。脚本顺利跑完时为空。",
+        ["script.ahk.return.success.label"] = "是否执行成功",
+        ["script.ahk.return.success.hint"] = "脚本没有出错并跑完为真，否则为假。脚本失败时这一步也会判失败，"
+            + "所以这一项是在失败策略放行之后读的。",
+        ["script.ahk.returns.label"] = "要留下的结果",
+        ["script.ahk.returns.hint"] = ReturnsHintText,
 
         // script.nuget
         ["script.nuget.return.packages.label"] = "下载的包",

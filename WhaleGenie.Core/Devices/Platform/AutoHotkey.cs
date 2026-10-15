@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using Microsoft.Win32;
 
@@ -43,8 +44,62 @@ public static class AutoHotkey
     /// </summary>
     internal static Func<string?> Program { get; set; } = Locate;
 
+    /// <summary>
+    /// The program this machine would run a script with, or null when it has none, for anyone
+    /// outside the engine: a check that runs a real script has to know whether there is anything to
+    /// run it with before it can say what this machine left untested.
+    /// </summary>
+    public static string? Found() => Program();
+
     private static string? Locate()
         => FromRegistry() ?? FromSearchPath() ?? FromInstallFolder();
+
+    /// <summary>
+    /// The first number of the version of the program a command names, which is what tells the two
+    /// AutoHotkeys apart — they read different scripts and only one of them is what a script step is
+    /// written for. Nothing comes back when nothing can say: a name resolved through the search
+    /// path, a program with no version written into it, or a file that is not there.
+    /// </summary>
+    public static int? MajorVersion(string program)
+    {
+        var path = Full(program);
+        if (path is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var written = FileVersionInfo.GetVersionInfo(path);
+            return written.FileMajorPart > 0 ? written.FileMajorPart : null;
+        }
+        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException
+            or ArgumentException or System.ComponentModel.Win32Exception)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// The file a command names, whether it was written as a path or left to the search path. A
+    /// name with nothing on the search path stands for no file, which is not the same question as
+    /// whether the program is there at all: starting it by name is left to Windows.
+    /// </summary>
+    private static string? Full(string program)
+    {
+        var named = program.Trim().Trim('"');
+        if (named.Length == 0)
+        {
+            return null;
+        }
+
+        if (Path.IsPathRooted(named))
+        {
+            return File.Exists(named) ? named : null;
+        }
+
+        return OnSearchPath(named);
+    }
 
     /// <summary>
     /// What the installer wrote for a script file: the whole command line, with the program in
@@ -85,24 +140,35 @@ public static class AutoHotkey
     /// </summary>
     private static string? FromSearchPath()
     {
-        var folders = (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
-            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
-
         foreach (var name in OnPath)
         {
-            foreach (var folder in folders)
+            if (OnSearchPath(name) is not null)
             {
-                try
+                return name;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The file a name on the search path stands for, or null when it stands for none.</summary>
+    private static string? OnSearchPath(string name)
+    {
+        var folders = (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var folder in folders)
+        {
+            try
+            {
+                var candidate = Path.Combine(folder.Trim(), name);
+                if (File.Exists(candidate))
                 {
-                    if (File.Exists(Path.Combine(folder.Trim(), name)))
-                    {
-                        return name;
-                    }
+                    return candidate;
                 }
-                catch
-                {
-                    // A path on the search path that cannot be read is not one that holds it.
-                }
+            }
+            catch
+            {
+                // A path on the search path that cannot be read is not one that holds it.
             }
         }
 

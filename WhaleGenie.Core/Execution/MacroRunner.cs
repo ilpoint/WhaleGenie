@@ -1638,6 +1638,9 @@ public sealed class MacroRunner
             case "script.csharp":
                 return RunCSharp(step, depth, token);
 
+            case "script.ahk":
+                return RunAutoHotkey(step, depth, token);
+
             case "script.nuget":
                 RunNuGet(step, depth, token);
                 return Signal.Normal;
@@ -7852,19 +7855,34 @@ public sealed class MacroRunner
     /// Runs a short script: a command, a batch file, a PowerShell or an AutoHotkey script, or a
     /// program of the macro's own choosing. This is the step that covers whatever the catalogue
     /// does not — anything with a command line of its own can be scripted — and a macro value gets
-    /// in by being written into the text as <c>{{name}}</c> before the script runs.
+    /// in by being written into the text as <c>{{name}}</c> before the script runs. The script is
+    /// either written in the step or named as a file of the macro's own, and a file is run where it
+    /// lies rather than being written out again.
     /// </summary>
     private void RunScript(ExecutableStep step, int depth)
     {
         var kind = ScriptKindOf(step);
-        var script = Template(step.Text("script"));
-        if (script.Trim().Length == 0)
+
+        // A script may be written in the step or named as a file on disk. A file is run where it
+        // lies: nothing of it is copied, so what it reads beside itself, what it includes and what
+        // a variable written into it would have been are exactly what its author wrote.
+        var fromFile = string.Equals(step.Text("source").Trim(), "file", StringComparison.OrdinalIgnoreCase);
+        var chosen = fromFile ? Read(step.Text("file")).AsText().Trim() : string.Empty;
+        var script = fromFile ? string.Empty : Template(step.Text("script"));
+        if (chosen.Length == 0 && script.Trim().Length == 0)
         {
             throw new StepFailure("Run.MissingScript");
         }
 
-        var extension = ScriptExtensionOf(step, kind);
-        var path = Path.Combine(ScriptFolder(), $"script-{Guid.NewGuid():N}{extension}");
+        if (fromFile && !_devices.Files.Exists(chosen))
+        {
+            throw new StepFailure("Run.FileNotFound", chosen);
+        }
+
+        var stamp = Guid.NewGuid().ToString("N");
+        var path = fromFile
+            ? _devices.Files.Resolve(chosen)
+            : Path.Combine(ScriptFolder(), $"script-{stamp}{ScriptExtensionOf(step, kind)}");
 
         // The one kind whose window is left standing has to be told that the command is done: a
         // batch file sitting at its prompt says nothing to anyone but the person in front of it. A
@@ -7872,19 +7890,35 @@ public sealed class MacroRunner
         // it, and that is what lets the macro carry on when the command finishes rather than when
         // the window is closed.
         var sentinel = kind is ScriptKind.CommandKeepWindow
-            ? Path.Combine(ScriptFolder(), $"done-{Guid.NewGuid():N}.txt")
+            ? Path.Combine(ScriptFolder(), $"done-{stamp}.txt")
+            : string.Empty;
+
+        // A script named as a file cannot have a line added to it, so the kind that needs the mark
+        // gets a little batch file of its own to run it with: the mark still says when the command
+        // is done, and the file that was named stays exactly as it was.
+        var passed = Template(step.Text("arguments")).Trim();
+        var wrapper = sentinel.Length > 0 && fromFile
+            ? Path.Combine(ScriptFolder(), $"script-{stamp}.cmd")
             : string.Empty;
 
         // The command line is put together before anything is written: a step whose program or file
         // ending is missing fails without leaving a copy of a script behind.
-        var (program, arguments) = ScriptCommandOf(step, kind, path,
-            Template(step.Text("arguments")).Trim());
+        var (program, arguments) = ScriptCommandOf(step, kind, wrapper.Length > 0 ? wrapper : path,
+            wrapper.Length > 0 ? string.Empty : passed);
         var folder = ScriptWorkingFolder(step);
         var timeout = Math.Max(0, OptionalNumber(step, "timeoutMs", DefaultScriptMs));
 
-        _devices.Files.WriteText(path,
-            sentinel.Length == 0 ? script : WithSentinel(script, sentinel),
-            false, ScriptEncodingOf(step, kind));
+        if (wrapper.Length > 0)
+        {
+            _devices.Files.WriteText(wrapper, WithCaller(path, passed, sentinel), false,
+                ScriptEncodingOf(step, kind));
+        }
+        else if (!fromFile)
+        {
+            _devices.Files.WriteText(path,
+                sentinel.Length == 0 ? script : WithSentinel(script, sentinel),
+                false, ScriptEncodingOf(step, kind));
+        }
 
         var output = string.Empty;
         var error = string.Empty;
@@ -7906,7 +7940,9 @@ public sealed class MacroRunner
         }
         finally
         {
-            TidyScript(path, sentinel, depth, step.Type);
+            // What is removed is what this step wrote: a script the macro named as a file is one of
+            // the macro's own and is left where it is.
+            TidyScript(fromFile ? wrapper : path, sentinel, depth, step.Type);
         }
 
         // What the script came to is handed over before the step is failed for it: a macro whose
@@ -7981,6 +8017,20 @@ public sealed class MacroRunner
     }
 
     /// <summary>
+    /// A small batch file that runs the file a macro named and then writes the exit code where this
+    /// side reads it. It is what the kind whose window is left standing runs when its script is a
+    /// file: the mark has to be written by something, and the file itself may not be touched, so
+    /// something of this program's own is written to call it instead.
+    /// </summary>
+    private static string WithCaller(string script, string arguments, string sentinel)
+    {
+        var tail = arguments.Length == 0 ? string.Empty : $" {arguments}";
+        return "@echo off" + Environment.NewLine
+            + $"call \"{script}\"{tail}" + Environment.NewLine
+            + $"@echo %errorlevel% > \"{sentinel}\"" + Environment.NewLine;
+    }
+
+    /// <summary>
     /// Runs a Python script in a process of its own with the macro in reach of it while it runs:
     /// what the script prints goes into the run log line by line, what it reads and writes is what
     /// the macro holds, and what it hands back with SetResult is this step's result.
@@ -8035,6 +8085,36 @@ public sealed class MacroRunner
 
         HandOverScript(step, outcome, "value");
         Log(LogLevel.Info, depth, step.Type, "Run.RanScript", "C#", outcome.Output.Length);
+
+        return _stoppedInsideScript ? Signal.Stop : Signal.Normal;
+    }
+
+    /// <summary>
+    /// Runs an AutoHotkey script with the macro in reach of it: what the script prints goes into the
+    /// run log line by line, what it reads and writes is what the macro holds, the steps it names are
+    /// run by the macro, and what it hands back with SetResult is this step's result. Only the second
+    /// version of AutoHotkey is what a script of this shape is written for.
+    /// </summary>
+    private Signal RunAutoHotkey(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var script = Template(step.Text("script"));
+        if (script.Trim().Length == 0)
+        {
+            throw new StepFailure("Run.MissingScript");
+        }
+
+        var request = new AutoHotkeyScript(script, Template(step.Text("arguments")).Trim(),
+            ScriptWorkingFolder(step), ScriptTimeoutOf(step), step.Text("ahk").Trim());
+
+        _stoppedInsideScript = false;
+        var outcome = _devices.Scripts.RunAutoHotkey(request,
+            new MacroHost(this, step.Type, depth, token),
+            line => Log(LogLevel.Info, depth, step.Type, "Run.ScriptOutput", line),
+            line => Log(LogLevel.Error, depth, step.Type, "Run.ScriptError", line),
+            token);
+
+        HandOverScript(step, outcome, "value");
+        Log(LogLevel.Info, depth, step.Type, "Run.RanScript", "AutoHotkey", outcome.Output.Length);
 
         return _stoppedInsideScript ? Signal.Stop : Signal.Normal;
     }

@@ -102,6 +102,24 @@ public static class ActionCatalog
         }
         """;
 
+    /// <summary>
+    /// The example a new AutoHotkey script step begins with. It is the same five calls the Python
+    /// and C# examples show, written the way this language reaches them: the names the macro is
+    /// reached by are functions of the prelude's own, and a line written with Print is a line in
+    /// the run log. It is written for AutoHotkey version 2, which is what a script step runs.
+    /// </summary>
+    private const string DefaultAutoHotkeyScript =
+        "; Read a value the macro holds\n"
+        + "; variable := GetProperty(\"name\")\n\n"
+        + "; Write a value the macro can read afterwards\n"
+        + "; SetProperty(\"name\", \"value\")\n\n"
+        + "; Run one step of this macro, named by its four-character identity\n"
+        + "; StepExecute(\"a7k2\")\n\n"
+        + "; Leave a line in the run log\n"
+        + "Print(\"Hello World\")\n\n"
+        + "; Hand back what this step should leave behind\n"
+        + "; SetResult(\"done\")\n";
+
     private static readonly Geometry FileIcon =
         Geometry.Parse("M6,3 H14 L18,7 V21 H6 Z M14,3 V7 H18 M9,12 H15 M9,16 H15");
 
@@ -3353,13 +3371,27 @@ public static class ActionCatalog
                     + "to read Chinese text. Reading it as the kind of script expects is the "
                     + "default.",
                     labels: ["As this kind of script expects", "UTF-8", "UTF-8 with BOM",
-                        "GBK (Chinese)", "UTF-16"]),
+                        "GBK (Chinese)", "UTF-16"],
+                    onlyWith: ["text"], onlyField: "source"),
+                Choice("source", "Run", ["text", "file"], "text",
+                    "What this step runs: the script written below, or a file that is already on "
+                    + "this machine. A file is run where it lies, so what it reads beside itself, "
+                    + "what it includes and what its own folder is all stay what its author wrote, "
+                    + "and nothing takes the place of {{name}} in it. The script written below by "
+                    + "default.",
+                    labels: ["The script written below", "A script file"]),
                 Multiline("script", "Script",
                     "The script itself, told to the program named above. {{name}} is replaced by "
                     + "what the variable name holds before the script runs, which is how a macro "
                     + "value gets in; everything the script prints comes back in the output result "
                     + "where the kind of script can be read that way.",
-                    "Write-Host \"Hello\"", foreign: true, tall: true),
+                    "Write-Host \"Hello\"", foreign: true, tall: true,
+                    onlyWith: ["text"], onlyField: "source"),
+                FilePath("file", "Script file", "deploy.ps1",
+                    "The script to run, named where it stands; the kind of script above is what "
+                    + "runs it, and the file's own ending is not looked at. Point this at a script "
+                    + "somebody else keeps up to date, or one too long to keep in a step.",
+                    PathIntent.Read, onlyWith: ["file"], onlyField: "source"),
                 Text("arguments", "Arguments", "first second", required: false,
                     hint: "Extra arguments for the script's command line. {{name}} is filled in "
                           + "here as well. Empty, which is the default, passes nothing.",
@@ -3374,11 +3406,12 @@ public static class ActionCatalog
                           + "used with \"another program\" above. The script's path goes after it, "
                           + "the way it would be typed on a command line. A path with spaces in it "
                           + "goes in quotes.",
-                    advanced: true, onlyWith: ["custom"]),
+                    advanced: true, onlyWith: ["custom"], onlyField: "kind"),
                 Text("extension", "Script file ending", ".csx", required: false,
                     hint: "The file name ending that program reads, such as .csx for dotnet-script "
                           + "or .vbs for cscript. Only used with \"another program\" above.",
-                    advanced: true, onlyWith: ["custom"]),
+                    advanced: true, onlyWith: ["custom"], onlyField: "kind",
+                    alsoWith: ["text"], alsoField: "source"),
                 PickablePath("folder", "Working folder", string.Empty,
                     "The folder the script runs in. Empty, which is the default, runs it in the "
                     + "macros folder, or wherever WhaleGenie is when that folder is not there yet.",
@@ -3514,6 +3547,60 @@ public static class ActionCatalog
                           + "finds in the array it is called with. Empty, which is the default, "
                           + "passes nothing.",
                     foreign: true),
+                Number("timeoutMs", "Timeout", 60000,
+                    "Stop the script and fail the step after this long, in milliseconds; 60000 by "
+                    + "default. A script that may take longer than that is given 0, which means no "
+                    + "limit."),
+                PickablePath("folder", "Working folder", string.Empty,
+                    "The folder the script runs in. Empty, which is the default, runs it in the "
+                    + "macros folder, or wherever WhaleGenie is when that folder is not there yet.",
+                    PathIntent.Folder, required: false, advanced: true),
+                Returns(),
+            ],
+        },
+
+        new()
+        {
+            Key = "script.ahk",
+            Returns =
+            [
+                Return("value", "Result", primary: true,
+                    hint: "What the script handed back with SetResult, as it is: a number, a piece "
+                        + "of writing, true or false, a list, or a record with named fields. Empty "
+                        + "when the script handed nothing back."),
+                Return("error", "Error message",
+                    hint: "What the script said on its error output, which is where AutoHotkey "
+                        + "reports a mistake of its own, with the line it was written on. Empty "
+                        + "when it ran to the end without one."),
+                Return("success", "Ran without error", type: ActionReturnType.Flag,
+                    hint: "True when the script ran to the end without a mistake, false when it did "
+                        + "not. A script that ended badly fails the step as well, so this is read "
+                        + "after the failure rule let the macro carry on."),
+            ],
+            Category = ActionCategory.Script,
+            DisplayName = "Run AutoHotkey Script",
+            Description = "Run an AutoHotkey script, with the macro's values and steps in reach of "
+                + "it while it runs.",
+            Parameters =
+            [
+                Multiline("script", "Script",
+                    "The script itself, written for AutoHotkey version 2. Everything it prints "
+                    + "goes into the run log, and the macro is in reach of it while it runs: "
+                    + "GetProperty(\"name\") reads one of its values, SetProperty(\"name\", value) "
+                    + "writes one, StepExecute(\"a7k2\") runs one step of this macro, Print(text) "
+                    + "writes a line to the run log, and SetResult(value) hands back what this step "
+                    + "should leave behind.",
+                    defaultValue: DefaultAutoHotkeyScript, required: true, foreign: true, tall: true),
+                Text("arguments", "Arguments", "first second", required: false,
+                    hint: "Extra arguments for the script's command line, which the script finds in "
+                        + "A_Args the way a program started from a command line does. Empty, which "
+                        + "is the default, passes nothing.",
+                    foreign: true),
+                Text("ahk", "AutoHotkey command", "C:\\Tools\\AutoHotkey64.exe", required: false,
+                    hint: "The AutoHotkey this step runs with, with any flags of its own in front. "
+                        + "A path with spaces in it goes in quotes. Empty, which is the default, "
+                        + "uses the AutoHotkey this machine has.",
+                    foreign: true, advanced: true),
                 Number("timeoutMs", "Timeout", 60000,
                     "Stop the script and fail the step after this long, in milliseconds; 60000 by "
                     + "default. A script that may take longer than that is given 0, which means no "
@@ -4036,7 +4123,9 @@ public static class ActionCatalog
 
     private static ActionParameter Multiline(string name, string label, string hint = "",
         string placeholder = "", bool required = true, bool foreign = false, bool advanced = false,
-        bool acceptsFormula = false, bool tall = false, string defaultValue = "")
+        bool acceptsFormula = false, bool tall = false, string defaultValue = "",
+        string[]? onlyWith = null, string onlyField = "algorithm",
+        string[]? alsoWith = null, string alsoField = "algorithm")
         => new()
         {
             Name = name,
@@ -4050,6 +4139,10 @@ public static class ActionCatalog
             Advanced = advanced,
             AcceptsFormula = acceptsFormula,
             Tall = tall,
+            AppliesWhen = onlyWith is null ? string.Empty : onlyField,
+            AppliesWhenValues = onlyWith ?? [],
+            AppliesWhenAlso = alsoWith is null ? string.Empty : alsoField,
+            AppliesWhenAlsoValues = alsoWith ?? [],
         };
 
     /// <summary>

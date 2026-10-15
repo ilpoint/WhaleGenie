@@ -156,6 +156,87 @@ public class ActionDialogTests
         });
     }
 
+    /// <summary>
+    /// The AutoHotkey example says the same five things the other two languages' examples say, in
+    /// the way this language reaches them: what a new step opens with is the whole of how a script
+    /// hears about the macro, so every call has to be written out in the box it opens on.
+    /// </summary>
+    [Fact]
+    public void An_AutoHotkey_step_opens_written_from_an_example()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("script.ahk");
+            var field = viewModel.Parameters.First(parameter => parameter.Definition.Name == "script");
+
+            // What is in the box is the example of the language the window is in, and the step is at
+            // its default rather than showing a mark for having been written in.
+            Assert.Equal(field.Definition.LocalDefault, field.CurrentText);
+            Assert.True(field.IsDefault);
+
+            var example = ActionStrings.Chinese["script.ahk.script.default"];
+            Assert.Contains("GetProperty(\"变量名\")", example, StringComparison.Ordinal);
+            Assert.Contains("SetProperty(\"变量名\"", example, StringComparison.Ordinal);
+            Assert.Contains("StepExecute(\"a7k2\")", example, StringComparison.Ordinal);
+            Assert.Contains("SetResult", example, StringComparison.Ordinal);
+            Assert.Contains("Print(\"Hello World\")", example, StringComparison.Ordinal);
+
+            // Only the line that leaves a line in the log is left to run, so a step that has just
+            // been added says something the first time it is run; the rest are written as comments
+            // for the writer to take the semicolon off.
+            var lines = example.Split('\n');
+            Assert.Contains(lines, line => line == "Print(\"Hello World\")");
+            foreach (var call in new[] { "GetProperty", "SetProperty", "StepExecute", "SetResult" })
+            {
+                Assert.Contains(lines,
+                    line => line.StartsWith("; ", StringComparison.Ordinal)
+                        && line.Contains(call, StringComparison.Ordinal));
+            }
+        });
+    }
+
+    /// <summary>
+    /// A script step is either a script written in it or a file on this machine, and only the field
+    /// the answer is about is drawn: a box for a script that is not being written, or a file box for
+    /// a file that is not being run, would each be a question nothing reads.
+    /// </summary>
+    [Fact]
+    public void A_script_step_draws_the_field_of_the_source_it_is_run_from()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("script.run");
+
+            bool Shown(string name) => viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == name).IsApplicable;
+
+            // Written below by default: the script box and the encoding its copy is written in are
+            // both drawn, and there is no file to name.
+            Assert.Equal("text", Value(viewModel, "source"));
+            Assert.True(Shown("script"), "the script box is not drawn");
+            Assert.True(Shown("encoding"), "the encoding is not drawn");
+            Assert.False(Shown("file"), "the file box is drawn and no file is being run");
+
+            Choose(viewModel, "kind", "custom");
+
+            // The program to run and the ending it reads are the two things this kind needs, so
+            // they are drawn as soon as it is chosen.
+            Assert.True(Shown("interpreter"), "the program to run is not drawn");
+            Assert.True(Shown("extension"), "the ending the program reads is not drawn");
+
+            Choose(viewModel, "source", "file");
+
+            Assert.False(Shown("script"), "the script box is drawn and no script is written");
+            Assert.False(Shown("encoding"), "the encoding is drawn for a file");
+            Assert.True(Shown("file"), "the file box is not drawn");
+
+            // Nor an ending for the file: what is run is already on disk with the ending its author
+            // gave it, and only a script written here needs to be given one.
+            Assert.True(Shown("interpreter"), "the program to run is not drawn");
+            Assert.False(Shown("extension"), "an ending is asked for a file that has one");
+        });
+    }
+
     [Fact]
     public void A_step_that_reads_the_screen_starts_with_no_rectangle()
     {

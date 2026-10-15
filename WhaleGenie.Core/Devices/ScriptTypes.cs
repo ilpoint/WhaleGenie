@@ -69,6 +69,18 @@ public sealed record CSharpScript(
     int TimeoutMs = 60000);
 
 /// <summary>
+/// One run of an AutoHotkey script. The text has already had <c>{{name}}</c> filled in; it is run by
+/// the AutoHotkey on this machine, with the macro in reach of it through a bridge process of this
+/// program's own — AutoHotkey cannot open the pipe itself, so something that can does it for it.
+/// </summary>
+public sealed record AutoHotkeyScript(
+    string Script,
+    string Arguments = "",
+    string Folder = "",
+    int TimeoutMs = 60000,
+    string Command = "");
+
+/// <summary>
 /// What a script came to. <see cref="ExitCode"/> is the program's own ending, which is what "did
 /// this work" is answered by; <see cref="FailureKey"/> is set when the script never ran at all or
 /// never got as far as having an exit code that means anything, and names the reason in the
@@ -135,6 +147,14 @@ public interface IScriptDevice
     /// that far: the answer says which of the two it was, with the compiler's own words.
     /// </summary>
     ScriptResult RunCSharp(CSharpScript script, IScriptHost host, Action<string> onOutput,
+        Action<string> onError, CancellationToken token);
+
+    /// <summary>
+    /// Runs an AutoHotkey script on this machine's own AutoHotkey, serving the ways back into the
+    /// macro while it goes. A machine with no AutoHotkey, or with the first version of it rather
+    /// than the second, is a step that cannot be run at all: the answer says which of the two it was.
+    /// </summary>
+    ScriptResult RunAutoHotkey(AutoHotkeyScript script, IScriptHost host, Action<string> onOutput,
         Action<string> onError, CancellationToken token);
 
     /// <summary>

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.IO.Pipes;
 using System.Linq;
@@ -117,6 +118,73 @@ public sealed class ScriptDevice : IScriptDevice
             Tidy(folder);
         }
     }
+
+    /// <summary>
+    /// Runs an AutoHotkey script with the macro in reach of it. Two files of this program's own go
+    /// beside the script: the five names a script calls, and nothing else — the calling itself is
+    /// done by a copy of this program, because AutoHotkey cannot write to the pipe the other
+    /// languages are served over. A machine with no AutoHotkey, or with the first version of it,
+    /// never starts anything, and says which of the two it was.
+    /// </summary>
+    public ScriptResult RunAutoHotkey(AutoHotkeyScript script, IScriptHost host,
+        Action<string> onOutput, Action<string> onError, CancellationToken token)
+    {
+        var folder = Path.Combine(ScriptFolder(), $"script-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(folder);
+        var running = Path.Combine(folder, "script.ahk");
+        var prelude = Path.Combine(folder, "whalegenie.ahk");
+
+        try
+        {
+            File.WriteAllText(running, AutoHotkeyBridge.Top(prelude) + script.Script, Mark);
+            File.WriteAllText(prelude, Filled(prelude, running), Mark);
+
+            var named = script.Command.Trim();
+            var program = named.Length > 0 ? named : AutoHotkey.Program();
+            if (program is null)
+            {
+                throw new DeviceActionException("Run.NoAutoHotkey", "AutoHotkey");
+            }
+
+            // Only the second version reads what this step writes. The first one reads a script of
+            // its own shape, and a machine that has only that one has to hear so, rather than watch
+            // a window full of its complaints about a script this program wrote.
+            if (AutoHotkey.MajorVersion(program) == 1)
+            {
+                throw new DeviceActionException("Run.AhkNeedsV2", program);
+            }
+
+            var arguments = new List<string> { Quoted(running) };
+            if (script.Arguments.Length > 0)
+            {
+                arguments.Add(script.Arguments);
+            }
+
+            return Serve(
+                new Serving(program, string.Join(' ', arguments), script.Folder,
+                    new Dictionary<string, string>(), script.TimeoutMs, Missing: "Run.NoAutoHotkey"),
+                host, onOutput, onError, token);
+        }
+        finally
+        {
+            Tidy(folder);
+        }
+    }
+
+    /// <summary>
+    /// The bridge with everything only this run knows written into it: the program that is to be
+    /// started as the bridge, the two files a call travels through, the script's own file and how
+    /// many lines stand in front of it.
+    /// </summary>
+    private string Filled(string prelude, string running)
+        => AutoHotkeyBridge.Prelude
+            .Replace("__EXE__", _host, StringComparison.Ordinal)
+            .Replace("__ASKED__", Path.ChangeExtension(prelude, ".call"), StringComparison.Ordinal)
+            .Replace("__ANSWERED__", Path.ChangeExtension(prelude, ".answer"),
+                StringComparison.Ordinal)
+            .Replace("__SCRIPT__", running, StringComparison.Ordinal)
+            .Replace("__OFFSET__", AutoHotkeyBridge.Ahead(prelude).ToString(CultureInfo.InvariantCulture),
+                StringComparison.Ordinal);
 
     /// <summary>
     /// Compiles a C# script and runs it in a process of this very program: the script is written
@@ -738,4 +806,10 @@ public sealed class ScriptDevice : IScriptDevice
 
     /// <summary>UTF-8 that leaves the byte-order mark off, which is how a script is written.</summary>
     private static readonly UTF8Encoding NoMark = new(encoderShouldEmitUTF8Identifier: false);
+
+    /// <summary>
+    /// UTF-8 with a mark, which is what AutoHotkey reads a script of its own language as: without
+    /// one it reads the system code page, and a script with Chinese text in it comes out as rubbish.
+    /// </summary>
+    private static readonly UTF8Encoding Mark = new(encoderShouldEmitUTF8Identifier: true);
 }

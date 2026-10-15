@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
+using System.Text;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Expressions;
@@ -248,6 +250,132 @@ public class CompilingTests : IDisposable
     }
 
     private ScriptDevice Device() => new(new WindowsProcessDevice(), _packages, string.Empty);
+}
+
+/// <summary>
+/// The AutoHotkey side of the same device: what it hands to the program this machine has, what it
+/// says when there is none or when the one it found is the wrong version, and the two files it
+/// writes for a script to run from. The script's own behaviour against a real AutoHotkey is checked
+/// beside the program itself, which is where a second copy of it can be started from.
+/// </summary>
+public class AutoHotkeyDeviceTests
+{
+    /// <summary>What the engine was told to be the program it starts a script with.</summary>
+    private const string Host = @"C:\Program Files\WhaleGenie\WhaleGenie.exe";
+
+    [Fact]
+    public void A_machine_with_no_AutoHotkey_says_so_rather_than_failing_the_command_line()
+    {
+        // A name that is no program on any machine is what a machine without AutoHotkey looks like
+        // from here.
+        var failure = Assert.Throws<DeviceActionException>(() => Device().RunAutoHotkey(
+            new AutoHotkeyScript("Print(\"hi\")", Command: "whalegenie-no-such-autohotkey"),
+            new RecordingScriptHost(), _ => { }, _ => { }, default));
+
+        Assert.Equal("Run.NoAutoHotkey", failure.Key);
+    }
+
+    /// <summary>
+    /// The first AutoHotkey reads a script of a shape of its own, so a machine that has only that
+    /// one is told apart from a machine with none: a script this program writes is not run with it
+    /// and watched fail for reasons of its own.
+    /// </summary>
+    [Fact]
+    public void The_first_AutoHotkey_is_told_apart_from_the_second_one()
+    {
+        // A copy of anything this build wrote, which carries the version 1.0.0.0 the build gives
+        // everything it makes.
+        var folder = Path.Combine(Path.GetTempPath(), $"wg-ahk-v1-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(folder);
+        var first = Path.Combine(folder, "AutoHotkey64.exe");
+        File.Copy(typeof(AutoHotkeyDeviceTests).Assembly.Location, first);
+
+        try
+        {
+            Assert.Equal(1, AutoHotkey.MajorVersion(first));
+
+            var failure = Assert.Throws<DeviceActionException>(() => Device().RunAutoHotkey(
+                new AutoHotkeyScript("Print(\"hi\")", Command: first), new RecordingScriptHost(),
+                _ => { }, _ => { }, default));
+
+            Assert.Equal("Run.AhkNeedsV2", failure.Key);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// Two files are written for every run: the script itself with the two lines in front of it that
+    /// bring the five names into reach, and the bridge those names are behind. What prints the second
+    /// of them here is cmd.exe standing in for AutoHotkey rather than AutoHotkey itself, because a
+    /// run of its own throws both files away when it is over.
+    /// </summary>
+    [Fact]
+    public void The_two_files_of_a_run_are_written_beside_each_other_with_the_bridge_in_them()
+    {
+        // cmd.exe is given the real script this run wrote, the way AutoHotkey is, and turns the file
+        // it was handed into a way of printing what sits beside it.
+        var prelude = Printed("cmd.exe /c for %f in (", ") do @type \"%~dpfwhalegenie.ahk\"");
+
+        Assert.DoesNotContain("__EXE__", prelude, StringComparison.Ordinal);
+        Assert.Contains("OnError(WhaleGenieFailed)", prelude, StringComparison.Ordinal);
+        foreach (var name in new[] { "GetProperty", "SetProperty", "StepExecute(", "Print(", "SetResult(" })
+        {
+            Assert.Contains(name, prelude, StringComparison.Ordinal);
+        }
+
+        // The bridge is told where this program is, and the two files a call travels through are
+        // written beside it rather than anywhere the script would have to be told about.
+        Assert.Contains($"\"{Host}\" --script-bridge", prelude, StringComparison.Ordinal);
+        Assert.Contains("whalegenie.call", prelude, StringComparison.Ordinal);
+        Assert.Contains("whalegenie.answer", prelude, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The script itself: what the writer wrote, with the lines the engine puts in front of it. The
+    /// two lines are what the prelude's arithmetic about line numbers is told about, so the two are
+    /// checked together.
+    /// </summary>
+    [Fact]
+    public void The_script_that_runs_begins_with_the_lines_that_keep_a_mistake_out_of_a_dialog()
+    {
+        var written = Printed("cmd.exe /c type", string.Empty);
+
+        Assert.StartsWith("#ErrorStdOut", written.TrimStart('\uFEFF'), StringComparison.Ordinal);
+        Assert.Contains("#Include \"", written, StringComparison.Ordinal);
+        Assert.Contains("whalegenie.ahk\"", written, StringComparison.Ordinal);
+        Assert.EndsWith("Print(\"中文\")", written, StringComparison.Ordinal);
+
+        // Two lines stand in front of the script, which is what a mistake in it has to be brought
+        // back by to be the line the writer is looking at.
+        Assert.Equal(2, AutoHotkeyBridge.Ahead("whalegenie.ahk"));
+
+        // The mark at the front is three bytes, and a reader on this side takes a mark off the text
+        // it reads rather than handing it on, so it is read back as the file's own size: the text
+        // that came out of it, written in UTF-8, with nothing else in the file.
+        var size = int.Parse(Printed("cmd.exe /c for %f in (", ") do @echo %~zf"),
+            CultureInfo.InvariantCulture);
+        Assert.Equal(Encoding.UTF8.GetByteCount(written) + 3, size);
+    }
+
+    /// <summary>
+    /// What a run over one of these scripts prints, which is the file the run wrote: cmd.exe is
+    /// started with the script's own path appended the way AutoHotkey is, and told to print the file
+    /// that sits beside it.
+    /// </summary>
+    private static string Printed(string program, string then)
+    {
+        var outcome = Device().RunAutoHotkey(
+            new AutoHotkeyScript("Print(\"中文\")", Command: program, Arguments: then),
+            new RecordingScriptHost(), _ => { }, _ => { }, default);
+
+        Assert.Equal(0, outcome.ExitCode);
+        return outcome.Output;
+    }
+
+    private static ScriptDevice Device() => new(new WindowsProcessDevice(), string.Empty, Host);
 }
 
 /// <summary>

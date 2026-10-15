@@ -1086,6 +1086,11 @@ public sealed class NullDeviceLayer : IDeviceLayer
             Action<string> onError, System.Threading.CancellationToken token)
             => throw Missing("C# scripts");
 
+        public ScriptResult RunAutoHotkey(AutoHotkeyScript script, IScriptHost host,
+            Action<string> onOutput, Action<string> onError,
+            System.Threading.CancellationToken token)
+            => throw Missing("AutoHotkey scripts");
+
         public ScriptResult InstallNuGet(NuGetRequest request, Action<string> onOutput,
             Action<string> onError, System.Threading.CancellationToken token)
             => throw Missing("NuGet packages");

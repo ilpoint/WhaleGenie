@@ -36,6 +36,14 @@ sealed class Program
             return ScriptHost.Run(args);
         }
 
+        // A script of a language that cannot write to a pipe of its own is served by this program
+        // started a second time, which does the talking for it. Like the script host it runs before
+        // anything of the window is built and never touches it.
+        if (ScriptBridge.Asked(args))
+        {
+            return ScriptBridge.Run(args);
+        }
+
         Run(args);
         return 0;
     }

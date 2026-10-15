@@ -6275,6 +6275,224 @@ public class DeviceActionTests
     };
 
     [Fact]
+    public async Task A_script_named_as_a_file_is_run_where_it_lies()
+    {
+        // The macro names a file rather than writing the script out: what it hands over is that
+        // file's place on disk, taken from the macro's own folder when it is written as a path
+        // relative to it, and nothing of the file is copied anywhere.
+        var devices = new FakeDeviceLayer { PathExists = true };
+        devices.Files[@"G:\fake\deploy.ps1"] = "Write-Host {{who}}";
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("control.setVariable", Param("name", "who"), Param("value", "Ann")),
+            Step("script.run", Param("source", "file"), Param("kind", "ps1"),
+                Param("file", "deploy.ps1"), Param("arguments", "--to {{who}}")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(devices.Calls, call => call.StartsWith("run powershell.exe")
+            && call.Contains(@"-File ""G:\fake\deploy.ps1"" --to Ann"));
+
+        // Not one byte of the file is touched: no copy of a script is written under any ending, and
+        // a placeholder inside it stays what its author wrote, because what is run is the file
+        // itself rather than something this program made out of it.
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("writeFile"));
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("deleteFile"));
+        Assert.Equal("Write-Host {{who}}", devices.Files[@"G:\fake\deploy.ps1"]);
+    }
+
+    [Fact]
+    public async Task A_file_script_is_run_by_whatever_kind_of_script_it_was_said_to_be()
+    {
+        var devices = new FakeDeviceLayer { PathExists = true };
+        await RunAsync(
+        [
+            Step("script.run", Param("source", "file"), Param("kind", "bat"),
+                Param("file", "work.bat")),
+            Step("script.run", Param("source", "file"), Param("kind", "cmdHidden"),
+                Param("file", "work.cmd")),
+            Step("script.run", Param("source", "file"), Param("kind", "custom"),
+                Param("interpreter", "cscript //nologo"), Param("file", "log.vbs")),
+        ], devices);
+
+        // cmd.exe is given the file when no window is wanted, and the program a macro names itself
+        // is given it with its own flags in front — without an ending of the script's own being
+        // asked for, because the file is already on disk with the ending its author gave it.
+        Assert.Contains(devices.Calls, call => call.StartsWith("run cmd.exe|/c ")
+            && call.Contains(@"""G:\fake\work.bat"""));
+        Assert.Contains(devices.Calls, call => call.StartsWith("run cmd.exe|/c ")
+            && call.Contains(@"""G:\fake\work.cmd"""));
+        Assert.Contains(devices.Calls, call => call.StartsWith(@"run cscript|//nologo ")
+            && call.Contains(@"""G:\fake\log.vbs"""));
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("writeFile"));
+    }
+
+    [Fact]
+    public async Task The_window_that_stays_open_runs_a_named_file_through_a_little_batch_file_of_its_own()
+    {
+        // The one kind that has to be told the command is over is the kind whose script cannot be
+        // touched: what is written instead is a two-line batch file that calls the macro's file and
+        // then leaves the mark behind, and the file the macro named is left as it was.
+        var devices = new FakeDeviceLayer { PathExists = true, FileText = "0" };
+        var (result, _, _) = await RunAsync(
+        [
+            Step("script.run", Param("source", "file"), Param("kind", "cmdKeep"),
+                Param("file", "deploy.bat"), Param("arguments", "--quiet")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(devices.Calls, call => call.StartsWith("writeFile")
+            && call.Contains(@"call ""G:\fake\deploy.bat"" --quiet")
+            && call.Contains("@echo %errorlevel% >"));
+        Assert.DoesNotContain(devices.Calls,
+            call => call.StartsWith(@"writeFile G:\fake\deploy.bat "));
+
+        // The window runs that batch file and is left standing, and the batch file is this step's
+        // own business rather than something the macro keeps.
+        Assert.Contains(devices.Calls, call => call.StartsWith("start cmd.exe|/k ")
+            && call.Contains(@".cmd""") && call.EndsWith("|False"));
+        Assert.Contains(devices.Calls, call => call.StartsWith("deleteFile")
+            && call.Contains(".cmd"));
+    }
+
+    [Fact]
+    public async Task A_named_script_that_is_not_there_says_so_where_it_would_have_been_run()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("script.run", Param("source", "file"), Param("kind", "ps1"),
+                Param("file", @"C:\gone\deploy.ps1")),
+        ], devices);
+
+        // A file that is not there is this step's own answer rather than whatever the interpreter
+        // would have said about it, and nothing is started to say it.
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.FileNotFound", result.Key);
+        Assert.Contains(@"C:\gone\deploy.ps1", result.Detail);
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("run "));
+    }
+
+    [Fact]
+    public async Task A_script_step_naming_no_file_and_writing_no_script_fails()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("script.run", Param("source", "file"), Param("kind", "ps1"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.MissingScript", result.Key);
+    }
+
+    [Fact]
+    public async Task An_AutoHotkey_step_is_run_where_and_with_what_it_says()
+    {
+        var devices = new FakeDeviceLayer { PathExists = true };
+        await RunAsync(
+        [
+            Step("script.ahk", Param("script", "Print(\"hi\")"), Param("arguments", "--quiet"),
+                Param("ahk", @"C:\Tools\AutoHotkey64.exe"), Param("timeoutMs", "5000")),
+        ], devices);
+
+        Assert.Contains(devices.Calls,
+            call => call.StartsWith(@"ahk C:\Tools\AutoHotkey64.exe|--quiet|G:\fake|5000"));
+    }
+
+    [Fact]
+    public async Task An_AutoHotkey_script_that_names_no_program_runs_with_this_machines_own()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync([Step("script.ahk", Param("script", "Print(\"hi\")"))], devices);
+
+        Assert.Contains(devices.Calls, call => call.StartsWith("ahk |"));
+    }
+
+    [Fact]
+    public async Task An_AutoHotkey_script_reaches_the_macro_the_way_the_other_two_languages_do()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            PathExists = true,
+            AutoHotkey = new ScriptResult(0, "printed\n", string.Empty, Value.FromText("handed")),
+        };
+
+        var asked = new List<string>();
+        devices.AutoHotkeyBody = (host, _) =>
+        {
+            asked.Add(host.Read("who")?.AsText() ?? "nothing");
+            host.Write("answer", Value.FromText("Ann!"));
+            host.Print("a line from the script");
+            asked.Add(host.RunStep("a7k2") ? "ran" : "refused");
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("control.setVariable", Param("name", "who"), Param("value", "Ann")),
+            Step("script.ahk", Param("script", "Print(\"hi\")"),
+                Returns("value=handed", "error=why", "success=ok")),
+            Called("a7k2", Step("control.setVariable", Param("name", "after"), Param("value", "yes"))),
+        ], devices);
+
+        // The five names this language reaches the macro by arrive the same way the other two
+        // languages' do, so what is checked here is that a step written in this one reaches them at
+        // all rather than how each of them is spelled.
+        Assert.Equal(["Ann", "ran"], asked);
+        Assert.Equal("Ann!", store.Local.Values["answer"].AsText());
+        Assert.Equal("yes", store.Local.Values["after"].AsText());
+        Assert.Equal("handed", store.Local.Values["handed"].AsText());
+        Assert.True(store.Local.Values["ok"].Flag);
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task An_AutoHotkey_script_that_names_a_step_this_macro_has_not_got_fails_the_step()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.AutoHotkeyBody = (host, _) => host.RunStep("zzzz");
+
+        var (result, _, _) = await RunAsync(
+            [Step("script.ahk", Param("script", "StepExecute(\"zzzz\")"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.NoSuchStep", result.Key);
+    }
+
+    [Fact]
+    public async Task An_AutoHotkey_step_with_nothing_written_in_it_fails()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("script.ahk", Param("script", "  \n"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.MissingScript", result.Key);
+    }
+
+    [Fact]
+    public async Task An_AutoHotkey_script_that_stops_with_an_error_fails_the_step_and_hands_over_what_it_said()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            AutoHotkey = new ScriptResult(1, string.Empty, "no (line 2)", Value.Null),
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("script.ahk", Param("script", "throw Error(\"no\")"),
+                Returns("value=handed", "error=why", "success=ok")),
+        ], devices);
+
+        // AutoHotkey's own report of a mistake is what the step failed with, and what the script
+        // came to is handed over all the same.
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.ScriptFailed", result.Key);
+        Assert.Equal("no (line 2)", store.Local.Values["why"].AsText());
+        Assert.False(store.Local.Values["ok"].Flag);
+        Assert.Equal(Value.Null, store.Local.Values["handed"]);
+    }
+
+    [Fact]
     public async Task A_python_script_reads_and_writes_the_values_of_the_macro_while_it_runs()
     {
         var devices = new FakeDeviceLayer
@@ -8842,6 +9060,16 @@ internal sealed class FakeDeviceLayer
     /// <summary>What downloading NuGet packages reports back.</summary>
     public ScriptResult NuGet { get; set; } = new(0, string.Empty, string.Empty, Value.FromList([]));
 
+    /// <summary>What running an AutoHotkey script in the fake reports back.</summary>
+    public ScriptResult AutoHotkey { get; set; } = new(0, string.Empty, string.Empty, Value.Null);
+
+    /// <summary>
+    /// What an AutoHotkey script does while it runs, in place of being run: this language reaches
+    /// the macro through the same bridge the other two do, so a check hands in the calls a script
+    /// would make.
+    /// </summary>
+    public Action<IScriptHost, string>? AutoHotkeyBody { get; set; }
+
     ScriptResult IScriptDevice.RunPython(PythonScript script, IScriptHost host,
         Action<string> onOutput, Action<string> onError, CancellationToken token)
     {
@@ -8914,6 +9142,25 @@ internal sealed class FakeDeviceLayer
         }
 
         return NuGet;
+    }
+
+    ScriptResult IScriptDevice.RunAutoHotkey(AutoHotkeyScript script, IScriptHost host,
+        Action<string> onOutput, Action<string> onError, CancellationToken token)
+    {
+        Note($"ahk {script.Command}|{script.Arguments}|{script.Folder}|{script.TimeoutMs}");
+        AutoHotkeyBody?.Invoke(host, script.Script);
+
+        foreach (var line in Lines(AutoHotkey.Output))
+        {
+            onOutput(line);
+        }
+
+        foreach (var line in Lines(AutoHotkey.Error))
+        {
+            onError(line);
+        }
+
+        return AutoHotkey;
     }
 
     IWindowDevice IDeviceLayer.Windows => this;

@@ -1158,6 +1158,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.MissingScriptExtension"] = "This step does not say which file ending the script needs.",
         ["Run.NoAutoHotkey"] = "This machine has no AutoHotkey to run the script with. Install "
             + "AutoHotkey (version 2), or choose another kind of script.",
+        ["Run.AhkNeedsV2"] = "This step runs its script with AutoHotkey version 2, and {0} is "
+            + "version 1. Install AutoHotkey version 2, or name one that is already there.",
         ["Run.NoPython"] = "This machine has no Python to run the script with: {0} could not be "
             + "started. Install Python 3, and let the word \"python\" run it from a command line.",
         ["Run.NoPackages"] = "This step does not name a single package to install.",
@@ -2370,6 +2372,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.MissingScriptExtension"] = "这一步没有写脚本要用什么后缀。",
         ["Run.NoAutoHotkey"] = "这台机器上没有 AutoHotkey，无法运行这段脚本。请先安装 AutoHotkey"
             + "（版本 2），或换一种脚本类型。",
+        ["Run.AhkNeedsV2"] = "这一步用 AutoHotkey v2 运行脚本，而 {0} 是 v1。请安装 AutoHotkey v2，"
+            + "或者在这一步里指定一个已经装好的 v2。",
         ["Run.NoPython"] = "这台机器上没有 Python，无法运行这段脚本：启动 {0} 失败。请安装 Python 3，"
             + "并让命令行里的 python 能运行它。",
         ["Run.NoPackages"] = "这一步没有写要装哪个包。",
