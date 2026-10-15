@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Localization;
@@ -381,6 +384,225 @@ public class ExpressionBuilderTreeTests
             Assert.Contains(box, window.GetVisualDescendants());
         });
     }
+
+    [Fact]
+    public void A_variable_dragged_onto_a_piece_takes_its_place()
+    {
+        Ui.Run(() =>
+        {
+            var builder = Builder("$a + 1", "a", "b");
+            var place = builder.Rows[2];
+
+            Assert.True(builder.CanLand(place, "var:b"));
+            builder.Drop(place, "var:b");
+
+            Assert.Equal("$a + $b", builder.Preview);
+            Assert.Equal(ExpressionItemKind.Variable, builder.Rows[2].Kind);
+            Assert.Same(builder.Rows[2], builder.Selected);
+        });
+    }
+
+    [Fact]
+    public void A_function_dragged_onto_a_piece_holds_it_as_its_first_argument()
+    {
+        Ui.Run(() =>
+        {
+            var builder = Builder("$a + 1", "a");
+            var payload = "fn:upper";
+            Assert.True(builder.CanLand(builder.Rows[2], payload));
+
+            builder.Drop(builder.Rows[2], payload);
+
+            Assert.Equal("$a + upper(1)", builder.Preview);
+            Assert.Equal("upper(text)", builder.Rows[2].Token);
+        });
+    }
+
+    [Fact]
+    public void A_piece_dragged_onto_a_place_moves_there_and_leaves_a_place_behind()
+    {
+        Ui.Run(() =>
+        {
+            var builder = Builder("$a + $b", "a", "b");
+            var payload = builder.PayloadOf(builder.Rows[2]);
+            Assert.Equal("move:1", payload);
+
+            // What is dragged travels as where it sits rather than as the piece itself, so the tree
+            // is asked for it again by the same path when it lands.
+            builder.Clear(builder.Rows[1]);
+            Assert.Equal("▢ + $b", builder.Preview);
+
+            var place = builder.Rows[1];
+            Assert.True(builder.CanLand(place, payload));
+            builder.Drop(place, payload);
+
+            Assert.Equal("$b + ▢", builder.Preview);
+            Assert.Same(builder.Rows[1], builder.Selected);
+        });
+    }
+
+    [Fact]
+    public void A_piece_dragged_into_its_own_inside_is_left_alone()
+    {
+        Ui.Run(() =>
+        {
+            var builder = Builder("$a + upper($b)", "a", "b");
+            var branch = builder.Rows[2];
+            var payload = builder.PayloadOf(branch);
+            Assert.Equal("move:1", payload);
+
+            // A formula cannot hold itself, so the drag is turned down rather than folded in: the
+            // line does not even light up.
+            Assert.False(builder.CanLand(builder.Rows[3], payload));
+            builder.Drop(builder.Rows[3], payload);
+
+            Assert.Equal("$a + upper($b)", builder.Preview);
+        });
+    }
+
+    [Fact]
+    public void What_is_dragged_about_has_to_be_something_the_page_knows()
+    {
+        Ui.Run(() =>
+        {
+            var builder = Builder(string.Empty, "a");
+            var place = Assert.Single(builder.Rows);
+
+            Assert.False(builder.CanLand(place, "nonsense"));
+            Assert.False(builder.CanLand(place, "fn:nowhere"));
+            Assert.False(builder.CanLand(place, "move:9.9"));
+            Assert.False(builder.CanLand(null, "var:a"));
+            Assert.False(builder.CanLand(place, null));
+
+            // And a payload nothing can make sense of leaves the tree as it was rather than
+            // quietly emptying the place it was dropped on.
+            builder.Drop(place, "nonsense");
+            Assert.Equal("▢", builder.Preview);
+        });
+    }
+
+    /// <summary>
+    /// The window is only the thin layer that hands a drop to the tree: it says which line the
+    /// pointer is on and reads the short line that was dragged, both of which are the same on the
+    /// way out and on the way in and would go wrong quietly if they drifted apart.
+    /// </summary>
+    [Fact]
+    public void A_drop_on_a_line_is_read_back_the_way_it_was_dragged()
+    {
+        Ui.Run(() =>
+        {
+            var builder = Builder("$a + 1", "a", "b");
+            var window = new ExpressionBuilderWindow(builder);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var place = window.GetVisualDescendants().OfType<Border>()
+                .First(border => border.DataContext is ExpressionItemViewModel { IsTyped: true });
+
+            // What the palette and the tree put on a drag: the words under the mark of our own, and
+            // the same words as plain text under it.
+            var transfer = ExpressionDrag.Transfer("var:b");
+            Assert.Equal("var:b", ExpressionDrag.Payload(transfer));
+            Assert.Equal("var:b", transfer.TryGetText());
+            Assert.Equal("var:b",
+                transfer.TryGetValue(DataFormat.CreateStringApplicationFormat(ExpressionDrag.MarkName)));
+
+            var over = Drag(place, DragDrop.DragOverEvent, transfer);
+            Assert.Same(place.DataContext, builder.DropTarget);
+            Assert.True(((ExpressionItemViewModel)place.DataContext!).IsDropTarget);
+            Assert.Equal(DragDropEffects.Copy, over.DragEffects);
+
+            Drag(place, DragDrop.DropEvent, transfer);
+            Assert.Equal("$a + $b", builder.Preview);
+            Assert.Null(builder.DropTarget);
+        });
+    }
+
+    [Fact]
+    public void A_drop_that_would_do_nothing_is_not_taken()
+    {
+        Ui.Run(() =>
+        {
+            var builder = Builder("$a + 1", "a");
+            var window = new ExpressionBuilderWindow(builder);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var place = window.GetVisualDescendants().OfType<Border>()
+                .First(border => border.DataContext is ExpressionItemViewModel { IsTyped: true });
+
+            var over = Drag(place, DragDrop.DragOverEvent, ExpressionDrag.Transfer("nonsense"));
+
+            Assert.Equal(DragDropEffects.None, over.DragEffects);
+            Assert.Null(builder.DropTarget);
+
+            Drag(place, DragDrop.DropEvent, ExpressionDrag.Transfer("nonsense"));
+            Assert.Equal("$a + 1", builder.Preview);
+        });
+    }
+
+    /// <summary>Hands the window one of the drop events the platform would send, over a line.</summary>
+    private static DragEventArgs Drag(Border line, RoutedEvent<DragEventArgs> what, DataTransfer transfer)
+    {
+        var args = new DragEventArgs(what, transfer, line, new Point(1, 1), KeyModifiers.None);
+        line.RaiseEvent(args);
+        return args;
+    }
+
+    /// <summary>
+    /// What a press is on its way to drag. It is read off the entry the press went down on rather
+    /// than off the line itself, because a button shows a word of its own and that word is what
+    /// stands under the pointer, and because a press that is really a click — in a box, or on one of
+    /// the little buttons a line carries — has to go on being that click.
+    /// </summary>
+    [Fact]
+    public void What_a_press_would_drag_is_read_from_the_entry_it_went_down_on()
+    {
+        Ui.Run(() =>
+        {
+            var builder = Builder("substring($a, 1)", "a", "b");
+            var window = new ExpressionBuilderWindow(builder);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var variable = window.GetVisualDescendants().OfType<Button>()
+                .First(button => button.DataContext is VariableChoice { Name: "b" });
+            var function = window.GetVisualDescendants().OfType<Button>()
+                .First(button => button.DataContext is ExpressionFunctionChoice { Name: "upper" });
+
+            // A piece of the tree says where it sits, counted from the root.
+            Assert.Equal("move:0", window.DragPayload(Chip(window, ExpressionItemKind.Variable)));
+            Assert.Equal("move:1", window.DragPayload(Chip(window, ExpressionItemKind.Number)));
+
+            // A button says which variable or which function it stands for, whether the press went
+            // down on the button or on the word shown inside it.
+            Assert.Equal("var:b", window.DragPayload(variable));
+            Assert.Equal("fn:upper", window.DragPayload(function));
+            Assert.Equal("var:b", window.DragPayload(
+                variable.GetVisualDescendants().OfType<TextBlock>().First()));
+
+            // A box is the pointer going in to type, and the little buttons a line carries are
+            // themselves: neither is anything to drag.
+            var plus = window.GetVisualDescendants().OfType<Button>()
+                .First(button => button.DataContext is ExpressionItemViewModel
+                    && button.Content as string == "+");
+            Assert.Null(window.DragPayload(plus));
+            Assert.Null(window.DragPayload(window));
+
+            // And a place with nothing in it has nothing to drag either.
+            builder.Clear(builder.Rows[1]);
+            Dispatcher.UIThread.RunJobs();
+            var box = window.GetVisualDescendants().OfType<TextBox>()
+                .First(control => control.DataContext is ExpressionItemViewModel { IsHole: true });
+            Assert.Null(window.DragPayload(box));
+        });
+    }
+
+    /// <summary>The chip a piece of the formula is shown as, found by what the piece stands for.</summary>
+    private static Border Chip(Window window, ExpressionItemKind kind)
+        => window.GetVisualDescendants().OfType<Border>()
+            .First(border => border.Classes.Contains("Chip")
+                && border.DataContext is ExpressionItemViewModel piece && piece.Kind == kind);
 
     private static TreeOperator Operator(ExpressionBuilderViewModel builder, string token)
         => builder.TreeOperators.First(item => item.Token == token);

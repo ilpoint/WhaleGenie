@@ -162,6 +162,10 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsSelected { get; set; }
 
+    /// <summary>True while something being dragged is over this line.</summary>
+    [ObservableProperty]
+    public partial bool IsDropTarget { get; set; }
+
     /// <summary>
     /// What was typed in this piece, exactly as it was typed: the digits of a number, or a piece of
     /// text without the quotes it is written with. Empty means nothing has been put here.

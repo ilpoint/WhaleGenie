@@ -236,12 +236,15 @@
                                    Margin="2,0,0,6" Text="{Binding TreeCannotRead}"
                                    IsVisible="{Binding TextUnreadable}" />
                         <ItemsControl Name="TreeRows" ItemsSource="{Binding Rows}"
-                                      IsVisible="{Binding !TextUnreadable}">
+                                      IsVisible="{Binding !TextUnreadable}"
+                                      DragDrop.AllowDrop="True">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:ExpressionItemViewModel">
                                     <Border Classes="Row"
                                             Classes.picked="{Binding IsSelected}"
+                                            Classes.drop="{Binding IsDropTarget}"
                                             Margin="{Binding Indent}"
+                                            DragDrop.AllowDrop="True"
                                             PointerPressed="OnRowPressed">
                                         <StackPanel Orientation="Horizontal" Spacing="6">
                                             <TextBlock Classes="ArgLabel" VerticalAlignment="Center"

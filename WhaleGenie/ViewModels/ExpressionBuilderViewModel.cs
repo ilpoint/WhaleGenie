@@ -175,6 +175,10 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     [ObservableProperty]
     public partial ExpressionItemViewModel? Selected { get; set; }
 
+    /// <summary>The piece something being dragged is over, which is the one it would land on.</summary>
+    [ObservableProperty]
+    public partial ExpressionItemViewModel? DropTarget { get; set; }
+
     /// <summary>The formula the tree comes to, written out, with a place marker for anything unfilled.</summary>
     [ObservableProperty]
     public partial string Preview { get; set; } = string.Empty;
@@ -299,6 +303,29 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
         Selected = item;
         item.IsSelected = true;
         OnPropertyChanged(nameof(Picked));
+    }
+
+    /// <summary>
+    /// Says which piece something being dragged is over, which is the one it would land on. The
+    /// line lights up rather than the whole tree, because where a piece lands is the whole question.
+    /// </summary>
+    public void MarkDrop(ExpressionItemViewModel? item)
+    {
+        if (ReferenceEquals(DropTarget, item))
+        {
+            return;
+        }
+
+        if (DropTarget is { } was)
+        {
+            was.IsDropTarget = false;
+        }
+
+        DropTarget = item;
+        if (item is not null)
+        {
+            item.IsDropTarget = true;
+        }
     }
 
     /// <summary>Puts a variable the macro holds where the picked piece is.</summary>
@@ -473,6 +500,72 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Lands something that was dragged onto a piece: what is dropped replaces what it lands on,
+    /// except for a function, which holds the piece it lands on as its first argument the same way
+    /// clicking one does. A piece dragged into its own inside is left alone, which is a formula that
+    /// cannot be built rather than one that reads oddly.
+    /// </summary>
+    public void Drop(ExpressionItemViewModel target, string payload)
+    {
+        if (TextUnreadable)
+        {
+            return;
+        }
+
+        if (!TreeDropped(target, payload))
+        {
+            return;
+        }
+
+        Redraw();
+    }
+
+    /// <summary>
+    /// Whether something being dragged would land on this piece at all, which is what the line
+    /// under the pointer lights up on: a line that would quietly do nothing is worse lit up than
+    /// left alone.
+    /// </summary>
+    public bool CanLand(ExpressionItemViewModel? target, string? payload)
+    {
+        if (TextUnreadable || target is null || Payload(payload) is not { } dragging)
+        {
+            return false;
+        }
+
+        switch (dragging.Kind)
+        {
+            case "var":
+            case "const":
+                return true;
+
+            case "fn":
+                return Function(dragging.Value) is not null;
+
+            case "move":
+                return At(dragging.Value) is { } moved && !IsInside(target, moved);
+
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// What a piece being dragged is called for the length of the drag: where it sits in the tree.
+    /// The piece itself cannot travel — the drag is handed over as plain text — so the tree is asked
+    /// for it again when it lands.
+    /// </summary>
+    public string PayloadOf(ExpressionItemViewModel item)
+    {
+        var steps = new List<int>();
+        for (var at = item; at.Parent is { } parent; at = parent)
+        {
+            steps.Insert(0, parent.Children.IndexOf(at));
+        }
+
+        return steps.Count == 0 ? "move:-" : "move:" + string.Join(".", steps);
+    }
+
+    /// <summary>
     /// Says what the expression comes to, the same way the field under it does, so the user does
     /// not have to close the dialog to find out whether it reads.
     /// </summary>
@@ -545,6 +638,109 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
         Redraw();
     }
 
+    /// <summary>Lands a dragged payload, reporting whether the tree changed.</summary>
+    private bool TreeDropped(ExpressionItemViewModel target, string payload)
+    {
+        switch (Payload(payload))
+        {
+            case ("var", var name):
+                var variable = ExpressionItemViewModel.Variable(name, Changed);
+                Replace(target, variable);
+                Select(variable);
+                return true;
+
+            case ("const", var word):
+                var value = ExpressionItemViewModel.Constant(word, Changed);
+                Replace(target, value);
+                Select(value);
+                return true;
+
+            case ("fn", var name):
+                if (Function(name) is not { } function)
+                {
+                    return false;
+                }
+
+                Wrap(function, target);
+                return true;
+
+            case ("move", var path):
+                var moved = At(path);
+                if (moved is null || IsInside(target, moved))
+                {
+                    return false;
+                }
+
+                Detach(moved);
+                Replace(target, moved);
+                Select(moved);
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>The function a name stands for, if the language has one.</summary>
+    private ExpressionFunction? Function(string name)
+        => Language.Functions.FirstOrDefault(
+            entry => string.Equals(entry.Name, name, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Reads a payload: what is being dragged and which one it is.</summary>
+    private static (string Kind, string Value)? Payload(string? payload)
+    {
+        if (string.IsNullOrEmpty(payload))
+        {
+            return null;
+        }
+
+        var colon = payload.IndexOf(':', StringComparison.Ordinal);
+        if (colon <= 0 || colon == payload.Length - 1)
+        {
+            return null;
+        }
+
+        var kind = payload[..colon];
+        var value = payload[(colon + 1)..];
+        return kind is "var" or "const" or "fn" or "move" ? (kind, value) : null;
+    }
+
+    /// <summary>The piece a path of child numbers leads to, or nothing when it leads nowhere.</summary>
+    private ExpressionItemViewModel? At(string path)
+    {
+        if (path == "-")
+        {
+            return _root;
+        }
+
+        var at = _root;
+        foreach (var step in path.Split('.'))
+        {
+            if (!int.TryParse(step, out var index) || index < 0 || index >= at.Children.Count)
+            {
+                return null;
+            }
+
+            at = at.Children[index];
+        }
+
+        return at;
+    }
+
+    /// <summary>True when <paramref name="inner"/> is the piece itself or something inside it.</summary>
+    private static bool IsInside(ExpressionItemViewModel inner, ExpressionItemViewModel outer)
+    {
+        for (var at = inner; at is not null; at = at.Parent)
+        {
+            if (ReferenceEquals(at, outer))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>
     /// Makes the picked piece the first argument of a function, with a place to fill for each of
     /// the ones after it. A function that takes nothing replaces what was picked, since there is
@@ -597,6 +793,31 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
         parent.Children[parent.Children.IndexOf(target)] = replacement;
     }
 
+    /// <summary>
+    /// Takes a piece out of the tree it stood in, for it to be put somewhere else. What it leaves
+    /// behind is a place to fill in, unless the piece above it does without it: a list or a
+    /// function with an argument to spare simply closes up.
+    /// </summary>
+    private void Detach(ExpressionItemViewModel item)
+    {
+        if (item.Parent is not { } parent)
+        {
+            return;
+        }
+
+        item.Parent = null;
+        if (parent.Kind == ExpressionItemKind.List
+            || (parent.Kind == ExpressionItemKind.Call && parent.Children.Count > parent.MinArguments))
+        {
+            parent.Children.Remove(item);
+            return;
+        }
+
+        var hole = ExpressionItemViewModel.Hole(Changed);
+        hole.Parent = parent;
+        parent.Children[parent.Children.IndexOf(item)] = hole;
+    }
+
     /// <summary>Takes on a tree that was read from the text or built fresh.</summary>
     private void Adopt(ExpressionItemViewModel root)
     {
@@ -612,6 +833,11 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// </summary>
     private void Redraw()
     {
+        foreach (var row in Rows)
+        {
+            row.IsDropTarget = false;
+        }
+
         Rows.Clear();
         if (Selected is null || !Holds(_root, Selected))
         {
@@ -627,6 +853,7 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     {
         node.Depth = depth;
         node.IsSelected = ReferenceEquals(node, Selected);
+        node.IsDropTarget = ReferenceEquals(node, DropTarget);
         Rows.Add(node);
 
         for (var index = 0; index < node.Children.Count; index++)
