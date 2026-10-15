@@ -864,8 +864,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.DriverAttachAtStartHint"] =
             "Whether the virtual keyboard and mouse go on the machine while the program starts, so "
             + "that the first step using driver-level input does not wait for the machine to notice "
-            + "them. Off by default: a program that never uses driver-level input then never has "
-            + "virtual devices on the machine. A change takes effect at the next start.",
+            + "them. Putting the two on the machine takes two to four seconds, during which the "
+            + "pointer stalls and Windows plays its device-connected sound once for each. Off by "
+            + "default: a program that never uses driver-level input then never has virtual devices "
+            + "on the machine. A change takes effect at the next start.",
         ["Settings.Admin"] = "Administrator",
         ["Settings.AdminYes"] = "Running as administrator.",
         ["Settings.AdminNo"] = "Not running as administrator.",
@@ -2080,9 +2082,10 @@ public sealed class Strings : INotifyPropertyChanged
             + "会短暂断开 USB 设备，可能要求重启；只有这一样是非手动不可的，虚拟键鼠、虚拟手柄"
             + "和它们所在的服务端都随程序带。",
         ["Settings.DriverAttachAtStart"] = "启动时先把虚拟键鼠装上机器",
-        ["Settings.DriverAttachAtStartHint"] = "勾上以后，程序启动时就把虚拟键鼠装上机器，宏里第一次用"
-            + "驱动级输入就不必再等机器认领它们。默认不勾：不用驱动级输入的人，机器上不会凭空多出"
-            + "虚拟设备。改过之后下次启动生效。",
+        ["Settings.DriverAttachAtStartHint"] = "勾上以后，程序启动时把一台虚拟键盘和一台虚拟鼠标装上"
+            + "机器，宏里第一次用驱动级输入就不必再等机器认领它们。装这两台设备要两到四秒，其间"
+            + "指针会停顿，系统会各响一声「设备连接」提示音。默认不勾：不用驱动级输入的人，机器上"
+            + "不会凭空多出虚拟设备。改过之后下次启动生效。",
         ["Settings.Admin"] = "管理员权限",
         ["Settings.AdminYes"] = "正以管理员身份运行。",
         ["Settings.AdminNo"] = "没有以管理员身份运行。",
