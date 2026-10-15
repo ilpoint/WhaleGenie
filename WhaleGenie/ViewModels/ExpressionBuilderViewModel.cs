@@ -8,17 +8,32 @@ using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
+// The language itself, spelled out: this dialog's own Expression property is the text being edited,
+// which hides the static class of the same name.
+using Language = WhaleGenie.Core.Expressions.Expression;
+
 namespace WhaleGenie.ViewModels;
 
 /// <summary>
-/// Backs the expression builder. Writing a formula by hand is easy to get wrong, so the dialog
-/// puts every operator in front of the user as a button with a plain description beside it, keeps
-/// the expression itself editable, and offers the variables the macro knows as a list to drop in.
+/// Backs the expression builder. The dialog has two pages over one formula: the structure page,
+/// where the formula is a tree of lines the user fills in by clicking or by dragging, and the page
+/// where it is written out as text for whoever would rather type it. The tree is the one the user
+/// is meant to reach for — brackets are decided by the shape of the tree rather than by hand — and
+/// the text page stays exactly as it was, buttons inserting at the caret.
 /// </summary>
 public partial class ExpressionBuilderViewModel : ViewModelBase
 {
     /// <summary>The names the macro knows, so a half-written formula can be checked here.</summary>
     private readonly IReadOnlyList<string> _names;
+
+    /// <summary>The piece the next click from the palette goes into, and the tree it stands in.</summary>
+    private ExpressionItemViewModel _root;
+
+    /// <summary>True while the formula being built has nothing in it at all.</summary>
+    private bool _empty;
+
+    /// <summary>True while the text the tree was last made from reads as a formula.</summary>
+    private bool _previewReads;
 
     public ExpressionBuilderViewModel()
         : this(string.Empty, [])
@@ -31,8 +46,27 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
         _names = [.. variables.Select(choice => choice.Name)];
         Wall = new VariableWallViewModel(variables);
         Operators = BuildOperators();
+        TreeOperators = BuildTreeOperators();
+        Values = BuildValues();
         Functions = BuildFunctions();
         Expression = expression ?? string.Empty;
+
+        _root = ExpressionItemViewModel.Hole(Changed);
+        if (Language.TryParse(Expression, out var parsed, out _))
+        {
+            _root = ExpressionItemViewModel.From(parsed!, Changed);
+        }
+        else
+        {
+            // Nothing written yet is not a mistake: it opens as one empty place to fill in. Text
+            // that was meant to be a formula and does not read stays where it belongs, on the page
+            // it can be typed on.
+            IsTreePage = string.IsNullOrWhiteSpace(Expression);
+            TextUnreadable = !IsTreePage;
+        }
+
+        Selected = _root;
+        Redraw();
     }
 
     /// <summary>Raised with the finished expression, or null when the dialog was dismissed.</summary>
@@ -56,8 +90,29 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
 
     public string Placeholder => Strings.Get("ExprBuilder.Placeholder");
 
+    public string TreeTab => Strings.Get("ExprBuilder.Tab.Tree");
+
+    public string TextTab => Strings.Get("ExprBuilder.Tab.Text");
+
+    public string TreeHelp => Strings.Get("ExprBuilder.Tree.Help");
+
+    public string TreeCannotRead => Strings.Get("ExprBuilder.Tree.CannotRead");
+
+    public string TreePreviewHeader => Strings.Get("ExprBuilder.Tree.Preview");
+
+    public string ValuesHeader => Strings.Get("ExprBuilder.Values");
+
     /// <summary>Every operator the expression language reads, each written the way it is inserted.</summary>
     public IReadOnlyList<ExpressionOperator> Operators { get; }
+
+    /// <summary>
+    /// The operators the structure page offers. Brackets are not among them: the tree decides where
+    /// they go, which is the whole point of building a formula this way.
+    /// </summary>
+    public IReadOnlyList<TreeOperator> TreeOperators { get; }
+
+    /// <summary>The plain values a place can be filled with in one click.</summary>
+    public IReadOnlyList<ValueChoice> Values { get; }
 
     /// <summary>Every variable the macro can read, with what a person choosing one needs to know.</summary>
     public IReadOnlyList<VariableChoice> Variables { get; }
@@ -72,11 +127,17 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// <summary>The wall of variable buttons, which drops the one that was picked in at the caret.</summary>
     public VariableWallViewModel Wall { get; }
 
-    /// <summary>The expression being written. The window keeps the caret so buttons insert where it is.</summary>
+    /// <summary>
+    /// The formula as the structure page draws it: one line for each piece, moved across by how deep
+    /// it sits. The lines are the pieces themselves, so a line can be picked and dropped on.
+    /// </summary>
+    public ObservableCollection<ExpressionItemViewModel> Rows { get; } = [];
+
+    /// <summary>The expression being written. The text page keeps the caret so buttons insert where it is.</summary>
     [ObservableProperty]
     public partial string Expression { get; set; } = string.Empty;
 
-    /// <summary>What the line under the box shows: the result, why it fails, or nothing yet.</summary>
+    /// <summary>What the line under the text page shows: the result, why it fails, or nothing yet.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowError))]
     [NotifyPropertyChangedFor(nameof(ShowOk))]
@@ -87,25 +148,329 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(ShowOk))]
     public partial bool HasError { get; set; }
 
-    /// <summary>True while the line under the box is a problem worth flagging in red.</summary>
+    /// <summary>True while the line under the text page is a problem worth flagging in red.</summary>
     public bool ShowError => HasError && Message.Length > 0;
 
-    /// <summary>True while the line under the box is worth showing in green.</summary>
+    /// <summary>True while the line under the text page is worth showing in green.</summary>
     public bool ShowOk => !HasError && Message.Length > 0;
+
+    /// <summary>True while the structure page is the one on show.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsTextPage))]
+    [NotifyPropertyChangedFor(nameof(CanConfirm))]
+    public partial bool IsTreePage { get; set; } = true;
+
+    /// <summary>True while the page the formula is written out on is the one on show.</summary>
+    public bool IsTextPage => !IsTreePage;
+
+    /// <summary>
+    /// True while the text page holds something that was meant to be a formula and does not read.
+    /// The structure page then has no tree to show, and says so rather than showing a stale one.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanConfirm))]
+    public partial bool TextUnreadable { get; set; }
+
+    /// <summary>The piece the next click from the palette goes into.</summary>
+    [ObservableProperty]
+    public partial ExpressionItemViewModel? Selected { get; set; }
+
+    /// <summary>The formula the tree comes to, written out, with a place marker for anything unfilled.</summary>
+    [ObservableProperty]
+    public partial string Preview { get; set; } = string.Empty;
+
+    /// <summary>What the line under the tree says: what is missing, or what the formula comes to.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowTreeNote))]
+    [NotifyPropertyChangedFor(nameof(ShowTreeProblem))]
+    [NotifyPropertyChangedFor(nameof(ShowTreeOk))]
+    public partial string TreeMessage { get; set; } = string.Empty;
+
+    /// <summary>What kind of thing the line under the tree is saying.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowTreeNote))]
+    [NotifyPropertyChangedFor(nameof(ShowTreeProblem))]
+    [NotifyPropertyChangedFor(nameof(ShowTreeOk))]
+    public partial TreeMessageKind TreeMessageKind { get; set; }
+
+    /// <summary>True while the line under the tree is a remark rather than a result.</summary>
+    public bool ShowTreeNote => TreeMessageKind == TreeMessageKind.Note && TreeMessage.Length > 0;
+
+    /// <summary>True while the line under the tree is a problem worth flagging in red.</summary>
+    public bool ShowTreeProblem => TreeMessageKind == TreeMessageKind.Problem
+        && TreeMessage.Length > 0;
+
+    /// <summary>True while the line under the tree is worth showing in green.</summary>
+    public bool ShowTreeOk => TreeMessageKind == TreeMessageKind.Ok && TreeMessage.Length > 0;
+
+    /// <summary>What is picked right now, said the way the formula would be written.</summary>
+    public string Picked => Selected is { } item
+        ? Strings.Format("ExprBuilder.Tree.Picked", Language.Render(item.ToNode()))
+        : string.Empty;
 
     /// <summary>What is typed into the filter above the function list, empty to show them all.</summary>
     [ObservableProperty]
     public partial string FunctionFilter { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Whether the dialog can be closed with the formula it is showing. The structure page holds
+    /// back a formula with places still to fill in — handing one over would write a step that
+    /// cannot run — while the text page leaves it to the user, the way it always has.
+    /// </summary>
+    public bool CanConfirm => !IsTreePage || (!TextUnreadable && (_empty || _previewReads));
 
     partial void OnExpressionChanged(string value) => Recheck();
 
     partial void OnFunctionFilterChanged(string value) => Refill();
 
     [RelayCommand]
-    private void Confirm() => CloseRequested?.Invoke(Expression);
+    private void Confirm() => CloseRequested?.Invoke(IsTreePage && !_empty ? Preview : Expression);
 
     [RelayCommand]
     private void Cancel() => CloseRequested?.Invoke(null);
+
+    /// <summary>Puts the page the formula is written out on in front of the user.</summary>
+    [RelayCommand]
+    private void ShowText()
+    {
+        if (!IsTreePage)
+        {
+            return;
+        }
+
+        // The tree and the text are the same formula, so a finished tree is written into the box
+        // and the user carries on from there. A formula with places still to fill in would only put
+        // markers in the box, so the box keeps what it had.
+        if (_root.Holes() == 0 && !_empty)
+        {
+            Expression = Preview;
+        }
+
+        TextUnreadable = false;
+        IsTreePage = false;
+        Recheck();
+    }
+
+    /// <summary>
+    /// Puts the structure page in front of the user, making the tree out of what is written if it
+    /// reads. Text that does not read leaves the tree as it was and is reported instead, because
+    /// there is nothing true to show for it.
+    /// </summary>
+    [RelayCommand]
+    private void ShowTree()
+    {
+        if (IsTreePage)
+        {
+            return;
+        }
+
+        if (Language.TryParse(Expression, out var parsed, out _))
+        {
+            Adopt(ExpressionItemViewModel.From(parsed!, Changed));
+            TextUnreadable = false;
+        }
+        else if (string.IsNullOrWhiteSpace(Expression))
+        {
+            Adopt(ExpressionItemViewModel.Hole(Changed));
+            TextUnreadable = false;
+        }
+        else
+        {
+            TextUnreadable = true;
+        }
+
+        IsTreePage = true;
+        Refresh();
+    }
+
+    /// <summary>Picks the piece the next click from the palette goes into.</summary>
+    public void Select(ExpressionItemViewModel? item)
+    {
+        if (item is null || ReferenceEquals(Selected, item))
+        {
+            return;
+        }
+
+        if (Selected is { } was)
+        {
+            was.IsSelected = false;
+        }
+
+        Selected = item;
+        item.IsSelected = true;
+        OnPropertyChanged(nameof(Picked));
+    }
+
+    /// <summary>Puts a variable the macro holds where the picked piece is.</summary>
+    public void ChooseVariable(string name)
+    {
+        if (TextUnreadable)
+        {
+            return;
+        }
+
+        Fill(ExpressionItemViewModel.Variable(name, Changed));
+    }
+
+    /// <summary>Puts one of the words that stand for a value where the picked piece is.</summary>
+    public void ChooseConstant(string word)
+    {
+        if (TextUnreadable)
+        {
+            return;
+        }
+
+        Fill(ExpressionItemViewModel.Constant(word, Changed));
+    }
+
+    /// <summary>
+    /// Fills the picked piece with a plain value. A number or a piece of text is typed in place, so
+    /// the button only settles how what is typed there is read.
+    /// </summary>
+    public void ChooseValue(ValueChoice choice)
+    {
+        if (TextUnreadable)
+        {
+            return;
+        }
+
+        var item = Selected ?? _root;
+        switch (choice.Kind)
+        {
+            case ValueChoiceKind.Number when item.IsTyped:
+                item.ReadAsText = false;
+                break;
+            case ValueChoiceKind.Text when item.IsTyped:
+                item.ReadAsText = true;
+                break;
+            case ValueChoiceKind.Number:
+                Fill(ExpressionItemViewModel.Typed(string.Empty, false, Changed));
+                break;
+            case ValueChoiceKind.Text:
+                Fill(ExpressionItemViewModel.Typed(string.Empty, true, Changed));
+                break;
+            default:
+                Fill(ExpressionItemViewModel.Constant(choice.Word, Changed));
+                break;
+        }
+
+        Refresh();
+    }
+
+    /// <summary>
+    /// Wraps the picked piece in an operator: what was picked becomes the left operand and a place
+    /// to fill appears on the right, which is the piece of a formula a user is about to write next.
+    /// </summary>
+    public void ChooseOperator(TreeOperator choice)
+    {
+        if (TextUnreadable)
+        {
+            return;
+        }
+
+        var target = Selected ?? _root;
+        switch (choice.Kind)
+        {
+            case TreeOperatorKind.Binary:
+                var right = ExpressionItemViewModel.Hole(Changed);
+                var sum = ExpressionItemViewModel.Binary(choice.Operation, Changed);
+                sum.Children.Add(target);
+                sum.Children.Add(right);
+                Replace(target, sum);
+                target.Parent = sum;
+                right.Parent = sum;
+                Select(right);
+                break;
+
+            case TreeOperatorKind.Unary:
+                var operand = ExpressionItemViewModel.Unary(choice.Operation, Changed);
+                operand.Children.Add(target);
+                Replace(target, operand);
+                target.Parent = operand;
+                Select(target);
+                break;
+
+            default:
+                var list = ExpressionItemViewModel.List(Changed);
+                list.Children.Add(target);
+                Replace(target, list);
+                target.Parent = list;
+                Select(target);
+                break;
+        }
+
+        Redraw();
+    }
+
+    /// <summary>
+    /// Makes the picked piece the first argument of a function, with a place to fill for each of
+    /// the others: a function is chosen to hold what is already there, not to replace it.
+    /// </summary>
+    public void ChooseFunction(ExpressionFunctionChoice choice)
+    {
+        if (TextUnreadable)
+        {
+            return;
+        }
+
+        Wrap(choice.Function, Selected ?? _root);
+    }
+
+    /// <summary>Adds an argument or an item under a piece that takes more of them.</summary>
+    public void AddChild(ExpressionItemViewModel parent)
+    {
+        if (TextUnreadable || !parent.CanAddChild)
+        {
+            return;
+        }
+
+        var child = ExpressionItemViewModel.Hole(Changed);
+        child.Parent = parent;
+        parent.Children.Add(child);
+        Select(child);
+        Redraw();
+    }
+
+    /// <summary>Takes the last argument or item away again.</summary>
+    public void DropChild(ExpressionItemViewModel parent)
+    {
+        if (TextUnreadable || !parent.CanDropChild)
+        {
+            return;
+        }
+
+        parent.Children.RemoveAt(parent.Children.Count - 1);
+        Select(parent);
+        Redraw();
+    }
+
+    /// <summary>
+    /// Takes away what is picked: an argument or an item goes altogether when the piece above it
+    /// can do without it, and anything else becomes a place to fill in again.
+    /// </summary>
+    public void Clear(ExpressionItemViewModel item)
+    {
+        if (TextUnreadable)
+        {
+            return;
+        }
+
+        var parent = item.Parent;
+        if (parent is { Kind: ExpressionItemKind.List }
+            || (parent is { Kind: ExpressionItemKind.Call } && parent.Children.Count > parent.MinArguments))
+        {
+            parent.Children.Remove(item);
+            item.Parent = null;
+            Select(parent);
+            Redraw();
+            return;
+        }
+
+        var hole = ExpressionItemViewModel.Hole(Changed);
+        Replace(item, hole);
+        Select(hole);
+        Redraw();
+    }
 
     /// <summary>
     /// Says what the expression comes to, the same way the field under it does, so the user does
@@ -117,6 +482,214 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
         Message = message;
         HasError = failed;
     }
+
+    /// <summary>
+    /// Works the tree out again for everything that can be told from it: what it comes to, what is
+    /// still missing, and what the word under the tree has to say about it.
+    /// </summary>
+    private void Refresh()
+    {
+        var node = _root.ToNode();
+        Preview = Language.Render(node);
+        var holes = _root.Holes();
+        _empty = _root is { Kind: ExpressionItemKind.Hole, Children.Count: 0 };
+        _previewReads = !_empty && Language.TryParse(Preview, out _, out _);
+
+        if (TextUnreadable)
+        {
+            TreeMessage = string.Empty;
+            TreeMessageKind = TreeMessageKind.None;
+        }
+        else if (_empty)
+        {
+            TreeMessage = Strings.Get("ExprBuilder.Tree.Nothing");
+            TreeMessageKind = TreeMessageKind.Note;
+        }
+        else if (holes > 0)
+        {
+            TreeMessage = Strings.Format("ExprBuilder.Tree.ToFill", holes);
+            TreeMessageKind = TreeMessageKind.Note;
+        }
+        else if (!Language.TryParse(Preview, out _, out var error))
+        {
+            TreeMessage = ExpressionText.Describe(error!);
+            TreeMessageKind = TreeMessageKind.Problem;
+        }
+        else
+        {
+            var (message, failed) = NumberField.Check(Preview, _names);
+            TreeMessage = message;
+            TreeMessageKind = failed ? TreeMessageKind.Problem : TreeMessageKind.Ok;
+        }
+
+        // A finished tree and the page it is written out on are the same formula, so the box keeps
+        // up with it. A half-built one has nothing to say to the box, and text that does not read
+        // is the box's own business: whatever is on that page is what the user wrote there.
+        if (!TextUnreadable && holes == 0 && !_empty)
+        {
+            Expression = Preview;
+        }
+        else if (!TextUnreadable && _empty)
+        {
+            Expression = string.Empty;
+        }
+
+        OnPropertyChanged(nameof(CanConfirm));
+    }
+
+    private void Fill(ExpressionItemViewModel item)
+    {
+        var target = Selected ?? _root;
+        Replace(target, item);
+        Select(item);
+        Redraw();
+    }
+
+    /// <summary>
+    /// Makes the picked piece the first argument of a function, with a place to fill for each of
+    /// the ones after it. A function that takes nothing replaces what was picked, since there is
+    /// nowhere for it to go.
+    /// </summary>
+    private void Wrap(ExpressionFunction function, ExpressionItemViewModel target)
+    {
+        var call = ExpressionItemViewModel.Call(function, Changed);
+        var wanted = function.MaxArguments == 0 ? 0 : Math.Max(function.MinArguments, 1);
+        if (wanted == 0)
+        {
+            Replace(target, call);
+            Select(call);
+            Redraw();
+            return;
+        }
+
+        call.Children.Add(target);
+        for (var index = 1; index < wanted; index++)
+        {
+            var hole = ExpressionItemViewModel.Hole(Changed);
+            hole.Parent = call;
+            call.Children.Add(hole);
+        }
+
+        // The piece is put where it stands before it is told what it now stands in: where it came
+        // from is what the piece of tree above it has to be swapped for.
+        Replace(target, call);
+        target.Parent = call;
+        Select(call.Children.Count > 1 ? call.Children[1] : target);
+        Redraw();
+    }
+
+    /// <summary>
+    /// Puts <paramref name="replacement"/> where <paramref name="target"/> stands, which is how a
+    /// piece grows: the tree above it keeps its shape and only this one place changes. The piece
+    /// being replaced has to still stand where it stood when this is called — where it came from is
+    /// what has to be swapped — so a piece that now holds it is told so afterwards.
+    /// </summary>
+    private void Replace(ExpressionItemViewModel target, ExpressionItemViewModel replacement)
+    {
+        var parent = target.Parent;
+        replacement.Parent = parent;
+        if (parent is null)
+        {
+            _root = replacement;
+            return;
+        }
+
+        parent.Children[parent.Children.IndexOf(target)] = replacement;
+    }
+
+    /// <summary>Takes on a tree that was read from the text or built fresh.</summary>
+    private void Adopt(ExpressionItemViewModel root)
+    {
+        _root = root;
+        Selected = root;
+        Redraw();
+    }
+
+    /// <summary>
+    /// Draws the tree again, one line to a piece, and says what it comes to: every change to the
+    /// shape of a formula goes through here, so the lines, the formula under them and what the page
+    /// has to say about it are never two answers from different moments.
+    /// </summary>
+    private void Redraw()
+    {
+        Rows.Clear();
+        if (Selected is null || !Holds(_root, Selected))
+        {
+            Selected = FirstHole(_root) ?? _root;
+        }
+
+        Walk(_root, 0);
+        OnPropertyChanged(nameof(Picked));
+        Refresh();
+    }
+
+    private void Walk(ExpressionItemViewModel node, int depth)
+    {
+        node.Depth = depth;
+        node.IsSelected = ReferenceEquals(node, Selected);
+        Rows.Add(node);
+
+        for (var index = 0; index < node.Children.Count; index++)
+        {
+            var child = node.Children[index];
+            var (label, hint) = ArgumentName(node, index);
+            child.Label = label;
+            child.LabelHint = hint;
+            Walk(child, depth + 1);
+        }
+    }
+
+    /// <summary>
+    /// What the argument at a position is called. A function that takes more than its signature
+    /// names repeats the last name, and one that takes none has no lines to name.
+    /// </summary>
+    private static (string Label, string Hint) ArgumentName(ExpressionItemViewModel parent, int index)
+    {
+        if (parent.Kind != ExpressionItemKind.Call || parent.Parameters.Count == 0)
+        {
+            return (string.Empty, string.Empty);
+        }
+
+        var parameter = parent.Parameters[Math.Min(index, parent.Parameters.Count - 1)];
+        return (ExpressionText.ParameterLabel(parameter),
+            ExpressionText.ParameterHint(parent.Name, parameter));
+    }
+
+    /// <summary>True while a piece is still part of the tree the page is drawing.</summary>
+    private static bool Holds(ExpressionItemViewModel root, ExpressionItemViewModel item)
+    {
+        for (var at = item; at is not null; at = at.Parent)
+        {
+            if (ReferenceEquals(at, root))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>The first place with nothing in it, which is where the user carries on from.</summary>
+    private static ExpressionItemViewModel? FirstHole(ExpressionItemViewModel node)
+    {
+        if (node.Kind == ExpressionItemKind.Hole)
+        {
+            return node;
+        }
+
+        foreach (var child in node.Children)
+        {
+            if (FirstHole(child) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Everything the tree changed by itself reports back through here.</summary>
+    private void Changed() => Refresh();
 
     /// <summary>
     /// The operators, in the order the language reads them: arithmetic first, then comparison,
@@ -145,15 +718,49 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     ];
 
     /// <summary>
+    /// The operators the structure page offers, which is the same set without the brackets and
+    /// without the quotes: there the tree decides where brackets go, a piece of text is a value to
+    /// fill in, and a list is a piece of its own.
+    /// </summary>
+    private static IReadOnlyList<TreeOperator> BuildTreeOperators() =>
+    [
+        new("+", "+", TreeOperatorKind.Binary, "Expr.Op.Add"),
+        new("−", "-", TreeOperatorKind.Binary, "Expr.Op.Subtract"),
+        new("×", "*", TreeOperatorKind.Binary, "Expr.Op.Multiply"),
+        new("÷", "/", TreeOperatorKind.Binary, "Expr.Op.Divide"),
+        new("%", "%", TreeOperatorKind.Binary, "Expr.Op.Remainder"),
+        new("=", "==", TreeOperatorKind.Binary, "Expr.Op.Equals"),
+        new("≠", "!=", TreeOperatorKind.Binary, "Expr.Op.NotEquals"),
+        new(">", ">", TreeOperatorKind.Binary, "Expr.Op.Greater"),
+        new("≥", ">=", TreeOperatorKind.Binary, "Expr.Op.GreaterOrEqual"),
+        new("<", "<", TreeOperatorKind.Binary, "Expr.Op.Less"),
+        new("≤", "<=", TreeOperatorKind.Binary, "Expr.Op.LessOrEqual"),
+        new("and", "and", TreeOperatorKind.Binary, "Expr.Op.And"),
+        new("or", "or", TreeOperatorKind.Binary, "Expr.Op.Or"),
+        new("not", "not", TreeOperatorKind.Unary, "Expr.Op.Not"),
+        new("−x", "-", TreeOperatorKind.Unary, "ExprBuilder.Op.Negate"),
+        new(Strings.Get("ExprBuilder.Tree.List"), string.Empty, TreeOperatorKind.List,
+            "ExprBuilder.Op.List"),
+    ];
+
+    /// <summary>The plain values the structure page offers beside the variables.</summary>
+    private static IReadOnlyList<ValueChoice> BuildValues() =>
+    [
+        new(ValueChoiceKind.Number, "ExprBuilder.Value.Number", "ExprBuilder.Value.NumberHint"),
+        new(ValueChoiceKind.Text, "ExprBuilder.Value.Text", "ExprBuilder.Value.TextHint"),
+        new(ValueChoiceKind.Constant, "ExprBuilder.Value.True", "ExprBuilder.Value.TrueHint", "true"),
+        new(ValueChoiceKind.Constant, "ExprBuilder.Value.False", "ExprBuilder.Value.FalseHint", "false"),
+        new(ValueChoiceKind.Constant, "ExprBuilder.Value.Null", "ExprBuilder.Value.NullHint", "null"),
+    ];
+
+    /// <summary>
     /// Every built-in function, in the order the table is written: the groups come out in the order
     /// their first function does, which is the order the manual lists them in as well.
     /// </summary>
     private static ObservableCollection<ExpressionFunctionGroup> BuildFunctions()
     {
         var groups = new List<ExpressionFunctionGroup>();
-        // Written out in full because this dialog's own Expression property is the text being
-        // edited, which hides the static class of the same name.
-        foreach (var function in WhaleGenie.Core.Expressions.Expression.Functions)
+        foreach (var function in Language.Functions)
         {
             var group = groups.LastOrDefault(entry => entry.Group == function.Group);
             if (group is null)
@@ -192,6 +799,81 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     }
 }
 
+/// <summary>What the line under the tree is saying, which decides how it is shown.</summary>
+public enum TreeMessageKind
+{
+    /// <summary>Nothing to say.</summary>
+    None,
+
+    /// <summary>A remark about what is still to be filled in, or about what was not written yet.</summary>
+    Note,
+
+    /// <summary>Something that stops the formula being handed over.</summary>
+    Problem,
+
+    /// <summary>What the formula comes to, worth showing in green.</summary>
+    Ok,
+}
+
+/// <summary>One operator the structure page offers: what the button says and what it does to the picked piece.</summary>
+public sealed class TreeOperator(
+    string token, string operation, TreeOperatorKind kind, string hintKey)
+{
+    /// <summary>The short sign shown on the button, such as <c>+</c> or <c>and</c>.</summary>
+    public string Token { get; } = token;
+
+    /// <summary>How the operator is written in the formula itself.</summary>
+    public string Operation { get; } = operation;
+
+    /// <summary>Whether it takes one operand, two, or turns the picked piece into a list.</summary>
+    public TreeOperatorKind Kind { get; } = kind;
+
+    /// <summary>One plain line saying what pressing it does.</summary>
+    public string Hint { get; } = Strings.Get(hintKey);
+}
+
+/// <summary>What pressing an operator on the structure page does.</summary>
+public enum TreeOperatorKind
+{
+    /// <summary>Wraps the picked piece and leaves a place to fill beside it.</summary>
+    Binary,
+
+    /// <summary>Stands in front of the picked piece.</summary>
+    Unary,
+
+    /// <summary>Makes the picked piece the first item of a list.</summary>
+    List,
+}
+
+/// <summary>What kind of a thing a plain value is, which is how a place gets filled with one.</summary>
+public enum ValueChoiceKind
+{
+    /// <summary>A number, typed in the place itself.</summary>
+    Number,
+
+    /// <summary>A piece of text, typed in the place itself.</summary>
+    Text,
+
+    /// <summary>One of the words that stand for a value on its own.</summary>
+    Constant,
+}
+
+/// <summary>One plain value the structure page offers beside the variables.</summary>
+public sealed class ValueChoice(ValueChoiceKind kind, string labelKey, string hintKey, string word = "")
+{
+    /// <summary>How the value is read once it is in a place.</summary>
+    public ValueChoiceKind Kind { get; } = kind;
+
+    /// <summary>What the button says.</summary>
+    public string Label { get; } = Strings.Get(labelKey);
+
+    /// <summary>One plain line saying what pressing it does.</summary>
+    public string Hint { get; } = Strings.Get(hintKey);
+
+    /// <summary>The word itself, for the ones that are written rather than typed.</summary>
+    public string Word { get; } = word;
+}
+
 /// <summary>One heading of the function list, and the functions written under it.</summary>
 public sealed class ExpressionFunctionGroup(string group, string header)
 {
@@ -206,8 +888,8 @@ public sealed class ExpressionFunctionGroup(string group, string header)
 }
 
 /// <summary>
-/// One function button: what it is called, how it is written, and the text one click drops into the
-/// expression. The signature is what the button shows, because that is the piece of code being
+/// One function button: what it is called, how it is written, and the text one click puts in the
+/// formula. The signature is what the button shows, because that is the piece of code being
 /// written; the sentence that says what the function does is on the tooltip, where it does not take
 /// up room on the wall of buttons.
 /// </summary>
@@ -215,6 +897,7 @@ public sealed class ExpressionFunctionChoice
 {
     public ExpressionFunctionChoice(ExpressionFunction function)
     {
+        Function = function;
         Name = function.Name;
         Signature = function.Signature;
         Insert = function.Name + "(";
@@ -222,6 +905,9 @@ public sealed class ExpressionFunctionChoice
         // engine, the way the built-in variables are written: one sentence per language, no copies.
         Hint = Strings.Get($"Expr.Fn.{function.Name}", function.Description);
     }
+
+    /// <summary>The function itself, which is what the structure page builds its lines from.</summary>
+    public ExpressionFunction Function { get; }
 
     /// <summary>The name the function is called by.</summary>
     public string Name { get; }

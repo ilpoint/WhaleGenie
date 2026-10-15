@@ -5,12 +5,12 @@
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="560"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="620"
         x:Class="WhaleGenie.Views.ExpressionBuilderWindow"
         x:DataType="vm:ExpressionBuilderViewModel"
         Title="WhaleGenie"
-        Width="560" Height="560"
-        MinWidth="460" MinHeight="360"
+        Width="900" Height="620"
+        MinWidth="760" MinHeight="460"
         WindowStartupLocation="CenterOwner"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
@@ -66,6 +66,93 @@
             <Setter Property="Background" Value="#454545" />
         </Style>
 
+        <!-- Which page of the builder is in front. The two read as a switch rather than as a pair
+             of buttons, because the left half of the window changes the moment one is pressed. -->
+        <Style Selector="Button.Tab">
+            <Setter Property="Background" Value="#2E2E2E" />
+            <Setter Property="Foreground" Value="#C8C8C8" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.Tab:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#454545" />
+        </Style>
+        <Style Selector="Button.Tab.on">
+            <Setter Property="Foreground" Value="#FFFFFF" />
+        </Style>
+        <Style Selector="Button.Tab.on /template/ ContentPresenter">
+            <Setter Property="Background" Value="#C8401C" />
+        </Style>
+
+        <!-- One line of the formula. Picking is what a click does, so the line says when it is the
+             one the next click from the palette goes into. -->
+        <Style Selector="Border.Row">
+            <Setter Property="Background" Value="#262626" />
+            <Setter Property="BorderBrush" Value="#303030" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="6,3" />
+            <Setter Property="Margin" Value="0,0,0,3" />
+        </Style>
+        <Style Selector="Border.Row.picked">
+            <Setter Property="Background" Value="#2B3A4A" />
+            <Setter Property="BorderBrush" Value="#4C7FA8" />
+        </Style>
+        <Style Selector="Border.Row.drop">
+            <Setter Property="Background" Value="#3A2E24" />
+            <Setter Property="BorderBrush" Value="#C8401C" />
+        </Style>
+
+        <Style Selector="Border.Chip">
+            <Setter Property="Background" Value="#333333" />
+            <Setter Property="BorderBrush" Value="#3F3F3F" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="7,2" />
+        </Style>
+        <Style Selector="Border.Chip TextBlock">
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="FontSize" Value="12.5" />
+        </Style>
+
+        <Style Selector="TextBlock.ArgLabel">
+            <Setter Property="Foreground" Value="#C8A165" />
+            <Setter Property="FontSize" Value="11.5" />
+        </Style>
+
+        <!-- What is typed into a place. It is a box rather than a label because filling a place in
+             is what the page is for, and it looks empty on purpose until something is typed. -->
+        <Style Selector="TextBox.Cell">
+            <Setter Property="Background" Value="#1E1E1E" />
+            <Setter Property="BorderBrush" Value="#4A4A4A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="#E8E8E8" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="6,1" />
+            <Setter Property="MinHeight" Value="24" />
+        </Style>
+
+        <Style Selector="Button.RowButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#9A9A9A" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Width" Value="22" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.RowButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4C4C4C" />
+        </Style>
+
         <Style Selector="Button.FlatButton">
             <Setter Property="Background" Value="#404040" />
             <Setter Property="Foreground" Value="#E8E8E8" />
@@ -90,6 +177,9 @@
         </Style>
         <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="#D9502A" />
+        </Style>
+        <Style Selector="Button.PrimaryButton:disabled /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4A342E" />
         </Style>
 
         <Style Selector="Button.TitleBarButton">
@@ -124,85 +214,202 @@
             </StackPanel>
         </Grid>
 
-        <ScrollViewer Grid.Row="1" Padding="16,12,16,4" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding Help}" />
+        <Grid Grid.Row="1" ColumnDefinitions="*,16,340" Margin="14,10,14,0">
+            <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*,Auto">
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="6">
+                    <Button Classes="Tab" Classes.on="{Binding IsTreePage}"
+                            Content="{Binding TreeTab}" Click="OnShowTree" />
+                    <Button Classes="Tab" Classes.on="{Binding IsTextPage}"
+                            Content="{Binding TextTab}" Click="OnShowText" />
+                </StackPanel>
 
-                <TextBlock Classes="FieldLabel" Margin="2,14,0,6"
-                           Text="{Binding OperatorsHeader}" />
-                <!-- The operators read as a wall of buttons that wrap, and each one says what it
-                     does on hover. A list with a description beside every button would push the
-                     variable picker below the fold, which is what made the dialog too tall. -->
-                <ItemsControl ItemsSource="{Binding Operators}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ExpressionOperator">
-                            <Button Classes="OpButton" Margin="0,0,6,6" Content="{Binding Token}"
-                                    ToolTip.Tip="{Binding Hint}"
-                                    Click="OnInsertOperator" />
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                <TextBlock Grid.Row="1" Classes="Muted" Margin="2,10,0,0" TextWrapping="Wrap"
+                           Text="{Binding TreeHelp}" IsVisible="{Binding IsTreePage}" />
 
-                <TextBlock Classes="FieldLabel" Margin="2,16,0,6"
-                           Text="{Binding ExpressionHeader}" />
-                <TextBox Name="ExpressionBox" Classes="ExprInput"
-                         AcceptsReturn="True" TextWrapping="Wrap" Height="74"
-                         PlaceholderText="{Binding Placeholder}"
-                         Text="{Binding Expression}" />
-                <TextBlock Classes="Muted" Margin="2,6,0,0" TextWrapping="Wrap"
-                           Foreground="#E06C75" Text="{Binding Message}"
-                           IsVisible="{Binding ShowError}" />
-                <TextBlock Classes="Muted" Margin="2,6,0,0" TextWrapping="Wrap"
-                           Foreground="#7FC97F" Text="{Binding Message}"
-                           IsVisible="{Binding ShowOk}" />
+                <!-- The structure page: one line to a piece of the formula, moved across by how deep
+                     it sits. Nothing under it needs brackets, which is the point of building a
+                     formula here rather than typing one. -->
+                <ScrollViewer Grid.Row="2" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto"
+                              IsVisible="{Binding IsTreePage}">
+                    <StackPanel>
+                        <TextBlock Classes="Muted" Foreground="#E0A060" TextWrapping="Wrap"
+                                   Margin="2,0,0,6" Text="{Binding TreeCannotRead}"
+                                   IsVisible="{Binding TextUnreadable}" />
+                        <ItemsControl Name="TreeRows" ItemsSource="{Binding Rows}"
+                                      IsVisible="{Binding !TextUnreadable}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ExpressionItemViewModel">
+                                    <Border Classes="Row"
+                                            Classes.picked="{Binding IsSelected}"
+                                            Margin="{Binding Indent}"
+                                            PointerPressed="OnRowPressed">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <TextBlock Classes="ArgLabel" VerticalAlignment="Center"
+                                                       Text="{Binding Label}"
+                                                       IsVisible="{Binding HasLabel}"
+                                                       ToolTip.Tip="{Binding LabelHint}" />
+                                            <TextBox Classes="Cell" Width="150"
+                                                     Text="{Binding Literal}"
+                                                     PlaceholderText="{Binding HoleHint}"
+                                                     IsVisible="{Binding IsTyped}" />
+                                            <Border Classes="Chip" IsVisible="{Binding ShowsToken}">
+                                                <TextBlock Text="{Binding Token}"
+                                                           ToolTip.Tip="{Binding LabelHint}" />
+                                            </Border>
+                                            <Button Classes="RowButton" Content="+"
+                                                    IsVisible="{Binding CanAddChild}"
+                                                    ToolTip.Tip="{Binding AddHint}"
+                                                    Click="OnAddChild" />
+                                            <Button Classes="RowButton" Content="−"
+                                                    IsVisible="{Binding CanDropChild}"
+                                                    ToolTip.Tip="{Binding DropHint}"
+                                                    Click="OnDropChild" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
 
-                <TextBlock Classes="FieldLabel" Margin="2,16,0,6"
-                           Text="{Binding VariablesHeader}" />
-                <!-- The variables read as the same wall of buttons the picker beside a field shows:
-                     one click drops the name in at the caret, and hovering one says what it is. A
-                     list behind a dropdown made the reader open it, read a name, and hope. -->
-                <views:VariableWall DataContext="{Binding Wall}" />
+                <!-- The page the formula is written out on: the buttons beside it put their text where
+                     the caret is, which is what this page has always done. -->
+                <StackPanel Grid.Row="2" Margin="0,8,0,0" IsVisible="{Binding IsTextPage}">
+                    <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding Help}" />
+                    <TextBlock Classes="FieldLabel" Margin="2,14,0,6"
+                               Text="{Binding ExpressionHeader}" />
+                    <TextBox Name="ExpressionBox" Classes="ExprInput"
+                             AcceptsReturn="True" TextWrapping="Wrap" Height="120"
+                             PlaceholderText="{Binding Placeholder}"
+                             Text="{Binding Expression}" />
+                </StackPanel>
 
-                <TextBlock Classes="FieldLabel" Margin="2,16,0,6"
-                           Text="{Binding FunctionsHeader}" />
-                <!-- What the language can already do, so a formula is not written from memory. The
-                     button carries the signature, which is the piece of code being written, and the
-                     line saying what the function does is on the tooltip: names alone would leave
-                     trim, slice and substring looking like the same thing. -->
-                <TextBox Classes="ExprInput" Margin="0,0,0,8"
-                         PlaceholderText="{Binding FunctionsFilterHint}"
-                         Text="{Binding FunctionFilter}" />
-                <ItemsControl ItemsSource="{Binding Functions}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ExpressionFunctionGroup">
-                            <StackPanel Margin="0,0,0,8">
-                                <TextBlock Classes="Muted" Text="{Binding Header}" />
-                                <ItemsControl ItemsSource="{Binding Functions}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <WrapPanel Orientation="Horizontal" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:ExpressionFunctionChoice">
-                                            <Button Classes="OpButton" Margin="0,6,6,0"
-                                                    Content="{Binding Signature}"
-                                                    ToolTip.Tip="{Binding Hint}"
-                                                    Click="OnInsertFunction" />
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
-        </ScrollViewer>
+                <StackPanel Grid.Row="3" Margin="2,10,0,0" Spacing="4">
+                    <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding Picked}"
+                               IsVisible="{Binding IsTreePage}" />
+                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                               Text="{Binding TreePreviewHeader}"
+                               IsVisible="{Binding IsTreePage}" />
+                    <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="#E8E8E8"
+                               Text="{Binding Preview}" IsVisible="{Binding IsTreePage}" />
+                    <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding TreeMessage}"
+                               IsVisible="{Binding ShowTreeNote}" />
+                    <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="#E06C75"
+                               Text="{Binding TreeMessage}" IsVisible="{Binding ShowTreeProblem}" />
+                    <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="#7FC97F"
+                               Text="{Binding TreeMessage}" IsVisible="{Binding ShowTreeOk}" />
+                    <!-- What the page written out by hand has to say about the text: the structure
+                         page has said its own piece above, and two lines about the same formula
+                         would be one line too many. -->
+                    <StackPanel Spacing="4" IsVisible="{Binding IsTextPage}">
+                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="#E06C75"
+                                   Text="{Binding Message}" IsVisible="{Binding ShowError}" />
+                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="#7FC97F"
+                                   Text="{Binding Message}" IsVisible="{Binding ShowOk}" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Classes="FieldLabel" Text="{Binding OperatorsHeader}" />
+                    <!-- On the structure page an operator wraps what is picked; on the page written
+                         out by hand it is dropped in at the caret, exactly as it always was. -->
+                    <ItemsControl ItemsSource="{Binding TreeOperators}"
+                                  IsVisible="{Binding IsTreePage}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:TreeOperator">
+                                <Button Classes="OpButton" Margin="0,0,6,6" Content="{Binding Token}"
+                                        ToolTip.Tip="{Binding Hint}" Click="OnWrapWithOperator" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- The operators read as a wall of buttons that wrap, and each one says what it
+                         does on hover. A list with a description beside every button would push the
+                         variable picker below the fold, which is what made the dialog too tall. -->
+                    <ItemsControl ItemsSource="{Binding Operators}"
+                                  IsVisible="{Binding IsTextPage}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ExpressionOperator">
+                                <Button Classes="OpButton" Margin="0,0,6,6" Content="{Binding Token}"
+                                        ToolTip.Tip="{Binding Hint}" Click="OnInsertOperator" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <StackPanel IsVisible="{Binding IsTreePage}">
+                        <TextBlock Classes="FieldLabel" Margin="2,10,0,6"
+                                   Text="{Binding ValuesHeader}" />
+                        <ItemsControl ItemsSource="{Binding Values}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ValueChoice">
+                                    <Button Classes="OpButton" Margin="0,0,6,6"
+                                            Content="{Binding Label}"
+                                            ToolTip.Tip="{Binding Hint}" Click="OnPickValue" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <TextBlock Classes="FieldLabel" Margin="2,14,0,6"
+                               Text="{Binding VariablesHeader}" />
+                    <!-- The variables read as the same wall of buttons the picker beside a field shows:
+                         one click drops the name in, and hovering one says what it is. A list behind a
+                         dropdown made the reader open it, read a name, and hope. -->
+                    <views:VariableWall DataContext="{Binding Wall}" />
+
+                    <TextBlock Classes="FieldLabel" Margin="2,16,0,6"
+                               Text="{Binding FunctionsHeader}" />
+                    <!-- What the language can already do, so a formula is not written from memory. The
+                         button carries the signature, which is the piece of code being written, and the
+                         line saying what the function does is on the tooltip: names alone would leave
+                         trim, slice and substring looking like the same thing. -->
+                    <TextBox Classes="ExprInput" Margin="0,0,0,8"
+                             PlaceholderText="{Binding FunctionsFilterHint}"
+                             Text="{Binding FunctionFilter}" />
+                    <ItemsControl ItemsSource="{Binding Functions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ExpressionFunctionGroup">
+                                <StackPanel Margin="0,0,0,8">
+                                    <TextBlock Classes="Muted" Text="{Binding Header}" />
+                                    <ItemsControl ItemsSource="{Binding Functions}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:ExpressionFunctionChoice">
+                                                <Button Classes="OpButton" Margin="0,6,6,0"
+                                                        Content="{Binding Signature}"
+                                                        ToolTip.Tip="{Binding Hint}"
+                                                        Click="OnInsertFunction" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
 
         <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="16,10,16,14">
             <Button Grid.Column="1" Classes="FlatButton" Height="36" MinWidth="92"
@@ -210,6 +417,7 @@
                     Command="{Binding CancelCommand}" />
             <Button Grid.Column="2" Classes="PrimaryButton" Height="36" MinWidth="110"
                     Margin="8,0,0,0"
+                    IsEnabled="{Binding CanConfirm}"
                     Content="{Binding [Common.Ok], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding ConfirmCommand}" />
         </Grid>

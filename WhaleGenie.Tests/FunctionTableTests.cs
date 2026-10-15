@@ -92,6 +92,50 @@ public class FunctionTableTests
     private static List<string> ManualNames()
         => [.. Rows().Select(row => row.Groups[1].Value)];
 
+    /// <summary>
+    /// The arguments of a function are what the structure page names its lines after, and a line
+    /// with no name and no sentence is a place a reader has to guess at. What a name means is
+    /// written once for every function that uses it, and the few arguments that mean something
+    /// narrower carry the function's own name in the key, so what every argument needs is a line
+    /// under one of the two — and what is held has to be wanted, or a sentence for a function that
+    /// is gone would sit in the table forever.
+    /// </summary>
+    [Fact]
+    public void Every_argument_of_a_function_is_named_and_explained()
+    {
+        var wanted = new HashSet<string>(StringComparer.Ordinal);
+        var missing = new List<string>();
+        foreach (var function in Expression.Functions)
+        {
+            foreach (var parameter in function.Parameters)
+            {
+                wanted.Add($"Expr.Arg.{parameter.Name}.label");
+                if (!Strings.Chinese.ContainsKey($"Expr.Arg.{parameter.Name}.label"))
+                {
+                    missing.Add($"Expr.Arg.{parameter.Name}.label");
+                }
+
+                var own = $"Expr.Arg.{function.Name}.{parameter.Name}.hint";
+                var shared = $"Expr.Arg.{parameter.Name}.hint";
+                if (Strings.Chinese.ContainsKey(own) || Strings.Chinese.ContainsKey(shared))
+                {
+                    wanted.Add(Strings.Chinese.ContainsKey(own) ? own : shared);
+                }
+                else
+                {
+                    missing.Add($"{own} (or {shared})");
+                }
+            }
+        }
+
+        Assert.Empty(missing.Order());
+
+        var held = Strings.Chinese.Keys
+            .Where(key => key.StartsWith("Expr.Arg.", StringComparison.Ordinal))
+            .ToHashSet(StringComparer.Ordinal);
+        Assert.Empty(held.Except(wanted).Order());
+    }
+
     /// <summary>Every row of the manual's function table: the name written, and the line beside it.</summary>
     private static IEnumerable<Match> Rows()
     {

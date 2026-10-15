@@ -169,6 +169,11 @@ public class ExpressionBuilderTests
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
+            // A function is written out by hand on the page that is written out by hand; on the
+            // structure page the same button holds what is already there instead.
+            viewModel.ShowTextCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
             var button = window.GetVisualDescendants().OfType<Button>()
                 .First(control => control.DataContext is ExpressionFunctionChoice { Name: "upper" });
             button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));

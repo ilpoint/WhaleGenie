@@ -24,12 +24,14 @@ public class LocalizationTests
         // English text in the middle of the Chinese interface.
         Assert.Empty(english.Except(chinese).Order());
 
-        // The other way round is deliberate for the system variables and the expression functions:
-        // their English text sits next to the definition — in the variable catalogue and in the
-        // function table of the engine — and only the Chinese translation lives in the table.
+        // The other way round is deliberate for the system variables, the expression functions and
+        // the arguments they take: their English text sits next to the definition — in the variable
+        // catalogue and in the function table of the engine — and only the Chinese translation lives
+        // in the table.
         Assert.Empty(chinese.Except(english)
             .Where(key => !key.StartsWith("Variable.", StringComparison.Ordinal)
-                && !key.StartsWith("Expr.Fn.", StringComparison.Ordinal))
+                && !key.StartsWith("Expr.Fn.", StringComparison.Ordinal)
+                && !key.StartsWith("Expr.Arg.", StringComparison.Ordinal))
             .Order());
     }
 
