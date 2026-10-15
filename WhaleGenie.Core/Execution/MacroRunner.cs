@@ -118,6 +118,20 @@ public sealed class MacroRunner
     private const int ShortestPressMs = 50;
 
     /// <summary>
+    /// The steps this run was handed, kept so that a script can name one of them. Nothing else reads
+    /// it: what a step is found by is the identity the editor writes into the file, and the steps of
+    /// a macro called from this one belong to that call rather than to this list.
+    /// </summary>
+    private IReadOnlyList<ExecutableStep> _steps = [];
+
+    /// <summary>
+    /// Whether a step a script ran asked for the whole macro to stop. A script runs to its own end —
+    /// it is a program in a process of its own and there is no stopping it politely — so the answer
+    /// is carried out of the step that ran it and ends the macro once that step is over.
+    /// </summary>
+    private bool _stoppedInsideScript;
+
+    /// <summary>
     /// How long what one tried step left behind is left alone before it is let go of, so a game
     /// that reads the controller on its own schedule has the chance to notice it.
     /// </summary>
@@ -240,6 +254,7 @@ public sealed class MacroRunner
         _images.Clear();
         _frames.Clear();
         _looked.Clear();
+        _steps = steps;
 
         // Which macro is running, for the steps that want to say so in a log line or a file name. It
         // is this run's own name, written into the macro's values so a called macro's own name — put
@@ -1565,6 +1580,13 @@ public sealed class MacroRunner
             // ------------------------------------------------------------------ script
             case "script.run":
                 RunScript(step, depth);
+                return Signal.Normal;
+
+            case "script.python":
+                return RunPython(step, depth, token);
+
+            case "script.pip":
+                RunPip(step, depth, token);
                 return Signal.Normal;
 
             default:
@@ -7905,6 +7927,189 @@ public sealed class MacroRunner
         return script.EndsWith('\n') ? script + line : script + ending + line;
     }
 
+    /// <summary>
+    /// Runs a Python script in a process of its own with the macro in reach of it while it runs:
+    /// what the script prints goes into the run log line by line, what it reads and writes is what
+    /// the macro holds, and what it hands back with SetResult is this step's result.
+    /// </summary>
+    private Signal RunPython(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var script = Template(step.Text("script"));
+        if (script.Trim().Length == 0)
+        {
+            throw new StepFailure("Run.MissingScript");
+        }
+
+        var request = new PythonScript(script, Template(step.Text("arguments")).Trim(),
+            ScriptWorkingFolder(step), ScriptTimeoutOf(step), ScriptInterpreter(step));
+
+        _stoppedInsideScript = false;
+        var outcome = _devices.Scripts.RunPython(request, new MacroHost(this, step.Type, depth, token),
+            line => Log(LogLevel.Info, depth, step.Type, "Run.ScriptOutput", line),
+            line => Log(LogLevel.Error, depth, step.Type, "Run.ScriptError", line),
+            token);
+
+        HandOverScript(step, outcome, "value");
+        Log(LogLevel.Info, depth, step.Type, "Run.RanPython", outcome.Output.Length);
+
+        // A step the script ran may have asked for the whole macro to stop, and a macro that was
+        // told to stop stops: the script still gets its answer, and the run ends there.
+        return _stoppedInsideScript ? Signal.Stop : Signal.Normal;
+    }
+
+    /// <summary>
+    /// Reads which PIP packages a step asks for and puts the ones that are not there yet in the
+    /// folder scripts of this program import from. What went in is handed over as a list, so a
+    /// macro can tell what this run of the step changed.
+    /// </summary>
+    private void RunPip(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var wanted = ScriptPackages(step);
+        if (wanted.Count == 0)
+        {
+            throw new StepFailure("Run.NoPackages");
+        }
+
+        // How long a download may take is not a number this step has of its own: it is the step's
+        // own timeout, and a step that says nothing about time is given as long as it takes.
+        var outcome = _devices.Scripts.InstallPip(
+            new PipRequest(wanted, ScriptInterpreter(step), Math.Max(0, step.Meta.TimeoutMs)),
+            line => Log(LogLevel.Info, depth, step.Type, "Run.PackageOutput", line),
+            line => Log(LogLevel.Error, depth, step.Type, "Run.PackageError", line), token);
+
+        Give(step, "packages", outcome.Result);
+        Give(step, "error", Value.FromText(outcome.Error.Trim()));
+        Give(step, "success", Value.FromBool(outcome.ExitCode == 0));
+
+        if (outcome.ExitCode != 0)
+        {
+            throw new StepFailure("Run.PipFailed", Careful(outcome.Error));
+        }
+
+        foreach (var package in outcome.Result.AsList())
+        {
+            Log(LogLevel.Info, depth, step.Type, "Run.PackageInstalled", package.AsText());
+        }
+
+        Log(LogLevel.Info, depth, step.Type, "Run.PackageReady", outcome.Result.AsList().Count);
+    }
+
+    /// <summary>
+    /// Hands over what a script of one of the programming languages came to, and fails the step
+    /// when it did not go well: the value it handed back, the message it failed with, and whether
+    /// it ran at all. A script that never got as far as running has a reason of its own — a
+    /// compiler that would not have it, an entry point that is not there — and that reason is what
+    /// the step fails with rather than a number.
+    /// </summary>
+    private void HandOverScript(ExecutableStep step, ScriptResult outcome, string resultKey)
+    {
+        Give(step, resultKey, outcome.Result);
+        Give(step, "error", Value.FromText(outcome.Error.Trim()));
+        Give(step, "success", Value.FromBool(
+            outcome.FailureKey.Length == 0 && outcome.ExitCode == 0));
+
+        if (outcome.FailureKey.Length > 0)
+        {
+            throw new StepFailure(outcome.FailureKey, Careful(outcome.Error));
+        }
+
+        if (outcome.ExitCode != 0)
+        {
+            throw new StepFailure("Run.ScriptFailed", $"{outcome.ExitCode}: {Careful(outcome.Error)}");
+        }
+    }
+
+    /// <summary>
+    /// The packages a step names, one to a line. A line that is blank, or that begins with a hash,
+    /// is left out: a list kept by hand is easier to read with a word about what is in it.
+    /// </summary>
+    private IReadOnlyList<string> ScriptPackages(ExecutableStep step)
+        => [.. Template(step.Text("packages")).Split('\n')
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0 && !line.StartsWith('#'))];
+
+    /// <summary>The interpreter a Python step runs with, which is this machine's own by default.</summary>
+    private static string ScriptInterpreter(ExecutableStep step)
+    {
+        var named = step.Text("python").Trim();
+        return named.Length == 0 ? "python" : named;
+    }
+
+    /// <summary>How long a script may run, in milliseconds, or zero for as long as it takes.</summary>
+    private int ScriptTimeoutOf(ExecutableStep step)
+        => Math.Max(0, OptionalNumber(step, "timeoutMs", DefaultScriptMs));
+
+    /// <summary>
+    /// Runs a step of the macro being run, found by the identity written in the step list, and says
+    /// whether it ended well. A step that fails is the step's own failure — its rule decides what
+    /// happens to the rest of the macro — while a step that asks for the whole macro to stop stops
+    /// it, and one that leaves a loop it was never inside is the mistake it always was.
+    /// </summary>
+    private bool RunStepById(string id, string type, int depth, CancellationToken token)
+    {
+        var wanted = id.Trim();
+        var step = FindStep(_steps, wanted) ?? throw new StepFailure("Run.NoSuchStep", wanted);
+        Log(LogLevel.Info, depth, type, "Run.ScriptStep", wanted);
+
+        var signal = RunSteps([step], depth + 1, token).GetAwaiter().GetResult();
+        if (signal is Signal.Break or Signal.Continue)
+        {
+            throw new StepFailure(LoopControlKey(signal), wanted);
+        }
+
+        if (signal is Signal.Stop)
+        {
+            _stoppedInsideScript = true;
+        }
+
+        return signal is not Signal.Failed;
+    }
+
+    /// <summary>The step with this identity, looking inside the blocks that hold steps as well.</summary>
+    private static ExecutableStep? FindStep(IReadOnlyList<ExecutableStep> steps, string id)
+    {
+        foreach (var step in steps)
+        {
+            if (string.Equals(step.Id, id, StringComparison.OrdinalIgnoreCase))
+            {
+                return step;
+            }
+
+            foreach (var parameter in step.Parameters)
+            {
+                if (FindStep(parameter.Steps, id) is { } inside)
+                {
+                    return inside;
+                }
+
+                if (parameter.Condition is { } condition
+                    && string.Equals(condition.Id, id, StringComparison.OrdinalIgnoreCase))
+                {
+                    return condition;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// The macro as a script sees it: the values it may read and write, the steps it may run, and
+    /// somewhere to say something. It is the run the script is happening inside, so what a script
+    /// reads is what the macro holds at that moment and what it writes is what the next step sees.
+    /// </summary>
+    private sealed class MacroHost(MacroRunner runner, string type, int depth, CancellationToken token)
+        : IScriptHost
+    {
+        public Value? Read(string name) => runner.Variables.TryGet(name, out var value) ? value : null;
+
+        public void Write(string name, Value value) => runner.Variables.Set(name, value);
+
+        public bool RunStep(string id) => runner.RunStepById(id, type, depth, token);
+
+        public void Print(string text) => runner.Log(LogLevel.Info, depth, type, "Run.ScriptSaid", text);
+    }
+
     /// <summary>The kind of script a step asks for, said in the step's <c>kind</c> field.</summary>
     private static ScriptKind ScriptKindOf(ExecutableStep step)
         => step.Text("kind").Trim().ToLowerInvariant() switch
@@ -7958,7 +8163,7 @@ public sealed class MacroRunner
                 throw new StepFailure("Run.MissingInterpreter");
             }
 
-            var (program, flags) = SplitCommand(named);
+            var (program, flags) = CommandLine.Split(named);
             var start = flags.Length == 0 ? string.Empty : $"{flags} ";
             return (program, $"{start}{quoted}{tail}");
         }
@@ -7977,29 +8182,6 @@ public sealed class MacroRunner
             _ => ("powershell.exe",
                 $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -File {quoted}{tail}"),
         };
-    }
-
-    /// <summary>
-    /// Splits what a macro wrote into the program and the flags in front of the script's path. A
-    /// program whose path has spaces in it is written in quotes, which is how it would be typed on
-    /// a command line anyway, so a quote at the front takes everything up to the closing one.
-    /// </summary>
-    private static (string Program, string Flags) SplitCommand(string text)
-    {
-        var trimmed = text.Trim();
-        if (trimmed.StartsWith('"'))
-        {
-            var end = trimmed.IndexOf('"', 1);
-            if (end > 0)
-            {
-                return (trimmed[1..end], trimmed[(end + 1)..].Trim());
-            }
-        }
-
-        var space = trimmed.IndexOf(' ');
-        return space < 0
-            ? (trimmed, string.Empty)
-            : (trimmed[..space], trimmed[(space + 1)..].Trim());
     }
 
     /// <summary>

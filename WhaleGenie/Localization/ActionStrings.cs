@@ -2751,6 +2751,45 @@ internal static class ActionStrings
         ["script.run.timeoutMs.label"] = "超时",
         ["script.run.timeoutMs.hint"] = "超过这个时长就结束脚本并判这一步失败，单位毫秒，默认 60000。可能会跑更久的脚本，"
             + "或者要把窗口留着慢慢看的脚本，填 0 表示不限时。",
+        ["script.python.name"] = "运行 Python 脚本",
+        ["script.python.desc"] = "运行一段 Python 脚本，运行期间脚本能读写宏的变量、调用宏的步骤。",
+        ["script.python.script.label"] = "脚本",
+        ["script.python.script.hint"] = "脚本本身。脚本打印的内容会逐行写进运行日志；运行期间宏就在它旁边："
+            + "WhaleGenie.GetProperty(\"名字\") 读一个宏变量，SetProperty(\"名字\", 值) 写一个，"
+            + "StepExecute(\"标识\") 跑本宏里的某一步，Print(文字) 往运行日志写一行，"
+            + "SetResult(值) 交回这一步要留下的结果。",
+        ["script.python.script.default"] =
+            "# 读一个宏变量的值\n"
+            + "# text = WhaleGenie.GetProperty(\"变量名\")\n\n"
+            + "# 写一个宏变量，后面的步骤读得到\n"
+            + "# WhaleGenie.SetProperty(\"变量名\", 新值)\n\n"
+            + "# 调用本宏的某一步，写它的四字符标识\n"
+            + "# WhaleGenie.StepExecute(\"a7k2\")\n\n"
+            + "# 往运行日志写一行\n"
+            + "WhaleGenie.Print(\"Hello World\")\n\n"
+            + "# 交回这一步要留下的结果\n"
+            + "# WhaleGenie.SetResult(text)\n",
+        ["script.python.arguments.label"] = "参数",
+        ["script.python.arguments.hint"] = "附加在脚本命令行后面的参数，脚本在 sys.argv 里读到它们，"
+            + "与从命令行启动一个程序时一样。默认留空，表示不传参数。",
+        ["script.python.python.label"] = "Python 命令",
+        ["script.python.python.hint"] = "这一步用哪个 Python 运行，它自己的开关写在前面；路径里有空格时用引号括起来。"
+            + "默认留空，表示用本机搜索路径上的 python。",
+        ["script.python.timeoutMs.label"] = "超时",
+        ["script.python.timeoutMs.hint"] = "超过这个时长就结束脚本并判这一步失败，单位毫秒，默认 60000；"
+            + "可能会跑更久的脚本填 0，表示不限时。",
+        ["script.python.folder.label"] = "工作目录",
+        ["script.python.folder.hint"] = "脚本在哪个目录中运行。默认留空，表示宏所在的目录；该目录不存在时，"
+            + "改用鲸灵自身的工作目录。",
+        ["script.pip.name"] = "安装 PIP 包",
+        ["script.pip.desc"] = "看一下要用的 Python 包在不在，缺的下下来，好让 Python 脚本能 import 它们。",
+        ["script.pip.packages.label"] = "包",
+        ["script.pip.packages.hint"] = "Python 脚本要用到的包，一行一个，写法与 pip 一致：一个包名，"
+            + "或者包名后面跟两个等号与版本号。以 # 开头的行会被跳过。包装在鲸灵自己的目录里，"
+            + "不装进这台机器的 Python，每个 Python 脚本步骤都能 import 到它。",
+        ["script.pip.python.label"] = "Python 命令",
+        ["script.pip.python.hint"] = "用哪个 Python 的 pip 下载这些包，它自己的开关写在前面。"
+            + "默认留空，表示用本机搜索路径上的 python。",
 
         // ---------------------------------------------------------------- condition
         ["condition.imageExists.name"] = "图片存在",
@@ -3491,6 +3530,29 @@ internal static class ActionStrings
             + "所以这一项是在失败策略放行之后读的。",
         ["script.run.returns.label"] = "要留下的结果",
         ["script.run.returns.hint"] = ReturnsHintText,
+
+        // script.python
+        ["script.python.return.value.label"] = "返回值",
+        ["script.python.return.value.hint"] = "脚本用 WhaleGenie.SetResult 交回的那个值，原样保留："
+            + "数字、文字、真假、列表，或者一条带字段的记录。脚本没交过就是空的。",
+        ["script.python.return.error.label"] = "错误消息",
+        ["script.python.return.error.hint"] = "脚本在错误输出上写的内容，Python 报的错就写在这里，"
+            + "带着出错的行号。脚本顺利跑完时为空。",
+        ["script.python.return.success.label"] = "是否执行成功",
+        ["script.python.return.success.hint"] = "脚本没有出错并跑完为真，否则为假。脚本失败时这一步也会判失败，"
+            + "所以这一项是在失败策略放行之后读的。",
+        ["script.python.returns.label"] = "要留下的结果",
+        ["script.python.returns.hint"] = ReturnsHintText,
+
+        // script.pip
+        ["script.pip.return.packages.label"] = "装上的包",
+        ["script.pip.return.packages.hint"] = "这一次真的装进去的包，一项一个。要的包都已经在时这一项为空。",
+        ["script.pip.return.error.label"] = "错误消息",
+        ["script.pip.return.error.hint"] = "pip 没能做成这件事时写在错误输出上的内容。顺利时为空。",
+        ["script.pip.return.success.label"] = "是否执行成功",
+        ["script.pip.return.success.hint"] = "pip 顺利结束为真，否则为假；失败时这一步也会判失败。",
+        ["script.pip.returns.label"] = "要留下的结果",
+        ["script.pip.returns.hint"] = ReturnsHintText,
 
         // vision.waitImage
 

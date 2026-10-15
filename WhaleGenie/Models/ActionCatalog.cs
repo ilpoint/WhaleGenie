@@ -50,6 +50,24 @@ public static class ActionCatalog
     private static readonly Geometry ScriptIcon =
         Geometry.Parse("M3,5 H21 V19 H3 Z M3,8.5 H21 M6,12 L8.5,14.5 L6,17 M11,17 H15");
 
+    /// <summary>
+    /// The example a new Python script step begins with. Every call it shows is one the script may
+    /// make while the macro is behind it, and the line that is not commented out prints something,
+    /// so a step that has just been written runs as it stands and shows that the two sides are
+    /// talking. The Chinese one is in the message tables, like every other thing a user reads.
+    /// </summary>
+    private const string DefaultPythonScript =
+        "# Read a value the macro holds\n"
+        + "# text = WhaleGenie.GetProperty(\"name\")\n\n"
+        + "# Write a value the macro can read afterwards\n"
+        + "# WhaleGenie.SetProperty(\"name\", value)\n\n"
+        + "# Run one step of this macro, named by its four-character identity\n"
+        + "# WhaleGenie.StepExecute(\"a7k2\")\n\n"
+        + "# Leave a line in the run log\n"
+        + "WhaleGenie.Print(\"Hello World\")\n\n"
+        + "# Hand back what this step should leave behind\n"
+        + "# WhaleGenie.SetResult(text)\n";
+
     private static readonly Geometry FileIcon =
         Geometry.Parse("M6,3 H14 L18,7 V21 H6 Z M14,3 V7 H18 M9,12 H15 M9,16 H15");
 
@@ -3335,6 +3353,96 @@ public static class ActionCatalog
             ],
         },
 
+        new()
+        {
+            Key = "script.python",
+            Returns =
+            [
+                Return("value", "Result", primary: true,
+                    hint: "What the script handed back with WhaleGenie.SetResult, as it is: a "
+                        + "number, a piece of writing, true or false, a list, or a record with "
+                        + "named fields. Empty when the script handed nothing back."),
+                Return("error", "Error message",
+                    hint: "What the script said on its error output, which is where a Python "
+                        + "mistake is reported, with the line it was written on. Empty when it ran "
+                        + "to the end without one."),
+                Return("success", "Ran without error", type: ActionReturnType.Flag,
+                    hint: "True when the script ran to the end without a mistake, false when it did "
+                        + "not. A script that ended badly fails the step as well, so this is read "
+                        + "after the failure rule let the macro carry on."),
+            ],
+            Category = ActionCategory.Script,
+            DisplayName = "Run Python Script",
+            Description = "Run a Python script, with the macro's values and steps in reach of it "
+                + "while it runs.",
+            Parameters =
+            [
+                Multiline("script", "Script",
+                    "The script itself. Everything it prints goes into the run log, and the values "
+                    + "of the macro are in reach of it while it runs: WhaleGenie.GetProperty(\"name\") "
+                    + "reads one, SetProperty(\"name\", value) writes one, StepExecute(\"a7k2\") runs "
+                    + "one step of this macro, Print(text) writes a line to the run log, and "
+                    + "SetResult(value) hands back what this step should leave behind.",
+                    defaultValue: DefaultPythonScript, required: true, foreign: true, tall: true),
+                Text("arguments", "Arguments", "first second", required: false,
+                    hint: "Extra arguments for the script's command line, which the script finds in "
+                          + "sys.argv the way a program started from a command line does. Empty, "
+                          + "which is the default, passes nothing.",
+                    foreign: true),
+                Text("python", "Python command", "python", required: false,
+                    hint: "The Python this step runs with, with any flags of its own in front. A "
+                          + "path with spaces in it goes in quotes. Empty, which is the default, "
+                          + "uses \"python\" from this machine's search path.",
+                    foreign: true, advanced: true),
+                Number("timeoutMs", "Timeout", 60000,
+                    "Stop the script and fail the step after this long, in milliseconds; 60000 by "
+                    + "default. A script that may take longer than that is given 0, which means no "
+                    + "limit."),
+                PickablePath("folder", "Working folder", string.Empty,
+                    "The folder the script runs in. Empty, which is the default, runs it in the "
+                    + "macros folder, or wherever WhaleGenie is when that folder is not there yet.",
+                    PathIntent.Folder, required: false, advanced: true),
+                Returns(),
+            ],
+        },
+
+        new()
+        {
+            Key = "script.pip",
+            Returns =
+            [
+                Return("packages", "Packages installed", primary: true, type: ActionReturnType.List,
+                    hint: "The packages this run of the step put there, one to an item. Empty when "
+                        + "everything asked for was already installed."),
+                Return("error", "Error message",
+                    hint: "What pip said on its error output when it could not do what was asked. "
+                        + "Empty when it went well."),
+                Return("success", "Ran without error", type: ActionReturnType.Flag,
+                    hint: "True when pip ended well, false when it did not. A run that ended badly "
+                        + "fails the step as well."),
+            ],
+            Category = ActionCategory.Script,
+            DisplayName = "Install PIP Packages",
+            Description = "Check which Python packages are there and download the ones that are "
+                + "not, so a Python script can import them.",
+            Parameters =
+            [
+                Multiline("packages", "Packages",
+                    "The packages a Python script needs, one to a line, written the way pip writes "
+                    + "them: a name, or a name with the version it has to be after two equals "
+                    + "signs. A line that begins with a hash is left out. Packages are installed "
+                    + "into a folder of WhaleGenie's own rather than into this machine's Python, "
+                    + "and every Python script step can import what is in it.",
+                    "requests\nnumpy", required: true),
+                Text("python", "Python command", "python", required: false,
+                    hint: "The Python whose pip downloads the packages, with any flags of its own in "
+                          + "front. Empty, which is the default, uses \"python\" from this "
+                          + "machine's search path.",
+                    foreign: true, advanced: true),
+                Returns(),
+            ],
+        },
+
         // -------------------------------------------------------------- condition
         new()
         {
@@ -3810,7 +3918,7 @@ public static class ActionCatalog
 
     private static ActionParameter Multiline(string name, string label, string hint = "",
         string placeholder = "", bool required = true, bool foreign = false, bool advanced = false,
-        bool acceptsFormula = false, bool tall = false)
+        bool acceptsFormula = false, bool tall = false, string defaultValue = "")
         => new()
         {
             Name = name,
@@ -3818,6 +3926,7 @@ public static class ActionCatalog
             Kind = ActionParameterKind.MultilineText,
             Hint = hint,
             Placeholder = placeholder,
+            DefaultValue = defaultValue,
             Required = required,
             ForeignText = foreign,
             Advanced = advanced,

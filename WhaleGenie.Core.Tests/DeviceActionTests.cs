@@ -6134,6 +6134,190 @@ public class DeviceActionTests
         });
     }
 
+    /// <summary>One step with the identity a script would name it by.</summary>
+    private static ExecutableStep Called(string id, ExecutableStep step) => new()
+    {
+        Type = step.Type,
+        Id = id,
+        Parameters = step.Parameters,
+        Meta = step.Meta,
+    };
+
+    [Fact]
+    public async Task A_python_script_reads_and_writes_the_values_of_the_macro_while_it_runs()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Script = new ScriptResult(1, "printed\n", string.Empty, Value.Null),
+        };
+
+        var asked = new List<string>();
+        var said = new List<string>();
+        var handed = new List<string>();
+        devices.ScriptBody = (host, _) =>
+        {
+            asked.Add(host.Read("who")?.AsText() ?? "nothing");
+            host.Write("answer", Value.FromText("Ann!"));
+            host.Print("a line from the script");
+            said.Add(host.RunStep("a7k2") ? "ran" : "refused");
+            handed.Add(host.Read("after")?.AsText() ?? "nothing");
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("control.setVariable", Param("name", "who"), Param("value", "Ann")),
+            Step("script.python", Param("script", "WhaleGenie.Print('hi')"),
+                Returns("value=handed", "error=why", "success=ok")),
+            Called("a7k2", Step("control.setVariable", Param("name", "after"), Param("value", "yes"))),
+        ], devices);
+
+        // What the script asked for arrived where a macro keeps it, in both directions, and a step
+        // it named by its own identity ran the way any other step of the macro does.
+        Assert.Equal("Ann", asked.Single());
+        Assert.Equal(["ran"], said);
+        Assert.Equal("Ann!", store.Local.Values["answer"].AsText());
+        Assert.Equal("yes", store.Local.Values["after"].AsText());
+        Assert.Equal("yes", handed.Single());
+
+        // The script ended with a code that is not zero, so the step failed — and what it came to
+        // was handed over all the same.
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.ScriptFailed", result.Key);
+        Assert.False(store.Local.Values["ok"].Flag);
+        Assert.Equal(string.Empty, store.Local.Values["why"].AsText());
+    }
+
+    [Fact]
+    public async Task A_python_script_hands_back_what_it_set_as_the_result()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Script = new ScriptResult(0, "one\ntwo", string.Empty, Value.FromText("handed")),
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("script.python", Param("script", "WhaleGenie.SetResult('handed')"),
+                Returns("value=answer", "success=ok")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("handed", store.Local.Values["answer"].AsText());
+        Assert.True(store.Local.Values["ok"].Flag);
+    }
+
+    [Fact]
+    public async Task A_python_step_is_run_where_and_with_what_it_says()
+    {
+        var devices = new FakeDeviceLayer { PathExists = true };
+        await RunAsync(
+        [
+            Step("script.python", Param("script", "print('hi')"), Param("arguments", "--quiet"),
+                Param("python", "py -3.12"), Param("timeoutMs", "5000")),
+        ], devices);
+
+        Assert.Contains(devices.Calls, call => call.StartsWith("python py -3.12|--quiet|G:\\fake|5000"));
+    }
+
+    [Fact]
+    public async Task A_python_script_that_names_no_interpreter_runs_with_this_machines_own()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync([Step("script.python", Param("script", "print('hi')"))], devices);
+
+        Assert.Contains(devices.Calls, call => call.StartsWith("python python|"));
+    }
+
+    [Fact]
+    public async Task A_python_script_that_names_a_step_this_macro_has_not_got_fails_the_step()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.ScriptBody = (host, _) => host.RunStep("zzzz");
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("script.python", Param("script", "WhaleGenie.StepExecute('zzzz')")),
+        ], devices);
+
+        // A name that is in no step of this macro is a mistake in the script, and it is reported in
+        // the engine's own words rather than as a traceback from inside the interpreter.
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.NoSuchStep", result.Key);
+    }
+
+    [Fact]
+    public async Task A_python_step_with_nothing_in_it_fails()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("script.python", Param("script", "   "))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.MissingScript", result.Key);
+    }
+
+    [Fact]
+    public async Task Installing_packages_hands_back_what_went_in()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Packages = new ScriptResult(0, string.Empty, string.Empty,
+                Value.FromList([Value.FromText("requests")])),
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("script.pip", Param("packages", "requests\n# a word about it\nnumpy==2.1.3"),
+                Param("python", "py -3.12"), Returns("packages=added")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(["requests"], store.Local.Values["added"].AsList().Select(item => item.AsText()));
+
+        // The lines that name a package are read as they are, a comment is not, and the step's own
+        // timeout is what the download is allowed: this kind of step has no number of its own.
+        Assert.Contains(devices.Calls, call =>
+            call == @"pip py -3.12|0|requests,numpy==2.1.3");
+    }
+
+    [Fact]
+    public async Task A_package_step_that_names_nothing_says_so()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("script.pip", Param("packages", "  \n# nothing here\n"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.NoPackages", result.Key);
+    }
+
+    [Fact]
+    public void Installing_packages_leaves_the_ones_that_are_already_there_alone()
+    {
+        var folder = Directory.CreateTempSubdirectory("whalegenie-pip").FullName;
+        try
+        {
+            // What pip leaves behind when a package is installed: a folder named after the package
+            // and the version it was installed at.
+            Directory.CreateDirectory(Path.Combine(folder, "PyYAML-6.0.dist-info"));
+
+            var devices = new FakeDeviceLayer();
+            var scripts = new ScriptDevice(devices, folder);
+            scripts.InstallPip(new PipRequest(["PyYAML==6.0", "requests"]), _ => { }, _ => { },
+                default);
+
+            // Only what is missing is asked for, pip is told to put it in the folder the scripts
+            // import from, and the version a step pinned is part of what "already there" means.
+            Assert.Contains(devices.Calls, call =>
+                call.StartsWith("run python|-m pip install") && call.Contains(folder));
+            Assert.Contains(devices.Calls, call => call.Contains("requests"));
+            Assert.DoesNotContain(devices.Calls, call => call.Contains("PyYAML"));
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
     [Fact]
     public async Task System_info_and_environment_variables_reach_variables()
     {
@@ -8112,7 +8296,7 @@ public class DeviceActionTests
 internal sealed class FakeDeviceLayer
     : IDeviceLayer, IInputDevice, IGamepadDevice, IScreenDevice, IVisionDevice, IOcrDevice,
       IUiDevice, IFileDevice, IClipboardDevice, IProcessDevice, ISystemDevice, IWindowDevice,
-      IBrowserDevice
+      IBrowserDevice, IScriptDevice
 {
     public List<string> Calls { get; } = [];
 
@@ -8347,7 +8531,59 @@ internal sealed class FakeDeviceLayer
 
     IProcessDevice IDeviceLayer.Processes => this;
 
+    IScriptDevice IDeviceLayer.Scripts => this;
+
     ISystemDevice IDeviceLayer.System => this;
+
+    /// <summary>What running a script in the fake reports back.</summary>
+    public ScriptResult Script { get; set; } = new(0, string.Empty, string.Empty, Value.Null);
+
+    /// <summary>
+    /// What the script does while it runs, in place of running one: a check that is about what a
+    /// script can reach hands in the calls it would make, so that reading a value, writing one,
+    /// running a step and leaving a line in the log all arrive at the engine the way they would.
+    /// </summary>
+    public Action<IScriptHost, string>? ScriptBody { get; set; }
+
+    /// <summary>What installing packages reports back.</summary>
+    public ScriptResult Packages { get; set; } = new(0, string.Empty, string.Empty, Value.FromList([]));
+
+    ScriptResult IScriptDevice.RunPython(PythonScript script, IScriptHost host,
+        Action<string> onOutput, Action<string> onError, CancellationToken token)
+    {
+        Note($"python {script.Command}|{script.Arguments}|{script.Folder}|{script.TimeoutMs}");
+        ScriptBody?.Invoke(host, script.Script);
+
+        foreach (var line in Lines(Script.Output))
+        {
+            onOutput(line);
+        }
+
+        foreach (var line in Lines(Script.Error))
+        {
+            onError(line);
+        }
+
+        return Script;
+    }
+
+    ScriptResult IScriptDevice.InstallPip(PipRequest request, Action<string> onOutput,
+        Action<string> onError, CancellationToken token)
+    {
+        Note($"pip {request.Command}|{request.TimeoutMs}|{string.Join(",", request.Packages)}");
+
+        foreach (var line in Lines(Packages.Output))
+        {
+            onOutput(line);
+        }
+
+        foreach (var line in Lines(Packages.Error))
+        {
+            onError(line);
+        }
+
+        return Packages;
+    }
 
     IWindowDevice IDeviceLayer.Windows => this;
 

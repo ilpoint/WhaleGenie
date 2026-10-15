@@ -111,6 +111,38 @@ public class ActionDialogTests
         });
     }
 
+    /// <summary>
+    /// A step whose only field is a script opens on something that runs: an empty box would leave
+    /// the writer to guess at the names the macro puts in reach, and those names are the whole of
+    /// how a script talks to the macro. The example is written in both languages rather than
+    /// translated word for word, because what it says is code.
+    /// </summary>
+    [Fact]
+    public void A_script_step_opens_written_from_an_example()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("script.python");
+            var field = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "script");
+
+            // What is in the box is the example of the language the window is in, and the step is
+            // at its default rather than showing a mark for having been written in.
+            Assert.Equal(field.Definition.LocalDefault, field.CurrentText);
+            Assert.Contains("WhaleGenie", field.CurrentText, StringComparison.Ordinal);
+            Assert.True(field.IsDefault);
+
+            // The Chinese example says the same things in Chinese, and it is what the box opens on
+            // when the window is Chinese.
+            var example = ActionStrings.Chinese["script.python.script.default"];
+            Assert.Contains("WhaleGenie.GetProperty(\"变量名\")", example, StringComparison.Ordinal);
+            Assert.Contains("WhaleGenie.SetProperty(\"变量名\"", example, StringComparison.Ordinal);
+            Assert.Contains("WhaleGenie.StepExecute(\"a7k2\")", example, StringComparison.Ordinal);
+            Assert.Contains("WhaleGenie.SetResult", example, StringComparison.Ordinal);
+            Assert.Contains("WhaleGenie.Print(\"Hello World\")", example, StringComparison.Ordinal);
+        });
+    }
+
     [Fact]
     public void A_step_that_reads_the_screen_starts_with_no_rectangle()
     {
@@ -2933,6 +2965,11 @@ public class ActionDialogTests
         public IClipboardDevice Clipboard => NullDeviceLayer.Instance.Clipboard;
 
         public IProcessDevice Processes => NullDeviceLayer.Instance.Processes;
+
+
+        /// <summary>Scripts are not part of what these checks hand in.</summary>
+
+        public IScriptDevice Scripts => NullDeviceLayer.Instance.Scripts;
 
         public ISystemDevice System => NullDeviceLayer.Instance.System;
 

@@ -156,6 +156,11 @@ internal sealed class ChecksDevices : IDeviceLayer
 
     public IProcessDevice Processes => NullDeviceLayer.Instance.Processes;
 
+
+    /// <summary>Scripts are not part of what these checks hand in.</summary>
+
+    public IScriptDevice Scripts => NullDeviceLayer.Instance.Scripts;
+
     public ISystemDevice System => NullDeviceLayer.Instance.System;
 
     public IBrowserDevice Browser => NullDeviceLayer.Instance.Browser;

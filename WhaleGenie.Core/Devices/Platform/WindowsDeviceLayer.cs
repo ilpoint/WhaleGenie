@@ -26,6 +26,8 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
 
     private readonly Lazy<IProcessDevice> _processes = new(() => new WindowsProcessDevice());
 
+    private readonly Lazy<IScriptDevice> _scripts;
+
     private readonly Lazy<ISystemDevice> _system = new(() => new WindowsSystemDevice());
 
     private readonly Lazy<IWindowDevice> _windows = new(() => new WindowsWindowDevice());
@@ -49,6 +51,10 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
 
         // UI Automation borrows the mouse for the buttons it has no click of its own for.
         _ui = new Lazy<FlaUiDevice>(() => new FlaUiDevice(_input.Value));
+
+        // The package steps start their programs through the same device every other step does, so
+        // a long download is timed and its output read the way a command line's is.
+        _scripts = new Lazy<IScriptDevice>(() => new ScriptDevice(Processes));
     }
 
     public IInputDevice Input => _input.Value;
@@ -111,6 +117,9 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
 
     /// <summary>Other programs, which hold no resources of their own until they are used.</summary>
     public IProcessDevice Processes => _processes.Value;
+
+    /// <summary>Scripts, which run in processes of their own and keep their packages beside the program.</summary>
+    public IScriptDevice Scripts => _scripts.Value;
 
     /// <summary>Facts about this machine, which are read on demand.</summary>
     public ISystemDevice System => _system.Value;

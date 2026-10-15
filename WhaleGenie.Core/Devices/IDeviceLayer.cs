@@ -759,6 +759,13 @@ public interface IDeviceLayer
 
     IProcessDevice Processes { get; }
 
+    /// <summary>
+    /// Scripts of the languages this program runs itself, and the packages they ask for. A script
+    /// runs in a process of its own with a way back into the macro, so it is a device like the
+    /// browser is rather than something the engine does by hand.
+    /// </summary>
+    IScriptDevice Scripts { get; }
+
     ISystemDevice System { get; }
 
     IWindowDevice Windows { get; }
@@ -848,6 +855,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
     public IProcessDevice Processes => _refusal;
 
+    public IScriptDevice Scripts => _refusal;
+
     public ISystemDevice System => _refusal;
 
     public IWindowDevice Windows => _refusal;
@@ -857,7 +866,7 @@ public sealed class NullDeviceLayer : IDeviceLayer
     /// <summary>Answers every request with "not available", naming what was asked for.</summary>
     private sealed class Refusal
         : IInputDevice, IGamepadDevice, IScreenDevice, IVisionDevice, IOcrDevice, IUiDevice,
-          IFileDevice, IClipboardDevice, IProcessDevice, ISystemDevice, IWindowDevice,
+          IFileDevice, IClipboardDevice, IProcessDevice, IScriptDevice, ISystemDevice, IWindowDevice,
           IBrowserDevice, IInputHook, IInputRecorder, IDriverInput
     {
         // Named through the interface because the input device already has a KeyDown and a KeyUp
@@ -1064,6 +1073,14 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public bool StopById(int id, bool force) => throw Missing("other programs");
 
         public CommandResult Run(CommandRequest request) => throw Missing("command lines");
+
+        public ScriptResult RunPython(PythonScript script, IScriptHost host, Action<string> onOutput,
+            Action<string> onError, System.Threading.CancellationToken token)
+            => throw Missing("Python scripts");
+
+        public ScriptResult InstallPip(PipRequest request, Action<string> onOutput,
+            Action<string> onError, System.Threading.CancellationToken token)
+            => throw Missing("Python packages");
 
         public ProcessDetails? Details(string target) => throw Missing("other programs");
 

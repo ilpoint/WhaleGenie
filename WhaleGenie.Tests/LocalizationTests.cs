@@ -154,6 +154,14 @@ public class LocalizationTests
                     known.Add($"{definition.Key}.{parameter.Name}.label");
                     known.Add($"{definition.Key}.{parameter.Name}.hint");
 
+                    // A field whose starting text is prose of its own — the example a script step
+                    // is written from — says it in both languages the way a label does.
+                    if (parameter.DefaultValue.Length > 0
+                        || Strings.English.ContainsKey($"{definition.Key}.{parameter.Name}.default"))
+                    {
+                        known.Add($"{definition.Key}.{parameter.Name}.default");
+                    }
+
                     foreach (var choice in parameter.OptionChoices)
                     {
                         known.Add($"{definition.Key}.{parameter.Name}.option.{choice.Value}");

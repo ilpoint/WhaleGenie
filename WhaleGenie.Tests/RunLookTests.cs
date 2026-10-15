@@ -379,6 +379,11 @@ public class RunLookTests
 
         public IProcessDevice Processes => NullDeviceLayer.Instance.Processes;
 
+
+        /// <summary>Scripts are not part of what these checks hand in.</summary>
+
+        public IScriptDevice Scripts => NullDeviceLayer.Instance.Scripts;
+
         public ISystemDevice System => NullDeviceLayer.Instance.System;
 
         /// <summary>The windows this machine has open. None by default, so a check that reads the

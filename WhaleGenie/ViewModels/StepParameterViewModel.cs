@@ -1027,7 +1027,10 @@ public partial class StepParameterViewModel : ViewModelBase
         // The results are at their default while exactly the ones the action nearly always wants
         // are ticked: what they are called is not a change worth a mark on the tab.
         ActionParameterKind.Returns => ReturnsRows.All(row => row.Ticked == row.IsPrimary),
-        _ => string.Equals(CurrentText.Trim(), Definition.DefaultValue, StringComparison.Ordinal),
+        // What a field opened with is the example of the language it opened in, so a step that has
+        // not been touched since is at its default whichever language that was.
+        _ => string.Equals(CurrentText.Trim(), Definition.LocalDefault.Trim(),
+            StringComparison.Ordinal),
     };
 
     /// <summary>
