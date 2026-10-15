@@ -7872,7 +7872,7 @@ public sealed class MacroRunner
 
         if (exitCode != 0)
         {
-            throw new StepFailure("Run.ScriptFailed", $"{exitCode}: {Careful(error)}");
+            throw new StepFailure("Run.ScriptFailed", Reason(exitCode, error));
         }
 
         Log(LogLevel.Info, depth, step.Type, "Run.RanScript", ScriptKindName(kind), output.Length);
@@ -8089,8 +8089,19 @@ public sealed class MacroRunner
 
         if (outcome.ExitCode != 0)
         {
-            throw new StepFailure("Run.ScriptFailed", $"{outcome.ExitCode}: {Careful(outcome.Error)}");
+            throw new StepFailure("Run.ScriptFailed", Reason(outcome.ExitCode, outcome.Error));
         }
+    }
+
+    /// <summary>
+    /// Why a script that stopped with a code that is not zero is being failed, as the exit code and
+    /// — when the script said anything on its error output — what it said. A script that stopped
+    /// without a word is left as the number alone rather than as a colon with nothing after it.
+    /// </summary>
+    private static string Reason(int exitCode, string said)
+    {
+        var word = Careful(said);
+        return word.Length == 0 ? $"{exitCode}" : $"{exitCode}: {word}";
     }
 
     /// <summary>
