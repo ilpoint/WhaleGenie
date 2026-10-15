@@ -33,14 +33,25 @@ Windows 上的通用宏 / 自动化工具：把键盘、鼠标、手柄、屏幕
 
 ## 用了谁的库
 
-执行引擎用到的：SharpHook（全局钩子与前台注入）、libVIIPER（驱动级输入用的虚拟 USB 键鼠与手柄，
-随包分发）、OpenCvSharp5 与 OpenCV（找图找色）、PaddleOCR（屏幕取字）、FlaUI（UI Automation）、
-Microsoft.Playwright（浏览器动作）、CsvHelper（CSV）；画面获取用 Vortice 调 Windows 自带的
-Direct3D 11 与 DXGI，不另带原生库。界面用 Avalonia（连带 SkiaSharp、HarfBuzz 与 Inter 字体）和
-CommunityToolkit.Mvvm。
+程序是 .NET 10 上的 C#，除自己写的部分外，靠别人的地方都在这张表里。每一层的版本写在
+[doc/dev.md](doc/dev.md) 的「依赖的包」一节，不在这里抄第二遍。
 
-每个库的许可与协议原文地址、以及随包分发的原生库，见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)；
-版本与各自在引擎里干什么见 [doc/dev.md](doc/dev.md) 的依赖表。
+| 库 | 在哪一层 | 干什么 |
+| --- | --- | --- |
+| SharpHook | 执行引擎 | 全局键盘鼠标钩子与前台注入：热键、鼠标按键、滚轮这些触发器，以及录制与拾取 |
+| libVIIPER | 执行引擎 | 驱动级输入用的虚拟 USB 键鼠与手柄。上游编译好的原生库，随包分发 |
+| OpenCvSharp5（含 OpenCV） | 执行引擎 | 找图（四种算法）、找色与占比、多点找色、等画面静止 |
+| PaddleOCR（Sdcb.SimdPaddleOCR 连同中文模型） | 执行引擎 | 屏幕取字。模型随包带，不联网下载 |
+| FlaUI | 执行引擎 | UI Automation：元素的取值、选择、勾选、展开、读表格 |
+| Microsoft.Playwright | 执行引擎 | 浏览器动作。驱动随包带，默认开系统自带的 Edge |
+| CsvHelper | 执行引擎 | 读写 CSV：引号、单元格里的换行、行尾与空行 |
+| Vortice | 画面获取 | 调 Windows 自带的 Direct3D 11 与 DXGI 做 Graphics Capture 与桌面复制，不另带原生库 |
+| Avalonia | 界面 | 窗口、控件与渲染；底层是自带的 SkiaSharp 与 HarfBuzz，字体用 Inter |
+| CommunityToolkit.Mvvm | 界面 | 视图模型里的属性与命令 |
+| xunit、Microsoft.NET.Test.Sdk、coverlet.collector、Avalonia.Headless | 测试 | 三项全绿的用例与覆盖率；界面用例跑在 Avalonia 的无头平台上 |
+
+别人随包带进来的原生库（OpenCV、SharpHook 的 `uiohook.dll`、Playwright 的驱动、`libVIIPER.dll`、
+OCR 模型）与每个库的许可、协议原文地址，见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
 
 ## 文档
 
