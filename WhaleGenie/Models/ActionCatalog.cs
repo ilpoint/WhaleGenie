@@ -3256,55 +3256,81 @@ public static class ActionCatalog
             Returns =
             [
                 Return("output", "Output", primary: true,
-                    hint: "What the script printed, without the blank lines around it."),
+                    hint: "What the script printed, without the blank lines around it. Only the "
+                        + "kinds that run without a window can be read this way; a command run in a "
+                        + "window prints into that window and leaves this empty."),
+                Return("error", "Error message",
+                    hint: "What the script said on its error output, or the message the interpreter "
+                        + "itself failed with. Empty when the script ended well, and empty for a "
+                        + "script that ran in a window, which has nowhere to send it."),
+                Return("success", "Ran without error", type: ActionReturnType.Flag,
+                    hint: "True when the script ended with exit code 0, false when it did not. A "
+                        + "script that ended with anything else fails the step as well, so this is "
+                        + "read after the failure rule let the macro carry on."),
             ],
             Category = ActionCategory.Script,
             DisplayName = "Run Script",
-            Description = "Run a short script with an interpreter of your choice.",
+            Description = "Run a command, a batch file, a PowerShell or an AutoHotkey script, or a "
+                + "program of your own choosing.",
             Parameters =
             [
-                Choice("language", "Interpreter",
-                    ["powershell", "cmd", "node", "python", "custom"], "powershell",
-                    "Which interpreter runs the script. PowerShell and Command Prompt are on every "
-                    + "Windows machine; Node and Python have to be installed first; another "
-                    + "program is for anything else the machine has, such as dotnet-script. "
+                Choice("kind", "Kind of script",
+                    ["cmdKeep", "cmdClose", "cmdHidden", "bat", "cmdFile", "ps1", "ahk", "custom"],
+                    "ps1",
+                    "What this step hands the script to. The three command kinds write the text "
+                    + "out as a batch file and run it with cmd.exe: the first one leaves its window "
+                    + "open afterwards so what it printed can be read, the second closes the window "
+                    + "when the command is done, and the third shows no window at all. The two file "
+                    + "kinds and the PowerShell and AutoHotkey kinds run without a window; a "
+                    + "program of your own choosing is for anything else the machine has. "
                     + "PowerShell by default.",
-                    labels: ["PowerShell", "Command Prompt", "Node.js", "Python", "Another program"],
+                    labels: ["CMD command (keep the window open)",
+                        "CMD command (close the window after it)",
+                        "CMD command (hide the command window)",
+                        "BAT batch file (.bat)",
+                        "CMD batch script (.cmd)",
+                        "PowerShell script (.ps1)",
+                        "AutoHotKey script (.ahk)",
+                        "Another program"]),
+                Choice("encoding", "Script file encoding", ["auto", .. TextEncoding.Names], "auto",
+                    "How the copy of the script handed to the program is written. Left to decide "
+                    + "for itself, a batch file or a command gets this machine's own code page, "
+                    + "PowerShell and AutoHotkey get a byte-order mark, and a program of your own "
+                    + "choosing gets plain UTF-8, which is what each of them reads correctly. A "
+                    + "program that reads the system code page instead, cscript for one, needs GBK "
+                    + "to read Chinese text. Reading it as the kind of script expects is the "
+                    + "default.",
+                    labels: ["As this kind of script expects", "UTF-8", "UTF-8 with BOM",
+                        "GBK (Chinese)", "UTF-16"]),
+                Multiline("script", "Script",
+                    "The script itself, told to the program named above. {{name}} is replaced by "
+                    + "what the variable name holds before the script runs, which is how a macro "
+                    + "value gets in; everything the script prints comes back in the output result "
+                    + "where the kind of script can be read that way.",
+                    "Write-Host \"Hello\"", foreign: true, tall: true),
+                Text("arguments", "Arguments", "first second", required: false,
+                    hint: "Extra arguments for the script's command line. {{name}} is filled in "
+                          + "here as well. Empty, which is the default, passes nothing.",
+                    foreign: true, advanced: true),
+                Number("timeoutMs", "Timeout", 60000,
+                    "Stop the script and fail the step after this long, in milliseconds; 60000 by "
+                    + "default. A script that may take longer than that, or one whose window is to "
+                    + "be left open, is given 0, which means no limit.",
                     advanced: true),
                 Text("interpreter", "Interpreter command", "dotnet-script", required: false,
                     hint: "The program that runs the script, with any flags of its own in front, "
                           + "used with \"another program\" above. The script's path goes after it, "
                           + "the way it would be typed on a command line. A path with spaces in it "
                           + "goes in quotes.",
-                    advanced: true),
+                    advanced: true, onlyWith: ["custom"]),
                 Text("extension", "Script file ending", ".csx", required: false,
                     hint: "The file name ending that program reads, such as .csx for dotnet-script "
                           + "or .vbs for cscript. Only used with \"another program\" above.",
-                    advanced: true),
-                Choice("encoding", "Script file encoding", ["auto", .. TextEncoding.Names], "auto",
-                    "How the interpreter's copy of the script is written. Left to decide for "
-                    + "itself, PowerShell gets a byte-order mark and the rest do not, which is what "
-                    + "each of them reads correctly; a program that reads the system code page "
-                    + "instead, cscript for one, needs GBK to read Chinese text. Reading it as "
-                    + "the interpreter expects is the default.",
-                    labels: ["As the interpreter expects", "UTF-8", "UTF-8 with BOM",
-                        "GBK (Chinese)", "UTF-16"], advanced: true),
-                Multiline("script", "Script",
-                    "The script itself. {{name}} is replaced by what the variable name holds "
-                    + "before the script runs, which is how a macro value gets in; everything the "
-                    + "script prints comes back in the output result.",
-                    "Write-Host \"Hello\"", foreign: true),
-                Text("arguments", "Arguments", "first second", required: false,
-                    hint: "Extra arguments for the script's command line. {{name}} is filled in "
-                          + "here as well. Empty, which is the default, passes nothing.",
-                    foreign: true),
+                    advanced: true, onlyWith: ["custom"]),
                 PickablePath("folder", "Working folder", string.Empty,
                     "The folder the script runs in. Empty, which is the default, runs it in the "
                     + "macros folder, or wherever WhaleGenie is when that folder is not there yet.",
                     PathIntent.Folder, required: false, advanced: true),
-                Number("timeoutMs", "Timeout", 60000,
-                    "Stop the script and fail the step after this long, in milliseconds; 60000 by "
-                    + "default."),
                 Returns(),
             ],
         },
@@ -3784,7 +3810,7 @@ public static class ActionCatalog
 
     private static ActionParameter Multiline(string name, string label, string hint = "",
         string placeholder = "", bool required = true, bool foreign = false, bool advanced = false,
-        bool acceptsFormula = false)
+        bool acceptsFormula = false, bool tall = false)
         => new()
         {
             Name = name,
@@ -3796,6 +3822,7 @@ public static class ActionCatalog
             ForeignText = foreign,
             Advanced = advanced,
             AcceptsFormula = acceptsFormula,
+            Tall = tall,
         };
 
     /// <summary>

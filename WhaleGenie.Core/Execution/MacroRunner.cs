@@ -7774,72 +7774,168 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// Runs a short script through an interpreter the machine already has. This is the block that
-    /// covers whatever the catalogue does not: anything with a command line of its own can be
-    /// scripted, and the script talks to the macro both ways — values go in as <c>{{name}}</c> in
-    /// the text, and whatever the script prints comes back in the result variable.
+    /// Runs a short script: a command, a batch file, a PowerShell or an AutoHotkey script, or a
+    /// program of the macro's own choosing. This is the step that covers whatever the catalogue
+    /// does not — anything with a command line of its own can be scripted — and a macro value gets
+    /// in by being written into the text as <c>{{name}}</c> before the script runs.
     /// </summary>
     private void RunScript(ExecutableStep step, int depth)
     {
-        var language = step.Text("language").Trim().ToLowerInvariant();
-        var extension = ScriptExtension(step, language);
-        var temp = Path.Combine(Path.GetTempPath(), "WhaleGenie");
-        var path = Path.Combine(temp, $"script-{Guid.NewGuid():N}{extension}");
+        var kind = ScriptKindOf(step);
         var script = Template(step.Text("script"));
         if (script.Trim().Length == 0)
         {
             throw new StepFailure("Run.MissingScript");
         }
 
-        // A script that reads or writes files next to the macro should not have to be told where
-        // that is, so the macros folder is what an empty working folder means — but only when that
-        // folder is really there: a program cannot be started in a folder that does not exist, and
-        // an empty folder field is better than a script that never runs.
-        var folder = Read(step.Text("folder")).AsText().Trim();
-        if (folder.Length == 0 && _devices.Files.Exists(_devices.Files.BaseFolder))
-        {
-            folder = _devices.Files.BaseFolder;
-        }
+        var extension = ScriptExtensionOf(step, kind);
+        var path = Path.Combine(ScriptFolder(), $"script-{Guid.NewGuid():N}{extension}");
 
-        var extra = Template(step.Text("arguments")).Trim();
-        var (program, arguments) = ScriptCommand(step, language, path, extra);
+        // The one kind whose window is left standing has to be told that the command is done: a
+        // batch file sitting at its prompt says nothing to anyone but the person in front of it. A
+        // line of its own at the end of the script writes the exit code where this side can read
+        // it, and that is what lets the macro carry on when the command finishes rather than when
+        // the window is closed.
+        var sentinel = kind is ScriptKind.CommandKeepWindow
+            ? Path.Combine(ScriptFolder(), $"done-{Guid.NewGuid():N}.txt")
+            : string.Empty;
 
-        // A step that says nothing about time still gets one, the same way running a command does:
-        // a timeout of nothing would end the script the moment it started.
-        var timeout = Math.Max(1, OptionalNumber(step, "timeoutMs", DefaultScriptMs));
+        // The command line is put together before anything is written: a step whose program or file
+        // ending is missing fails without leaving a copy of a script behind.
+        var (program, arguments) = ScriptCommandOf(step, kind, path,
+            Template(step.Text("arguments")).Trim());
+        var folder = ScriptWorkingFolder(step);
+        var timeout = Math.Max(0, OptionalNumber(step, "timeoutMs", DefaultScriptMs));
 
-        _devices.Files.WriteText(path, script, false, ScriptEncoding(step, extension));
+        _devices.Files.WriteText(path,
+            sentinel.Length == 0 ? script : WithSentinel(script, sentinel),
+            false, ScriptEncodingOf(step, kind));
 
-        CommandResult result;
+        var output = string.Empty;
+        var error = string.Empty;
+        var exitCode = 0;
         try
         {
-            result = _devices.Processes.Run(new CommandRequest(program, arguments, folder, timeout,
-                OutputEncoding: ScriptOutput(language)));
+            if (kind is ScriptKind.CommandKeepWindow or ScriptKind.CommandCloseWindow)
+            {
+                exitCode = RunInWindow(program, arguments, folder, sentinel, timeout);
+            }
+            else
+            {
+                var ran = _devices.Processes.Run(new CommandRequest(program, arguments, folder,
+                    ScriptLimitOf(timeout), OutputEncoding: TextEncoding.System));
+                output = ran.StandardOutput.Trim('\r', '\n');
+                error = ran.StandardError.Trim();
+                exitCode = ran.ExitCode;
+            }
         }
         finally
         {
-            // The script itself lives in the macro, so the copy on disk is only there for as long
-            // as the interpreter needs it. A tidy-up that fails is not worth failing the step over.
-            try
-            {
-                _devices.Files.Delete(path, false);
-            }
-            catch (Exception)
-            {
-                Log(LogLevel.Debug, depth, step.Type, "Run.ScriptNotTidied", path);
-            }
+            TidyScript(path, sentinel, depth, step.Type);
         }
 
-        if (result.ExitCode != 0)
+        // What the script came to is handed over before the step is failed for it: a macro whose
+        // failure rule lets it carry on — "continue", or the user answering the question — reads
+        // the message and the flag on the steps after this one.
+        Give(step, "output", Value.FromText(output));
+        Give(step, "error", Value.FromText(error));
+        Give(step, "success", Value.FromBool(exitCode == 0));
+
+        if (exitCode != 0)
         {
-            throw new StepFailure("Run.ScriptFailed",
-                $"{result.ExitCode}: {Careful(result.StandardError)}");
+            throw new StepFailure("Run.ScriptFailed", $"{exitCode}: {Careful(error)}");
         }
 
-        var said = result.StandardOutput.Trim('\r', '\n');
-        Give(step, "output", Value.FromText(said));
-        Log(LogLevel.Info, depth, step.Type, "Run.RanScript", language, said.Length);
+        Log(LogLevel.Info, depth, step.Type, "Run.RanScript", ScriptKindName(kind), output.Length);
     }
+
+    /// <summary>
+    /// Starts a command in a window of its own and waits for the command rather than for the
+    /// window. The window is left for the person to read, which is the whole point of running one
+    /// this way, so what ends the wait is either the process — a command run with /c, or a window
+    /// the person closed — or the mark the script leaves behind when it is finished.
+    /// </summary>
+    private int RunInWindow(string program, string arguments, string folder, string sentinel,
+        int timeoutMs)
+    {
+        var id = _devices.Processes.Start(new StartRequest(program, arguments, folder, Hidden: false));
+        var started = Stopwatch.GetTimestamp();
+
+        while (true)
+        {
+            if (_devices.Processes.HasExited(id))
+            {
+                return _devices.Processes.ExitCode(id) ?? 0;
+            }
+
+            if (sentinel.Length > 0 && _devices.Files.Exists(sentinel))
+            {
+                var written = _devices.Files.ReadText(sentinel, TextEncoding.Default).Trim();
+                return int.TryParse(written, NumberStyles.Integer, CultureInfo.InvariantCulture,
+                    out var code)
+                    ? code
+                    : 0;
+            }
+
+            if (timeoutMs > 0 && Stopwatch.GetElapsedTime(started).TotalMilliseconds > timeoutMs)
+            {
+                _devices.Processes.StopById(id, force: true);
+                throw new StepFailure("Run.CommandTimeout", program);
+            }
+
+            // A window a person may be reading is the one thing the engine waits on in steps of its
+            // own: there is no picture to watch and no event to listen to, only a command that has
+            // not finished yet.
+            Thread.Sleep(20);
+        }
+    }
+
+    /// <summary>
+    /// The script with a last line that writes the exit code where this side can read it. The line
+    /// is ended the way the script already ends its own lines, so a file cmd.exe reads correctly
+    /// goes on being read correctly with one more line on the end; a script written as a single
+    /// line gets the ending a batch file is used to.
+    /// </summary>
+    private static string WithSentinel(string script, string sentinel)
+    {
+        var ending = script.EndsWith("\r\n", StringComparison.Ordinal) ? "\r\n"
+            : script.EndsWith('\n') ? "\n"
+            : "\r\n";
+        var line = $"@echo %errorlevel% > \"{sentinel}\"{ending}";
+        return script.EndsWith('\n') ? script + line : script + ending + line;
+    }
+
+    /// <summary>The kind of script a step asks for, said in the step's <c>kind</c> field.</summary>
+    private static ScriptKind ScriptKindOf(ExecutableStep step)
+        => step.Text("kind").Trim().ToLowerInvariant() switch
+        {
+            "" or "ps1" => ScriptKind.PowerShell,
+            "cmdkeep" => ScriptKind.CommandKeepWindow,
+            "cmdclose" => ScriptKind.CommandCloseWindow,
+            "cmdhidden" => ScriptKind.CommandHidden,
+            "bat" => ScriptKind.BatchFile,
+            "cmdfile" => ScriptKind.CommandFile,
+            "ahk" => ScriptKind.AutoHotkey,
+            "custom" => ScriptKind.Custom,
+            // A word the catalogue does not offer is refused rather than quietly read as one of the
+            // kinds: a step that says something unknown is a step whose author meant something
+            // else, and running it as PowerShell would hide that.
+            _ => throw new StepFailure("Run.UnknownScriptKind", step.Text("kind")),
+        };
+
+    /// <summary>
+    /// A name for the kind of script, for the line the run log keeps. It is the name of the thing
+    /// that ran rather than the value the field holds, because the log is read by a person.
+    /// </summary>
+    private static string ScriptKindName(ScriptKind kind) => kind switch
+    {
+        ScriptKind.CommandKeepWindow or ScriptKind.CommandCloseWindow or ScriptKind.CommandHidden
+            or ScriptKind.CommandFile => "CMD",
+        ScriptKind.BatchFile => "BAT",
+        ScriptKind.AutoHotkey => "AutoHotkey",
+        ScriptKind.Custom => "custom",
+        _ => "PowerShell",
+    };
 
     /// <summary>
     /// The command line that runs a script of this kind. PowerShell is given the flags that stop it
@@ -7848,13 +7944,13 @@ public sealed class MacroRunner
     /// after whatever the macro wrote, which is where an interpreter expects to find it and where
     /// a person typing the same command line would put it.
     /// </summary>
-    private static (string Program, string Arguments) ScriptCommand(ExecutableStep step,
-        string language, string path, string extra)
+    private static (string Program, string Arguments) ScriptCommandOf(ExecutableStep step,
+        ScriptKind kind, string path, string extra)
     {
         var quoted = $"\"{path}\"";
         var tail = extra.Length == 0 ? string.Empty : $" {extra}";
 
-        if (language is "custom")
+        if (kind is ScriptKind.Custom)
         {
             var named = step.Text("interpreter").Trim();
             if (named.Length == 0)
@@ -7867,14 +7963,19 @@ public sealed class MacroRunner
             return (program, $"{start}{quoted}{tail}");
         }
 
-        return language switch
+        if (kind is ScriptKind.AutoHotkey)
         {
-            "" or "powershell" => ("powershell.exe",
+            return (AutoHotkey.Program() ?? throw new StepFailure("Run.NoAutoHotkey"),
+                $"{quoted}{tail}");
+        }
+
+        return kind switch
+        {
+            ScriptKind.CommandKeepWindow => ("cmd.exe", $"/k {quoted}{tail}"),
+            ScriptKind.CommandCloseWindow or ScriptKind.CommandHidden
+                or ScriptKind.BatchFile or ScriptKind.CommandFile => ("cmd.exe", $"/c {quoted}{tail}"),
+            _ => ("powershell.exe",
                 $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -File {quoted}{tail}"),
-            "cmd" => ("cmd.exe", $"/c {quoted}{tail}"),
-            "node" => ("node", $"{quoted}{tail}"),
-            "python" => ("python", $"{quoted}{tail}"),
-            _ => throw new StepFailure("Run.UnknownInterpreter", language),
         };
     }
 
@@ -7902,20 +8003,25 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// The file name ending the interpreter recognises, which is how it knows what it is reading.
-    /// The four built-in ones have theirs; a program of the macro's own choosing has to be told.
+    /// The file name ending the program recognises, which is how it knows what it is reading. The
+    /// kinds that name a program by itself are each one ending; a program of the macro's own
+    /// choosing has to be told.
     /// </summary>
-    private static string ScriptExtension(ExecutableStep step, string language)
+    private static string ScriptExtensionOf(ExecutableStep step, ScriptKind kind)
     {
-        if (language is not "custom")
+        switch (kind)
         {
-            return language switch
-            {
-                "cmd" => ".cmd",
-                "node" => ".js",
-                "python" => ".py",
-                _ => ".ps1",
-            };
+            case ScriptKind.CommandKeepWindow:
+            case ScriptKind.CommandCloseWindow:
+            case ScriptKind.CommandHidden:
+            case ScriptKind.CommandFile:
+                return ".cmd";
+            case ScriptKind.BatchFile:
+                return ".bat";
+            case ScriptKind.PowerShell:
+                return ".ps1";
+            case ScriptKind.AutoHotkey:
+                return ".ahk";
         }
 
         var wanted = step.Text("extension").Trim();
@@ -7928,31 +8034,78 @@ public sealed class MacroRunner
     }
 
     /// <summary>
-    /// How the interpreter's copy of the script is written. Windows PowerShell reads a script as
-    /// the system code page unless the file starts with a byte-order mark, so a script with Chinese
-    /// text in it needs one; the other interpreters read UTF-8 and would rather not have a mark,
-    /// and a batch file with one does not start. A macro that knows better can say so, and the
-    /// reason it can is cscript: that one reads the system code page by design, so Chinese text in
-    /// a .vbs has to be GBK.
+    /// How the copy of the script handed over is written. Windows PowerShell and AutoHotkey read a
+    /// script as the system code page unless the file starts with a byte-order mark, so a script
+    /// with Chinese text in it needs one; cmd.exe reads in this machine's own code page and a batch
+    /// file with a mark on it does not start at all, so the command kinds get that one. A program
+    /// of the macro's own choosing gets plain UTF-8, which is what a program from this decade
+    /// reads. A macro that knows better can say so, and the reason it can is cscript: that one
+    /// reads the system code page by design, so Chinese text in a .vbs has to be GBK.
     /// </summary>
-    private static string ScriptEncoding(ExecutableStep step, string extension)
+    private static string ScriptEncodingOf(ExecutableStep step, ScriptKind kind)
     {
         var chosen = step.Text("encoding").Trim();
-        return chosen.Length == 0
-               || string.Equals(chosen, "auto", StringComparison.OrdinalIgnoreCase)
-            ? extension == ".ps1" ? "utf8bom" : TextEncoding.Default
-            : chosen;
+        if (chosen.Length > 0 && !string.Equals(chosen, "auto", StringComparison.OrdinalIgnoreCase))
+        {
+            return chosen;
+        }
+
+        return kind switch
+        {
+            ScriptKind.PowerShell or ScriptKind.AutoHotkey => "utf8bom",
+            ScriptKind.Custom => TextEncoding.Default,
+            _ => TextEncoding.System,
+        };
     }
 
     /// <summary>
-    /// The code page an interpreter prints in. Node writes UTF-8 wherever it runs; the others —
-    /// Windows PowerShell, the command prompt and Python alike — write in this machine's own code
-    /// page, which is GBK on a Chinese Windows. Read with the wrong one and every Chinese word the
-    /// script printed comes back as question marks, so the engine works it out rather than leaving
-    /// the user to.
+    /// The folder a script runs in. A script that reads or writes files next to the macro should
+    /// not have to be told where that is, so the macros folder is what an empty working folder
+    /// means — but only when that folder is really there: a program cannot be started in a folder
+    /// that does not exist, and an empty folder field is better than a script that never runs.
     /// </summary>
-    private static string ScriptOutput(string language)
-        => language is "node" ? TextEncoding.Default : TextEncoding.System;
+    private string ScriptWorkingFolder(ExecutableStep step)
+    {
+        var folder = Read(step.Text("folder")).AsText().Trim();
+        return folder.Length == 0 && _devices.Files.Exists(_devices.Files.BaseFolder)
+            ? _devices.Files.BaseFolder
+            : folder;
+    }
+
+    /// <summary>
+    /// Removes the copies of the script the run left on disk: the script itself, and the mark the
+    /// one kind that needs one writes. The script lives in the macro, so what is out there was only
+    /// ever there for as long as the program needed to read it, and a tidy-up that fails is not
+    /// worth failing the step over.
+    /// </summary>
+    private void TidyScript(string path, string sentinel, int depth, string type)
+    {
+        foreach (var file in new[] { path, sentinel })
+        {
+            if (file.Length == 0)
+            {
+                continue;
+            }
+
+            try
+            {
+                _devices.Files.Delete(file, false);
+            }
+            catch (Exception)
+            {
+                Log(LogLevel.Debug, depth, type, "Run.ScriptNotTidied", file);
+            }
+        }
+    }
+
+    /// <summary>Where the copies of a script are written while it runs.</summary>
+    private static string ScriptFolder() => Path.Combine(Path.GetTempPath(), "WhaleGenie");
+
+    /// <summary>
+    /// The time a command is given, turned into one the process API understands: a step that asked
+    /// for no limit is given one long enough that nobody reading the number is waiting for it.
+    /// </summary>
+    private static int ScriptLimitOf(int timeoutMs) => timeoutMs <= 0 ? int.MaxValue : timeoutMs;
 
     /// <summary>How long a script may run when the step does not say.</summary>
     private const int DefaultScriptMs = 60000;

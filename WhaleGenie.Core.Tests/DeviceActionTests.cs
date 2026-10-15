@@ -5659,22 +5659,84 @@ public class DeviceActionTests
         Assert.Contains(devices.Calls, call => call.StartsWith("run node|") && call.EndsWith("|out utf8"));
     }
 
+    /// <summary>
+    /// Runs a check with AutoHotkey found where the check says it is: whether the machine these
+    /// checks happen to run on has one of its own must not change what the engine asks for.
+    /// </summary>
+    private static async Task WhereAutoHotkey(string? program, ExecutableStep[] steps,
+        FakeDeviceLayer devices, Action<RunResult, VariableStore> check)
+    {
+        var found = AutoHotkey.Program;
+        AutoHotkey.Program = () => program;
+        try
+        {
+            var (result, _, store) = await RunAsync(steps, devices);
+            check(result, store);
+        }
+        finally
+        {
+            AutoHotkey.Program = found;
+        }
+    }
+
     [Fact]
-    public async Task A_script_is_read_the_way_its_interpreter_prints()
+    public async Task Each_kind_of_script_goes_to_the_program_that_reads_it()
+    {
+        var devices = new FakeDeviceLayer();
+        await WhereAutoHotkey(@"C:\Tools\AutoHotkey64.exe",
+        [
+            Step("script.run", Param("kind", "ps1"), Param("script", "echo hi")),
+            Step("script.run", Param("kind", "bat"), Param("script", "echo hi")),
+            Step("script.run", Param("kind", "cmdFile"), Param("script", "echo hi")),
+            Step("script.run", Param("kind", "ahk"), Param("script", "MsgBox 1")),
+            Step("script.run", Param("kind", "custom"), Param("interpreter", "cscript //nologo"),
+                Param("extension", "vbs"), Param("script", "WScript.Echo 1")),
+        ], devices, (_, _) =>
+        {
+            // PowerShell is given the flags that stop it reading a profile or asking anything; the
+            // two file kinds go to cmd.exe; AutoHotkey is whatever program this machine has; and a
+            // program of the macro's own choosing keeps its own flags in front of the script's path.
+            Assert.Contains(devices.Calls,
+                call => call.StartsWith("run powershell.exe|-NoProfile") && call.Contains(".ps1\""));
+            Assert.Contains(devices.Calls,
+                call => call.StartsWith("run cmd.exe|/c") && call.Contains(".bat\""));
+            Assert.Contains(devices.Calls,
+                call => call.StartsWith("run cmd.exe|/c") && call.Contains(".cmd\""));
+            Assert.Contains(devices.Calls,
+                call => call.StartsWith(@"run C:\Tools\AutoHotkey64.exe|") && call.Contains(".ahk\""));
+            Assert.Contains(devices.Calls,
+                call => call.StartsWith(@"run cscript|//nologo """) && call.Contains(".vbs\""));
+
+            // Each is written under the ending its own kind is named after, in the code page that
+            // kind of script is read in.
+            Assert.Contains(devices.Calls, call => call.EndsWith(".ps1 echo hi False utf8bom"));
+            Assert.Contains(devices.Calls, call => call.EndsWith(".bat echo hi False system"));
+            Assert.Contains(devices.Calls, call => call.EndsWith(".cmd echo hi False system"));
+            Assert.Contains(devices.Calls, call => call.EndsWith(".ahk MsgBox 1 False utf8bom"));
+            Assert.Contains(devices.Calls, call => call.EndsWith(".vbs WScript.Echo 1 False utf8"));
+
+            // What those programs print is read in this machine's own code page, which is what the
+            // command prompt and Windows PowerShell write in when nothing is looking at the screen.
+            Assert.All(devices.Calls.Where(call => call.StartsWith("run ")),
+                call => Assert.EndsWith("|out system", call));
+        });
+    }
+
+    [Fact]
+    public async Task A_script_can_say_which_encoding_it_wants()
     {
         var devices = new FakeDeviceLayer();
         await RunAsync(
         [
-            Step("script.run", Param("language", "powershell"), Param("script", "echo hi")),
-            Step("script.run", Param("language", "node"), Param("script", "console.log('hi')")),
+            Step("script.run", Param("kind", "custom"), Param("interpreter", "cscript //nologo"),
+                Param("extension", ".vbs"), Param("encoding", "gbk"),
+                Param("script", "WScript.Echo \"中文\"")),
         ], devices);
 
-        // Node prints UTF-8 on every machine; Windows PowerShell and the command prompt print in the
-        // machine's own code page. Nobody should have to spell that out for each script.
+        // cscript reads a script through the system code page, so a Chinese script has to be written
+        // in GBK rather than in the UTF-8 a program of the macro's own choosing gets by default.
         Assert.Contains(devices.Calls, call =>
-            call.StartsWith("run powershell.exe") && call.EndsWith("|out system"));
-        Assert.Contains(devices.Calls, call =>
-            call.StartsWith("run node|") && call.EndsWith("|out utf8"));
+            call.StartsWith("writeFile") && call.EndsWith("gbk"));
     }
 
     [Fact]
@@ -5869,7 +5931,7 @@ public class DeviceActionTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("script.run", Param("language", "powershell"),
+            Step("script.run", Param("kind", "ps1"),
                 Param("script", "Write-Host 'hello from a script'"),
                 Returns("output=said")),
         ], devices);
@@ -5889,7 +5951,7 @@ public class DeviceActionTests
     public async Task A_script_runs_where_the_macros_are_when_that_folder_is_there()
     {
         var devices = new FakeDeviceLayer { PathExists = true };
-        await RunAsync([Step("script.run", Param("script", "echo hi"))], devices);
+        await RunAsync([Step("script.run", Param("kind", "ps1"), Param("script", "echo hi"))], devices);
 
         Assert.Contains(devices.Calls,
             call => call.StartsWith("run powershell.exe") && call.Contains("|G:\\fake|60000"));
@@ -5901,7 +5963,7 @@ public class DeviceActionTests
         // A program cannot be started in a folder that does not exist, so a folder that is not
         // there yet is left to whoever started WhaleGenie rather than failing the step.
         var devices = new FakeDeviceLayer();
-        await RunAsync([Step("script.run", Param("script", "echo hi"))], devices);
+        await RunAsync([Step("script.run", Param("kind", "ps1"), Param("script", "echo hi"))], devices);
 
         Assert.Contains(devices.Calls,
             call => call.StartsWith("run powershell.exe") && call.EndsWith("||60000|out system"));
@@ -5913,7 +5975,8 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer();
         await RunAsync(
         [
-            Step("script.run", Param("script", "echo hi"), Param("arguments", "--quiet"),
+            Step("script.run", Param("kind", "ps1"), Param("script", "echo hi"),
+                Param("arguments", "--quiet"),
                 Param("folder", @"C:\work"), Param("timeoutMs", "5000")),
         ], devices);
 
@@ -5923,13 +5986,27 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_script_that_asks_for_no_limit_is_not_cut_short_by_a_clock()
+    {
+        var devices = new FakeDeviceLayer();
+        await RunAsync(
+        [
+            Step("script.run", Param("kind", "bat"), Param("script", "echo hi"), Param("timeoutMs", "0")),
+        ], devices);
+
+        // A timeout of nought is "as long as it takes", so the command is given the longest wait the
+        // process API has rather than the moment's worth of nought milliseconds it would mean.
+        Assert.Contains(devices.Calls, call => call.Contains($"|{int.MaxValue}|"));
+    }
+
+    [Fact]
     public async Task A_script_can_have_a_macro_value_written_into_it()
     {
         var devices = new FakeDeviceLayer();
         await RunAsync(
         [
             Step("control.setVariable", Param("name", "who"), Param("value", "Ann")),
-            Step("script.run", Param("script", "Write-Host {{who}}"),
+            Step("script.run", Param("kind", "ps1"), Param("script", "Write-Host {{who}}"),
                 Param("arguments", "--to {{who}} --x {{nope}}"), Returns("output=out")),
         ], devices);
 
@@ -5949,7 +6026,7 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer();
         await RunAsync(
         [
-            Step("script.run", Param("language", "custom"), Param("interpreter", "dotnet-script"),
+            Step("script.run", Param("kind", "custom"), Param("interpreter", "dotnet-script"),
                 Param("extension", "csx"), Param("script", "Console.WriteLine(1);")),
         ], devices);
 
@@ -5962,31 +6039,12 @@ public class DeviceActionTests
     }
 
     [Fact]
-    public async Task A_script_for_another_program_keeps_the_flags_and_the_encoding_it_was_given()
-    {
-        var devices = new FakeDeviceLayer();
-        await RunAsync(
-        [
-            Step("script.run", Param("language", "custom"), Param("interpreter", "cscript //nologo"),
-                Param("extension", ".vbs"), Param("encoding", "gbk"),
-                Param("script", "WScript.Echo \"中文\"")),
-        ], devices);
-
-        // cscript reads a script through the system code page, so a Chinese script has to be
-        // written in GBK rather than the UTF-8 everything else gets.
-        Assert.Contains(devices.Calls, call =>
-            call.StartsWith(@"run cscript|//nologo """) && call.Contains(".vbs\"||60000"));
-        Assert.Contains(devices.Calls, call =>
-            call.StartsWith("writeFile") && call.EndsWith("gbk"));
-    }
-
-    [Fact]
     public async Task A_script_for_another_program_says_so_when_it_names_no_program()
     {
         var devices = new FakeDeviceLayer();
         var (result, _, _) = await RunAsync(
         [
-            Step("script.run", Param("language", "custom"), Param("extension", "csx"),
+            Step("script.run", Param("kind", "custom"), Param("extension", "csx"),
                 Param("script", "echo hi")),
         ], devices);
 
@@ -6000,7 +6058,7 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer();
         var (result, _, _) = await RunAsync(
         [
-            Step("script.run", Param("language", "custom"), Param("interpreter", "dotnet-script"),
+            Step("script.run", Param("kind", "custom"), Param("interpreter", "dotnet-script"),
                 Param("script", "echo hi")),
         ], devices);
 
@@ -6009,40 +6067,71 @@ public class DeviceActionTests
     }
 
     [Fact]
-    public async Task A_script_that_stops_with_an_error_fails_the_step()
+    public async Task A_script_that_stops_with_an_error_fails_the_step_and_hands_over_what_it_said()
     {
         var devices = new FakeDeviceLayer
         {
-            Command = new CommandResult(1, string.Empty, "cannot open the file"),
+            Command = new CommandResult(1, "  what it printed  ", "cannot open the file"),
         };
 
-        var (result, _, _) = await RunAsync(
-        [Step("script.run", Param("script", "throw 'no'"))], devices);
+        var (result, _, store) = await RunAsync(
+        [
+            Step("script.run", Param("kind", "ps1"), Param("script", "throw 'no'"),
+                Returns("output=said", "error=why", "success=ok")),
+        ], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.ScriptFailed", result.Key);
         Assert.Contains("cannot open the file", result.Detail);
+
+        // The step is failed for the exit code, and what the script came to is handed over all the
+        // same: that is what a macro reads on the steps after this one, once its failure rule — the
+        // step's own, or the answer the user gave the question — has let it carry on.
+        // Only the blank lines around it go: what the script printed is kept as it printed it.
+        Assert.Equal("  what it printed  ", store.Local.Values["said"].AsText());
+        Assert.Equal("cannot open the file", store.Local.Values["why"].AsText());
+        Assert.False(store.Local.Values["ok"].Flag);
     }
 
     [Fact]
     public async Task A_script_step_with_nothing_in_it_fails()
     {
         var devices = new FakeDeviceLayer();
-        var (result, _, _) = await RunAsync([Step("script.run", Param("script", "   "))], devices);
+        var (result, _, _) = await RunAsync(
+            [Step("script.run", Param("kind", "ps1"), Param("script", "   "))], devices);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.MissingScript", result.Key);
     }
 
     [Fact]
-    public async Task A_script_for_an_interpreter_WhaleGenie_does_not_know_fails()
+    public async Task A_kind_of_script_WhaleGenie_does_not_know_fails()
     {
         var devices = new FakeDeviceLayer();
         var (result, _, _) = await RunAsync(
-        [Step("script.run", Param("language", "brainfuck"), Param("script", "+++"))], devices);
+        [Step("script.run", Param("kind", "brainfuck"), Param("script", "+++"))], devices);
 
         Assert.False(result.Succeeded);
-        Assert.Equal("Run.UnknownInterpreter", result.Key);
+        Assert.Equal("Run.UnknownScriptKind", result.Key);
+    }
+
+    [Fact]
+    public async Task A_machine_with_no_AutoHotkey_says_so_rather_than_failing_the_command_line()
+    {
+        var devices = new FakeDeviceLayer();
+        await WhereAutoHotkey(null,
+        [
+            Step("script.run", Param("kind", "ahk"), Param("script", "MsgBox 1")),
+        ], devices, (result, _) =>
+        {
+            Assert.False(result.Succeeded);
+            Assert.Equal("Run.NoAutoHotkey", result.Key);
+
+            // Nothing was written and nothing was started: a machine without the program is not a
+            // command line that failed, it is a step that could not be run.
+            Assert.DoesNotContain(devices.Calls, call => call.StartsWith("start"));
+            Assert.Empty(devices.Files);
+        });
     }
 
     [Fact]
@@ -8618,8 +8707,15 @@ internal sealed class FakeDeviceLayer
     string IFileDevice.ReadText(string path, string encoding)
     {
         Note($"readFile {path} {encoding}");
-        return Files.TryGetValue(path, out var text) ? text : string.Empty;
+        return Files.TryGetValue(path, out var text) ? text : FileText;
     }
+
+    /// <summary>
+    /// What reading a text file answers when that path was never written. A script step reads back
+    /// the mark the command it started leaves behind, and a check that wants that command to look as
+    /// though it came to an end of its own says so here.
+    /// </summary>
+    public string FileText { get; set; } = string.Empty;
 
     byte[] IFileDevice.ReadBytes(string path)
     {

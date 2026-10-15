@@ -300,7 +300,7 @@ public class MacroCheckTests
     {
         // A script's $是那个语言自己的变量，和宏的变量没有关系。
         var script = Step("script.run",
-            Text("language", "powershell"),
+            Text("kind", "ps1"),
             Text("script", "Write-Host $env:TEMP; $result = 1"),
             Text("arguments", "-Name $name"));
 

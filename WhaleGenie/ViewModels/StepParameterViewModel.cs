@@ -72,7 +72,11 @@ public partial class StepParameterViewModel : ViewModelBase
         }
 
         ExpressionSuggestions = suggestions;
-        Text = definition.DefaultValue;
+        // The starting value in the interface's own language: a field whose default is a piece of
+        // code — the example a script step begins with — has prose in it, which is a thing the
+        // message tables carry like a label or a hint rather than something written into the
+        // catalogue once.
+        Text = definition.LocalDefault;
         Flag = string.Equals(definition.DefaultValue, "true", StringComparison.OrdinalIgnoreCase);
 
         // The results this action can hand over are listed here, one line each, with the one a step
@@ -780,6 +784,18 @@ public partial class StepParameterViewModel : ViewModelBase
     public bool IsOffsetAnchor { get; set; }
 
     public bool IsMultiline => Definition.Kind is ActionParameterKind.MultilineText;
+
+    /// <summary>
+    /// True when a box of several lines is a box of a program rather than of a sentence: a script
+    /// of a dozen lines is not read through a window four lines high.
+    /// </summary>
+    public bool IsTall => IsMultiline && Definition.Tall;
+
+    /// <summary>
+    /// How tall a box of several lines stands: the usual four lines of writing, or the dozen or so
+    /// a script of its own needs.
+    /// </summary>
+    public double MultilineHeight => IsTall ? 200 : 76;
 
     public bool IsNumber => Definition.Kind is ActionParameterKind.Number;
 

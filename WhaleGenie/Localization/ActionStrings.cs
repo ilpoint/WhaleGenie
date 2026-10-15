@@ -2715,36 +2715,42 @@ internal static class ActionStrings
 
         // ------------------------------------------------------------------ script
         ["script.run.name"] = "运行脚本",
-        ["script.run.desc"] = "用选定的解释器运行一段脚本，用于处理动作目录未覆盖的情况。",
-        ["script.run.language.label"] = "解释器",
-        ["script.run.language.hint"] = "运行这段脚本使用的解释器，默认 PowerShell。PowerShell 与命令提示符每台 Windows 都自带；"
-            + "Node.js 与 Python 需要自行安装；自选解释器用于机器上安装的其他程序，例如 dotnet-script。",
-        ["script.run.language.option.powershell"] = "PowerShell",
-        ["script.run.language.option.cmd"] = "命令提示符",
-        ["script.run.language.option.node"] = "Node.js",
-        ["script.run.language.option.python"] = "Python",
-        ["script.run.language.option.custom"] = "自选解释器",
+        ["script.run.desc"] = "运行一段命令、批处理、PowerShell 或 AutoHotkey 脚本，也可以交给机器上别的程序运行。",
+        ["script.run.kind.label"] = "脚本类型",
+        ["script.run.kind.hint"] = "这一段脚本交给谁运行。三种命令写法都先把正文写成批处理文件再交给 cmd.exe："
+            + "第一种在命令跑完后把窗口留着，好让人看输出；第二种在命令跑完时把窗口关掉；第三种不显示窗口。"
+            + "两种文件类型与 PowerShell、AutoHotkey 都不显示窗口；自选程序用于机器上装的其他解释器。默认 PowerShell。",
+        ["script.run.kind.option.cmdKeep"] = "CMD命令(完成保留窗口)",
+        ["script.run.kind.option.cmdClose"] = "CMD命令(完成后关闭窗口)",
+        ["script.run.kind.option.cmdHidden"] = "CMD命令(隐藏命令行窗口)",
+        ["script.run.kind.option.bat"] = "BAT批处理文件(.bat)",
+        ["script.run.kind.option.cmdFile"] = "CMD批处理脚本(.cmd)",
+        ["script.run.kind.option.ps1"] = "PowerShell脚本(.ps1)",
+        ["script.run.kind.option.ahk"] = "AutoHotKey脚本(.ahk)",
+        ["script.run.kind.option.custom"] = "自定义脚本类型",
         ["script.run.interpreter.label"] = "解释器命令行",
-        ["script.run.interpreter.hint"] = "运行这段脚本的程序，它自己的开关写在前面，配合「自选解释器」使用。脚本的路径会接在它后面，"
+        ["script.run.interpreter.hint"] = "运行这段脚本的程序，它自己的开关写在前面，配合「自定义脚本类型」使用。脚本的路径会接在它后面，"
             + "与手打命令行时一样；路径里有空格时用引号括起来。",
         ["script.run.extension.label"] = "脚本后缀",
-        ["script.run.extension.hint"] = "那个程序认识的脚本后缀，例如 dotnet-script 用 .csx、cscript 用 .vbs。只在「自选解释器」时用得上。",
+        ["script.run.extension.hint"] = "那个程序认识的脚本后缀，例如 dotnet-script 用 .csx、cscript 用 .vbs。只在「自定义脚本类型」时用得上。",
         ["script.run.encoding.label"] = "脚本文件编码",
-        ["script.run.encoding.hint"] = "交给解释器的那份脚本按什么编码写，默认「按解释器习惯」。按解释器习惯指 PowerShell 带 BOM、"
-            + "其余不带，各自都能正确读出中文；像 cscript 这种按系统代码页读文件的程序，要选 GBK。",
-        ["script.run.encoding.option.auto"] = "按解释器习惯",
+        ["script.run.encoding.hint"] = "交给程序的那份脚本按什么编码写，默认「按这类脚本的习惯」。按习惯指批处理与命令用本机代码页、"
+            + "PowerShell 与 AutoHotkey 带 BOM、自选程序用 UTF-8，各自都能正确读出中文；像 cscript 这种按系统代码页读文件的程序，要选 GBK。",
+        ["script.run.encoding.option.auto"] = "按这类脚本的习惯",
         ["script.run.encoding.option.utf8"] = "UTF-8",
         ["script.run.encoding.option.utf8bom"] = "UTF-8 带 BOM",
         ["script.run.encoding.option.gbk"] = "GBK（中文）",
         ["script.run.encoding.option.utf16"] = "UTF-16",
         ["script.run.script.label"] = "脚本",
-        ["script.run.script.hint"] = "脚本本身。写 {{变量名}} 的地方会在运行前换成那个变量的值，这就是宏的值传进脚本的方式；脚本打印出来的内容会回到下面的结果变量里。",
+        ["script.run.script.hint"] = "脚本正文，交给上面那个程序运行。写 {{变量名}} 的地方会在运行前换成那个变量的值，这就是宏的值传进脚本的方式；"
+            + "脚本打印出来的内容在能回收的那几种类型上回到「输出」里。",
         ["script.run.arguments.label"] = "参数",
         ["script.run.arguments.hint"] = "附加在脚本命令行后面的参数，其中的 {{变量名}} 也会替换成变量的值。默认留空，表示不传参数。",
         ["script.run.folder.label"] = "工作目录",
         ["script.run.folder.hint"] = "脚本在哪个目录中运行。默认留空，表示宏所在的目录；该目录不存在时，改用鲸灵自身的工作目录。",
         ["script.run.timeoutMs.label"] = "超时",
-        ["script.run.timeoutMs.hint"] = "超过这个时长就结束脚本并判这一步失败，单位毫秒，默认 60000。",
+        ["script.run.timeoutMs.hint"] = "超过这个时长就结束脚本并判这一步失败，单位毫秒，默认 60000。可能会跑更久的脚本，"
+            + "或者要把窗口留着慢慢看的脚本，填 0 表示不限时。",
 
         // ---------------------------------------------------------------- condition
         ["condition.imageExists.name"] = "图片存在",
@@ -3475,7 +3481,14 @@ internal static class ActionStrings
 
         // script.run
         ["script.run.return.output.label"] = "输出",
-        ["script.run.return.output.hint"] = "脚本打印的内容，去掉了前后的空行。",
+        ["script.run.return.output.hint"] = "脚本打印的内容，去掉了前后的空行。只有不显示窗口的类型收得到；"
+            + "在窗口里跑的命令把输出写在那个窗口上，这一项是空的。",
+        ["script.run.return.error.label"] = "错误消息",
+        ["script.run.return.error.hint"] = "脚本在错误输出上写的内容，或解释器自己报的错。脚本正常结束时为空；"
+            + "在窗口里跑的命令没有地方写给它，这一项也是空的。",
+        ["script.run.return.success.label"] = "是否执行成功",
+        ["script.run.return.success.hint"] = "脚本以退出码 0 结束为真，否则为假。退出码不是 0 时这一步也会判失败，"
+            + "所以这一项是在失败策略放行之后读的。",
         ["script.run.returns.label"] = "要留下的结果",
         ["script.run.returns.hint"] = ReturnsHintText,
 

@@ -98,6 +98,12 @@ public class ActionPageTests
     [Fact]
     public void What_is_tuned_rather_than_what_the_step_is_lives_on_the_advanced_page()
     {
+        // One name is left alone for the same reason the two above are: an encoding is a format
+        // detail of a file being read or written in one action, and in a script action it is the
+        // second thing the step asks for after which kind of script it is, so it stands on the
+        // basic page beside the kind it belongs to.
+        string[] theKindItself = ["script.run.encoding"];
+
         var misplaced = new List<string>();
 
         foreach (var action in Ui.Run(() => ActionCatalog.RunnableActions.ToList()))
@@ -105,6 +111,11 @@ public class ActionPageTests
             var basic = On(action, viewModel => viewModel.Rows);
             foreach (var name in Tuning.Where(name => basic.Contains(name, StringComparer.Ordinal)))
             {
+                if (theKindItself.Contains($"{action.Key}.{name}", StringComparer.Ordinal))
+                {
+                    continue;
+                }
+
                 misplaced.Add($"{action.Key}: {name}");
             }
         }

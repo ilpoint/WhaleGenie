@@ -249,6 +249,13 @@ public class ActionParameter
     /// <summary>Initial value, kept as text and converted when the JSON is written.</summary>
     public string DefaultValue { get; init; } = string.Empty;
 
+    /// <summary>
+    /// The initial value in the current interface language. A field whose starting value is code
+    /// rather than a number or a path — the example a script step begins with — has prose of its
+    /// own in it, so it is written in both languages the way a label or a hint is.
+    /// </summary>
+    public string LocalDefault => Strings.Get($"{OwnerKey}.{Name}.default", DefaultValue);
+
     /// <summary>When false the parameter may be left empty.</summary>
     public bool Required { get; init; } = true;
 
@@ -369,6 +376,13 @@ public class ActionParameter
     /// variables a macro uses.
     /// </summary>
     public bool ForeignText { get; init; }
+
+    /// <summary>
+    /// True for a box that is taller than the usual one because what goes in it is a piece of a
+    /// program rather than a sentence: a script of a dozen lines is not read through a window four
+    /// lines high.
+    /// </summary>
+    public bool Tall { get; init; }
 
     /// <summary>Choices paired with the text shown for them, honouring any labels.</summary>
     public IReadOnlyList<ActionParameterOption> OptionChoices
