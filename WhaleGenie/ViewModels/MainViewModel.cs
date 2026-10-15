@@ -45,7 +45,12 @@ public partial class MainViewModel : ViewModelBase
     public string SystemHint => Localization.Strings.Get(
         IsRunning ? "Main.SystemDisableHint" : "Main.SystemEnableHint");
 
-    public string Version { get; } = "v0.0.1";
+    /// <summary>
+    /// What the program is called in the corner of the window, and what a package says wrote it.
+    /// Read out of the program itself rather than typed here, so the release tag stays the only
+    /// place a version is written.
+    /// </summary>
+    public string Version { get; } = AppVersion.Text;
 
     /// <summary>
     /// Whether anything in the list has been changed since the package was last written — macros

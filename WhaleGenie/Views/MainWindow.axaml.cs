@@ -870,7 +870,7 @@ public partial class MainWindow : Window
     private async void OnAboutClicked(object? sender, RoutedEventArgs e)
     {
         var choice = await ConfirmDialog.ShowAsync(this, Strings.Get("Main.Title"),
-            Strings.Format("Main.AboutText", Version()), Strings.Get("Main.AboutOpenPage"),
+            Strings.Format("Main.AboutText", AppVersion.Text), Strings.Get("Main.AboutOpenPage"),
             Strings.Get("Main.AboutNotices"), showCancel: false, height: 320);
 
         if (choice == ConfirmChoice.Primary)
@@ -889,12 +889,6 @@ public partial class MainWindow : Window
         await ConfirmDialog.ShowAsync(this, Strings.Get("Main.AboutNotices"),
             ThirdPartyNotices.Read(), Strings.Get("Common.Ok"), showCancel: false, height: 460);
     }
-
-    /// <summary>The version the about box names, read from the program itself.</summary>
-    private static string Version()
-        => typeof(MainWindow).Assembly.GetName().Version is { } version
-            ? $"v{version.Major}.{version.Minor}.{version.Build}"
-            : Strings.Get("Main.AboutUnknownVersion");
 
     private async void OnOpenSettings(object? sender, RoutedEventArgs e)
     {

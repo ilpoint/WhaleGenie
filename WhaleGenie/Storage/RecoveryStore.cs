@@ -307,7 +307,7 @@ public static class RecoveryStore
                     return;
                 }
 
-                root["appVersion"] = AppVersion();
+                root["appVersion"] = AppVersion.Text;
                 root["savedUtc"] = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
                 Write(root);
                 _written = content;
@@ -385,9 +385,4 @@ public static class RecoveryStore
             // Nothing to do about a file that will not go; the next run offers it once more.
         }
     }
-
-    private static string AppVersion()
-        => typeof(RecoveryStore).Assembly.GetName().Version is { } version
-            ? $"v{version.Major}.{version.Minor}.{version.Build}"
-            : "unknown";
 }
