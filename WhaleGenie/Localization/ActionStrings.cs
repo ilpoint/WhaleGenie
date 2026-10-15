@@ -2790,6 +2790,56 @@ internal static class ActionStrings
         ["script.pip.python.label"] = "Python 命令",
         ["script.pip.python.hint"] = "用哪个 Python 的 pip 下载这些包，它自己的开关写在前面。"
             + "默认留空，表示用本机搜索路径上的 python。",
+        ["script.csharp.name"] = "运行 C# 脚本",
+        ["script.csharp.desc"] = "把一段 C# 编译后运行，运行期间脚本能读写宏的变量、调用宏的步骤。",
+        ["script.csharp.script.label"] = "脚本",
+        ["script.csharp.script.hint"] = "脚本本身。它在鲸灵自己的子进程里编译并运行，"
+            + "所以脚本对自己做什么都伤不到宏；运行期间宏就在它旁边：__InjectedServices.DynamicObject 就是宏，"
+            + "GetProperty(\"名字\") 读一个宏变量，SetProperty(\"名字\", 值) 写一个，"
+            + "StepExecute(\"标识\") 跑本宏里的某一步，SetResult(值) 交回这一步要留下的结果，"
+            + "Console.WriteLine 写的内容逐行进运行日志。",
+        ["script.csharp.script.default"] = """
+            using System;
+
+            class Program
+            {
+                static void Main()
+                {
+                    var WhaleGenie = __InjectedServices.DynamicObject;
+
+                    //获取变量值
+                    //dynamic text = WhaleGenie.GetProperty("变量名");
+
+                    //设置变量值
+                    //WhaleGenie.SetProperty("变量名", 新值);
+
+                    //调用步骤功能
+                    //WhaleGenie.StepExecute("a7k2");
+
+                    //交回这一步要留下的结果
+                    //WhaleGenie.SetResult(text);
+
+                    //打印日志到控制台
+                    Console.WriteLine("Hello World");
+                }
+            }
+            """,
+        ["script.csharp.arguments.label"] = "参数",
+        ["script.csharp.arguments.hint"] = "附加在脚本命令行后面的参数，入口点从调用它时拿到的那个数组里读到它们。"
+            + "默认留空，表示不传参数。",
+        ["script.csharp.timeoutMs.label"] = "超时",
+        ["script.csharp.timeoutMs.hint"] = "超过这个时长就结束脚本并判这一步失败，单位毫秒，默认 60000；"
+            + "可能会跑更久的脚本填 0，表示不限时。",
+        ["script.csharp.folder.label"] = "工作目录",
+        ["script.csharp.folder.hint"] = "脚本在哪个目录中运行。默认留空，表示宏所在的目录；该目录不存在时，"
+            + "改用鲸灵自身的工作目录。",
+        ["script.nuget.name"] = "下载 NuGet 包",
+        ["script.nuget.desc"] = "看一下要用的 NuGet 包在不在，缺的连同它们自己依赖的包一起下下来，"
+            + "好让 C# 脚本能编译着用。",
+        ["script.nuget.packages.label"] = "包",
+        ["script.nuget.packages.hint"] = "C# 脚本要用到的包，一行一个：一个包名，或者包名后面隔一个空格跟上版本号。"
+            + "只写包名取最新的稳定版。以 # 开头的行会被跳过。包下在鲸灵自己的目录里，"
+            + "连带它们依赖的包，每个 C# 脚本都按这个目录里的东西编译。",
 
         // ---------------------------------------------------------------- condition
         ["condition.imageExists.name"] = "图片存在",
@@ -3553,6 +3603,31 @@ internal static class ActionStrings
         ["script.pip.return.success.hint"] = "pip 顺利结束为真，否则为假；失败时这一步也会判失败。",
         ["script.pip.returns.label"] = "要留下的结果",
         ["script.pip.returns.hint"] = ReturnsHintText,
+
+        // script.csharp
+        ["script.csharp.return.value.label"] = "返回值",
+        ["script.csharp.return.value.hint"] = "脚本用 WhaleGenie.SetResult 交回的那个值，原样保留："
+            + "数字、文字、真假、列表，或者一条带字段的记录。脚本没交过就是空的。",
+        ["script.csharp.return.error.label"] = "错误消息",
+        ["script.csharp.return.error.hint"] = "脚本编译不过时编译器说的话，或者运行中出的错，"
+            + "都带着出错的行号。脚本顺利跑完时为空。",
+        ["script.csharp.return.success.label"] = "是否执行成功",
+        ["script.csharp.return.success.hint"] = "脚本编译通过并跑完为真，否则为假。脚本失败时这一步也会判失败，"
+            + "所以这一项是在失败策略放行之后读的。",
+        ["script.csharp.returns.label"] = "要留下的结果",
+        ["script.csharp.returns.hint"] = ReturnsHintText,
+
+        // script.nuget
+        ["script.nuget.return.packages.label"] = "下载的包",
+        ["script.nuget.return.packages.hint"] = "这一次真的下下来的包，一项一个，连着取到的是哪个版本。"
+            + "要的包都已经在时这一项为空。",
+        ["script.nuget.return.error.label"] = "错误消息",
+        ["script.nuget.return.error.hint"] = "包没能下下来时说清是哪一处：找不到这个包、连不上源，"
+            + "或者 NuGet 自己报的错。顺利时为空。",
+        ["script.nuget.return.success.label"] = "是否执行成功",
+        ["script.nuget.return.success.hint"] = "要的包都就绪为真，否则为假；失败时这一步也会判失败。",
+        ["script.nuget.returns.label"] = "要留下的结果",
+        ["script.nuget.returns.hint"] = ReturnsHintText,
 
         // vision.waitImage
 

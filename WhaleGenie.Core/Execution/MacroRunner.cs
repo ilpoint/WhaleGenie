@@ -1589,6 +1589,13 @@ public sealed class MacroRunner
                 RunPip(step, depth, token);
                 return Signal.Normal;
 
+            case "script.csharp":
+                return RunCSharp(step, depth, token);
+
+            case "script.nuget":
+                RunNuGet(step, depth, token);
+                return Signal.Normal;
+
             default:
                 throw new StepFailure("Run.Unsupported", step.Type);
         }
@@ -7950,10 +7957,39 @@ public sealed class MacroRunner
             token);
 
         HandOverScript(step, outcome, "value");
-        Log(LogLevel.Info, depth, step.Type, "Run.RanPython", outcome.Output.Length);
+        Log(LogLevel.Info, depth, step.Type, "Run.RanScript", "Python", outcome.Output.Length);
 
         // A step the script ran may have asked for the whole macro to stop, and a macro that was
         // told to stop stops: the script still gets its answer, and the run ends there.
+        return _stoppedInsideScript ? Signal.Stop : Signal.Normal;
+    }
+
+    /// <summary>
+    /// Compiles a C# script and runs it in a process of this very program, with the macro in reach
+    /// of it while it runs. What it prints goes into the run log line by line, what it reads and
+    /// writes is what the macro holds, and what it hands back with SetResult is this step's result.
+    /// A script that does not compile is reported with what the compiler said about it.
+    /// </summary>
+    private Signal RunCSharp(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var script = Template(step.Text("script"));
+        if (script.Trim().Length == 0)
+        {
+            throw new StepFailure("Run.MissingScript");
+        }
+
+        var request = new CSharpScript(script, Template(step.Text("arguments")).Trim(),
+            ScriptWorkingFolder(step), ScriptTimeoutOf(step));
+
+        _stoppedInsideScript = false;
+        var outcome = _devices.Scripts.RunCSharp(request, new MacroHost(this, step.Type, depth, token),
+            line => Log(LogLevel.Info, depth, step.Type, "Run.ScriptOutput", line),
+            line => Log(LogLevel.Error, depth, step.Type, "Run.ScriptError", line),
+            token);
+
+        HandOverScript(step, outcome, "value");
+        Log(LogLevel.Info, depth, step.Type, "Run.RanScript", "C#", outcome.Output.Length);
+
         return _stoppedInsideScript ? Signal.Stop : Signal.Normal;
     }
 
@@ -7977,13 +8013,51 @@ public sealed class MacroRunner
             line => Log(LogLevel.Info, depth, step.Type, "Run.PackageOutput", line),
             line => Log(LogLevel.Error, depth, step.Type, "Run.PackageError", line), token);
 
+        HandOverPackages(step, depth, outcome, "Run.PipFailed");
+    }
+
+    /// <summary>
+    /// Brings down the NuGet packages a step names, with everything those packages need, so that a
+    /// C# script can be compiled against them. A step whose packages are all there needs no network
+    /// at all, and what this run really put there is handed over as a list.
+    /// </summary>
+    private void RunNuGet(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var wanted = ScriptPackages(step);
+        if (wanted.Count == 0)
+        {
+            throw new StepFailure("Run.NoPackages");
+        }
+
+        var outcome = _devices.Scripts.InstallNuGet(
+            new NuGetRequest(wanted, Math.Max(0, step.Meta.TimeoutMs)),
+            line => Log(LogLevel.Info, depth, step.Type, "Run.PackageOutput", line),
+            line => Log(LogLevel.Error, depth, step.Type, "Run.PackageError", line), token);
+
+        HandOverPackages(step, depth, outcome, "Run.NuGetFailed");
+    }
+
+    /// <summary>
+    /// Hands over what a package step came to and fails the step when it did not go well: which
+    /// packages this run put there, what went wrong, and whether it worked. A run that ended badly
+    /// hands the three over first, so a macro whose failure rule lets it carry on reads them.
+    /// </summary>
+    private void HandOverPackages(ExecutableStep step, int depth, ScriptResult outcome,
+        string failed)
+    {
         Give(step, "packages", outcome.Result);
         Give(step, "error", Value.FromText(outcome.Error.Trim()));
-        Give(step, "success", Value.FromBool(outcome.ExitCode == 0));
+        Give(step, "success", Value.FromBool(
+            outcome.FailureKey.Length == 0 && outcome.ExitCode == 0));
+
+        if (outcome.FailureKey.Length > 0)
+        {
+            throw new StepFailure(outcome.FailureKey, Careful(outcome.Error));
+        }
 
         if (outcome.ExitCode != 0)
         {
-            throw new StepFailure("Run.PipFailed", Careful(outcome.Error));
+            throw new StepFailure(failed, Careful(outcome.Error));
         }
 
         foreach (var package in outcome.Result.AsList())

@@ -9,6 +9,10 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Emit;
+using NuGet.Common;
 using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Core.Devices.Platform;
@@ -28,27 +32,36 @@ namespace WhaleGenie.Core.Devices.Platform;
 /// </remarks>
 public sealed class ScriptDevice : IScriptDevice
 {
-    /// <summary>The environment variable the child is told the pipe by.</summary>
-    private const string PipeVariable = "WHALEGENIE_PIPE";
-
     /// <summary>How long the program waits for a script to go away after it has been told to stop.</summary>
     private const int StopWaitMs = 2000;
 
     private readonly IProcessDevice _processes;
-    private readonly string _pythonPackages;
+    private readonly string _packages;
+    private readonly string _host;
 
-    /// <summary>The device the program itself uses: packages beside the program, this machine's own programs.</summary>
+    /// <summary>
+    /// The device the program itself uses: packages beside the program, this machine's own programs,
+    /// and this program's own file to run a compiled script with.
+    /// </summary>
     public ScriptDevice(IProcessDevice processes)
-        : this(processes, ScriptFolders.PythonPackages)
+        : this(processes, ScriptFolders.Packages, Environment.ProcessPath ?? string.Empty)
     {
     }
 
-    /// <summary>The same with somewhere else to keep the packages, which is what a check hands in.</summary>
-    public ScriptDevice(IProcessDevice processes, string pythonPackages)
+    /// <summary>The same with somewhere else to keep the packages and another file to run scripts
+    /// with, which is what a check hands in.</summary>
+    public ScriptDevice(IProcessDevice processes, string packages, string host)
     {
         _processes = processes;
-        _pythonPackages = pythonPackages;
+        _packages = packages;
+        _host = host;
     }
+
+    /// <summary>Where the Python packages live: the folder every Python script imports from.</summary>
+    private string PythonPackages => Path.Combine(_packages, "python");
+
+    /// <summary>Where the NuGet packages live: the folder every C# script is compiled against.</summary>
+    private string NuGetPackages => Path.Combine(_packages, "nuget");
 
     // ------------------------------------------------------------------ python
 
@@ -71,9 +84,9 @@ public sealed class ScriptDevice : IScriptDevice
             // and a script that says "import numpy" should not have to be told where it lives.
             // Whatever the machine already has on that path stays on it, after these two.
             var search = new List<string> { folder };
-            if (Directory.Exists(_pythonPackages))
+            if (Directory.Exists(PythonPackages))
             {
-                search.Add(_pythonPackages);
+                search.Add(PythonPackages);
             }
 
             if (Environment.GetEnvironmentVariable("PYTHONPATH") is { Length: > 0 } already)
@@ -94,8 +107,10 @@ public sealed class ScriptDevice : IScriptDevice
                 arguments.Add(script.Arguments);
             }
 
-            return Serve(script.Command, string.Join(' ', arguments), script.Folder, environment,
-                host, script.TimeoutMs, onOutput, onError, token);
+            return Serve(
+                new Serving(script.Command, string.Join(' ', arguments), script.Folder, environment,
+                    script.TimeoutMs),
+                host, onOutput, onError, token);
         }
         finally
         {
@@ -104,24 +119,192 @@ public sealed class ScriptDevice : IScriptDevice
     }
 
     /// <summary>
+    /// Compiles a C# script and runs it in a process of this very program: the script is written
+    /// out, compiled against this machine's own assemblies and the packages the macro downloaded,
+    /// and then handed to a second copy of WhaleGenie that has no window of its own. A script that
+    /// does not compile, or that has nothing to run, never gets that far, and what the compiler
+    /// said about it is handed back as the step's error message.
+    /// </summary>
+    public ScriptResult RunCSharp(CSharpScript script, IScriptHost host, Action<string> onOutput,
+        Action<string> onError, CancellationToken token)
+    {
+        var folder = Path.Combine(ScriptFolder(), $"script-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(folder);
+        var source = Path.Combine(folder, "script.cs");
+
+        try
+        {
+            File.WriteAllText(source, script.Script, NoMark);
+            var (built, failure) = Compile(source, folder, token);
+            if (failure is not null)
+            {
+                return failure;
+            }
+
+            var arguments = new List<string> { ScriptHost.Flag, Quoted(built!) };
+            if (script.Arguments.Length > 0)
+            {
+                arguments.Add(script.Arguments);
+            }
+
+            // A script is run by this program itself, which is what makes a stack overflow or an
+            // exit of its own something the macro survives; the one thing the host is told is where
+            // the way back into the macro is.
+            return Serve(
+                new Serving(Quoted(_host), string.Join(' ', arguments), script.Folder, new
+                    Dictionary<string, string>(), script.TimeoutMs,
+                    Missing: "Run.ProgramFailed", Lost: "Run.ScriptBridgeLost"),
+                host, onOutput, onError, token);
+        }
+        finally
+        {
+            Tidy(folder);
+        }
+    }
+
+    /// <summary>
+    /// Compiles one script into a file a process can load. A script with nothing to run is told
+    /// apart from one that does not compile: the first has no entry point, and the second is what
+    /// the compiler complained about, in the compiler's own words and on the line they are about.
+    /// </summary>
+    private (string? Built, ScriptResult? Failure) Compile(string source, string folder,
+        CancellationToken token)
+    {
+        var trees = new[]
+        {
+            // The encoding is written down with the source: without it the compiler refuses to
+            // write down which line anything is on, and a mistake a script makes while it runs
+            // would come back as a frame with no line in it.
+            CSharpSyntaxTree.ParseText(CSharpServices.Source,
+                new CSharpParseOptions(LanguageVersion.Latest), path: "injected.cs",
+                encoding: NoMark, cancellationToken: token),
+            CSharpSyntaxTree.ParseText(File.ReadAllText(source),
+                new CSharpParseOptions(LanguageVersion.Latest), path: source,
+                encoding: NoMark, cancellationToken: token),
+        };
+
+        var compilation = CSharpCompilation.Create("script", trees, References(),
+            new CSharpCompilationOptions(OutputKind.ConsoleApplication,
+                optimizationLevel: OptimizationLevel.Release));
+
+        // A program with no Main is a program the compiler complains about; that complaint is the
+        // step's answer here rather than a compilation error, because it is the script's shape
+        // rather than a mistake in it.
+        var complaining = compilation.GetDiagnostics(token)
+            .Where(complaint => complaint.Severity == DiagnosticSeverity.Error
+                && complaint.Id != NoEntryPointId)
+            .ToList();
+
+        if (complaining.Count > 0)
+        {
+            return (null, Failed("Run.ScriptCompileFailed", Said(complaining, folder)));
+        }
+
+        if (compilation.GetEntryPoint(token) is null)
+        {
+            return (null, Failed("Run.NoEntryPoint", string.Empty));
+        }
+
+        var built = Path.Combine(folder, "script.dll");
+        using (var image = File.Create(built))
+        using (var symbols = File.Create(Path.Combine(folder, "script.pdb")))
+        {
+            // The lines are written down with the symbols, so a mistake a script makes while it
+            // runs is reported against the line it was written on, the way a compiled program is.
+            var wrote = compilation.Emit(image, symbols,
+                options: new EmitOptions(debugInformationFormat: DebugInformationFormat.PortablePdb),
+                cancellationToken: token);
+
+            if (!wrote.Success)
+            {
+                return (null, Failed("Run.ScriptCompileFailed", Said(
+                    [.. wrote.Diagnostics.Where(complaint =>
+                        complaint.Severity == DiagnosticSeverity.Error)], folder)));
+            }
+        }
+
+        return (built, null);
+    }
+
+    /// <summary>
+    /// What the compiler said, one complaint to a line, in the shape a compiler says it: the file
+    /// and the place in it, then the error's own name and words. The copy of the script is in a
+    /// temporary folder of this program's making, which is nobody's business, so it is left out of
+    /// the path.
+    /// </summary>
+    private static string Said(IReadOnlyList<Diagnostic> complaining, string folder)
+    {
+        const int MostSaid = 10;
+        var lines = complaining.Take(MostSaid)
+            .Select(complaint => complaint.ToString()
+                .Replace(folder + Path.DirectorySeparatorChar, string.Empty, StringComparison.Ordinal))
+            .ToList();
+
+        if (complaining.Count > MostSaid)
+        {
+            lines.Add($"(and {complaining.Count - MostSaid} more)");
+        }
+
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    /// <summary>What one script is compiled against: this machine's own assemblies and the packages.</summary>
+    private IEnumerable<MetadataReference> References()
+        => [.. Machine.Value, .. NuGetStore.References(NuGetPackages)
+            .Select(path => MetadataReference.CreateFromFile(path))];
+
+    /// <summary>
+    /// Everything the runtime this program is running on says is trustworthy. Reading it from the
+    /// runtime rather than from a list written here is what keeps a script able to name what the
+    /// program itself can name, on whatever version of .NET it was built for.
+    /// </summary>
+    private static readonly Lazy<IReadOnlyList<MetadataReference>> Machine = new(() =>
+    {
+        var listed = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string ?? string.Empty;
+        return [.. listed
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Where(File.Exists)
+            .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))];
+    });
+
+    /// <summary>What the compiler calls a program whose entry point is not there.</summary>
+    private const string NoEntryPointId = "CS5001";
+
+    /// <summary>What one script came to when it never got as far as running.</summary>
+    private static ScriptResult Failed(string key, string said)
+        => new(1, string.Empty, said, Value.Null, key);
+
+    /// <summary>How one run of a script is started, and what to say when it cannot be.</summary>
+    /// <param name="Command">The program to run, with any flags of its own in front.</param>
+    /// <param name="Arguments">What it is run with, after the program's own flags.</param>
+    /// <param name="Folder">Where it runs, or empty for wherever the macro is.</param>
+    /// <param name="Environment">What the child is told beyond what it inherits.</param>
+    /// <param name="TimeoutMs">How long it may run, or zero for as long as it takes.</param>
+    /// <param name="Missing">What it means when that program cannot be started at all.</param>
+    /// <param name="Lost">What it means when it runs but never reaches the macro, if anything.</param>
+    private sealed record Serving(string Command, string Arguments, string Folder,
+        IDictionary<string, string> Environment, int TimeoutMs, string Missing = "Run.NoPython",
+        string Lost = "");
+
+    /// <summary>
     /// Runs a program over one of the little programs above and serves it until it stops: the
     /// requests it makes are answered here, on the thread that is walking the macro, and what it
     /// prints is handed over line by line as it arrives. The interpreter is named the way a macro
     /// writes a command line, so a virtual environment's own Python — a path with spaces in it —
     /// and the flags it needs in front both work.
     /// </summary>
-    private ScriptResult Serve(string command, string arguments, string folder,
-        IDictionary<string, string> environment, IScriptHost host, int timeoutMs,
-        Action<string> onOutput, Action<string> onError, CancellationToken token)
+    private ScriptResult Serve(Serving how, IScriptHost host, Action<string> onOutput,
+        Action<string> onError, CancellationToken token)
     {
-        var (program, flags) = CommandLine.Split(command);
+        var (program, flags) = CommandLine.Split(how.Command);
+        var arguments = how.Arguments;
         if (flags.Length > 0)
         {
             arguments = $"{flags} {arguments}";
         }
 
         var name = $"whalegenie-{Guid.NewGuid():N}";
-        environment[PipeVariable] = name;
+        how.Environment[ScriptHost.PipeVariable] = name;
 
         var info = new ProcessStartInfo
         {
@@ -135,12 +318,12 @@ public sealed class ScriptDevice : IScriptDevice
             StandardErrorEncoding = NoMark,
         };
 
-        if (folder.Length > 0)
+        if (how.Folder.Length > 0)
         {
-            info.WorkingDirectory = folder;
+            info.WorkingDirectory = how.Folder;
         }
 
-        foreach (var (key, value) in environment)
+        foreach (var (key, value) in how.Environment)
         {
             info.Environment[key] = value;
         }
@@ -148,17 +331,19 @@ public sealed class ScriptDevice : IScriptDevice
         using var pipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1,
             PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
         var asked = new BlockingCollection<JsonObject>();
+        var reached = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
         var output = new ConcurrentQueue<string>();
         var error = new ConcurrentQueue<string>();
         var said = new List<string>();
         var complained = new List<string>();
 
-        using var process = Start(info, program);
+        using var process = Start(info, program, how.Missing);
         var reading = new[]
         {
             Task.Run(() => Pump(process.StandardOutput, output)),
             Task.Run(() => Pump(process.StandardError, error)),
-            Task.Run(() => Listen(pipe, asked)),
+            Task.Run(() => Listen(pipe, asked, reached)),
         };
 
         var started = Stopwatch.GetTimestamp();
@@ -195,8 +380,8 @@ public sealed class ScriptDevice : IScriptDevice
                     break;
                 }
 
-                if (timeoutMs > 0
-                    && Stopwatch.GetElapsedTime(started).TotalMilliseconds > timeoutMs)
+                if (how.TimeoutMs > 0
+                    && Stopwatch.GetElapsedTime(started).TotalMilliseconds > how.TimeoutMs)
                 {
                     throw new DeviceActionException("Run.CommandTimeout", program);
                 }
@@ -209,6 +394,14 @@ public sealed class ScriptDevice : IScriptDevice
             // as it exits is still something it said. A stream a program of its own is still
             // holding open is left alone rather than waited on for ever.
             Task.WaitAll([reading[0], reading[1]], StopWaitMs);
+
+            // A script that ran but never reached the macro is a run that could not be served at
+            // all, which is a different thing from a script that failed and said why.
+            if (how.Lost.Length > 0 && !reached.Task.IsCompletedSuccessfully)
+            {
+                throw new DeviceActionException(how.Lost,
+                    complained.Count > 0 ? complained[^1] : program);
+            }
         }
         finally
         {
@@ -226,21 +419,21 @@ public sealed class ScriptDevice : IScriptDevice
     }
 
     /// <summary>
-    /// Starts the interpreter, saying in the engine's own words that this machine has none when
-    /// that is what Windows reports. Python is one of the two things a script step needs and
-    /// Windows does not bring.
+    /// Starts the program a script runs in, saying in the engine's own words what it means when
+    /// Windows reports that it will not start: for Python that this machine has none, and for this
+    /// program's own script host that it would not run.
     /// </summary>
-    private static Process Start(ProcessStartInfo info, string program)
+    private static Process Start(ProcessStartInfo info, string program, string missing)
     {
         try
         {
             return Process.Start(info)
-                ?? throw new DeviceActionException("Run.NoPython", program);
+                ?? throw new DeviceActionException(missing, program);
         }
         catch (Exception failure) when (failure is System.ComponentModel.Win32Exception
             or InvalidOperationException or PlatformNotSupportedException)
         {
-            throw new DeviceActionException("Run.NoPython", program);
+            throw new DeviceActionException(missing, program);
         }
     }
 
@@ -316,11 +509,13 @@ public sealed class ScriptDevice : IScriptDevice
     }
 
     /// <summary>Reads the requests a script makes until the pipe closes.</summary>
-    private static void Listen(NamedPipeServerStream pipe, BlockingCollection<JsonObject> into)
+    private static void Listen(NamedPipeServerStream pipe, BlockingCollection<JsonObject> into,
+        TaskCompletionSource<bool> reached)
     {
         try
         {
             pipe.WaitForConnection();
+            reached.TrySetResult(true);
             using var reader = new StreamReader(pipe, NoMark, false, 4096, leaveOpen: true);
             while (reader.ReadLine() is { } line)
             {
@@ -387,11 +582,11 @@ public sealed class ScriptDevice : IScriptDevice
             return new ScriptResult(0, string.Empty, string.Empty, Value.FromList([]));
         }
 
-        Directory.CreateDirectory(_pythonPackages);
+        Directory.CreateDirectory(PythonPackages);
         var arguments = new List<string>
         {
             "-m", "pip", "install", "--disable-pip-version-check", "--upgrade",
-            "--target", Quoted(_pythonPackages),
+            "--target", Quoted(PythonPackages),
         };
         arguments.AddRange(missing.Select(Quoted));
 
@@ -421,6 +616,54 @@ public sealed class ScriptDevice : IScriptDevice
     }
 
     /// <summary>
+    /// Reads which NuGet packages a macro names and brings the ones that are not there yet down
+    /// from the official feed, dependencies and all, so that a C# script can be compiled against
+    /// them. What went in is handed over as a list, and everything that went wrong — a package that
+    /// is not on the feed, a feed that cannot be reached, a run that went on too long — is handed
+    /// back as the step's own error message rather than thrown, because the three results of the
+    /// step are read after its failure rule has let the macro carry on.
+    /// </summary>
+    public ScriptResult InstallNuGet(NuGetRequest request, Action<string> onOutput,
+        Action<string> onError, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+
+        var store = new NuGetStore(NuGetPackages);
+        using var limit = request.TimeoutMs > 0
+            ? CancellationTokenSource.CreateLinkedTokenSource(token)
+            : null;
+        limit?.CancelAfter(request.TimeoutMs);
+
+        try
+        {
+            var wanted = NuGetStore.Written(request.Packages);
+            var missing = wanted.Where(package => !store.There(package)).ToList();
+
+            // Nothing to download is still a run worth making: the list of what a C# script is
+            // compiled against is written from what is on disk, which is what puts a package back
+            // into that list after the folders were moved about by hand.
+            var added = Task.Run(() => store.Fetch(missing, NullLogger.Instance, onOutput,
+                limit?.Token ?? token)).GetAwaiter().GetResult();
+
+            return new ScriptResult(0, string.Empty, string.Empty,
+                Value.FromList([.. added.Select(Value.FromText)]));
+        }
+        catch (OperationCanceledException) when (!token.IsCancellationRequested)
+        {
+            throw new DeviceActionException("Run.CommandTimeout", Feed);
+        }
+        catch (Exception failure) when (failure is not OperationCanceledException)
+        {
+            return new ScriptResult(1, string.Empty,
+                failure is DeviceActionException known ? known.Detail : failure.Message,
+                Value.FromList([]), "Run.NuGetFailed");
+        }
+    }
+
+    /// <summary>Where NuGet packages come from, for the line a run that went on too long writes.</summary>
+    private const string Feed = "nuget.org";
+
+    /// <summary>
     /// Whether a package is already in the folder pip installs into. The folder says so by itself:
     /// pip writes a <c>.dist-info</c> folder beside the code it unpacks, named after the package and
     /// its version, and reading that costs nothing where asking pip would mean starting an
@@ -428,7 +671,7 @@ public sealed class ScriptDevice : IScriptDevice
     /// </summary>
     private bool PipInstalled(string package)
     {
-        if (!Directory.Exists(_pythonPackages))
+        if (!Directory.Exists(PythonPackages))
         {
             return false;
         }
@@ -436,7 +679,7 @@ public sealed class ScriptDevice : IScriptDevice
         var (name, version) = Wanted(package);
         var wanted = Normalised(name);
 
-        foreach (var folder in Directory.EnumerateDirectories(_pythonPackages, "*.dist-info"))
+        foreach (var folder in Directory.EnumerateDirectories(PythonPackages, "*.dist-info"))
         {
             var stem = Path.GetFileNameWithoutExtension(folder);
             var dash = stem.LastIndexOf('-');

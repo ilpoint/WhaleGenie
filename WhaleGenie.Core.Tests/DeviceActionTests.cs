@@ -6292,24 +6292,174 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_C_sharp_script_reaches_the_macro_the_way_the_python_one_does()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            PathExists = true,
+            CSharp = new ScriptResult(0, "printed\n", string.Empty, Value.FromText("handed")),
+        };
+
+        var asked = new List<string>();
+        devices.CSharpBody = (host, _) =>
+        {
+            asked.Add(host.Read("who")?.AsText() ?? "nothing");
+            host.Write("answer", Value.FromText("Ann!"));
+            host.Print("a line from the script");
+            asked.Add(host.RunStep("a7k2") ? "ran" : "refused");
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("control.setVariable", Param("name", "who"), Param("value", "Ann")),
+            Step("script.csharp", Param("script", "Console.WriteLine(\"hi\");"),
+                Param("arguments", "--quiet"), Param("timeoutMs", "5000"),
+                Returns("value=handed", "error=why", "success=ok")),
+            Called("a7k2", Step("control.setVariable", Param("name", "after"), Param("value", "yes"))),
+        ], devices);
+
+        // The two languages reach the macro through the same four calls, so what is checked here is
+        // that the step an author writes reaches them at all rather than how they are spelled.
+        Assert.Equal(["Ann", "ran"], asked);
+        Assert.Equal("Ann!", store.Local.Values["answer"].AsText());
+        Assert.Equal("yes", store.Local.Values["after"].AsText());
+        Assert.Equal("handed", store.Local.Values["handed"].AsText());
+        Assert.True(store.Local.Values["ok"].Flag);
+        Assert.True(result.Succeeded);
+
+        // What the step says about where and how long is handed to the device as it was written.
+        Assert.Contains(devices.Calls, call => call.StartsWith("csharp --quiet|G:\\fake|5000"));
+    }
+
+    [Fact]
+    public async Task A_script_that_does_not_compile_fails_the_step_with_what_the_compiler_said()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            CSharp = new ScriptResult(1, string.Empty, "script.cs(3,9): error CS0103: oops",
+                Value.Null, "Run.ScriptCompileFailed"),
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("script.csharp", Param("script", "oops();"),
+                Returns("value=handed", "error=why", "success=ok")),
+        ], devices);
+
+        // The step fails in the engine's own words for a script that will not compile, and the
+        // compiler's own words are what it failed with: they are the message, not a number.
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.ScriptCompileFailed", result.Key);
+        Assert.Contains("CS0103", result.Detail, StringComparison.Ordinal);
+        Assert.Equal("script.cs(3,9): error CS0103: oops", store.Local.Values["why"].AsText());
+        Assert.False(store.Local.Values["ok"].Flag);
+        Assert.Equal(Value.Null, store.Local.Values["handed"]);
+    }
+
+    [Fact]
+    public async Task A_C_sharp_step_with_nothing_to_run_says_so_rather_than_non_compiling()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            CSharp = new ScriptResult(1, string.Empty, string.Empty, Value.Null, "Run.NoEntryPoint"),
+        };
+
+        var (result, _, _) = await RunAsync(
+            [Step("script.csharp", Param("script", "class Nothing { }"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.NoEntryPoint", result.Key);
+    }
+
+    [Fact]
+    public async Task A_C_sharp_step_with_nothing_written_in_it_fails()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("script.csharp", Param("script", "  \n"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.MissingScript", result.Key);
+    }
+
+    [Fact]
+    public async Task Downloading_packages_hands_back_what_went_in()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            NuGet = new ScriptResult(0, string.Empty, string.Empty,
+                Value.FromList([Value.FromText("PyYAML 6.0.0")])),
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Within(90000, Step("script.nuget",
+                Param("packages", "PyYAML 6.0.0\n# a word about it\nSerilog"),
+                Returns("packages=added", "error=why", "success=ok"))),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(["PyYAML 6.0.0"],
+            store.Local.Values["added"].AsList().Select(item => item.AsText()));
+
+        // The lines that name a package are read as they are, a comment is not, and the step's own
+        // timeout is what the download is allowed: this kind of step has no number of its own.
+        Assert.Contains(devices.Calls, call => call == "nuget 90000|PyYAML 6.0.0,Serilog");
+    }
+
+    [Fact]
+    public async Task A_download_that_goes_wrong_fails_the_step_and_still_hands_the_three_over()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            NuGet = new ScriptResult(1, string.Empty, "there is no Such.Package on nuget.org",
+                Value.FromList([]), "Run.NuGetFailed"),
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("script.nuget", Param("packages", "Such.Package"),
+                Returns("packages=added", "error=why", "success=ok")),
+        ], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.NuGetFailed", result.Key);
+        Assert.Empty(store.Local.Values["added"].AsList());
+        Assert.Contains("Such.Package", store.Local.Values["why"].AsText(), StringComparison.Ordinal);
+        Assert.False(store.Local.Values["ok"].Flag);
+    }
+
+    [Fact]
+    public async Task A_nuget_step_that_names_nothing_says_so()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+            [Step("script.nuget", Param("packages", "\n# nothing here\n"))], devices);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.NoPackages", result.Key);
+    }
+
+    [Fact]
     public void Installing_packages_leaves_the_ones_that_are_already_there_alone()
     {
         var folder = Directory.CreateTempSubdirectory("whalegenie-pip").FullName;
         try
         {
             // What pip leaves behind when a package is installed: a folder named after the package
-            // and the version it was installed at.
-            Directory.CreateDirectory(Path.Combine(folder, "PyYAML-6.0.dist-info"));
+            // and the version it was installed at, under the one packages of this program live in.
+            Directory.CreateDirectory(Path.Combine(folder, "python", "PyYAML-6.0.dist-info"));
 
             var devices = new FakeDeviceLayer();
-            var scripts = new ScriptDevice(devices, folder);
+            var scripts = new ScriptDevice(devices, folder, string.Empty);
             scripts.InstallPip(new PipRequest(["PyYAML==6.0", "requests"]), _ => { }, _ => { },
                 default);
 
             // Only what is missing is asked for, pip is told to put it in the folder the scripts
             // import from, and the version a step pinned is part of what "already there" means.
             Assert.Contains(devices.Calls, call =>
-                call.StartsWith("run python|-m pip install") && call.Contains(folder));
+                call.StartsWith("run python|-m pip install")
+                && call.Contains(Path.Combine(folder, "python")));
             Assert.Contains(devices.Calls, call => call.Contains("requests"));
             Assert.DoesNotContain(devices.Calls, call => call.Contains("PyYAML"));
         }
@@ -8548,6 +8698,19 @@ internal sealed class FakeDeviceLayer
     /// <summary>What installing packages reports back.</summary>
     public ScriptResult Packages { get; set; } = new(0, string.Empty, string.Empty, Value.FromList([]));
 
+    /// <summary>What running a C# script in the fake reports back.</summary>
+    public ScriptResult CSharp { get; set; } = new(0, string.Empty, string.Empty, Value.Null);
+
+    /// <summary>
+    /// What a C# script does while it runs, in place of being compiled and run: this language
+    /// reaches the macro the same way the Python one does, so a check hands in the calls a script
+    /// would make.
+    /// </summary>
+    public Action<IScriptHost, string>? CSharpBody { get; set; }
+
+    /// <summary>What downloading NuGet packages reports back.</summary>
+    public ScriptResult NuGet { get; set; } = new(0, string.Empty, string.Empty, Value.FromList([]));
+
     ScriptResult IScriptDevice.RunPython(PythonScript script, IScriptHost host,
         Action<string> onOutput, Action<string> onError, CancellationToken token)
     {
@@ -8583,6 +8746,43 @@ internal sealed class FakeDeviceLayer
         }
 
         return Packages;
+    }
+
+    ScriptResult IScriptDevice.RunCSharp(CSharpScript script, IScriptHost host,
+        Action<string> onOutput, Action<string> onError, CancellationToken token)
+    {
+        Note($"csharp {script.Arguments}|{script.Folder}|{script.TimeoutMs}");
+        CSharpBody?.Invoke(host, script.Script);
+
+        foreach (var line in Lines(CSharp.Output))
+        {
+            onOutput(line);
+        }
+
+        foreach (var line in Lines(CSharp.Error))
+        {
+            onError(line);
+        }
+
+        return CSharp;
+    }
+
+    ScriptResult IScriptDevice.InstallNuGet(NuGetRequest request, Action<string> onOutput,
+        Action<string> onError, CancellationToken token)
+    {
+        Note($"nuget {request.TimeoutMs}|{string.Join(",", request.Packages)}");
+
+        foreach (var line in Lines(NuGet.Output))
+        {
+            onOutput(line);
+        }
+
+        foreach (var line in Lines(NuGet.Error))
+        {
+            onError(line);
+        }
+
+        return NuGet;
     }
 
     IWindowDevice IDeviceLayer.Windows => this;

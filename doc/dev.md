@@ -43,10 +43,32 @@ dotnet run --project WhaleGenie                  # 启动程序
 | `FlaUI.UIA3` | UI Automation：元素的取值、选择、勾选、展开、滚动到可见、读表格 |
 | `Microsoft.Playwright` | 浏览器动作（`browser.*`）：驱动跟着包走，默认开系统自带的 Edge |
 | `CsvHelper` | 带分隔符的文本文件（`file.readCsv` / `file.writeCsv`）：引号、单元格里的换行、行尾、空行这些细节归它管。自己拆字符串在这些地方都会悄悄读错 |
+| `Microsoft.CodeAnalysis.CSharp`（Roslyn） | 运行 C# 脚本（`script.csharp`）：把宏里的那段 C# 编成一份 dll。它就是 `dotnet build` 用的那个编译器，引擎按运行时给出的可信平台程序集加 `packages\nuget\references.json` 里的 dll 当引用 |
+| `NuGet.Protocol`、`NuGet.Packaging`、`NuGet.Frameworks`、`NuGet.Versioning` | 下载 NuGet 包（`script.nuget`）：到官方 v3 源上问一个包有哪些版本、把 nupkg 取下来、按目标框架挑最贴近的一份 lib、按版本区间解析传递依赖。包本身不跟着程序分发，下到程序自己的 `packages` 目录里 |
 | `Vortice.Direct3D11`、`Vortice.DXGI`（都由 `WhaleGenie.GraphicsCapture` 引用，引擎不直接引） | 画面获取：Graphics Capture 与桌面复制是 Direct3D 11 与 DXGI 的调用，它们只是一层托管包装，调用的是 Windows 自带的那两个库，不随包分发原生库。边界见「工程结构」 |
 
 这些包各自带进来的原生库（`OpenCvSharpExtern.dll`、`uiohook.dll`、Playwright 的驱动等）
 和许可原文，列在 `THIRD-PARTY-NOTICES.md` 里。
+
+## 脚本怎么跑
+
+脚本分两条路。`script.run` 那种是机器上别的程序在跑，引擎只写一份临时脚本、把命令行交给设备层，
+CSV 那套编码规则管着脚本文件怎么写。另外两个动作——`script.python` 与 `script.csharp`——是引擎
+自己起进程跑的，两条都走 `IScriptDevice`（`ScriptDevice`）：脚本能读宏的变量、按四字符标识跑宏里
+的某一步、往运行日志写一行、交回这一步的结果，走的都是同一条**命名管道**——两边按行传 JSON，管道名
+经 `WHALEGENIE_PIPE` 交给子进程，请求在走宏的那条线程上就地回答（要跑的那一步就当场跑），
+stdout 与 stderr 各由一条读线程收着逐行进运行日志，超时到点连进程树一起结束。
+
+- **Python**：临时目录里写出脚本、桥模块 `whalegenie.py` 与引导用的 `boot.py`，`python -X utf8 boot.py script.py 参数`
+  起来；`WhaleGenie` 从 `builtins` 里进去，任何模块都看得见。`packages\python` 永远在 `PYTHONPATH` 上。
+- **C#**：引擎用 Roslyn 把脚本与注入的一份 `__InjectedServices`（一个 `public static dynamic DynamicObject`）
+  一起编成 dll，再让**程序自己的 exe 起第二个进程**执行（`WhaleGenie.exe --script-host <dll> 参数…`）。
+  `Program.Main` 在 Avalonia 之前分支：宿进程不建窗口、不占通知区域，脚本里的 `Environment.Exit`、
+  栈溢出与死循环都伤不到主程序，超时也能直接杀进程。宿主从 `packages\nuget\references.json` 里认
+  编译时用到的那些 dll（`NuGetStore.References`），并把包里的 `runtimes\win-x64\native` 挂到 `PATH` 上。
+
+`packages` 目录跟着 exe 走，写不进去时退到 `%LOCALAPPDATA%\WhaleGenie\packages`；`python` 与 `nuget`
+各占一格，脚本动作里因此不再列包。
 
 ## 宏文件的形状
 
@@ -100,7 +122,7 @@ dotnet run --project WhaleGenie                  # 启动程序
 | 画面获取 | `WhaleGenie.GraphicsCapture.Tests` | 选路次序、会话缓存与复用、图片落位、矩形越界；真正调用 Windows 取画面那几条按手动用例过 |
 | 界面 | `WhaleGenie.Tests` | 参数成型、触发器比对、卡片显示、文案完整性，无头会话里的界面逻辑与 Avalonia 输入（`Ui.Run` 是入口），以及拾取器与录制器交来替身设备层后的情形 |
 | 真的驱动别的程序 | `BrowserTabTests`、`ScriptBridgeTests` | 开一个不显示窗口的 Edge，跑浏览器动作；真的起一个解释器跑一段脚本，看它读值、写值、跑一步与交回结果走的是不是那条管道（机器上没有 Python 时跳过） |
-| 手动 | — | 真实输入、抓屏取色、UIA 拾取、页面拾取、录制、窗口布局，以及驱动级输入：真机装一次 usbip-win2 驱动，勾上/不勾「启动时先把虚拟键鼠装上机器」各跑一次运行，键鼠四种动作（点击、打字、拖拽、滚轮）与手柄各来一次，退出程序后看设备管理器里虚拟设备是不是没了；脚本动作的三种窗口模式各跑一次（窗口留着/关着/不显示）、批处理、PowerShell 与 AutoHotkey 各一次，AutoHotkey 那一条还要在一台没装它的机器上看一次报错；Python 脚本与安装 PIP 包各一次（装的包能 import），断网时看依赖动作报什么 |
+| 手动 | — | 真实输入、抓屏取色、UIA 拾取、页面拾取、录制、窗口布局，以及驱动级输入：真机装一次 usbip-win2 驱动，勾上/不勾「启动时先把虚拟键鼠装上机器」各跑一次运行，键鼠四种动作（点击、打字、拖拽、滚轮）与手柄各来一次，退出程序后看设备管理器里虚拟设备是不是没了；脚本动作的三种窗口模式各跑一次（窗口留着/关着/不显示）、批处理、PowerShell 与 AutoHotkey 各一次，AutoHotkey 那一条还要在一台没装它的机器上看一次报错；Python 脚本与安装 PIP 包各一次（装的包能 import），C# 脚本与下载 NuGet 包各一次（装的包能编译进脚本），断网时看两个依赖动作各报什么 |
 
 界面用例走的是 Avalonia 自己的输入管线，不是系统里的鼠标与按键：真的注入按键、真的抓屏取色这类事情在
 无头会话里验不了，只能按手动用例过。因此**能在无头会话里跑到的部分要有用例**，只留人眼能判的那一档给
@@ -160,8 +182,8 @@ Settings → Actions → General → Workflow permissions 里放开一次。
 
 | 包 | 自带运行环境 | 体积（x64 打包后 / 解压后） | 什么时候用 |
 | --- | --- | --- | --- |
-| `WhaleGenie-<版本>-win-x64.zip` | 否，要装 .NET 10 桌面运行时 | 108 MB / 277 MB | 体积最小；已经装过运行环境 |
-| `WhaleGenie-<版本>-win-x64-standalone.zip` | 是 | 181 MB / 448 MB | 换机器、给别人，什么都不用装 |
+| `WhaleGenie-<版本>-win-x64.zip` | 否，要装 .NET 10 桌面运行时 | 117 MB / 300 MB | 体积最小；已经装过运行环境 |
+| `WhaleGenie-<版本>-win-x64-standalone.zip` | 是 | 189 MB / 471 MB | 换机器、给别人，什么都不用装 |
 
 体积是本地这么量出来的：跑一次 `build/package.ps1`，`Expand-Archive` 解开两个 zip，再用
 `Get-ChildItem -Recurse -File | Measure-Object Length -Sum` 把文件长度加起来（前者是压缩后的，
@@ -211,7 +233,9 @@ JIT 和核心库的，都按"exe 所在目录"找，放进 `lib` 程序连报错
 体积里不含调试符号：打包时会把 `.pdb` 删掉，它比程序本身还大（Skia 一份就 80 MB）。不做裁剪
 （`PublishTrimmed`）：Avalonia 的 XAML、UIA 和 OCR 都靠反射找类型，裁了就得一个动作一个动作地
 验，不值当；体积几乎全在原生库上（OpenCV 的 `OpenCvSharpExtern.dll` 约 73 MB、ffmpeg 约 29 MB，
-加上 OCR 模型、Skia、HarfBuzz）。
+加上 OCR 模型、Skia、HarfBuzz）。运行 C# 脚本用的 Roslyn 与 NuGet 客户端也在里面，解压后一共
+约 19 MB，其中约 6.5 MB 是编译器自带的二十几种语言的提示文字：留着它，脚本编译不过时的提示
+跟着界面语言走（中文系统上就是中文）。
 
 本地想打同样的包，跑打包脚本就行——工作流里跑的也是它：
 

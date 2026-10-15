@@ -58,6 +58,17 @@ public sealed record PipRequest(
 public sealed record NuGetRequest(IReadOnlyList<string> Packages, int TimeoutMs = 0);
 
 /// <summary>
+/// One run of a C# script. The text has already had <c>{{name}}</c> filled in; it is compiled
+/// against this machine's own assemblies — and the packages the macro asked for — and then run by
+/// this program a second time, in a process that never builds a window.
+/// </summary>
+public sealed record CSharpScript(
+    string Script,
+    string Arguments = "",
+    string Folder = "",
+    int TimeoutMs = 60000);
+
+/// <summary>
 /// What a script came to. <see cref="ExitCode"/> is the program's own ending, which is what "did
 /// this work" is answered by; <see cref="FailureKey"/> is set when the script never ran at all or
 /// never got as far as having an exit code that means anything, and names the reason in the
@@ -116,5 +127,21 @@ public interface IScriptDevice
     /// answering with the packages this run put there.
     /// </summary>
     ScriptResult InstallPip(PipRequest request, Action<string> onOutput, Action<string> onError,
+        CancellationToken token);
+
+    /// <summary>
+    /// Compiles a C# script and runs it in a process of its own, serving the ways back into the
+    /// macro while it goes. A script that does not compile, or one with nothing to run, never gets
+    /// that far: the answer says which of the two it was, with the compiler's own words.
+    /// </summary>
+    ScriptResult RunCSharp(CSharpScript script, IScriptHost host, Action<string> onOutput,
+        Action<string> onError, CancellationToken token);
+
+    /// <summary>
+    /// Reads which of these NuGet packages are already there and downloads the ones that are not,
+    /// dependencies and all, answering with the packages this run put there. What was downloaded is
+    /// also what a C# script is compiled against from then on.
+    /// </summary>
+    ScriptResult InstallNuGet(NuGetRequest request, Action<string> onOutput, Action<string> onError,
         CancellationToken token);
 }

@@ -1082,6 +1082,14 @@ public sealed class NullDeviceLayer : IDeviceLayer
             Action<string> onError, System.Threading.CancellationToken token)
             => throw Missing("Python packages");
 
+        public ScriptResult RunCSharp(CSharpScript script, IScriptHost host, Action<string> onOutput,
+            Action<string> onError, System.Threading.CancellationToken token)
+            => throw Missing("C# scripts");
+
+        public ScriptResult InstallNuGet(NuGetRequest request, Action<string> onOutput,
+            Action<string> onError, System.Threading.CancellationToken token)
+            => throw Missing("NuGet packages");
+
         public ProcessDetails? Details(string target) => throw Missing("other programs");
 
         public string Info(string field) => throw Missing("system information");

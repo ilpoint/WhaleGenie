@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using Avalonia;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Execution;
 
 namespace WhaleGenie;
@@ -20,12 +21,23 @@ sealed class Program
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
     [STAThread]
-    public static void Main(string[] args)
+    public static int Main(string[] args)
     {
         // Hooking has to stay in its own method: the moment Main itself names a type from
         // Avalonia, compiling Main needs Avalonia loaded, and the hook would be too late.
         HookLibraryFolder();
+
+        // A script a macro compiled is run by this very program, started a second time: it gets
+        // the folder of libraries the same way, because what the program itself carries is what a
+        // script written beside it may name, and then it runs the script and ends. It never builds
+        // a window, never takes a place in the notification area and never touches the devices.
+        if (ScriptHost.Asked(args))
+        {
+            return ScriptHost.Run(args);
+        }
+
         Run(args);
+        return 0;
     }
 
     private static void Run(string[] args)

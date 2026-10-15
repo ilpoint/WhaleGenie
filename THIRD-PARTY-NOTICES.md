@@ -80,6 +80,16 @@ The icon was scaled and modified from the original.
   <https://github.com/JoshClose/CsvHelper>
   读写的都是带分隔符的文本文件（`file.readCsv` / `file.writeCsv`）：引号、单元格里的换行、
   文件末尾不完整的行这些细节都归它管。
+- Roslyn（Microsoft.CodeAnalysis.CSharp，以及它一起带进来的 Microsoft.CodeAnalysis.Common、
+  System.Collections.Immutable、System.Reflection.Metadata）— MIT
+  <https://github.com/dotnet/roslyn>
+  运行 C# 脚本时用的编译器：程序把宏里的那段 C# 编成一份 dll，再交给自己的宿主进程运行。
+  它就是 `dotnet build` 用的那个编译器，只在引擎里被调用，不随包分发任何原生库。
+- NuGet（NuGet.Protocol、NuGet.Packaging、NuGet.Frameworks、NuGet.Versioning）— Apache-2.0
+  <https://github.com/NuGet/NuGet.Client>
+  下载 C# 脚本要用的包：到官方源上问一个包有哪些版本、把 nupkg 取下来、解出要引用的 dll，
+  以及比较目标框架与版本区间。包本身是用户装的，见手册的「脚本」一节。
+
 ### 运行环境
 
 - .NET 运行时，以及跟着它一起分发的 Microsoft 组件（System.*、PresentationCore、

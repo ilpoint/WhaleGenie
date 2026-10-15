@@ -68,6 +68,40 @@ public static class ActionCatalog
         + "# Hand back what this step should leave behind\n"
         + "# WhaleGenie.SetResult(text)\n";
 
+    /// <summary>
+    /// The example a new C# script step begins with. It is the same set of calls the Python one
+    /// shows, written the way this language reaches them: the macro itself is a dynamic object
+    /// handed to the script, and a line written to the console is a line in the run log. The line
+    /// that is not commented out runs as it stands, so a step that has just been written shows that
+    /// the two sides are talking.
+    /// </summary>
+    private const string DefaultCSharpScript = """
+        using System;
+
+        class Program
+        {
+            static void Main()
+            {
+                var WhaleGenie = __InjectedServices.DynamicObject;
+
+                // Read a value the macro holds
+                // dynamic text = WhaleGenie.GetProperty("name");
+
+                // Write a value the macro can read afterwards
+                // WhaleGenie.SetProperty("name", value);
+
+                // Run one step of this macro, named by its four-character identity
+                // WhaleGenie.StepExecute("a7k2");
+
+                // Hand back what this step should leave behind
+                // WhaleGenie.SetResult(text);
+
+                // Leave a line in the run log
+                Console.WriteLine("Hello World");
+            }
+        }
+        """;
+
     private static readonly Geometry FileIcon =
         Geometry.Parse("M6,3 H14 L18,7 V21 H6 Z M14,3 V7 H18 M9,12 H15 M9,16 H15");
 
@@ -3439,6 +3473,90 @@ public static class ActionCatalog
                           + "front. Empty, which is the default, uses \"python\" from this "
                           + "machine's search path.",
                     foreign: true, advanced: true),
+                Returns(),
+            ],
+        },
+
+        new()
+        {
+            Key = "script.csharp",
+            Returns =
+            [
+                Return("value", "Result", primary: true,
+                    hint: "What the script handed back with WhaleGenie.SetResult, as it is: a "
+                        + "number, a piece of writing, true or false, a list, or a record with "
+                        + "named fields. Empty when the script handed nothing back."),
+                Return("error", "Error message",
+                    hint: "What the compiler said when the script will not compile, or the mistake "
+                        + "it made while it ran, with the line it was written on. Empty when it ran "
+                        + "to the end without one."),
+                Return("success", "Ran without error", type: ActionReturnType.Flag,
+                    hint: "True when the script compiled and ran to the end without a mistake, "
+                        + "false when it did not. A script that ended badly fails the step as well, "
+                        + "so this is read after the failure rule let the macro carry on."),
+            ],
+            Category = ActionCategory.Script,
+            DisplayName = "Run C# Script",
+            Description = "Compile a C# script and run it, with the macro's values and steps in "
+                + "reach of it while it runs.",
+            Parameters =
+            [
+                Multiline("script", "Script",
+                    "The script itself. It is compiled and run in a process of this program's own, "
+                    + "so nothing it does to itself reaches the macro, and the macro is in reach of "
+                    + "it while it runs: the name WhaleGenie is the macro. GetProperty(\"name\") reads one "
+                    + "of its values, SetProperty(\"name\", value) writes one, StepExecute(\"a7k2\") "
+                    + "runs one step of it, SetResult(value) hands back what this step should leave "
+                    + "behind, and everything written with Console.WriteLine goes into the run log.",
+                    defaultValue: DefaultCSharpScript, required: true, foreign: true, tall: true),
+                Text("arguments", "Arguments", "first second", required: false,
+                    hint: "Extra arguments for the script's command line, which the entry point "
+                          + "finds in the array it is called with. Empty, which is the default, "
+                          + "passes nothing.",
+                    foreign: true),
+                Number("timeoutMs", "Timeout", 60000,
+                    "Stop the script and fail the step after this long, in milliseconds; 60000 by "
+                    + "default. A script that may take longer than that is given 0, which means no "
+                    + "limit."),
+                PickablePath("folder", "Working folder", string.Empty,
+                    "The folder the script runs in. Empty, which is the default, runs it in the "
+                    + "macros folder, or wherever WhaleGenie is when that folder is not there yet.",
+                    PathIntent.Folder, required: false, advanced: true),
+                Returns(),
+            ],
+        },
+
+        new()
+        {
+            Key = "script.nuget",
+            Returns =
+            [
+                Return("packages", "Packages downloaded", primary: true,
+                    type: ActionReturnType.List,
+                    hint: "The packages this run of the step brought down, one to an item, with the "
+                        + "version that was taken. Empty when everything asked for was already "
+                        + "there."),
+                Return("error", "Error message",
+                    hint: "What went wrong when a package could not be brought down: the package "
+                        + "that is not there, the feed that could not be reached, or the mistake "
+                        + "NuGet itself reports. Empty when it went well."),
+                Return("success", "Ran without error", type: ActionReturnType.Flag,
+                    hint: "True when everything asked for is there and ready, false when it is not. "
+                        + "A run that ended badly fails the step as well."),
+            ],
+            Category = ActionCategory.Script,
+            DisplayName = "Download NuGet Packages",
+            Description = "Check which NuGet packages are there and download the ones that are not, "
+                + "with everything they need, so a C# script can be compiled against them.",
+            Parameters =
+            [
+                Multiline("packages", "Packages",
+                    "The packages a C# script needs, one to a line: a name, or a name and the "
+                    + "version it has to be, one space apart. A name without a version takes the "
+                    + "newest stable one. A line that begins with a hash is left out. Packages are "
+                    + "downloaded into a folder of WhaleGenie's own, with everything they depend "
+                    + "on, and every C# script is compiled against what is in it.",
+                    "Newtonsoft.Json\nSerilog", required: true),
                 Returns(),
             ],
         },

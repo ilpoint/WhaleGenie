@@ -122,15 +122,18 @@ public class ActionDialogTests
     {
         Ui.Run(() =>
         {
-            var viewModel = Open("script.python");
-            var field = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "script");
+            foreach (var key in new[] { "script.python", "script.csharp" })
+            {
+                var viewModel = Open(key);
+                var field = viewModel.Parameters
+                    .First(parameter => parameter.Definition.Name == "script");
 
-            // What is in the box is the example of the language the window is in, and the step is
-            // at its default rather than showing a mark for having been written in.
-            Assert.Equal(field.Definition.LocalDefault, field.CurrentText);
-            Assert.Contains("WhaleGenie", field.CurrentText, StringComparison.Ordinal);
-            Assert.True(field.IsDefault);
+                // What is in the box is the example of the language the window is in, and the step
+                // is at its default rather than showing a mark for having been written in.
+                Assert.Equal(field.Definition.LocalDefault, field.CurrentText);
+                Assert.Contains("WhaleGenie", field.CurrentText, StringComparison.Ordinal);
+                Assert.True(field.IsDefault);
+            }
 
             // The Chinese example says the same things in Chinese, and it is what the box opens on
             // when the window is Chinese.
@@ -140,6 +143,16 @@ public class ActionDialogTests
             Assert.Contains("WhaleGenie.StepExecute(\"a7k2\")", example, StringComparison.Ordinal);
             Assert.Contains("WhaleGenie.SetResult", example, StringComparison.Ordinal);
             Assert.Contains("WhaleGenie.Print(\"Hello World\")", example, StringComparison.Ordinal);
+
+            // The C# example says the same things through the same four calls, reached through the
+            // object the engine puts in the script's way.
+            var csharp = ActionStrings.Chinese["script.csharp.script.default"];
+            Assert.Contains("__InjectedServices.DynamicObject", csharp, StringComparison.Ordinal);
+            Assert.Contains("WhaleGenie.GetProperty(\"变量名\")", csharp, StringComparison.Ordinal);
+            Assert.Contains("WhaleGenie.SetProperty(\"变量名\"", csharp, StringComparison.Ordinal);
+            Assert.Contains("WhaleGenie.StepExecute(\"a7k2\")", csharp, StringComparison.Ordinal);
+            Assert.Contains("WhaleGenie.SetResult", csharp, StringComparison.Ordinal);
+            Assert.Contains("Console.WriteLine(\"Hello World\")", csharp, StringComparison.Ordinal);
         });
     }
 

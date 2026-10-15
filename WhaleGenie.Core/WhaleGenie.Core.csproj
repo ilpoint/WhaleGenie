@@ -7,7 +7,17 @@
   <ItemGroup>
     <PackageReference Include="CsvHelper" Version="33.1.0" />
     <PackageReference Include="FlaUI.UIA3" Version="5.0.0" />
+    <!--
+      C# 脚本：先在程序里把脚本编成一份 dll（Roslyn 就是 dotnet build 用的那个编译器），再交给
+      程序自己另起一个进程运行。编译要用的引用与下载包都靠下面这几包：声明、包本体、目标框架
+      的比较（哪一份 lib 最贴近本机）与版本区间。
+    -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     <PackageReference Include="Microsoft.Playwright" Version="1.63.0" />
+    <PackageReference Include="NuGet.Frameworks" Version="7.9.0" />
+    <PackageReference Include="NuGet.Packaging" Version="7.9.0" />
+    <PackageReference Include="NuGet.Protocol" Version="7.9.0" />
+    <PackageReference Include="NuGet.Versioning" Version="7.9.0" />
     <PackageReference Include="OpenCvSharp5.Windows" Version="5.0.0.20260702" />
     <PackageReference Include="Sdcb.SimdPaddleOCR" Version="2.0.0" />
     <PackageReference Include="Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny" Version="1.0.0" />

@@ -45,7 +45,7 @@ public class RealPythonTests : IDisposable
     {
         var host = new RecordingScriptHost();
         var log = new List<string>();
-        var device = new ScriptDevice(new WindowsProcessDevice(), _packages);
+        var device = new ScriptDevice(new WindowsProcessDevice(), _packages, string.Empty);
 
         var outcome = device.RunPython(
             new PythonScript(
@@ -81,7 +81,7 @@ public class RealPythonTests : IDisposable
     [RealPythonFact]
     public void A_python_script_that_fails_says_what_went_wrong_and_where()
     {
-        var device = new ScriptDevice(new WindowsProcessDevice(), _packages);
+        var device = new ScriptDevice(new WindowsProcessDevice(), _packages, string.Empty);
 
         var outcome = device.RunPython(
             new PythonScript("raise ValueError(\"no\")\n"), new RecordingScriptHost(),
@@ -97,7 +97,7 @@ public class RealPythonTests : IDisposable
     [RealPythonFact]
     public void A_python_script_that_runs_too_long_is_stopped_where_it_stands()
     {
-        var device = new ScriptDevice(new WindowsProcessDevice(), _packages);
+        var device = new ScriptDevice(new WindowsProcessDevice(), _packages, string.Empty);
 
         var clock = Stopwatch.StartNew();
         var failure = Assert.Throws<DeviceActionException>(() => device.RunPython(
@@ -116,7 +116,7 @@ public class RealPythonTests : IDisposable
         // Neither of these names is a program on any machine, which is exactly what a machine with
         // no Python on its search path looks like from here.
         const string Nothing = "whalegenie-no-such-python";
-        var device = new ScriptDevice(new WindowsProcessDevice(), _packages);
+        var device = new ScriptDevice(new WindowsProcessDevice(), _packages, string.Empty);
 
         var ran = Assert.Throws<DeviceActionException>(() => device.RunPython(
             new PythonScript("print(1)\n", Command: Nothing), new RecordingScriptHost(),
@@ -162,6 +162,92 @@ internal sealed class RecordingScriptHost : IScriptHost
     }
 
     public void Print(string text) => Said.Add(text);
+}
+
+/// <summary>
+/// The C# side of the same bridge, as far as it goes without running anything: whether a script
+/// compiles at all, whether it has anything to run, and what the folders of a downloaded package
+/// say about what a script is compiled against. All of it is this program's own work — no process
+/// is started and nothing is downloaded — so it is a check rather than one of the things left to a
+/// person with the program in front of them.
+/// </summary>
+public class CompilingTests : IDisposable
+{
+    /// <summary>
+    /// A folder of packages of this check's own, so that what a machine has really downloaded is
+    /// neither read nor written here.
+    /// </summary>
+    private readonly string _packages =
+        Path.Combine(Path.GetTempPath(), $"wg-csharp-{Guid.NewGuid():N}");
+
+    public void Dispose()
+    {
+        try
+        {
+            Directory.Delete(_packages, recursive: true);
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // Nothing was downloaded, which is the usual case.
+        }
+
+        GC.SuppressFinalize(this);
+    }
+
+    [Fact]
+    public void A_script_that_does_not_compile_says_where_and_what_it_is()
+    {
+        var outcome = Device().RunCSharp(
+            new CSharpScript("class Program\n{\n    static void Main()\n    {\n        oops();\n    }\n}\n"),
+            new RecordingScriptHost(), _ => { }, _ => { }, default);
+
+        // A script that will not compile is not run at all, and what the compiler said is what the
+        // step hands back as its error message: the line it is about, and the mistake's own name.
+        Assert.Equal("Run.ScriptCompileFailed", outcome.FailureKey);
+        Assert.Equal(1, outcome.ExitCode);
+        Assert.Contains("script.cs(5", outcome.Error, StringComparison.Ordinal);
+        Assert.Contains("CS0103", outcome.Error, StringComparison.Ordinal);
+        Assert.True(outcome.Error.Length < 2000, "the whole of a compiler's complaints is not a message");
+    }
+
+    [Fact]
+    public void A_script_with_nothing_to_run_is_told_apart_from_one_that_does_not_compile()
+    {
+        var outcome = Device().RunCSharp(
+            new CSharpScript("class Nothing\n{\n    void Work() { }\n}\n"),
+            new RecordingScriptHost(), _ => { }, _ => { }, default);
+
+        // There is nothing wrong with a class that has no entry point written yet, so it is not a
+        // compilation failure: it is this step saying there is nothing to run.
+        Assert.Equal("Run.NoEntryPoint", outcome.FailureKey);
+        Assert.Equal(string.Empty, outcome.Error);
+    }
+
+    [Fact]
+    public void A_package_that_is_already_there_is_not_looked_for_on_the_feed()
+    {
+        // What the package step leaves behind: one folder per package, one per version, and the
+        // libraries it brought in a folder named after what they were built for.
+        var library = Path.Combine(_packages, "nuget", "PyYAML", "6.0.0", "lib", "net8.0", "yaml.dll");
+        Directory.CreateDirectory(Path.GetDirectoryName(library)!);
+        File.WriteAllText(library, string.Empty);
+
+        var outcome = Device().InstallNuGet(new NuGetRequest(["PyYAML"]), _ => { }, _ => { }, default);
+
+        // Nothing went in because nothing was missing, and the question the feed would have been
+        // asked was never asked: a machine that has already downloaded these needs no network to
+        // write a macro or to run it.
+        Assert.Equal(0, outcome.ExitCode);
+        Assert.Equal(string.Empty, outcome.FailureKey);
+        Assert.Empty(outcome.Result.AsList());
+
+        // The list of what a C# script is compiled against is written from what is on disk, so a
+        // script that names the package's library is compiled against it.
+        var written = File.ReadAllText(Path.Combine(_packages, "nuget", "references.json"));
+        Assert.Contains("yaml.dll", written, StringComparison.Ordinal);
+    }
+
+    private ScriptDevice Device() => new(new WindowsProcessDevice(), _packages, string.Empty);
 }
 
 /// <summary>
