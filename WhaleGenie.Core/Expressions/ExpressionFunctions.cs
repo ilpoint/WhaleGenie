@@ -19,7 +19,17 @@ public sealed record ExpressionFunction(
     string Name,
     string Signature,
     string Description,
-    string Group);
+    string Group,
+    IReadOnlyList<ExpressionParameter> Parameters,
+    int MinArguments,
+    int MaxArguments);
+
+/// <summary>
+/// One argument a function takes, as the editor shows it: the name the signature spells out, what
+/// to call it in the reader's language, and one line saying what goes there. The name is the piece
+/// of code being written, so it stays as it is; the other two are text and are translated.
+/// </summary>
+public sealed record ExpressionParameter(string Name, string Label, string Hint);
 
 /// <summary>One entry of the built-in function table.</summary>
 internal sealed record FunctionEntry(
@@ -30,6 +40,66 @@ internal sealed record FunctionEntry(
     int MinArguments,
     int MaxArguments,
     Func<IReadOnlyList<Func<Value>>, Value> Body);
+
+/// <summary>
+/// What each common argument name means, written once. Most arguments that go by the same name
+/// mean the same thing wherever they turn up — the text of <c>upper</c> is the text of
+/// <c>trim</c> — so the sentences are kept here rather than repeated sixty-five times over. The
+/// few places where a name means something narrower say so for themselves, in
+/// <see cref="FunctionLibrary"/>.
+/// </summary>
+internal static class ArgumentLibrary
+{
+    private static readonly Dictionary<string, (string Label, string Hint)> Words =
+        new(StringComparer.Ordinal)
+        {
+            ["text"] = ("Text", "The text to work on."),
+            ["value"] = ("Value", "The value to work on."),
+            ["values"] = ("Values", "The values to work on."),
+            ["length"] = ("Length", "How many to take; leave it out to take the rest."),
+            ["start"] = ("Start", "Which one to start at; 0 is the first."),
+            ["old"] = ("Old", "The piece of text to replace."),
+            ["new"] = ("New", "What to put in its place."),
+            ["pattern"] = ("Pattern", "The regular expression to look for."),
+            ["replacement"] = ("Replacement",
+                "What to put in place of what matched; $1, $2 and so on name the pieces it captured."),
+            ["separator"] = ("Separator", "The piece of text that sits between the items."),
+            ["list"] = ("List", "The list to work on."),
+            ["needle"] = ("Needle", "The piece of text, or the list item, to look for."),
+            ["prefix"] = ("Prefix", "The piece of text the text has to begin with."),
+            ["suffix"] = ("Suffix", "The piece of text the text has to end with."),
+            ["times"] = ("Times", "How many times to write it; 0 or less writes nothing."),
+            ["template"] = ("Template", "The text with {0}, {1} and so on where the arguments go."),
+            ["number"] = ("Number", "The number to work on."),
+            ["digits"] = ("Digits",
+                "How many decimal places to keep; leave it out to round to a whole number."),
+            ["power"] = ("Power", "The power to raise it to."),
+            ["min"] = ("Lowest", "The lowest number to pick from."),
+            ["max"] = ("Highest", "The highest number to pick from."),
+            ["index"] = ("Index", "Where the item sits; 0 is the first."),
+            ["condition"] = ("Condition", "What to ask; anything false or empty counts as no."),
+            ["whenTrue"] = ("When true", "The value to answer with when the condition holds."),
+            ["whenFalse"] = ("When false", "The value to answer with when it does not."),
+            ["date"] = ("Date", "The date to work on; leave it out and now is read."),
+            ["amount"] = ("Amount", "How far to move it; a negative number moves it back."),
+            ["unit"] = ("Unit",
+                "The unit of time: seconds, minutes, hours, days, weeks, months or years."),
+            ["from"] = ("From", "The date to count from."),
+            ["to"] = ("To", "The date to count to."),
+            ["json"] = ("JSON", "The JSON text to work on."),
+            ["path"] = ("Path", "Where to look, written as a.b[0].c."),
+            ["name"] = ("Name", "The name to look for."),
+            ["record"] = ("Record", "The record to read a field from."),
+        };
+
+    /// <summary>What this argument is called, in the language the engine writes its text in.</summary>
+    public static string Label(string name)
+        => Words.TryGetValue(name, out var word) ? word.Label : name;
+
+    /// <summary>One line saying what goes in it.</summary>
+    public static string Hint(string name)
+        => Words.TryGetValue(name, out var word) ? word.Hint : string.Empty;
+}
 
 /// <summary>
 /// The functions an expression can call, kept in one table so the evaluator and the
@@ -229,10 +299,67 @@ internal static class FunctionLibrary
     private static readonly Dictionary<string, FunctionEntry> ByName =
         Entries.ToDictionary(entry => entry.Name, StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// The few arguments whose own sentence says more than the shared one for their name does,
+    /// keyed by "function.argument". Everything else about an argument — what it is called in the
+    /// reader's language, and the line saying what goes in it — comes from the shared table.
+    /// </summary>
+    private static readonly Dictionary<string, string> OwnHints = new(StringComparer.Ordinal)
+    {
+        ["replaceRegex.pattern"] = "The regular expression to swap out.",
+        ["insertAt.value"] = "The value to insert.",
+        ["jsonSet.value"] = "The value to set it to.",
+        ["jsonOf.name"] = "The name of the field to write.",
+        ["jsonOf.value"] = "The value to write in that field.",
+        ["field.name"] = "The name of the field to read, such as x.",
+    };
+
     /// <summary>Names and signatures the expression editor offers as suggestions.</summary>
     public static IReadOnlyList<ExpressionFunction> Metadata { get; } =
         [.. Entries.Select(entry =>
-            new ExpressionFunction(entry.Name, entry.Signature, entry.Description, entry.Group))];
+            new ExpressionFunction(entry.Name, entry.Signature, entry.Description, entry.Group,
+                [.. ArgumentNames(entry.Signature).Select(name => new ExpressionParameter(
+                    name, ArgumentLibrary.Label(name), HintOf(entry.Name, name)))],
+                entry.MinArguments,
+                entry.MaxArguments))];
+
+    /// <summary>
+    /// The arguments a signature spells out, in the order they are written. The signature is what
+    /// the editor shows and the engine checks, so the names come from there rather than from a
+    /// second list that could drift away from it.
+    /// </summary>
+    private static IReadOnlyList<string> ArgumentNames(string signature)
+    {
+        var open = signature.IndexOf('(');
+        var close = signature.LastIndexOf(')');
+        if (open < 0 || close <= open)
+        {
+            return [];
+        }
+
+        var names = new List<string>();
+        foreach (var part in signature[(open + 1)..close].Split(','))
+        {
+            // The brackets say an argument may be left out and the dots say more of the same may
+            // follow; neither is part of the name.
+            var name = part.Replace("[", string.Empty, StringComparison.Ordinal)
+                .Replace("]", string.Empty, StringComparison.Ordinal)
+                .Replace(".", string.Empty, StringComparison.Ordinal)
+                .Trim();
+            if (name.Length > 0)
+            {
+                names.Add(name);
+            }
+        }
+
+        return names;
+    }
+
+    /// <summary>What goes in an argument: its own line where it has one, the shared one otherwise.</summary>
+    private static string HintOf(string function, string name)
+        => OwnHints.TryGetValue($"{function}.{name}", out var own)
+            ? own
+            : ArgumentLibrary.Hint(name);
 
     public static bool TryGet(string name, out FunctionEntry entry)
     {
