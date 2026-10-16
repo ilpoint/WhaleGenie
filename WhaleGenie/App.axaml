@@ -11,5 +11,32 @@
 
     <Application.Styles>
         <FluentTheme />
+
+        <!-- The dock that narrows a wall of buttons to one group of them. The variable wall and the
+             expression builder's list of functions each stand one on screen, and one control with
+             one look is worth a style above both windows rather than two that drift apart. -->
+        <Style Selector="ListBox.Dock ListBoxItem">
+            <Setter Property="Background" Value="#333333" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="11,3" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+        </Style>
+        <Style Selector="ListBox.Dock ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#454545" />
+        </Style>
+        <Style Selector="ListBox.Dock ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#C8401C" />
+        </Style>
+
+        <!-- What comes up when the pointer rests on something. It is painted here rather than in a
+             window because a tooltip is not drawn inside the window it belongs to: it stands in a
+             popup of its own, where the window's styles do not reach it. -->
+        <Style Selector="ToolTip">
+            <Setter Property="Background" Value="#2A2A2A" />
+            <Setter Property="BorderBrush" Value="#3F3F3F" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,9" />
+        </Style>
     </Application.Styles>
 </Application>

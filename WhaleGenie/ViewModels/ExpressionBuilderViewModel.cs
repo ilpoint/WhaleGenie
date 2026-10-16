@@ -35,6 +35,13 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// <summary>True while the text the tree was last made from reads as a formula.</summary>
     private bool _previewReads;
 
+    /// <summary>
+    /// Every built-in function, read once from the language's own table. The list on screen is a
+    /// narrowing of this one rather than a fresh reading, so switching category or typing in the
+    /// filter never rebuilds what is not being looked at.
+    /// </summary>
+    private readonly IReadOnlyList<ExpressionFunctionChoice> _table;
+
     public ExpressionBuilderViewModel()
         : this(string.Empty, [])
     {
@@ -48,7 +55,9 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
         Operators = BuildOperators();
         TreeOperators = BuildTreeOperators();
         Values = BuildValues();
-        Functions = BuildFunctions();
+        FunctionFilters = BuildFunctionFilters();
+        _table = BuildFunctionTable();
+        SelectedFunctionFilter = FunctionFilters[0];
         Expression = expression ?? string.Empty;
 
         _root = ExpressionItemViewModel.Hole(Changed);
@@ -118,11 +127,18 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     public IReadOnlyList<VariableChoice> Variables { get; }
 
     /// <summary>
-    /// The built-in functions, one heading to a group, which is what the filter above them narrows
-    /// down. Narrowing rebuilds the list rather than hiding rows, so a heading whose every function
-    /// was filtered out goes away with them rather than standing over nothing.
+    /// The functions on the wall, which is what the dock above them and the filter beside it leave
+    /// of everything the language has. The list is flat: which group a function belongs to is said
+    /// by the colour of its card and by the dock the reader pressed, not by a heading that would
+    /// stand over a single group.
     /// </summary>
-    public ObservableCollection<ExpressionFunctionGroup> Functions { get; }
+    public ObservableCollection<ExpressionFunctionChoice> Functions { get; } = [];
+
+    /// <summary>
+    /// Which group of functions the dock is showing, all of them first: nothing is hidden until
+    /// the reader asks for one group, so the wall opens on everything there is.
+    /// </summary>
+    public IReadOnlyList<ExpressionFunctionFilter> FunctionFilters { get; }
 
     /// <summary>The wall of variable buttons, which drops the one that was picked in at the caret.</summary>
     public VariableWallViewModel Wall { get; }
@@ -229,6 +245,16 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     [ObservableProperty]
     public partial string FunctionFilter { get; set; } = string.Empty;
 
+    /// <summary>Which group of the dock is pressed. One of them always is, all of them to start with.</summary>
+    [ObservableProperty]
+    public partial ExpressionFunctionFilter? SelectedFunctionFilter { get; set; }
+
+    /// <summary>
+    /// True while the two narrowings together leave nothing on the wall. The list is flat, so an
+    /// empty one says nothing at all about why: this is what makes it say something.
+    /// </summary>
+    public bool HasNoFunctionMatch => Functions.Count == 0;
+
     /// <summary>
     /// Whether the dialog can be closed with the formula it is showing. The structure page holds
     /// back a formula with places still to fill in — handing one over would write a step that
@@ -239,6 +265,8 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     partial void OnExpressionChanged(string value) => Recheck();
 
     partial void OnFunctionFilterChanged(string value) => Refill();
+
+    partial void OnSelectedFunctionFilterChanged(ExpressionFunctionFilter? value) => Refill();
 
     [RelayCommand]
     private void Confirm() => CloseRequested?.Invoke(IsTreePage && !_empty ? Preview : Expression);
@@ -1003,52 +1031,61 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     ];
 
     /// <summary>
-    /// Every built-in function, in the order the table is written: the groups come out in the order
-    /// their first function does, which is the order the manual lists them in as well.
+    /// Every built-in function, in the order the table is written, which is the order the manual
+    /// lists them in as well.
     /// </summary>
-    private static ObservableCollection<ExpressionFunctionGroup> BuildFunctions()
+    private static IReadOnlyList<ExpressionFunctionChoice> BuildFunctionTable()
+        => [.. Language.Functions.Select(function => new ExpressionFunctionChoice(function))];
+
+    /// <summary>
+    /// The dock's buttons: every group the language files its functions under, in the order the
+    /// table first mentions them, with all of them in front of the rest. The names are the very
+    /// ones the manual's function table is divided by, so a reader who met a group there finds the
+    /// same word here.
+    /// </summary>
+    private static IReadOnlyList<ExpressionFunctionFilter> BuildFunctionFilters()
     {
-        var groups = new List<ExpressionFunctionGroup>();
+        var filters = new List<ExpressionFunctionFilter>
+        {
+            new(string.Empty, "ExprBuilder.FunctionsAll"),
+        };
+
         foreach (var function in Language.Functions)
         {
-            var group = groups.LastOrDefault(entry => entry.Group == function.Group);
-            if (group is null)
+            if (!filters.Any(filter => filter.Group == function.Group))
             {
-                group = new ExpressionFunctionGroup(function.Group,
-                    Strings.Get($"Expr.Group.{function.Group}"));
-                groups.Add(group);
+                filters.Add(new ExpressionFunctionFilter(function.Group,
+                    $"Expr.Group.{function.Group}"));
             }
-
-            group.Functions.Add(new ExpressionFunctionChoice(function));
         }
 
-        return [.. groups];
+        return filters;
     }
 
     /// <summary>
-    /// Narrows the list to the functions whose name holds what was typed — in either language, so a
-    /// reader who knows the function as 截取文本 finds it by that — or whose signature holds it, so
-    /// a piece of the way it is written works too. Nothing typed is the whole table, which is what
-    /// the dialog opens with.
+    /// Draws the wall again from the two questions that narrow it: which group the dock is on, and
+    /// what was typed in the filter. The filter reads the function's name in either language — a
+    /// reader who knows it as 截取文本 finds it by that — and the way it is written as well, so a
+    /// piece of the call works too. Nothing typed and no group chosen is the whole table, which is
+    /// what the dialog opens with.
     /// </summary>
     private void Refill()
     {
-        var tables = BuildFunctions();
+        var group = SelectedFunctionFilter?.Group ?? string.Empty;
         var wanted = FunctionFilter.Trim();
         Functions.Clear();
-        foreach (var group in tables)
-        {
-            group.Functions = [.. group.Functions.Where(function =>
-                wanted.Length == 0
+        foreach (var function in _table.Where(function =>
+            (group.Length == 0 || function.Group == group)
+            && (wanted.Length == 0
                 || function.Name.Contains(wanted, StringComparison.OrdinalIgnoreCase)
                 || function.Signature.Contains(wanted, StringComparison.OrdinalIgnoreCase)
                 || function.Heading.Contains(wanted, StringComparison.OrdinalIgnoreCase)
-                || function.ChineseSignature.Contains(wanted, StringComparison.OrdinalIgnoreCase))];
-            if (group.Functions.Count > 0)
-            {
-                Functions.Add(group);
-            }
+                || function.ChineseSignature.Contains(wanted, StringComparison.OrdinalIgnoreCase))))
+        {
+            Functions.Add(function);
         }
+
+        OnPropertyChanged(nameof(HasNoFunctionMatch));
     }
 }
 
@@ -1127,25 +1164,29 @@ public sealed class ValueChoice(ValueChoiceKind kind, string labelKey, string hi
     public string Word { get; } = word;
 }
 
-/// <summary>One heading of the function list, and the functions written under it.</summary>
-public sealed class ExpressionFunctionGroup(string group, string header)
+/// <summary>
+/// One button of the dock above the function wall: the group it shows, and what the button says.
+/// An empty group is all of them, which is what the dock stands on when the dialog opens.
+/// </summary>
+public sealed class ExpressionFunctionFilter(string group, string labelKey)
 {
-    /// <summary>The key every function of this group shares, such as <c>text</c>.</summary>
+    /// <summary>The key every function of this group shares, such as <c>text</c>, or empty for all.</summary>
     public string Group { get; } = group;
 
-    /// <summary>What the group is called in the reader's own language.</summary>
-    public string Header { get; } = header;
-
-    /// <summary>The functions written under this heading.</summary>
-    public List<ExpressionFunctionChoice> Functions { get; set; } = [];
+    /// <summary>What the button says, in the reader's own language.</summary>
+    public string Label { get; } = Strings.Get(labelKey);
 }
 
+/// <summary>One argument of a function, named and explained the way the bubble shows it.</summary>
+public sealed record FunctionArgument(string Label, string Hint);
+
 /// <summary>
-/// One function button: what it is called, how it is written, and the text one click puts in the
-/// formula. The button shows the name in the reader's own language with the name the code calls it
-/// by beside it — a reader who has met either one recognises the other — and how the call is
-/// written under it in that same language; the sentence saying what the function does is on the
-/// tooltip, where it does not take up room on the wall of buttons.
+/// One function card: what it is called and the text one click puts in the formula. The card says
+/// the name in the reader's own language with the name the code calls it by beside it — a reader
+/// who has met either one recognises the other — and is painted in the colour of the group it
+/// belongs to, which is what tells the groups apart now that no heading does. How the call is
+/// written and what each argument is for are in the bubble that comes up when the pointer rests on
+/// the card: written on the card itself they would be a paragraph per function on a wall of them.
 /// </summary>
 public sealed class ExpressionFunctionChoice
 {
@@ -1157,9 +1198,16 @@ public sealed class ExpressionFunctionChoice
         Insert = function.Name + "(";
         Heading = ExpressionText.Heading(function);
         ChineseSignature = ExpressionText.ChineseSignature(function);
-        // The second line is the very same call said in Chinese, so it belongs on the button
-        // exactly when the name above it is Chinese as well.
-        ShowsSignature = Heading != Name;
+        // How the call is written, in whichever language the reader is reading: the Chinese form is
+        // a reading of the call rather than a copy of it, so an English interface keeps the one the
+        // code itself is written with.
+        WrittenAs = ExpressionText.InChinese ? ChineseSignature : Signature;
+        Arguments =
+        [
+            .. function.Parameters.Select(parameter => new FunctionArgument(
+                ExpressionText.ParameterLabel(function.Name, parameter),
+                ExpressionText.ParameterSaid(function.Name, parameter))),
+        ];
         // The Chinese line lives in the text table and the English one beside the function in the
         // engine, the way the built-in variables are written: one sentence per language, no copies.
         Hint = Strings.Get($"Expr.Fn.{function.Name}", function.Description);
@@ -1171,6 +1219,9 @@ public sealed class ExpressionFunctionChoice
     /// <summary>The name the function is called by.</summary>
     public string Name { get; }
 
+    /// <summary>Which group of the table it belongs to, which is the colour its card is painted in.</summary>
+    public string Group => Function.Group;
+
     /// <summary>How it is written, with the arguments it takes.</summary>
     public string Signature { get; }
 
@@ -1180,8 +1231,14 @@ public sealed class ExpressionFunctionChoice
     /// <summary>The same call, with every argument named in the reader's own language.</summary>
     public string ChineseSignature { get; }
 
-    /// <summary>True when the reader's language has a name of its own, so the second line is worth reading.</summary>
-    public bool ShowsSignature { get; }
+    /// <summary>How the call is written, said in the reader's own language.</summary>
+    public string WrittenAs { get; }
+
+    /// <summary>
+    /// What each argument is for, one line each, in the order the call takes them: this is what the
+    /// bubble under the pointer is for, and what a card alone cannot say.
+    /// </summary>
+    public IReadOnlyList<FunctionArgument> Arguments { get; }
 
     /// <summary>What one click leaves in the expression, with the caret after the bracket.</summary>
     public string Insert { get; }

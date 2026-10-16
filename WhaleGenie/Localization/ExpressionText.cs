@@ -105,15 +105,23 @@ public static class ExpressionText
         => Wording(function, parameter, Chinese);
 
     /// <summary>
-    /// The name the signature spells out and one line saying what goes in it, which is what a
-    /// reader needs to match a line to the argument it fills. An argument that means something
-    /// narrower than its name usually does carries its own sentence beside the function, and the
-    /// Chinese line for it is looked for under the function before the shared one is used.
+    /// One line saying what goes in an argument, which is what a reader needs to match a line to the
+    /// argument it fills. An argument that means something narrower than its name usually does
+    /// carries its own sentence beside the function, and the Chinese line for it is looked for under
+    /// the function before the shared one is used. Nothing found leaves it empty rather than
+    /// naming the argument a second time, so a reader reading both halves is not told the name twice.
+    /// </summary>
+    public static string ParameterSaid(string function, ExpressionParameter parameter)
+        => Strings.Get($"Expr.Arg.{function}.{parameter.Name}.hint",
+            Strings.Get($"Expr.Arg.{parameter.Name}.hint", parameter.Hint));
+
+    /// <summary>
+    /// The name the signature spells out and one line saying what goes in it, which is what a line
+    /// filled in with nothing but a sentence is missing.
     /// </summary>
     public static string ParameterHint(string function, ExpressionParameter parameter)
     {
-        var said = Strings.Get($"Expr.Arg.{function}.{parameter.Name}.hint",
-            Strings.Get($"Expr.Arg.{parameter.Name}.hint", parameter.Hint));
+        var said = ParameterSaid(function, parameter);
         return said.Length == 0 ? parameter.Name : parameter.Name + " · " + said;
     }
 }

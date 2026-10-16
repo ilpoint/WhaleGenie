@@ -27,7 +27,7 @@ public class ExpressionBuilderTreeTests
         => new(expression, Variables(names));
 
     private static ExpressionFunctionChoice Function(ExpressionBuilderViewModel builder, string name)
-        => builder.Functions.SelectMany(group => group.Functions).First(choice => choice.Name == name);
+        => builder.Functions.First(choice => choice.Name == name);
 
     [Fact]
     public void The_structure_page_lays_the_formula_out_one_line_to_a_piece()

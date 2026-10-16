@@ -14,40 +14,29 @@
     </Design.DataContext>
 
     <UserControl.Styles>
-        <!-- Which group of variables is on show: painted like a switch rather than a menu, because
-             the list under it changes as soon as one is pressed. -->
-        <Style Selector="ListBox.Filters ListBoxItem">
-            <Setter Property="Background" Value="#333333" />
-            <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="Padding" Value="11,3" />
-            <Setter Property="Margin" Value="0,0,6,0" />
-        </Style>
-        <Style Selector="ListBox.Filters ListBoxItem:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#454545" />
-        </Style>
-        <Style Selector="ListBox.Filters ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="#C8401C" />
-        </Style>
-
+        <!-- One variable to point at. It stands the same size and shape as every other card in the
+             palettes around it, so the wall reads as one wall rather than as a list apart. -->
         <Style Selector="Button.VarButton">
             <Setter Property="Background" Value="#2E2E2E" />
             <Setter Property="Foreground" Value="#E8E8E8" />
             <Setter Property="BorderBrush" Value="#3A3A3A" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="CornerRadius" Value="6" />
             <Setter Property="FontSize" Value="12.5" />
-            <Setter Property="Height" Value="30" />
+            <Setter Property="Height" Value="28" />
             <Setter Property="Padding" Value="10,0" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.VarButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#454545" />
+            <Setter Property="Background" Value="#3C3C3C" />
         </Style>
     </UserControl.Styles>
 
     <StackPanel Spacing="8">
-        <ListBox Classes="Filters" ItemsSource="{Binding Filters}"
+        <!-- Which group of variables is on show: painted like a switch rather than a menu, because
+             the list under it changes as soon as one is pressed. -->
+        <ListBox Classes="Dock" ItemsSource="{Binding Filters}"
                  SelectedItem="{Binding SelectedFilter}" SelectionMode="Single"
                  Background="Transparent" BorderThickness="0" Padding="0">
             <ListBox.ItemsPanel>

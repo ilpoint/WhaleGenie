@@ -1,10 +1,13 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Converters;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -101,29 +104,87 @@ public class ExpressionBuilderTests
         Ui.Run(() =>
         {
             var viewModel = new ExpressionBuilderViewModel(string.Empty, []);
-            var offered = viewModel.Functions.Sum(group => group.Functions.Count);
 
-            // Every function is on the list, and every one of them says how it is written: the
-            // signature is what the button shows, and the sentence saying what the function does is
-            // one hover away — names alone leave trim, slice and substring looking alike.
-            Assert.Equal(WhaleGenie.Core.Expressions.Expression.Functions.Count, offered);
+            // The wall opens on all of them, which is the whole table and nothing else: names alone
+            // leave trim, slice and substring looking alike, so what the card cannot say — how the
+            // call is written and what each argument is for — is on the bubble beside it.
+            Assert.Equal(WhaleGenie.Core.Expressions.Expression.Functions.Count,
+                viewModel.Functions.Count);
+            Assert.All(viewModel.Functions, choice => Assert.Equal(choice.Name + "(", choice.Insert));
             Assert.All(viewModel.Functions,
-                group => Assert.False(string.IsNullOrWhiteSpace(group.Header)));
-            Assert.All(viewModel.Functions.SelectMany(group => group.Functions),
-                choice => Assert.Equal(choice.Name + "(", choice.Insert));
-            Assert.All(viewModel.Functions.SelectMany(group => group.Functions),
                 choice => Assert.False(string.IsNullOrWhiteSpace(choice.Hint)));
-            Assert.Contains(viewModel.Functions.SelectMany(group => group.Functions),
+            Assert.All(viewModel.Functions,
+                choice => Assert.False(string.IsNullOrWhiteSpace(choice.WrittenAs)));
+            Assert.All(viewModel.Functions,
+                choice => Assert.Equal(choice.Function.Parameters.Count, choice.Arguments.Count));
+            Assert.All(viewModel.Functions.SelectMany(choice => choice.Arguments), argument =>
+            {
+                Assert.False(string.IsNullOrWhiteSpace(argument.Label));
+                Assert.False(string.IsNullOrWhiteSpace(argument.Hint));
+            });
+            Assert.Contains(viewModel.Functions,
                 choice => choice is { Name: "upper", Signature: "upper(text)" });
         });
     }
 
     /// <summary>
-    /// The line is on the button rather than only in the view model: a sentence nobody shows is the
-    /// same as no sentence, and the markup is where that is decided.
+    /// The dock is what tells the groups apart now that no heading does, and it is the same control
+    /// the variable wall narrows itself with: pressing one button leaves that group's functions and
+    /// nothing else, and pressing all of them leaves the whole table.
     /// </summary>
     [Fact]
-    public void The_function_buttons_carry_the_line_that_explains_them()
+    public void The_dock_narrows_the_wall_to_one_group()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = new ExpressionBuilderViewModel(string.Empty, []);
+            var every = viewModel.FunctionFilters[0];
+            var text = viewModel.FunctionFilters.First(filter => filter.Group == "text");
+
+            // The dock says what each button is in the reader's own language, all of them first.
+            Assert.Equal(Strings.Get("ExprBuilder.FunctionsAll"), every.Label);
+            Assert.Equal(Strings.Get("Expr.Group.text"), text.Label);
+
+            viewModel.SelectedFunctionFilter = text;
+            Assert.Equal(
+                WhaleGenie.Core.Expressions.Expression.Functions.Count(function =>
+                    function.Group == "text"),
+                viewModel.Functions.Count);
+            Assert.All(viewModel.Functions, choice => Assert.Equal("text", choice.Group));
+
+            viewModel.SelectedFunctionFilter = every;
+            Assert.Equal(WhaleGenie.Core.Expressions.Expression.Functions.Count,
+                viewModel.Functions.Count);
+        });
+    }
+
+    /// <summary>
+    /// A wall with nothing on it has to say so: the list is flat, so an empty one says nothing at
+    /// all about which of the two questions emptied it.
+    /// </summary>
+    [Fact]
+    public void A_wall_with_nothing_on_it_says_so()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = new ExpressionBuilderViewModel(string.Empty, []);
+            Assert.False(viewModel.HasNoFunctionMatch);
+
+            viewModel.FunctionFilter = "没有这个函数";
+            Assert.True(viewModel.HasNoFunctionMatch);
+
+            viewModel.FunctionFilter = string.Empty;
+            Assert.False(viewModel.HasNoFunctionMatch);
+        });
+    }
+
+    /// <summary>
+    /// How a call is written and what each argument is for are on the bubble rather than on the
+    /// card: a card carrying a paragraph per function would push every other function off the wall.
+    /// A sentence nobody shows is the same as no sentence, and the markup is where that is decided.
+    /// </summary>
+    [Fact]
+    public void The_function_cards_carry_a_bubble_that_explains_them()
     {
         var markup = File.ReadAllText(Path.Combine(
             Repository(), "WhaleGenie", "Views", "ExpressionBuilderWindow.axaml"));
@@ -132,7 +193,92 @@ public class ExpressionBuilderTests
         Assert.True(start >= 0, "the window stopped listing the functions");
 
         var block = markup[start..markup.IndexOf("</DataTemplate>", start, StringComparison.Ordinal)];
-        Assert.Contains("ToolTip.Tip=\"{Binding Hint}\"", block, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip", block, StringComparison.Ordinal);
+        Assert.Contains("WrittenAs", block, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding Arguments}\"", block, StringComparison.Ordinal);
+
+        // The parameter suffix is gone from the card itself; it is what the bubble is for.
+        Assert.DoesNotContain("ChineseSignature", block, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The colour is on the card rather than only in the converter: a card whose brush never reached
+    /// it would be the same grey as everything else, and the dock would be the only thing left
+    /// saying which group a function is in.
+    /// </summary>
+    [Fact]
+    public void The_function_cards_are_painted_in_the_colour_of_their_group()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = new ExpressionBuilderViewModel(string.Empty, []);
+            viewModel.SelectedFunctionFilter =
+                viewModel.FunctionFilters.First(filter => filter.Group == "text");
+
+            var window = new ExpressionBuilderWindow(viewModel);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var cards = window.GetVisualDescendants().OfType<Button>()
+                .Where(button => button.DataContext is ExpressionFunctionChoice)
+                .ToList();
+
+            Assert.Equal(
+                WhaleGenie.Core.Expressions.Expression.Functions.Count(
+                    function => function.Group == "text"),
+                cards.Count);
+            Assert.All(cards, card => Assert.Equal(
+                FunctionGroupBrushConverter.Shade(FunctionGroupBrushConverter.Hue("text"), "fill"),
+                Assert.IsType<SolidColorBrush>(card.Background).Color));
+
+            // Pressing a button of the dock is what changes the wall: the selection has to travel
+            // from the control back to the view model, which is the half a check on the view model
+            // alone cannot see.
+            var dock = window.GetVisualDescendants().OfType<ListBox>()
+                .First(box => box.ItemsSource is IEnumerable<ExpressionFunctionFilter>);
+            dock.SelectedItem = viewModel.FunctionFilters.First(filter => filter.Group == "dates");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("dates", viewModel.SelectedFunctionFilter?.Group);
+            Assert.NotEmpty(viewModel.Functions);
+            Assert.All(viewModel.Functions, choice => Assert.Equal("dates", choice.Group));
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
+    /// Every group of functions is painted in a hue of its own, which is what tells the groups apart
+    /// now that no heading does: two groups sharing a colour would be two groups a reader cannot
+    /// tell apart. A group the table has never met is painted as the last one rather than as
+    /// nothing, so a function added to the language before its colour is chosen stays readable.
+    /// </summary>
+    [Fact]
+    public void Every_function_group_is_painted_in_a_hue_of_its_own()
+    {
+        var groups = WhaleGenie.Core.Expressions.Expression.Functions
+            .Select(function => function.Group)
+            .Distinct()
+            .ToList();
+
+        var hues = groups.Select(FunctionGroupBrushConverter.Hue).ToList();
+        Assert.Equal(hues.Count, hues.Distinct().Count());
+
+        Assert.Equal(FunctionGroupBrushConverter.Hue("other"),
+            FunctionGroupBrushConverter.Hue("a group the table has never met"));
+        Assert.Equal(FunctionGroupBrushConverter.Hue("other"), FunctionGroupBrushConverter.Hue(null));
+
+        // The three weights a card needs all paint something, and the writing is lighter than the
+        // line it stands in, or a card would be a colour nobody can read a name off.
+        var converter = new FunctionGroupBrushConverter();
+        var weights = new[] { "fill", "line", "ink" }
+            .Select(weight => Assert.IsType<SolidColorBrush>(converter.Convert(
+                "text", typeof(IBrush), weight, CultureInfo.InvariantCulture)).Color)
+            .ToList();
+
+        Assert.All(weights, colour => Assert.True(colour.A > 0));
+        Assert.True(weights[2].R > weights[0].R);
+        Assert.True(weights[2].B > weights[0].B);
     }
 
     [Fact]
@@ -145,25 +291,20 @@ public class ExpressionBuilderTests
                 FunctionFilter = "date",
             };
 
-            var shown = viewModel.Functions.SelectMany(group => group.Functions)
-                .Select(choice => choice.Name).ToList();
+            var shown = viewModel.Functions.Select(choice => choice.Name).ToList();
 
             Assert.Contains("dateAdd", shown);
             Assert.Contains("formatDate", shown);
             Assert.DoesNotContain("upper", shown);
-
-            // A group whose every function was filtered out goes away with them, rather than
-            // standing over an empty space.
-            Assert.All(viewModel.Functions, group => Assert.NotEmpty(group.Functions));
-            Assert.DoesNotContain(viewModel.Functions, group => group.Group == "text");
         });
     }
 
     /// <summary>
-    /// A reader who does not have the code names by heart reaches for the Chinese ones, so a button
-    /// says what the function is called in Chinese with the code name beside it, and under it the
-    /// very same call with every argument named in Chinese. What is written in the filter has to
-    /// answer to those names too: 截取文本 is the name someone who never met `substring` would use.
+    /// A reader who does not have the code names by heart reaches for the Chinese ones, so a card
+    /// says what the function is called in Chinese with the code name beside it, and the bubble
+    /// under it the very same call with every argument named in Chinese. What is written in the
+    /// filter has to answer to those names too: 截取文本 is the name someone who never met
+    /// `substring` would use.
     /// </summary>
     [Fact]
     public void A_function_button_says_the_name_and_how_it_is_written_in_chinese()
@@ -173,30 +314,34 @@ public class ExpressionBuilderTests
             var viewModel = new ExpressionBuilderViewModel(string.Empty, []);
 
             // Every function has a name of its own to show; none falls back to the code name alone.
-            Assert.All(viewModel.Functions.SelectMany(group => group.Functions), choice =>
+            Assert.All(viewModel.Functions, choice =>
             {
-                Assert.True(choice.ShowsSignature, $"{choice.Name} has no name of its own");
                 Assert.Equal($"{ExpressionText.ChineseName(choice.Function)} ({choice.Name})",
                     choice.Heading);
             });
 
-            var substring = viewModel.Functions.SelectMany(group => group.Functions)
-                .First(choice => choice.Name == "substring");
+            var substring = viewModel.Functions.First(choice => choice.Name == "substring");
             Assert.Equal("截取文本 (substring)", substring.Heading);
             Assert.Equal("截取文本(原文本, 起始位置 [, 截取长度])", substring.ChineseSignature);
+            Assert.Equal(substring.ChineseSignature, substring.WrittenAs);
+
+            // Each argument is named the way the signature names it and says what goes in it, which
+            // is what the bubble puts one line each.
+            Assert.Equal(["原文本", "起始位置", "截取长度"],
+                substring.Arguments.Select(argument => argument.Label));
+            Assert.All(substring.Arguments,
+                argument => Assert.False(string.IsNullOrWhiteSpace(argument.Hint)));
 
             // Clicking one still writes the code, which is what the macro is made of.
             Assert.Equal("substring(", substring.Insert);
 
             viewModel.FunctionFilter = "截取";
-            var shown = viewModel.Functions.SelectMany(group => group.Functions)
-                .Select(choice => choice.Name).ToList();
+            var shown = viewModel.Functions.Select(choice => choice.Name).ToList();
             Assert.Contains("substring", shown);
             Assert.DoesNotContain("upper", shown);
 
             viewModel.FunctionFilter = "向下取整";
-            Assert.Contains("floor", viewModel.Functions.SelectMany(group => group.Functions)
-                .Select(choice => choice.Name));
+            Assert.Contains("floor", viewModel.Functions.Select(choice => choice.Name));
         }));
     }
 
