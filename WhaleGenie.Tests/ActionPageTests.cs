@@ -92,7 +92,7 @@ public class ActionPageTests
         "emptyCells", "align", "separator", "depth", "sortBy", "descending", "withinCount",
         "withinUnit", "minKb", "maxKb", "relative", "columns", "matchColumn", "matchValue",
         "maxRows", "headless", "storeAs", "limit", "skipBlankLines", "trim", "shape", "pollMs",
-        "afterMs", "hidden", "runAsAdmin", "details",
+        "afterMs", "hidden", "runAsAdmin", "details", "inputSize", "iou",
     ];
 
     [Fact]
@@ -187,6 +187,35 @@ public class ActionPageTests
         Assert.Contains("minFeatures", advanced);
         Assert.Contains("ignoreColor", advanced);
         Assert.Contains("orderBy", advanced);
+    }
+
+    /// <summary>
+    /// 用模型找东西的那几步：模型、标签文件与要认的类是要什么，检测范围是在哪，置信度是多严，
+    /// 这几样都在基础页上挨着；要换个做法才会动的两个数（模型输入尺寸、允许重叠）在高级页。
+    /// </summary>
+    [Theory]
+    [InlineData("vision.detect")]
+    [InlineData("vision.waitDetect")]
+    [InlineData("vision.clickDetect")]
+    public void What_a_model_looks_for_is_on_the_basic_page_and_how_it_is_run_is_tuning(
+        string action)
+    {
+        var detector = Ui.Run(() => ActionCatalog.Find(action)!);
+
+        var basic = On(detector, viewModel => viewModel.Rows);
+        Assert.Contains("model", basic);
+        Assert.Contains("labelFile", basic);
+        Assert.Contains("labels", basic);
+        Assert.Contains("region", basic);
+        Assert.Contains("confidence", basic);
+        Assert.DoesNotContain("inputSize", basic);
+        Assert.DoesNotContain("iou", basic);
+
+        var advanced = On(detector, viewModel => viewModel.AdvancedRows);
+        Assert.Contains("inputSize", advanced);
+        Assert.Contains("iou", advanced);
+        Assert.Contains("orderBy", advanced);
+        Assert.Contains("matchIndex", advanced);
     }
 
     /// <summary>

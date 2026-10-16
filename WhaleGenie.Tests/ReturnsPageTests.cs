@@ -49,6 +49,32 @@ public class ReturnsPageTests
         });
     }
 
+    /// <summary>
+    /// 用模型找东西的三步与找图那三步交出同样的两样：这一处命中（默认勾上，一条记录）与全部命中
+    /// （一个列表）。命中记录比找图多带的是哪一类，形状与取法与找图一样。
+    /// </summary>
+    [Theory]
+    [InlineData("vision.detect")]
+    [InlineData("vision.waitDetect")]
+    [InlineData("vision.clickDetect")]
+    public void A_detection_hands_over_the_same_two_things_a_picture_finder_does(string action)
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open(action);
+
+            var hit = viewModel.ReturnsRows.First(row => row.Key == "match");
+            var every = viewModel.ReturnsRows.First(row => row.Key == "every");
+            Assert.True(hit.Ticked);
+            Assert.Equal(ActionReturnType.Record, hit.Result.Type);
+            Assert.Equal(ActionReturnType.List, every.Result.Type);
+
+            // 记录里多带的两个名字写在说明里，取法与别的记录一样是 field()。
+            Assert.Contains("label", hit.Result.LocalHint, StringComparison.Ordinal);
+            Assert.Contains("field(", hit.Result.LocalHint, StringComparison.Ordinal);
+        });
+    }
+
     [Fact]
     public void A_search_hands_over_one_hit_and_however_many_were_found()
     {

@@ -612,6 +612,44 @@ public class ActionDialogTests
     }
 
     /// <summary>
+    /// 用模型找东西的三步：先把模型文件填上才存得下去（模型是这一步唯一非它不可的东西），标签文件
+    /// 与要认的类都留空也算填好了 —— 留空是"每一类都算"，而标签文件留空是"类名没名字"。
+    /// </summary>
+    [Fact]
+    public void Naming_the_model_is_enough_to_save_a_detection()
+    {
+        Ui.Run(() =>
+        {
+            foreach (var key in new[] { "vision.detect", "vision.waitDetect", "vision.clickDetect" })
+            {
+                var viewModel = Open(key);
+                Assert.False(viewModel.CanSave, $"{key}: 没填模型时不该存得下去");
+
+                var model = viewModel.Parameters
+                    .First(parameter => parameter.Definition.Name == "model");
+                Assert.True(model.Definition.PathIntent is PathIntent.Read);
+                Assert.Equal("*.onnx", model.Definition.PathFilter);
+
+                // 标签文件与要认的类是可以留空的：一个说"类名没名字"，一个说"每一类都算"。
+                foreach (var name in new[] { "labelFile", "labels", "region" })
+                {
+                    Assert.False(
+                        viewModel.Parameters.First(p => p.Definition.Name == name).Definition.Required,
+                        $"{key}.{name}");
+                }
+
+                model.Text = @"C:\models\yolov8n.onnx";
+                Assert.True(viewModel.CanSave, $"{key}: {viewModel.ValidationMessage}");
+
+                // 两个"换个做法才会动"的数各有默认值：输入尺寸 640、允许重叠 45%。
+                Assert.Equal("640", Value(viewModel, "inputSize"));
+                Assert.Equal("45", Value(viewModel, "iou"));
+                Assert.Equal("25", Value(viewModel, "confidence"));
+            }
+        });
+    }
+
+    /// <summary>
     /// Looking for a picture is complete once the picture is named. "Ignore this colour" answers a
     /// question most steps never ask, so leaving it empty is not a mistake — it is what a step that
     /// does not care about it looks like, and the label says so. Treating it as still to be filled

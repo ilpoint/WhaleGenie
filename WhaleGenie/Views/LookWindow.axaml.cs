@@ -422,7 +422,8 @@ public partial class LookWindow : Window
     /// </summary>
     private static string Score(double value, LookKind kind) => kind switch
     {
-        LookKind.Template => value.ToString("P0", CultureInfo.CurrentCulture),
+        LookKind.Template or LookKind.Detection
+            => value.ToString("P0", CultureInfo.CurrentCulture),
         LookKind.Colour => value.ToString("0.00", CultureInfo.CurrentCulture),
         _ => value.ToString("0.#", CultureInfo.CurrentCulture),
     };
