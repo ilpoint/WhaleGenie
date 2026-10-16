@@ -2,6 +2,13 @@
 
 [![Windows 10 2004+ / 11 (x64)](https://img.shields.io/badge/Windows-10%202004%2B%20%7C%2011%20(x64)-0078D4?logo=windows&logoColor=white)](https://www.microsoft.com/windows)
 [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)](https://github.com/dotnet/runtime)
+[![SharpHook](https://img.shields.io/badge/SharpHook-%E5%85%A8%E5%B1%80%E9%92%A9%E5%AD%90%E4%B8%8E%E6%B3%A8%E5%85%A5-1F6FEB)](https://github.com/TolikPylypchuk/SharpHook)
+[![libVIIPER](https://img.shields.io/badge/libVIIPER-%E9%A9%B1%E5%8A%A8%E7%BA%A7%E8%99%9A%E6%8B%9F%20USB-1F6FEB)](https://github.com/Alia5/VIIPER)
+[![OpenCvSharp5](https://img.shields.io/badge/OpenCvSharp5-%E6%89%BE%E5%9B%BE%E6%89%BE%E8%89%B2%E4%B8%8E%E6%A3%80%E6%B5%8B-1F6FEB)](https://github.com/shimat/opencvsharp)
+[![PaddleOCR](https://img.shields.io/badge/PaddleOCR-%E5%B1%8F%E5%B9%95%E5%8F%96%E5%AD%97-1F6FEB)](https://github.com/sdcb/PaddleSharp)
+[![FlaUI](https://img.shields.io/badge/FlaUI-UI%20Automation-1F6FEB)](https://github.com/FlaUI/FlaUI)
+[![Microsoft.Playwright](https://img.shields.io/badge/Microsoft.Playwright-%E6%B5%8F%E8%A7%88%E5%99%A8%E5%8A%A8%E4%BD%9C-1F6FEB)](https://github.com/microsoft/playwright-dotnet)
+[![CsvHelper](https://img.shields.io/badge/CsvHelper-CSV%20%E8%AF%BB%E5%86%99-1F6FEB)](https://github.com/JoshClose/CsvHelper)
 [![AGPL-3.0](https://img.shields.io/badge/Licence-AGPL--3.0-blue)](LICENSE.txt)
 
 Windows 上的通用宏 / 自动化工具：把键盘、鼠标、手柄、屏幕与窗口上的操作编成一步步的宏，用热键、鼠标按键、
@@ -12,7 +19,7 @@ Windows 上的通用宏 / 自动化工具：把键盘、鼠标、手柄、屏幕
 | | |
 | --- | --- |
 | 输入与触发 | 键盘、鼠标与手柄的按键、移动和滚轮；前台、后台消息与驱动级虚拟 USB 设备三种送法；热键、鼠标按键、滚轮、像素颜色、窗口或进程出现等触发器 |
-| 画面识别 | 找图（四种算法）、找色与占比、多点找色、等画面静止、屏幕取字、取色，以及"认得出才下手"的点击图片与点击文字 |
+| 画面识别 | 找图（四种算法）、找色与占比、多点找色、等画面静止、屏幕取字、取色，用自己带的 YOLO 模型找物体（检测 / 等待 / 点击），以及"认得出才下手"的点击图片与点击文字 |
 | 窗口与元素 | 按标题、进程名或窗口类名认窗口；移动、缩放、置顶、开关与读窗口和客户区矩形；UI Automation 的取值、选择、勾选、展开、读表格 |
 | 浏览器 | 打开页面、点元素、填表、取文字与属性、截图、切换与关闭标签页；默认用系统自带的 Edge |
 | 文件与数据 | 读写文本、CSV 与 JSON，剪贴板（含图片），文件夹与进程，命令行与脚本 |
@@ -30,32 +37,6 @@ Windows 上的通用宏 / 自动化工具：把键盘、鼠标、手柄、屏幕
 
 到 [Releases](https://github.com/ilpoint/WhaleGenie/releases) 下载，解压即用：里面是一个 `WhaleGenie`
 文件夹，`WhaleGenie.exe` 就在最外层，双击它。
-
-## 用了谁的库
-
-程序是 .NET 10 上的 C#，除自己写的部分外，靠别人的地方都在这几行里：蓝是执行引擎、青是画面获取，
-紫是界面、灰是测试与开发；徽章点开就是那个库的仓库。版本写在 [doc/dev.md](doc/dev.md) 的
-「依赖的包」一节，不在这里抄第二遍。
-
-[![SharpHook](https://img.shields.io/badge/SharpHook-%E5%85%A8%E5%B1%80%E9%92%A9%E5%AD%90%E4%B8%8E%E6%B3%A8%E5%85%A5-1F6FEB)](https://github.com/TolikPylypchuk/SharpHook)
-[![libVIIPER](https://img.shields.io/badge/libVIIPER-%E9%A9%B1%E5%8A%A8%E7%BA%A7%E8%99%9A%E6%8B%9F%20USB-1F6FEB)](https://github.com/Alia5/VIIPER)
-[![OpenCvSharp5](https://img.shields.io/badge/OpenCvSharp5-%E6%89%BE%E5%9B%BE%E4%B8%8E%E6%89%BE%E8%89%B2-1F6FEB)](https://github.com/shimat/opencvsharp)
-[![PaddleOCR](https://img.shields.io/badge/PaddleOCR-%E5%B1%8F%E5%B9%95%E5%8F%96%E5%AD%97-1F6FEB)](https://github.com/sdcb/PaddleSharp)
-[![FlaUI](https://img.shields.io/badge/FlaUI-UI%20Automation-1F6FEB)](https://github.com/FlaUI/FlaUI)
-[![Microsoft.Playwright](https://img.shields.io/badge/Microsoft.Playwright-%E6%B5%8F%E8%A7%88%E5%99%A8%E5%8A%A8%E4%BD%9C-1F6FEB)](https://github.com/microsoft/playwright-dotnet)
-[![CsvHelper](https://img.shields.io/badge/CsvHelper-CSV%20%E8%AF%BB%E5%86%99-1F6FEB)](https://github.com/JoshClose/CsvHelper)
-
-[![Vortice](https://img.shields.io/badge/Vortice-%E7%94%BB%E9%9D%A2%E8%8E%B7%E5%8F%96%20D3D11%2FDXGI-0E7490)](https://github.com/amerkoleci/Vortice.Windows)
-[![Avalonia](https://img.shields.io/badge/Avalonia-%E7%95%8C%E9%9D%A2-6D28D9)](https://github.com/AvaloniaUI/Avalonia)
-[![CommunityToolkit.Mvvm](https://img.shields.io/badge/CommunityToolkit.Mvvm-MVVM-6D28D9)](https://github.com/CommunityToolkit/dotnet)
-
-[![xunit](https://img.shields.io/badge/xunit-%E7%94%A8%E4%BE%8B-6B7280)](https://github.com/xunit/xunit)
-[![Microsoft.NET.Test.Sdk](https://img.shields.io/badge/Microsoft.NET.Test.Sdk-%E8%B7%91%E6%B5%8B%E8%AF%95-6B7280)](https://github.com/microsoft/vstest)
-[![coverlet.collector](https://img.shields.io/badge/coverlet.collector-%E8%A6%86%E7%9B%96%E7%8E%87-6B7280)](https://github.com/coverlet-coverage/coverlet)
-[![Avalonia.Headless](https://img.shields.io/badge/Avalonia.Headless-%E6%97%A0%E5%A4%B4%E7%95%8C%E9%9D%A2%E7%94%A8%E4%BE%8B-6B7280)](https://github.com/AvaloniaUI/Avalonia)
-
-别人随包带进来的原生库（OpenCV、SharpHook 的 `uiohook.dll`、Playwright 的驱动、`libVIIPER.dll`、
-OCR 模型）与每个库的许可、协议原文地址，见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
 
 ## 文档
 
