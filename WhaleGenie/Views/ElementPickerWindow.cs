@@ -102,24 +102,23 @@ public sealed class ElementPickerWindow : Window
 
     /// <summary>
     /// Shows the picker over <paramref name="owner"/> and reports the control that was clicked.
-    /// The owner steps out of the way, because the control being picked is usually behind it.
+    /// Every window this program has goes out of the way first, the window that asked included: the
+    /// control being picked is usually behind one of them.
     /// </summary>
     public static async Task<Pick?> PickAsync(Window owner, IDeviceLayer devices)
     {
-        var previous = owner.WindowState;
-        owner.WindowState = WindowState.Minimized;
+        using var aside = AppWindows.StepAside(owner);
+        return await new ElementPickerWindow(devices).TakeAsync();
+    }
 
-        try
-        {
-            return await new ElementPickerWindow(devices).ShowDialogOver<Pick?>(owner);
-        }
-        finally
-        {
-            owner.WindowState = previous == WindowState.Maximized
-                ? WindowState.Maximized
-                : WindowState.Normal;
-            owner.Activate();
-        }
+    /// <summary>
+    /// Stands the picker on its own — nothing else of this program is on the screen to own it — and
+    /// reports the control it was answered with, or null when it was left without one.
+    /// </summary>
+    internal async Task<Pick?> TakeAsync()
+    {
+        await AppWindows.ShowAndWaitAsync(this);
+        return Chosen;
     }
 
     protected override void OnOpened(EventArgs e)
@@ -367,7 +366,14 @@ public sealed class ElementPickerWindow : Window
         y = Math.Clamp(y, screen.Y, Math.Max(screen.Y, screen.Y + screen.Height - height));
 
         readout.Position = new PixelPoint(x, y);
-        _readoutBox = new Box(x, y, width, height);
+
+        // The first probes happen before the readout has been through a layout pass, and a window
+        // that has not been laid out measures to the whole of what it could be: a box taken from
+        // that would cover the desk and answer "this is the picker" to every click, swallowing the
+        // click meant for the control underneath it.
+        _readoutBox = readout.IsMeasureValid && readout.IsArrangeValid && width > 0 && height > 0
+            ? new Box(x, y, width, height)
+            : null;
     }
 
     /// <summary>
@@ -427,7 +433,7 @@ public sealed class ElementPickerWindow : Window
         _timer.Stop();
         DetachHook();
         Chosen = pick;
-        Close(pick);
+        Close();
     }
 
     /// <summary>

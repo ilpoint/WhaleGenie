@@ -51,8 +51,8 @@ internal static class DialogWindow
     }
 
     /// <summary>
-    /// Matches a window's pin to the owner's. Only ever turns the pin on: a picker pins itself on
-    /// purpose, and opening one from an ordinary window must not undo that.
+    /// Matches a window's pin to the owner's. Only ever turns the pin on: a window that pins itself
+    /// on purpose keeps its pin, and opening it from an ordinary window must not undo that.
     /// </summary>
     private static void Pin(Window window, Window owner)
     {

@@ -52,6 +52,10 @@ public partial class ColorPickerWindow : Window
     /// </summary>
     internal PixelColor Colour => _colour;
 
+    /// <summary>What the magnifier was left with, or null when it was left without a colour. The
+    /// picker stands on its own, so there is no dialog result to carry this.</summary>
+    internal PixelColor? Picked { get; private set; }
+
     public ColorPickerWindow()
         : this(SharedDevices.Current)
     {
@@ -84,25 +88,23 @@ public partial class ColorPickerWindow : Window
 
     /// <summary>
     /// Shows the magnifier over <paramref name="owner"/> and reports the colour picked. The owner
-    /// is put out of the way for as long as the picker is up, because the colour being looked for
-    /// is usually behind the window that asked for it.
+    /// steps out of the way for as long as the magnifier is up, and so does everything else this
+    /// program has on the screen: the colour being looked for is usually behind one of them.
     /// </summary>
     public static async Task<PixelColor?> PickAsync(Window owner, IDeviceLayer devices)
     {
-        var previous = owner.WindowState;
-        owner.WindowState = WindowState.Minimized;
+        using var aside = AppWindows.StepAside(owner);
+        return await new ColorPickerWindow(devices).TakeAsync();
+    }
 
-        try
-        {
-            return await new ColorPickerWindow(devices).ShowDialogOver<PixelColor?>(owner);
-        }
-        finally
-        {
-            owner.WindowState = previous == WindowState.Maximized
-                ? WindowState.Maximized
-                : WindowState.Normal;
-            owner.Activate();
-        }
+    /// <summary>
+    /// Stands the magnifier on its own — nothing else of this program is on the screen to own it —
+    /// and reports the colour it was answered with, or null when it was left without one.
+    /// </summary>
+    internal async Task<PixelColor?> TakeAsync()
+    {
+        await AppWindows.ShowAndWaitAsync(this);
+        return Picked;
     }
 
     protected override void OnOpened(EventArgs e)
@@ -358,9 +360,10 @@ public partial class ColorPickerWindow : Window
         }
 
         _done = true;
+        Picked = colour;
         _timer.Stop();
         DetachHook();
-        Close(colour);
+        Close();
     }
 
     private void AttachHook()

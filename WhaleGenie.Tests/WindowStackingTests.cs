@@ -43,8 +43,8 @@ public class WindowStackingTests
     [Fact]
     public void A_window_that_pins_itself_keeps_its_pin()
     {
-        // The screen pickers pin themselves, and opening one from an ordinary window must not
-        // take that away.
+        // A window that pins itself on purpose keeps its pin: opening it from an ordinary window
+        // must not take that away.
         Ui.Run(() =>
         {
             var owner = OnScreen(new Window());

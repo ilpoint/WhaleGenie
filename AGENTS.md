@@ -41,9 +41,10 @@ Windows 上的通用宏 / 自动化工具：把键盘、鼠标、手柄、屏幕
 7. 开发阶段不保留兼容：`.wgmacro` 尚未发布，没有用户持有旧文件，所以不写双读、不为旧键留救援路径、不为
    "旧宏行为不变"将就字段形状，发现旧格式读法即删；撤掉的动作运行时报 `Run.Unsupported`。被新形状取代的
    参数、返回值、开关、文案键、测试与文档段落也在同一版里删掉。
-8. 窗口一律通过 `DialogWindow` 的 `ShowDialogOver` / `ShowOver` / `ShowAsPeer` 打开：Windows 把置顶窗口放在
-   所有非置顶窗口之上（与属主关系无关），直接 `ShowDialog` 开的对话框会被压在下面点不到。`ShowAsPeer` 用在
-   要跟属主分开最小化的窗口上（宏编辑器，见「通知区域与退出」）。
+8. 窗口一律通过 `DialogWindow` 的 `ShowDialogOver` / `ShowOver` / `ShowAsPeer` 打开：置顶窗口压在非置顶窗口
+   之上，直接 `ShowDialog` 的会被压在下面。`ShowAsPeer` 用在要跟属主分开最小化的窗口上（宏编辑器，见「通知
+   区域与退出」）。**三种屏幕拾取器例外**（框选区域、取色、元素拾取）：自己置顶站着，站着时鲸灵的窗口（含问
+   话的）由 `AppWindows.StepAside` 收起。
 9. 新增依赖要官方、只 Windows，并写进 `doc/dev.md` 的依赖表与 `THIRD-PARTY-NOTICES.md`。
 
 ## 对标与边界

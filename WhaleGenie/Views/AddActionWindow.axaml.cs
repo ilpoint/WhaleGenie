@@ -575,15 +575,13 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (await RegionPickerWindow.PickAsync(this, Devices) is not { } region)
-        {
-            return;
-        }
-
         try
         {
-            row.Text = ImageAssets.Capture(Devices.Screen,
-                region.X, region.Y, region.Width, region.Height, viewModel.AssetFolder);
+            if (await RegionPickerWindow.CaptureAsync(this, Devices, viewModel.AssetFolder)
+                is { Length: > 0 } picture)
+            {
+                row.Text = picture;
+            }
         }
         catch (Exception)
         {
@@ -1287,15 +1285,13 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (await RegionPickerWindow.PickAsync(this, Devices) is not { } region)
-        {
-            return;
-        }
-
         try
         {
-            parameter.Text = ImageAssets.Capture(Devices.Screen,
-                region.X, region.Y, region.Width, region.Height, viewModel.AssetFolder);
+            if (await RegionPickerWindow.CaptureAsync(this, Devices, viewModel.AssetFolder)
+                is { Length: > 0 } picture)
+            {
+                parameter.Text = picture;
+            }
         }
         catch (Exception)
         {

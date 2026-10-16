@@ -9,6 +9,7 @@ using Avalonia.Media;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
+using WhaleGenie.Storage;
 
 namespace WhaleGenie.Views;
 
@@ -158,24 +159,45 @@ public partial class RegionPickerWindow : Window
 
     /// <summary>
     /// Shows the picker over <paramref name="owner"/> and reports the rectangle that was dragged.
-    /// The owner steps out of the way, because the region being picked is usually behind it.
+    /// Every window this program has goes out of the way first, the window that asked included: the
+    /// region being picked is usually behind one of them.
     /// </summary>
     public static async Task<Region?> PickAsync(Window owner, IDeviceLayer devices)
     {
-        var previous = owner.WindowState;
-        owner.WindowState = WindowState.Minimized;
+        using var aside = AppWindows.StepAside(owner);
+        return await new RegionPickerWindow(devices).TakeAsync();
+    }
 
-        try
+    /// <summary>
+    /// The same, and the picture inside the rectangle is kept. What a rectangle is usually dragged
+    /// for is a reference picture, and the windows stay away until that picture has been taken: a
+    /// window put back in front of where the rectangle was drawn would be in the picture.
+    /// </summary>
+    public static async Task<string?> CaptureAsync(Window owner, IDeviceLayer devices, string folder)
+    {
+        using var aside = AppWindows.StepAside(owner);
+
+        if (await new RegionPickerWindow(devices).TakeAsync() is not { } region)
         {
-            return await new RegionPickerWindow(devices).ShowDialogOver<Region?>(owner);
+            return null;
         }
-        finally
-        {
-            owner.WindowState = previous == WindowState.Maximized
-                ? WindowState.Maximized
-                : WindowState.Normal;
-            owner.Activate();
-        }
+
+        // The screen is asked what it is showing, and it answers with the last frame it drew — the
+        // one this picker was drawn on. Waiting for the desktop to be drawn again is what keeps the
+        // picker's own overlay out of the picture.
+        ScreenComposed.Wait();
+
+        return ImageAssets.Capture(devices.Screen, region.X, region.Y, region.Width, region.Height, folder);
+    }
+
+    /// <summary>
+    /// Stands the picker on its own — nothing else of this program is on the screen to own it — and
+    /// reports the rectangle the user answered with, or null when it was left without one.
+    /// </summary>
+    internal async Task<Region?> TakeAsync()
+    {
+        await AppWindows.ShowAndWaitAsync(this);
+        return Confirmed;
     }
 
     protected override void OnOpened(EventArgs e)
@@ -533,6 +555,6 @@ public partial class RegionPickerWindow : Window
 
         _done = true;
         Confirmed = region;
-        Close(region);
+        Close();
     }
 }
