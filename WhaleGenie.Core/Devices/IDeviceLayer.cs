@@ -542,6 +542,32 @@ public interface IBrowserDevice
     PageInfo ReadPage(int timeoutMs);
 
     /// <summary>
+    /// Whether the element the target names is in the state asked for right now.
+    /// </summary>
+    /// <remarks>
+    /// It is a look rather than a wait: a condition is asked again and again by whatever block holds
+    /// it, and a step that waits for an element is a step of its own. A page holding fewer elements
+    /// than the target asks for is answered the way it is everywhere else — as naming nothing —
+    /// which is what "gone" and "off the page" mean.
+    /// </remarks>
+    bool Exists(PageTarget target, ElementWait state);
+
+    /// <summary>
+    /// Waits for the page to be at an address the step names, comparing it the way
+    /// <paramref name="how"/> says, and gives up after <paramref name="timeoutMs"/> milliseconds
+    /// having waited none of its own.
+    /// </summary>
+    /// <remarks>
+    /// What a macro waits for after a click that goes somewhere is the address rather than an
+    /// element, because the element it is after often lives on the page the click leads to and
+    /// naming it too early finds the one on the page being left behind.
+    /// </remarks>
+    void WaitForUrl(string match, string how, int timeoutMs);
+
+    /// <summary>Waits for the page to have got as far as the state names in its loading.</summary>
+    void WaitForLoad(PageLoad state, int timeoutMs);
+
+    /// <summary>
     /// Moves to another tab of the browser that is open, which is how a macro follows a click that
     /// opened one: the site hands the interesting page to a new tab, and the macro would otherwise
     /// go on aiming its steps at the tab it was already on — where the same site often has an
@@ -661,6 +687,25 @@ public enum PagePart
 
     /// <summary>One attribute of the element's markup, named by the step.</summary>
     Attribute,
+}
+
+/// <summary>How far along a page's loading a step waits for.</summary>
+/// <remarks>
+/// The three are the three moments a page can be said to have arrived at, and they are asked for by
+/// name because which of them a macro wants is its own answer: a document that has been read is
+/// enough for the writing on it, and the network falling quiet is what says everything the page
+/// fetches by itself has come in.
+/// </remarks>
+public enum PageLoad
+{
+    /// <summary>The document has been read and drawn, and the page's own scripts have run.</summary>
+    Ready,
+
+    /// <summary>Everything the page itself asks for — its pictures, its stylesheets — has come in.</summary>
+    Loaded,
+
+    /// <summary>Nothing the page asks for in the background is still outstanding.</summary>
+    Idle,
 }
 
 /// <summary>
@@ -1161,6 +1206,12 @@ public sealed class NullDeviceLayer : IDeviceLayer
             => throw Missing("a browser");
 
         public PageInfo ReadPage(int timeoutMs) => throw Missing("a browser");
+
+        public bool Exists(PageTarget target, ElementWait state) => throw Missing("a browser");
+
+        public void WaitForUrl(string match, string how, int timeoutMs) => throw Missing("a browser");
+
+        public void WaitForLoad(PageLoad state, int timeoutMs) => throw Missing("a browser");
 
         public void SwitchTab(TabChoice choice, int index, string match) => throw Missing("a browser");
 

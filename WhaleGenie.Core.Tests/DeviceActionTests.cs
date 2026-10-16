@@ -8522,6 +8522,116 @@ public class DeviceActionTests
     }
 
     /// <summary>
+    /// A condition about an element of the page is a look rather than a wait: what a macro asks
+    /// before acting on something is whether it is there now, and waiting is a step, a block or a
+    /// state of its own.
+    /// </summary>
+    [Fact]
+    public async Task A_condition_asks_the_page_whether_the_element_is_in_the_state_named()
+    {
+        var devices = new FakeDeviceLayer { BrowserHasElement = true };
+
+        var (_, _, store) = await RunAsync(
+        [
+            Step("control.if",
+                When("condition", Step("condition.browserExists",
+                    Param("target", "#results"), Param("state", "attached"),
+                    Param("matchIndex", "2"))),
+                Body("then", Step("control.setVariable", Param("name", "seen"), Param("value", "yes"))),
+                Body("else", Step("control.setVariable", Param("name", "seen"), Param("value", "no")))),
+            Step("control.if",
+                When("condition", Step("condition.browserNotExists", Param("target", "#spinner"))),
+                Body("then", Step("control.setVariable", Param("name", "gone"), Param("value", "yes")))),
+        ], devices);
+
+        Assert.Equal("yes", store.Local.Values["seen"].AsText());
+
+        // The state the condition asks about travels with the target, the way it does for a wait,
+        // and a condition that says nothing about it asks whether the element is showing.
+        Assert.Contains("browserExists #results #2 Attached", devices.Calls);
+        Assert.Contains("browserExists #spinner #1 Visible", devices.Calls);
+        Assert.False(store.Local.Values.ContainsKey("gone"));
+    }
+
+    /// <summary>
+    /// Waiting for an address rather than for an element: the element a macro is after usually lives
+    /// on the page a click leads to, and naming it too early finds the one being left behind.
+    /// </summary>
+    [Fact]
+    public async Task A_wait_can_be_for_an_address_rather_than_for_an_element()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            BrowserWaitingAddress = "https://example.com/receipt/42",
+        };
+
+        var host = new SilentRunHost();
+        var result = await new MacroRunner(new VariableStore(), host, devices)
+            .RunAsync(
+            [
+                Within(2500, Step("browser.waitForUrl", Param("match", "example.com/receipt"))),
+                Step("browser.waitForUrl", Param("match", "^https://.*/receipt/\\d+$"),
+                    Param("how", "regex")),
+            ]);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("browserWaitForUrl example.com/receipt contains 2500", devices.Calls);
+        Assert.Contains("browserWaitForUrl ^https://.*/receipt/\\d+$ regex 0", devices.Calls);
+        Assert.Contains("Run.BrowserAtAddress", host.Entries.Select(entry => entry.Key));
+    }
+
+    /// <summary>
+    /// A word the engine does not know, and a pattern the machine cannot read, are mistakes in the
+    /// step: they are reported as such rather than by waiting the step's whole clock out and then
+    /// saying the page never arrived.
+    /// </summary>
+    [Fact]
+    public async Task A_wait_for_an_address_refuses_a_word_it_does_not_know_before_waiting()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("browser.waitForUrl", Param("match", "receipt"), Param("how", "sideways")),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BadMatchMode", result.Key);
+        Assert.DoesNotContain(devices.Calls,
+            call => call.StartsWith("browserWaitForUrl", StringComparison.Ordinal));
+
+        var (broken, _, _) = await RunAsync(
+        [
+            Step("browser.waitForUrl", Param("match", "([a-z"), Param("how", "regex")),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, broken.Status);
+        Assert.Equal("Run.BadPattern", broken.Key);
+    }
+
+    /// <summary>
+    /// Which moment of a page's loading a step waits for, listed with the words the engine reads.
+    /// </summary>
+    [Fact]
+    public async Task A_wait_can_be_for_one_of_the_moments_a_page_loads_at()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Within(2500, Step("browser.waitForLoad", Param("state", "idle"))),
+            Step("browser.waitForLoad", Param("state", "ready")),
+            Step("browser.waitForLoad"),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("browserWaitForLoad Idle 2500", devices.Calls);
+        Assert.Contains("browserWaitForLoad Ready 0", devices.Calls);
+
+        // A step that says nothing waits for the page to have finished loading, which is what a
+        // page that shows everything at once arrives at.
+        Assert.Contains("browserWaitForLoad Loaded 0", devices.Calls);
+    }
+
+    /// <summary>
     /// Where the page is and what it calls itself: what a macro reads when the step after it depends
     /// on which page a click left the browser on rather than on anything the page shows.
     /// </summary>
@@ -9436,6 +9546,30 @@ internal sealed class FakeDeviceLayer
         Note($"browserReadPage {timeoutMs}");
         return BrowserPageInfo;
     }
+
+    /// <summary>What a condition about an element of the page answers with, as though it were there.</summary>
+    public bool BrowserHasElement { get; set; } = true;
+
+    bool IBrowserDevice.Exists(PageTarget target, ElementWait state)
+    {
+        Note($"browserExists {Named(target)} {state}");
+        return BrowserHasElement;
+    }
+
+    /// <summary>The address a wait for one ends at, as though the page had gone there.</summary>
+    public string BrowserWaitingAddress { get; set; } = string.Empty;
+
+    void IBrowserDevice.WaitForUrl(string match, string how, int timeoutMs)
+    {
+        Note($"browserWaitForUrl {match} {how} {timeoutMs}");
+        if (BrowserWaitingAddress.Length > 0)
+        {
+            BrowserAddress = BrowserWaitingAddress;
+        }
+    }
+
+    void IBrowserDevice.WaitForLoad(PageLoad state, int timeoutMs)
+        => Note($"browserWaitForLoad {state} {timeoutMs}");
 
     /// <summary>An attribute name as it reads in a note; nothing written is nothing asked for.</summary>
     private static string Part(string attribute)

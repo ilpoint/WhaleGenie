@@ -1617,6 +1617,14 @@ public sealed class MacroRunner
                 BrowserWaitFor(step, depth);
                 return Signal.Normal;
 
+            case "browser.waitForUrl":
+                BrowserWaitForUrl(step, depth);
+                return Signal.Normal;
+
+            case "browser.waitForLoad":
+                BrowserWaitForLoad(step, depth);
+                return Signal.Normal;
+
             case "browser.upload":
                 BrowserUpload(step, depth);
                 return Signal.Normal;
@@ -2090,6 +2098,12 @@ public sealed class MacroRunner
 
             case "condition.uiaNotExists":
                 return !_devices.Ui.Exists(Query(condition), 0);
+
+            case "condition.browserExists":
+                return _devices.Browser.Exists(Element(condition), ElementStateOf(condition));
+
+            case "condition.browserNotExists":
+                return !_devices.Browser.Exists(Element(condition), ElementStateOf(condition));
 
             case "condition.expression":
                 return Read(condition.Text("expression")).AsBool();
@@ -7907,7 +7921,21 @@ public sealed class MacroRunner
     /// </summary>
     private void BrowserWaitFor(ExecutableStep step, int depth)
     {
-        var state = step.Text("state").Trim().ToLowerInvariant() switch
+        var target = Element(step);
+        var state = ElementStateOf(step);
+        var waited = _devices.Browser.WaitFor(target, state, step.Meta.TimeoutMs);
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserWaited",
+            waited ?? string.Join(" / ", target.Selectors));
+    }
+
+    /// <summary>
+    /// Which state of an element a step or a condition names. The four words are one list for both
+    /// kinds of step, so a condition about an element and a wait for one say the same thing the same
+    /// way. A word the engine does not know reads as "it is showing", which is what a step that is
+    /// about to act on an element wants.
+    /// </summary>
+    private static ElementWait ElementStateOf(ExecutableStep step)
+        => step.Text("state").Trim().ToLowerInvariant() switch
         {
             "hidden" => ElementWait.Hidden,
             "attached" => ElementWait.Attached,
@@ -7915,10 +7943,45 @@ public sealed class MacroRunner
             _ => ElementWait.Visible,
         };
 
-        var target = Element(step);
-        var waited = _devices.Browser.WaitFor(target, state, step.Meta.TimeoutMs);
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserWaited",
-            waited ?? string.Join(" / ", target.Selectors));
+    /// <summary>
+    /// Waits for the page to be at an address the step names. The way the address is compared is the
+    /// one list of ways every piece of writing in the program is compared with, and it is read here
+    /// first: a word that is none of the five, or a pattern the machine cannot read, is a mistake in
+    /// the step and is reported before anything is waited for.
+    /// </summary>
+    private void BrowserWaitForUrl(ExecutableStep step, int depth)
+    {
+        var wanted = Read(step.Text("match")).AsText();
+        var how = Way(step.Text("how"));
+        try
+        {
+            TextCompare.Check(wanted, how);
+        }
+        catch (ArgumentException)
+        {
+            throw new StepFailure("Run.BadPattern", wanted);
+        }
+
+        _devices.Browser.WaitForUrl(wanted, how, step.Meta.TimeoutMs);
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserAtAddress", _devices.Browser.Url);
+    }
+
+    /// <summary>
+    /// Waits for the page to have got as far as the step names in its loading. Which of the three
+    /// moments a macro wants is its own answer: reading the writing on a page needs the document and
+    /// not the pictures, while a page that fills itself in by fetching needs the network to be quiet.
+    /// </summary>
+    private void BrowserWaitForLoad(ExecutableStep step, int depth)
+    {
+        var state = step.Text("state").Trim().ToLowerInvariant() switch
+        {
+            "idle" => PageLoad.Idle,
+            "ready" => PageLoad.Ready,
+            _ => PageLoad.Loaded,
+        };
+
+        _devices.Browser.WaitForLoad(state, step.Meta.TimeoutMs);
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserLoaded");
     }
 
     /// <summary>

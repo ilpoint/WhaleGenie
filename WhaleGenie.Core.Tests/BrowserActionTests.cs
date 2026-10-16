@@ -237,6 +237,99 @@ public class BrowserActionTests : IDisposable
         Assert.Single(device.ReadTable(At("#report"), 1, 5000).Rows);
     }
 
+    /// <summary>
+    /// A condition about an element of the page is a look rather than a wait, and it is asked again
+    /// by whatever block holds it: the same question has to answer "no" while the page is fetching
+    /// and "yes" once it has arrived.
+    /// </summary>
+    [RealBrowserFact]
+    public void The_state_of_an_element_of_the_page_is_asked_about_rather_than_waited_for()
+    {
+        Site("<p id=spinner>loading</p>"
+            + "<script>setTimeout(() => {"
+            + " document.getElementById('spinner').remove();"
+            + " const row = document.createElement('p');"
+            + " row.id = 'row'; row.textContent = 'ready';"
+            + " document.body.appendChild(row); }, 300);</script>");
+
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        // The spinner is there and the row is not, and both answers come back at once rather than
+        // after the step's own clock.
+        Assert.True(device.Exists(At("#spinner"), ElementWait.Visible));
+        Assert.False(device.Exists(At("#row"), ElementWait.Visible));
+        Assert.False(device.Exists(At("#row"), ElementWait.Attached));
+        Assert.True(device.Exists(At("#row"), ElementWait.Detached));
+
+        device.WaitFor(At("#row"), ElementWait.Visible, 5000);
+
+        Assert.True(device.Exists(At("#row"), ElementWait.Attached));
+        Assert.False(device.Exists(At("#row"), ElementWait.Detached));
+        Assert.True(device.Exists(At("#spinner"), ElementWait.Hidden));
+        Assert.True(device.Exists(At("#spinner"), ElementWait.Detached));
+
+        // A condition that names no element is a mistake in the step rather than an answer.
+        var unnamed = Assert.Throws<DeviceActionException>(
+            () => device.Exists(PageTarget.Of("", 1), ElementWait.Visible));
+        Assert.Equal("Run.BrowserNoSelector", unnamed.Key);
+    }
+
+    /// <summary>
+    /// Waiting for an address is what a macro does after a click that goes somewhere: the element it
+    /// is after lives on the page the click leads to, and naming it too early finds the page being
+    /// left behind.
+    /// </summary>
+    [RealBrowserFact]
+    public void A_wait_can_be_for_an_address_the_page_turns_out_to_be_at()
+    {
+        // A page that sends itself somewhere else a moment after it is read, which is what a site
+        // that decides where to go from a script does.
+        Site("<p>leaving</p>"
+            + "<script>setTimeout(() => { location.hash = '#receipt/42'; }, 200);</script>");
+
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        device.WaitForUrl("receipt", TextCompare.Contains, 5000);
+        Assert.Contains("receipt", device.Url, StringComparison.Ordinal);
+
+        // The same five ways of comparing writing, including a pattern.
+        device.WaitForUrl(@"#receipt/\d+$", TextCompare.Regex, 5000);
+
+        // An address the page never reaches is the step running out of time rather than the browser
+        // failing, the same as waiting for an element that never turns up.
+        var late = Assert.Throws<DeviceActionException>(
+            () => device.WaitForUrl("somewhere-else", TextCompare.Contains, 300));
+        Assert.Equal("Run.Timeout", late.Key);
+    }
+
+    /// <summary>
+    /// The three moments of a page's loading, each of which a macro can wait for by name.
+    /// </summary>
+    [RealBrowserFact]
+    public void Each_moment_of_a_pages_loading_can_be_waited_for()
+    {
+        Site("<p>ready</p>");
+
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        // The page has already arrived at all three by the time the browser has answered, and each
+        // of them ends the moment it is there rather than at the end of the step's own clock.
+        device.WaitForLoad(PageLoad.Ready, 5000);
+        device.WaitForLoad(PageLoad.Loaded, 5000);
+        device.WaitForLoad(PageLoad.Idle, 5000);
+
+        // A page that takes its time gets as far as the document and no further, which is what the
+        // three names are for: waiting for the document alone ends while the rest is still coming.
+        File.WriteAllText(Path.Combine(_site, "slow.html"),
+            "<html><head><title>慢</title></head><body>"
+            + "<script>document.write('ready');</script>");
+        device.GoTo(new Uri(Path.Combine(_site, "slow.html")).AbsoluteUri, 5000);
+        device.WaitForLoad(PageLoad.Ready, 5000);
+    }
+
     /// <summary>Where the page is and what it calls itself, which is what a step reads off the page itself.</summary>
     [RealBrowserFact]
     public void A_page_says_where_it_is_and_what_it_calls_itself()

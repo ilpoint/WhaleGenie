@@ -41,6 +41,14 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     private const float HighlightTimeoutMs = 3000;
 
     /// <summary>
+    /// How long the page's own default is left standing while an element is looked at once rather
+    /// than acted on. A look asks the page what it holds right now, so the number only has to be
+    /// long enough for the question to be answered at all; anything longer would be a wait written
+    /// into a place that promised not to wait.
+    /// </summary>
+    private const float LookTimeoutMs = 2000;
+
+    /// <summary>
     /// How often a target written as several selectors is tried while none of them has found
     /// anything yet. It is a look at a page that is already in memory, so it costs next to nothing;
     /// waiting a moment between two looks is what keeps a page that never shows the element from
@@ -517,6 +525,122 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         page.SetDefaultTimeout(Patience(timeoutMs));
         return new PageInfo(page.Url, await page.TitleAsync());
     });
+
+    /// <summary>
+    /// Whether the element a target names is in the state asked for, looked at once.
+    /// </summary>
+    /// <remarks>
+    /// Nothing is waited for here: the caller is a condition, which is asked again and again for as
+    /// long as whatever block holds it keeps asking, so waiting inside one pass would hold the whole
+    /// macro up. The target's own fallbacks are looked at in the order they were written, and the
+    /// first that is in the state asked for is the answer.
+    /// </remarks>
+    public bool Exists(PageTarget target, ElementWait state)
+    {
+        if (target.Selectors.Count == 0)
+        {
+            throw new DeviceActionException("Run.BrowserNoSelector");
+        }
+
+        try
+        {
+            return Wait(async () =>
+            {
+                // A look rather than an action, so the page's own default is left short: nothing here
+                // is allowed to sit and wait for the element to turn up.
+                var page = Page();
+                page.SetDefaultTimeout(LookTimeoutMs);
+                foreach (var selector in target.Selectors)
+                {
+                    if (await Reached(selector, target.MatchIndex, state))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+        }
+        catch (Exception failure) when (failure is PlaywrightException or TimeoutException)
+        {
+            throw Failed(failure);
+        }
+    }
+
+    /// <summary>
+    /// Waits for the page to be somewhere else, which is what a macro waits for after a click that
+    /// goes to another page: the address changes before the page it leads to has anything on it, so
+    /// an element named too early is found on the page being left behind.
+    /// </summary>
+    public void WaitForUrl(string match, string how, int timeoutMs)
+    {
+        var patience = Patience(timeoutMs);
+        var deadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(patience);
+        try
+        {
+            Wait(async () =>
+            {
+                var page = Page();
+                page.SetDefaultTimeout(patience);
+                while (true)
+                {
+                    if (TextCompare.Matches(page.Url, match, how))
+                    {
+                        return;
+                    }
+
+                    if (DateTime.UtcNow >= deadline)
+                    {
+                        throw new DeviceActionException("Run.Timeout",
+                            patience.ToString(CultureInfo.InvariantCulture));
+                    }
+
+                    await Task.Delay(CandidateIntervalMs);
+                }
+            });
+        }
+        catch (PlaywrightException failure)
+        {
+            throw Failed(failure);
+        }
+    }
+
+    /// <summary>
+    /// Waits for the page to have got as far as the state names. Running out of time is reported as
+    /// the step having waited too long rather than as the browser failing, the same as every other
+    /// wait: what the step asked about is whether the page got there, and "it did not" is an answer.
+    /// </summary>
+    public void WaitForLoad(PageLoad state, int timeoutMs)
+    {
+        var patience = Patience(timeoutMs);
+        try
+        {
+            Wait(async () =>
+            {
+                var page = Page();
+                page.SetDefaultTimeout(patience);
+                await page.WaitForLoadStateAsync(Load(state),
+                    new PageWaitForLoadStateOptions { Timeout = patience });
+            });
+        }
+        catch (TimeoutException)
+        {
+            throw new DeviceActionException("Run.Timeout",
+                patience.ToString(CultureInfo.InvariantCulture));
+        }
+        catch (PlaywrightException failure)
+        {
+            throw Failed(failure);
+        }
+    }
+
+    /// <summary>Which moment of a page's loading a state name means.</summary>
+    private static LoadState Load(PageLoad state) => state switch
+    {
+        PageLoad.Loaded => LoadState.Load,
+        PageLoad.Idle => LoadState.NetworkIdle,
+        _ => LoadState.DOMContentLoaded,
+    };
 
     public void SwitchTab(TabChoice choice, int index, string match)
         => OnPage(async () =>

@@ -2797,6 +2797,33 @@ internal static class ActionStrings
         ["browser.waitFor.matchIndex.label"] = "第几个命中",
         ["browser.waitFor.matchIndex.hint"] = PageMatchIndexHint("要等的"),
 
+        ["browser.waitForUrl.name"] = "等待网址",
+        ["browser.waitForUrl.desc"] = "等到浏览器当前页面转到某个网址。",
+        ["browser.waitForUrl.match.label"] = "网址里含有",
+        ["browser.waitForUrl.match.hint"] = "网址里要有这段文字才算等到。按一个值读取，变量或表达式都可以"
+            + "写成它。点击之后要去的是另一个页面时，该等的是网址而不是元素：元素在点击到达的那一页上，"
+            + "太早去找会找到正要离开的那一页上的同名元素。",
+        ["browser.waitForUrl.how.label"] = "比对方式",
+        ["browser.waitForUrl.how.hint"] = "当前网址与上面那格怎么比：包含（默认）、以…开头、以…结尾、"
+            + "等于、正则匹配。默认的「包含」通常就够用，因为网址里真正说清是哪一页的那一段后面还跟着"
+            + "查询串和锚点。认不出的词会停下这一步并说明，正则读不出来在开始等之前就报错。",
+        ["browser.waitForUrl.how.option.contains"] = "包含",
+        ["browser.waitForUrl.how.option.startsWith"] = "以…开头",
+        ["browser.waitForUrl.how.option.endsWith"] = "以…结尾",
+        ["browser.waitForUrl.how.option.equals"] = "等于",
+        ["browser.waitForUrl.how.option.regex"] = "正则匹配",
+
+        ["browser.waitForLoad.name"] = "等待加载",
+        ["browser.waitForLoad.desc"] = "等到页面加载到指定的那一步。",
+        ["browser.waitForLoad.state.label"] = "等到",
+        ["browser.waitForLoad.state.hint"] = "等到页面加载的哪一步。「加载完成」是默认，一次把内容全部画出来"
+            + "的页面就停在这里；「文档就绪」是页面自己的脚本已经跑过、文字已经在那里的时候，图片和样式表还没"
+            + "到，只要文字时它更快；「网络空闲」是页面自己发起的请求都已经回来的时候，一次取一点的页面要用它，"
+            + "它也是三档里最慢的，因为它要等到页面不再要东西为止。",
+        ["browser.waitForLoad.state.option.ready"] = "文档就绪",
+        ["browser.waitForLoad.state.option.loaded"] = "加载完成",
+        ["browser.waitForLoad.state.option.idle"] = "网络空闲",
+
         ["browser.upload.name"] = "上传文件",
         ["browser.upload.desc"] = "把文件交给页面上的文件选择框。",
         ["browser.upload.target.label"] = "选择器",
@@ -3073,6 +3100,37 @@ internal static class ActionStrings
         ["condition.uiaNotExists.selector.hint"] =
             "元素选择器，例如 Button[name='Save']。也可用“拾取元素”直接在屏幕上拾取控件；每次判断都会重新找"
             + "一遍，元素挪了位置也找得到。",
+
+        ["condition.browserExists.name"] = "页面元素存在",
+        ["condition.browserExists.desc"] = "当页面上的某个元素处在指定的状态时为真。",
+        ["condition.browserExists.target.label"] = "选择器",
+        ["condition.browserExists.target.hint"] = PageTargetHint + "要判断页面上的哪个元素，写法与「点击元素」"
+            + "相同；问的是页面现在有没有这样的元素，所以它不会等。",
+        ["condition.browserExists.state.label"] = "看它是不是",
+        ["condition.browserExists.state.hint"] = "问的是元素的哪一种状态。「看得见」是默认，接下来要操作这个"
+            + "元素时问的就是它；「看不见」是元素在那里但不占地方；「在页面上」是无论看得见看不见都在；"
+            + "「不在页面上」是已经被拿掉。这是一眼的结果，不等待；要等用「等待元素」或包一层等待块。",
+        ["condition.browserExists.state.option.visible"] = "看得见",
+        ["condition.browserExists.state.option.hidden"] = "看不见",
+        ["condition.browserExists.state.option.attached"] = "在页面上",
+        ["condition.browserExists.state.option.detached"] = "不在页面上",
+        ["condition.browserExists.matchIndex.label"] = "第几个命中",
+        ["condition.browserExists.matchIndex.hint"] = PageMatchIndexHint("要判断的"),
+
+        ["condition.browserNotExists.name"] = "页面元素不存在",
+        ["condition.browserNotExists.desc"] = "当页面上的某个元素不在指定的状态时为真。",
+        ["condition.browserNotExists.target.label"] = "选择器",
+        ["condition.browserNotExists.target.hint"] = PageTargetHint + "要判断页面上的哪个元素，写法与"
+            + "「点击元素」相同；问的是页面现在有没有这样的元素，所以它不会等。",
+        ["condition.browserNotExists.state.label"] = "看它是不是",
+        ["condition.browserNotExists.state.hint"] = "问的是元素的哪一种状态，与「页面元素存在」那一格相同。"
+            + "要等一个转圈的提示消失，用它加上「看不见」再包一层等待块。",
+        ["condition.browserNotExists.state.option.visible"] = "看得见",
+        ["condition.browserNotExists.state.option.hidden"] = "看不见",
+        ["condition.browserNotExists.state.option.attached"] = "在页面上",
+        ["condition.browserNotExists.state.option.detached"] = "不在页面上",
+        ["condition.browserNotExists.matchIndex.label"] = "第几个命中",
+        ["condition.browserNotExists.matchIndex.hint"] = PageMatchIndexHint("要判断的"),
 
         ["condition.expression.name"] = "布尔表达式",
         ["condition.expression.desc"] = "自己写一段表达式，结果为真时条件成立。",

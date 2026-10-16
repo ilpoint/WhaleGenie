@@ -3369,6 +3369,37 @@ public static class ActionCatalog
         },
         new()
         {
+            Key = "browser.waitForUrl",
+            Category = ActionCategory.Browser,
+            DisplayName = "Wait For Address",
+            Description = "Waits for the page to be at an address.",
+            StepTimeoutMs = 15000,
+            Parameters =
+            [
+                Text("match", "Address holds", "example.com/receipt",
+                    "What the address has to hold before the step is done. Read as one value, so a "
+                    + "variable or an expression may stand for it. This is what a macro waits for "
+                    + "after a click that goes to another page, because the element it is after "
+                    + "usually lives on the page the click leads to, and naming it too early finds "
+                    + "the one on the page being left behind.",
+                    acceptsFormula: true),
+                UrlMatch(),
+            ],
+        },
+        new()
+        {
+            Key = "browser.waitForLoad",
+            Category = ActionCategory.Browser,
+            DisplayName = "Wait For Load",
+            Description = "Waits for the page to finish loading.",
+            StepTimeoutMs = 15000,
+            Parameters =
+            [
+                LoadState(),
+            ],
+        },
+        new()
+        {
             Key = "browser.upload",
             Category = ActionCategory.Browser,
             DisplayName = "Upload Files",
@@ -3868,6 +3899,38 @@ public static class ActionCatalog
             [
                 ..WindowFilter(),
                 Selector(),
+            ],
+        },
+        new()
+        {
+            Key = "condition.browserExists",
+            Category = ActionCategory.Condition,
+            DisplayName = "Page Element Present",
+            Description = "True when an element of the page is in the state named.",
+            Parameters =
+            [
+                Text("target", "Selector", "#results",
+                    TargetHint + "Which element of the page the answer is about, named the way the "
+                    + "click action names one; the answer is whether the page holds one like that "
+                    + "right now, so nothing is waited for.", acceptsVariables: true),
+                ElementState(),
+                PageMatchIndex("asks about"),
+            ],
+        },
+        new()
+        {
+            Key = "condition.browserNotExists",
+            Category = ActionCategory.Condition,
+            DisplayName = "Page Element Missing",
+            Description = "True when an element of the page is not in the state named.",
+            Parameters =
+            [
+                Text("target", "Selector", "#spinner",
+                    TargetHint + "Which element of the page the answer is about, named the way the "
+                    + "click action names one; the answer is whether the page holds one like that "
+                    + "right now, so nothing is waited for.", acceptsVariables: true),
+                ElementState(),
+                PageMatchIndex("asks about"),
             ],
         },
         new()
@@ -4876,6 +4939,48 @@ public static class ActionCatalog
             + "ceiling the other readers of a list use, so a page that keeps adding to what it "
             + "shows cannot fill memory.",
             min: 1, max: 10000, advanced: true);
+
+    /// <summary>
+    /// How the address a page is on is compared with what a step is looking for. It is the same five
+    /// words every other piece of writing in the program is compared with, so "starts with" reads as
+    /// one thing wherever it is written.
+    /// </summary>
+    private static ActionParameter UrlMatch()
+        => Choice("how", "Compare", [.. TextCompare.Values], TextCompare.Contains,
+            "How the address the page is on is compared with the text above: contained in it, "
+            + "starting with it, ending with it, exactly it, or matching it as a regular expression. "
+            + "Contained in it by default, which is what a macro that waits for a page of a site "
+            + "usually wants, since the address carries a query and a fragment after the part that "
+            + "says which page it is. A word that is none of the five stops the step and says so, and "
+            + "a pattern the machine cannot read is refused before anything is waited for.",
+            labels: [.. TextCompare.Labels]);
+
+    /// <summary>
+    /// How far along a page's loading a step waits for, listed with the words the engine reads.
+    /// </summary>
+    private static ActionParameter LoadState()
+        => Choice("state", "Wait for", ["ready", "loaded", "idle"], "loaded",
+            "Which moment of the page's loading to wait for. Loading to finish is the default and is "
+            + "what a page that shows everything at once arrives at; the document being ready is the "
+            + "moment the page's own scripts have run and the writing is there, before the pictures "
+            + "and stylesheets have come in, which is quicker when only the writing is wanted; the "
+            + "network falling quiet is for a page that fills itself in by fetching, and it is the "
+            + "slowest of the three because it waits for whatever the page starts asking for.",
+            labels: ["The document is ready", "Loading has finished", "The network is quiet"]);
+
+    /// <summary>
+    /// Which state of an element a condition asks about. It is the same four states the wait action
+    /// offers, asked once rather than waited for.
+    /// </summary>
+    private static ActionParameter ElementState()
+        => Choice("state", "Look for it to", ["visible", "hidden", "attached", "detached"], "visible",
+            "Which state of the element the answer is about. Showing is the default, and is what a "
+            + "macro about to act on the element is asking; not showing covers an element that is "
+            + "there but takes up no room; on the page covers one that is there whether or not it can "
+            + "be seen; off the page covers one that has been taken away. This is a look rather than "
+            + "a wait, so the answer comes back at once; waiting for an element is a step of its own, "
+            + "or a wait block around this condition.",
+            labels: ["Be visible", "Not be visible", "Be on the page", "Be off the page"]);
 
     /// <summary>
     /// How a reference picture is looked for, shared by the picture finders. It is one list because
