@@ -54,7 +54,7 @@ public class BrowserTabTests : IDisposable
         // the very same name.
         device.SwitchTab(TabChoice.Newest, 0, string.Empty);
         Assert.Contains("thank-you.html", device.Url, StringComparison.Ordinal);
-        Assert.Contains("42.00", device.Text(At("#total"), 5000), StringComparison.Ordinal);
+        Assert.Contains("42.00", device.Text(At("#total"), PagePart.Text, string.Empty, 5000), StringComparison.Ordinal);
 
         // The page it was on first is still open: asking for it by its title brings it back, which
         // is how a macro reads from one tab and fills in another.

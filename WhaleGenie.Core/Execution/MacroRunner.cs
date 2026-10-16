@@ -1582,6 +1582,18 @@ public sealed class MacroRunner
                 BrowserReadText(step, depth);
                 return Signal.Normal;
 
+            case "browser.readAll":
+                BrowserReadAll(step, depth);
+                return Signal.Normal;
+
+            case "browser.readTable":
+                BrowserReadTable(step, depth);
+                return Signal.Normal;
+
+            case "browser.readPage":
+                BrowserReadPage(step, depth);
+                return Signal.Normal;
+
             case "browser.select":
                 BrowserSelect(step, depth);
                 return Signal.Normal;
@@ -7756,13 +7768,93 @@ public sealed class MacroRunner
         Log(LogLevel.Info, depth, step.Type, "Run.OpenedBrowser", engine, browser.Url);
     }
 
-    /// <summary>Reads the page, or one element of it, into a variable.</summary>
+    /// <summary>
+    /// Reads the page, or one element of it, into a variable. Which part of the element is read is
+    /// the step's own choice: what it shows, what it holds, or one attribute of its markup.
+    /// </summary>
     private void BrowserReadText(ExecutableStep step, int depth)
     {
-        var text = _devices.Browser.Text(OptionalElement(step), step.Meta.TimeoutMs);
+        var text = _devices.Browser.Text(OptionalElement(step), PagePartOf(step),
+            step.Text("attribute"), step.Meta.TimeoutMs);
         Give(step, "text", Value.FromText(text));
         Log(LogLevel.Info, depth, step.Type, "Run.BrowserRead", text.Length);
     }
+
+    /// <summary>
+    /// Reads every element a selector names into a list, so a macro can walk what a page lists
+    /// rather than naming each of them: the second row of a result has nothing of its own to write
+    /// down, and a macro that reads one row at a time cannot be written at all.
+    /// </summary>
+    private void BrowserReadAll(ExecutableStep step, int depth)
+    {
+        // A step with no limit at all still gets one, the same default the editor shows, so a page
+        // whose list keeps growing cannot fill memory.
+        var limit = Math.Clamp(OptionalNumber(step, "maxItems", DefaultRows), 1, MaxRows);
+        var items = _devices.Browser.ReadAll(Element(step), PagePartOf(step),
+            step.Text("attribute"), limit, step.Meta.TimeoutMs);
+
+        Give(step, "items", Value.FromList(items.Select(Value.FromText)));
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserReadAll", items.Count);
+    }
+
+    /// <summary>
+    /// Reads a page's table into a variable, shaped the way every other table in the program is:
+    /// one entry per row, each entry a record whose keys are the names above the columns. A table
+    /// that writes no such names is read by column letter, which is what the window reader does
+    /// with a grid whose column names nobody kept.
+    /// </summary>
+    private void BrowserReadTable(ExecutableStep step, int depth)
+    {
+        var limit = Math.Clamp(OptionalNumber(step, "maxRows", DefaultRows), 1, MaxRows);
+
+        // A step that names no table reads the page's own table element, which is what the field
+        // starts out holding: this is the one element a page always names the same way.
+        var target = Element(step);
+        if (target.Selectors.Count == 0)
+        {
+            target = PageTarget.Of("table", 1);
+        }
+
+        var table = _devices.Browser.ReadTable(target, limit, step.Meta.TimeoutMs);
+
+        // A table that keeps no strip of column names still has columns: they are the places its
+        // cells sit in, so the widest row says how many there are.
+        var width = table.Columns.Count > 0
+            ? table.Columns.Count
+            : table.Rows.Count == 0 ? 0 : table.Rows.Max(row => row.Count);
+        var names = ColumnNames([.. table.Columns.Select(Value.FromText)], width);
+
+        var name = Give(step, "table", Value.FromList(
+            table.Rows.Select(row => Value.FromRecord(
+                Enumerable.Range(0, width).Select(index => (
+                    names[index],
+                    Value.FromText(index < row.Count ? row[index] : string.Empty)))))));
+
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserReadTable", name, table.Rows.Count);
+    }
+
+    /// <summary>
+    /// Where the page is and what it calls itself, which is what a macro reads when the step after
+    /// it depends on which page the browser ended up on rather than on anything the page shows.
+    /// </summary>
+    private void BrowserReadPage(ExecutableStep step, int depth)
+    {
+        var page = _devices.Browser.ReadPage(step.Meta.TimeoutMs);
+        Give(step, "url", Value.FromText(page.Url));
+        Give(step, "title", Value.FromText(page.Title));
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserReadPage", page.Url, page.Title);
+    }
+
+    /// <summary>
+    /// Which part of an element a page step reads. A word the engine does not know reads as the
+    /// writing the element shows, which is what every such step meant before there was a choice.
+    /// </summary>
+    private static PagePart PagePartOf(ExecutableStep step) => step.Text("what").Trim().ToLowerInvariant() switch
+    {
+        "value" => PagePart.Value,
+        "attribute" => PagePart.Attribute,
+        _ => PagePart.Text,
+    };
 
     /// <summary>
     /// Picks an option of a dropdown. The position is turned into a number here, where the step's

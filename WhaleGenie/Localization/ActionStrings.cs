@@ -2660,12 +2660,59 @@ internal static class ActionStrings
         ["browser.fill.matchIndex.hint"] = PageMatchIndexHint("要填写的"),
 
         ["browser.readText.name"] = "读取文本",
-        ["browser.readText.desc"] = "读取某个元素、或整个页面的文本。",
+        ["browser.readText.desc"] = "读取某个元素的一部分、或整个页面的文本。",
         ["browser.readText.target.label"] = "选择器",
         ["browser.readText.target.hint"] = PageTargetHint + "要读取哪个元素，写法与「点击元素」相同。"
             + "一行都不写，也就是默认，读的是整个页面的文本。",
+        ["browser.readText.what.label"] = "读什么",
+        ["browser.readText.what.hint"] = "读元素的哪一部分。「显示的文字」是页面上看得见的那段字，"
+            + "在没得选之前这一步读的就是它；「填写的值」是输入框、下拉框真正带着的值，密码框显示的是点、"
+            + "带着的是密码，下拉框显示的是选项文字、带着的是它后面的值；「属性」是元素标记里的某一项，"
+            + "比如链接指向的网址。",
+        ["browser.readText.what.option.text"] = "显示的文字",
+        ["browser.readText.what.option.value"] = "填写的值",
+        ["browser.readText.what.option.attribute"] = "属性",
+        ["browser.readText.attribute.label"] = "属性名",
+        ["browser.readText.attribute.hint"] = "读哪个属性，按页面标记里的写法写：链接的地址是 href，"
+            + "图片的出处是 src，标记里写的值是 value。元素没有这个属性时读回来是空的，不算找不到。",
         ["browser.readText.matchIndex.label"] = "第几个命中",
         ["browser.readText.matchIndex.hint"] = PageMatchIndexHint("要读取的"),
+
+        ["browser.readAll.name"] = "读取全部",
+        ["browser.readAll.desc"] = "把选择器认到的每个元素各读一条，组成一个列表。",
+        ["browser.readAll.target.label"] = "选择器",
+        ["browser.readAll.target.hint"] = PageTargetHint + "要读取哪些元素，写法与「点击元素」相同。"
+            + "选择器认到几个就读几个，所以只认到一个时读到的也是一条。",
+        ["browser.readAll.what.label"] = "读什么",
+        ["browser.readAll.what.hint"] = "每个元素读它的哪一部分，与「读取文本」那一格相同：显示的文字、"
+            + "填写的值，或者标记里的某一项属性。",
+        ["browser.readAll.what.option.text"] = "显示的文字",
+        ["browser.readAll.what.option.value"] = "填写的值",
+        ["browser.readAll.what.option.attribute"] = "属性",
+        ["browser.readAll.attribute.label"] = "属性名",
+        ["browser.readAll.attribute.hint"] = "读哪个属性，按页面标记里的写法写，例如 href、src、value。"
+            + "元素没有这个属性时读回来是空的，不算找不到。",
+        ["browser.readAll.matchIndex.label"] = "第几个命中",
+        ["browser.readAll.matchIndex.hint"] = "从第几个命中开始读：选择器可能同时对上多个元素，这里说从它们"
+            + "中的第几个开始读，按在页面上出现的顺序从 1 数起，它后面的也照读，直到读满「最多几条」。"
+            + "默认 1，也就是从第一个开始读整个列表。",
+        ["browser.readAll.maxItems.label"] = "最多几条",
+        ["browser.readAll.maxItems.hint"] = "最多读几条，1 到 10000。默认 100，与程序里其它读列表的地方"
+            + "同一个上限，免得页面一边读一边变长时读不完。",
+
+        ["browser.readTable.name"] = "读取表格",
+        ["browser.readTable.desc"] = "把页面上的一个表格读成一行一条的表格。",
+        ["browser.readTable.target.label"] = "选择器",
+        ["browser.readTable.target.hint"] = PageTargetHint + "要读哪个表格，写法与「点击元素」相同。"
+            + "默认写的是 table，也就是页面自己的表格元素。",
+        ["browser.readTable.matchIndex.label"] = "第几个命中",
+        ["browser.readTable.matchIndex.hint"] = PageMatchIndexHint("要读取的"),
+        ["browser.readTable.maxRows.label"] = "最多几行",
+        ["browser.readTable.maxRows.hint"] = "最多读几行，1 到 10000。默认 100，与程序里其它读表格的地方"
+            + "同一个上限。",
+
+        ["browser.readPage.name"] = "读取页面信息",
+        ["browser.readPage.desc"] = "读取当前页面在哪、叫什么名字。",
 
         ["browser.switchTab.name"] = "切换标签页",
         ["browser.switchTab.desc"] = "让后面的步骤改用浏览器里的另一个标签页。",
@@ -3652,9 +3699,33 @@ internal static class ActionStrings
 
         // browser.readText
         ["browser.readText.return.text.label"] = "文本",
-        ["browser.readText.return.text.hint"] = "页面上读到的文字。",
+        ["browser.readText.return.text.hint"] = "读到的内容：元素显示的文字、它带着的值，或者它的某个"
+            + "属性。",
         ["browser.readText.returns.label"] = "要留下的结果",
         ["browser.readText.returns.hint"] = ReturnsHintText,
+
+        // browser.readAll
+        ["browser.readAll.return.items.label"] = "列表",
+        ["browser.readAll.return.items.hint"] = "读到的全部内容，一条一项，按它们在页面上出现的顺序排列。"
+            + "用 forEach 逐条走，或用 count() 数一数。",
+        ["browser.readAll.returns.label"] = "要留下的结果",
+        ["browser.readAll.returns.hint"] = ReturnsHintText,
+
+        // browser.readTable
+        ["browser.readTable.return.table.label"] = "表格",
+        ["browser.readTable.return.table.hint"] = "读到的行，每行是一条记录：键就是表格列标题那一行写的"
+            + "列名。页面把列名写在 thead 或第一行的 th 里才算列标题，否则列名是 A、B、C；"
+            + "用 field(get($变量, 0), \"金额\") 按名字取一个单元格。",
+        ["browser.readTable.returns.label"] = "要留下的结果",
+        ["browser.readTable.returns.hint"] = ReturnsHintText,
+
+        // browser.readPage
+        ["browser.readPage.return.url.label"] = "网址",
+        ["browser.readPage.return.url.hint"] = "当前页面的地址，用来判断点击之后浏览器停在哪一页。",
+        ["browser.readPage.return.title.label"] = "标题",
+        ["browser.readPage.return.title.hint"] = "当前页面自己写的名字，也就是标签页上显示的那段字。",
+        ["browser.readPage.returns.label"] = "要留下的结果",
+        ["browser.readPage.returns.hint"] = ReturnsHintText,
 
         // script.run
         ["script.run.return.output.label"] = "输出",

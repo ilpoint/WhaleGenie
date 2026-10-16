@@ -435,7 +435,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     public string Upload(PageTarget target, IReadOnlyList<string> paths, int timeoutMs)
         => OnElement(target, timeoutMs, async element => await element.SetInputFilesAsync(paths));
 
-    public string Text(PageTarget? target, int timeoutMs)
+    public string Text(PageTarget? target, PagePart part, string attribute, int timeoutMs)
     {
         if (target is null || target.Selectors.Count == 0)
         {
@@ -447,8 +447,76 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             });
         }
 
-        return ReadText(target, timeoutMs);
+        return OnElement(target, timeoutMs, (element, _) => Part(element, part, attribute));
     }
+
+    /// <summary>
+    /// Every element a target names, read the way the step asked for. Which of the target's ways of
+    /// naming the element is used is the same question as for one element, and the elements are the
+    /// ones from the match the step named onward: "the third row and the ones after it" is what a
+    /// macro that reads a list is after.
+    /// </summary>
+    public IReadOnlyList<string> ReadAll(PageTarget target, PagePart part, string attribute,
+        int maxItems, int timeoutMs)
+    {
+        var patience = Patience(timeoutMs);
+        var limit = Math.Max(1, maxItems);
+        try
+        {
+            return Wait(async () =>
+            {
+                var page = Page();
+                page.SetDefaultTimeout(patience);
+                var (selector, _) = await Found(target, patience);
+                var element = Named(selector);
+
+                // The first entry is waited for the way one element is any other step: a page that is
+                // still filling its list has nothing to read yet, and reading nothing at all would
+                // leave the macro carrying on with a list that never arrived without saying so.
+                var deadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(patience);
+                var count = await element.CountAsync();
+                while (count < target.MatchIndex)
+                {
+                    if (DateTime.UtcNow >= deadline)
+                    {
+                        throw NotFound(target, count);
+                    }
+
+                    await Task.Delay(CandidateIntervalMs);
+                    count = await element.CountAsync();
+                }
+
+                var items = new List<string>();
+                for (var at = target.MatchIndex - 1; at < count && items.Count < limit; at++)
+                {
+                    items.Add(await Part(element.Nth(at), part, attribute));
+                }
+
+                return (IReadOnlyList<string>)items;
+            });
+        }
+        catch (Exception failure) when (failure is PlaywrightException or TimeoutException)
+        {
+            throw Missing(target, failure);
+        }
+    }
+
+    /// <summary>
+    /// The table a target names, read out of the page's own markup. Which of its rows are names and
+    /// which are data is asked of the page, and the answer comes back as it stands: a table that
+    /// writes no strip of names is read as having none.
+    /// </summary>
+    public PageTable ReadTable(PageTarget target, int maxRows, int timeoutMs)
+        => OnElement(target, timeoutMs, async (element, _) =>
+            TableOf(await element.EvaluateAsync<JsonElement?>(BrowserPageScript.Table),
+                Math.Max(1, maxRows)));
+
+    public PageInfo ReadPage(int timeoutMs) => OnPage(async () =>
+    {
+        var page = Page();
+        page.SetDefaultTimeout(Patience(timeoutMs));
+        return new PageInfo(page.Url, await page.TitleAsync());
+    });
 
     public void SwitchTab(TabChoice choice, int index, string match)
         => OnPage(async () =>
@@ -568,10 +636,67 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         });
 
     /// <summary>
-    /// Finds the element a target names, reads the text it shows, and answers with that.
+    /// One part of one element. The three parts are three different questions about the same
+    /// element, and a step names which one it is after: the writing it shows, what it holds, or one
+    /// attribute of its markup.
     /// </summary>
-    private string ReadText(PageTarget target, int timeoutMs)
-        => OnElement(target, timeoutMs, (element, _) => element.InnerTextAsync());
+    private static async Task<string> Part(ILocator element, PagePart part, string attribute)
+        => part switch
+        {
+            PagePart.Value => await element.InputValueAsync(),
+
+            // A step that reads an attribute and names none is a step that did not say what to
+            // read; the element on its own is not the answer to a question about its markup.
+            PagePart.Attribute => attribute.Trim().Length > 0
+                ? await element.GetAttributeAsync(attribute.Trim()) ?? string.Empty
+                : throw new DeviceActionException("Run.BrowserNoAttribute"),
+
+            _ => await element.InnerTextAsync(),
+        };
+
+    /// <summary>
+    /// A table as the page wrote it down, with the names above its columns and its rows as lists of
+    /// what the cells show. The most rows a step asked for is the most that is taken.
+    /// </summary>
+    private static PageTable TableOf(JsonElement? written, int maxRows)
+    {
+        if (written is not { ValueKind: JsonValueKind.Object } table)
+        {
+            return new PageTable([], []);
+        }
+
+        var columns = new List<string>();
+        if (table.TryGetProperty("columns", out var heads) && heads.ValueKind == JsonValueKind.Array)
+        {
+            columns.AddRange(heads.EnumerateArray().Select(Cell));
+        }
+
+        var rows = new List<IReadOnlyList<string>>();
+        if (table.TryGetProperty("rows", out var body) && body.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var row in body.EnumerateArray())
+            {
+                if (rows.Count >= maxRows)
+                {
+                    break;
+                }
+
+                rows.Add(row.ValueKind == JsonValueKind.Array
+                    ? [.. row.EnumerateArray().Select(Cell)]
+                    : []);
+            }
+        }
+
+        return new PageTable(columns, rows);
+    }
+
+    /// <summary>What one cell of a table came back as, whether or not the page wrote a string.</summary>
+    private static string Cell(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.String => value.GetString() ?? string.Empty,
+        JsonValueKind.Null or JsonValueKind.Undefined => string.Empty,
+        _ => value.GetRawText(),
+    };
 
     /// <summary>
     /// Finds the element a target names and does something with it, answering with whatever that

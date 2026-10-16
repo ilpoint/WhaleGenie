@@ -3170,11 +3170,12 @@ public static class ActionCatalog
             Key = "browser.readText",
             Returns =
             [
-                Return("text", "Text", primary: true, hint: "The text that was read."),
+                Return("text", "Text", primary: true, hint: "What was read: the writing the element "
+                    + "showed, the value it held, or the attribute it carries."),
             ],
             Category = ActionCategory.Browser,
             DisplayName = "Read Text",
-            Description = "Reads the text of an element, or of the whole page.",
+            Description = "Reads one part of an element, or of the whole page.",
             StepTimeoutMs = 10000,
             Parameters =
             [
@@ -3182,7 +3183,80 @@ public static class ActionCatalog
                     TargetHint + "Which element to read, named the way the click action names one. "
                     + "Every line left out, which is the default, reads the whole page.",
                     required: false, acceptsVariables: true),
+                PageWhat(),
+                PageAttribute(),
                 PageMatchIndex("reads"),
+                Returns(),
+            ],
+        },
+        new()
+        {
+            Key = "browser.readAll",
+            Returns =
+            [
+                Return("items", "Items", primary: true, type: ActionReturnType.List,
+                    hint: "Everything that was read, one entry each, in the order the page shows "
+                        + "them. Walk them with forEach or count them with count()."),
+            ],
+            Category = ActionCategory.Browser,
+            DisplayName = "Read Every Match",
+            Description = "Reads every element a selector names, one entry each.",
+            StepTimeoutMs = 10000,
+            Parameters =
+            [
+                Text("target", "Selector", ".result-row",
+                    TargetHint + "Which elements to read, named the way the click action names one. "
+                    + "Every element the selector finds is read, so a selector that finds one "
+                    + "element reads one.", acceptsVariables: true),
+                PageWhat(),
+                PageAttribute(),
+                PageStartIndex(),
+                PageItems("maxItems", "Most items", "items"),
+                Returns(),
+            ],
+        },
+        new()
+        {
+            Key = "browser.readTable",
+            Returns =
+            [
+                Return("table", "Table", primary: true, type: ActionReturnType.List,
+                    hint: "One entry per row, each entry a record whose keys are the names above "
+                        + "the columns; a table that writes no such names is read by column letter, "
+                        + "A and B and so on. A cell is read by name with field(), the same shape "
+                        + "the window and file readers hand over."),
+            ],
+            Category = ActionCategory.Browser,
+            DisplayName = "Read Table",
+            Description = "Reads a table of a page into rows.",
+            StepTimeoutMs = 10000,
+            Parameters =
+            [
+                Text("target", "Selector", "table",
+                    TargetHint + "Which table to read, named the way the click action names one. "
+                    + "The default is table, the page's own table element.",
+                    acceptsVariables: true),
+                PageMatchIndex("reads"),
+                PageItems("maxRows", "Most rows", "rows"),
+                Returns(),
+            ],
+        },
+        new()
+        {
+            Key = "browser.readPage",
+            Returns =
+            [
+                Return("url", "Address", primary: true,
+                    hint: "The address the page is on, which is what tells a macro where a click "
+                        + "left it."),
+                Return("title", "Title", hint: "What the page calls itself."),
+            ],
+            Category = ActionCategory.Browser,
+            DisplayName = "Read Page",
+            Description = "Reads where the page is and what it calls itself.",
+            StepTimeoutMs = 10000,
+            Parameters =
+            [
                 Returns(),
             ],
         },
@@ -4747,6 +4821,61 @@ public static class ActionCatalog
             + "order they appear on the page. The default is 1; asking for more than the page holds "
             + "is treated as finding nothing.",
             min: 1, max: 200, advanced: true);
+
+    /// <summary>
+    /// Where a page action that reads a list starts. It is the same question the other element
+    /// actions ask, given a different answer: reading a list from the third row on is what a macro
+    /// does with a page whose first rows are a heading it has already read.
+    /// </summary>
+    private static ActionParameter PageStartIndex()
+        => Number("matchIndex", "Match number", 1,
+            "Which of the elements the selector finds this step starts reading at, counted from 1 in "
+            + "the order they appear on the page. What follows it is read as well, up to the number "
+            + "of items; the default is 1, which reads the list from its first element.",
+            min: 1, max: 200, advanced: true);
+
+    /// <summary>
+    /// Which part of an element a page action reads. What a box shows and what it holds are two
+    /// different things, and so is the markup behind it, so a step that reads one element says which
+    /// of the three it is after rather than being handed whichever one the device prefers.
+    /// </summary>
+    private static ActionParameter PageWhat()
+        => Choice("what", "Read", ["text", "value", "attribute"], "text",
+            "Which part of the element to read. The text it shows is what a person reads on the "
+            + "page and what this step read before there was a choice; the value it holds is what a "
+            + "box or a dropdown really carries, which a password box keeps hidden and a dropdown "
+            + "keeps apart from the wording it shows; an attribute is one piece of the element's "
+            + "markup, such as the address a link goes to.",
+            labels: ["The text it shows", "The value it holds", "One attribute of its markup"]);
+
+    /// <summary>
+    /// Which attribute of an element a page action reads. It is only asked for by the steps whose
+    /// reading is set to an attribute, and an attribute nobody named is a question with no answer:
+    /// the step stops and says so rather than reading nothing.
+    /// </summary>
+    private static ActionParameter PageAttribute()
+        => Text("attribute", "Attribute", "href",
+            "Which attribute to read, named as the page's markup writes it, such as href for the "
+            + "address of a link, src for where a picture comes from, or value for what the markup "
+            + "says a box holds. An element without that attribute is read as empty rather than "
+            + "counted as missing.",
+            required: false, acceptsVariables: true, onlyWith: ["attribute"], onlyField: "what");
+
+    /// <summary>
+    /// How many entries a page action that reads a list takes. It has a default because a page whose
+    /// list grows as the macro reads it would otherwise never be finished with, and the number is
+    /// the same ceiling every other list reader in the program uses.
+    /// </summary>
+    /// <remarks>
+    /// It is tuning rather than what the step is, the same as it is everywhere else a list is read:
+    /// the answer almost every macro wants is the one the field starts on.
+    /// </remarks>
+    private static ActionParameter PageItems(string name, string label, string what)
+        => Number(name, label, 100,
+            "The most " + what + " to read, 1 to 10000. The default is 100, which is also the "
+            + "ceiling the other readers of a list use, so a page that keeps adding to what it "
+            + "shows cannot fill memory.",
+            min: 1, max: 10000, advanced: true);
 
     /// <summary>
     /// How a reference picture is looked for, shared by the picture finders. It is one list because

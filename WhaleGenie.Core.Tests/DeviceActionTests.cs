@@ -8345,7 +8345,7 @@ public class DeviceActionTests
         Assert.Contains("browserGoTo https://example.com/next 0", devices.Calls);
         Assert.Contains("browserClick #go #1 0", devices.Calls);
         Assert.Contains("browserFill #q #1 macro 0", devices.Calls);
-        Assert.Contains("browserText #result #1 0", devices.Calls);
+        Assert.Contains("browserText #result #1 Text (none) 0", devices.Calls);
         Assert.Contains("browserClose", devices.Calls);
         Assert.False(devices.BrowserOpen);
     }
@@ -8416,6 +8416,132 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Equal("#second", host.Entries.Single(entry => entry.Key == "Run.BrowserClicked").Arguments[0]);
+    }
+
+    /// <summary>
+    /// One element is read three ways, and which of them a step is after is its own answer: what a
+    /// box shows and what it holds are two different things, and the markup behind it is a third.
+    /// </summary>
+    [Fact]
+    public async Task A_page_action_reads_whichever_part_of_the_element_it_was_told_to()
+    {
+        var devices = new FakeDeviceLayer { BrowserPage = "1234" };
+        var (result, _, store) = await RunAsync(
+        [
+            Within(2500, Step("browser.readText", Param("target", "#card"),
+                Param("what", "value"), Returns("text=卡号"))),
+            Within(2500, Step("browser.readText", Param("target", "#link"),
+                Param("what", "attribute"), Param("attribute", "href"),
+                Returns("text=链接"))),
+            Step("browser.readText", Param("target", "#plain"), Returns("text=文字")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("browserText #card #1 Value (none) 2500", devices.Calls);
+        Assert.Contains("browserText #link #1 Attribute href 2500", devices.Calls);
+
+        // A step that says nothing about which part reads the writing the element shows, which is
+        // what every such step meant before there was a choice.
+        Assert.Contains("browserText #plain #1 Text (none) 0", devices.Calls);
+        Assert.Equal("1234", store.Local.Values["卡号"].AsText());
+    }
+
+    /// <summary>
+    /// Every element a selector names, read into one list: the second row of a result has no name of
+    /// its own to write down, so a macro that reads a page's list one step at a time cannot be
+    /// written at all.
+    /// </summary>
+    [Fact]
+    public async Task Every_element_a_selector_names_is_read_as_one_list()
+    {
+        var devices = new FakeDeviceLayer { BrowserItems = ["甲", "乙", "丙"] };
+        var (result, _, store) = await RunAsync(
+        [
+            Within(2500, Step("browser.readAll",
+                Param("target", ".row\n\n  #row-2  "), Param("matchIndex", "2"),
+                Param("maxItems", "3"), Returns("items=行"))),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+
+        // The ways of naming an element travel in the order they were written, and the two numbers
+        // travel with them: which match to start at, and how many entries are wanted.
+        Assert.Contains("browserReadAll .row / #row-2 #2 Text (none) 3 2500", devices.Calls);
+
+        var items = store.Local.Values["行"];
+        Assert.True(items.IsList);
+        Assert.Equal(["甲", "乙", "丙"], items.Items.Select(item => item.AsText()));
+    }
+
+    /// <summary>
+    /// A page's table is read into the shape every other table in the program has: one entry per
+    /// row, a field per cell, keyed by the names the page writes above its columns.
+    /// </summary>
+    [Fact]
+    public async Task The_rows_of_a_page_table_are_keyed_by_the_names_above_its_columns()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            BrowserTable = new(["金额", "日期"], [["100", "3 日"], ["200", "4 日"]]),
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("browser.readTable", Param("target", "#report"), Param("matchIndex", "2"),
+                Param("maxRows", "2"), Returns("table=表")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("browserReadTable #report #2 2 0", devices.Calls);
+
+        var table = store.Local.Values["表"];
+        Assert.Equal(2, table.Items.Count);
+        Assert.Equal("100", table.Items[0].Field("金额")!.AsText());
+        Assert.Equal("4 日", table.Items[1].Field("日期")!.AsText());
+    }
+
+    /// <summary>
+    /// A table of a page that writes no strip of column names still has columns, and they are named
+    /// the way the window reader names the columns of a grid whose names nobody kept.
+    /// </summary>
+    [Fact]
+    public async Task A_page_table_that_writes_no_column_names_is_read_by_letter()
+    {
+        var devices = new FakeDeviceLayer { BrowserTable = new([], [["Ann", "31"]]) };
+        var (result, _, store) = await RunAsync(
+        [
+            Step("browser.readTable", Returns("table=表")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+
+        // A step that names no table reads the page's own table element, and the most rows it reads
+        // is the default every list reader in the program uses.
+        Assert.Contains("browserReadTable table #1 100 0", devices.Calls);
+        Assert.Equal(["A", "B"], store.Local.Values["表"].Items[0].Fields.Select(field => field.Name));
+    }
+
+    /// <summary>
+    /// Where the page is and what it calls itself: what a macro reads when the step after it depends
+    /// on which page a click left the browser on rather than on anything the page shows.
+    /// </summary>
+    [Fact]
+    public async Task Where_the_page_is_and_what_it_calls_itself_are_read()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            BrowserPageInfo = new("https://example.com/next", "下一步"),
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Within(2500, Step("browser.readPage", Returns("url=地址", "title=标题"))),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("browserReadPage 2500", devices.Calls);
+        Assert.Equal("https://example.com/next", store.Local.Values["地址"].AsText());
+        Assert.Equal("下一步", store.Local.Values["标题"].AsText());
     }
 
     [Fact]
@@ -9277,11 +9403,43 @@ internal sealed class FakeDeviceLayer
 
     void IBrowserDevice.CloseTab() => Note("browserCloseTab");
 
-    string IBrowserDevice.Text(PageTarget? target, int timeoutMs)
+    string IBrowserDevice.Text(PageTarget? target, PagePart part, string attribute, int timeoutMs)
     {
-        Note($"browserText {Named(target)} {timeoutMs}");
+        Note($"browserText {Named(target)} {part} {Part(attribute)} {timeoutMs}");
         return BrowserPage;
     }
+
+    /// <summary>What reading every match of a selector answers with, as though the page held them.</summary>
+    public IReadOnlyList<string> BrowserItems { get; set; } = ["第一行", "第二行"];
+
+    IReadOnlyList<string> IBrowserDevice.ReadAll(PageTarget target, PagePart part, string attribute,
+        int maxItems, int timeoutMs)
+    {
+        Note($"browserReadAll {Named(target)} {part} {Part(attribute)} {maxItems} {timeoutMs}");
+        return BrowserItems;
+    }
+
+    /// <summary>What reading a table answers with, as though the page drew one.</summary>
+    public PageTable BrowserTable { get; set; } = new(["金额"], [["100"], ["200"]]);
+
+    PageTable IBrowserDevice.ReadTable(PageTarget target, int maxRows, int timeoutMs)
+    {
+        Note($"browserReadTable {Named(target)} {maxRows} {timeoutMs}");
+        return BrowserTable;
+    }
+
+    /// <summary>Where the page is and what it calls itself, as though it had loaded one.</summary>
+    public PageInfo BrowserPageInfo { get; set; } = new("https://example.com/here", "示例页");
+
+    PageInfo IBrowserDevice.ReadPage(int timeoutMs)
+    {
+        Note($"browserReadPage {timeoutMs}");
+        return BrowserPageInfo;
+    }
+
+    /// <summary>An attribute name as it reads in a note; nothing written is nothing asked for.</summary>
+    private static string Part(string attribute)
+        => attribute.Trim().Length == 0 ? "(none)" : attribute;
 
     /// <summary>What the next pick answers with, as though a person had clicked that element.</summary>
     public PickResult BrowserPicked { get; set; } =

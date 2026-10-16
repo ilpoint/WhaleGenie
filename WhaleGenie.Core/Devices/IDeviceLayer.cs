@@ -510,11 +510,36 @@ public interface IBrowserDevice
     string Fill(PageTarget target, string text, int timeoutMs);
 
     /// <summary>
-    /// The text the target names, or the whole page's text when there is no target. The whole-page
-    /// reading is what a macro wants when it is after the content rather than one field, and it is
-    /// what a step that named no selector at all is read as.
+    /// One part of the element the target names, or of the whole page when there is no target. The
+    /// whole-page reading is what a macro wants when it is after the content rather than one field,
+    /// and it is what a step that named no selector at all is read as; it reads the writing the page
+    /// shows, there being no box and no markup of its own to ask for the other two parts of.
     /// </summary>
-    string Text(PageTarget? target, int timeoutMs);
+    string Text(PageTarget? target, PagePart part, string attribute, int timeoutMs);
+
+    /// <summary>
+    /// Every element the target names, each read the way the step asked for, starting at the match
+    /// the target named and stopping after <paramref name="maxItems"/> of them.
+    /// </summary>
+    /// <remarks>
+    /// A page holds lists of the same thing — every row of a result, every link of a menu — and the
+    /// second of them has no name of its own to write down: reading them one step at a time is not
+    /// something the person writing the macro can express. What is read is every match of the one
+    /// selector that turned out to name anything, in the order the page shows them.
+    /// </remarks>
+    IReadOnlyList<string> ReadAll(PageTarget target, PagePart part, string attribute, int maxItems,
+        int timeoutMs);
+
+    /// <summary>
+    /// The table the target names, read out of the page's own markup: the names it writes above its
+    /// columns, and its rows under them. A table that writes no such names comes back with none, and
+    /// the engine calls the columns by letter; the most rows read is
+    /// <paramref name="maxRows"/>.
+    /// </summary>
+    PageTable ReadTable(PageTarget target, int maxRows, int timeoutMs);
+
+    /// <summary>Where the page is and what it calls itself.</summary>
+    PageInfo ReadPage(int timeoutMs);
 
     /// <summary>
     /// Moves to another tab of the browser that is open, which is how a macro follows a click that
@@ -618,6 +643,39 @@ public enum ElementWait
     /// <summary>Not on the page at all, which is what a page that has thrown something away looks like.</summary>
     Detached,
 }
+
+/// <summary>Which part of an element a step reads, there being more than one thing to ask it.</summary>
+/// <remarks>
+/// What a box holds and what it shows are two different things: a password field shows dots and
+/// holds the password, and a dropdown shows the option the person picked and holds the value behind
+/// it. The markup is a third: an address a link goes to, a picture's description, a data attribute
+/// the site keeps for itself.
+/// </remarks>
+public enum PagePart
+{
+    /// <summary>The writing the element shows.</summary>
+    Text,
+
+    /// <summary>What the element holds rather than shows.</summary>
+    Value,
+
+    /// <summary>One attribute of the element's markup, named by the step.</summary>
+    Attribute,
+}
+
+/// <summary>
+/// A table of a page: the names written above its columns, and its rows.
+/// </summary>
+/// <remarks>
+/// Both are read here rather than being worked out by the caller, because "is the first row a strip
+/// of names or the first row of data" is a question about the markup that only the page can answer;
+/// which name a column goes by when the page writes none is the engine's own business, since it is
+/// the same answer the table reader of a window gives.
+/// </remarks>
+public sealed record PageTable(IReadOnlyList<string> Columns, IReadOnlyList<IReadOnlyList<string>> Rows);
+
+/// <summary>Where a page is and what it calls itself.</summary>
+public sealed record PageInfo(string Url, string Title);
 
 /// <summary>
 /// Which element of a page a step means, named the way a macro may name it.
@@ -1093,7 +1151,16 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public string Fill(PageTarget target, string text, int timeoutMs) => throw Missing("a browser");
 
-        public string Text(PageTarget? target, int timeoutMs) => throw Missing("a browser");
+        public string Text(PageTarget? target, PagePart part, string attribute, int timeoutMs)
+            => throw Missing("a browser");
+
+        public IReadOnlyList<string> ReadAll(PageTarget target, PagePart part, string attribute,
+            int maxItems, int timeoutMs) => throw Missing("a browser");
+
+        public PageTable ReadTable(PageTarget target, int maxRows, int timeoutMs)
+            => throw Missing("a browser");
+
+        public PageInfo ReadPage(int timeoutMs) => throw Missing("a browser");
 
         public void SwitchTab(TabChoice choice, int index, string match) => throw Missing("a browser");
 

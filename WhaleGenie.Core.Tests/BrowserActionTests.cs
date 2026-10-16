@@ -75,19 +75,19 @@ public class BrowserActionTests : IDisposable
         // The option is picked by its visible text rather than by its value, which is the reading a
         // person writing a macro expects of the box.
         device.Select(At("#country"), "Japan", byIndex: false, timeoutMs: 5000);
-        Assert.Equal("jp", device.Text(At("#picked"), 5000).Trim());
+        Assert.Equal("jp", device.Text(At("#picked"), PagePart.Text, string.Empty, 5000).Trim());
 
         // And by its place in the list, counted from the top starting at 1.
         device.Select(At("#country"), "1", byIndex: true, timeoutMs: 5000);
-        Assert.Equal("cn", device.Text(At("#picked"), 5000).Trim());
+        Assert.Equal("cn", device.Text(At("#picked"), PagePart.Text, string.Empty, 5000).Trim());
 
         // A box that is left as it was, and one that is unticked: what the step asks for is the
         // state to end up in, where a click on an already-ticked box would untick it.
         device.Check(At("#agree"), wanted: true, timeoutMs: 5000);
-        Assert.Equal("true", device.Text(At("#ticked"), 5000).Trim());
+        Assert.Equal("true", device.Text(At("#ticked"), PagePart.Text, string.Empty, 5000).Trim());
 
         device.Check(At("#news"), wanted: false, timeoutMs: 5000);
-        Assert.Equal("false", device.Text(At("#ticked"), 5000).Trim());
+        Assert.Equal("false", device.Text(At("#ticked"), PagePart.Text, string.Empty, 5000).Trim());
 
         // Hovering reveals what a click would not: the menu opens under the pointer, and the wait
         // for the item is what says it did.
@@ -97,12 +97,12 @@ public class BrowserActionTests : IDisposable
         // A key sent to the page's own body arrives where the page is listening for it. The page
         // writes down the key name it was handed, which is what says the right key was pressed.
         device.Press(At("#search"), "Enter", 5000);
-        Assert.Equal("Enter", device.Text(At("#typed"), 5000).Trim());
+        Assert.Equal("Enter", device.Text(At("#typed"), PagePart.Text, string.Empty, 5000).Trim());
 
         // A file cannot be typed into a page, so handing it over is the way round it: the input
         // holds the name of the file that was handed over.
         device.Upload(At("#report"), [_handover], 5000);
-        Assert.Equal(Path.GetFileName(_handover), device.Text(At("#held"), 5000).Trim());
+        Assert.Equal(Path.GetFileName(_handover), device.Text(At("#held"), PagePart.Text, string.Empty, 5000).Trim());
     }
 
     [RealBrowserFact]
@@ -121,7 +121,7 @@ public class BrowserActionTests : IDisposable
 
         device.WaitFor(At("#row"), ElementWait.Visible, 5000);
         device.WaitFor(At("#spinner"), ElementWait.Detached, 5000);
-        Assert.Equal("ready", device.Text(At("#row"), 5000).Trim());
+        Assert.Equal("ready", device.Text(At("#row"), PagePart.Text, string.Empty, 5000).Trim());
 
         // An element that never turns up is the step running out of time rather than the browser
         // failing: the wait gets the length the step was allowed and says so when it passes.
@@ -140,6 +140,115 @@ public class BrowserActionTests : IDisposable
 
         var unknown = Assert.Throws<DeviceActionException>(() => device.Press(null, "Frobnicate", 5000));
         Assert.Equal("Run.UnknownPageKey", unknown.Key);
+    }
+
+    /// <summary>
+    /// One element is three answers, and a step says which of them it is after: the writing the
+    /// element shows, what it holds, or one attribute of its markup.
+    /// </summary>
+    [RealBrowserFact]
+    public void A_step_reads_the_writing_it_shows_the_value_it_holds_or_an_attribute()
+    {
+        Site("<input id=card value=1234>"
+            + "<a id=link href=\"https://example.com/report\">报告</a>"
+            + "<p id=note>备注</p>");
+
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        // What a box holds and what it shows are two different things, and the address a link goes
+        // to is neither of them: each is read by naming it rather than by being the default.
+        Assert.Equal("1234", device.Text(At("#card"), PagePart.Value, "", 5000));
+        Assert.Equal("https://example.com/report",
+            device.Text(At("#link"), PagePart.Attribute, "href", 5000));
+        Assert.Equal("报告", device.Text(At("#link"), PagePart.Text, "", 5000));
+
+        // An element without that attribute is read as empty rather than counted as missing: the
+        // question was what the attribute says, and this element says nothing.
+        Assert.Equal("", device.Text(At("#note"), PagePart.Attribute, "href", 5000));
+
+        // Reading an attribute without saying which one is a question with no answer.
+        var unnamed = Assert.Throws<DeviceActionException>(
+            () => device.Text(At("#link"), PagePart.Attribute, "  ", 5000));
+        Assert.Equal("Run.BrowserNoAttribute", unnamed.Key);
+    }
+
+    /// <summary>
+    /// A page lists the same thing many times over, and every one of them can be read in one go,
+    /// starting wherever the step says.
+    /// </summary>
+    [RealBrowserFact]
+    public void Every_element_a_selector_names_is_read_and_the_list_starts_where_the_step_says()
+    {
+        Site("<p class=row>第一行</p><p class=row>第二行</p><p class=row>第三行</p>");
+
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        // From the top, which is what the field starts at.
+        var all = device.ReadAll(At(".row"), PagePart.Text, "", 100, 5000);
+        Assert.Equal(["第一行", "第二行", "第三行"], all);
+
+        // And from the second onwards, which is what a macro does with a list whose first entry it
+        // has already read.
+        var rest = device.ReadAll(PageTarget.Of(".row", 2), PagePart.Text, "", 100, 5000);
+        Assert.Equal(["第二行", "第三行"], rest);
+
+        // The most entries a step asked for is the most it is handed.
+        Assert.Equal(["第一行", "第二行"],
+            device.ReadAll(At(".row"), PagePart.Text, "", 2, 5000));
+
+        // A selector that names nothing is a failure rather than an empty list, the same as it is
+        // for every other step that names an element.
+        var nothing = Assert.Throws<DeviceActionException>(
+            () => device.ReadAll(At(".absent"), PagePart.Text, "", 100, 300));
+        Assert.Equal("Run.BrowserNotFound", nothing.Key);
+    }
+
+    /// <summary>
+    /// A table is read out of the page's own markup: the names the page writes above its columns,
+    /// and every row under them.
+    /// </summary>
+    [RealBrowserFact]
+    public void A_table_of_a_page_is_read_with_its_column_names_and_its_rows()
+    {
+        Site("<table id=report><thead><tr><th>金额</th><th>日期</th></tr></thead>"
+            + "<tbody><tr><td>100</td><td>3 日</td></tr>"
+            + "<tr><td>200</td><td>4 日</td></tr></tbody></table>"
+            // A table that writes no strip of names holds data from its first row, and the engine
+            // names the columns by letter rather than calling that row the names.
+            + "<table id=plain><tr><td>Ann</td><td>31</td></tr></table>");
+
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        var table = device.ReadTable(At("#report"), 100, 5000);
+        Assert.Equal(["金额", "日期"], table.Columns);
+        Assert.Equal(2, table.Rows.Count);
+        Assert.Equal(["100", "3 日"], table.Rows[0]);
+        Assert.Equal(["200", "4 日"], table.Rows[1]);
+
+        var plain = device.ReadTable(At("#plain"), 100, 5000);
+        Assert.Empty(plain.Columns);
+        Assert.Equal(["Ann", "31"], plain.Rows[0]);
+
+        // The most rows a step asked for is the most that is read, so a table nobody bounded cannot
+        // be read forever.
+        Assert.Single(device.ReadTable(At("#report"), 1, 5000).Rows);
+    }
+
+    /// <summary>Where the page is and what it calls itself, which is what a step reads off the page itself.</summary>
+    [RealBrowserFact]
+    public void A_page_says_where_it_is_and_what_it_calls_itself()
+    {
+        Site("<title>报告页</title><p>正文</p>");
+
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        var page = device.ReadPage(5000);
+        Assert.Equal(Address(), page.Url);
+        Assert.Equal("报告页", page.Title);
     }
 
     /// <summary>Writes the check's one page down.</summary>
