@@ -8372,14 +8372,14 @@ public class DeviceActionTests
             Step("browser.click", Param("target", "div > p:nth-of-type(2)")),
             Step("browser.click", Param("target", "input[name=\"user\"]")),
             Step("browser.click",
-                Param("target", "#frame >> internal:control=enter-frame >> #inner")),
+                Param("target", "frame=#frame >> #inner")),
         ], devices);
 
         Assert.True(result.Succeeded);
         Assert.Contains("browserClick [data-testid=\"row-2\"] #1 0", devices.Calls);
         Assert.Contains("browserClick div > p:nth-of-type(2) #1 0", devices.Calls);
         Assert.Contains("browserClick input[name=\"user\"] #1 0", devices.Calls);
-        Assert.Contains("browserClick #frame >> internal:control=enter-frame >> #inner #1 0", devices.Calls);
+        Assert.Contains("browserClick frame=#frame >> #inner #1 0", devices.Calls);
     }
 
     [Fact]
