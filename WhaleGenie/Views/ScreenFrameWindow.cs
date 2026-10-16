@@ -5,7 +5,6 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Localization;
 
 namespace WhaleGenie.Views;
 
@@ -20,7 +19,9 @@ namespace WhaleGenie.Views;
 /// is written, the window a run is reading right now. Only the border belongs to the frame: the
 /// middle is cut away with a window region, so what is inside stays readable and stays clickable
 /// while the frame is up, and the frame itself never takes the focus. A momentary flash, which is
-/// what the button beside a picker does, is the same frame with a clock on it.
+/// what the button beside a picker does, is the same frame with a clock on it. It is a drawing
+/// rather than a window anybody means, and it carries no title so that no rule can recognise it —
+/// see the constructor for what that is holding back.
 /// </remarks>
 internal sealed class ScreenFrameWindow : Window
 {
@@ -46,7 +47,16 @@ internal sealed class ScreenFrameWindow : Window
         ShowActivated = false;
         Topmost = true;
         WindowStartupLocation = WindowStartupLocation.Manual;
-        Title = Strings.Get("Main.Title");
+
+        // An empty title, and that is the point: a macro names windows by their title, and the
+        // window device lists the top-level windows that carry one, so a frame with an empty one is
+        // a window no rule can recognise. Emptied rather than left alone, because Avalonia gives
+        // every window the title "Window" otherwise. Without this a frame is a window in front — it
+        // stands above every window that is not pinned — and an empty "match content", which means
+        // the window in front, answers with the frame itself: the preview would frame the frame it
+        // just drew, one ring stepping outwards from the last, and a run could read the ring instead
+        // of the window it means.
+        Title = string.Empty;
 
         if (living is { } span)
         {

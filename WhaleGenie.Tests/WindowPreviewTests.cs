@@ -315,6 +315,28 @@ public class WindowPreviewTests
         });
     }
 
+    /// <summary>
+    /// An indicator frame is not a window anything can recognise: the window device lists the
+    /// top-level windows that carry a title, and this one deliberately carries none. A frame that
+    /// could be found would be a window a rule answers with — it stands above every window that is
+    /// not pinned — so an empty match text, which means the window in front, would come back as the
+    /// ring just drawn, and both the preview and a run would be chasing or reading a drawing.
+    /// </summary>
+    [Fact]
+    public void An_indicator_frame_is_not_a_window_a_rule_can_find()
+    {
+        Ui.Run(() =>
+        {
+            var frame = ScreenFrameWindow.Show(new ScreenPoint(10, 20), new ScreenSize(100, 50));
+
+            Assert.NotNull(frame);
+            Assert.True(string.IsNullOrEmpty(frame.Title),
+                $"the frame carries the title '{frame.Title}', so a window rule can recognise it");
+
+            frame.Close();
+        });
+    }
+
     [Fact]
     public void A_rule_changed_while_typing_is_read_once_the_typing_pauses()
     {
