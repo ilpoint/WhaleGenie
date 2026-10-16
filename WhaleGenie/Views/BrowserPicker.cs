@@ -36,13 +36,18 @@ internal static class BrowserPicker
     /// Goes to the page the step is about and answers with the ways of naming the element that was
     /// clicked on it, the steadiest one first, or with nothing when the person gave up.
     /// </summary>
-    public static async Task<PickResult> PickAsync(IBrowserDevice browser, string url)
+    /// <remarks>
+    /// The profile the step names is opened with, so that what is picked is the page the macro will
+    /// drive when it runs: a browser opened on nothing, in front of a page the macro reaches
+    /// already signed in to, would hand back a selector for an element of the wrong page.
+    /// </remarks>
+    public static async Task<PickResult> PickAsync(IBrowserDevice browser, string url, string profile)
     {
         var address = Address(url);
         if (!browser.IsOpen)
         {
             // Edge is the browser Windows already has, so the editor never has to fetch one.
-            browser.Open("edge", address, headless: false);
+            browser.Open("edge", address, headless: false, profile);
         }
         else if (address.Length > 0 && !SamePage(browser.Url, address))
         {

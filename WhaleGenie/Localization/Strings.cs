@@ -395,10 +395,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.PickElementHint"] = "Point at a control on screen and click it to write its selector.",
         ["Add.PickBrowserElement"] = "Pick on the page…",
         ["Add.PickBrowserElementHint"] =
-            "Picks an element off the page the macro has open, or opens this address in a browser "
-            + "for picking. Click the element to use: the steadiest way of naming it goes into this "
-            + "field, and the other ways are offered beside the button, one click each to write as "
-            + "the next line.",
+            "Picks an element off the page the macro has open, or opens this address in the browser "
+            + "on the profile this step names. Click the element to use: the steadiest way of naming "
+            + "it goes into this field, and the other ways are offered beside the button, one click "
+            + "each to write as the next line.",
         ["Add.TestElement"] = "Test",
         ["Add.TestElementHint"] =
             "Highlights the element on screen, so a selector can be checked without running the "
@@ -1285,6 +1285,7 @@ public sealed class Strings : INotifyPropertyChanged
             + "asks for, which is finding nothing. Tried: {0}",
         ["Run.BrowserNoSelector"] = "This step does not say which element of the page it means: "
             + "write a selector, or point at the element on the page.",
+        ["Run.BrowserBadProfile"] = "That is not a name a browser profile can have: {0}",
         ["Run.OpenedBrowser"] = "Opened {0} at {1}.",
         ["Run.BrowserAddress"] = "The page is on {0}.",
         ["Run.BrowserClicked"] = "Clicked {0}.",
@@ -1681,8 +1682,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.PickElementHint"] = "把鼠标移到屏幕上的控件并点击，即可写入它的选择器。",
         ["Add.PickBrowserElement"] = "在页面里拾取…",
         ["Add.PickBrowserElementHint"] =
-            "在宏已经打开的页面上拾取；没有就把这个地址开在浏览器里。点一下要用的元素：最稳的那条说法写到"
-            + "这里，其余的说法列在按钮旁边，点一下就追成字段的下一行。",
+            "在宏已经打开的那份页面上拾取；没有打开时就按这一步的地址与档案开一份出来。点一下要用的元素："
+            + "最稳的那条说法写到这里，其余的说法列在按钮旁边，点一下就追成字段的下一行。",
         ["Add.TestElement"] = "测试",
         ["Add.TestElementHint"] = "在屏幕上高亮这个元素，不用运行宏就能看看有没有选对。",
         ["Add.TestElementEmpty"] = "先拾取或者填写选择器。",
@@ -2790,6 +2791,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BrowserNotFound"] = "页面上没有这一步要找的那个元素。试过：{0}",
         ["Run.BrowserTooFew"] = "页面上的元素没有「第几个命中」要的那么多，等于没找到。试过：{0}",
         ["Run.BrowserNoSelector"] = "这一步没说要页面上的哪个元素：请写选择器，或在页面上点一下那个元素。",
+        ["Run.BrowserBadProfile"] = "浏览器档案不能叫这个名字：{0}",
         ["Run.OpenedBrowser"] = "已打开 {0}，地址是 {1}。",
         ["Run.BrowserAddress"] = "页面在 {0}。",
         ["Run.BrowserClicked"] = "已点击 {0}。",

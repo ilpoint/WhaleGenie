@@ -3103,6 +3103,16 @@ public static class ActionCatalog
                     "Open the browser without showing it. A page kept off the screen is quicker, "
                     + "but nothing can be watched while the macro runs. Off by default.",
                     advanced: true),
+                Text("profile", "Profile", string.Empty,
+                    "A name to keep this browser's own sign-ins under, so that a later run opens the "
+                    + "one it has already signed in to: what the site remembers about the person "
+                    + "stays in it. Empty, which is the default, opens a browser that remembers "
+                    + "nothing. The name is a folder beside the program, under \"browsers\", or "
+                    + "under %LOCALAPPDATA%\\WhaleGenie\\browsers where the program may not write; "
+                    + "a $variable written in it is filled in with its value. Only one browser is "
+                    + "open at a time, so a step naming another profile closes the one before it "
+                    + "and opens the new one.",
+                    required: false, advanced: true, acceptsVariables: true),
             ],
         },
         new()

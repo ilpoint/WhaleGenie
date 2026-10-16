@@ -70,7 +70,7 @@ public class BrowserActionTests : IDisposable
             + "</script>");
 
         using var device = new PlaywrightBrowserDevice();
-        device.Open("edge", Address(), headless: true);
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
 
         // The option is picked by its visible text rather than by its value, which is the reading a
         // person writing a macro expects of the box.
@@ -117,7 +117,7 @@ public class BrowserActionTests : IDisposable
             + " document.body.appendChild(row); }, 200);</script>");
 
         using var device = new PlaywrightBrowserDevice();
-        device.Open("edge", Address(), headless: true);
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
 
         device.WaitFor(At("#row"), ElementWait.Visible, 5000);
         device.WaitFor(At("#spinner"), ElementWait.Detached, 5000);
@@ -136,7 +136,7 @@ public class BrowserActionTests : IDisposable
         Site("<p>plain</p>");
 
         using var device = new PlaywrightBrowserDevice();
-        device.Open("edge", Address(), headless: true);
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
 
         var unknown = Assert.Throws<DeviceActionException>(() => device.Press(null, "Frobnicate", 5000));
         Assert.Equal("Run.UnknownPageKey", unknown.Key);

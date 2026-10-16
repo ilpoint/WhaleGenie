@@ -2627,6 +2627,12 @@ internal static class ActionStrings
         ["browser.open.url.hint"] = "要打开的页面。默认留空，表示只开浏览器，不打开页面。按一个值读取，变量或表达式都可以写成它。",
         ["browser.open.headless.label"] = "不显示窗口",
         ["browser.open.headless.hint"] = "不显示浏览器窗口。默认不勾选；勾选后速度更快，但运行过程中看不到页面。",
+        ["browser.open.profile.label"] = "档案",
+        ["browser.open.profile.hint"] = "给这个浏览器自己的登录状态起一个名字，以后用这个名字打开的就是"
+            + "已经登录过的那一份：登录状态与 Cookie 都留在里面。默认留空，表示每次都是全新的浏览器。名字是"
+            + "程序旁边 browsers 文件夹里的一格（写不进去时改用 %LOCALAPPDATA%\\WhaleGenie\\browsers，"
+            + "见「程序自己的文件放哪儿」），其中的 $变量 会替换成它的值。同一时刻只开一份浏览器，所以"
+            + "这一步写了别的档案名会先关掉前一份再打开新的。",
 
         ["browser.goTo.name"] = "转到网址",
         ["browser.goTo.desc"] = "让浏览器当前页面转到另一个网址。",

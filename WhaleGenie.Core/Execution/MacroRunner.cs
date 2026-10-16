@@ -7751,7 +7751,8 @@ public sealed class MacroRunner
         }
 
         var url = Read(step.Text("url")).AsText();
-        browser.Open(engine, url, Flag(step, "headless", false));
+        browser.Open(engine, url, Flag(step, "headless", false),
+            Read(step.Text("profile")).AsText());
         Log(LogLevel.Info, depth, step.Type, "Run.OpenedBrowser", engine, browser.Url);
     }
 

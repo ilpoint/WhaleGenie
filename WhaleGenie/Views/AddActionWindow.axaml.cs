@@ -1369,7 +1369,9 @@ public partial class AddActionWindow : Window
     /// <summary>
     /// Opens the page a browser step is about and writes the selector of the element clicked on
     /// it. The address comes from the step's own address field, so "go to this page, then click
-    /// that" is picked off the page the macro will actually be looking at.
+    /// that" is picked off the page the macro will actually be looking at. The profile comes from
+    /// the step as well, so a step that works in a browser it has signed in to is picked off that
+    /// same one.
     /// </summary>
     private async void OnPickBrowserElement(object? sender, RoutedEventArgs e)
     {
@@ -1380,10 +1382,11 @@ public partial class AddActionWindow : Window
         }
 
         var url = ParameterText(viewModel, "url");
+        var profile = ParameterText(viewModel, "profile");
 
         try
         {
-            var picked = await BrowserPicker.PickAsync(Devices.Browser, url);
+            var picked = await BrowserPicker.PickAsync(Devices.Browser, url, profile);
             if (picked.Selector.Length > 0)
             {
                 // The steadiest way of naming the element goes into the field and the rest are

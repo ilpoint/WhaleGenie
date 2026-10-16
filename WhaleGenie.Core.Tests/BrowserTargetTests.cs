@@ -10,27 +10,33 @@ namespace WhaleGenie.Core.Tests;
 
 /// <summary>
 /// How a browser step finds the element it means: several ways of naming it tried in the order they
-/// were written, which of the matches the step wants, and the step's own clock. All of it is true
-/// or false against a real browser, so the pages are served from a temporary folder and driven
-/// without a window.
+/// were written, which of the matches the step wants, the step's own clock, and the profile a
+/// browser is left signed in on. All of it is true or false against a real browser, so the pages
+/// are served from a temporary folder and driven without a window.
 /// </summary>
 public class BrowserTargetTests : IDisposable
 {
     /// <summary>The folder the pages of this check are read from.</summary>
     private readonly string _site = Path.Combine(Path.GetTempPath(), $"wg-target-{Guid.NewGuid():N}");
 
+    /// <summary>The name the profile of this check is kept under, which nothing else uses.</summary>
+    private readonly string _profile = $"wg-test-{Guid.NewGuid():N}";
+
     public BrowserTargetTests() => Directory.CreateDirectory(_site);
 
     public void Dispose()
     {
-        try
+        foreach (var folder in new[] { _site, Path.Combine(ScriptFolders.Browsers, "edge", _profile) })
         {
-            Directory.Delete(_site, true);
-        }
-        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException)
-        {
-            // The browser may still hold the page it was reading; the temporary folder is the
-            // system's to clean up.
+            try
+            {
+                Directory.Delete(folder, true);
+            }
+            catch (Exception failure) when (failure is IOException or UnauthorizedAccessException)
+            {
+                // The browser may still hold the page or the profile it was reading; the temporary
+                // folder is the system's to clean up.
+            }
         }
 
         GC.SuppressFinalize(this);
@@ -44,7 +50,7 @@ public class BrowserTargetTests : IDisposable
             + "<button id=b onclick=\"document.getElementById('log').textContent='b'\">B</button>");
 
         using var device = new PlaywrightBrowserDevice();
-        device.Open("edge", Address(), headless: true);
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
 
         // The first way of naming the element is the one used when it finds anything at all.
         device.Click(PageTarget.Of("#a\n#b", 1), 5000);
@@ -66,7 +72,7 @@ public class BrowserTargetTests : IDisposable
             + "<button class=row onclick=\"document.getElementById('log').textContent='3'\">three</button>");
 
         using var device = new PlaywrightBrowserDevice();
-        device.Open("edge", Address(), headless: true);
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
 
         device.Click(PageTarget.Of(".row", 2), 5000);
         Assert.Equal("2", device.Text(At("#log"), 5000).Trim());
@@ -85,7 +91,7 @@ public class BrowserTargetTests : IDisposable
         Site("<div id=log></div>");
 
         using var device = new PlaywrightBrowserDevice();
-        device.Open("edge", Address(), headless: true);
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
 
         var missing = Assert.Throws<DeviceActionException>(
             () => device.Click(PageTarget.Of("#first\n#second", 1), 5000));
@@ -106,7 +112,7 @@ public class BrowserTargetTests : IDisposable
         Site("<p>nothing to find here</p>");
 
         using var device = new PlaywrightBrowserDevice();
-        device.Open("edge", Address(), headless: true);
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
 
         var clock = Stopwatch.StartNew();
         var missing = Assert.Throws<DeviceActionException>(
@@ -121,12 +127,43 @@ public class BrowserTargetTests : IDisposable
     }
 
     [RealBrowserFact]
+    public void A_profile_is_where_the_browser_stays_signed_in()
+    {
+        // What a browser remembers about a site is what a macro that logs in once lives on, so the
+        // page writes something down and says what it found when it was opened.
+        Site("<p id=seen></p><script>"
+            + "const before = localStorage.getItem('mark') || 'empty';"
+            + "localStorage.setItem('mark', 'here');"
+            + "document.getElementById('seen').textContent = before;</script>");
+
+        using var device = new PlaywrightBrowserDevice();
+
+        device.Open("edge", Address(), headless: true, profile: _profile);
+        Assert.Equal("empty", device.Text(At("#seen"), 5000).Trim());
+        device.Close();
+
+        // Opened on the same profile, the browser comes back to what the site remembers.
+        device.Open("edge", Address(), headless: true, profile: _profile);
+        Assert.Equal("here", device.Text(At("#seen"), 5000).Trim());
+        device.Close();
+
+        // Opened on none, it is a browser that remembers nothing, which is the default.
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+        Assert.Equal("empty", device.Text(At("#seen"), 5000).Trim());
+
+        // A name a folder cannot have is refused before anything is started.
+        var bad = Assert.Throws<DeviceActionException>(
+            () => device.Open("edge", Address(), headless: true, profile: "a/b"));
+        Assert.Equal("Run.BrowserBadProfile", bad.Key);
+    }
+
+    [RealBrowserFact]
     public void A_pick_offers_every_way_of_naming_the_element_the_steadies_first()
     {
         Site("<span class=wrap><button data-testid=save aria-label=\"Save changes\">Save</button></span>");
 
         using var device = new PlaywrightBrowserDevice();
-        device.Open("edge", Address(), headless: true);
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
 
         // A pick waits for a person to click something, so what a click would do is done for it:
         // the picker is armed, the ways it works out are asked for, and they are handed back over
@@ -169,7 +206,7 @@ public class BrowserTargetTests : IDisposable
             + "</script>");
 
         using var device = new PlaywrightBrowserDevice();
-        device.Open("edge", Address(), headless: true);
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
 
         var picking = Task.Run(() => device.Pick("pick something", 15000));
         var ways = Ways(device, "document.getElementById('host').shadowRoot.querySelector('button')");

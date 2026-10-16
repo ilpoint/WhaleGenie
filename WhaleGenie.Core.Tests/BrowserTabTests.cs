@@ -45,7 +45,7 @@ public class BrowserTabTests : IDisposable
         Site("thank-you", "<title>Thank you</title><p id=total>42.00</p>");
 
         using var device = new PlaywrightBrowserDevice();
-        device.Open("edge", Address("receipt"), headless: true);
+        device.Open("edge", Address("receipt"), headless: true, profile: string.Empty);
 
         device.Click(At("#pay"), 5000);
 
@@ -75,7 +75,7 @@ public class BrowserTabTests : IDisposable
         // was already on, which on a site whose pages look alike is wrong without looking wrong.
         using var device = new PlaywrightBrowserDevice();
         Site("receipt", "<title>Receipt</title>");
-        device.Open("edge", Address("receipt"), headless: true);
+        device.Open("edge", Address("receipt"), headless: true, profile: string.Empty);
 
         var missing = Assert.Throws<DeviceActionException>(
             () => device.SwitchTab(TabChoice.Index, 7, string.Empty));

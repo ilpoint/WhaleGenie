@@ -198,8 +198,13 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
     public string Url => _page?.Url ?? string.Empty;
 
-    public void Open(string browser, string url, bool headless)
+    public void Open(string browser, string url, bool headless, string profile)
     {
+        // The folder is worked out first, so a step that named a profile nobody can have fails
+        // before the browser it was using has been let go of.
+        var folder = profile.Trim();
+        var where = folder.Length == 0 ? string.Empty : ProfileFolder(browser, folder);
+
         // A macro that opens a second browser means to keep using it, so the one before it is
         // let go of rather than left running behind the new page.
         Close();
@@ -210,21 +215,62 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             var channel = Channel(browser);
             var launcher = Launcher(browser);
 
-            _browser = await launcher.LaunchAsync(new BrowserTypeLaunchOptions
+            // A profile is a browser of the person's own to come back to: the site it signed in to
+            // remembers them next time, which is what makes a macro that logs in once worth writing.
+            // With none, every run starts from nothing, which is what a macro that should leave
+            // somebody's own session alone wants.
+            if (where.Length > 0)
             {
-                Channel = channel.Length == 0 ? null : channel,
-                Headless = headless,
-            });
-            _context = await _browser.NewContextAsync();
+                Directory.CreateDirectory(where);
+                _context = await launcher.LaunchPersistentContextAsync(where,
+                    new BrowserTypeLaunchPersistentContextOptions
+                    {
+                        Channel = channel.Length == 0 ? null : channel,
+                        Headless = headless,
+                    });
+            }
+            else
+            {
+                _browser = await launcher.LaunchAsync(new BrowserTypeLaunchOptions
+                {
+                    Channel = channel.Length == 0 ? null : channel,
+                    Headless = headless,
+                });
+                _context = await _browser.NewContextAsync();
+            }
 
             _headless = headless;
 
-            _page = await _context.NewPageAsync();
+            // A browser opened on a profile comes up with the tab it was left on, which is the page
+            // the macro means to work on; the first run of all has none and is given one.
+            _page = _context.Pages.FirstOrDefault() ?? await _context.NewPageAsync();
             if (!string.IsNullOrWhiteSpace(url))
             {
                 await _page.GotoAsync(url);
             }
         });
+    }
+
+    /// <summary>
+    /// Where a profile is kept: beside the program, the way the packages a script asks for are, so
+    /// a copy carried about keeps its own sign-ins; a copy installed where it may not write keeps
+    /// them under the user's own folder instead.
+    /// </summary>
+    /// <remarks>
+    /// The engine is part of the path because two browsers cannot share one profile — each keeps
+    /// its own shape of it — so the same name means a separate browser under each.
+    /// </remarks>
+    private static string ProfileFolder(string browser, string profile)
+    {
+        if (profile is "." or ".."
+            || profile.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
+            || profile.EndsWith('.')
+            || profile.EndsWith(' '))
+        {
+            throw new DeviceActionException("Run.BrowserBadProfile", profile);
+        }
+
+        return Path.Combine(ScriptFolders.Browsers, browser.Trim().ToLowerInvariant(), profile);
     }
 
     public void GoTo(string url, int timeoutMs) => OnPage(async () =>
@@ -1025,8 +1071,8 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             }
             else if (_context is not null)
             {
-                // A context of the device's own is all there is to close: the browser behind it
-                // goes with it.
+                // A browser opened on a profile is the context: closing it is what closes the
+                // window, and the profile itself is left where it lies for the next run to find.
                 await _context.CloseAsync();
             }
         });

@@ -8341,7 +8341,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Equal("Hello from the page", store.Local.Values["answer"].AsText());
-        Assert.Contains("browserOpen edge https://example.com True", devices.Calls);
+        Assert.Contains("browserOpen edge https://example.com True (none)", devices.Calls);
         Assert.Contains("browserGoTo https://example.com/next 0", devices.Calls);
         Assert.Contains("browserClick #go #1 0", devices.Calls);
         Assert.Contains("browserFill #q #1 macro 0", devices.Calls);
@@ -8416,6 +8416,25 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Equal("#second", host.Entries.Single(entry => entry.Key == "Run.BrowserClicked").Arguments[0]);
+    }
+
+    [Fact]
+    public async Task A_browser_opened_on_a_profile_names_it()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("browser.open", Param("browser", "edge"), Param("url", "https://example.com"),
+                Param("profile", "work")),
+            Step("browser.open", Param("browser", "edge"), Param("url", "https://example.com")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+
+        // The name is handed over as it was written; no name at all is a browser that forgets,
+        // which is what a step that does not ask for a profile gets.
+        Assert.Contains("browserOpen edge https://example.com False work", devices.Calls);
+        Assert.Contains("browserOpen edge https://example.com False (none)", devices.Calls);
     }
 
     [Fact]
@@ -9219,9 +9238,9 @@ internal sealed class FakeDeviceLayer
 
     public string BrowserAddress { get; private set; } = string.Empty;
 
-    void IBrowserDevice.Open(string browser, string url, bool headless)
+    void IBrowserDevice.Open(string browser, string url, bool headless, string profile)
     {
-        Note($"browserOpen {browser} {url} {headless}");
+        Note($"browserOpen {browser} {url} {headless} {Profile(profile)}");
         BrowserOpen = true;
         BrowserAddress = url;
     }
@@ -9338,6 +9357,8 @@ internal sealed class FakeDeviceLayer
         => target.Selectors.Count == 0
             ? string.Empty
             : target.Selectors[Math.Min(Math.Max(BrowserChosen, 1), target.Selectors.Count) - 1];
+
+    private static string Profile(string profile) => profile.Length == 0 ? "(none)" : profile;
 
     void IBrowserDevice.Close()
     {

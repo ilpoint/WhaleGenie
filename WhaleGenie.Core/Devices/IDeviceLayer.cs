@@ -479,8 +479,13 @@ public interface IBrowserDevice
     /// </summary>
     bool IsOpen { get; }
 
-    /// <summary>Starts a browser and opens a page at this address.</summary>
-    void Open(string browser, string url, bool headless);
+    /// <summary>
+    /// Starts a browser and opens a page at this address, under the profile named when one is. A
+    /// profile is where the browser keeps what a site remembers about the person — the sign-in above
+    /// all — so a macro that logs in once goes on finding itself logged in; no profile is a browser
+    /// that forgets, which is what a macro that should not touch somebody's own session wants.
+    /// </summary>
+    void Open(string browser, string url, bool headless, string profile);
 
     /// <summary>
     /// Sends the page to this address, waiting for it to load no longer than the step's own clock
@@ -1062,7 +1067,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public bool IsOpen => throw Missing("a browser");
 
-        public void Open(string browser, string url, bool headless) => throw Missing("a browser");
+        public void Open(string browser, string url, bool headless, string profile)
+            => throw Missing("a browser");
 
         public void GoTo(string url, int timeoutMs) => throw Missing("a browser");
 
