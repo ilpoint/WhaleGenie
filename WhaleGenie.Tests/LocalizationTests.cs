@@ -27,12 +27,14 @@ public class LocalizationTests
         // The other way round is deliberate for the system variables, the expression functions and
         // the arguments they take: their English text sits next to the definition — in the variable
         // catalogue and in the function table of the engine — and only the Chinese translation lives
-        // in the table.
+        // in the table. The formula said in plain Chinese is the same: it is a reading of a formula
+        // for someone whose interface is Chinese, and an English interface has no line at all.
         Assert.Empty(chinese.Except(english)
             .Where(key => !key.StartsWith("Variable.", StringComparison.Ordinal)
                 && !key.StartsWith("Expr.Fn.", StringComparison.Ordinal)
                 && !key.StartsWith("Expr.Arg.", StringComparison.Ordinal)
-                && !key.StartsWith("Expr.FnName.", StringComparison.Ordinal))
+                && !key.StartsWith("Expr.FnName.", StringComparison.Ordinal)
+                && !key.StartsWith("Expr.Say.", StringComparison.Ordinal))
             .Order());
     }
 

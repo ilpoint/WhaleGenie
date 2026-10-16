@@ -158,6 +158,7 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsTextPage))]
     [NotifyPropertyChangedFor(nameof(CanConfirm))]
+    [NotifyPropertyChangedFor(nameof(ShowsSaying))]
     public partial bool IsTreePage { get; set; } = true;
 
     /// <summary>True while the page the formula is written out on is the one on show.</summary>
@@ -182,6 +183,18 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     /// <summary>The formula the tree comes to, written out, with a place marker for anything unfilled.</summary>
     [ObservableProperty]
     public partial string Preview { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The formula said in plain Chinese, with the heading in front of it: what a reader who does not
+    /// read formulas checks their own logic against before running anything. It is a Chinese reading
+    /// of a Chinese word list, so an English interface has no line here at all.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsSaying))]
+    public partial string Saying { get; set; } = string.Empty;
+
+    /// <summary>True while there is a sentence to read and the page it belongs to is the one on show.</summary>
+    public bool ShowsSaying => IsTreePage && Saying.Length > 0;
 
     /// <summary>What the line under the tree says: what is missing, or what the formula comes to.</summary>
     [ObservableProperty]
@@ -587,6 +600,14 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
         var holes = _root.Holes();
         _empty = _root is { Kind: ExpressionItemKind.Hole, Children.Count: 0 };
         _previewReads = !_empty && Language.TryParse(Preview, out _, out _);
+
+        // The sentence is said under the formula it was read from, and it is said about the tree
+        // rather than about what the tree writes out: a place still to fill has a way of being said,
+        // which is what makes the line worth having while a formula is being built.
+        Saying = ExpressionText.InChinese && !TextUnreadable && !_empty
+            ? Strings.Get("Expr.Say.Header")
+                + ExpressionPhrase.Say(node, VariableCatalog.Spoken)
+            : string.Empty;
 
         if (TextUnreadable)
         {

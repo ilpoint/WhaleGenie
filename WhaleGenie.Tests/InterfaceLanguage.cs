@@ -12,7 +12,12 @@ namespace WhaleGenie.Tests;
 /// </summary>
 internal static class InterfaceLanguage
 {
-    public static void InChinese(Action check)
+    public static void InChinese(Action check) => In(Language.Chinese, check);
+
+    /// <summary>The same, the other way round, for what the interface leaves out in English.</summary>
+    public static void InEnglish(Action check) => In(Language.English, check);
+
+    private static void In(Language language, Action check)
     {
         var folder = Path.Combine(Path.GetTempPath(),
             "whalegenie-language-" + Guid.NewGuid().ToString("N"));
@@ -22,7 +27,7 @@ internal static class InterfaceLanguage
         {
             Directory.CreateDirectory(folder);
             LocalSettings.FilePath = Path.Combine(folder, "settings.json");
-            Strings.Current.Language = Language.Chinese;
+            Strings.Current.Language = language;
             check();
         }
         finally

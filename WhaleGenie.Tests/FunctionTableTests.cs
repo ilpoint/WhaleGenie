@@ -135,6 +135,57 @@ public class FunctionTableTests
         Assert.Empty(held.Except(wanted).Order());
     }
 
+    /// <summary>
+    /// Every function also carries a sentence saying what calling it does in plain Chinese, which is
+    /// the line the structure page shows under a formula. The places that sentence names have to be
+    /// places the function has, or it would read out an argument a call cannot take: what is held
+    /// under a function has to be wanted, and a sentence for a function that is gone may not sit in
+    /// the table forever. The sentences that belong to the formula rather than to a function — the
+    /// heading, a place still to fill, a list, and the words for true, false and nothing — are the
+    /// ones named here by hand.
+    /// </summary>
+    [Fact]
+    public void Every_function_says_what_it_does_in_plain_chinese()
+    {
+        string[] of_the_formula =
+        [
+            "Expr.Say.Header", "Expr.Say.Hole", "Expr.Say.List",
+            "Expr.Say.Value.True", "Expr.Say.Value.False", "Expr.Say.Value.Null",
+        ];
+        var wanted = Expression.Functions
+            .Select(function => $"Expr.Say.{function.Name}")
+            .ToHashSet(StringComparer.Ordinal);
+        var held = Strings.Chinese.Keys
+            .Where(key => key.StartsWith("Expr.Say.", StringComparison.Ordinal)
+                && !key.StartsWith("Expr.Say.Op.", StringComparison.Ordinal)
+                && !of_the_formula.Contains(key, StringComparer.Ordinal))
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Empty(wanted.Except(held).Order());
+        Assert.Empty(held.Except(wanted).Order());
+
+        var wrong = new List<string>();
+        foreach (var function in Expression.Functions)
+        {
+            var sentence = Strings.Chinese[$"Expr.Say.{function.Name}"];
+            foreach (Match slot in Regex.Matches(sentence, @"\{([0-9]+)\}"))
+            {
+                if (int.TryParse(slot.Groups[1].Value, out var at) && at >= function.Parameters.Count)
+                {
+                    wrong.Add($"{function.Name} says what argument {at} does");
+                }
+            }
+
+            if (sentence.Contains("{...}", StringComparison.Ordinal)
+                && function.MaxArguments <= function.Parameters.Count)
+            {
+                wrong.Add($"{function.Name} says it takes more arguments than it does");
+            }
+        }
+
+        Assert.Empty(wrong.Order());
+    }
+
     /// <summary>The function names the manual's table spells out.</summary>
     private static List<string> ManualNames()
         => [.. Rows().Select(row => row.Groups[1].Value)];

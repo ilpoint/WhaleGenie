@@ -303,6 +303,10 @@
                                IsVisible="{Binding IsTreePage}" />
                     <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="#E8E8E8"
                                Text="{Binding Preview}" IsVisible="{Binding IsTreePage}" />
+                    <!-- The formula said in plain Chinese, right under the formula it was read from:
+                         a reader who does not follow the formula can still check the logic against it. -->
+                    <TextBlock Name="SayingLine" Classes="Muted" TextWrapping="Wrap" Foreground="#8FA8D8"
+                               Text="{Binding Saying}" IsVisible="{Binding ShowsSaying}" />
                     <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding TreeMessage}"
                                IsVisible="{Binding ShowTreeNote}" />
                     <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="#E06C75"

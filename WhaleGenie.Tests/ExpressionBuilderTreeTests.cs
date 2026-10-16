@@ -202,6 +202,107 @@ public class ExpressionBuilderTreeTests
     }
 
     /// <summary>
+    /// Under the formula the structure page says what the formula is doing in plain Chinese, which is
+    /// the line somebody who does not follow a formula checks their own logic against before running
+    /// anything. It is said about the tree rather than about the text written out, so a place still to
+    /// fill in has a way of being said and the sentence grows along with the formula.
+    /// </summary>
+    [Fact]
+    public void The_structure_page_says_what_the_formula_is_doing_in_plain_chinese()
+    {
+        Ui.Run(() => InterfaceLanguage.InChinese(() =>
+        {
+            var header = Strings.Get("Expr.Say.Header");
+            var builder = Builder(string.Empty, "count");
+
+            // Nothing written is nothing to read out, and neither is a place to fill in on its own.
+            Assert.Equal(string.Empty, builder.Saying);
+            Assert.False(builder.ShowsSaying);
+
+            builder.ChooseVariable("count");
+            builder.ChooseOperator(Operator(builder, "+"));
+            Assert.Equal(header + "count加上待填", builder.Saying);
+            Assert.True(builder.ShowsSaying);
+
+            builder.Rows[2].Literal = "1";
+            Assert.Equal(header + "count加上1", builder.Saying);
+
+            // A variable WhaleGenie provides is said by its Chinese name, which is what a reader who
+            // has never met $sys.clipboard recognises.
+            Assert.Equal(header + "剪贴板", Builder("$sys.clipboard").Saying);
+        }));
+    }
+
+    /// <summary>
+    /// The sentence belongs to the page the formula is read on: the page that writes it out by hand
+    /// has the formula itself, and a reading of one that does not read is a reading of nothing.
+    /// </summary>
+    [Fact]
+    public void The_sentence_is_shown_on_the_structure_page_and_nowhere_it_has_nothing_to_say()
+    {
+        Ui.Run(() => InterfaceLanguage.InChinese(() =>
+        {
+            var builder = Builder("$count + 1", "count");
+            Assert.True(builder.ShowsSaying);
+
+            builder.ShowTextCommand.Execute(null);
+            Assert.False(builder.ShowsSaying);
+
+            builder.ShowTreeCommand.Execute(null);
+            Assert.True(builder.ShowsSaying);
+
+            var unreadable = Builder("1 +");
+            Assert.Equal(string.Empty, unreadable.Saying);
+            Assert.False(unreadable.ShowsSaying);
+            unreadable.ShowTreeCommand.Execute(null);
+            Assert.Equal(string.Empty, unreadable.Saying);
+        }));
+    }
+
+    /// <summary>
+    /// The sentence is written in Chinese and there is no English one to write, so an English
+    /// interface leaves the line out rather than showing a key or a half-read sentence.
+    /// </summary>
+    [Fact]
+    public void An_english_interface_has_no_sentence_to_read()
+    {
+        Ui.Run(() => InterfaceLanguage.InEnglish(() =>
+        {
+            var builder = Builder("$count + 1", "count");
+
+            Assert.Equal(string.Empty, builder.Saying);
+            Assert.False(builder.ShowsSaying);
+        }));
+    }
+
+    /// <summary>
+    /// The sentence is really on the page rather than only in the view model: a binding that names
+    /// nothing is a line that quietly never shows, and nobody would report a line that is missing.
+    /// </summary>
+    [Fact]
+    public void The_window_shows_the_sentence_under_the_formula()
+    {
+        Ui.Run(() => InterfaceLanguage.InChinese(() =>
+        {
+            var builder = Builder("$count + 1", "count");
+            var window = new ExpressionBuilderWindow(builder);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var line = window.FindControl<TextBlock>("SayingLine");
+            Assert.NotNull(line);
+            Assert.True(line!.IsVisible);
+            Assert.Equal(builder.Saying, line.Text);
+            Assert.Contains("count加上1", line.Text!, StringComparison.Ordinal);
+
+            // And it has room to be read: a line that is on the page but has been squeezed down to
+            // nothing is a line nobody sees.
+            Assert.True(line.Bounds.Width > 0);
+            Assert.True(line.Bounds.Height > 0);
+        }));
+    }
+
+    /// <summary>
     /// The lines under a function are the places it has, and each says in brackets what goes in it:
     /// a reader who does not know what <c>start</c> means still knows where 起始位置 goes, and the
     /// unnamed piece of code is one hover away for whoever does want it.

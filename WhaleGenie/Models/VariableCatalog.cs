@@ -82,6 +82,15 @@ public static class VariableCatalog
         return Label(name) is { Length: > 0 } chinese ? $"{chinese} ({written})" : written;
     }
 
+    /// <summary>
+    /// What a variable is called inside a sentence: the Chinese name where it has one and the name
+    /// its author gave it otherwise. Nothing goes beside it here — a sentence reads 取【剪贴板】里的
+    /// 【第1项】 — because the name the code calls it by is already on the line above, which is where
+    /// the formula itself is written.
+    /// </summary>
+    public static string Spoken(string name)
+        => Label(name) is { Length: > 0 } chinese ? chinese : name;
+
     /// <summary>Shared variables, managed from the Variable Center.</summary>
     public static ObservableCollection<VariableDefinition> Globals { get; } = [];
 
