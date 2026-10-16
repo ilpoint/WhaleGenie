@@ -40,6 +40,42 @@
 
 ## 阶段表
 
+### 浏览器：把表达不出来的动作补齐
+
+**现状**　上一段把"页面上认哪个元素"做扎实了（选择器退路、第几个命中、拾取器出候选、超时按步骤走、登录档案）。
+浏览器能做的动作仍然只有十四个，且都停在"点一下、填一段、读一段"上：页面里**读**只读得回一段文字，一次读一列、
+读一张网页表格、读地址与标题都做不到；**判断与等待**只有"等某个元素到某个状态"；**交互**缺双击与右键（点击只
+有左键单击）、缺逐键输入、缺滚动、缺回答页面弹出的对话框、缺下载文件；页面里**跑一段 JS** 也没有。这些是"用户
+表达不出来"的那一类：页面上要读的东西拿不回来，宏就只能在旁边干看。
+
+**改成什么**　一次收齐，按族分提交，凡是设备已经做得到的能力都开成动作：
+
+1. **读取**：`browser.readAll`（读一列：`target`、`matchIndex`、`what`（文本 / 值 / 属性）、`attribute`、
+   `maxItems` 默认 100、范围 1..10000，交出 `items` 列表）；`browser.readTable`（读网页表格：`target` 默认
+   `table`、`matchIndex`、`maxRows` 默认 100、范围 1..10000，交出 `table`——一行一条记录、键是表头，没有表头
+   就用 A、B、C，与 `uia.readTable` 同形状）；`browser.readPage`（没有字段，交出 `url` 与 `title`）；
+   `browser.readText` 加 `what`（文本 / 值 / 属性）与 `attribute`（返回值不变）。
+2. **判断与等待**：`condition.browserExists` / `condition.browserNotExists`（`target`、`matchIndex`、
+   `state`：看得见 / 看不见 / 在页面上 / 不在页面上）；`browser.waitForUrl`（`match`，比文字那五档）；
+   `browser.waitForLoad`（`state`：文档就绪 / 加载完成 / 网络空闲）。
+3. **交互**：`browser.click` 加 `how`（左键单击 / 左键双击 / 右键单击）与 `force`（高级页，默认关）；
+   `browser.fill` 加 `how`（直接填写 / 逐键输入）与 `intervalMs`（逐键间隔，默认 0）；新增 `browser.scroll`
+   （`target` 可留空、`how`：滚到元素 / 往下滚一屏 / 到页面底部 / 到页面顶部）、`browser.dialog`（`how`：接受 /
+   取消，`text` 是 prompt 要输入的文字、可留空，交出 `message`，到超时没弹报 `Run.Timeout`）、
+   `browser.download`（`target` 可留空＝等下一个下载、`folder` 默认宏文件所在夹，交出 `path` 与 `name`）。
+4. **页面里跑 JS**：`browser.evaluate`（`script` 是多行函数体，`return` 交回，`result` 按 JSON 转成文本）。
+5. **设备一侧**：context 打开下载（`AcceptDownloads`）；页面脚本另起一份 `BrowserPageScript`（读表格、滚屏、
+   对话框、下载前的等待都放在设备里，界面与引擎里不出现第三方名字）；新失败键两侧文案一起加。
+6. 收尾时把 `AGENTS.md`「现有能力」的数字与概览改成新的（现在是 148 个可执行动作 + 21 个条件）。
+
+**怎么验收**　真浏览器用例（`RealBrowserFact`，headless Edge，临时页面）：读一列读回三项、读表格能按表头取一列、
+读页面给出地址与标题；浏览器条件在元素出现前后各判一次；等网址与等加载各等到一次；双击与右键各自触发页面记下的
+那一种事件、逐键输入发得出每个键、滚动把元素带进视野、对话框按文本回答、下载落到指定的文件夹；页面里跑 JS 算一个
+式子并把结果按 JSON 交回。引擎用例：每个新动作的字段与返回值各一条（`DeviceActionTests` 的双设备层）。界面用例：
+新字段落在该落的页（`ActionPageTests`）、返回值一项一行（`ReturnsPageTests`）、中英两侧文案齐全
+（`LocalizationTests`）。手动：在真页面上读一张带表头的表格、点开一次右键菜单、下载一个文件并确认它落在宏文件
+旁边。收尾三项全绿（`dotnet build` / `dotnet test` / `dotnet format --verify-no-changes`）。
+
 ## 零散项
 
 可与任何阶段并行；现在没有排着的。
