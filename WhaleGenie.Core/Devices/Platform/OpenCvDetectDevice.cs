@@ -240,8 +240,9 @@ internal static class YoloDetect
 
     /// <summary>
     /// How one region was fitted into the square: the size of the square, how much the region was
-    /// scaled to fit it, and the band put on the right and the bottom so that the region keeps its
-    /// shape instead of being stretched.
+    /// scaled to fit it, and the band of grey left on each side so that the region keeps its shape
+    /// instead of being stretched. The band is halved, one half each side, so the region sits in the
+    /// middle of the square — which is where a box is put back from, so the two have to agree.
     /// </summary>
     internal readonly record struct Fit(int Input, double Scale, int PadX, int PadY);
 
@@ -255,15 +256,20 @@ internal static class YoloDetect
         return new Fit(size, scale, (size - across) / 2, (size - down) / 2);
     }
 
-    /// <summary>The region scaled into the model's square, with what is left over filled with grey.</summary>
+    /// <summary>
+    /// The region scaled into the middle of the model's square, with what is left over filled with
+    /// grey. The grey is the number YOLO's own converters pad with, split the same way they split it.
+    /// </summary>
     internal static Mat Padded(Mat region, Fit fit)
     {
         var square = new Mat(fit.Input, fit.Input, MatType.CV_8UC3, new Scalar(Grey, Grey, Grey));
         var across = Math.Min(fit.Input, Math.Max(1, (int)Math.Round(region.Width * fit.Scale)));
         var down = Math.Min(fit.Input, Math.Max(1, (int)Math.Round(region.Height * fit.Scale)));
 
-        using var corner = new Mat(square, new Rect(0, 0, across, down));
-        Cv2.Resize(region, corner, corner.Size(), 0, 0, InterpolationFlags.Linear);
+        // The half band is taken off again when a box is put back, so it has to be left on both sides
+        // rather than all of it on the right and the bottom.
+        using var middle = new Mat(square, new Rect(fit.PadX, fit.PadY, across, down));
+        Cv2.Resize(region, middle, middle.Size(), 0, 0, InterpolationFlags.Linear);
         return square;
     }
 

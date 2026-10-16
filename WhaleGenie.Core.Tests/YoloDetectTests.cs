@@ -75,6 +75,38 @@ public class YoloDetectTests
     }
 
     [Fact]
+    public void The_picture_lands_in_the_square_where_the_box_arithmetic_counts_from()
+    {
+        // 800×600 进 640 的方形：横着填满，竖着上下各留 80 行灰。把框放回区域时减掉的正是这 80 行，
+        // 所以画面必须真的落在第 80 行上；贴着上边放、却按中间算，框会整块往上偏 80 个模型像素
+        // （2560×1440 的整屏上就是 560 个屏幕像素，东西认出来了也框在别处）。
+        var wide = YoloDetect.Fitted(800, 600, 640);
+        using (var region = new Mat(600, 800, MatType.CV_8UC3, new Scalar(7, 9, 11)))
+        using (var square = YoloDetect.Padded(region, wide))
+        {
+            Assert.Equal(114, square.At<Vec3b>(wide.PadY - 2, 300).Item0);
+            Assert.Equal(7, square.At<Vec3b>(wide.PadY + 2, 300).Item0);
+            Assert.Equal(7, square.At<Vec3b>(wide.Input - wide.PadY - 3, 300).Item0);
+            Assert.Equal(114, square.At<Vec3b>(wide.Input - wide.PadY + 2, 300).Item0);
+
+            // 宽的那两边顶到边：0.8 倍缩放下来正好填满，一行灰都不该有。
+            Assert.Equal(7, square.At<Vec3b>(300, 2).Item0);
+            Assert.Equal(7, square.At<Vec3b>(300, wide.Input - 3).Item0);
+        }
+
+        // 竖着的反过来：左右各留 80 列。
+        var tall = YoloDetect.Fitted(600, 800, 640);
+        using (var region = new Mat(800, 600, MatType.CV_8UC3, new Scalar(7, 9, 11)))
+        using (var square = YoloDetect.Padded(region, tall))
+        {
+            Assert.Equal(114, square.At<Vec3b>(300, tall.PadX - 2).Item0);
+            Assert.Equal(7, square.At<Vec3b>(300, tall.PadX + 2).Item0);
+            Assert.Equal(7, square.At<Vec3b>(300, tall.Input - tall.PadX - 3).Item0);
+            Assert.Equal(114, square.At<Vec3b>(300, tall.Input - tall.PadX + 2).Item0);
+        }
+    }
+
+    [Fact]
     public void A_box_is_put_back_where_it_was_in_the_region()
     {
         // The region is 800x600 in a 640 square: everything the model says is 0.8 of a screen pixel
