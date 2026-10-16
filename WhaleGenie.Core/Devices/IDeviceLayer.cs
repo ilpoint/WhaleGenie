@@ -598,6 +598,37 @@ public interface IBrowserDevice
     DownloadResult Download(PageTarget? target, string folder, int timeoutMs);
 
     /// <summary>
+    /// Answers the next dialog the page puts up: accepted or dismissed, with writing of the step's
+    /// own when the dialog is the kind that asks for some.
+    /// </summary>
+    /// <remarks>
+    /// It is armed before the steps that make the dialog appear rather than called after them,
+    /// because a dialog nobody has answered yet stops the step that raised it: in every browser the
+    /// click that opens one does not come back until somebody says yes or no, so a step that clicks
+    /// and a step that answers afterwards cannot both run. Only the first dialog of a block is
+    /// answered this way; the ones after it are dismissed, which is what a browser does with nobody
+    /// listening at all.
+    /// </remarks>
+    void ArmDialog(bool accept, string text);
+
+    /// <summary>
+    /// What the dialog a block answered said, and lets go of the armed answer.
+    /// <see langword="null"/> when no dialog turned up, which is a step that did not do what it says.
+    /// </summary>
+    string? TakeDialog();
+
+    /// <summary>
+    /// Runs a script inside the page and answers with what it returned, written as JSON.
+    /// </summary>
+    /// <remarks>
+    /// This is the way round to whatever no action of the catalogue covers — reading a page's own
+    /// state, working something out from what it shows — at the price of the macro depending on the
+    /// page's own script. Written as JSON rather than as text, a record or a list the script hands
+    /// back keeps its shape and is read with <c>field()</c> the way any other record is.
+    /// </remarks>
+    string Evaluate(string script, int timeoutMs);
+
+    /// <summary>
     /// Moves to another tab of the browser that is open, which is how a macro follows a click that
     /// opened one: the site hands the interesting page to a new tab, and the macro would otherwise
     /// go on aiming its steps at the tab it was already on — where the same site often has an
@@ -1292,6 +1323,12 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public DownloadResult Download(PageTarget? target, string folder, int timeoutMs)
             => throw Missing("a browser");
+
+        public void ArmDialog(bool accept, string text) => throw Missing("a browser");
+
+        public string? TakeDialog() => throw Missing("a browser");
+
+        public string Evaluate(string script, int timeoutMs) => throw Missing("a browser");
 
         public void SwitchTab(TabChoice choice, int index, string match) => throw Missing("a browser");
 

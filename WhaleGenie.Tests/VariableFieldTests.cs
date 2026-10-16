@@ -352,10 +352,11 @@ public class VariableFieldTests
     {
         // A name of something else: a variable of the machine's own environment, the names a step
         // writes into a file rather than reads, and the placeholders inside a script, which belong
-        // to the other language: a value gets into a script the way that language says, not by a
-        // list of names standing over the box it was written in.
+        // to the other language: a value gets into a script the way that language says, or by a
+        // placeholder written into the script itself, rather than by a list of names standing over
+        // the box it was written in. A page's own script is the same kind of box.
         string[] otherNames = ["file.saveVariables.names", "system.environment.name",
-            "script.run.script", "script.ahk.script"];
+            "script.run.script", "script.ahk.script", "browser.evaluate.script"];
 
         // A box of several lines: a list of names standing over one would be in the way, so these
         // are written by hand. The first fills a `$name` in, and the second is shown exactly as it

@@ -1630,6 +1630,13 @@ public sealed class MacroRunner
                 BrowserDownload(step, depth);
                 return Signal.Normal;
 
+            case "browser.dialog":
+                return await RunDialog(step, depth, token);
+
+            case "browser.evaluate":
+                BrowserEvaluate(step, depth);
+                return Signal.Normal;
+
             case "browser.upload":
                 BrowserUpload(step, depth);
                 return Signal.Normal;
@@ -8002,6 +8009,67 @@ public sealed class MacroRunner
         Give(step, "path", Value.FromText(saved.Path));
         Give(step, "name", Value.FromText(saved.Name));
         Log(LogLevel.Info, depth, step.Type, "Run.BrowserDownloaded", saved.Path);
+    }
+
+    /// <summary>
+    /// Answers the next dialog the page puts up, and runs the steps that make it appear.
+    /// </summary>
+    /// <remarks>
+    /// It is a block because a dialog that nobody has answered stops the page: the click that raised
+    /// it does not come back until somebody says yes or no, so a step that clicks and a step that
+    /// answers afterwards cannot both run — the first one is still waiting when the second would
+    /// start. The answer is therefore armed before the body runs, and the body holds the steps that
+    /// trigger the dialog.
+    /// </remarks>
+    private async Task<Signal> RunDialog(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var accept = !string.Equals(step.Text("how").Trim(), "dismiss",
+            StringComparison.OrdinalIgnoreCase);
+        _devices.Browser.ArmDialog(accept, Read(step.Text("text")).AsText());
+
+        Signal signal;
+        try
+        {
+            signal = await RunSteps(step.Children("body"), depth + 1, token);
+        }
+        catch
+        {
+            // A body that was stopped rather than failed still has to leave the browser unarmed: the
+            // answer that was armed belongs to this step and to no other.
+            _devices.Browser.TakeDialog();
+            throw;
+        }
+
+        // A box whose steps never raised a dialog is a step that did not do what it says, rather
+        // than one that worked and handed nothing over: the answer that was armed is taken back
+        // either way, so a dialog put up by a later step is not answered with this one's answer.
+        var message = _devices.Browser.TakeDialog();
+        if (message is null)
+        {
+            throw new StepFailure("Run.BrowserNoDialog");
+        }
+
+        Give(step, "message", Value.FromText(message));
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserAnswered", message);
+        return signal;
+    }
+
+    /// <summary>
+    /// Runs a script of the step's own inside the page, which is the way round whatever no action of
+    /// the catalogue covers. What it returns comes back written as JSON, so a record or a list the
+    /// script hands over keeps its shape and is read the way any other one is.
+    /// </summary>
+    private void BrowserEvaluate(ExecutableStep step, int depth)
+    {
+        var script = Template(step.Text("script")).Trim();
+        if (script.Length == 0)
+        {
+            throw new StepFailure("Run.BrowserNoScript");
+        }
+
+        var result = _devices.Browser.Evaluate(script, step.Meta.TimeoutMs);
+        Give(step, "result", Value.FromText(result));
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserEvaluated", result.Length);
     }
 
     /// <summary>

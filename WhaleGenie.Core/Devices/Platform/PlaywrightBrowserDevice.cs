@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Microsoft.Playwright;
 
@@ -153,6 +154,26 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// </remarks>
     private readonly HashSet<IDownload> _taken = new(ReferenceEqualityComparer.Instance);
 
+    /// <summary>Everything the dialog listener and the steps that arm and take answers share.</summary>
+    /// <remarks>
+    /// A dialog arrives on the driver's own reader while the step that armed the answer, and the one
+    /// that takes what it said, are on other threads: one lock rather than four pieces of state that
+    /// could be read half-written.
+    /// </remarks>
+    private readonly object _dialogs = new();
+
+    /// <summary>Whether the next dialog coming up is being answered by the running step.</summary>
+    private bool _dialogArmed;
+
+    /// <summary>Whether that answer accepts the dialog rather than dismissing it.</summary>
+    private bool _dialogAccepted;
+
+    /// <summary>What to type into a dialog that asks for some, while one is armed.</summary>
+    private string _dialogText = string.Empty;
+
+    /// <summary>What the answered dialog said, until the step that armed the answer takes it.</summary>
+    private string? _dialogMessage;
+
     /// <summary>Whether the browser was opened without a window.</summary>
     private bool _headless;
 
@@ -288,6 +309,18 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             {
                 Catch(download);
             };
+
+            // A dialog stops the page where it stands until somebody answers it, so the listener is
+            // put on every tab and left there: with nothing armed it dismisses, which is what the
+            // driver does with no listener at all, and it is what the step that answers a dialog
+            // arms before running the steps that make one appear. Tabs opened later are its own
+            // business, since a page that puts up a dialog usually opens it where the macro is.
+            foreach (var tab in _context.Pages)
+            {
+                Listen(tab);
+            }
+
+            _context.Page += (_, tab) => Listen(tab);
 
             _headless = headless;
 
@@ -730,6 +763,112 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         ScrollWay.Bottom => BrowserPageScript.Bottom,
         ScrollWay.Top => BrowserPageScript.Top,
         _ => BrowserPageScript.Screen,
+    };
+
+    public void ArmDialog(bool accept, string text)
+    {
+        lock (_dialogs)
+        {
+            _dialogAccepted = accept;
+            _dialogText = text;
+            _dialogMessage = null;
+            _dialogArmed = true;
+        }
+    }
+
+    public string? TakeDialog()
+    {
+        lock (_dialogs)
+        {
+            _dialogArmed = false;
+            _dialogText = string.Empty;
+            var message = _dialogMessage;
+            _dialogMessage = null;
+            return message;
+        }
+    }
+
+    /// <summary>Puts the listener that answers dialogs on one tab of the browser.</summary>
+    private void Listen(IPage tab) => tab.Dialog += (_, dialog) => Answered(dialog);
+
+    /// <summary>
+    /// Answers a dialog the page put up, the way the running step asked for.
+    /// </summary>
+    /// <remarks>
+    /// The answer is sent from another thread rather than from here: this runs on the driver's own
+    /// reader, and a command sent from there would be waiting for an answer that only that reader
+    /// can deliver. With nothing armed the dialog is dismissed, which is what the driver does when
+    /// nobody is listening at all, so a step that never mentions dialogs behaves as it always did.
+    /// </remarks>
+    private void Answered(IDialog dialog)
+    {
+        var accept = false;
+        var text = string.Empty;
+        lock (_dialogs)
+        {
+            if (_dialogArmed)
+            {
+                accept = _dialogAccepted;
+                text = _dialogText;
+                _dialogMessage = dialog.Message;
+                _dialogArmed = false;
+            }
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                if (accept)
+                {
+                    await dialog.AcceptAsync(text.Length > 0 ? text : null);
+                }
+                else
+                {
+                    await dialog.DismissAsync();
+                }
+            }
+            catch (PlaywrightException)
+            {
+                // The dialog was answered or taken away by somebody else in the meantime, which is
+                // nothing this side has to report.
+            }
+        });
+    }
+
+    /// <summary>
+    /// Runs a script of the step's own inside the page and answers with what it returned as JSON.
+    /// </summary>
+    public string Evaluate(string script, int timeoutMs) => OnPage(async () =>
+    {
+        var page = Page();
+        page.SetDefaultTimeout(Patience(timeoutMs));
+        var result = await page.EvaluateAsync<JsonElement?>(script);
+        return Json(result);
+    });
+
+    /// <summary>
+    /// One JSON value written out the way a person would have written it.
+    /// </summary>
+    /// <remarks>
+    /// What a page answers with arrives with everything outside plain ASCII escaped, so writing it
+    /// out as it came would leave a macro reading \u62A5\u544A where the page said 报告. It is
+    /// written again here, which for everything else in JSON is the same text either way.
+    /// </remarks>
+    private static string Json(JsonElement? value)
+    {
+        if (value is not { } written || written.ValueKind == JsonValueKind.Undefined)
+        {
+            return string.Empty;
+        }
+
+        return JsonSerializer.Serialize(written, ReadableJson);
+    }
+
+    /// <summary>How JSON handed to a macro is written out: as it reads, rather than escaped.</summary>
+    private static readonly JsonSerializerOptions ReadableJson = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
     /// <summary>
@@ -1571,7 +1710,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// the page the way the picker's own scripts do: a pick needs a person to click something, and
     /// what a pick then makes of the click is worth checking without one.
     /// </summary>
-    internal string Evaluate(string script, object? argument = null)
+    internal string InPage(string script, object? argument = null)
         => Wait(async () => await Page().EvaluateAsync<string>(script, argument)) ?? string.Empty;
 
     /// <summary>

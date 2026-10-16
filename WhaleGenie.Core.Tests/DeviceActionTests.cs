@@ -8522,6 +8522,89 @@ public class DeviceActionTests
     }
 
     /// <summary>
+    /// A dialog is answered around the steps that raise it, because a page stops where it stands
+    /// until somebody answers: the click that opened the box does not come back until it is answered,
+    /// so clicking in one step and answering in the next cannot be written at all.
+    /// </summary>
+    [Fact]
+    public async Task A_dialog_is_answered_around_the_steps_that_raise_it()
+    {
+        var devices = new FakeDeviceLayer { BrowserDialog = "确定要提交吗？" };
+        var (result, _, store) = await RunAsync(
+        [
+            Step("browser.dialog", Param("how", "accept"), Param("text", "报告.csv"),
+                Body("body", Step("browser.click", Param("target", "#submit"))),
+                Returns("message=回答")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+
+        // The answer is armed before the body runs, and what the box said is handed over after it.
+        Assert.Equal(
+            ["browserArmDialog True 报告.csv", "browserClick #submit #1 Single False 0"],
+            devices.Calls);
+        Assert.Equal("确定要提交吗？", store.Local.Values["回答"].AsText());
+    }
+
+    /// <summary>
+    /// A box whose steps never raised a dialog is a step that did not do what it says: a macro that
+    /// means to answer something and never gets asked is worth hearing about.
+    /// </summary>
+    [Fact]
+    public async Task A_dialog_that_never_came_up_is_a_step_that_did_not_work()
+    {
+        var devices = new FakeDeviceLayer { BrowserDialog = null };
+        var (result, _, _) = await RunAsync(
+        [
+            Step("browser.dialog",
+                Body("body", Step("browser.click", Param("target", "#submit")))),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BrowserNoDialog", result.Key);
+    }
+
+    /// <summary>
+    /// A script of the step's own is the way round whatever the catalogue does not cover, and what it
+    /// returns is what the step hands over.
+    /// </summary>
+    [Fact]
+    public async Task A_script_of_the_steps_own_runs_in_the_page_and_hands_back_what_it_returned()
+    {
+        var devices = new FakeDeviceLayer { BrowserScriptResult = """{"rows":3}""" };
+        var (result, _, store) = await RunAsync(
+        [
+            Within(2500, Step("browser.evaluate",
+                Param("script", "() => { return document.querySelectorAll('a').length; }"),
+                Returns("result=数量"))),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(
+            "browserEvaluate () => { return document.querySelectorAll('a').length; } 2500",
+            devices.Calls);
+        Assert.Equal("""{"rows":3}""", store.Local.Values["数量"].AsText());
+    }
+
+    /// <summary>
+    /// A step with no script at all is a mistake in the step rather than a page that did nothing.
+    /// </summary>
+    [Fact]
+    public async Task A_page_script_with_nothing_written_is_refused()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("browser.evaluate", Param("script", "   ")),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BrowserNoScript", result.Key);
+        Assert.DoesNotContain(devices.Calls,
+            call => call.StartsWith("browserEvaluate", StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// How a step clicks and how it fills an element in are its own answers: a page's own menu opens
     /// on the right button, and a page that watches the typing itself has to be typed at rather than
     /// written into.
@@ -9670,6 +9753,23 @@ internal sealed class FakeDeviceLayer
 
     void IBrowserDevice.WaitForLoad(PageLoad state, int timeoutMs)
         => Note($"browserWaitForLoad {state} {timeoutMs}");
+
+    /// <summary>What the next dialog the page puts up says, as though one had appeared.</summary>
+    public string? BrowserDialog { get; set; } = "确定要提交吗？";
+
+    void IBrowserDevice.ArmDialog(bool accept, string text)
+        => Note($"browserArmDialog {accept} {Part(text)}");
+
+    string? IBrowserDevice.TakeDialog() => BrowserDialog;
+
+    /// <summary>What a script of the step's own answers with, as though the page had run it.</summary>
+    public string BrowserScriptResult { get; set; } = "true";
+
+    string IBrowserDevice.Evaluate(string script, int timeoutMs)
+    {
+        Note($"browserEvaluate {script} {timeoutMs}");
+        return BrowserScriptResult;
+    }
 
     /// <summary>An attribute name as it reads in a note; nothing written is nothing asked for.</summary>
     private static string Part(string attribute)

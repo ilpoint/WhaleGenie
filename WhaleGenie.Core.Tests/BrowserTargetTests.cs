@@ -171,7 +171,7 @@ public class BrowserTargetTests : IDisposable
         var picking = Task.Run(() => device.Pick("pick something", 15000));
         var ways = Ways(device, "document.querySelector('button')");
         Assert.NotEmpty(ways);
-        device.Evaluate("(ways) => window.__whalegeniePicked(ways)", ways);
+        device.InPage("(ways) => window.__whalegeniePicked(ways)", ways);
 
         var picked = picking.GetAwaiter().GetResult();
 
@@ -211,7 +211,7 @@ public class BrowserTargetTests : IDisposable
         var picking = Task.Run(() => device.Pick("pick something", 15000));
         var ways = Ways(device, "document.getElementById('host').shadowRoot.querySelector('button')");
         Assert.NotEmpty(ways);
-        device.Evaluate("(ways) => window.__whalegeniePicked(ways)", ways);
+        device.InPage("(ways) => window.__whalegeniePicked(ways)", ways);
 
         var picked = picking.GetAwaiter().GetResult();
 
@@ -238,18 +238,18 @@ public class BrowserTargetTests : IDisposable
         // The words beside the box are how a person names a field, and they are asked of the page
         // rather than read as a selector: nothing about the markup has to line up with them.
         device.Fill(PageTarget.Of("label=用户名", 1), "报告", FillWay.Fill, 0, 5000);
-        Assert.Equal("报告", device.Evaluate("() => document.getElementById('user').value"));
+        Assert.Equal("报告", device.InPage("() => document.getElementById('user').value"));
 
         // The words match anywhere in the name with case and spacing set aside, which is what the
         // question Playwright asks means when no exactness is asked for.
         Assert.Equal(1, device.Matches("label=用户"));
         device.Fill(PageTarget.Of("label=用户", 1), "再填一次", FillWay.Fill, 0, 5000);
-        Assert.Equal("再填一次", device.Evaluate("() => document.getElementById('user').value"));
+        Assert.Equal("再填一次", device.InPage("() => document.getElementById('user').value"));
 
         // The grey hint inside a box names it too, and a name that only one box answers is one hit.
         Assert.Equal(1, device.Matches("placeholder=邮箱"));
         device.Fill(PageTarget.Of("placeholder=邮箱", 1), "a@b", FillWay.Fill, 0, 5000);
-        Assert.Equal("a@b", device.Evaluate("() => document.getElementById('mail').value"));
+        Assert.Equal("a@b", device.InPage("() => document.getElementById('mail').value"));
 
         // A line that names a way but not the words is a line that names nothing.
         var empty = Assert.Throws<DeviceActionException>(
@@ -319,7 +319,7 @@ public class BrowserTargetTests : IDisposable
         var picking = Task.Run(() => device.Pick("pick something", 15000));
         var ways = Ways(device, "document.getElementById('user')");
         Assert.NotEmpty(ways);
-        device.Evaluate("(ways) => window.__whalegeniePicked(ways)", ways);
+        device.InPage("(ways) => window.__whalegeniePicked(ways)", ways);
 
         var picked = picking.GetAwaiter().GetResult();
         var kinds = picked.Candidates.Select(way => way.Kind).ToList();
@@ -344,7 +344,7 @@ public class BrowserTargetTests : IDisposable
     /// the picker the device has just armed, once it is armed.
     /// </summary>
     private static string Ways(PlaywrightBrowserDevice device, string element)
-        => Asked((script, argument) => device.Evaluate(script, argument), element);
+        => Asked((script, argument) => device.InPage(script, argument), element);
 
     /// <summary>The same question asked of one of the page's frames, where a pick inside one answers from.</summary>
     private static string WaysIn(PlaywrightBrowserDevice device, string frame, string element)

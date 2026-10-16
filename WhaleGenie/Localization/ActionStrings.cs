@@ -2873,6 +2873,34 @@ internal static class ActionStrings
         ["browser.download.matchIndex.label"] = "第几个命中",
         ["browser.download.matchIndex.hint"] = PageMatchIndexHint("要点击开始下载的"),
 
+        ["browser.dialog.name"] = "回答对话框",
+        ["browser.dialog.desc"] = "回答页面接下来弹出的对话框，把触发它的步骤包在里面。",
+        ["browser.dialog.how.label"] = "怎么回答",
+        ["browser.dialog.how.hint"] = "对话框是答应还是取消。想要接着往下走就答应，下面那格填的字也由它带过去；"
+            + "想留在原处就取消。一个盒子里只有第一个对话框按这里说的回答，它之后弹出的按浏览器的默认处理，"
+            + "也就是没人应答时的自动关掉。",
+        ["browser.dialog.how.option.accept"] = "答应",
+        ["browser.dialog.how.option.dismiss"] = "取消",
+        ["browser.dialog.text.label"] = "要输入的文字",
+        ["browser.dialog.text.hint"] = "要输入到对话框里的文字，例如页面在保存前问的文件名。留空也就是默认，"
+            + "表示不作答；不问话的对话框用不到这一格。按一个值读取，变量或表达式都可以写成它。",
+        ["browser.dialog.body.label"] = "会弹出对话框的步骤",
+        ["browser.dialog.body.hint"] = "让对话框弹出来的那些步骤，例如点击那个会提问的按钮。它们之所以写在盒子"
+            + "里，是因为对话框没人回答时页面就停在那里：触发它的那一步要等到被回答之后才会返回。",
+
+        ["browser.evaluate.name"] = "在页面里跑脚本",
+        ["browser.evaluate.desc"] = "在页面里跑一小段脚本，并把它交回的结果拿出来。",
+        ["browser.evaluate.script.label"] = "脚本",
+        ["browser.evaluate.script.hint"] = "要跑的脚本，写成页面会调用的一段函数，例如 "
+            + "() => { return document.title; }。它在页面自己里面跑，所以页面读得到的东西它都读得到；"
+            + "用 return 交回什么，这一步的结果就是什么。上面这些动作都没覆盖到的事情由它兜底，代价是这个宏"
+            + "依赖页面自己的实现。写 {{变量名}} 的地方会在运行前换成那个变量的值。",
+        ["browser.evaluate.script.default"] =
+            "// 脚本交回什么，这一步就交出什么。\n"
+            + "// return document.title; 读页面自己写的名字。\n"
+            + "// return { rows: 3, first: '甲' }; 交回一条记录，结果里也还是一条记录。\n"
+            + "return document.querySelectorAll('a').length;\n",
+
         ["browser.upload.name"] = "上传文件",
         ["browser.upload.desc"] = "把文件交给页面上的文件选择框。",
         ["browser.upload.target.label"] = "选择器",
@@ -3842,6 +3870,19 @@ internal static class ActionStrings
         ["browser.download.return.name.hint"] = "页面给这个文件起的名字。",
         ["browser.download.returns.label"] = "要留下的结果",
         ["browser.download.returns.hint"] = ReturnsHintText,
+
+        // browser.dialog
+        ["browser.dialog.return.message.label"] = "说了什么",
+        ["browser.dialog.return.message.hint"] = "被回答的那个对话框说的话，例如页面在继续之前问的那一句。",
+        ["browser.dialog.returns.label"] = "要留下的结果",
+        ["browser.dialog.returns.hint"] = ReturnsHintText,
+
+        // browser.evaluate
+        ["browser.evaluate.return.result.label"] = "结果",
+        ["browser.evaluate.return.result.hint"] = "脚本交回的东西，按 JSON 写出来：文字带引号，数字还是数字，"
+            + "记录和列表保持原样，用 field() 取其中的一项。脚本什么都没交回时这一项是空的。",
+        ["browser.evaluate.returns.label"] = "要留下的结果",
+        ["browser.evaluate.returns.hint"] = ReturnsHintText,
 
         // script.run
         ["script.run.return.output.label"] = "输出",

@@ -144,6 +144,79 @@ public class BrowserActionTests : IDisposable
     }
 
     /// <summary>
+    /// A dialog stops the page where it stands until somebody answers it, so the answer is armed
+    /// first and the click that raises it comes afterwards: this is why answering one is a block.
+    /// </summary>
+    [RealBrowserFact]
+    public void A_dialog_is_answered_around_the_click_that_raises_it()
+    {
+        Site("<p id=log></p>"
+            + "<button id=ask onclick=\"document.getElementById('log').textContent ="
+            + " confirm('确定要提交吗？') ? 'yes' : 'no'\">提交</button>"
+            + "<button id=name onclick=\"document.getElementById('log').textContent ="
+            + " prompt('文件名？') || ''\">命名</button>");
+
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        // Accepting it lets the page go on, and what the box said is handed over afterwards.
+        device.ArmDialog(accept: true, text: string.Empty);
+        device.Click(At("#ask"), ClickWay.Single, force: false, timeoutMs: 5000);
+        Assert.Equal("确定要提交吗？", device.TakeDialog());
+        Assert.Equal("yes", device.Text(At("#log"), PagePart.Text, "", 5000).Trim());
+
+        // Dismissing it is the other answer, and the page goes the other way. What it said is still
+        // what the step hands over: it is the dialog that was answered either way.
+        device.ArmDialog(accept: false, text: string.Empty);
+        device.Click(At("#ask"), ClickWay.Single, force: false, timeoutMs: 5000);
+        Assert.Equal("确定要提交吗？", device.TakeDialog());
+        Assert.Equal("no", device.Text(At("#log"), PagePart.Text, "", 5000).Trim());
+
+        // A dialog that asks for writing gets what the step said.
+        device.ArmDialog(accept: true, text: "报告.csv");
+        device.Click(At("#name"), ClickWay.Single, force: false, timeoutMs: 5000);
+        Assert.Equal("报告.csv", device.Text(At("#log"), PagePart.Text, "", 5000).Trim());
+
+        // With nothing armed it is dismissed, which is what a browser does with nobody listening: a
+        // step that never mentions dialogs behaves as it always did.
+        device.TakeDialog();
+        device.Click(At("#ask"), ClickWay.Single, force: false, timeoutMs: 5000);
+        Assert.Equal("no", device.Text(At("#log"), PagePart.Text, "", 5000).Trim());
+        Assert.Null(device.TakeDialog());
+    }
+
+    /// <summary>
+    /// A script of the step's own runs inside the page, and what it returns is what the step hands
+    /// over: the way round whatever the catalogue does not cover.
+    /// </summary>
+    [RealBrowserFact]
+    public void A_script_of_the_steps_own_runs_inside_the_page()
+    {
+        Site("<title>报告</title><p class=row>甲</p><p class=row>乙</p>");
+
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        Assert.Equal("2", device.Evaluate("() => document.querySelectorAll('.row').length", 5000));
+
+        // Writing comes back written as JSON, which is what makes the result one shape whatever the
+        // script handed over.
+        Assert.Equal("\"报告\"", device.Evaluate("() => document.title", 5000));
+
+        // A record keeps its shape, so a macro reads one field of it rather than cutting the text up.
+        var record = device.Evaluate(
+            "() => ({ rows: document.querySelectorAll('.row').length,"
+            + " first: document.querySelector('.row').textContent })", 5000);
+        Assert.Contains("\"rows\":2", record, StringComparison.Ordinal);
+        Assert.Contains("\"first\":\"甲\"", record, StringComparison.Ordinal);
+
+        // A script that goes wrong is the browser failing, and it says what the page said.
+        var broke = Assert.Throws<DeviceActionException>(
+            () => device.Evaluate("() => { throw new Error('落空'); }", 5000));
+        Assert.Equal("Run.BrowserFailed", broke.Key);
+    }
+
+    /// <summary>
     /// The three ways of clicking reach the page as three different things, which is what a page
     /// whose own menu only opens on the right button depends on.
     /// </summary>
@@ -199,20 +272,20 @@ public class BrowserActionTests : IDisposable
 
         // Written in at once, the page sees one change to the field and never a key.
         device.Fill(At("#search"), "换一整段", FillWay.Fill, 0, 5000);
-        Assert.Equal("1", device.Evaluate("() => String(window.__gaps.length)"));
+        Assert.Equal("1", device.InPage("() => String(window.__gaps.length)"));
         Assert.Equal("换一整段", device.Text(At("#search"), PagePart.Value, "", 5000));
 
         // Typed one key at a time, the page watches the field fill up one key at a time, and what it
         // held before is replaced rather than added to.
-        device.Evaluate("() => { window.__gaps = []; window.__steps = []; return true; }");
+        device.InPage("() => { window.__gaps = []; window.__steps = []; return true; }");
         device.Fill(At("#search"), "abc", FillWay.Type, 0, 5000);
-        Assert.Equal("""["a","ab","abc"]""", device.Evaluate("() => JSON.stringify(window.__steps)"));
+        Assert.Equal("""["a","ab","abc"]""", device.InPage("() => JSON.stringify(window.__steps)"));
         Assert.Equal("abc", device.Text(At("#search"), PagePart.Value, "", 5000));
 
         // And a gap asked for between two keys is one the page can measure.
-        device.Evaluate("() => { window.__gaps = []; return true; }");
+        device.InPage("() => { window.__gaps = []; return true; }");
         device.Fill(At("#search"), "de", FillWay.Type, 150, 5000);
-        var apart = device.Evaluate(
+        var apart = device.InPage(
             "() => window.__gaps.length > 1 ? String(window.__gaps[1] - window.__gaps[0]) : '0'");
         Assert.True(int.Parse(apart, CultureInfo.InvariantCulture) >= 100, apart);
     }
@@ -282,13 +355,13 @@ public class BrowserActionTests : IDisposable
 
         // A step that names no element waits for the next download the page starts by itself, and a
         // file that arrived before anybody asked for it is handed over rather than thrown away.
-        device.Evaluate("() => { window.exporting(); return true; }");
+        device.InPage("() => { window.exporting(); return true; }");
         var waited = device.Download(null, where, 5000);
         Assert.Equal("订单.csv", waited.Name);
         Assert.True(File.Exists(waited.Path));
 
         // Nothing turning up within the step's own clock is the step running out of time.
-        device.Evaluate("() => { window.exporting = () => {}; return true; }");
+        device.InPage("() => { window.exporting = () => {}; return true; }");
         var late = Assert.Throws<DeviceActionException>(
             () => device.Download(At("#export"), where, 500));
         Assert.Equal("Run.Timeout", late.Key);
@@ -509,7 +582,7 @@ public class BrowserActionTests : IDisposable
 
     /// <summary>A number the page worked out, read back out of it as a number rather than as text.</summary>
     private static double InPage(string script, PlaywrightBrowserDevice device)
-        => double.TryParse(device.Evaluate($"() => String({script})"), NumberStyles.Float,
+        => double.TryParse(device.InPage($"() => String({script})"), NumberStyles.Float,
             CultureInfo.InvariantCulture, out var value)
             ? value
             : 0;

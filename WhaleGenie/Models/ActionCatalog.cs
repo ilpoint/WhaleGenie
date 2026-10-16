@@ -120,6 +120,17 @@ public static class ActionCatalog
         + "; Hand back what this step should leave behind\n"
         + "; SetResult(\"done\")\n";
 
+    /// <summary>
+    /// What the script field of a page script starts out holding. It runs as it stands, so a step
+    /// dropped into a macro does something straight away, and the lines around it say the other
+    /// shapes a result can take.
+    /// </summary>
+    private const string DefaultPageScript =
+        "// What the script returns is what the step hands back.\n"
+        + "// return document.title; reads what the page calls itself.\n"
+        + "// return { rows: 3, first: '甲' }; hands back a record, which the result keeps as one.\n"
+        + "return document.querySelectorAll('a').length;\n";
+
     private static readonly Geometry FileIcon =
         Geometry.Parse("M6,3 H14 L18,7 V21 H6 Z M14,3 V7 H18 M9,12 H15 M9,16 H15");
 
@@ -3449,6 +3460,67 @@ public static class ActionCatalog
                     + "other program does.",
                     required: false, intent: PathIntent.Folder),
                 PageMatchIndex("clicks to start the download"),
+                Returns(),
+            ],
+        },
+        new()
+        {
+            Key = "browser.dialog",
+            Returns =
+            [
+                Return("message", "Message", primary: true,
+                    hint: "What the dialog that was answered said, such as what a page asks before "
+                        + "going on."),
+            ],
+            Category = ActionCategory.Browser,
+            DisplayName = "Answer A Dialog",
+            Description = "Answers the next dialog the page puts up, around the steps that raise it.",
+            Parameters =
+            [
+                Choice("how", "Answer it by", ["accept", "dismiss"], "accept",
+                    "Whether the dialog is accepted or dismissed. Accepting is what a step meant to go "
+                    + "on wants, and it is the answer that carries the writing below; dismissing is "
+                    + "what a step that means to stay where it is wants. Only the first dialog inside "
+                    + "the box is answered this way: any after it are dismissed, which is what a "
+                    + "browser does when nobody is listening at all.",
+                    labels: ["Accepting it", "Dismissing it"]),
+                Multiline("text", "Text to type", "The writing to put into a dialog that asks for "
+                    + "some, which is how a page asks for a file name before saving. Left out, which "
+                    + "is the default, is an empty answer; the dialogs that ask for nothing never read "
+                    + "it. Written as one value, so a variable or an expression may stand for it.",
+                    "报告.csv", required: false, acceptsFormula: true),
+                Steps("body", "Steps that raise it",
+                    "The steps that make the dialog appear, such as clicking the button that asks, "
+                    + "which is why they go inside this box: a dialog nobody has answered yet stops "
+                    + "the page, so the click that raised it does not come back until it is answered."),
+                Returns(),
+            ],
+        },
+        new()
+        {
+            Key = "browser.evaluate",
+            Returns =
+            [
+                Return("result", "Result", primary: true,
+                    hint: "What the script returned, written as JSON: writing comes back in quotes, a "
+                        + "number as a number, and a record or a list as the page handed it over, read "
+                        + "one field of it with field(). A script that returns nothing leaves this "
+                        + "empty."),
+            ],
+            Category = ActionCategory.Browser,
+            DisplayName = "Run Script In The Page",
+            Description = "Runs a short script inside the page and hands back what it returned.",
+            StepTimeoutMs = 10000,
+            Parameters =
+            [
+                Multiline("script", "Script",
+                    "The script to run, written as a function the page calls, such as () => { return "
+                    + "document.title; }. It runs in the page itself, so it can read anything the "
+                    + "page can read; what it returns with return is handed back as the result. This "
+                    + "is the way round whatever no action here covers, at the price of the macro "
+                    + "depending on the page's own internals. {{name}} is replaced by what the "
+                    + "variable name holds before the script runs.",
+                    defaultValue: DefaultPageScript, required: true, foreign: true, tall: true),
                 Returns(),
             ],
         },

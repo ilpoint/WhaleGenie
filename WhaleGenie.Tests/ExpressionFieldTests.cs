@@ -76,6 +76,7 @@ public class ExpressionFieldTests
         ["browser.select"] = ["value"],
         ["browser.switchTab"] = ["match"],
         ["browser.waitForUrl"] = ["match"],
+        ["browser.dialog"] = ["text"],
         ["condition.textExists"] = ["text"],
         ["condition.textNotExists"] = ["text"],
         ["condition.colorEquals"] = ["color"],

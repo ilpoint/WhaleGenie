@@ -2466,7 +2466,11 @@ public class ActionDialogTests
                     "control.forEach", "control.if", "control.switch", "control.try",
                     // The switch case is a block too, and only ever offered inside a switch, so
                     // it lands after the ones a task is built from.
-                    "control.case"],
+                    "control.case",
+                    // Answering a dialog is a block for a reason of its own: a page stops where it
+                    // stands until somebody answers, so the steps that raise the dialog go inside
+                    // the box rather than before it.
+                    "browser.dialog"],
                 blocks.Actions.Select(action => action.Key));
             Assert.True(blocks.HasNote);
 
