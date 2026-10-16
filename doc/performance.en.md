@@ -5,7 +5,7 @@
 What one look at the screen costs, how often a trigger looks, on which machine these numbers were
 taken, and how. It is not part of CI: after changing how the screen is read
 (`WhaleGenie.GraphicsCapture`), how it is matched and read as text (`OpenCvVisionDevice`,
-`PixelSearch`, `PaddleOcrDevice`), or how long a trigger waits between two looks
+`PixelSearch`, `PaddleOcrDevice`, `OpenCvDetectDevice`), or how long a trigger waits between two looks
 (`MacroTriggerService`), leave a new entry here so it can be compared with the one before it. For
 who reads the screen and when, see "Where the picture comes from" in [manual.md](manual.md).
 
@@ -132,6 +132,28 @@ A 200×80 reference picture, the picture being the whole 2560×1440 screen excep
   cache is decides which end of that), and is 128 ms after that. Whole-screen text recognition is the
   most expensive single look in the table.
 
+## Finding things with a model (detection)
+
+No model ships with the program, so what was measured is a public one: the ONNX export of yolov8n
+(12.8 MB, exported at 640), over an 810×1080 photograph scaled and padded into the 640 square the way
+the detection steps do it (2026-10, same machine, Release build):
+
+| What it does | One | Ten runs |
+| --- | --- | --- |
+| One detection (yolov8n, 640) | 34–36 ms (the fastest of each run) | medians of 38–56 ms |
+| The first detection, reading the model in, which is then kept | 129–153 ms | — |
+
+The fast end is steady: eleven detections per run, and the fastest of every run came in at 34–36 ms;
+the median wandering up to about 50 ms is the machine rather than the model, with other processes using
+the CPU. Budget by "forty milliseconds or so per detection". What a detection costs follows the model
+and the machine: this one is 640×640 through 164 layers, and a larger model (yolo11m, yolo11x and the
+like) takes proportionally longer. **The size of the search area hardly matters**: the picture is
+always scaled and padded into the square the model wants, so a whole screen and a small region cost the
+same — the opposite of finding a picture, where 211 ms of the cost is "search area × reference
+picture". **How much is in the picture hardly matters either**: the extra things it finds are only the
+filtering by confidence and the overlap suppression per class afterwards, tens of microseconds over a
+few thousand guesses. A larger region only pays for one more copy while scaling.
+
 ## What one look adds up to
 
 One look = one capture + one algorithm run over it. With the defaults (`frameMaxAgeMs` 0 and
@@ -143,6 +165,7 @@ One look = one capture + one algorithm run over it. With the defaults (`frameMax
 | The same, inside 640×480 only | 4.4 + 14 ≈ 18 ms | about 55 |
 | Find a colour in the whole screen (hit early) | 2.0 + 0.4 ≈ 2.4 ms | about 400 |
 | Recognise text over the whole screen | 2.0 + 128 ≈ 130 ms | about 8 |
+| One detection over the whole screen (yolov8n, 640) | 2.0 + 40 ≈ 42 ms | about 24 |
 | One round of waiting for the picture to hold still | 2.0 + 5.7 ≈ 8 ms | about 125 |
 
 Two switches change that number. Both are on the **Advanced** page and both are off by default:
@@ -229,6 +252,9 @@ var hits = layer.Vision.FindAll(whole.Frame, needle,
     new VisionQuery(MatchAlgorithm.Normed, 80, 6, null, 1));
 
 var spans = layer.Ocr.Recognize(whole.Frame, "auto");
+
+var found = layer.Detector.Detect(@"C:\models\yolov8n.onnx", whole.Frame,
+    new DetectionQuery(ConfidencePercent: 25, InputSize: 640, IouPercent: 45));
 ```
 
 Stop whatever else is doing real work first (above all, do not run a whole-solution `dotnet format`

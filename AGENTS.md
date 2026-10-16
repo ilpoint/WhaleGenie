@@ -20,11 +20,12 @@ Windows 上的通用宏 / 自动化工具：把键盘、鼠标、手柄、屏幕
 - 引擎中不得 `using Avalonia`；界面里不得出现第三方设备库的名字（SharpHook、OpenCV、FlaUI、Playwright、
   Viper、Vortice）：它们的取值、事件与异常只在引擎里，界面只认引擎交出的接口（如 `IInputHook`）与自己的模型。
   连接口都由组合根（`WhaleGenie/Execution/SharedDevices.cs` 与 `App.axaml.cs`）交出：屏幕、UIA、窗口表、
-  录制器、钩子、驱动级输入与浏览器都挂在设备层上（`IDeviceLayer` 的 `Screen` / `Ui` / `Windows` /
-  `CreateRecorder` / `Hook` / `Driver` / `Browser`），界面里不出现 `WhaleGenie.Core.Devices.Platform`，
-  `LayeringTests` 扫源码卡住这一条。全局钩子全程序共用一条，界面从设备层的 `Hook` 取用，给触发、系统热键、
-  拾取与录制；处理器在钩子线程上就地执行、置 `Suppress` 即吞掉这次输入。手柄没有事件可听，读它的是设备层
-  的另一格（`GamepadReading`），给触发、绑定拾取与录制按 30 毫秒轮一次。
+  录制器、钩子、驱动级输入、检测与浏览器都挂在设备层上（`IDeviceLayer` 的 `Screen` / `Ui` / `Windows` /
+  `CreateRecorder` / `Hook` / `Driver` / `Detector` / `Browser`），界面里不出现
+  `WhaleGenie.Core.Devices.Platform`，`LayeringTests` 扫源码卡住这一条。全局钩子全程序共用一条，界面从
+  设备层的 `Hook` 取用，给触发、系统热键、拾取与录制；处理器在钩子线程上就地执行、置 `Suppress` 即吞掉
+  这次输入。手柄没有事件可听，读它的是设备层的另一格（`GamepadReading`），给触发、绑定拾取与录制按
+  30 毫秒轮一次。
 
 ## 开发规范
 
@@ -202,10 +203,10 @@ UTF-8 试，试不通就按本机代码页读（中文 Windows 上按区域设�
 
 ## 现有能力
 
-规模：160 个可执行动作 + 23 个条件（`ActionCatalog.cs` 里 `^\s+Key = "` 的行按前缀分组数出来）、14 个分
+规模：163 个可执行动作 + 23 个条件（`ActionCatalog.cs` 里 `^\s+Key = "` 的行按前缀分组数出来）、14 个分
 类、三级变量作用域。能力概览：拾取器八种、"测试"与「试找一下」、识别结果与步骤行回看、录制、三档输入方式
 （前台 / 后台消息 / 驱动级虚拟设备）、一套窗口认法（匹配内容与匹配方式，内容是文本）、窗口相对坐标、元素锚点、
-条件组、步骤级重试与失败策略与超时、找图、找色与占比、多点找色、OCR、UIA 的调用、读取与选表格、记录与
+条件组、步骤级重试与失败策略与超时、找图、找色与占比、多点找色、YOLO 检测（模型与标签文件都由用户带）、OCR、UIA 的调用、读取与选表格、记录与
 `field()`、问人与说明、截图顺手落盘与摘要、子宏形参与「提为子宏」、运行调试的结果面板与断点、输入互斥、窗口事件触发、
 手柄按键触发、多显示器、浏览器自动化（一行一条的退路与「第几个命中」与「限定」、读全部与读表格、页面信息、
 页面元素条件、等网址与等加载、双击右键与硬点、逐键输入、滚动、上传与下载、对话框、页面里跑脚本、登录档案）、CSV 与 JSON、
