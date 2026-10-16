@@ -292,7 +292,9 @@ public partial class AddActionWindow : Window
     /// <summary>
     /// Puts a frame around each window the list is showing, and takes down the ones that are no
     /// longer in it. Nothing is framed while the dialog is out of the way: the frames say what the
-    /// list says, and there is no list to read then.
+    /// list says, and there is no list to read then. This program's own windows are left out — the
+    /// dialog asking included — because a ring at the edge of the window a step is being written in
+    /// says nothing and reads as that window's own border.
     /// </summary>
     private void DrawPreviewFrames()
     {
@@ -300,7 +302,7 @@ public partial class AddActionWindow : Window
             ? []
             : Form?.WindowPreview?.Places ?? [];
 
-        _previewFrames.Show(places);
+        _previewFrames.Show(AppWindows.Outside(places));
     }
 
     /// <summary>

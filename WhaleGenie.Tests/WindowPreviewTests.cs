@@ -337,6 +337,85 @@ public class WindowPreviewTests
         });
     }
 
+    /// <summary>
+    /// The window asking the question is not framed: it stands in front of the very thing being
+    /// looked for, and a ring drawn at its edge is read as that window's own border rather than as
+    /// an answer. The list keeps it either way — an empty match text really does mean the window in
+    /// front, and what the list says is what a run would do.
+    /// </summary>
+    [Fact]
+    public void The_window_asking_is_listed_but_not_framed()
+    {
+        Ui.Run(() =>
+        {
+            var handles = AppWindows.Handles;
+            AppWindows.Handles = () => [2L];
+            try
+            {
+                var window = Shell("window.exists");
+                var viewModel = (AddActionViewModel)window.DataContext!;
+                viewModel.Windows = Desk()
+                    .Add(1, "Notepad - notes.txt", "notepad", "Notepad")
+                    .Add(2, "WhaleGenie", "whalegenie", "Win32");
+
+                Parameter(viewModel, "window").Text = "e";
+                var preview = viewModel.WindowPreview!;
+                preview.RefreshCommand.Execute(null);
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.Equal(2, preview.Rows.Count);
+                Assert.Equal([1L], window.FramedWindows);
+            }
+            finally
+            {
+                AppWindows.Handles = handles;
+            }
+        });
+    }
+
+    /// <summary>
+    /// The editor writing a window trigger is not framed either, and for a sharper reason: a rule
+    /// written wide enough to fire on the window it is written in really would fire on it, so the
+    /// list has to say so. The frame is what stays off — the editor is already in front of the
+    /// person reading the list.
+    /// </summary>
+    [Fact]
+    public void The_editor_asking_is_listed_but_not_framed()
+    {
+        Ui.Run(() =>
+        {
+            var handles = AppWindows.Handles;
+            AppWindows.Handles = () => [1L];
+            try
+            {
+                var devices = new ChecksDevices
+                {
+                    Windows = Desk()
+                        .Add(1, "宏编辑器 - probe", "whalegenie", "Win32")
+                        .Add(2, "Calculator", "calc", "CalcFrame"),
+                };
+
+                var macro = new MacroItem { Name = "probe", TriggerMode = MacroTrigger.Window };
+                var window = new MacroEditorWindow(macro, [macro], null, devices);
+                window.Show();
+                Dispatcher.UIThread.RunJobs();
+
+                var viewModel = (MacroEditorViewModel)window.DataContext!;
+                viewModel.WindowValue = "o";
+                Dispatcher.UIThread.RunJobs();
+                viewModel.WindowPreview.RefreshCommand.Execute(null);
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.Equal(2, viewModel.WindowPreview.Rows.Count);
+                Assert.Equal([2L], window.FramedWindows);
+            }
+            finally
+            {
+                AppWindows.Handles = handles;
+            }
+        });
+    }
+
     [Fact]
     public void A_rule_changed_while_typing_is_read_once_the_typing_pauses()
     {

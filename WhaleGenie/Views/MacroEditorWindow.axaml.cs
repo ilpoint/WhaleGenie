@@ -1238,6 +1238,9 @@ public partial class MacroEditorWindow : Window
     /// have dropped out of it. Nothing is framed while the editor is out of the way — a minimised
     /// editor with frames left standing would be saying something nobody is reading — and the frames
     /// go with the trigger pane, which is only on screen while the macro is started by a window.
+    /// This program's own windows are left out, the editor included: the window a rule is written in
+    /// is one the rule really can fire on, so the list says so, but a ring drawn at its own edge
+    /// reads as the border of the window rather than as an answer.
     /// </summary>
     private void DrawTriggerFrames()
     {
@@ -1245,7 +1248,7 @@ public partial class MacroEditorWindow : Window
             ? []
             : _viewModel.WindowPreview.Places;
 
-        _triggerFrames.Show(places);
+        _triggerFrames.Show(AppWindows.Outside(places));
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

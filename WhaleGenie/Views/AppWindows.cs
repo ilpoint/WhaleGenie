@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
@@ -24,6 +26,14 @@ internal sealed class AppWindows : IDisposable
     /// afterwards.
     /// </summary>
     internal static Func<IEnumerable<Window>> Open { get; set; } = OnTheDesk;
+
+    /// <summary>
+    /// The handles of the windows this program has, which is what a preview keeps its frames off.
+    /// The window asking the question stands in front of the very thing being looked for, so a
+    /// frame around it says nothing and covers the window the answer is written in. A check hands
+    /// its own numbers over here, because a window in a test session has no handle to read.
+    /// </summary>
+    internal static Func<IReadOnlyList<long>> Handles { get; set; } = OwnHandles;
 
     private readonly List<Away> _away = [];
 
@@ -87,6 +97,20 @@ internal sealed class AppWindows : IDisposable
     }
 
     /// <summary>
+    /// The places that are worth a frame: the windows out there, rather than the ones standing here
+    /// asking. The list of windows a rule recognises keeps them either way — what it says is what a
+    /// run would do, and an empty match text really does mean the window in front, this one
+    /// included. It is only the frame that is left off: a window somebody is already looking at
+    /// needs no ring around it, and the ring is drawn at its very edge, where it reads as the
+    /// window's own border blinking.
+    /// </summary>
+    public static IReadOnlyList<FramePlace> Outside(IReadOnlyList<FramePlace> places)
+    {
+        var ours = Handles();
+        return [.. places.Where(place => !ours.Contains(place.Handle))];
+    }
+
+    /// <summary>
     /// Brings the windows back as they were, in the state they were in, and the one that asked back
     /// in front — which is where its answer is going to be read.
     /// </summary>
@@ -110,6 +134,15 @@ internal sealed class AppWindows : IDisposable
     private static IEnumerable<Window> OnTheDesk()
         => (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)
             ?.Windows ?? [];
+
+    /// <summary>
+    /// The handles of those windows, read off the platform the same way the frame is placed with.
+    /// A window that has not been shown yet has no handle to read and is nothing to keep a frame
+    /// off either, so a zero is dropped rather than matched against the desktop's own numbering.
+    /// </summary>
+    private static IReadOnlyList<long> OwnHandles()
+        => [.. Open().Select(window => window.TryGetPlatformHandle()?.Handle.ToInt64() ?? 0)
+            .Where(handle => handle != 0)];
 
     /// <summary>
     /// One window put away, and what it takes to bring it back.
