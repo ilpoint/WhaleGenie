@@ -23,6 +23,13 @@ namespace WhaleGenie.Views;
 
 public partial class AddActionWindow : Window
 {
+    /// <summary>
+    /// How long reading the writing off an element takes while a row is being filled in. It is a
+    /// question about a page that is already open, so it waits the way the "test" button waits
+    /// rather than the half minute a step of its own would take.
+    /// </summary>
+    private const int PickReadMs = 3000;
+
     /// <summary>Whether the dialog has been dismissed, which can happen while a page is open.</summary>
     private bool _closed;
 
@@ -1483,7 +1490,7 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        var target = PageTarget.Of(parameter.Text ?? string.Empty, MatchIndex(viewModel));
+        var target = Target(viewModel);
         if (target.Selectors.Count == 0)
         {
             await ReportTestAsync(Strings.Get("Add.TestElementEmpty"));
@@ -1522,6 +1529,125 @@ public partial class AddActionWindow : Window
             way.Take?.Invoke(way);
         }
     }
+
+    /// <summary>Puts another thing the element has to be like at the end of the list.</summary>
+    private void OnAddNarrowRow(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepParameterViewModel parameter })
+        {
+            parameter.AddNarrowRow();
+        }
+    }
+
+    /// <summary>
+    /// Fills a row's value in by pointing at the page. What is pointed at is the element the row is
+    /// about, and the way of narrowing decides what is taken off it: the writing it shows for a row
+    /// that asks about text, and one of the ways of naming it for a row that asks about a container
+    /// or about an element it holds.
+    /// </summary>
+    /// <remarks>
+    /// The text is read off the page rather than taken from the way the pick named it, because the
+    /// pick offers the ways that make a selector and a person adding a condition is after the words
+    /// themselves. An element that shows no writing has none to take, which is said rather than
+    /// left as a box that looks untouched.
+    /// </remarks>
+    private async void OnPickNarrowValue(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: NarrowRowViewModel row }
+            || DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        var url = ParameterText(viewModel, "url");
+        var profile = ParameterText(viewModel, "profile");
+
+        try
+        {
+            var picked = await BrowserPicker.PickAsync(Devices.Browser, url, profile);
+            if (picked.Selector.Length == 0)
+            {
+                return;
+            }
+
+            if (!row.WantsWords)
+            {
+                row.Value = picked.Selector;
+                return;
+            }
+
+            var target = PageTarget.Of(picked.Selector, 1);
+            var words = (await Task.Run(() =>
+                Devices.Browser.Text(target, PagePart.Text, string.Empty, PickReadMs))).Trim();
+            if (words.Length > 0)
+            {
+                row.Value = words;
+            }
+            else if (!_closed)
+            {
+                await ReportTestAsync(Strings.Get("Add.NarrowPickNoWords"));
+            }
+        }
+        catch (Exception)
+        {
+            // The dialog can be dismissed while the page is open, and closing it takes the browser
+            // down with it — there is nowhere left to show a message about that.
+            if (!_closed)
+            {
+                await ConfirmDialog.ShowAsync(this, Strings.Get("Add.PickBrowserElement"),
+                    Strings.Get("Add.BrowserPickFailed"), Strings.Get("Common.Ok"), showCancel: false);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Looks at what the page holds with this row and the rows above it on top of the selector, and
+    /// says how many elements that comes to. It is the one question a person adding a condition is
+    /// asking — did this make it clearer — and it is answered by counting rather than by running the
+    /// step, so a wrong condition is found before it acts on the wrong element.
+    /// </summary>
+    private async void OnLookNarrowRow(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: NarrowRowViewModel row }
+            || DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        var target = Target(viewModel, row);
+        if (target.Selectors.Count == 0)
+        {
+            await ReportTestAsync(Strings.Get("Add.TestElementEmpty"));
+            return;
+        }
+
+        var found = new HighlightResult(false, 0, 0);
+        try
+        {
+            found = await BrowserPicker.HighlightAsync(Devices.Browser, target);
+        }
+        catch (Exception)
+        {
+            // The dialog can be dismissed while the page is being asked, and a window that is on
+            // its way out is not worth reporting to.
+        }
+
+        if (!_closed)
+        {
+            row.Say(found);
+        }
+    }
+
+    /// <summary>
+    /// The element a browser step means, read out of the form the way a run reads it: the selectors
+    /// the field holds, which match the step means, and what the step says the element has to be
+    /// like. With <paramref name="upto"/> named the rows after that one are left out, which is how
+    /// one row is looked at on top of the rows above it.
+    /// </summary>
+    private static PageTarget Target(AddActionViewModel viewModel, NarrowRowViewModel? upto = null)
+        => PageTarget.Of(ParameterText(viewModel, "target"), MatchIndex(viewModel),
+            viewModel.Parameters.FirstOrDefault(parameter => parameter.IsNarrow)?.Conditions(upto)
+                ?? []);
 
     /// <summary>
     /// Writes the name of a variable into a selector field, on a line of its own: a macro that works

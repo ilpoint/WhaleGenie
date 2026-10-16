@@ -105,6 +105,15 @@ public enum ActionParameterKind
     /// hands nothing over stays out of the variable pickers.
     /// </summary>
     Returns,
+
+    /// <summary>
+    /// What a page step says the element it means has to be like, edited as one row each: a way of
+    /// narrowing the page down and what to look for by it. A selector that names five elements
+    /// which look alike is told apart by these rather than by counting them, and every row has to
+    /// hold at once, which is why the field is a list rather than one more choice beside the
+    /// selector.
+    /// </summary>
+    Narrow,
 }
 
 /// <summary>One choice of a <see cref="ActionParameterKind.Choice"/> parameter:

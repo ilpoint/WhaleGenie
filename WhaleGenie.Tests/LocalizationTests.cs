@@ -4,6 +4,7 @@ using WhaleGenie.Core.Execution;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Tests;
 
@@ -147,6 +148,41 @@ public class LocalizationTests
 
                 Assert.All(TextCompare.Values, way => Assert.Contains(way, options));
             }
+        });
+    }
+
+    /// <summary>
+    /// Every way of narrowing a page down is offered under a name the text tables carry, and the
+    /// dropdown says which questions a row can ask in the reader's own language. A way added to the
+    /// engine without a word for it would show the person filling the form a raw name instead.
+    /// </summary>
+    [Fact]
+    public void Every_way_of_narrowing_a_page_down_is_named_in_both_languages()
+    {
+        Ui.Run(() =>
+        {
+            foreach (var way in Enum.GetValues<PageFilter>())
+            {
+                foreach (var prefix in new[] { "Add.Narrow.", "Add.NarrowValue." })
+                {
+                    Assert.True(Strings.English.ContainsKey(prefix + way), prefix + way);
+                    Assert.True(Strings.Chinese.ContainsKey(prefix + way), prefix + way);
+                }
+            }
+
+            // The order they are offered in is the order they read in: where the element sits
+            // first, then what it writes, then what it holds, and last the one that asks nothing
+            // beside it. Every way is in the list, read from the table rather than from the engine's
+            // own names.
+            Assert.Equal(
+                [
+                    nameof(PageFilter.Inside), nameof(PageFilter.HasText),
+                    nameof(PageFilter.HasNotText), nameof(PageFilter.Has),
+                    nameof(PageFilter.HasNot), nameof(PageFilter.Visible),
+                ],
+                NarrowRowViewModel.Ways.Select(choice => choice.Value));
+            Assert.All(NarrowRowViewModel.Ways,
+                choice => Assert.NotEqual(choice.Value, choice.Display));
         });
     }
 

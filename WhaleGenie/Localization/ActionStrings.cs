@@ -259,6 +259,17 @@ internal static class ActionStrings
         + "的顺序从 1 数起，默认 1；页面上没有这么多时按没找到处理。";
 
     /// <summary>
+    /// The hint the "narrow down" field of every page action shares: what a condition is for, which
+    /// ways of narrowing there are, and what leaving it empty means. Only the words for the element
+    /// being meant change from one action to the next, so the rest is written once.
+    /// </summary>
+    private const string NarrowHint =
+        "还必须是哪一个：选择器同时对上多个元素时，用这里的限定说清要的是它们中的哪一个，一行一条，"
+        + "所有限定同时成立。可以限定元素里面显示的文字、里面有没有某个元素、它在哪个容器里面、"
+        + "或者只要看得见的。值里可以写变量名，运行时替换成它的值；一行什么都没填就不算数。"
+        + "一条都不写时只用选择器认元素，与没有这一格时完全一样。";
+
+    /// <summary>
     /// The hint every action that lists several reference pictures shares for its picker: which of
     /// the pictures the step goes with.
     /// </summary>
@@ -2659,6 +2670,8 @@ internal static class ActionStrings
             + "页面挡住不让点的按钮，多半是这一步点下去也达不到作者想要的结果。页面用一层看不见的东西盖住"
             + "自己的按钮时，才需要勾上它。",
         ["browser.click.matchIndex.label"] = "第几个命中",
+        ["browser.click.narrow.label"] = "限定",
+        ["browser.click.narrow.hint"] = "要点击的那个元素" + NarrowHint,
         ["browser.click.matchIndex.hint"] = PageMatchIndexHint("要点击的"),
 
         ["browser.fill.name"] = "填写",
@@ -2677,6 +2690,8 @@ internal static class ActionStrings
         ["browser.fill.intervalMs.hint"] = "两个键之间停多久，0 到 10000 毫秒。默认 0，也就是不停，"
             + "按页面能跟上的最快速度发；只有在「逐键输入」时才读它，页面嫌来得太快而漏掉按键时可以调大。",
         ["browser.fill.matchIndex.label"] = "第几个命中",
+        ["browser.fill.narrow.label"] = "限定",
+        ["browser.fill.narrow.hint"] = "要填写的那个元素" + NarrowHint,
         ["browser.fill.matchIndex.hint"] = PageMatchIndexHint("要填写的"),
 
         ["browser.readText.name"] = "读取文本",
@@ -2696,6 +2711,8 @@ internal static class ActionStrings
         ["browser.readText.attribute.hint"] = "读哪个属性，按页面标记里的写法写：链接的地址是 href，"
             + "图片的出处是 src，标记里写的值是 value。元素没有这个属性时读回来是空的，不算找不到。",
         ["browser.readText.matchIndex.label"] = "第几个命中",
+        ["browser.readText.narrow.label"] = "限定",
+        ["browser.readText.narrow.hint"] = "要读取的那个元素" + NarrowHint,
         ["browser.readText.matchIndex.hint"] = PageMatchIndexHint("要读取的"),
 
         ["browser.readAll.name"] = "读取全部",
@@ -2713,6 +2730,8 @@ internal static class ActionStrings
         ["browser.readAll.attribute.hint"] = "读哪个属性，按页面标记里的写法写，例如 href、src、value。"
             + "元素没有这个属性时读回来是空的，不算找不到。",
         ["browser.readAll.matchIndex.label"] = "第几个命中",
+        ["browser.readAll.narrow.label"] = "限定",
+        ["browser.readAll.narrow.hint"] = "要读取的那些元素" + NarrowHint,
         ["browser.readAll.matchIndex.hint"] = "从第几个命中开始读：选择器可能同时对上多个元素，这里说从它们"
             + "中的第几个开始读，按在页面上出现的顺序从 1 数起，它后面的也照读，直到读满「最多几条」。"
             + "默认 1，也就是从第一个开始读整个列表。",
@@ -2726,6 +2745,8 @@ internal static class ActionStrings
         ["browser.readTable.target.hint"] = PageTargetHint + "要读哪个表格，写法与「点击元素」相同。"
             + "默认写的是 table，也就是页面自己的表格元素。",
         ["browser.readTable.matchIndex.label"] = "第几个命中",
+        ["browser.readTable.narrow.label"] = "限定",
+        ["browser.readTable.narrow.hint"] = "要读取的那张表格" + NarrowHint,
         ["browser.readTable.matchIndex.hint"] = PageMatchIndexHint("要读取的"),
         ["browser.readTable.maxRows.label"] = "最多几行",
         ["browser.readTable.maxRows.hint"] = "最多读几行，1 到 10000。默认 100，与程序里其它读表格的地方"
@@ -2769,6 +2790,8 @@ internal static class ActionStrings
         ["browser.select.by.option.value"] = "按值或文字",
         ["browser.select.by.option.index"] = "按序号",
         ["browser.select.matchIndex.label"] = "第几个命中",
+        ["browser.select.narrow.label"] = "限定",
+        ["browser.select.narrow.hint"] = "要选的那个下拉框" + NarrowHint,
         ["browser.select.matchIndex.hint"] = PageMatchIndexHint("要选中的"),
 
         ["browser.check.name"] = "勾选",
@@ -2779,6 +2802,8 @@ internal static class ActionStrings
         ["browser.check.checked.hint"] = "这个框最后是不是要勾上，默认勾上；关掉它表示把已经"
             + "勾上的框取消勾选。要求的状态与当前相同就什么都不做，不像点击那样把勾着的框点掉。",
         ["browser.check.matchIndex.label"] = "第几个命中",
+        ["browser.check.narrow.label"] = "限定",
+        ["browser.check.narrow.hint"] = "要勾选的那个方框" + NarrowHint,
         ["browser.check.matchIndex.hint"] = PageMatchIndexHint("要勾选或取消勾选的"),
 
         ["browser.hover.name"] = "悬停",
@@ -2787,6 +2812,8 @@ internal static class ActionStrings
         ["browser.hover.target.hint"] = PageTargetHint + "要移到哪个元素上，写法与「点击元素」相同。"
             + "菜单、提示框、整排按钮都是这么出现的；这一步不点击任何东西。",
         ["browser.hover.matchIndex.label"] = "第几个命中",
+        ["browser.hover.narrow.label"] = "限定",
+        ["browser.hover.narrow.hint"] = "要把指针移上去的那个元素" + NarrowHint,
         ["browser.hover.matchIndex.hint"] = PageMatchIndexHint("要悬停的"),
 
         ["browser.press.name"] = "页面按键",
@@ -2798,6 +2825,8 @@ internal static class ActionStrings
         ["browser.press.key.hint"] = "要发送哪个键：键盘选择器里列出的名字（Enter、Esc、F5、"
             + "Down），或者用「+」连起来的组合键（Ctrl+S）。键盘里没有的名字在运行前就会被拒绝。",
         ["browser.press.matchIndex.label"] = "第几个命中",
+        ["browser.press.narrow.label"] = "限定",
+        ["browser.press.narrow.hint"] = "接按键的那个元素" + NarrowHint,
         ["browser.press.matchIndex.hint"] = PageMatchIndexHint("按键前要取得焦点的"),
 
         ["browser.waitFor.name"] = "等待元素",
@@ -2815,6 +2844,8 @@ internal static class ActionStrings
         ["browser.waitFor.state.option.attached"] = "在页面上",
         ["browser.waitFor.state.option.detached"] = "不在页面上",
         ["browser.waitFor.matchIndex.label"] = "第几个命中",
+        ["browser.waitFor.narrow.label"] = "限定",
+        ["browser.waitFor.narrow.hint"] = "要等到的那个元素" + NarrowHint,
         ["browser.waitFor.matchIndex.hint"] = PageMatchIndexHint("要等的"),
 
         ["browser.waitForUrl.name"] = "等待网址",
@@ -2859,6 +2890,8 @@ internal static class ActionStrings
         ["browser.scroll.how.option.bottom"] = "到页面底部",
         ["browser.scroll.how.option.top"] = "到页面顶部",
         ["browser.scroll.matchIndex.label"] = "第几个命中",
+        ["browser.scroll.narrow.label"] = "限定",
+        ["browser.scroll.narrow.hint"] = "要滚到眼前的那个元素" + NarrowHint,
         ["browser.scroll.matchIndex.hint"] = PageMatchIndexHint("要滚到眼前的"),
 
         ["browser.download.name"] = "下载文件",
@@ -2871,6 +2904,8 @@ internal static class ActionStrings
         ["browser.download.folder.hint"] = "文件存到哪个文件夹；留空就是宏文件所在的那个文件夹。按一个值读取，"
             + "变量或表达式都可以写成它。同名的文件会被覆盖，与别的程序里保存一次一样。",
         ["browser.download.matchIndex.label"] = "第几个命中",
+        ["browser.download.narrow.label"] = "限定",
+        ["browser.download.narrow.hint"] = "要点击以开始下载的那个元素" + NarrowHint,
         ["browser.download.matchIndex.hint"] = PageMatchIndexHint("要点击开始下载的"),
 
         ["browser.dialog.name"] = "回答对话框",
@@ -2910,6 +2945,8 @@ internal static class ActionStrings
             + "的文件夹算起，与别的步骤里的路径同一条规则。浏览器的规矩是不许脚本告诉页面一个"
             + "路径，这一步是绕开这条规矩的唯一办法。",
         ["browser.upload.matchIndex.label"] = "第几个命中",
+        ["browser.upload.narrow.label"] = "限定",
+        ["browser.upload.narrow.hint"] = "要交给文件的那个文件框" + NarrowHint,
         ["browser.upload.matchIndex.hint"] = PageMatchIndexHint("要交给的"),
 
         // ------------------------------------------------------------------ script
@@ -3192,6 +3229,8 @@ internal static class ActionStrings
         ["condition.browserExists.state.option.attached"] = "在页面上",
         ["condition.browserExists.state.option.detached"] = "不在页面上",
         ["condition.browserExists.matchIndex.label"] = "第几个命中",
+        ["condition.browserExists.narrow.label"] = "限定",
+        ["condition.browserExists.narrow.hint"] = "要判断的那个元素" + NarrowHint,
         ["condition.browserExists.matchIndex.hint"] = PageMatchIndexHint("要判断的"),
 
         ["condition.browserNotExists.name"] = "页面元素不存在",
@@ -3207,6 +3246,8 @@ internal static class ActionStrings
         ["condition.browserNotExists.state.option.attached"] = "在页面上",
         ["condition.browserNotExists.state.option.detached"] = "不在页面上",
         ["condition.browserNotExists.matchIndex.label"] = "第几个命中",
+        ["condition.browserNotExists.narrow.label"] = "限定",
+        ["condition.browserNotExists.narrow.hint"] = "要判断的那个元素" + NarrowHint,
         ["condition.browserNotExists.matchIndex.hint"] = PageMatchIndexHint("要判断的"),
 
         ["condition.expression.name"] = "布尔表达式",

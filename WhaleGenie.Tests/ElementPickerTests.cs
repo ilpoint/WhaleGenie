@@ -400,6 +400,144 @@ public class ElementPickerTests
         });
     }
 
+    /// <summary>
+    /// What a page step adds when a selector names five elements that look alike. It is a list
+    /// rather than one more box beside the selector, because more than one thing can have to hold
+    /// at once, and the rows are what the engine is handed as the conditions of the target.
+    /// </summary>
+    [Fact]
+    public void A_page_step_can_say_what_else_the_element_has_to_be_like()
+    {
+        Ui.Run(() =>
+        {
+            var narrow = Narrow("browser.click");
+
+            // Nothing filled in is what every step did before this field existed, so an untouched
+            // field holds no rows and is left out of the step altogether.
+            Assert.False(narrow.IsIncluded);
+            Assert.Empty(narrow.Conditions());
+
+            narrow.AddNarrowRow();
+            var row = Assert.Single(narrow.NarrowRows);
+            row.Way = Way(row, PageFilter.HasText);
+            row.Value = "确定";
+
+            // A row is handed to the engine the way it was written, and it is what says the element
+            // has to be like that as well as being found by the selector.
+            Assert.Equal([new PageCondition(PageFilter.HasText, "确定")], narrow.Conditions());
+            Assert.True(narrow.IsIncluded);
+
+            // What the step writes down is the way of narrowing and what it looks for. A row that
+            // was added and left empty is not a condition and is not written down either.
+            narrow.AddNarrowRow();
+            var written = Assert.Single(narrow.ToStepParameter().Rows);
+            Assert.Equal("HasText", written.Text("how"));
+            Assert.Equal("确定", written.Text("value"));
+
+            // And the same rows are in front of the user when the step is opened again.
+            var reopened = Narrow("browser.click");
+            reopened.ApplyValue(narrow.ToStepParameter());
+            var back = Assert.Single(reopened.NarrowRows);
+            Assert.Equal("HasText", back.Way.Value);
+            Assert.Equal("确定", back.Value);
+        });
+    }
+
+    /// <summary>
+    /// The one way of narrowing that asks nothing beside it: "only what can be seen" is about the
+    /// element itself, so its row carries no value box and is written down as the way alone. A row
+    /// that asks about the writing is the one a pick off the page fills in with words.
+    /// </summary>
+    [Fact]
+    public void Only_what_can_be_seen_asks_nothing_beside_it()
+    {
+        Ui.Run(() =>
+        {
+            var narrow = Narrow("browser.upload");
+            narrow.AddNarrowRow();
+            var row = Assert.Single(narrow.NarrowRows);
+            Assert.True(row.NeedsValue);
+            Assert.False(row.WantsWords);
+
+            row.Way = Way(row, PageFilter.Visible);
+            Assert.False(row.NeedsValue);
+            Assert.False(row.WantsWords);
+            Assert.Equal([new PageCondition(PageFilter.Visible, string.Empty)], narrow.Conditions());
+
+            var written = Assert.Single(narrow.ToStepParameter().Rows);
+            Assert.Equal("Visible", written.Text("how"));
+            Assert.Equal(string.Empty, written.Text("value"));
+
+            row.Way = Way(row, PageFilter.HasNotText);
+            Assert.True(row.WantsWords);
+        });
+    }
+
+    /// <summary>
+    /// A row is looked at on top of the rows above it, which is what makes "did adding this one
+    /// help" a question the dialog can answer: the count beside a row is what the page holds with
+    /// that row and the ones before it, and the rows below change nothing about it.
+    /// </summary>
+    [Fact]
+    public void A_row_is_looked_at_with_the_rows_above_it()
+    {
+        Ui.Run(() =>
+        {
+            var narrow = Narrow("browser.click");
+            narrow.AddNarrowRow();
+            narrow.AddNarrowRow();
+            narrow.AddNarrowRow();
+            var rows = narrow.NarrowRows.ToList();
+            rows[0].Way = Way(rows[0], PageFilter.HasText);
+            rows[0].Value = "第一";
+            rows[1].Way = Way(rows[1], PageFilter.Visible);
+            rows[2].Way = Way(rows[2], PageFilter.HasText);
+            rows[2].Value = "第三";
+
+            Assert.Equal([new PageCondition(PageFilter.HasText, "第一")], narrow.Conditions(rows[0]));
+            Assert.Equal(2, narrow.Conditions(rows[1]).Count);
+            Assert.Equal(3, narrow.Conditions(rows[2]).Count);
+            Assert.Equal(3, narrow.Conditions().Count);
+        });
+    }
+
+    /// <summary>
+    /// The dialog reads the list the flag says it draws: a dropdown for the way of narrowing, a box
+    /// for what to look for by it, a button that picks it off the page and one that looks at what
+    /// the page holds with the rows above, and a button that takes the row out again.
+    /// </summary>
+    [Fact]
+    public void The_dialog_draws_a_page_step_s_conditions_one_row_each()
+    {
+        var markup = File.ReadAllText(
+            Path.Combine(Repository(), "WhaleGenie", "Views", "AddActionWindow.axaml"));
+
+        var start = markup.IndexOf("IsVisible=\"{Binding IsNarrow}\"", StringComparison.Ordinal);
+        Assert.True(start >= 0, "the dialog stopped drawing the conditions of a page element");
+
+        var end = markup.IndexOf("IsVisible=\"{Binding IsBool}\"", start, StringComparison.Ordinal);
+        Assert.True(end > start, "the dialog stopped drawing the conditions in a block of its own");
+
+        var block = markup[start..end];
+        Assert.Contains("ItemsSource=\"{Binding NarrowRows}\"", block, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding Choices}\"", block, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Value}\"", block, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnAddNarrowRow\"", block, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnPickNarrowValue\"", block, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnLookNarrowRow\"", block, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding RemoveCommand}\"", block, StringComparison.Ordinal);
+    }
+
+    /// <summary>The field a page step says what its element has to be like in.</summary>
+    private static StepParameterViewModel Narrow(string key)
+        => new((ActionCatalog.Find(key)
+                ?? throw new InvalidOperationException($"{key} is missing from the catalogue."))
+            .Parameters.First(parameter => parameter.Name == "narrow"));
+
+    /// <summary>One way of narrowing, as the row offers it.</summary>
+    private static ActionParameterOption Way(NarrowRowViewModel row, PageFilter way)
+        => row.Choices.First(choice => choice.Value == way.ToString());
+
     /// <summary>The control a test pretends the pointer was put on.</summary>
     private static UiElementInfo At(int x, int y) => new(
         "Save",

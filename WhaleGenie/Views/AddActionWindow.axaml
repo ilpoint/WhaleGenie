@@ -641,6 +641,72 @@
                     </Grid>
                 </StackPanel>
 
+                <!-- What a page step says the element it means has to be like, one row each, all of
+                     them holding at once. It is what tells one of several elements that a selector
+                     names from the others: a page that shows the same button twice is told apart by
+                     what the one that is meant says, which is not something a person can read off
+                     the page and count. -->
+                <StackPanel IsVisible="{Binding IsNarrow}" Spacing="7">
+                    <ItemsControl ItemsSource="{Binding NarrowRows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:NarrowRowViewModel">
+                                <StackPanel Margin="0,0,0,8" Spacing="5">
+                                    <!-- The way of narrowing, then what to look for by it: reading
+                                         them together is the sentence the row says. Each row can be
+                                         looked at on the page on its own, which is how a person
+                                         sees whether adding it helped. -->
+                                    <Grid ColumnDefinitions="210,*,Auto,Auto,Auto" ColumnSpacing="6">
+                                        <ComboBox Classes="ActionSelect"
+                                                  ItemsSource="{Binding Choices}"
+                                                  SelectedItem="{Binding Way}"
+                                                  Width="210" HorizontalAlignment="Left">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate x:DataType="models:ActionParameterOption">
+                                                    <TextBlock Text="{Binding Display}"
+                                                               FontSize="12.5" Foreground="#E8E8E8" />
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                        <TextBox Grid.Column="1" Classes="ParamInput"
+                                                 IsVisible="{Binding NeedsValue}"
+                                                 Text="{Binding Value}"
+                                                 PlaceholderText="{Binding ValueHint}" />
+                                        <Button Grid.Column="2" Classes="FlatButton" Height="33"
+                                                Padding="11,0" IsVisible="{Binding NeedsValue}"
+                                                Content="{Binding [Add.NarrowPick], Source={x:Static loc:Strings.Current}}"
+                                                ToolTip.Tip="{Binding [Add.NarrowPickHint], Source={x:Static loc:Strings.Current}}"
+                                                Click="OnPickNarrowValue" />
+                                        <Button Grid.Column="3" Classes="FlatButton" Height="33"
+                                                Padding="11,0"
+                                                Content="{Binding [Add.NarrowLook], Source={x:Static loc:Strings.Current}}"
+                                                ToolTip.Tip="{Binding [Add.NarrowLookHint], Source={x:Static loc:Strings.Current}}"
+                                                Click="OnLookNarrowRow" />
+                                        <Button Grid.Column="4" Classes="FlatButton" Height="33"
+                                                Padding="11,0"
+                                                Content="{Binding [Add.NarrowRemove], Source={x:Static loc:Strings.Current}}"
+                                                ToolTip.Tip="{Binding [Add.NarrowRemoveHint], Source={x:Static loc:Strings.Current}}"
+                                                Command="{Binding RemoveCommand}" />
+                                    </Grid>
+                                    <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap"
+                                               Text="{Binding Count}"
+                                               IsVisible="{Binding HasCount}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                        <Button Classes="FlatButton" Height="30" Padding="10,0"
+                                Content="{Binding [Add.NarrowAdd], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.NarrowAddHint], Source={x:Static loc:Strings.Current}}"
+                                Click="OnAddNarrowRow" />
+                        <TextBlock Grid.Column="1" Classes="Muted" VerticalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding [Add.NarrowEmpty], Source={x:Static loc:Strings.Current}}"
+                                   IsVisible="{Binding !HasNarrowRows}" />
+                    </Grid>
+                </StackPanel>
+
                 <ToggleSwitch IsVisible="{Binding IsBool}"
                               IsChecked="{Binding Flag}"
                               OnContent="" OffContent="" />

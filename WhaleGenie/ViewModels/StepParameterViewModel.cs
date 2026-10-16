@@ -943,6 +943,62 @@ public partial class StepParameterViewModel : ViewModelBase
     public bool IsReturns => Definition.Kind is ActionParameterKind.Returns;
 
     /// <summary>
+    /// True when this parameter holds what a page step says the element it means has to be like,
+    /// beyond the way it is named.
+    /// </summary>
+    public bool IsNarrow => Definition.Kind is ActionParameterKind.Narrow;
+
+    /// <summary>
+    /// What the element has to be like besides the way it is named: one row per thing, all of them
+    /// holding at once. A page that shows the same button twice is told apart here rather than by
+    /// counting the matches, which is what a person cannot read off the page.
+    /// </summary>
+    public ObservableCollection<NarrowRowViewModel> NarrowRows { get; } = [];
+
+    /// <summary>True while at least one row has been added, filled in or not.</summary>
+    public bool HasNarrowRows => NarrowRows.Count > 0;
+
+    /// <summary>Puts another thing the element has to be like at the end of the list.</summary>
+    public void AddNarrowRow(NarrowRowViewModel? row = null)
+    {
+        var added = row ?? new NarrowRowViewModel();
+        added.Take = RemoveNarrowRow;
+        NarrowRows.Add(added);
+        OnPropertyChanged(nameof(HasNarrowRows));
+    }
+
+    /// <summary>Takes one of them out of the list.</summary>
+    public void RemoveNarrowRow(NarrowRowViewModel row)
+    {
+        NarrowRows.Remove(row);
+        OnPropertyChanged(nameof(HasNarrowRows));
+    }
+
+    /// <summary>
+    /// The things the element has to be like, the way the engine reads them: rows that say nothing
+    /// are left out, and with <paramref name="upto"/> named the rows after that one are left out as
+    /// well, which is how one row is looked at on top of the rows above it.
+    /// </summary>
+    public IReadOnlyList<PageCondition> Conditions(NarrowRowViewModel? upto = null)
+    {
+        var conditions = new List<PageCondition>();
+        foreach (var row in NarrowRows)
+        {
+            if (row.ToCondition() is { } condition)
+            {
+                conditions.Add(condition);
+            }
+
+            if (ReferenceEquals(row, upto))
+            {
+                break;
+            }
+        }
+
+        return conditions;
+    }
+
+    /// <summary>
     /// The results this action can hand over: one line each, with a box saying whether the step
     /// keeps it and the name it goes by. Only the ticked ones are written, so a step that reports
     /// eight things does not put eight variables in front of somebody who wanted one.
@@ -1088,6 +1144,9 @@ public partial class StepParameterViewModel : ViewModelBase
         ActionParameterKind.Region => Regions.Count == 0,
         ActionParameterKind.KeySequence => !HasKeyPress,
         ActionParameterKind.Images => Pictures.Count == 0,
+        // What a page step adds to a selector is at its default while it adds nothing, which is
+        // what every step written before that field existed does.
+        ActionParameterKind.Narrow => NarrowRows.Count == 0,
         // The results are at their default while exactly the ones the action nearly always wants
         // are ticked: what they are called is not a change worth a mark on the tab.
         ActionParameterKind.Returns => ReturnsRows.All(row => row.Ticked == row.IsPrimary),
@@ -1192,6 +1251,7 @@ public partial class StepParameterViewModel : ViewModelBase
         ActionParameterKind.Region => Regions.Count > 0,
         ActionParameterKind.KeySequence => HasKeyPress,
         ActionParameterKind.Images => Pictures.Any(picture => !string.IsNullOrWhiteSpace(picture.Text)),
+        ActionParameterKind.Narrow => HasNarrowRows,
         ActionParameterKind.Returns => HandsOverAnything,
         _ => Definition.Required || !string.IsNullOrWhiteSpace(CurrentText),
     };
@@ -1372,6 +1432,9 @@ public partial class StepParameterViewModel : ViewModelBase
             ActionParameterKind.Region => [.. Regions.Select(row => row.ToRow())],
             ActionParameterKind.KeySequence => [.. KeyRows.Select(row => row.ToRow())],
             ActionParameterKind.Images => [.. Pictures.Select(picture => picture.ToRow())],
+            ActionParameterKind.Narrow => [.. NarrowRows.Select(row => row.ToRow())
+                .Where(row => row is not null)
+                .Select(row => row!)],
             ActionParameterKind.Returns => [.. ReturnsRows.Select(row => row.ToRow())
                 .Where(row => row is not null)
                 .Select(row => row!)],
@@ -1419,6 +1482,17 @@ public partial class StepParameterViewModel : ViewModelBase
             foreach (var row in stored.Rows)
             {
                 AddPicture(ImageRowViewModel.From(row));
+            }
+
+            return;
+        }
+
+        if (Definition.Kind is ActionParameterKind.Narrow)
+        {
+            NarrowRows.Clear();
+            foreach (var row in stored.Rows)
+            {
+                AddNarrowRow(NarrowRowViewModel.From(row));
             }
 
             return;

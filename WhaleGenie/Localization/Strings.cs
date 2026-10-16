@@ -426,6 +426,42 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.BrowserWay.AriaLabel"] = "aria label",
         ["Add.BrowserWay.Path"] = "path of tags",
 
+        // What a page step says the element it means has to be like, beyond the way it is named.
+        // Each row is a way of narrowing the page down and what to look for by it, and the ways are
+        // the ones the page's own programming offers, so the person filling the form is choosing
+        // from questions the page already answers rather than from a matching rule of our own.
+        ["Add.Narrow.Inside"] = "Inside ...",
+        ["Add.Narrow.HasText"] = "Text contains ...",
+        ["Add.Narrow.HasNotText"] = "Text does not contain ...",
+        ["Add.Narrow.Has"] = "Holds ...",
+        ["Add.Narrow.HasNot"] = "Holds nothing like ...",
+        ["Add.Narrow.Visible"] = "Only what can be seen",
+        ["Add.NarrowValue.Inside"] = "A selector for the container it sits in",
+        ["Add.NarrowValue.HasText"] = "The writing it has to show",
+        ["Add.NarrowValue.HasNotText"] = "The writing it must not show",
+        ["Add.NarrowValue.Has"] = "A selector for the element it holds",
+        ["Add.NarrowValue.HasNot"] = "A selector for an element it must not hold",
+        ["Add.NarrowValue.Visible"] = "Nothing to fill in",
+        ["Add.NarrowMatches"] = "names {0} element(s) with this and the rows above",
+        ["Add.NarrowNothing"] = "found nothing on the page with this and the rows above",
+        ["Add.NarrowAdd"] = "Add a condition",
+        ["Add.NarrowAddHint"] = "Adds one more thing the element has to be like. Every row has to "
+            + "hold at once, so a row that makes the count go up is one the element does not meet.",
+        ["Add.NarrowEmpty"] = "With nothing here the selector alone finds the element, which is "
+            + "what every step did before this field existed.",
+        ["Add.NarrowRemove"] = "Remove",
+        ["Add.NarrowRemoveHint"] = "Takes this condition out of the list.",
+        ["Add.NarrowPick"] = "Pick",
+        ["Add.NarrowPickHint"] = "Points at the page and fills this row in with what it takes off "
+            + "the element: the words it shows for a row about text, and one of the ways of naming "
+            + "it for a row about a container or about an element it holds.",
+        ["Add.NarrowPickNoWords"] = "The element picked shows no writing, so there is nothing to "
+            + "fill in here. Type what the element should contain, or narrow the page down another "
+            + "way.",
+        ["Add.NarrowLook"] = "Look",
+        ["Add.NarrowLookHint"] = "Counts what the page holds with this condition and the ones above "
+            + "it, and outlines the element the step would act on. Nothing is clicked.",
+
         // A field that sends something is tested by sending it, which is a thing to be told
         // rather than surprised by.
         ["Add.TestField"] = "Test",
@@ -504,6 +540,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.KeyCount"] = "{0} press(es)",
         ["Editor.PictureCount"] = "{0} picture(s)",
         ["Editor.ReturnCount"] = "{0} result(s)",
+        ["Editor.NarrowCount"] = "{0} condition(s)",
         ["Editor.StepIdHint"] = "Step name {0}: a result variable and a condition point at this "
             + "step by it.",
         ["Editor.Unfold"] = "Show the steps inside",
@@ -1727,6 +1764,36 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.BrowserWay.AriaLabel"] = "aria 名字",
         ["Add.BrowserWay.Path"] = "标签路径",
 
+        // 页面上的元素除了写法之外还要满足什么。一行是一条限定与它要看的东西，可选的都是页面自己
+        // 就回答得了的问题，所以填表的人是这些问题里挑一个，而不是学一套我们自己的匹配规则。
+        ["Add.Narrow.Inside"] = "在…里面",
+        ["Add.Narrow.HasText"] = "文字里含有…",
+        ["Add.Narrow.HasNotText"] = "文字里不含…",
+        ["Add.Narrow.Has"] = "里面有…",
+        ["Add.Narrow.HasNot"] = "里面没有…",
+        ["Add.Narrow.Visible"] = "只要看得见的",
+        ["Add.NarrowValue.Inside"] = "写容器的选择器",
+        ["Add.NarrowValue.HasText"] = "写要含有的文字",
+        ["Add.NarrowValue.HasNotText"] = "写不能含有的文字",
+        ["Add.NarrowValue.Has"] = "写要含有的元素的选择器",
+        ["Add.NarrowValue.HasNot"] = "写不能含有的元素的选择器",
+        ["Add.NarrowValue.Visible"] = "不用填",
+        ["Add.NarrowMatches"] = "连上面几条一起匹配 {0} 处",
+        ["Add.NarrowNothing"] = "连上面几条在页面上一条也没匹配到",
+        ["Add.NarrowAdd"] = "加上一条限定",
+        ["Add.NarrowAddHint"] = "再加一条元素要满足的限定。所有限定同时成立，所以加完处数变多，就说明这个"
+            + "元素不满足它。",
+        ["Add.NarrowEmpty"] = "这里什么都不填时，只用选择器认元素，与没有这一格时完全一样。",
+        ["Add.NarrowRemove"] = "删除",
+        ["Add.NarrowRemoveHint"] = "把这条限定从列表里删掉。",
+        ["Add.NarrowPick"] = "拾取",
+        ["Add.NarrowPickHint"] = "在页面上点一下元素，把这一行填上：认文字的行填它显示的文字，认元素的"
+            + "行填它的选择器。",
+        ["Add.NarrowPickNoWords"] = "点到的元素上没有文字可填。请自己写要含有的文字，或换一种限定。",
+        ["Add.NarrowLook"] = "看",
+        ["Add.NarrowLookHint"] = "按这一条与它上面的限定在页面上数一次，并框出这一步会认到的那个元素。"
+            + "只框不点。",
+
         // 会真的发出去的东西，测试就是真的发一次——这件事要说清楚，不能让人措手不及。
         ["Add.TestField"] = "测试",
         ["Add.TestKeyHint"] = "真的按一次这个键，按这一步自己的输入方式来（前台 / 后台消息 / "
@@ -1792,6 +1859,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.KeyCount"] = "{0} 个组合",
         ["Editor.PictureCount"] = "{0} 张图",
         ["Editor.ReturnCount"] = "{0} 项结果",
+        ["Editor.NarrowCount"] = "{0} 条限定",
         ["Editor.StepIdHint"] = "步骤名称 {0}：结果变量和条件用它指这一步。",
         ["Editor.Unfold"] = "展开里面的步骤",
         ["Editor.AddInside"] = "在这一块的末尾添加子步骤",

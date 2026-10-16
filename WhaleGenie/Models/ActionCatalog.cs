@@ -3154,6 +3154,7 @@ public static class ActionCatalog
                     TargetHint + "Where the element is; Playwright selectors read like CSS, and also "
                     + "like text: \"text=Sign in\" names the first thing showing that text.",
                     acceptsVariables: true),
+                Narrowing(),
                 ClickWay(),
                 Force(),
                 PageMatchIndex("clicks"),
@@ -3171,6 +3172,7 @@ public static class ActionCatalog
                 Text("target", "Selector", "#search",
                     TargetHint + "Which element to type into, named the way the click action names "
                     + "one.", acceptsVariables: true),
+                Narrowing(),
                 Text("text", "Text", "$query",
                     "What to type. Read as one value, so a macro can type what it just read "
                     + "somewhere else; a variable or an expression may stand for it.",
@@ -3198,6 +3200,7 @@ public static class ActionCatalog
                     TargetHint + "Which element to read, named the way the click action names one. "
                     + "Every line left out, which is the default, reads the whole page.",
                     required: false, acceptsVariables: true),
+                Narrowing(),
                 PageWhat(),
                 PageAttribute(),
                 PageMatchIndex("reads"),
@@ -3223,6 +3226,7 @@ public static class ActionCatalog
                     TargetHint + "Which elements to read, named the way the click action names one. "
                     + "Every element the selector finds is read, so a selector that finds one "
                     + "element reads one.", acceptsVariables: true),
+                Narrowing(),
                 PageWhat(),
                 PageAttribute(),
                 PageStartIndex(),
@@ -3251,6 +3255,7 @@ public static class ActionCatalog
                     TargetHint + "Which table to read, named the way the click action names one. "
                     + "The default is table, the page's own table element.",
                     acceptsVariables: true),
+                Narrowing(),
                 PageMatchIndex("reads"),
                 PageItems("maxRows", "Most rows", "rows"),
                 Returns(),
@@ -3287,6 +3292,7 @@ public static class ActionCatalog
                 Text("target", "Selector", "#country",
                     TargetHint + "Which dropdown to pick from, named the way the click action names "
                     + "one.", acceptsVariables: true),
+                Narrowing(),
                 Text("value", "Option", "China",
                     "Which option to pick: the one whose value or visible text is this, or, with "
                     + "\"By number\" below, the number of the option counted from the top starting "
@@ -3314,6 +3320,7 @@ public static class ActionCatalog
                 Text("target", "Selector", "#agree",
                     TargetHint + "Which box to leave in that state, named the way the click action "
                     + "names one.", acceptsVariables: true),
+                Narrowing(),
                 Toggle("checked", "Ticked", true,
                     "Whether the box should end up ticked. Ticked by default; turn it off to untick "
                     + "a box that is already ticked. Asking for the state it is already in changes "
@@ -3335,6 +3342,7 @@ public static class ActionCatalog
                     TargetHint + "Which element to move over, named the way the click action names "
                     + "one. This is what makes a menu, a tooltip or a row of buttons appear; nothing "
                     + "is clicked.", acceptsVariables: true),
+                Narrowing(),
                 PageMatchIndex("moves over"),
             ],
         },
@@ -3351,6 +3359,7 @@ public static class ActionCatalog
                     TargetHint + "Which element takes the focus before the key is sent, named the "
                     + "way the click action names one. Every line left out, which is the default, "
                     + "sends the key to the page itself.", required: false, acceptsVariables: true),
+                Narrowing(),
                 KeyChord("key", "Key",
                     "Which key to send: one of the names the keyboard picker offers (Enter, Esc, "
                     + "F5, Down), or several keys joined with \"+\" for one chord (Ctrl+S). A name "
@@ -3372,6 +3381,7 @@ public static class ActionCatalog
                     + "one. A page that fetches what it shows needs this rather than a fixed pause: "
                     + "the wait ends the moment the element is in the state asked for.",
                     acceptsVariables: true),
+                Narrowing(),
                 Choice("state", "Wait for it to", ["visible", "hidden", "attached", "detached"],
                     "visible",
                     "Which state to wait for. Visible is what a step about to click something "
@@ -3427,6 +3437,7 @@ public static class ActionCatalog
                     + "names one; only the way of scrolling below needs it. Every line left out, "
                     + "which is the default, moves the page itself by one screen.",
                     required: false, acceptsVariables: true),
+                Narrowing(),
                 ScrollStyle(),
                 PageMatchIndex("brings into view"),
             ],
@@ -3453,6 +3464,7 @@ public static class ActionCatalog
                     + "default, waits for the next download the page starts by itself, which is what "
                     + "a page that decides for itself that something is a file needs.",
                     required: false, acceptsVariables: true),
+                Narrowing(),
                 FilePath("folder", "Folder", "报告",
                     "Which folder to save the file into; leaving it out is the folder the macro file "
                     + "is in. Read as one value, so a variable or an expression may stand for it. A "
@@ -3536,6 +3548,7 @@ public static class ActionCatalog
                 Text("target", "Selector", "input[type=file]",
                     TargetHint + "Which file input to hand them to, named the way the click action "
                     + "names one.", acceptsVariables: true),
+                Narrowing(),
                 Multiline("files", "Files",
                     "One path to a file, one to a line; every line is a file, so a blank line is "
                     + "skipped. A relative path is read from the folder the macro file is in, the "
@@ -4039,6 +4052,7 @@ public static class ActionCatalog
                     TargetHint + "Which element of the page the answer is about, named the way the "
                     + "click action names one; the answer is whether the page holds one like that "
                     + "right now, so nothing is waited for.", acceptsVariables: true),
+                Narrowing(),
                 ElementState(),
                 PageMatchIndex("asks about"),
             ],
@@ -4055,6 +4069,7 @@ public static class ActionCatalog
                     TargetHint + "Which element of the page the answer is about, named the way the "
                     + "click action names one; the answer is whether the page holds one like that "
                     + "right now, so nothing is waited for.", acceptsVariables: true),
+                Narrowing(),
                 ElementState(),
                 PageMatchIndex("asks about"),
             ],
@@ -5010,6 +5025,35 @@ public static class ActionCatalog
             + "order they appear on the page. The default is 1; asking for more than the page holds "
             + "is treated as finding nothing.",
             min: 1, max: 200, advanced: true);
+
+    /// <summary>
+    /// What a page step adds when a selector names more than the element it means: one row per thing
+    /// the right element has to be like, all of them holding at once. It answers the same question
+    /// the selector answers, asked the second time — five buttons that say the same words are told
+    /// apart by what the one that is meant says, which is not something a person can work out by
+    /// looking at the page and counting.
+    /// </summary>
+    /// <remarks>
+    /// The ways offered are the ones the browser engine itself puts on an element, so a step is
+    /// narrowed the way the page's own programming narrows it, and nothing here invents a second
+    /// way of matching. Nothing filled in is what the field means by default, and it is what every
+    /// step written before this field existed already did.
+    /// </remarks>
+    private static ActionParameter Narrowing()
+        => new()
+        {
+            Name = "narrow",
+            Label = "Narrow down",
+            Kind = ActionParameterKind.Narrow,
+            Required = false,
+            Hint = "What else the right element has to be like, one row each, all of them holding "
+                + "at once. This is what tells one of several elements that a selector names from "
+                + "the others: the text it writes, the words it contains, an element it holds, "
+                + "where it sits, or being one a person could see. A value may name a variable, "
+                + "which is filled in when the step runs. A row that says nothing is left out; "
+                + "with no rows at all the selector alone is what finds the element, which is what "
+                + "every step did before this field existed.",
+        };
 
     /// <summary>
     /// Where a page action that reads a list starts. It is the same question the other element
