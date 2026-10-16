@@ -101,7 +101,7 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
         => new(ExpressionItemKind.Call, changed)
         {
             Name = function.Name,
-            Signature = function.Signature,
+            Heading = ExpressionText.Heading(function),
             Parameters = function.Parameters,
             MinArguments = function.MinArguments,
             MaxArguments = function.MaxArguments,
@@ -123,8 +123,11 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
     /// <summary>The operator, the function or the word, for the pieces that are written as one.</summary>
     public string Name { get; private set; } = string.Empty;
 
-    /// <summary>How a function is written, shown when the pointer rests on its line.</summary>
-    public string Signature { get; private set; } = string.Empty;
+    /// <summary>
+    /// What a call is called on its line: the name in the reader's own language with the name the
+    /// code calls it by beside it, which is the same thing the button it came from says.
+    /// </summary>
+    public string Heading { get; private set; } = string.Empty;
 
     /// <summary>The arguments a function takes, which is what its lines are named after.</summary>
     public IReadOnlyList<ExpressionParameter> Parameters { get; private set; } = [];
@@ -224,7 +227,7 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
         ExpressionItemKind.Constant => Name,
         ExpressionItemKind.Unary => Name == "not" ? "not" : "−x",
         ExpressionItemKind.Binary => Glyph(Name),
-        ExpressionItemKind.Call => Signature,
+        ExpressionItemKind.Call => Heading,
         ExpressionItemKind.List => Strings.Get("ExprBuilder.Tree.List"),
         _ => string.Empty,
     };

@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Localization;
@@ -19,6 +21,76 @@ public static class ExpressionText
     /// </summary>
     public static string ParameterLabel(ExpressionParameter parameter)
         => Strings.Get($"Expr.Arg.{parameter.Name}.label", parameter.Label);
+
+    /// <summary>
+    /// True while the interface is Chinese, which is where the names written below belong: an
+    /// English reader has the code names, and a Chinese name beside them would be a word they have
+    /// no use for.
+    /// </summary>
+    public static bool InChinese => Strings.Current.Language == Language.Chinese;
+
+    /// <summary>
+    /// What a function is called in Chinese, which is the name a reader who does not have the code
+    /// name by heart reaches for. Chinese is asked for by name rather than through the language the
+    /// interface is in: the manual carries these names as well, and it is Chinese whatever the
+    /// interface is set to.
+    /// </summary>
+    public static string ChineseName(ExpressionFunction function)
+        => Chinese($"Expr.FnName.{function.Name}", function.Name);
+
+    /// <summary>
+    /// What a function is called on a button or on its line: the Chinese name with the name the code
+    /// calls it by beside it, so a reader who has met either one of them recognises the other. An
+    /// English interface shows the code name and nothing else.
+    /// </summary>
+    public static string Heading(ExpressionFunction function)
+    {
+        var named = ChineseName(function);
+        return InChinese && named != function.Name
+            ? named + " (" + function.Name + ")"
+            : function.Name;
+    }
+
+    /// <summary>
+    /// How a function is written with every argument named in Chinese: the English signature with
+    /// the function name and each argument name replaced, and the brackets and dots left exactly
+    /// where they are. The shape is therefore written once — it is the English signature that says
+    /// how many arguments there are and which of them may be left out.
+    /// </summary>
+    public static string ChineseSignature(ExpressionFunction function)
+    {
+        var open = function.Signature.IndexOf('(');
+        var close = function.Signature.LastIndexOf(')');
+        if (open < 0 || close <= open)
+        {
+            return ChineseName(function);
+        }
+
+        var parts = function.Signature[(open + 1)..close].Split(',').Select(part =>
+        {
+            // The brackets say an argument may be left out and the dots say more of the same may
+            // follow; neither is part of the name, so both stay where the signature puts them.
+            var name = part.Replace("[", string.Empty, StringComparison.Ordinal)
+                .Replace("]", string.Empty, StringComparison.Ordinal)
+                .Replace(".", string.Empty, StringComparison.Ordinal)
+                .Trim();
+            var parameter = function.Parameters.FirstOrDefault(
+                one => string.Equals(one.Name, name, StringComparison.OrdinalIgnoreCase));
+            return parameter is null
+                ? part
+                : part.Replace(name, ChineseLabel(parameter), StringComparison.Ordinal);
+        });
+
+        return ChineseName(function) + "(" + string.Join(",", parts) + ")";
+    }
+
+    /// <summary>The Chinese text for a key, whatever language the interface is in.</summary>
+    private static string Chinese(string key, string fallback)
+        => Strings.Chinese.TryGetValue(key, out var text) ? text : fallback;
+
+    /// <summary>What an argument is called in Chinese.</summary>
+    private static string ChineseLabel(ExpressionParameter parameter)
+        => Chinese($"Expr.Arg.{parameter.Name}.label", parameter.Label);
 
     /// <summary>
     /// The name the signature spells out and one line saying what goes in it, which is what a

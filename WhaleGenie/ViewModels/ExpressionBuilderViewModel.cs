@@ -1004,8 +1004,10 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Narrows the list to the functions whose name or signature holds what was typed. Nothing
-    /// typed is the whole table, which is what the dialog opens with.
+    /// Narrows the list to the functions whose name holds what was typed — in either language, so a
+    /// reader who knows the function as 截取文本 finds it by that — or whose signature holds it, so
+    /// a piece of the way it is written works too. Nothing typed is the whole table, which is what
+    /// the dialog opens with.
     /// </summary>
     private void Refill()
     {
@@ -1017,7 +1019,9 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
             group.Functions = [.. group.Functions.Where(function =>
                 wanted.Length == 0
                 || function.Name.Contains(wanted, StringComparison.OrdinalIgnoreCase)
-                || function.Signature.Contains(wanted, StringComparison.OrdinalIgnoreCase))];
+                || function.Signature.Contains(wanted, StringComparison.OrdinalIgnoreCase)
+                || function.Heading.Contains(wanted, StringComparison.OrdinalIgnoreCase)
+                || function.ChineseSignature.Contains(wanted, StringComparison.OrdinalIgnoreCase))];
             if (group.Functions.Count > 0)
             {
                 Functions.Add(group);
@@ -1116,9 +1120,10 @@ public sealed class ExpressionFunctionGroup(string group, string header)
 
 /// <summary>
 /// One function button: what it is called, how it is written, and the text one click puts in the
-/// formula. The signature is what the button shows, because that is the piece of code being
-/// written; the sentence that says what the function does is on the tooltip, where it does not take
-/// up room on the wall of buttons.
+/// formula. The button shows the name in the reader's own language with the name the code calls it
+/// by beside it — a reader who has met either one recognises the other — and how the call is
+/// written under it in that same language; the sentence saying what the function does is on the
+/// tooltip, where it does not take up room on the wall of buttons.
 /// </summary>
 public sealed class ExpressionFunctionChoice
 {
@@ -1128,6 +1133,11 @@ public sealed class ExpressionFunctionChoice
         Name = function.Name;
         Signature = function.Signature;
         Insert = function.Name + "(";
+        Heading = ExpressionText.Heading(function);
+        ChineseSignature = ExpressionText.ChineseSignature(function);
+        // The second line is the very same call said in Chinese, so it belongs on the button
+        // exactly when the name above it is Chinese as well.
+        ShowsSignature = Heading != Name;
         // The Chinese line lives in the text table and the English one beside the function in the
         // engine, the way the built-in variables are written: one sentence per language, no copies.
         Hint = Strings.Get($"Expr.Fn.{function.Name}", function.Description);
@@ -1141,6 +1151,15 @@ public sealed class ExpressionFunctionChoice
 
     /// <summary>How it is written, with the arguments it takes.</summary>
     public string Signature { get; }
+
+    /// <summary>What the button says: the name in the reader's own language, the code name beside it.</summary>
+    public string Heading { get; }
+
+    /// <summary>The same call, with every argument named in the reader's own language.</summary>
+    public string ChineseSignature { get; }
+
+    /// <summary>True when the reader's language has a name of its own, so the second line is worth reading.</summary>
+    public bool ShowsSignature { get; }
 
     /// <summary>What one click leaves in the expression, with the caret after the bracket.</summary>
     public string Insert { get; }

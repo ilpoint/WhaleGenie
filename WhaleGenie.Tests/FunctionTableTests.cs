@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
@@ -28,9 +31,34 @@ public class FunctionTableTests
         // is the only place a function is explained to whoever is writing a macro.
         foreach (Match row in Rows())
         {
-            Assert.True(row.Groups[2].Value.Trim().Length > 0,
+            Assert.True(row.Groups[3].Value.Trim().Length > 0,
                 $"{row.Groups[1].Value} has no line saying what it does");
         }
+    }
+
+    /// <summary>
+    /// The manual's middle column is the signature said in Chinese, which is what the editor puts
+    /// on the second line of a function's button. It is not written twice: the column is compared
+    /// with what the editor makes of the same function, so the manual cannot drift away from the
+    /// names the arguments go by.
+    /// </summary>
+    [Fact]
+    public void The_manual_writes_the_signature_in_chinese_the_way_the_editor_does()
+    {
+        var wrong = new List<string>();
+        foreach (Match row in Rows())
+        {
+            var function = Expression.Functions.First(
+                one => string.Equals(one.Name, row.Groups[1].Value, StringComparison.OrdinalIgnoreCase));
+            var manual = row.Groups[2].Value.Trim();
+            var editor = ExpressionText.ChineseSignature(function);
+            if (!string.Equals(manual, editor, StringComparison.Ordinal))
+            {
+                wrong.Add($"{function.Name}: the manual says \"{manual}\" and the editor \"{editor}\"");
+            }
+        }
+
+        Assert.Empty(wrong);
     }
 
     /// <summary>
@@ -47,7 +75,7 @@ public class FunctionTableTests
         foreach (Match row in Rows())
         {
             var name = row.Groups[1].Value;
-            var manual = row.Groups[2].Value.Replace("`", string.Empty, StringComparison.Ordinal).Trim();
+            var manual = row.Groups[3].Value.Replace("`", string.Empty, StringComparison.Ordinal).Trim();
             if (!Strings.Chinese.TryGetValue($"Expr.Fn.{name}", out var table))
             {
                 wrong.Add($"{name} has no line in the text table");
@@ -86,6 +114,25 @@ public class FunctionTableTests
             .Order()
             .ToList();
         Assert.Empty(silent);
+    }
+
+    /// <summary>
+    /// Every function carries a Chinese name, which is what the button says beside the code name and
+    /// what a reader searches by. Adding one to the engine without its name — or deleting one and
+    /// leaving the name behind — is caught here rather than by a gap in the list of buttons.
+    /// </summary>
+    [Fact]
+    public void Every_function_has_a_name_of_its_own_and_no_name_is_left_over()
+    {
+        var wanted = Expression.Functions
+            .Select(function => $"Expr.FnName.{function.Name}")
+            .ToHashSet(StringComparer.Ordinal);
+        var held = Strings.Chinese.Keys
+            .Where(key => key.StartsWith("Expr.FnName.", StringComparison.Ordinal))
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Empty(wanted.Except(held).Order());
+        Assert.Empty(held.Except(wanted).Order());
     }
 
     /// <summary>The function names the manual's table spells out.</summary>
@@ -152,7 +199,7 @@ public class FunctionTableTests
         var next = manual.IndexOf("\n## ", start + 1, StringComparison.Ordinal);
         var section = next < 0 ? manual[start..] : manual[start..next];
 
-        return Regex.Matches(section, @"^\| `([A-Za-z]+)\([^`]*\)` \| (.+) \|$",
+        return Regex.Matches(section, @"^\| `([A-Za-z]+)\([^`]*\)` \| (.+?) \| (.+) \|$",
             RegexOptions.Multiline);
     }
 

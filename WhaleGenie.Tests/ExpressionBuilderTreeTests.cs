@@ -154,7 +154,8 @@ public class ExpressionBuilderTreeTests
             builder.ChooseFunction(Function(builder, "upper"));
 
             Assert.Equal("upper($name)", builder.Preview);
-            Assert.Equal("upper(text)", builder.Rows[0].Token);
+            Assert.Equal(ExpressionText.Heading(Function(builder, "upper").Function),
+                builder.Rows[0].Token);
 
             // Every argument says what it is called and what goes in it, which is what makes a
             // function something to read rather than something to memorise.
@@ -163,6 +164,22 @@ public class ExpressionBuilderTreeTests
             Assert.Equal(ExpressionText.ParameterLabel(parameter), argument.Label);
             Assert.Contains(parameter.Name, argument.LabelHint);
         });
+    }
+
+    /// <summary>
+    /// A line standing for a call says which function it is the same way the button that put it
+    /// there did: the name in the reader's own language, with the name the code calls it by beside
+    /// it, so a formula read back on the structure page is not a row of unfamiliar words.
+    /// </summary>
+    [Fact]
+    public void A_call_line_names_the_function_in_both_languages()
+    {
+        Ui.Run(() => InterfaceLanguage.InChinese(() =>
+        {
+            var builder = Builder("upper($a)", "a");
+
+            Assert.Equal("转大写 (upper)", builder.Rows[0].Token);
+        }));
     }
 
     [Fact]
@@ -414,7 +431,8 @@ public class ExpressionBuilderTreeTests
             builder.Drop(builder.Rows[2], payload);
 
             Assert.Equal("$a + upper(1)", builder.Preview);
-            Assert.Equal("upper(text)", builder.Rows[2].Token);
+            Assert.Equal(ExpressionText.Heading(Function(builder, "upper").Function),
+                builder.Rows[2].Token);
         });
     }
 

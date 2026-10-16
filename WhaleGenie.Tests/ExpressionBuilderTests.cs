@@ -159,6 +159,47 @@ public class ExpressionBuilderTests
         });
     }
 
+    /// <summary>
+    /// A reader who does not have the code names by heart reaches for the Chinese ones, so a button
+    /// says what the function is called in Chinese with the code name beside it, and under it the
+    /// very same call with every argument named in Chinese. What is written in the filter has to
+    /// answer to those names too: 截取文本 is the name someone who never met `substring` would use.
+    /// </summary>
+    [Fact]
+    public void A_function_button_says_the_name_and_how_it_is_written_in_chinese()
+    {
+        Ui.Run(() => InterfaceLanguage.InChinese(() =>
+        {
+            var viewModel = new ExpressionBuilderViewModel(string.Empty, []);
+
+            // Every function has a name of its own to show; none falls back to the code name alone.
+            Assert.All(viewModel.Functions.SelectMany(group => group.Functions), choice =>
+            {
+                Assert.True(choice.ShowsSignature, $"{choice.Name} has no name of its own");
+                Assert.Equal($"{ExpressionText.ChineseName(choice.Function)} ({choice.Name})",
+                    choice.Heading);
+            });
+
+            var substring = viewModel.Functions.SelectMany(group => group.Functions)
+                .First(choice => choice.Name == "substring");
+            Assert.Equal("截取文本 (substring)", substring.Heading);
+            Assert.Equal("截取文本(文本, 起点 [, 长度])", substring.ChineseSignature);
+
+            // Clicking one still writes the code, which is what the macro is made of.
+            Assert.Equal("substring(", substring.Insert);
+
+            viewModel.FunctionFilter = "截取";
+            var shown = viewModel.Functions.SelectMany(group => group.Functions)
+                .Select(choice => choice.Name).ToList();
+            Assert.Contains("substring", shown);
+            Assert.DoesNotContain("upper", shown);
+
+            viewModel.FunctionFilter = "向下取整";
+            Assert.Contains("floor", viewModel.Functions.SelectMany(group => group.Functions)
+                .Select(choice => choice.Name));
+        }));
+    }
+
     [Fact]
     public void Clicking_a_function_leaves_its_name_ready_for_its_arguments()
     {

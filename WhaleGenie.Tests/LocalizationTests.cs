@@ -31,7 +31,8 @@ public class LocalizationTests
         Assert.Empty(chinese.Except(english)
             .Where(key => !key.StartsWith("Variable.", StringComparison.Ordinal)
                 && !key.StartsWith("Expr.Fn.", StringComparison.Ordinal)
-                && !key.StartsWith("Expr.Arg.", StringComparison.Ordinal))
+                && !key.StartsWith("Expr.Arg.", StringComparison.Ordinal)
+                && !key.StartsWith("Expr.FnName.", StringComparison.Ordinal))
             .Order());
     }
 

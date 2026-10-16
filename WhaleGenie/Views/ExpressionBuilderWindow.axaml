@@ -66,6 +66,14 @@
             <Setter Property="Background" Value="#454545" />
         </Style>
 
+        <!-- How a call is written, under the name on a function button: smaller and quieter than
+             the name, because it is there to be recognised rather than read word by word. -->
+        <Style Selector="TextBlock.FnSignature">
+            <Setter Property="Foreground" Value="#9A9A9A" />
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+
         <!-- Which page of the builder is in front. The two read as a switch rather than as a pair
              of buttons, because the left half of the window changes the moment one is pressed. -->
         <Style Selector="Button.Tab">
@@ -380,9 +388,11 @@
                     <TextBlock Classes="FieldLabel" Margin="2,16,0,6"
                                Text="{Binding FunctionsHeader}" />
                     <!-- What the language can already do, so a formula is not written from memory. The
-                         button carries the signature, which is the piece of code being written, and the
-                         line saying what the function does is on the tooltip: names alone would leave
-                         trim, slice and substring looking like the same thing. -->
+                         button says what the function is called in the reader's own language with the
+                         name the code calls it by beside it, and under it how the call is written with
+                         every argument named the same way; the line saying what the function does is
+                         on the tooltip: names alone would leave trim, slice and substring looking
+                         like the same thing. -->
                     <TextBox Classes="ExprInput" Margin="0,0,0,8"
                              PlaceholderText="{Binding FunctionsFilterHint}"
                              Text="{Binding FunctionFilter}" />
@@ -400,9 +410,16 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:ExpressionFunctionChoice">
                                                 <Button Classes="OpButton" Margin="0,6,6,0"
-                                                        Content="{Binding Signature}"
                                                         ToolTip.Tip="{Binding Hint}"
-                                                        Click="OnInsertFunction" />
+                                                        Click="OnInsertFunction">
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding Heading}"
+                                                                   HorizontalAlignment="Center" />
+                                                        <TextBlock Classes="FnSignature"
+                                                                   Text="{Binding ChineseSignature}"
+                                                                   IsVisible="{Binding ShowsSignature}" />
+                                                    </StackPanel>
+                                                </Button>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
