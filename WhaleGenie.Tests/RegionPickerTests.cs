@@ -105,8 +105,19 @@ public class RegionPickerTests
             Assert.Equal((window.Width, window.Height),
                 ((double)machine.Took.Width, (double)machine.Took.Height));
 
-            // Nothing drawn yet is nothing to look through, so the whole desk is pushed back.
-            Assert.Equal(window.Height, window.FindControl<Border>("DimTop")!.Height, 3);
+            // Nothing drawn yet: the desk is the desk, left exactly as it is. What is being looked
+            // for is found on it first, and a screen that is already pushed back is one the pointer
+            // has to be hunted for on.
+            foreach (var band in Bands)
+            {
+                Assert.Equal(0d, window.FindControl<Border>(band)!.Height);
+            }
+
+            // The pointer is the ordinary one as well: the system's crosshair is a plain black one
+            // that disappears over a dark picture.
+            window.MouseMove(new Point(500, 400));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Null(window.Cursor);
 
             window.MouseDown(new Point(10, 20), MouseButton.Left);
             window.MouseMove(new Point(40, 60));
@@ -126,6 +137,11 @@ public class RegionPickerTests
             Assert.True(taken.IsCompleted);
         });
     }
+
+    /// <summary>
+    /// The bands that push the desk back, one per side of the rectangle.
+    /// </summary>
+    private static readonly string[] Bands = ["DimTop", "DimBottom", "DimLeft", "DimRight"];
 
     /// <summary>
     /// A desk of its own: it hands back a picture of whatever it was asked for, the way a real desk

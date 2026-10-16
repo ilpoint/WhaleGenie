@@ -11,8 +11,7 @@
         ShowInTaskbar="False"
         Topmost="True"
         WindowStartupLocation="Manual"
-        Background="Black"
-        Cursor="Cross">
+        Background="Black">
 
     <!-- The desk as it was when this opened, with everything outside the rectangle pushed back and
          the rectangle itself left alone. A window is not a hole in the screen: what is behind it

@@ -46,7 +46,6 @@ public partial class RegionPickerWindow : Window
         (0.5, 0), (0.5, 1), (0, 0.5), (1, 0.5),
     ];
 
-    private static readonly Cursor Crosshair = new(StandardCursorType.Cross);
     private static readonly Cursor MoveCursor = new(StandardCursorType.SizeAll);
     private static readonly Cursor WestEast = new(StandardCursorType.SizeWestEast);
     private static readonly Cursor NorthSouth = new(StandardCursorType.SizeNorthSouth);
@@ -464,7 +463,7 @@ public partial class RegionPickerWindow : Window
             }
         }
 
-        Cursor = Crosshair;
+        Cursor = CursorFor(HitTest(e.GetPosition(this)));
         Update();
     }
 
@@ -547,7 +546,13 @@ public partial class RegionPickerWindow : Window
         return rect.Contains(point) ? Grip.Move : Grip.None;
     }
 
-    private static Cursor CursorFor(Grip grip) => grip switch
+    /// <summary>
+    /// The pointer this draws with, or null to leave the ordinary one alone. Drawing a rectangle is
+    /// one of the things the ordinary pointer is for; the system's own crosshair, which is what a
+    /// picker like this usually reaches for, is a plain black one that disappears over a dark
+    /// picture — and a pointer that cannot be found is worse than a pointer that says nothing.
+    /// </summary>
+    private static Cursor? CursorFor(Grip grip) => grip switch
     {
         Grip.Move => MoveCursor,
         Grip.West or Grip.East => WestEast,
@@ -556,7 +561,7 @@ public partial class RegionPickerWindow : Window
         Grip.NorthEast => NorthEastCursor,
         Grip.SouthWest => SouthWestCursor,
         Grip.SouthEast => SouthEastCursor,
-        _ => Crosshair,
+        _ => null,
     };
 
     /// <summary>Moves the whole rectangle so the place it was grabbed stays under the pointer.</summary>
@@ -632,7 +637,9 @@ public partial class RegionPickerWindow : Window
             }
         }
 
-        PushBack(big ? OnWindow(region) : null);
+        // The desk is pushed back once there is a rectangle to leave alone, and not before: with
+        // nothing drawn the screen is the screen, which is what the user is looking for a place on.
+        PushBack(Picked is { } drawn ? OnWindow(drawn) : null);
 
         _sizeText.Text = big
             ? Strings.Format("Region.Size", region.X, region.Y, region.Width, region.Height)
@@ -650,8 +657,8 @@ public partial class RegionPickerWindow : Window
 
     /// <summary>
     /// Pushes back everything outside <paramref name="hole"/>, which is the part of the desk being
-    /// looked at, with a band on each of its four sides. Nothing drawn yet is nothing to look
-    /// through, and the whole desk goes back.
+    /// looked at, with a band on each of its four sides. No rectangle at all is nothing to look
+    /// through, and then nothing is pushed back either.
     /// </summary>
     private void PushBack(Rect? hole)
     {
@@ -662,10 +669,11 @@ public partial class RegionPickerWindow : Window
 
         if (hole is not { } rect)
         {
-            Lay(_dim[0], 0, 0, Width, Height);
-            Lay(_dim[1], 0, 0, 0, 0);
-            Lay(_dim[2], 0, 0, 0, 0);
-            Lay(_dim[3], 0, 0, 0, 0);
+            foreach (var band in _dim)
+            {
+                Lay(band, 0, 0, 0, 0);
+            }
+
             return;
         }
 
