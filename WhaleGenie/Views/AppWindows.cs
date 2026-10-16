@@ -43,6 +43,10 @@ internal sealed class AppWindows : IDisposable
     {
         var aside = new AppWindows(front);
 
+        // Who is on the screen is settled before anyone goes: taking a window off the screen takes
+        // the windows it owns with it, so by the time this loop reached such a window it would
+        // already be gone, would not be written down, and nothing would bring it back — the window
+        // a step is written in is owned by the editor and would vanish exactly that way.
         foreach (var window in windows)
         {
             // A window that is not on screen is left alone: the main window lives in the
@@ -56,7 +60,11 @@ internal sealed class AppWindows : IDisposable
             var away = new Away(window, window.WindowState);
             window.Closed += away.Gone;
             aside._away.Add(away);
-            window.Hide();
+        }
+
+        foreach (var away in aside._away)
+        {
+            away.Take();
         }
 
         return aside;
@@ -116,6 +124,13 @@ internal sealed class AppWindows : IDisposable
         public bool Closed => _closed;
 
         public void Gone(object? sender, EventArgs e) => _closed = true;
+
+        /// <summary>
+        /// Takes the window off the screen. One that came off with its owner is hidden again here,
+        /// which costs nothing and is what leaves Avalonia agreeing that it is hidden — it is the
+        /// showing afterwards that has to find it that way.
+        /// </summary>
+        public void Take() => Window.Hide();
 
         /// <summary>
         /// Shows the window again in the state it was in. One that was closed while it was away is

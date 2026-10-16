@@ -74,6 +74,44 @@ public class PickerAsideTests
     }
 
     [Fact]
+    public void A_window_its_owner_takes_along_comes_back_as_well()
+    {
+        Ui.Run(() =>
+        {
+            var editor = OnScreen(new Window());
+            var add = new Window();
+            add.Show(editor);
+            Dispatcher.UIThread.RunJobs();
+
+            // Taking a window off the screen takes the windows it owns with it, so a window put
+            // away here is usually off the screen before its own turn comes round. Which windows
+            // are on the screen has to be settled before any of them goes: a window that came off
+            // with its owner and was read afterwards would never be written down, and nothing
+            // would bring it back — the window a step is written in is owned by the editor and
+            // goes missing exactly that way.
+            editor.PropertyChanged += (_, e) =>
+            {
+                if (e.Property == Visual.IsVisibleProperty && !editor.IsVisible)
+                {
+                    add.Hide();
+                }
+            };
+
+            using (AppWindows.StepAside([editor, add], add))
+            {
+                Assert.False(editor.IsVisible);
+                Assert.False(add.IsVisible);
+            }
+
+            Assert.True(editor.IsVisible);
+            Assert.True(add.IsVisible, "a window that went away with its owner was not brought back");
+
+            add.Close();
+            editor.Close();
+        });
+    }
+
+    [Fact]
     public void A_picker_shown_on_its_own_is_waited_for_until_it_closes()
     {
         var (visible, waiting, closed) = Ui.RunAsync(async () =>
