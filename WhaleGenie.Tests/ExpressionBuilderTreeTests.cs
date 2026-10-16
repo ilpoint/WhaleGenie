@@ -185,6 +185,23 @@ public class ExpressionBuilderTreeTests
     }
 
     /// <summary>
+    /// A leaf standing for one of WhaleGenie's own variables reads the way the wall's button does:
+    /// the Chinese name with the code name beside it, so a formula made by pointing at buttons can
+    /// be read back afterwards without knowing $sys.clipboard by heart.
+    /// </summary>
+    [Fact]
+    public void A_variable_leaf_names_what_whalegenie_provides_in_both_languages()
+    {
+        Ui.Run(() => InterfaceLanguage.InChinese(() =>
+        {
+            var builder = Builder("$sys.clipboard");
+
+            Assert.Equal("剪贴板 ($sys.clipboard)", builder.Rows[0].Token);
+            Assert.Equal("$sys.clipboard", builder.Preview);
+        }));
+    }
+
+    /// <summary>
     /// The lines under a function are the places it has, and each says in brackets what goes in it:
     /// a reader who does not know what <c>start</c> means still knows where 起始位置 goes, and the
     /// unnamed piece of code is one hover away for whoever does want it.

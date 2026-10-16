@@ -6,6 +6,7 @@ using Avalonia;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
+using WhaleGenie.Models;
 
 namespace WhaleGenie.ViewModels;
 
@@ -223,7 +224,7 @@ public sealed partial class ExpressionItemViewModel : ObservableObject
     /// <summary>What the line says, for the pieces that say it in words rather than by typing.</summary>
     public string Token => Kind switch
     {
-        ExpressionItemKind.Variable => "$" + Name,
+        ExpressionItemKind.Variable => VariableCatalog.Display(Name, true),
         ExpressionItemKind.Constant => Name,
         ExpressionItemKind.Unary => Name == "not" ? "not" : "−x",
         ExpressionItemKind.Binary => Glyph(Name),

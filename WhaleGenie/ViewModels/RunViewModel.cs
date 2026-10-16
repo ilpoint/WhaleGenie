@@ -239,7 +239,11 @@ public sealed record RunLineViewModel(string Time, LogLevel Level, Thickness Ind
 }
 
 /// <summary>One variable the run can see.</summary>
-public sealed record WatchedVariable(string Name, string Scope, string Value);
+public sealed record WatchedVariable(string Name, string Scope, string Value)
+{
+    /// <summary>How it is named on the panel: the Chinese name beside the code name where it has one.</summary>
+    public string Display => VariableCatalog.Display(Name, false);
+}
 
 /// <summary>Which half of the run-and-debug window is showing.</summary>
 public enum RunPage

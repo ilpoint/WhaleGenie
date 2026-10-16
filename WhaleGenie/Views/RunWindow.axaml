@@ -502,7 +502,7 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:WatchedVariable">
                                             <Grid ColumnDefinitions="150,60,*,Auto" Margin="0,0,0,3">
-                                                <TextBlock Text="{Binding Name}" FontSize="12" Foreground="#BFE3BF" />
+                                                <TextBlock Text="{Binding Display}" FontSize="12" Foreground="#BFE3BF" />
                                                 <TextBlock Grid.Column="1" Text="{Binding Scope}" FontSize="11.5"
                                                            Foreground="#D6C08A" />
                                                 <SelectableTextBlock Grid.Column="2" Text="{Binding Value}"
@@ -658,7 +658,7 @@
                                 <DataTemplate x:DataType="models:VariableDefinition">
                                     <Border Classes="VarRow">
                                         <Grid ColumnDefinitions="170,64,110,150,*,Auto">
-                                            <TextBlock Text="{Binding Name}" Foreground="#BFE3BF"
+                                            <TextBlock Text="{Binding Display}" Foreground="#BFE3BF"
                                                        FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" />
                                             <Border Grid.Column="1" Background="#333333" CornerRadius="3"
                                                     Padding="6,2" HorizontalAlignment="Left"
@@ -710,7 +710,7 @@
                                                 <DataTemplate x:DataType="models:VariableDefinition">
                                                     <Border Classes="VarRow">
                                                         <Grid ColumnDefinitions="230,110,*,Auto">
-                                                            <TextBlock Text="{Binding Name}" Foreground="#BFE3BF"
+                                                            <TextBlock Text="{Binding Display}" Foreground="#BFE3BF"
                                                                        FontFamily="Consolas" FontSize="12"
                                                                        TextWrapping="Wrap" />
                                                             <SelectableTextBlock Grid.Column="1"
@@ -841,7 +841,7 @@
                                 <DataTemplate x:DataType="models:VariableDefinition">
                                     <Border Classes="VarRow">
                                         <Grid ColumnDefinitions="210,70,170,*,Auto">
-                                            <TextBlock Text="{Binding Name}" Foreground="#BFE3BF"
+                                            <TextBlock Text="{Binding Display}" Foreground="#BFE3BF"
                                                        FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" />
                                             <TextBlock Grid.Column="1" Text="{Binding LocalType}"
                                                        Foreground="#9A9A9A" FontSize="12" />

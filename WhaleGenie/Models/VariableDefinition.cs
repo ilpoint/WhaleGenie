@@ -61,6 +61,13 @@ public partial class VariableDefinition : ObservableObject
     /// <summary>Description in the current interface language.</summary>
     public string LocalDescription => Strings.Get($"Variable.{Name}.desc", Description);
 
+    /// <summary>
+    /// How this variable is named on screen: the Chinese name with the code name beside it where it
+    /// has one, and the name the macro writes otherwise. What is written into a field is still the
+    /// code name — this is what the tables that list variables show.
+    /// </summary>
+    public string Display => VariableCatalog.Display(Name, false);
+
     /// <summary>True when this variable holds a list of values rather than a single value.</summary>
     public bool IsList => Type is "list";
 

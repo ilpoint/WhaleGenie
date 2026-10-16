@@ -87,6 +87,27 @@ public class LocalizationTests
     }
 
     /// <summary>
+    /// Every variable WhaleGenie provides has a short Chinese name to go with the code name, and
+    /// nothing holds a name for a variable that is gone. A macro's own variables are left alone:
+    /// they are called whatever their author called them, and a Chinese name would be a name nobody
+    /// chose.
+    /// </summary>
+    [Fact]
+    public void Every_system_variable_is_named_in_chinese()
+    {
+        var wanted = VariableCatalog.SystemVariables
+            .Select(variable => $"Variable.{variable.Name}.label")
+            .ToHashSet(StringComparer.Ordinal);
+        var held = Strings.Chinese.Keys
+            .Where(key => key.StartsWith("Variable.", StringComparison.Ordinal)
+                && key.EndsWith(".label", StringComparison.Ordinal))
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Empty(wanted.Except(held).Order());
+        Assert.Empty(held.Except(wanted).Order());
+    }
+
+    /// <summary>
     /// The fields that ask how writing is compared offer the same ways, in the same order, and each
     /// way has a word in Chinese. One question with one list of answers is the whole point: "starts
     /// with" may not read as one thing in a search and another in a condition about writing.

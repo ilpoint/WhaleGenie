@@ -44,6 +44,13 @@ public sealed class VariableChoice
     /// <summary>What a field holds once this one is chosen.</summary>
     public string Token => "$" + Name;
 
+    /// <summary>
+    /// How the button names it: the Chinese name with the code name beside it where WhaleGenie gave
+    /// it one — 剪贴板 ($sys.clipboard) — and the name a formula writes otherwise. What choosing it
+    /// puts in the field is still <see cref="Token"/>; this is only what to read.
+    /// </summary>
+    public string Display => VariableCatalog.Display(Name, true);
+
     /// <summary>Which of the picker's buttons shows it.</summary>
     public VariableGroup Group => IsStepResult
         ? VariableGroup.StepResult
@@ -60,7 +67,7 @@ public sealed class VariableChoice
         get
         {
             var line = string.Join(" · ",
-                new[] { Token, Type, Strings.Get($"VarWall.Group.{Group}") }
+                new[] { Display, Type, Strings.Get($"VarWall.Group.{Group}") }
                     .Where(part => part.Length > 0));
             var said = string.Join("\n",
                 new[] { Description, Source }.Where(part => part.Length > 0));

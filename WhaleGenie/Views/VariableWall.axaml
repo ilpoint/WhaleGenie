@@ -74,7 +74,7 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:VariableChoice">
-                        <Button Classes="VarButton" Margin="0,0,6,6" Content="{Binding Token}"
+                        <Button Classes="VarButton" Margin="0,0,6,6" Content="{Binding Display}"
                                 Click="OnChoose"
                                 PointerEntered="OnLooking" PointerExited="OnUnlooked">
                             <ToolTip.Tip>

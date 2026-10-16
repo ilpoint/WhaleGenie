@@ -54,6 +54,35 @@ public class VariableWallTests
         Assert.False(wall.IsEmpty);
     }
 
+    /// <summary>
+    /// WhaleGenie's own variables are the ones whose names nobody chose, so those are the ones a
+    /// button says in Chinese with the code name beside it: 剪贴板 ($sys.clipboard). A macro's own
+    /// variables keep the name their author gave them, and what a button puts in a field is still
+    /// the code name either way.
+    /// </summary>
+    [Fact]
+    public void A_system_variable_is_named_in_both_languages()
+    {
+        Ui.Run(() => InterfaceLanguage.InChinese(() =>
+        {
+            var wall = new VariableWallViewModel(VariableChoices.For([]));
+            wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.System);
+            var clipboard = wall.Shown.First(choice => choice.Name == "sys.clipboard");
+
+            Assert.Equal("剪贴板 ($sys.clipboard)", clipboard.Display);
+            Assert.Equal("$sys.clipboard", clipboard.Token);
+
+            string? chosen = null;
+            wall.Chosen += token => chosen = token;
+            wall.ChooseCommand.Execute(clipboard);
+            Assert.Equal("$sys.clipboard", chosen);
+
+            // A macro's own variable has no second name to show.
+            var own = Local("rows");
+            Assert.Equal("$rows", own.Display);
+        }));
+    }
+
     [Fact]
     public void Each_button_narrows_the_wall_to_its_own_group()
     {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
 
@@ -60,6 +61,26 @@ public static class VariableCatalog
 
     private static readonly Dictionary<string, VariableDefinition> SystemByName =
         SystemVariables.ToDictionary(variable => variable.Name);
+
+    /// <summary>
+    /// What a variable is called in Chinese, or nothing where it goes by its own name. Only the ones
+    /// WhaleGenie ships have a word of their own: a macro's variables are called whatever their
+    /// author called them, and a Chinese name would be a name nobody chose.
+    /// </summary>
+    public static string Label(string name) => Strings.Get($"Variable.{name}.label", string.Empty);
+
+    /// <summary>
+    /// How a variable is named on screen: the Chinese name with the code name beside it where it has
+    /// one — 剪贴板 (sys.clipboard) — and the code name alone otherwise, so a reader who has met
+    /// either of the two recognises the other. <paramref name="token"/> writes the code name the way
+    /// a formula writes it, with the dollar sign, which is what the places a name goes into a field
+    /// have always shown.
+    /// </summary>
+    public static string Display(string name, bool token)
+    {
+        var written = token ? "$" + name : name;
+        return Label(name) is { Length: > 0 } chinese ? $"{chinese} ({written})" : written;
+    }
 
     /// <summary>Shared variables, managed from the Variable Center.</summary>
     public static ObservableCollection<VariableDefinition> Globals { get; } = [];

@@ -2757,6 +2757,35 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.WaitTimeout"] = "等待超时，{0} 始终没有成立。",
         ["Run.MissingCondition"] = "这一步没有填写要等待的条件。",
 
+        // What the built-in variables are called in Chinese: a short name to read, with the name a
+        // formula writes beside it. The English half is the code name itself, so only Chinese is
+        // written here; a macro's own variables have no name but the one their author gave them.
+        ["Variable.sys.loopIndex.label"] = "循环轮次",
+        ["Variable.sys.macroName.label"] = "宏名字",
+        ["Variable.sys.macroFolder.label"] = "宏文件夹",
+        ["Variable.sys.activeWindow.label"] = "前台窗口",
+        ["Variable.sys.activeProcess.label"] = "前台程序",
+        ["Variable.sys.date.label"] = "今天日期",
+        ["Variable.sys.dateLong.label"] = "今天日期与星期",
+        ["Variable.sys.time.label"] = "当前时间",
+        ["Variable.sys.dateTime.label"] = "当前日期时间",
+        ["Variable.sys.year.label"] = "本年",
+        ["Variable.sys.month.label"] = "本月",
+        ["Variable.sys.day.label"] = "今天几号",
+        ["Variable.sys.weekday.label"] = "今天星期几",
+        ["Variable.sys.hour.label"] = "当前小时",
+        ["Variable.sys.minute.label"] = "当前分钟",
+        ["Variable.sys.second.label"] = "当前秒",
+        ["Variable.sys.timestamp.label"] = "时间戳",
+        ["Variable.sys.mouseX.label"] = "鼠标 X",
+        ["Variable.sys.mouseY.label"] = "鼠标 Y",
+        ["Variable.sys.mouseColor.label"] = "鼠标位置颜色",
+        ["Variable.sys.screenWidth.label"] = "屏幕宽度",
+        ["Variable.sys.screenHeight.label"] = "屏幕高度",
+        ["Variable.sys.machineName.label"] = "计算机名",
+        ["Variable.sys.userName.label"] = "登录用户名",
+        ["Variable.sys.clipboard.label"] = "剪贴板",
+
         // system variable descriptions
         ["Variable.sys.loopIndex.desc"] = "当前循环体执行到第几轮，只在循环体内部可见。",
         ["Variable.sys.macroName.desc"] = "正在跑的这个宏的名字，子宏里读到的是子宏自己的名字。",
