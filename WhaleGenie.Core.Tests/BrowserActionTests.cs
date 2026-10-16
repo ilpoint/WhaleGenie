@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
@@ -140,6 +141,157 @@ public class BrowserActionTests : IDisposable
 
         var unknown = Assert.Throws<DeviceActionException>(() => device.Press(null, "Frobnicate", 5000));
         Assert.Equal("Run.UnknownPageKey", unknown.Key);
+    }
+
+    /// <summary>
+    /// The three ways of clicking reach the page as three different things, which is what a page
+    /// whose own menu only opens on the right button depends on.
+    /// </summary>
+    [RealBrowserFact]
+    public void A_double_click_a_right_click_and_a_forced_click_all_reach_the_page()
+    {
+        Site("<p id=log></p>"
+            + "<button id=row ondblclick=\"log.textContent += 'double '\">row</button>"
+            + "<button id=menu oncontextmenu=\"log.textContent += 'menu '; return false;\">menu</button>"
+            // A button that never stands still, which is what the driver refuses to click: it waits
+            // for the element to hold the same place twice in a row, and this one never does.
+            + "<style>@keyframes pulse { from { transform: scale(1); } to { transform: scale(1.04); } }</style>"
+            + "<button id=moving style=\"animation: pulse 80ms infinite alternate\""
+            + " onclick=\"log.textContent += 'moving '\">press</button>");
+
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        device.Click(At("#row"), ClickWay.Double, force: false, timeoutMs: 5000);
+        Assert.Equal("double", device.Text(At("#log"), PagePart.Text, "", 5000).Trim());
+
+        // The page's own menu opens on the right button, and the page's listener for it runs.
+        device.Click(At("#menu"), ClickWay.Right, force: false, timeoutMs: 5000);
+        Assert.Equal("double menu", device.Text(At("#log"), PagePart.Text, "", 5000).Trim());
+
+        // Never standing still, the same click is refused unless the step says to make it anyway,
+        // and then it reaches the button: this is what a page whose own buttons are always animating
+        // leaves an author no other way round of.
+        Assert.Throws<DeviceActionException>(
+            () => device.Click(At("#moving"), ClickWay.Single, force: false, timeoutMs: 1000));
+        device.Click(At("#moving"), ClickWay.Single, force: true, timeoutMs: 5000);
+        Assert.Equal("double menu moving", device.Text(At("#log"), PagePart.Text, "", 5000).Trim());
+    }
+
+    /// <summary>
+    /// Writing typed one key at a time is what a page that watches the typing itself sees: the field
+    /// hands every key on as it arrives, and a gap asked for between two of them is left.
+    /// </summary>
+    [RealBrowserFact]
+    public void Writing_typed_one_key_at_a_time_is_seen_key_by_key()
+    {
+        Site("<input id=search><p id=seen></p>"
+            + "<script>"
+            + "window.__gaps = []; window.__steps = [];"
+            + "const box = document.getElementById('search');"
+            + "box.addEventListener('input', () => {"
+            + "  window.__gaps.push(Date.now());"
+            + "  window.__steps.push(box.value); });"
+            + "</script>");
+
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        // Written in at once, the page sees one change to the field and never a key.
+        device.Fill(At("#search"), "换一整段", FillWay.Fill, 0, 5000);
+        Assert.Equal("1", device.Evaluate("() => String(window.__gaps.length)"));
+        Assert.Equal("换一整段", device.Text(At("#search"), PagePart.Value, "", 5000));
+
+        // Typed one key at a time, the page watches the field fill up one key at a time, and what it
+        // held before is replaced rather than added to.
+        device.Evaluate("() => { window.__gaps = []; window.__steps = []; return true; }");
+        device.Fill(At("#search"), "abc", FillWay.Type, 0, 5000);
+        Assert.Equal("""["a","ab","abc"]""", device.Evaluate("() => JSON.stringify(window.__steps)"));
+        Assert.Equal("abc", device.Text(At("#search"), PagePart.Value, "", 5000));
+
+        // And a gap asked for between two keys is one the page can measure.
+        device.Evaluate("() => { window.__gaps = []; return true; }");
+        device.Fill(At("#search"), "de", FillWay.Type, 150, 5000);
+        var apart = device.Evaluate(
+            "() => window.__gaps.length > 1 ? String(window.__gaps[1] - window.__gaps[0]) : '0'");
+        Assert.True(int.Parse(apart, CultureInfo.InvariantCulture) >= 100, apart);
+    }
+
+    /// <summary>The three ways of moving a page that name no element each change where it is showing.</summary>
+    [RealBrowserFact]
+    public void The_page_can_be_moved_by_a_screen_to_the_bottom_and_back_to_the_top()
+    {
+        // A page long enough to scroll, which is what a page that lists something always is.
+        Site("<div style=\"height:4000px\">长</div>");
+
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        device.Scroll(null, ScrollWay.Screen, 5000);
+        var one = InPage("window.scrollY", device);
+        Assert.True(one > 0, "one screen down left the page where it was");
+
+        device.Scroll(null, ScrollWay.Bottom, 5000);
+        var end = InPage("window.scrollY", device);
+        Assert.True(end > one, $"the bottom left the page at {end}, one screen was {one}");
+
+        device.Scroll(null, ScrollWay.Top, 5000);
+        Assert.Equal(0, InPage("window.scrollY", device));
+
+        // Scrolling to an element is the way that names one, and it is what makes a page that only
+        // loads something once it is nearly on screen load it.
+        File.WriteAllText(Path.Combine(_site, "long.html"),
+            "<html><body><div style=\"height:3000px\"></div><p id=mark>到了</p></body></html>");
+        device.GoTo(new Uri(Path.Combine(_site, "long.html")).AbsoluteUri, 5000);
+
+        device.Scroll(At("#mark"), ScrollWay.Element, 5000);
+        Assert.True(InPage("window.scrollY", device) > 0);
+
+        // The one way of scrolling that needs an element refuses a step that named none.
+        var nobody = Assert.Throws<DeviceActionException>(
+            () => device.Scroll(null, ScrollWay.Element, 5000));
+        Assert.Equal("Run.BrowserNoSelector", nobody.Key);
+    }
+
+    /// <summary>
+    /// A file the page hands over is saved where the step says, whether the step clicked something to
+    /// start it or waited for the page to start one by itself.
+    /// </summary>
+    [RealBrowserFact]
+    public void A_file_the_page_hands_over_is_saved_where_the_step_says()
+    {
+        Site("<button id=export onclick=\"exporting()\">导出</button>"
+            + "<script>"
+            + "window.exporting = () => {"
+            + "  const blob = new Blob(['金额,日期\\n100,3 日'], { type: 'text/csv' });"
+            + "  const link = document.createElement('a');"
+            + "  link.href = URL.createObjectURL(blob);"
+            + "  link.download = '订单.csv';"
+            + "  link.click(); };"
+            + "</script>");
+
+        var where = Path.Combine(_site, "下载");
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        // The step clicks the element that starts it, and the file is saved where it was told to.
+        var saved = device.Download(At("#export"), where, 5000);
+        Assert.Equal("订单.csv", saved.Name);
+        Assert.Equal(Path.Combine(where, "订单.csv"), saved.Path);
+        Assert.Contains("100,3 日", File.ReadAllText(saved.Path), StringComparison.Ordinal);
+
+        // A step that names no element waits for the next download the page starts by itself, and a
+        // file that arrived before anybody asked for it is handed over rather than thrown away.
+        device.Evaluate("() => { window.exporting(); return true; }");
+        var waited = device.Download(null, where, 5000);
+        Assert.Equal("订单.csv", waited.Name);
+        Assert.True(File.Exists(waited.Path));
+
+        // Nothing turning up within the step's own clock is the step running out of time.
+        device.Evaluate("() => { window.exporting = () => {}; return true; }");
+        var late = Assert.Throws<DeviceActionException>(
+            () => device.Download(At("#export"), where, 500));
+        Assert.Equal("Run.Timeout", late.Key);
     }
 
     /// <summary>
@@ -354,4 +506,11 @@ public class BrowserActionTests : IDisposable
 
     /// <summary>The element a step means when its field holds one selector and it wants the first match.</summary>
     private static PageTarget At(string selector) => PageTarget.Of(selector, 1);
+
+    /// <summary>A number the page worked out, read back out of it as a number rather than as text.</summary>
+    private static double InPage(string script, PlaywrightBrowserDevice device)
+        => double.TryParse(device.Evaluate($"() => String({script})"), NumberStyles.Float,
+            CultureInfo.InvariantCulture, out var value)
+            ? value
+            : 0;
 }

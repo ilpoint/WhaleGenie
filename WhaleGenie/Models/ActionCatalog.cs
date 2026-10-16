@@ -3143,6 +3143,8 @@ public static class ActionCatalog
                     TargetHint + "Where the element is; Playwright selectors read like CSS, and also "
                     + "like text: \"text=Sign in\" names the first thing showing that text.",
                     acceptsVariables: true),
+                ClickWay(),
+                Force(),
                 PageMatchIndex("clicks"),
             ],
         },
@@ -3162,6 +3164,8 @@ public static class ActionCatalog
                     "What to type. Read as one value, so a macro can type what it just read "
                     + "somewhere else; a variable or an expression may stand for it.",
                     acceptsFormula: true),
+                FillWay(),
+                TypeGap(),
                 PageMatchIndex("types into"),
             ],
         },
@@ -3396,6 +3400,56 @@ public static class ActionCatalog
             Parameters =
             [
                 LoadState(),
+            ],
+        },
+        new()
+        {
+            Key = "browser.scroll",
+            Category = ActionCategory.Browser,
+            DisplayName = "Scroll The Page",
+            Description = "Moves the page so that what is below the fold comes into view.",
+            StepTimeoutMs = 10000,
+            Parameters =
+            [
+                Text("target", "Selector", "",
+                    TargetHint + "Which element to bring into view, named the way the click action "
+                    + "names one; only the way of scrolling below needs it. Every line left out, "
+                    + "which is the default, moves the page itself by one screen.",
+                    required: false, acceptsVariables: true),
+                ScrollStyle(),
+                PageMatchIndex("brings into view"),
+            ],
+        },
+        new()
+        {
+            Key = "browser.download",
+            Returns =
+            [
+                Return("path", "Saved as", primary: true,
+                    hint: "Where the file was saved, written the way a path is read: a later step "
+                        + "given this saves beside it."),
+                Return("name", "File name", hint: "What the page called the file."),
+            ],
+            Category = ActionCategory.Browser,
+            DisplayName = "Download A File",
+            Description = "Saves the next file the page hands over.",
+            StepTimeoutMs = 15000,
+            Parameters =
+            [
+                Text("target", "Selector", "#export",
+                    TargetHint + "Which element starts the download, named the way the click action "
+                    + "names one; it is clicked for the step. Every line left out, which is the "
+                    + "default, waits for the next download the page starts by itself, which is what "
+                    + "a page that decides for itself that something is a file needs.",
+                    required: false, acceptsVariables: true),
+                FilePath("folder", "Folder", "报告",
+                    "Which folder to save the file into; leaving it out is the folder the macro file "
+                    + "is in. Read as one value, so a variable or an expression may stand for it. A "
+                    + "file of the same name that is already there is replaced, the way a save in any "
+                    + "other program does.",
+                    required: false, intent: PathIntent.Folder),
+                PageMatchIndex("clicks to start the download"),
+                Returns(),
             ],
         },
         new()
@@ -4981,6 +5035,73 @@ public static class ActionCatalog
             + "a wait, so the answer comes back at once; waiting for an element is a step of its own, "
             + "or a wait block around this condition.",
             labels: ["Be visible", "Not be visible", "Be on the page", "Be off the page"]);
+
+    /// <summary>
+    /// How a step clicks an element: once, twice, or with the right button.
+    /// </summary>
+    private static ActionParameter ClickWay()
+        => Choice("how", "Click", ["single", "double", "right"], "single",
+            "How the element is clicked. One click with the left button is what a step about to go "
+            + "somewhere or press something wants; two clicks in quick succession is how a page that "
+            + "opens something in place, such as a row that becomes a field, is worked; the right "
+            + "button is what opens a page's own menu, which is the only way to reach what is in it.",
+            labels: ["Once, left button", "Twice, left button", "Once, right button"]);
+
+    /// <summary>
+    /// Whether a click is made even through whatever stands in the way of it.
+    /// </summary>
+    /// <remarks>
+    /// It is tuning rather than part of what the step is: the answer almost every macro wants is the
+    /// one the box starts on, and turning it on is what a page that covers its own buttons with
+    /// something invisible needs.
+    /// </remarks>
+    private static ActionParameter Force()
+        => Toggle("force", "Click anyway", false,
+            "Click even when the element is covered, switched off or still moving, which is what a "
+            + "page that puts something invisible over its own buttons needs. Off by default, and "
+            + "worth leaving off: what the driver refuses to click is usually a step that would not "
+            + "have done what its author meant.",
+            advanced: true);
+
+    /// <summary>How writing gets into an element: written in at once, or typed one key at a time.</summary>
+    private static ActionParameter FillWay()
+        => Choice("how", "Fill", ["fill", "type"], "fill",
+            "How the writing gets into the element. Written in at once is quicker and is what a "
+            + "plain field needs; typed one key at a time is what a page that watches the typing "
+            + "itself needs, such as a search box that offers what matches as it goes or a form that "
+            + "checks each field as it is left.",
+            labels: ["All at once", "One key at a time"]);
+
+    /// <summary>
+    /// Which way a step moves the page. One list rather than four actions, because all four answer
+    /// one question: what is not on screen yet has to be brought there.
+    /// </summary>
+    private static ActionParameter ScrollStyle()
+        => Choice("how", "Scroll", ["screen", "element", "bottom", "top"], "screen",
+            "How the page is moved. One screen further down is the default, and is how a page that "
+            + "adds more as it is read is walked; bringing an element into view needs the selector "
+            + "above, and is what makes a page that only loads a picture once it is nearly on screen "
+            + "load it; to the bottom of what the page has is one jump, which a page that keeps "
+            + "adding more needs several of; back to the top is what a macro that reads a page from "
+            + "its start needs.",
+            labels:
+            [
+                "One screen down",
+                "To the element",
+                "To the bottom",
+                "Back to the top",
+            ]);
+
+    /// <summary>
+    /// How long a step leaves between two keys while typing. It is only asked for by the steps that
+    /// type one key at a time, and nothing between two keys is the answer almost every page wants.
+    /// </summary>
+    private static ActionParameter TypeGap()
+        => Number("intervalMs", "Gap between keys", 0,
+            "How long to leave between two keys, 0 to 10000 milliseconds; nothing, the default, which "
+            + "types as fast as the page can take it. It is only read while the writing is typed one "
+            + "key at a time, and it is worth raising for a page that ignores what arrives too quickly.",
+            min: 0, max: 10000, onlyWith: ["type"], onlyField: "how");
 
     /// <summary>
     /// How a reference picture is looked for, shared by the picture finders. It is one list because

@@ -8343,8 +8343,8 @@ public class DeviceActionTests
         Assert.Equal("Hello from the page", store.Local.Values["answer"].AsText());
         Assert.Contains("browserOpen edge https://example.com True (none)", devices.Calls);
         Assert.Contains("browserGoTo https://example.com/next 0", devices.Calls);
-        Assert.Contains("browserClick #go #1 0", devices.Calls);
-        Assert.Contains("browserFill #q #1 macro 0", devices.Calls);
+        Assert.Contains("browserClick #go #1 Single False 0", devices.Calls);
+        Assert.Contains("browserFill #q #1 macro Fill 0 0", devices.Calls);
         Assert.Contains("browserText #result #1 Text (none) 0", devices.Calls);
         Assert.Contains("browserClose", devices.Calls);
         Assert.False(devices.BrowserOpen);
@@ -8376,10 +8376,10 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Contains("browserClick [data-testid=\"row-2\"] #1 0", devices.Calls);
-        Assert.Contains("browserClick div > p:nth-of-type(2) #1 0", devices.Calls);
-        Assert.Contains("browserClick input[name=\"user\"] #1 0", devices.Calls);
-        Assert.Contains("browserClick frame=#frame >> #inner #1 0", devices.Calls);
+        Assert.Contains("browserClick [data-testid=\"row-2\"] #1 Single False 0", devices.Calls);
+        Assert.Contains("browserClick div > p:nth-of-type(2) #1 Single False 0", devices.Calls);
+        Assert.Contains("browserClick input[name=\"user\"] #1 Single False 0", devices.Calls);
+        Assert.Contains("browserClick frame=#frame >> #inner #1 Single False 0", devices.Calls);
     }
 
     [Fact]
@@ -8399,7 +8399,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Contains(
-            "browserClick [data-testid=\"save\"] / #save-2 / text=\"Save\" #2 2500",
+            "browserClick [data-testid=\"save\"] / #save-2 / text=\"Save\" #2 Single False 2500",
             devices.Calls);
     }
 
@@ -8519,6 +8519,93 @@ public class DeviceActionTests
         // is the default every list reader in the program uses.
         Assert.Contains("browserReadTable table #1 100 0", devices.Calls);
         Assert.Equal(["A", "B"], store.Local.Values["表"].Items[0].Fields.Select(field => field.Name));
+    }
+
+    /// <summary>
+    /// How a step clicks and how it fills an element in are its own answers: a page's own menu opens
+    /// on the right button, and a page that watches the typing itself has to be typed at rather than
+    /// written into.
+    /// </summary>
+    [Fact]
+    public async Task How_a_click_is_made_and_how_writing_goes_in_travel_with_the_step()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Within(2500, Step("browser.click", Param("target", "#menu"), Param("how", "right"),
+                Param("force", "true"))),
+            Step("browser.click", Param("target", "#row"), Param("how", "double")),
+            Step("browser.click", Param("target", "#go")),
+            Within(2500, Step("browser.fill", Param("target", "#search"),
+                Param("text", "报告"), Param("how", "type"), Param("intervalMs", "80"))),
+            Step("browser.fill", Param("target", "#name"), Param("text", "甲")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("browserClick #menu #1 Right True 2500", devices.Calls);
+        Assert.Contains("browserClick #row #1 Double False 0", devices.Calls);
+
+        // A step that says nothing about how it clicks, and one that says nothing about how it fills,
+        // get what every such step meant before there was a choice: one click, writing at once.
+        Assert.Contains("browserClick #go #1 Single False 0", devices.Calls);
+        Assert.Contains("browserFill #search #1 报告 Type 80 2500", devices.Calls);
+        Assert.Contains("browserFill #name #1 甲 Fill 0 0", devices.Calls);
+    }
+
+    /// <summary>
+    /// Scrolling is what a page that fetches more as it is read needs, and the four ways of moving it
+    /// are four answers of one question: what is not on screen yet has to be brought there.
+    /// </summary>
+    [Fact]
+    public async Task The_page_is_moved_the_way_the_step_says()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Within(2500, Step("browser.scroll", Param("how", "element"),
+                Param("target", "#row-9"), Param("matchIndex", "2"))),
+            Step("browser.scroll", Param("how", "bottom")),
+            Step("browser.scroll", Param("how", "top")),
+            Step("browser.scroll"),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("browserScroll #row-9 #2 Element 2500", devices.Calls);
+        Assert.Contains("browserScroll (none) Bottom 0", devices.Calls);
+        Assert.Contains("browserScroll (none) Top 0", devices.Calls);
+
+        // A step that says nothing moves the page by one screen, which is how a page that adds more
+        // as it is read is walked.
+        Assert.Contains("browserScroll (none) Screen 0", devices.Calls);
+    }
+
+    /// <summary>
+    /// A file the page hands over is saved where the step says, and the path a step left out is the
+    /// folder the macro file is in, the same as every other path a step is given.
+    /// </summary>
+    [Fact]
+    public async Task A_file_the_page_hands_over_is_saved_where_the_step_says()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            BrowserDownloaded = new(@"C:\报告\订单.csv", "订单.csv"),
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Within(2500, Step("browser.download", Param("target", "#export"),
+                Param("folder", "报告"), Returns("path=存到", "name=名字"))),
+            Step("browser.download", Returns("path=默认存到")),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains($@"browserDownload #export #1 {devices.BaseFolder}\报告 2500", devices.Calls);
+
+        // Nothing written in the folder field saves beside the macro, which is where a path written
+        // on its own is read from.
+        Assert.Contains($"browserDownload (none) {devices.BaseFolder} 0", devices.Calls);
+        Assert.Equal(@"C:\报告\订单.csv", store.Local.Values["存到"].AsText());
+        Assert.Equal("订单.csv", store.Local.Values["名字"].AsText());
     }
 
     /// <summary>
@@ -9487,16 +9574,29 @@ internal sealed class FakeDeviceLayer
         BrowserAddress = url;
     }
 
-    string IBrowserDevice.Click(PageTarget target, int timeoutMs)
+    string IBrowserDevice.Click(PageTarget target, ClickWay how, bool force, int timeoutMs)
     {
-        Note($"browserClick {Named(target)} {timeoutMs}");
+        Note($"browserClick {Named(target)} {how} {force} {timeoutMs}");
         return Chosen(target);
     }
 
-    string IBrowserDevice.Fill(PageTarget target, string text, int timeoutMs)
+    string IBrowserDevice.Fill(PageTarget target, string text, FillWay how, int intervalMs,
+        int timeoutMs)
     {
-        Note($"browserFill {Named(target)} {text} {timeoutMs}");
+        Note($"browserFill {Named(target)} {text} {how} {intervalMs} {timeoutMs}");
         return Chosen(target);
+    }
+
+    void IBrowserDevice.Scroll(PageTarget? target, ScrollWay how, int timeoutMs)
+        => Note($"browserScroll {Named(target)} {how} {timeoutMs}");
+
+    /// <summary>Where a download lands and what the page called it, as though one had arrived.</summary>
+    public DownloadResult BrowserDownloaded { get; set; } = new(@"C:\下载\报告.csv", "报告.csv");
+
+    DownloadResult IBrowserDevice.Download(PageTarget? target, string folder, int timeoutMs)
+    {
+        Note($"browserDownload {Named(target)} {folder} {timeoutMs}");
+        return BrowserDownloaded;
     }
 
     /// <summary>The address the tab a switch moves to is showing, as though it had a page of its own.</summary>

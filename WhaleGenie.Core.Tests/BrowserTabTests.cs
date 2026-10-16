@@ -47,7 +47,7 @@ public class BrowserTabTests : IDisposable
         using var device = new PlaywrightBrowserDevice();
         device.Open("edge", Address("receipt"), headless: true, profile: string.Empty);
 
-        device.Click(At("#pay"), 5000);
+        device.Click(At("#pay"), ClickWay.Single, false, 5000);
 
         // The tab the click opened is what the steps after it mean to work on, and reading from it
         // is what says the macro really got there: the same site's other page has an element of

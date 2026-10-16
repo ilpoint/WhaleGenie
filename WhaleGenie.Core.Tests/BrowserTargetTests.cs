@@ -53,12 +53,12 @@ public class BrowserTargetTests : IDisposable
         device.Open("edge", Address(), headless: true, profile: string.Empty);
 
         // The first way of naming the element is the one used when it finds anything at all.
-        device.Click(PageTarget.Of("#a\n#b", 1), 5000);
+        device.Click(PageTarget.Of("#a\n#b", 1), ClickWay.Single, false, 5000);
         Assert.Equal("a", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
 
         // A page that has been redesigned is met by a second line: the first selector is not there
         // any more and the step goes on working.
-        var used = device.Click(PageTarget.Of("#gone\n#b", 1), 5000);
+        var used = device.Click(PageTarget.Of("#gone\n#b", 1), ClickWay.Single, false, 5000);
         Assert.Equal("#b", used);
         Assert.Equal("b", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
     }
@@ -74,13 +74,13 @@ public class BrowserTargetTests : IDisposable
         using var device = new PlaywrightBrowserDevice();
         device.Open("edge", Address(), headless: true, profile: string.Empty);
 
-        device.Click(PageTarget.Of(".row", 2), 5000);
+        device.Click(PageTarget.Of(".row", 2), ClickWay.Single, false, 5000);
         Assert.Equal("2", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
 
         // More matches than the page holds is the same answer as finding nothing, and it says which
         // of the two it was: the page holds elements of that name, just not that many of them.
         var missing = Assert.Throws<DeviceActionException>(
-            () => device.Click(PageTarget.Of(".row", 4), 5000));
+            () => device.Click(PageTarget.Of(".row", 4), ClickWay.Single, false, 5000));
         Assert.Equal("Run.BrowserTooFew", missing.Key);
         Assert.Contains(".row", missing.Detail, StringComparison.Ordinal);
     }
@@ -94,7 +94,7 @@ public class BrowserTargetTests : IDisposable
         device.Open("edge", Address(), headless: true, profile: string.Empty);
 
         var missing = Assert.Throws<DeviceActionException>(
-            () => device.Click(PageTarget.Of("#first\n#second", 1), 5000));
+            () => device.Click(PageTarget.Of("#first\n#second", 1), ClickWay.Single, false, 5000));
 
         Assert.Equal("Run.BrowserNotFound", missing.Key);
         Assert.Contains("#first", missing.Detail, StringComparison.Ordinal);
@@ -102,7 +102,7 @@ public class BrowserTargetTests : IDisposable
 
         // A step with nothing to look for says so rather than waiting its clock out.
         var empty = Assert.Throws<DeviceActionException>(
-            () => device.Click(PageTarget.Of("  \n", 1), 5000));
+            () => device.Click(PageTarget.Of("  \n", 1), ClickWay.Single, false, 5000));
         Assert.Equal("Run.BrowserNoSelector", empty.Key);
     }
 
@@ -116,7 +116,7 @@ public class BrowserTargetTests : IDisposable
 
         var clock = Stopwatch.StartNew();
         var missing = Assert.Throws<DeviceActionException>(
-            () => device.Click(PageTarget.Of("#never", 1), 800));
+            () => device.Click(PageTarget.Of("#never", 1), ClickWay.Single, false, 800));
         clock.Stop();
 
         Assert.Equal("Run.BrowserNotFound", missing.Key);
@@ -222,7 +222,7 @@ public class BrowserTargetTests : IDisposable
         Assert.Contains("#host", path, StringComparison.Ordinal);
         Assert.Equal(1, device.Matches(path));
 
-        device.Click(PageTarget.Of(path, 1), 5000);
+        device.Click(PageTarget.Of(path, 1), ClickWay.Single, false, 5000);
         Assert.Equal("deep", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
     }
 
@@ -237,23 +237,23 @@ public class BrowserTargetTests : IDisposable
 
         // The words beside the box are how a person names a field, and they are asked of the page
         // rather than read as a selector: nothing about the markup has to line up with them.
-        device.Fill(PageTarget.Of("label=用户名", 1), "报告", 5000);
+        device.Fill(PageTarget.Of("label=用户名", 1), "报告", FillWay.Fill, 0, 5000);
         Assert.Equal("报告", device.Evaluate("() => document.getElementById('user').value"));
 
         // The words match anywhere in the name with case and spacing set aside, which is what the
         // question Playwright asks means when no exactness is asked for.
         Assert.Equal(1, device.Matches("label=用户"));
-        device.Fill(PageTarget.Of("label=用户", 1), "再填一次", 5000);
+        device.Fill(PageTarget.Of("label=用户", 1), "再填一次", FillWay.Fill, 0, 5000);
         Assert.Equal("再填一次", device.Evaluate("() => document.getElementById('user').value"));
 
         // The grey hint inside a box names it too, and a name that only one box answers is one hit.
         Assert.Equal(1, device.Matches("placeholder=邮箱"));
-        device.Fill(PageTarget.Of("placeholder=邮箱", 1), "a@b", 5000);
+        device.Fill(PageTarget.Of("placeholder=邮箱", 1), "a@b", FillWay.Fill, 0, 5000);
         Assert.Equal("a@b", device.Evaluate("() => document.getElementById('mail').value"));
 
         // A line that names a way but not the words is a line that names nothing.
         var empty = Assert.Throws<DeviceActionException>(
-            () => device.Click(PageTarget.Of("label=", 1), 5000));
+            () => device.Click(PageTarget.Of("label=", 1), ClickWay.Single, false, 5000));
         Assert.Equal("Run.BrowserNoSelector", empty.Key);
     }
 
@@ -274,7 +274,7 @@ public class BrowserTargetTests : IDisposable
         Assert.Equal(1, device.Matches("title=保存到文件"));
         Assert.Equal(0, device.Matches("alt=别的东西"));
 
-        device.Click(PageTarget.Of("title=保存到文件", 1), 5000);
+        device.Click(PageTarget.Of("title=保存到文件", 1), ClickWay.Single, false, 5000);
         Assert.Equal("saved", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
     }
 
@@ -293,7 +293,7 @@ public class BrowserTargetTests : IDisposable
         var inside = "frame=#pay >> label=卡号";
         Assert.Equal(1, device.Matches(inside));
 
-        device.Fill(PageTarget.Of(inside, 1), "1234", 5000);
+        device.Fill(PageTarget.Of(inside, 1), "1234", FillWay.Fill, 0, 5000);
         Assert.Equal("1234", device.EvaluateIn("inner", "() => document.getElementById('card').value"));
 
         // The same way in is what a pick leaves behind: what a person pointed at inside a frame is

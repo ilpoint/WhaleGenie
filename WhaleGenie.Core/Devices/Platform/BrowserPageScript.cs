@@ -53,4 +53,32 @@ internal static class BrowserPageScript
           return { columns: heads, rows: rows };
         }
         """;
+
+    /// <summary>One screen further down the page, which is how a page that adds more as it is read is walked.</summary>
+    internal const string Screen = """
+        () => {
+          window.scrollBy(0, window.innerHeight);
+          return true;
+        }
+        """;
+
+    /// <summary>
+    /// To the end of what the page has, which is where what it fetches as it is read keeps arriving:
+    /// a page that adds more while it is scrolled needs several of these, each starting from
+    /// wherever the one before left it.
+    /// </summary>
+    internal const string Bottom = """
+        () => {
+          window.scrollTo(0, document.documentElement.scrollHeight);
+          return true;
+        }
+        """;
+
+    /// <summary>Back to the top of the page, from wherever it was left.</summary>
+    internal const string Top = """
+        () => {
+          window.scrollTo(0, 0);
+          return true;
+        }
+        """;
 }

@@ -499,15 +499,21 @@ public interface IBrowserDevice
     /// <summary>
     /// Clicks the element the target names, and answers with the selector that turned out to name
     /// it: a target written as several selectors is one question with several answers, and which
-    /// one was used is what the run's own log has to report.
+    /// one was used is what the run's own log has to report. A forced click is made even through
+    /// whatever stands in the way of it, which is what a page that hides its own buttons behind an
+    /// overlay needs.
     /// </summary>
-    string Click(PageTarget target, int timeoutMs);
+    string Click(PageTarget target, ClickWay how, bool force, int timeoutMs);
 
     /// <summary>
     /// Types text into the element the target names, replacing what it held, and answers with the
-    /// selector that named it.
+    /// selector that named it. Typed one key at a time rather than written in at once, it is what a
+    /// page that watches the typing itself — a search box that offers suggestions, a form that
+    /// checks each field as it is left — needs; the gap between two keys is the step's own, and
+    /// nought means the keys go as fast as they can, with no pause between them that a page could
+    /// notice.
     /// </summary>
-    string Fill(PageTarget target, string text, int timeoutMs);
+    string Fill(PageTarget target, string text, FillWay how, int intervalMs, int timeoutMs);
 
     /// <summary>
     /// One part of the element the target names, or of the whole page when there is no target. The
@@ -566,6 +572,30 @@ public interface IBrowserDevice
 
     /// <summary>Waits for the page to have got as far as the state names in its loading.</summary>
     void WaitForLoad(PageLoad state, int timeoutMs);
+
+    /// <summary>
+    /// Moves the page so that what the step is after is on screen: the element the target names, or
+    /// the page itself by one screen, to the bottom or back to the top.
+    /// </summary>
+    /// <remarks>
+    /// Scrolling is what a page that fetches more as it is read needs: the writing below the fold
+    /// arrives because something scrolled to where it would have been, and there is no element to
+    /// wait for until it has. A target is only needed by the one way that scrolls to an element.
+    /// </remarks>
+    void Scroll(PageTarget? target, ScrollWay how, int timeoutMs);
+
+    /// <summary>
+    /// Takes the next file the page hands over, saving it into <paramref name="folder"/>, and
+    /// answers with where it went and what it is called.
+    /// </summary>
+    /// <remarks>
+    /// With a target, the element it names is clicked and the download that click starts is the one
+    /// taken; with none, the step waits for the next download to come from anywhere on the page,
+    /// which is what a macro does when the page decides for itself that something is a file. A
+    /// download that started before this step asked for it is handed over rather than thrown away.
+    /// Nobody turning up within the step's own clock is the step running out of time.
+    /// </remarks>
+    DownloadResult Download(PageTarget? target, string folder, int timeoutMs);
 
     /// <summary>
     /// Moves to another tab of the browser that is open, which is how a macro follows a click that
@@ -708,6 +738,45 @@ public enum PageLoad
     Idle,
 }
 
+/// <summary>How a step clicks an element of a page.</summary>
+public enum ClickWay
+{
+    /// <summary>One click with the left button, which is what almost every step means.</summary>
+    Single,
+
+    /// <summary>Two clicks in quick succession, which is how a page that opens something in place works.</summary>
+    Double,
+
+    /// <summary>One click with the right button, which is what opens a page's own menu.</summary>
+    Right,
+}
+
+/// <summary>How a step puts writing into an element of a page.</summary>
+public enum FillWay
+{
+    /// <summary>Written in at once, which is quicker and is what a plain field needs.</summary>
+    Fill,
+
+    /// <summary>Typed one key at a time, which is what a page watching the typing itself needs.</summary>
+    Type,
+}
+
+/// <summary>Which way a step moves the page, when what it is after is not on screen yet.</summary>
+public enum ScrollWay
+{
+    /// <summary>To the element the target names, which is also what makes a lazy page load it.</summary>
+    Element,
+
+    /// <summary>One screen further down, which is how a page that adds more as it is read is walked.</summary>
+    Screen,
+
+    /// <summary>All the way down, to whatever the page has at its end.</summary>
+    Bottom,
+
+    /// <summary>Back to the top, which is what a step that reads a page from its start needs.</summary>
+    Top,
+}
+
 /// <summary>
 /// A table of a page: the names written above its columns, and its rows.
 /// </summary>
@@ -721,6 +790,9 @@ public sealed record PageTable(IReadOnlyList<string> Columns, IReadOnlyList<IRea
 
 /// <summary>Where a page is and what it calls itself.</summary>
 public sealed record PageInfo(string Url, string Title);
+
+/// <summary>A file a page handed over: where it was saved, and what the page called it.</summary>
+public sealed record DownloadResult(string Path, string Name);
 
 /// <summary>
 /// Which element of a page a step means, named the way a macro may name it.
@@ -1192,9 +1264,11 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public string Url => throw Missing("a browser");
 
-        public string Click(PageTarget target, int timeoutMs) => throw Missing("a browser");
+        public string Click(PageTarget target, ClickWay how, bool force, int timeoutMs)
+            => throw Missing("a browser");
 
-        public string Fill(PageTarget target, string text, int timeoutMs) => throw Missing("a browser");
+        public string Fill(PageTarget target, string text, FillWay how, int intervalMs, int timeoutMs)
+            => throw Missing("a browser");
 
         public string Text(PageTarget? target, PagePart part, string attribute, int timeoutMs)
             => throw Missing("a browser");
@@ -1212,6 +1286,12 @@ public sealed class NullDeviceLayer : IDeviceLayer
         public void WaitForUrl(string match, string how, int timeoutMs) => throw Missing("a browser");
 
         public void WaitForLoad(PageLoad state, int timeoutMs) => throw Missing("a browser");
+
+        public void Scroll(PageTarget? target, ScrollWay how, int timeoutMs)
+            => throw Missing("a browser");
+
+        public DownloadResult Download(PageTarget? target, string folder, int timeoutMs)
+            => throw Missing("a browser");
 
         public void SwitchTab(TabChoice choice, int index, string match) => throw Missing("a browser");
 

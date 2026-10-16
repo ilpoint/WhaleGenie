@@ -2647,6 +2647,17 @@ internal static class ActionStrings
         ["browser.click.target.label"] = "选择器",
         ["browser.click.target.hint"] = PageTargetHint + "元素在哪，写法是 Playwright 的选择器。"
             + "选择器像 CSS，也能按文字找：「text=登录」认的是显示这段文字的元素。",
+        ["browser.click.how.label"] = "怎么点",
+        ["browser.click.how.hint"] = "怎么点这个元素。左键单击是默认，接下来要去别处或按下按钮时用它；"
+            + "左键双击用在点一下就变成输入框的地方，例如表格里的一行；右键单击弹出页面自己的菜单，"
+            + "菜单里的东西只有它能打开。",
+        ["browser.click.how.option.single"] = "左键单击",
+        ["browser.click.how.option.double"] = "左键双击",
+        ["browser.click.how.option.right"] = "右键单击",
+        ["browser.click.force.label"] = "硬点",
+        ["browser.click.force.hint"] = "元素被挡住、被禁用或还在移动时也点下去。默认不勾选，也建议不勾："
+            + "页面挡住不让点的按钮，多半是这一步点下去也达不到作者想要的结果。页面用一层看不见的东西盖住"
+            + "自己的按钮时，才需要勾上它。",
         ["browser.click.matchIndex.label"] = "第几个命中",
         ["browser.click.matchIndex.hint"] = PageMatchIndexHint("要点击的"),
 
@@ -2656,6 +2667,15 @@ internal static class ActionStrings
         ["browser.fill.target.hint"] = PageTargetHint + "要输入到哪个元素，写法与「点击元素」相同。",
         ["browser.fill.text.label"] = "文本",
         ["browser.fill.text.hint"] = "要输入的内容。按一个值读取，变量或表达式都可以写成它，所以可以把别处读到的值输入进来。",
+        ["browser.fill.how.label"] = "怎么填",
+        ["browser.fill.how.hint"] = "文字怎么进到这个元素里。「一次填好」更快，普通输入框用它就够了；"
+            + "「逐键输入」是一个键一个键地发，页面自己要盯着输入过程时才用它，例如边打边给出候选的搜索框、"
+            + "离开每个格子就检查的表单。",
+        ["browser.fill.how.option.fill"] = "一次填好",
+        ["browser.fill.how.option.type"] = "逐键输入",
+        ["browser.fill.intervalMs.label"] = "按键间隔",
+        ["browser.fill.intervalMs.hint"] = "两个键之间停多久，0 到 10000 毫秒。默认 0，也就是不停，"
+            + "按页面能跟上的最快速度发；只有在「逐键输入」时才读它，页面嫌来得太快而漏掉按键时可以调大。",
         ["browser.fill.matchIndex.label"] = "第几个命中",
         ["browser.fill.matchIndex.hint"] = PageMatchIndexHint("要填写的"),
 
@@ -2823,6 +2843,35 @@ internal static class ActionStrings
         ["browser.waitForLoad.state.option.ready"] = "文档就绪",
         ["browser.waitForLoad.state.option.loaded"] = "加载完成",
         ["browser.waitForLoad.state.option.idle"] = "网络空闲",
+
+        ["browser.scroll.name"] = "滚动页面",
+        ["browser.scroll.desc"] = "把页面滚动一下，让屏幕外的东西露出或加载出来。",
+        ["browser.scroll.target.label"] = "选择器",
+        ["browser.scroll.target.hint"] = PageTargetHint + "要把哪个元素滚到看得见，写法与「点击元素」相同；"
+            + "只有「滚到元素」这一档要用它。一行都不写，也就是默认，滚的是页面本身，往下滚一屏。",
+        ["browser.scroll.how.label"] = "怎么滚",
+        ["browser.scroll.how.hint"] = "页面往哪儿滚。「往下滚一屏」是默认，一次一点加内容的页面就靠它一条条"
+            + "走完；「滚到元素」要用上面那格写选择器，图片或数据等到快滚到才加载的页面靠它把内容要出来；"
+            + "「到页面底部」是一下子跳到底，一直在往下加内容的页面要连用好几次；「到页面顶部」用于接下来"
+            + "从头读一遍页面的步骤。",
+        ["browser.scroll.how.option.screen"] = "往下滚一屏",
+        ["browser.scroll.how.option.element"] = "滚到元素",
+        ["browser.scroll.how.option.bottom"] = "到页面底部",
+        ["browser.scroll.how.option.top"] = "到页面顶部",
+        ["browser.scroll.matchIndex.label"] = "第几个命中",
+        ["browser.scroll.matchIndex.hint"] = PageMatchIndexHint("要滚到眼前的"),
+
+        ["browser.download.name"] = "下载文件",
+        ["browser.download.desc"] = "把页面接下来交出的文件保存到磁盘上。",
+        ["browser.download.target.label"] = "选择器",
+        ["browser.download.target.hint"] = PageTargetHint + "点哪个元素开始下载，写法与「点击元素」相同，"
+            + "这一步替你把这一下点了。一行都不写，也就是默认，等的是页面接下来自己开始的下载，"
+            + "页面自己判断某个东西是文件时要用这一档。",
+        ["browser.download.folder.label"] = "保存到",
+        ["browser.download.folder.hint"] = "文件存到哪个文件夹；留空就是宏文件所在的那个文件夹。按一个值读取，"
+            + "变量或表达式都可以写成它。同名的文件会被覆盖，与别的程序里保存一次一样。",
+        ["browser.download.matchIndex.label"] = "第几个命中",
+        ["browser.download.matchIndex.hint"] = PageMatchIndexHint("要点击开始下载的"),
 
         ["browser.upload.name"] = "上传文件",
         ["browser.upload.desc"] = "把文件交给页面上的文件选择框。",
@@ -3784,6 +3833,15 @@ internal static class ActionStrings
         ["browser.readPage.return.title.hint"] = "当前页面自己写的名字，也就是标签页上显示的那段字。",
         ["browser.readPage.returns.label"] = "要留下的结果",
         ["browser.readPage.returns.hint"] = ReturnsHintText,
+
+        // browser.download
+        ["browser.download.return.path.label"] = "保存为",
+        ["browser.download.return.path.hint"] = "文件保存到了哪里，路径按程序读路径的规矩写；"
+            + "把它交给后面的步骤，就会存在同一个地方。",
+        ["browser.download.return.name.label"] = "文件名",
+        ["browser.download.return.name.hint"] = "页面给这个文件起的名字。",
+        ["browser.download.returns.label"] = "要留下的结果",
+        ["browser.download.returns.hint"] = ReturnsHintText,
 
         // script.run
         ["script.run.return.output.label"] = "输出",

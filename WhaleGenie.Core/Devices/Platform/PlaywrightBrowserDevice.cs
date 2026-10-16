@@ -131,6 +131,28 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// <summary>Whether the picker's bindings and init script have been installed on this page.</summary>
     private bool _listening;
 
+    /// <summary>
+    /// The files the page has handed over that no step has taken yet, oldest first.
+    /// </summary>
+    /// <remarks>
+    /// A download nobody catches is thrown away by the driver, so what turns up is kept here whether
+    /// or not a step is waiting: a page often starts one from a click, and the step that wants it is
+    /// written after that click. A lock, because the event arrives on whichever thread the driver
+    /// dispatches on while the step that takes it waits on another.
+    /// </remarks>
+    private readonly Queue<IDownload> _caught = new();
+
+    /// <summary>
+    /// The files a step has already taken, so that one is never handed over twice.
+    /// </summary>
+    /// <remarks>
+    /// A download is seen twice: once by the listener that catches everything, and once by the wait
+    /// a step put up for the file its own click started. Without this, the file that wait took would
+    /// still be sitting in the caught list, and the step after it would be handed a file somebody
+    /// else already saved.
+    /// </remarks>
+    private readonly HashSet<IDownload> _taken = new(ReferenceEqualityComparer.Instance);
+
     /// <summary>Whether the browser was opened without a window.</summary>
     private bool _headless;
 
@@ -243,6 +265,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                     {
                         Channel = channel.Length == 0 ? null : channel,
                         Headless = headless,
+                        AcceptDownloads = true,
                     });
             }
             else
@@ -252,8 +275,19 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                     Channel = channel.Length == 0 ? null : channel,
                     Headless = headless,
                 });
-                _context = await _browser.NewContextAsync();
+                _context = await _browser.NewContextAsync(new BrowserNewContextOptions
+                {
+                    AcceptDownloads = true,
+                });
             }
+
+            // A file the page hands over is kept until a step asks for it: without a listener the
+            // driver throws the download away, and the step that wants it is often written after the
+            // click that started it.
+            _context.Download += (_, download) =>
+            {
+                Catch(download);
+            };
 
             _headless = headless;
 
@@ -296,11 +330,33 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         await page.GotoAsync(url);
     });
 
-    public string Click(PageTarget target, int timeoutMs)
-        => OnElement(target, timeoutMs, element => element.ClickAsync());
+    public string Click(PageTarget target, ClickWay how, bool force, int timeoutMs)
+        => OnElement(target, timeoutMs, element => how switch
+        {
+            ClickWay.Double => element.DblClickAsync(new LocatorDblClickOptions { Force = force }),
+            ClickWay.Right => element.ClickAsync(
+                new LocatorClickOptions { Button = MouseButton.Right, Force = force }),
+            _ => element.ClickAsync(new LocatorClickOptions { Force = force }),
+        });
 
-    public string Fill(PageTarget target, string text, int timeoutMs)
-        => OnElement(target, timeoutMs, async element => await element.FillAsync(text));
+    public string Fill(PageTarget target, string text, FillWay how, int intervalMs, int timeoutMs)
+        => OnElement(target, timeoutMs, async element =>
+        {
+            if (how is FillWay.Type)
+            {
+                // What the field held is replaced the way a person replaces it, by selecting all of
+                // it and typing over the top; writing the whole text in at once is a single change
+                // the page only sees at the end, and a box that offers what matches as it goes never
+                // offers anything.
+                await element.FocusAsync();
+                await element.PressAsync("Control+a");
+                await element.PressSequentiallyAsync(text,
+                    new LocatorPressSequentiallyOptions { Delay = intervalMs });
+                return;
+            }
+
+            await element.FillAsync(text);
+        });
 
     public string Select(PageTarget target, string value, bool byIndex, int timeoutMs)
         => OnElement(target, timeoutMs, async element =>
@@ -641,6 +697,143 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         PageLoad.Idle => LoadState.NetworkIdle,
         _ => LoadState.DOMContentLoaded,
     };
+
+    /// <summary>
+    /// Moves the page so that what the step is after is on screen. Scrolling to an element is the one
+    /// way that names an element, and the page's own fallbacks are tried in the order they were
+    /// written, so a step keeps working after a redesign the same way every other step does.
+    /// </summary>
+    public void Scroll(PageTarget? target, ScrollWay how, int timeoutMs)
+    {
+        if (how is ScrollWay.Element)
+        {
+            if (target is null || target.Selectors.Count == 0)
+            {
+                throw new DeviceActionException("Run.BrowserNoSelector");
+            }
+
+            OnElement(target, timeoutMs, element => element.ScrollIntoViewIfNeededAsync());
+            return;
+        }
+
+        OnPage(async () =>
+        {
+            var page = Page();
+            page.SetDefaultTimeout(Patience(timeoutMs));
+            await page.EvaluateAsync<JsonElement?>(Script(how), null);
+        });
+    }
+
+    /// <summary>Which script of the page's own moves it the way the step asked.</summary>
+    private static string Script(ScrollWay how) => how switch
+    {
+        ScrollWay.Bottom => BrowserPageScript.Bottom,
+        ScrollWay.Top => BrowserPageScript.Top,
+        _ => BrowserPageScript.Screen,
+    };
+
+    /// <summary>
+    /// Takes the next file the page hands over.
+    /// </summary>
+    /// <remarks>
+    /// A download that was caught before this step asked for it is handed over first: the page may
+    /// have started one a step ago, and a macro that asks a moment too late should not have to wait
+    /// for a second one that may never come. With a target, the click and the wait for what it
+    /// starts are one call to the driver, because a file that arrives between the two would
+    /// otherwise be one nobody is listening for; the file is saved where the step said, which is
+    /// also what stops the driver throwing it away.
+    /// </remarks>
+    public DownloadResult Download(PageTarget? target, string folder, int timeoutMs)
+    {
+        var patience = Patience(timeoutMs);
+        try
+        {
+            return Wait(async () =>
+            {
+                var page = Page();
+                page.SetDefaultTimeout(patience);
+                Directory.CreateDirectory(folder);
+
+                var caught = Caught();
+                if (caught is null)
+                {
+                    caught = target is null || target.Selectors.Count == 0
+                        ? await page.WaitForDownloadAsync(
+                            new PageWaitForDownloadOptions { Timeout = patience })
+                        : await ClickedAndCaught(page, target, patience);
+                    Taken(caught);
+                }
+
+                var name = caught.SuggestedFilename;
+                var path = Path.Combine(folder, name);
+                await caught.SaveAsAsync(path);
+                return new DownloadResult(path, name);
+            });
+        }
+        catch (TimeoutException)
+        {
+            throw new DeviceActionException("Run.Timeout",
+                patience.ToString(CultureInfo.InvariantCulture));
+        }
+        catch (PlaywrightException failure)
+        {
+            throw Failed(failure);
+        }
+    }
+
+    /// <summary>Clicks the element a target names and answers with the file that click started.</summary>
+    private async Task<IDownload> ClickedAndCaught(IPage page, PageTarget target, int patience)
+    {
+        var (_, element) = await Found(target, patience);
+        return await page.RunAndWaitForDownloadAsync(
+            () => element.ClickAsync(),
+            new PageRunAndWaitForDownloadOptions { Timeout = patience });
+    }
+
+    /// <summary>
+    /// The oldest file the browser has caught and nobody has taken, or nothing when there is none.
+    /// </summary>
+    /// <remarks>
+    /// What is handed over here is written down as taken in the same breath, so the same file cannot
+    /// come out twice however many steps ask for one.
+    /// </remarks>
+    private IDownload? Caught()
+    {
+        lock (_caught)
+        {
+            while (_caught.Count > 0)
+            {
+                var download = _caught.Dequeue();
+                if (_taken.Add(download))
+                {
+                    return download;
+                }
+            }
+
+            return null;
+        }
+    }
+
+    /// <summary>Keeps a file the page handed over for the step that has not asked for it yet.</summary>
+    private void Catch(IDownload download)
+    {
+        lock (_caught)
+        {
+            if (!_taken.Contains(download))
+            {
+                _caught.Enqueue(download);
+            }
+        }
+    }
+
+    /// <summary>Writes a file down as taken, which the listener may not have reached yet.</summary>
+    private void Taken(IDownload download)
+    {
+        lock (_caught)
+        {
+            _taken.Add(download);
+        }
+    }
 
     public void SwitchTab(TabChoice choice, int index, string match)
         => OnPage(async () =>
@@ -1447,6 +1640,14 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         _headless = false;
         _listening = false;
         _tabs.Clear();
+
+        // The files of a browser that is gone are not files any later step can ask for: the driver
+        // has already thrown the ones nobody saved away.
+        lock (_caught)
+        {
+            _caught.Clear();
+            _taken.Clear();
+        }
     }
 
     public void Dispose()

@@ -1568,14 +1568,11 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "browser.click":
-                Log(LogLevel.Info, depth, step.Type, "Run.BrowserClicked",
-                    _devices.Browser.Click(Element(step), step.Meta.TimeoutMs));
+                BrowserClick(step, depth);
                 return Signal.Normal;
 
             case "browser.fill":
-                Log(LogLevel.Info, depth, step.Type, "Run.BrowserFilled",
-                    _devices.Browser.Fill(Element(step), Read(step.Text("text")).AsText(),
-                        step.Meta.TimeoutMs));
+                BrowserFill(step, depth);
                 return Signal.Normal;
 
             case "browser.readText":
@@ -1623,6 +1620,14 @@ public sealed class MacroRunner
 
             case "browser.waitForLoad":
                 BrowserWaitForLoad(step, depth);
+                return Signal.Normal;
+
+            case "browser.scroll":
+                BrowserScroll(step, depth);
+                return Signal.Normal;
+
+            case "browser.download":
+                BrowserDownload(step, depth);
                 return Signal.Normal;
 
             case "browser.upload":
@@ -7926,6 +7931,77 @@ public sealed class MacroRunner
         var waited = _devices.Browser.WaitFor(target, state, step.Meta.TimeoutMs);
         Log(LogLevel.Info, depth, step.Type, "Run.BrowserWaited",
             waited ?? string.Join(" / ", target.Selectors));
+    }
+
+    /// <summary>
+    /// Clicks an element of the page. Which button is used, how many times it is pressed and whether
+    /// it is made even through what stands in the way are the step's own answers: a page's own menu
+    /// opens on the right button, and a list that opens in place needs two clicks.
+    /// </summary>
+    private void BrowserClick(ExecutableStep step, int depth)
+    {
+        var how = step.Text("how").Trim().ToLowerInvariant() switch
+        {
+            "double" => ClickWay.Double,
+            "right" => ClickWay.Right,
+            _ => ClickWay.Single,
+        };
+
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserClicked",
+            _devices.Browser.Click(Element(step), how, Flag(step, "force", false),
+                step.Meta.TimeoutMs));
+    }
+
+    /// <summary>
+    /// Fills an element in. Written in at once is what a plain field needs; typed one key at a time
+    /// is what a page that watches the typing itself needs, and the gap between two keys is the
+    /// step's own answer.
+    /// </summary>
+    private void BrowserFill(ExecutableStep step, int depth)
+    {
+        var how = string.Equals(step.Text("how").Trim(), "type", StringComparison.OrdinalIgnoreCase)
+            ? FillWay.Type
+            : FillWay.Fill;
+
+        var gap = how is FillWay.Type ? Number(step, "intervalMs") : 0;
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserFilled",
+            _devices.Browser.Fill(Element(step), Read(step.Text("text")).AsText(), how, gap,
+                step.Meta.TimeoutMs));
+    }
+
+    /// <summary>
+    /// Moves the page: to an element the step names, by one screen, to the end or back to the top.
+    /// This is what a page that fetches more as it is read needs, because the writing below the fold
+    /// arrives because something scrolled to where it would have been.
+    /// </summary>
+    private void BrowserScroll(ExecutableStep step, int depth)
+    {
+        var how = step.Text("how").Trim().ToLowerInvariant() switch
+        {
+            "bottom" => ScrollWay.Bottom,
+            "top" => ScrollWay.Top,
+            "element" => ScrollWay.Element,
+            _ => ScrollWay.Screen,
+        };
+
+        _devices.Browser.Scroll(OptionalElement(step), how, step.Meta.TimeoutMs);
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserScrolled");
+    }
+
+    /// <summary>
+    /// Takes the next file the page hands over and saves it where the step says. The folder is read
+    /// the way every other path a step is given is read, so one left out is the folder the macro file
+    /// is in.
+    /// </summary>
+    private void BrowserDownload(ExecutableStep step, int depth)
+    {
+        var folder = Read(step.Text("folder")).AsText();
+        var where = folder.Trim().Length > 0 ? _devices.Files.Resolve(folder) : _devices.Files.BaseFolder;
+        var saved = _devices.Browser.Download(OptionalElement(step), where, step.Meta.TimeoutMs);
+
+        Give(step, "path", Value.FromText(saved.Path));
+        Give(step, "name", Value.FromText(saved.Name));
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserDownloaded", saved.Path);
     }
 
     /// <summary>
