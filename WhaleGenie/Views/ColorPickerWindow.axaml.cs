@@ -44,6 +44,7 @@ public partial class ColorPickerWindow : Window
     private IInputHook? _hook;
     private WriteableBitmap? _bitmap;
     private PixelColor _colour;
+    private ScreenPoint _point;
     private bool _done;
 
     /// <summary>
@@ -54,7 +55,14 @@ public partial class ColorPickerWindow : Window
 
     /// <summary>What the magnifier was left with, or null when it was left without a colour. The
     /// picker stands on its own, so there is no dialog result to carry this.</summary>
-    internal PixelColor? Picked { get; private set; }
+    internal Pick? Picked { get; private set; }
+
+    /// <summary>
+    /// What taking a colour leaves behind: the colour that was read and the place it was read from.
+    /// The two travel together, because the magnifier is aimed at the pixel rather than typed at it
+    /// — a step that watches one pixel wants both, and where it is was already answered by the aim.
+    /// </summary>
+    public readonly record struct Pick(PixelColor Colour, ScreenPoint At);
 
     public ColorPickerWindow()
         : this(SharedDevices.Current)
@@ -87,11 +95,11 @@ public partial class ColorPickerWindow : Window
     }
 
     /// <summary>
-    /// Shows the magnifier over <paramref name="owner"/> and reports the colour picked. The owner
+    /// Shows the magnifier over <paramref name="owner"/> and reports what was picked. The owner
     /// steps out of the way for as long as the magnifier is up, and so does everything else this
     /// program has on the screen: the colour being looked for is usually behind one of them.
     /// </summary>
-    public static async Task<PixelColor?> PickAsync(Window owner, IDeviceLayer devices)
+    public static async Task<Pick?> PickAsync(Window owner, IDeviceLayer devices)
     {
         using var aside = AppWindows.StepAside(owner);
         return await new ColorPickerWindow(devices).TakeAsync();
@@ -99,9 +107,9 @@ public partial class ColorPickerWindow : Window
 
     /// <summary>
     /// Stands the magnifier on its own — nothing else of this program is on the screen to own it —
-    /// and reports the colour it was answered with, or null when it was left without one.
+    /// and reports what it was answered with, or null when it was left without a colour.
     /// </summary>
-    internal async Task<PixelColor?> TakeAsync()
+    internal async Task<Pick?> TakeAsync()
     {
         await AppWindows.ShowAndWaitAsync(this);
         return Picked;
@@ -132,12 +140,14 @@ public partial class ColorPickerWindow : Window
     /// <summary>Reads the pointer, redraws the magnifier and moves it along with the pointer.</summary>
     private void Refresh()
     {
-        var point = _screen.Cursor;
-        _colour = ReadColour(point);
+        // The place is kept beside the colour rather than read again later: the two have to answer
+        // for the same pixel, and the pointer may have moved on by then.
+        _point = _screen.Cursor;
+        _colour = ReadColour(_point);
 
-        DrawRegion(point);
-        UpdateReadout(point, _colour);
-        Place(point);
+        DrawRegion(_point);
+        UpdateReadout(_point, _colour);
+        Place(_point);
     }
 
     private PixelColor ReadColour(ScreenPoint point)
@@ -276,18 +286,18 @@ public partial class ColorPickerWindow : Window
         {
             case Key.Escape:
                 e.Handled = true;
-                Finish(null);
+                Finish(null, default);
                 break;
 
             case Key.Enter:
             case Key.Space:
                 e.Handled = true;
-                Finish(_colour);
+                Finish(_colour, _point);
                 break;
 
             case Key.C when e.KeyModifiers.HasFlag(KeyModifiers.Alt):
                 e.Handled = true;
-                Finish(_colour);
+                Finish(_colour, _point);
                 break;
 
             case Key.Left:
@@ -349,10 +359,10 @@ public partial class ColorPickerWindow : Window
 
         e.Suppress = true;
         var colour = ReadColour(point);
-        Dispatcher.UIThread.Post(() => Finish(colour));
+        Dispatcher.UIThread.Post(() => Finish(colour, point));
     }
 
-    private void Finish(PixelColor? colour)
+    private void Finish(PixelColor? colour, ScreenPoint at)
     {
         if (_done)
         {
@@ -360,7 +370,7 @@ public partial class ColorPickerWindow : Window
         }
 
         _done = true;
-        Picked = colour;
+        Picked = colour is { } read ? new Pick(read, at) : null;
         _timer.Stop();
         DetachHook();
         Close();

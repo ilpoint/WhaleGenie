@@ -299,6 +299,31 @@ public class ActionPageTests
     }
 
     /// <summary>
+    /// A pixel is asked two things — what colour it shows and where it is — and the colour is asked
+    /// first, on the line above: the magnifier answers both in one go by being aimed at the pixel,
+    /// and two lines that are answered together read as one question rather than as a question and
+    /// an afterthought.
+    /// </summary>
+    [Theory]
+    [InlineData("vision.waitColor")]
+    [InlineData("condition.colorEquals")]
+    public void The_colour_of_a_pixel_is_asked_for_above_the_pixel(string action)
+    {
+        Ui.Run(() =>
+        {
+            var rows = Open(action).Rows.ToList();
+
+            var colour = rows.FindIndex(row => row.First.Definition.Name == "color");
+            var where = rows.FindIndex(row =>
+                row.First.Definition.Name == "x" || row.Second?.Definition.Name == "x");
+
+            Assert.True(colour >= 0, "the colour is not on a line of its own");
+            Assert.True(where >= 0, "the pixel is not on a line of its own");
+            Assert.True(colour < where, "the colour is asked for below the pixel it belongs to");
+        });
+    }
+
+    /// <summary>
     /// The two fields that say how a step reads the screen — how old a picture it will accept, and
     /// how long it leaves between two looks — belong together on the advanced page, because the
     /// answers almost every macro wants are the defaults. How the pixels come off this machine is a

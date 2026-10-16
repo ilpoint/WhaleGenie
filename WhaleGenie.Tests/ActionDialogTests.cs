@@ -9,6 +9,7 @@ using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Recording;
+using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -2784,6 +2785,147 @@ public class ActionDialogTests
     }
 
     // ---------------------------------------------------------------- trying one field
+
+    /// <summary>
+    /// Taking a colour with the magnifier also writes the place it was read from into the step's own
+    /// position: what the magnifier was aimed at is the pixel the step is about, so asking where as
+    /// well as what is what saves lining the two up by hand afterwards.
+    /// </summary>
+    [Fact]
+    public void Taking_a_colour_writes_the_place_it_was_read_from_into_the_step()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var screen = new ColourScreen { Colour = new PixelColor(0x11, 0x22, 0x33) };
+            var hook = new ClickingHook();
+            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], [])
+            {
+                Devices = new ChecksDevices { Screen = screen, Hook = hook },
+            };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (AddActionViewModel)window.DataContext!;
+            viewModel.SelectAction("vision.waitColor");
+            Dispatcher.UIThread.RunJobs();
+
+            var colour = viewModel.Parameters.First(parameter => parameter.Definition.Name == "color");
+            PickColourButton(window, colour).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            // The click that takes the colour is one the magnifier hears through the shared hook,
+            // and what it answers with comes back through the window's own queue.
+            hook.Click(700, 500);
+
+            var x = viewModel.Parameters.First(parameter => parameter.Definition.Name == "x");
+            var y = viewModel.Parameters.First(parameter => parameter.Definition.Name == "y");
+            Assert.True(await Settled(() => colour.CurrentText == "#112233"
+                    && x.CurrentText == "700" && y.CurrentText == "500"),
+                $"the step came back with colour {colour.CurrentText} at {x.CurrentText},{y.CurrentText}");
+
+            window.Close();
+            return true;
+        });
+    }
+
+    /// <summary>The magnifier's own button, which is what opens it for the field it sits on.</summary>
+    private static Button PickColourButton(Window window, StepParameterViewModel parameter)
+        => window.GetVisualDescendants().OfType<Button>()
+            .First(item => item.IsEffectivelyVisible
+                && item.Name == "PickColourButton"
+                && ReferenceEquals(item.DataContext, parameter));
+
+    /// <summary>
+    /// Lets the window's own work catch up: what the magnifier answers with goes through the
+    /// dispatcher rather than coming back on the click, so a check that clicked it has to let the
+    /// queue run before it reads the fields.
+    /// </summary>
+    private static async Task<bool> Settled(Func<bool> done)
+    {
+        for (var turn = 0; turn < 40; turn++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            if (done())
+            {
+                return true;
+            }
+
+            await Task.Delay(25);
+        }
+
+        return done();
+    }
+
+    /// <summary>
+    /// A mouse a check clicks with: the magnifier hears the click through the same hook everything
+    /// else uses, and the other six events are there because every hook has them.
+    /// </summary>
+    private sealed class ClickingHook : IInputHook
+    {
+        public event Action<MouseHookEvent>? MouseDown;
+
+        public event Action<KeyHookEvent>? KeyDown
+        {
+            add { }
+            remove { }
+        }
+
+        public event Action<KeyHookEvent>? KeyUp
+        {
+            add { }
+            remove { }
+        }
+
+        public event Action<MouseHookEvent>? MouseUp
+        {
+            add { }
+            remove { }
+        }
+
+        public event Action<MouseMovedHookEvent>? Moved
+        {
+            add { }
+            remove { }
+        }
+
+        public event Action<MouseMovedRelativeHookEvent>? MovedRelative
+        {
+            add { }
+            remove { }
+        }
+
+        public event Action<WheelHookEvent>? Wheel
+        {
+            add { }
+            remove { }
+        }
+
+        /// <summary>A left click at a place, the way the magnifier hears one.</summary>
+        public void Click(int x, int y)
+            => MouseDown?.Invoke(new MouseHookEvent(HookMouseButton.Left, x, y, false));
+    }
+
+    /// <summary>
+    /// A screen that answers with one colour wherever it is read, over a desk big enough for the
+    /// magnifier to sit on it.
+    /// </summary>
+    private sealed class ColourScreen : IScreenDevice
+    {
+        public PixelColor Colour { get; set; }
+
+        public ScreenLayout Desktop { get; } = new(new ScreenArea(0, 0, 1920, 1080),
+            [new ScreenDisplay(new ScreenArea(0, 0, 1920, 1080), true)]);
+
+        public ScreenPoint Cursor => new(0, 0);
+
+        public PixelColor PixelAt(int x, int y) => Colour;
+
+        public ImageFrame Capture(int x, int y, int width, int height)
+            => new(width, height, new byte[width * height * 4]);
+
+        public ScreenShot Capture(ScreenCaptureRequest request)
+            => NullDeviceLayer.Instance.Screen.Capture(request);
+    }
 
     [Fact]
     public void A_key_field_can_be_tried_on_the_spot()

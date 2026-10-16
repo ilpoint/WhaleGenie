@@ -2625,6 +2625,9 @@ public static class ActionCatalog
             StepTimeoutMs = 5000,
             Parameters =
             [
+                ColorPick("color", "Colour", "#000000",
+                    "Colour the pixel has to show, written as #RRGGBB; #000000 by default. Picking "
+                    + "one with the magnifier writes the place it was read from into X and Y too."),
                 Number("x", "X", 0,
                     "The column to watch, counted from the coordinate origin above, in pixels; 0 by "
                     + "default.",
@@ -2634,8 +2637,6 @@ public static class ActionCatalog
                     + "default.",
                     onlyWith: [RecordPlaceOff, string.Empty], onlyField: RecordPlaceToggle),
                 .. PlaceRecord(RecordPlaceLabel, RecordFieldLabel),
-                ColorPick("color", "Colour", "#000000",
-                    "Colour the pixel has to show, written as #RRGGBB; #000000 by default."),
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100),
                 ..Anchor(),
                 ..Capture(),
@@ -3765,6 +3766,10 @@ public static class ActionCatalog
             Description = "True when a pixel matches a colour.",
             Parameters =
             [
+                ColorPick("color", "Colour", "#000000",
+                    "The colour the pixel is compared with, written as #RRGGBB; black by default. "
+                    + "Picking one with the magnifier writes the place it was read from into X and Y "
+                    + "too."),
                 Number("x", "X", 0,
                     "The column of the pixel to compare, counted from the coordinate origin above, "
                     + "in pixels; 0 by default."),
@@ -3774,8 +3779,6 @@ public static class ActionCatalog
                 ..Anchor(),
                 ..Capture(),
                 LookGap(0),
-                ColorPick("color", "Colour", "#000000",
-                    "The colour the pixel is compared with, written as #RRGGBB; black by default."),
                 Number("tolerance", "Tolerance %", 5, "Allowed colour difference, 0 to 100 per cent; the default is 5.", max: 100, advanced: true),
             ],
         },

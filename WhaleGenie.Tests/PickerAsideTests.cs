@@ -147,7 +147,7 @@ public class PickerAsideTests
 
             var desk = AppWindows.Open;
             AppWindows.Open = () => [editor, asking];
-            Task<PixelColor?> picked;
+            Task<ColorPickerWindow.Pick?> picked;
             try
             {
                 picked = ColorPickerWindow.PickAsync(asking,
@@ -164,7 +164,8 @@ public class PickerAsideTests
             // behind anything else this program has on the screen.
             var away = !editor.IsVisible && !asking.IsVisible;
 
-            // A click away from the magnifier itself is what takes the colour.
+            // A click away from the magnifier itself is what takes the colour, and the place it was
+            // taken from comes back with it: what the magnifier was aimed at is where the colour is.
             hook.Click(900, 700);
             var colour = await picked;
             Dispatcher.UIThread.RunJobs();
@@ -176,7 +177,8 @@ public class PickerAsideTests
             return (colour, away, back);
         });
 
-        Assert.Equal(new PixelColor(0x12, 0x34, 0x56), colour);
+        Assert.Equal(new ColorPickerWindow.Pick(new PixelColor(0x12, 0x34, 0x56), new ScreenPoint(900, 700)),
+            colour);
         Assert.True(away, "the program did not step aside for the magnifier");
         Assert.True(back, "the program did not come back from the magnifier");
     }

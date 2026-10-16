@@ -806,19 +806,20 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        var colour = await ColorPickerWindow.PickAsync(this, Layer);
+        var pick = await ColorPickerWindow.PickAsync(this, Layer);
         Activate();
 
-        if (colour is not { } picked)
+        if (pick is not { } picked)
         {
             return;
         }
 
-        var point = Layer.Screen.Cursor;
-        viewModel.HexColor = picked.ToHex();
-        viewModel.ColorPositionX = point.X.ToString(CultureInfo.InvariantCulture);
-        viewModel.ColorPositionY = point.Y.ToString(CultureInfo.InvariantCulture);
-        ShowPickStatus(Strings.Format("Editor.PickedColor", picked.ToHex()));
+        // The place comes back with the colour rather than being read off the pointer afterwards:
+        // what the magnifier was aimed at is where the colour is, and the pointer may have moved.
+        viewModel.HexColor = picked.Colour.ToHex();
+        viewModel.ColorPositionX = picked.At.X.ToString(CultureInfo.InvariantCulture);
+        viewModel.ColorPositionY = picked.At.Y.ToString(CultureInfo.InvariantCulture);
+        ShowPickStatus(Strings.Format("Editor.PickedColor", picked.Colour.ToHex()));
     }
 
     /// <summary>Alt + X: the pointer's current screen position becomes the watched position.</summary>

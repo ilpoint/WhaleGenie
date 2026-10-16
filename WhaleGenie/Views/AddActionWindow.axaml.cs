@@ -825,19 +825,26 @@ public partial class AddActionWindow : Window
         }
     }
 
-    /// <summary>Opens the screen magnifier for a colour parameter and keeps what it reads.</summary>
+    /// <summary>
+    /// Opens the screen magnifier for a colour parameter and keeps what it reads. The place the
+    /// colour was read from goes into the step's own position as well: the pixel worth watching is
+    /// the one the magnifier was aimed at, so writing both is what saves lining the two up by hand.
+    /// </summary>
     private async void OnPickParameterColor(object? sender, RoutedEventArgs e)
     {
-        if (sender is not Control { DataContext: StepParameterViewModel parameter })
+        if (sender is not Control { DataContext: StepParameterViewModel parameter }
+            || DataContext is not AddActionViewModel viewModel)
         {
             return;
         }
 
-        var colour = await ColorPickerWindow.PickAsync(this, Devices);
-        if (colour is { } picked)
+        if (await ColorPickerWindow.PickAsync(this, Devices) is not { } picked)
         {
-            parameter.Text = picked.ToHex();
+            return;
         }
+
+        parameter.Text = picked.Colour.ToHex();
+        viewModel.ApplyCursorPosition(picked.At.X, picked.At.Y);
     }
 
     /// <summary>

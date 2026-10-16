@@ -2309,7 +2309,7 @@ internal static class ActionStrings
         ["vision.waitColor.record.label"] = RecordFieldLabel,
         ["vision.waitColor.record.hint"] = RecordPlaceFieldHint,
         ["vision.waitColor.color.label"] = "颜色",
-        ["vision.waitColor.color.hint"] = "像素需要显示的颜色，按 #RRGGBB 写，默认 #000000。",
+        ["vision.waitColor.color.hint"] = "像素需要显示的颜色，按 #RRGGBB 写，默认 #000000。用放大镜取色时，取到的那一点同时写进 X、Y。",
         ["vision.waitColor.tolerance.label"] = "容差 %",
         ["vision.waitColor.tolerance.hint"] = "允许的颜色偏差，0–100（百分比），默认 5。",
 
@@ -2921,7 +2921,7 @@ internal static class ActionStrings
         ["condition.colorEquals.y.label"] = "Y",
         ["condition.colorEquals.y.hint"] = "要比较的像素的纵坐标，按「坐标基准」量起，单位是像素，默认 0。",
         ["condition.colorEquals.color.label"] = "颜色",
-        ["condition.colorEquals.color.hint"] = "拿来和这个像素比较的颜色，写成 #RRGGBB，默认黑色。",
+        ["condition.colorEquals.color.hint"] = "拿来和这个像素比较的颜色，写成 #RRGGBB，默认黑色。用放大镜取色时，取到的那一点同时写进 X、Y。",
         ["condition.colorEquals.tolerance.label"] = "容差 %",
         ["condition.colorEquals.tolerance.hint"] = "允许的颜色偏差，写成 0 到 100 的百分数，默认 5；画面有压缩"
             + "痕迹或做过缩放时调大。",
