@@ -22,11 +22,14 @@ public partial class VariableWallViewModel : ViewModelBase
     public VariableWallViewModel(IReadOnlyList<VariableChoice>? variables = null)
     {
         _all = variables ?? [];
+        // The two kinds of variable a macro's author owns are named the way the run window's
+        // variable page names them: one word for one idea, so a field's picker and the wall that
+        // lists them cannot drift into calling the same thing two things.
         Filters =
         [
             new VariableFilter(VariableGroup.All, "VarWall.All", "VarWall.AllHint"),
-            new VariableFilter(VariableGroup.Local, "VarWall.Local", "VarWall.LocalHint"),
-            new VariableFilter(VariableGroup.Global, "VarWall.Global", "VarWall.GlobalHint"),
+            new VariableFilter(VariableGroup.Local, "Variable.Tab.Local", "VarWall.LocalHint"),
+            new VariableFilter(VariableGroup.Global, "Variable.Tab.Global", "VarWall.GlobalHint"),
             new VariableFilter(VariableGroup.System, "VarWall.System", "VarWall.SystemHint"),
             new VariableFilter(VariableGroup.StepResult, "VarWall.StepResult", "VarWall.StepResultHint"),
         ];

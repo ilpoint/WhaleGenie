@@ -111,6 +111,39 @@ public class VariableWallTests
         Assert.Equal(Strings.Get("VarWall.Empty"), wall.Details);
     }
 
+    /// <summary>
+    /// The two kinds of variable a macro's author owns are named the way the run window's variable
+    /// page names them — one word for one idea rather than a second set that has to be mapped onto
+    /// the first. The group's name also goes into the line under the buttons, so the table has to
+    /// hold it: a missing one is shown as the raw key it is written with.
+    /// </summary>
+    [Fact]
+    public void The_two_kinds_of_variable_are_named_the_way_the_variable_page_names_them()
+    {
+        var wall = Wall();
+
+        Assert.Equal(Strings.Get("Variable.Tab.Local"),
+            wall.Filters.First(filter => filter.Group == VariableGroup.Local).Label);
+        Assert.Equal(Strings.Get("Variable.Tab.Global"),
+            wall.Filters.First(filter => filter.Group == VariableGroup.Global).Label);
+
+        foreach (var group in new[]
+        {
+            VariableGroup.Local, VariableGroup.Global,
+            VariableGroup.System, VariableGroup.StepResult,
+        })
+        {
+            var key = $"VarWall.Group.{group}";
+            Assert.True(Strings.English.ContainsKey(key), $"{key} has no English text");
+            Assert.True(Strings.Chinese.ContainsKey(key), $"{key} has no Chinese text");
+        }
+
+        wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.All);
+        var details = wall.Shown.First(choice => choice.Group == VariableGroup.Local).Details;
+        Assert.DoesNotContain("VarWall.", details, StringComparison.Ordinal);
+        Assert.Contains(Strings.Get("VarWall.Group.Local"), details, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Picking_a_variable_hands_back_the_text_a_field_holds()
     {
