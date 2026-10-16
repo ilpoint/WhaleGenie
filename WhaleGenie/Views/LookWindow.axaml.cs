@@ -31,6 +31,10 @@ public partial class LookWindow : Window
     /// <summary>How small a mark may be drawn: a colour hit is one pixel of a whole screen.</summary>
     private const double SmallestMark = 9;
 
+    /// <summary>How far down the window the title bar it draws reaches, margins included: this is
+    /// the one part of a window with no decorations that acts like a title bar.</summary>
+    private const double TitleBarStrip = 44;
+
     /// <summary>The room the writing drawn over the picture takes, and the gap above its box.</summary>
     private const double LabelHeight = 18;
     private const double LabelGap = 2;
@@ -1033,5 +1037,22 @@ public partial class LookWindow : Window
         Canvas.SetLeft(picture, 0);
         Canvas.SetTop(picture, 0);
         board.Children.Add(picture);
+    }
+
+    /// <summary>
+    /// The window is moved by dragging the title bar it draws itself, the way every window here is.
+    /// A window filling the screen has nowhere to be moved to, and pulling one out of full screen
+    /// would leave it in a state its own button no longer describes.
+    /// </summary>
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        base.OnPointerPressed(e);
+
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+            && WindowState != WindowState.FullScreen
+            && e.GetPosition(this).Y <= TitleBarStrip)
+        {
+            BeginMoveDrag(e);
+        }
     }
 }

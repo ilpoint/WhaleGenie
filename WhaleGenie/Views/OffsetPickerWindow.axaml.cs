@@ -25,6 +25,10 @@ public partial class OffsetPickerWindow : Window
     private const double Room = 420;
     private const double MostZoom = 6;
 
+    /// <summary>How far down the window the title bar it draws reaches, margins included: this is
+    /// the one part of a window with no decorations that acts like a title bar.</summary>
+    private const double TitleBarStrip = 44;
+
     private readonly ImageFrame _picture;
     private readonly WriteableBitmap _bitmap;
     private readonly double _zoom;
@@ -214,6 +218,21 @@ public partial class OffsetPickerWindow : Window
 
             default:
                 break;
+        }
+    }
+
+    /// <summary>
+    /// The window is moved by dragging the title bar it draws itself, the way every window here is:
+    /// a window with no decorations has no other part that acts like one.
+    /// </summary>
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        base.OnPointerPressed(e);
+
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+            && e.GetPosition(this).Y <= TitleBarStrip)
+        {
+            BeginMoveDrag(e);
         }
     }
 }
