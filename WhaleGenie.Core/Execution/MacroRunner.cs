@@ -4519,12 +4519,19 @@ public sealed class MacroRunner
         var confidence = Number(step, "confidence");
         var overlap = Number(step, "iou");
         var input = Number(step, "inputSize");
+
+        // Every box the model found is collected, whatever the step will take out of them. Looking
+        // for more costs nothing here — one pass of the model answers with all of them — while asking
+        // for as few as the step needs would leave the device to cut the list down by score before
+        // the step's own 「命中排序」 and 「第几个命中」 had their say, so a step counting in reading
+        // order would have been handed whichever box scored highest. The whole list is also what the
+        // look hands over, which is the point of the window.
         return new DetectionQuery(
             confidence > 0 ? confidence : 25,
             input >= 32 ? input : 640,
             overlap > 0 ? overlap : 45,
             Rows(step.Text("labels")),
-            Wanted(step),
+            MatchLimit,
             LabelFileOf(step));
     }
 

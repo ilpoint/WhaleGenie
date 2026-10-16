@@ -673,8 +673,10 @@ public class RunLookTests
             new DetectionHit(0.91, new ScreenPoint(120, 60), new ScreenSize(30, 20), 3, "car"));
         var looks = new Watched();
 
+        // 这一步只要第一处（没有勾「全部命中」）：交出来的仍然是模型认出的每一处，窗口里看得见的
+        // 也是每一处，只有取走的那一处带着 Hit。
         await Run(Step("vision.detect", Param("model", @"C:\models\yolo.onnx"),
-            Param("confidence", "25"), Hit("match", "spot", every: true)), devices, looks);
+            Param("confidence", "25"), Hit("match", "spot")), devices, looks);
 
         var look = Assert.Single(looks.Seen);
         Assert.Equal("vision.detect", look.StepType);

@@ -3431,6 +3431,33 @@ public class DeviceActionTests
     }
 
     /// <summary>
+    /// 模型一次就答出全部框，所以这一步不管自己只要第几个，都先把它们全收下来，再按自己说的顺序数
+    /// 「第几个命中」。只问一个的话，设备按分数截断，挑中的就不是这一步排序里的第一个。
+    /// </summary>
+    [Fact]
+    public async Task Every_box_the_model_found_is_collected_before_the_step_picks_one()
+    {
+        var devices = new FakeDeviceLayer();
+
+        // 分数最高的那一处在右下角，阅读顺序的第一个在左上角：只要阅读顺序的第一个，就该拿到左上的。
+        devices.Detections.Add(
+            new DetectionHit(0.95, new ScreenPoint(900, 700), new ScreenSize(20, 20), 0, "person"));
+        devices.Detections.Add(
+            new DetectionHit(0.6, new ScreenPoint(10, 12), new ScreenSize(20, 20), 5, "bus"));
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.detect", Param("model", "yolo.onnx"), Param("matchIndex", "1"),
+                Hit("match", "spot")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("bus", Field(store, "spot", "label").AsText());
+        Assert.Equal("20,22", Centre(store, "spot"));
+        Assert.True(Assert.Single(devices.DetectionQueries).Limit > 1);
+    }
+
+    /// <summary>
     /// 点击检测到的物体落在这个框的正中，再加上这一步自己写的两个偏移。
     /// </summary>
     [Fact]
