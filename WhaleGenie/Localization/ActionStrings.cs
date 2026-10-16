@@ -246,7 +246,9 @@ internal static class ActionStrings
     private const string PageTargetHint =
         "选择器一行一条：从上往下依次试，第一条能认出元素的就是这一步用的；多写一条是页面改版之后仍然"
         + "找得到的办法。换下一条只在这一条认不到元素的时候生效，认到了却点不动不换。其中的 $变量 会"
-        + "替换成它的值。";
+        + "替换成它的值。四种按页面上的字认的写法另有名字：label= 表单标签、placeholder= 占位文字、"
+        + "alt= 图片说明、title= 提示文字，都按“包含”比、忽略大小写。元素在框架里时，先写 "
+        + "frame=<框架的选择器> >> 。";
 
     /// <summary>
     /// The hint the "which match" fields of the page actions share. What is being counted comes

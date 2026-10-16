@@ -5455,5 +5455,9 @@ public static class ActionCatalog
         + "is the one this step uses, so a second line is what keeps a step working after the page "
         + "has been redesigned. A later line is reached only when the one before it finds nothing at "
         + "all, not when it finds an element that will not be acted on. A $variable written in a "
-        + "line is filled in with its value. ";
+        + "line is filled in with its value. Four ways of naming an element read the words the page "
+        + "itself shows: label=, placeholder=, alt= and title=. Each of the four matches anywhere in "
+        + "that text, with case and spacing set aside. An element inside a frame is named by writing "
+        + "frame=<the frame's "
+        + "selector> >> in front of the rest. ";
 }

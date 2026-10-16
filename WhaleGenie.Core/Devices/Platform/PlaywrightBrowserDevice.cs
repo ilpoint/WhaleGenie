@@ -19,11 +19,19 @@ namespace WhaleGenie.Core.Devices.Platform;
 public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 {
     /// <summary>
-    /// Playwright's own step from an <c>iframe</c> element down into the document inside it. Chained
-    /// selectors do not take it on their own — without this, a click aimed at a frame waits for an
-    /// element of that name in the top document and times out.
+    /// How a macro writes the way in to a frame: the selector of the frame element itself, then the
+    /// rest of the line. A line may say it several times over, outermost frame first.
     /// </summary>
-    private const string FrameStep = "internal:control=enter-frame";
+    private const string FrameStep = "frame=";
+
+    /// <summary>
+    /// What is written between one part of a line and the next. Playwright reads it as a chain of
+    /// its own, which is why a line a macro wrote by hand keeps whichever chain it asked for.
+    /// </summary>
+    private const string Chain = " >> ";
+
+    /// <summary>The four ways of naming an element that are written rather than read as a selector.</summary>
+    private static readonly string[] Semantic = ["label=", "placeholder=", "alt=", "title="];
 
     /// <summary>
     /// How long a check waits for the element it was handed. It is a question about a page that is
@@ -381,7 +389,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                 if (target.Selectors.Count == 1)
                 {
                     var only = target.Selectors[0];
-                    await page.Locator(only).Nth(target.MatchIndex - 1).WaitForAsync(
+                    await Named(only).Nth(target.MatchIndex - 1).WaitForAsync(
                         new LocatorWaitForOptions
                         {
                             State = WaitState(state),
@@ -596,6 +604,97 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     private static int Patience(int timeoutMs) => timeoutMs > 0 ? timeoutMs : DefaultWaitMs;
 
     /// <summary>
+    /// The element a line of a target names: the frames it sits inside entered first, then the
+    /// element itself, named whichever of the ways the line asked for.
+    /// </summary>
+    /// <remarks>
+    /// A line that begins with none of the ways of writing a frame is Playwright's own selector,
+    /// handed over as it stands so that everything a macro could write by hand — a CSS path, a
+    /// chain of its own, a text or role engine — keeps working untouched. The four semantic ways
+    /// are the ones Playwright has no selector spelling for, so they are asked as questions
+    /// instead, with the meaning the API gives them: the words match anywhere in the name, with
+    /// case and spacing set aside.
+    /// </remarks>
+    private ILocator Named(string line)
+    {
+        var rest = line;
+        var place = new Place(Page(), null);
+        while (true)
+        {
+            var cut = rest.IndexOf(Chain, StringComparison.Ordinal);
+            var head = cut < 0 ? rest : rest[..cut];
+            if (!head.StartsWith(FrameStep, StringComparison.Ordinal))
+            {
+                break;
+            }
+
+            var inside = head[FrameStep.Length..].Trim();
+            if (inside.Length == 0 || cut < 0)
+            {
+                // A line that only says which frame to look in names no element inside it.
+                throw new DeviceActionException("Run.BrowserNoSelector");
+            }
+
+            place = place.Frame(inside);
+            rest = rest[(cut + Chain.Length)..];
+        }
+
+        foreach (var way in Semantic)
+        {
+            if (rest.StartsWith(way, StringComparison.Ordinal))
+            {
+                var text = rest[way.Length..].Trim();
+                if (text.Length == 0)
+                {
+                    throw new DeviceActionException("Run.BrowserNoSelector");
+                }
+
+                return way switch
+                {
+                    "label=" => place.ByLabel(text),
+                    "placeholder=" => place.ByPlaceholder(text),
+                    "alt=" => place.ByAltText(text),
+                    _ => place.ByTitle(text),
+                };
+            }
+        }
+
+        return place.Locator(rest);
+    }
+
+    /// <summary>
+    /// Where a line is looked for: the page itself, or, once a line has said which frame it means,
+    /// that frame. Both ask their questions the same way, which is why one of these stands for
+    /// either of them.
+    /// </summary>
+    private sealed class Place(IPage page, IFrameLocator? frame)
+    {
+        public Place Frame(string selector) => frame is null
+            ? new Place(page, page.FrameLocator(selector))
+            : new Place(page, frame.FrameLocator(selector));
+
+        public ILocator Locator(string selector) => frame is null
+            ? page.Locator(selector)
+            : frame.Locator(selector);
+
+        public ILocator ByLabel(string text) => frame is null
+            ? page.GetByLabel(text)
+            : frame.GetByLabel(text);
+
+        public ILocator ByPlaceholder(string text) => frame is null
+            ? page.GetByPlaceholder(text)
+            : frame.GetByPlaceholder(text);
+
+        public ILocator ByAltText(string text) => frame is null
+            ? page.GetByAltText(text)
+            : frame.GetByAltText(text);
+
+        public ILocator ByTitle(string text) => frame is null
+            ? page.GetByTitle(text)
+            : frame.GetByTitle(text);
+    }
+
+    /// <summary>
     /// The element a target names, waiting for one of its selectors to find something.
     /// </summary>
     /// <remarks>
@@ -622,7 +721,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         if (target.Selectors.Count == 1)
         {
             var only = target.Selectors[0];
-            return (only, page.Locator(only).Nth(target.MatchIndex - 1));
+            return (only, Named(only).Nth(target.MatchIndex - 1));
         }
 
         var deadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(patience);
@@ -631,7 +730,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             var (_, selector, _) = await Which(target);
             if (selector.Length > 0)
             {
-                return (selector, page.Locator(selector).Nth(target.MatchIndex - 1));
+                return (selector, Named(selector).Nth(target.MatchIndex - 1));
             }
 
             if (DateTime.UtcNow >= deadline)
@@ -652,7 +751,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         var page = Page();
         for (var line = 0; line < target.Selectors.Count; line++)
         {
-            var matches = await page.Locator(target.Selectors[line]).CountAsync();
+            var matches = await Named(target.Selectors[line]).CountAsync();
             if (matches >= target.MatchIndex)
             {
                 return (line + 1, target.Selectors[line], matches);
@@ -668,7 +767,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// </summary>
     private async Task<bool> Reached(string selector, int matchIndex, ElementWait state)
     {
-        var element = Page().Locator(selector);
+        var element = Named(selector);
         if (await element.CountAsync() < matchIndex)
         {
             return state is ElementWait.Hidden or ElementWait.Detached;
@@ -710,7 +809,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             var most = 0;
             foreach (var selector in target.Selectors)
             {
-                most = Math.Max(most, Wait(async () => await page.Locator(selector).CountAsync()));
+                most = Math.Max(most, Wait(async () => await Named(selector).CountAsync()));
             }
 
             return most;
@@ -788,7 +887,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                     return new HighlightResult(false, 0, 0);
                 }
 
-                var element = page.Locator(selector).Nth(target.MatchIndex - 1);
+                var element = Named(selector).Nth(target.MatchIndex - 1);
                 await element.ScrollIntoViewIfNeededAsync();
                 await element.EvaluateAsync<bool>(BrowserPickerScript.Flash, null,
                     new LocatorEvaluateOptions { Timeout = HighlightTimeoutMs });
@@ -910,8 +1009,8 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// <summary>
     /// The selector with the frames it sits inside written in front of it, because the click the
     /// macro makes later is aimed at the whole page rather than at the frame the person pointed in.
-    /// Playwright hands that click on to the next frame at each written-in step, so one string still
-    /// names the element.
+    /// Each frame on the way is written as that frame's own step, so one line still names the
+    /// element.
     /// </summary>
     private static string InFrame(IPage page, IFrame? frame, string selector)
     {
@@ -932,7 +1031,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         }
     }
 
-    /// <summary>The way in to a frame: the selector of each frame on the way, outermost first.</summary>
+    /// <summary>The way in to a frame: each frame on the way written as a frame of its own, outermost first.</summary>
     private static async Task<string> WayInAsync(IFrame frame)
     {
         var way = new List<string>();
@@ -943,10 +1042,10 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                 break;
             }
 
-            way.Insert(0, await element.EvaluateAsync<string>(BrowserPickerScript.FramePath));
+            way.Insert(0, FrameStep + await element.EvaluateAsync<string>(BrowserPickerScript.FramePath) + Chain);
         }
 
-        return string.Concat(way.Select(selector => selector + " >> " + FrameStep + " >> "));
+        return string.Concat(way);
     }
 
     /// <summary>One way of naming the element a person clicked, as the page wrote it down.</summary>
@@ -978,7 +1077,11 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     {
         "testid" => PickKind.DataAttribute,
         "role" => PickKind.Role,
+        "label" => PickKind.Label,
         "text" => PickKind.Text,
+        "placeholder" => PickKind.Placeholder,
+        "alt" => PickKind.AltText,
+        "title" => PickKind.Title,
         "id" => PickKind.Id,
         "name" => PickKind.NameAttribute,
         "aria" => PickKind.AriaLabel,
@@ -996,7 +1099,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         var found = new List<PickCandidate>();
         foreach (var candidate in raw)
         {
-            var matches = await page.Locator(candidate.Selector).CountAsync();
+            var matches = await Named(candidate.Selector).CountAsync();
             if (matches > 0)
             {
                 found.Add(new PickCandidate(Kind(candidate.Kind), candidate.Selector, matches));
@@ -1030,11 +1133,23 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         => Wait(async () => await Page().EvaluateAsync<string>(script, argument)) ?? string.Empty;
 
     /// <summary>
+    /// Runs a script in one of the page's frames, which is how a check reaches the frame a pick
+    /// answers from: a click made inside a frame is answered on that frame's own thread, and the
+    /// entry it hands back carries the way in to it.
+    /// </summary>
+    internal string EvaluateIn(string frame, string script, object? argument = null) => Wait(async () =>
+    {
+        var inside = Page().Frame(frame)
+            ?? throw new DeviceActionException("Run.BrowserNotFound", frame);
+        return await inside.EvaluateAsync<string>(script, argument);
+    }) ?? string.Empty;
+
+    /// <summary>
     /// How many elements of the page a selector names, which is how a check says that what a pick
     /// wrote down is what the engine reads back.
     /// </summary>
     internal int Matches(string selector)
-        => Wait(async () => await Page().Locator(selector).CountAsync());
+        => Wait(async () => await Named(selector).CountAsync());
 
     /// <summary>
     /// Takes the picker off the page when the wait ends first — a person who never clicked should

@@ -656,8 +656,23 @@ public enum PickKind
     /// <summary>A role together with the name read off it, which is how a screen reader finds it.</summary>
     Role,
 
+    /// <summary>
+    /// The text of the <c>&lt;label&gt;</c> a form control belongs to, which is the way a person
+    /// reads the field rather than the way the form submits it.
+    /// </summary>
+    Label,
+
     /// <summary>The text the element shows.</summary>
     Text,
+
+    /// <summary>The grey hint a box shows before anything is typed into it.</summary>
+    Placeholder,
+
+    /// <summary>The words a picture is described by, for a reader who cannot see it.</summary>
+    AltText,
+
+    /// <summary>The words a tooltip shows, or the name a control offers when nothing else names it.</summary>
+    Title,
 
     /// <summary>The element's id.</summary>
     Id,

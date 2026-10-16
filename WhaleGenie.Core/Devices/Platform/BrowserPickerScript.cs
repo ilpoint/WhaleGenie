@@ -161,8 +161,36 @@ internal static class BrowserPickerScript
             }
           };
 
+          // What the element says names it: the first of the elements it points at with
+          // aria-labelledby, whose own text is read out in its place.
+          const labelledBy = (element) => {
+            const written = element.getAttribute('aria-labelledby');
+            if (!written) {
+              return '';
+            }
+
+            const first = written.split(/\s+/).map((id) => document.getElementById(id))[0];
+            return first ? text(first) : '';
+          };
+
+          // The text of the label the form control belongs to, which is what a person reads next to
+          // the box rather than what the page put inside it.
+          const formLabel = (element) => {
+            const written = labelledBy(element);
+            if (written) {
+              return written;
+            }
+
+            const owned = element.labels;
+            return owned && owned.length ? text(owned[0]) : '';
+          };
+
+          // The name a screen reader reads out for the element. It is worked out the way an
+          // accessible name is — what it is labelled by first, then the picture or the tip it
+          // carries, and only then the text it shows — because a role asked for by a name the page
+          // does not answer to finds nothing at all.
           const label = (element) =>
-            (element.getAttribute('aria-label') || element.getAttribute('alt')
+            (element.getAttribute('aria-label') || formLabel(element) || element.getAttribute('alt')
               || element.getAttribute('title') || text(element) || '').trim();
 
           // A path of tags from the top of the page, cut short at the first ancestor that has an id
@@ -226,11 +254,33 @@ internal static class BrowserPickerScript
 
             const tag = element.tagName.toLowerCase();
 
+            // What the form control is labelled by, which is how a person names the field rather
+            // than how the page names it in the markup.
+            const named = formLabel(element);
+            if (named) {
+              add('label', 'label=' + named);
+            }
+
             // The text the element shows, which Playwright matches on the page's own reading of it:
             // it is written out only when it is short enough to be a name rather than a paragraph.
             const shown = text(element);
             if (shown && shown.length <= 120 && !/^(script|style|template)$/.test(tag)) {
               add('text', 'text=' + quoted(shown));
+            }
+
+            const hint = element.getAttribute('placeholder');
+            if (hint) {
+              add('placeholder', 'placeholder=' + hint.trim());
+            }
+
+            const picture = element.getAttribute('alt');
+            if (picture) {
+              add('alt', 'alt=' + picture.trim());
+            }
+
+            const tip = element.getAttribute('title');
+            if (tip) {
+              add('title', 'title=' + tip.trim());
             }
 
             if (element.id) {

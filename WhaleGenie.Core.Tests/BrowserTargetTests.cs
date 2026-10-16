@@ -226,18 +226,140 @@ public class BrowserTargetTests : IDisposable
         Assert.Equal("deep", device.Text(At("#log"), 5000).Trim());
     }
 
+    [RealBrowserFact]
+    public void A_form_control_is_named_by_its_label_and_by_its_placeholder()
+    {
+        Site("<label for=user>用户名</label><input id=user placeholder=\"账号\">"
+            + "<input id=mail placeholder=\"邮箱\">");
+
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        // The words beside the box are how a person names a field, and they are asked of the page
+        // rather than read as a selector: nothing about the markup has to line up with them.
+        device.Fill(PageTarget.Of("label=用户名", 1), "报告", 5000);
+        Assert.Equal("报告", device.Evaluate("() => document.getElementById('user').value"));
+
+        // The words match anywhere in the name with case and spacing set aside, which is what the
+        // question Playwright asks means when no exactness is asked for.
+        Assert.Equal(1, device.Matches("label=用户"));
+        device.Fill(PageTarget.Of("label=用户", 1), "再填一次", 5000);
+        Assert.Equal("再填一次", device.Evaluate("() => document.getElementById('user').value"));
+
+        // The grey hint inside a box names it too, and a name that only one box answers is one hit.
+        Assert.Equal(1, device.Matches("placeholder=邮箱"));
+        device.Fill(PageTarget.Of("placeholder=邮箱", 1), "a@b", 5000);
+        Assert.Equal("a@b", device.Evaluate("() => document.getElementById('mail').value"));
+
+        // A line that names a way but not the words is a line that names nothing.
+        var empty = Assert.Throws<DeviceActionException>(
+            () => device.Click(PageTarget.Of("label=", 1), 5000));
+        Assert.Equal("Run.BrowserNoSelector", empty.Key);
+    }
+
+    [RealBrowserFact]
+    public void A_picture_and_a_button_are_named_by_their_alt_text_and_their_title()
+    {
+        Site("<img id=logo alt=\"鲸灵首页\">"
+            + "<p id=log></p>"
+            + "<button id=save title=\"保存到文件\""
+            + " onclick=\"document.getElementById('log').textContent='saved'\">图标</button>");
+
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        // A picture is named by what a reader who cannot see it is told, and a button that shows a
+        // picture instead of words by the tip it offers.
+        Assert.Equal(1, device.Matches("alt=鲸灵首页"));
+        Assert.Equal(1, device.Matches("title=保存到文件"));
+        Assert.Equal(0, device.Matches("alt=别的东西"));
+
+        device.Click(PageTarget.Of("title=保存到文件", 1), 5000);
+        Assert.Equal("saved", device.Text(At("#log"), 5000).Trim());
+    }
+
+    [RealBrowserFact]
+    public void A_line_that_enters_a_frame_names_what_is_inside_it()
+    {
+        // A frame holds a document of its own, and a click aimed at the page waits for the element
+        // in the wrong one: the way in is written down in front of the element, not left to be
+        // guessed from where the element happens to sit.
+        Site("<iframe id=pay name=inner srcdoc=\"<label for=card>卡号</label><input id=card>\"></iframe>"
+            + "<p id=log></p>");
+
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        var inside = "frame=#pay >> label=卡号";
+        Assert.Equal(1, device.Matches(inside));
+
+        device.Fill(PageTarget.Of(inside, 1), "1234", 5000);
+        Assert.Equal("1234", device.EvaluateIn("inner", "() => document.getElementById('card').value"));
+
+        // The same way in is what a pick leaves behind: what a person pointed at inside a frame is
+        // written down with the frame it was in.
+        var picking = Task.Run(() => device.Pick("pick something", 15000));
+        var ways = WaysIn(device, "inner", "document.querySelector('input')");
+        Assert.NotEmpty(ways);
+        device.EvaluateIn("inner", "(ways) => window.__whalegeniePicked(ways)", ways);
+
+        var picked = picking.GetAwaiter().GetResult();
+        Assert.StartsWith("frame=#pay >> ", picked.Selector, StringComparison.Ordinal);
+        Assert.Equal(1, device.Matches(picked.Selector));
+    }
+
+    [RealBrowserFact]
+    public void A_pick_names_a_form_control_by_the_words_the_page_shows()
+    {
+        Site("<label for=user>用户名</label><input id=user placeholder=\"账号\" title=\"登录名\">");
+
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        var picking = Task.Run(() => device.Pick("pick something", 15000));
+        var ways = Ways(device, "document.getElementById('user')");
+        Assert.NotEmpty(ways);
+        device.Evaluate("(ways) => window.__whalegeniePicked(ways)", ways);
+
+        var picked = picking.GetAwaiter().GetResult();
+        var kinds = picked.Candidates.Select(way => way.Kind).ToList();
+
+        // The ways that read the page's own words are offered in the order they are trusted in, and
+        // each one is already counted: what stands beside the field says how many it names.
+        Assert.Equal(PickKind.Role, kinds[0]);
+        Assert.True(kinds.IndexOf(PickKind.Label) < kinds.IndexOf(PickKind.Placeholder));
+        Assert.True(kinds.IndexOf(PickKind.Placeholder) < kinds.IndexOf(PickKind.Title));
+        Assert.All(picked.Candidates, way => Assert.True(way.Matches >= 1, way.Selector));
+
+        Assert.Contains(picked.Candidates, way => way.Selector == "label=用户名");
+        Assert.Contains(picked.Candidates, way => way.Selector == "placeholder=账号");
+        Assert.Contains(picked.Candidates, way => way.Selector == "title=登录名");
+
+        // What the field is left holding is the steadiest of them, which is the first in the list.
+        Assert.Equal(picked.Candidates[0].Selector, picked.Selector);
+    }
+
     /// <summary>
     /// The ways of naming an element of the page, asked for the way a later look would ask: through
     /// the picker the device has just armed, once it is armed.
     /// </summary>
     private static string Ways(PlaywrightBrowserDevice device, string element)
+        => Asked((script, argument) => device.Evaluate(script, argument), element);
+
+    /// <summary>The same question asked of one of the page's frames, where a pick inside one answers from.</summary>
+    private static string WaysIn(PlaywrightBrowserDevice device, string frame, string element)
+        => Asked((script, argument) => device.EvaluateIn(frame, script, argument), element);
+
+    /// <summary>The ways of naming an element, asked again until the picker has finished arming.</summary>
+    private static string Asked(Func<string, object?, string> run, string element)
     {
         for (var look = 0; look < 200; look++)
         {
-            var ways = device.Evaluate(
+            var ways = run(
                 "() => window.__whalegenieCandidates && " + element
                 + " ? JSON.stringify(window.__whalegenieCandidates(" + element + "))"
-                + " : ''");
+                + " : ''",
+                null);
             if (ways.Length > 0)
             {
                 return ways;
