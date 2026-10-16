@@ -261,6 +261,40 @@ public sealed record VisionQuery(
     int Limit = 1);
 
 /// <summary>
+/// One run of a detection model over a region: how sure a guess has to be, how many pixels of the
+/// region are handed to it, how much two guesses may overlap and still be kept, which classes are
+/// wanted, where the names of those classes are written, and how many guesses are collected at
+/// most. Which model it is is said by the path of the file, which travels beside this.
+/// </summary>
+/// <remarks>
+/// The overlap is what stops one thing being reported five times: a model answers with a guess per
+/// place it thinks the thing is, and two guesses over the same thing are one find rather than two.
+/// It is told apart by class, because two different things drawn one over the other are both there.
+///
+/// The classes are written the way the user wrote them — a name from the label file, or a number —
+/// because the file that says which number a name is belongs to the run rather than to the model.
+/// </remarks>
+public sealed record DetectionQuery(
+    double ConfidencePercent = 25,
+    int InputSize = 640,
+    double IouPercent = 45,
+    IReadOnlyList<string>? Labels = null,
+    int Limit = 1,
+    string LabelFile = "");
+
+/// <summary>
+/// One thing a detection model found: where it is on the screen, how sure the model was, and which
+/// class of thing it is — both the number the model answers with and the name the user's label file
+/// gives that number, which is empty when the file does not name it.
+/// </summary>
+public sealed record DetectionHit(
+    double Score,
+    ScreenPoint Location,
+    ScreenSize Size,
+    int ClassId,
+    string Label);
+
+/// <summary>
 /// One piece of text found on screen. The confidence is the reading model's own score rather than
 /// a percentage: it is the average, over the characters it read, of how far ahead the model's best
 /// guess was, so a bigger number means a surer reading but there is no range it has to sit in.

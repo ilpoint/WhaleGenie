@@ -18,6 +18,8 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
 
     private readonly Lazy<IOcrDevice> _ocr = new(() => new PaddleOcrDevice());
 
+    private readonly Lazy<IDetectorDevice> _detector = new(() => new OpenCvDetectDevice());
+
     private readonly Lazy<FlaUiDevice> _ui;
 
     private readonly Lazy<IFileDevice> _files = new(() => new LocalFileDevice());
@@ -107,6 +109,12 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
     /// <summary>Text recognition, which loads its models the first time a macro reads text.</summary>
     public IOcrDevice Ocr => _ocr.Value;
 
+    /// <summary>
+    /// Looking for things with a model the macro brought along, which is read from its file the first
+    /// time a step asks for it and kept until the program ends.
+    /// </summary>
+    public IDetectorDevice Detector => _detector.Value;
+
     public IUiDevice Ui => _ui.Value;
 
     /// <summary>Files, which need no Windows API of their own.</summary>
@@ -158,6 +166,12 @@ public sealed class WindowsDeviceLayer : IDeviceLayer, IDisposable
         if (_ocr.IsValueCreated && _ocr.Value is IDisposable ocr)
         {
             ocr.Dispose();
+        }
+
+        // A model that is loaded holds a session of its own, and may be a hundred megabytes of it.
+        if (_detector.IsValueCreated && _detector.Value is IDisposable detector)
+        {
+            detector.Dispose();
         }
 
         // The programs this run started are held open so their exit codes stay readable.

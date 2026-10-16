@@ -123,6 +123,27 @@ public interface IOcrDevice
     IReadOnlyList<TextSpan> Recognize(ImageFrame frame);
 }
 
+/// <summary>
+/// Looking for things in a picture with a detection model the user brought along: what a step hands
+/// over is a region, and what comes back is where each thing is and which kind of thing it is.
+/// </summary>
+/// <remarks>
+/// The model is named by the path of the file it lives at rather than held by the device, because
+/// which model a step uses is the step's own business: a macro that watches for one kind of thing
+/// and another that watches for something else may each bring their own. Loading a model costs a
+/// moment, so a device that has already loaded one keeps it until the program ends.
+/// </remarks>
+public interface IDetectorDevice
+{
+    /// <summary>
+    /// Everything the model finds in <paramref name="frame"/>, surest first and at most
+    /// <see cref="DetectionQuery.Limit"/> of them, with the coordinates counted from the corner of
+    /// the picture that was handed over. A model the device cannot read or run is the caller's
+    /// answer to give rather than a stack trace: it comes back saying which of the two happened.
+    /// </summary>
+    IReadOnlyList<DetectionHit> Detect(string modelPath, ImageFrame frame, DetectionQuery query);
+}
+
 /// <summary>Finding and driving windows through UI Automation.</summary>
 public interface IUiDevice
 {
@@ -1116,6 +1137,12 @@ public interface IDeviceLayer
 
     IOcrDevice Ocr { get; }
 
+    /// <summary>
+    /// Looking for things in a picture with a model the macro brought along. A layer with no model
+    /// behind it refuses every step that asks for one.
+    /// </summary>
+    IDetectorDevice Detector { get; }
+
     IUiDevice Ui { get; }
 
     IFileDevice Files { get; }
@@ -1212,6 +1239,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
     public IOcrDevice Ocr => _refusal;
 
+    public IDetectorDevice Detector => _refusal;
+
     public IUiDevice Ui => _refusal;
 
     public IFileDevice Files => _refusal;
@@ -1230,9 +1259,9 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
     /// <summary>Answers every request with "not available", naming what was asked for.</summary>
     private sealed class Refusal
-        : IInputDevice, IGamepadDevice, IScreenDevice, IVisionDevice, IOcrDevice, IUiDevice,
-          IFileDevice, IClipboardDevice, IProcessDevice, IScriptDevice, ISystemDevice, IWindowDevice,
-          IBrowserDevice, IInputHook, IInputRecorder, IDriverInput
+        : IInputDevice, IGamepadDevice, IScreenDevice, IVisionDevice, IOcrDevice, IDetectorDevice,
+          IUiDevice, IFileDevice, IClipboardDevice, IProcessDevice, IScriptDevice, ISystemDevice,
+          IWindowDevice, IBrowserDevice, IInputHook, IInputRecorder, IDriverInput
     {
         // Named through the interface because the input device already has a KeyDown and a KeyUp
         // that send a key rather than report one.
@@ -1601,6 +1630,9 @@ public sealed class NullDeviceLayer : IDeviceLayer
             VisionQuery query) => throw Missing("image matching");
 
         public IReadOnlyList<TextSpan> Recognize(ImageFrame frame) => throw Missing("text recognition");
+
+        public IReadOnlyList<DetectionHit> Detect(string modelPath, ImageFrame frame,
+            DetectionQuery query) => throw Missing("object detection");
 
         public bool Exists(UiQuery query, int timeoutMs) => throw Missing("UI Automation");
 

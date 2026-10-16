@@ -143,6 +143,8 @@ internal sealed class ChecksDevices : IDeviceLayer
 
     public IVisionDevice Vision => NullDeviceLayer.Instance.Vision;
 
+    public IDetectorDevice Detector => NullDeviceLayer.Instance.Detector;
+
     /// <summary>The reading of writing a check puts on the machine, when what is being checked is
     /// what a step read off the screen.</summary>
     public IOcrDevice Ocr { get; set; } = NullDeviceLayer.Instance.Ocr;

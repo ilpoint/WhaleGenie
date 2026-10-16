@@ -3196,6 +3196,8 @@ public class ActionDialogTests
 
         public IVisionDevice Vision => NullDeviceLayer.Instance.Vision;
 
+        public IDetectorDevice Detector => NullDeviceLayer.Instance.Detector;
+
         public IOcrDevice Ocr => NullDeviceLayer.Instance.Ocr;
 
         public IUiDevice Ui => NullDeviceLayer.Instance.Ui;

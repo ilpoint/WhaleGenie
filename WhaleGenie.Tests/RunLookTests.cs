@@ -358,6 +358,10 @@ public class RunLookTests
 
         public IVisionDevice Vision => this;
 
+        /// <summary>This layer looks at the picture rather than for things in it, so nothing here
+        /// brings the model a detection step would need.</summary>
+        public IDetectorDevice Detector => NullDeviceLayer.Instance.Detector;
+
         public IInputRouter Inputs => NullDeviceLayer.Instance.Inputs;
 
         public IInputDevice Input => NullDeviceLayer.Instance.Input;

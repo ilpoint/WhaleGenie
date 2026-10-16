@@ -258,8 +258,11 @@ public sealed class OpenCvVisionDevice : IVisionDevice
         patch.SetTo(new Scalar(-1));
     }
 
-    /// <summary>Copies a frame into the three channel layout OpenCV compares with.</summary>
-    private static Mat Bgr(ImageFrame frame)
+    /// <summary>
+    /// Copies a frame into the three channel layout OpenCV works in. It is shared with the detection
+    /// device rather than written twice: the layout a picture has to be in is one answer for both.
+    /// </summary>
+    internal static Mat Bgr(ImageFrame frame)
     {
         using var four = new Mat(frame.Height, frame.Width, MatType.CV_8UC4);
         Marshal.Copy(frame.Bgra, 0, four.Data, frame.Bgra.Length);
