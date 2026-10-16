@@ -486,7 +486,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                 if (target.Selectors.Count == 1)
                 {
                     var only = target.Selectors[0];
-                    await Named(only).Nth(target.MatchIndex - 1).WaitForAsync(
+                    await Named(only, target.Conditions).Nth(target.MatchIndex - 1).WaitForAsync(
                         new LocatorWaitForOptions
                         {
                             State = WaitState(state),
@@ -502,7 +502,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                 {
                     foreach (var selector in target.Selectors)
                     {
-                        if (await Reached(selector, target.MatchIndex, state))
+                        if (await Reached(target, selector, state))
                         {
                             return selector;
                         }
@@ -565,7 +565,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                 var page = Page();
                 page.SetDefaultTimeout(patience);
                 var (selector, _) = await Found(target, patience);
-                var element = Named(selector);
+                var element = Named(selector, target.Conditions);
 
                 // The first entry is waited for the way one element is any other step: a page that is
                 // still filling its list has nothing to read yet, and reading nothing at all would
@@ -641,7 +641,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                 page.SetDefaultTimeout(LookTimeoutMs);
                 foreach (var selector in target.Selectors)
                 {
-                    if (await Reached(selector, target.MatchIndex, state))
+                    if (await Reached(target, selector, state))
                     {
                         return true;
                     }
@@ -1186,7 +1186,8 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
     /// <summary>
     /// The element a line of a target names: the frames it sits inside entered first, then the
-    /// element itself, named whichever of the ways the line asked for.
+    /// element itself, named whichever of the ways the line asked for, with the conditions the step
+    /// added asked of it in turn.
     /// </summary>
     /// <remarks>
     /// A line that begins with none of the ways of writing a frame is Playwright's own selector,
@@ -1195,11 +1196,47 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// are the ones Playwright has no selector spelling for, so they are asked as questions
     /// instead, with the meaning the API gives them: the words match anywhere in the name, with
     /// case and spacing set aside.
+    /// <para>
+    /// The conditions are Playwright's own answers and nothing of this device's own making: looking
+    /// inside a container is one locator asked under another, and text, held elements and being on
+    /// screen are the filters the engine offers on any locator. Like the four semantic ways, they
+    /// ride along a locator afterwards, so the element found by a condition is the element the rest
+    /// of the step — clicking, reading, counting — works through.
+    /// </para>
     /// </remarks>
-    private ILocator Named(string line)
+    private ILocator Named(string line, IReadOnlyList<PageCondition> conditions)
+    {
+        var outer = Framed(line, out var element);
+
+        // Where the element is looked for: a condition that says which container it sits in is a
+        // step further in, and a second such condition goes further in again, so the rows read the
+        // way they are written.
+        var place = outer;
+        foreach (var condition in conditions)
+        {
+            if (condition.How is PageFilter.Inside)
+            {
+                place = place.Within(Said(condition));
+            }
+        }
+
+        var found = Ask(place, element);
+        foreach (var condition in conditions)
+        {
+            found = Narrow(found, condition, outer);
+        }
+
+        return found;
+    }
+
+    /// <summary>
+    /// The page or the frame a line says to look in, and what is left of the line once its frames
+    /// have been read off the front of it.
+    /// </summary>
+    private Place Framed(string line, out string element)
     {
         var rest = line;
-        var place = new Place(Page(), null);
+        var place = new Place(Page(), null, null);
         while (true)
         {
             var cut = rest.IndexOf(Chain, StringComparison.Ordinal);
@@ -1220,11 +1257,22 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             rest = rest[(cut + Chain.Length)..];
         }
 
+        element = rest;
+        return place;
+    }
+
+    /// <summary>
+    /// One written line of a page turned into a locator, from wherever it is being looked for: the
+    /// four ways of naming an element by the words a person reads it by, and otherwise the line the
+    /// engine already understands, handed over whole.
+    /// </summary>
+    private static ILocator Ask(Place place, string line)
+    {
         foreach (var way in Semantic)
         {
-            if (rest.StartsWith(way, StringComparison.Ordinal))
+            if (line.StartsWith(way, StringComparison.Ordinal))
             {
-                var text = rest[way.Length..].Trim();
+                var text = line[way.Length..].Trim();
                 if (text.Length == 0)
                 {
                     throw new DeviceActionException("Run.BrowserNoSelector");
@@ -1240,39 +1288,94 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             }
         }
 
-        return place.Locator(rest);
+        return place.Locator(line);
+    }
+
+    /// <summary>
+    /// One condition asked of an element, as the filter the engine puts on a locator. A condition
+    /// that names where the element sits was spent before the element was looked for, so it has
+    /// nothing to add here.
+    /// </summary>
+    /// <remarks>
+    /// Text, held elements and being on screen are the engine's own filters. The two that ask about
+    /// an element the found one holds are asked from the page itself rather than from the place the
+    /// element was found in, because the engine reads those relative to the element being filtered
+    /// and a locator that is already inside something else is not a question it accepts.
+    /// </remarks>
+    private static ILocator Narrow(ILocator element, PageCondition condition, Place outer) =>
+        condition.How switch
+        {
+            PageFilter.Has => element.Filter(new LocatorFilterOptions
+            {
+                Has = Ask(outer, Said(condition)),
+            }),
+            PageFilter.HasNot => element.Filter(new LocatorFilterOptions
+            {
+                HasNot = Ask(outer, Said(condition)),
+            }),
+            PageFilter.HasText => element.Filter(new LocatorFilterOptions
+            {
+                HasTextString = Said(condition),
+            }),
+            PageFilter.HasNotText => element.Filter(new LocatorFilterOptions
+            {
+                HasNotTextString = Said(condition),
+            }),
+            PageFilter.Visible => element.Filter(new LocatorFilterOptions { Visible = true }),
+            _ => element,
+        };
+
+    /// <summary>
+    /// What a condition asks for, refused when the step left it out: a condition that says neither
+    /// what to look for nor what to leave out is not one the engine can put to the page.
+    /// </summary>
+    private static string Said(PageCondition condition)
+    {
+        var said = condition.Value.Trim();
+        if (said.Length == 0 && condition.How is not PageFilter.Visible)
+        {
+            throw new DeviceActionException("Run.BrowserBadFilter", condition.How.ToString());
+        }
+
+        return said;
     }
 
     /// <summary>
     /// Where a line is looked for: the page itself, or, once a line has said which frame it means,
-    /// that frame. Both ask their questions the same way, which is why one of these stands for
-    /// either of them.
+    /// that frame — or, once a condition has said which container the element sits in, that
+    /// container. All three ask their questions the same way, which is why one of these stands for
+    /// any of them.
     /// </summary>
-    private sealed class Place(IPage page, IFrameLocator? frame)
+    private sealed class Place(IPage page, IFrameLocator? frame, ILocator? within)
     {
+        // A frame is read off the front of a line, before any condition is applied, so this never
+        // has a container to step out of.
         public Place Frame(string selector) => frame is null
-            ? new Place(page, page.FrameLocator(selector))
-            : new Place(page, frame.FrameLocator(selector));
+            ? new Place(page, page.FrameLocator(selector), null)
+            : new Place(page, frame.FrameLocator(selector), null);
 
-        public ILocator Locator(string selector) => frame is null
-            ? page.Locator(selector)
-            : frame.Locator(selector);
+        /// <summary>The same place with one container between it and the element: look inside this.</summary>
+        public Place Within(string line) => new(page, frame, Ask(this, line));
 
-        public ILocator ByLabel(string text) => frame is null
-            ? page.GetByLabel(text)
-            : frame.GetByLabel(text);
+        public ILocator Locator(string selector) => within is not null
+            ? within.Locator(selector)
+            : frame is null ? page.Locator(selector) : frame.Locator(selector);
 
-        public ILocator ByPlaceholder(string text) => frame is null
-            ? page.GetByPlaceholder(text)
-            : frame.GetByPlaceholder(text);
+        public ILocator ByLabel(string text) => within is not null
+            ? within.GetByLabel(text)
+            : frame is null ? page.GetByLabel(text) : frame.GetByLabel(text);
 
-        public ILocator ByAltText(string text) => frame is null
-            ? page.GetByAltText(text)
-            : frame.GetByAltText(text);
+        public ILocator ByPlaceholder(string text) => within is not null
+            ? within.GetByPlaceholder(text)
+            : frame is null ? page.GetByPlaceholder(text) : frame.GetByPlaceholder(text);
 
-        public ILocator ByTitle(string text) => frame is null
-            ? page.GetByTitle(text)
-            : frame.GetByTitle(text);
+        public ILocator ByAltText(string text) => within is not null
+            ? within.GetByAltText(text)
+            : frame is null ? page.GetByAltText(text) : frame.GetByAltText(text);
+
+        public ILocator ByTitle(string text) => within is not null
+            ? within.GetByTitle(text)
+            : frame is null ? page.GetByTitle(text) : frame.GetByTitle(text);
     }
 
     /// <summary>
@@ -1302,7 +1405,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         if (target.Selectors.Count == 1)
         {
             var only = target.Selectors[0];
-            return (only, Named(only).Nth(target.MatchIndex - 1));
+            return (only, Named(only, target.Conditions).Nth(target.MatchIndex - 1));
         }
 
         var deadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(patience);
@@ -1311,7 +1414,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             var (_, selector, _) = await Which(target);
             if (selector.Length > 0)
             {
-                return (selector, Named(selector).Nth(target.MatchIndex - 1));
+                return (selector, Named(selector, target.Conditions).Nth(target.MatchIndex - 1));
             }
 
             if (DateTime.UtcNow >= deadline)
@@ -1332,7 +1435,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         var page = Page();
         for (var line = 0; line < target.Selectors.Count; line++)
         {
-            var matches = await Named(target.Selectors[line]).CountAsync();
+            var matches = await Named(target.Selectors[line], target.Conditions).CountAsync();
             if (matches >= target.MatchIndex)
             {
                 return (line + 1, target.Selectors[line], matches);
@@ -1346,10 +1449,10 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// Whether one selector of a target has reached the state a step is waiting for. A selector that
     /// names nothing is "gone" and "off the page", which is what waiting for those two means.
     /// </summary>
-    private async Task<bool> Reached(string selector, int matchIndex, ElementWait state)
+    private async Task<bool> Reached(PageTarget target, string selector, ElementWait state)
     {
-        var element = Named(selector);
-        if (await element.CountAsync() < matchIndex)
+        var element = Named(selector, target.Conditions);
+        if (await element.CountAsync() < target.MatchIndex)
         {
             return state is ElementWait.Hidden or ElementWait.Detached;
         }
@@ -1359,7 +1462,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             return state is ElementWait.Attached;
         }
 
-        var visible = await element.Nth(matchIndex - 1).IsVisibleAsync();
+        var visible = await element.Nth(target.MatchIndex - 1).IsVisibleAsync();
         return state is ElementWait.Visible ? visible : !visible;
     }
 
@@ -1390,7 +1493,8 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             var most = 0;
             foreach (var selector in target.Selectors)
             {
-                most = Math.Max(most, Wait(async () => await Named(selector).CountAsync()));
+                most = Math.Max(most,
+                    Wait(async () => await Named(selector, target.Conditions).CountAsync()));
             }
 
             return most;
@@ -1468,7 +1572,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                     return new HighlightResult(false, 0, 0);
                 }
 
-                var element = Named(selector).Nth(target.MatchIndex - 1);
+                var element = Named(selector, target.Conditions).Nth(target.MatchIndex - 1);
                 await element.ScrollIntoViewIfNeededAsync();
                 await element.EvaluateAsync<bool>(BrowserPickerScript.Flash, null,
                     new LocatorEvaluateOptions { Timeout = HighlightTimeoutMs });
@@ -1680,7 +1784,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         var found = new List<PickCandidate>();
         foreach (var candidate in raw)
         {
-            var matches = await Named(candidate.Selector).CountAsync();
+            var matches = await Named(candidate.Selector, []).CountAsync();
             if (matches > 0)
             {
                 found.Add(new PickCandidate(Kind(candidate.Kind), candidate.Selector, matches));
@@ -1730,7 +1834,14 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// wrote down is what the engine reads back.
     /// </summary>
     internal int Matches(string selector)
-        => Wait(async () => await Named(selector).CountAsync());
+        => Matches(selector, []);
+
+    /// <summary>
+    /// How many elements of the page a written line names with these conditions on it, which is how
+    /// a check says that a step narrows the page down to the one element it means.
+    /// </summary>
+    internal int Matches(string selector, IReadOnlyList<PageCondition> conditions)
+        => Wait(async () => await Named(selector, conditions).CountAsync());
 
     /// <summary>
     /// Takes the picker off the page when the wait ends first — a person who never clicked should

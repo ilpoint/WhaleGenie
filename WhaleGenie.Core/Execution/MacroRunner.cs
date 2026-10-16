@@ -7759,10 +7759,46 @@ public sealed class MacroRunner
 
     /// <summary>
     /// The element a browser step means: the selectors its target field holds, one to a line and
-    /// tried in that order, and which of the elements a selector matches is the one the step wants.
+    /// tried in that order, which of the elements a selector matches is the one the step wants, and
+    /// whatever else the step said the right element has to be like.
     /// </summary>
     private PageTarget Element(ExecutableStep step)
-        => PageTarget.Of(Read(step.Text("target")).AsText(), Index(step, "matchIndex", 1));
+        => PageTarget.Of(Read(step.Text("target")).AsText(), Index(step, "matchIndex", 1),
+            Conditions(step));
+
+    /// <summary>
+    /// What a browser step says the element has to be like besides the way it is named: one row per
+    /// condition, all of them holding at once, which is how a step tells the element it means from
+    /// the others a selector names.
+    /// </summary>
+    /// <remarks>
+    /// A row that says no way of narrowing is left out rather than refused: an empty row is what a
+    /// half-filled form holds, and it is silent because a condition nobody asked for is not a
+    /// condition. A row that says a way the engine does not know is refused, because a step that
+    /// asked for less than it meant would otherwise act on the wrong element without saying so.
+    /// </remarks>
+    private IReadOnlyList<PageCondition> Conditions(ExecutableStep step)
+    {
+        var conditions = new List<PageCondition>();
+        foreach (var row in step.Rows("narrow"))
+        {
+            var how = row.TryGetValue("how", out var way) ? way.Trim() : string.Empty;
+            if (how.Length == 0)
+            {
+                continue;
+            }
+
+            if (!Enum.TryParse<PageFilter>(how, ignoreCase: true, out var kind))
+            {
+                throw new StepFailure("Run.BrowserBadFilter", how);
+            }
+
+            var value = row.TryGetValue("value", out var said) ? said : string.Empty;
+            conditions.Add(new PageCondition(kind, Read(value).AsText()));
+        }
+
+        return conditions;
+    }
 
     /// <summary>
     /// The key or the reading a step may do without: a step whose target is empty sends its key to

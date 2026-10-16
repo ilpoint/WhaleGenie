@@ -1292,6 +1292,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BrowserNoAttribute"] = "This step reads an attribute of an element but does not say "
             + "which one: write the attribute's name, such as href or src.",
         ["Run.BrowserBadProfile"] = "That is not a name a browser profile can have: {0}",
+        ["Run.BrowserBadFilter"] = "This step narrows the page down by something the engine cannot "
+            + "read: {0}",
         ["Run.OpenedBrowser"] = "Opened {0} at {1}.",
         ["Run.BrowserAddress"] = "The page is on {0}.",
         ["Run.BrowserClicked"] = "Clicked {0}.",
@@ -2815,6 +2817,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BrowserNoSelector"] = "这一步没说要页面上的哪个元素：请写选择器，或在页面上点一下那个元素。",
         ["Run.BrowserNoAttribute"] = "这一步要读元素的属性，但没说是哪个属性：请填上属性名，例如 href、src。",
         ["Run.BrowserBadProfile"] = "浏览器档案不能叫这个名字：{0}",
+        ["Run.BrowserBadFilter"] = "这一步的限定条件读不出来：{0}",
         ["Run.OpenedBrowser"] = "已打开 {0}，地址是 {1}。",
         ["Run.BrowserAddress"] = "页面在 {0}。",
         ["Run.BrowserClicked"] = "已点击 {0}。",

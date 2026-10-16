@@ -100,6 +100,14 @@ public class DeviceActionTests
         params IReadOnlyDictionary<string, string>[] rows)
         => new() { Name = name, Rows = rows };
 
+    /// <summary>One row of what a browser step narrows the page down by, as the dialog writes it.</summary>
+    private static IReadOnlyDictionary<string, string> Narrow(string how, string value = "")
+        => new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["how"] = how,
+            ["value"] = value,
+        };
+
     /// <summary>
     /// The pictures a step looks for, written the way the dialog writes them: one row each, tried
     /// in the order they are listed.
@@ -8404,6 +8412,44 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task What_a_browser_step_narrows_the_page_down_by_reaches_the_device()
+    {
+        // A selector that names five elements which look alike is narrowed down by saying what the
+        // right one is like, and every such condition has to reach the device in the order it was
+        // written and with the match the step means: they are all put to the page together, so an
+        // order or a word lost on the way would hand the step whatever the page listed first.
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Within(2500, Step("browser.click", Param("target", "#ok"), Param("matchIndex", "2"),
+                Rows("narrow", Narrow("HasText", "确定"), Narrow("Visible")))),
+            Step("browser.click", Param("target", "#plain")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Contains("browserClick #ok #2 [HasText=确定, Visible=] Single False 2500", devices.Calls);
+
+        // A step that adds nothing says nothing to the device about narrowing, which is what keeps
+        // what one of those looks like from changing how every other browser step is read.
+        Assert.Contains("browserClick #plain #1 Single False 0", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_browser_step_narrowed_by_something_unreadable_is_refused()
+    {
+        // The way of narrowing a row asks for is written in the file, so a word the engine does not
+        // know is a step asking for less than it means. Acting on whichever element a selector
+        // happened to name first would be the wrong element without saying so.
+        var (result, devices, _) = await RunAsync(
+        [
+            Step("browser.click", Param("target", "#ok"), Rows("narrow", Narrow("Nonsense", "x"))),
+        ]);
+
+        Assert.Equal("Run.BrowserBadFilter", result.Key);
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("browserClick", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task The_run_says_which_way_of_naming_the_element_it_used()
     {
         // Which of the selectors a target was written with is the thing its author cannot see from
@@ -9836,7 +9882,17 @@ internal sealed class FakeDeviceLayer
     /// </summary>
     private static string Named(PageTarget? target) => target is null || target.Selectors.Count == 0
         ? "(none)"
-        : $"{string.Join(" / ", target.Selectors)} #{target.MatchIndex}";
+        : $"{string.Join(" / ", target.Selectors)} #{target.MatchIndex}{Narrowed(target)}";
+
+    /// <summary>
+    /// What a target narrows the page down by, written after which match the step means: the
+    /// conditions a step adds are handed over with the selectors they go with, in the order they
+    /// were written, and a target that adds none says nothing here.
+    /// </summary>
+    private static string Narrowed(PageTarget target) => target.Conditions.Count == 0
+        ? string.Empty
+        : " [" + string.Join(", ",
+            target.Conditions.Select(condition => $"{condition.How}={condition.Value}")) + "]";
 
     /// <summary>
     /// Which of a target's selectors turns out to name the element, as though the ones before it had

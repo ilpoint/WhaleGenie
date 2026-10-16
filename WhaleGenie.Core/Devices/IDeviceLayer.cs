@@ -833,21 +833,67 @@ public sealed record DownloadResult(string Path, string Name);
 /// one to a line and tried in that order, and the first that finds anything is the one the step
 /// works through. The selectors and <see cref="MatchIndex"/> travel together because the two answer
 /// one question — which element — and a step that named no selector at all is a step that means the
-/// page itself.
+/// page itself. <see cref="Conditions"/> belong to the same question: they are what tells one of
+/// several elements that a selector names from the others, and they hold whichever of them the step
+/// works through.
 /// </remarks>
-public sealed record PageTarget(IReadOnlyList<string> Selectors, int MatchIndex)
+public sealed record PageTarget(
+    IReadOnlyList<string> Selectors, int MatchIndex, IReadOnlyList<PageCondition> Conditions)
 {
     /// <summary>
     /// The target a step's field holds: one selector to a line, blank lines dropped, and which of
-    /// the elements a selector matches is the one meant, counted from 1.
+    /// the elements a selector matches is the one meant, counted from 1, with the conditions the
+    /// step adds when a selector on its own names more than the one it wants.
     /// </summary>
-    public static PageTarget Of(string text, int matchIndex) => new(
-        [
-            .. text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')
-                .Select(line => line.Trim())
-                .Where(line => line.Length > 0),
-        ],
-        matchIndex);
+    public static PageTarget Of(string text, int matchIndex,
+        IReadOnlyList<PageCondition>? conditions = null) => new(
+            [
+                .. text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')
+                    .Select(line => line.Trim())
+                    .Where(line => line.Length > 0),
+            ],
+            matchIndex,
+            conditions ?? []);
+}
+
+/// <summary>
+/// One more thing the right element has to be, beyond the way it is named, which is what tells it
+/// from the others when a selector names several that look alike.
+/// </summary>
+public sealed record PageCondition(PageFilter How, string Value);
+
+/// <summary>
+/// How a step narrows down the elements a selector names, told the way the browser engine itself
+/// offers to do it rather than worked out here: every one of these is a question the engine behind
+/// the page already answers, so a step is narrowed the same way a person programming the browser
+/// would narrow it.
+/// </summary>
+/// <remarks>
+/// All of them hold at once, which is why the words read as conditions rather than as choices. The
+/// first of them is not a condition on the element but on where it sits, and the rest are what
+/// Playwright calls the element's filters: text it writes, elements it holds, and whether it can be
+/// seen. A page shows a thing once and keeps a second copy of it hidden, so "only the visible one"
+/// is the condition a person reaches for most.
+/// </remarks>
+public enum PageFilter
+{
+    /// <summary>Look for the element inside the container this names, rather than anywhere on the page.</summary>
+    Inside,
+
+    /// <summary>The element holds an element this names.</summary>
+    Has,
+
+    /// <summary>The element holds nothing this names.</summary>
+    HasNot,
+
+    /// <summary>What the element writes holds this text, whichever case and however the spacing runs.</summary>
+    HasText,
+
+    /// <summary>What the element writes holds no such text.</summary>
+    HasNotText,
+
+    /// <summary>Only elements a person could see, which is what tells a shown thing from its hidden twin.</summary>
+    Visible,
 }
 
 /// <summary>

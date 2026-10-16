@@ -86,6 +86,76 @@ public class BrowserTargetTests : IDisposable
     }
 
     [RealBrowserFact]
+    public void A_condition_tells_the_element_from_the_others_that_look_like_it()
+    {
+        Site("<div id=log></div>"
+            + "<div id=left><button class=ok onclick=\"mark('L')\">好</button></div>"
+            + "<div id=right><button class=ok onclick=\"mark('R')\">好</button></div>"
+            + "<div class=card>普通的<span class=badge>新</span></div>"
+            + "<div class=card>普通的</div>"
+            + "<div class=item id=shown onclick=\"mark('S')\">看得见</div>"
+            + "<div class=item id=hidden style=\"display:none\" onclick=\"mark('H')\">看不见</div>"
+            + "<button class=act onclick=\"mark('1')\">确定</button>"
+            + "<button class=act onclick=\"mark('2')\">取消</button>"
+            + "<button class=act onclick=\"mark('3')\">确定</button>"
+            + "<script>function mark(what) { document.getElementById('log').textContent = what; }</script>");
+
+        using var device = new PlaywrightBrowserDevice();
+        device.Open("edge", Address(), headless: true, profile: string.Empty);
+
+        // Three buttons on the page say the same thing and two of them are named the same way: the
+        // text a step asks for is what tells the second of those two from the first.
+        device.Click(PageTarget.Of(".act", 2, [Text("确定")]), ClickWay.Single, false, 5000);
+        Assert.Equal("3", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
+
+        // The same question the other way round, and a container the element has to sit in: two
+        // buttons of one name, only one of them inside the left half of the page.
+        device.Click(PageTarget.Of(".act", 1, [TextNot("确定")]), ClickWay.Single, false, 5000);
+        Assert.Equal("2", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
+
+        device.Click(PageTarget.Of(".ok", 1, [Inside("#right")]), ClickWay.Single, false, 5000);
+        Assert.Equal("R", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
+
+        // An element the found one holds, and one it does not: the first two cards say the same
+        // words, and the badge is the only thing telling them apart.
+        Assert.Equal(2, device.Matches(".card", []));
+        Assert.Equal(1, device.Matches(".card", [Holds(".badge")]));
+        Assert.Equal(1, device.Matches(".card", [HoldsNot(".badge")]));
+
+        // A page keeps a second copy of what it shows and hides it, so "only what can be seen" is
+        // what turns two elements of one name into the one a person is looking at.
+        Assert.Equal(2, device.Matches(".item", []));
+        Assert.Equal(1, device.Matches(".item", [new PageCondition(PageFilter.Visible, string.Empty)]));
+        device.Click(PageTarget.Of(".item", 1, [Seen()]), ClickWay.Single, false, 5000);
+        Assert.Equal("S", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
+
+        // A condition that says nothing is not one the engine can put to the page, and it says so
+        // rather than quietly acting on whichever element came first.
+        var refused = Assert.Throws<DeviceActionException>(
+            () => device.Click(PageTarget.Of(".act", 1, [Text(string.Empty)]), ClickWay.Single,
+                false, 5000));
+        Assert.Equal("Run.BrowserBadFilter", refused.Key);
+    }
+
+    /// <summary>A condition on the text the element writes, which is what most steps mean.</summary>
+    private static PageCondition Text(string said) => new(PageFilter.HasText, said);
+
+    /// <summary>A condition on text the element leaves out.</summary>
+    private static PageCondition TextNot(string said) => new(PageFilter.HasNotText, said);
+
+    /// <summary>A condition on the container the element sits in.</summary>
+    private static PageCondition Inside(string selector) => new(PageFilter.Inside, selector);
+
+    /// <summary>A condition on an element the found one holds.</summary>
+    private static PageCondition Holds(string selector) => new(PageFilter.Has, selector);
+
+    /// <summary>A condition on an element the found one does not hold.</summary>
+    private static PageCondition HoldsNot(string selector) => new(PageFilter.HasNot, selector);
+
+    /// <summary>A condition on the element being one a person could see.</summary>
+    private static PageCondition Seen() => new(PageFilter.Visible, string.Empty);
+
+    [RealBrowserFact]
     public void Nothing_found_names_every_way_that_was_tried_and_touches_nothing()
     {
         Site("<div id=log></div>");
