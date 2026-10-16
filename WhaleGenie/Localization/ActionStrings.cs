@@ -407,6 +407,59 @@ internal static class ActionStrings
         + "逐个走一遍。不勾选时只记录选中的那一处。";
 
     /// <summary>
+    /// The hint the detection steps share for the model file: the program brings no model of its own,
+    /// so the file written here is the one the step runs, and it is read once and kept.
+    /// </summary>
+    private const string DetectModelHint =
+        "这一步要跑的模型文件，用户自己准备的 YOLOv8 或 YOLO11 检测模型（.onnx）。鲸灵不带模型，"
+        + "写在这里的就是这一步用的那个；第一次跑到这一步时读一次，之后一直留着（同时最多留 3 个）。"
+        + "要认别的东西，或者换成在自己数据上训出来的模型就改这里。";
+
+    /// <summary>The hint the detection steps share for the file that names the model's classes.</summary>
+    private const string DetectLabelFileHint =
+        "模型的类名表，一个类一行，顺序与模型训练时一致，所以第一行是第 0 类。默认留空，类名就没有"
+        + "名字；要用名字挑类（而不是写类序号）时把它填上。";
+
+    /// <summary>The hint the detection steps share for the classes they look for.</summary>
+    private const string DetectLabelsHint =
+        "这一步认哪些类，一行一个，写类名（按标签文件里的名字，忽略大小写与两端空格）或类序号。"
+        + "默认留空，模型认识的每一类都算；只想认其中几类时填上，认起来也更快。";
+
+    /// <summary>The hint the detection steps share for how sure the model has to be.</summary>
+    private const string DetectConfidenceHint =
+        "模型的把握到多少才算数，写成 0 到 100 的百分数，默认 25。有把握的东西认不出来就调低，"
+        + "老认到不存在的东西就调高。模型的把握与图片相似度不是一回事：模型很有把握的框一般在 80 上下。";
+
+    /// <summary>The hint the detection steps share for the square the model reads.</summary>
+    private const string DetectInputSizeHint =
+        "画面缩放并补边成的正方形边长，单位像素，默认 640，即导出时没指定尺寸的模型要的那一个。"
+        + "模型是按别的尺寸导出的（320、480、1280）时改成那个数，否则会读错或直接跑不起来。";
+
+    /// <summary>The hint the detection steps share for how much two boxes may lie over each other.</summary>
+    private const string DetectOverlapHint =
+        "同一类的两个框重叠超过多少就不再留较不把握的那个，写成 0 到 100 的百分数，默认 45。"
+        + "模型对同一个东西常常给出好几个框，这个数就是只留一个。挤在一起的东西（人群）调高，"
+        + "同一个东西被认出两次就调低。";
+
+    /// <summary>
+    /// The hint the detection steps share for their hit record: the same parts as any other hit, and
+    /// which kind of thing it is beside them.
+    /// </summary>
+    private const string HitRecordHintDetect =
+        "这次认出的那一处，一条记录：「x」「y」是框的正中（点击动作点在这里加上偏移），「left」"
+        + "「top」是框的左上角（检测范围从那里开始量），「width」「height」是框的宽高，「score」是"
+        + "模型的把握（越大越有把握），「class」是模型给的类序号（从 0 算），「label」是标签文件给"
+        + "它的名字（标签文件里没有这一类时为空），「box」是整块矩形，写成 左,上,宽,高。取其中一项用 "
+        + "field($变量, \"x\")。没找到时为空。";
+
+    /// <summary>The same hint for the region a detection step reads, under the name that field goes by.</summary>
+    private const string DetectRegionHint =
+        "检测范围，一行一块，可以填多块。每行填 x、y、宽、高四个数字，或用“框选”拖出来；一行也可以"
+        + "填变量：图片变量（在前面截取的那张图上检测）或写成 x,y,宽,高 的矩形变量，还可以填一条带"
+        + "矩形的记录（命中、窗口、元素都行）。记录里的数是屏幕像素，「坐标基准」只挪写出来的四个数字。"
+        + "留空表示整个屏幕（默认）。";
+
+    /// <summary>
     /// The hint the two text-searching actions share for their lowest-score field. The numbers
     /// are what the reading model actually gave on a real screen, because the score is the
     /// model's own and has no range a user could otherwise guess.
@@ -2152,6 +2205,159 @@ internal static class ActionStrings
         ["vision.findColors.returns.hint"] =
             "勾上这一步要留下的结果：每一项各自成为一个变量，后面的步骤按名字取用。"
             + "一个都不勾也可以，这一步就不留下任何结果。",
+
+        ["vision.detect.name"] = "检测物体",
+        ["vision.detect.desc"] =
+            "在屏幕的一块区域里，用 YOLO 模型找它认识的物体。",
+        ["vision.detect.model.label"] = "模型文件",
+        ["vision.detect.model.hint"] = DetectModelHint,
+        ["vision.detect.labelFile.label"] = "标签文件",
+        ["vision.detect.labelFile.hint"] = DetectLabelFileHint,
+        ["vision.detect.labels.label"] = "要认的类",
+        ["vision.detect.labels.hint"] = DetectLabelsHint,
+        ["vision.detect.region.label"] = "检测范围",
+        ["vision.detect.region.hint"] = DetectRegionHint,
+        ["vision.detect.confidence.label"] = "置信度 %",
+        ["vision.detect.confidence.hint"] = DetectConfidenceHint,
+        ["vision.detect.inputSize.label"] = "模型输入尺寸",
+        ["vision.detect.inputSize.hint"] = DetectInputSizeHint,
+        ["vision.detect.iou.label"] = "允许重叠 %",
+        ["vision.detect.iou.hint"] = DetectOverlapHint,
+        ["vision.detect.orderBy.label"] = "命中排序",
+        ["vision.detect.orderBy.hint"] = MatchOrderHint,
+        ["vision.detect.orderBy.option.reading"] = "阅读顺序",
+        ["vision.detect.orderBy.option.score"] = "分数最高",
+        ["vision.detect.orderBy.option.area"] = "面积最大",
+        ["vision.detect.orderBy.option.random"] = "随机",
+        ["vision.detect.matchIndex.label"] = "第几个命中",
+        ["vision.detect.matchIndex.hint"] = MatchIndexHint,
+        ["vision.detect.anchorMode.label"] = "坐标基准",
+        ["vision.detect.anchorMode.hint"] = AnchorModeHint,
+        ["vision.detect.anchorMode.option.screen"] = "屏幕像素",
+        ["vision.detect.anchorMode.option.window"] = "窗口左上角",
+        ["vision.detect.anchorMode.option.client"] = "窗口客户区",
+        ["vision.detect.anchorWindow.label"] = WindowMatchTextLabel,
+        ["vision.detect.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["vision.detect.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["vision.detect.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["vision.detect.intervalMs.label"] = LookIntervalLabel,
+        ["vision.detect.intervalMs.hint"] = LookGapHint,
+        ["vision.detect.return.match.label"] = HitRecordLabel,
+        ["vision.detect.return.match.hint"] = HitRecordHintDetect,
+        ["vision.detect.return.every.label"] = EveryHitLabel,
+        ["vision.detect.return.every.hint"] = EveryHitHint,
+        ["vision.detect.returns.label"] = "要留下的结果",
+        ["vision.detect.returns.hint"] = ReturnsHintText,
+
+        ["vision.waitDetect.name"] = "等待检测到物体",
+        ["vision.waitDetect.desc"] =
+            "等到 YOLO 模型在屏幕的一块区域里认出东西为止，最多等到步骤设置里的「超时」；"
+            + "到点这一步算失败。",
+        ["vision.waitDetect.model.label"] = "模型文件",
+        ["vision.waitDetect.model.hint"] = DetectModelHint,
+        ["vision.waitDetect.labelFile.label"] = "标签文件",
+        ["vision.waitDetect.labelFile.hint"] = DetectLabelFileHint,
+        ["vision.waitDetect.labels.label"] = "要认的类",
+        ["vision.waitDetect.labels.hint"] = DetectLabelsHint,
+        ["vision.waitDetect.region.label"] = "检测范围",
+        ["vision.waitDetect.region.hint"] = DetectRegionHint,
+        ["vision.waitDetect.confidence.label"] = "置信度 %",
+        ["vision.waitDetect.confidence.hint"] = DetectConfidenceHint,
+        ["vision.waitDetect.inputSize.label"] = "模型输入尺寸",
+        ["vision.waitDetect.inputSize.hint"] = DetectInputSizeHint,
+        ["vision.waitDetect.iou.label"] = "允许重叠 %",
+        ["vision.waitDetect.iou.hint"] = DetectOverlapHint,
+        ["vision.waitDetect.orderBy.label"] = "命中排序",
+        ["vision.waitDetect.orderBy.hint"] = MatchOrderHint,
+        ["vision.waitDetect.orderBy.option.reading"] = "阅读顺序",
+        ["vision.waitDetect.orderBy.option.score"] = "分数最高",
+        ["vision.waitDetect.orderBy.option.area"] = "面积最大",
+        ["vision.waitDetect.orderBy.option.random"] = "随机",
+        ["vision.waitDetect.matchIndex.label"] = "第几个命中",
+        ["vision.waitDetect.matchIndex.hint"] = MatchIndexHint,
+        ["vision.waitDetect.anchorMode.label"] = "坐标基准",
+        ["vision.waitDetect.anchorMode.hint"] = AnchorModeHint,
+        ["vision.waitDetect.anchorMode.option.screen"] = "屏幕像素",
+        ["vision.waitDetect.anchorMode.option.window"] = "窗口左上角",
+        ["vision.waitDetect.anchorMode.option.client"] = "窗口客户区",
+        ["vision.waitDetect.anchorWindow.label"] = WindowMatchTextLabel,
+        ["vision.waitDetect.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["vision.waitDetect.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["vision.waitDetect.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["vision.waitDetect.intervalMs.label"] = LookIntervalLabel,
+        ["vision.waitDetect.intervalMs.hint"] = LookPollHint,
+        ["vision.waitDetect.return.match.label"] = HitRecordLabel,
+        ["vision.waitDetect.return.match.hint"] = HitRecordHintDetect,
+        ["vision.waitDetect.return.every.label"] = EveryHitLabel,
+        ["vision.waitDetect.return.every.hint"] = EveryHitHint,
+        ["vision.waitDetect.returns.label"] = "要留下的结果",
+        ["vision.waitDetect.returns.hint"] = ReturnsHintText,
+
+        ["vision.clickDetect.name"] = "点击检测到的物体",
+        ["vision.clickDetect.desc"] =
+            "用 YOLO 模型在屏幕的一块区域里找到物体并点击它，点在框中心加上偏移的位置；"
+            + "最多等到步骤设置里的「超时」，到点这一步算失败。",
+        ["vision.clickDetect.model.label"] = "模型文件",
+        ["vision.clickDetect.model.hint"] = DetectModelHint,
+        ["vision.clickDetect.labelFile.label"] = "标签文件",
+        ["vision.clickDetect.labelFile.hint"] = DetectLabelFileHint,
+        ["vision.clickDetect.labels.label"] = "要认的类",
+        ["vision.clickDetect.labels.hint"] = DetectLabelsHint,
+        ["vision.clickDetect.region.label"] = "检测范围",
+        ["vision.clickDetect.region.hint"] = DetectRegionHint,
+        ["vision.clickDetect.confidence.label"] = "置信度 %",
+        ["vision.clickDetect.confidence.hint"] = DetectConfidenceHint,
+        ["vision.clickDetect.inputSize.label"] = "模型输入尺寸",
+        ["vision.clickDetect.inputSize.hint"] = DetectInputSizeHint,
+        ["vision.clickDetect.iou.label"] = "允许重叠 %",
+        ["vision.clickDetect.iou.hint"] = DetectOverlapHint,
+        ["vision.clickDetect.button.label"] = "按键",
+        ["vision.clickDetect.button.hint"] = MouseButtonHint,
+        ["vision.clickDetect.button.option.left"] = "左键",
+        ["vision.clickDetect.button.option.right"] = "右键",
+        ["vision.clickDetect.button.option.middle"] = "中键",
+        ["vision.clickDetect.button.option.back"] = "后退键",
+        ["vision.clickDetect.button.option.forward"] = "前进键",
+        ["vision.clickDetect.offsetX.label"] = "横向偏移",
+        ["vision.clickDetect.offsetX.hint"] =
+            "点击位置在框中心基础上水平偏移的像素数，默认 0，即点在框中心。",
+        ["vision.clickDetect.offsetY.label"] = "纵向偏移",
+        ["vision.clickDetect.offsetY.hint"] =
+            "点击位置在框中心基础上垂直偏移的像素数，正数向下，默认 0，即点在框中心。",
+        ["vision.clickDetect.orderBy.label"] = "命中排序",
+        ["vision.clickDetect.orderBy.hint"] = MatchOrderHint,
+        ["vision.clickDetect.orderBy.option.reading"] = "阅读顺序",
+        ["vision.clickDetect.orderBy.option.score"] = "分数最高",
+        ["vision.clickDetect.orderBy.option.area"] = "面积最大",
+        ["vision.clickDetect.orderBy.option.random"] = "随机",
+        ["vision.clickDetect.matchIndex.label"] = "第几个命中",
+        ["vision.clickDetect.matchIndex.hint"] = MatchIndexHint,
+        ["vision.clickDetect.anchorMode.label"] = "坐标基准",
+        ["vision.clickDetect.anchorMode.hint"] = AnchorModeHint,
+        ["vision.clickDetect.anchorMode.option.screen"] = "屏幕像素",
+        ["vision.clickDetect.anchorMode.option.window"] = "窗口左上角",
+        ["vision.clickDetect.anchorMode.option.client"] = "窗口客户区",
+        ["vision.clickDetect.anchorWindow.label"] = WindowMatchTextLabel,
+        ["vision.clickDetect.anchorWindow.hint"] = AnchorWindowRuleHint,
+        ["vision.clickDetect.frameMaxAgeMs.label"] = FrameMaxAgeLabel,
+        ["vision.clickDetect.frameMaxAgeMs.hint"] = FrameMaxAgeHint,
+        ["vision.clickDetect.intervalMs.label"] = LookIntervalLabel,
+        ["vision.clickDetect.intervalMs.hint"] = LookPollHint,
+        ["vision.clickDetect.variance.label"] = "落点随机范围",
+        ["vision.clickDetect.variance.hint"] =
+            "落点与框中心最多相差多少个像素，默认 0，即正好点在那个点上。填了数就在这个范围内"
+            + "随机取一点。数字要小到整个范围仍落在被点的东西里面。",
+        ["vision.clickDetect.recheckMs.label"] = "落手前再确认",
+        ["vision.clickDetect.recheckMs.hint"] =
+            "点之前先等这么多毫秒再看一次，单位毫秒，默认 0，即一认出就点。填了数就等这么久再"
+            + "看一眼，这次仍认得才点；这次认不得按没找到处理。第二次查看只查一次、不再等，"
+            + "所以画面已经变过就直接算没找到。",
+        ["vision.clickDetect.return.match.label"] = HitRecordLabel,
+        ["vision.clickDetect.return.match.hint"] = HitRecordHintDetect,
+        ["vision.clickDetect.return.every.label"] = EveryHitLabel,
+        ["vision.clickDetect.return.every.hint"] = EveryHitHint,
+        ["vision.clickDetect.returns.label"] = "要留下的结果",
+        ["vision.clickDetect.returns.hint"] = ReturnsHintText,
 
         ["vision.waitStable.name"] = "等画面静止",
         ["vision.waitStable.desc"] =
@@ -4075,6 +4281,7 @@ internal static class ActionStrings
     [
         "vision.capture", "vision.findImage", "vision.waitImage", "vision.clickImage",
         "vision.getPixel", "vision.waitColor", "vision.findColor", "vision.findColors",
+        "vision.detect", "vision.waitDetect", "vision.clickDetect",
         "vision.waitStable", "ocr.recognize", "ocr.findText", "ocr.clickText",
         "condition.imageExists", "condition.imageNotExists", "condition.textExists",
         "condition.textNotExists", "condition.colorEquals", "condition.colorsMatch",

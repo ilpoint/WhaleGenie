@@ -848,6 +848,8 @@ public sealed class MacroRunner
                     PixelColor.Parse(Read(step.Text("color")).AsText()).ToHex()),
                 "vision.waitImage" or "vision.clickImage" => new StepFailure("Run.ImageNotFound",
                     Written(step.Rows("image"))),
+                "vision.waitDetect" or "vision.clickDetect" => new StepFailure("Run.DetectNotFound",
+                    Looking(step)),
                 "vision.waitStable" => new StepFailure("Run.ScreenNotStable", patience),
                 "ocr.clickText" => new StepFailure("Run.TextNotFound",
                     Read(step.Text("text")).AsText()),
@@ -1486,6 +1488,21 @@ public sealed class MacroRunner
             case "vision.clickImage":
                 await Gate(step, token);
                 await Watching(() => ClickImage(step, depth, token));
+                return Signal.Normal;
+
+            case "vision.detect":
+                await Gate(step, token);
+                Watching(() => LookForObjects(step, depth));
+                return Signal.Normal;
+
+            case "vision.waitDetect":
+                await Gate(step, token);
+                await Watching(() => WaitForObjects(step, depth, token));
+                return Signal.Normal;
+
+            case "vision.clickDetect":
+                await Gate(step, token);
+                await Watching(() => ClickObject(step, depth, token));
                 return Signal.Normal;
 
             // -------------------------------------------------------------------- ocr
@@ -2860,6 +2877,7 @@ public sealed class MacroRunner
     /// </summary>
     public static bool CanLook(string stepType) => stepType is
         "vision.findImage" or "vision.waitImage" or "vision.clickImage"
+        or "vision.detect" or "vision.waitDetect" or "vision.clickDetect"
         or "vision.findColor" or "vision.waitColor" or "vision.getPixel"
         or "vision.capture" or "vision.captureWindow"
         or "ocr.recognize" or "ocr.findText" or "ocr.clickText";
@@ -2979,6 +2997,12 @@ public sealed class MacroRunner
             case "vision.waitImage":
             case "vision.clickImage":
                 Watching(() => Hits(step));
+                break;
+
+            case "vision.detect":
+            case "vision.waitDetect":
+            case "vision.clickDetect":
+                Watching(() => Sightings(step));
                 break;
 
             case "vision.findColor":
@@ -4344,6 +4368,192 @@ public sealed class MacroRunner
     /// <summary>One attempt at finding a reference picture: the hit the step asked for.</summary>
     private ImageMatch? Search(ExecutableStep step) => Chosen(Hits(step), step);
 
+    // ------------------------------------------------------------------ detection
+
+    /// <summary>
+    /// One thing a detection model found: where it is on the screen, how sure the model was, and
+    /// which kind of thing it is — the number the model answers with and the name the label file
+    /// gives that number, which is empty when the file does not name it.
+    /// </summary>
+    private sealed record Sighting(ImageMatch Match, int ClassId, string Label);
+
+    /// <summary>What one look found: everything there was, and the one the step asked for.</summary>
+    private sealed record FoundObjects(List<Sighting> Found, Sighting Match);
+
+    /// <summary>
+    /// Everything a detection model found in the areas a step named, in the order the step counts
+    /// them in and in screen pixels. Which model it is and what it should look for are read from the
+    /// step; loading the model and running it are the device's business.
+    /// </summary>
+    private List<Sighting> Sightings(ExecutableStep step)
+    {
+        var model = ModelOf(step);
+        var query = Detection(step);
+        var areas = SearchAreas(step);
+        var found = new List<Sighting>();
+        foreach (var (area, origin) in areas)
+        {
+            foreach (var hit in _devices.Detector.Detect(model, area, query))
+            {
+                // The device counts from the corner of the picture it was handed; a step counts
+                // from the screen, the way every other step that looks at the screen does.
+                found.Add(new Sighting(
+                    new ImageMatch(hit.Score,
+                        new ScreenPoint(origin.X + hit.Location.X, origin.Y + hit.Location.Y),
+                        hit.Size),
+                    hit.ClassId,
+                    hit.Label));
+            }
+        }
+
+        Sorted(found, step);
+        SawDetections(step, areas, found);
+        return found;
+    }
+
+    /// <summary>The hits a wait ended on: the whole set and the one the step asked for.</summary>
+    private async Task<FoundObjects> SightingsUntil(ExecutableStep step, CancellationToken token)
+    {
+        var interval = LookBeat(step);
+
+        FoundObjects? Enough()
+        {
+            var found = Sightings(step);
+            return Chosen(found, step) is { } match ? new FoundObjects(found, match) : null;
+        }
+
+        return await WaitForValueAsync(Enough, interval, token);
+    }
+
+    /// <summary>Looks once and writes where the thing was, or an empty value when it was not there.</summary>
+    private void LookForObjects(ExecutableStep step, int depth)
+    {
+        var found = Sightings(step);
+        var match = Chosen(found, step);
+
+        if (match is null)
+        {
+            GiveNothing(step);
+        }
+        else
+        {
+            GiveMatch(step, match.Match.Location, match.Match.Size, match.Match.Score,
+                label: match.Label, classId: match.ClassId);
+        }
+
+        GiveEvery(step, HitRecords(found));
+        Log(LogLevel.Info, depth, step.Type,
+            match is null ? "Run.DetectedNothing" : "Run.Detected",
+            match is null ? Looking(step) : Saying(match));
+    }
+
+    /// <summary>
+    /// Waits until the model finds a thing the step wants, for as long as the step's own timeout
+    /// allows, and writes where it was.
+    /// </summary>
+    private async Task WaitForObjects(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var found = await SightingsUntil(step, token);
+
+        GiveMatch(step, found.Match.Match.Location, found.Match.Match.Size, found.Match.Match.Score,
+            label: found.Match.Label, classId: found.Match.ClassId);
+        GiveEvery(step, HitRecords(found.Found));
+        Log(LogLevel.Info, depth, step.Type, "Run.Detected", Saying(found.Match));
+    }
+
+    /// <summary>
+    /// Waits until the model finds a thing, then clicks it: the middle of the box the model drew
+    /// round it, moved by the step's own offsets.
+    /// </summary>
+    private async Task ClickObject(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var seen = await SightingsUntil(step, token);
+
+        // A step that asked to look again waits a moment and confirms the thing is still there: a
+        // thing that flashed past, or a screen that has already moved on, is not clicked. The second
+        // look is a single look rather than another wait, the same as a step that clicks a picture.
+        var again = Pace(OptionalNumber(step, "recheckMs", 0));
+        if (again > 0)
+        {
+            await Pause(again, token);
+            var found = Sightings(step);
+            seen = Chosen(found, step) is { } match
+                ? new FoundObjects(found, match)
+                : throw new StepFailure("Run.DetectNotFound", Looking(step));
+        }
+
+        var at = Scattered(new ScreenPoint(
+            seen.Match.Match.Center.X + Number(step, "offsetX"),
+            seen.Match.Match.Center.Y + Number(step, "offsetY")), Spread(step));
+
+        GiveMatch(step, seen.Match.Match.Location, seen.Match.Match.Size, seen.Match.Match.Score,
+            label: seen.Match.Label, classId: seen.Match.ClassId);
+        GiveEvery(step, HitRecords(seen.Found));
+
+        Aim(at);
+        Input(step).Click(Button(step), at.X, at.Y, 1, 0);
+        Log(LogLevel.Info, depth, step.Type, "Run.ClickedObject", Saying(seen.Match),
+            $"{at.X},{at.Y}");
+    }
+
+    /// <summary>What a step that looked for things saw: the areas, every guess, and the one it took.</summary>
+    private void SawDetections(ExecutableStep step,
+        IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas, IReadOnlyList<Sighting> found)
+        => SawSearch(step, LookKind.Detection, areas,
+            [.. found.Select(hit => (hit.Match, (string?)hit.Label))],
+            WentWith(found, step), Looking(step), minimum: Number(step, "confidence") / 100.0);
+
+    /// <summary>The model file a step named, as the path it is read from.</summary>
+    private string ModelOf(ExecutableStep step) => _devices.Files.Resolve(PathOf(step, "model"));
+
+    /// <summary>The file whose lines name the model's classes, or empty when the step named none.</summary>
+    private string LabelFileOf(ExecutableStep step)
+    {
+        var named = PathOf(step, "labelFile").Trim();
+        return named.Length == 0 ? string.Empty : _devices.Files.Resolve(named);
+    }
+
+    /// <summary>What a step asked the model to look for, as the device reads it.</summary>
+    private DetectionQuery Detection(ExecutableStep step)
+    {
+        var confidence = Number(step, "confidence");
+        var overlap = Number(step, "iou");
+        var input = Number(step, "inputSize");
+        return new DetectionQuery(
+            confidence > 0 ? confidence : 25,
+            input >= 32 ? input : 640,
+            overlap > 0 ? overlap : 45,
+            Rows(step.Text("labels")),
+            Wanted(step),
+            LabelFileOf(step));
+    }
+
+    /// <summary>
+    /// What a step was after, as the user wrote it: which model, and which classes of thing. It is
+    /// what a step that found nothing says it did not find, and what the look hands over as what was
+    /// being looked for.
+    /// </summary>
+    private string Looking(ExecutableStep step)
+    {
+        var model = System.IO.Path.GetFileName(ModelOf(step));
+        var labels = Rows(step.Text("labels"));
+        return labels.Count == 0 ? model : $"{model} {string.Join(',', labels)}";
+    }
+
+    /// <summary>One thing that was found, in the words a log line reads it in: person 640,360.</summary>
+    private static string Saying(Sighting sighting)
+        => sighting.Label.Length > 0
+            ? $"{sighting.Label} {sighting.Match.Center.X},{sighting.Match.Center.Y}"
+            : $"{sighting.Match.Center.X},{sighting.Match.Center.Y}";
+
+    /// <summary>The rows of a list a step wrote: one per line, or separated by semicolons.</summary>
+    private IReadOnlyList<string> Rows(string text)
+        =>
+        [
+            .. Interpolate(text).Split([';', '\n', '\r'],
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        ];
+
     /// <summary>
     /// Every place the reference picture appears in the search areas, in screen coordinates and in
     /// reading order: down the screen first, then across. That is the order a person counts them in
@@ -4571,6 +4781,29 @@ public sealed class MacroRunner
         }
     }
 
+    /// <summary>The same for what a detection model found: a thing it found is a hit as well.</summary>
+    private static void Sorted(List<Sighting> found, ExecutableStep step)
+    {
+        switch (OrderOf(step))
+        {
+            case MatchOrder.Score:
+                found.Sort((left, right) => right.Match.Score.CompareTo(left.Match.Score));
+                break;
+
+            case MatchOrder.Area:
+                found.Sort((left, right) => Box(right.Match).CompareTo(Box(left.Match)));
+                break;
+
+            case MatchOrder.Random:
+                Shuffle(found);
+                break;
+
+            default:
+                found.Sort((left, right) => Reading(left.Match, right.Match));
+                break;
+        }
+    }
+
     /// <summary>
     /// How much room a hit takes up, which is what "the biggest one" counts. An area of nothing is
     /// possible: a colour hit is one pixel and a reading of no characters has no width.
@@ -4628,11 +4861,18 @@ public sealed class MacroRunner
         return index <= hits.Count ? hits[index - 1] : null;
     }
 
+    /// <summary>The same, for the things a detection model found.</summary>
+    private Sighting? Chosen(IReadOnlyList<Sighting> found, ExecutableStep step)
+    {
+        var index = Index(step, "matchIndex", 1);
+        return index <= found.Count ? found[index - 1] : null;
+    }
+
     /// <summary>
     /// Which of the hits a step went with, counted from one, or zero when there are not that many
     /// to choose from.
     /// </summary>
-    private int WentWith(IReadOnlyList<ImageMatch> hits, ExecutableStep step)
+    private int WentWith<T>(IReadOnlyList<T> hits, ExecutableStep step)
     {
         var index = Index(step, "matchIndex", 1);
         return index <= hits.Count ? index : 0;
@@ -6863,18 +7103,20 @@ public sealed class MacroRunner
     /// because that is the point a click or a move aims at.
     /// </summary>
     private void GiveMatch(ExecutableStep step, ScreenPoint corner, ScreenSize size, double score,
-        string text = "")
+        string text = "", string label = "", int classId = -1)
     {
-        Give(step, "match", Hit(corner, size, score, text));
+        Give(step, "match", Hit(corner, size, score, text, label, classId));
         GiveTaken(step);
     }
 
     /// <summary>
     /// One hit as a record. The fields are the same whatever was found, so a macro that reads the
     /// size of a picture reads the size of a line of writing the same way; a hit that read no
-    /// writing — a picture, a colour — simply has no text field.
+    /// writing — a picture, a colour — simply has no text field, and a thing a detection model found
+    /// carries which kind of thing it is beside that.
     /// </summary>
-    private static Value Hit(ScreenPoint corner, ScreenSize size, double score, string text = "")
+    private static Value Hit(ScreenPoint corner, ScreenSize size, double score, string text = "",
+        string label = "", int classId = -1)
     {
         var centre = Middle(corner, size);
         var fields = new List<(string, Value)>
@@ -6892,6 +7134,15 @@ public sealed class MacroRunner
         if (text.Length > 0)
         {
             fields.Add(("text", Value.FromText(text)));
+        }
+
+        // Which kind of thing it is is two answers about one hit: the number the model answered
+        // with, which is what a macro picks classes out of a label file by, and the name that file
+        // gives it, which is empty when the file does not name that number.
+        if (classId >= 0)
+        {
+            fields.Add(("class", Value.FromNumber(classId)));
+            fields.Add(("label", Value.FromText(label)));
         }
 
         return Value.FromRecord(fields);
@@ -6942,6 +7193,11 @@ public sealed class MacroRunner
     /// <summary>Every picture hit as a record, in the order the step counts them in.</summary>
     private static IEnumerable<Value> HitRecords(IReadOnlyList<ImageMatch> hits)
         => hits.Select(hit => Hit(hit.Location, hit.Size, hit.Score));
+
+    /// <summary>Every thing a detection model found as a record, kind of thing and all.</summary>
+    private static IEnumerable<Value> HitRecords(IReadOnlyList<Sighting> hits)
+        => hits.Select(hit => Hit(hit.Match.Location, hit.Match.Size, hit.Match.Score,
+            label: hit.Label, classId: hit.ClassId));
 
     /// <summary>Every reading of the screen as a record, keeping what each of them said.</summary>
     private static IEnumerable<Value> HitRecords(IReadOnlyList<TextSpan> hits)

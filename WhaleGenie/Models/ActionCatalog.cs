@@ -2742,6 +2742,94 @@ public static class ActionCatalog
                 Returns(),
             ],
         },
+        new()
+        {
+            Key = "vision.detect",
+            Returns = Hits(detected: true),
+            Category = ActionCategory.Vision,
+            DisplayName = "Detect Objects",
+            Description = "Look for the things a YOLO model knows in a screen region.",
+            Parameters =
+            [
+                ModelFile(),
+                LabelFile(),
+                Labels(),
+                Region(),
+                ..Capture(),
+                LookGap(0),
+                Confidence(),
+                InputSize(),
+                Overlap(),
+                MatchOrder(),
+                ..Anchor(),
+                MatchIndex(),
+                Returns(),
+            ],
+        },
+        new()
+        {
+            Key = "vision.waitDetect",
+            Returns = Hits(detected: true),
+            Category = ActionCategory.Vision,
+            DisplayName = "Wait for Objects",
+            Description = "Wait until a YOLO model knows something in a screen region, for as long "
+                + "as the step's own timeout allows; running out of it fails the step.",
+            StepTimeoutMs = 5000,
+            Parameters =
+            [
+                ModelFile(),
+                LabelFile(),
+                Labels(),
+                Region(),
+                ..Capture(),
+                LookPoll(),
+                Confidence(),
+                InputSize(),
+                Overlap(),
+                MatchOrder(),
+                ..Anchor(),
+                MatchIndex(),
+                Returns(),
+            ],
+        },
+        new()
+        {
+            Key = "vision.clickDetect",
+            Returns = Hits(detected: true),
+            Category = ActionCategory.Vision,
+            DisplayName = "Click Object",
+            Description = "Find something a YOLO model knows in a screen region and click it, "
+                + "waiting for as long as the step's own timeout allows; running out of it fails "
+                + "the step.",
+            StepTimeoutMs = 5000,
+            Parameters =
+            [
+                ModelFile(),
+                LabelFile(),
+                Labels(),
+                Region(),
+                ..Capture(),
+                Confidence(),
+                InputSize(),
+                Overlap(),
+                Button(),
+                Number("offsetX", "Offset X", 0,
+                    "Pixels added to the middle of the box before clicking. 0, the default, clicks "
+                    + "the middle.",
+                    min: -100000m),
+                Number("offsetY", "Offset Y", 0,
+                    "Pixels added to the middle of the box before clicking, downwards for a "
+                    + "positive number; 0, the default, clicks the middle.",
+                    min: -100000m),
+                MatchOrder(),
+                ..Anchor(),
+                MatchIndex(),
+                LookPoll(),
+                Aim(),
+                Recheck("box"),
+                Returns(),
+            ],
+        },
 
         // -------------------------------------------------------------------- ocr
         new()
@@ -4911,7 +4999,11 @@ public static class ActionCatalog
     /// counting, so a macro that looks again at what it just found does not have to work out which
     /// of the two it is reading.
     /// </summary>
-    private static ActionReturn[] Hits() =>
+    /// <param name="detected">
+    /// True for the steps that look with a model the user brought along. What such a step finds is
+    /// named as well as placed, so the record says which class of thing it is.
+    /// </param>
+    private static ActionReturn[] Hits(bool detected = false) =>
     [
         Return("match", "Hit", primary: true, type: ActionReturnType.Record,
             hint: "Where it was found and everything else about it, as one record; empty when it "
@@ -4919,7 +5011,13 @@ public static class ActionCatalog
                 + "to), left and top are the corner a search region counts from, width and height "
                 + "are its size, score is how sure the reading was, box is the whole hit written "
                 + "as left,top,width,height, and text is what was read where the action reads "
-                + "writing. Read one part of it with field($name, \"x\")."),
+                + "writing."
+                + (detected
+                    ? " class is the number of the class the model says it is, counted from 0, and "
+                        + "label is the name the label file gives that number, which is empty when "
+                        + "the file does not name it."
+                    : string.Empty)
+                + " Read one part of it with field($name, \"x\")."),
         Return("every", "Every match", type: ActionReturnType.List,
             hint: "Every hit that was found, each shaped like the record above, in the order they "
                 + "are counted in. Walk them with forEach or count them with count(); name one of "
@@ -5329,6 +5427,78 @@ public static class ActionCatalog
             "Only used when the algorithm is features: how many pairs have to line up before the "
             + "picture counts as found. From 1 to 500, more is stricter; the default is 6.",
             min: 1, max: 500, advanced: true, onlyWith: ["feature"]);
+
+    /// <summary>
+    /// The file a detection model is read from, shared by the steps that look for things with a
+    /// model. Nothing is shipped with the program: which model to use is the user's own choice, and
+    /// the file is read the first time a step naming it runs rather than every time it looks.
+    /// </summary>
+    private static ActionParameter ModelFile()
+        => FilePath("model", "Model file", "yolov8n.onnx",
+            "The model file this step runs, a detection model exported from YOLOv8 or YOLO11 as "
+            + "ONNX. WhaleGenie brings no model of its own, so the one written here is the one the "
+            + "step uses. Change it to look for something else, or to take a model trained on "
+            + "another set of things.",
+            PathIntent.Read, "*.onnx");
+
+    /// <summary>
+    /// The file whose lines name the model's classes, shared by the steps that look for things with
+    /// a model: a model answers with a number per thing it finds, and this file says what that
+    /// number means.
+    /// </summary>
+    private static ActionParameter LabelFile()
+        => FilePath("labelFile", "Label file", "classes.txt",
+            "A text file naming the model's classes, one per line, in the order the model was "
+            + "trained in, so the first line is class 0. Empty by default, which leaves the classes "
+            + "unnamed. Fill it in when the classes are named above rather than counted.",
+            PathIntent.Read, "*.txt;*.names", required: false);
+
+    /// <summary>The classes of thing a step looks for, shared by the steps that use a model.</summary>
+    private static ActionParameter Labels()
+        => Multiline("labels", "Classes to look for",
+            "The classes of thing this step counts, one per line, written as the name the label "
+            + "file gives them or as the class number. Empty by default, which counts every class "
+            + "the model knows. Fill it in when everything else the model knows is to be left "
+            + "alone, which is also what makes the step faster.",
+            "person; car", required: false);
+
+    /// <summary>
+    /// How sure the model has to be, shared by the steps that look with one. It is the same question
+    /// the picture finders ask as a similarity, asked of a model that answers with a confidence.
+    /// </summary>
+    private static ActionParameter Confidence()
+        => Number("confidence", "Confidence %", 25,
+            "How sure the model has to be about a box before this step counts it, from 0 to 100 per "
+            + "cent; the default is 25. Lower it to catch what the model is unsure about, raise it "
+            + "when the step acts on things that are not there. A box a model is sure of usually "
+            + "scores around 80, which is what the picture finders' similarity is not.",
+            max: 100);
+
+    /// <summary>
+    /// How big a square a picture is scaled and padded into, shared by the steps that use a model.
+    /// A model exported for one size answers nonsense, or refuses to run at all, when it is fed
+    /// another, and the file itself does not say which size it wants.
+    /// </summary>
+    private static ActionParameter InputSize()
+        => Number("inputSize", "Model input size", 640,
+            "The square a picture is scaled and padded into before the model reads it, in pixels; "
+            + "640 by default, which is what a model exported without being told a size expects. "
+            + "Change it to the size the model was exported for, 320 or 480 or 1280, when it was "
+            + "exported at another one.",
+            min: 32, max: 4096, advanced: true);
+
+    /// <summary>
+    /// How much two boxes over the same thing may lie over each other, shared by the steps that use
+    /// a model.
+    /// </summary>
+    private static ActionParameter Overlap()
+        => Number("iou", "Overlap allowed %", 45,
+            "How much two boxes of the same class may lie over each other before the less sure of "
+            + "the two is dropped, from 0 to 100 per cent; the default is 45. A model answers with "
+            + "several boxes about one thing, and this is what leaves one of them. Raise it when "
+            + "two things really do lie over each other, as in a crowd, and lower it when one thing is "
+            + "reported twice.",
+            max: 100, advanced: true);
 
     /// <summary>
     /// What order the hits are counted in, shared by everything that finds more than one: a colour

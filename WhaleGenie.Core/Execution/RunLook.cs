@@ -16,6 +16,12 @@ public enum LookKind
     /// <summary>Writing was read. The score is the reading model's own and has no fixed range.</summary>
     Text,
 
+    /// <summary>
+    /// Things were looked for with a detection model. Scores are confidences, from zero to one, and
+    /// each mark is the kind of thing the model says it found.
+    /// </summary>
+    Detection,
+
     /// <summary>A picture was taken of part of the screen. There is nothing to score.</summary>
     Capture,
 
