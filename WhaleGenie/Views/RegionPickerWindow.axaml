@@ -11,13 +11,24 @@
         ShowInTaskbar="False"
         Topmost="True"
         WindowStartupLocation="Manual"
-        Background="#59000000"
+        Background="Black"
         Cursor="Cross">
 
-    <!-- The whole screen, dimmed, with the rectangle being dragged drawn on top of it. -->
+    <!-- The desk as it was when this opened, with everything outside the rectangle pushed back and
+         the rectangle itself left alone. A window is not a hole in the screen: what is behind it
+         cannot be seen through it, so the desk is taken down as a picture and shown here — the same
+         picture the rectangle's numbers are counted on. -->
     <Canvas Name="Surface" Background="Transparent" ClipToBounds="True">
+        <Image Name="Desk" Canvas.Left="0" Canvas.Top="0" IsHitTestVisible="False" Stretch="Fill" />
+
+        <!-- One band on each side of the rectangle, so that what is inside it stays as it is. -->
+        <Border Name="DimTop" IsHitTestVisible="False" Background="#7F000000" />
+        <Border Name="DimBottom" IsHitTestVisible="False" Background="#7F000000" />
+        <Border Name="DimLeft" IsHitTestVisible="False" Background="#7F000000" />
+        <Border Name="DimRight" IsHitTestVisible="False" Background="#7F000000" />
+
         <Border Name="Selection" IsVisible="False" IsHitTestVisible="False"
-                BorderBrush="#FF3B30" BorderThickness="2" Background="#22FF3B30" />
+                BorderBrush="#FF3B30" BorderThickness="2" />
 
         <Border Name="Readout" IsHitTestVisible="False"
                 Background="#E01E1E1E" BorderBrush="#3F3F3F" BorderThickness="1"

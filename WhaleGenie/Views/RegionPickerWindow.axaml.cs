@@ -1,11 +1,14 @@
 using System;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
@@ -14,7 +17,8 @@ using WhaleGenie.Storage;
 namespace WhaleGenie.Views;
 
 /// <summary>
-/// Dims the screen and lets the user drag a rectangle on it. A rectangle drawn in one go is never
+/// Shows the desk and lets the user drag a rectangle on it, with everything outside the rectangle
+/// pushed back so that the part being framed reads plainly. A rectangle drawn in one go is never
 /// quite where it should be, so one that is already there can be moved by dragging inside it and
 /// resized by dragging any of its eight handles. The rectangle comes back in screen pixels, which
 /// is what every action that works on a region expects.
@@ -70,6 +74,14 @@ public partial class RegionPickerWindow : Window
     private readonly IScreenDevice _screen;
     private readonly Border[] _handles;
 
+    /// <summary>The four bands that push back what is outside the rectangle.</summary>
+    private readonly Border[] _dim;
+
+    private readonly Image? _desk;
+
+    /// <summary>The desk as it was when this opened, which is what stands in for the screen.</summary>
+    private WriteableBitmap? _picture;
+
     /// <summary>Where the screen starts, in screen pixels; the window sits exactly there.</summary>
     private PixelPoint _origin;
 
@@ -114,6 +126,13 @@ public partial class RegionPickerWindow : Window
         _selection = this.FindControl<Border>("Selection");
         _readout = this.FindControl<Border>("Readout");
         _sizeText = this.FindControl<TextBlock>("SizeText");
+        _desk = this.FindControl<Image>("Desk");
+        _dim =
+        [
+            .. new[] { "DimTop", "DimBottom", "DimLeft", "DimRight" }
+                .Select(name => this.FindControl<Border>(name))
+                .OfType<Border>(),
+        ];
 
         // The handles are found by the same hit test as the rectangle itself, so they neither take
         // the press nor have to be looked up in the visual tree.
@@ -196,6 +215,7 @@ public partial class RegionPickerWindow : Window
     /// </summary>
     internal async Task<Region?> TakeAsync()
     {
+        TakeDesk();
         await AppWindows.ShowAndWaitAsync(this);
         return Confirmed;
     }
@@ -211,6 +231,67 @@ public partial class RegionPickerWindow : Window
     }
 
     /// <summary>
+    /// Takes the desk down as a picture and stands it behind everything. One picture of the whole
+    /// desk rather than anything read again and again: the screen cannot be seen through a window,
+    /// so this is what the user aims at, and holding it still is what lets a corner be put on a
+    /// pixel while the thing underneath keeps moving.
+    ///
+    /// Taken before the window goes up, because a desk read after that answers with this picker's
+    /// own dark surface; and only when the whole of it comes back, because a part of it stretched
+    /// over the window points at places the numbers do not.
+    /// </summary>
+    private void TakeDesk()
+    {
+        if (_desk is null)
+        {
+            return;
+        }
+
+        var (origin, size) = DeskBounds();
+        if (size.Width <= 0 || size.Height <= 0)
+        {
+            return;
+        }
+
+        // The program's own windows went off the screen a moment ago, and the desk answers with the
+        // last frame it drew — the one that still has them in it.
+        ScreenComposed.Wait();
+
+        ImageFrame frame;
+        try
+        {
+            frame = _screen.Capture(origin.X, origin.Y, size.Width, size.Height);
+        }
+        catch (Exception)
+        {
+            // A desk that will not be handed over is a picker with no picture under it: the
+            // rectangle is still drawn, and its numbers still say where it is.
+            return;
+        }
+
+        if (frame.IsEmpty || frame.Width != size.Width || frame.Height != size.Height)
+        {
+            return;
+        }
+
+        var picture = new WriteableBitmap(new PixelSize(frame.Width, frame.Height),
+            new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Opaque);
+
+        using (var buffer = picture.Lock())
+        {
+            for (var row = 0; row < frame.Height; row++)
+            {
+                Marshal.Copy(frame.Bgra, row * frame.Width * 4,
+                    IntPtr.Add(buffer.Address, row * buffer.RowBytes), frame.Width * 4);
+            }
+        }
+
+        _picture?.Dispose();
+        _picture = picture;
+        _desk.Source = picture;
+    }
+
+    /// <summary>
     /// Stretches the window over the whole desk, whatever its scaling is. A desk of two displays is
     /// covered corner to corner, so a place on the second one can be picked as easily as one on the
     /// first — and the origin travels with the window, because what the pointer reads against has to
@@ -218,25 +299,44 @@ public partial class RegionPickerWindow : Window
     /// </summary>
     private void Cover()
     {
-        var desk = _screen.Desktop.Bounds;
-        _origin = new PixelPoint(desk.Left, desk.Top);
+        var (origin, size) = DeskBounds();
+        _origin = origin;
         _scaling = RenderScaling <= 0 ? 1 : RenderScaling;
-        var size = new ScreenSize(desk.Width, desk.Height);
-
-        if (Screens.All.Count > 0)
-        {
-            var left = Screens.All.Min(screen => screen.Bounds.X);
-            var top = Screens.All.Min(screen => screen.Bounds.Y);
-            var right = Screens.All.Max(screen => screen.Bounds.X + screen.Bounds.Width);
-            var bottom = Screens.All.Max(screen => screen.Bounds.Y + screen.Bounds.Height);
-
-            _origin = new PixelPoint(left, top);
-            size = new ScreenSize(right - left, bottom - top);
-        }
 
         Width = size.Width / _scaling;
         Height = size.Height / _scaling;
-        Position = _origin;
+        Position = origin;
+
+        // The picture covers the window the way the numbers are counted on it: a place on the
+        // picture and a place in the numbers are then the same place.
+        if (_desk is { } desk)
+        {
+            desk.Width = Width;
+            desk.Height = Height;
+        }
+    }
+
+    /// <summary>
+    /// Where the desk starts and how much of it there is, in screen pixels. Every display together
+    /// make one desk, so a place on a second one is picked as easily as one on the first — and the
+    /// origin travels with the window, because what the pointer reads against has to be the same
+    /// number the macro will be written with. A session with no display list of its own is answered
+    /// from the device layer, which is where the picture comes from anyway.
+    /// </summary>
+    private (PixelPoint Origin, ScreenSize Size) DeskBounds()
+    {
+        if (Screens is { All.Count: > 0 } screens)
+        {
+            var left = screens.All.Min(screen => screen.Bounds.X);
+            var top = screens.All.Min(screen => screen.Bounds.Y);
+            var right = screens.All.Max(screen => screen.Bounds.X + screen.Bounds.Width);
+            var bottom = screens.All.Max(screen => screen.Bounds.Y + screen.Bounds.Height);
+
+            return (new PixelPoint(left, top), new ScreenSize(right - left, bottom - top));
+        }
+
+        var desk = _screen.Desktop.Bounds;
+        return (new PixelPoint(desk.Left, desk.Top), new ScreenSize(desk.Width, desk.Height));
     }
 
     /// <summary>Turns a place on the window into a place on the screen, in screen pixels.</summary>
@@ -532,6 +632,8 @@ public partial class RegionPickerWindow : Window
             }
         }
 
+        PushBack(big ? OnWindow(region) : null);
+
         _sizeText.Text = big
             ? Strings.Format("Region.Size", region.X, region.Y, region.Width, region.Height)
             : Strings.Get("Region.Drag");
@@ -544,6 +646,56 @@ public partial class RegionPickerWindow : Window
 
         Canvas.SetLeft(_readout, Math.Clamp(left, 0, Math.Max(0, Bounds.Width - width)));
         Canvas.SetTop(_readout, Math.Clamp(top, 0, Math.Max(0, Bounds.Height - height)));
+    }
+
+    /// <summary>
+    /// Pushes back everything outside <paramref name="hole"/>, which is the part of the desk being
+    /// looked at, with a band on each of its four sides. Nothing drawn yet is nothing to look
+    /// through, and the whole desk goes back.
+    /// </summary>
+    private void PushBack(Rect? hole)
+    {
+        if (_picture is null || _dim.Length < 4)
+        {
+            return;
+        }
+
+        if (hole is not { } rect)
+        {
+            Lay(_dim[0], 0, 0, Width, Height);
+            Lay(_dim[1], 0, 0, 0, 0);
+            Lay(_dim[2], 0, 0, 0, 0);
+            Lay(_dim[3], 0, 0, 0, 0);
+            return;
+        }
+
+        var left = Math.Max(0, rect.Left);
+        var top = Math.Max(0, rect.Top);
+        var right = Math.Min(Width, Math.Max(left, rect.Right));
+        var bottom = Math.Min(Height, Math.Max(top, rect.Bottom));
+
+        Lay(_dim[0], 0, 0, Width, top);
+        Lay(_dim[1], 0, bottom, Width, Height - bottom);
+        Lay(_dim[2], 0, top, left, bottom - top);
+        Lay(_dim[3], right, top, Width - right, bottom - top);
+    }
+
+    /// <summary>Puts one band where it goes, measuring it to nothing rather than back to front.</summary>
+    private static void Lay(Border band, double x, double y, double width, double height)
+    {
+        band.Width = Math.Max(0, width);
+        band.Height = Math.Max(0, height);
+        Canvas.SetLeft(band, x);
+        Canvas.SetTop(band, y);
+    }
+
+    /// <summary>The picture belongs to this picker, so it goes when the picker does.</summary>
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
+
+        _picture?.Dispose();
+        _picture = null;
     }
 
     private void Finish(Region? region)

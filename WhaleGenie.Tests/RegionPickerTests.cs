@@ -1,7 +1,11 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using WhaleGenie.Core.Devices;
+using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
@@ -71,6 +75,82 @@ public class RegionPickerTests
             Assert.Null(window.Confirmed);
             Assert.False(window.IsVisible);
         });
+    }
+
+    [Fact]
+    public void The_desk_is_drawn_with_the_rectangle_left_alone()
+    {
+        Ui.Run(() =>
+        {
+            var machine = new Desk();
+            var window = new RegionPickerWindow(new ChecksDevices { Screen = machine });
+
+            // What every entry point into this picker does first: the desk is taken down as a
+            // picture — before the window goes up, or the picture would be the picker itself.
+            var taken = window.TakeAsync();
+            Dispatcher.UIThread.RunJobs();
+
+            // The desk cannot be seen through a window, so it is drawn in one: a picture of the
+            // whole desk, one screen pixel to one pixel of it, laid out over the window that the
+            // numbers are counted on.
+            var desk = window.FindControl<Image>("Desk")!;
+            var picture = Assert.IsType<WriteableBitmap>(desk.Source);
+            Assert.Equal((machine.Took.Width, machine.Took.Height),
+                (picture.PixelSize.Width, picture.PixelSize.Height));
+            Assert.Equal(window.Width, desk.Width, 3);
+            Assert.Equal(window.Height, desk.Height, 3);
+
+            // The picture is of the desk the window covers, so a place on it is a place the
+            // rectangle's numbers name.
+            Assert.Equal((window.Width, window.Height),
+                ((double)machine.Took.Width, (double)machine.Took.Height));
+
+            // Nothing drawn yet is nothing to look through, so the whole desk is pushed back.
+            Assert.Equal(window.Height, window.FindControl<Border>("DimTop")!.Height, 3);
+
+            window.MouseDown(new Point(10, 20), MouseButton.Left);
+            window.MouseMove(new Point(40, 60));
+            window.MouseUp(new Point(40, 60), MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+
+            // A band on each side of the rectangle leaves exactly the rectangle at full strength.
+            Assert.Equal(20d, window.FindControl<Border>("DimTop")!.Height, 3);
+            Assert.Equal(10d, window.FindControl<Border>("DimLeft")!.Width, 3);
+            Assert.Equal(40d, Canvas.GetLeft(window.FindControl<Border>("DimRight")!), 3);
+            Assert.Equal(60d, Canvas.GetTop(window.FindControl<Border>("DimBottom")!), 3);
+
+            window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(new RegionPickerWindow.Region(10, 20, 30, 40), window.Confirmed);
+            Assert.True(taken.IsCompleted);
+        });
+    }
+
+    /// <summary>
+    /// A desk of its own: it hands back a picture of whatever it was asked for, the way a real desk
+    /// answers a request for the whole of it, and says what it was asked for.
+    /// </summary>
+    private sealed class Desk : IScreenDevice
+    {
+        public ScreenLayout Desktop { get; } = new(new ScreenArea(0, 0, 1920, 1080),
+            [new ScreenDisplay(new ScreenArea(0, 0, 1920, 1080), true)]);
+
+        /// <summary>The region the last picture was asked for.</summary>
+        public (int X, int Y, int Width, int Height) Took { get; private set; }
+
+        public ScreenPoint Cursor => new(0, 0);
+
+        public PixelColor PixelAt(int x, int y) => new(0, 0, 0);
+
+        public ImageFrame Capture(int x, int y, int width, int height)
+        {
+            Took = (x, y, width, height);
+            return new ImageFrame(width, height, new byte[width * height * 4]);
+        }
+
+        public ScreenShot Capture(ScreenCaptureRequest request)
+            => NullDeviceLayer.Instance.Screen.Capture(request);
     }
 
     [Fact]
