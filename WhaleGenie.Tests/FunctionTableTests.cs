@@ -156,10 +156,12 @@ public class FunctionTableTests
         {
             foreach (var parameter in function.Parameters)
             {
-                wanted.Add($"Expr.Arg.{parameter.Name}.label");
-                if (!Strings.Chinese.ContainsKey($"Expr.Arg.{parameter.Name}.label"))
+                var ownLabel = $"Expr.Arg.{function.Name}.{parameter.Name}.label";
+                var sharedLabel = $"Expr.Arg.{parameter.Name}.label";
+                wanted.Add(Strings.Chinese.ContainsKey(ownLabel) ? ownLabel : sharedLabel);
+                if (!Strings.Chinese.ContainsKey(ownLabel) && !Strings.Chinese.ContainsKey(sharedLabel))
                 {
-                    missing.Add($"Expr.Arg.{parameter.Name}.label");
+                    missing.Add($"{ownLabel} (or {sharedLabel})");
                 }
 
                 var own = $"Expr.Arg.{function.Name}.{parameter.Name}.hint";

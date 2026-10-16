@@ -867,8 +867,9 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// What the argument at a position is called. A function that takes more than its signature
-    /// names repeats the last name, and one that takes none has no lines to name.
+    /// What the argument at a position is called, in brackets so that the lines under a function
+    /// read as the places it has rather than as more of the formula. A function that takes more than
+    /// its signature names repeats the last name, and one that takes none has no lines to name.
     /// </summary>
     private static (string Label, string Hint) ArgumentName(ExpressionItemViewModel parent, int index)
     {
@@ -878,7 +879,7 @@ public partial class ExpressionBuilderViewModel : ViewModelBase
         }
 
         var parameter = parent.Parameters[Math.Min(index, parent.Parameters.Count - 1)];
-        return (ExpressionText.ParameterLabel(parameter),
+        return ("[" + ExpressionText.ParameterLabel(parent.Name, parameter) + "]",
             ExpressionText.ParameterHint(parent.Name, parameter));
     }
 

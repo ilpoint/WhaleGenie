@@ -627,24 +627,24 @@ GDI / PrintWindow / Graphics Capture / 桌面复制（DXGI）），找不着时�
 
 | 写法 | 中文写法 | 说明 |
 | --- | --- | --- |
-| `upper(text)` | 转大写(文本) | 把值写成大写字母。 |
-| `lower(text)` | 转小写(文本) | 把值写成小写字母。 |
-| `trim(text)` | 去空格(文本) | 去掉两端的空格。 |
+| `upper(text)` | 转大写(原文本) | 把值写成大写字母。 |
+| `lower(text)` | 转小写(原文本) | 把值写成小写字母。 |
+| `trim(text)` | 去空格(原文本) | 去掉两端的空格。 |
 | `length(value)` | 取长度(值) | 一个值有多少个字符，或一个列表有多少项。 |
-| `substring(text, start [, length])` | 截取文本(文本, 起点 [, 长度]) | 取一部分文字，起点从 0 数起，不写长度就取到末尾。 |
-| `replace(text, old, new)` | 替换文字(文本, 要替换的, 换成) | 把每一处旧文字换成新文字。 |
-| `replaceRegex(text, pattern, replacement)` | 正则替换(文本, 模式, 替换内容) | 按正则替换，替换里用 `$1`、`$2` 引用括号里抓到的那几段；正则前面写 `(?i)` 表示不区分大小写。 |
-| `split(text, separator)` | 分割文本(文本, 分隔符) | 按分隔符切成一个列表。 |
+| `substring(text, start [, length])` | 截取文本(原文本, 起始位置 [, 截取长度]) | 取一部分文字，起点从 0 数起，不写长度就取到末尾。 |
+| `replace(text, old, new)` | 替换文字(原文本, 旧文字, 新文字) | 把每一处旧文字换成新文字。 |
+| `replaceRegex(text, pattern, replacement)` | 正则替换(原文本, 正则, 替换内容) | 按正则替换，替换里用 `$1`、`$2` 引用括号里抓到的那几段；正则前面写 `(?i)` 表示不区分大小写。 |
+| `split(text, separator)` | 分割文本(原文本, 分隔符) | 按分隔符切成一个列表。 |
 | `join(list, separator)` | 拼接列表(列表, 分隔符) | 把列表的每一项接成一段文字。 |
-| `contains(value, needle)` | 包含(值, 要找的) | 文字或列表里有没有这一段。 |
-| `startsWith(text, prefix)` | 判断开头(文本, 开头) | 文字是不是以这一段开头。 |
-| `endsWith(text, suffix)` | 判断结尾(文本, 结尾) | 文字是不是以这一段结尾。 |
-| `indexOf(value, needle)` | 查找位置(值, 要找的) | 这一段在第几个字符上，找不到是 -1。 |
-| `repeat(text, times)` | 重复文本(文本, 次数) | 把同一段文字重复若干遍。 |
+| `contains(value, needle)` | 包含(值, 查找内容) | 文字或列表里有没有这一段。 |
+| `startsWith(text, prefix)` | 判断开头(原文本, 开头的文字) | 文字是不是以这一段开头。 |
+| `endsWith(text, suffix)` | 判断结尾(原文本, 结尾的文字) | 文字是不是以这一段结尾。 |
+| `indexOf(value, needle)` | 查找位置(值, 查找内容) | 这一段在第几个字符上，找不到是 -1。 |
+| `repeat(text, times)` | 重复文本(原文本, 重复次数) | 把同一段文字重复若干遍。 |
 | `concat(value, ...)` | 合并文字(值, ...) | 把每一个参数接成一段文字。 |
 | `format(template, ...)` | 套用模板(模板, ...) | 把模板里的 `{0}`、`{1}` 换成后面的参数。 |
-| `match(text, pattern)` | 正则匹配(文本, 模式) | 正则有没有匹配到这段文字。 |
-| `extract(text, pattern)` | 正则提取(文本, 模式) | 正则匹配到的第一段文字。 |
+| `match(text, pattern)` | 正则匹配(原文本, 正则) | 正则有没有匹配到这段文字。 |
+| `extract(text, pattern)` | 正则提取(原文本, 正则) | 正则匹配到的第一段文字。 |
 
 ### 数字
 
@@ -668,7 +668,7 @@ GDI / PrintWindow / Graphics Capture / 桌面复制（DXGI）），找不着时�
 | `list(...values)` | 造列表(...值) | 把这些参数做成一个列表。 |
 | `count(list)` | 数项数(列表) | 列表里有几项。 |
 | `append(list, ...values)` | 追加项(列表, ...值) | 在末尾加上若干项之后的副本。 |
-| `insertAt(list, index, value)` | 插入项(列表, 序号, 值) | 在某一位上插入一项之后的副本。 |
+| `insertAt(list, index, value)` | 插入项(列表, 序号, 要插入的值) | 在某一位上插入一项之后的副本。 |
 | `removeAt(list, index)` | 删掉某项(列表, 序号) | 去掉某一位上那一项之后的副本。 |
 | `get(list, index)` | 获取列表项(列表, 序号) | 某一位上的那一项。 |
 | `first(list)` | 取第一项(列表) | 第一项。 |
@@ -677,7 +677,7 @@ GDI / PrintWindow / Graphics Capture / 桌面复制（DXGI）），找不着时�
 | `sortDesc(list)` | 降序排列(列表) | 从大到小排好的副本。 |
 | `reverse(list)` | 前后颠倒(列表) | 前后颠倒的副本。 |
 | `unique(list)` | 去掉重复(列表) | 去掉重复项之后的副本。 |
-| `slice(list, start [, length])` | 截取列表(列表, 起点 [, 长度]) | 取列表的一部分，起点从 0 数起，不写长度就取到末尾。 |
+| `slice(list, start [, length])` | 截取列表(列表, 起始位置 [, 截取长度]) | 取列表的一部分，起点从 0 数起，不写长度就取到末尾。 |
 
 ### 日期
 
@@ -693,9 +693,9 @@ GDI / PrintWindow / Graphics Capture / 桌面复制（DXGI）），找不着时�
 | `second(date)` | 取秒数(日期) | 秒，0 到 59。 |
 | `weekday(date)` | 取星期几(日期) | 星期几，按 ISO 数：1 是星期一，7 是星期日。 |
 | `dateAdd(date, amount, unit)` | 日期加减(日期, 增减量, 单位) | 往后或往前挪一段时间；单位是 `seconds`、`minutes`、`hours`、`days`、`weeks`、`months` 或 `years`。 |
-| `dateDiff(from, to, unit)` | 日期相差(起始, 结束, 单位) | 两个日期相差多少个单位。 |
-| `formatDate(date, pattern)` | 格式化日期(日期, 模式) | 按 `yyyy/MM/dd` 这样的写法把日期写成文字。 |
-| `parseDate(text, pattern)` | 读出日期(文本, 模式) | 按同一种写法从文字里读出日期，读出来就能直接交给 `dateAdd`、`dateDiff` 或比较。 |
+| `dateDiff(from, to, unit)` | 日期相差(起始日期, 结束日期, 单位) | 两个日期相差多少个单位。 |
+| `formatDate(date, pattern)` | 格式化日期(日期, 正则) | 按 `yyyy/MM/dd` 这样的写法把日期写成文字。 |
+| `parseDate(text, pattern)` | 读出日期(日期文字, 正则) | 按同一种写法从文字里读出日期，读出来就能直接交给 `dateAdd`、`dateDiff` 或比较。 |
 
 ### 记录
 
@@ -704,10 +704,10 @@ GDI / PrintWindow / Graphics Capture / 桌面复制（DXGI）），找不着时�
 | `jsonGet(json, path)` | 按路径取值(JSON, 路径) | 按 `a.b[0].c` 这样的路径取 JSON 里的一项；取到的如果是对象或列表，交的是它自己的 JSON 文字。 |
 | `jsonKeys(json)` | 列出字段名(JSON) | JSON 对象的字段名，按写下来的顺序。 |
 | `jsonHas(json, path)` | 路径有没有(JSON, 路径) | 这条路径在 JSON 里有没有。 |
-| `jsonSet(json, path, value)` | 按路径改值(JSON, 路径, 值) | JSON 的一份副本，把这条路径设成某个值，路上缺的字段会补出来。 |
-| `jsonOf(name, value, ...)` | 造一条记录(名字, 值, ...) | 名字与值轮流写，拼成一个 JSON 对象。 |
+| `jsonSet(json, path, value)` | 按路径改值(JSON, 路径, 要写入的值) | JSON 的一份副本，把这条路径设成某个值，路上缺的字段会补出来。 |
+| `jsonOf(name, value, ...)` | 造一条记录(字段名, 要写入的值, ...) | 名字与值轮流写，拼成一个 JSON 对象。 |
 | `toJson(value)` | 写成 JSON(值) | 把一个值写成 JSON 文字，列表因此变成数组。 |
-| `field(record, name)` | 取字段(记录, 名字) | 取记录里的一项，比如一次命中的 `x`；名字写错时报错并列出可用的字段名。 |
+| `field(record, name)` | 取字段(记录, 字段名) | 取记录里的一项，比如一次命中的 `x`；名字写错时报错并列出可用的字段名。 |
 
 ### 值与选择
 

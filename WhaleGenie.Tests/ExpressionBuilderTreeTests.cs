@@ -159,9 +159,11 @@ public class ExpressionBuilderTreeTests
 
             // Every argument says what it is called and what goes in it, which is what makes a
             // function something to read rather than something to memorise.
+            var upper = Function(builder, "upper");
             var argument = builder.Rows[1];
-            var parameter = Function(builder, "upper").Function.Parameters[0];
-            Assert.Equal(ExpressionText.ParameterLabel(parameter), argument.Label);
+            var parameter = upper.Function.Parameters[0];
+            Assert.Equal("[" + ExpressionText.ParameterLabel(upper.Name, parameter) + "]",
+                argument.Label);
             Assert.Contains(parameter.Name, argument.LabelHint);
         });
     }
@@ -179,6 +181,27 @@ public class ExpressionBuilderTreeTests
             var builder = Builder("upper($a)", "a");
 
             Assert.Equal("转大写 (upper)", builder.Rows[0].Token);
+        }));
+    }
+
+    /// <summary>
+    /// The lines under a function are the places it has, and each says in brackets what goes in it:
+    /// a reader who does not know what <c>start</c> means still knows where 起始位置 goes, and the
+    /// unnamed piece of code is one hover away for whoever does want it.
+    /// </summary>
+    [Fact]
+    public void The_places_under_a_function_are_named_in_brackets()
+    {
+        Ui.Run(() => InterfaceLanguage.InChinese(() =>
+        {
+            var builder = Builder("substring($a, 1)", "a");
+
+            Assert.Equal(new[] { "[原文本]", "[起始位置]" },
+                new[] { builder.Rows[1].Label, builder.Rows[2].Label });
+
+            // The hint still names the argument the way the signature writes it, which is what a
+            // reader needs to match a line to the manual.
+            Assert.StartsWith("start", builder.Rows[2].LabelHint, StringComparison.Ordinal);
         }));
     }
 

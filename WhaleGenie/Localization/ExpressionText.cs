@@ -19,8 +19,20 @@ public static class ExpressionText
     /// stays as it is — it is the piece of code being written — and this is what to show beside the
     /// place it goes in.
     /// </summary>
-    public static string ParameterLabel(ExpressionParameter parameter)
-        => Strings.Get($"Expr.Arg.{parameter.Name}.label", parameter.Label);
+    public static string ParameterLabel(string function, ExpressionParameter parameter)
+        => Wording(function, parameter, Strings.Get);
+
+    /// <summary>
+    /// What an argument is called: the function's own word for it where it has one — a <c>text</c>
+    /// that has to be a date says 日期文字 rather than 原文本 — and the word its name usually goes
+    /// by otherwise, which is written once for every function that uses that name.
+    /// </summary>
+    private static string Wording(string function, ExpressionParameter parameter,
+        Func<string, string, string> text)
+        => function.Length == 0
+            ? text($"Expr.Arg.{parameter.Name}.label", parameter.Label)
+            : text($"Expr.Arg.{function}.{parameter.Name}.label",
+                text($"Expr.Arg.{parameter.Name}.label", parameter.Label));
 
     /// <summary>
     /// True while the interface is Chinese, which is where the names written below belong: an
@@ -78,7 +90,7 @@ public static class ExpressionText
                 one => string.Equals(one.Name, name, StringComparison.OrdinalIgnoreCase));
             return parameter is null
                 ? part
-                : part.Replace(name, ChineseLabel(parameter), StringComparison.Ordinal);
+                : part.Replace(name, ChineseLabel(function.Name, parameter), StringComparison.Ordinal);
         });
 
         return ChineseName(function) + "(" + string.Join(",", parts) + ")";
@@ -89,8 +101,8 @@ public static class ExpressionText
         => Strings.Chinese.TryGetValue(key, out var text) ? text : fallback;
 
     /// <summary>What an argument is called in Chinese.</summary>
-    private static string ChineseLabel(ExpressionParameter parameter)
-        => Chinese($"Expr.Arg.{parameter.Name}.label", parameter.Label);
+    private static string ChineseLabel(string function, ExpressionParameter parameter)
+        => Wording(function, parameter, Chinese);
 
     /// <summary>
     /// The name the signature spells out and one line saying what goes in it, which is what a

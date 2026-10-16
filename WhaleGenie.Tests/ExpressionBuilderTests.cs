@@ -183,7 +183,7 @@ public class ExpressionBuilderTests
             var substring = viewModel.Functions.SelectMany(group => group.Functions)
                 .First(choice => choice.Name == "substring");
             Assert.Equal("截取文本 (substring)", substring.Heading);
-            Assert.Equal("截取文本(文本, 起点 [, 长度])", substring.ChineseSignature);
+            Assert.Equal("截取文本(原文本, 起始位置 [, 截取长度])", substring.ChineseSignature);
 
             // Clicking one still writes the code, which is what the macro is made of.
             Assert.Equal("substring(", substring.Insert);
