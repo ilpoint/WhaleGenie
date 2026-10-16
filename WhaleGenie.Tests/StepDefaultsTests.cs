@@ -51,6 +51,58 @@ public class StepDefaultsTests
             new RecordedAction(RecordedActionKind.KeyPress, Key: "Ctrl+C").ToStep().Meta.OnError);
 
     /// <summary>
+    /// How long a browser step is allowed to take is the step's own kind of answer: one that waits
+    /// for the page to put an element up needs a clock, one that waits for the page itself needs a
+    /// longer one, and one that only opens, closes or says which page comes next needs none at all.
+    /// </summary>
+    [Fact]
+    public void A_browser_step_carries_the_clock_its_kind_of_step_wants()
+    {
+        // 碰元素与读一次的动作：页面把元素放出来要多久，这一步就等多久。
+        string[] acting =
+        [
+            "browser.click", "browser.fill", "browser.readText", "browser.readAll",
+            "browser.readTable", "browser.readPage", "browser.select", "browser.check",
+            "browser.hover", "browser.press", "browser.upload", "browser.scroll",
+            "browser.evaluate",
+        ];
+
+        // 会停在原地等的动作：等页面自己走到某一步，比等一个元素要久；下载也在这一档，因为文件
+        // 从页面那边到磁盘上要多久不由这一步说了算。
+        string[] waiting =
+        [
+            "browser.goTo", "browser.waitFor", "browser.waitForUrl", "browser.waitForLoad",
+            "browser.download",
+        ];
+
+        // 不等任何东西的动作：设一个也用不到，所以不设。
+        string[] instant =
+        [
+            "browser.open", "browser.close", "browser.closeTab", "browser.switchTab",
+            // 回答对话框的块也不设：盒子里每一步有自己的时钟，块本身不等。
+            "browser.dialog",
+        ];
+
+        Ui.Run(() =>
+        {
+            foreach (var key in acting)
+            {
+                Assert.Equal(10000, ActionCatalog.Find(key)!.StepTimeoutMs);
+            }
+
+            foreach (var key in waiting)
+            {
+                Assert.Equal(15000, ActionCatalog.Find(key)!.StepTimeoutMs);
+            }
+
+            foreach (var key in instant)
+            {
+                Assert.Equal(0, ActionCatalog.Find(key)!.StepTimeoutMs);
+            }
+        });
+    }
+
+    /// <summary>
     /// The field the user reads it in. The step holding "ask" is no good if the dialog that opens
     /// on it shows "stop the macro" — that is the thing Ctrl + G was reported about.
     /// </summary>
