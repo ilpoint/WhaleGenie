@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.GraphicsCapture;
 
@@ -481,23 +482,34 @@ public interface IBrowserDevice
     /// <summary>Starts a browser and opens a page at this address.</summary>
     void Open(string browser, string url, bool headless);
 
-    /// <summary>Sends the page to this address.</summary>
-    void GoTo(string url);
+    /// <summary>
+    /// Sends the page to this address, waiting for it to load no longer than the step's own clock
+    /// gives it.
+    /// </summary>
+    void GoTo(string url, int timeoutMs);
 
     /// <summary>Where the page is right now.</summary>
     string Url { get; }
 
-    /// <summary>Clicks the first element the selector names.</summary>
-    void Click(string selector);
-
-    /// <summary>Types text into the element the selector names, replacing what it held.</summary>
-    void Fill(string selector, string text);
+    /// <summary>
+    /// Clicks the element the target names, and answers with the selector that turned out to name
+    /// it: a target written as several selectors is one question with several answers, and which
+    /// one was used is what the run's own log has to report.
+    /// </summary>
+    string Click(PageTarget target, int timeoutMs);
 
     /// <summary>
-    /// The text the selector names, or the whole page's text when the selector is empty. The
-    /// whole-page reading is what a macro wants when it is after the content rather than one field.
+    /// Types text into the element the target names, replacing what it held, and answers with the
+    /// selector that named it.
     /// </summary>
-    string Text(string selector);
+    string Fill(PageTarget target, string text, int timeoutMs);
+
+    /// <summary>
+    /// The text the target names, or the whole page's text when there is no target. The whole-page
+    /// reading is what a macro wants when it is after the content rather than one field, and it is
+    /// what a step that named no selector at all is read as.
+    /// </summary>
+    string Text(PageTarget? target, int timeoutMs);
 
     /// <summary>
     /// Moves to another tab of the browser that is open, which is how a macro follows a click that
@@ -517,64 +529,70 @@ public interface IBrowserDevice
 
     /// <summary>
     /// Puts the open page into picking mode and waits for the person to click an element on it,
-    /// answering with a selector for what they clicked. An empty answer means they gave up, or
-    /// nothing was clicked in time. The page is left the way it was either way.
+    /// answering with the ways of naming what they clicked, the steadiest one first. An empty answer
+    /// means they gave up, or nothing was clicked in time. The page is left the way it was either
+    /// way.
     /// <paramref name="hint"/> is what the banner inside the page says, written in the reader's
     /// language by whoever asked for the pick — the engine holds no user-facing text of its own.
     /// </summary>
-    string Pick(string hint, int timeoutMs);
+    PickResult Pick(string hint, int timeoutMs);
 
     /// <summary>
-    /// Outlines the first element the selector names on the open page, so a selector can be checked
-    /// against the page it was taken from without a run being started. False when there is no page
-    /// open or nothing there matches.
+    /// Outlines the element the target names on the open page, so a selector can be checked against
+    /// the page it was taken from without a run being started. Nothing found is an answer rather
+    /// than a failure: the question was "did that take the right element?", and it is answered the
+    /// same way the step itself would be, which of the target's selectors it used included.
     /// </summary>
-    bool Highlight(string selector);
+    HighlightResult Highlight(PageTarget target);
 
     /// <summary>
-    /// Picks an option of a dropdown the selector names: the one whose value or visible text is
+    /// Picks an option of a dropdown the target names: the one whose value or visible text is
     /// <paramref name="value"/>, or the one at that position when <paramref name="byIndex"/> is set,
     /// counted from the top starting at 1. A dropdown the page itself draws out of other elements
     /// is not one of these, and is worked the way a person works it — click it, then click the
-    /// option.
+    /// option. Answers with the selector that named the dropdown.
     /// </summary>
-    void Select(string selector, string value, bool byIndex);
+    string Select(PageTarget target, string value, bool byIndex, int timeoutMs);
 
     /// <summary>
     /// Ticks or unticks a checkbox or a radio button, which is what a macro wants instead of
     /// clicking one: a click on an already-ticked box would untick it, while this says the state
     /// the macro means to leave behind. Asking for the state a box is already in does nothing
-    /// rather than refusing.
+    /// rather than refusing. Answers with the selector that named the box.
     /// </summary>
-    void Check(string selector, bool wanted);
+    string Check(PageTarget target, bool wanted, int timeoutMs);
 
     /// <summary>
-    /// Moves the pointer over the element the selector names and leaves it there, which is what
-    /// makes a menu, a tooltip or a row of buttons appear.
+    /// Moves the pointer over the element the target names and leaves it there, which is what makes
+    /// a menu, a tooltip or a row of buttons appear. Answers with the selector that named it.
     /// </summary>
-    void Hover(string selector);
+    string Hover(PageTarget target, int timeoutMs);
 
     /// <summary>
-    /// Presses one key while the page is the one listening, or while the element the selector names
-    /// is: the element takes the focus first, and an empty selector leaves the focus where it is,
+    /// Presses one key while the page is the one listening, or while the element the target names
+    /// is: the element takes the focus first, and no target at all leaves the focus where it is,
     /// which is how a macro sends a key to the page itself. The key is a name a macro writes, with
-    /// keys joined by "+" for a chord.
+    /// keys joined by "+" for a chord. Answers with the selector that named the element, empty for
+    /// a key sent to the page itself.
     /// </summary>
-    void Press(string selector, string key);
+    string Press(PageTarget? target, string key, int timeoutMs);
 
     /// <summary>
-    /// Waits for the element the selector names to be in the state asked for, and gives up after
+    /// Waits for the element the target names to be in the state asked for, and gives up after
     /// <paramref name="timeoutMs"/> milliseconds, having waited none of its own. Running out of
     /// time is reported as such rather than as the browser failing, because what the step asked
-    /// for is an answer to "did it turn up", and "no" is an answer.
+    /// for is an answer to "did it turn up", and "no" is an answer. Answers with the selector that
+    /// named the element, or nothing when the page never held one — which for "gone" and "off the
+    /// page" is the state that was asked for.
     /// </summary>
-    void WaitFor(string selector, ElementWait state, int timeoutMs);
+    string? WaitFor(PageTarget target, ElementWait state, int timeoutMs);
 
     /// <summary>
     /// Hands files to a file input, which is the one thing on a page that cannot be done by typing:
-    /// a browser refuses to be told a path by a script, so this is the way round it.
+    /// a browser refuses to be told a path by a script, so this is the way round it. Answers with
+    /// the selector that named the input.
     /// </summary>
-    void Upload(string selector, IReadOnlyList<string> paths);
+    string Upload(PageTarget target, IReadOnlyList<string> paths, int timeoutMs);
 
     /// <summary>Closes the browser and lets go of it, which a macro does when it is done.</summary>
     void Close();
@@ -595,6 +613,81 @@ public enum ElementWait
     /// <summary>Not on the page at all, which is what a page that has thrown something away looks like.</summary>
     Detached,
 }
+
+/// <summary>
+/// Which element of a page a step means, named the way a macro may name it.
+/// </summary>
+/// <remarks>
+/// More than one selector is how a macro survives a page that has been redesigned: they are written
+/// one to a line and tried in that order, and the first that finds anything is the one the step
+/// works through. The selectors and <see cref="MatchIndex"/> travel together because the two answer
+/// one question — which element — and a step that named no selector at all is a step that means the
+/// page itself.
+/// </remarks>
+public sealed record PageTarget(IReadOnlyList<string> Selectors, int MatchIndex)
+{
+    /// <summary>
+    /// The target a step's field holds: one selector to a line, blank lines dropped, and which of
+    /// the elements a selector matches is the one meant, counted from 1.
+    /// </summary>
+    public static PageTarget Of(string text, int matchIndex) => new(
+        [
+            .. text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')
+                .Select(line => line.Trim())
+                .Where(line => line.Length > 0),
+        ],
+        matchIndex);
+}
+
+/// <summary>
+/// Which kind of naming a picked selector is, so the interface can say it in the reader's own words
+/// and nothing outside the device has to know how a page is asked about its elements.
+/// </summary>
+public enum PickKind
+{
+    /// <summary>A data attribute a site keeps for its own tests, which is meant to survive a redesign.</summary>
+    DataAttribute,
+
+    /// <summary>A role together with the name read off it, which is how a screen reader finds it.</summary>
+    Role,
+
+    /// <summary>The text the element shows.</summary>
+    Text,
+
+    /// <summary>The element's id.</summary>
+    Id,
+
+    /// <summary>The name a form field is submitted under.</summary>
+    NameAttribute,
+
+    /// <summary>The label a screen reader reads out for the element.</summary>
+    AriaLabel,
+
+    /// <summary>A path of tags from the top of the page, which is what is left when nothing above fits.</summary>
+    Path,
+}
+
+/// <summary>One way of naming the element a person picked, and how many elements of the page it names.</summary>
+/// <remarks>
+/// How many matters as much as which: a selector naming three elements is still usable, because the
+/// step says which of them it means, while one that gets there by a path of tags is the first to
+/// break when the page is redesigned. Someone writing a macro wants both of those in front of them
+/// before choosing what to leave the step holding.
+/// </remarks>
+public sealed record PickCandidate(PickKind Kind, string Selector, int Matches);
+
+/// <summary>
+/// What a pick answered: the selector to write down — the steadiest of them — and every way of
+/// naming the same element that the page offered. An empty selector means the person gave up or
+/// clicked nothing in time, and then there is nothing to write down either.
+/// </summary>
+public sealed record PickResult(string Selector, IReadOnlyList<PickCandidate> Candidates);
+
+/// <summary>
+/// What outlining a target found: whether anything matched at all, which of the target's selectors
+/// was the one that did, and how many elements it names.
+/// </summary>
+public sealed record HighlightResult(bool Found, int Line, int Matches);
 
 /// <summary>Which tab of the open browser a macro asked to move to.</summary>
 public enum TabChoice
@@ -971,36 +1064,38 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public void Open(string browser, string url, bool headless) => throw Missing("a browser");
 
-        public void GoTo(string url) => throw Missing("a browser");
+        public void GoTo(string url, int timeoutMs) => throw Missing("a browser");
 
         public string Url => throw Missing("a browser");
 
-        public void Click(string selector) => throw Missing("a browser");
+        public string Click(PageTarget target, int timeoutMs) => throw Missing("a browser");
 
-        public void Fill(string selector, string text) => throw Missing("a browser");
+        public string Fill(PageTarget target, string text, int timeoutMs) => throw Missing("a browser");
 
-        public string Text(string selector) => throw Missing("a browser");
+        public string Text(PageTarget? target, int timeoutMs) => throw Missing("a browser");
 
         public void SwitchTab(TabChoice choice, int index, string match) => throw Missing("a browser");
 
         public void CloseTab() => throw Missing("a browser");
 
-        public string Pick(string hint, int timeoutMs) => throw Missing("a browser");
+        public PickResult Pick(string hint, int timeoutMs) => throw Missing("a browser");
 
-        public bool Highlight(string selector) => throw Missing("a browser");
+        public HighlightResult Highlight(PageTarget target) => throw Missing("a browser");
 
-        public void Select(string selector, string value, bool byIndex) => throw Missing("a browser");
-
-        public void Check(string selector, bool wanted) => throw Missing("a browser");
-
-        public void Hover(string selector) => throw Missing("a browser");
-
-        public void Press(string selector, string key) => throw Missing("a browser");
-
-        public void WaitFor(string selector, ElementWait state, int timeoutMs)
+        public string Select(PageTarget target, string value, bool byIndex, int timeoutMs)
             => throw Missing("a browser");
 
-        public void Upload(string selector, IReadOnlyList<string> paths) => throw Missing("a browser");
+        public string Check(PageTarget target, bool wanted, int timeoutMs) => throw Missing("a browser");
+
+        public string Hover(PageTarget target, int timeoutMs) => throw Missing("a browser");
+
+        public string Press(PageTarget? target, string key, int timeoutMs) => throw Missing("a browser");
+
+        public string? WaitFor(PageTarget target, ElementWait state, int timeoutMs)
+            => throw Missing("a browser");
+
+        public string Upload(PageTarget target, IReadOnlyList<string> paths, int timeoutMs)
+            => throw Missing("a browser");
 
         public void Close() => throw Missing("a browser");
 

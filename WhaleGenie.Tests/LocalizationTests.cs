@@ -352,9 +352,10 @@ public class LocalizationTests
     [Fact]
     public void A_field_that_has_to_be_filled_in_does_not_say_that_it_comes_filled_in()
     {
-        // Two lines say what a length of time already is, that being the step's own timeout rather
+        // Three lines say what a length of time already is, that being the step's own timeout rather
         // than the field: a step that waits has one filled in, and the number is worth reading.
-        string[] aTimeout = ["browser.waitFor.target", "control.waitUntil.condition"];
+        string[] aTimeout =
+            ["browser.waitFor.target", "browser.goTo.url", "control.waitUntil.condition"];
 
         var gaps = Ui.Run(() =>
         {

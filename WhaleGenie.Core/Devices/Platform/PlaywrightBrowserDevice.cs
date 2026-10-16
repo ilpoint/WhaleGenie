@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using Microsoft.Playwright;
 
 namespace WhaleGenie.Core.Devices.Platform;
@@ -30,6 +31,14 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// staring at a dialog for a selector that is simply not there.
     /// </summary>
     private const float HighlightTimeoutMs = 3000;
+
+    /// <summary>
+    /// How often a target written as several selectors is tried while none of them has found
+    /// anything yet. It is a look at a page that is already in memory, so it costs next to nothing;
+    /// waiting a moment between two looks is what keeps a page that never shows the element from
+    /// being asked hundreds of times a second.
+    /// </summary>
+    private const int CandidateIntervalMs = 100;
 
     /// <summary>
     /// How long a switch to the newest tab waits for one to turn up. A click that opens a tab has
@@ -83,6 +92,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
     private IPlaywright? _playwright;
     private IBrowser? _browser;
+    private IBrowserContext? _context;
     private IPage? _page;
 
     /// <summary>
@@ -198,13 +208,18 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         {
             _playwright ??= await Playwright.CreateAsync();
             var channel = Channel(browser);
-            _browser = await Launcher(browser).LaunchAsync(new BrowserTypeLaunchOptions
+            var launcher = Launcher(browser);
+
+            _browser = await launcher.LaunchAsync(new BrowserTypeLaunchOptions
             {
                 Channel = channel.Length == 0 ? null : channel,
                 Headless = headless,
             });
+            _context = await _browser.NewContextAsync();
+
             _headless = headless;
-            _page = await _browser.NewPageAsync();
+
+            _page = await _context.NewPageAsync();
             if (!string.IsNullOrWhiteSpace(url))
             {
                 await _page.GotoAsync(url);
@@ -212,30 +227,34 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         });
     }
 
-    public void GoTo(string url) => OnPage(async () => await Page().GotoAsync(url));
+    public void GoTo(string url, int timeoutMs) => OnPage(async () =>
+    {
+        var page = Page();
+        page.SetDefaultTimeout(Patience(timeoutMs));
+        await page.GotoAsync(url);
+    });
 
-    public void Click(string selector) => OnPage(async () => await Page().ClickAsync(selector));
+    public string Click(PageTarget target, int timeoutMs)
+        => OnElement(target, timeoutMs, element => element.ClickAsync());
 
-    public void Fill(string selector, string text)
-        => OnPage(async () => await Page().FillAsync(selector, text));
+    public string Fill(PageTarget target, string text, int timeoutMs)
+        => OnElement(target, timeoutMs, async element => await element.FillAsync(text));
 
-    public void Select(string selector, string value, bool byIndex)
-        => OnPage(async () =>
+    public string Select(PageTarget target, string value, bool byIndex, int timeoutMs)
+        => OnElement(target, timeoutMs, async element =>
         {
-            var page = Page();
             if (byIndex)
             {
                 // The page counts the options from the top starting at nought; a macro counts them
                 // the way a person does, from one.
-                await page.SelectOptionAsync(selector,
-                    new SelectOptionValue { Index = Position(value) - 1 });
+                await element.SelectOptionAsync(new SelectOptionValue { Index = Position(value) - 1 });
                 return;
             }
 
             // A plain string is matched against the option's value and its visible text both, which
             // is what the step promises: one box, filled in with whichever of the two the person
             // writing the macro was reading off the page.
-            await page.SelectOptionAsync(selector, value);
+            await element.SelectOptionAsync(value);
         });
 
     /// <summary>
@@ -250,10 +269,9 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             ? at
             : throw new DeviceActionException("Run.BadPosition", value);
 
-    public void Check(string selector, bool wanted)
-        => OnPage(async () =>
+    public string Check(PageTarget target, bool wanted, int timeoutMs)
+        => OnElement(target, timeoutMs, async element =>
         {
-            var element = Page().Locator(selector).First;
             if (wanted)
             {
                 await element.CheckAsync();
@@ -264,24 +282,30 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             }
         });
 
-    public void Hover(string selector) => OnPage(async () => await Page().HoverAsync(selector));
+    public string Hover(PageTarget target, int timeoutMs)
+        => OnElement(target, timeoutMs, element => element.HoverAsync());
 
     /// <summary>
     /// Hands one key, or one chord, to the page. A key a macro writes is its own name for it, and a
     /// name the page's keyboard has nothing for is refused here rather than sent as a letter that
     /// happens to share its first character.
     /// </summary>
-    public void Press(string selector, string key) => OnPage(async () =>
+    public string Press(PageTarget? target, string key, int timeoutMs)
     {
         var written = PageKeys(key) ?? throw new DeviceActionException("Run.UnknownPageKey", key);
-        if (string.IsNullOrWhiteSpace(selector))
+        if (target is null || target.Selectors.Count == 0)
         {
-            await Page().Keyboard.PressAsync(written);
-            return;
+            OnPage(async () =>
+            {
+                var page = Page();
+                page.SetDefaultTimeout(Patience(timeoutMs));
+                await page.Keyboard.PressAsync(written);
+            });
+            return string.Empty;
         }
 
-        await Page().PressAsync(selector, written);
-    });
+        return OnElement(target, timeoutMs, element => element.PressAsync(written));
+    }
 
     /// <summary>
     /// Waits for an element to reach the state a step asked for. Running out of time is that answer
@@ -289,13 +313,59 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// that never showed the element is what the step was asking about, and "it never turned up" is
     /// what the person reading the failure needs to know.
     /// </summary>
-    public void WaitFor(string selector, ElementWait state, int timeoutMs)
+    public string? WaitFor(PageTarget target, ElementWait state, int timeoutMs)
     {
-        var patience = timeoutMs > 0 ? timeoutMs : DefaultWaitMs;
+        if (target.Selectors.Count == 0)
+        {
+            throw new DeviceActionException("Run.BrowserNoSelector");
+        }
+
+        var patience = Patience(timeoutMs);
+        var deadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(patience);
         try
         {
-            Wait(async () => await Page().Locator(selector).First.WaitForAsync(
-                new LocatorWaitForOptions { State = WaitState(state), Timeout = patience }));
+            return Wait(async () =>
+            {
+                var page = Page();
+                page.SetDefaultTimeout(patience);
+
+                // One selector is the everyday case, and Playwright's own wait is better at it than
+                // a clock of ours: it wakes when the page changes rather than looking again on a
+                // timer.
+                if (target.Selectors.Count == 1)
+                {
+                    var only = target.Selectors[0];
+                    await page.Locator(only).Nth(target.MatchIndex - 1).WaitForAsync(
+                        new LocatorWaitForOptions
+                        {
+                            State = WaitState(state),
+                            Timeout = patience,
+                        });
+                    return only;
+                }
+
+                // Several selectors are waited for together, since a selector that finds nothing is
+                // exactly what the next one is a fallback for: the first of them to reach the state
+                // asked for is the one the step is about.
+                while (true)
+                {
+                    foreach (var selector in target.Selectors)
+                    {
+                        if (await Reached(selector, target.MatchIndex, state))
+                        {
+                            return selector;
+                        }
+                    }
+
+                    if (DateTime.UtcNow >= deadline)
+                    {
+                        throw new DeviceActionException("Run.Timeout",
+                            patience.ToString(CultureInfo.InvariantCulture));
+                    }
+
+                    await Task.Delay(CandidateIntervalMs);
+                }
+            });
         }
         catch (TimeoutException)
         {
@@ -308,16 +378,23 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         }
     }
 
-    public void Upload(string selector, IReadOnlyList<string> paths)
-        => OnPage(async () => await Page().SetInputFilesAsync(selector, paths));
+    public string Upload(PageTarget target, IReadOnlyList<string> paths, int timeoutMs)
+        => OnElement(target, timeoutMs, async element => await element.SetInputFilesAsync(paths));
 
-    public string Text(string selector) => OnPage(async () =>
+    public string Text(PageTarget? target, int timeoutMs)
     {
-        var page = Page();
-        return string.IsNullOrWhiteSpace(selector)
-            ? await page.InnerTextAsync("body")
-            : await page.InnerTextAsync(selector);
-    });
+        if (target is null || target.Selectors.Count == 0)
+        {
+            return OnPage(async () =>
+            {
+                var page = Page();
+                page.SetDefaultTimeout(Patience(timeoutMs));
+                return await page.Locator("body").InnerTextAsync();
+            });
+        }
+
+        return ReadText(target, timeoutMs);
+    }
 
     public void SwitchTab(TabChoice choice, int index, string match)
         => OnPage(async () =>
@@ -425,6 +502,192 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         }
     }
 
+    /// <summary>
+    /// Finds the element a target names and does one of the things a step does to an element,
+    /// answering with the selector that turned out to name it.
+    /// </summary>
+    private string OnElement(PageTarget target, int timeoutMs, Func<ILocator, Task> work)
+        => OnElement(target, timeoutMs, async (element, selector) =>
+        {
+            await work(element);
+            return selector;
+        });
+
+    /// <summary>
+    /// Finds the element a target names, reads the text it shows, and answers with that.
+    /// </summary>
+    private string ReadText(PageTarget target, int timeoutMs)
+        => OnElement(target, timeoutMs, (element, _) => element.InnerTextAsync());
+
+    /// <summary>
+    /// Finds the element a target names and does something with it, answering with whatever that
+    /// made of the element: both the element and the selector that named it are handed over, so a
+    /// step whose own answer is "which one was used" has it to answer with.
+    /// </summary>
+    private T OnElement<T>(PageTarget target, int timeoutMs, Func<ILocator, string, Task<T>> work)
+    {
+        var patience = Patience(timeoutMs);
+        try
+        {
+            return Wait(async () =>
+            {
+                Page().SetDefaultTimeout(patience);
+                var (selector, element) = await Found(target, patience);
+                return await work(element, selector);
+            });
+        }
+        catch (Exception failure) when (failure is PlaywrightException or TimeoutException)
+        {
+            throw Missing(target, failure);
+        }
+    }
+
+    /// <summary>
+    /// How long the browser gives its own part of a step: the step's own timeout when it has one,
+    /// and the device's half minute otherwise, which is what a step that named no length of its own
+    /// used to be given without being told.
+    /// </summary>
+    private static int Patience(int timeoutMs) => timeoutMs > 0 ? timeoutMs : DefaultWaitMs;
+
+    /// <summary>
+    /// The element a target names, waiting for one of its selectors to find something.
+    /// </summary>
+    /// <remarks>
+    /// One selector is left to Playwright to wait for: it is what waits for an element to arrive and
+    /// then for it to become clickable, and it wakes on a change of the page rather than looking
+    /// again on a timer. Several are looked at one after another, because the whole point of a
+    /// second selector is that the first may find nothing — and, since the element may still be on
+    /// its way, the looks are spread over the step's own clock rather than made once.
+    /// <para>
+    /// A fallback stands in for "this way of naming the element finds nothing". It is not a second
+    /// try at an element that was found but would not be clicked: what stood in the way of the click
+    /// is what the failure has to say, and pointing the step at another element instead would be
+    /// work the person writing the macro did not ask for.
+    /// </para>
+    /// </remarks>
+    private async Task<(string Selector, ILocator Locator)> Found(PageTarget target, int patience)
+    {
+        if (target.Selectors.Count == 0)
+        {
+            throw new DeviceActionException("Run.BrowserNoSelector");
+        }
+
+        var page = Page();
+        if (target.Selectors.Count == 1)
+        {
+            var only = target.Selectors[0];
+            return (only, page.Locator(only).Nth(target.MatchIndex - 1));
+        }
+
+        var deadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(patience);
+        while (true)
+        {
+            var (_, selector, _) = await Which(target);
+            if (selector.Length > 0)
+            {
+                return (selector, page.Locator(selector).Nth(target.MatchIndex - 1));
+            }
+
+            if (DateTime.UtcNow >= deadline)
+            {
+                throw NotFound(target, Most(target));
+            }
+
+            await Task.Delay(CandidateIntervalMs);
+        }
+    }
+
+    /// <summary>
+    /// Which of a target's selectors names the element the step means, and how many elements that
+    /// selector names, asked of the page as it is now.
+    /// </summary>
+    private async Task<(int Line, string Selector, int Matches)> Which(PageTarget target)
+    {
+        var page = Page();
+        for (var line = 0; line < target.Selectors.Count; line++)
+        {
+            var matches = await page.Locator(target.Selectors[line]).CountAsync();
+            if (matches >= target.MatchIndex)
+            {
+                return (line + 1, target.Selectors[line], matches);
+            }
+        }
+
+        return (0, string.Empty, 0);
+    }
+
+    /// <summary>
+    /// Whether one selector of a target has reached the state a step is waiting for. A selector that
+    /// names nothing is "gone" and "off the page", which is what waiting for those two means.
+    /// </summary>
+    private async Task<bool> Reached(string selector, int matchIndex, ElementWait state)
+    {
+        var element = Page().Locator(selector);
+        if (await element.CountAsync() < matchIndex)
+        {
+            return state is ElementWait.Hidden or ElementWait.Detached;
+        }
+
+        if (state is ElementWait.Attached or ElementWait.Detached)
+        {
+            return state is ElementWait.Attached;
+        }
+
+        var visible = await element.Nth(matchIndex - 1).IsVisibleAsync();
+        return state is ElementWait.Visible ? visible : !visible;
+    }
+
+    /// <summary>
+    /// What to report when a page action failed. Not finding the element at all is the failure that
+    /// turns up most — a page that has changed since the selector was written no longer has it —
+    /// and when that is what happened, naming the selectors that were tried says more than what the
+    /// driver said. Anything else, an element that is there but covered or switched off among them,
+    /// is reported the way Playwright put it, because that message names what stood in the way.
+    /// </summary>
+    private DeviceActionException Missing(PageTarget target, Exception failure)
+    {
+        var most = Most(target);
+        return most >= 0 && most < target.MatchIndex ? NotFound(target, most) : Failed(failure);
+    }
+
+    /// <summary>
+    /// The most elements any of a target's selectors names right now, asked so that a failure can
+    /// say which of the two it was: a page holding nothing of that name at all, or one holding some
+    /// of it but fewer than the step asked for. Nothing to ask — the page or the browser went away
+    /// — is answered with -1, which is the caller's own failure to report.
+    /// </summary>
+    private int Most(PageTarget target)
+    {
+        try
+        {
+            var page = Page();
+            var most = 0;
+            foreach (var selector in target.Selectors)
+            {
+                most = Math.Max(most, Wait(async () => await page.Locator(selector).CountAsync()));
+            }
+
+            return most;
+        }
+        catch (Exception failure)
+            when (failure is PlaywrightException or TimeoutException or DeviceActionException)
+        {
+            return -1;
+        }
+    }
+
+    /// <summary>
+    /// The failure of not having found the element a step meant: which of the selectors were tried
+    /// is what it says, and which of the two ways it went wrong is the key, because a page that
+    /// holds three of what a step asked four of is not a page holding none of it, and saying it
+    /// held none would send the person reading the failure after a selector that was right.
+    /// </summary>
+    private static DeviceActionException NotFound(PageTarget target, int most)
+        => new(most > 0 ? "Run.BrowserTooFew" : "Run.BrowserNotFound", Tried(target));
+
+    /// <summary>The selectors that were tried, written the way the failure reports them.</summary>
+    private static string Tried(PageTarget target) => string.Join(" / ", target.Selectors);
+
     private DeviceActionException Failed(Exception failure)
     {
         string where;
@@ -454,35 +717,45 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// walks one. The element is then scrolled into view and handed to a script of its own
     /// document, so the frame lands on screen where the person can see it.
     /// </remarks>
-    public bool Highlight(string selector)
+    public HighlightResult Highlight(PageTarget target)
     {
-        if (!IsOpen || string.IsNullOrWhiteSpace(selector))
+        if (!IsOpen || target.Selectors.Count == 0)
         {
-            return false;
+            return new HighlightResult(false, 0, 0);
         }
 
         try
         {
-            Wait(async () =>
+            return Wait(async () =>
             {
                 var page = Page();
+                page.SetDefaultTimeout(HighlightTimeoutMs);
                 await page.BringToFrontAsync();
 
-                var element = page.Locator(selector).First;
+                // Which of a target's selectors names the element, and how many elements that one
+                // names, are the two answers worth having next to "it is there": the step will use
+                // the same selector, and a selector naming three elements is worth knowing about
+                // before a run rather than after it.
+                var (line, selector, matches) = await Which(target);
+                if (line == 0)
+                {
+                    return new HighlightResult(false, 0, 0);
+                }
+
+                var element = page.Locator(selector).Nth(target.MatchIndex - 1);
                 await element.ScrollIntoViewIfNeededAsync();
                 await element.EvaluateAsync<bool>(BrowserPickerScript.Flash, null,
                     new LocatorEvaluateOptions { Timeout = HighlightTimeoutMs });
+                return new HighlightResult(true, line, matches);
             });
-
-            return true;
         }
         catch (Exception failure) when (failure is PlaywrightException or TimeoutException)
         {
-            return false;
+            return new HighlightResult(false, 0, 0);
         }
     }
 
-    public string Pick(string hint, int timeoutMs)
+    public PickResult Pick(string hint, int timeoutMs)
     {
         var page = Page();
 
@@ -518,10 +791,10 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                     // cannot be removed once added.
                     await page.Context.ExposeBindingAsync(
                         "__whalegeniePicked",
-                        (BindingSource source, string? selector) =>
+                        (BindingSource source, string? candidates) =>
                         {
                             _answeredFrame = source.Frame;
-                            _picked?.TrySetResult(selector ?? string.Empty);
+                            _picked?.TrySetResult(candidates ?? string.Empty);
                         });
                     await page.Context.ExposeBindingAsync(
                         "__whalegenieListening", (BindingSource _) => _picked is not null);
@@ -547,12 +820,12 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
             if (!answer.Task.Wait(Math.Max(1000, timeoutMs)))
             {
-                return string.Empty;
+                return new PickResult(string.Empty, []);
             }
 
-            if (answer.Task.Result is not { Length: > 0 } picked)
+            if (answer.Task.Result is not { Length: > 0 } payload)
             {
-                return string.Empty;
+                return new PickResult(string.Empty, []);
             }
 
             // The person picked in whichever tab they were looking at, and that is the tab they
@@ -564,7 +837,21 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                 _page = answered.Page;
             }
 
-            return InFrame(Page(), _answeredFrame, picked);
+            // What the page wrote down is a list of ways of naming the element it was clicked on,
+            // steadiest first. Which of them are any good is asked of the engine rather than taken
+            // on the page's word: the selector the macro will use is read by Playwright, and a
+            // page's own reading of a selector is not the same question.
+            var chosen = Page();
+            var ranked = Wait(async () => await Rank(Ways(payload)))
+                .Select(candidate => candidate with
+                {
+                    Selector = InFrame(chosen, _answeredFrame, candidate.Selector),
+                })
+                .ToList();
+
+            return ranked.Count == 0
+                ? new PickResult(string.Empty, [])
+                : new PickResult(ranked[0].Selector, ranked);
         }
         finally
         {
@@ -616,12 +903,92 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         return string.Concat(way.Select(selector => selector + " >> " + FrameStep + " >> "));
     }
 
+    /// <summary>One way of naming the element a person clicked, as the page wrote it down.</summary>
+    private sealed record RawCandidate(string Kind, string Selector);
+
+    /// <summary>How the page's own spelling of those two fields is read: the script writes them its way.</summary>
+    private static readonly JsonSerializerOptions Reading =
+        new() { PropertyNameCaseInsensitive = true };
+
+    /// <summary>
+    /// The ways of naming the element a pick answered with, read out of what the page sent. A
+    /// payload that cannot be read is answered with nothing rather than refused: it is a pick that
+    /// found nothing, which is something a pick is allowed to do.
+    /// </summary>
+    private static IReadOnlyList<RawCandidate> Ways(string payload)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<List<RawCandidate>>(payload, Reading) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>How the page's own name for a kind of naming reads in the engine's terms.</summary>
+    private static PickKind Kind(string kind) => kind.Trim().ToLowerInvariant() switch
+    {
+        "testid" => PickKind.DataAttribute,
+        "role" => PickKind.Role,
+        "text" => PickKind.Text,
+        "id" => PickKind.Id,
+        "name" => PickKind.NameAttribute,
+        "aria" => PickKind.AriaLabel,
+        _ => PickKind.Path,
+    };
+
+    /// <summary>
+    /// Every way of naming the picked element that is worth writing down, with how many elements
+    /// each one names. A way that names nothing at all is dropped, because a page that has moved on
+    /// since the click cannot be written down by a selector it no longer holds.
+    /// </summary>
+    private async Task<IReadOnlyList<PickCandidate>> Rank(IReadOnlyList<RawCandidate> raw)
+    {
+        var page = Page();
+        var found = new List<PickCandidate>();
+        foreach (var candidate in raw)
+        {
+            var matches = await page.Locator(candidate.Selector).CountAsync();
+            if (matches > 0)
+            {
+                found.Add(new PickCandidate(Kind(candidate.Kind), candidate.Selector, matches));
+            }
+        }
+
+        // Nothing of what was clicked being on the page any more — it went away under the pick, or
+        // the page was sent elsewhere while it was happening — leaves the path of tags as the one
+        // way of naming it that was written down without asking the page anything.
+        if (found.Count == 0 && raw.Count > 0)
+        {
+            found.Add(new PickCandidate(PickKind.Path, raw[^1].Selector, 0));
+        }
+
+        return found;
+    }
+
     /// <summary>
     /// Every frame the picker has to reach: each frame of each tab of the browser. Tabs are opened
     /// by the person as much as by the macro, and the one being looked at is not always the first.
     /// </summary>
     private static IEnumerable<IFrame> Frames(IPage page)
         => page.Context.Pages.SelectMany(tab => tab.Frames);
+
+    /// <summary>
+    /// Runs a script in the page and answers with what it returned, which is how a check reaches
+    /// the page the way the picker's own scripts do: a pick needs a person to click something, and
+    /// what a pick then makes of the click is worth checking without one.
+    /// </summary>
+    internal string Evaluate(string script, object? argument = null)
+        => Wait(async () => await Page().EvaluateAsync<string>(script, argument)) ?? string.Empty;
+
+    /// <summary>
+    /// How many elements of the page a selector names, which is how a check says that what a pick
+    /// wrote down is what the engine reads back.
+    /// </summary>
+    internal int Matches(string selector)
+        => Wait(async () => await Page().Locator(selector).CountAsync());
 
     /// <summary>
     /// Takes the picker off the page when the wait ends first — a person who never clicked should
@@ -645,7 +1012,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
     public void Close()
     {
-        if (_page is null && _browser is null)
+        if (_page is null && _browser is null && _context is null)
         {
             return;
         }
@@ -656,10 +1023,17 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             {
                 await _browser.CloseAsync();
             }
+            else if (_context is not null)
+            {
+                // A context of the device's own is all there is to close: the browser behind it
+                // goes with it.
+                await _context.CloseAsync();
+            }
         });
 
         _page = null;
         _browser = null;
+        _context = null;
         _headless = false;
         _listening = false;
         _tabs.Clear();

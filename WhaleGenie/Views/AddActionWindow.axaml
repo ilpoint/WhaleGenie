@@ -190,19 +190,52 @@
                 </Grid>
 
                 <!-- An element of a page: written out by hand, or taken off the page by pointing
-                     at it in the browser. -->
-                <Grid IsVisible="{Binding IsBrowserTarget}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                    <TextBox Classes="ParamInput" Text="{Binding Text}"
-                             PlaceholderText="{Binding Placeholder}" />
-                    <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
-                            Content="{Binding [Add.PickBrowserElement], Source={x:Static loc:Strings.Current}}"
-                            ToolTip.Tip="{Binding [Add.PickBrowserElementHint], Source={x:Static loc:Strings.Current}}"
-                            Click="OnPickBrowserElement" />
-                    <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
-                            Content="{Binding [Add.TestElement], Source={x:Static loc:Strings.Current}}"
-                            ToolTip.Tip="{Binding [Add.TestElementHint], Source={x:Static loc:Strings.Current}}"
-                            Click="OnTestBrowserElement" />
-                </Grid>
+                     at it in the browser. The box is several lines tall because a page that has
+                     been redesigned is met by writing a second way of naming the element under the
+                     first, and the other ways a pick found are offered under the box to add. -->
+                <StackPanel IsVisible="{Binding IsBrowserTarget}" Spacing="6">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                        <TextBox Classes="ParamInput" Text="{Binding Text}"
+                                 AcceptsReturn="True" TextWrapping="Wrap" MinHeight="56"
+                                 PlaceholderText="{Binding Placeholder}" />
+                        <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                                VerticalAlignment="Top"
+                                Content="{Binding [Add.PickBrowserElement], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.PickBrowserElementHint], Source={x:Static loc:Strings.Current}}"
+                                Click="OnPickBrowserElement" />
+                        <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
+                                VerticalAlignment="Top"
+                                Content="{Binding [Add.TestElement], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.TestElementHint], Source={x:Static loc:Strings.Current}}"
+                                Click="OnTestBrowserElement" />
+                        <Button Grid.Column="3" Classes="FlatButton" Height="33" Padding="11,0"
+                                VerticalAlignment="Top"
+                                IsVisible="{Binding OffersPageVariables}"
+                                Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
+                                Click="OnPickBrowserVariable" />
+                    </Grid>
+
+                    <StackPanel IsVisible="{Binding HasCandidates}" Spacing="5">
+                        <TextBlock Classes="Muted" TextWrapping="Wrap"
+                                   Text="{Binding [Add.BrowserWayMore], Source={x:Static loc:Strings.Current}}" />
+                        <ItemsControl ItemsSource="{Binding Candidates}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:BrowserWayViewModel">
+                                    <Button Classes="FlatButton" Height="30" Padding="10,0"
+                                            Margin="0,0,6,6" Content="{Binding Text}"
+                                            ToolTip.Tip="{Binding [Add.BrowserWayAdd], Source={x:Static loc:Strings.Current}}"
+                                            Click="OnAddBrowserWay" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </StackPanel>
 
                 <!-- A stretch of text that is handed over whole — what gets typed, written or put on
                      the clipboard — may be built with the expression editor like any other value:

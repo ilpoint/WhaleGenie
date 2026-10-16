@@ -396,13 +396,31 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.PickBrowserElement"] = "Pick on the page…",
         ["Add.PickBrowserElementHint"] =
             "Picks an element off the page the macro has open, or opens this address in a browser "
-            + "for picking. Click the element to use and its selector is written here.",
+            + "for picking. Click the element to use: the steadiest way of naming it goes into this "
+            + "field, and the other ways are offered beside the button, one click each to write as "
+            + "the next line.",
         ["Add.TestElement"] = "Test",
         ["Add.TestElementHint"] =
             "Highlights the element on screen, so a selector can be checked without running the "
             + "step it belongs to.",
         ["Add.TestElementEmpty"] = "Pick or write a selector first.",
         ["Add.TestElementMissing"] = "Nothing on screen matches this selector right now.",
+        ["Add.TestPageElementMissing"] = "Nothing on the page matches this selector right now.",
+        ["Add.TestPageElementFound"] =
+            "Shown: line {0} of the field, which names {1} element(s) on the page.",
+
+        // The ways of naming an element a pick answered with. Which one it is matters as much as
+        // how many elements it names: a test id outlives a redesign and a path of tags does not.
+        ["Add.BrowserWayMore"] = "Other ways of naming it; click one to add it as the next line:",
+        ["Add.BrowserWayAdd"] = "Adds this way of naming the element as the next line of the field.",
+        ["Add.BrowserWay"] = "{0} · names {1}",
+        ["Add.BrowserWay.DataAttribute"] = "test attribute",
+        ["Add.BrowserWay.Role"] = "role and name",
+        ["Add.BrowserWay.Text"] = "text it shows",
+        ["Add.BrowserWay.Id"] = "id",
+        ["Add.BrowserWay.NameAttribute"] = "form name",
+        ["Add.BrowserWay.AriaLabel"] = "aria label",
+        ["Add.BrowserWay.Path"] = "path of tags",
 
         // A field that sends something is tested by sending it, which is a thing to be told
         // rather than surprised by.
@@ -1262,6 +1280,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.ProgramDetails"] = "Read what {0} ({1}) is.",
         ["Run.BrowserNotOpen"] = "No browser is open yet; open one before using the page.",
         ["Run.BrowserFailed"] = "The browser could not finish this step: {0}",
+        ["Run.BrowserNotFound"] = "The page holds nothing this step is looking for. Tried: {0}",
+        ["Run.BrowserTooFew"] = "The page holds fewer elements than the Match number this step "
+            + "asks for, which is finding nothing. Tried: {0}",
+        ["Run.BrowserNoSelector"] = "This step does not say which element of the page it means: "
+            + "write a selector, or point at the element on the page.",
         ["Run.OpenedBrowser"] = "Opened {0} at {1}.",
         ["Run.BrowserAddress"] = "The page is on {0}.",
         ["Run.BrowserClicked"] = "Clicked {0}.",
@@ -1278,7 +1301,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BrowserHovered"] = "Moved over {0}.",
         ["Run.BrowserPressed"] = "Pressed {0} in the page.",
         ["Run.BrowserWaited"] = "{0} reached the state this step was waiting for.",
-        ["Run.BrowserUploaded"] = "Handed {0} file(s) to the page.",
+        ["Run.BrowserUploaded"] = "Handed {0} file(s) to {1}.",
         ["Run.UnknownPageKey"] = "The page's own keyboard has nothing called this: {0}",
         ["Run.ClosedBrowser"] = "Closed the browser.",
         ["Run.CopiedToClipboard"] = "Copied {0} characters to the clipboard.",
@@ -1658,11 +1681,26 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.PickElementHint"] = "把鼠标移到屏幕上的控件并点击，即可写入它的选择器。",
         ["Add.PickBrowserElement"] = "在页面里拾取…",
         ["Add.PickBrowserElementHint"] =
-            "在宏已经打开的页面上拾取；没有就把这个地址开在浏览器里。点一下要用的元素，它的选择器就写到这里。",
+            "在宏已经打开的页面上拾取；没有就把这个地址开在浏览器里。点一下要用的元素：最稳的那条说法写到"
+            + "这里，其余的说法列在按钮旁边，点一下就追成字段的下一行。",
         ["Add.TestElement"] = "测试",
         ["Add.TestElementHint"] = "在屏幕上高亮这个元素，不用运行宏就能看看有没有选对。",
         ["Add.TestElementEmpty"] = "先拾取或者填写选择器。",
         ["Add.TestElementMissing"] = "现在屏幕上没有匹配这个选择器的元素。",
+        ["Add.TestPageElementMissing"] = "现在页面上没有匹配这个选择器的元素。",
+        ["Add.TestPageElementFound"] = "框出的是字段第 {0} 行；这一条在页面上匹配 {1} 处。",
+
+        // 拾取时页面给出的几种说法。是哪一种和匹配几处一样重要：测试号跟得上改版，标签路径跟不上。
+        ["Add.BrowserWayMore"] = "这个元素还有这些说法，点一下追成字段的下一行：",
+        ["Add.BrowserWayAdd"] = "把这个说法追成字段的下一行。",
+        ["Add.BrowserWay"] = "{0} · 匹配 {1} 处",
+        ["Add.BrowserWay.DataAttribute"] = "测试属性",
+        ["Add.BrowserWay.Role"] = "角色与名字",
+        ["Add.BrowserWay.Text"] = "显示的文字",
+        ["Add.BrowserWay.Id"] = "id",
+        ["Add.BrowserWay.NameAttribute"] = "表单名字",
+        ["Add.BrowserWay.AriaLabel"] = "aria 名字",
+        ["Add.BrowserWay.Path"] = "标签路径",
 
         // 会真的发出去的东西，测试就是真的发一次——这件事要说清楚，不能让人措手不及。
         ["Add.TestField"] = "测试",
@@ -2749,6 +2787,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.ProgramDetails"] = "已读取 {0}（{1}）的信息。",
         ["Run.BrowserNotOpen"] = "还没有打开浏览器；用页面前先打开一个。",
         ["Run.BrowserFailed"] = "没能在浏览器里完成这一步：{0}",
+        ["Run.BrowserNotFound"] = "页面上没有这一步要找的那个元素。试过：{0}",
+        ["Run.BrowserTooFew"] = "页面上的元素没有「第几个命中」要的那么多，等于没找到。试过：{0}",
+        ["Run.BrowserNoSelector"] = "这一步没说要页面上的哪个元素：请写选择器，或在页面上点一下那个元素。",
         ["Run.OpenedBrowser"] = "已打开 {0}，地址是 {1}。",
         ["Run.BrowserAddress"] = "页面在 {0}。",
         ["Run.BrowserClicked"] = "已点击 {0}。",
@@ -2765,7 +2806,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BrowserHovered"] = "已把指针移到 {0} 上。",
         ["Run.BrowserPressed"] = "已在页面里按下 {0}。",
         ["Run.BrowserWaited"] = "{0} 已经到了这一步等待的状态。",
-        ["Run.BrowserUploaded"] = "已把 {0} 个文件交给页面。",
+        ["Run.BrowserUploaded"] = "已把 {0} 个文件交给 {1}。",
         ["Run.UnknownPageKey"] = "网页的键盘里没有这个键：{0}",
         ["Run.ClosedBrowser"] = "已关闭浏览器。",
         ["Run.CopiedToClipboard"] = "已复制 {0} 个字符到剪贴板。",

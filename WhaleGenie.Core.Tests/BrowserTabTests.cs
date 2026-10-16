@@ -47,14 +47,14 @@ public class BrowserTabTests : IDisposable
         using var device = new PlaywrightBrowserDevice();
         device.Open("edge", Address("receipt"), headless: true);
 
-        device.Click("#pay");
+        device.Click(At("#pay"), 5000);
 
         // The tab the click opened is what the steps after it mean to work on, and reading from it
         // is what says the macro really got there: the same site's other page has an element of
         // the very same name.
         device.SwitchTab(TabChoice.Newest, 0, string.Empty);
         Assert.Contains("thank-you.html", device.Url, StringComparison.Ordinal);
-        Assert.Contains("42.00", device.Text("#total"), StringComparison.Ordinal);
+        Assert.Contains("42.00", device.Text(At("#total"), 5000), StringComparison.Ordinal);
 
         // The page it was on first is still open: asking for it by its title brings it back, which
         // is how a macro reads from one tab and fills in another.
@@ -109,6 +109,9 @@ public class BrowserTabTests : IDisposable
 
     /// <summary>The address one of the site's pages is read at.</summary>
     private string Address(string name) => new Uri(Path.Combine(_site, $"{name}.html")).AbsoluteUri;
+
+    /// <summary>The element a step means when its field holds one selector and it wants the first match.</summary>
+    private static PageTarget At(string selector) => PageTarget.Of(selector, 1);
 }
 
 /// <summary>

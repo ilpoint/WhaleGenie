@@ -8342,10 +8342,10 @@ public class DeviceActionTests
         Assert.True(result.Succeeded);
         Assert.Equal("Hello from the page", store.Local.Values["answer"].AsText());
         Assert.Contains("browserOpen edge https://example.com True", devices.Calls);
-        Assert.Contains("browserGoTo https://example.com/next", devices.Calls);
-        Assert.Contains("browserClick #go", devices.Calls);
-        Assert.Contains("browserFill #q macro", devices.Calls);
-        Assert.Contains("browserText #result", devices.Calls);
+        Assert.Contains("browserGoTo https://example.com/next 0", devices.Calls);
+        Assert.Contains("browserClick #go #1 0", devices.Calls);
+        Assert.Contains("browserFill #q #1 macro 0", devices.Calls);
+        Assert.Contains("browserText #result #1 0", devices.Calls);
         Assert.Contains("browserClose", devices.Calls);
         Assert.False(devices.BrowserOpen);
     }
@@ -8376,10 +8376,46 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Contains("browserClick [data-testid=\"row-2\"]", devices.Calls);
-        Assert.Contains("browserClick div > p:nth-of-type(2)", devices.Calls);
-        Assert.Contains("browserClick input[name=\"user\"]", devices.Calls);
-        Assert.Contains("browserClick #frame >> internal:control=enter-frame >> #inner", devices.Calls);
+        Assert.Contains("browserClick [data-testid=\"row-2\"] #1 0", devices.Calls);
+        Assert.Contains("browserClick div > p:nth-of-type(2) #1 0", devices.Calls);
+        Assert.Contains("browserClick input[name=\"user\"] #1 0", devices.Calls);
+        Assert.Contains("browserClick #frame >> internal:control=enter-frame >> #inner #1 0", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_second_way_of_naming_the_element_and_which_match_reach_the_device()
+    {
+        // A page that has been redesigned is met by writing a second selector under the first, and
+        // which of the matches the step means is a field of its own: both have to reach the device
+        // untouched and in the order they were written, which is the whole point of a fallback. A
+        // blank line is not a selector, and the spaces around one are not part of it either.
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Within(2500, Step("browser.click",
+                Param("target", "[data-testid=\"save\"]\n#save-2\n\n  text=\"Save\"  "),
+                Param("matchIndex", "2"))),
+        ], devices);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(
+            "browserClick [data-testid=\"save\"] / #save-2 / text=\"Save\" #2 2500",
+            devices.Calls);
+    }
+
+    [Fact]
+    public async Task The_run_says_which_way_of_naming_the_element_it_used()
+    {
+        // Which of the selectors a target was written with is the thing its author cannot see from
+        // the file alone: a second line is written for the day the first stops working, and the run
+        // has to say when that day has come.
+        var devices = new FakeDeviceLayer { BrowserChosen = 2 };
+        var host = new SilentRunHost();
+        var result = await new MacroRunner(new VariableStore(), host, devices)
+            .RunAsync([Step("browser.click", Param("target", "#first\n#second"))]);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("#second", host.Entries.Single(entry => entry.Key == "Run.BrowserClicked").Arguments[0]);
     }
 
     [Fact]
@@ -8453,8 +8489,8 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Contains("browserSelect #country China False", devices.Calls);
-        Assert.Contains("browserSelect #country 2 True", devices.Calls);
+        Assert.Contains("browserSelect #country #1 China False 0", devices.Calls);
+        Assert.Contains("browserSelect #country #1 2 True 0", devices.Calls);
     }
 
     [Fact]
@@ -8487,8 +8523,8 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Contains("browserCheck #agree True", devices.Calls);
-        Assert.Contains("browserCheck #news False", devices.Calls);
+        Assert.Contains("browserCheck #agree #1 True 0", devices.Calls);
+        Assert.Contains("browserCheck #news #1 False 0", devices.Calls);
     }
 
     [Fact]
@@ -8499,7 +8535,7 @@ public class DeviceActionTests
             [Step("browser.hover", Param("target", "#menu"))], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Contains("browserHover #menu", devices.Calls);
+        Assert.Contains("browserHover #menu #1 0", devices.Calls);
     }
 
     [Fact]
@@ -8513,8 +8549,8 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Contains("browserPress #search Enter", devices.Calls);
-        Assert.Contains("browserPress  Ctrl+S", devices.Calls);
+        Assert.Contains("browserPress #search #1 Enter 0", devices.Calls);
+        Assert.Contains("browserPress (none) Ctrl+S 0", devices.Calls);
     }
 
     [Fact]
@@ -8548,9 +8584,9 @@ public class DeviceActionTests
         ], devices);
 
         Assert.True(result.Succeeded);
-        Assert.Contains("browserWaitFor #results Visible 4000", devices.Calls);
-        Assert.Contains("browserWaitFor #spinner Hidden 4000", devices.Calls);
-        Assert.Contains("browserWaitFor #row Detached 4000", devices.Calls);
+        Assert.Contains("browserWaitFor #results #1 Visible 4000", devices.Calls);
+        Assert.Contains("browserWaitFor #spinner #1 Hidden 4000", devices.Calls);
+        Assert.Contains("browserWaitFor #row #1 Detached 4000", devices.Calls);
     }
 
     [Fact]
@@ -8565,7 +8601,7 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded);
         Assert.Contains(
-            $"browserUpload input[name=report] {devices.BaseFolder}\\report.pdf|C:\\Temp\\notes.txt",
+            $"browserUpload input[name=report] #1 {devices.BaseFolder}\\report.pdf|C:\\Temp\\notes.txt 0",
             devices.Calls);
     }
 
@@ -9190,15 +9226,23 @@ internal sealed class FakeDeviceLayer
         BrowserAddress = url;
     }
 
-    void IBrowserDevice.GoTo(string url)
+    void IBrowserDevice.GoTo(string url, int timeoutMs)
     {
-        Note($"browserGoTo {url}");
+        Note($"browserGoTo {url} {timeoutMs}");
         BrowserAddress = url;
     }
 
-    void IBrowserDevice.Click(string selector) => Note($"browserClick {selector}");
+    string IBrowserDevice.Click(PageTarget target, int timeoutMs)
+    {
+        Note($"browserClick {Named(target)} {timeoutMs}");
+        return Chosen(target);
+    }
 
-    void IBrowserDevice.Fill(string selector, string text) => Note($"browserFill {selector} {text}");
+    string IBrowserDevice.Fill(PageTarget target, string text, int timeoutMs)
+    {
+        Note($"browserFill {Named(target)} {text} {timeoutMs}");
+        return Chosen(target);
+    }
 
     /// <summary>The address the tab a switch moves to is showing, as though it had a page of its own.</summary>
     public string BrowserTabAddress { get; set; } = string.Empty;
@@ -9214,43 +9258,86 @@ internal sealed class FakeDeviceLayer
 
     void IBrowserDevice.CloseTab() => Note("browserCloseTab");
 
-    string IBrowserDevice.Text(string selector)
+    string IBrowserDevice.Text(PageTarget? target, int timeoutMs)
     {
-        Note($"browserText {selector}");
+        Note($"browserText {Named(target)} {timeoutMs}");
         return BrowserPage;
     }
 
     /// <summary>What the next pick answers with, as though a person had clicked that element.</summary>
-    public string BrowserPicked { get; set; } = "#picked";
+    public PickResult BrowserPicked { get; set; } =
+        new("#picked", [new PickCandidate(PickKind.Id, "#picked", 1)]);
 
-    string IBrowserDevice.Pick(string hint, int timeoutMs)
+    PickResult IBrowserDevice.Pick(string hint, int timeoutMs)
     {
         Note($"browserPick {hint} {timeoutMs}");
         return BrowserPicked;
     }
 
-    bool IBrowserDevice.Highlight(string selector)
+    HighlightResult IBrowserDevice.Highlight(PageTarget target)
     {
-        Note($"browserHighlight {selector}");
-        return BrowserOpen;
+        Note($"browserHighlight {Named(target)}");
+        return BrowserOpen
+            ? new HighlightResult(true, 1, target.Selectors.Count)
+            : new HighlightResult(false, 0, 0);
     }
 
-    void IBrowserDevice.Select(string selector, string value, bool byIndex)
-        => Note($"browserSelect {selector} {value} {byIndex}");
+    string IBrowserDevice.Select(PageTarget target, string value, bool byIndex, int timeoutMs)
+    {
+        Note($"browserSelect {Named(target)} {value} {byIndex} {timeoutMs}");
+        return Chosen(target);
+    }
 
-    void IBrowserDevice.Check(string selector, bool wanted)
-        => Note($"browserCheck {selector} {wanted}");
+    string IBrowserDevice.Check(PageTarget target, bool wanted, int timeoutMs)
+    {
+        Note($"browserCheck {Named(target)} {wanted} {timeoutMs}");
+        return Chosen(target);
+    }
 
-    void IBrowserDevice.Hover(string selector) => Note($"browserHover {selector}");
+    string IBrowserDevice.Hover(PageTarget target, int timeoutMs)
+    {
+        Note($"browserHover {Named(target)} {timeoutMs}");
+        return Chosen(target);
+    }
 
-    void IBrowserDevice.Press(string selector, string key)
-        => Note($"browserPress {selector} {key}");
+    string IBrowserDevice.Press(PageTarget? target, string key, int timeoutMs)
+    {
+        Note($"browserPress {Named(target)} {key} {timeoutMs}");
+        return target is null ? string.Empty : Chosen(target);
+    }
 
-    void IBrowserDevice.WaitFor(string selector, ElementWait state, int timeoutMs)
-        => Note($"browserWaitFor {selector} {state} {timeoutMs}");
+    string? IBrowserDevice.WaitFor(PageTarget target, ElementWait state, int timeoutMs)
+    {
+        Note($"browserWaitFor {Named(target)} {state} {timeoutMs}");
+        return Chosen(target);
+    }
 
-    void IBrowserDevice.Upload(string selector, IReadOnlyList<string> paths)
-        => Note($"browserUpload {selector} {string.Join('|', paths)}");
+    string IBrowserDevice.Upload(PageTarget target, IReadOnlyList<string> paths, int timeoutMs)
+    {
+        Note($"browserUpload {Named(target)} {string.Join('|', paths)} {timeoutMs}");
+        return Chosen(target);
+    }
+
+    /// <summary>
+    /// A target as it reads in a note: every way of naming the element in the order it was written,
+    /// and which of the matches the step means, because both are things the engine has to hand over
+    /// untouched for a fallback to be worth writing down.
+    /// </summary>
+    private static string Named(PageTarget? target) => target is null || target.Selectors.Count == 0
+        ? "(none)"
+        : $"{string.Join(" / ", target.Selectors)} #{target.MatchIndex}";
+
+    /// <summary>
+    /// Which of a target's selectors turns out to name the element, as though the ones before it had
+    /// found nothing. 1 is the first, which is what a target with no fallbacks always answers.
+    /// </summary>
+    public int BrowserChosen { get; set; } = 1;
+
+    /// <summary>The way of naming the element that won, which is what the run's own log reports.</summary>
+    private string Chosen(PageTarget target)
+        => target.Selectors.Count == 0
+            ? string.Empty
+            : target.Selectors[Math.Min(Math.Max(BrowserChosen, 1), target.Selectors.Count) - 1];
 
     void IBrowserDevice.Close()
     {

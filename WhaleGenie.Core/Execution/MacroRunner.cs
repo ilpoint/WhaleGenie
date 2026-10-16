@@ -1563,19 +1563,19 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "browser.goTo":
-                _devices.Browser.GoTo(Read(step.Text("url")).AsText());
+                _devices.Browser.GoTo(Read(step.Text("url")).AsText(), step.Meta.TimeoutMs);
                 Log(LogLevel.Info, depth, step.Type, "Run.BrowserAddress", _devices.Browser.Url);
                 return Signal.Normal;
 
             case "browser.click":
-                _devices.Browser.Click(Read(step.Text("target")).AsText());
-                Log(LogLevel.Info, depth, step.Type, "Run.BrowserClicked", step.Text("target"));
+                Log(LogLevel.Info, depth, step.Type, "Run.BrowserClicked",
+                    _devices.Browser.Click(Element(step), step.Meta.TimeoutMs));
                 return Signal.Normal;
 
             case "browser.fill":
-                _devices.Browser.Fill(
-                    Read(step.Text("target")).AsText(), Read(step.Text("text")).AsText());
-                Log(LogLevel.Info, depth, step.Type, "Run.BrowserFilled", step.Text("target"));
+                Log(LogLevel.Info, depth, step.Type, "Run.BrowserFilled",
+                    _devices.Browser.Fill(Element(step), Read(step.Text("text")).AsText(),
+                        step.Meta.TimeoutMs));
                 return Signal.Normal;
 
             case "browser.readText":
@@ -1587,14 +1587,14 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "browser.check":
-                _devices.Browser.Check(Read(step.Text("target")).AsText(),
-                    Flag(step, "checked", true));
-                Log(LogLevel.Info, depth, step.Type, "Run.BrowserChecked", step.Text("target"));
+                Log(LogLevel.Info, depth, step.Type, "Run.BrowserChecked",
+                    _devices.Browser.Check(Element(step), Flag(step, "checked", true),
+                        step.Meta.TimeoutMs));
                 return Signal.Normal;
 
             case "browser.hover":
-                _devices.Browser.Hover(Read(step.Text("target")).AsText());
-                Log(LogLevel.Info, depth, step.Type, "Run.BrowserHovered", step.Text("target"));
+                Log(LogLevel.Info, depth, step.Type, "Run.BrowserHovered",
+                    _devices.Browser.Hover(Element(step), step.Meta.TimeoutMs));
                 return Signal.Normal;
 
             case "browser.press":
@@ -7720,6 +7720,23 @@ public sealed class MacroRunner
     // --------------------------------------------------------------------- script
 
     /// <summary>
+    /// The element a browser step means: the selectors its target field holds, one to a line and
+    /// tried in that order, and which of the elements a selector matches is the one the step wants.
+    /// </summary>
+    private PageTarget Element(ExecutableStep step)
+        => PageTarget.Of(Read(step.Text("target")).AsText(), Index(step, "matchIndex", 1));
+
+    /// <summary>
+    /// The key or the reading a step may do without: a step whose target is empty sends its key to
+    /// the page itself, or reads the whole page, and has nothing for the browser to look for.
+    /// </summary>
+    private PageTarget? OptionalElement(ExecutableStep step)
+    {
+        var target = Element(step);
+        return target.Selectors.Count == 0 ? null : target;
+    }
+
+    /// <summary>
     /// Opens a browser, after checking the one Playwright drives is on the machine. The check
     /// happens here rather than inside the driver so the user is told what to install instead of
     /// being handed whatever the driver says when it finds nothing to start.
@@ -7741,7 +7758,7 @@ public sealed class MacroRunner
     /// <summary>Reads the page, or one element of it, into a variable.</summary>
     private void BrowserReadText(ExecutableStep step, int depth)
     {
-        var text = _devices.Browser.Text(Read(step.Text("target")).AsText());
+        var text = _devices.Browser.Text(OptionalElement(step), step.Meta.TimeoutMs);
         Give(step, "text", Value.FromText(text));
         Log(LogLevel.Info, depth, step.Type, "Run.BrowserRead", text.Length);
     }
@@ -7760,8 +7777,8 @@ public sealed class MacroRunner
             throw new StepFailure("Run.BadPosition", value);
         }
 
-        _devices.Browser.Select(Read(step.Text("target")).AsText(), value, byIndex);
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserSelected", step.Text("target"), value);
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserSelected",
+            _devices.Browser.Select(Element(step), value, byIndex, step.Meta.TimeoutMs), value);
     }
 
     /// <summary>
@@ -7786,7 +7803,7 @@ public sealed class MacroRunner
             throw new StepFailure("Run.UnknownKey", unknown ?? key);
         }
 
-        _devices.Browser.Press(Read(step.Text("target")).AsText(), key);
+        _devices.Browser.Press(OptionalElement(step), key, step.Meta.TimeoutMs);
         Log(LogLevel.Info, depth, step.Type, "Run.BrowserPressed", key);
     }
 
@@ -7805,9 +7822,10 @@ public sealed class MacroRunner
             _ => ElementWait.Visible,
         };
 
-        var selector = Read(step.Text("target")).AsText();
-        _devices.Browser.WaitFor(selector, state, step.Meta.TimeoutMs);
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserWaited", selector);
+        var target = Element(step);
+        var waited = _devices.Browser.WaitFor(target, state, step.Meta.TimeoutMs);
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserWaited",
+            waited ?? string.Join(" / ", target.Selectors));
     }
 
     /// <summary>
@@ -7827,8 +7845,8 @@ public sealed class MacroRunner
             throw new StepFailure("Run.MissingPath");
         }
 
-        _devices.Browser.Upload(Read(step.Text("target")).AsText(), paths);
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserUploaded", paths.Count);
+        var element = _devices.Browser.Upload(Element(step), paths, step.Meta.TimeoutMs);
+        Log(LogLevel.Info, depth, step.Type, "Run.BrowserUploaded", paths.Count, element);
     }
 
     /// <summary>

@@ -293,6 +293,7 @@ public class ElementPickerTests
 
                 Assert.True(target.IsBrowserTarget, $"{key}'s element is not picked off the page");
                 Assert.False(target.IsPlainText, $"{key}'s element is drawn twice");
+                Assert.False(target.OffersVariables, $"{key}'s element is drawn twice");
                 Assert.False(target.IsSelector, $"{key}'s element got the UI Automation picker");
             }
 
@@ -325,6 +326,78 @@ public class ElementPickerTests
         var block = markup[start..markup.IndexOf("</Grid>", start, StringComparison.Ordinal)];
         Assert.Contains("TextBox", block, StringComparison.Ordinal);
         Assert.Contains("Click=\"OnPickBrowserElement\"", block, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A field naming an element of a page is several lines tall, because a page that has been
+    /// redesigned is met by writing a second way of naming the element under the first, and the
+    /// ways a pick found are offered under the box for exactly that.
+    /// </summary>
+    [Fact]
+    public void The_dialog_takes_a_second_way_of_naming_an_element_of_a_page()
+    {
+        var markup = File.ReadAllText(
+            Path.Combine(Repository(), "WhaleGenie", "Views", "AddActionWindow.axaml"));
+
+        var start = markup.IndexOf("IsVisible=\"{Binding IsBrowserTarget}\"", StringComparison.Ordinal);
+        Assert.True(start >= 0, "the dialog stopped offering a picker for elements of a page");
+
+        var end = markup.IndexOf("IsVisible=\"{Binding IsMultiline}\"", start, StringComparison.Ordinal);
+        Assert.True(end > start, "the dialog stopped drawing the page picker in a block of its own");
+
+        var block = markup[start..end];
+        Assert.Contains("AcceptsReturn=\"True\"", block, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding Candidates}\"", block, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnAddBrowserWay\"", block, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnPickBrowserVariable\"", block, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// What a pick leaves beside the field: the other ways of naming the element it found, each
+    /// saying what kind of naming it is and how many elements it names, and each adding a line when
+    /// it is taken. A name picked from the variable wall goes on a line of its own for the same
+    /// reason — the lines are tried one after another.
+    /// </summary>
+    [Fact]
+    public void The_ways_of_naming_the_element_a_pick_found_are_offered_beside_the_field()
+    {
+        Ui.Run(() =>
+        {
+            var definition = ActionCatalog.Find("browser.click")
+                ?? throw new InvalidOperationException("browser.click is missing from the catalogue.");
+            var target = new StepParameterViewModel(
+                definition.Parameters.First(parameter => parameter.Name == "target"));
+
+            // A name written in the box is filled in when the step runs, so the names are offered
+            // beside the picker — the box itself carries no list over it — and a formula is not
+            // offered at all, because it would be written down as part of the selector.
+            Assert.True(target.OffersPageVariables);
+            Assert.False(target.OffersBuilder);
+            Assert.False(target.HasCandidates);
+
+            target.Text = "#save";
+            target.OfferCandidates(
+            [
+                new PickCandidate(PickKind.DataAttribute, "[data-testid=\"save\"]", 1),
+                new PickCandidate(PickKind.Path, "body > div > button", 3),
+            ]);
+
+            Assert.True(target.HasCandidates);
+            Assert.Equal(2, target.Candidates.Count);
+            Assert.Contains("names 1", target.Candidates[0].Text, StringComparison.Ordinal);
+            Assert.Contains("names 3", target.Candidates[1].Text, StringComparison.Ordinal);
+
+            // Taking one writes it under what the pick wrote first, which is the order the step will
+            // try them in.
+            var way = target.Candidates[1];
+            way.Take!(way);
+            Assert.Equal("#save" + Environment.NewLine + "body > div > button", target.Text);
+
+            target.AddLine("$choice");
+            Assert.Equal(
+                "#save" + Environment.NewLine + "body > div > button" + Environment.NewLine + "$choice",
+                target.Text);
+        });
     }
 
     /// <summary>The control a test pretends the pointer was put on.</summary>

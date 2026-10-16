@@ -237,6 +237,26 @@ internal static class ActionStrings
         "“命中排序”里的第几个，从 1 开始，默认 1。超出命中数量时这一步按没找到处理。";
 
     /// <summary>
+    /// What every field naming an element of a page starts by saying about itself: the ways of
+    /// naming it are written one to a line and tried in that order, and the one thing such a line
+    /// holds that is not a selector is a variable's text. What a later line does and does not stand
+    /// in for is spelled out here rather than left to be discovered from a run that did not go the
+    /// way it was meant to: an element that was found and then refused is not what a fallback is for.
+    /// </summary>
+    private const string PageTargetHint =
+        "选择器一行一条：从上往下依次试，第一条能认出元素的就是这一步用的；多写一条是页面改版之后仍然"
+        + "找得到的办法。换下一条只在这一条认不到元素的时候生效，认到了却点不动不换。其中的 $变量 会"
+        + "替换成它的值。";
+
+    /// <summary>
+    /// The hint the "which match" fields of the page actions share. What is being counted comes
+    /// first, because "the second one" says nothing until it is said of what.
+    /// </summary>
+    private static string PageMatchIndexHint(string what) =>
+        what + "是第几个：选择器可能同时对上多个元素，这里说这一步要的是它们中的第几个，按在页面上出现"
+        + "的顺序从 1 数起，默认 1；页面上没有这么多时按没找到处理。";
+
+    /// <summary>
     /// The hint every action that lists several reference pictures shares for its picker: which of
     /// the pictures the step goes with.
     /// </summary>
@@ -2611,25 +2631,33 @@ internal static class ActionStrings
         ["browser.goTo.name"] = "转到网址",
         ["browser.goTo.desc"] = "让浏览器当前页面转到另一个网址。",
         ["browser.goTo.url.label"] = "网址",
-        ["browser.goTo.url.hint"] = "要让当前页面转到的网址。按一个值读取，变量或表达式都可以写成它。",
+        ["browser.goTo.url.hint"] = "要让当前页面转到的网址。按一个值读取，变量或表达式都可以写成它。"
+            + "等页面加载完要多久由这一步设置里的「超时」说，默认 15000 毫秒。",
 
         ["browser.click.name"] = "点击元素",
-        ["browser.click.desc"] = "点击选择器指定的第一个元素。",
+        ["browser.click.desc"] = "点击选择器指定的元素。",
         ["browser.click.target.label"] = "选择器",
-        ["browser.click.target.hint"] = "元素在哪，写法是 Playwright 的选择器。选择器像 CSS，也能按文字找："
-            + "「text=登录」会点第一个显示这段文字的元素。",
+        ["browser.click.target.hint"] = PageTargetHint + "元素在哪，写法是 Playwright 的选择器。"
+            + "选择器像 CSS，也能按文字找：「text=登录」认的是显示这段文字的元素。",
+        ["browser.click.matchIndex.label"] = "第几个命中",
+        ["browser.click.matchIndex.hint"] = PageMatchIndexHint("要点击的"),
 
         ["browser.fill.name"] = "填写",
         ["browser.fill.desc"] = "往选择器指定的元素里输入文本。",
         ["browser.fill.target.label"] = "选择器",
-        ["browser.fill.target.hint"] = "要输入到哪个元素，写法与「点击元素」相同。",
+        ["browser.fill.target.hint"] = PageTargetHint + "要输入到哪个元素，写法与「点击元素」相同。",
         ["browser.fill.text.label"] = "文本",
         ["browser.fill.text.hint"] = "要输入的内容。按一个值读取，变量或表达式都可以写成它，所以可以把别处读到的值输入进来。",
+        ["browser.fill.matchIndex.label"] = "第几个命中",
+        ["browser.fill.matchIndex.hint"] = PageMatchIndexHint("要填写的"),
 
         ["browser.readText.name"] = "读取文本",
         ["browser.readText.desc"] = "读取某个元素、或整个页面的文本。",
         ["browser.readText.target.label"] = "选择器",
-        ["browser.readText.target.hint"] = "要读取哪个元素，写法与「点击元素」相同。默认留空，表示读整个页面的文本。",
+        ["browser.readText.target.hint"] = PageTargetHint + "要读取哪个元素，写法与「点击元素」相同。"
+            + "一行都不写，也就是默认，读的是整个页面的文本。",
+        ["browser.readText.matchIndex.label"] = "第几个命中",
+        ["browser.readText.matchIndex.hint"] = PageMatchIndexHint("要读取的"),
 
         ["browser.switchTab.name"] = "切换标签页",
         ["browser.switchTab.desc"] = "让后面的步骤改用浏览器里的另一个标签页。",
@@ -2655,7 +2683,7 @@ internal static class ActionStrings
         ["browser.select.name"] = "下拉选择",
         ["browser.select.desc"] = "在页面上的下拉框里选中一个选项。",
         ["browser.select.target.label"] = "选择器",
-        ["browser.select.target.hint"] = "要操作哪个下拉框，写法与「点击元素」相同。",
+        ["browser.select.target.hint"] = PageTargetHint + "要操作哪个下拉框，写法与「点击元素」相同。",
         ["browser.select.value.label"] = "选项",
         ["browser.select.value.hint"] = "要选中哪个选项：值和可见文字正好是这段文字的那一个，或者"
             + "配合下面的「按序号」写选项的位置；整段按一个值读取，因此可以写变量或算式。",
@@ -2665,36 +2693,44 @@ internal static class ActionStrings
             + "别的元素画出来的下拉框不属于这一类，那种要按人操作的方式点开再点选。",
         ["browser.select.by.option.value"] = "按值或文字",
         ["browser.select.by.option.index"] = "按序号",
+        ["browser.select.matchIndex.label"] = "第几个命中",
+        ["browser.select.matchIndex.hint"] = PageMatchIndexHint("要选中的"),
 
         ["browser.check.name"] = "勾选",
         ["browser.check.desc"] = "把复选框或单选框留在勾上或没勾的状态。",
         ["browser.check.target.label"] = "选择器",
-        ["browser.check.target.hint"] = "要让哪个框留在该状态，写法与「点击元素」相同。",
+        ["browser.check.target.hint"] = PageTargetHint + "要让哪个框留在该状态，写法与「点击元素」相同。",
         ["browser.check.checked.label"] = "勾上",
         ["browser.check.checked.hint"] = "这个框最后是不是要勾上，默认勾上；关掉它表示把已经"
             + "勾上的框取消勾选。要求的状态与当前相同就什么都不做，不像点击那样把勾着的框点掉。",
+        ["browser.check.matchIndex.label"] = "第几个命中",
+        ["browser.check.matchIndex.hint"] = PageMatchIndexHint("要勾选或取消勾选的"),
 
         ["browser.hover.name"] = "悬停",
         ["browser.hover.desc"] = "把指针移到某个元素上并停在那里。",
         ["browser.hover.target.label"] = "选择器",
-        ["browser.hover.target.hint"] = "要移到哪个元素上，写法与「点击元素」相同。菜单、提示框、"
-            + "整排按钮都是这么出现的；这一步不点击任何东西。",
+        ["browser.hover.target.hint"] = PageTargetHint + "要移到哪个元素上，写法与「点击元素」相同。"
+            + "菜单、提示框、整排按钮都是这么出现的；这一步不点击任何东西。",
+        ["browser.hover.matchIndex.label"] = "第几个命中",
+        ["browser.hover.matchIndex.hint"] = PageMatchIndexHint("要悬停的"),
 
         ["browser.press.name"] = "页面按键",
         ["browser.press.desc"] = "向页面里发送一个按键或一个组合键。",
         ["browser.press.target.label"] = "选择器",
-        ["browser.press.target.hint"] = "发送按键前由哪个元素取得焦点，写法与「点击元素」相同。"
-            + "默认留空，表示把按键发给页面本身。",
+        ["browser.press.target.hint"] = PageTargetHint + "发送按键前由哪个元素取得焦点，写法与"
+            + "「点击元素」相同。一行都不写，也就是默认，把按键发给页面本身。",
         ["browser.press.key.label"] = "按键",
         ["browser.press.key.hint"] = "要发送哪个键：键盘选择器里列出的名字（Enter、Esc、F5、"
             + "Down），或者用「+」连起来的组合键（Ctrl+S）。键盘里没有的名字在运行前就会被拒绝。",
+        ["browser.press.matchIndex.label"] = "第几个命中",
+        ["browser.press.matchIndex.hint"] = PageMatchIndexHint("按键前要取得焦点的"),
 
         ["browser.waitFor.name"] = "等待元素",
         ["browser.waitFor.desc"] = "等待页面上的某个元素出现或消失。",
         ["browser.waitFor.target.label"] = "选择器",
-        ["browser.waitFor.target.hint"] = "要等哪个元素，写法与「点击元素」相同。页面自己去取内容"
-            + "时要用这一步，而不是固定停一会儿：状态一到，这一步立刻结束。等多久由这一步设置"
-            + "里的「超时」说，默认 15000 毫秒。",
+        ["browser.waitFor.target.hint"] = PageTargetHint + "要等哪个元素，写法与「点击元素」相同。"
+            + "页面自己去取内容时要用这一步，而不是固定停一会儿：状态一到，这一步立刻结束。"
+            + "等多久由这一步设置里的「超时」说，默认 15000 毫秒。",
         ["browser.waitFor.state.label"] = "等到它",
         ["browser.waitFor.state.hint"] = "等哪一种状态。「可见」是接下来要点击某处时用的；"
             + "「不可见」用于等一个转圈的进度提示消失；「在页面上」等的是存在但可以没有大小的"
@@ -2703,15 +2739,19 @@ internal static class ActionStrings
         ["browser.waitFor.state.option.hidden"] = "不可见",
         ["browser.waitFor.state.option.attached"] = "在页面上",
         ["browser.waitFor.state.option.detached"] = "不在页面上",
+        ["browser.waitFor.matchIndex.label"] = "第几个命中",
+        ["browser.waitFor.matchIndex.hint"] = PageMatchIndexHint("要等的"),
 
         ["browser.upload.name"] = "上传文件",
         ["browser.upload.desc"] = "把文件交给页面上的文件选择框。",
         ["browser.upload.target.label"] = "选择器",
-        ["browser.upload.target.hint"] = "要交给哪个文件选择框，写法与「点击元素」相同。",
+        ["browser.upload.target.hint"] = PageTargetHint + "要交给哪个文件选择框，写法与「点击元素」相同。",
         ["browser.upload.files.label"] = "文件",
         ["browser.upload.files.hint"] = "一行一个文件的路径，空行会被跳过；相对路径从宏文件所在"
             + "的文件夹算起，与别的步骤里的路径同一条规则。浏览器的规矩是不许脚本告诉页面一个"
             + "路径，这一步是绕开这条规矩的唯一办法。",
+        ["browser.upload.matchIndex.label"] = "第几个命中",
+        ["browser.upload.matchIndex.hint"] = PageMatchIndexHint("要交给的"),
 
         // ------------------------------------------------------------------ script
         ["script.run.name"] = "运行脚本",

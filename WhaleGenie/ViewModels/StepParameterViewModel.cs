@@ -536,19 +536,34 @@ public partial class StepParameterViewModel : ViewModelBase
     /// True when the field is offered the variables it may name. A hint that says "written out or
     /// held in a variable" is only honest if the name can be picked instead of remembered, which
     /// is what this drives. A window is one of these: the text it is recognised by is written like
-    /// any other piece of text, and a title worked out by an earlier step goes in as a name.
+    /// any other piece of text, and a title worked out by an earlier step goes in as a name. An
+    /// element of a page is not, because the box it is written in is drawn by the page picker
+    /// itself: a list of names standing over that one would be the same field written twice.
     /// </summary>
     public bool OffersVariables => (IsText || IsWindow)
         && !IsSelector
+        && !IsBrowserTarget
+        && (Definition.AcceptsVariables || Definition.AcceptsFormula);
+
+    /// <summary>
+    /// True when the names of variables are offered beside the page picker rather than over the
+    /// box. Picking and testing take the place the list of names would stand in, and what a name
+    /// does here is become one more line for the step to try instead of standing for the whole
+    /// value.
+    /// </summary>
+    public bool OffersPageVariables => IsBrowserTarget
         && (Definition.AcceptsVariables || Definition.AcceptsFormula);
 
     /// <summary>
     /// True when the picker beside this field may also open the expression editor, which it does for
     /// the fields whose whole value is read as one. Two kinds are left out: a field that matches a
-    /// window by text, because that text is filled in with names rather than worked out, and a field
-    /// that names a variable to write, where a formula would become the name of the variable itself.
+    /// window by text, because that text is filled in with names rather than worked out — and an
+    /// element of a page is one of those, since a formula written into a selector would be taken as
+    /// part of the selector — and a field that names a variable to write, where a formula would
+    /// become the name of the variable itself.
     /// </summary>
-    public bool OffersBuilder => (OffersVariables || IsVariable) && !IsWindow && !Definition.NamesVariable;
+    public bool OffersBuilder => (OffersVariables || IsVariable)
+        && !IsWindow && !IsBrowserTarget && !Definition.NamesVariable;
 
     /// <summary>
     /// True when the whole value is read as one, so the expression editor may build it: what it
@@ -600,6 +615,55 @@ public partial class StepParameterViewModel : ViewModelBase
 
     /// <summary>True while the list holds at least one picture.</summary>
     public bool HasPictures => Pictures.Count > 0;
+
+    /// <summary>
+    /// The ways of naming the element a pick off the page answered with, steadiest first, so the
+    /// second way of finding it can be written down by pointing at it rather than by spelling a
+    /// selector out. Empty until a pick has happened, which is what the row of buttons hangs on.
+    /// </summary>
+    public ObservableCollection<BrowserWayViewModel> Candidates { get; } = [];
+
+    /// <summary>True while a pick off the page has left ways of naming the element to choose from.</summary>
+    public bool HasCandidates => Candidates.Count > 0;
+
+    /// <summary>
+    /// Takes the ways of naming the element a pick answered with, the first of them already in the
+    /// field. They are listed steadiest first, and each one put in adds a line to the field: the
+    /// step tries them in that order, so a second way of finding the element is what keeps it
+    /// working after the page has been redesigned.
+    /// </summary>
+    public void OfferCandidates(IReadOnlyList<PickCandidate> candidates)
+    {
+        Candidates.Clear();
+        foreach (var candidate in candidates)
+        {
+            Candidates.Add(new BrowserWayViewModel
+            {
+                Selector = candidate.Selector,
+                Text = Strings.Format("Add.BrowserWay", Way(candidate.Kind), candidate.Matches),
+                Take = way => AddLine(way.Selector),
+            });
+        }
+
+        OnPropertyChanged(nameof(HasCandidates));
+    }
+
+    /// <summary>What a kind of naming is called, in the reader's own words.</summary>
+    private static string Way(PickKind kind) => Strings.Get("Add.BrowserWay." + kind);
+
+    /// <summary>
+    /// Adds one more line to the field, which is one more way of finding the element: either a
+    /// selector a pick offered, or the name of a variable holding one. A name goes on a line of its
+    /// own rather than onto the end of the last one, which would make it part of that selector.
+    /// </summary>
+    public void AddLine(string line)
+    {
+        var lines = Text.Replace("\r\n", "\n").Split('\n')
+            .Select(written => written.TrimEnd())
+            .Where(written => written.Length > 0)
+            .Append(line);
+        Text = string.Join(Environment.NewLine, lines);
+    }
 
     /// <summary>
     /// The picture this field points at, whichever way it holds it: the one value of a single

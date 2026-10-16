@@ -4,7 +4,7 @@ namespace WhaleGenie.Core.Devices.Platform;
 
 /// <summary>
 /// The script that turns a page into a picker: it outlines whatever the pointer is over, and a
-/// click answers with a selector for that element instead of letting the page act on the click.
+/// click answers with the ways of naming that element instead of letting the page act on the click.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -14,18 +14,27 @@ namespace WhaleGenie.Core.Devices.Platform;
 /// listeners from stacking up.
 /// </para>
 /// <para>
-/// The selector it builds prefers what survives a redesign — a test id, an id, a form name, an
-/// aria label — and only falls back to a path of tags. Every candidate is checked with
-/// <c>querySelectorAll</c> before it is used, so it answers with something that picks out exactly
-/// one element rather than something that merely looked right.
+/// What it answers with is every way of naming the element it can think of, steadiest first: a test
+/// id, a role with the name read off it, the text it shows, an id, a form name, an aria label, and
+/// finally a path of tags. Several rather than one, because which of them is any good is a question
+/// about what the macro will use when it runs — a question this script has no way to ask. None of
+/// them is checked here: whoever asked for the pick counts what each of them names.
+/// </para>
+/// <para>
+/// The element a point is over is the one inside the shadow tree, not the custom element wrapping
+/// it: what the person pointed at is what they mean, and a click at the middle of the wrapper need
+/// not land on it. The path of tags follows the way into the shadow root for the same reason, so
+/// one path names the element wherever the page keeps it, which is what Playwright's own selectors
+/// reach through as well.
 /// </para>
 /// </remarks>
 internal static class BrowserPickerScript
 {
     /// <summary>
     /// The picker, as one function that takes <c>{ hint }</c>. The click is answered through the
-    /// <c>__whalegeniePicked</c> binding the device installs, so it keeps working after the page
-    /// has navigated away from the document the pick started in.
+    /// <c>__whalegeniePicked</c> binding the device installs, which is handed the candidates as
+    /// JSON, so it keeps working after the page has navigated away from the document the pick
+    /// started in.
     /// </summary>
     internal const string Source = """
         (option) => {
@@ -74,94 +83,190 @@ internal static class BrowserPickerScript
           const escape = (value) =>
             window.CSS && CSS.escape ? CSS.escape(value) : String(value).replace(/["\\]/g, '\\$&');
 
-          const alone = (selector) => {
-            try {
-              return Boolean(selector) && document.querySelectorAll(selector).length === 1;
-            } catch (error) {
-              return false;
+          const quoted = (value) => '"' + String(value).replace(/["\\]/g, '\\$&') + '"';
+
+          // What a point is over, which for a page built out of custom elements is the element
+          // inside the shadow tree rather than the host wrapping it.
+          const under = (x, y) => {
+            let element = document.elementFromPoint(x, y);
+            while (element && element.shadowRoot) {
+              const inner = element.shadowRoot.elementFromPoint(x, y);
+              if (!inner || inner === element) {
+                break;
+              }
+
+              element = inner;
             }
+
+            return element;
           };
 
-          const selectorFor = (element) => {
-            if (!(element instanceof Element)) {
-              return '';
-            }
-            if (element === root || element === document.body) {
-              return 'body';
-            }
-
-            for (const attribute of ['data-testid', 'data-test', 'data-qa', 'data-cy']) {
-              const value = element.getAttribute(attribute);
-              if (value) {
-                const candidate = '[' + attribute + '="' + escape(value) + '"]';
-                if (alone(candidate)) {
-                  return candidate;
-                }
-              }
+          // The element above this one, which is the host when the way up leaves a shadow root:
+          // Playwright's own selectors reach through an open shadow root, so the path stays one
+          // path from the top of the page down to the element.
+          const parentOf = (node) => {
+            if (node.parentElement) {
+              return node.parentElement;
             }
 
-            if (element.id) {
-              const candidate = '#' + escape(element.id);
-              if (alone(candidate)) {
-                return candidate;
-              }
+            const holder = node.getRootNode();
+            return holder && holder.host ? holder.host : null;
+          };
+
+          const text = (element) => (element.textContent || '').replace(/\s+/g, ' ').trim();
+
+          // The role a screen reader would give the element, and the name it would read out. Only an
+          // explicit role attribute and the handful of tags whose part in the page is beyond doubt
+          // are worked out here: a wrong guess costs nothing — the count of what it names drops it —
+          // while a right one is what a page that has been redesigned is least likely to lose.
+          const role = (element) => {
+            const written = element.getAttribute('role');
+            if (written) {
+              return written.trim();
             }
 
             const tag = element.tagName.toLowerCase();
-            const name = element.getAttribute('name');
-            if (name && /^(input|select|textarea|button|form)$/.test(tag)) {
-              const candidate = tag + '[name="' + escape(name) + '"]';
-              if (alone(candidate)) {
-                return candidate;
-              }
-            }
+            const type = (element.getAttribute('type') || '').toLowerCase();
+            switch (tag) {
+              case 'a': return element.hasAttribute('href') ? 'link' : '';
+              case 'button': return 'button';
+              case 'select': return 'combobox';
+              case 'textarea': return 'textbox';
+              case 'summary': return 'button';
+              case 'option': return 'option';
+              case 'img': return 'img';
+              case 'table': return 'table';
+              case 'tr': return 'row';
+              case 'td': return 'cell';
+              case 'th': return 'columnheader';
+              case 'ul':
+              case 'ol': return 'list';
+              case 'li': return 'listitem';
+              case 'form': return 'form';
+              case 'input':
+                if (type === 'submit' || type === 'button' || type === 'image' || type === 'reset') {
+                  return 'button';
+                }
 
-            const label = element.getAttribute('aria-label');
-            if (label) {
-              const candidate = tag + '[aria-label="' + escape(label) + '"]';
-              if (alone(candidate)) {
-                return candidate;
-              }
-            }
+                if (type === 'checkbox') return 'checkbox';
+                if (type === 'radio') return 'radio';
+                if (type === 'search') return 'searchbox';
+                return 'textbox';
+              default:
+                if (/^h[1-6]$/.test(tag)) {
+                  return 'heading';
+                }
 
-            // A path from the element upwards, stopped at the first ancestor that has an id of its
-            // own — past that point the path is anchored to something stable and can be cut short.
+                return '';
+            }
+          };
+
+          const label = (element) =>
+            (element.getAttribute('aria-label') || element.getAttribute('alt')
+              || element.getAttribute('title') || text(element) || '').trim();
+
+          // A path of tags from the top of the page, cut short at the first ancestor that has an id
+          // of its own: past that point the path is anchored to something stable, and a page that
+          // hands out its own ids is one where the anchor is worth more than the steps above it.
+          const path = (element) => {
             const parts = [];
-            for (let node = element; node && node.nodeType === 1 && node !== root; node = node.parentElement) {
-              if (node.id && alone('#' + escape(node.id))) {
+            for (let node = element; node && node.nodeType === 1; node = parentOf(node)) {
+              if (node.id) {
                 parts.unshift('#' + escape(node.id));
                 break;
               }
 
-              const siblings = node.parentElement
-                ? Array.from(node.parentElement.children).filter((child) => child.tagName === node.tagName)
+              const holder = node.parentElement || (node.parentNode && node.parentNode.children ? node.parentNode : null);
+              const brothers = holder
+                ? Array.from(holder.children).filter((child) => child.tagName === node.tagName)
                 : [node];
-              const step = siblings.length > 1
-                ? node.tagName.toLowerCase() + ':nth-of-type(' + (siblings.indexOf(node) + 1) + ')'
-                : node.tagName.toLowerCase();
-              parts.unshift(step);
+              parts.unshift(brothers.length > 1
+                ? node.tagName.toLowerCase() + ':nth-of-type(' + (brothers.indexOf(node) + 1) + ')'
+                : node.tagName.toLowerCase());
 
-              const candidate = parts.join(' > ');
-              if (alone(candidate)) {
-                return candidate;
+              if (node === document.body) {
+                break;
               }
             }
 
             return parts.join(' > ');
           };
 
+          // Every way of naming the element, steadiest first. A way that comes out empty or says the
+          // same thing as one already in the list is left out rather than written down twice.
+          const candidatesFor = (element) => {
+            const ways = [];
+            const add = (kind, selector) => {
+              if (selector && !ways.some((way) => way.selector === selector)) {
+                ways.push({ kind, selector });
+              }
+            };
+
+            if (!(element instanceof Element)) {
+              return ways;
+            }
+
+            if (element === root || element === document.body) {
+              add('path', 'body');
+              return ways;
+            }
+
+            for (const attribute of ['data-testid', 'data-test', 'data-qa', 'data-cy']) {
+              const value = element.getAttribute(attribute);
+              if (value) {
+                add('testid', '[' + attribute + '=' + quoted(value) + ']');
+              }
+            }
+
+            const part = role(element);
+            const name = label(element);
+            if (part && name) {
+              add('role', 'role=' + part + '[name=' + quoted(name) + ']');
+            }
+
+            const tag = element.tagName.toLowerCase();
+
+            // The text the element shows, which Playwright matches on the page's own reading of it:
+            // it is written out only when it is short enough to be a name rather than a paragraph.
+            const shown = text(element);
+            if (shown && shown.length <= 120 && !/^(script|style|template)$/.test(tag)) {
+              add('text', 'text=' + quoted(shown));
+            }
+
+            if (element.id) {
+              add('id', '#' + escape(element.id));
+            }
+
+            const form = element.getAttribute('name');
+            if (form && /^(input|select|textarea|button|form)$/.test(tag)) {
+              add('name', tag + '[name=' + quoted(form) + ']');
+            }
+
+            const aria = element.getAttribute('aria-label');
+            if (aria) {
+              add('aria', tag + '[aria-label=' + quoted(aria) + ']');
+            }
+
+            add('path', path(element));
+            return ways;
+          };
+
+          // What a test or a later look at how candidates are worked out asks for. The picker itself
+          // never calls it through the window: it has the function in hand already.
+          window.__whalegenieCandidates = candidatesFor;
+
           // The listeners go with the picker: a click is answered, or the picker is taken down
           // unanswered when the wait ends first, and either way nothing may be left behind that
           // keeps swallowing the page's clicks.
-          const stop = (answer) => {
+          const stop = (ways) => {
             window.__whalegeniePicking = false;
             document.removeEventListener('mousemove', onMove, true);
             document.removeEventListener('click', onClick, true);
             document.removeEventListener('keydown', onKey, true);
             box.remove();
             banner.remove();
-            if (answer !== null && typeof window.__whalegeniePicked === 'function') {
-              window.__whalegeniePicked(answer);
+            if (typeof window.__whalegeniePicked === 'function') {
+              window.__whalegeniePicked(JSON.stringify(ways || []));
             }
           };
 
@@ -169,7 +274,7 @@ internal static class BrowserPickerScript
           window.__whalegenieStop = () => stop(null);
 
           function onMove(event) {
-            const element = document.elementFromPoint(event.clientX, event.clientY);
+            const element = under(event.clientX, event.clientY);
             if (!element || element.hasAttribute('data-whalegenie-picker')) {
               return;
             }
@@ -185,15 +290,17 @@ internal static class BrowserPickerScript
           function onClick(event) {
             event.preventDefault();
             event.stopPropagation();
-            const element = document.elementFromPoint(event.clientX, event.clientY);
-            stop(element && !element.hasAttribute('data-whalegenie-picker') ? selectorFor(element) : '');
+            const element = under(event.clientX, event.clientY);
+            stop(element && !element.hasAttribute('data-whalegenie-picker')
+              ? candidatesFor(element)
+              : null);
           }
 
           function onKey(event) {
             if (event.key === 'Escape') {
               event.preventDefault();
               event.stopPropagation();
-              stop('');
+              stop(null);
             }
           }
 

@@ -3108,13 +3108,16 @@ public static class ActionCatalog
         new()
         {
             Key = "browser.goTo",
+            StepTimeoutMs = 15000,
             Category = ActionCategory.Browser,
             DisplayName = "Go To Address",
             Description = "Sends the page the browser has open to another address.",
             Parameters =
             [
                 Text("url", "Address", "https://example.com", "The page to open, read as one "
-                    + "value, so a variable or an expression may stand for it.", acceptsFormula: true),
+                    + "value, so a variable or an expression may stand for it. The step waits for "
+                    + "the page to load, for as long as its own timeout allows, 15000 milliseconds "
+                    + "by default.", acceptsFormula: true),
             ],
         },
         new()
@@ -3122,12 +3125,15 @@ public static class ActionCatalog
             Key = "browser.click",
             Category = ActionCategory.Browser,
             DisplayName = "Click Element",
-            Description = "Clicks the first element a selector names.",
+            Description = "Clicks the element a selector names.",
+            StepTimeoutMs = 10000,
             Parameters =
             [
                 Text("target", "Selector", "#submit",
-                    "Where the element is. Playwright selectors read like CSS, and also like text: "
-                    + "\"text=Sign in\" clicks the first thing showing that text."),
+                    TargetHint + "Where the element is; Playwright selectors read like CSS, and also "
+                    + "like text: \"text=Sign in\" names the first thing showing that text.",
+                    acceptsVariables: true),
+                PageMatchIndex("clicks"),
             ],
         },
         new()
@@ -3136,14 +3142,17 @@ public static class ActionCatalog
             Category = ActionCategory.Browser,
             DisplayName = "Fill In",
             Description = "Types text into the element a selector names.",
+            StepTimeoutMs = 10000,
             Parameters =
             [
                 Text("target", "Selector", "#search",
-                    "Which element to type into, named the way the click action names one."),
+                    TargetHint + "Which element to type into, named the way the click action names "
+                    + "one.", acceptsVariables: true),
                 Text("text", "Text", "$query",
                     "What to type. Read as one value, so a macro can type what it just read "
                     + "somewhere else; a variable or an expression may stand for it.",
                     acceptsFormula: true),
+                PageMatchIndex("types into"),
             ],
         },
         new()
@@ -3156,11 +3165,14 @@ public static class ActionCatalog
             Category = ActionCategory.Browser,
             DisplayName = "Read Text",
             Description = "Reads the text of an element, or of the whole page.",
+            StepTimeoutMs = 10000,
             Parameters =
             [
                 Text("target", "Selector", "",
-                    "Which element to read, named the way the click action names one. Leave it "
-                    + "empty, which is the default, reads the whole page.", required: false),
+                    TargetHint + "Which element to read, named the way the click action names one. "
+                    + "Every line left out, which is the default, reads the whole page.",
+                    required: false, acceptsVariables: true),
+                PageMatchIndex("reads"),
                 Returns(),
             ],
         },
@@ -3170,10 +3182,12 @@ public static class ActionCatalog
             Category = ActionCategory.Browser,
             DisplayName = "Select Option",
             Description = "Picks an option of a dropdown.",
+            StepTimeoutMs = 10000,
             Parameters =
             [
                 Text("target", "Selector", "#country",
-                    "Which dropdown to pick from, named the way the click action names one."),
+                    TargetHint + "Which dropdown to pick from, named the way the click action names "
+                    + "one.", acceptsVariables: true),
                 Text("value", "Option", "China",
                     "Which option to pick: the one whose value or visible text is this, or, with "
                     + "\"By number\" below, the number of the option counted from the top starting "
@@ -3186,6 +3200,7 @@ public static class ActionCatalog
                     + "the page draws out of other elements is not this kind and has to be clicked "
                     + "open and picked from.",
                     labels: ["By value or text", "By number"]),
+                PageMatchIndex("picks from"),
             ],
         },
         new()
@@ -3194,15 +3209,18 @@ public static class ActionCatalog
             Category = ActionCategory.Browser,
             DisplayName = "Tick or Untick",
             Description = "Leaves a checkbox or a radio button ticked, or unticked.",
+            StepTimeoutMs = 10000,
             Parameters =
             [
                 Text("target", "Selector", "#agree",
-                    "Which box to leave in that state, named the way the click action names one."),
+                    TargetHint + "Which box to leave in that state, named the way the click action "
+                    + "names one.", acceptsVariables: true),
                 Toggle("checked", "Ticked", true,
                     "Whether the box should end up ticked. Ticked by default; turn it off to untick "
                     + "a box that is already ticked. Asking for the state it is already in changes "
                     + "nothing rather than unticking it, which a click on an already-ticked box "
                     + "would."),
+                PageMatchIndex("leaves ticked or unticked"),
             ],
         },
         new()
@@ -3211,11 +3229,14 @@ public static class ActionCatalog
             Category = ActionCategory.Browser,
             DisplayName = "Move Over Element",
             Description = "Moves the pointer over an element and leaves it there.",
+            StepTimeoutMs = 10000,
             Parameters =
             [
                 Text("target", "Selector", "#menu",
-                    "Which element to move over, named the way the click action names one. This is "
-                    + "what makes a menu, a tooltip or a row of buttons appear; nothing is clicked."),
+                    TargetHint + "Which element to move over, named the way the click action names "
+                    + "one. This is what makes a menu, a tooltip or a row of buttons appear; nothing "
+                    + "is clicked.", acceptsVariables: true),
+                PageMatchIndex("moves over"),
             ],
         },
         new()
@@ -3224,16 +3245,18 @@ public static class ActionCatalog
             Category = ActionCategory.Browser,
             DisplayName = "Press Key",
             Description = "Sends one key, or one chord, into the page.",
+            StepTimeoutMs = 10000,
             Parameters =
             [
                 Text("target", "Selector", "",
-                    "Which element takes the focus before the key is sent, named the way the click "
-                    + "action names one. Leave it empty, which is the default, to send the key to "
-                    + "the page itself.", required: false),
+                    TargetHint + "Which element takes the focus before the key is sent, named the "
+                    + "way the click action names one. Every line left out, which is the default, "
+                    + "sends the key to the page itself.", required: false, acceptsVariables: true),
                 KeyChord("key", "Key",
                     "Which key to send: one of the names the keyboard picker offers (Enter, Esc, "
                     + "F5, Down), or several keys joined with \"+\" for one chord (Ctrl+S). A name "
                     + "the keyboard does not have is refused before the step runs."),
+                PageMatchIndex("gives the focus to before the key is sent"),
             ],
         },
         new()
@@ -3246,9 +3269,10 @@ public static class ActionCatalog
             Parameters =
             [
                 Text("target", "Selector", "#results",
-                    "Which element to wait for, named the way the click action names one. A page "
-                    + "that fetches what it shows needs this rather than a fixed pause: the wait "
-                    + "ends the moment the element is in the state asked for."),
+                    TargetHint + "Which element to wait for, named the way the click action names "
+                    + "one. A page that fetches what it shows needs this rather than a fixed pause: "
+                    + "the wait ends the moment the element is in the state asked for.",
+                    acceptsVariables: true),
                 Choice("state", "Wait for it to", ["visible", "hidden", "attached", "detached"],
                     "visible",
                     "Which state to wait for. Visible is what a step about to click something "
@@ -3256,6 +3280,7 @@ public static class ActionCatalog
                     + "waits for an element that is there whether or not it takes up room; \"Off "
                     + "the page\" waits for one that has been taken away.",
                     labels: ["Be visible", "Not be visible", "Be on the page", "Be off the page"]),
+                PageMatchIndex("waits for"),
             ],
         },
         new()
@@ -3264,16 +3289,19 @@ public static class ActionCatalog
             Category = ActionCategory.Browser,
             DisplayName = "Upload Files",
             Description = "Hands files to a file input on the page.",
+            StepTimeoutMs = 10000,
             Parameters =
             [
                 Text("target", "Selector", "input[type=file]",
-                    "Which file input to hand them to, named the way the click action names one."),
+                    TargetHint + "Which file input to hand them to, named the way the click action "
+                    + "names one.", acceptsVariables: true),
                 Multiline("files", "Files",
                     "One path to a file, one to a line; every line is a file, so a blank line is "
                     + "skipped. A relative path is read from the folder the macro file is in, the "
                     + "same as every other path a step is given. This is the only way round a "
                     + "browser's rule that a page may not be told a path by a script.",
                     "C:\\Users\\me\\report.pdf"),
+                PageMatchIndex("hands the files to"),
             ],
         },
         new()
@@ -4698,6 +4726,19 @@ public static class ActionCatalog
             min: 1, max: 200, advanced: true, onlyWith: pixelsOnly ? PixelWays() : null);
 
     /// <summary>
+    /// Which of the elements a page's selector finds a step means. It is the same question the
+    /// finders ask about their hits, asked about a different kind of hit, and it is asked in the
+    /// order the page itself is read in rather than by any sorting of the step's own. What is being
+    /// counted is the first thing the hint says, since "the second one" means nothing on its own.
+    /// </summary>
+    private static ActionParameter PageMatchIndex(string what)
+        => Number("matchIndex", "Match number", 1,
+            "Which of the elements the selector finds this step " + what + ", counted from 1 in the "
+            + "order they appear on the page. The default is 1; asking for more than the page holds "
+            + "is treated as finding nothing.",
+            min: 1, max: 200, advanced: true);
+
+    /// <summary>
     /// How a reference picture is looked for, shared by the picture finders. It is one list because
     /// the three ways of comparing two pictures pixel for pixel and the one way of pairing up their
     /// features answer the same question: a step that pairs up features never compares pixels, so
@@ -5391,4 +5432,18 @@ public static class ActionCatalog
     private static ActionParameter Selector()
         => Text("selector", "Selector", "Button[name='Save']",
             "Element selector, for example Button[name='Save'] or Edit[automationId='input'].");
+
+    /// <summary>
+    /// What every field naming an element of a page starts by saying about itself: a step that goes
+    /// on working after the page has been redesigned is what a second line is for, and that is said
+    /// once here rather than nine times over. What a line holds that is not a selector — a
+    /// variable's text — is said by the line every box of this kind carries, and so is what a later
+    /// line does not stand in for: an element that was found and then refused.
+    /// </summary>
+    private const string TargetHint =
+        "One selector to a line: they are tried in that order, and the first that finds the element "
+        + "is the one this step uses, so a second line is what keeps a step working after the page "
+        + "has been redesigned. A later line is reached only when the one before it finds nothing at "
+        + "all, not when it finds an element that will not be acted on. A $variable written in a "
+        + "line is filled in with its value. ";
 }

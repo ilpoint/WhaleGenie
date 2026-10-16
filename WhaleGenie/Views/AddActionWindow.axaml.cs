@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
@@ -1378,14 +1379,18 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        var url = viewModel.Parameters.FirstOrDefault(item => item.Definition.Name == "url")?.Text
-            ?? string.Empty;
+        var url = ParameterText(viewModel, "url");
 
         try
         {
-            if (await BrowserPicker.PickAsync(Devices.Browser, url) is { Length: > 0 } selector)
+            var picked = await BrowserPicker.PickAsync(Devices.Browser, url);
+            if (picked.Selector.Length > 0)
             {
-                parameter.Text = selector;
+                // The steadiest way of naming the element goes into the field and the rest are
+                // offered beside it: a page that has been redesigned is met by a second line, and
+                // a second line is not something to spell out from memory.
+                parameter.Text = picked.Selector;
+                parameter.OfferCandidates(picked.Candidates);
             }
         }
         catch (Exception)
@@ -1463,25 +1468,29 @@ public partial class AddActionWindow : Window
 
     /// <summary>
     /// Outlines the element a page selector names on the page it belongs to, which is the same
-    /// question the desktop picker answers next to it.
+    /// question the desktop picker answers next to it. It is answered the way a run would answer
+    /// it — the lines of the field tried in order, the "which match" field read as well — so what
+    /// is outlined is what the step will act on, and the message says which line that was.
     /// </summary>
     private async void OnTestBrowserElement(object? sender, RoutedEventArgs e)
     {
-        if (sender is not Control { DataContext: StepParameterViewModel parameter })
+        if (sender is not Control { DataContext: StepParameterViewModel parameter }
+            || DataContext is not AddActionViewModel viewModel)
         {
             return;
         }
 
-        if (Selector(parameter) is not { Length: > 0 } selector)
+        var target = PageTarget.Of(parameter.Text ?? string.Empty, MatchIndex(viewModel));
+        if (target.Selectors.Count == 0)
         {
             await ReportTestAsync(Strings.Get("Add.TestElementEmpty"));
             return;
         }
 
-        var found = false;
+        var found = new HighlightResult(false, 0, 0);
         try
         {
-            found = await BrowserPicker.HighlightAsync(Devices.Browser, selector);
+            found = await BrowserPicker.HighlightAsync(Devices.Browser, target);
         }
         catch (Exception)
         {
@@ -1489,11 +1498,61 @@ public partial class AddActionWindow : Window
             // its way out is not worth reporting to.
         }
 
-        if (!found && !_closed)
+        if (_closed)
         {
-            await ReportTestAsync(Strings.Get("Add.TestElementMissing"));
+            return;
+        }
+
+        await ReportTestAsync(found.Found
+            ? Strings.Format("Add.TestPageElementFound", found.Line, found.Matches)
+            : Strings.Get("Add.TestPageElementMissing"));
+    }
+
+    /// <summary>
+    /// Adds one of the ways of naming the element a pick answered with as another line of the
+    /// field, which is one more way for the step to find it once the first stops working.
+    /// </summary>
+    private void OnAddBrowserWay(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: BrowserWayViewModel way })
+        {
+            way.Take?.Invoke(way);
         }
     }
+
+    /// <summary>
+    /// Writes the name of a variable into a selector field, on a line of its own: a macro that works
+    /// out which element to look for puts the selector in a variable and names it here, and the
+    /// engine fills the name in when the step runs.
+    /// </summary>
+    private async void OnPickBrowserVariable(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel parameter }
+            || DataContext is not AddActionViewModel viewModel)
+        {
+            return;
+        }
+
+        // The expression editor is not offered: a selector field is read as text with the names in
+        // it filled in, so a formula built here would be written down as part of the selector.
+        if (await VariablePickerWindow.ShowFor(this, viewModel.CollectVariables()) is not { } picked
+            || picked.Token.Length == 0)
+        {
+            return;
+        }
+
+        parameter.AddLine(picked.Token);
+    }
+
+    /// <summary>
+    /// Which of the elements a selector finds this step means. The test reads it the way a run
+    /// does, so that a step set to work on the second match is checked on that one.
+    /// </summary>
+    private static int MatchIndex(AddActionViewModel viewModel)
+        => int.TryParse(ParameterText(viewModel, "matchIndex").Trim(), NumberStyles.Integer,
+            CultureInfo.InvariantCulture, out var index) && index >= 1
+            ? index
+            : 1;
 
     /// <summary>The selector a field holds, or null when nothing has been picked or written yet.</summary>
     private static string? Selector(StepParameterViewModel parameter)

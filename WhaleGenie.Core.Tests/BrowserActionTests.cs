@@ -74,35 +74,35 @@ public class BrowserActionTests : IDisposable
 
         // The option is picked by its visible text rather than by its value, which is the reading a
         // person writing a macro expects of the box.
-        device.Select("#country", "Japan", byIndex: false);
-        Assert.Equal("jp", device.Text("#picked").Trim());
+        device.Select(At("#country"), "Japan", byIndex: false, timeoutMs: 5000);
+        Assert.Equal("jp", device.Text(At("#picked"), 5000).Trim());
 
         // And by its place in the list, counted from the top starting at 1.
-        device.Select("#country", "1", byIndex: true);
-        Assert.Equal("cn", device.Text("#picked").Trim());
+        device.Select(At("#country"), "1", byIndex: true, timeoutMs: 5000);
+        Assert.Equal("cn", device.Text(At("#picked"), 5000).Trim());
 
         // A box that is left as it was, and one that is unticked: what the step asks for is the
         // state to end up in, where a click on an already-ticked box would untick it.
-        device.Check("#agree", wanted: true);
-        Assert.Equal("true", device.Text("#ticked").Trim());
+        device.Check(At("#agree"), wanted: true, timeoutMs: 5000);
+        Assert.Equal("true", device.Text(At("#ticked"), 5000).Trim());
 
-        device.Check("#news", wanted: false);
-        Assert.Equal("false", device.Text("#ticked").Trim());
+        device.Check(At("#news"), wanted: false, timeoutMs: 5000);
+        Assert.Equal("false", device.Text(At("#ticked"), 5000).Trim());
 
         // Hovering reveals what a click would not: the menu opens under the pointer, and the wait
         // for the item is what says it did.
-        device.Hover("#menu");
-        device.WaitFor("#item", ElementWait.Visible, 2000);
+        device.Hover(At("#menu"), 5000);
+        device.WaitFor(At("#item"), ElementWait.Visible, 2000);
 
         // A key sent to the page's own body arrives where the page is listening for it. The page
         // writes down the key name it was handed, which is what says the right key was pressed.
-        device.Press("#search", "Enter");
-        Assert.Equal("Enter", device.Text("#typed").Trim());
+        device.Press(At("#search"), "Enter", 5000);
+        Assert.Equal("Enter", device.Text(At("#typed"), 5000).Trim());
 
         // A file cannot be typed into a page, so handing it over is the way round it: the input
         // holds the name of the file that was handed over.
-        device.Upload("#report", [_handover]);
-        Assert.Equal(Path.GetFileName(_handover), device.Text("#held").Trim());
+        device.Upload(At("#report"), [_handover], 5000);
+        Assert.Equal(Path.GetFileName(_handover), device.Text(At("#held"), 5000).Trim());
     }
 
     [RealBrowserFact]
@@ -119,14 +119,14 @@ public class BrowserActionTests : IDisposable
         using var device = new PlaywrightBrowserDevice();
         device.Open("edge", Address(), headless: true);
 
-        device.WaitFor("#row", ElementWait.Visible, 5000);
-        device.WaitFor("#spinner", ElementWait.Detached, 5000);
-        Assert.Equal("ready", device.Text("#row").Trim());
+        device.WaitFor(At("#row"), ElementWait.Visible, 5000);
+        device.WaitFor(At("#spinner"), ElementWait.Detached, 5000);
+        Assert.Equal("ready", device.Text(At("#row"), 5000).Trim());
 
         // An element that never turns up is the step running out of time rather than the browser
         // failing: the wait gets the length the step was allowed and says so when it passes.
         var late = Assert.Throws<DeviceActionException>(
-            () => device.WaitFor("#never", ElementWait.Visible, 300));
+            () => device.WaitFor(At("#never"), ElementWait.Visible, 300));
         Assert.Equal("Run.Timeout", late.Key);
     }
 
@@ -138,7 +138,7 @@ public class BrowserActionTests : IDisposable
         using var device = new PlaywrightBrowserDevice();
         device.Open("edge", Address(), headless: true);
 
-        var unknown = Assert.Throws<DeviceActionException>(() => device.Press(string.Empty, "Frobnicate"));
+        var unknown = Assert.Throws<DeviceActionException>(() => device.Press(null, "Frobnicate", 5000));
         Assert.Equal("Run.UnknownPageKey", unknown.Key);
     }
 
@@ -149,4 +149,7 @@ public class BrowserActionTests : IDisposable
 
     /// <summary>The address that page is read at.</summary>
     private string Address() => new Uri(Path.Combine(_site, "page.html")).AbsoluteUri;
+
+    /// <summary>The element a step means when its field holds one selector and it wants the first match.</summary>
+    private static PageTarget At(string selector) => PageTarget.Of(selector, 1);
 }

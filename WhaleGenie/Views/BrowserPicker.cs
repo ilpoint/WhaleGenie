@@ -33,10 +33,10 @@ internal static class BrowserPicker
     private const int PickTimeoutMs = 120_000;
 
     /// <summary>
-    /// Goes to the page the step is about and answers with the selector of the element that was
-    /// clicked on it, or an empty string when the person gave up.
+    /// Goes to the page the step is about and answers with the ways of naming the element that was
+    /// clicked on it, the steadiest one first, or with nothing when the person gave up.
     /// </summary>
-    public static async Task<string> PickAsync(IBrowserDevice browser, string url)
+    public static async Task<PickResult> PickAsync(IBrowserDevice browser, string url)
     {
         var address = Address(url);
         if (!browser.IsOpen)
@@ -48,7 +48,7 @@ internal static class BrowserPicker
         {
             // A step that names a page is about that page, so a browser sitting somewhere else is
             // sent there — the same place the macro will be looking when this step runs.
-            browser.GoTo(address);
+            browser.GoTo(address, 0);
         }
 
         var hint = Strings.Get("Add.BrowserPickBanner");
@@ -69,15 +69,15 @@ internal static class BrowserPicker
     /// comes off while the frame is up, so the page can come in front of this program's own windows
     /// instead of staying behind the dialog the button was pressed in.
     /// </remarks>
-    public static async Task<bool> HighlightAsync(IBrowserDevice browser, string selector)
+    public static async Task<HighlightResult> HighlightAsync(IBrowserDevice browser, PageTarget target)
     {
-        if (!browser.IsOpen)
+        if (!browser.IsOpen || target.Selectors.Count == 0)
         {
-            return false;
+            return new HighlightResult(false, 0, 0);
         }
 
         using var unpinned = Unpin();
-        return await Task.Run(() => browser.Highlight(selector));
+        return await Task.Run(() => browser.Highlight(target));
     }
 
     /// <summary>
