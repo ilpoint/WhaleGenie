@@ -135,6 +135,15 @@ public class BrowserTargetTests : IDisposable
             () => device.Click(PageTarget.Of(".act", 1, [Text(string.Empty)]), ClickWay.Single,
                 false, 5000));
         Assert.Equal("Run.BrowserBadFilter", refused.Key);
+
+        // A step narrowed down to nothing says what it was asking for: a failure naming only the
+        // selector would send the person reading it after the wrong half of the step.
+        var narrowed = Assert.Throws<DeviceActionException>(
+            () => device.Click(PageTarget.Of(".act", 1, [Text("取消"), TextNot("取消")]),
+                ClickWay.Single, false, 5000));
+        Assert.Equal("Run.BrowserNotFound", narrowed.Key);
+        Assert.Contains("HasText=取消", narrowed.Detail, StringComparison.Ordinal);
+        Assert.Contains("HasNotText=取消", narrowed.Detail, StringComparison.Ordinal);
     }
 
     /// <summary>A condition on the text the element writes, which is what most steps mean.</summary>

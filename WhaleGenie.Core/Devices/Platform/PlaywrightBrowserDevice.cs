@@ -1515,8 +1515,25 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     private static DeviceActionException NotFound(PageTarget target, int most)
         => new(most > 0 ? "Run.BrowserTooFew" : "Run.BrowserNotFound", Tried(target));
 
-    /// <summary>The selectors that were tried, written the way the failure reports them.</summary>
-    private static string Tried(PageTarget target) => string.Join(" / ", target.Selectors);
+    /// <summary>
+    /// The selectors that were tried and what else the step said the element has to be like,
+    /// written the way the failure reports them. A step that narrowed the page down and found
+    /// nothing is a step whose conditions are part of what it was looking for, so a failure naming
+    /// only the selectors would send the person reading it after the wrong half of the step.
+    /// </summary>
+    private static string Tried(PageTarget target)
+    {
+        var tried = string.Join(" / ", target.Selectors);
+        if (target.Conditions.Count == 0)
+        {
+            return tried;
+        }
+
+        var narrowed = target.Conditions.Select(condition => condition.Value.Length == 0
+            ? condition.How.ToString()
+            : $"{condition.How}={condition.Value}");
+        return tried + " [" + string.Join(", ", narrowed) + "]";
+    }
 
     private DeviceActionException Failed(Exception failure)
     {

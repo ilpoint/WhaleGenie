@@ -7874,7 +7874,9 @@ public sealed class MacroRunner
         var target = Element(step);
         if (target.Selectors.Count == 0)
         {
-            target = PageTarget.Of("table", 1);
+            // The conditions still stand: which table is meant is the default answer, and the step
+            // may have said which of the page's tables it wants without writing a selector at all.
+            target = PageTarget.Of("table", 1, target.Conditions);
         }
 
         var table = _devices.Browser.ReadTable(target, limit, step.Meta.TimeoutMs);
