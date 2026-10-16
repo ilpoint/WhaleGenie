@@ -95,6 +95,11 @@ The icon was scaled and modified from the original.
 - .NET 运行时，以及跟着它一起分发的 Microsoft 组件（System.*、PresentationCore、
   WindowsBase、UIAutomationClient、DirectX 着色器编译器这些）— MIT
   <https://github.com/dotnet/runtime>
+- System.Security.Cryptography.Pkcs — MIT
+  <https://github.com/dotnet/runtime>
+  下载 C# 脚本要用的 NuGet 包时做签名校验。程序的目标框架是 net10.0-windows，这一份由
+  WindowsDesktop 共享框架提供，所以包里没有它自己的文件；引擎为什么把它单独钉一个版本，
+  见 doc/dev.md 的「依赖的包」。
 - MicroCom.Runtime、Tmds.DBus.Protocol、Microsoft.Extensions.* — MIT
 
 ## 只在编译时用到的组件

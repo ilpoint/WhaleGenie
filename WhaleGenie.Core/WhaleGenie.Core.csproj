@@ -18,6 +18,15 @@
     <PackageReference Include="NuGet.Packaging" Version="7.9.0" />
     <PackageReference Include="NuGet.Protocol" Version="7.9.0" />
     <PackageReference Include="NuGet.Versioning" Version="7.9.0" />
+    <!--
+      NuGet.Packaging 7.9.0 拖进来的是 System.Security.Cryptography.Pkcs 8.0.1，两条已公开的公告
+      （CVE-2026-84008 高、CVE-2026-70162 中）都指着它，修在 8.0.2 以后；.NET 10 的 SDK 审计
+      会把"警告当错误"（`TreatWarningsAsErrors`），于是还原当场失败，CI 与发版都过不去。
+      这一条只是把解析出来的版本抬到修好的那一个：程序目标框架是 net10.0-windows，这个程序集
+      由 WindowsDesktop 共享框架提供（本机 10.0.13），运行时加载的本来就是框架那一份，
+      所以钉住之后包里不多一个文件、运行行为也不变 —— 变的是还原不再报警。
+    -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
     <PackageReference Include="OpenCvSharp5.Windows" Version="5.0.0.20260702" />
     <PackageReference Include="Sdcb.SimdPaddleOCR" Version="2.0.0" />
     <PackageReference Include="Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny" Version="1.0.0" />
