@@ -82,7 +82,7 @@ public partial class MacroInterfaceViewModel : ViewModelBase
     [RelayCommand]
     private void AddParameter()
     {
-        var parameter = new MacroParameter { Name = NextName("参数"), Required = false };
+        var parameter = new MacroParameter { Name = NextName(Strings.Get("MacroInterface.DefaultParameterName")), Required = false };
         _editor.DeclaredParameters.Add(parameter);
         Parameters.Add(new MacroParameterRow(parameter, Types, OnRowChanged));
         OnPropertyChanged(nameof(HasParameters));
@@ -106,7 +106,7 @@ public partial class MacroInterfaceViewModel : ViewModelBase
     [RelayCommand]
     private void AddResult()
     {
-        var result = new MacroResult { Name = NextName("结果") };
+        var result = new MacroResult { Name = NextName(Strings.Get("MacroInterface.DefaultResultName")) };
         _editor.DeclaredResults.Add(result);
         Results.Add(new MacroResultRow(result, Types, OnRowChanged));
         OnPropertyChanged(nameof(HasResults));
