@@ -10150,12 +10150,79 @@ public class DeviceActionTests
             result.Detail);
     }
 
+    [Fact]
+    public async Task A_step_can_wait_for_a_key_to_be_pressed()
+    {
+        var devices = new FakeDeviceLayer();
+        var store = new VariableStore();
+        var run = new MacroRunner(store, new SilentRunHost(), devices).RunAsync(
+        [
+            Within(5000, Step("input.waitKey", Param("key", "F8"), Param("swallow", "true"),
+                Returns("key=pressed", "injected=byTool"))),
+        ]);
+
+        for (var look = 0; look < 200 && !devices.HookEvents.HasKeyDown; look++)
+        {
+            await Task.Delay(5);
+        }
+
+        if (!devices.HookEvents.HasKeyDown)
+        {
+            var stopped = await run;
+            Assert.Fail($"{stopped.Status} {stopped.Key} {stopped.Detail}");
+        }
+
+        devices.HookEvents.Press("F8");
+
+        var result = await run;
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("F8", store.Local.Values["pressed"].AsText());
+        Assert.False(store.Local.Values["byTool"].AsBool());
+        Assert.True(devices.HookEvents.Last!.Suppress);
+    }
+
 }
 
 /// <summary>
 /// A device layer that writes down what it was asked to do instead of doing it, so the
 /// engine can be checked without touching the real keyboard, mouse or screen.
 /// </summary>
+/// <summary>The hook a test can press keys on, so a wait can be ended from the test rather than by hand.</summary>
+internal sealed class TestInputHook : IInputHook
+{
+    public event Action<KeyHookEvent>? KeyDown;
+
+    public event Action<KeyHookEvent>? KeyUp;
+
+    public event Action<MouseHookEvent>? MouseDown { add { } remove { } }
+
+    public event Action<MouseHookEvent>? MouseUp { add { } remove { } }
+
+    public event Action<MouseMovedHookEvent>? Moved { add { } remove { } }
+
+    public event Action<MouseMovedRelativeHookEvent>? MovedRelative { add { } remove { } }
+
+    public event Action<WheelHookEvent>? Wheel { add { } remove { } }
+
+    public bool HasKeyDown => KeyDown is not null;
+
+    public KeyHookEvent? Last { get; private set; }
+
+    public void Press(string name, bool up = false)
+    {
+        var key = KeyNames.Resolve(name) ?? throw new ArgumentException(name, nameof(name));
+        var seen = new KeyHookEvent(key, injected: false);
+        Last = seen;
+        if (up)
+        {
+            KeyUp?.Invoke(seen);
+        }
+        else
+        {
+            KeyDown?.Invoke(seen);
+        }
+    }
+}
 internal sealed class FakeDeviceLayer
     : IDeviceLayer, IInputDevice, IGamepadDevice, IScreenDevice, IVisionDevice, IOcrDevice,
       IDetectorDevice, IUiDevice, IFileDevice, IClipboardDevice, IProcessDevice, ISystemDevice,
@@ -10370,7 +10437,9 @@ internal sealed class FakeDeviceLayer
     /// this layer answers the way a machine with no devices would: it refuses. A check that needs
     /// one of them drives it through a layer of its own.
     /// </summary>
-    IInputHook IDeviceLayer.Hook => NullDeviceLayer.Instance.Hook;
+    internal TestInputHook HookEvents { get; } = new();
+
+    IInputHook IDeviceLayer.Hook => HookEvents;
 
     IInputRecorder IDeviceLayer.CreateRecorder() => NullDeviceLayer.Instance.CreateRecorder();
 

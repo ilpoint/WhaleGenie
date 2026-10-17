@@ -6299,6 +6299,83 @@
     "Returns": []
   },
   {
+    "Key": "input.waitKey",
+    "Category": "Input",
+    "Hidden": false,
+    "SendsInput": false,
+    "IsCondition": false,
+    "LooksAtScreen": false,
+    "Waits": true,
+    "TimeoutSource": "Step",
+    "TimeoutField": "",
+    "StepTimeoutMs": 60000,
+    "Parameters": [
+      {
+        "Name": "key",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "event",
+        "Shape": "Choice",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "down",
+        "Options": [
+          "down",
+          "up"
+        ],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": [],
+        "OptionKey": "Run.BadOption"
+      },
+      {
+        "Name": "swallow",
+        "Shape": "Flag",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "false",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      }
+    ],
+    "Returns": [
+      {
+        "Key": "key",
+        "Type": "Text",
+        "Primary": true
+      },
+      {
+        "Key": "injected",
+        "Type": "Flag"
+      }
+    ]
+  },
+  {
     "Key": "input.keyDown",
     "Category": "Input",
     "Hidden": false,

@@ -7938,6 +7938,105 @@
     "Returns": []
   },
   {
+    "Key": "input.waitKey",
+    "DisplayName": "Wait for a Key",
+    "Description": "Wait until a key goes down or comes up, then carry on. Leave the key empty to wait for any key.",
+    "Parameters": [
+      {
+        "Name": "key",
+        "Label": "Key",
+        "Hint": "The key to wait for, named the way it is printed on the keyboard, for example F8 or Enter. Leave it empty to take whichever key is pressed next.",
+        "Placeholder": "e.g. F8",
+        "Kind": "Key",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "event",
+        "Label": "When",
+        "Hint": "Which half of the press ends the wait: going down or coming back up.",
+        "Placeholder": "",
+        "Kind": "Choice",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "swallow",
+        "Label": "Keep it from the page",
+        "Hint": "When true, the key that ended the wait is kept from reaching the program in front; the rest of the keyboard is untouched.",
+        "Placeholder": "",
+        "Kind": "Bool",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "returns",
+        "Label": "Returns",
+        "Hint": "Tick the answers this step should hand over. Each ticked one becomes a variable of its own.",
+        "Placeholder": "",
+        "Kind": "Returns",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      }
+    ],
+    "Returns": [
+      {
+        "Key": "key",
+        "Label": "Key",
+        "Hint": "The key that ended the wait, named the way a macro writes it."
+      },
+      {
+        "Key": "injected",
+        "Label": "Sent by a program",
+        "Hint": "True when the key came from a program rather than the person at the keyboard."
+      }
+    ]
+  },
+  {
     "Key": "input.keyDown",
     "DisplayName": "Key Down",
     "Description": "Hold a key down until a matching Key Up step releases it.",

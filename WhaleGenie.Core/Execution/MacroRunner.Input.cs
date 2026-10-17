@@ -799,6 +799,65 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
+    /// Waits for one key to go down or come up. The hook reports keys on its own thread, so the
+    /// wait is a task the hook fills in; the step's own timeout cancels it, and the handler is
+    /// taken off the hook either way. A key that ends the wait may be kept from the program in
+    /// front, which is what "press F8 to carry on" without F8 reaching the page needs.
+    /// </summary>
+    private async Task WaitForKey(ExecutableStep step, CancellationToken token)
+    {
+        var written = ReadText(step, "key").Trim();
+        var wanted = written.Length == 0
+            ? (HookKey?)null
+            : KeyNames.Resolve(written) ?? throw new StepFailure(RunKeys.UnknownKey, written);
+        var up = string.Equals(ReadText(step, "event").Trim(), "up", StringComparison.OrdinalIgnoreCase);
+        var swallow = Flag(step, "swallow", false);
+
+        var heard = new TaskCompletionSource<KeyHookEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
+        void Saw(KeyHookEvent seen)
+        {
+            if (wanted is { } key && seen.Key != key)
+            {
+                return;
+            }
+
+            if (swallow)
+            {
+                seen.Suppress = true;
+            }
+
+            heard.TrySetResult(seen);
+        }
+
+        if (up)
+        {
+            _devices.Hook.KeyUp += Saw;
+        }
+        else
+        {
+            _devices.Hook.KeyDown += Saw;
+        }
+
+        try
+        {
+            var seen = await heard.Task.WaitAsync(token);
+            Give(step, "key", Value.FromText(KeyNames.Name(seen.Key)));
+            Give(step, "injected", Value.FromBool(seen.Injected));
+        }
+        finally
+        {
+            if (up)
+            {
+                _devices.Hook.KeyUp -= Saw;
+            }
+            else
+            {
+                _devices.Hook.KeyDown -= Saw;
+            }
+        }
+    }
+
+    /// <summary>
     /// Presses a key, over again when the step asks for more than one. The pause goes between the
     /// presses and never after the last, so a step that presses once waits for nothing.
     /// </summary>
@@ -1062,6 +1121,9 @@ public sealed partial class MacroRunner
         {
             case "input.keyPress":
                 await PressKey(step, token);
+                return Signal.Normal;
+            case "input.waitKey":
+                await WaitForKey(step, token);
                 return Signal.Normal;
             case "input.keyDown":
                 HoldKey(step);
