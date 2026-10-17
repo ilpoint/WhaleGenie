@@ -257,6 +257,8 @@ public static class MacroCheck
                 CheckRunHandle(step);
                 CheckHeldBrowserRun(step, browserHeld);
                 CheckKnownStep(step);
+                CheckMissingFields(step);
+                CheckOptions(step);
                 CheckDuplicateResults(step);
                 CheckExpressions(step);
 
@@ -393,6 +395,60 @@ public static class MacroCheck
                 if (!definition.Parameters.Any(known => known.Name == parameter.Name))
                 {
                     Add(step, Strings.Format("Editor.Problem.UnknownParameter", parameter.Name));
+                }
+            }
+        }
+
+        /// <summary>
+        /// A field the catalogue calls required that the step left empty is marked while it is still
+        /// being written. The same rule the engine runs, so a macro that opens without a mark does
+        /// not fail on one; a field that only applies under some settings is not asked.
+        /// </summary>
+        void CheckMissingFields(MacroStep step)
+        {
+            if (step.Definition is not { } definition)
+            {
+                return;
+            }
+
+            foreach (var parameter in definition.Parameters)
+            {
+                // A run handle already has its own check; saying it twice would teach the user to
+                // ignore one of the two.
+                if (parameter.Semantics.MissingValue(step.Text(parameter.Name))
+                    && parameter.Semantics.MissingKey != RunKeys.MissingHandle)
+                {
+                    Add(step, Strings.Format("Editor.Problem.MissingField", parameter.LocalLabel));
+                }
+            }
+        }
+
+        /// <summary>
+        /// A choice holding a word the catalogue does not offer. The engine refuses it unless the
+        /// field says an unknown word falls back, so the step is marked here rather than at the run.
+        /// </summary>
+        void CheckOptions(MacroStep step)
+        {
+            if (step.Definition is not { } definition)
+            {
+                return;
+            }
+
+            foreach (var parameter in definition.Parameters)
+            {
+                if (parameter.Shape is not ActionValueShape.Choice
+                    || parameter.Semantics.AllowsUnknownOption
+                    || parameter.Semantics.Options.Count == 0)
+                {
+                    continue;
+                }
+
+                var written = step.Text(parameter.Name).Trim();
+                if (written.Length > 0
+                    && !parameter.Semantics.Options.Contains(written, StringComparer.Ordinal))
+                {
+                    Add(step, Strings.Format("Editor.Problem.BadOption",
+                        parameter.LocalLabel, written));
                 }
             }
         }

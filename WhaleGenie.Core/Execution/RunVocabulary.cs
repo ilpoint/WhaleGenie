@@ -41,6 +41,7 @@ public static class RunKeys
     public const string BadMatchMode = "Run.BadMatchMode";
     public const string BadModel = "Run.BadModel";
     public const string BadModelShape = "Run.BadModelShape";
+    public const string BadOption = "Run.BadOption";
     public const string BadPattern = "Run.BadPattern";
     public const string BadPoint = "Run.BadPoint";
     public const string BadPoints = "Run.BadPoints";
@@ -104,6 +105,7 @@ public static class RunKeys
     public const string MacroTooDeep = "Run.MacroTooDeep";
     public const string MissingArgument = "Run.MissingArgument";
     public const string MissingCondition = "Run.MissingCondition";
+    public const string MissingField = "Run.MissingField";
     public const string MissingHandle = "Run.MissingHandle";
     public const string MissingImage = "Run.MissingImage";
     public const string MissingInterpreter = "Run.MissingInterpreter";

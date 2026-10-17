@@ -1602,6 +1602,7 @@ public sealed partial class MacroRunner
 
     private async Task<Signal> Execute(ExecutableStep step, int depth, CancellationToken token)
     {
+        ValidateAnswers(step);
         // Whatever the step before this one read is not what this one read. A step that looks at a
         // picture it was handed rather than taking one of its own says nothing about a window,
         // which is truer than repeating what the step before it was looking at.
@@ -2399,8 +2400,41 @@ public sealed partial class MacroRunner
     private static bool LooksAtScreen(string conditionType)
         => ActionSemanticsCatalog.Find(conditionType)?.LooksAtScreen ?? false;
 
+    /// <summary>
+    /// What the catalogue says a step must be given, checked before the step runs. An unanswered
+    /// field is a mistake to report rather than an empty value for the action to interpret; a word
+    /// outside the choices is refused unless the field says an unknown word falls back. Both use
+    /// the key the catalogue names for that field, so a path still says "no path" rather than the
+    /// general word for an unanswered field.
+    /// </summary>
+    private static void ValidateAnswers(ExecutableStep step)
+    {
+        if (ActionSemanticsCatalog.Find(step.Type) is not { } definition)
+        {
+            return;
+        }
+
+        foreach (var facts in definition.Parameters)
+        {
+            var written = step.Text(facts.Name).Trim();
+            if (facts.MissingValue(written))
+            {
+                throw new StepFailure(facts.MissingKey, facts.Name);
+            }
+
+            if (facts.Shape is ActionValueShape.Choice
+                && written.Length > 0
+                && facts.Options.Count > 0
+                && !facts.Options.Contains(written, StringComparer.Ordinal)
+                && !facts.AllowsUnknownOption)
+            {
+                throw new StepFailure(facts.OptionKey, written);
+            }
+        }
+    }
     private bool Check(ExecutableStep condition, int depth, CancellationToken token)
     {
+        ValidateAnswers(condition);
         token.ThrowIfCancellationRequested();
         if (LooksAtScreen(condition.Type))
         {

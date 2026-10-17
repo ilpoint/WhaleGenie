@@ -333,7 +333,7 @@
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -350,7 +350,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingVariable"
       },
       {
         "Name": "indexVariable",
@@ -501,7 +502,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingVariable"
       },
       {
         "Name": "returns",
@@ -604,7 +606,7 @@
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -716,7 +718,7 @@
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": true,
@@ -951,7 +953,7 @@
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -983,7 +985,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingVariable"
       },
       {
         "Name": "scope",
@@ -1005,7 +1008,7 @@
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -1037,7 +1040,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingVariable"
       },
       {
         "Name": "scope",
@@ -1059,7 +1063,7 @@
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -1091,7 +1095,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingVariable"
       },
       {
         "Name": "amount",
@@ -1150,7 +1155,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingVariable"
       },
       {
         "Name": "scope",
@@ -1204,14 +1210,15 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingVariable"
       },
       {
         "Name": "value",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -1243,7 +1250,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingVariable"
       },
       {
         "Name": "listIndex",
@@ -1262,7 +1270,7 @@
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -1294,7 +1302,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingVariable"
       },
       {
         "Name": "listIndex",
@@ -1333,7 +1342,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingVariable"
       },
       {
         "Name": "listIndex",
@@ -1352,7 +1362,7 @@
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -1384,7 +1394,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingVariable"
       }
     ],
     "Returns": []
@@ -1406,7 +1417,7 @@
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -1455,7 +1466,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingQuestion"
       },
       {
         "Name": "detail",
@@ -1512,7 +1524,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingQuestion"
       },
       {
         "Name": "default",
@@ -1564,7 +1577,7 @@
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -1603,7 +1616,7 @@
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -1620,7 +1633,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingHandle"
       },
       {
         "Name": "returns",
@@ -1687,7 +1701,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingHandle"
       }
     ],
     "Returns": []
@@ -1714,7 +1729,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingHandle"
       },
       {
         "Name": "returns",
@@ -1754,7 +1770,7 @@
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -1804,7 +1820,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "returns",
@@ -1919,7 +1936,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "fileContent",
@@ -2006,14 +2024,15 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "logLine",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -2057,7 +2076,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "returns",
@@ -2102,7 +2122,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "toRecycleBin",
@@ -2141,7 +2162,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "to",
@@ -2153,7 +2175,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "ifExists",
@@ -2196,7 +2219,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "to",
@@ -2208,7 +2232,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "ifExists",
@@ -2251,7 +2276,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       }
     ],
     "Returns": []
@@ -2299,7 +2325,9 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath",
+        "Conditional": true
       },
       {
         "Name": "fileName",
@@ -2356,7 +2384,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "folder",
@@ -2368,7 +2397,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "overwrite",
@@ -2407,7 +2437,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "to",
@@ -2419,7 +2450,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       }
     ],
     "Returns": []
@@ -2446,7 +2478,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "recurse",
@@ -2485,7 +2518,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "pattern",
@@ -2670,14 +2704,15 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "query",
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -2727,7 +2762,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "query",
@@ -2739,7 +2775,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingJsonPath"
       },
       {
         "Name": "writeValue",
@@ -2778,7 +2815,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "hasHeader",
@@ -3046,7 +3084,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "rows",
@@ -3213,7 +3252,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "names",
@@ -3252,7 +3292,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       }
     ],
     "Returns": []
@@ -3274,7 +3315,7 @@
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -3319,7 +3360,7 @@
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -3401,7 +3442,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Conditional": true
       },
       {
         "Name": "path",
@@ -3413,7 +3455,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Conditional": true
       },
       {
         "Name": "returns",
@@ -3453,7 +3496,7 @@
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -3551,7 +3594,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingImage"
       }
     ],
     "Returns": []
@@ -3611,7 +3655,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       }
     ],
     "Returns": []
@@ -3769,7 +3814,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingProgram"
       },
       {
         "Name": "commandArguments",
@@ -3919,7 +3965,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.BadProcessId"
       },
       {
         "Name": "returns",
@@ -4166,7 +4213,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingProgram"
       },
       {
         "Name": "commandArguments",
@@ -4440,7 +4488,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.UnknownSystemField"
       },
       {
         "Name": "returns",
@@ -4494,7 +4543,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "OptionKey": "Run.UnknownPowerAction"
       },
       {
         "Name": "graceSeconds",
@@ -4544,7 +4594,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "OptionKey": "Run.UnknownVolumeAction"
       },
       {
         "Name": "levelPercent",
@@ -4624,7 +4675,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "OptionKey": "Run.UnknownSound"
       }
     ],
     "Returns": []
@@ -4679,7 +4731,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "OptionKey": "Run.UnknownNotification"
       }
     ],
     "Returns": []
@@ -4710,7 +4763,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "OptionKey": "Run.UnknownInputMethodAction"
       },
       {
         "Name": "layout",
@@ -4772,7 +4826,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "OptionKey": "Run.UnknownBrightnessAction"
       },
       {
         "Name": "levelPercent",
@@ -4868,7 +4923,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -4971,7 +5027,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -5074,7 +5131,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -5159,7 +5217,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -5244,7 +5303,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -5329,7 +5389,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -5414,7 +5475,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -5569,7 +5631,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -5654,7 +5717,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -5827,7 +5891,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -6059,7 +6124,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -6172,7 +6238,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -6285,7 +6352,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -6441,7 +6509,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -6554,7 +6623,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -6683,7 +6753,7 @@
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -6752,7 +6822,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -6894,7 +6965,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -7022,7 +7094,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       }
     ],
     "Returns": []
@@ -7145,7 +7218,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -7317,7 +7391,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -7484,7 +7559,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       }
     ],
     "Returns": []
@@ -7620,7 +7696,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -7773,7 +7850,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       }
     ],
     "Returns": []
@@ -7909,7 +7987,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -8007,7 +8086,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       }
     ],
     "Returns": []
@@ -8143,7 +8223,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -8241,7 +8322,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       }
     ],
     "Returns": []
@@ -8420,7 +8502,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -8547,7 +8630,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       }
     ],
     "Returns": []
@@ -8693,7 +8777,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -8868,7 +8953,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       }
     ],
     "Returns": []
@@ -9238,7 +9324,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -9440,7 +9527,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -9792,7 +9880,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -10180,7 +10269,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -10599,7 +10689,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -10924,7 +11015,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -11151,7 +11243,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -11381,7 +11474,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -11639,7 +11733,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -11786,7 +11881,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.BadPoints"
       },
       {
         "Name": "tolerance",
@@ -11924,7 +12020,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -12112,7 +12209,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingModel"
       },
       {
         "Name": "labelFile",
@@ -12289,7 +12387,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -12493,7 +12592,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingModel"
       },
       {
         "Name": "labelFile",
@@ -12670,7 +12770,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -12874,7 +12975,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingModel"
       },
       {
         "Name": "labelFile",
@@ -13082,7 +13184,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -13480,7 +13583,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -13712,7 +13816,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "OptionKey": "Run.BadMatchMode"
       },
       {
         "Name": "caseSensitive",
@@ -13829,7 +13934,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "preprocess",
@@ -14125,7 +14231,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "OptionKey": "Run.BadMatchMode"
       },
       {
         "Name": "caseSensitive",
@@ -14288,7 +14395,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "intervalMs",
@@ -14604,7 +14712,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -14652,7 +14761,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.EmptySelector"
       },
       {
         "Name": "matchIndex",
@@ -14735,7 +14845,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -14783,7 +14894,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.EmptySelector"
       },
       {
         "Name": "matchIndex",
@@ -14973,7 +15085,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -15021,7 +15134,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.EmptySelector"
       },
       {
         "Name": "matchIndex",
@@ -15100,7 +15214,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -15148,7 +15263,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.EmptySelector"
       },
       {
         "Name": "matchIndex",
@@ -15231,7 +15347,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -15279,7 +15396,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.EmptySelector"
       },
       {
         "Name": "matchIndex",
@@ -15344,7 +15462,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -15392,7 +15511,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.EmptySelector"
       },
       {
         "Name": "matchIndex",
@@ -15415,7 +15535,7 @@
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -15481,7 +15601,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -15529,7 +15650,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.EmptySelector"
       },
       {
         "Name": "matchIndex",
@@ -15666,7 +15788,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -15714,7 +15837,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.EmptySelector"
       },
       {
         "Name": "matchIndex",
@@ -15806,7 +15930,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -15854,7 +15979,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.EmptySelector"
       },
       {
         "Name": "matchIndex",
@@ -15935,7 +16061,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -15983,7 +16110,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.EmptySelector"
       },
       {
         "Name": "matchIndex",
@@ -16064,7 +16192,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -16112,7 +16241,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.EmptySelector"
       },
       {
         "Name": "matchIndex",
@@ -16177,7 +16307,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -16225,7 +16356,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.EmptySelector"
       },
       {
         "Name": "matchIndex",
@@ -16297,7 +16429,7 @@
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "Window",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": true,
@@ -16324,7 +16456,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -16483,7 +16616,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.BrowserNoSelector"
       },
       {
         "Name": "narrow",
@@ -16566,7 +16700,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.BrowserNoSelector"
       },
       {
         "Name": "narrow",
@@ -16585,7 +16720,7 @@
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -16764,7 +16899,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.BrowserNoSelector"
       },
       {
         "Name": "narrow",
@@ -16876,7 +17012,7 @@
         "Shape": "Text",
         "ReadMode": "Text",
         "Picker": "Browser",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": true,
@@ -17008,7 +17144,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.BrowserNoSelector"
       },
       {
         "Name": "narrow",
@@ -17027,7 +17164,7 @@
         "Shape": "Text",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -17090,7 +17227,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.BrowserNoSelector"
       },
       {
         "Name": "narrow",
@@ -17157,7 +17295,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.BrowserNoSelector"
       },
       {
         "Name": "narrow",
@@ -17279,7 +17418,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.BrowserNoSelector"
       },
       {
         "Name": "narrow",
@@ -17369,7 +17509,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "OptionKey": "Run.BadMatchMode"
       },
       {
         "Name": "caseSensitive",
@@ -17742,7 +17883,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.BrowserNoSelector"
       },
       {
         "Name": "narrow",
@@ -17766,7 +17908,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingPath"
       },
       {
         "Name": "matchIndex",
@@ -17814,7 +17957,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "tabIndex",
@@ -17918,7 +18062,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "OptionKey": "Run.UnknownScriptKind"
       },
       {
         "Name": "encoding",
@@ -17963,7 +18108,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Conditional": true
       },
       {
         "Name": "scriptFile",
@@ -17975,7 +18121,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Conditional": true
       },
       {
         "Name": "scriptArguments",
@@ -18619,7 +18766,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -18804,7 +18952,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -18959,7 +19108,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "matchMode",
@@ -18977,7 +19127,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "OptionKey": "Run.BadMatchMode"
       },
       {
         "Name": "caseSensitive",
@@ -19132,7 +19283,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "matchMode",
@@ -19150,7 +19302,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "OptionKey": "Run.BadMatchMode"
       },
       {
         "Name": "caseSensitive",
@@ -19235,7 +19388,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -19283,7 +19437,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.EmptySelector"
       }
     ],
     "Returns": []
@@ -19332,7 +19487,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -19380,7 +19536,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.EmptySelector"
       }
     ],
     "Returns": []
@@ -19407,7 +19564,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.BrowserNoSelector"
       },
       {
         "Name": "narrow",
@@ -19479,7 +19637,8 @@
         "Options": [],
         "AcceptsVariables": true,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.BrowserNoSelector"
       },
       {
         "Name": "narrow",
@@ -19629,7 +19788,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -19736,7 +19896,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.BadPoints"
       },
       {
         "Name": "tolerance",
@@ -19815,7 +19976,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -19920,7 +20082,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.BadPoints"
       },
       {
         "Name": "tolerance",
@@ -20026,7 +20189,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -20209,7 +20373,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",
@@ -20299,7 +20464,8 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingVariable"
       },
       {
         "Name": "compareOperator",
@@ -20555,7 +20721,8 @@
         ],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "AllowsUnknownOption": true
       },
       {
         "Name": "caseSensitive",

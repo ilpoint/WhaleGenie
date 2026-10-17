@@ -939,6 +939,57 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task A_required_field_with_no_answer_stops_the_step()
+    {
+        // The list index is required and has no default; an empty cell used to read as zero and
+        // rewrite the first item without saying so.
+        var (result, _) = await RunAsync(
+            [Step("control.listSet", Param("name", "names"), Param("value", "x"))]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.MissingField, result.Key);
+        Assert.Equal("listIndex", result.Detail);
+    }
+
+    [Fact]
+    public async Task An_empty_required_field_keeps_the_key_its_action_gave_it()
+    {
+        // A path has had a word of its own since long before the general rule; the rule reads the
+        // word from the field rather than replacing it.
+        var (result, _) = await RunAsync([Step("file.writeText",
+            Param("writeMode", "overwrite"), Param("newline", "none"), Param("encoding", "utf8"))]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.MissingPath, result.Key);
+    }
+
+    [Fact]
+    public async Task A_required_field_that_only_applies_under_some_settings_may_stay_empty()
+    {
+        // The path half of a hash is required only when the source is a file.
+        var store = Store();
+        var (result, _) = await RunAsync(
+            [Step("data.hash", Param("hashSource", "text"), Param("dataText", "abc"),
+                Returns("digest"))],
+            variables: store);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+            store.Local.Values["digest"].AsText());
+    }
+
+    [Fact]
+    public async Task A_choice_outside_the_catalogue_stops_the_step()
+    {
+        var (result, _) = await RunAsync([Step("control.switch",
+            Param("switchValue", "1"), Param("switchMode", "sideways"))]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.BadOption, result.Key);
+        Assert.Equal("sideways", result.Detail);
+    }
+
+    [Fact]
     public async Task An_action_that_needs_a_missing_device_says_so()
     {
         // Input and the screen are real actions now, so without a device layer the failure

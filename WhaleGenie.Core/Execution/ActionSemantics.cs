@@ -228,6 +228,50 @@ public sealed class ActionParameterSemantics
 
     /// <summary>The only action keys a step list accepts, or empty for any step.</summary>
     public IReadOnlyList<string> ChildKeys { get; init; } = [];
+
+    /// <summary>
+    /// True when the field is required only under some settings of the action — a path for the file
+    /// half of a hash, the script text when the source is text. The step's own values decide whether
+    /// it applies, so an empty cell is not by itself an unanswered field.
+    /// </summary>
+    public bool Conditional { get; init; }
+
+    /// <summary>
+    /// The failure key an unanswered field reports. Most fields report
+    /// <see cref="RunKeys.MissingField"/>; a field whose action already has a word for its absence
+    /// (a path, a program, a run handle) keeps that word.
+    /// </summary>
+    public string MissingKey { get; init; } = RunKeys.MissingField;
+
+    /// <summary>
+    /// The failure key an unknown choice reports. Most choices report
+    /// <see cref="RunKeys.BadOption"/>; the comparisons and the system actions keep the words they
+    /// already had.
+    /// </summary>
+    public string OptionKey { get; init; } = RunKeys.BadOption;
+
+    /// <summary>
+    /// True when a word outside <see cref="Options"/> is read as a fallback rather than refused.
+    /// Only the window matching ways and the tab target say so: both are read wherever a window or a
+    /// page is recognised, and a word nobody knows has always meant the oldest reading there.
+    /// </summary>
+    public bool AllowsUnknownOption { get; init; }
+
+    /// <summary>
+    /// True when the field still has no answer and none is supplied for it: it is required, the step
+    /// wrote nothing, the catalogue offers no default for it, and an empty cell has no meaning of its
+    /// own. Numbers are not asked: an empty number is answered by <see cref="EmptyMeans"/>. Nor are
+    /// the lists, whose content is in rows rather than in the cell, the shapes that hold other steps
+    /// or a condition, and a field that only applies under some settings.
+    /// </summary>
+    public bool MissingValue(string? written)
+        => Required
+           && !Conditional
+           && (written ?? string.Empty).Trim().Length == 0
+           && DefaultValue.Length == 0
+           && EmptyMeans is null
+           && Shape is not (ActionValueShape.Steps or ActionValueShape.Rows
+               or ActionValueShape.Condition or ActionValueShape.Flag);
 }
 
 /// <summary>One field of a record a result hands over.</summary>

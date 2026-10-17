@@ -659,6 +659,35 @@ public class ActionContractTests
             "these actions have no engine test that names them: " + string.Join(", ", missing));
     }
 
+    /// <summary>
+    /// Every parameter says which failure key its own absence and its own wrong word report. A key
+    /// that is not one of the run's failure keys would reach the user as a name they cannot branch
+    /// on, so the catalogue and the vocabulary are held together here.
+    /// </summary>
+    [Fact]
+    public void Every_parameter_names_a_real_key_for_its_missing_and_choice_answers()
+    {
+        var known = RunKeys.All.ToHashSet(StringComparer.Ordinal);
+
+        foreach (var action in ActionSemanticsCatalog.All)
+        {
+            foreach (var parameter in action.Parameters)
+            {
+                Assert.Contains(parameter.MissingKey, known);
+                Assert.Contains(parameter.OptionKey, known);
+                if (parameter.Conditional)
+                {
+                    Assert.True(parameter.Required, action.Key + "." + parameter.Name);
+                }
+
+                if (parameter.AllowsUnknownOption)
+                {
+                    Assert.Equal(ActionValueShape.Choice, parameter.Shape);
+                }
+            }
+        }
+    }
+
     [Fact]
     public void The_runner_no_longer_guesses_facts_from_action_prefixes()
     {

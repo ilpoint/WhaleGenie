@@ -852,4 +852,27 @@ public class MacroCheckTests
                 problem.Message.StartsWith(before, StringComparison.Ordinal));
         }
     }
+
+    [Fact]
+    public void A_required_field_left_empty_is_marked()
+    {
+        var problem = Assert.Single(Inspect(Step("browser.goTo")));
+
+        Assert.Equal(Strings.Format("Editor.Problem.MissingField", "Address"), problem.Message);
+    }
+
+    [Fact]
+    public void A_choice_outside_the_catalogue_is_marked()
+    {
+        var problems = Inspect(Step("file.writeText",
+            Text("path", "out.txt"), Text("writeMode", "sideways")));
+
+        Assert.Contains(problems, problem =>
+            problem.Message.Contains("sideways", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_required_field_that_only_applies_under_some_settings_is_left_alone()
+        => Assert.Empty(Inspect(Step("data.hash",
+            Text("hashSource", "text"), Text("dataText", "abc"))));
 }
