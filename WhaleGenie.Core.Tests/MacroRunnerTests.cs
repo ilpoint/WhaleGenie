@@ -1591,7 +1591,7 @@ public class MacroRunnerTests
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.BadBase64", result.Key);
-        Assert.False(store.TryGet("x", out _));
+        Assert.Equal(string.Empty, store.Local.Values["x"].AsText());
     }
 
     [Fact]
@@ -2424,6 +2424,81 @@ public class MacroRunnerTests
         Assert.Equal(RunKeys.StepFailedByMacro, store.Local.Values["error"].AsText());
     }
 
+    /// <summary>
+    /// 同步调用失败时不把半截结果带回来：被调用的宏失败前写下的那一项，调用处读到的是空。
+    /// </summary>
+    [Fact]
+    public async Task A_failed_call_brings_back_no_half_results()
+    {
+        var store = Store();
+        var library = new Library(("坏", new MacroSignature([], [new MacroReturn("结果")]),
+            [Set("结果", "半截"), Step("control.fail", Param("reason", "boom"))]));
+
+        var (result, _) = await RunAsync(
+        [
+            Try(
+                Body("body", Step("control.runMacro", Param("macro", "坏"),
+                    Returns("结果=带回"))),
+                Body("catch")),
+        ], variables: store, macros: library);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(string.Empty, store.Local.Values["带回"].AsText());
+    }
+
+    /// <summary>后台运行在等待时报失败时，启动处勾的结果一个都不写回。</summary>
+    [Fact]
+    public async Task A_failed_wait_writes_none_of_the_chosen_results()
+    {
+        var store = Store();
+        var library = new Library(("坏", new MacroSignature([], [new MacroReturn("结果")]),
+            [Set("结果", "半截"), Step("control.fail", Param("reason", "boom"))]));
+
+        var (result, _) = await RunAsync(
+        [
+            Step("control.startMacro", Param("macro", "坏"), Param("runHandleName", "job"),
+                Returns("结果=带回")),
+            Try(
+                Body("body", Step("control.waitMacro", Param("runHandle", "$job"))),
+                Body("catch")),
+        ], variables: store, macros: library);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(string.Empty, store.Local.Values["带回"].AsText());
+    }
+
+    /// <summary>
+    /// 「等待全部」里有一个失败时，别的运行的结果也不写：一次等待要么把整列结果交出来，要么一项都不交。
+    /// </summary>
+    [Fact]
+    public async Task Waiting_for_all_that_fails_writes_none_of_the_results()
+    {
+        var store = Store();
+        var library = new Library(
+            ("好", new MacroSignature([], [new MacroReturn("值")]), [Set("值", "好")]),
+            ("坏", new MacroSignature([], [new MacroReturn("值")]),
+                [Set("值", "半截"), Step("control.fail", Param("reason", "boom"))]));
+
+        var (result, _) = await RunAsync(
+        [
+            Step("control.listCreate", Param("name", "jobs"), Param("scope", "local"),
+                Param("items", "")),
+            Step("control.startMacro", Param("macro", "好"), Param("runHandleName", "jobGood"),
+                Returns("值=好值")),
+            Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobGood")),
+            Step("control.startMacro", Param("macro", "坏"), Param("runHandleName", "jobBad"),
+                Returns("值=坏值")),
+            Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobBad")),
+            Try(
+                Body("body", Step("control.waitAll", Param("runHandles", "$jobs"))),
+                Body("catch")),
+        ], variables: store, macros: library);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(string.Empty, store.Local.Values["好值"].AsText());
+        Assert.Equal(string.Empty, store.Local.Values["坏值"].AsText());
+    }
+
     [Fact]
     public async Task A_return_at_the_top_finishes_the_run()
     {
@@ -2775,7 +2850,7 @@ public class MacroRunnerTests
 
         // The name was settled before the call went anywhere, so nothing of it ran.
         Assert.False(store.TryGet("结果", out _));
-        Assert.False(store.TryGet("别的", out _));
+        Assert.Equal(string.Empty, store.Local.Values["别的"].AsText());
     }
 
     [Fact]

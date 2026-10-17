@@ -114,7 +114,7 @@ public class AskUserTests
                 Param("value", "ran")),
         ]);
 
-        Assert.False(store.Local.Values.ContainsKey("go"));
+        Assert.Equal(string.Empty, store.Local.Values["go"].AsText());
         Assert.False(store.Local.Values.ContainsKey("after"));
     }
 

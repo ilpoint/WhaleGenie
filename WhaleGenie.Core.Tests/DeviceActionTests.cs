@@ -4120,7 +4120,7 @@ public class DeviceActionTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.BadPattern", result.Key);
-        Assert.Empty(store.Local.Values);
+        Assert.Equal(string.Empty, store.Local.Values["code"].AsText());
     }
 
     /// <summary>
@@ -4404,7 +4404,7 @@ public class DeviceActionTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("Run.ElementNotFound", result.Key);
-        Assert.False(store.TryGet("found", out _));
+        Assert.Equal(string.Empty, store.Local.Values["found"].AsText());
     }
 
     /// <summary>
@@ -6326,7 +6326,7 @@ public class DeviceActionTests
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.NoSuchProcess", result.Key);
-        Assert.False(store.TryGet("note", out _));
+        Assert.Equal(string.Empty, store.Local.Values["note"].AsText());
     }
 
     [Fact]
@@ -7833,6 +7833,58 @@ public class DeviceActionTests
     /// <summary>The fields a record actually carries, in the order it wrote them.</summary>
     private static IReadOnlyList<string> Names(Value record)
         => [.. record.Fields.Select(field => field.Name)];
+
+    /// <summary>
+    /// 没找到的那一次不给命中：这一步勾的「命中」在尝试开始时先清空，所以读到的是空，而不是上一步
+    /// 或上一次尝试留在同名变量里的值。重试也一样，每一次试都从空开始。
+    /// </summary>
+    [Fact]
+    public async Task A_look_that_fails_leaves_no_hit_behind()
+    {
+        var devices = new FakeDeviceLayer();
+        var failing = new ExecutableStep
+        {
+            Type = "vision.findImage",
+            Parameters = [Pictures("ok.png"), Returns("match=found")],
+            Meta = new StepMeta { RetryCount = 2, OnError = StepErrorAction.Continue },
+        };
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("control.setVariable", Param("name", "found"), Param("scope", "local"),
+                Param("value", "left over")),
+            failing,
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(string.Empty, store.Local.Values["found"].AsText());
+    }
+
+    /// <summary>
+    /// 循环的每一轮各算各的：第一轮找到、第二轮没找到，循环结束时「命中」是空的，不是第一轮那一处。
+    /// </summary>
+    [Fact]
+    public async Task A_second_round_does_not_keep_the_first_rounds_hit()
+    {
+        var devices = new FakeDeviceLayer();
+        var calls = 0;
+        devices.PictureAnswers = (_, _) => calls++ == 0
+            ? [new ImageMatch(0.99, new ScreenPoint(10, 10), new ScreenSize(20, 20))]
+            : [];
+        var find = new ExecutableStep
+        {
+            Type = "vision.findImage",
+            Parameters = [Pictures("ok.png"), Returns("match=found")],
+            Meta = new StepMeta { OnError = StepErrorAction.Continue },
+        };
+        var loop = Step("control.repeat", Param("times", "2"), Param("intervalMs", "0"),
+            Body("body", find));
+
+        var (result, _, store) = await RunAsync([loop], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(string.Empty, store.Local.Values["found"].AsText());
+    }
 
     /// <summary>
     /// 一条窗口记录里关于位置有三种说法，各说各的：中心（x、y，动作要点的那个点）、左上角

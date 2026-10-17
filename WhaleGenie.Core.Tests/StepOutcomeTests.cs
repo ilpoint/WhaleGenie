@@ -405,6 +405,26 @@ public class StepOutcomeTests
     }
 
     /// <summary>
+    /// 循环的每一轮各算各的：上一轮跑过的步骤这一轮没跑到，结局是 skipped，不是上一轮的 ok。
+    /// </summary>
+    [Fact]
+    public async Task A_step_left_out_of_a_later_round_reads_as_skipped()
+    {
+        var only = Set("aaaa", "ran", "1");
+        var branch = Step("control.if", "bbbb",
+            When("condition", Step("condition.compare", "", Param("variable", "sys.loopIndex"),
+                Param("compareOperator", "equals"), Param("compareValue", "0"))),
+            Body("then", only));
+        var loop = Step("control.repeat", "cccc", Param("times", "2"), Param("intervalMs", "0"),
+            Body("body", branch));
+
+        var store = await RunAsync([loop]);
+
+        Assert.Equal("skipped", Outcome(store, "aaaa"));
+        Assert.Equal("ok", Outcome(store, "bbbb"));
+    }
+
+    /// <summary>
     /// The host a paused debugger is: it lets every step through except the one it was told to
     /// leave out, which is what "skip this step once" looks like from the engine's side.
     /// </summary>

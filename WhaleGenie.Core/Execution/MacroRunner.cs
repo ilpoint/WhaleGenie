@@ -794,6 +794,7 @@ public sealed partial class MacroRunner
         // of the caller's failures in reach, so a rethrow inside it can only mean one of its own.
         var outerCaught = _caught;
         _caught = [];
+        var finished = false;
         try
         {
             Log(LogLevel.Info, depth, step.Type, LogKeys.CalledMacro, name, steps.Count);
@@ -810,7 +811,9 @@ public sealed partial class MacroRunner
 
             // A return ends the macro it was written in; the caller carries on with the step
             // after the call. What the called macro had already put into its declared results is
-            // taken back below, whether it ran to the end or returned early.
+            // taken back below — but only a call that finished. A run that failed or was stopped
+            // hands back nothing: half of its results are not its answer.
+            finished = signal is Signal.Normal or Signal.Return;
             return signal is Signal.Return ? Signal.Normal : signal;
         }
         finally
@@ -818,7 +821,11 @@ public sealed partial class MacroRunner
             _caught = outerCaught;
             _loops = outerLoops;
             _callDepth--;
-            Take(wanted, Variables.SwapLocal(caller));
+            var produced = Variables.SwapLocal(caller);
+            if (finished)
+            {
+                Take(wanted, produced);
+            }
         }
     }
 
@@ -979,7 +986,8 @@ public sealed partial class MacroRunner
         var children = ReadValue(step, "runHandles").AsList().Select(FindChild).Distinct().ToList();
         var results = await Task.WhenAll(children.Select(child => child.Task.WaitAsync(token)));
 
-        var waited = 0;
+        // Every ending is looked at before any result is written: a list that failed partway
+        // through hands back none of its answers rather than the ones it happened to reach first.
         for (var index = 0; index < children.Count; index++)
         {
             var child = children[index];
@@ -995,12 +1003,14 @@ public sealed partial class MacroRunner
             {
                 throw new StepFailure(RunKeys.ChildStopped, child.Macro);
             }
-
-            Take(child.Wanted, child.Store.Local);
-            waited++;
         }
 
-        Give(step, "count", Value.FromNumber(waited));
+        foreach (var child in children)
+        {
+            Take(child.Wanted, child.Store.Local);
+        }
+
+        Give(step, "count", Value.FromNumber(children.Count));
         return Signal.Normal;
     }
 
@@ -1186,6 +1196,24 @@ public sealed partial class MacroRunner
     /// clock covers all of them, because "how long did this step take" is answered by the step
     /// rather than by the last try of it.
     /// </summary>
+    /// <summary>
+    /// Empties the variables this step was told to hand over, before it is tried. A name with no
+    /// value is what a reader sees for a result the step did not work out this time.
+    /// </summary>
+    private void ClearResults(ExecutableStep step)
+    {
+        foreach (var row in step.Rows("returns"))
+        {
+            var name = row.TryGetValue(FieldNames.Name, out var written)
+                ? written.Trim()
+                : string.Empty;
+            if (name.Length > 0)
+            {
+                Variables.Set(name, Value.Null);
+            }
+        }
+    }
+
     private async Task<Signal> RunAttempts(ExecutableStep step, int depth, CancellationToken token,
         long startedStep)
     {
@@ -1234,6 +1262,9 @@ public sealed partial class MacroRunner
 
         for (var attempt = 0; ; attempt++)
         {
+            // A result is this attempt's answer: one this attempt does not write reads as
+            // empty rather than as what the previous attempt or the previous round left.
+            ClearResults(step);
             var started = Stopwatch.GetTimestamp();
             try
             {
@@ -2432,6 +2463,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task<Signal> RunBody(ExecutableStep step, int depth, CancellationToken token)
     {
+        // The body is this round's: a step left out of it this time reads as skipped rather
+        // than as whatever it came to in the round before.
+        PrepareOutcomes(step.Children("body"));
         _loops++;
         try
         {

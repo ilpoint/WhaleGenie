@@ -153,7 +153,7 @@ public class PictureAndHashTests
 
             Assert.False(missing.Result.Succeeded);
             Assert.Equal("Run.FileNotFound", missing.Result.Key);
-            Assert.False(missing.Store.TryGet("gone", out _));
+            Assert.Equal(string.Empty, missing.Store.Local.Values["gone"].AsText());
         }
         finally
         {
