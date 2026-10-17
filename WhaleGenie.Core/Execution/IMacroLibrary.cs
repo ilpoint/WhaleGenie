@@ -25,6 +25,13 @@ public interface IMacroLibrary
     /// nobody reads.
     /// </summary>
     MacroSignature? Signature(string name);
+
+    /// <summary>
+    /// True when the macro with this name asked to take turns sending input. A library that does
+    /// not keep that setting says false, and the run then falls back to taking turns whenever the
+    /// macro that called it does: a parent's promise is not dropped because a child says nothing.
+    /// </summary>
+    bool ExclusiveInput(string name) => false;
 }
 
 /// <summary>A library with nothing in it, for a run that has no project behind it.</summary>

@@ -889,29 +889,66 @@ public partial class MacroEditorWindow : Window
     /// once, write their input through each other, and neither of them looks wrong on its own — so
     /// the check is handed this rather than left to guess it from the macro being edited.
     /// </summary>
-    private bool OtherMacroSendsInput()
-        => _project
-            .Where(macro => !ReferenceEquals(macro, _editing))
-            .SelectMany(macro => macro.Steps)
-            .Any(SendsInput);
-
-    private static bool SendsInput(MacroStep step)
-        => MacroRunner.SendsInput(step.Type)
-            || step.StepLists.SelectMany(list => list.Steps).Any(SendsInput);
+    private bool OtherMacroSendsInput() => OtherMacroReaches(MacroRunner.SendsInput);
 
     /// <summary>
     /// Whether any other macro of this project uses the shared browser. There is one current page
     /// for the program, so two macros that work in it take turns even when they never send input.
     /// </summary>
-    private bool OtherMacroUsesBrowser()
-        => _project
+    private bool OtherMacroUsesBrowser() => OtherMacroReaches(MacroRunner.UsesBrowser);
+
+    /// <summary>
+    /// True when any macro other than the one being edited does the thing, either itself or through
+    /// a macro it calls. Calls are followed with the names already being walked, so a circle of
+    /// macros is answered rather than followed forever.
+    /// </summary>
+    private bool OtherMacroReaches(Func<string, bool> direct)
+    {
+        var macros = _project.ToList();
+
+        bool Walk(MacroStep step, HashSet<string> walking)
+        {
+            if (direct(step.Type))
+            {
+                return true;
+            }
+
+            foreach (var list in step.StepLists)
+            {
+                if (list.Steps.Any(child => Walk(child, walking)))
+                {
+                    return true;
+                }
+            }
+
+            if (step.Type is not ("control.runMacro" or "control.startMacro"))
+            {
+                return false;
+            }
+
+            var name = step.Text("macro").Trim();
+            var called = macros.FirstOrDefault(macro =>
+                string.Equals(macro.Name.Trim(), name, StringComparison.OrdinalIgnoreCase));
+            if (called is null || !walking.Add(called.Name.Trim()))
+            {
+                return false;
+            }
+
+            try
+            {
+                return called.Steps.Any(child => Walk(child, walking));
+            }
+            finally
+            {
+                walking.Remove(called.Name.Trim());
+            }
+        }
+
+        return macros
             .Where(macro => !ReferenceEquals(macro, _editing))
             .SelectMany(macro => macro.Steps)
-            .Any(UsesBrowser);
-
-    private static bool UsesBrowser(MacroStep step)
-        => MacroRunner.UsesBrowser(step.Type)
-            || step.StepLists.SelectMany(list => list.Steps).Any(UsesBrowser);
+            .Any(step => Walk(step, new HashSet<string>(StringComparer.OrdinalIgnoreCase)));
+    }
 
     /// <summary>
     /// Takes a macro lifted out of this one: it counts as part of the project from here on, so a
@@ -1073,7 +1110,7 @@ public partial class MacroEditorWindow : Window
     {
         var current = _viewModel.Name.Trim();
         var entries = new List<(string Name, IReadOnlyList<ExecutableStep> Steps,
-            MacroSignature Signature)>();
+            MacroSignature Signature, bool ExclusiveInput)>();
 
         foreach (var macro in _project)
         {
@@ -1083,13 +1120,15 @@ public partial class MacroEditorWindow : Window
                 continue;
             }
 
-            entries.Add((macro.Name, macro.Steps.ToExecutable(), macro.Callable.Signature));
+            entries.Add((macro.Name, macro.Steps.ToExecutable(), macro.Callable.Signature,
+                macro.ExclusiveInput));
         }
 
         if (current.Length > 0)
         {
             var edited = _viewModel.BuildMacro();
-            entries.Add((current, _viewModel.Steps.ToExecutable(), edited.Callable.Signature));
+            entries.Add((current, _viewModel.Steps.ToExecutable(), edited.Callable.Signature,
+                edited.ExclusiveInput));
         }
 
         return new ProjectMacroLibrary(entries);

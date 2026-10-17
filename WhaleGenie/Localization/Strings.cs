@@ -1522,6 +1522,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.ResultBeforeWait"] = "\"{0}\" is a background run's result and has no value until that run is waited for: wait for it before reading it.",
         ["Editor.Problem.MissingRunHandles"] = "This step was given no list of run handles, so there is nothing to wait for.",
         ["Editor.Problem.LoopVariableShadowed"] = "\"{0}\" is already used by a loop around this one, so the outer value is lost when this loop ends: give this loop's variable another name.",
+        ["Run.BrowserRunWhileHeld"] = "This background run works in the browser, and the step that started it is itself inside a browser dialog that holds the one page. Wait for the dialog to finish before starting it.",
+        ["Editor.Problem.BrowserRunWhileHeld"] = "This background run uses the browser while the step it sits in holds the browser's one page, so it would wait for good: start it after the dialog.",
         ["Log.Finally"] = "Running the clean-up steps.",
         ["Add.SystemReadOnly"] = "\"{0}\" is a system variable, which a macro can only read.",
         ["Add.GlobalMustExist"] =
@@ -3147,6 +3149,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.ResultBeforeWait"] = "「{0}」是后台运行的结果，等到那次运行结束才有值：先等它结束再读。",
         ["Editor.Problem.MissingRunHandles"] = "这一步没有给出一列运行句柄，也就没有可以等的运行。",
         ["Editor.Problem.LoopVariableShadowed"] = "「{0}」外层循环也在用，内层结束之后外层的值就没有了：给内层换一个名字。",
+        ["Run.BrowserRunWhileHeld"] = "这次后台运行要用浏览器，而启动它的步骤正待在一个按住那一页的浏览器对话框里。等对话框结束再启动它。",
+        ["Editor.Problem.BrowserRunWhileHeld"] = "这一步所在的位置正按着浏览器的那一页，再启动一个用浏览器的后台运行会一直等下去：等对话框结束再启动。",
         ["Log.Finally"] = "正在执行收尾步骤。",
         ["Add.SystemReadOnly"] = "“{0}”是系统变量，宏只能读取，不能修改。",
         ["Add.GlobalMustExist"] = "全局变量“{0}”不存在，请先在运行调试窗口里创建。",

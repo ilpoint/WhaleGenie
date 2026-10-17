@@ -57,6 +57,7 @@ public static class RunKeys
     public const string BrowserNoAttribute = "Run.BrowserNoAttribute";
     public const string BrowserNoDialog = "Run.BrowserNoDialog";
     public const string BrowserNoNewTab = "Run.BrowserNoNewTab";
+    public const string BrowserRunWhileHeld = "Run.BrowserRunWhileHeld";
     public const string BrowserNoScript = "Run.BrowserNoScript";
     public const string BrowserNoSelector = "Run.BrowserNoSelector";
     public const string BrowserNoTab = "Run.BrowserNoTab";

@@ -281,7 +281,7 @@ public partial class MacroItem : ObservableObject
     public List<MacroResult> Results { get; } = [];
 
     /// <summary>What this macro asks of a call to it, read by the editor, the check and the engine.</summary>
-    public MacroCallable Callable => new(Name, Parameters, Results);
+    public MacroCallable Callable => new(Name, Parameters, Results, Steps);
 
     /// <summary>Names of the variables this macro creates for itself.</summary>
     public IReadOnlyList<string> LocalVariableNames()

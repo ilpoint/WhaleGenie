@@ -50,8 +50,12 @@ public sealed class MacroResult
 /// design-time check work with.
 /// </summary>
 public sealed record MacroCallable(
-    string Name, IReadOnlyList<MacroParameter> Parameters, IReadOnlyList<MacroResult> Results)
+    string Name, IReadOnlyList<MacroParameter> Parameters, IReadOnlyList<MacroResult> Results,
+    IReadOnlyList<MacroStep>? Steps = null)
 {
+    /// <summary>The steps the macro runs, for the checks that follow a call into it.</summary>
+    public IReadOnlyList<MacroStep> OwnSteps => Steps ?? [];
+
     /// <summary>The same, in the shape the engine calls macros by.</summary>
     public MacroSignature Signature => new(
         [.. Parameters

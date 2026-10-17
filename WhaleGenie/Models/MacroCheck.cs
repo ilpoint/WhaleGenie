@@ -126,10 +126,52 @@ public static class MacroCheck
         var namesAreOpen = Every(tree).Any(step => step.Type == "file.loadVariables");
 
         Visit(tree, 0, 0, new HashSet<string>(StringComparer.OrdinalIgnoreCase), bounded: false,
-            guarded: false);
+            guarded: false, browserHeld: false);
         CheckSharedInput();
         CheckSharedBrowser();
         return problems;
+
+        /// <summary>
+        /// True when this step does the thing, or reaches it through a macro it calls. The names
+        /// being walked are kept so that a macro calling itself — directly or around a circle — is
+        /// answered rather than followed forever.
+        /// </summary>
+        bool Reaches(MacroStep step, Func<string, bool> direct, HashSet<string> walking)
+        {
+            if (direct(step.Type))
+            {
+                return true;
+            }
+
+            foreach (var list in step.StepLists)
+            {
+                if (list.Steps.Any(child => Reaches(child, direct, walking)))
+                {
+                    return true;
+                }
+            }
+
+            if (step.Type is not ("control.runMacro" or "control.startMacro"))
+            {
+                return false;
+            }
+
+            var name = step.Text("macro").Trim();
+            if (name.Length == 0 || !walking.Add(name)
+                || reachable.GetValueOrDefault(name) is not { } called)
+            {
+                return false;
+            }
+
+            try
+            {
+                return called.OwnSteps.Any(child => Reaches(child, direct, walking));
+            }
+            finally
+            {
+                walking.Remove(name);
+            }
+        }
 
         void CheckSharedInput()
         {
@@ -140,10 +182,12 @@ public static class MacroCheck
 
             // Said once, on the first step that sends input: a mark on every one of them would be
             // the same sentence twenty times, and the answer — turn the switch on, or leave the two
-            // macros not running together — is the same for all of them.
+            // macros not running together — is the same for all of them. A step that calls a macro
+            // which sends input counts: the input is sent either way.
+            var walking = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var step in Every(tree))
             {
-                if (MacroRunner.SendsInput(step.Type))
+                if (Reaches(step, MacroRunner.SendsInput, walking))
                 {
                     Add(step, Strings.Get("Editor.Problem.SharedInput"));
                     return;
@@ -160,9 +204,11 @@ public static class MacroCheck
 
             // Said once, on the first browser step: the answer — let the two run apart, or know
             // that they take turns at one page — is the same for every browser step in the macro.
+            // Through a call, the called macro's steps are the ones that take the page.
+            var walking = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var step in Every(tree))
             {
-                if (MacroRunner.UsesBrowser(step.Type))
+                if (Reaches(step, MacroRunner.UsesBrowser, walking))
                 {
                     Add(step, Strings.Get("Editor.Problem.SharedBrowser"));
                     return;
@@ -170,8 +216,28 @@ public static class MacroCheck
             }
         }
 
+        /// <summary>
+        /// A background run started while this run is inside a browser step that holds the one page
+        /// would wait for that page for good. The start step is marked instead.
+        /// </summary>
+        void CheckHeldBrowserRun(MacroStep step, bool browserHeld)
+        {
+            if (!browserHeld || step.Type != "control.startMacro")
+            {
+                return;
+            }
+
+            var name = step.Text("macro").Trim();
+            if (reachable.GetValueOrDefault(name) is { } called
+                && called.OwnSteps.Any(child => Reaches(child, MacroRunner.UsesBrowser,
+                    new HashSet<string>(StringComparer.OrdinalIgnoreCase))))
+            {
+                Add(step, Strings.Get("Editor.Problem.BrowserRunWhileHeld"));
+            }
+        }
+
         void Visit(IReadOnlyList<MacroStep> list, int loops, int switches,
-            IReadOnlySet<string> loopNames, bool bounded, bool guarded)
+            IReadOnlySet<string> loopNames, bool bounded, bool guarded, bool browserHeld)
         {
             foreach (var step in list)
             {
@@ -189,6 +255,7 @@ public static class MacroCheck
                 CheckReservedNames(step);
                 CheckScriptInput(step);
                 CheckRunHandle(step);
+                CheckHeldBrowserRun(step, browserHeld);
 
                 // A loop's own variables belong to the innermost loop that names them, so one
                 // that borrows a name from a loop around it loses the outer value when it ends.
@@ -210,17 +277,18 @@ public static class MacroCheck
                 insideNames.UnionWith(ownNames);
                 var insideBounded = bounded || step.Meta.TimeoutMs > 0;
                 var insideGuard = guarded || GuardKeys.Contains(step.Type);
+                var insideHeld = browserHeld || step.Type == "browser.dialog";
                 foreach (var parameter in step.Parameters)
                 {
                     switch (parameter.Kind)
                     {
                         case ActionParameterKind.Steps:
                             Visit(parameter.Steps, insideLoops, insideSwitches, insideNames,
-                                insideBounded, insideGuard);
+                                insideBounded, insideGuard, insideHeld);
                             break;
                         case ActionParameterKind.Condition when parameter.Condition is { } condition:
                             Visit([condition], insideLoops, insideSwitches, insideNames,
-                                insideBounded, insideGuard);
+                                insideBounded, insideGuard, browserHeld);
                             break;
                     }
                 }

@@ -2499,6 +2499,37 @@ public class MacroRunnerTests
         Assert.Equal(string.Empty, store.Local.Values["坏值"].AsText());
     }
 
+    /// <summary>
+    /// 被调用的宏自己勾了「与别的宏互斥发输入」，父宏没勾也一样排队：门是在子宏的步骤上取的，
+    /// 父宏的声明不会把它盖掉。
+    /// </summary>
+    [Fact]
+    public async Task A_called_macro_takes_turns_with_input_even_when_its_caller_does_not()
+    {
+        var library = new Library(("输入", MacroSignature.Empty,
+            [Step("input.keyPress", Param("key", "F5"))]));
+        library.Exclusive.Add("输入");
+
+        var holder = await InputGate.Take("another macro", CancellationToken.None);
+        Task<RunResult> running;
+        try
+        {
+            running = new MacroRunner(new VariableStore(), new SilentRunHost(), null, 1, library)
+                .RunAsync([Step("control.runMacro", Param("macro", "输入"))]);
+
+            await Task.Delay(120);
+            Assert.False(running.IsCompleted);
+        }
+        finally
+        {
+            holder.Dispose();
+        }
+
+        var result = await running;
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.NoDevice, result.Key);
+    }
+
     [Fact]
     public async Task A_return_at_the_top_finishes_the_run()
     {
@@ -3067,6 +3098,11 @@ public class MacroRunnerTests
 
         public MacroSignature? Signature(string name)
             => _byName.TryGetValue(name, out var macro) ? macro.Signature : null;
+
+        /// <summary>Macros that asked to take turns sending input.</summary>
+        public HashSet<string> Exclusive { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+        public bool ExclusiveInput(string name) => Exclusive.Contains(name);
     }
 
     private sealed class WatchingHost : IRunHost

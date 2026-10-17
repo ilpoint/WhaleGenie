@@ -158,6 +158,16 @@ public class DeviceActionTests
         return (result, layer, store);
     }
 
+    /// <summary>The same, with a project's macros behind the run so a step can call them.</summary>
+    private static async Task<(RunResult Result, FakeDeviceLayer Devices, VariableStore Store)> RunWithAsync(
+        ExecutableStep[] steps, FakeDeviceLayer devices, IMacroLibrary macros)
+    {
+        var store = new VariableStore();
+        var result = await new MacroRunner(store, new SilentRunHost(), devices, 1, macros)
+            .RunAsync(steps);
+        return (result, devices, store);
+    }
+
     /// <summary>
     /// What a run asked the devices for, without the text file a failed run leaves behind. These
     /// cases are each about one request, and that file is about the run's own ending rather than
@@ -7834,6 +7844,29 @@ public class DeviceActionTests
     private static IReadOnlyList<string> Names(Value record)
         => [.. record.Fields.Select(field => field.Name)];
 
+    /// <summary>The macros of a small project, with no declarations of their own.</summary>
+    private sealed class Macros : IMacroLibrary
+    {
+        private readonly Dictionary<string, IReadOnlyList<ExecutableStep>> _byName =
+            new(StringComparer.OrdinalIgnoreCase);
+
+        public Macros(params (string Name, ExecutableStep[] Steps)[] entries)
+        {
+            foreach (var (name, steps) in entries)
+            {
+                _byName[name] = steps;
+            }
+        }
+
+        public IReadOnlyList<string> Names => [.. _byName.Keys];
+
+        public IReadOnlyList<ExecutableStep>? Steps(string name)
+            => _byName.TryGetValue(name, out var steps) ? steps : null;
+
+        public MacroSignature? Signature(string name)
+            => _byName.ContainsKey(name) ? MacroSignature.Empty : null;
+    }
+
     /// <summary>
     /// 没找到的那一次不给命中：这一步勾的「命中」在尝试开始时先清空，所以读到的是空，而不是上一步
     /// 或上一次尝试留在同名变量里的值。重试也一样，每一次试都从空开始。
@@ -9148,6 +9181,68 @@ public class DeviceActionTests
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.BrowserNoDialog", result.Key);
+    }
+
+    /// <summary>
+    /// A dialog holds the one page while its body runs. Starting a background run that needs the
+    /// page would wait for a door the dialog itself is holding, so it is refused with a name for
+    /// what went wrong rather than left to hang.
+    /// </summary>
+    [Fact]
+    public async Task A_background_browser_run_inside_a_dialog_is_refused()
+    {
+        var devices = new FakeDeviceLayer { BrowserDialog = "继续吗？" };
+        var library = new Macros(("用页面", [Step("browser.click", Param("pageSelector", "#submit"))]));
+
+        var (result, _, _) = await RunWithAsync(
+        [
+            Step("browser.dialog", Param("dialogHow", "accept"),
+                Body("body", Step("control.startMacro", Param("macro", "用页面"),
+                    Param("runHandleName", "job")))),
+        ], devices, library);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BrowserRunWhileHeld", result.Key);
+    }
+
+    /// <summary>A background run that never touches the page is started and waited for as usual.</summary>
+    [Fact]
+    public async Task A_background_run_that_does_not_touch_the_page_works_inside_a_dialog()
+    {
+        var devices = new FakeDeviceLayer { BrowserDialog = "继续吗？" };
+        var library = new Macros(("记账", [Step("file.writeText", Param("path", "ran.txt"),
+            Param("text", "1"))]));
+
+        var (result, _, store) = await RunWithAsync(
+        [
+            Step("browser.dialog", Param("dialogHow", "accept"),
+                Body("body",
+                    Step("control.startMacro", Param("macro", "记账"), Param("runHandleName", "job")),
+                    Step("control.waitMacro", Param("runHandle", "$job")))),
+        ], devices, library);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.True(devices.Files.ContainsKey("ran.txt"));
+    }
+
+    /// <summary>
+    /// A synchronous call is the caller's own flow, so its browser steps are the dialog's own steps
+    /// and may use the page it is holding.
+    /// </summary>
+    [Fact]
+    public async Task A_synchronous_browser_call_works_inside_a_dialog()
+    {
+        var devices = new FakeDeviceLayer { BrowserDialog = "继续吗？" };
+        var library = new Macros(("用页面", [Step("browser.click", Param("pageSelector", "#submit"))]));
+
+        var (result, _, _) = await RunWithAsync(
+        [
+            Step("browser.dialog", Param("dialogHow", "accept"),
+                Body("body", Step("control.runMacro", Param("macro", "用页面")))),
+        ], devices, library);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Contains("browserClick #submit #1 Single False 0", devices.Calls);
     }
 
     /// <summary>

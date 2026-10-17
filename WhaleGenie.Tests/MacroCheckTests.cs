@@ -65,10 +65,10 @@ public class MacroCheckTests
 
     /// <summary>What one macro of the project asks a call to fill in and offers to hand back.</summary>
     private static MacroCallable Callable(string name, string[]? parameters = null,
-        string[]? results = null)
+        string[]? results = null, params MacroStep[] steps)
         => new(name,
             [.. (parameters ?? []).Select(parameter => new MacroParameter { Name = parameter })],
-            [.. (results ?? []).Select(result => new MacroResult { Name = result })]);
+            [.. (results ?? []).Select(result => new MacroResult { Name = result })], steps);
 
     /// <summary>
     /// Runs the check on the thread the headless session owns: it reads the action catalogue,
@@ -684,6 +684,54 @@ public class MacroCheckTests
         var problem = Assert.Single(Inspect(outer), candidate => candidate.Step == inner);
         Assert.Equal(Strings.Format("Editor.Problem.LoopVariableShadowed", "item"),
             problem.Message);
+    }
+
+    /// <summary>
+    /// 调用的宏里发键鼠，也算这个宏在发：调用那一步标「与别的宏互斥发输入」的提示，不必等
+    /// 子宏自己的行。
+    /// </summary>
+    [Fact]
+    public void A_call_to_a_macro_that_sends_input_counts_as_input()
+    {
+        var input = Step("input.keyPress", Text("key", "F5"));
+        var child = Callable("输入", null, null, input);
+        var call = Step("control.runMacro", Text("macro", "输入"));
+
+        var problems = Ui.Run(() => MacroCheck.Inspect([call], null, [child], inputShared: true));
+
+        var problem = Assert.Single(problems, candidate => candidate.Step == call);
+        Assert.Equal(Strings.Get("Editor.Problem.SharedInput"), problem.Message);
+    }
+
+    /// <summary>先要按住浏览器那一页，启动一个用浏览器的后台运行会一直等下去，写宏时就标出来。</summary>
+    [Fact]
+    public void Starting_a_browser_run_inside_a_dialog_is_marked()
+    {
+        var child = Callable("用页面", null, null,
+            Step("browser.click", Text("pageSelector", "#submit")));
+        var start = Step("control.startMacro", Text("macro", "用页面"),
+            Name("runHandleName", "job"));
+        var dialog = Step("browser.dialog", Text("dialogHow", "accept"), Steps("body", start));
+
+        var problems = Ui.Run(() => MacroCheck.Inspect([dialog], null, [child]));
+
+        var problem = Assert.Single(problems, candidate => candidate.Step == start);
+        Assert.Equal(Strings.Get("Editor.Problem.BrowserRunWhileHeld"), problem.Message);
+    }
+
+    /// <summary>两个宏互相调用时，沿调用图的分析要停下来，而不是一直跟下去。</summary>
+    [Fact]
+    public void A_circle_of_calls_does_not_make_the_analysis_run_forever()
+    {
+        var toB = Step("control.runMacro", Text("macro", "乙"));
+        var toA = Step("control.runMacro", Text("macro", "甲"));
+        var a = Callable("甲", null, null, toB);
+        var b = Callable("乙", null, null, toA);
+
+        var problems = Ui.Run(() => MacroCheck.Inspect([toA], null, [a, b], inputShared: true));
+
+        Assert.DoesNotContain(problems,
+            candidate => candidate.Message == Strings.Get("Editor.Problem.SharedInput"));
     }
 
     [Fact]

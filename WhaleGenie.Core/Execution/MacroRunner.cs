@@ -340,7 +340,21 @@ public sealed partial class MacroRunner
     /// a single macro never has anything to wait for, and one whose author has not thought about
     /// running two at once is left doing exactly what it did before.
     /// </summary>
-    public bool ExclusiveInput { get; init; }
+    /// <remarks>
+    /// A call runs with the called macro's own answer while it is in there — or with that answer
+    /// or the caller's, so a caller that promised to take turns does not drop that promise just
+    /// because the macro it calls says nothing.
+    /// </remarks>
+    public bool ExclusiveInput
+    {
+        get => _exclusiveInput;
+        init => _exclusiveInput = value;
+    }
+
+    private bool _exclusiveInput;
+
+    /// <summary>What a call to this macro runs with: its own answer, and never less than the caller's.</summary>
+    private bool CallExclusiveInput(string name) => _macros.ExclusiveInput(name) || _exclusiveInput;
 
     /// <summary>
     /// How many calls deep this run already is. A background run carries the depth of the call that
@@ -784,6 +798,11 @@ public sealed partial class MacroRunner
         _callDepth++;
         PrepareOutcomes(steps);
 
+        // Inside the call, the question "does this run take turns sending input" is the called
+        // macro's to answer — and the caller's answer is not dropped while its steps run in place.
+        var outerExclusive = _exclusiveInput;
+        _exclusiveInput = CallExclusiveInput(name);
+
         // The called macro starts outside every loop, whatever the caller is inside. A break in
         // there belongs to a loop of its own or to nothing; it must never reach out and cut a
         // loop in the caller short.
@@ -821,6 +840,7 @@ public sealed partial class MacroRunner
             _caught = outerCaught;
             _loops = outerLoops;
             _callDepth--;
+            _exclusiveInput = outerExclusive;
             var produced = Variables.SwapLocal(caller);
             if (finished)
             {
@@ -884,6 +904,14 @@ public sealed partial class MacroRunner
         }
 
         var (name, steps, signature, wanted, called) = ResolveCall(step);
+
+        // A run that is inside a browser step holding the one page cannot start another run that
+        // needs that page: it would wait for a door its own caller is holding, and wait forever.
+        if (_browserHolds > 0 && UsesBrowser(steps, _macros))
+        {
+            throw new StepFailure(RunKeys.BrowserRunWhileHeld, name);
+        }
+
         var childStore = new VariableStore(Variables.Global);
         childStore.SwapLocal(called);
 
@@ -891,7 +919,7 @@ public sealed partial class MacroRunner
             _macros)
         {
             RunName = name,
-            ExclusiveInput = ExclusiveInput,
+            ExclusiveInput = CallExclusiveInput(name),
             FailureLogFolder = FailureLogFolder,
             InitialCallDepth = _callDepth + 1,
         };
@@ -1640,6 +1668,60 @@ public sealed partial class MacroRunner
     /// </summary>
     public static bool UsesBrowser(string type)
         => ActionSemanticsCatalog.Find(type)?.Category is ActionCategory.Browser;
+
+    /// <summary>
+    /// True when any of these steps, or a macro they call, works through the one shared browser.
+    /// The walk follows calls with the names it is inside, so a macro that calls itself does not
+    /// turn the answer into a stack overflow.
+    /// </summary>
+    public static bool UsesBrowser(IReadOnlyList<ExecutableStep> steps, IMacroLibrary macros)
+        => ReachesCalls(steps, macros, UsesBrowser, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+
+    /// <summary>The same question for sending input, asked of a step tree and the macros it calls.</summary>
+    public static bool SendsInput(IReadOnlyList<ExecutableStep> steps, IMacroLibrary macros)
+        => ReachesCalls(steps, macros, SendsInput, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+
+    private static bool ReachesCalls(IReadOnlyList<ExecutableStep> steps, IMacroLibrary macros,
+        Func<string, bool> direct, HashSet<string> walking)
+        => steps.Any(step => ReachesCalls(step, macros, direct, walking));
+
+    private static bool ReachesCalls(ExecutableStep step, IMacroLibrary macros,
+        Func<string, bool> direct, HashSet<string> walking)
+    {
+        if (direct(step.Type))
+        {
+            return true;
+        }
+
+        foreach (var parameter in step.Parameters)
+        {
+            if (ReachesCalls(parameter.Steps, macros, direct, walking))
+            {
+                return true;
+            }
+        }
+
+        if (step.Type is not ("control.runMacro" or "control.startMacro"))
+        {
+            return false;
+        }
+
+        var name = step.Text("macro").Trim();
+        if (name.Length == 0 || !walking.Add(name))
+        {
+            return false;
+        }
+
+        try
+        {
+            return macros.Steps(name) is { } called
+                && ReachesCalls(called, macros, direct, walking);
+        }
+        finally
+        {
+            walking.Remove(name);
+        }
+    }
 
     private async Task<Signal> Dispatch(ExecutableStep step, int depth, CancellationToken token)
     {
