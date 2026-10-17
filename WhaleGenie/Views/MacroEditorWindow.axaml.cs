@@ -124,8 +124,6 @@ public partial class MacroEditorWindow : Window
     /// </summary>
     private ActionEditorView? _inspector;
 
-    private bool _settingInspectorAction;
-    private IReadOnlyList<ActionDefinition> _inspectorActions = ActionCatalog.Definitions;
     private MacroInterfaceView? _interfaceView;
     private MacroInterfaceViewModel? _interfaceModel;
 
@@ -206,6 +204,14 @@ public partial class MacroEditorWindow : Window
 
         DataContext = _viewModel;
         Title = Strings.Get("Editor.Title");
+
+        EnsureInspector();
+        ActionPalette.DataContext = _inspector!.DataContext;
+        ActionPalette.ActionChosen += () =>
+        {
+            InspectorHost.IsVisible = true;
+            ShowInspectorSteps();
+        };
         // Saving or cancelling takes the editor away, so the recording that ends with it has
         // nothing to report.
         _viewModel.CloseRequested += macro =>
@@ -984,9 +990,6 @@ public partial class MacroEditorWindow : Window
             _viewModel.StepChoices(), _assetFolder);
         inspector.Macros = BuildLibrary();
 
-        _inspectorActions = actions ?? ActionCatalog.Definitions;
-        InspectorActionFilter.Text = string.Empty;
-        InspectorActionPicker.ItemsSource = _inspectorActions;
 
         if (editing is null)
         {
@@ -999,8 +1002,6 @@ public partial class MacroEditorWindow : Window
 
         InspectorHost.IsVisible = true;
         ShowInspectorSteps();
-        SyncInspectorAction();
-        InspectorActionPicker.Focus();
     }
 
     /// <summary>
@@ -1028,16 +1029,6 @@ public partial class MacroEditorWindow : Window
             LookAtStep = LookAtStep,
         };
 
-        if (_inspector.DataContext is AddActionViewModel form)
-        {
-            form.PropertyChanged += (_, args) =>
-            {
-                if (args.PropertyName == nameof(AddActionViewModel.SelectedKey))
-                {
-                    SyncInspectorAction();
-                }
-            };
-        }
         _inspector.Finished += step =>
         {
             if (step is null)
@@ -1062,8 +1053,6 @@ public partial class MacroEditorWindow : Window
         _interfaceModel?.Reload();
         MacroInterfaceHost.IsVisible = true;
         InspectorContent.IsVisible = false;
-        InspectorActionFilter.IsVisible = false;
-        InspectorActionPicker.IsVisible = false;
     }
 
     /// <summary>Puts the inspector back on the step being written.</summary>
@@ -1071,8 +1060,6 @@ public partial class MacroEditorWindow : Window
     {
         MacroInterfaceHost.IsVisible = false;
         InspectorContent.IsVisible = true;
-        InspectorActionFilter.IsVisible = true;
-        InspectorActionPicker.IsVisible = true;
     }
 
     /// <summary>Builds the interface editor the first time it is asked for.</summary>
@@ -1087,58 +1074,13 @@ public partial class MacroEditorWindow : Window
         _interfaceView = new MacroInterfaceView { DataContext = _interfaceModel };
         MacroInterfaceHost.Content = _interfaceView;
     }
+    /// <summary>Shows or hides the macro's own trigger and schedule settings over the columns.</summary>
+    private void OnToggleMacroSettings(object? sender, RoutedEventArgs e)
+        => MacroSettingsDrawer.IsVisible = !MacroSettingsDrawer.IsVisible;
     /// <summary>The editor's own way out of the inspector, beside the action it is showing.</summary>
     private void OnCloseInspector(object? sender, RoutedEventArgs e)
     {
         InspectorHost.IsVisible = false;
-    }
-
-    /// <summary>Gives the form the action the picker beside it now names.</summary>
-    private void OnInspectorActionChosen(object? sender, SelectionChangedEventArgs e)
-    {
-        if (_settingInspectorAction
-            || _inspector is null
-            || InspectorActionPicker.SelectedItem is not ActionDefinition definition)
-        {
-            return;
-        }
-
-        _inspector.SelectAction(definition.Key);
-        SyncInspectorAction();
-    }
-
-    /// <summary>Narrows the action bar to the names that contain what was typed.</summary>
-    private void OnInspectorActionFilterChanged(object? sender, TextChangedEventArgs e)
-    {
-        if (_inspector is null)
-        {
-            return;
-        }
-
-        var wanted = InspectorActionFilter.Text?.Trim() ?? string.Empty;
-        InspectorActionPicker.ItemsSource = wanted.Length == 0
-            ? _inspectorActions
-            : [.. _inspectorActions.Where(definition =>
-                definition.LocalName.Contains(wanted, StringComparison.OrdinalIgnoreCase)
-                || definition.Key.Contains(wanted, StringComparison.OrdinalIgnoreCase))];
-        SyncInspectorAction();
-    }
-    /// <summary>Points the picker bar at whatever action the form was opened on.</summary>
-    private void SyncInspectorAction()
-    {
-        _settingInspectorAction = true;
-        try
-        {
-            var key = (_inspector?.DataContext as AddActionViewModel)?.SelectedKey ?? string.Empty;
-            var choices = InspectorActionPicker.ItemsSource?.OfType<ActionDefinition>()
-                ?? _inspectorActions;
-            InspectorActionPicker.SelectedItem = choices.FirstOrDefault(definition =>
-                string.Equals(definition.Key, key, StringComparison.Ordinal));
-        }
-        finally
-        {
-            _settingInspectorAction = false;
-        }
     }
 
     /// <summary>

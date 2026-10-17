@@ -762,4 +762,24 @@ public class MacroEditorTests
             Assert.True(viewModel.IsDirty);
         });
     }
+
+    [Fact]
+    public void The_left_palette_filters_by_category()
+    {
+        Ui.Run(() =>
+        {
+            var (window, _) = Open();
+            var palette = Assert.IsType<ActionPaletteView>(
+                window.FindControl<ActionPaletteView>("ActionPalette"));
+            var form = Assert.IsType<AddActionViewModel>(palette.DataContext);
+
+            var input = Assert.Single(form.Categories,
+                choice => choice.Value == ActionCategory.Input);
+            form.SelectedCategory = input;
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Contains(form.ActionGroups.SelectMany(group => group.Actions),
+                card => card.Key == "input.keyPress");
+        });
+    }
 }

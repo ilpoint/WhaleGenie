@@ -1,0 +1,124 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WhaleGenie.ViewModels"
+             xmlns:loc="using:WhaleGenie.Localization"
+             x:Class="WhaleGenie.Views.ActionPaletteView"
+             x:DataType="vm:AddActionViewModel">
+
+    <UserControl.Resources>
+        <DataTemplate x:Key="PaletteGroup" x:DataType="vm:ActionGroupViewModel">
+            <StackPanel Margin="0,0,0,2">
+                <Button Classes="GroupToggle" Click="OnToggleGroup"
+                        IsVisible="{Binding HasActions}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Path Width="9" Height="7" Stretch="Uniform" Stroke="#9A9A9A"
+                              StrokeThickness="1.6" Data="{Binding Caret}" />
+                        <TextBlock Text="{Binding Header}" FontSize="12" Foreground="#E8E8E8" />
+                    </StackPanel>
+                </Button>
+                <TextBlock Classes="Muted" Margin="20,2,8,0" TextWrapping="Wrap"
+                           Text="{Binding Note}" IsVisible="{Binding HasNote}" />
+                <ItemsControl ItemsSource="{Binding Actions}" IsVisible="{Binding IsOpen}"
+                              Margin="16,5,0,4">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ActionCardViewModel">
+                            <Button Classes="ActionCard" Classes.selected="{Binding IsSelected}"
+                                    Click="OnPickAction"
+                                    ToolTip.Tip="{Binding Definition.LocalDescription}">
+                                <TextBlock Text="{Binding Definition.LocalName}" FontSize="12" />
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.Muted">
+            <Setter Property="Foreground" Value="#9A9A9A" />
+            <Setter Property="FontSize" Value="11.5" />
+        </Style>
+        <Style Selector="Button.GroupToggle">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="6,5" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+        </Style>
+        <Style Selector="Button.GroupToggle:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2E2E2E" />
+        </Style>
+        <Style Selector="Button.ActionCard">
+            <Setter Property="Background" Value="#2E2E2E" />
+            <Setter Property="BorderBrush" Value="#3A3A3A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Foreground" Value="#E4E4E4" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="9,0" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Margin" Value="0,0,5,5" />
+        </Style>
+        <Style Selector="Button.ActionCard:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3C3C3C" />
+        </Style>
+        <Style Selector="Button.ActionCard.selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3A2A22" />
+            <Setter Property="BorderBrush" Value="#C8401C" />
+        </Style>
+        <Style Selector="Button.Category">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Width" Value="48" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Foreground" Value="#B8B8B8" />
+            <Setter Property="FontSize" Value="9.5" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.Category:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2E2E2E" />
+        </Style>
+        <Style Selector="ListBox.CategoryDock">
+            <Setter Property="Background" Value="#202020" />
+            <Setter Property="Padding" Value="3,8" />
+        </Style>
+        <Style Selector="ListBox.CategoryDock ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style Selector="ListBox.CategoryDock ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3A2A22" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid ColumnDefinitions="54,*" Background="#292929">
+        <Border Grid.Column="0" Background="#202020">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Categories}" Margin="3,8">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ActionCategoryChoice">
+                            <Button Classes="Category" ToolTip.Tip="{Binding Label}"
+                                    Click="OnPickCategory" Content="{Binding Short}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="8,8,8,8">
+            <TextBox Grid.Row="0" Text="{Binding ActionSearch}"
+                     PlaceholderText="{Binding [Add.SearchAction], Source={x:Static loc:Strings.Current}}" />
+            <ScrollViewer Grid.Row="1" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding ActionGroups}"
+                              ItemTemplate="{StaticResource PaletteGroup}" />
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

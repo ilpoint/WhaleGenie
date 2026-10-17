@@ -19,6 +19,8 @@ namespace WhaleGenie.ViewModels;
 /// Drives the "Add Action" dialog: pick an action from the catalogue, fill in the
 /// parameters it asks for, then save the result as one step.
 /// </summary>
+public sealed record ActionCategoryChoice(ActionCategory? Value, string Label, string Short);
+
 public partial class AddActionViewModel : ViewModelBase
 {
     private IReadOnlyList<VariableChoice> _variables;
@@ -121,6 +123,18 @@ public partial class AddActionViewModel : ViewModelBase
             Pages.Add(new ActionPageViewModel { Key = key, Title = Strings.Get(title) });
         }
 
+        Categories =
+        [
+            new(null, Strings.Get("Add.AllActions"), Strings.Get("Add.AllActionsShort")),
+            .. Enum.GetValues<ActionCategory>().Select(category =>
+            {
+                var label = Strings.Get($"Add.Category.{category}");
+                return new ActionCategoryChoice(category, label,
+                    label.Length <= 4 ? label : label[..4]);
+            }),
+        ];
+        SelectedCategory = Categories[0];
+
         Page = Pages[0];
         RebuildActions();
     }
@@ -180,6 +194,14 @@ public partial class AddActionViewModel : ViewModelBase
     /// category.
     /// </summary>
     public ObservableCollection<ActionGroupViewModel> ActionGroups { get; } = [];
+
+    /// <summary>The categories the vertical dock offers, with "all" first.</summary>
+    public IReadOnlyList<ActionCategoryChoice> Categories { get; }
+
+    [ObservableProperty]
+    public partial ActionCategoryChoice? SelectedCategory { get; set; }
+
+    partial void OnSelectedCategoryChanged(ActionCategoryChoice? value) => RebuildActions();
 
     /// <summary>True when the search box has hidden everything, so the picker can say so.</summary>
     public bool HasNoActionMatch => ActionGroups.Count == 0;
@@ -916,7 +938,9 @@ public partial class AddActionViewModel : ViewModelBase
     private void RebuildActions()
     {
         var search = ActionSearch.Trim();
-        var matching = AvailableActions.Where(action => Matches(action, search)).ToList();
+        var wanted = SelectedCategory?.Value;
+        var matching = AvailableActions.Where(action =>
+            Matches(action, search) && (wanted is null || action.Category == wanted)).ToList();
 
         // A search has already narrowed the list, so everything left in it is worth showing;
         // with a blank box the groups start folded, which is what keeps the catalogue readable.

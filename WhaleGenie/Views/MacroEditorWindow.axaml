@@ -11,8 +11,8 @@
         x:Class="WhaleGenie.Views.MacroEditorWindow"
         x:DataType="vm:MacroEditorViewModel"
         Title="Macro Editor"
-        Width="1280" Height="800"
-        MinWidth="1200" MinHeight="640"
+        Width="1320" Height="800"
+        MinWidth="1120" MinHeight="640"
         WindowStartupLocation="CenterOwner"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="-1"
@@ -410,6 +410,11 @@
             </StackPanel>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0" VerticalAlignment="Center">
+                <Button Classes="PaletteButton" Height="28" Padding="8,0" Margin="0,0,4,0"
+                        Click="OnToggleMacroSettings"
+                        ToolTip.Tip="{Binding [Editor.TriggerSettings], Source={x:Static loc:Strings.Current}}">
+                    <TextBlock Text="⚙" FontSize="14" Foreground="#E4E4E4" />
+                </Button>
                 <Button Classes="TitleBarButton" Name="MinimizeButton"
                         ToolTip.Tip="{Binding [Common.Minimize], Source={x:Static loc:Strings.Current}}">
                     <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6" Data="M 0,5 H 8" />
@@ -421,10 +426,14 @@
             </StackPanel>
         </Grid>
 
-        <Grid Grid.Row="1" ColumnDefinitions="452,16,*,16,440" Margin="14">
+        <Grid Grid.Row="1" ColumnDefinitions="360,16,*,16,440" Margin="14">
 
             <!-- Left: Trigger Settings -->
-            <Border Grid.Column="0" Background="#292929" CornerRadius="6">
+            <views:ActionPaletteView Grid.Column="0" Name="ActionPalette" />
+
+            <Border Grid.Column="0" Grid.ColumnSpan="3" Name="MacroSettingsDrawer"
+                    Width="452" HorizontalAlignment="Left" ZIndex="10" IsVisible="False"
+                    Background="#292929" CornerRadius="6">
                 <Grid RowDefinitions="*,Auto">
                     <ScrollViewer Grid.Row="0" Padding="18,16,18,8" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
@@ -1082,7 +1091,7 @@
                           ResizeDirection="Columns" />
             <Border Grid.Column="4" Name="InspectorHost" Background="#292929"
                     CornerRadius="6" IsVisible="False">
-                <Grid RowDefinitions="Auto,Auto,Auto,*">
+                <Grid RowDefinitions="Auto,*">
                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="14,10,10,6">
                         <TextBlock Classes="SectionHeader" VerticalAlignment="Center"
                                    Text="{Binding [Editor.ActionEditor], Source={x:Static loc:Strings.Current}}" />
@@ -1096,20 +1105,8 @@
                                   Data="M 1,1 L 7,7 M 1,7 L 7,1" />
                         </Button>
                     </Grid>
-                    <TextBox Grid.Row="1" Name="InspectorActionFilter" Margin="14,0,14,6"
-                             TextChanged="OnInspectorActionFilterChanged"
-                             PlaceholderText="{Binding [Add.SearchAction], Source={x:Static loc:Strings.Current}}" />
-                    <ComboBox Grid.Row="2" Name="InspectorActionPicker" Margin="14,0,14,8"
-                              PlaceholderText="{Binding [Add.SelectAction], Source={x:Static loc:Strings.Current}}"
-                              SelectionChanged="OnInspectorActionChosen">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate x:DataType="models:ActionDefinition">
-                                <TextBlock Text="{Binding LocalName}" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                    <ContentControl Grid.Row="3" Name="InspectorContent" />
-                    <ContentControl Grid.Row="3" Name="MacroInterfaceHost" IsVisible="False" />
+                    <ContentControl Grid.Row="1" Name="InspectorContent" />
+                    <ContentControl Grid.Row="1" Name="MacroInterfaceHost" IsVisible="False" />
                 </Grid>
             </Border>
         </Grid>
