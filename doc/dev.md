@@ -45,7 +45,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 
 `manual.md` 描述已经实现的行为；路线图里的阶段是目标，未完成之前不要把未来行为写进手册。
 
-**当前阶段**：F6 子宏互斥与调用图；正确性与结构收口的阶段见 [roadmap.md](roadmap.md)。
+**当前阶段**：F7 Dispatch 与读值整理；正确性与结构收口的阶段见 [roadmap.md](roadmap.md)。
 
 动作目录分两层：引擎事实在 `WhaleGenie.Core/Execution/ActionSemantics.json`，由
 `ActionSemanticsCatalog` 读取，包含动作键、分类、参数读法、值形状、单位、空值含义、字段自己的范围上限、
@@ -242,6 +242,7 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 | 文案 | `LocalizationTests` | 中英文键齐全，参数与选项都有中文 |
 | 字段名 | `FieldNameTests` | 同一字段名只有一种 `Kind`、一套选项与一套标签；记录字段也走 `FieldNames`；例外要写进白名单与理由 |
 | 循环与结果 | `MacroRunnerTests` | 嵌套循环的 item/index/counter 恢复外层；四种循环的 `ended`；失败/重试后结果为空 |
+| 互斥与调用图 | `MacroRunnerTests` + `MacroCheckTests` | 子宏自己的互斥声明生效；调用图分析带环检测；持浏览器门时启动浏览器后台运行被拒 |
 | 表达式函数 | `FunctionTableTests` | 函数表与手册「表达式函数一览」一一对应 |
 
 新增行时先加断言，再改实现。
