@@ -59,7 +59,7 @@ Power Automate Desktop 只学动作骨架，不学动作库与 COM 直连 Office
 
 ## 当前路线
 
-下一步按 `doc/roadmap.md` 排：当前阶段是 **F3 后台运行**，之后按 F3–F7 做正确性与结构收口。
+下一步按 `doc/roadmap.md` 排：当前阶段是 **F4 循环与分支**，之后按 F4–F7 做正确性与结构收口。
 判断标准有三条：
 **用户能不能把这件事表达出来；已经说出来的行为是否与实现一致；多条宏同时跑时是否仍然正确**。本文件的设计
 约定是目标，代码尚未做到的部分由路线图的阶段落地；当前实现事实（如动作展示清单在
@@ -124,7 +124,8 @@ Power Automate Desktop 只学动作骨架，不学动作库与 COM 直连 Office
 **流程控制**　用户可见的流程控制只有块，加上循环体内的 `break` / `continue`、结束当前子宏的 `return` 与
 "停止整个宏"，不得引入第二套：重复与遍历用 `control.repeat` / `forEach` / `for` / `while`，多分支用
 `control.switch`，兜底与收尾用 `control.try`（catch 可按失败键挑选、可原样重抛），一段流程用第二次用
-`control.runMacro`（同步、必等、步骤超时）或 `control.startMacro`（后台、交回句柄）。`repeat` / `for` /
+`control.runMacro`（同步、必等、步骤超时）或 `control.startMacro`（后台、交回句柄；句柄是记录，
+写清 `id` / `macro` / `status` / `error` / `results`，等完或取消后改写成结束时的样子）。`repeat` / `for` /
 `forEach` / `while` 都交回 `ended`：正常结束 `count` / `range` / `items` / `condition` / `limit`，`break`
 为 `break`；到上限另写警告。`if` / `while` / `waitUntil` 没有条件时运行报 `Run.MissingCondition`、设计期
 标出。`sys.loopIndex`、`forEach` 的 item/index、`for` 的计数都只属于最内层循环，离开时恢复外层、离开循环
@@ -199,4 +200,4 @@ UIA 点击，脚本要发键鼠时由这一步的开关说），并沿 `runMacro
 
 ## 现有能力
 
-规模：169 个可执行动作（含隐藏的 `control.case`）+ 23 个条件（按 `Category = ActionCategory.Condition` 数出来）、14 个分类、三级变量作用域。能力概览：拾取器八种、"测试"与「试找一下」、识别结果与步骤行回看、录制、三档输入方式、一套窗口认法、窗口相对坐标、元素锚点、条件组、步骤级重试与失败策略与超时、找图、找色与占比、多点找色、YOLO 检测、OCR、UIA 的调用与读表格、记录与 `field()`、问人与说明、截图落盘、子宏、后台运行与等待、提前结束、按失败键捕获与重抛、运行调试的结果与断点、输入互斥与浏览器门、全局变量与原子增加、窗口事件触发、手柄触发、多显示器、浏览器自动化、CSV 与 JSON、表达式函数、崩溃恢复、CI 与发布。
+规模：172 个可执行动作（含隐藏的 `control.case`）+ 23 个条件（按 `Category = ActionCategory.Condition` 数出来）、14 个分类、三级变量作用域。能力概览：拾取器八种、"测试"与「试找一下」、识别结果与步骤行回看、录制、三档输入方式、一套窗口认法、窗口相对坐标、元素锚点、条件组、步骤级重试与失败策略与超时、找图、找色与占比、多点找色、YOLO 检测、OCR、UIA 的调用与读表格、记录与 `field()`、问人与说明、截图落盘、子宏、后台运行与等待、提前结束、按失败键捕获与重抛、运行调试的结果与断点、输入互斥与浏览器门、全局变量与原子增加、窗口事件触发、手柄触发、多显示器、浏览器自动化、CSV 与 JSON、表达式函数、崩溃恢复、CI 与发布。
