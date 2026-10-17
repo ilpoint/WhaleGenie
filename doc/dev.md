@@ -45,7 +45,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 
 `manual.md` 描述已经实现的行为；路线图里的阶段是目标，未完成之前不要把未来行为写进手册。
 
-**当前阶段**：F5 结果时新性；正确性与结构收口的阶段见 [roadmap.md](roadmap.md)。
+**当前阶段**：F6 子宏互斥与调用图；正确性与结构收口的阶段见 [roadmap.md](roadmap.md)。
 
 动作目录分两层：引擎事实在 `WhaleGenie.Core/Execution/ActionSemantics.json`，由
 `ActionSemanticsCatalog` 读取，包含动作键、分类、参数读法、值形状、单位、空值含义、字段自己的范围上限、
@@ -311,6 +311,8 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 - 写名字的字段只列这个动作真正会写的名字：有 `scope` 的列本宏与共享，没有的只列本宏；不能让用户选了共享
   名字却只得到局部影子。
 - 每一步开始时清空它勾选的结果变量；步骤没写就是空，不是上一次的答案。失败、重试、循环都不带旧值。
+  同步调用失败不带回半截结果，`waitMacro` / `waitAll` 失败时一个结果都不写：两边规则一致。
+  循环体每一轮开始时把体里各步骤的结局先置回 `skipped`，这一轮没跑到的步骤就是当轮的 skipped。
 - 全局变量是一份 `SharedVariables.Current` 交给所有运行，普通写入最后写入者胜，`control.incrementGlobal`
   在同一把锁里读写；浏览器步骤另取 `BrowserGate`，与 `InputGate` 分开；脚本的「会发键鼠」只作声明，
   整段脚本不取输入门。
