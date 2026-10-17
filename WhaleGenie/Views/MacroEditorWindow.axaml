@@ -429,7 +429,7 @@
                     <Button Classes="FlatButton" Height="30" Padding="8,0"
                             Content="{Binding [Editor.Save], Source={x:Static loc:Strings.Current}}"
                             Command="{Binding SaveCommand}" IsEnabled="{Binding !HasNameProblem}" />
-                    <Button Classes="FlatButton" Height="30" Padding="8,0"
+                    <Button Name="RunDebugButton" Classes="FlatButton" Height="30" Padding="8,0"
                             Content="{Binding [Editor.RunDebug], Source={x:Static loc:Strings.Current}}"
                             Command="{Binding RunCommand}" IsEnabled="{Binding HasSteps}" />
                 </StackPanel>
@@ -774,146 +774,11 @@
                                 </StackPanel>
                             </Border>
 
-                            <Border Classes="GroupBox">
-                                <StackPanel>
-                                    <TextBlock Classes="GroupHeader" Margin="0,0,0,10"
-                                               Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}" />
-
-                                    <TextBlock Classes="FieldLabel"
-                                               Text="{Binding [Editor.PositionCapture], Source={x:Static loc:Strings.Current}}" />
-                                    <ComboBox Classes="OptionSelect" ItemsSource="{Binding PositionCaptureOptions}"
-                                              SelectedIndex="{Binding PositionCaptureIndex}" Margin="0,0,0,6" />
-
-                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="6" RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
-                                        <Border Grid.Row="0" Grid.Column="0" Classes="ActionCell">
-                                            <Grid ColumnDefinitions="*,Auto">
-                                                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
-                                                            Opacity="{Binding RecordMouseMovement, Converter={StaticResource RowOpacity}}">
-                                                    <!-- Cursor pointer outline with motion chevrons trailing to the right -->
-                                                    <Path Classes="RecordIcon" Data="M9,8 L21,8 M15,2 L15,8 M13,4 L15,2 L17,4 M11,6 L9,8 L11,10 M19,6 L21,8 L19,10 M15,8 L15,17.5 L17.2,14.8 L18.8,18.8 L20.8,17.8 L19.2,13.5 L22.5,13.5 Z" />
-                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
-                                                               Text="{Binding [Editor.MouseMovement], Source={x:Static loc:Strings.Current}}" />
-                                                </StackPanel>
-                                                <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
-                                                              Width="40"
-                                                              OnContent="" OffContent=""
-                                                              IsChecked="{Binding RecordMouseMovement}" />
-                                            </Grid>
-                                        </Border>
-
-                                        <Border Grid.Row="0" Grid.Column="1" Classes="ActionCell">
-                                            <Grid ColumnDefinitions="*,Auto">
-                                                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
-                                                            Opacity="{Binding RecordMouseButtons, Converter={StaticResource RowOpacity}}">
-                                                    <!-- Mouse seen from above: rounded body, button split line and scroll wheel -->
-                                                    <Path Classes="RecordIcon" Data="M7,8.5 A5,5 0 0 1 17,8.5 L17,15.5 A5,5 0 0 1 7,15.5 Z M7,9.7 H17 M12,5.9 V9.7" />
-                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
-                                                               Text="{Binding [Editor.MouseButtons], Source={x:Static loc:Strings.Current}}" />
-                                                </StackPanel>
-                                                <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
-                                                              Width="40"
-                                                              OnContent="" OffContent=""
-                                                              IsChecked="{Binding RecordMouseButtons}" />
-                                            </Grid>
-                                        </Border>
-
-                                        <Border Grid.Row="1" Grid.Column="0" Classes="ActionCell">
-                                            <Grid ColumnDefinitions="*,Auto">
-                                                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
-                                                            Opacity="{Binding RecordKeyboardKeys, Converter={StaticResource RowOpacity}}">
-                                                    <Path Classes="RecordIcon" Data="M3,7 H21 V17 H3 Z M6,10 H8 M10,10 H12 M14,10 H16 M18,10 H18.01 M6,14 H10 M12,14 H16" />
-                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
-                                                               Text="{Binding [Editor.KeyboardKeys], Source={x:Static loc:Strings.Current}}" />
-                                                </StackPanel>
-                                                <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
-                                                              Width="40"
-                                                              OnContent="" OffContent=""
-                                                              IsChecked="{Binding RecordKeyboardKeys}" />
-                                            </Grid>
-                                        </Border>
-
-                                        <Border Grid.Row="1" Grid.Column="1" Classes="ActionCell">
-                                            <Grid ColumnDefinitions="*,Auto">
-                                                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
-                                                            Opacity="{Binding RecordDelays, Converter={StaticResource RowOpacity}}">
-                                                    <Path Classes="RecordIcon" Data="M12,3 A9,9 0 1 0 12,21 A9,9 0 1 0 12,3 M12,12 L12,7 M12,12 L15,14" />
-                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
-                                                               Text="{Binding [Editor.Delays], Source={x:Static loc:Strings.Current}}" />
-                                                </StackPanel>
-                                                <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
-                                                              Width="40"
-                                                              OnContent="" OffContent=""
-                                                              IsChecked="{Binding RecordDelays}" />
-                                            </Grid>
-                                        </Border>
-
-                                        <Border Grid.Row="2" Grid.Column="0" Classes="ActionCell">
-                                            <Grid ColumnDefinitions="*,Auto">
-                                                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
-                                                            Opacity="{Binding RecordGamepadButtons, Converter={StaticResource RowOpacity}}">
-                                                    <!-- Controller seen from above: grip body, d-pad and two buttons -->
-                                                    <Path Classes="RecordIcon" Data="M9,7 H15 C16.8,7 18.1,8.2 18.4,9.8 L19.2,13.6 C19.5,15.4 18.3,16.9 16.6,16.9 C15.5,16.9 14.8,16.2 14.2,15.4 L13.4,14.4 H10.6 L9.8,15.4 C9.2,16.2 8.5,16.9 7.4,16.9 C5.7,16.9 4.5,15.4 4.8,13.6 L5.6,9.8 C5.9,8.2 7.2,7 9,7 Z M8.6,9.9 V13.1 M7,11.5 H10.2 M15.6,10.4 A0.8,0.8 0 1 1 15.6,12 A0.8,0.8 0 1 1 15.6,10.4 Z" />
-                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
-                                                               Text="{Binding [Editor.GamepadButtons], Source={x:Static loc:Strings.Current}}" />
-                                                </StackPanel>
-                                                <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
-                                                              Width="40"
-                                                              OnContent="" OffContent=""
-                                                              IsChecked="{Binding RecordGamepadButtons}" />
-                                            </Grid>
-                                        </Border>
-                                    </Grid>
-
-                                    <Border Classes="ActionCell" Margin="0,4,0,0">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
-                                                        Opacity="{Binding RecordIgnoreInjected, Converter={StaticResource RowOpacity}}">
-                                                <!-- Funnel: input from elsewhere is filtered out -->
-                                                <Path Classes="RecordIcon" Data="M4,5 H20 L14,12.5 V20 L10,17 V12.5 Z" />
-                                                <TextBlock FontSize="12.5" VerticalAlignment="Center"
-                                                           Text="{Binding [Editor.IgnoreInjected], Source={x:Static loc:Strings.Current}}" />
-                                            </StackPanel>
-                                            <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
-                                                          Width="40"
-                                                          OnContent="" OffContent=""
-                                                          ToolTip.Tip="{Binding [Editor.Tip.IgnoreInjected], Source={x:Static loc:Strings.Current}}"
-                                                          IsChecked="{Binding RecordIgnoreInjected}" />
-                                        </Grid>
-                                    </Border>
-
-                                    <!-- One line, so the record button below keeps its place on screen -->
-                                    <StackPanel Margin="0,10,0,0" Orientation="Horizontal" Spacing="7"
-                                                HorizontalAlignment="Center"
-                                                IsEnabled="{Binding RecordDelays}"
-                                                Opacity="{Binding RecordDelays, Converter={StaticResource RowOpacity}}">
-                                        <TextBlock Classes="FieldLabel" FontSize="12.5" Margin="0"
-                                                   Text="{Binding [Editor.IgnoreDelays], Source={x:Static loc:Strings.Current}}"
-                                                   VerticalAlignment="Center" />
-                                        <views:NumberBox Width="112" Height="30" Value="{Binding IgnoreDelaysBelowMs}"
-                                                       Minimum="0" Maximum="60000" Increment="10" FormatString="0" />
-                                        <TextBlock FontSize="12.5" Foreground="#C8C8C8"
-                                                   Text="{Binding [Editor.Milliseconds], Source={x:Static loc:Strings.Current}}"
-                                                   VerticalAlignment="Center" />
-                                    </StackPanel>
-
-                                </StackPanel>
-                            </Border>
                         </StackPanel>
                     </ScrollViewer>
 
                     <!-- Save, and the run beside it. This is the one way into the run window: it loads
                          the steps and stops there, and the run itself is asked for in that window. -->
-                    <StackPanel Grid.Row="1" Margin="18,8,18,16" Spacing="6">
-                        <Button Classes="SaveButton"
-                                Content="{Binding [Editor.Save], Source={x:Static loc:Strings.Current}}"
-                                ToolTip.Tip="{Binding [Editor.Tip.Save], Source={x:Static loc:Strings.Current}}"
-                                Command="{Binding SaveCommand}" IsEnabled="{Binding !HasNameProblem}" />
-                        <Button Classes="RunButton" Name="RunDebugButton"
-                                IsEnabled="{Binding HasSteps}"
-                                Content="{Binding [Editor.RunDebug], Source={x:Static loc:Strings.Current}}"
-                                ToolTip.Tip="{Binding [Editor.Tip.RunDebug], Source={x:Static loc:Strings.Current}}"
-                                Command="{Binding RunCommand}" />
-                    </StackPanel>
                 </Grid>
             </Border>
 
@@ -1079,6 +944,130 @@
                                Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}" />
                     <TextBlock Classes="Muted" TextWrapping="Wrap"
                                Text="{Binding [Editor.RecordIdle], Source={x:Static loc:Strings.Current}}" />
+                            <Border Classes="GroupBox">
+                                <StackPanel>
+                                    <TextBlock Classes="GroupHeader" Margin="0,0,0,10"
+                                               Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}" />
+
+                                    <TextBlock Classes="FieldLabel"
+                                               Text="{Binding [Editor.PositionCapture], Source={x:Static loc:Strings.Current}}" />
+                                    <ComboBox Classes="OptionSelect" ItemsSource="{Binding PositionCaptureOptions}"
+                                              SelectedIndex="{Binding PositionCaptureIndex}" Margin="0,0,0,6" />
+
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="6" RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
+                                        <Border Grid.Row="0" Grid.Column="0" Classes="ActionCell">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
+                                                            Opacity="{Binding RecordMouseMovement, Converter={StaticResource RowOpacity}}">
+                                                    <!-- Cursor pointer outline with motion chevrons trailing to the right -->
+                                                    <Path Classes="RecordIcon" Data="M9,8 L21,8 M15,2 L15,8 M13,4 L15,2 L17,4 M11,6 L9,8 L11,10 M19,6 L21,8 L19,10 M15,8 L15,17.5 L17.2,14.8 L18.8,18.8 L20.8,17.8 L19.2,13.5 L22.5,13.5 Z" />
+                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                               Text="{Binding [Editor.MouseMovement], Source={x:Static loc:Strings.Current}}" />
+                                                </StackPanel>
+                                                <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                                              Width="40"
+                                                              OnContent="" OffContent=""
+                                                              IsChecked="{Binding RecordMouseMovement}" />
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Grid.Row="0" Grid.Column="1" Classes="ActionCell">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
+                                                            Opacity="{Binding RecordMouseButtons, Converter={StaticResource RowOpacity}}">
+                                                    <!-- Mouse seen from above: rounded body, button split line and scroll wheel -->
+                                                    <Path Classes="RecordIcon" Data="M7,8.5 A5,5 0 0 1 17,8.5 L17,15.5 A5,5 0 0 1 7,15.5 Z M7,9.7 H17 M12,5.9 V9.7" />
+                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                               Text="{Binding [Editor.MouseButtons], Source={x:Static loc:Strings.Current}}" />
+                                                </StackPanel>
+                                                <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                                              Width="40"
+                                                              OnContent="" OffContent=""
+                                                              IsChecked="{Binding RecordMouseButtons}" />
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Grid.Row="1" Grid.Column="0" Classes="ActionCell">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
+                                                            Opacity="{Binding RecordKeyboardKeys, Converter={StaticResource RowOpacity}}">
+                                                    <Path Classes="RecordIcon" Data="M3,7 H21 V17 H3 Z M6,10 H8 M10,10 H12 M14,10 H16 M18,10 H18.01 M6,14 H10 M12,14 H16" />
+                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                               Text="{Binding [Editor.KeyboardKeys], Source={x:Static loc:Strings.Current}}" />
+                                                </StackPanel>
+                                                <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                                              Width="40"
+                                                              OnContent="" OffContent=""
+                                                              IsChecked="{Binding RecordKeyboardKeys}" />
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Grid.Row="1" Grid.Column="1" Classes="ActionCell">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
+                                                            Opacity="{Binding RecordDelays, Converter={StaticResource RowOpacity}}">
+                                                    <Path Classes="RecordIcon" Data="M12,3 A9,9 0 1 0 12,21 A9,9 0 1 0 12,3 M12,12 L12,7 M12,12 L15,14" />
+                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                               Text="{Binding [Editor.Delays], Source={x:Static loc:Strings.Current}}" />
+                                                </StackPanel>
+                                                <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                                              Width="40"
+                                                              OnContent="" OffContent=""
+                                                              IsChecked="{Binding RecordDelays}" />
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Grid.Row="2" Grid.Column="0" Classes="ActionCell">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
+                                                            Opacity="{Binding RecordGamepadButtons, Converter={StaticResource RowOpacity}}">
+                                                    <!-- Controller seen from above: grip body, d-pad and two buttons -->
+                                                    <Path Classes="RecordIcon" Data="M9,7 H15 C16.8,7 18.1,8.2 18.4,9.8 L19.2,13.6 C19.5,15.4 18.3,16.9 16.6,16.9 C15.5,16.9 14.8,16.2 14.2,15.4 L13.4,14.4 H10.6 L9.8,15.4 C9.2,16.2 8.5,16.9 7.4,16.9 C5.7,16.9 4.5,15.4 4.8,13.6 L5.6,9.8 C5.9,8.2 7.2,7 9,7 Z M8.6,9.9 V13.1 M7,11.5 H10.2 M15.6,10.4 A0.8,0.8 0 1 1 15.6,12 A0.8,0.8 0 1 1 15.6,10.4 Z" />
+                                                    <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                               Text="{Binding [Editor.GamepadButtons], Source={x:Static loc:Strings.Current}}" />
+                                                </StackPanel>
+                                                <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                                              Width="40"
+                                                              OnContent="" OffContent=""
+                                                              IsChecked="{Binding RecordGamepadButtons}" />
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+
+                                    <Border Classes="ActionCell" Margin="0,4,0,0">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center"
+                                                        Opacity="{Binding RecordIgnoreInjected, Converter={StaticResource RowOpacity}}">
+                                                <!-- Funnel: input from elsewhere is filtered out -->
+                                                <Path Classes="RecordIcon" Data="M4,5 H20 L14,12.5 V20 L10,17 V12.5 Z" />
+                                                <TextBlock FontSize="12.5" VerticalAlignment="Center"
+                                                           Text="{Binding [Editor.IgnoreInjected], Source={x:Static loc:Strings.Current}}" />
+                                            </StackPanel>
+                                            <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                                          Width="40"
+                                                          OnContent="" OffContent=""
+                                                          ToolTip.Tip="{Binding [Editor.Tip.IgnoreInjected], Source={x:Static loc:Strings.Current}}"
+                                                          IsChecked="{Binding RecordIgnoreInjected}" />
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- One line, so the record button below keeps its place on screen -->
+                                    <StackPanel Margin="0,10,0,0" Orientation="Horizontal" Spacing="7"
+                                                HorizontalAlignment="Center"
+                                                IsEnabled="{Binding RecordDelays}"
+                                                Opacity="{Binding RecordDelays, Converter={StaticResource RowOpacity}}">
+                                        <TextBlock Classes="FieldLabel" FontSize="12.5" Margin="0"
+                                                   Text="{Binding [Editor.IgnoreDelays], Source={x:Static loc:Strings.Current}}"
+                                                   VerticalAlignment="Center" />
+                                        <views:NumberBox Width="112" Height="30" Value="{Binding IgnoreDelaysBelowMs}"
+                                                       Minimum="0" Maximum="60000" Increment="10" FormatString="0" />
+                                        <TextBlock FontSize="12.5" Foreground="#C8C8C8"
+                                                   Text="{Binding [Editor.Milliseconds], Source={x:Static loc:Strings.Current}}"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                </StackPanel>
+                            </Border>
                     <Button Classes="RecordButton" Height="42" HorizontalAlignment="Stretch"
                             Classes.Recording="{Binding IsRecording}"
                             IsEnabled="{Binding !IsCapturingKey}"

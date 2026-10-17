@@ -132,7 +132,7 @@ public partial class AddActionViewModel : ViewModelBase
             {
                 var label = Strings.Get($"Add.Category.{category}");
                 return new ActionCategoryChoice(category, label,
-                    label.Length <= 4 ? label : label[..4]);
+                    Strings.Get($"Add.Category.{category}.short", label));
             }),
         ];
         SelectedCategory = Categories[0];
