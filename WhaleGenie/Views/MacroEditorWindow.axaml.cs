@@ -122,7 +122,10 @@ public partial class MacroEditorWindow : Window
     /// The window steps are written in, kept while the editor is open. A macro is a run of steps,
     /// and it floats above the editor so the list can be read and picked from while writing one.
     /// </summary>
-    private AddActionWindow? _addWindow;
+    private ActionEditorView? _inspector;
+
+    private bool _settingInspectorAction;
+    private IReadOnlyList<ActionDefinition> _inspectorActions = ActionCatalog.Definitions;
 
     /// <summary>Layer the drag marker is drawn on, over the step list.</summary>
     private Canvas? _dropLayer;
@@ -965,65 +968,136 @@ public partial class MacroEditorWindow : Window
     }
 
     /// <summary>
-    /// Opens the window a step is written in, or points the one already up at what the editor is
-    /// working with now. It stays open from one step to the next, so every call here is also what
+    /// Opens the step inspector on the place the editor is now, or points the one already in the
+    /// window at it. The form stays up from one step to the next, so every call here is also what
     /// tells it where a step would go and what that place takes.
     /// </summary>
     private void ShowAddAction(MacroStep? editing, IReadOnlyList<ActionDefinition>? actions,
         string? presetKey)
     {
-        if (_addWindow is not { } window)
-        {
-            window = new AddActionWindow(editing, actions, _viewModel.CollectVariables(), MacroCalls(),
-                presetKey, _assetFolder, _viewModel.StepChoices(), _viewModel.NewStepId())
-            {
-                StaysOpen = true,
-                Macros = BuildLibrary(),
-                MintStepId = _viewModel.NewStepId,
-                PlaceStep = TakeStep,
-                LookAtStep = LookAtStep,
-            };
+        EnsureInspector();
 
-            // The layer the whole program shares: the trials this window sends, and the pickers in
-            // it, run on the same devices as everything else, models and all.
-            window.Devices = Layer;
+        var inspector = _inspector!;
+        inspector.Retarget(actions, _viewModel.CollectVariables(), MacroCalls(),
+            _viewModel.StepChoices(), _assetFolder);
+        inspector.Macros = BuildLibrary();
 
-            // The window belongs to the editor, so it goes when the editor does; the field is
-            // cleared with it so a later step opens a fresh one rather than a closed window.
-            window.Closed += (_, _) =>
-            {
-                if (ReferenceEquals(_addWindow, window))
-                {
-                    _addWindow = null;
-                }
-            };
-
-            _addWindow = window;
-            window.ShowOver(this);
-            return;
-        }
-
-        window.Retarget(actions, _viewModel.CollectVariables(), MacroCalls(), _viewModel.StepChoices(),
-            _assetFolder);
-        window.Macros = BuildLibrary();
+        _inspectorActions = actions ?? ActionCatalog.Definitions;
+        InspectorActionFilter.Text = string.Empty;
+        InspectorActionPicker.ItemsSource = _inspectorActions;
 
         if (editing is null)
         {
-            window.BeginStep(presetKey);
+            inspector.BeginStep(presetKey);
         }
         else
         {
-            window.EditStep(editing);
+            inspector.EditStep(editing);
         }
 
-        // An owned window has no taskbar button of its own, so asking for a step is what says the
-        // window is wanted again: one that was put away comes back rather than staying out of reach.
-        if (window.WindowState == WindowState.Minimized)
+        InspectorHost.IsVisible = true;
+        SyncInspectorAction();
+        InspectorActionPicker.Focus();
+    }
+
+    /// <summary>
+    /// Builds the inspector the first time a step is written, and keeps the form's events wired to
+    /// the editor rather than to a window of its own.
+    /// </summary>
+    private void EnsureInspector()
+    {
+        if (_inspector is not null)
         {
-            window.WindowState = WindowState.Normal;
+            return;
         }
 
-        window.Activate();
+        _inspector = new ActionEditorView(null, ActionCatalog.Definitions,
+            _viewModel.CollectVariables(), MacroCalls(), null, _assetFolder,
+            _viewModel.StepChoices(), _viewModel.NewStepId())
+        {
+            StaysOpen = true,
+            ShowHeader = false,
+            ShowPicker = false,
+            Devices = Layer,
+            Macros = BuildLibrary(),
+            MintStepId = _viewModel.NewStepId,
+            PlaceStep = TakeStep,
+            LookAtStep = LookAtStep,
+        };
+
+        if (_inspector.DataContext is AddActionViewModel form)
+        {
+            form.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(AddActionViewModel.SelectedKey))
+                {
+                    SyncInspectorAction();
+                }
+            };
+        }
+        _inspector.Finished += step =>
+        {
+            if (step is null)
+            {
+                InspectorHost.IsVisible = false;
+            }
+        };
+
+        InspectorContent.Content = _inspector;
+    }
+
+    /// <summary>The editor's own way out of the inspector, beside the action it is showing.</summary>
+    private void OnCloseInspector(object? sender, RoutedEventArgs e)
+    {
+        InspectorHost.IsVisible = false;
+    }
+
+    /// <summary>Gives the form the action the picker beside it now names.</summary>
+    private void OnInspectorActionChosen(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_settingInspectorAction
+            || _inspector is null
+            || InspectorActionPicker.SelectedItem is not ActionDefinition definition)
+        {
+            return;
+        }
+
+        _inspector.SelectAction(definition.Key);
+        SyncInspectorAction();
+    }
+
+    /// <summary>Narrows the action bar to the names that contain what was typed.</summary>
+    private void OnInspectorActionFilterChanged(object? sender, TextChangedEventArgs e)
+    {
+        if (_inspector is null)
+        {
+            return;
+        }
+
+        var wanted = InspectorActionFilter.Text?.Trim() ?? string.Empty;
+        InspectorActionPicker.ItemsSource = wanted.Length == 0
+            ? _inspectorActions
+            : [.. _inspectorActions.Where(definition =>
+                definition.LocalName.Contains(wanted, StringComparison.OrdinalIgnoreCase)
+                || definition.Key.Contains(wanted, StringComparison.OrdinalIgnoreCase))];
+        SyncInspectorAction();
+    }
+    /// <summary>Points the picker bar at whatever action the form was opened on.</summary>
+    private void SyncInspectorAction()
+    {
+        _settingInspectorAction = true;
+        try
+        {
+            var key = (_inspector?.DataContext as AddActionViewModel)?.SelectedKey ?? string.Empty;
+            var choices = InspectorActionPicker.ItemsSource?.OfType<ActionDefinition>()
+                ?? _inspectorActions;
+            InspectorActionPicker.SelectedItem = choices.FirstOrDefault(definition =>
+                string.Equals(definition.Key, key, StringComparison.Ordinal));
+        }
+        finally
+        {
+            _settingInspectorAction = false;
+        }
     }
 
     /// <summary>
@@ -1067,7 +1141,7 @@ public partial class MacroEditorWindow : Window
             return null;
         }
 
-        _addWindow?.Retarget(_viewModel.InsertChoices, _viewModel.CollectVariables(), MacroCalls(),
+        _inspector?.Retarget(_viewModel.InsertChoices, _viewModel.CollectVariables(), MacroCalls(),
             _viewModel.StepChoices(), _assetFolder);
         return refusal;
     }

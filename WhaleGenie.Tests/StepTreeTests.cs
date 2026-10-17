@@ -380,8 +380,8 @@ public class StepTreeTests
             // The plus on the block's title line asks for a step to go in there.
             Click(window, RowButton(window, row => row.IsHead));
             Dispatcher.UIThread.RunJobs();
-            var picker = Assert.Single(window.OwnedWindows, owned => owned is AddActionWindow);
-            picker.Close(null);
+            Assert.True(window.FindControl<Border>("InspectorHost")!.IsVisible);
+            window.FindControl<Border>("InspectorHost")!.IsVisible = false;
             Dispatcher.UIThread.RunJobs();
 
             // The fold arrow closes the block. A click is a press and a release on the same button,
@@ -524,12 +524,13 @@ public class StepTreeTests
             Dispatcher.UIThread.RunJobs();
 
             Assert.Same(Inside(loop)[0], Assert.Single(editor.SelectedSteps));
-            Assert.Contains(window.OwnedWindows, owned => owned is AddActionWindow);
+            Assert.True(window.FindControl<Border>("InspectorHost")!.IsVisible);
 
             // The dialog has to be about the step that was double-clicked, and what it returns has
             // to land back inside the block — not on the block that holds it.
-            var dialog = window.OwnedWindows.OfType<AddActionWindow>().Single();
-            var dialogModel = (AddActionViewModel)dialog.DataContext!;
+            var view = Assert.IsType<ActionEditorView>(
+                window.FindControl<ContentControl>("InspectorContent")!.Content);
+            var dialogModel = (AddActionViewModel)view.DataContext!;
             Assert.True(dialogModel.IsEditing, "the dialog opened as a new step, not as an edit");
             Assert.Equal("input.keyPress", dialogModel.SelectedDefinition!.Key);
 

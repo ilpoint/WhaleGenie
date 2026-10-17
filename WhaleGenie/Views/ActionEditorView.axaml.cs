@@ -51,6 +51,34 @@ public partial class ActionEditorView : UserControl
     private IStorageProvider StorageProvider => TopLevel.GetTopLevel(this)?.StorageProvider
         ?? throw new InvalidOperationException("The form is not attached to a window.");
 
+    /// <summary>
+    /// True while the window-sized header is shown. The editor's inspector hides it, because the
+    /// pane it stands in already has a title and a close of its own.
+    /// </summary>
+    internal bool ShowHeader
+    {
+        set
+        {
+            FormHeader.IsVisible = value;
+            FormRoot.RowDefinitions[0].Height = value ? new GridLength(38) : new GridLength(0);
+        }
+    }
+
+    /// <summary>
+    /// True while the action list stands beside the fields. The inspector is narrower than a
+    /// window, so it chooses an action from its own bar and gives the whole pane to the fields.
+    /// </summary>
+    internal bool ShowPicker
+    {
+        set
+        {
+            PickerColumn.IsVisible = value;
+            FormBody.ColumnDefinitions[0].Width = value ? new GridLength(320) : new GridLength(0);
+        }
+    }
+
+    /// <summary>Chooses the action whose fields the form shows.</summary>
+    internal void SelectAction(string key) => (DataContext as AddActionViewModel)?.SelectAction(key);
     /// <summary>Raised when the form is finished with a step, or with nothing when it was cleared.</summary>
     internal event Action<MacroStep?>? Finished;
 

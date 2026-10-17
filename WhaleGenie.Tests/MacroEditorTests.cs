@@ -706,4 +706,27 @@ public class MacroEditorTests
             Assert.False(closed);
         });
     }
+
+    [Fact]
+    public void The_step_inspector_opens_inside_the_editor_and_takes_an_action()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = Open();
+            viewModel.NewStepCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            var host = window.FindControl<Border>("InspectorHost");
+            Assert.NotNull(host);
+            Assert.True(host!.IsVisible);
+
+            var content = window.FindControl<ContentControl>("InspectorContent");
+            var view = Assert.IsType<ActionEditorView>(content!.Content);
+            view.SelectAction("control.delay");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("control.delay",
+                (view.DataContext as AddActionViewModel)?.SelectedKey);
+        });
+    }
 }

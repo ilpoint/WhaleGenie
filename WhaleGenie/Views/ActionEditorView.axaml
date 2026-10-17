@@ -1234,10 +1234,10 @@
         </Style>
     </UserControl.Styles>
 
-    <Grid RowDefinitions="38,*">
+    <Grid Name="FormRoot" RowDefinitions="38,*">
 
         <!-- Title bar -->
-        <Grid Grid.Row="0" Background="#202020" ColumnDefinitions="Auto,*,Auto">
+        <Grid Name="FormHeader" Grid.Row="0" Background="#202020" ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
                 <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
                 <TextBlock Text="{Binding Header}" Foreground="#E8E8E8" FontSize="13"
@@ -1264,11 +1264,11 @@
         </Grid>
 
         <Grid Grid.Row="1" RowDefinitions="*,Auto" Margin="14">
-            <Grid Grid.Row="0" ColumnDefinitions="320,*">
+            <Grid Name="FormBody" Grid.Row="0" ColumnDefinitions="320,*">
 
                 <!-- Which action. Always on screen rather than folded away once one is chosen:
                  changing one's mind is then a click, and the fields beside it never move. -->
-                <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*" Margin="0,0,6,0">
+                <Grid Name="PickerColumn" Grid.Column="0" RowDefinitions="Auto,Auto,*" Margin="0,0,6,0">
                     <TextBlock Classes="FieldLabel"
                                Text="{Binding [Add.SelectAction], Source={x:Static loc:Strings.Current}}" />
 

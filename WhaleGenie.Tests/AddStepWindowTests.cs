@@ -24,7 +24,7 @@ public class AddStepWindowTests
     private static IList<MacroStep> Inside(MacroStep block)
         => block.StepLists.Single().Steps;
 
-    private static (MacroEditorWindow Window, MacroEditorViewModel Editor, AddActionWindow Picker)
+    private static (MacroEditorWindow Window, MacroEditorViewModel Editor, ActionEditorView Picker)
         OpenEditor()
     {
         var macro = new MacroItem { Name = "probe" };
@@ -36,12 +36,19 @@ public class AddStepWindowTests
         editor.NewStepCommand.Execute(null);
         Dispatcher.UIThread.RunJobs();
 
-        var picker = window.OwnedWindows.OfType<AddActionWindow>().Single();
+        var picker = Assert.IsType<ActionEditorView>(
+            window.FindControl<ContentControl>("InspectorContent")!.Content);
         return (window, editor, picker);
     }
 
+    private static AddActionViewModel Form(ActionEditorView view)
+        => (AddActionViewModel)view.DataContext!;
+
     private static AddActionViewModel Form(AddActionWindow window)
         => (AddActionViewModel)window.DataContext!;
+
+    private static bool IsInspectorUp(MacroEditorWindow window)
+        => window.FindControl<Border>("InspectorHost")?.IsVisible == true;
 
     [Fact]
     public void The_window_stays_up_from_one_step_to_the_next()
@@ -59,7 +66,7 @@ public class AddStepWindowTests
             // The step is in the list, the window is still up, and the form is back to the action
             // it was on with nothing in it.
             Assert.Equal(["input.keyPress"], editor.Steps.Select(step => step.Type));
-            Assert.Contains(picker, window.OwnedWindows.OfType<AddActionWindow>());
+            Assert.True(IsInspectorUp(window));
             Assert.False(form.IsEditing);
             Assert.Equal("input.keyPress", form.SelectedDefinition!.Key);
             Assert.Equal(string.Empty,
@@ -93,22 +100,19 @@ public class AddStepWindowTests
     }
 
     [Fact]
-    public void The_window_that_was_put_away_comes_back_when_a_step_is_asked_for()
+    public void The_inspector_that_was_closed_comes_back_when_a_step_is_asked_for()
     {
         Ui.Run(() =>
         {
-            var (window, editor, picker) = OpenEditor();
+            var (window, editor, _) = OpenEditor();
 
-            // An owned window has no taskbar button of its own, so the way back to one is asking for
-            // what it is for: another step.
-            picker.WindowState = WindowState.Minimized;
+            window.FindControl<Border>("InspectorHost")!.IsVisible = false;
             Dispatcher.UIThread.RunJobs();
 
             editor.NewStepCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
 
-            Assert.Equal(WindowState.Normal, picker.WindowState);
-            Assert.Same(picker, window.OwnedWindows.OfType<AddActionWindow>().Single());
+            Assert.True(IsInspectorUp(window));
         });
     }
 
@@ -125,7 +129,7 @@ public class AddStepWindowTests
             form.CancelCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
 
-            Assert.Contains(picker, window.OwnedWindows.OfType<AddActionWindow>());
+            Assert.True(IsInspectorUp(window));
             Assert.Empty(editor.Steps);
             Assert.Equal(string.Empty, form.MetaComment);
         });
@@ -186,7 +190,7 @@ public class AddStepWindowTests
             Assert.True(form.ShowsWarning);
             Assert.Single(editor.Steps);
             Assert.Equal(["control.delay"], Inside(branch).Select(step => step.Type));
-            Assert.Contains(picker, window.OwnedWindows.OfType<AddActionWindow>());
+            Assert.True(IsInspectorUp(window));
 
             // What the form offers follows the place, so the next attempt can be filled in.
             Assert.DoesNotContain(form.AvailableActions, action => action.Key == "control.log");
@@ -211,7 +215,7 @@ public class AddStepWindowTests
             Dispatcher.UIThread.RunJobs();
 
             // The same window, now opened on that step rather than on a new one.
-            Assert.Same(picker, window.OwnedWindows.OfType<AddActionWindow>().Single());
+            Assert.True(IsInspectorUp(window));
             var form = Form(picker);
             Assert.True(form.IsEditing);
             Assert.Equal("input.keyPress", form.SelectedDefinition!.Key);
