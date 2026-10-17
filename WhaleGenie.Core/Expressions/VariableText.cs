@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace WhaleGenie.Core.Expressions;
 
@@ -36,7 +37,7 @@ public static class VariableText
                 continue;
             }
 
-            if (!TryName(text, index + 1, out var name, out var end))
+            if (!TryName(text, index + 1, out var name, out var end, out _))
             {
                 continue;
             }
@@ -79,24 +80,52 @@ public static class VariableText
                 continue;
             }
 
-            if (!TryName(text, index + 1, out var name, out var end))
+            if (!TryName(text, index + 1, out var name, out var end, out var braced))
             {
                 written.Append('$');
                 continue;
             }
 
-            written.Append(lookup(name) ?? "$" + name);
+            written.Append(lookup(name) ?? (braced ? "${" + name + "}" : "$" + name));
             index = end - 1;
         }
 
         return written.ToString();
     }
 
-    /// <summary>The name at <paramref name="start"/>, or false when no name starts there.</summary>
-    private static bool TryName(string text, int start, out string name, out int end)
+    /// <summary>
+    /// The name at <paramref name="start"/>, or false when no name starts there. A name may be
+    /// written plainly or in braces: <c>${name}</c> is the way to say where a name ends when the
+    /// text goes on with a dot or another letter that would otherwise be taken as part of it.
+    /// </summary>
+    private static bool TryName(string text, int start, out string name, out int end, out bool braced)
     {
         name = string.Empty;
         end = start;
+        braced = false;
+
+        if (start < text.Length && text[start] == '{')
+        {
+            var close = text.IndexOf('}', start + 1);
+            if (close < 0)
+            {
+                return false;
+            }
+
+            var inside = text[(start + 1)..close];
+            if (inside.Length == 0
+                || !(char.IsLetter(inside[0]) || inside[0] == '_')
+                || !inside.All(character => char.IsLetterOrDigit(character)
+                    || character is '_' or '.'))
+            {
+                return false;
+            }
+
+            name = inside;
+            end = close + 1;
+            braced = true;
+            return true;
+        }
 
         if (start >= text.Length
             || !(char.IsLetter(text[start]) || text[start] == '_'))

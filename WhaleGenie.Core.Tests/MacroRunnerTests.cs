@@ -2929,6 +2929,57 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task An_argument_of_the_wrong_kind_stops_the_call()
+    {
+        var store = Store();
+        var library = new Library(("甲",
+            new MacroSignature([new MacroArgument("数量", "", true, ActionReturnType.Number)],
+                [new MacroReturn("结果")]),
+            [Set("结果", "$数量")]));
+
+        var (result, _) = await RunAsync(
+            [Step("control.runMacro", Param("macro", "甲"), Param("arg.数量", "不是数"))],
+            variables: store, macros: library);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.BadArgumentType, result.Key);
+    }
+
+    [Fact]
+    public async Task A_result_of_the_wrong_kind_stops_the_wait()
+    {
+        var store = Store();
+        var library = new Library(("甲", MacroSignature.Empty with
+        {
+            Results = [new MacroReturn("结果", ActionReturnType.Number)],
+        }, [Set("结果", "不是数")]));
+
+        var (result, _) = await RunAsync([Step("control.runMacro", Param("macro", "甲"),
+                Returns("结果=取回"))], variables: store,
+            macros: library);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.BadResultType, result.Key);
+        Assert.Equal(string.Empty, store.Local.Values["取回"].AsText());
+    }
+
+    [Fact]
+    public async Task A_call_to_a_macro_with_a_bad_declaration_is_refused()
+    {
+        var store = Store();
+        var library = new Library(("甲",
+            new MacroSignature([new MacroArgument("同名", "", false),
+                new MacroArgument("同名", "", false)], []),
+            [Set("痕迹", "1")]));
+
+        var (result, _) = await RunAsync([Call("甲")], variables: store, macros: library);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.BadDeclaration, result.Key);
+        Assert.False(store.TryGet("痕迹", out _));
+    }
+
+    [Fact]
     public async Task A_result_the_macro_never_offered_stops_the_call_before_it_runs()
     {
         var store = Store();

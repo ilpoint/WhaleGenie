@@ -32,9 +32,11 @@ public static class RunKeys
     public const string AlignNeedsNames = "Run.AlignNeedsNames";
     public const string AudioRefused = "Run.AudioRefused";
     public const string BackgroundNeedsPointer = "Run.BackgroundNeedsPointer";
+    public const string BadArgumentType = "Run.BadArgumentType";
     public const string BadBase64 = "Run.BadBase64";
     public const string BadEnvironment = "Run.BadEnvironment";
     public const string BadExpression = "Run.BadExpression";
+    public const string BadDeclaration = "Run.BadDeclaration";
     public const string BadJson = "Run.BadJson";
     public const string BadJsonPath = "Run.BadJsonPath";
     public const string BadList = "Run.BadList";
@@ -48,6 +50,7 @@ public static class RunKeys
     public const string BadPosition = "Run.BadPosition";
     public const string BadProcessId = "Run.BadProcessId";
     public const string BadRegion = "Run.BadRegion";
+    public const string BadResultType = "Run.BadResultType";
     public const string BadZip = "Run.BadZip";
     public const string BreakOutsideLoop = "Run.BreakOutsideLoop";
     public const string BrightnessRefused = "Run.BrightnessRefused";

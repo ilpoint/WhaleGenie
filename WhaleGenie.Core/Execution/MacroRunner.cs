@@ -861,7 +861,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task<Signal> RunOtherMacro(ExecutableStep step, int depth, CancellationToken token)
     {
-        var (name, steps, _, wanted, called) = ResolveCall(step);
+        var (name, steps, signature, wanted, called) = ResolveCall(step);
 
         var caller = Variables.SwapLocal(called);
         _callDepth++;
@@ -913,6 +913,7 @@ public sealed partial class MacroRunner
             var produced = Variables.SwapLocal(caller);
             if (finished)
             {
+                CheckResults(signature, wanted, produced);
                 Take(wanted, produced);
             }
         }
@@ -941,6 +942,11 @@ public sealed partial class MacroRunner
         }
 
         var signature = _macros.Signature(name) ?? MacroSignature.Empty;
+        if (signature.Problem() is { } problem)
+        {
+            throw new StepFailure(RunKeys.BadDeclaration, problem.Name);
+        }
+
         var wanted = WantedResults(step, signature);
 
         // A macro's own values are its own, so a call says what goes in and what comes back rather
@@ -1046,6 +1052,7 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.ChildStopped, child.Macro);
         }
 
+        CheckResults(child.Signature, child.Wanted, child.Store.Local);
         Take(child.Wanted, child.Store.Local);
         Log(LogLevel.Info, depth, step.Type, LogKeys.WaitedRun, child.Macro);
         return Signal.Normal;
@@ -1136,17 +1143,20 @@ public sealed partial class MacroRunner
         {
             var child = children[index];
             var result = results[index];
-            Finish(child);
-
             if (result.Status is RunStatus.Failed)
             {
+                Finish(child);
                 throw new StepFailure(result.Key, result.Detail);
             }
 
             if (result.Status is RunStatus.Stopped)
             {
+                Finish(child);
                 throw new StepFailure(RunKeys.ChildStopped, child.Macro);
             }
+
+            CheckResults(child.Signature, child.Wanted, child.Store.Local);
+            Finish(child);
         }
 
         foreach (var child in children)
@@ -1232,17 +1242,44 @@ public sealed partial class MacroRunner
     private Value ArgumentValue(ExecutableStep step, MacroArgument argument)
     {
         var written = step.Text(MacroCallFields.Argument(argument.Name)).Trim();
-        if (written.Length > 0)
+        var value = written.Length > 0
+            ? Read(written)
+            : argument.Required
+                ? throw new StepFailure(RunKeys.MissingArgument, argument.Name)
+                : argument.Default.Trim().Length > 0 ? Read(argument.Default) : Value.Null;
+
+        CheckValueFits(argument.Type, value, argument.Name, RunKeys.BadArgumentType);
+        return value;
+    }
+
+    /// <summary>
+    /// A declared kind is a promise the call makes; a value of another kind would reach the called
+    /// macro as something its own steps cannot use, so it is refused where the promise is checked.
+    /// Text accepts anything because every value has a text reading; an empty value is allowed for
+    /// any kind because a result that was not handed over is empty rather than wrong.
+    /// </summary>
+    private static void CheckValueFits(ActionReturnType declared, Value value, string name, string key)
+    {
+        if (value.IsNull || declared is ActionReturnType.Text or ActionReturnType.Image)
         {
-            return Read(written);
+            return;
         }
 
-        if (argument.Required)
+        var fits = declared switch
         {
-            throw new StepFailure(RunKeys.MissingArgument, argument.Name);
-        }
+            ActionReturnType.Number => value.IsNumber
+                || double.TryParse(value.AsText(), NumberStyles.Any, CultureInfo.InvariantCulture,
+                    out _),
+            ActionReturnType.Flag => value.Kind is ValueKind.Bool || bool.TryParse(value.AsText(), out _),
+            ActionReturnType.List => value.IsList,
+            ActionReturnType.Record => value.IsRecord,
+            _ => true,
+        };
 
-        return argument.Default.Trim().Length > 0 ? Read(argument.Default) : Value.Null;
+        if (!fits)
+        {
+            throw new StepFailure(key, name + ": " + value.Kind);
+        }
     }
 
     /// <summary>
@@ -1290,6 +1327,26 @@ public sealed partial class MacroRunner
         }
     }
 
+    /// <summary>
+    /// Checks what a finished run is about to hand over against the kinds its signature declared.
+    /// A result it never wrote is empty rather than wrong, so that one is left to the caller.
+    /// </summary>
+    private static void CheckResults(MacroSignature signature, List<(string Result, string Name)> wanted,
+        VariableBag produced)
+    {
+        foreach (var (result, _) in wanted)
+        {
+            if (signature.Result(result) is not { } declared)
+            {
+                continue;
+            }
+
+            var value = produced.TryGet(result, out var written) && written is not null
+                ? written
+                : Value.Null;
+            CheckValueFits(declared.Type, value, result, RunKeys.BadResultType);
+        }
+    }
     /// <summary>The entries of a field written one to a line, whichever line ending was used.</summary>
     private static string[] Lines(string text)
         => text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');

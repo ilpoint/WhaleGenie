@@ -45,4 +45,25 @@ public class VariableTextTests
         Assert.Equal("Hello $missing", Fill("Hello $missing", ("name", "Ada")));
         Assert.Equal(["missing"], VariableText.Referenced("Hello $missing"));
     }
+
+    [Fact]
+    public void A_name_in_braces_ends_where_the_braces_do()
+    {
+        Assert.Equal(@"C:\out\Ada.txt", Fill(@"C:\out\${name}.txt", ("name", "Ada")));
+        Assert.Equal(@"C:\out\Ada.txt", Fill(@"C:\out\${file.txt}.txt", ("file.txt", "Ada")));
+    }
+
+    [Fact]
+    public void A_name_in_braces_is_found_and_a_missing_one_stays_as_written()
+    {
+        Assert.Equal(["name"], VariableText.Referenced("a ${name} b"));
+        Assert.Equal("Hello ${missing}", Fill("Hello ${missing}", ("name", "Ada")));
+    }
+
+    [Fact]
+    public void Unclosed_braces_are_text()
+    {
+        Assert.Equal("Hello ${missing", Fill("Hello ${missing", ("name", "Ada")));
+        Assert.Empty(VariableText.Referenced("Hello ${missing"));
+    }
 }

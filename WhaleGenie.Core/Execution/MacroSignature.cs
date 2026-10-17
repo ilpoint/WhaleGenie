@@ -38,6 +38,69 @@ public sealed record MacroSignature(
     public MacroReturn? Result(string name)
         => Results.FirstOrDefault(result =>
             string.Equals(result.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// The first thing wrong with the names themselves, if any. A name has to be there, has to be
+    /// the only one of its kind, and may not be one the run keeps for itself: a call that passed a
+    /// value under a duplicate name would have one of the two silently overwritten, and a parameter
+    /// named like a built-in would read as the built-in inside the called macro.
+    /// </summary>
+    public (MacroSignatureFault Fault, string Name)? Problem()
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var argument in Arguments)
+        {
+            var name = argument.Name.Trim();
+            if (name.Length == 0)
+            {
+                return (MacroSignatureFault.EmptyName, argument.Name);
+            }
+
+            if (!seen.Add(name))
+            {
+                return (MacroSignatureFault.DuplicateName, name);
+            }
+
+            if (Reserved(name))
+            {
+                return (MacroSignatureFault.ReservedName, name);
+            }
+        }
+
+        seen.Clear();
+        foreach (var result in Results)
+        {
+            var name = result.Name.Trim();
+            if (name.Length == 0)
+            {
+                return (MacroSignatureFault.EmptyName, result.Name);
+            }
+
+            if (!seen.Add(name))
+            {
+                return (MacroSignatureFault.DuplicateName, name);
+            }
+
+            if (Reserved(name))
+            {
+                return (MacroSignatureFault.ReservedName, name);
+            }
+        }
+
+        return null;
+    }
+
+    private static bool Reserved(string name)
+        => name.StartsWith("sys.", StringComparison.OrdinalIgnoreCase)
+           || MacroRunner.IsRunStepName(name);
+}
+
+/// <summary>What is wrong with a macro's declared names.</summary>
+public enum MacroSignatureFault
+{
+    EmptyName,
+    DuplicateName,
+    ReservedName,
 }
 
 /// <summary>

@@ -1253,6 +1253,7 @@ public sealed class Strings : INotifyPropertyChanged
             + "will not duplicate either.",
         ["Run.BadRegion"] = "The record this step takes its rectangle from has no left, top, width "
             + "and height in it (a hit, a window and a picture taken earlier all do): {0}",
+        ["Run.BadResultType"] = "The value the run hands back for \"{0}\" is not the kind its declaration promised.",
         ["Run.BadPoint"] = "The record this step takes its place from has no x and y in it (a hit, "
             + "a window and an element carry the middle of what they name there): {0}",
         ["Run.BadPoints"] = "Every point of a colour comparison reads as x,y,#RRGGBB: {0}",
@@ -1376,6 +1377,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.SavedVariables"] = "Saved {1} variables to {0}.",
         ["Log.LoadedVariables"] = "Read {1} variables back from {0}.",
         ["Run.BadJson"] = "The file is not readable as JSON: {0}",
+        ["Run.BadDeclaration"] = "This macro declares \"{0}\" without a name, twice, or under a name the run keeps.",
         ["Run.BadJsonPath"] = "WhaleGenie cannot read this path into the JSON: {0}",
         ["Run.MissingJsonPath"] = "There is nothing at that position in the JSON.",
         ["Run.FileNotFound"] = "There is no such file: {0}",
@@ -1384,6 +1386,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.FileFailed"] = "The file could not be read or written: {0}",
         ["Run.BadZip"] = "That file is not a zip archive, or it is incomplete: {0}",
         ["Run.BadBase64"] = "That text is not Base64: {0}",
+        ["Run.BadArgumentType"] = "The value passed for \"{0}\" is not the kind of value that parameter declares.",
         ["Run.BadPosition"] = "That is not a place in the list: write a whole number, counting the "
             + "first one as 1 ({0}).",
         ["Run.BrowserMissing"] = "The browsers the browser actions drive are not on this machine: {0}",
@@ -1531,6 +1534,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.PlaceAndNumbers"] = "\"{0}\" and the numbers beside it are both filled in: keep one way of saying where, the other is ignored.",
         ["Editor.Problem.DuplicateResultName"] = "Two results go by the same name \"{0}\": the later one overwrites the earlier.",
         ["Editor.Problem.BadExpression"] = "This value cannot be read as an expression: {0}",
+        ["Editor.Problem.BadDeclaration"] = "\"{0}\" declares \"{1}\" without a name, twice, or under a name the run keeps: its calls cannot use it.",
         ["Editor.Problem.MissingField"] = "\"{0}\" is required and this step leaves it empty.",
         ["Editor.Problem.BadOption"] = "\"{0}\" is not one of the answers \"{1}\" allows.",
         ["Run.BrowserRunWhileHeld"] = "This background run works in the browser, and the step that started it is itself inside a browser dialog that holds the one page. Wait for the dialog to finish before starting it.",
@@ -2909,6 +2913,7 @@ public sealed class Strings : INotifyPropertyChanged
             + "与 Direct3D 11 设备；显卡不肯交出的显示器它也读不到。",
         ["Run.BadRegion"] = "交给它的那条记录里没有 left、top、width、height（命中、窗口、之前截下"
             + "的画面都会带着这四个数）：{0}",
+        ["Run.BadResultType"] = "这次运行交回的「{0}」与它声明的类型不符。",
         ["Run.BadPoint"] = "交给它的那条记录里没有 x、y（命中、窗口、元素都会带着这两个数，取的是"
             + "那块矩形的中心）：{0}",
         ["Run.BadPoints"] = "多点比色里的每个点要写成 x,y,#RRGGBB 的形式：{0}",
@@ -3022,6 +3027,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.SavedVariables"] = "已把 {1} 个变量保存到 {0}。",
         ["Log.LoadedVariables"] = "已从 {0} 读回 {1} 个变量。",
         ["Run.BadJson"] = "这个文件不是有效的 JSON：{0}",
+        ["Run.BadDeclaration"] = "这个宏声明「{0}」时没有名字、重了名，或者用了运行保留的名字。",
         ["Run.BadJsonPath"] = "无法解析这个 JSON 路径：{0}",
         ["Run.MissingJsonPath"] = "JSON 的这个位置上没有值。",
         ["Run.FileNotFound"] = "找不到这个文件：{0}",
@@ -3030,6 +3036,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.FileFailed"] = "这个文件读写失败：{0}",
         ["Run.BadZip"] = "这个文件不是 zip 压缩包，或者压缩包不完整：{0}",
         ["Run.BadBase64"] = "这段文本不是 Base64：{0}",
+        ["Run.BadArgumentType"] = "传给「{0}」的值与它声明的类型不符。",
         ["Run.BadPosition"] = "这不是列表里的位置：请写整数，第一个写 1（{0}）。",
         ["Run.BrowserMissing"] = "浏览器动作要用的浏览器还没装在这台机器上：{0}",
         ["Run.NoSuchProcess"] = "没有这个正在运行的程序：{0}",
@@ -3166,6 +3173,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.PlaceAndNumbers"] = "「{0}」和旁边的数字都填了：只留一种写法，另一种会被忽略。",
         ["Editor.Problem.DuplicateResultName"] = "有两个结果用了同一个名字「{0}」：后一个会盖掉前一个。",
         ["Editor.Problem.BadExpression"] = "这里不是有效的表达式：{0}",
+        ["Editor.Problem.BadDeclaration"] = "「{0}」的声明「{1}」是空的、重名的，或者用了运行保留的名字：调用它的步骤用不了。",
         ["Editor.Problem.MissingField"] = "「{0}」是必填的，这一步没有填。",
         ["Editor.Problem.BadOption"] = "「{0}」不是「{1}」允许的选项。",
         ["Run.BrowserRunWhileHeld"] = "这次后台运行要用浏览器，而启动它的步骤正待在一个按住那一页的浏览器对话框里。等对话框结束再启动它。",

@@ -835,6 +835,12 @@ public static class MacroCheck
                 return;
             }
 
+            if (called.Signature.Problem() is { } problem)
+            {
+                Add(step, Strings.Format("Editor.Problem.BadDeclaration", called.Name,
+                    problem.Name));
+            }
+
             foreach (var parameter in step.Parameters.Where(parameter => parameter.Name.StartsWith(
                          MacroCallFields.ArgumentPrefix, StringComparison.Ordinal)))
             {

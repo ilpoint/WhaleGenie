@@ -891,4 +891,17 @@ public class MacroCheckTests
     public void A_required_field_that_only_applies_under_some_settings_is_left_alone()
         => Assert.Empty(Inspect(Step("data.hash",
             Text("hashSource", "text"), Text("dataText", "abc"))));
+
+    [Fact]
+    public void A_call_to_a_macro_with_a_bad_declaration_is_marked()
+    {
+        var bad = Callable("坏", ["同名", "同名"], [], []);
+        var call = Step("control.runMacro", Text("macro", "坏"));
+
+        var problems = Against("调用方", [bad], call);
+
+        var problem = Assert.Single(problems, candidate => candidate.Step == call);
+        Assert.Equal(Strings.Format("Editor.Problem.BadDeclaration", "坏", "同名"),
+            problem.Message);
+    }
 }
