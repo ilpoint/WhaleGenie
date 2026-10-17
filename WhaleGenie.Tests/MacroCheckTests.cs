@@ -651,6 +651,41 @@ public class MacroCheckTests
             Strings.Get("ActionType.Record")), problem.Message);
     }
 
+    /// <summary>
+    /// 多分支 case 里的 break 只离开这个多分支，所以不在循环里也不算错；不在循环也不在多分支里的
+    /// break 仍旧标出来。
+    /// </summary>
+    [Fact]
+    public void A_break_in_a_case_is_not_a_break_outside_a_loop()
+    {
+        var branch = Step("control.switch",
+            Text("switchValue", "a"), Text("switchMode", "equals"),
+            Steps("cases", Step("control.case", Text("values", "a"),
+                Steps("body", Step("control.break")))));
+
+        Assert.Empty(Inspect(branch));
+
+        var alone = Step("control.sequence", Steps("steps", Step("control.break")));
+        var problem = Assert.Single(Inspect(alone));
+        Assert.Equal(Strings.Get("Editor.Problem.BreakOutsideLoop"), problem.Message);
+    }
+
+    /// <summary>
+    /// 内层循环用外层的变量名时标一条：它结束之后外层的值就没有了。
+    /// </summary>
+    [Fact]
+    public void A_nested_loop_with_the_same_variable_is_marked()
+    {
+        var inner = Step("control.forEach", Text("items", "[]"), Text("itemVariable", "item"),
+            Steps("body"));
+        var outer = Step("control.forEach", Text("items", "[]"), Text("itemVariable", "item"),
+            Steps("body", inner));
+
+        var problem = Assert.Single(Inspect(outer), candidate => candidate.Step == inner);
+        Assert.Equal(Strings.Format("Editor.Problem.LoopVariableShadowed", "item"),
+            problem.Message);
+    }
+
     [Fact]
     public void A_switch_with_neither_a_case_nor_an_otherwise_is_reported()
     {

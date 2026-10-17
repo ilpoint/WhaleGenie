@@ -1521,6 +1521,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.CancelledRun"] = "The background run of “{0}” was asked to stop and is over.",
         ["Editor.Problem.ResultBeforeWait"] = "\"{0}\" is a background run's result and has no value until that run is waited for: wait for it before reading it.",
         ["Editor.Problem.MissingRunHandles"] = "This step was given no list of run handles, so there is nothing to wait for.",
+        ["Editor.Problem.LoopVariableShadowed"] = "\"{0}\" is already used by a loop around this one, so the outer value is lost when this loop ends: give this loop's variable another name.",
         ["Log.Finally"] = "Running the clean-up steps.",
         ["Add.SystemReadOnly"] = "\"{0}\" is a system variable, which a macro can only read.",
         ["Add.GlobalMustExist"] =
@@ -3145,6 +3146,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.CancelledRun"] = "「{0}」的后台运行被取消，已经结束。",
         ["Editor.Problem.ResultBeforeWait"] = "「{0}」是后台运行的结果，等到那次运行结束才有值：先等它结束再读。",
         ["Editor.Problem.MissingRunHandles"] = "这一步没有给出一列运行句柄，也就没有可以等的运行。",
+        ["Editor.Problem.LoopVariableShadowed"] = "「{0}」外层循环也在用，内层结束之后外层的值就没有了：给内层换一个名字。",
         ["Log.Finally"] = "正在执行收尾步骤。",
         ["Add.SystemReadOnly"] = "“{0}”是系统变量，宏只能读取，不能修改。",
         ["Add.GlobalMustExist"] = "全局变量“{0}”不存在，请先在运行调试窗口里创建。",

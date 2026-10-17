@@ -1505,7 +1505,9 @@ public partial class AddActionViewModel : ViewModelBase
     private bool PageIsChanged(string key) => key switch
     {
         OtherPage => false,
-        ReturnsPage => ReturnsField is { IsDefault: false },
+        // A result nobody ticked is how every step is saved, so it is not a change worth opening
+        // the page on; a primary result the catalogue hands over by default counts the same.
+        ReturnsPage => ReturnsRows.Any(row => row.Ticked),
         _ => RowsOf(key).Any(row => row.IsApplicable && !row.IsDefault),
     };
 

@@ -370,6 +370,145 @@ public class MacroRunnerTests
         Assert.False(store.Local.Contains(VariableStore.LoopIndexName));
     }
 
+    /// <summary>
+    /// 两种结束各写各的：走完是 items / count / range，用 break 提前离开是 break。
+    /// </summary>
+    [Theory]
+    [InlineData("control.repeat", "count", false)]
+    [InlineData("control.repeat", "break", true)]
+    [InlineData("control.forEach", "items", false)]
+    [InlineData("control.forEach", "break", true)]
+    [InlineData("control.for", "range", false)]
+    [InlineData("control.for", "break", true)]
+    public async Task A_loop_says_why_it_ended(string action, string ended, bool stopEarly)
+    {
+        var store = Store();
+        var body = stopEarly
+            ? Body("body", Step("control.break"))
+            : Body("body", Set("ran", "1"));
+
+        var loop = action switch
+        {
+            "control.repeat" => Step(action, Param("times", "3"), Param("intervalMs", "0"), body,
+                Returns("ended=ended")),
+            "control.forEach" => Step(action, Param("items", "[1, 2, 3]"),
+                Param("itemVariable", "item"), body, Returns("ended=ended")),
+            _ => Step(action, Param("rangeFrom", "1"), Param("rangeTo", "3"),
+                Param("stepSize", "1"), Param("intervalMs", "0"), Param("name", "i"), body,
+                Returns("ended=ended")),
+        };
+
+        var (result, _) = await RunAsync([loop], variables: store);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(ended, store.Local.Values["ended"].AsText());
+    }
+
+    /// <summary>用 break 离开「当…时循环」时，结束原因写 break，而不是留空。</summary>
+    [Fact]
+    public async Task While_says_break_when_it_was_left_early()
+    {
+        var store = Store(("n", 0));
+        var loop = Step("control.while",
+            When("condition", Step("condition.compare", Param("variable", "n"),
+                Param("compareOperator", "lessThan"), Param("compareValue", "3"))),
+            Param("maxIterations", "5"),
+            Body("body", Step("control.break")),
+            Returns("ended=ended"));
+
+        var (result, _) = await RunAsync([loop], variables: store);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("break", store.Local.Values["ended"].AsText());
+    }
+
+    /// <summary>
+    /// 内层循环用同一个变量名也不会把外层的值带走：离开内层之后，外层读到的还是它自己的那一项。
+    /// </summary>
+    [Fact]
+    public async Task An_inner_loop_does_not_keep_the_outer_item()
+    {
+        var store = Store();
+        var inner = Step("control.forEach", Param("items", "[10, 20]"),
+            Param("itemVariable", "item"),
+            Body("body", Set("innerLast", "$item")));
+        var outer = Step("control.forEach", Param("items", "[1, 2]"),
+            Param("itemVariable", "item"),
+            Body("body", Set("outerBefore", "$item"), inner, Set("outerAfter", "$item")));
+
+        var (result, _) = await RunAsync([outer], variables: store);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(2, N(store, "outerBefore"));
+        Assert.Equal(2, N(store, "outerAfter"));
+        Assert.Equal(20, N(store, "innerLast"));
+    }
+
+    /// <summary>
+    /// 多分支 case 里的 break 只离开这个多分支：后面的步骤照常执行，外层循环也不受影响。
+    /// </summary>
+    [Fact]
+    public async Task A_break_in_a_case_leaves_the_switch_only()
+    {
+        var store = Store();
+        store.Local.SetText("kind", "b");
+        var branch = Step("control.switch",
+            Param("switchValue", "$kind"), Param("switchMode", "equals"),
+            Body("cases",
+                Step("control.case", Param("values", "a"), Body("body", Set("ran", "a"))),
+                Step("control.case", Param("values", "b"),
+                    Body("body", Set("ran", "b"), Step("control.break"),
+                        Set("afterBreak", "no")))),
+            Body("otherwise", Set("ran", "other")));
+
+        var (result, _) = await RunAsync([branch, Set("after", "yes")], variables: store);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("b", store.Local.Values["ran"].AsText());
+        Assert.False(store.Local.Contains("afterBreak"));
+        Assert.Equal("yes", store.Local.Values["after"].AsText());
+    }
+
+    /// <summary>循环里的多分支写 break，循环照常跑下一轮。</summary>
+    [Fact]
+    public async Task A_break_in_a_case_does_not_end_the_loop_around_it()
+    {
+        var store = Store(("rounds", 0));
+        var loop = Step("control.repeat", Param("times", "2"), Param("intervalMs", "0"),
+            Body("body",
+                AddOne("rounds"),
+                Step("control.switch",
+                    Param("switchValue", "x"), Param("switchMode", "equals"),
+                    Body("cases", Step("control.case", Param("values", "x"),
+                        Body("body", Step("control.break")))))));
+
+        var (result, _) = await RunAsync([loop], variables: store);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(2, N(store, "rounds"));
+    }
+
+    /// <summary>多分支里的 continue 交给最近的循环：这一轮提前结束，下一轮照跑。</summary>
+    [Fact]
+    public async Task A_continue_in_a_case_reaches_the_loop_around_it()
+    {
+        var store = Store(("rounds", 0));
+        var loop = Step("control.repeat", Param("times", "2"), Param("intervalMs", "0"),
+            Body("body",
+                AddOne("rounds"),
+                Step("control.switch",
+                    Param("switchValue", "x"), Param("switchMode", "equals"),
+                    Body("cases", Step("control.case", Param("values", "x"),
+                        Body("body", Step("control.continue"))))),
+                Set("after", "no")));
+
+        var (result, _) = await RunAsync([loop], variables: store);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(2, N(store, "rounds"));
+        Assert.False(store.Local.Contains("after"));
+    }
+
     [Fact]
     public async Task For_each_waits_between_rounds()
     {

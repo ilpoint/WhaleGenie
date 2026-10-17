@@ -212,6 +212,18 @@
         "ChildKeys": []
       },
       {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "body",
         "Shape": "Steps",
         "ReadMode": "Text",
@@ -224,7 +236,13 @@
         "ChildKeys": []
       }
     ],
-    "Returns": []
+    "Returns": [
+      {
+        "Key": "ended",
+        "Type": "Text",
+        "Primary": true
+      }
+    ]
   },
   {
     "Key": "control.while",
@@ -373,6 +391,18 @@
         "ChildKeys": []
       },
       {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "body",
         "Shape": "Steps",
         "ReadMode": "Text",
@@ -385,7 +415,13 @@
         "ChildKeys": []
       }
     ],
-    "Returns": []
+    "Returns": [
+      {
+        "Key": "ended",
+        "Type": "Text",
+        "Primary": true
+      }
+    ]
   },
   {
     "Key": "control.for",
@@ -468,6 +504,18 @@
         "ChildKeys": []
       },
       {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      },
+      {
         "Name": "body",
         "Shape": "Steps",
         "ReadMode": "Text",
@@ -480,7 +528,13 @@
         "ChildKeys": []
       }
     ],
-    "Returns": []
+    "Returns": [
+      {
+        "Key": "ended",
+        "Type": "Text",
+        "Primary": true
+      }
+    ]
   },
   {
     "Key": "control.if",

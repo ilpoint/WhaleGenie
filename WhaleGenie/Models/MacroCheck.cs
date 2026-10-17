@@ -125,7 +125,8 @@ public static class MacroCheck
         // said about which names the rest of the macro is allowed to read.
         var namesAreOpen = Every(tree).Any(step => step.Type == "file.loadVariables");
 
-        Visit(tree, 0, bounded: false, guarded: false);
+        Visit(tree, 0, 0, new HashSet<string>(StringComparer.OrdinalIgnoreCase), bounded: false,
+            guarded: false);
         CheckSharedInput();
         CheckSharedBrowser();
         return problems;
@@ -169,11 +170,12 @@ public static class MacroCheck
             }
         }
 
-        void Visit(IReadOnlyList<MacroStep> list, int loops, bool bounded, bool guarded)
+        void Visit(IReadOnlyList<MacroStep> list, int loops, int switches,
+            IReadOnlySet<string> loopNames, bool bounded, bool guarded)
         {
             foreach (var step in list)
             {
-                CheckLoopControl(step, loops);
+                CheckLoopControl(step, loops, switches);
                 CheckCondition(step);
                 CheckLoopIndex(step, loops);
                 CheckCall(step, guarded);
@@ -188,10 +190,24 @@ public static class MacroCheck
                 CheckScriptInput(step);
                 CheckRunHandle(step);
 
+                // A loop's own variables belong to the innermost loop that names them, so one
+                // that borrows a name from a loop around it loses the outer value when it ends.
+                var ownNames = LoopVariableNames(step);
+                foreach (var name in ownNames)
+                {
+                    if (loopNames.Contains(name))
+                    {
+                        Add(step, Strings.Format("Editor.Problem.LoopVariableShadowed", name));
+                    }
+                }
+
                 // Every list of child steps is walked from inside the loop it sits in, whichever
                 // parameter holds it: a body, an if branch, a switch case and a try block all let
                 // a break reach the loop around them.
                 var insideLoops = LoopKeys.Contains(step.Type) ? loops + 1 : loops;
+                var insideSwitches = step.Type == "control.switch" ? switches + 1 : switches;
+                var insideNames = new HashSet<string>(loopNames, StringComparer.OrdinalIgnoreCase);
+                insideNames.UnionWith(ownNames);
                 var insideBounded = bounded || step.Meta.TimeoutMs > 0;
                 var insideGuard = guarded || GuardKeys.Contains(step.Type);
                 foreach (var parameter in step.Parameters)
@@ -199,10 +215,12 @@ public static class MacroCheck
                     switch (parameter.Kind)
                     {
                         case ActionParameterKind.Steps:
-                            Visit(parameter.Steps, insideLoops, insideBounded, insideGuard);
+                            Visit(parameter.Steps, insideLoops, insideSwitches, insideNames,
+                                insideBounded, insideGuard);
                             break;
                         case ActionParameterKind.Condition when parameter.Condition is { } condition:
-                            Visit([condition], insideLoops, insideBounded, insideGuard);
+                            Visit([condition], insideLoops, insideSwitches, insideNames,
+                                insideBounded, insideGuard);
                             break;
                     }
                 }
@@ -351,22 +369,23 @@ public static class MacroCheck
             }
         }
 
-        void CheckLoopControl(MacroStep step, int loops)
+        void CheckLoopControl(MacroStep step, int loops, int switches)
         {
-            if (loops > 0)
+            if (step.Type is not ("control.break" or "control.continue"))
             {
                 return;
             }
 
-            switch (step.Type)
+            // A break inside a switch leaves that switch; a continue only ever means a loop.
+            var reachable = step.Type == "control.break" ? loops > 0 || switches > 0 : loops > 0;
+            if (reachable)
             {
-                case "control.break":
-                    Add(step, Strings.Get("Editor.Problem.BreakOutsideLoop"));
-                    break;
-                case "control.continue":
-                    Add(step, Strings.Get("Editor.Problem.ContinueOutsideLoop"));
-                    break;
+                return;
             }
+
+            Add(step, Strings.Get(step.Type == "control.break"
+                ? "Editor.Problem.BreakOutsideLoop"
+                : "Editor.Problem.ContinueOutsideLoop"));
         }
 
         void CheckCall(MacroStep step, bool guarded)
@@ -724,6 +743,30 @@ public static class MacroCheck
             && !string.Equals(text, "false", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// The names a loop writes for its own rounds: the item and round number of a "for each" and
+    /// the counter of a counting loop. A repeat or a while counts the rounds in the runner's head,
+    /// so there is no name of the macro's to keep.
+    /// </summary>
+    private static string[] LoopVariableNames(MacroStep step)
+    {
+        switch (step.Type)
+        {
+            case "control.forEach":
+                var item = step.Text("itemVariable").Trim();
+                var index = step.Text("indexVariable").Trim();
+                return
+                [
+                    .. new[] { item.Length == 0 ? "item" : item, index }
+                        .Where(name => name.Length > 0),
+                ];
+            case "control.for":
+                var counter = step.Text("name").Trim();
+                return [counter.Length == 0 ? "i" : counter];
+            default:
+                return [];
+        }
+    }
     /// <summary>
     /// The variable a run-handle field names when it holds one variable and nothing else, or null
     /// when it is an expression. Only that form lets the check say which run a wait settles.

@@ -3753,8 +3753,26 @@ internal static class ActionStrings
 
         // control.while
         ["control.while.return.ended.label"] = "结束原因",
-        ["control.while.return.ended.hint"] = "条件变假时为 condition，到最大轮数时为 limit；"
-            + "在循环体里用 break 提前离开时不写这一项。",
+        ["control.while.return.ended.hint"] = "条件变假时为 condition，到最大轮数时为 limit，"
+            + "在循环体里用 break 提前离开时为 break。",
+
+        // control.repeat
+        ["control.repeat.returns.label"] = "要留下的结果",
+        ["control.repeat.returns.hint"] = ReturnsHintText,
+        ["control.repeat.return.ended.label"] = "结束原因",
+        ["control.repeat.return.ended.hint"] = "每一轮都跑完时为 count，用 break 提前离开时为 break。",
+
+        // control.forEach
+        ["control.forEach.returns.label"] = "要留下的结果",
+        ["control.forEach.returns.hint"] = ReturnsHintText,
+        ["control.forEach.return.ended.label"] = "结束原因",
+        ["control.forEach.return.ended.hint"] = "列表走完时为 items，用 break 提前离开时为 break。",
+
+        // control.for
+        ["control.for.returns.label"] = "要留下的结果",
+        ["control.for.returns.hint"] = ReturnsHintText,
+        ["control.for.return.ended.label"] = "结束原因",
+        ["control.for.return.ended.hint"] = "数到终点时为 range，用 break 提前离开时为 break。",
 
         // control.try
         ["control.try.return.error.label"] = "失败键",

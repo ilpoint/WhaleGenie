@@ -243,6 +243,26 @@
         "AddLabelKey": ""
       },
       {
+        "Name": "returns",
+        "Label": "Returns",
+        "Hint": "Tick the results this step should hand over. Each ticked one becomes a variable of its own, named after the note on the step and the name of the result, which the row itself may change, and can then be read by later steps. Nothing ticked means the step leaves no result behind.",
+        "Placeholder": "",
+        "Kind": "Returns",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
         "Name": "body",
         "Label": "Body steps",
         "Hint": "Steps that run once per iteration.",
@@ -263,7 +283,13 @@
         "AddLabelKey": ""
       }
     ],
-    "Returns": []
+    "Returns": [
+      {
+        "Key": "ended",
+        "Label": "Why it ended",
+        "Hint": "count when every round ran, break when the loop was left early."
+      }
+    ]
   },
   {
     "Key": "control.while",
@@ -355,7 +381,7 @@
       {
         "Key": "ended",
         "Label": "Why it ended",
-        "Hint": "condition when the condition became false, or limit when the loop stopped at its maximum number of rounds. Leaving early with break writes nothing here."
+        "Hint": "condition when the condition became false, limit when the loop stopped at its maximum number of rounds, and break when it was left early with break."
       }
     ]
   },
@@ -465,6 +491,26 @@
         "AddLabelKey": ""
       },
       {
+        "Name": "returns",
+        "Label": "Returns",
+        "Hint": "Tick the results this step should hand over. Each ticked one becomes a variable of its own, named after the note on the step and the name of the result, which the row itself may change, and can then be read by later steps. Nothing ticked means the step leaves no result behind.",
+        "Placeholder": "",
+        "Kind": "Returns",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
         "Name": "body",
         "Label": "Body steps",
         "Hint": "Steps that run once per item.",
@@ -485,7 +531,13 @@
         "AddLabelKey": ""
       }
     ],
-    "Returns": []
+    "Returns": [
+      {
+        "Key": "ended",
+        "Label": "Why it ended",
+        "Hint": "items when the list ran out, break when the loop was left early."
+      }
+    ]
   },
   {
     "Key": "control.for",
@@ -593,6 +645,26 @@
         "AddLabelKey": ""
       },
       {
+        "Name": "returns",
+        "Label": "Returns",
+        "Hint": "Tick the results this step should hand over. Each ticked one becomes a variable of its own, named after the note on the step and the name of the result, which the row itself may change, and can then be read by later steps. Nothing ticked means the step leaves no result behind.",
+        "Placeholder": "",
+        "Kind": "Returns",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
         "Name": "body",
         "Label": "Body steps",
         "Hint": "Steps that run once per round.",
@@ -613,7 +685,13 @@
         "AddLabelKey": ""
       }
     ],
-    "Returns": []
+    "Returns": [
+      {
+        "Key": "ended",
+        "Label": "Why it ended",
+        "Hint": "range when the counter reached its end, break when the loop was left early."
+      }
+    ]
   },
   {
     "Key": "control.if",

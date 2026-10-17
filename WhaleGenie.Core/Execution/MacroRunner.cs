@@ -146,37 +146,92 @@ public sealed partial class MacroRunner
     private int _loops;
 
     /// <summary>
-    /// Puts the round number back the way the enclosing loop left it. A nested loop borrows the
-    /// name while it runs; leaving it behind would make the outer loop read the inner round.
+    /// How many switches the run is inside right now. A break inside a switch leaves that switch
+    /// rather than the loop around it, so a switch on its own is a place a break can stand.
     /// </summary>
-    private LoopIndexScope EnterLoopIndex()
+    private int _switches;
+
+    /// <summary>
+    /// Names a loop writes for its own rounds. They belong to the innermost loop that names them:
+    /// leaving it puts back what the loop around it had, so an inner "for each" using "item" does
+    /// not erase the outer one's item. A name no loop around it was using is the macro's own to
+    /// read afterwards, and a counter stays readable while the round number does not.
+    /// </summary>
+    private LoopScope EnterLoop(params string[] names) => EnterLoop(false, names);
+
+    private LoopScope EnterLoop(bool keepLast, params string[] names)
     {
-        var had = Variables.Local.TryGet(VariableStore.LoopIndexName, out var previous);
-        return new LoopIndexScope(Variables.Local, had, previous);
+        var taken = names.Where(name => name.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var saved = new List<(string Name, bool Had, Value? Value)>();
+        foreach (var name in taken)
+        {
+            if (_activeLoopNames.ContainsKey(name))
+            {
+                var had = Variables.Local.TryGet(name, out var value);
+                saved.Add((name, had, had ? value : null));
+            }
+
+            _activeLoopNames[name] = _activeLoopNames.GetValueOrDefault(name) + 1;
+        }
+
+        return new LoopScope(Variables.Local, this, taken, saved, keepLast);
     }
 
-    private readonly struct LoopIndexScope : IDisposable
+    /// <summary>
+    /// Which loop names are in use right now, and how many loops deep. A name taken by an inner
+    /// loop is put back when that loop ends; one the inner loop was the first to use is left alone.
+    /// </summary>
+    private readonly Dictionary<string, int> _activeLoopNames = new(StringComparer.OrdinalIgnoreCase);
+
+    private readonly struct LoopScope : IDisposable
     {
         private readonly VariableBag _values;
-        private readonly bool _had;
-        private readonly Value? _previous;
+        private readonly MacroRunner _runner;
+        private readonly List<string> _names;
+        private readonly List<(string Name, bool Had, Value? Value)> _saved;
+        private readonly bool _keepLast;
 
-        public LoopIndexScope(VariableBag values, bool had, Value? previous)
+        public LoopScope(VariableBag values, MacroRunner runner, List<string> names,
+            List<(string Name, bool Had, Value? Value)> saved, bool keepLast)
         {
             _values = values;
-            _had = had;
-            _previous = previous;
+            _runner = runner;
+            _names = names;
+            _saved = saved;
+            _keepLast = keepLast;
         }
 
         public void Dispose()
         {
-            if (_had)
+            foreach (var (name, had, value) in _saved)
             {
-                _values.Set(VariableStore.LoopIndexName, _previous!);
+                if (had)
+                {
+                    _values.Set(name, value!);
+                }
+                else
+                {
+                    _values.Remove(name);
+                }
             }
-            else
+
+            foreach (var name in _names)
             {
-                _values.Remove(VariableStore.LoopIndexName);
+                var left = _runner._activeLoopNames[name] - 1;
+                if (left > 0)
+                {
+                    _runner._activeLoopNames[name] = left;
+                }
+                else
+                {
+                    _runner._activeLoopNames.Remove(name);
+                    if (!_keepLast && !_saved.Exists(saved => saved.Name == name))
+                    {
+                        _values.Remove(name);
+                    }
+                }
             }
         }
     }
@@ -2310,7 +2365,7 @@ public sealed partial class MacroRunner
     {
         var times = Math.Max(0, Number(step, "times"));
         var interval = Pace(Number(step, "intervalMs"));
-        using var index = EnterLoopIndex();
+        using var scope = EnterLoop(VariableStore.LoopIndexName);
 
         for (var round = 0; round < times; round++)
         {
@@ -2324,12 +2379,14 @@ public sealed partial class MacroRunner
 
             if (signal is Signal.Break)
             {
+                Give(step, "ended", Value.FromText("break"));
                 return Signal.Normal;
             }
 
             await Pause(interval, token);
         }
 
+        Give(step, "ended", Value.FromText("count"));
         return Signal.Normal;
     }
 
@@ -2338,7 +2395,7 @@ public sealed partial class MacroRunner
         var condition = step.Condition("condition")
                         ?? throw new StepFailure(RunKeys.MissingCondition);
         var limit = Math.Max(1, Number(step, "maxIterations"));
-        using var index = EnterLoopIndex();
+        using var scope = EnterLoop(VariableStore.LoopIndexName);
 
         for (var round = 0; round < limit; round++)
         {
@@ -2358,6 +2415,7 @@ public sealed partial class MacroRunner
 
             if (signal is Signal.Break)
             {
+                Give(step, "ended", Value.FromText("break"));
                 return Signal.Normal;
             }
         }
@@ -2391,9 +2449,11 @@ public sealed partial class MacroRunner
     /// run that reports success after skipping the rest of a macro is a lie the user cannot see.
     /// </summary>
     private Signal LeaveLoop(Signal signal, ExecutableStep step)
-        => _loops > 0
-            ? signal
-            : throw new StepFailure(LoopControlKey(signal), step.Type);
+    {
+        // A break also has somewhere to go inside a switch; a continue only ever means a loop.
+        var reachable = signal is Signal.Break ? _loops > 0 || _switches > 0 : _loops > 0;
+        return reachable ? signal : throw new StepFailure(LoopControlKey(signal), step.Type);
+    }
 
     private async Task<Signal> RunForEach(ExecutableStep step, int depth, CancellationToken token)
     {
@@ -2417,7 +2477,8 @@ public sealed partial class MacroRunner
         var indexName = ReadText(step, "indexVariable").Trim();
         var interval = Pace(Number(step, "intervalMs"));
         var index = 0;
-        using var scope = EnterLoopIndex();
+        using var indexScope = EnterLoop(VariableStore.LoopIndexName);
+        using var nameScope = EnterLoop(true, itemName, indexName);
         foreach (var item in order)
         {
             token.ThrowIfCancellationRequested();
@@ -2436,6 +2497,7 @@ public sealed partial class MacroRunner
 
             if (signal is Signal.Break)
             {
+                Give(step, "ended", Value.FromText("break"));
                 return Signal.Normal;
             }
 
@@ -2443,6 +2505,7 @@ public sealed partial class MacroRunner
             await Pause(interval, token);
         }
 
+        Give(step, "ended", Value.FromText("items"));
         return Signal.Normal;
     }
 
@@ -2472,7 +2535,8 @@ public sealed partial class MacroRunner
         }
         var interval = Pace(Number(step, "intervalMs"));
         var round = 0;
-        using var scope = EnterLoopIndex();
+        using var indexScope = EnterLoop(VariableStore.LoopIndexName);
+        using var nameScope = EnterLoop(true, counter);
 
         for (var value = from; stride > 0 ? value <= to : value >= to; value += stride)
         {
@@ -2488,6 +2552,7 @@ public sealed partial class MacroRunner
 
             if (signal is Signal.Break)
             {
+                Give(step, "ended", Value.FromText("break"));
                 return Signal.Normal;
             }
 
@@ -2495,6 +2560,7 @@ public sealed partial class MacroRunner
             await Pause(interval, token);
         }
 
+        Give(step, "ended", Value.FromText("range"));
         return Signal.Normal;
     }
 
@@ -2519,18 +2585,40 @@ public sealed partial class MacroRunner
             {
                 if (CaseMatches(step, value, wanted, mode))
                 {
-                    var signal = await RunSteps(branch.Children("body"), depth + 1, token);
+                    var signal = await RunBranch(branch, depth, token);
 
                     // A branch is a block of the macro like any other, so it says how it went
                     // too. It is run from here rather than through the walk, which is why it has
                     // to be written down by hand.
                     WriteOutcome(branch, signal is Signal.Failed ? OutcomeFailed : OutcomeOk);
-                    return signal;
+
+                    // A break written in a case leaves this switch, not the loop around it. A
+                    // continue is still the loop's: it has nothing to say about a switch.
+                    return signal is Signal.Break ? Signal.Normal : signal;
                 }
             }
         }
 
-        return await RunSteps(step.Children("otherwise"), depth + 1, token);
+        var otherwise = await RunBranch(step, depth, token, "otherwise");
+        return otherwise is Signal.Break ? Signal.Normal : otherwise;
+    }
+
+    /// <summary>
+    /// Runs one branch of a switch as a place a break can stand: the switch is counted while the
+    /// branch runs, so a break that reaches the runner knows there is something to leave.
+    /// </summary>
+    private async Task<Signal> RunBranch(ExecutableStep step, int depth, CancellationToken token,
+        string children = "body")
+    {
+        _switches++;
+        try
+        {
+            return await RunSteps(step.Children(children), depth + 1, token);
+        }
+        finally
+        {
+            _switches--;
+        }
     }
 
     /// <summary>
