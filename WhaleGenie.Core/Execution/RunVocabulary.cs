@@ -165,6 +165,7 @@ public static class RunKeys
     public const string StepFailedByMacro = "Run.StepFailedByMacro";
     public const string TextNotFound = "Run.TextNotFound";
     public const string Timeout = "Run.Timeout";
+    public const string TooManyRuns = "Run.TooManyRuns";
     public const string UndeclaredResult = "Run.UndeclaredResult";
     public const string UnknownBrightnessAction = "Run.UnknownBrightnessAction";
     public const string UnknownGamepadButton = "Run.UnknownGamepadButton";

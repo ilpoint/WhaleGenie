@@ -2194,6 +2194,70 @@
     "Returns": []
   },
   {
+    "Key": "control.runStatus",
+    "DisplayName": "Background Run Status",
+    "Description": "Look at a background run without waiting: whether it is still running, how it ended and why.",
+    "Parameters": [
+      {
+        "Name": "runHandle",
+        "Label": "Run handle",
+        "Hint": "The variable holding the handle that “Start Another Macro” wrote. The handle is brought up to date, so reading it later says what this step just learned.",
+        "Placeholder": "$job",
+        "Kind": "Expression",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "returns",
+        "Label": "Returns",
+        "Hint": "Tick the answers this step should hand over. Each ticked one becomes a variable of its own.",
+        "Placeholder": "",
+        "Kind": "Returns",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      }
+    ],
+    "Returns": [
+      {
+        "Key": "status",
+        "Label": "Status",
+        "Hint": "running, done, failed or stopped: what the run is doing or how it ended."
+      },
+      {
+        "Key": "running",
+        "Label": "Still running",
+        "Hint": "True while the run is still going; false once it has ended."
+      },
+      {
+        "Key": "error",
+        "Label": "Failure key",
+        "Hint": "The run key it failed with, or empty when it did not fail."
+      }
+    ]
+  },
+  {
     "Key": "control.cancelMacro",
     "DisplayName": "Cancel a Background Run",
     "Description": "Cancel a background run and wait for it to stop, so what it was doing is no longer going on.",

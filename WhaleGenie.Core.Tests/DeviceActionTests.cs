@@ -10109,6 +10109,47 @@ public class DeviceActionTests
             call.StartsWith("browserClick", StringComparison.Ordinal)));
     }
 
+    [Fact]
+    public async Task A_background_run_can_be_looked_at_without_waiting()
+    {
+        var library = new Macros(("子", [Step("control.delay", Param("ms", "300"))]));
+        var (result, _, store) = await RunWithAsync(
+        [
+            Step("control.startMacro", Param("macro", "子"), Param("runHandleName", "job")),
+            Step("control.runStatus", Param("runHandle", "$job"),
+                Returns("status=state", "running=live", "error=why")),
+            Step("control.delay", Param("ms", "900")),
+            Step("control.runStatus", Param("runHandle", "$job"),
+                Returns("status=after", "running=afterLive")),
+            Step("control.waitMacro", Param("runHandle", "$job")),
+            Step("control.runStatus", Param("runHandle", "$job"), Returns("status=waited")),
+        ], new FakeDeviceLayer(), library);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("running", store.Local.Values["state"].AsText());
+        Assert.True(store.Local.Values["live"].AsBool());
+        Assert.Equal("done", store.Local.Values["after"].AsText());
+        Assert.False(store.Local.Values["afterLive"].AsBool());
+        Assert.Equal("done", store.Local.Values["waited"].AsText());
+    }
+
+    [Fact]
+    public async Task Starting_more_background_runs_than_allowed_stops_the_step()
+    {
+        var library = new Macros(("子", [Step("control.delay", Param("ms", "500"))]));
+        var steps = Enumerable.Range(0, MacroRunner.MaxBackgroundRuns + 1)
+            .Select(index => Step("control.startMacro", Param("macro", "子"),
+                Param("runHandleName", $"job{index}")))
+            .ToArray();
+
+        var (result, _, _) = await RunWithAsync(steps, new FakeDeviceLayer(), library);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.TooManyRuns, result.Key);
+        Assert.Equal(MacroRunner.MaxBackgroundRuns.ToString(CultureInfo.InvariantCulture),
+            result.Detail);
+    }
+
 }
 
 /// <summary>

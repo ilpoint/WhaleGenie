@@ -1786,6 +1786,60 @@
     "Returns": []
   },
   {
+    "Key": "control.runStatus",
+    "Category": "Control",
+    "Hidden": false,
+    "SendsInput": false,
+    "IsCondition": false,
+    "LooksAtScreen": false,
+    "Waits": false,
+    "TimeoutSource": "None",
+    "TimeoutField": "",
+    "StepTimeoutMs": 0,
+    "Parameters": [
+      {
+        "Name": "runHandle",
+        "Shape": "Text",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": [],
+        "MissingKey": "Run.MissingHandle"
+      },
+      {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      }
+    ],
+    "Returns": [
+      {
+        "Key": "status",
+        "Type": "Text",
+        "Primary": true
+      },
+      {
+        "Key": "running",
+        "Type": "Flag"
+      },
+      {
+        "Key": "error",
+        "Type": "Text"
+      }
+    ]
+  },
+  {
     "Key": "control.cancelMacro",
     "Category": "Control",
     "Hidden": false,

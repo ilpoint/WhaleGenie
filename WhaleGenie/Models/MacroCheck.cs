@@ -353,6 +353,7 @@ public static class MacroCheck
                     break;
                 case "control.waitMacro":
                 case "control.cancelMacro":
+                case "control.runStatus":
                     if (step.Text("runHandle").Trim().Length == 0)
                     {
                         Add(step, Strings.Get("Editor.Problem.MissingRunHandle"));

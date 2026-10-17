@@ -791,6 +791,12 @@ public sealed partial class MacroRunner
     private const int CallDepthLimit = 16;
 
     /// <summary>
+    /// The most background runs one macro may have going at once. A loop that starts a run per
+    /// item can otherwise fill the machine with runs faster than they end.
+    /// </summary>
+    public const int MaxBackgroundRuns = 32;
+
+    /// <summary>
     /// Runs a body while holding one of the two doors. The steps inside are the reason the block
     /// exists: another macro must not put its own keys or page work between them. A hold inside the
     /// same door only counts, so a block nested in another — or a browser step's own door — does not
@@ -966,6 +972,12 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.MissingHandle);
         }
 
+        if (_children.Count(child => !child.Task.IsCompleted) >= MaxBackgroundRuns)
+        {
+            throw new StepFailure(RunKeys.TooManyRuns,
+                MaxBackgroundRuns.ToString(CultureInfo.InvariantCulture));
+        }
+
         var (name, steps, signature, wanted, called) = ResolveCall(step);
 
         // A run that is inside a browser step holding the one page cannot start another run that
@@ -1039,6 +1051,47 @@ public sealed partial class MacroRunner
         return Signal.Normal;
     }
 
+    /// <summary>
+    /// Looks at a background run without waiting for it: what it is doing or how it ended, and why
+    /// if it failed. The handle variable is brought up to date, so a macro that polls can read the
+    /// handle itself as well as these answers.
+    /// </summary>
+    private Signal RunStatusCheck(ExecutableStep step, int depth)
+    {
+        var handle = ReadValue(step, "runHandle");
+        if (!handle.IsRecord || handle.Field(FieldNames.Id) is not { } identifier)
+        {
+            throw new StepFailure(RunKeys.NoSuchRun, handle.AsText());
+        }
+
+        var id = identifier.AsText();
+        var status = handle.Field(FieldNames.Status)?.AsText() ?? string.Empty;
+        var error = handle.Field(FieldNames.Error)?.AsText() ?? string.Empty;
+        var child = _children.FirstOrDefault(candidate =>
+            string.Equals(candidate.Handle, id, StringComparison.Ordinal));
+        if (child is not null)
+        {
+            var current = HandleValue(child);
+            if (Variables.Local.Contains(child.HandleName))
+            {
+                Variables.Local.Set(child.HandleName, current);
+            }
+
+            status = current.Field(FieldNames.Status)?.AsText() ?? status;
+            error = current.Field(FieldNames.Error)?.AsText() ?? error;
+        }
+        else if (status == RunHandleStatus.Running || status.Length == 0)
+        {
+            // The run is no longer in this macro's table: it was waited for already, or the handle
+            // belongs to another run. A snapshot that still says "running" would be a lie.
+            throw new StepFailure(RunKeys.NoSuchRun, id);
+        }
+
+        Give(step, "status", Value.FromText(status));
+        Give(step, "running", Value.FromBool(status == RunHandleStatus.Running));
+        Give(step, "error", Value.FromText(error));
+        return Signal.Normal;
+    }
     /// <summary>
     /// Asks one background run to stop and waits for it to agree. A run that cannot stop within the
     /// wait's clock is reported as still running rather than being called over: the macro may catch
@@ -1831,6 +1884,8 @@ public sealed partial class MacroRunner
                 return StartOtherMacro(step, depth);
             case "control.waitMacro":
                 return await WaitOtherMacro(step, depth, token);
+            case "control.runStatus":
+                return RunStatusCheck(step, depth);
             case "control.cancelMacro":
                 return await CancelOtherMacro(step, depth, token);
             case "control.waitAll":

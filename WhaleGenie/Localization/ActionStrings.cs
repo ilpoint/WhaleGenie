@@ -787,6 +787,19 @@ internal static class ActionStrings
             + "句柄只能等一次；等待超时由这一步自己的「超时」决定，清空就一直等。等待超时只结束等待，"
             + "后台运行还在跑，可以再等一次。",
 
+        ["control.runStatus.name"] = "查看后台运行",
+        ["control.runStatus.desc"] = "不等它结束，看它现在是在跑、跑完了还是失败了；句柄也跟着更新。",
+        ["control.runStatus.runHandle.label"] = "运行句柄",
+        ["control.runStatus.runHandle.hint"] = "装着「启动其他宏」写下的句柄的本宏变量，通常写成 $job。",
+        ["control.runStatus.returns.label"] = "要留下的结果",
+        ["control.runStatus.returns.hint"] = ReturnsHintText,
+        ["control.runStatus.return.status.label"] = "状态",
+        ["control.runStatus.return.status.hint"] = "running、done、failed 或 stopped：它正在做什么，或者已经怎么结束。",
+        ["control.runStatus.return.running.label"] = "还在跑",
+        ["control.runStatus.return.running.hint"] = "还在跑时为真，结束后为假。",
+        ["control.runStatus.return.error.label"] = "失败原因",
+        ["control.runStatus.return.error.hint"] = "失败时的运行键；没有失败时为空。",
+
         ["control.cancelMacro.name"] = "取消后台运行",
         ["control.cancelMacro.desc"] = "让一次后台运行停下来，并等它真的结束。"
             + "它正在做的事就此不再继续，收尾步骤照样执行。",
