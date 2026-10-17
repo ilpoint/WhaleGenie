@@ -1748,6 +1748,114 @@ public class MacroRunnerTests
         Assert.Equal(1, N(store, "b"));
     }
 
+    /// <summary>
+    /// 从外面停下来时，正在跑的那一块仍然收尾一次：用户按的是停止，不是"跳过清理"，锁、文件与
+    /// 按住不放的键都要按宏作者写的那样放回去。
+    /// </summary>
+    [Fact]
+    public async Task A_run_stopped_from_outside_still_tidies_up()
+    {
+        var store = Store();
+        using var stop = new CancellationTokenSource();
+        var running = RunAsync(
+        [
+            Try(
+                Body("body", Step("control.delay", Param("ms", "5000"))),
+                Body("finally", Set("tidied", "1"))),
+        ], variables: store, token: stop.Token);
+
+        stop.CancelAfter(100);
+        var (result, host) = await running;
+
+        Assert.Equal(RunStatus.Stopped, result.Status);
+        Assert.Equal(1, N(store, "tidied"));
+        Assert.Contains(host.Entries, entry => entry.Key == "Log.Finally");
+    }
+
+    /// <summary>
+    /// 嵌套的收尾按内到外各跑一次，共用同一份停止预算：两个收尾都该在五秒以内跑完，先里后外。
+    /// </summary>
+    [Fact]
+    public async Task Nested_clean_up_runs_from_the_inside_out()
+    {
+        var store = Store();
+        using var stop = new CancellationTokenSource();
+        var running = RunAsync(
+        [
+            Step("control.listCreate", Param("name", "order"), Param("items", "")),
+            Try(
+                Body("body",
+                    Try(
+                        Body("body", Step("control.delay", Param("ms", "5000"))),
+                        Body("finally",
+                            Step("control.listAdd", Param("name", "order"), Param("value", "in"))))),
+                Body("finally",
+                    Step("control.listAdd", Param("name", "order"), Param("value", "out")))),
+        ], variables: store, token: stop.Token);
+
+        stop.CancelAfter(100);
+        var (result, _) = await running;
+
+        Assert.Equal(RunStatus.Stopped, result.Status);
+        Assert.Equal(["in", "out"],
+            store.Local.Values["order"].Items.Select(item => item.AsText()));
+    }
+
+    /// <summary>
+    /// 收尾里的等待不会自己拿到一份新时钟：整次停止只有五秒的清理预算，收尾里的十秒等待在预算到点
+    /// 时被取消，停止照旧结束，日志里说清收尾没做完。
+    /// </summary>
+    [Fact]
+    public async Task Clean_up_that_runs_too_long_ends_the_stop_within_five_seconds()
+    {
+        var store = Store();
+        using var stop = new CancellationTokenSource();
+        var watch = Stopwatch.StartNew();
+        var running = RunAsync(
+        [
+            Try(
+                Body("body", Step("control.delay", Param("ms", "5000"))),
+                Body("finally",
+                    Set("started", "1"),
+                    Step("control.delay", Param("ms", "10000")),
+                    Set("finished", "1"))),
+        ], variables: store, token: stop.Token);
+
+        stop.CancelAfter(100);
+        var (result, host) = await running;
+        watch.Stop();
+
+        Assert.Equal(RunStatus.Stopped, result.Status);
+        Assert.True(watch.Elapsed > TimeSpan.FromSeconds(4), $"ended after {watch.Elapsed}");
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(9), $"ended after {watch.Elapsed}");
+        Assert.Equal(1, N(store, "started"));
+        Assert.False(store.TryGet("finished", out _));
+        Assert.Contains(host.Entries, entry => entry.Key == "Log.CleanupFailed");
+    }
+
+    /// <summary>
+    /// 收尾本身失败时不改变这次运行的结局：它仍是"被停止"，失败原因仍是空，失败只写进日志。
+    /// </summary>
+    [Fact]
+    public async Task Clean_up_that_fails_leaves_the_stop_as_it_was()
+    {
+        var store = Store();
+        using var stop = new CancellationTokenSource();
+        var running = RunAsync(
+        [
+            Try(
+                Body("body", Step("control.delay", Param("ms", "5000"))),
+                Body("finally", Fails)),
+        ], variables: store, token: stop.Token);
+
+        stop.CancelAfter(100);
+        var (result, host) = await running;
+
+        Assert.Equal(RunStatus.Stopped, result.Status);
+        Assert.Equal(string.Empty, result.Key);
+        Assert.Contains(host.Entries, entry => entry.Key == "Log.CleanupFailed");
+    }
+
     [Fact]
     public async Task A_return_ends_the_macro_and_the_caller_carries_on()
     {

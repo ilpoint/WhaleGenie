@@ -1516,6 +1516,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.ContinueOutsideLoop"] = "A continue ran with no loop to skip ahead in: this step is not inside one.",
         ["Run.DeviceFailed"] = "A component outside WhaleGenie failed: {0}",
         ["Log.Caught"] = "The attempt failed, so the catch steps are running.",
+        ["Log.CleanupFailed"] = "The clean-up after a stop did not finish: {0}",
         ["Log.Finally"] = "Running the clean-up steps.",
         ["Add.SystemReadOnly"] = "\"{0}\" is a system variable, which a macro can only read.",
         ["Add.GlobalMustExist"] =
@@ -3135,6 +3136,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.ContinueOutsideLoop"] = "continue 不在任何循环里，没有可以跳到下一轮的循环。",
         ["Run.DeviceFailed"] = "鲸灵之外的组件出错：{0}",
         ["Log.Caught"] = "执行失败，转入捕获步骤。",
+        ["Log.CleanupFailed"] = "停止之后的收尾没能做完：{0}",
         ["Log.Finally"] = "正在执行收尾步骤。",
         ["Add.SystemReadOnly"] = "“{0}”是系统变量，宏只能读取，不能修改。",
         ["Add.GlobalMustExist"] = "全局变量“{0}”不存在，请先在运行调试窗口里创建。",

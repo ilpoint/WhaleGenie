@@ -223,6 +223,7 @@ public static class LogKeys
     public const string CalledMacro = "Log.CalledMacro";
     public const string Capture = "Log.Capture";
     public const string Caught = "Log.Caught";
+    public const string CleanupFailed = "Log.CleanupFailed";
     public const string ClearedClipboard = "Log.ClearedClipboard";
     public const string ClickedElement = "Log.ClickedElement";
     public const string ClickedImage = "Log.ClickedImage";

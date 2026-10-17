@@ -107,6 +107,26 @@ public sealed partial class MacroRunner
     private CancellationToken _runToken;
 
     /// <summary>
+    /// How long the clean-up blocks of one stopped run may take together. A stop that waited for
+    /// every clean-up block to finish on its own could be held up by the very step the user is
+    /// trying to get out of, so the budget is a stop's own, shared by all of its clean-up blocks.
+    /// </summary>
+    private static readonly TimeSpan CleanupBudget = TimeSpan.FromSeconds(5);
+
+    /// <summary>The one budget a stop's clean-up blocks spend, made when the first one runs.</summary>
+    private CancellationTokenSource? _cleanup;
+
+    /// <summary>
+    /// The token a clean-up block runs on during a stop: one budget for the whole stop, so nested
+    /// blocks spend what is left of it rather than each asking for five seconds of their own.
+    /// </summary>
+    private CancellationToken StopCleanupToken()
+    {
+        _cleanup ??= new CancellationTokenSource(CleanupBudget);
+        return _cleanup.Token;
+    }
+
+    /// <summary>
     /// The background runs this run has started and not yet waited for. They keep the shared global
     /// table, but a local table of their own.
     /// </summary>
@@ -346,6 +366,8 @@ public sealed partial class MacroRunner
         _executed = 0;
         _loops = 0;
         _callDepth = InitialCallDepth;
+        _cleanup?.Dispose();
+        _cleanup = null;
         _runToken = token;
         _failure = null;
         _returnedInsideScript = false;
@@ -415,6 +437,9 @@ public sealed partial class MacroRunner
             // A background run belongs to the macro that started it. Once that macro is over there
             // is nobody left to wait for it, so it is stopped rather than left running unseen.
             await StopChildrenAsync();
+
+            _cleanup?.Dispose();
+            _cleanup = null;
         }
     }
 
@@ -2467,57 +2492,90 @@ public sealed partial class MacroRunner
     /// failure rules and does not stop the macro.
     /// </summary>
     /// <remarks>
-    /// A run cancelled from outside does not run its clean-up block. Every step in it would be
-    /// racing the cancellation, so it would either do nothing or hold the stop up.
+    /// A run stopped from outside still tidies up: the clean-up block runs even though the run is
+    /// being cancelled, on a budget shared by every clean-up block of that stop. A clean-up that
+    /// fails or runs out of that budget is logged and does not replace the stop — the run still
+    /// ends as stopped, with the failure key it would have had.
     /// </remarks>
     private async Task<Signal> RunTry(ExecutableStep step, int depth, CancellationToken token)
     {
-        var signal = await RunSteps(step.Children("body"), depth + 1, token);
-
-        if (signal is Signal.Failed)
-        {
-            var failure = _failure ?? new StepFailure(RunKeys.Failed);
-            var before = RememberCaught(failure);
-            try
-            {
-                // The reason is asked under the names the catch block itself reads, so a macro
-                // that takes only one kind of failure says exactly which one and can compare the
-                // same key the step below will see.
-                if (step.Condition("catchWhen") is not { } wanted || Check(wanted, depth, token))
-                {
-                    Remember(step, failure);
-                    Log(LogLevel.Warn, depth, step.Type, LogKeys.Caught);
-                    signal = await RunSteps(step.Children("catch"), depth + 1, token);
-                }
-                else
-                {
-                    // Not this block's failure. The key and detail travel on untouched; the
-                    // clean-up steps below still run before the caller hears about it.
-                    _failure = failure;
-                }
-            }
-            finally
-            {
-                RestoreCaught(before);
-            }
-        }
-        else
-        {
-            Remember(step, null);
-        }
-
         var closing = step.Children("finally");
-        if (closing.Count > 0)
+        Signal? closingSignal = null;
+        var signal = Signal.Normal;
+        try
         {
-            Log(LogLevel.Debug, depth, step.Type, LogKeys.Finally);
-            var closingSignal = await RunSteps(closing, depth + 1, token);
+            signal = await RunSteps(step.Children("body"), depth + 1, token);
 
-            // Whatever the clean-up decides — stop, fail, return, break or start the next round —
-            // is the last word: it ran after the attempt, so its ending is the one that stands.
-            if (closingSignal is not Signal.Normal)
+            if (signal is Signal.Failed)
             {
-                return closingSignal;
+                var failure = _failure ?? new StepFailure(RunKeys.Failed);
+                var before = RememberCaught(failure);
+                try
+                {
+                    // The reason is asked under the names the catch block itself reads, so a macro
+                    // that takes only one kind of failure says exactly which one and can compare the
+                    // same key the step below will see.
+                    if (step.Condition("catchWhen") is not { } wanted || Check(wanted, depth, token))
+                    {
+                        Remember(step, failure);
+                        Log(LogLevel.Warn, depth, step.Type, LogKeys.Caught);
+                        signal = await RunSteps(step.Children("catch"), depth + 1, token);
+                    }
+                    else
+                    {
+                        // Not this block's failure. The key and detail travel on untouched; the
+                        // clean-up steps below still run before the caller hears about it.
+                        _failure = failure;
+                    }
+                }
+                finally
+                {
+                    RestoreCaught(before);
+                }
             }
+            else
+            {
+                Remember(step, null);
+            }
+        }
+        finally
+        {
+            if (closing.Count > 0)
+            {
+                var stopped = token.IsCancellationRequested;
+                var cleanup = stopped ? StopCleanupToken() : token;
+                Log(LogLevel.Debug, depth, step.Type, LogKeys.Finally);
+                try
+                {
+                    closingSignal = await RunSteps(closing, depth + 1, cleanup);
+
+                    // A clean-up step that fails during a stop is not a second failure to report as
+                    // the ending: the run is stopping either way, so it is only said in the log.
+                    if (stopped && closingSignal is Signal.Failed)
+                    {
+                        Log(LogLevel.Warn, depth, step.Type, LogKeys.CleanupFailed,
+                            _failure?.Key ?? RunKeys.Failed);
+                    }
+                }
+                catch (OperationCanceledException) when (cleanup.IsCancellationRequested)
+                {
+                    // The budget for this stop is spent. Whatever was left half done is left, and
+                    // the stop itself is what the run reports.
+                    Log(LogLevel.Warn, depth, step.Type, LogKeys.CleanupFailed, RunKeys.Timeout);
+                }
+                catch (StepFailure failure) when (stopped)
+                {
+                    Log(LogLevel.Warn, depth, step.Type, LogKeys.CleanupFailed, failure.Key);
+                }
+            }
+        }
+
+        // Whatever the clean-up decides — stop, fail, return, break or start the next round — is the
+        // last word when the block ended on its own: it ran after the attempt, so its ending is the
+        // one that stands.
+        if (closingSignal is { } done && done is not Signal.Normal)
+        {
+            return done;
         }
 
         return signal;
