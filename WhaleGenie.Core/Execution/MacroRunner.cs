@@ -1284,13 +1284,25 @@ public sealed partial class MacroRunner
     /// </summary>
     private Value ArgumentValue(ExecutableStep step, MacroArgument argument)
     {
-        var written = step.Text(MacroCallFields.Argument(argument.Name)).Trim();
-        var value = written.Length > 0
-            ? Read(written)
-            : argument.Required
-                ? throw new StepFailure(RunKeys.MissingArgument, argument.Name)
-                : argument.Default.Trim().Length > 0 ? Read(argument.Default) : Value.Null;
+        var field = MacroCallFields.Argument(argument.Name);
+        var supplied = step.Parameters.Any(parameter =>
+            string.Equals(parameter.Name, field, StringComparison.Ordinal))
+            || string.Equals(step.Text(MacroCallFields.Given(argument.Name)).Trim(), "true",
+                StringComparison.OrdinalIgnoreCase);
+        if (!supplied)
+        {
+            if (argument.Required)
+            {
+                throw new StepFailure(RunKeys.MissingArgument, argument.Name);
+            }
 
+            var fallback = argument.Default.Trim().Length > 0 ? Read(argument.Default) : Value.Null;
+            CheckValueFits(argument.Type, fallback, argument.Name, RunKeys.BadArgumentType);
+            return fallback;
+        }
+
+        var written = step.Text(field).Trim();
+        var value = written.Length > 0 ? Read(written) : Value.FromText(string.Empty);
         CheckValueFits(argument.Type, value, argument.Name, RunKeys.BadArgumentType);
         return value;
     }

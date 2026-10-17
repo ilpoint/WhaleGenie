@@ -231,6 +231,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["ActionType.List"] = "a list",
         ["ActionType.Record"] = "a record",
         ["ActionType.Image"] = "a picture",
+        ["Add.CallArgumentGiven"] = "Pass an empty value",
+        ["Add.CallArgumentGivenHint"] = "When checked, an empty field is sent as an empty value instead of using the default.",
         ["Add.CallArgumentType"] = "The called macro asks for {0}.",
         ["Add.FieldTakesFormula"] = "This whole value is worked out when the macro runs, so an "
             + "expression can be written here.",
@@ -1714,6 +1716,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["ActionType.List"] = "列表",
         ["ActionType.Record"] = "一条记录",
         ["ActionType.Image"] = "图片",
+        ["Add.CallArgumentGiven"] = "传空值",
+        ["Add.CallArgumentGivenHint"] = "勾上后，空着的格子会真的传一个空串，而不是用默认值。",
         ["Add.CallArgumentType"] = "调用的宏要的是{0}。",
         ["Add.FieldTakesFormula"] = "这里可以写算式：整段值由引擎在运行时算出来。",
         ["Add.FieldIsText"] = "这里不计算式：$名字 只是就地替换成那个变量此刻的值，其余部分照原样"

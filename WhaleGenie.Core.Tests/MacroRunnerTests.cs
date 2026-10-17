@@ -2952,6 +2952,42 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task A_required_argument_can_be_supplied_as_an_empty_value()
+    {
+        var store = Store();
+        var library = new Library(("甲",
+            new MacroSignature([new MacroArgument("数量", "", true)], [new MacroReturn("痕迹")]),
+            [Set("痕迹", "$数量")]));
+
+        var (result, _) = await RunAsync(
+        [
+            Step("control.runMacro", Param("macro", "甲"), Param("arg.数量", ""),
+                Param("arg.数量.given", "true"), Returns("痕迹=取回")),
+        ], variables: store, macros: library);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(string.Empty, store.Local.Values["取回"].AsText());
+    }
+
+    [Fact]
+    public async Task An_optional_argument_can_be_supplied_as_an_empty_value()
+    {
+        var store = Store();
+        var library = new Library(("甲",
+            new MacroSignature([new MacroArgument("数量", "7", false)], [new MacroReturn("痕迹")]),
+            [Set("痕迹", "$数量")]));
+
+        var (result, _) = await RunAsync(
+        [
+            Step("control.runMacro", Param("macro", "甲"), Param("arg.数量", ""),
+                Param("arg.数量.given", "true"), Returns("痕迹=取回")),
+        ], variables: store, macros: library);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(string.Empty, store.Local.Values["取回"].AsText());
+    }
+
+    [Fact]
     public async Task An_argument_of_the_wrong_kind_stops_the_call()
     {
         var store = Store();

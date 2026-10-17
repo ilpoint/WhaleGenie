@@ -1303,19 +1303,35 @@ public partial class AddActionViewModel : ViewModelBase
         [
             .. call.Parameters
                 .Where(parameter => parameter.Name.Trim().Length > 0)
-                .Select(parameter => new ActionParameter
+                .SelectMany(parameter => new ActionParameter[]
                 {
-                    Name = MacroCallFields.Argument(parameter.Name.Trim()),
-                    Label = parameter.Name.Trim(),
-                    Kind = ActionParameterKind.Expression,
-                    Hint = CalledHint(parameter.Description, parameter.Type),
-                    Semantics = new ActionParameterSemantics
+                    new()
                     {
                         Name = MacroCallFields.Argument(parameter.Name.Trim()),
-                        Shape = ActionValueShape.Text,
-                        ReadMode = ActionReadMode.WholeValue,
-                        Required = parameter.Required,
-                        DefaultValue = parameter.Default,
+                        Label = parameter.Name.Trim(),
+                        Kind = ActionParameterKind.Expression,
+                        Hint = CalledHint(parameter.Description, parameter.Type),
+                        Semantics = new ActionParameterSemantics
+                        {
+                            Name = MacroCallFields.Argument(parameter.Name.Trim()),
+                            Shape = ActionValueShape.Text,
+                            ReadMode = ActionReadMode.WholeValue,
+                            Required = parameter.Required,
+                            DefaultValue = parameter.Default,
+                        },
+                    },
+                    new()
+                    {
+                        Name = MacroCallFields.Given(parameter.Name.Trim()),
+                        Label = Strings.Get("Add.CallArgumentGiven"),
+                        Kind = ActionParameterKind.Bool,
+                        Hint = Strings.Get("Add.CallArgumentGivenHint"),
+                        Semantics = new ActionParameterSemantics
+                        {
+                            Name = MacroCallFields.Given(parameter.Name.Trim()),
+                            Shape = ActionValueShape.Flag,
+                            ReadMode = ActionReadMode.Text,
+                        },
                     },
                 }),
         ];
@@ -2022,9 +2038,28 @@ public partial class AddActionViewModel : ViewModelBase
     }
 
     private List<string> MissingParameters()
-        => Parameters.Where(parameter => parameter.IsMissing)
+        => Parameters.Where(parameter => parameter.IsMissing && !PassedEmpty(parameter))
             .Select(parameter => parameter.Definition.LocalLabel)
             .ToList();
+
+    /// <summary>
+    /// True when the required argument beside this one has its "pass an empty value" box ticked.
+    /// An empty field is only missing when the call has not said it means an empty value.
+    /// </summary>
+    private bool PassedEmpty(StepParameterViewModel parameter)
+    {
+        var name = parameter.Definition.Name;
+        if (!name.StartsWith(MacroCallFields.ArgumentPrefix, StringComparison.Ordinal)
+            || MacroCallFields.IsGiven(name))
+        {
+            return false;
+        }
+
+        var given = MacroCallFields.Given(name[MacroCallFields.ArgumentPrefix.Length..]);
+        return Parameters.Any(candidate =>
+            string.Equals(candidate.Definition.Name, given, StringComparison.OrdinalIgnoreCase)
+            && candidate.Flag);
+    }
 
     /// <summary>
     /// Rules that span several parameters. A macro may only change global variables the

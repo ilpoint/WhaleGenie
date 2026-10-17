@@ -127,7 +127,7 @@ Power Automate Desktop 只学动作骨架，不学动作库与 COM 直连 Office
 "停止整个宏"，不得引入第二套：重复与遍历用 `control.repeat` / `forEach` / `for` / `while`，多分支用
 `control.switch`，兜底与收尾用 `control.try`（catch 可按失败键挑选、可原样重抛），一段流程用第二次用
 `control.runMacro`（同步、必等、步骤超时）或 `control.startMacro`（后台、交回句柄；句柄是记录，
-写清 `id` / `macro` / `status` / `error` / `results`，等完或取消后改写成结束时的样子）。`repeat` / `for` /
+写清 `id` / `macro` / `status` / `error` / `results`，等完或取消后改写成结束时的样子）。调用形参留空且有默认值就用默认值；要空串勾「传空值」（`arg.<名字>.given`）。`repeat` / `for` /
 `forEach` / `while` 都交回 `ended`：正常结束 `count` / `range` / `items` / `condition` / `limit`，`break`
 为 `break`；到上限另写警告。`if` / `while` / `waitUntil` 没有条件时运行报 `Run.MissingCondition`、设计期
 标出。`sys.loopIndex`、`forEach` 的 item/index、`for` 的计数都只属于最内层循环，离开时恢复外层；

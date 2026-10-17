@@ -112,4 +112,16 @@ public static class MacroCallFields
 
     /// <summary>The call's parameter for one argument of the called macro.</summary>
     public static string Argument(string name) => ArgumentPrefix + name;
+
+    /// <summary>
+    /// The call parameter that says "this value was supplied even though it is empty". A field
+    /// left out means the macro's default or its missing-argument failure; a field that is there
+    /// and empty is an empty value. The marker lets a call say which of the two it means.
+    /// </summary>
+    public static string Given(string name) => Argument(name) + ".given";
+
+    /// <summary>True when the call parameter is the supplied-empty marker for an argument.</summary>
+    public static bool IsGiven(string name)
+        => name.EndsWith(".given", StringComparison.Ordinal)
+           && name.StartsWith(ArgumentPrefix, StringComparison.Ordinal);
 }

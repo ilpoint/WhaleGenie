@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -229,6 +230,37 @@ public class AddStepWindowTests
             // the next new step.
             Assert.Equal("F6", editor.Steps.Single().Parameters.First(parameter => parameter.Name == "key").Value);
             Assert.False(form.IsEditing);
+        });
+    }
+
+    [Fact]
+    public void A_required_call_argument_can_be_saved_as_an_explicit_empty_value()
+    {
+        Ui.Run(() =>
+        {
+            var called = new MacroCallable("子",
+                [new MacroParameter { Name = "数量", Required = true }], []);
+            var window = new AddActionWindow(null, ActionCatalog.Definitions, [], [called]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var form = (AddActionViewModel)window.DataContext!;
+            form.SelectAction("control.runMacro");
+            form.Parameters.First(parameter => parameter.Definition.Name == "macro").Text = "子";
+            Dispatcher.UIThread.RunJobs();
+
+            var argument = form.Parameters.First(parameter =>
+                parameter.Definition.Name == MacroCallFields.Argument("数量"));
+            var given = form.Parameters.First(parameter =>
+                parameter.Definition.Name == MacroCallFields.Given("数量"));
+
+            Assert.False(form.CanSave);
+
+            given.Flag = true;
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(form.CanSave, form.ValidationMessage);
+            Assert.Equal(string.Empty, argument.Text);
         });
     }
 }

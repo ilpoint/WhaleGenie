@@ -708,7 +708,8 @@ public static class MacroCheck
 
             foreach (var parameter in step.Parameters)
             {
-                if (!parameter.Name.StartsWith(MacroCallFields.ArgumentPrefix, StringComparison.Ordinal))
+                if (!parameter.Name.StartsWith(MacroCallFields.ArgumentPrefix, StringComparison.Ordinal)
+                    || MacroCallFields.IsGiven(parameter.Name))
                 {
                     continue;
                 }
@@ -910,7 +911,8 @@ public static class MacroCheck
             }
 
             foreach (var parameter in step.Parameters.Where(parameter => parameter.Name.StartsWith(
-                         MacroCallFields.ArgumentPrefix, StringComparison.Ordinal)))
+                         MacroCallFields.ArgumentPrefix, StringComparison.Ordinal)
+                         && !MacroCallFields.IsGiven(parameter.Name)))
             {
                 if (called.Parameter(parameter.Name[MacroCallFields.ArgumentPrefix.Length..])
                     is not { } declared)
