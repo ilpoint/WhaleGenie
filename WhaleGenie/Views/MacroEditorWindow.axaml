@@ -410,11 +410,6 @@
             </StackPanel>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0" VerticalAlignment="Center">
-                <Button Classes="PaletteButton" Height="28" Padding="8,0" Margin="0,0,4,0"
-                        Click="OnToggleMacroSettings"
-                        ToolTip.Tip="{Binding [Editor.TriggerSettings], Source={x:Static loc:Strings.Current}}">
-                    <TextBlock Text="⚙" FontSize="14" Foreground="#E4E4E4" />
-                </Button>
                 <Button Classes="TitleBarButton" Name="MinimizeButton"
                         ToolTip.Tip="{Binding [Common.Minimize], Source={x:Static loc:Strings.Current}}">
                     <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6" Data="M 0,5 H 8" />
@@ -429,7 +424,7 @@
         <Grid Grid.Row="1" ColumnDefinitions="360,16,440,16,*" Margin="14">
 
             <!-- Left: Trigger Settings -->
-            <Grid Grid.Column="0" RowDefinitions="Auto,*,Auto">
+            <Grid Grid.Column="0" RowDefinitions="Auto,*,Auto,Auto">
                 <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="4" Margin="4,4,4,2">
                     <Button Classes="FlatButton" Height="30" Padding="8,0"
                             Content="{Binding [Editor.Save], Source={x:Static loc:Strings.Current}}"
@@ -439,7 +434,10 @@
                             Command="{Binding RunCommand}" IsEnabled="{Binding HasSteps}" />
                 </StackPanel>
                 <views:ActionPaletteView Grid.Row="1" Name="ActionPalette" />
-                <Button Grid.Row="2" Classes="FlatButton" Height="32" Margin="4,2,4,4"
+                <Button Grid.Row="2" Classes="FlatButton" Height="32" Margin="4,2,4,2"
+                        Click="OnShowRecording"
+                        Content="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}" />
+                <Button Grid.Row="3" Classes="FlatButton" Height="32" Margin="4,0,4,4"
                         Click="OnToggleMacroSettings"
                         Content="{Binding [Editor.TriggerSettings], Source={x:Static loc:Strings.Current}}" />
             </Grid>
@@ -898,34 +896,6 @@
                                                    VerticalAlignment="Center" />
                                     </StackPanel>
 
-                                    <Button Classes="RecordButton" Height="42" HorizontalAlignment="Stretch"
-                                            Margin="0,9,0,0"
-                                            Classes.Recording="{Binding IsRecording}"
-                                           IsEnabled="{Binding !IsCapturingKey}"
-                                           AutomationProperties.Name="Record macro actions"
-                                           ToolTip.Tip="{Binding [Editor.Tip.Record], Source={x:Static loc:Strings.Current}}"
-                                           Command="{Binding ToggleRecordCommand}">
-                                        <StackPanel Orientation="Horizontal" Spacing="10"
-                                                    HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <Path Classes="RecordIndicator"
-                                                  Data="M12,5.6 A6.4,6.4 0 1 0 12,18.4 A6.4,6.4 0 1 0 12,5.6 Z"
-                                                  IsVisible="{Binding !IsRecording}" />
-                                            <Path Classes="RecordIndicator Stop"
-                                                  Data="M7,7 H17 V17 H7 Z"
-                                                  IsVisible="{Binding IsRecording}" />
-                                            <!-- Fixed width keeps the indicator from jumping when the label changes -->
-                                            <StackPanel VerticalAlignment="Center" Width="112">
-                                                <TextBlock Text="{Binding RecordLabel}" HorizontalAlignment="Center"
-                                                           FontSize="13.5" FontWeight="SemiBold" />
-                                                <TextBlock Text="Ctrl + F10" HorizontalAlignment="Center"
-                                                           FontSize="11" Foreground="#FFE3D6" />
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Button>
-
-                                    <TextBlock Classes="Muted" Margin="0,6,0,0" HorizontalAlignment="Center"
-                                               TextAlignment="Center" TextWrapping="Wrap"
-                                               Text="{Binding RecordStatusText}" />
                                 </StackPanel>
                             </Border>
                         </StackPanel>
@@ -1101,6 +1071,41 @@
 
             <GridSplitter Grid.Column="3" Width="16" Background="Transparent"
                           ResizeDirection="Columns" />
+
+            <Border Grid.Column="2" Name="RecordingPanel" Background="#292929"
+                    CornerRadius="6" IsVisible="False">
+                <StackPanel Margin="20,18" Spacing="10">
+                    <TextBlock Classes="SectionHeader"
+                               Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}" />
+                    <TextBlock Classes="Muted" TextWrapping="Wrap"
+                               Text="{Binding [Editor.RecordIdle], Source={x:Static loc:Strings.Current}}" />
+                    <Button Classes="RecordButton" Height="42" HorizontalAlignment="Stretch"
+                            Classes.Recording="{Binding IsRecording}"
+                            IsEnabled="{Binding !IsCapturingKey}"
+                            AutomationProperties.Name="Record macro actions"
+                            ToolTip.Tip="{Binding [Editor.Tip.Record], Source={x:Static loc:Strings.Current}}"
+                            Command="{Binding ToggleRecordCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="10"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Path Classes="RecordIndicator"
+                                  Data="M12,5.6 A6.4,6.4 0 1 0 12,18.4 A6.4,6.4 0 1 0 12,5.6 Z"
+                                  IsVisible="{Binding !IsRecording}" />
+                            <Path Classes="RecordIndicator Stop" Data="M7,7 H17 V17 H7 Z"
+                                  IsVisible="{Binding IsRecording}" />
+                            <StackPanel VerticalAlignment="Center" Width="112">
+                                <TextBlock Text="{Binding RecordLabel}" HorizontalAlignment="Center"
+                                           FontSize="13.5" FontWeight="SemiBold" />
+                                <TextBlock Text="Ctrl + F10" HorizontalAlignment="Center"
+                                           FontSize="11" Foreground="#FFE3D6" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Button>
+                    <TextBlock Classes="Muted" HorizontalAlignment="Center"
+                               TextAlignment="Center" TextWrapping="Wrap"
+                               Text="{Binding RecordStatusText}" />
+                </StackPanel>
+            </Border>
+
             <Border Grid.Column="2" Name="InspectorHost" Background="#292929"
                     CornerRadius="6" IsVisible="False">
                 <Grid RowDefinitions="Auto,*">

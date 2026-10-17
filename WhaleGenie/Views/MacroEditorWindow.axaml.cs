@@ -210,6 +210,7 @@ public partial class MacroEditorWindow : Window
         ActionPalette.ActionChosen += () =>
         {
             MacroSettingsDrawer.IsVisible = false;
+            RecordingPanel.IsVisible = false;
             InspectorHost.IsVisible = true;
             ShowInspectorSteps();
         };
@@ -1002,6 +1003,7 @@ public partial class MacroEditorWindow : Window
         }
 
         MacroSettingsDrawer.IsVisible = false;
+        RecordingPanel.IsVisible = false;
         InspectorHost.IsVisible = true;
         ShowInspectorSteps();
     }
@@ -1076,6 +1078,13 @@ public partial class MacroEditorWindow : Window
         _interfaceView = new MacroInterfaceView { DataContext = _interfaceModel };
         MacroInterfaceHost.Content = _interfaceView;
     }
+    /// <summary>Shows the recording page in the middle, instead of the settings or the step form.</summary>
+    private void OnShowRecording(object? sender, RoutedEventArgs e)
+    {
+        MacroSettingsDrawer.IsVisible = false;
+        InspectorHost.IsVisible = false;
+        RecordingPanel.IsVisible = true;
+    }
     /// <summary>Shows or hides the macro's own trigger and schedule settings over the columns.</summary>
     private void OnToggleMacroSettings(object? sender, RoutedEventArgs e)
     {
@@ -1083,6 +1092,7 @@ public partial class MacroEditorWindow : Window
         MacroSettingsDrawer.IsVisible = open;
         if (open)
         {
+            RecordingPanel.IsVisible = false;
             InspectorHost.IsVisible = false;
         }
     }
