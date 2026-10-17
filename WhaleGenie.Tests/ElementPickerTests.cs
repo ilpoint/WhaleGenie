@@ -318,7 +318,7 @@ public class ElementPickerTests
     public void The_dialog_puts_the_page_picker_beside_an_element_of_a_page()
     {
         var markup = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "AddActionWindow.axaml"));
+            Path.Combine(Repository(), "WhaleGenie", "Views", "ActionEditorView.axaml"));
 
         var start = markup.IndexOf("IsVisible=\"{Binding IsBrowserTarget}\"", StringComparison.Ordinal);
         Assert.True(start >= 0, "the dialog stopped offering a picker for elements of a page");
@@ -337,7 +337,7 @@ public class ElementPickerTests
     public void The_dialog_takes_a_second_way_of_naming_an_element_of_a_page()
     {
         var markup = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "AddActionWindow.axaml"));
+            Path.Combine(Repository(), "WhaleGenie", "Views", "ActionEditorView.axaml"));
 
         var start = markup.IndexOf("IsVisible=\"{Binding IsBrowserTarget}\"", StringComparison.Ordinal);
         Assert.True(start >= 0, "the dialog stopped offering a picker for elements of a page");
@@ -510,7 +510,7 @@ public class ElementPickerTests
     public void The_dialog_draws_a_page_step_s_conditions_one_row_each()
     {
         var markup = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "AddActionWindow.axaml"));
+            Path.Combine(Repository(), "WhaleGenie", "Views", "ActionEditorView.axaml"));
 
         var start = markup.IndexOf("IsVisible=\"{Binding IsNarrow}\"", StringComparison.Ordinal);
         Assert.True(start >= 0, "the dialog stopped drawing the conditions of a page element");

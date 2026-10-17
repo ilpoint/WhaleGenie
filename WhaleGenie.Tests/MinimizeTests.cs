@@ -21,7 +21,7 @@ public class MinimizeTests
     [Fact]
     public void Every_window_that_stays_up_can_be_put_away()
     {
-        foreach (var name in new[] { "AddActionWindow", "VirtualKeyboardWindow", "LookWindow", "RunWindow" })
+        foreach (var name in new[] { "ActionEditorView", "VirtualKeyboardWindow", "LookWindow", "RunWindow" })
         {
             var markup = File.ReadAllText(
                 Path.Combine(Repository(), "WhaleGenie", "Views", $"{name}.axaml"));

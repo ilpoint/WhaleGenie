@@ -2,7 +2,7 @@
      macro editor or over it: see DialogSize. MinWidth is the narrowest that leaves those fields
      readable, which is narrower than the size it opens at on a desktop with less room than it
      would like — standing beside the editor is worth the tighter columns. -->
-<Window xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:models="using:WhaleGenie.Models"
@@ -12,22 +12,15 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="800"
-        x:Class="WhaleGenie.Views.AddActionWindow"
+        x:Class="WhaleGenie.Views.ActionEditorView"
         x:DataType="vm:AddActionViewModel"
-        Title="Add Action"
-        Width="1024" Height="800"
-        MinWidth="800" MinHeight="560"
-        WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="BorderOnly"
         Background="#232323">
 
     <Design.DataContext>
         <vm:AddActionViewModel />
     </Design.DataContext>
 
-    <Window.Resources>
+    <UserControl.Resources>
         <!-- Paints the swatch beside a colour parameter. -->
         <conv:HexColorToBrushConverter x:Key="HexBrush" />
 
@@ -995,9 +988,9 @@
                 </ItemsControl>
             </StackPanel>
         </DataTemplate>
-    </Window.Resources>
+    </UserControl.Resources>
 
-    <Window.Styles>
+    <UserControl.Styles>
         <Style Selector="TextBlock.GroupHeader">
             <Setter Property="Foreground" Value="#C0C0C0" />
             <Setter Property="FontSize" Value="12" />
@@ -1239,7 +1232,7 @@
         <Style Selector="Button.TitleBarAction:disabled /template/ ContentPresenter">
             <Setter Property="Background" Value="#242424" />
         </Style>
-    </Window.Styles>
+    </UserControl.Styles>
 
     <Grid RowDefinitions="38,*">
 
@@ -1533,4 +1526,4 @@
             </Grid>
         </Grid>
     </Grid>
-</Window>
+</UserControl>

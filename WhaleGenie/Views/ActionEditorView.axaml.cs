@@ -21,7 +21,7 @@ using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
-public partial class AddActionWindow : Window
+public partial class ActionEditorView : UserControl
 {
     /// <summary>
     /// How long reading the writing off an element takes while a row is being filled in. It is a
@@ -29,6 +29,30 @@ public partial class AddActionWindow : Window
     /// rather than the half minute a step of its own would take.
     /// </summary>
     private const int PickReadMs = 3000;
+
+
+    /// <summary>The window this view is standing in, which owns its pickers and dialogs.</summary>
+    private Window? HostWindow => TopLevel.GetTopLevel(this) as Window;
+
+    /// <summary>The host's window state, while a trial is out of the way.</summary>
+    private WindowState HostState
+    {
+        get => HostWindow?.WindowState ?? WindowState.Normal;
+        set
+        {
+            if (HostWindow is { } host)
+            {
+                host.WindowState = value;
+            }
+        }
+    }
+
+    /// <summary>The file pickers belong to the top level the view is in.</summary>
+    private IStorageProvider StorageProvider => TopLevel.GetTopLevel(this)?.StorageProvider
+        ?? throw new InvalidOperationException("The form is not attached to a window.");
+
+    /// <summary>Raised when the form is finished with a step, or with nothing when it was cleared.</summary>
+    internal event Action<MacroStep?>? Finished;
 
     /// <summary>Whether the dialog has been dismissed, which can happen while a page is open.</summary>
     private bool _closed;
@@ -68,7 +92,7 @@ public partial class AddActionWindow : Window
 
     private IDeviceLayer? _devices;
 
-    public AddActionWindow()
+    public ActionEditorView()
         : this(null, null, null, null, null, null)
     {
     }
@@ -136,7 +160,7 @@ public partial class AddActionWindow : Window
     /// Opens the dialog, optionally preloaded with a step being edited and optionally
     /// restricted to a catalogue subset, such as the condition actions.
     /// </summary>
-    public AddActionWindow(MacroStep? existing, IReadOnlyList<ActionDefinition>? actions = null,
+    public ActionEditorView(MacroStep? existing, IReadOnlyList<ActionDefinition>? actions = null,
         IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<MacroCallable>? macros = null,
         string? presetKey = null, string? assetFolder = null,
         IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null)
@@ -164,22 +188,10 @@ public partial class AddActionWindow : Window
 
         DataContext = viewModel;
         viewModel.PropertyChanged += OnFormChanged;
+        WatchPreview();
         viewModel.CloseRequested += OnFormFinished;
         viewModel.NestedAddRequested += OnNestedAddRequested;
         viewModel.NestedEditRequested += OnNestedEditRequested;
-        Title = viewModel.Header;
-
-        var minimizeButton = this.FindControl<Button>("MinimizeButton");
-        if (minimizeButton is not null)
-        {
-            minimizeButton.Click += (_, _) => WindowState = WindowState.Minimized;
-        }
-
-        var closeButton = this.FindControl<Button>("CloseButton");
-        if (closeButton is not null)
-        {
-            closeButton.Click += (_, _) => Close(null);
-        }
 
         // Tunnelling so Escape cancels before any focused editor consumes it.
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
@@ -202,41 +214,6 @@ public partial class AddActionWindow : Window
     /// the desktop has room for it: a step is written with the list it is going into in sight, not
     /// with that list covered up.
     /// </summary>
-    protected override void OnOpened(EventArgs e)
-    {
-        base.OnOpened(e);
-
-        // The windows the step would recognise, framed where they sit: the list says which ones,
-        // and the frames say where they are.
-        WatchPreview();
-
-        var owner = Owner;
-        var screen = (owner is not null ? Screens.ScreenFromWindow(owner) : null) ?? Screens.Primary;
-        if (screen is null)
-        {
-            return;
-        }
-
-        var scale = screen.Scaling > 0 ? screen.Scaling : 1;
-        var desktop = (X: screen.WorkingArea.X / scale, Y: screen.WorkingArea.Y / scale,
-            Width: screen.WorkingArea.Width / scale, Height: screen.WorkingArea.Height / scale);
-        var (width, height) = DialogSize.Fit(
-            desktop.Width, desktop.Height);
-
-        if (owner is Window editor
-            && DialogSize.Beside(EditorRect(editor), desktop, height) is { } beside)
-        {
-            Width = beside.Width;
-            Height = height;
-            Position = new PixelPoint(
-                (int)Math.Round(beside.X * scale), (int)Math.Round(beside.Y * scale));
-            return;
-        }
-
-        Width = width;
-        Height = height;
-    }
-
     /// <summary>
     /// A dialog put away for a moment — the same one that stands aside while a picker is open —
     /// takes its frames with it rather than leaving them over whatever is being picked.
@@ -245,7 +222,7 @@ public partial class AddActionWindow : Window
     {
         base.OnPropertyChanged(change);
 
-        if (change.Property == WindowStateProperty || change.Property == IsVisibleProperty)
+        if (change.Property == IsVisibleProperty)
         {
             DrawPreviewFrames();
         }
@@ -265,7 +242,7 @@ public partial class AddActionWindow : Window
     /// for every action, so the one that just went away has to stop being watched rather than going
     /// on moving frames for a step that is no longer being written.
     /// </summary>
-    private void WatchPreview()
+    internal void WatchPreview()
     {
         if (_watched is { } stale)
         {
@@ -298,7 +275,7 @@ public partial class AddActionWindow : Window
     /// </summary>
     private void DrawPreviewFrames()
     {
-        IReadOnlyList<FramePlace> places = _closed || !IsVisible || WindowState == WindowState.Minimized
+        IReadOnlyList<FramePlace> places = _closed || !IsVisible || HostState == WindowState.Minimized
             ? []
             : Form?.WindowPreview?.Places ?? [];
 
@@ -325,7 +302,7 @@ public partial class AddActionWindow : Window
     /// the thread the trial is on, so the frame is drawn on the thread that owns windows. Waiting for
     /// that rather than posting it keeps the frame off the screen once the trial is over.
     /// </summary>
-    private sealed class TrialFrames(AddActionWindow window) : IRunLooks
+    private sealed class TrialFrames(ActionEditorView window) : IRunLooks
     {
         public void Look(StepLook look)
         {
@@ -345,7 +322,7 @@ public partial class AddActionWindow : Window
     /// The window this one was opened from, as a rectangle in the same units as the desktop it is
     /// measured against. That window is the macro editor: it is what the form stands beside.
     /// </summary>
-    private static (double X, double Y, double Width, double Height) EditorRect(Window owner)
+    internal static (double X, double Y, double Width, double Height) EditorRect(Window owner)
     {
         var scale = owner.RenderScaling > 0 ? owner.RenderScaling : 1;
         return (owner.Position.X / scale, owner.Position.Y / scale, owner.Bounds.Width, owner.Bounds.Height);
@@ -374,7 +351,7 @@ public partial class AddActionWindow : Window
     {
         if (!StaysOpen)
         {
-            Close(step);
+            Finished?.Invoke(step);
             return;
         }
 
@@ -447,7 +424,7 @@ public partial class AddActionWindow : Window
         // The trial inside the dialog that opened this one runs on the same devices, so a nested
         // step's "run it" behaves the way the outer step's does.
         dialog.Devices = Devices;
-        var step = await dialog.ShowDialogOver<MacroStep?>(this);
+        var step = await dialog.ShowDialogOver<MacroStep?>(HostWindow!);
 
         if (step is not null)
         {
@@ -472,7 +449,7 @@ public partial class AddActionWindow : Window
         var steps = (DataContext as AddActionViewModel)?.StepChoices;
         var dialog = new AddActionWindow(step, null, variables, null, null, assets, steps);
         dialog.Devices = Devices;
-        var edited = await dialog.ShowDialogOver<MacroStep?>(this);
+        var edited = await dialog.ShowDialogOver<MacroStep?>(HostWindow!);
 
         if (edited is null || DataContext is not AddActionViewModel viewModel)
         {
@@ -525,7 +502,7 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        var region = await RegionPickerWindow.PickAsync(this, Devices);
+        var region = await RegionPickerWindow.PickAsync(HostWindow!, Devices);
         if (region is { } picked)
         {
             viewModel.ApplyRegion(picked.X, picked.Y, picked.Width, picked.Height);
@@ -587,7 +564,7 @@ public partial class AddActionWindow : Window
 
         try
         {
-            if (await RegionPickerWindow.CaptureAsync(this, Devices, viewModel.AssetFolder)
+            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices, viewModel.AssetFolder)
                 is { Length: > 0 } picture)
             {
                 row.Text = picture;
@@ -595,7 +572,7 @@ public partial class AddActionWindow : Window
         }
         catch (Exception)
         {
-            await ConfirmDialog.ShowAsync(this, Strings.Get("Add.CaptureImage"),
+            await ConfirmDialog.ShowAsync(HostWindow!, Strings.Get("Add.CaptureImage"),
                 Strings.Get("Add.ImageFailed"), Strings.Get("Common.Ok"), showCancel: false);
         }
     }
@@ -658,7 +635,7 @@ public partial class AddActionWindow : Window
         }
         else
         {
-            _keyPad.ShowOver(this);
+            _keyPad.ShowOver(HostWindow!);
         }
     }
 
@@ -686,7 +663,7 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (await RegionPickerWindow.PickAsync(this, Devices) is { } picked)
+        if (await RegionPickerWindow.PickAsync(HostWindow!, Devices) is { } picked)
         {
             row.Put(picked.X, picked.Y, picked.Width, picked.Height);
         }
@@ -720,7 +697,7 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (await ExpressionBuilderWindow.ShowFor(this, cell.Text, cell.Variables) is { } built)
+        if (await ExpressionBuilderWindow.ShowFor(HostWindow!, cell.Text, cell.Variables) is { } built)
         {
             cell.Write(built);
         }
@@ -742,7 +719,7 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (await VariablePickerWindow.ShowFor(this, viewModel.CollectVariables(), LookAtStep)
+        if (await VariablePickerWindow.ShowFor(HostWindow!, viewModel.CollectVariables(), LookAtStep)
                 is not { } picked
             || picked.Token.Length == 0)
         {
@@ -767,7 +744,7 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (await VariablePickerWindow.ShowFor(this, viewModel.CollectVariables(),
+        if (await VariablePickerWindow.ShowFor(HostWindow!, viewModel.CollectVariables(),
                 offerBuilder: parameter.OffersBuilder) is not { } picked)
         {
             return;
@@ -798,7 +775,7 @@ public partial class AddActionWindow : Window
     /// </summary>
     private async Task BuildExpression(StepParameterViewModel parameter)
     {
-        if (await ExpressionBuilderWindow.ShowFor(this, parameter.CurrentText,
+        if (await ExpressionBuilderWindow.ShowFor(HostWindow!, parameter.CurrentText,
                 parameter.Variables) is { } built)
         {
             parameter.WriteValue(built);
@@ -848,7 +825,7 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (await ColorPickerWindow.PickAsync(this, Devices) is not { } picked)
+        if (await ColorPickerWindow.PickAsync(HostWindow!, Devices) is not { } picked)
         {
             return;
         }
@@ -889,7 +866,7 @@ public partial class AddActionWindow : Window
             _ => GamepadPick.Button,
         };
 
-        if (await VirtualGamepadWindow.PickAsync(this, pick) is { Length: > 0 } value)
+        if (await VirtualGamepadWindow.PickAsync(HostWindow!, pick) is { Length: > 0 } value)
         {
             parameter.Choose(value);
         }
@@ -920,8 +897,8 @@ public partial class AddActionWindow : Window
 
         // Out of the way while it is tried, so the key or the control lands on the window that was
         // meant, which is whatever the user had in mind behind this dialog.
-        var previous = WindowState;
-        WindowState = WindowState.Minimized;
+        var previous = HostState;
+        HostState = WindowState.Minimized;
 
         RunResult outcome;
         try
@@ -936,10 +913,10 @@ public partial class AddActionWindow : Window
             // nothing left to come back to.
             if (!_closed)
             {
-                WindowState = previous == WindowState.Maximized
+                HostState = previous == WindowState.Maximized
                     ? WindowState.Maximized
                     : WindowState.Normal;
-                Activate();
+                HostWindow?.Activate();
             }
         }
 
@@ -974,7 +951,7 @@ public partial class AddActionWindow : Window
         // Some steps put the machine out of use. A debug button is one click, and one click should
         // not sign the user out or shut their machine down without being asked.
         if (PutsTheMachineOut(viewModel)
-            && await ConfirmDialog.ShowAsync(this, Strings.Get("Add.RunPowerTitle"),
+            && await ConfirmDialog.ShowAsync(HostWindow!, Strings.Get("Add.RunPowerTitle"),
                 Strings.Get("Add.RunPowerMessage"), Strings.Get("Common.Ok")) is not ConfirmChoice.Primary)
         {
             return;
@@ -1012,7 +989,7 @@ public partial class AddActionWindow : Window
         // The step and the machine go along with the look, which is what lets this window look
         // again: what is being tried is this very step, and the threshold on it is usually the
         // thing being changed to get a better answer.
-        LookWindow.Show(outcome.Look, this, step, Devices);
+        LookWindow.Show(outcome.Look, HostWindow!, step, Devices);
     }
 
     /// <summary>
@@ -1023,10 +1000,10 @@ public partial class AddActionWindow : Window
     private async Task RunForRealAsync(AddActionViewModel viewModel, ExecutableStep step)
     {
         var movesTheWindow = viewModel.SelectedDefinition?.Category is ActionCategory.Input;
-        var previous = WindowState;
+        var previous = HostState;
         if (movesTheWindow)
         {
-            WindowState = WindowState.Minimized;
+            HostState = WindowState.Minimized;
         }
 
         viewModel.IsRunning = true;
@@ -1048,10 +1025,10 @@ public partial class AddActionWindow : Window
             // nothing left to come back to.
             if (movesTheWindow && !_closed)
             {
-                WindowState = previous == WindowState.Maximized
+                HostState = previous == WindowState.Maximized
                     ? WindowState.Maximized
                     : WindowState.Normal;
-                Activate();
+                HostWindow?.Activate();
             }
         }
 
@@ -1140,7 +1117,7 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        var offset = await OffsetPickerWindow.PickAsync(this, picture, Strings.Get("Offset.Title"));
+        var offset = await OffsetPickerWindow.PickAsync(HostWindow!, picture, Strings.Get("Offset.Title"));
         if (offset is { } point)
         {
             viewModel.ApplyOffset(point.X, point.Y);
@@ -1159,7 +1136,7 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (Clipboard is { } clipboard)
+        if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
         {
             var transfer = new DataTransfer();
             transfer.Add(DataTransferItem.CreateText(viewModel.StepId));
@@ -1306,7 +1283,7 @@ public partial class AddActionWindow : Window
 
         try
         {
-            if (await RegionPickerWindow.CaptureAsync(this, Devices, viewModel.AssetFolder)
+            if (await RegionPickerWindow.CaptureAsync(HostWindow!, Devices, viewModel.AssetFolder)
                 is { Length: > 0 } picture)
             {
                 parameter.Text = picture;
@@ -1314,7 +1291,7 @@ public partial class AddActionWindow : Window
         }
         catch (Exception)
         {
-            await ConfirmDialog.ShowAsync(this, Strings.Get("Add.CaptureImage"),
+            await ConfirmDialog.ShowAsync(HostWindow!, Strings.Get("Add.CaptureImage"),
                 Strings.Get("Add.ImageFailed"), Strings.Get("Common.Ok"), showCancel: false);
         }
     }
@@ -1339,7 +1316,7 @@ public partial class AddActionWindow : Window
         // The picker takes the part this step compares its text with, so what it hands back can be
         // written straight into the field.
         var match = (DataContext as AddActionViewModel)?.WindowMatchFor(parameter) ?? WindowMatch.Title;
-        if (await WindowPickerWindow.PickAsync(this, match, Devices.Windows) is { Length: > 0 } picked)
+        if (await WindowPickerWindow.PickAsync(HostWindow!, match, Devices.Windows) is { Length: > 0 } picked)
         {
             parameter.Text = picked;
         }
@@ -1359,7 +1336,7 @@ public partial class AddActionWindow : Window
             return;
         }
 
-        if (await ElementPickerWindow.PickAsync(this, Devices) is not { } picked)
+        if (await ElementPickerWindow.PickAsync(HostWindow!, Devices) is not { } picked)
         {
             return;
         }
@@ -1413,7 +1390,7 @@ public partial class AddActionWindow : Window
             // down with it — there is nowhere left to show a message about that.
             if (!_closed)
             {
-                await ConfirmDialog.ShowAsync(this, Strings.Get("Add.PickBrowserElement"),
+                await ConfirmDialog.ShowAsync(HostWindow!, Strings.Get("Add.PickBrowserElement"),
                     Strings.Get("Add.BrowserPickFailed"), Strings.Get("Common.Ok"), showCancel: false);
             }
         }
@@ -1446,8 +1423,8 @@ public partial class AddActionWindow : Window
         // Out of the way while the frame is up, the same way picking does it: the control is
         // usually behind the very window asking about it. The dialog waits the frame out, so it
         // never comes back on top of the thing it just said to look at.
-        var previous = WindowState;
-        WindowState = WindowState.Minimized;
+        var previous = HostState;
+        HostState = WindowState.Minimized;
 
         ScreenFrameWindow? flash = null;
         try
@@ -1467,10 +1444,10 @@ public partial class AddActionWindow : Window
             // nothing left to come back to.
             if (!_closed)
             {
-                WindowState = previous == WindowState.Maximized
+                HostState = previous == WindowState.Maximized
                     ? WindowState.Maximized
                     : WindowState.Normal;
-                Activate();
+                HostWindow?.Activate();
             }
         }
 
@@ -1598,7 +1575,7 @@ public partial class AddActionWindow : Window
             // down with it — there is nowhere left to show a message about that.
             if (!_closed)
             {
-                await ConfirmDialog.ShowAsync(this, Strings.Get("Add.PickBrowserElement"),
+                await ConfirmDialog.ShowAsync(HostWindow!, Strings.Get("Add.PickBrowserElement"),
                     Strings.Get("Add.BrowserPickFailed"), Strings.Get("Common.Ok"), showCancel: false);
             }
         }
@@ -1668,7 +1645,7 @@ public partial class AddActionWindow : Window
 
         // The expression editor is not offered: a selector field is read as text with the names in
         // it filled in, so a formula built here would be written down as part of the selector.
-        if (await VariablePickerWindow.ShowFor(this, viewModel.CollectVariables()) is not { } picked
+        if (await VariablePickerWindow.ShowFor(HostWindow!, viewModel.CollectVariables()) is not { } picked
             || picked.Token.Length == 0)
         {
             return;
@@ -1700,7 +1677,7 @@ public partial class AddActionWindow : Window
 
     /// <summary>Says what the test found, without leaving the dialog.</summary>
     private async Task ReportTestAsync(string message)
-        => await ConfirmDialog.ShowAsync(this, Strings.Get("Add.TestElement"), message,
+        => await ConfirmDialog.ShowAsync(HostWindow!, Strings.Get("Add.TestElement"), message,
             Strings.Get("Common.Ok"), showCancel: false);
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -1710,12 +1687,12 @@ public partial class AddActionWindow : Window
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
             && e.GetPosition(this).Y <= 38)
         {
-            BeginMoveDrag(e);
+            HostWindow?.BeginMoveDrag(e);
         }
     }
 
     /// <summary>Noted so a pick that outlives the dialog does not try to report back to it.</summary>
-    protected override void OnClosed(EventArgs e)
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         _closed = true;
 
@@ -1732,6 +1709,6 @@ public partial class AddActionWindow : Window
         // all that is needed, and a trial's controller goes when the program does.
         _devices = null;
 
-        base.OnClosed(e);
+        base.OnDetachedFromVisualTree(e);
     }
 }
