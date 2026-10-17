@@ -146,6 +146,7 @@ public static class RunKeys
     public const string NothingToRethrow = "Run.NothingToRethrow";
     public const string NuGetFailed = "Run.NuGetFailed";
     public const string OneColumnOnly = "Run.OneColumnOnly";
+    public const string OutOfRange = "Run.OutOfRange";
     public const string PipFailed = "Run.PipFailed";
     public const string PixelOutsideScreen = "Run.PixelOutsideScreen";
     public const string PowerRefused = "Run.PowerRefused";

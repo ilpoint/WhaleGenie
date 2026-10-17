@@ -160,7 +160,19 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.RecordWhereNumber, name);
         }
 
-        return Vary(step, name, (int)value.AsNumber());
+        var number = (int)value.AsNumber();
+
+        // The range the field declares — its own limit, or the one its unit gives — is what the
+        // number box offers; the engine holds to the same range instead of clamping behind the
+        // author's back or passing a value the action cannot mean.
+        if (ActionSemanticsCatalog.Find(step.Type)?.Parameter(name) is { Shape: ActionValueShape.Number } facts
+            && (number < facts.MinimumValue || number > facts.MaximumValue))
+        {
+            throw new StepFailure(RunKeys.OutOfRange,
+                name + ": " + number.ToString(CultureInfo.InvariantCulture));
+        }
+
+        return Vary(step, name, number);
     }
 
     /// <summary>

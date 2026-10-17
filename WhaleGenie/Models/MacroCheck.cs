@@ -256,6 +256,9 @@ public static class MacroCheck
                 CheckScriptInput(step);
                 CheckRunHandle(step);
                 CheckHeldBrowserRun(step, browserHeld);
+                CheckKnownStep(step);
+                CheckDuplicateResults(step);
+                CheckExpressions(step);
 
                 // A loop's own variables belong to the innermost loop that names them, so one
                 // that borrows a name from a loop around it loses the outer value when it ends.
@@ -360,6 +363,91 @@ public static class MacroCheck
                     }
 
                     break;
+            }
+        }
+
+        /// <summary>
+        /// Whether the step's action and every field it writes still exist in the catalogue. A macro
+        /// written before an action or a field was renamed would otherwise run with values nothing
+        /// reads, which looks like the step ignoring what its author wrote. The fields a call passes
+        /// to another macro are named by that macro rather than by the catalogue, so they are not
+        /// this question's.
+        /// </summary>
+        void CheckKnownStep(MacroStep step)
+        {
+            if (step.Definition is not { } definition)
+            {
+                Add(step, Strings.Get("Editor.Problem.UnknownAction"));
+                return;
+            }
+
+            var calling = step.Type is "control.runMacro" or "control.startMacro";
+            foreach (var parameter in step.Parameters)
+            {
+                if (calling && parameter.Name.StartsWith(MacroCallFields.ArgumentPrefix,
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (!definition.Parameters.Any(known => known.Name == parameter.Name))
+                {
+                    Add(step, Strings.Format("Editor.Problem.UnknownParameter", parameter.Name));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Two ticks writing the same name: the second silently replaces the first, so the value the
+        /// step reports is not the one the row was talking about.
+        /// </summary>
+        void CheckDuplicateResults(MacroStep step)
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var parameter in step.Parameters)
+            {
+                if (parameter.Kind is not ActionParameterKind.Returns)
+                {
+                    continue;
+                }
+
+                foreach (var (_, name) in step.ReturnedResults(parameter))
+                {
+                    if (!seen.Add(name))
+                    {
+                        Add(step, Strings.Format("Editor.Problem.DuplicateResultName", name));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// A whole-cell value that starts with a dollar sign is read as an expression, so one that
+        /// the language cannot parse would stop the run. Plain text and the escaped dollar are left
+        /// alone: those are values, not formulae.
+        /// </summary>
+        void CheckExpressions(MacroStep step)
+        {
+            foreach (var parameter in step.Parameters)
+            {
+                if (parameter.IsRowList
+                    || step.ParameterDefinition(parameter) is not { } definition
+                    || definition.ReadMode is not ActionReadMode.WholeValue)
+                {
+                    continue;
+                }
+
+                var written = parameter.Value.Trim();
+                if (!written.StartsWith('$') || written.StartsWith("$$", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (!Expression.TryParse(written, out _, out var error))
+                {
+                    Add(step, Strings.Format("Editor.Problem.BadExpression",
+                        error?.Detail ?? written));
+                }
             }
         }
 
@@ -601,6 +689,12 @@ public static class MacroCheck
                 if (written.Length == 0 && !number)
                 {
                     Add(step, Strings.Format("Editor.Problem.NoPlace", field.LocalLabel));
+                }
+                else if (written.Length > 0 && number)
+                {
+                    // The record wins in the engine, so the numbers the author typed are not read
+                    // at all. Saying so is better than letting the step look like it uses both.
+                    Add(step, Strings.Format("Editor.Problem.PlaceAndNumbers", field.LocalLabel));
                 }
             }
         }

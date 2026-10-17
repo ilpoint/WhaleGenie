@@ -927,6 +927,17 @@ public class MacroRunnerTests
         Assert.Contains(host.Entries, entry => entry.Level is LogLevel.Error);
     }
 
+
+    [Fact]
+    public async Task A_number_outside_its_declared_range_stops_the_step()
+    {
+        var (result, _) = await RunAsync([Step("control.repeat", Param("times", "0"))]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.OutOfRange, result.Key);
+        Assert.Equal("times: 0", result.Detail);
+    }
+
     [Fact]
     public async Task An_action_that_needs_a_missing_device_says_so()
     {

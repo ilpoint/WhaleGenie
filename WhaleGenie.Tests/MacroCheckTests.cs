@@ -410,7 +410,7 @@ public class MacroCheckTests
         // there stops the step rather than quietly becoming text.
         var writer = Step("file.writeText",
             Text("path", "notes.txt"),
-            Text("text", "$未知 件"));
+            Text("fileContent", "$未知"));
 
         Assert.Single(Inspect(writer));
     }
@@ -785,5 +785,71 @@ public class MacroCheckTests
 
         Assert.Equal(2, problems.Count);
         Assert.All(problems, problem => Assert.Same(step, problem.Step));
+    }
+
+    [Fact]
+    public void An_action_the_catalogue_does_not_know_is_marked()
+    {
+        var problem = Assert.Single(Inspect(Step("old.gone", Text("anything", "1"))));
+
+        Assert.Equal(Strings.Get("Editor.Problem.UnknownAction"), problem.Message);
+    }
+
+    [Fact]
+    public void A_field_the_catalogue_does_not_know_is_marked()
+    {
+        var problem = Assert.Single(Inspect(Step("control.delay",
+            Text("ms", "1000"), Text("wait", "true"))));
+
+        Assert.Equal(Strings.Format("Editor.Problem.UnknownParameter", "wait"), problem.Message);
+    }
+
+    [Fact]
+    public void A_place_written_twice_is_marked()
+    {
+        var step = Step("window.move", Text("rect", "1,2,3,4"), Text("width", "800"));
+
+        var problem = Assert.Single(Inspect(step));
+
+        Assert.Equal(Strings.Format("Editor.Problem.PlaceAndNumbers", "Rectangle"), problem.Message);
+    }
+
+    [Fact]
+    public void Two_results_with_one_name_are_marked()
+    {
+        var step = Step("file.path", Text("path", "a.txt"), Results("part", "part"));
+
+        var problem = Assert.Single(Inspect(step));
+
+        Assert.Equal(Strings.Format("Editor.Problem.DuplicateResultName", "part"), problem.Message);
+    }
+
+    [Theory]
+    [InlineData("$x +", true)]
+    [InlineData("$x + 1", false)]
+    [InlineData("$$5", false)]
+    [InlineData("plain text", false)]
+    public void A_value_that_reads_as_an_expression_is_parsed_while_it_is_written(
+        string value, bool marked)
+    {
+        var step = Step("control.setVariable", Text("name", "y"), Text("scope", "local"),
+            Value("value", value));
+
+        // x is defined first, so the only question left about the value is whether it parses.
+        var problems = Inspect(Set("x", "1"), step)
+            .Where(problem => ReferenceEquals(problem.Step, step))
+            .ToList();
+
+        if (!marked)
+        {
+            Assert.Empty(problems);
+        }
+        else
+        {
+            var before = Strings.Get("Editor.Problem.BadExpression")
+                .Replace("{0}", string.Empty, StringComparison.Ordinal);
+            Assert.Contains(problems, problem =>
+                problem.Message.StartsWith(before, StringComparison.Ordinal));
+        }
     }
 }
