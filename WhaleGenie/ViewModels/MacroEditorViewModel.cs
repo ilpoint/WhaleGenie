@@ -1961,6 +1961,12 @@ public partial class MacroEditorViewModel : ViewModelBase
         OnPropertyChanged(nameof(DeclarationProblemSummary));
     }
 
+    /// <summary>Checks the declarations again after the macro interface changed a name or a kind.</summary>
+    internal void RefreshDeclarations()
+    {
+        IsDirty = true;
+        RefreshProblems();
+    }
     private void AddRows(IList<MacroStep> steps, StepParameter? owner, int depth)
     {
         for (var index = 0; index < steps.Count; index++)

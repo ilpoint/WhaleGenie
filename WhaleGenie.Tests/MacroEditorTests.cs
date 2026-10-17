@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
@@ -727,6 +728,38 @@ public class MacroEditorTests
 
             Assert.Equal("control.delay",
                 (view.DataContext as AddActionViewModel)?.SelectedKey);
+        });
+    }
+
+    [Fact]
+    public void The_inspector_can_edit_the_macro_interface()
+    {
+        Ui.Run(() =>
+        {
+            var (window, viewModel) = Open();
+            var toggle = window.GetVisualDescendants().OfType<Button>()
+                .First(button => Equals(button.Content, Strings.Get("Editor.MacroInterface")));
+            toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            var host = window.FindControl<ContentControl>("MacroInterfaceHost");
+            Assert.NotNull(host);
+            Assert.True(host!.IsVisible);
+
+            var view = Assert.IsType<MacroInterfaceView>(host.Content);
+            var model = (MacroInterfaceViewModel)view.DataContext!;
+            model.AddParameterCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            var row = Assert.Single(model.Parameters);
+            row.Name = "数量";
+            row.SelectedType = model.Types.First(type => type.Value == ActionReturnType.Number);
+            Dispatcher.UIThread.RunJobs();
+
+            var declared = Assert.Single(viewModel.DeclaredParameters);
+            Assert.Equal("数量", declared.Name);
+            Assert.Equal(ActionReturnType.Number, declared.Type);
+            Assert.True(viewModel.IsDirty);
         });
     }
 }

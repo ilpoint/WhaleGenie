@@ -1,0 +1,103 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WhaleGenie.ViewModels"
+             xmlns:loc="using:WhaleGenie.Localization"
+             x:Class="WhaleGenie.Views.MacroInterfaceView"
+             x:DataType="vm:MacroInterfaceViewModel">
+
+    <Design.DataContext>
+        <vm:MacroInterfaceViewModel />
+    </Design.DataContext>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="14,4,14,14" Spacing="8">
+            <TextBlock Classes="Muted" TextWrapping="Wrap"
+                       Text="{Binding [MacroInterface.Hint], Source={x:Static loc:Strings.Current}}" />
+            <TextBlock Classes="ProblemSummary" Margin="0"
+                       IsVisible="{Binding ProblemSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                       Text="{Binding ProblemSummary}" />
+
+            <TextBlock Classes="GroupHeader" Margin="0,4,0,0"
+                       Text="{Binding [MacroInterface.Parameters], Source={x:Static loc:Strings.Current}}" />
+
+            <ItemsControl ItemsSource="{Binding Parameters}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MacroParameterRow">
+                        <Border Background="#2E2E2E" CornerRadius="4" Padding="8" Margin="0,0,0,6">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto"
+                                  RowSpacing="4" ColumnSpacing="6">
+                                <TextBox Grid.Row="0" Text="{Binding Name}"
+                                         PlaceholderText="{Binding [MacroInterface.Name], Source={x:Static loc:Strings.Current}}" />
+                                <Button Grid.Row="0" Grid.Column="1" Classes="FlatButton" Height="28"
+                                        Padding="8,0"
+                                        Command="{Binding $parent[ItemsControl].((vm:MacroInterfaceViewModel)DataContext).RemoveParameterCommand}"
+                                        CommandParameter="{Binding}"
+                                        Content="{Binding [MacroInterface.Remove], Source={x:Static loc:Strings.Current}}" />
+
+                                <ComboBox Grid.Row="1" Grid.Column="0" ItemsSource="{Binding Types}"
+                                          SelectedItem="{Binding SelectedType}"
+                                          PlaceholderText="{Binding [MacroInterface.Type], Source={x:Static loc:Strings.Current}}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:MacroTypeChoice">
+                                            <TextBlock Text="{Binding Label}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <CheckBox Grid.Row="1" Grid.Column="1"
+                                          IsChecked="{Binding Required}"
+                                          Content="{Binding [MacroInterface.Required], Source={x:Static loc:Strings.Current}}" />
+
+                                <TextBox Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding Default}"
+                                         PlaceholderText="{Binding [MacroInterface.Default], Source={x:Static loc:Strings.Current}}" />
+                                <TextBox Grid.Row="3" Grid.ColumnSpan="2" Text="{Binding Description}"
+                                         PlaceholderText="{Binding [MacroInterface.Description], Source={x:Static loc:Strings.Current}}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Button Classes="FlatButton" Height="30" Padding="10,0" HorizontalAlignment="Left"
+                    Command="{Binding AddParameterCommand}"
+                    Content="{Binding [MacroInterface.AddParameter], Source={x:Static loc:Strings.Current}}" />
+
+            <TextBlock Classes="GroupHeader" Margin="0,6,0,0"
+                       Text="{Binding [MacroInterface.Results], Source={x:Static loc:Strings.Current}}" />
+
+            <ItemsControl ItemsSource="{Binding Results}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MacroResultRow">
+                        <Border Background="#2E2E2E" CornerRadius="4" Padding="8" Margin="0,0,0,6">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto"
+                                  RowSpacing="4" ColumnSpacing="6">
+                                <TextBox Grid.Row="0" Text="{Binding Name}"
+                                         PlaceholderText="{Binding [MacroInterface.Name], Source={x:Static loc:Strings.Current}}" />
+                                <Button Grid.Row="0" Grid.Column="1" Classes="FlatButton" Height="28"
+                                        Padding="8,0"
+                                        Command="{Binding $parent[ItemsControl].((vm:MacroInterfaceViewModel)DataContext).RemoveResultCommand}"
+                                        CommandParameter="{Binding}"
+                                        Content="{Binding [MacroInterface.Remove], Source={x:Static loc:Strings.Current}}" />
+
+                                <ComboBox Grid.Row="1" ItemsSource="{Binding Types}"
+                                          SelectedItem="{Binding SelectedType}"
+                                          PlaceholderText="{Binding [MacroInterface.Type], Source={x:Static loc:Strings.Current}}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:MacroTypeChoice">
+                                            <TextBlock Text="{Binding Label}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <TextBox Grid.Row="2" Text="{Binding Description}"
+                                         PlaceholderText="{Binding [MacroInterface.Description], Source={x:Static loc:Strings.Current}}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Button Classes="FlatButton" Height="30" Padding="10,0" HorizontalAlignment="Left"
+                    Command="{Binding AddResultCommand}"
+                    Content="{Binding [MacroInterface.AddResult], Source={x:Static loc:Strings.Current}}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

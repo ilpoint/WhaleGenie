@@ -126,6 +126,8 @@ public partial class MacroEditorWindow : Window
 
     private bool _settingInspectorAction;
     private IReadOnlyList<ActionDefinition> _inspectorActions = ActionCatalog.Definitions;
+    private MacroInterfaceView? _interfaceView;
+    private MacroInterfaceViewModel? _interfaceModel;
 
     /// <summary>Layer the drag marker is drawn on, over the step list.</summary>
     private Canvas? _dropLayer;
@@ -996,6 +998,7 @@ public partial class MacroEditorWindow : Window
         }
 
         InspectorHost.IsVisible = true;
+        ShowInspectorSteps();
         SyncInspectorAction();
         InspectorActionPicker.Focus();
     }
@@ -1046,6 +1049,44 @@ public partial class MacroEditorWindow : Window
         InspectorContent.Content = _inspector;
     }
 
+    /// <summary>Turns the inspector between the step form and the macro's own interface.</summary>
+    private void OnToggleInterface(object? sender, RoutedEventArgs e)
+    {
+        if (MacroInterfaceHost.IsVisible)
+        {
+            ShowInspectorSteps();
+            return;
+        }
+
+        EnsureInterface();
+        _interfaceModel?.Reload();
+        MacroInterfaceHost.IsVisible = true;
+        InspectorContent.IsVisible = false;
+        InspectorActionFilter.IsVisible = false;
+        InspectorActionPicker.IsVisible = false;
+    }
+
+    /// <summary>Puts the inspector back on the step being written.</summary>
+    private void ShowInspectorSteps()
+    {
+        MacroInterfaceHost.IsVisible = false;
+        InspectorContent.IsVisible = true;
+        InspectorActionFilter.IsVisible = true;
+        InspectorActionPicker.IsVisible = true;
+    }
+
+    /// <summary>Builds the interface editor the first time it is asked for.</summary>
+    private void EnsureInterface()
+    {
+        if (_interfaceView is not null)
+        {
+            return;
+        }
+
+        _interfaceModel = new MacroInterfaceViewModel(_viewModel);
+        _interfaceView = new MacroInterfaceView { DataContext = _interfaceModel };
+        MacroInterfaceHost.Content = _interfaceView;
+    }
     /// <summary>The editor's own way out of the inspector, beside the action it is showing.</summary>
     private void OnCloseInspector(object? sender, RoutedEventArgs e)
     {
