@@ -33,6 +33,10 @@ public partial class AddActionViewModel : ViewModelBase
     /// from the catalogue alone.
     /// </summary>
     private const string RunMacroKey = "control.runMacro";
+    private const string StartMacroKey = "control.startMacro";
+
+    /// <summary>The two steps that call another macro: what they ask for is declared there.</summary>
+    private static bool CallsMacro(string? key) => key is RunMacroKey or StartMacroKey;
 
     /// <summary>
     /// The action that lists windows rather than acting on one of them. Nothing written in its match
@@ -1137,7 +1141,7 @@ public partial class AddActionViewModel : ViewModelBase
 
         // A call's arguments and results are the called macro's own declarations, so the name goes
         // into the form first: the fields the file is about to fill in only exist because of it.
-        if (SelectedDefinition?.Key == RunMacroKey && Parameter("macro") is { } called)
+        if (CallsMacro(SelectedDefinition?.Key) && Parameter("macro") is { } called)
         {
             called.WriteValue(step.Text("macro"));
         }
@@ -1198,7 +1202,7 @@ public partial class AddActionViewModel : ViewModelBase
 
             // A call's form is built for whichever macro it names, so the name is put back into the
             // box it was read from before the fields that only exist because of it.
-            var calling = definition.Key == RunMacroKey;
+            var calling = CallsMacro(definition.Key);
             _buildingCallFields = calling;
             try
             {
@@ -1333,7 +1337,7 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     private IReadOnlyList<ActionReturn> CalledResults(ActionDefinition definition)
     {
-        if (definition.Key != RunMacroKey || CalledMacro() is not { } call)
+        if (!CallsMacro(definition.Key) || CalledMacro() is not { } call)
         {
             return definition.Returns;
         }
@@ -1964,7 +1968,7 @@ public partial class AddActionViewModel : ViewModelBase
         // the macro it names changes. The rebuild says everything a change says and the fields this
         // event came from are gone with it, so nothing else is done here.
         if (!_buildingCallFields
-            && SelectedDefinition?.Key == RunMacroKey
+            && CallsMacro(SelectedDefinition?.Key)
             && !string.Equals(Parameter("macro")?.CurrentText.Trim() ?? string.Empty, _callMacro,
                 StringComparison.Ordinal))
         {

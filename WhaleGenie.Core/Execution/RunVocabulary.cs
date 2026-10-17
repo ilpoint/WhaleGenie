@@ -65,6 +65,7 @@ public static class RunKeys
     public const string BrowserTabNeedsText = "Run.BrowserTabNeedsText";
     public const string BrowserTooFew = "Run.BrowserTooFew";
     public const string CaptureFailed = "Run.CaptureFailed";
+    public const string ChildStillRunning = "Run.ChildStillRunning";
     public const string ChildStopped = "Run.ChildStopped";
     public const string ClipboardBusy = "Run.ClipboardBusy";
     public const string ClipboardTimeout = "Run.ClipboardTimeout";
@@ -223,6 +224,7 @@ public static class LogKeys
     public const string CalledMacro = "Log.CalledMacro";
     public const string Capture = "Log.Capture";
     public const string Caught = "Log.Caught";
+    public const string CancelledRun = "Log.CancelledRun";
     public const string CleanupFailed = "Log.CleanupFailed";
     public const string ClearedClipboard = "Log.ClearedClipboard";
     public const string ClickedElement = "Log.ClickedElement";

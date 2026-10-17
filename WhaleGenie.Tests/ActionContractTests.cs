@@ -528,7 +528,8 @@ public class ActionContractTests
                      || line.StartsWith("| 窗口（", StringComparison.Ordinal)
                      || line.StartsWith("| 显示器（", StringComparison.Ordinal)
                      || line.StartsWith("| 程序（", StringComparison.Ordinal)
-                     || line.StartsWith("| 元素（", StringComparison.Ordinal)))
+                     || line.StartsWith("| 元素（", StringComparison.Ordinal)
+                     || line.StartsWith("| 运行句柄（", StringComparison.Ordinal)))
         {
             var cells = line.Split('|');
             if (cells.Length < 3)

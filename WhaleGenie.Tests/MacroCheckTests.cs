@@ -157,22 +157,50 @@ public class MacroCheckTests
     }
 
     /// <summary>
-    /// 不等的那次调用必须说清楚句柄写进哪个变量；等待那一步必须说清楚句柄从哪来。
+    /// 启动那一步必须说清楚句柄写进哪个变量；等待与取消那两步必须说清楚句柄从哪来；
+    /// 等全部那一步必须给出一列句柄。
     /// </summary>
     [Fact]
     public void A_background_run_without_a_handle_is_marked()
     {
-        var call = Step("control.runMacro", Text("macro", "后台"), Flag("wait", false));
+        var call = Step("control.startMacro", Text("macro", "后台"));
         var wait = Step("control.waitMacro");
+        var cancel = Step("control.cancelMacro");
+        var waitAll = Step("control.waitAll");
 
         Assert.Equal(Strings.Get("Editor.Problem.MissingRunHandle"),
             Assert.Single(Against("当前", [Callable("后台")], call)).Message);
         Assert.Equal(Strings.Get("Editor.Problem.MissingRunHandle"),
             Assert.Single(Inspect(wait)).Message);
+        Assert.Equal(Strings.Get("Editor.Problem.MissingRunHandle"),
+            Assert.Single(Inspect(cancel)).Message);
+        Assert.Equal(Strings.Get("Editor.Problem.MissingRunHandles"),
+            Assert.Single(Inspect(waitAll)).Message);
 
-        var named = Step("control.runMacro", Text("macro", "后台"), Flag("wait", false),
+        var named = Step("control.startMacro", Text("macro", "后台"),
             Name("runHandleName", "job"));
         Assert.Empty(Against("当前", [Callable("后台")], named));
+    }
+
+    /// <summary>
+    /// 后台运行的结果要到等待之后才有值：在启动与等待之间读它，编辑期就标出来。
+    /// </summary>
+    [Fact]
+    public void Reading_a_background_result_before_the_wait_is_marked()
+    {
+        var started = Step("control.startMacro", Text("macro", "后台"),
+            Name("runHandleName", "job"), Results("结果"));
+        var early = Step("control.setVariable",
+            Text("name", "copy"), Text("scope", "local"), Value("value", "$结果"));
+        var wait = Step("control.waitMacro", Text("runHandle", "$job"));
+        var late = Step("control.setVariable",
+            Text("name", "copy"), Text("scope", "local"), Value("value", "$结果"));
+
+        var problems = Against("当前", [Callable("后台", [], ["结果"])], started, early, wait, late);
+
+        var problem = Assert.Single(problems, candidate => candidate.Step == early);
+        Assert.Equal(Strings.Format("Editor.Problem.ResultBeforeWait", "结果"), problem.Message);
+        Assert.DoesNotContain(problems, candidate => candidate.Step == late);
     }
 
     [Fact]

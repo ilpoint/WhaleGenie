@@ -104,6 +104,12 @@ public static class MacroCheck
         var defined = DefinedVariables(tree);
         var known = KnownTypes(tree, own, reachable);
 
+        // A background run's results exist only once it has been waited for. These two say which
+        // handle carries which names, and which of those names is still owed a wait: reading one
+        // before then would read nothing.
+        var started = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        var pending = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         // What the macro declares is a name it reads like any other: the caller hands a value to it
         // under that name and the steps inside read $name. A macro lifted out of a stretch of steps
         // is exactly this shape, so without this it would be told that the names it was made for
@@ -171,6 +177,7 @@ public static class MacroCheck
                 CheckCondition(step);
                 CheckLoopIndex(step, loops);
                 CheckCall(step, guarded);
+                TrackPendingResults(step);
                 CheckNames(step, namesAreOpen);
                 CheckPostedMove(step);
                 CheckWait(step, bounded);
@@ -234,22 +241,89 @@ public static class MacroCheck
         {
             switch (step.Type)
             {
-                case "control.runMacro":
-                    var waiting = !string.Equals(step.Text("wait").Trim(), "false",
-                        StringComparison.OrdinalIgnoreCase);
-                    if (!waiting && step.Text("runHandleName").Trim().Length == 0)
+                case "control.startMacro":
+                    var handle = step.Text("runHandleName").Trim();
+                    if (handle.Length == 0)
                     {
                         Add(step, Strings.Get("Editor.Problem.MissingRunHandle"));
+                        break;
+                    }
+
+                    // The names this call asked for are owed a wait: the results are not written
+                    // until one takes them back.
+                    var names = Wanted(step).Select(wanted => wanted.Name).ToList();
+                    if (names.Count > 0)
+                    {
+                        started[handle] = names;
+                        pending.UnionWith(names);
                     }
 
                     break;
                 case "control.waitMacro":
+                case "control.cancelMacro":
                     if (step.Text("runHandle").Trim().Length == 0)
                     {
                         Add(step, Strings.Get("Editor.Problem.MissingRunHandle"));
                     }
 
                     break;
+                case "control.waitAll":
+                    if (step.Text("runHandles").Trim().Length == 0)
+                    {
+                        Add(step, Strings.Get("Editor.Problem.MissingRunHandles"));
+                    }
+
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// A name a start step chose for a background run's result is not defined until a wait step
+        /// takes the run's results back. The steps are walked in the order they are written, so a
+        /// read that comes before that wait is said to be reading something that is not there yet.
+        /// </summary>
+        void TrackPendingResults(MacroStep step)
+        {
+            switch (step.Type)
+            {
+                case "control.waitMacro":
+                case "control.cancelMacro":
+                    ForgetPending(step.Text("runHandle"));
+                    break;
+                case "control.waitAll":
+                    pending.Clear();
+                    break;
+            }
+
+            if (namesAreOpen)
+            {
+                return;
+            }
+
+            foreach (var parameter in step.Parameters)
+            {
+                if (step.ParameterDefinition(parameter) is { ForeignText: true })
+                {
+                    continue;
+                }
+
+                foreach (var name in ReadsOf(step, parameter))
+                {
+                    if (pending.Contains(name))
+                    {
+                        Add(step, Strings.Format("Editor.Problem.ResultBeforeWait", name));
+                        return;
+                    }
+                }
+            }
+        }
+
+        /// <summary>Forgets the names a wait or cancel step has settled, by the handle it names.</summary>
+        void ForgetPending(string written)
+        {
+            if (HandleVariable(written) is { } handle && started.Remove(handle, out var names))
+            {
+                pending.ExceptWith(names);
             }
         }
 
@@ -297,7 +371,7 @@ public static class MacroCheck
 
         void CheckCall(MacroStep step, bool guarded)
         {
-            if (step.Type != "control.runMacro")
+            if (step.Type is not ("control.runMacro" or "control.startMacro"))
             {
                 return;
             }
@@ -516,7 +590,7 @@ public static class MacroCheck
         /// </summary>
         void CheckCallArguments(MacroStep step)
         {
-            if (step.Type != "control.runMacro"
+            if (step.Type is not ("control.runMacro" or "control.startMacro")
                 || reachable.GetValueOrDefault(step.Text("macro").Trim()) is not { } called)
             {
                 return;
@@ -651,6 +725,24 @@ public static class MacroCheck
     }
 
     /// <summary>
+    /// The variable a run-handle field names when it holds one variable and nothing else, or null
+    /// when it is an expression. Only that form lets the check say which run a wait settles.
+    /// </summary>
+    private static string? HandleVariable(string written)
+    {
+        var text = written.Trim();
+        if (text.Length < 2 || text[0] != '$' || text.Contains(' ', StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var name = text[1..];
+        return name.All(letter => char.IsLetterOrDigit(letter) || letter is '.' or '_' or '-')
+            ? name
+            : null;
+    }
+
+    /// <summary>
     /// The names a macro may read: the ones WhaleGenie provides, the shared ones, the ones its own
     /// steps create, and the ones a call asks a called macro to bring back. A name the macro
     /// defines anywhere counts, because whether a step runs before the one that reads it is a
@@ -745,7 +837,7 @@ public static class MacroCheck
                 }
             }
 
-            if (step.Type == "control.runMacro"
+            if (step.Type is "control.runMacro" or "control.startMacro"
                 && reachable.GetValueOrDefault(step.Text("macro").Trim()) is { } called)
             {
                 foreach (var (result, name) in Wanted(step))

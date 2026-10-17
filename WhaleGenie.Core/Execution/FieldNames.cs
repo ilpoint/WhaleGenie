@@ -75,6 +75,10 @@ public static class FieldNames
     public const string Id = "id";
 
     public const string MemoryMb = "memoryMb";
+    public const string Results = "results";
+    public const string Error = "error";
+    public const string Status = "status";
+    public const string Macro = "macro";
 
     public const string CpuSeconds = "cpuSeconds";
 }

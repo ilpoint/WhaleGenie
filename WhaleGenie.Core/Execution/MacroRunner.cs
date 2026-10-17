@@ -718,51 +718,12 @@ public sealed partial class MacroRunner
     /// <summary>
     /// Runs another macro's steps as though they had been written here, on values of its own:
     /// what the caller passes is what it can read, and what it leaves behind comes back through
-    /// the names the call asked for.
+    /// the names the call asked for. The caller waits for it, and its own step timeout bounds the
+    /// wait.
     /// </summary>
     private async Task<Signal> RunOtherMacro(ExecutableStep step, int depth, CancellationToken token)
     {
-        var name = ReadValue(step, "macro").AsText().Trim();
-        var steps = name.Length == 0 ? null : _macros.Steps(name);
-        if (steps is null)
-        {
-            throw new StepFailure(RunKeys.MacroNotFound, name);
-        }
-
-        if (_callDepth >= CallDepthLimit)
-        {
-            throw new StepFailure(RunKeys.MacroTooDeep, name);
-        }
-
-        // What the call may ask to have back is settled before anything runs: a name the called
-        // macro never offered is a mistake in the call, and saying so now keeps it from turning
-        // into a half-finished call or, worse, hiding the failure that was already on its way.
-        var signature = _macros.Signature(name) ?? MacroSignature.Empty;
-        var wanted = WantedResults(step, signature);
-
-        // Read the arguments while the caller's values are still the ones in force, then hand the
-        // called macro a table of its own holding just those. A macro's own values are its own —
-        // that is why one macro cannot read another's — so a call says what goes in and what
-        // comes back rather than leaning on whatever happened to be left lying around.
-        var called = new VariableBag();
-        foreach (var argument in signature.Arguments)
-        {
-            called.Set(argument.Name, ArgumentValue(step, argument));
-        }
-
-        // The name of the macro that is running right now, which is what a macro writing a log line
-        // or naming a file means by it. It goes in the called macro's own table, so the caller reads
-        // its own name again the moment the call is over — the table swap below is what restores it.
-        called.Set("sys.macroName", Value.FromText(name));
-
-        // A call that does not wait starts the same macro on a table of its own and returns at
-        // once. The handle it leaves behind is what the wait step later names; the results asked
-        // for here are kept with that handle until the wait takes them back.
-        if (!Flag(step, "wait", true))
-        {
-            StartOtherMacro(step, name, steps, signature, wanted, called, depth);
-            return Signal.Normal;
-        }
+        var (name, steps, _, wanted, called) = ResolveCall(step);
 
         var caller = Variables.SwapLocal(called);
         _callDepth++;
@@ -807,13 +768,52 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
-    /// Starts a call in the background and leaves its handle in the caller's local table. The
-    /// child reads and writes the same global table as its caller, but its local table is the one
-    /// built from the call's arguments, so neither macro can see the other's local names.
+    /// What a call names, what the called macro declares, and the values it is handed. The
+    /// arguments are read while the caller's values are still the ones in force, and the names the
+    /// call asks to have back are checked against the called macro's declaration before anything
+    /// runs: a name it never offered is a mistake in the call, said now rather than after a
+    /// half-finished run.
     /// </summary>
-    private void StartOtherMacro(ExecutableStep step, string name,
-        IReadOnlyList<ExecutableStep> steps, MacroSignature signature,
-        List<(string Result, string Name)> wanted, VariableBag called, int depth)
+    private (string Name, IReadOnlyList<ExecutableStep> Steps, MacroSignature Signature,
+        List<(string Result, string Name)> Wanted, VariableBag Called) ResolveCall(ExecutableStep step)
+    {
+        var name = ReadValue(step, "macro").AsText().Trim();
+        var steps = name.Length == 0 ? null : _macros.Steps(name);
+        if (steps is null)
+        {
+            throw new StepFailure(RunKeys.MacroNotFound, name);
+        }
+
+        if (_callDepth >= CallDepthLimit)
+        {
+            throw new StepFailure(RunKeys.MacroTooDeep, name);
+        }
+
+        var signature = _macros.Signature(name) ?? MacroSignature.Empty;
+        var wanted = WantedResults(step, signature);
+
+        // A macro's own values are its own, so a call says what goes in and what comes back rather
+        // than leaning on whatever happened to be left lying around.
+        var called = new VariableBag();
+        foreach (var argument in signature.Arguments)
+        {
+            called.Set(argument.Name, ArgumentValue(step, argument));
+        }
+
+        // The name of the macro that is running right now, which is what a macro writing a log line
+        // or naming a file means by it.
+        called.Set("sys.macroName", Value.FromText(name));
+        return (name, steps, signature, wanted, called);
+    }
+
+    /// <summary>
+    /// Starts a call in the background and leaves its handle in the caller's local table. The child
+    /// reads and writes the same global table as its caller, but its local table is the one built
+    /// from the call's arguments, so neither macro can see the other's local names. The handle says
+    /// which run it is, what macro it runs, how it is doing, what went wrong, and which names its
+    /// results will be written under once a wait takes them back.
+    /// </summary>
+    private Signal StartOtherMacro(ExecutableStep step, int depth)
     {
         var handleName = ReadText(step, "runHandleName").Trim();
         if (handleName.Length == 0)
@@ -821,11 +821,11 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.MissingHandle);
         }
 
-        var handle = "run-" + Guid.NewGuid().ToString("N")[..12];
+        var (name, steps, signature, wanted, called) = ResolveCall(step);
         var childStore = new VariableStore(Variables.Global);
         childStore.SwapLocal(called);
 
-        var child = new MacroRunner(childStore, new ChildRunHost(_host), _devices, DelayScale,
+        var runner = new MacroRunner(childStore, new ChildRunHost(_host), _devices, DelayScale,
             _macros)
         {
             RunName = name,
@@ -835,27 +835,29 @@ public sealed partial class MacroRunner
         };
 
         var stop = CancellationTokenSource.CreateLinkedTokenSource(_runToken);
-        var task = Task.Run(() => child.RunAsync(steps, stop.Token));
-
-        // The watcher shows that the run is over as well as that it started, which is what makes
-        // "still running" something the window can answer rather than guess.
-        _ = task.ContinueWith(_ => ChildrenChanged?.Invoke(), CancellationToken.None,
-            TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
-
-        _children.Add(new ChildRun
+        var task = Task.Run(() => runner.RunAsync(steps, stop.Token));
+        var child = new ChildRun
         {
-            Handle = handle,
+            Handle = "run-" + Guid.NewGuid().ToString("N")[..12],
             Macro = name,
             Signature = signature,
             Store = childStore,
             Stop = stop,
             Wanted = wanted,
             Task = task,
-        });
+            HandleName = handleName,
+        };
 
-        Variables.Local.Set(handleName, Value.FromText(handle));
-        Log(LogLevel.Info, depth, step.Type, LogKeys.StartedRun, name, handle);
+        // The watcher shows that the run is over as well as that it started, which is what makes
+        // "still running" something the window can answer rather than guess.
+        _ = task.ContinueWith(_ => ChildrenChanged?.Invoke(), CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+
+        _children.Add(child);
+        Variables.Local.Set(handleName, HandleValue(child));
+        Log(LogLevel.Info, depth, step.Type, LogKeys.StartedRun, name, child.Handle);
         ChildrenChanged?.Invoke();
+        return Signal.Normal;
     }
 
     /// <summary>
@@ -865,25 +867,10 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task<Signal> WaitOtherMacro(ExecutableStep step, int depth, CancellationToken token)
     {
-        var handle = ReadValue(step, "runHandle").AsText().Trim();
-        if (handle.Length == 0)
-        {
-            throw new StepFailure(RunKeys.MissingHandle);
-        }
-
-        var child = _children.FirstOrDefault(candidate =>
-            string.Equals(candidate.Handle, handle, StringComparison.Ordinal));
-        if (child is null)
-        {
-            throw new StepFailure(RunKeys.NoSuchRun, handle);
-        }
-
+        var child = FindChild(ReadValue(step, "runHandle"));
         var result = await child.Task.WaitAsync(token);
 
-        _children.Remove(child);
-        child.Stop.Dispose();
-        ChildrenChanged?.Invoke();
-
+        Finish(child);
         if (result.Status is RunStatus.Failed)
         {
             throw new StepFailure(result.Key, result.Detail);
@@ -897,6 +884,133 @@ public sealed partial class MacroRunner
         Take(child.Wanted, child.Store.Local);
         Log(LogLevel.Info, depth, step.Type, LogKeys.WaitedRun, child.Macro);
         return Signal.Normal;
+    }
+
+    /// <summary>
+    /// Asks one background run to stop and waits for it to agree. A run that cannot stop within the
+    /// wait's clock is reported as still running rather than being called over: the macro may catch
+    /// that, and the run is still in the table of runs it can cancel or wait for again.
+    /// </summary>
+    private async Task<Signal> CancelOtherMacro(ExecutableStep step, int depth,
+        CancellationToken token)
+    {
+        var child = FindChild(ReadValue(step, "runHandle"));
+        child.Stop.Cancel();
+
+        RunResult result;
+        try
+        {
+            result = await child.Task.WaitAsync(token);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested
+                                                && !_runToken.IsCancellationRequested)
+        {
+            throw new StepFailure(RunKeys.ChildStillRunning, child.Macro);
+        }
+
+        Finish(child);
+        Give(step, "stopped", Value.FromBool(result.Status is RunStatus.Stopped));
+        Log(LogLevel.Info, depth, step.Type, LogKeys.CancelledRun, child.Macro);
+        return Signal.Normal;
+    }
+
+    /// <summary>
+    /// Waits for every background run in a list and takes back each one's results. The call that
+    /// started a run chose the names its results go under, so a list of handles is enough to say
+    /// where every result lands.
+    /// </summary>
+    private async Task<Signal> WaitAllMacros(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var children = ReadValue(step, "runHandles").AsList().Select(FindChild).Distinct().ToList();
+        var results = await Task.WhenAll(children.Select(child => child.Task.WaitAsync(token)));
+
+        var waited = 0;
+        for (var index = 0; index < children.Count; index++)
+        {
+            var child = children[index];
+            var result = results[index];
+            Finish(child);
+
+            if (result.Status is RunStatus.Failed)
+            {
+                throw new StepFailure(result.Key, result.Detail);
+            }
+
+            if (result.Status is RunStatus.Stopped)
+            {
+                throw new StepFailure(RunKeys.ChildStopped, child.Macro);
+            }
+
+            Take(child.Wanted, child.Store.Local);
+            waited++;
+        }
+
+        Give(step, "count", Value.FromNumber(waited));
+        return Signal.Normal;
+    }
+
+    /// <summary>
+    /// The run a handle names, or a refusal: a handle from another macro, a handle already waited
+    /// for, or something that is not a handle at all is not a run this macro can act on.
+    /// </summary>
+    private ChildRun FindChild(Value handle)
+    {
+        if (!handle.IsRecord || handle.Field(FieldNames.Id) is not { } id)
+        {
+            throw new StepFailure(RunKeys.NoSuchRun, handle.AsText());
+        }
+
+        var child = _children.FirstOrDefault(candidate =>
+            string.Equals(candidate.Handle, id.AsText(), StringComparison.Ordinal));
+        return child ?? throw new StepFailure(RunKeys.NoSuchRun, id.AsText());
+    }
+
+    /// <summary>
+    /// Takes a finished run out of the table of runs this macro is owed, writes its handle back
+    /// with how it ended — so reading the variable later says more than "running" — and lets go of
+    /// the token that stopped it.
+    /// </summary>
+    private void Finish(ChildRun child)
+    {
+        if (!_children.Remove(child))
+        {
+            return;
+        }
+
+        child.Stop.Dispose();
+        if (Variables.Local.Contains(child.HandleName))
+        {
+            Variables.Local.Set(child.HandleName, HandleValue(child));
+        }
+
+        ChildrenChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// What a run's handle says now: which run it is, what macro it runs, whether it is running or
+    /// how it ended, the failure key if it failed, and the names its results will land under.
+    /// </summary>
+    private static Value HandleValue(ChildRun child)
+    {
+        var status = !child.Task.IsCompleted
+            ? RunHandleStatus.Running
+            : child.Task.Result.Status switch
+            {
+                RunStatus.Failed => RunHandleStatus.Failed,
+                RunStatus.Stopped => RunHandleStatus.Stopped,
+                _ => RunHandleStatus.Done,
+            };
+
+        return Value.FromRecord(
+        [
+            (FieldNames.Id, Value.FromText(child.Handle)),
+            (FieldNames.Macro, Value.FromText(child.Macro)),
+            (FieldNames.Status, Value.FromText(status)),
+            (FieldNames.Error, Value.FromText(
+                child.Task.IsCompleted ? child.Task.Result.Key : string.Empty)),
+            (FieldNames.Results, Value.FromList(
+                [.. child.Wanted.Select(wanted => Value.FromText(wanted.Name))])),
+        ]);
     }
 
     /// <summary>
@@ -1451,8 +1565,17 @@ public sealed partial class MacroRunner
             case "control.runMacro":
                 return await RunOtherMacro(step, depth, token);
 
+            case "control.startMacro":
+                return StartOtherMacro(step, depth);
+
             case "control.waitMacro":
                 return await WaitOtherMacro(step, depth, token);
+
+            case "control.cancelMacro":
+                return await CancelOtherMacro(step, depth, token);
+
+            case "control.waitAll":
+                return await WaitAllMacros(step, depth, token);
 
             case "control.delay":
                 await Pause(Pace(Number(step, "ms")), token);
@@ -3265,6 +3388,18 @@ public sealed partial class MacroRunner
         public required List<(string Result, string Name)> Wanted { get; init; }
 
         public required Task<RunResult> Task { get; init; }
+
+        /// <summary>The caller's local variable that holds this run's handle.</summary>
+        public required string HandleName { get; init; }
+    }
+
+    /// <summary>What a background run's handle says about the run right now.</summary>
+    private static class RunHandleStatus
+    {
+        public const string Running = "running";
+        public const string Done = "done";
+        public const string Failed = "failed";
+        public const string Stopped = "stopped";
     }
 
     /// <summary>

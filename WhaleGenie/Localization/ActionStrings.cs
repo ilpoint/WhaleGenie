@@ -740,26 +740,61 @@ internal static class ActionStrings
         ["control.input.return.text.hint"] = "对方写下的内容。对方取消、或者没有人在场可问时为空。",
 
         ["control.runMacro.name"] = "执行其他宏",
-        ["control.runMacro.desc"] = "运行本项目里的另一个宏，效果相当于把它的步骤写在这里。"
-            + "被调用的宏使用自己的一套变量：这一步按它声明的形参逐个填值，"
-            + "再勾选要取回的结果。",
+        ["control.runMacro.desc"] = "运行本项目里的另一个宏，效果相当于把它的步骤写在这里，等它跑完。"
+            + "被调用的宏使用自己的一套变量：这一步按它声明的形参逐个填值，再勾选要取回的结果。",
         ["control.runMacro.macro.label"] = "宏",
         ["control.runMacro.macro.hint"] = "本项目里的另一个宏；下面的形参与结果都由它声明。"
             + "改名或删除后这里需要跟着改。",
-        ["control.runMacro.wait.label"] = "等它跑完",
-        ["control.runMacro.wait.hint"] = "默认打开：这一步停在这里，直到被调用的宏结束。关掉后，"
-            + "被调用的宏在后台继续跑，这一步立刻完成，并把一个运行句柄写进下面的变量，"
-            + "稍后用「等待后台运行」按句柄等它。",
-        ["control.runMacro.runHandleName.label"] = "运行句柄",
-        ["control.runMacro.runHandleName.hint"] = "不等的时候，句柄写进这个本宏变量。把它交给后面的"
-            + "「等待后台运行」；一个句柄只能等一次。只在关掉「等它跑完」时出现。",
+        ["control.runMacro.returns.label"] = "要带回的结果",
+        ["control.runMacro.returns.hint"] = "勾上被调用的宏声明过、这一步要取回的结果："
+            + "每勾一行就得到一个本宏变量，名字可以在这一行里改。没勾就什么都不带回来。"
+            + "这一步等它跑完，所以结果写完就能读。",
+        ["control.startMacro.name"] = "启动其他宏",
+        ["control.startMacro.desc"] = "在本项目里启动另一个宏，这一步立刻完成，并留下一个运行句柄。"
+            + "被调用的宏在后台跑，稍后用「等待后台运行」或「等待全部后台运行」取回结果。",
+        ["control.startMacro.macro.label"] = "宏",
+        ["control.startMacro.macro.hint"] = "本项目里的另一个宏；下面的形参与结果都由它声明。"
+            + "改名或删除后这里需要跟着改。",
+        ["control.startMacro.runHandleName.label"] = "运行句柄",
+        ["control.startMacro.runHandleName.hint"] = "句柄写进这个本宏变量，通常叫 job。"
+            + "把它交给后面的「等待后台运行」「取消后台运行」或「等待全部后台运行」；"
+            + "一个句柄只能等一次。",
+        ["control.startMacro.returns.label"] = "要带回的结果",
+        ["control.startMacro.returns.hint"] = "勾上被调用的宏声明过、这次运行要取回的结果："
+            + "名字在等待之后才有值；在等到之前读它，编辑器会标出来。",
+        ["control.startMacro.return.run.label"] = "运行句柄",
+        ["control.startMacro.return.run.hint"] = "这次后台运行的句柄：编号、宏名、现在的状态、"
+            + "失败时的失败键，以及它稍后交回哪些结果。",
+
         ["control.waitMacro.name"] = "等待后台运行",
-        ["control.waitMacro.desc"] = "等「执行其他宏」关掉「等它跑完」后留下的那次后台运行结束，"
-            + "并按调用处勾选的结果取回值。",
+        ["control.waitMacro.desc"] = "等一次由「启动其他宏」留下的后台运行结束，"
+            + "并按启动处勾选的结果取回值。",
         ["control.waitMacro.runHandle.label"] = "运行句柄",
-        ["control.waitMacro.runHandle.hint"] = "装着「执行其他宏」写下的句柄的变量，通常写成 $句柄名。"
+        ["control.waitMacro.runHandle.hint"] = "装着「启动其他宏」写下的句柄的本宏变量，通常写成 $job。"
             + "句柄只能等一次；等待超时由这一步自己的「超时」决定，清空就一直等。等待超时只结束等待，"
             + "后台运行还在跑，可以再等一次。",
+
+        ["control.cancelMacro.name"] = "取消后台运行",
+        ["control.cancelMacro.desc"] = "让一次后台运行停下来，并等它真的结束。"
+            + "它正在做的事就此不再继续，收尾步骤照样执行。",
+        ["control.cancelMacro.runHandle.label"] = "运行句柄",
+        ["control.cancelMacro.runHandle.hint"] = "装着「启动其他宏」写下的句柄的本宏变量。"
+            + "取消后这一步等它结束，默认五秒；等不到就报 Run.ChildStillRunning，"
+            + "那次运行仍在句柄里，可以再取消或等待。",
+        ["control.cancelMacro.returns.label"] = "要留下的结果",
+        ["control.cancelMacro.returns.hint"] = ReturnsHintText,
+        ["control.cancelMacro.return.stopped.label"] = "已停下",
+        ["control.cancelMacro.return.stopped.hint"] = "这次运行是不是因为被取消而结束。",
+
+        ["control.waitAll.name"] = "等待全部后台运行",
+        ["control.waitAll.desc"] = "等一列后台运行全部结束，并逐个取回它们启动时说好的结果。",
+        ["control.waitAll.runHandles.label"] = "运行句柄",
+        ["control.waitAll.runHandles.hint"] = "装着多个句柄的列表，通常用「列表追加」把几次"
+            + "「启动其他宏」的句柄收在一起。列表里的每一次运行都会等到；同一句柄重复出现只算一次。",
+        ["control.waitAll.returns.label"] = "要留下的结果",
+        ["control.waitAll.returns.hint"] = ReturnsHintText,
+        ["control.waitAll.return.count.label"] = "等到了几个",
+        ["control.waitAll.return.count.hint"] = "这一步等到并取回结果的后台运行个数。",
 
         // --------------------------------------------------------------------- file
         ["file.readText.name"] = "读取文本",
@@ -4172,13 +4207,6 @@ internal static class ActionStrings
 
         // vision.clickImage
 
-        // ocr.clickText
-
-        // control.runMacro
-        ["control.runMacro.returns.label"] = "要带回的结果",
-        ["control.runMacro.returns.hint"] = "勾上被调用的宏声明过、这一步要取回的结果："
-            + "每一项在本宏里各自成为一个变量，名字由这一行决定。一个都不勾也可以，"
-            + "这一步就不带回任何值。",
         ["vision.findImage.return.window.label"] = "来源窗口",
         ["vision.findImage.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
         ["vision.findImage.return.method.label"] = "取画面方式",

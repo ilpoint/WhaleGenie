@@ -1872,7 +1872,7 @@
   {
     "Key": "control.runMacro",
     "DisplayName": "Run Another Macro",
-    "Description": "Run another macro in this project, as though its steps had been written here. The called macro works on values of its own: this step fills in the arguments that macro declares, and asks for whichever of its results it wants.",
+    "Description": "Run another macro in this project and wait for it to finish. The called macro works on values of its own: this step fills in the arguments that macro declares, and asks for whichever of its results it wants.",
     "Parameters": [
       {
         "Name": "macro",
@@ -1895,11 +1895,39 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "wait",
-        "Label": "Wait for it to finish",
-        "Hint": "On by default: this step stays here until the called macro is done. Turn it off to start that macro in the background and write a run handle into the variable below; wait for it later with “Wait for a Background Run”.",
+        "Name": "returns",
+        "Label": "Returns",
+        "Hint": "Tick the results this step should hand over. Each ticked one becomes a variable of its own, named after the note on the step and the name of the result, which the row itself may change. Nothing ticked means the step leaves no result behind.",
         "Placeholder": "",
-        "Kind": "Bool",
+        "Kind": "Returns",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      }
+    ],
+    "Returns": []
+  },
+  {
+    "Key": "control.startMacro",
+    "DisplayName": "Start Another Macro",
+    "Description": "Start another macro in this project in the background and keep a run handle for it. A later “Wait for a Background Run” waits for it and takes back the results this step asked for.",
+    "Parameters": [
+      {
+        "Name": "macro",
+        "Label": "Macro",
+        "Hint": "Another macro in this project.",
+        "Placeholder": "",
+        "Kind": "Macro",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -1917,17 +1945,97 @@
       {
         "Name": "runHandleName",
         "Label": "Run handle",
-        "Hint": "Where the handle goes when this step does not wait. It is a local variable of this macro; give it to “Wait for a Background Run” later. Filled in only when waiting is off.",
+        "Hint": "The local variable the run handle goes into. Give the same variable to a wait, cancel or wait-all step later.",
         "Placeholder": "job",
         "Kind": "Variable",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "wait",
-        "AppliesWhenValues": [
-          "false"
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "returns",
+        "Label": "Returns",
+        "Hint": "Tick the results this step should hand over. The names are written once a “Wait for a Background Run” or “Wait for Every Background Run” step takes them back; until then they are not defined.",
+        "Placeholder": "",
+        "Kind": "Returns",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      }
+    ],
+    "Returns": [
+      {
+        "Key": "run",
+        "Label": "Run handle",
+        "Hint": "Where the background run is: its id, the macro it runs, whether it is running, the failure key if it failed, and the names of the results it will hand over."
+      }
+    ]
+  },
+  {
+    "Key": "control.waitMacro",
+    "DisplayName": "Wait for a Background Run",
+    "Description": "Wait for a macro started by “Start Another Macro”, then take back the results its start step asked for.",
+    "Parameters": [
+      {
+        "Name": "runHandle",
+        "Label": "Run handle",
+        "Hint": "The variable holding the handle that “Start Another Macro” wrote. Keep the handle in a variable that belongs to this macro; a handle can be waited for once.",
+        "Placeholder": "$job",
+        "Kind": "Expression",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      }
+    ],
+    "Returns": []
+  },
+  {
+    "Key": "control.cancelMacro",
+    "DisplayName": "Cancel a Background Run",
+    "Description": "Cancel a background run and wait for it to stop, so what it was doing is no longer going on.",
+    "Parameters": [
+      {
+        "Name": "runHandle",
+        "Label": "Run handle",
+        "Hint": "The variable holding the handle that “Start Another Macro” wrote. The run is asked to stop and this step waits for it, so a run that cannot stop is reported rather than left behind.",
+        "Placeholder": "$job",
+        "Kind": "Expression",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -1957,19 +2065,45 @@
         "AddLabelKey": ""
       }
     ],
-    "Returns": []
+    "Returns": [
+      {
+        "Key": "stopped",
+        "Label": "Stopped",
+        "Hint": "Whether the run ended because it was cancelled."
+      }
+    ]
   },
   {
-    "Key": "control.waitMacro",
-    "DisplayName": "Wait for a Background Run",
-    "Description": "Wait for a macro started by “Run Another Macro” with waiting turned off, then take back the results its call asked for.",
+    "Key": "control.waitAll",
+    "DisplayName": "Wait for Every Background Run",
+    "Description": "Wait until every background run in a list is over, then take back the results each start step asked for.",
     "Parameters": [
       {
-        "Name": "runHandle",
-        "Label": "Run handle",
-        "Hint": "The variable holding the handle that “Run Another Macro” wrote. Keep the handle in a variable that belongs to this macro; a handle can be waited for once.",
-        "Placeholder": "$job",
+        "Name": "runHandles",
+        "Label": "Run handles",
+        "Hint": "A list of run handles, for example a list built with “List Append” from handles that “Start Another Macro” wrote. Every run in it is waited for.",
+        "Placeholder": "$jobs",
         "Kind": "Expression",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "returns",
+        "Label": "Returns",
+        "Hint": "Tick the results this step should hand over. Each ticked one becomes a variable of its own, named after the note on the step and the name of the result, which the row itself may change, and can then be read by later steps. Nothing ticked means the step leaves no result behind.",
+        "Placeholder": "",
+        "Kind": "Returns",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -1985,7 +2119,13 @@
         "AddLabelKey": ""
       }
     ],
-    "Returns": []
+    "Returns": [
+      {
+        "Key": "count",
+        "Label": "Waited",
+        "Hint": "How many background runs this step waited for."
+      }
+    ]
   },
   {
     "Key": "file.readText",

@@ -1500,10 +1500,10 @@
     "SendsInput": false,
     "IsCondition": false,
     "LooksAtScreen": false,
-    "Waits": false,
-    "TimeoutSource": "None",
+    "Waits": true,
+    "TimeoutSource": "Step",
     "TimeoutField": "",
-    "StepTimeoutMs": 0,
+    "StepTimeoutMs": 60000,
     "Parameters": [
       {
         "Name": "macro",
@@ -1511,30 +1511,6 @@
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
-        "DefaultValue": "",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ConditionsOnly": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "wait",
-        "Shape": "Flag",
-        "ReadMode": "Text",
-        "Picker": "None",
-        "Required": false,
-        "DefaultValue": "true",
-        "Options": [],
-        "AcceptsVariables": false,
-        "ConditionsOnly": false,
-        "ChildKeys": []
-      },
-      {
-        "Name": "runHandleName",
-        "Shape": "Text",
-        "ReadMode": "VariableName",
-        "Picker": "None",
-        "Required": false,
         "DefaultValue": "",
         "Options": [],
         "AcceptsVariables": false,
@@ -1555,6 +1531,85 @@
       }
     ],
     "Returns": []
+  },
+  {
+    "Key": "control.startMacro",
+    "Category": "Control",
+    "Hidden": false,
+    "SendsInput": false,
+    "IsCondition": false,
+    "LooksAtScreen": false,
+    "Waits": false,
+    "TimeoutSource": "None",
+    "TimeoutField": "",
+    "StepTimeoutMs": 0,
+    "Parameters": [
+      {
+        "Name": "macro",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "runHandleName",
+        "Shape": "Text",
+        "ReadMode": "VariableName",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      }
+    ],
+    "Returns": [
+      {
+        "Key": "run",
+        "Type": "Record",
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "id",
+            "Type": "Text"
+          },
+          {
+            "Name": "macro",
+            "Type": "Text"
+          },
+          {
+            "Name": "status",
+            "Type": "Text"
+          },
+          {
+            "Name": "error",
+            "Type": "Text"
+          },
+          {
+            "Name": "results",
+            "Type": "List"
+          }
+        ]
+      }
+    ]
   },
   {
     "Key": "control.waitMacro",
@@ -1582,6 +1637,96 @@
       }
     ],
     "Returns": []
+  },
+  {
+    "Key": "control.cancelMacro",
+    "Category": "Control",
+    "Hidden": false,
+    "SendsInput": false,
+    "IsCondition": false,
+    "LooksAtScreen": false,
+    "Waits": true,
+    "TimeoutSource": "Step",
+    "TimeoutField": "",
+    "StepTimeoutMs": 5000,
+    "Parameters": [
+      {
+        "Name": "runHandle",
+        "Shape": "Text",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      }
+    ],
+    "Returns": [
+      {
+        "Key": "stopped",
+        "Type": "Flag",
+        "Primary": true
+      }
+    ]
+  },
+  {
+    "Key": "control.waitAll",
+    "Category": "Control",
+    "Hidden": false,
+    "SendsInput": false,
+    "IsCondition": false,
+    "LooksAtScreen": false,
+    "Waits": true,
+    "TimeoutSource": "Step",
+    "TimeoutField": "",
+    "StepTimeoutMs": 60000,
+    "Parameters": [
+      {
+        "Name": "runHandles",
+        "Shape": "Text",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      }
+    ],
+    "Returns": [
+      {
+        "Key": "count",
+        "Type": "Number",
+        "Primary": true
+      }
+    ]
   },
   {
     "Key": "file.readText",
