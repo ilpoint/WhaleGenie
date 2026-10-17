@@ -1248,12 +1248,6 @@
                 <!-- Runs the step being written, without leaving the macro and going into a run:
                      that is the question the dialog is open to answer, and closing it to ask loses
                      the half-written step on the way. -->
-                <Button Classes="TitleBarAction" Name="RunButton"
-                        Content="{Binding RunLabel}"
-                        IsVisible="{Binding ShowsRun}"
-                        IsEnabled="{Binding CanRun}"
-                        ToolTip.Tip="{Binding [Add.RunStepHint], Source={x:Static loc:Strings.Current}}"
-                        Click="OnRunStep" />
                 <Button Classes="TitleBarButton" Name="MinimizeButton">
                     <Path Width="10" Height="10" Stroke="White" StrokeThickness="1.6" Data="M 0,5 H 8" />
                 </Button>
@@ -1497,7 +1491,7 @@
             </Grid>
 
             <!-- Save / cancel -->
-            <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" Margin="4,12,4,0">
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto" Margin="4,12,4,0">
                 <!-- Nothing picked yet is not a mistake, so it stays quiet; anything else is a
                      reason the step cannot be saved and is said in red, where it is hard to miss. -->
                 <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="3">
@@ -1519,9 +1513,14 @@
                                IsVisible="{Binding ShowsWarning}" />
                 </StackPanel>
                 <Button Grid.Column="1" Classes="FlatButton" Height="38" MinWidth="92"
+                        Margin="8,0,0,0" Content="{Binding RunLabel}"
+                        IsVisible="{Binding ShowsRun}" IsEnabled="{Binding CanRun}"
+                        ToolTip.Tip="{Binding [Add.RunStepHint], Source={x:Static loc:Strings.Current}}"
+                        Click="OnRunStep" />
+                <Button Grid.Column="2" Classes="FlatButton" Height="38" MinWidth="92"
                         Content="{Binding CancelLabel}"
                         Margin="8,0,0,0" Command="{Binding CancelCommand}" />
-                <Button Grid.Column="2" Classes="AddButton" Content="{Binding CommitLabel}" Height="38" MinWidth="110"
+                <Button Grid.Column="3" Classes="AddButton" Content="{Binding CommitLabel}" Height="38" MinWidth="110"
                         Margin="8,0,0,0" Command="{Binding SaveCommand}" />
             </Grid>
         </Grid>

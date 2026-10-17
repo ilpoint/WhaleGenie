@@ -206,6 +206,7 @@ public partial class MacroEditorWindow : Window
         Title = Strings.Get("Editor.Title");
 
         EnsureInspector();
+        EnsureInterface();
         ActionPalette.DataContext = _inspector!.DataContext;
         ActionPalette.ActionChosen += () =>
         {

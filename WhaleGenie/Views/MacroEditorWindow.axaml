@@ -439,7 +439,7 @@
                         Content="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}" />
                 <Button Grid.Row="3" Classes="FlatButton" Height="32" Margin="4,0,4,4"
                         Click="OnToggleMacroSettings"
-                        Content="{Binding [Editor.TriggerSettings], Source={x:Static loc:Strings.Current}}" />
+                        Content="{Binding [Editor.MacroSettings], Source={x:Static loc:Strings.Current}}" />
             </Grid>
 
             <Border Grid.Column="2" Name="MacroSettingsDrawer"
@@ -453,7 +453,7 @@
                                        IsVisible="{Binding HasNameProblem}" Text="{Binding NameProblem}" />
 
                             <TextBlock Classes="GroupHeader"
-                                       Text="{Binding [Editor.TriggerSettings], Source={x:Static loc:Strings.Current}}" />
+                                       Text="{Binding [Editor.MacroSettings], Source={x:Static loc:Strings.Current}}" />
 
                             <!-- Keystroke / button trigger settings -->
                             <StackPanel IsVisible="{Binding IsKeyTrigger}">
@@ -774,6 +774,9 @@
                                 </StackPanel>
                             </Border>
 
+                            <TextBlock Classes="GroupHeader" Margin="0,16,0,9"
+                                       Text="{Binding [Editor.MacroInterface], Source={x:Static loc:Strings.Current}}" />
+                            <ContentControl Name="MacroInterfaceHost" />
                         </StackPanel>
                     </ScrollViewer>
 
@@ -1098,13 +1101,10 @@
             <Border Grid.Column="2" Name="InspectorHost" Background="#292929"
                     CornerRadius="6" IsVisible="False">
                 <Grid RowDefinitions="Auto,*">
-                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="14,10,10,6">
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="14,10,10,6">
                         <TextBlock Classes="SectionHeader" VerticalAlignment="Center"
                                    Text="{Binding [Editor.ActionEditor], Source={x:Static loc:Strings.Current}}" />
                         <Button Grid.Column="1" Classes="FlatButton" Height="28" Padding="10,0"
-                                Margin="0,0,6,0" Click="OnToggleInterface"
-                                Content="{Binding [Editor.MacroInterface], Source={x:Static loc:Strings.Current}}" />
-                        <Button Grid.Column="2" Classes="FlatButton" Height="28" Padding="10,0"
                                 Click="OnCloseInspector"
                                 ToolTip.Tip="{Binding [Common.Close], Source={x:Static loc:Strings.Current}}">
                             <Path Width="10" Height="10" Stroke="#E4E4E4" StrokeThickness="1.6"
@@ -1112,7 +1112,6 @@
                         </Button>
                     </Grid>
                     <ContentControl Grid.Row="1" Name="InspectorContent" />
-                    <ContentControl Grid.Row="1" Name="MacroInterfaceHost" IsVisible="False" />
                 </Grid>
             </Border>
         </Grid>

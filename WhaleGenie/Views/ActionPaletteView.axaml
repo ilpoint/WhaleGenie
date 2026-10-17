@@ -5,37 +5,6 @@
              x:Class="WhaleGenie.Views.ActionPaletteView"
              x:DataType="vm:AddActionViewModel">
 
-    <UserControl.Resources>
-        <DataTemplate x:Key="PaletteGroup" x:DataType="vm:ActionGroupViewModel">
-            <StackPanel Margin="0,0,0,2">
-                <Button Classes="GroupToggle" Click="OnToggleGroup"
-                        IsVisible="{Binding HasActions}">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <Path Width="9" Height="7" Stretch="Uniform" Stroke="#9A9A9A"
-                              StrokeThickness="1.6" Data="{Binding Caret}" />
-                        <TextBlock Text="{Binding Header}" FontSize="12" Foreground="#E8E8E8" />
-                    </StackPanel>
-                </Button>
-                <TextBlock Classes="Muted" Margin="20,2,8,0" TextWrapping="Wrap"
-                           Text="{Binding Note}" IsVisible="{Binding HasNote}" />
-                <ItemsControl ItemsSource="{Binding Actions}" IsVisible="{Binding IsOpen}"
-                              Margin="16,5,0,4">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ActionCardViewModel">
-                            <Button Classes="ActionCard" Classes.selected="{Binding IsSelected}"
-                                    Click="OnPickAction"
-                                    ToolTip.Tip="{Binding Definition.LocalDescription}">
-                                <TextBlock Text="{Binding Definition.LocalName}" FontSize="12" />
-                            </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
-        </DataTemplate>
-    </UserControl.Resources>
 
     <UserControl.Styles>
         <Style Selector="TextBlock.Muted">
@@ -116,8 +85,20 @@
             <TextBox Grid.Row="0" Text="{Binding ActionSearch}"
                      PlaceholderText="{Binding [Add.SearchAction], Source={x:Static loc:Strings.Current}}" />
             <ScrollViewer Grid.Row="1" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto">
-                <ItemsControl ItemsSource="{Binding ActionGroups}"
-                              ItemTemplate="{StaticResource PaletteGroup}" />
+                <ItemsControl ItemsSource="{Binding VisibleActions}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ActionCardViewModel">
+                            <Button Classes="ActionCard" Classes.selected="{Binding IsSelected}"
+                                    Click="OnPickAction"
+                                    ToolTip.Tip="{Binding Definition.LocalDescription}">
+                                <TextBlock Text="{Binding Definition.LocalName}" FontSize="12" />
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </ScrollViewer>
         </Grid>
     </Grid>

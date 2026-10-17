@@ -737,10 +737,6 @@ public class MacroEditorTests
         Ui.Run(() =>
         {
             var (window, viewModel) = Open();
-            var toggle = window.GetVisualDescendants().OfType<Button>()
-                .First(button => Equals(button.Content, Strings.Get("Editor.MacroInterface")));
-            toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Dispatcher.UIThread.RunJobs();
 
             var host = window.FindControl<ContentControl>("MacroInterfaceHost");
             Assert.NotNull(host);
@@ -778,8 +774,7 @@ public class MacroEditorTests
             form.SelectedCategory = input;
             Dispatcher.UIThread.RunJobs();
 
-            Assert.Contains(form.ActionGroups.SelectMany(group => group.Actions),
-                card => card.Key == "input.keyPress");
+            Assert.Contains(form.VisibleActions, card => card.Key == "input.keyPress");
         });
     }
 }

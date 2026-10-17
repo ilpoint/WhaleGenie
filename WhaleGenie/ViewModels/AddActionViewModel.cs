@@ -197,6 +197,11 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     public ObservableCollection<ActionGroupViewModel> ActionGroups { get; } = [];
 
+    /// <summary>The actions the palette lists for the chosen category, in one flat run.</summary>
+    public ObservableCollection<ActionCardViewModel> VisibleActions { get; } = [];
+
+    /// <summary>True when the chosen category and search leave nothing to click.</summary>
+    public bool HasNoVisibleAction => VisibleActions.Count == 0;
     /// <summary>The categories the vertical dock offers, with "all" first.</summary>
     public IReadOnlyList<ActionCategoryChoice> Categories { get; }
 
@@ -739,7 +744,7 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     private void MarkChosen()
     {
-        foreach (var card in ActionGroups.SelectMany(group => group.Actions))
+        foreach (var card in ActionGroups.SelectMany(group => group.Actions).Concat(VisibleActions))
         {
             card.IsSelected = card.Key == SelectedDefinition?.Key;
         }
@@ -960,6 +965,7 @@ public partial class AddActionViewModel : ViewModelBase
         var searching = search.Length > 0;
 
         ActionGroups.Clear();
+        VisibleActions.Clear();
 
         var recent = new List<ActionDefinition>();
         foreach (var key in RecentlyUsed)
@@ -979,6 +985,15 @@ public partial class AddActionViewModel : ViewModelBase
         // The blocks are lifted out of the categories and listed together, because "which shape
         // does this task need" is the question the picker is asked first, and the four repeats
         // only differ from each other when they stand side by side.
+        foreach (var card in Cards([.. matching
+                     .OrderBy(action => PickerCategory(action.Category))
+                     .ThenBy(action => action.LocalName)]))
+        {
+            VisibleActions.Add(card);
+        }
+
+        OnPropertyChanged(nameof(HasNoVisibleAction));
+
         var blocks = matching.Where(HoldsSteps)
             .OrderBy(BlockRank)
             .ToList();
