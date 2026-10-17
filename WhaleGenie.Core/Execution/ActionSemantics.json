@@ -2099,6 +2099,90 @@
     ]
   },
   {
+    "Key": "control.waitAny",
+    "Category": "Control",
+    "Hidden": false,
+    "SendsInput": false,
+    "IsCondition": false,
+    "LooksAtScreen": false,
+    "Waits": true,
+    "TimeoutSource": "Step",
+    "TimeoutField": "",
+    "StepTimeoutMs": 60000,
+    "Parameters": [
+      {
+        "Name": "runHandles",
+        "Shape": "Text",
+        "ReadMode": "WholeValue",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
+      }
+    ],
+    "Returns": [
+      {
+        "Key": "handle",
+        "Type": "Record",
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "id",
+            "Type": "Text"
+          },
+          {
+            "Name": "macro",
+            "Type": "Text"
+          },
+          {
+            "Name": "status",
+            "Type": "Text"
+          },
+          {
+            "Name": "error",
+            "Type": "Text"
+          },
+          {
+            "Name": "results",
+            "Type": "List"
+          }
+        ]
+      },
+      {
+        "Key": "index",
+        "Type": "Number",
+        "Primary": false
+      }
+    ]
+  },
+  {
     "Key": "file.readText",
     "Category": "File",
     "Hidden": false,

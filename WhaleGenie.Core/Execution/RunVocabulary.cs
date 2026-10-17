@@ -144,6 +144,7 @@ public static class RunKeys
     public const string NoPython = "Run.NoPython";
     public const string NoSuchColumn = "Run.NoSuchColumn";
     public const string NoSuchProcess = "Run.NoSuchProcess";
+    public const string NoRunsToWait = "Run.NoRunsToWait";
     public const string NoSuchRun = "Run.NoSuchRun";
     public const string NoSuchStep = "Run.NoSuchStep";
     public const string NotAList = "Run.NotAList";

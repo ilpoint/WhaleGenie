@@ -821,6 +821,16 @@ internal static class ActionStrings
         ["control.waitAll.returns.hint"] = ReturnsHintText,
         ["control.waitAll.return.count.label"] = "等到了几个",
         ["control.waitAll.return.count.hint"] = "这一步等到并取回结果的后台运行个数。",
+        ["control.waitAny.name"] = "等任意一个后台运行",
+        ["control.waitAny.desc"] = "等一列后台运行里最先结束的那一个，取回它启动时说好的结果，并交回是哪一个。",
+        ["control.waitAny.runHandles.label"] = "运行句柄",
+        ["control.waitAny.runHandles.hint"] = "装着多个句柄的列表。最先结束的那个被等到并取回结果；其余的继续跑，可以稍后再等。",
+        ["control.waitAny.returns.label"] = "要留下的结果",
+        ["control.waitAny.returns.hint"] = ReturnsHintText,
+        ["control.waitAny.return.handle.label"] = "结束的运行",
+        ["control.waitAny.return.handle.hint"] = "最先结束的那次运行的句柄，已经是结束时的样子。",
+        ["control.waitAny.return.index.label"] = "它在列表里的位置",
+        ["control.waitAny.return.index.hint"] = "这个句柄在列表里是第几个，从 1 开始数。",
 
         // --------------------------------------------------------------------- file
         ["file.readText.name"] = "读取文本",

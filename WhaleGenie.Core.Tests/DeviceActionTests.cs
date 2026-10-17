@@ -10151,6 +10151,50 @@ public class DeviceActionTests
     }
 
     [Fact]
+    public async Task Waiting_for_any_background_run_takes_the_first_one()
+    {
+        var library = new Macros(
+            ("快", [Step("control.delay", Param("ms", "50")),
+                Step("control.setVariable", Param("name", "结果"), Param("scope", "local"),
+                    Param("value", "快"))]),
+            ("慢", [Step("control.delay", Param("ms", "300")),
+                Step("control.setVariable", Param("name", "结果"), Param("scope", "local"),
+                    Param("value", "慢"))]));
+        var steps = new[]
+        {
+            Step("control.startMacro", Param("macro", "快"), Param("runHandleName", "jobA")),
+            Step("control.startMacro", Param("macro", "慢"), Param("runHandleName", "jobB")),
+            Step("control.listCreate", Param("name", "jobs"), Param("items", "[]")),
+            Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobA")),
+            Step("control.listAdd", Param("name", "jobs"), Param("value", "$jobB")),
+            Step("control.waitAny", Param("runHandles", "$jobs"),
+                Returns("handle=first", "index=place")),
+        };
+
+        var (result, _, store) = await RunWithAsync(steps, new FakeDeviceLayer(), library);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.True(store.TryGet("first", out var handle));
+        Assert.Equal("快", handle.Field("macro")?.AsText());
+        Assert.Equal(1, store.Local.Values["place"].AsNumber());
+    }
+
+    [Fact]
+    public async Task Waiting_for_any_run_in_an_empty_list_stops_the_step()
+    {
+        var steps = new[]
+        {
+            Step("control.listCreate", Param("name", "jobs"), Param("items", "[]")),
+            Step("control.waitAny", Param("runHandles", "$jobs")),
+        };
+
+        var (result, _, _) = await RunWithAsync(steps, new FakeDeviceLayer(), new Macros());
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.NoRunsToWait, result.Key);
+    }
+
+    [Fact]
     public async Task Finished_background_runs_are_released_once_their_handle_is_gone()
     {
         var library = new Macros(("子", []));

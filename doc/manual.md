@@ -529,6 +529,7 @@ $response | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 "orders.json"
 变量，交回「等到了几个」（`count`）。同一句柄在列表里出现两次只算一次；等待的超时是整步一次的预算
 （默认 60000 毫秒）。
 
+「等待任意一个后台运行」（`control.waitAny`）收一列句柄，等其中最先结束的那一个：取回它启动时说好的结果，并交回「结束的运行」（`handle`）与「它在列表里的位置」（`index`，从 1 开始）。其余运行继续跑，可以稍后再等；列表为空报 `Run.NoRunsToWait`。
 「查看后台运行」（`control.runStatus`）不等它结束：交回「状态」（`status`）、「还在跑」（`running`）与
 「失败原因」（`error`），并把句柄改写成这一刻的样子，之后读句柄也是最新的。它不取结果、不结束运行；
 结果仍要等「等待后台运行」或「等待全部后台运行」才写回。
@@ -1232,6 +1233,7 @@ WebKit 则要按提示行里的命令先下载一份。会话开了就一直是�
 | `Run.NoPython` | 这台机器上没有 Python，无法运行这段脚本：启动 {0} 失败。请安装 Python 3，并让命令行里的 python 能运行它。 |
 | `Run.NoSuchColumn` | 这张表里没有叫 {0} 的列：写表头里的名字，或者写这一列所在的字母。 |
 | `Run.NoSuchProcess` | 没有这个正在运行的程序：{0} |
+| `Run.NoRunsToWait` | 要等的后台运行列表是空的。 |
 | `Run.NoSuchRun` | 找不到句柄 {0} 对应的后台运行；它可能已经等过、属于另一条宏，或者句柄写错了。 |
 | `Run.NoSuchStep` | 这个宏里没有叫 {0} 的步骤。 |
 | `Run.NotAList` | {0} 不是列表 |

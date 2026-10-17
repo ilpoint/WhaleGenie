@@ -1212,6 +1212,42 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
+    /// Waits for the first run in a list to finish, takes back the results its call asked for, and
+    /// says which run it was. The other runs keep going: a macro may wait for the next one later.
+    /// </summary>
+    private async Task<Signal> WaitAnyMacro(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var children = ReadValue(step, "runHandles").AsList().Select(FindChild).Distinct().ToList();
+        if (children.Count == 0)
+        {
+            throw new StepFailure(RunKeys.NoRunsToWait);
+        }
+
+        var tasks = children.Select(child => child.Task).ToArray();
+        var first = await Task.WhenAny(tasks).WaitAsync(token);
+        var index = Array.FindIndex(tasks, task => ReferenceEquals(task, first));
+        var child = children[index];
+        var result = await first;
+
+        Finish(child);
+        if (result.Status is RunStatus.Failed)
+        {
+            throw new StepFailure(result.Key, result.Detail);
+        }
+
+        if (result.Status is RunStatus.Stopped)
+        {
+            throw new StepFailure(RunKeys.ChildStopped, child.Macro);
+        }
+
+        CheckResults(child.Signature, child.Wanted, child.Store.Local);
+        Take(child.Wanted, child.Store.Local);
+        Give(step, "handle", HandleValue(child));
+        Give(step, "index", Value.FromNumber(index + 1));
+        Log(LogLevel.Info, depth, step.Type, LogKeys.WaitedRun, child.Macro);
+        return Signal.Normal;
+    }
+    /// <summary>
     /// The run a handle names, or a refusal: a handle from another macro, a handle already waited
     /// for, or something that is not a handle at all is not a run this macro can act on.
     /// </summary>
@@ -2031,6 +2067,8 @@ public sealed partial class MacroRunner
                 return await CancelOtherMacro(step, depth, token);
             case "control.waitAll":
                 return await WaitAllMacros(step, depth, token);
+            case "control.waitAny":
+                return await WaitAnyMacro(step, depth, token);
             case "control.delay":
                 await Pause(Pace(Number(step, "ms")), token);
                 return Signal.Normal;

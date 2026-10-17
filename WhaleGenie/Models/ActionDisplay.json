@@ -2366,6 +2366,65 @@
     ]
   },
   {
+    "Key": "control.waitAny",
+    "DisplayName": "Wait for Any Background Run",
+    "Description": "Wait until one background run in a list is over, take back the results its start step asked for, and hand back which run it was.",
+    "Parameters": [
+      {
+        "Name": "runHandles",
+        "Label": "Run handles",
+        "Hint": "A list of run handles, for example a list built with “List Append” from handles that “Start Another Macro” wrote. The first run to finish is taken; the others keep running.",
+        "Placeholder": "$jobs",
+        "Kind": "Expression",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "returns",
+        "Label": "Returns",
+        "Hint": "Tick the results this step should hand over. Each ticked one becomes a variable of its own, named after the note on the step and the name of the result, which the row itself may change, and can then be read by later steps. Nothing ticked means the step leaves no result behind.",
+        "Placeholder": "",
+        "Kind": "Returns",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      }
+    ],
+    "Returns": [
+      {
+        "Key": "handle",
+        "Label": "Finished run",
+        "Hint": "The handle of the run that finished first, in its final state."
+      },
+      {
+        "Key": "index",
+        "Label": "Its place",
+        "Hint": "Where that handle stood in the list, counting from one."
+      }
+    ]
+  },
+  {
     "Key": "file.readText",
     "DisplayName": "Read Text",
     "Description": "Read a text file into a variable.",
