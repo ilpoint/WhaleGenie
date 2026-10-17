@@ -183,4 +183,51 @@ public sealed partial class MacroRunner
         }
     }
 
+
+    /// <summary>
+    /// The clipboard actions, each answered by the method written for it. Step types of
+    /// other families are not this dispatch's to answer.
+    /// </summary>
+    private async Task<Signal> DispatchClipboard(ExecutableStep step, int depth,
+        CancellationToken token)
+    {
+        switch (step.Type)
+        {
+            case "clipboard.writeText":
+                ClipboardWrite(step, depth);
+                return Signal.Normal;
+            case "clipboard.readText":
+                ClipboardRead(step, depth);
+                return Signal.Normal;
+            case "clipboard.readImage":
+                ClipboardImageRead(step, depth);
+                return Signal.Normal;
+            case "clipboard.writeImage":
+                ClipboardImageWrite(step, depth);
+                return Signal.Normal;
+            case "clipboard.readFiles":
+                ClipboardFilesRead(step, depth);
+                return Signal.Normal;
+            case "clipboard.writeFiles":
+                ClipboardFilesWrite(step, depth);
+                return Signal.Normal;
+            case "clipboard.clear":
+                _devices.Clipboard.Clear();
+                Log(LogLevel.Info, depth, step.Type, LogKeys.ClearedClipboard);
+                return Signal.Normal;
+            case "clipboard.waitChange":
+                await ClipboardWait(step, depth, token);
+                return Signal.Normal;
+            case "clipboard.copy":
+                await ClipboardCopy(step, depth, token);
+                return Signal.Normal;
+            case "clipboard.paste":
+                await ClipboardPaste(step, depth, token);
+                return Signal.Normal;
+
+            // ---------------------------------------------------------------- process
+            default:
+                throw new StepFailure(RunKeys.Unsupported, step.Type);
+        }
+    }
 }

@@ -777,4 +777,72 @@ public sealed partial class MacroRunner
     /// <summary>One attempt at finding a reference picture: the hit the step asked for.</summary>
     private ImageMatch? Search(ExecutableStep step) => Chosen(Hits(step), step);
 
+
+    /// <summary>
+    /// The vision actions, each answered by the method written for it. Step types of
+    /// other families are not this dispatch's to answer.
+    /// </summary>
+    private async Task<Signal> DispatchVision(ExecutableStep step, int depth,
+        CancellationToken token)
+    {
+        switch (step.Type)
+        {
+            case "vision.capture":
+                await Gate(step, token);
+                Watching(() => Capture(step, depth));
+                return Signal.Normal;
+            case "vision.captureWindow":
+                await Gate(step, token);
+                Watching(() => CaptureWindow(step, depth));
+                return Signal.Normal;
+            case "vision.getPixel":
+                await Gate(step, token);
+                Watching(() => GetPixel(step, depth));
+                return Signal.Normal;
+            case "vision.waitColor":
+                await Gate(step, token);
+                await Watching(() => WaitColor(step, depth, token));
+                return Signal.Normal;
+            case "vision.findColor":
+                await Gate(step, token);
+                Watching(() => FindColor(step, depth));
+                return Signal.Normal;
+            case "vision.findColors":
+                await Gate(step, token);
+                Watching(() => FindColours(step, depth));
+                return Signal.Normal;
+            case "vision.waitStable":
+                await Gate(step, token);
+                await WaitStable(step, depth, token);
+                return Signal.Normal;
+            case "vision.findImage":
+                await Gate(step, token);
+                Watching(() => LookFor(step, depth));
+                return Signal.Normal;
+            case "vision.waitImage":
+                await Gate(step, token);
+                await Watching(() => WaitForImage(step, depth, token));
+                return Signal.Normal;
+            case "vision.clickImage":
+                await Gate(step, token);
+                await Watching(() => ClickImage(step, depth, token));
+                return Signal.Normal;
+            case "vision.detect":
+                await Gate(step, token);
+                Watching(() => LookForObjects(step, depth));
+                return Signal.Normal;
+            case "vision.waitDetect":
+                await Gate(step, token);
+                await Watching(() => WaitForObjects(step, depth, token));
+                return Signal.Normal;
+            case "vision.clickDetect":
+                await Gate(step, token);
+                await Watching(() => ClickObject(step, depth, token));
+                return Signal.Normal;
+
+            // -------------------------------------------------------------------- ocr
+            default:
+                throw new StepFailure(RunKeys.Unsupported, step.Type);
+        }
+    }
 }

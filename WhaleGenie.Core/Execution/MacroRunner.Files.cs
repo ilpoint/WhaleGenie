@@ -1029,4 +1029,102 @@ public sealed partial class MacroRunner
             ? ReadText(step, "separatorText")
             : ReadText(step, "separator");
 
+
+    /// <summary>
+    /// The file actions, each answered by the method written for it. Step types of
+    /// other families are not this dispatch's to answer.
+    /// </summary>
+    private async Task<Signal> DispatchFile(ExecutableStep step, int depth,
+        CancellationToken token)
+    {
+        switch (step.Type)
+        {
+            case "file.readText":
+                ReadTextFile(step, depth);
+                return Signal.Normal;
+            case "file.writeText":
+                WriteTextFile(step, depth);
+                return Signal.Normal;
+            case "file.appendLog":
+                AppendLog(step, depth);
+                return Signal.Normal;
+            case "file.zip":
+                ZipFolder(step, depth);
+                return Signal.Normal;
+            case "file.exists":
+                FileExists(step, depth);
+                return Signal.Normal;
+            case "file.delete":
+                DeleteFile(step, depth);
+                return Signal.Normal;
+            case "file.copy":
+                CopyFile(step, depth);
+                return Signal.Normal;
+            case "file.move":
+                MoveFile(step, depth);
+                return Signal.Normal;
+            case "file.createFolder":
+                CreateFolder(step, depth);
+                return Signal.Normal;
+            case "file.deleteFolder":
+                DeleteFolder(step, depth);
+                return Signal.Normal;
+            case "file.path":
+                PathPart(step, depth);
+                return Signal.Normal;
+            case "file.unzip":
+                UnzipFile(step, depth);
+                return Signal.Normal;
+            case "file.listFiles":
+                ListFiles(step, depth);
+                return Signal.Normal;
+            case "file.readJson":
+                ReadJson(step, depth);
+                return Signal.Normal;
+            case "file.writeJson":
+                WriteJson(step, depth);
+                return Signal.Normal;
+            case "file.readCsv":
+                ReadCsv(step, depth);
+                return Signal.Normal;
+            case "file.writeCsv":
+                WriteCsv(step, depth);
+                return Signal.Normal;
+            case "file.saveVariables":
+                SaveVariables(step, depth);
+                return Signal.Normal;
+            case "file.loadVariables":
+                LoadVariables(step, depth);
+                return Signal.Normal;
+
+            // ----------------------------------------------------------------- data
+            default:
+                throw new StepFailure(RunKeys.Unsupported, step.Type);
+        }
+    }
+
+    /// <summary>
+    /// The data actions, each answered by the method written for it. Step types of
+    /// other families are not this dispatch's to answer.
+    /// </summary>
+    private async Task<Signal> DispatchData(ExecutableStep step, int depth,
+        CancellationToken token)
+    {
+        switch (step.Type)
+        {
+            case "data.base64Encode":
+                EncodeBase64(step, depth);
+                return Signal.Normal;
+            case "data.base64Decode":
+                DecodeBase64(step, depth);
+                return Signal.Normal;
+            case "data.hash":
+                HashText(step, depth);
+                return Signal.Normal;
+
+            // -------------------------------------------------------------- clipboard
+            default:
+                throw new StepFailure(RunKeys.Unsupported, step.Type);
+        }
+    }
 }

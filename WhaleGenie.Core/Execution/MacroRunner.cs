@@ -1723,104 +1723,105 @@ public sealed partial class MacroRunner
         }
     }
 
-    private async Task<Signal> Dispatch(ExecutableStep step, int depth, CancellationToken token)
+    /// <summary>
+    /// Answers one step by handing it to the family it belongs to. Which family an action is in
+    /// is the catalogue's answer, so this switch does not know any action by name — adding one
+    /// is a matter of writing its method and its family's dispatch, not of touching this.
+    /// </summary>
+    private Task<Signal> Dispatch(ExecutableStep step, int depth, CancellationToken token)
+        => ActionSemanticsCatalog.Find(step.Type)?.Category switch
+        {
+            ActionCategory.Control => DispatchControl(step, depth, token),
+            ActionCategory.File => DispatchFile(step, depth, token),
+            ActionCategory.Data => DispatchData(step, depth, token),
+            ActionCategory.Clipboard => DispatchClipboard(step, depth, token),
+            ActionCategory.Process => DispatchProcess(step, depth, token),
+            ActionCategory.System => DispatchSystem(step, depth, token),
+            ActionCategory.Window => DispatchWindow(step, depth, token),
+            ActionCategory.Input => DispatchInput(step, depth, token),
+            ActionCategory.Vision => DispatchVision(step, depth, token),
+            ActionCategory.Ocr => DispatchOcr(step, depth, token),
+            ActionCategory.Uia => DispatchUia(step, depth, token),
+            ActionCategory.Browser => DispatchBrowser(step, depth, token),
+            ActionCategory.Script => DispatchScript(step, depth, token),
+            _ => throw new StepFailure(RunKeys.Unsupported, step.Type),
+        };
+    /// <summary>
+    /// The control actions, each answered by the method written for it. Step types of
+    /// other families are not this dispatch's to answer.
+    /// </summary>
+    private async Task<Signal> DispatchControl(ExecutableStep step, int depth,
+        CancellationToken token)
     {
         switch (step.Type)
         {
             case "control.sequence":
                 return await RunSteps(step.Children("steps"), depth + 1, token);
-
             case "control.runMacro":
                 return await RunOtherMacro(step, depth, token);
-
             case "control.startMacro":
                 return StartOtherMacro(step, depth);
-
             case "control.waitMacro":
                 return await WaitOtherMacro(step, depth, token);
-
             case "control.cancelMacro":
                 return await CancelOtherMacro(step, depth, token);
-
             case "control.waitAll":
                 return await WaitAllMacros(step, depth, token);
-
             case "control.delay":
                 await Pause(Pace(Number(step, "ms")), token);
                 return Signal.Normal;
-
             case "control.delayRandom":
                 await Pause(Pace(System.Random.Shared.Next(
                     Number(step, "minMs"), Number(step, "maxMs") + 1)), token);
                 return Signal.Normal;
-
             case "control.waitUntil":
                 return await RunWaitUntil(step, depth, token);
-
             case "control.repeat":
                 return await RunRepeat(step, depth, token);
-
             case "control.while":
                 return await RunWhile(step, depth, token);
-
             case "control.forEach":
                 return await RunForEach(step, depth, token);
-
             case "control.for":
                 return await RunFor(step, depth, token);
-
             case "control.switch":
                 return await RunSwitch(step, depth, token);
-
             case "control.if":
                 return await RunIf(step, depth, token);
-
             case "control.try":
                 return await RunTry(step, depth, token);
-
             case "control.break":
                 return LeaveLoop(Signal.Break, step);
-
             case "control.continue":
                 return LeaveLoop(Signal.Continue, step);
-
             case "control.return":
                 return Signal.Return;
-
             case "control.rethrow":
                 throw CaughtFailure();
-
             case "control.stop":
                 Log(LogLevel.Warn, depth, step.Type, LogKeys.StopRequested,
                     ReadValue(step, "reason").AsText());
                 return Signal.Stop;
-
             case "control.fail":
                 // The macro says this step did not work. It travels the same way a device failure
                 // does, so whatever the step's failure rule says — retry, carry on, ask — holds for
                 // a step the macro itself called failed.
                 throw new StepFailure(RunKeys.StepFailedByMacro, ReadValue(step, "reason").AsText());
-
             case "control.note":
                 // A note is for whoever reads the macro. There is nothing to do and nothing to say.
                 return Signal.Normal;
-
             case "control.setVariable":
                 SetVariable(step, depth);
                 return Signal.Normal;
-
             case "control.calculate":
                 Calculate(step, depth);
                 return Signal.Normal;
-
             case "control.incrementGlobal":
                 IncrementGlobal(step, depth);
                 return Signal.Normal;
-
             case "control.listCreate":
                 CreateList(step, depth);
                 return Signal.Normal;
-
             case "control.listAdd":
             case "control.listInsert":
             case "control.listSet":
@@ -1828,605 +1829,15 @@ public sealed partial class MacroRunner
             case "control.listClear":
                 ChangeList(step, depth);
                 return Signal.Normal;
-
             case "control.log":
                 Log(Level(ReadText(step, "level")), depth, step.Type, LogKeys.Message, ReadValue(step, "message").AsText());
                 return Signal.Normal;
-
             case "control.ask":
                 return await AskPerson(step, depth, token);
-
             case "control.input":
                 return await AskForText(step, depth, token);
 
             // ------------------------------------------------------------------- file
-            case "file.readText":
-                ReadTextFile(step, depth);
-                return Signal.Normal;
-
-            case "file.writeText":
-                WriteTextFile(step, depth);
-                return Signal.Normal;
-
-            case "file.appendLog":
-                AppendLog(step, depth);
-                return Signal.Normal;
-
-            case "file.zip":
-                ZipFolder(step, depth);
-                return Signal.Normal;
-
-            case "file.exists":
-                FileExists(step, depth);
-                return Signal.Normal;
-
-            case "file.delete":
-                DeleteFile(step, depth);
-                return Signal.Normal;
-
-            case "file.copy":
-                CopyFile(step, depth);
-                return Signal.Normal;
-
-            case "file.move":
-                MoveFile(step, depth);
-                return Signal.Normal;
-
-            case "file.createFolder":
-                CreateFolder(step, depth);
-                return Signal.Normal;
-
-            case "file.deleteFolder":
-                DeleteFolder(step, depth);
-                return Signal.Normal;
-
-            case "file.path":
-                PathPart(step, depth);
-                return Signal.Normal;
-
-            case "file.unzip":
-                UnzipFile(step, depth);
-                return Signal.Normal;
-
-            case "file.listFiles":
-                ListFiles(step, depth);
-                return Signal.Normal;
-
-            case "file.readJson":
-                ReadJson(step, depth);
-                return Signal.Normal;
-
-            case "file.writeJson":
-                WriteJson(step, depth);
-                return Signal.Normal;
-
-            case "file.readCsv":
-                ReadCsv(step, depth);
-                return Signal.Normal;
-
-            case "file.writeCsv":
-                WriteCsv(step, depth);
-                return Signal.Normal;
-
-            case "file.saveVariables":
-                SaveVariables(step, depth);
-                return Signal.Normal;
-
-            case "file.loadVariables":
-                LoadVariables(step, depth);
-                return Signal.Normal;
-
-            // ----------------------------------------------------------------- data
-            case "data.base64Encode":
-                EncodeBase64(step, depth);
-                return Signal.Normal;
-
-            case "data.base64Decode":
-                DecodeBase64(step, depth);
-                return Signal.Normal;
-
-            case "data.hash":
-                HashText(step, depth);
-                return Signal.Normal;
-
-            // -------------------------------------------------------------- clipboard
-            case "clipboard.writeText":
-                ClipboardWrite(step, depth);
-                return Signal.Normal;
-
-            case "clipboard.readText":
-                ClipboardRead(step, depth);
-                return Signal.Normal;
-
-            case "clipboard.readImage":
-                ClipboardImageRead(step, depth);
-                return Signal.Normal;
-
-            case "clipboard.writeImage":
-                ClipboardImageWrite(step, depth);
-                return Signal.Normal;
-
-            case "clipboard.readFiles":
-                ClipboardFilesRead(step, depth);
-                return Signal.Normal;
-
-            case "clipboard.writeFiles":
-                ClipboardFilesWrite(step, depth);
-                return Signal.Normal;
-
-            case "clipboard.clear":
-                _devices.Clipboard.Clear();
-                Log(LogLevel.Info, depth, step.Type, LogKeys.ClearedClipboard);
-                return Signal.Normal;
-
-            case "clipboard.waitChange":
-                await ClipboardWait(step, depth, token);
-                return Signal.Normal;
-
-            case "clipboard.copy":
-                await ClipboardCopy(step, depth, token);
-                return Signal.Normal;
-
-            case "clipboard.paste":
-                await ClipboardPaste(step, depth, token);
-                return Signal.Normal;
-
-            // ---------------------------------------------------------------- process
-            case "process.start":
-                StartProcess(step, depth);
-                return Signal.Normal;
-
-            case "process.waitFor":
-                await WaitForProgram(step, depth, token);
-                return Signal.Normal;
-
-            case "process.waitExit":
-                await WaitForExit(step, depth, token);
-                return Signal.Normal;
-
-            case "process.exists":
-                ProgramRunning(step, depth);
-                return Signal.Normal;
-
-            case "process.list":
-                ListPrograms(step, depth);
-                return Signal.Normal;
-
-            case "process.info":
-                ProgramDetails(step, depth);
-                return Signal.Normal;
-
-            case "process.kill":
-                StopProgram(step, depth);
-                return Signal.Normal;
-
-            case "command.run":
-                RunCommand(step, depth);
-                return Signal.Normal;
-
-            // ----------------------------------------------------------------- system
-            case "system.info":
-                SystemInfo(step, depth);
-                return Signal.Normal;
-
-            case "screen.list":
-                ListDisplays(step, depth);
-                return Signal.Normal;
-
-            case "system.environment":
-                EnvironmentVariable(step, depth);
-                return Signal.Normal;
-
-            case "system.power":
-                Power(step, depth);
-                return Signal.Normal;
-
-            case "system.volume":
-                Volume(step, depth);
-                return Signal.Normal;
-
-            case "system.sound":
-                PlaySound(step, depth);
-                return Signal.Normal;
-
-            case "system.notify":
-                Notify(step, depth);
-                return Signal.Normal;
-
-            case "system.ime":
-                InputMethod(step, depth);
-                return Signal.Normal;
-
-            case "system.brightness":
-                Brightness(step, depth);
-                return Signal.Normal;
-
-            // ----------------------------------------------------------------- window
-            case "window.exists":
-                WindowExists(step, depth);
-                return Signal.Normal;
-
-            case "window.waitFor":
-                await WaitForWindow(step, depth, token);
-                return Signal.Normal;
-
-            case "window.activate":
-                Act(step, depth, LogKeys.ActivatedWindow, window => _devices.Windows.Activate(window.Handle));
-                return Signal.Normal;
-
-            case "window.minimize":
-                Act(step, depth, LogKeys.MinimizedWindow, window => _devices.Windows.Minimize(window.Handle));
-                return Signal.Normal;
-
-            case "window.maximize":
-                Act(step, depth, LogKeys.MaximizedWindow, window => _devices.Windows.Maximize(window.Handle));
-                return Signal.Normal;
-
-            case "window.restore":
-                Act(step, depth, LogKeys.RestoredWindow, window => _devices.Windows.Restore(window.Handle));
-                return Signal.Normal;
-
-            case "window.move":
-                Act(step, depth, LogKeys.MovedWindow, window =>
-                {
-                    var (x, y, width, height) = MoveTarget(step, window);
-                    return _devices.Windows.Move(window.Handle, x, y, width, height);
-                });
-                return Signal.Normal;
-
-            case "window.close":
-                Act(step, depth, LogKeys.ClosedWindow, window => _devices.Windows.Close(window.Handle));
-                return Signal.Normal;
-
-            case "window.list":
-                ListWindows(step, depth);
-                return Signal.Normal;
-
-            case "window.info":
-                WindowBox(step, depth);
-                return Signal.Normal;
-
-            // ------------------------------------------------------------------ input
-            case "input.keyPress":
-                await PressKey(step, token);
-                return Signal.Normal;
-
-            case "input.keyDown":
-                HoldKey(step);
-                return Signal.Normal;
-
-            case "input.keyUp":
-                LetGoKey(step);
-                return Signal.Normal;
-
-            case "input.hotkey":
-                await SendHotkey(step, token);
-                return Signal.Normal;
-
-            case "input.typeText":
-                Input(step).TypeText(ReadValue(step, "typedText").AsText(), Pace(Number(step, "intervalMs")));
-                return Signal.Normal;
-
-            case "input.mouseMove":
-                MovePointer(step, MovePlace(step));
-                return Signal.Normal;
-
-            case "input.mouseMoveRelative":
-                MovePointerBy(step);
-                return Signal.Normal;
-
-            case "input.mouseClick":
-                await ClickMouse(step, token);
-                return Signal.Normal;
-
-            case "input.mouseDoubleClick":
-                await DoubleClickMouse(step, token);
-                return Signal.Normal;
-
-            case "input.keySequence":
-                await SendKeySequence(step, depth, token);
-                return Signal.Normal;
-
-            case "input.mouseDown":
-                {
-                    HoldButton(step);
-                    return Signal.Normal;
-                }
-
-            case "input.mouseUp":
-                {
-                    LetGoButton(step);
-                    return Signal.Normal;
-                }
-
-            case "input.mouseScroll":
-                await ScrollMouse(step, token);
-                return Signal.Normal;
-
-            case "input.mouseDrag":
-                await DragPointer(step, token);
-                return Signal.Normal;
-
-            // ---------------------------------------------------------------- gamepad
-            case "gamepad.connect":
-                _devices.Gamepad.Connect();
-                _gamepadUsed = true;
-                return Signal.Normal;
-
-            case "gamepad.button":
-                await PressGamepadButton(step, token);
-                return Signal.Normal;
-
-            case "gamepad.stick":
-                _devices.Gamepad.Stick(ReadText(step, "stick"), Number(step, "x"), Number(step, "y"));
-                _gamepadUsed = true;
-                return Signal.Normal;
-
-            case "gamepad.trigger":
-                _devices.Gamepad.Trigger(ReadText(step, "trigger"), Number(step, "amount"));
-                _gamepadUsed = true;
-                return Signal.Normal;
-
-            case "gamepad.release":
-                _devices.Gamepad.ReleaseAll();
-                _gamepadUsed = true;
-                return Signal.Normal;
-
-            // ----------------------------------------------------------------- vision
-            case "vision.capture":
-                await Gate(step, token);
-                Watching(() => Capture(step, depth));
-                return Signal.Normal;
-
-            case "vision.captureWindow":
-                await Gate(step, token);
-                Watching(() => CaptureWindow(step, depth));
-                return Signal.Normal;
-
-            case "vision.getPixel":
-                await Gate(step, token);
-                Watching(() => GetPixel(step, depth));
-                return Signal.Normal;
-
-            case "vision.waitColor":
-                await Gate(step, token);
-                await Watching(() => WaitColor(step, depth, token));
-                return Signal.Normal;
-
-            case "vision.findColor":
-                await Gate(step, token);
-                Watching(() => FindColor(step, depth));
-                return Signal.Normal;
-
-            case "vision.findColors":
-                await Gate(step, token);
-                Watching(() => FindColours(step, depth));
-                return Signal.Normal;
-
-            case "vision.waitStable":
-                await Gate(step, token);
-                await WaitStable(step, depth, token);
-                return Signal.Normal;
-
-            case "vision.findImage":
-                await Gate(step, token);
-                Watching(() => LookFor(step, depth));
-                return Signal.Normal;
-
-            case "vision.waitImage":
-                await Gate(step, token);
-                await Watching(() => WaitForImage(step, depth, token));
-                return Signal.Normal;
-
-            case "vision.clickImage":
-                await Gate(step, token);
-                await Watching(() => ClickImage(step, depth, token));
-                return Signal.Normal;
-
-            case "vision.detect":
-                await Gate(step, token);
-                Watching(() => LookForObjects(step, depth));
-                return Signal.Normal;
-
-            case "vision.waitDetect":
-                await Gate(step, token);
-                await Watching(() => WaitForObjects(step, depth, token));
-                return Signal.Normal;
-
-            case "vision.clickDetect":
-                await Gate(step, token);
-                await Watching(() => ClickObject(step, depth, token));
-                return Signal.Normal;
-
-            // -------------------------------------------------------------------- ocr
-            case "ocr.recognize":
-                await Gate(step, token);
-                Watching(() => Recognize(step, depth));
-                return Signal.Normal;
-
-            case "ocr.findText":
-                await Gate(step, token);
-                Watching(() => FindText(step, depth));
-                return Signal.Normal;
-
-            case "ocr.clickText":
-                await Gate(step, token);
-                await Watching(() => ClickText(step, depth, token));
-                return Signal.Normal;
-
-            // -------------------------------------------------------------------- uia
-            case "uia.exists":
-                Exists(step, depth);
-                return Signal.Normal;
-
-            case "uia.find":
-                FindElement(step, depth);
-                return Signal.Normal;
-
-            case "uia.waitElement":
-                await WaitElement(step, depth, token);
-                return Signal.Normal;
-
-            case "uia.click":
-                await ClickElement(step, depth, token);
-                return Signal.Normal;
-
-            case "uia.invoke":
-                await InvokeElement(step, depth, token);
-                return Signal.Normal;
-
-            case "uia.setText":
-                SetElementText(step, depth);
-                return Signal.Normal;
-
-            case "uia.read":
-                ReadElement(step, depth);
-                return Signal.Normal;
-
-            case "uia.select":
-                SelectItem(step, depth);
-                return Signal.Normal;
-
-            case "uia.check":
-                SetElementChecked(step, depth);
-                return Signal.Normal;
-
-            case "uia.expand":
-                SetElementExpanded(step, depth);
-                return Signal.Normal;
-
-            case "uia.scrollIntoView":
-                ScrollElementIntoView(step, depth);
-                return Signal.Normal;
-
-            case "uia.readTable":
-                ReadElementTable(step, depth);
-                return Signal.Normal;
-
-            case "uia.focusWindow":
-                FocusWindow(step, depth);
-                return Signal.Normal;
-
-            // --------------------------------------------------------------- browser
-            case "browser.open":
-                BrowserOpen(step, depth);
-                return Signal.Normal;
-
-            case "browser.goTo":
-                _devices.Browser.GoTo(ReadValue(step, "url").AsText(), step.Meta.TimeoutMs);
-                Log(LogLevel.Info, depth, step.Type, LogKeys.BrowserAddress, _devices.Browser.Url);
-                return Signal.Normal;
-
-            case "browser.click":
-                BrowserClick(step, depth);
-                return Signal.Normal;
-
-            case "browser.fill":
-                BrowserFill(step, depth);
-                return Signal.Normal;
-
-            case "browser.readText":
-                BrowserReadText(step, depth);
-                return Signal.Normal;
-
-            case "browser.readAll":
-                BrowserReadAll(step, depth);
-                return Signal.Normal;
-
-            case "browser.readTable":
-                BrowserReadTable(step, depth);
-                return Signal.Normal;
-
-            case "browser.readPage":
-                BrowserReadPage(step, depth);
-                return Signal.Normal;
-
-            case "browser.select":
-                BrowserSelect(step, depth);
-                return Signal.Normal;
-
-            case "browser.check":
-                Log(LogLevel.Info, depth, step.Type, LogKeys.BrowserChecked,
-                    _devices.Browser.Check(Element(step), Flag(step, "checked", true),
-                        step.Meta.TimeoutMs));
-                return Signal.Normal;
-
-            case "browser.hover":
-                Log(LogLevel.Info, depth, step.Type, LogKeys.BrowserHovered,
-                    _devices.Browser.Hover(Element(step), step.Meta.TimeoutMs));
-                return Signal.Normal;
-
-            case "browser.press":
-                BrowserPress(step, depth);
-                return Signal.Normal;
-
-            case "browser.waitFor":
-                BrowserWaitFor(step, depth);
-                return Signal.Normal;
-
-            case "browser.waitForUrl":
-                BrowserWaitForUrl(step, depth);
-                return Signal.Normal;
-
-            case "browser.waitForLoad":
-                BrowserWaitForLoad(step, depth);
-                return Signal.Normal;
-
-            case "browser.scroll":
-                BrowserScroll(step, depth);
-                return Signal.Normal;
-
-            case "browser.download":
-                BrowserDownload(step, depth);
-                return Signal.Normal;
-
-            case "browser.dialog":
-                return await RunDialog(step, depth, token);
-
-            case "browser.evaluate":
-                BrowserEvaluate(step, depth);
-                return Signal.Normal;
-
-            case "browser.upload":
-                BrowserUpload(step, depth);
-                return Signal.Normal;
-
-            case "browser.switchTab":
-                BrowserSwitchTab(step, depth);
-                return Signal.Normal;
-
-            case "browser.closeTab":
-                _devices.Browser.CloseTab();
-                Log(LogLevel.Info, depth, step.Type, LogKeys.ClosedTab);
-                return Signal.Normal;
-
-            case "browser.close":
-                _devices.Browser.Close();
-                Log(LogLevel.Info, depth, step.Type, LogKeys.ClosedBrowser);
-                return Signal.Normal;
-
-            // ------------------------------------------------------------------ script
-            case "script.run":
-                RunScript(step, depth);
-                return Signal.Normal;
-
-            case "script.python":
-                return RunPython(step, depth, token);
-
-            case "script.pip":
-                RunPip(step, depth, token);
-                return Signal.Normal;
-
-            case "script.csharp":
-                return RunCSharp(step, depth, token);
-
-            case "script.ahk":
-                return RunAutoHotkey(step, depth, token);
-
-            case "script.nuget":
-                RunNuGet(step, depth, token);
-                return Signal.Normal;
-
             default:
                 throw new StepFailure(RunKeys.Unsupported, step.Type);
         }
@@ -3574,58 +2985,6 @@ public sealed partial class MacroRunner
 
             await Pause(interval, token);
         }
-    }
-
-    /// <summary>One background call, kept until the macro waits for it.</summary>
-    private sealed class ChildRun
-    {
-        public required string Handle { get; init; }
-
-        public required string Macro { get; init; }
-
-        public required MacroSignature Signature { get; init; }
-
-        public required VariableStore Store { get; init; }
-
-        public required CancellationTokenSource Stop { get; init; }
-
-        public required List<(string Result, string Name)> Wanted { get; init; }
-
-        public required Task<RunResult> Task { get; init; }
-
-        /// <summary>The caller's local variable that holds this run's handle.</summary>
-        public required string HandleName { get; init; }
-    }
-
-    /// <summary>What a background run's handle says about the run right now.</summary>
-    private static class RunHandleStatus
-    {
-        public const string Running = "running";
-        public const string Done = "done";
-        public const string Failed = "failed";
-        public const string Stopped = "stopped";
-    }
-
-    /// <summary>
-    /// What a background run reports through. Its lines land in the caller's log so a run window
-    /// still shows what happened; its steps do not stop at the caller's breakpoints, which belong
-    /// to the steps the window is showing.
-    /// </summary>
-    private sealed class ChildRunHost(IRunHost parent) : IRunHost
-    {
-        public void Log(LogEntry entry) => parent.Log(entry);
-
-        public string Text(LogEntry entry) => parent.Text(entry);
-
-        public Task<bool> BeforeStep(ExecutableStep step, int depth, CancellationToken token)
-            => Task.FromResult(true);
-
-        public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
-            CancellationToken token)
-            => parent.Ask(step, reason, detail, comment, token);
-
-        public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
-            => parent.AskUser(question, token);
     }
 
     private void Log(LogLevel level, int depth, string step, string key, params object[] arguments)

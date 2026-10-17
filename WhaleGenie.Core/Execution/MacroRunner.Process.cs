@@ -216,4 +216,44 @@ public sealed partial class MacroRunner
         Log(LogLevel.Info, depth, step.Type, LogKeys.CommandFinished, program, result.ExitCode);
     }
 
+
+    /// <summary>
+    /// The process actions, each answered by the method written for it. Step types of
+    /// other families are not this dispatch's to answer.
+    /// </summary>
+    private async Task<Signal> DispatchProcess(ExecutableStep step, int depth,
+        CancellationToken token)
+    {
+        switch (step.Type)
+        {
+            case "process.start":
+                StartProcess(step, depth);
+                return Signal.Normal;
+            case "process.waitFor":
+                await WaitForProgram(step, depth, token);
+                return Signal.Normal;
+            case "process.waitExit":
+                await WaitForExit(step, depth, token);
+                return Signal.Normal;
+            case "process.exists":
+                ProgramRunning(step, depth);
+                return Signal.Normal;
+            case "process.list":
+                ListPrograms(step, depth);
+                return Signal.Normal;
+            case "process.info":
+                ProgramDetails(step, depth);
+                return Signal.Normal;
+            case "process.kill":
+                StopProgram(step, depth);
+                return Signal.Normal;
+            case "command.run":
+                RunCommand(step, depth);
+                return Signal.Normal;
+
+            // ----------------------------------------------------------------- system
+            default:
+                throw new StepFailure(RunKeys.Unsupported, step.Type);
+        }
+    }
 }

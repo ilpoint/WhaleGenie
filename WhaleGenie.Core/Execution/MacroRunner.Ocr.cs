@@ -391,4 +391,32 @@ public sealed partial class MacroRunner
             way == TextCompare.Exactly ? Flag(step, "trim", true) : null,
             Flag(step, "multiline", false));
 
+
+    /// <summary>
+    /// The ocr actions, each answered by the method written for it. Step types of
+    /// other families are not this dispatch's to answer.
+    /// </summary>
+    private async Task<Signal> DispatchOcr(ExecutableStep step, int depth,
+        CancellationToken token)
+    {
+        switch (step.Type)
+        {
+            case "ocr.recognize":
+                await Gate(step, token);
+                Watching(() => Recognize(step, depth));
+                return Signal.Normal;
+            case "ocr.findText":
+                await Gate(step, token);
+                Watching(() => FindText(step, depth));
+                return Signal.Normal;
+            case "ocr.clickText":
+                await Gate(step, token);
+                await Watching(() => ClickText(step, depth, token));
+                return Signal.Normal;
+
+            // -------------------------------------------------------------------- uia
+            default:
+                throw new StepFailure(RunKeys.Unsupported, step.Type);
+        }
+    }
 }

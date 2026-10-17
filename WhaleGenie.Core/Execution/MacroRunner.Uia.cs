@@ -283,4 +283,59 @@ public sealed partial class MacroRunner
         _ => null,
     };
 
+
+    /// <summary>
+    /// The uia actions, each answered by the method written for it. Step types of
+    /// other families are not this dispatch's to answer.
+    /// </summary>
+    private async Task<Signal> DispatchUia(ExecutableStep step, int depth,
+        CancellationToken token)
+    {
+        switch (step.Type)
+        {
+            case "uia.exists":
+                Exists(step, depth);
+                return Signal.Normal;
+            case "uia.find":
+                FindElement(step, depth);
+                return Signal.Normal;
+            case "uia.waitElement":
+                await WaitElement(step, depth, token);
+                return Signal.Normal;
+            case "uia.click":
+                await ClickElement(step, depth, token);
+                return Signal.Normal;
+            case "uia.invoke":
+                await InvokeElement(step, depth, token);
+                return Signal.Normal;
+            case "uia.setText":
+                SetElementText(step, depth);
+                return Signal.Normal;
+            case "uia.read":
+                ReadElement(step, depth);
+                return Signal.Normal;
+            case "uia.select":
+                SelectItem(step, depth);
+                return Signal.Normal;
+            case "uia.check":
+                SetElementChecked(step, depth);
+                return Signal.Normal;
+            case "uia.expand":
+                SetElementExpanded(step, depth);
+                return Signal.Normal;
+            case "uia.scrollIntoView":
+                ScrollElementIntoView(step, depth);
+                return Signal.Normal;
+            case "uia.readTable":
+                ReadElementTable(step, depth);
+                return Signal.Normal;
+            case "uia.focusWindow":
+                FocusWindow(step, depth);
+                return Signal.Normal;
+
+            // --------------------------------------------------------------- browser
+            default:
+                throw new StepFailure(RunKeys.Unsupported, step.Type);
+        }
+    }
 }

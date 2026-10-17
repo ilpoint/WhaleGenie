@@ -1050,4 +1050,87 @@ public sealed partial class MacroRunner
             ? Input(step).Cursor
             : null;
 
+
+    /// <summary>
+    /// The input actions, each answered by the method written for it. Step types of
+    /// other families are not this dispatch's to answer.
+    /// </summary>
+    private async Task<Signal> DispatchInput(ExecutableStep step, int depth,
+        CancellationToken token)
+    {
+        switch (step.Type)
+        {
+            case "input.keyPress":
+                await PressKey(step, token);
+                return Signal.Normal;
+            case "input.keyDown":
+                HoldKey(step);
+                return Signal.Normal;
+            case "input.keyUp":
+                LetGoKey(step);
+                return Signal.Normal;
+            case "input.hotkey":
+                await SendHotkey(step, token);
+                return Signal.Normal;
+            case "input.typeText":
+                Input(step).TypeText(ReadValue(step, "typedText").AsText(), Pace(Number(step, "intervalMs")));
+                return Signal.Normal;
+            case "input.mouseMove":
+                MovePointer(step, MovePlace(step));
+                return Signal.Normal;
+            case "input.mouseMoveRelative":
+                MovePointerBy(step);
+                return Signal.Normal;
+            case "input.mouseClick":
+                await ClickMouse(step, token);
+                return Signal.Normal;
+            case "input.mouseDoubleClick":
+                await DoubleClickMouse(step, token);
+                return Signal.Normal;
+            case "input.keySequence":
+                await SendKeySequence(step, depth, token);
+                return Signal.Normal;
+            case "input.mouseDown":
+                {
+                    HoldButton(step);
+                    return Signal.Normal;
+                }
+            case "input.mouseUp":
+                {
+                    LetGoButton(step);
+                    return Signal.Normal;
+                }
+            case "input.mouseScroll":
+                await ScrollMouse(step, token);
+                return Signal.Normal;
+            case "input.mouseDrag":
+                await DragPointer(step, token);
+                return Signal.Normal;
+
+            // ---------------------------------------------------------------- gamepad
+            case "gamepad.connect":
+                _devices.Gamepad.Connect();
+                _gamepadUsed = true;
+                return Signal.Normal;
+            case "gamepad.button":
+                await PressGamepadButton(step, token);
+                return Signal.Normal;
+            case "gamepad.stick":
+                _devices.Gamepad.Stick(ReadText(step, "stick"), Number(step, "x"), Number(step, "y"));
+                _gamepadUsed = true;
+                return Signal.Normal;
+            case "gamepad.trigger":
+                _devices.Gamepad.Trigger(ReadText(step, "trigger"), Number(step, "amount"));
+                _gamepadUsed = true;
+                return Signal.Normal;
+            case "gamepad.release":
+                _devices.Gamepad.ReleaseAll();
+                _gamepadUsed = true;
+                return Signal.Normal;
+
+            // ----------------------------------------------------------------- vision
+            default:
+                throw new StepFailure(RunKeys.Unsupported, step.Type);
+        }
+    }
 }

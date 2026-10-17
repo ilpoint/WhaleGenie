@@ -484,4 +484,94 @@ public sealed partial class MacroRunner
     /// either written in the step or named as a file of the macro's own, and a file is run where it
     /// lies rather than being written out again.
     /// </summary>
+
+    /// <summary>
+    /// The browser actions, each answered by the method written for it. Step types of
+    /// other families are not this dispatch's to answer.
+    /// </summary>
+    private async Task<Signal> DispatchBrowser(ExecutableStep step, int depth,
+        CancellationToken token)
+    {
+        switch (step.Type)
+        {
+            case "browser.open":
+                BrowserOpen(step, depth);
+                return Signal.Normal;
+            case "browser.goTo":
+                _devices.Browser.GoTo(ReadValue(step, "url").AsText(), step.Meta.TimeoutMs);
+                Log(LogLevel.Info, depth, step.Type, LogKeys.BrowserAddress, _devices.Browser.Url);
+                return Signal.Normal;
+            case "browser.click":
+                BrowserClick(step, depth);
+                return Signal.Normal;
+            case "browser.fill":
+                BrowserFill(step, depth);
+                return Signal.Normal;
+            case "browser.readText":
+                BrowserReadText(step, depth);
+                return Signal.Normal;
+            case "browser.readAll":
+                BrowserReadAll(step, depth);
+                return Signal.Normal;
+            case "browser.readTable":
+                BrowserReadTable(step, depth);
+                return Signal.Normal;
+            case "browser.readPage":
+                BrowserReadPage(step, depth);
+                return Signal.Normal;
+            case "browser.select":
+                BrowserSelect(step, depth);
+                return Signal.Normal;
+            case "browser.check":
+                Log(LogLevel.Info, depth, step.Type, LogKeys.BrowserChecked,
+                    _devices.Browser.Check(Element(step), Flag(step, "checked", true),
+                        step.Meta.TimeoutMs));
+                return Signal.Normal;
+            case "browser.hover":
+                Log(LogLevel.Info, depth, step.Type, LogKeys.BrowserHovered,
+                    _devices.Browser.Hover(Element(step), step.Meta.TimeoutMs));
+                return Signal.Normal;
+            case "browser.press":
+                BrowserPress(step, depth);
+                return Signal.Normal;
+            case "browser.waitFor":
+                BrowserWaitFor(step, depth);
+                return Signal.Normal;
+            case "browser.waitForUrl":
+                BrowserWaitForUrl(step, depth);
+                return Signal.Normal;
+            case "browser.waitForLoad":
+                BrowserWaitForLoad(step, depth);
+                return Signal.Normal;
+            case "browser.scroll":
+                BrowserScroll(step, depth);
+                return Signal.Normal;
+            case "browser.download":
+                BrowserDownload(step, depth);
+                return Signal.Normal;
+            case "browser.dialog":
+                return await RunDialog(step, depth, token);
+            case "browser.evaluate":
+                BrowserEvaluate(step, depth);
+                return Signal.Normal;
+            case "browser.upload":
+                BrowserUpload(step, depth);
+                return Signal.Normal;
+            case "browser.switchTab":
+                BrowserSwitchTab(step, depth);
+                return Signal.Normal;
+            case "browser.closeTab":
+                _devices.Browser.CloseTab();
+                Log(LogLevel.Info, depth, step.Type, LogKeys.ClosedTab);
+                return Signal.Normal;
+            case "browser.close":
+                _devices.Browser.Close();
+                Log(LogLevel.Info, depth, step.Type, LogKeys.ClosedBrowser);
+                return Signal.Normal;
+
+            // ------------------------------------------------------------------ script
+            default:
+                throw new StepFailure(RunKeys.Unsupported, step.Type);
+        }
+    }
 }

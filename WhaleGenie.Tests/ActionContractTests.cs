@@ -619,10 +619,13 @@ public class ActionContractTests
     [Fact]
     public void The_runner_dispatches_every_executable_action_and_asks_every_condition()
     {
-        var source = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie.Core", "Execution",
-            "MacroRunner.cs"));
-        var dispatch = Cases(Method(source, "Dispatch"));
-        var conditions = Cases(Method(source, "Check"));
+        var folder = Path.Combine(Repository(), "WhaleGenie.Core", "Execution");
+        var sources = Directory.EnumerateFiles(folder, "MacroRunner*.cs")
+            .Select(File.ReadAllText)
+            .ToList();
+        var dispatch = sources.SelectMany(FamilyDispatches).ToList();
+        var conditions = Cases(Method(File.ReadAllText(Path.Combine(folder, "MacroRunner.cs")),
+            "Check"));
 
         var executable = ActionSemanticsCatalog.All
             .Where(action => !action.IsCondition && action.Key != "control.case")
@@ -716,6 +719,25 @@ public class ActionContractTests
         }
     }
 
+    /// <summary>
+    /// The case labels under each family's own dispatch. Every runner file may carry one, and an
+    /// action is answered by whichever family file it belongs to rather than by one list in the
+    /// main file.
+    /// </summary>
+    private static IEnumerable<string> FamilyDispatches(string source)
+    {
+        foreach (Match declaration in Regex.Matches(source,
+                     @"\n    private [^\n]*\bDispatch[A-Za-z]*\("))
+        {
+            var start = declaration.Index;
+            var end = source.IndexOf("\n    private ", start + 1, StringComparison.Ordinal);
+            var body = end < 0 ? source[start..] : source[start..end];
+            foreach (var key in Cases(body))
+            {
+                yield return key;
+            }
+        }
+    }
     private static List<string> Cases(string method)
         => [.. Regex.Matches(method, "case \"([^\"]+)\":")
             .Select(match => match.Groups[1].Value)

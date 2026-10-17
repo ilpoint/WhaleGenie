@@ -298,4 +298,47 @@ public sealed partial class MacroRunner
         return id;
     }
 
+
+    /// <summary>
+    /// The system actions, each answered by the method written for it. Step types of
+    /// other families are not this dispatch's to answer.
+    /// </summary>
+    private async Task<Signal> DispatchSystem(ExecutableStep step, int depth,
+        CancellationToken token)
+    {
+        switch (step.Type)
+        {
+            case "system.info":
+                SystemInfo(step, depth);
+                return Signal.Normal;
+            case "screen.list":
+                ListDisplays(step, depth);
+                return Signal.Normal;
+            case "system.environment":
+                EnvironmentVariable(step, depth);
+                return Signal.Normal;
+            case "system.power":
+                Power(step, depth);
+                return Signal.Normal;
+            case "system.volume":
+                Volume(step, depth);
+                return Signal.Normal;
+            case "system.sound":
+                PlaySound(step, depth);
+                return Signal.Normal;
+            case "system.notify":
+                Notify(step, depth);
+                return Signal.Normal;
+            case "system.ime":
+                InputMethod(step, depth);
+                return Signal.Normal;
+            case "system.brightness":
+                Brightness(step, depth);
+                return Signal.Normal;
+
+            // ----------------------------------------------------------------- window
+            default:
+                throw new StepFailure(RunKeys.Unsupported, step.Type);
+        }
+    }
 }

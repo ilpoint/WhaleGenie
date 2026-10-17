@@ -450,4 +450,54 @@ public sealed partial class MacroRunner
         ]);
     }
 
+
+    /// <summary>
+    /// The window actions, each answered by the method written for it. Step types of
+    /// other families are not this dispatch's to answer.
+    /// </summary>
+    private async Task<Signal> DispatchWindow(ExecutableStep step, int depth,
+        CancellationToken token)
+    {
+        switch (step.Type)
+        {
+            case "window.exists":
+                WindowExists(step, depth);
+                return Signal.Normal;
+            case "window.waitFor":
+                await WaitForWindow(step, depth, token);
+                return Signal.Normal;
+            case "window.activate":
+                Act(step, depth, LogKeys.ActivatedWindow, window => _devices.Windows.Activate(window.Handle));
+                return Signal.Normal;
+            case "window.minimize":
+                Act(step, depth, LogKeys.MinimizedWindow, window => _devices.Windows.Minimize(window.Handle));
+                return Signal.Normal;
+            case "window.maximize":
+                Act(step, depth, LogKeys.MaximizedWindow, window => _devices.Windows.Maximize(window.Handle));
+                return Signal.Normal;
+            case "window.restore":
+                Act(step, depth, LogKeys.RestoredWindow, window => _devices.Windows.Restore(window.Handle));
+                return Signal.Normal;
+            case "window.move":
+                Act(step, depth, LogKeys.MovedWindow, window =>
+                {
+                    var (x, y, width, height) = MoveTarget(step, window);
+                    return _devices.Windows.Move(window.Handle, x, y, width, height);
+                });
+                return Signal.Normal;
+            case "window.close":
+                Act(step, depth, LogKeys.ClosedWindow, window => _devices.Windows.Close(window.Handle));
+                return Signal.Normal;
+            case "window.list":
+                ListWindows(step, depth);
+                return Signal.Normal;
+            case "window.info":
+                WindowBox(step, depth);
+                return Signal.Normal;
+
+            // ------------------------------------------------------------------ input
+            default:
+                throw new StepFailure(RunKeys.Unsupported, step.Type);
+        }
+    }
 }
