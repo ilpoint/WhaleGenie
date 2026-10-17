@@ -45,7 +45,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 
 `manual.md` 描述已经实现的行为；路线图里的阶段是目标，未完成之前不要把未来行为写进手册。
 
-**当前阶段**：F7 Dispatch 与读值整理；正确性与结构收口的阶段见 [roadmap.md](roadmap.md)。
+**当前阶段**：路线图里的阶段已全部完成；新的工作按 [roadmap.md](roadmap.md) 的衡量标准重新立阶段。
 
 动作目录分两层：引擎事实在 `WhaleGenie.Core/Execution/ActionSemantics.json`，由
 `ActionSemanticsCatalog` 读取，包含动作键、分类、参数读法、值形状、单位、空值含义、字段自己的范围上限、
@@ -187,8 +187,8 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
    超时来源、返回形状与记录字段都写进 `ActionSemantics.json`；界面展示用的标签、提示、编辑器种类、页面归属
    与图标不参与引擎判断。
 3. **改引擎分派**。`MacroRunner` 只按目录取参数与事实；不按 `type` 前缀推断读法或是否发输入。位置/矩形按
-   `Point` / `Rect` 收记录，两种写法只用目录里的字段说；记录字段一律走 `FieldNames`。一个动作一族代码放在
-   同一处。
+   `Point` / `Rect` 收记录，两种写法只用目录里的字段说；记录字段一律走 `FieldNames`。一个动作的分派与
+   实现都写进它家族的那个 `MacroRunner.<Family>.cs`。
 4. **补失败键**。新键同时进 `RunKeys` 与手册的「可以分支的失败原因」表；清单由常量表生成对账；
    日志行用 `Log.*`，不要借用 `Run.*`。
 5. **补文案**。`Strings` 的英文与中文、`ActionStrings` 的中文同时加；标签说字段是什么，提示第二句说什么时候
@@ -319,10 +319,11 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
   整段脚本不取输入门。
 - 后台运行是同一套 `MacroRunner` 的另一条运行：局部变量独立、全局表共享，父运行的取消令牌传给子运行；
   `control.waitMacro` 取回调用处勾选的结果，父运行结束时还没等的子运行由 `StopChildrenAsync` 停下。
-  F3 会把同步调用与后台启动拆成 `control.runMacro` / `control.startMacro`，句柄改成记录。
-- `MacroRunner` 按动作家族拆成 partial：主文件放状态、运行循环、分派与跨家族共用的读法，
-  `MacroRunner.<Family>.cs` 放该家族的动作实现。新增动作先找家族文件；只有跨家族共用的部分才回主文件。
-  F7 会把读值入口移到 `MacroRunner.Reading.cs`。
+  句柄是记录，等完或取消后改写成结束时的样子；后台运行的嵌套类型在 `MacroRunner.Children.cs`。
+- `MacroRunner` 按动作家族拆成 partial：主文件放状态、运行循环与按 `Category` 分派的入口，每个
+  `MacroRunner.<Family>.cs` 里放**该家族的分派与实现**（`Dispatch<Family>` 的 switch 只认这个家族的
+  动作）；跨家族共用的读值与数字读法集中在 `MacroRunner.Reading.cs`。新增动作先进对应家族文件：
+  目录加行、家族分派加 case、实现写在旁边；只有跨家族共用的部分才回主文件或 Reading。
 - `Run.*` 是用户可分支的失败键，日志键用 `Log.*`；新增失败键同时进手册表与对账测试。
 - 行列表的列名、区域四格等跨文件重复的键用常量类，不散落字符串字面量。
 

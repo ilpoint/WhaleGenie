@@ -59,10 +59,10 @@ Power Automate Desktop 只学动作骨架，不学动作库与 COM 直连 Office
 
 ## 当前路线
 
-下一步按 `doc/roadmap.md` 排：当前阶段是 **F7 Dispatch 与读值整理**，之后只剩结构收口。
+路线图里的阶段已全部完成（P1–P3、F1–F7）；新的工作按 `doc/roadmap.md` 的衡量标准重新立阶段。
 判断标准有三条：
 **用户能不能把这件事表达出来；已经说出来的行为是否与实现一致；多条宏同时跑时是否仍然正确**。本文件的设计
-约定是目标，代码尚未做到的部分由路线图的阶段落地；当前实现事实（如动作展示清单在
+约定是目标；当前实现事实（如动作展示清单在
 `WhaleGenie/Models/ActionDisplay.json`，引擎语义目录在 `WhaleGenie.Core/Execution/ActionSemantics.json`）
 以 `doc/dev.md` 为准。画面从哪来、怎么取见「画面获取」，单位成本见 `doc/performance.md`。
 
