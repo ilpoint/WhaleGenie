@@ -60,6 +60,24 @@ public enum ActionParameterKind
     Macro,
 
     /// <summary>
+    /// A whole record, written as one value: a variable that holds one, or an expression that
+    /// builds one. What the fields are called is the action's business, not this editor's.
+    /// </summary>
+    Record,
+
+    /// <summary>
+    /// One place on the screen, taken from a record whose <c>x</c> and <c>y</c> name it, or — where
+    /// nobody filled this in — from the numbers beside it. The two ways are exclusive.
+    /// </summary>
+    Point,
+
+    /// <summary>
+    /// One rectangle, taken from a record whose <c>left</c>, <c>top</c>, <c>width</c> and
+    /// <c>height</c> name it, or — where nobody filled this in — from the four numbers beside it.
+    /// </summary>
+    Rect,
+
+    /// <summary>
     /// The name of a step of this macro, chosen from the steps that are in it. The value written
     /// is the step's name and nothing else, because that is what the run knows a step by.
     /// </summary>

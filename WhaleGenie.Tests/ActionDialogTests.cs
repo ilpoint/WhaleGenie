@@ -1616,59 +1616,47 @@ public class ActionDialogTests
     }
 
     /// <summary>
-    /// 勾上取记录的那个开关之后，几格数字就不画了，记录格才画：一步的位置只有一个来源，两个来源
-    /// 一起画出来，读的人就得自己猜运行时按哪一个走。关掉开关时数字照旧还在，值也没丢。
+    /// 一个位置只有一个答案：填了记录，旁边的数字就清空；写了数字，记录格就清空。两个一起留着，
+    /// 读的人就得自己猜运行时按哪一个走。
     /// </summary>
     [Theory]
-    [InlineData("input.mouseMove", "useRecord", "record", "x")]
-    [InlineData("input.mouseClick", "useRecord", "record", "x")]
-    [InlineData("input.mouseDoubleClick", "useRecord", "record", "x")]
-    [InlineData("input.mouseDown", "useRecord", "record", "x")]
-    [InlineData("input.mouseUp", "useRecord", "record", "x")]
-    [InlineData("input.mouseScroll", "useRecord", "record", "x")]
-    [InlineData("vision.getPixel", "useRecord", "record", "x")]
-    [InlineData("vision.waitColor", "useRecord", "record", "x")]
-    [InlineData("vision.capture", "useRecord", "record", "x")]
-    [InlineData("ocr.recognize", "useRecord", "record", "x")]
-    [InlineData("window.move", "useRecord", "record", "x")]
-    [InlineData("input.mouseDrag", "startFromRecord", "startRecord", "startX")]
-    [InlineData("input.mouseDrag", "endFromRecord", "endRecord", "endX")]
-    public void The_record_switch_takes_the_numbers_off_the_form(
-        string action, string toggle, string record, string number)
+    [InlineData("input.mouseMove", "place", "x")]
+    [InlineData("input.mouseClick", "place", "x")]
+    [InlineData("input.mouseDoubleClick", "place", "x")]
+    [InlineData("input.mouseDown", "place", "x")]
+    [InlineData("input.mouseUp", "place", "x")]
+    [InlineData("input.mouseScroll", "place", "x")]
+    [InlineData("vision.getPixel", "place", "x")]
+    [InlineData("vision.waitColor", "place", "x")]
+    [InlineData("vision.capture", "rect", "x")]
+    [InlineData("ocr.recognize", "rect", "x")]
+    [InlineData("window.move", "rect", "x")]
+    [InlineData("input.mouseDrag", "startPlace", "startX")]
+    [InlineData("input.mouseDrag", "endPlace", "endX")]
+    public void A_place_and_its_numbers_empty_each_other(string action, string place, string number)
     {
         Ui.Run(() =>
         {
             var viewModel = Open(action);
-            var switchIt = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == toggle);
-            var recordIt = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == record);
+            var record = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == place);
             var numbers = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == number);
 
-            Assert.True(numbers.IsApplicable);
-            Assert.False(recordIt.IsApplicable);
-
             numbers.SetNumber(120);
-            switchIt.Flag = true;
             Dispatcher.UIThread.RunJobs();
-
-            Assert.False(numbers.IsApplicable);
-            Assert.True(recordIt.IsApplicable);
             Assert.Equal("120", numbers.CurrentText);
+            Assert.Equal(string.Empty, record.CurrentText);
 
-            switchIt.Flag = false;
+            record.Text = "$命中";
             Dispatcher.UIThread.RunJobs();
-
-            Assert.True(numbers.IsApplicable);
-            Assert.False(recordIt.IsApplicable);
-            Assert.Equal("120", numbers.CurrentText);
+            Assert.Equal("$命中", record.CurrentText);
+            Assert.Equal(string.Empty, numbers.CurrentText);
         });
     }
 
     /// <summary>
-    /// 记录格里写的东西是这一步自己的一部分：填进去的那条记录存下来的步骤里还是它，重新读回表单
-    /// 上也是它。
+    /// 记录格里写的东西是这一步自己的一部分：填进去的那条记录就写进步骤，数字没写就不写进文件。
     /// </summary>
     [Fact]
     public void A_record_written_in_the_field_goes_into_the_step_as_it_stands()
@@ -1676,12 +1664,9 @@ public class ActionDialogTests
         Ui.Run(() =>
         {
             var viewModel = Open("input.mouseClick");
-            var switchIt = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "useRecord");
             var record = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "record");
+                .First(parameter => parameter.Definition.Name == "place");
 
-            switchIt.Flag = true;
             record.Text = "$命中";
             Dispatcher.UIThread.RunJobs();
 
@@ -1691,68 +1676,68 @@ public class ActionDialogTests
 
             var written = saved!.Parameters.ToDictionary(parameter => parameter.Name,
                 parameter => parameter.Value, StringComparer.Ordinal);
-            Assert.Equal("true", written["useRecord"]);
-            Assert.Equal("$命中", written["record"]);
+            Assert.Equal("$命中", written["place"]);
 
-            // 两格数字没写就是没写：这一步的位置由那条记录说，不该在文件里留下一对 0。
+            // 两格数字没写就是没写：这一步的位置由那条记录说，不该在文件里留下空的数字。
             Assert.DoesNotContain("x", written.Keys);
             Assert.DoesNotContain("y", written.Keys);
         });
     }
 
     /// <summary>
-    /// 框选与「取指针位置」写下来的数就是用户要的答案，所以写完之后那个取记录的开关是关的：留着它，
-    /// 运行时还是旧记录说了算，屏幕上点的那一下等于白点。
+    /// 框选与「取指针位置」写下来的数就是用户要的答案，所以写完之后记录格是空的：留着它，运行时
+    /// 还是旧记录说了算，屏幕上点的那一下等于白点。
     /// </summary>
     [Fact]
-    public void Picking_a_rectangle_turns_the_record_switches_off()
+    public void Picking_a_rectangle_empties_the_record_fields()
     {
         Ui.Run(() =>
         {
             var viewModel = Open("input.mouseDrag");
-            foreach (var name in new[] { "startFromRecord", "endFromRecord" })
+            foreach (var name in new[] { "startPlace", "endPlace" })
             {
-                viewModel.Parameters.First(parameter => parameter.Definition.Name == name).Flag = true;
+                viewModel.Parameters.First(parameter => parameter.Definition.Name == name).Text =
+                    "$旧记录";
             }
 
             Dispatcher.UIThread.RunJobs();
             Assert.True(viewModel.ApplyRegion(10, 20, 30, 40));
 
-            foreach (var name in new[] { "startFromRecord", "endFromRecord" })
+            foreach (var name in new[] { "startPlace", "endPlace" })
             {
-                Assert.False(viewModel.Parameters
-                    .First(parameter => parameter.Definition.Name == name).Flag);
+                Assert.Equal(string.Empty, viewModel.Parameters
+                    .First(parameter => parameter.Definition.Name == name).CurrentText);
             }
 
             Assert.Equal("10", Value(viewModel, "startX"));
             Assert.Equal("60", Value(viewModel, "endY"));
 
             var capture = Open("vision.capture");
-            capture.Parameters.First(parameter => parameter.Definition.Name == "useRecord").Flag = true;
+            capture.Parameters.First(parameter => parameter.Definition.Name == "rect").Text = "$旧块";
             Dispatcher.UIThread.RunJobs();
 
             Assert.True(capture.ApplyRegion(10, 20, 30, 40));
-            Assert.False(capture.Parameters
-                .First(parameter => parameter.Definition.Name == "useRecord").Flag);
+            Assert.Equal(string.Empty, capture.Parameters
+                .First(parameter => parameter.Definition.Name == "rect").CurrentText);
             Assert.Equal("30", Value(capture, "width"));
         });
     }
 
     /// <summary>The same for the place a pointer reading fills in, rather than a rectangle.</summary>
     [Fact]
-    public void Reading_the_pointer_turns_the_record_switch_off()
+    public void Reading_the_pointer_empties_the_record_field()
     {
         Ui.Run(() =>
         {
             var viewModel = Open("input.mouseClick");
-            var switchIt = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "useRecord");
-            switchIt.Flag = true;
+            var record = viewModel.Parameters
+                .First(parameter => parameter.Definition.Name == "place");
+            record.Text = "$旧记录";
             Dispatcher.UIThread.RunJobs();
 
             Assert.True(viewModel.ApplyCursorPosition(300, 400));
 
-            Assert.False(switchIt.Flag);
+            Assert.Equal(string.Empty, record.CurrentText);
             Assert.Equal("300", Value(viewModel, "x"));
             Assert.Equal("400", Value(viewModel, "y"));
         });
@@ -2126,17 +2111,15 @@ public class ActionDialogTests
             viewModel.SelectAction("input.mouseMove");
             Dispatcher.UIThread.RunJobs();
 
-            // x and y share a line, so where the pointer goes and how long it takes read as two
-            // lines, and the two fields that take that place from a record take one line each: one of
-            // them is not drawn until the switch above it is on, but the line is still this action's
-            // rather than the tuning of it. The advanced page holds the rest: what the coordinates
-            // are measured from, how the pointer travels, where the input is sent, and — for a step
-            // that posts it at a window — which window that is and how it is recognised. The last two
-            // are off the form while the input goes to whatever is in front, but they are still the
-            // tuning of this action rather than something to show without being asked for. The
-            // three text-comparison switches sit there too: they are questions about how a window
-            // title is recognised, not about where the pointer goes.
-            Assert.Equal(4, viewModel.Rows.Count);
+            // The place is one line, x and y share the next, and how the pointer travels takes the
+            // third; the advanced page holds the rest: what the coordinates are measured from, how
+            // fast the pointer goes, where the input is sent, and — for a step that posts it at a
+            // window — which window that is and how it is recognised. The last two are off the form
+            // while the input goes to whatever is in front, but they are still the tuning of this
+            // action rather than something to show without being asked for. The three
+            // text-comparison switches sit there too: they are questions about how a window title is
+            // recognised, not about where the pointer goes.
+            Assert.Equal(3, viewModel.Rows.Count);
             Assert.Equal(11, viewModel.AdvancedRows.Count);
             Assert.True(viewModel.OnBase);
 

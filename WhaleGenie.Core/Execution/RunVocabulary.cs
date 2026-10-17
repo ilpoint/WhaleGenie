@@ -43,7 +43,6 @@ public static class RunKeys
     public const string BadModelShape = "Run.BadModelShape";
     public const string BadPattern = "Run.BadPattern";
     public const string BadPoint = "Run.BadPoint";
-    public const string BadPointEmpty = "Run.BadPointEmpty";
     public const string BadPoints = "Run.BadPoints";
     public const string BadPosition = "Run.BadPosition";
     public const string BadProcessId = "Run.BadProcessId";
@@ -151,6 +150,7 @@ public static class RunKeys
     public const string ProcessTimeout = "Run.ProcessTimeout";
     public const string ProgramFailed = "Run.ProgramFailed";
     public const string ProgramNotFound = "Run.ProgramNotFound";
+    public const string RecordWhereNumber = "Run.RecordWhereNumber";
     public const string RegexTimeout = "Run.RegexTimeout";
     public const string ScreenNotStable = "Run.ScreenNotStable";
     public const string ScriptBridgeLost = "Run.ScriptBridgeLost";

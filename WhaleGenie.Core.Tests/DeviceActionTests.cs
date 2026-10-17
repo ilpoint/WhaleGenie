@@ -930,6 +930,30 @@ public class DeviceActionTests
         Assert.Equal(["click left 3 4 2 0", "click left 3 4 2 0"], devices.Calls);
     }
 
+    /// <summary>
+    /// 记录格对鼠标的每个动作都是同一个说法：移动、点击、双击、按下、松开、滚动都落在记录说的
+    /// 那一点上，取的是那块矩形的中心。
+    /// </summary>
+    [Fact]
+    public async Task Every_mouse_action_can_land_where_a_record_says()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
+            Step("input.mouseDoubleClick", Param("button", "left"), Param("place", "$spot")),
+            Step("input.mouseDown", Param("button", "left"), Param("place", "$spot")),
+            Step("input.mouseUp", Param("button", "left"), Param("place", "$spot")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Contains("click left 35 50 2 0", devices.Calls);
+        Assert.Contains("down left 35 50", devices.Calls);
+        Assert.Contains("up left 35 50", devices.Calls);
+    }
+
     [Fact]
     public async Task A_scroll_can_be_sent_more_than_once()
     {
@@ -1092,7 +1116,7 @@ public class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
             Step("input.mouseDrag",
-                Param("startFromRecord", "true"), Param("startRecord", "$spot"),
+                Param("startPlace", "$spot"),
                 Param("endX", "300"), Param("endY", "400"),
                 Param("durationMs", "0"), Param("dragSteps", "4")),
         ], devices);
@@ -1118,8 +1142,8 @@ public class DeviceActionTests
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
             Step("window.info", Param("window", "Notepad"), Returns("window=to")),
             Step("input.mouseDrag",
-                Param("startFromRecord", "true"), Param("startRecord", "$spot"),
-                Param("endFromRecord", "true"), Param("endRecord", "$to"),
+                Param("startPlace", "$spot"),
+                Param("endPlace", "$to"),
                 Param("durationMs", "0"), Param("dragSteps", "4")),
         ], devices);
 
@@ -1140,7 +1164,7 @@ public class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
             Step("input.mouseScroll", Param("direction", "down"), Param("amount", "2"),
-                Param("useRecord", "true"), Param("record", "$spot")),
+                Param("place", "$spot")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -1162,7 +1186,7 @@ public class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
             Step("input.mouseDrag",
-                Param("startFromRecord", "true"), Param("startRecord", "$spot"),
+                Param("startPlace", "$spot"),
                 Param("endX", "30"), Param("endY", "40"),
                 Param("durationMs", "0"), Param("dragSteps", "2"),
                 Param("anchorMode", "window"), Param("anchorWindow", "Notepad")),
@@ -1199,27 +1223,61 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// 记录格空着时失败说的是"上一步什么都没找到"，而不是"这里写错了"：这两件事在写宏的人眼里完全
-    /// 不一样，前者要回去让上一次查找找到东西，后者才是这一格的字写错了。
+    /// 一条记录不是数字：把它填进 X 这种数字格，读的时候直接说清楚，而不是悄悄按 0 或者按字段顺序
+    /// 取一个数。设计期会标出来，跑到这一步时也要给出能看懂的失败键。
     /// </summary>
     [Fact]
-    public async Task A_drag_end_with_no_value_says_the_step_before_found_nothing()
+    public async Task A_record_in_a_number_field_is_refused()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
+            Step("input.mouseMove", Param("x", "$spot"), Param("y", "40")),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.RecordWhereNumber", result.Key);
+    }
+
+    /// <summary>
+    /// 位置格里写的不是记录（一个数字、一段文字）时说 Run.BadPoint，并把写进去的东西说出来：这一格
+    /// 收的是"带 x、y 的记录"，不是随便一个值。
+    /// </summary>
+    [Fact]
+    public async Task A_place_that_is_not_a_record_is_refused()
+    {
+        var devices = new FakeDeviceLayer();
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("input.mouseMove", Param("place", "10"), Param("y", "40")),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.BadPoint", result.Key);
+    }
+
+    /// <summary>
+    /// 记录格空着时这一端按旁边的数字说：两种说法是同一个答案，没写记录不是失败。
+    /// </summary>
+    [Fact]
+    public async Task A_drag_starts_at_its_numbers_when_no_record_is_written()
     {
         var devices = new FakeDeviceLayer();
 
         var (result, _, _) = await RunAsync(
         [
             Step("input.mouseDrag",
-                Param("startFromRecord", "true"), Param("startRecord", ""),
+                Param("startX", "10"), Param("startY", "20"),
                 Param("endX", "300"), Param("endY", "0"),
                 Param("durationMs", "0"), Param("dragSteps", "3")),
         ], devices);
 
-        Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.Equal("Run.BadPointEmpty", result.Key);
-
-        // 一头读不出来就什么都不做，不会按半个拖拽发出按键。
-        Assert.Empty(Asked(devices));
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Contains("drag left 10 20 300 0 0 3", devices.Calls);
     }
 
     /// <summary>
@@ -1236,7 +1294,7 @@ public class DeviceActionTests
         [
             Step("file.readCsv", Param("path", "in.csv"), Returns("rows=table")),
             Step("input.mouseDrag",
-                Param("startFromRecord", "true"), Param("startRecord", "get($table, 0)"),
+                Param("startPlace", "get($table, 0)"),
                 Param("endX", "300"), Param("endY", "0"),
                 Param("durationMs", "0"), Param("dragSteps", "3")),
         ], devices);
@@ -1261,7 +1319,7 @@ public class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
             Step("input.mouseClick", Param("button", "left"),
-                Param("useRecord", "true"), Param("record", "$spot")),
+                Param("place", "$spot")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -1284,7 +1342,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("input.mouseMove", Param("useRecord", "true"), Param("record", "$spot"),
+            Step("input.mouseMove", Param("place", "$spot"),
                 Param("anchorMode", "window"), Param("anchorWindow", "Notepad")),
             Step("input.mouseMove", Param("x", "30"), Param("y", "40"),
                 Param("anchorMode", "window"), Param("anchorWindow", "Notepad")),
@@ -1298,11 +1356,11 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// 开关关着时读数那一格里的文字不参与：记录格是勾上开关才读的，没勾就照旧读两格数字。手写文件里
-    /// 留着上一次的记录不该把这一步悄悄挪到别的地方去。
+    /// 记录格里有一条记录时它说了算：手写的文件里同时留着数字也不该把这一步悄悄挪到别的地方去，
+    /// 界面本来也不会让两样同时留下。
     /// </summary>
     [Fact]
-    public async Task A_record_left_in_the_field_does_not_win_while_the_switch_is_off()
+    public async Task A_record_wins_over_numbers_written_beside_it()
     {
         var devices = new FakeDeviceLayer();
         devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
@@ -1311,11 +1369,11 @@ public class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
             Step("input.mouseClick", Param("button", "left"), Param("x", "100"), Param("y", "200"),
-                Param("record", "$spot")),
+                Param("place", "$spot")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.Equal("click left 100 200 1 0", devices.Calls[^1]);
+        Assert.Equal("click left 35 50 1 0", devices.Calls[^1]);
     }
 
     /// <summary>
@@ -1330,7 +1388,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("vision.getPixel", Param("useRecord", "true"), Param("record", "$spot"),
+            Step("vision.getPixel", Param("place", "$spot"),
                 Returns("color=tone")),
         ], devices);
 
@@ -1352,7 +1410,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("vision.capture", Param("useRecord", "true"), Param("record", "$spot"),
+            Step("vision.capture", Param("rect", "$spot"),
                 Returns("place=cut")),
         ], devices);
 
@@ -1380,7 +1438,7 @@ public class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("ocr.recognize", Param("useRecord", "true"), Param("record", "$spot"),
+            Step("ocr.recognize", Param("rect", "$spot"),
                 Returns("text=words")),
         ], devices);
 
@@ -1404,7 +1462,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("vision.capture", Param("useRecord", "true"), Param("record", "$spot"),
+            Step("vision.capture", Param("rect", "$spot"),
                 Param("anchorMode", "window"), Param("anchorWindow", "Notepad"),
                 Returns("image=cut")),
             Step("vision.capture", Param("x", "10"), Param("y", "20"), Param("width", "30"),
@@ -1424,27 +1482,6 @@ public class DeviceActionTests
             devices.Captures[2].Width, devices.Captures[2].Height));
     }
 
-    /// <summary>
-    /// 开关关着时四格数字照旧，记录格里留着的那条记录不参与：没勾开关的那一步读的是它自己写的四个
-    /// 数，一条没删掉的旧记录不该把截图挪到别的地方。
-    /// </summary>
-    [Fact]
-    public async Task A_record_left_in_the_box_field_does_not_win_while_the_switch_is_off()
-    {
-        var devices = WithAWindow();
-
-        var (result, _, _) = await RunAsync(
-        [
-            Step("window.info", Param("window", "Notepad"), Returns("window=win")),
-            Step("vision.capture", Param("x", "10"), Param("y", "20"), Param("width", "30"),
-                Param("height", "40"), Param("record", "$win"), Returns("image=cut")),
-        ], devices);
-
-        Assert.True(result.Succeeded, result.Key);
-
-        var asked = Assert.Single(devices.Captures);
-        Assert.Equal((10, 20, 30, 40), (asked.X, asked.Y, asked.Width, asked.Height));
-    }
 
     /// <summary>
     /// 一条里面没有矩形的记录（例如 CSV 的一行）当"哪一块"用时报 Run.BadRegion，并把它读到的东西写出来：
@@ -1459,7 +1496,7 @@ public class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("file.readCsv", Param("path", "in.csv"), Returns("rows=table")),
-            Step("ocr.recognize", Param("useRecord", "true"), Param("record", "get($table, 0)"),
+            Step("ocr.recognize", Param("rect", "get($table, 0)"),
                 Returns("text=words")),
         ], devices);
 
@@ -7896,7 +7933,7 @@ public class DeviceActionTests
         [
             Step("window.info", Param("window", "Notepad"), Returns("window=place")),
             Step("window.move", Param("window", "Notepad"),
-                Param("useRecord", "true"), Param("record", "$place")),
+                Param("rect", "$place")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -7906,11 +7943,11 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// 开关关着时四格数字照旧，记录格里留着的那条记录不参与：没勾开关的那一步摆的是它自己写的四个数，
-    /// 一条没删掉的旧记录不该把窗口摆到别处去。
+    /// 「矩形」格里有一条记录时它说了算：手写的文件里同时留着四格数字也不该把窗口摆到别处去，
+    /// 界面本来也不会让两样同时留下。
     /// </summary>
     [Fact]
-    public async Task A_window_move_reads_its_own_numbers_while_the_switch_is_off()
+    public async Task A_window_move_record_wins_over_numbers_beside_it()
     {
         var devices = new FakeDeviceLayer();
         devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
@@ -7920,11 +7957,11 @@ public class DeviceActionTests
         [
             Step("window.info", Param("window", "Notepad"), Returns("window=place")),
             Step("window.move", Param("window", "Notepad"), Param("x", "100"), Param("y", "50"),
-                Param("width", "640"), Param("height", "300"), Param("record", "$place")),
+                Param("width", "640"), Param("height", "300"), Param("rect", "$place")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.Contains("moveWindow 21 100 50 640 300", devices.Calls);
+        Assert.Contains("moveWindow 21 1000 500 800 600", devices.Calls);
     }
 
     /// <summary>
@@ -7943,7 +7980,7 @@ public class DeviceActionTests
         [
             Step("file.readCsv", Param("path", "in.csv"), Returns("rows=table")),
             Step("window.move", Param("window", "Notepad"),
-                Param("useRecord", "true"), Param("record", "get($table, 0)")),
+                Param("rect", "get($table, 0)")),
         ], devices);
 
         Assert.Equal(RunStatus.Failed, result.Status);

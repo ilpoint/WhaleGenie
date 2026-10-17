@@ -533,26 +533,27 @@ public class MacroCheckTests
     }
 
     /// <summary>
-    /// A checked "take the place from a record" switch and an empty record are two halves of one
-    /// answer; the editor can see that only one half is there.
+    /// A step that says where it works says it once: a record, or the numbers beside it. Neither
+    /// is a step that would work at nothing, which the editor can see before the run.
     /// </summary>
     [Fact]
-    public void A_place_taken_from_an_empty_record_is_reported()
+    public void A_place_with_neither_a_record_nor_numbers_is_reported()
     {
-        var empty = Step("window.move", Text("useRecord", "true"), Text("record", ""));
+        var empty = Step("window.move");
         var problem = Assert.Single(Inspect(empty));
         Assert.Same(empty, problem.Step);
-        Assert.Contains("record", problem.Message, System.StringComparison.OrdinalIgnoreCase);
 
-        // A record named in the field, or the switch left off, is a complete answer as far as the
-        // steps alone can tell.
-        Assert.Empty(Inspect(Step("window.move", Text("useRecord", "true"), Text("record", "place"))));
-        Assert.Empty(Inspect(Step("window.move", Text("useRecord", "false"), Text("record", ""))));
+        var label = Ui.Run(() => ActionCatalog.Find("window.move")!.Parameters
+            .First(parameter => parameter.Name == "rect").LocalLabel);
+        Assert.Equal(Strings.Format("Editor.Problem.NoPlace", label), problem.Message);
 
-        var drag = Step("input.mouseDrag",
-            Text("startFromRecord", "true"), Text("startRecord", ""),
-            Text("endFromRecord", "true"), Text("endRecord", "end"));
-        Assert.Single(Inspect(drag));
+        // A record named in the field is a whole answer as far as the steps alone can tell.
+        var writes = Step("control.setVariable", Text("name", "spot"), Text("value", "1"));
+        Assert.Empty(Inspect(writes, Step("window.move", Text("rect", "$spot"))));
+
+        // So is a drag that starts at a record and ends at numbers.
+        Assert.Empty(Inspect(writes, Step("input.mouseDrag",
+            Text("startPlace", "$spot"), Text("endX", "10"), Text("endY", "10"))));
     }
 
     [Fact]

@@ -609,7 +609,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.WaitWithoutTimeout"] = "This step waits but has no timeout of its own. "
             + "A retry or an outer limit cannot make the wait end sooner; set a timeout before "
             + "relying on either.",
-        ["Editor.Problem.EmptyRecord"] = "This step takes its place from a record, but \"{0}\" is empty.",
+        ["Editor.Problem.NoPlace"] = "Neither \"{0}\" nor the numbers beside it is filled in, so this step has nowhere to work.",
         ["Editor.Problem.EmptySwitch"] = "This switch has no case and no otherwise branch, so it does nothing.",
         ["Editor.Problem.ReservedVariable"] = "\"{0}\" is a name WhaleGenie keeps for itself, "
             + "so a variable of this macro cannot use it.",
@@ -1243,10 +1243,8 @@ public sealed class Strings : INotifyPropertyChanged
             + "and height in it (a hit, a window and a picture taken earlier all do): {0}",
         ["Run.BadPoint"] = "The record this step takes its place from has no x and y in it (a hit, "
             + "a window and an element carry the middle of what they name there): {0}",
-        ["Run.BadPointEmpty"] = "The {0} field is empty: this step takes its place from a record and "
-            + "none was handed to it. Let the step before it find something first, or turn the "
-            + "switch off and write the numbers instead.",
         ["Run.BadPoints"] = "Every point of a colour comparison reads as x,y,#RRGGBB: {0}",
+        ["Run.RecordWhereNumber"] = "This field takes a number, but it was handed a record: a record is a set of named fields, not a number. Read one field of it with field().",
         ["Run.BadPattern"] = "That is not a usable match pattern: {0}",
         ["Run.RegexTimeout"] = "The regular expression did not finish within one second: {0}",
         ["Run.BadMatchMode"] = "That is not a way of comparing text: {0}. Write contains, "
@@ -1971,7 +1969,7 @@ public sealed class Strings : INotifyPropertyChanged
             + "指针不会动。改用前台或驱动级，或者用「鼠标移动到」把位置按绝对坐标写全。",
         ["Editor.Problem.WaitWithoutTimeout"] = "这一步会等待，但没有设置自己的超时；重试或外层限时"
             + "都不能让它更早结束。要依赖它们，先给这一步填一个超时。",
-        ["Editor.Problem.EmptyRecord"] = "这一步要从一条记录取位置，但「{0}」是空的。",
+        ["Editor.Problem.NoPlace"] = "「{0}」和旁边的数字都没填，这一步没有地方可做。",
         ["Editor.Problem.EmptySwitch"] = "这个多分支没有 case，也没有 otherwise，运行时什么也不做。",
         ["Editor.Problem.ReservedVariable"] = "“{0}”是鲸灵自己保留的名字，本宏的变量不能用它。",
         ["Editor.Problem.UnguardedRecursion"] = "这一步调用了宏自己，但不在 if、多分支或循环里，"
@@ -2870,9 +2868,8 @@ public sealed class Strings : INotifyPropertyChanged
             + "的画面都会带着这四个数）：{0}",
         ["Run.BadPoint"] = "交给它的那条记录里没有 x、y（命中、窗口、元素都会带着这两个数，取的是"
             + "那块矩形的中心）：{0}",
-        ["Run.BadPointEmpty"] = "{0} 这一格是空的：这一步的位置要取自一条记录，却什么都没交给它。"
-            + "先让上一步找到东西，或者关掉那个开关、直接写数字。",
         ["Run.BadPoints"] = "多点比色里的每个点要写成 x,y,#RRGGBB 的形式：{0}",
+        ["Run.RecordWhereNumber"] = "这一格要的是数字，却收到了一条记录：记录是一组有名有姓的字段，不是数。要取其中一项用 field()。",
         ["Run.BadPattern"] = "这不是一个可用的匹配模式：{0}",
         ["Run.RegexTimeout"] = "正则表达式在一秒内没有算完：{0}",
         ["Run.BadMatchMode"] = "这不是一种比对文字的方式：{0}。可以写的是 contains、startsWith、"

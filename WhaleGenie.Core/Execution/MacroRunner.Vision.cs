@@ -260,19 +260,8 @@ public sealed partial class MacroRunner
     /// </summary>
     private (ScreenPoint Corner, int Width, int Height) Box(ExecutableStep step, ScreenPoint? origin)
     {
-        if (FromRecord(step))
+        if (RecordedRect(step, "rect") is { } sides)
         {
-            var raw = ReadText(step, "record").Trim();
-            if (raw.Length == 0)
-            {
-                throw new StepFailure(RunKeys.BadPointEmpty, "record");
-            }
-
-            if (Read(raw) is not { IsRecord: true } record || Sides(record) is not { } sides)
-            {
-                throw new StepFailure(RunKeys.BadRegion, raw);
-            }
-
             return (new ScreenPoint(sides.Left, sides.Top), sides.Width, sides.Height);
         }
 
@@ -281,6 +270,24 @@ public sealed partial class MacroRunner
         return (corner,
             Reach(step, FieldNames.Width, corner.X, desk.Right),
             Reach(step, FieldNames.Height, corner.Y, desk.Bottom));
+    }
+
+    /// <summary>
+    /// The rectangle a record field names, or null when nobody filled it in. A value written there
+    /// that is not a record carrying all four sides is refused with what was written.
+    /// </summary>
+    private (int Left, int Top, int Width, int Height)? RecordedRect(ExecutableStep step, string name)
+    {
+        var value = ReadValue(step, name);
+        if (value.IsNull)
+        {
+            return null;
+        }
+
+        var written = step.Text(name).Trim();
+        return value.IsRecord && Sides(value) is { } sides
+            ? sides
+            : throw new StepFailure(RunKeys.BadRegion, written);
     }
 
     /// <summary>

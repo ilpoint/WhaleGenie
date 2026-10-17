@@ -403,6 +403,60 @@ public class ActionContractTests
     }
 
     /// <summary>
+    /// A place or a rectangle is written one way: the record field that takes it whole, or the
+    /// numbers beside it. Every action that works at a place says so with a Point and every one
+    /// that works on a rectangle says Rect, and no action still carries the switch that used to
+    /// choose between the two.
+    /// </summary>
+    [Fact]
+    public void A_place_or_a_rectangle_is_declared_as_one_shape()
+    {
+        var retired = new[] { "useRecord", "record", "startFromRecord", "startRecord",
+            "endFromRecord", "endRecord" };
+        foreach (var action in ActionSemanticsCatalog.All)
+        {
+            foreach (var name in retired)
+            {
+                Assert.Null(action.Parameter(name));
+            }
+        }
+
+        (string Key, string Field, ActionValueShape Shape)[] places =
+        [
+            ("input.mouseMove", "place", ActionValueShape.Point),
+            ("input.mouseClick", "place", ActionValueShape.Point),
+            ("input.mouseDoubleClick", "place", ActionValueShape.Point),
+            ("input.mouseDown", "place", ActionValueShape.Point),
+            ("input.mouseUp", "place", ActionValueShape.Point),
+            ("input.mouseScroll", "place", ActionValueShape.Point),
+            ("vision.getPixel", "place", ActionValueShape.Point),
+            ("vision.waitColor", "place", ActionValueShape.Point),
+            ("input.mouseDrag", "startPlace", ActionValueShape.Point),
+            ("input.mouseDrag", "endPlace", ActionValueShape.Point),
+            ("vision.capture", "rect", ActionValueShape.Rect),
+            ("ocr.recognize", "rect", ActionValueShape.Rect),
+            ("window.move", "rect", ActionValueShape.Rect),
+        ];
+
+        foreach (var (key, name, shape) in places)
+        {
+            var field = ActionSemanticsCatalog.Find(key)!.Parameter(name);
+            Assert.NotNull(field);
+            Assert.Equal(shape, field.Shape);
+            Assert.Equal(ActionReadMode.WholeValue, field.ReadMode);
+            Assert.False(field.Required);
+        }
+
+        // The same question is not asked twice: no place or rectangle action also carries a
+        // second field of the other shape.
+        foreach (var action in ActionSemanticsCatalog.All)
+        {
+            var shapes = action.Parameters.Select(parameter => parameter.Shape).ToList();
+            Assert.False(shapes.Contains(ActionValueShape.Point) && shapes.Contains(ActionValueShape.Rect));
+        }
+    }
+
+    /// <summary>
     /// One beat goes by one name. A field that says the same thing under a second name is a second
     /// question for the person filling the form in, and a second answer for the engine to read.
     /// </summary>
@@ -560,6 +614,9 @@ public class ActionContractTests
             or ActionParameterKind.Images or ActionParameterKind.Returns
             or ActionParameterKind.Narrow => ActionValueShape.Rows,
         ActionParameterKind.Image => ActionValueShape.Image,
+        ActionParameterKind.Record => ActionValueShape.Record,
+        ActionParameterKind.Point => ActionValueShape.Point,
+        ActionParameterKind.Rect => ActionValueShape.Rect,
         _ => ActionValueShape.Text,
     };
 

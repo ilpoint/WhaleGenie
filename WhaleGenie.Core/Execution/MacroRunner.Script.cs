@@ -856,7 +856,16 @@ public sealed partial class MacroRunner
             return EmptyNumber(step, name);
         }
 
-        return Vary(step, name, (int)ReadValue(step, name).AsNumber());
+        var value = ReadValue(step, name);
+
+        // A record is a set of fields, not a number: reading one as a number would either pick a
+        // field nobody named or quietly come out as zero, so a step that put one here is told.
+        if (value.IsRecord)
+        {
+            throw new StepFailure(RunKeys.RecordWhereNumber, name);
+        }
+
+        return Vary(step, name, (int)value.AsNumber());
     }
 
     /// <summary>

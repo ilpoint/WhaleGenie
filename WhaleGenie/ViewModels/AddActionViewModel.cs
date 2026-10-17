@@ -1675,24 +1675,9 @@ public partial class AddActionViewModel : ViewModelBase
             filled = true;
         }
 
-        // A number just read off the screen is the answer the user wanted, so a switch that would
-        // have taken the same place from a record is turned off with it: a record left on from before
-        // would otherwise keep saying somewhere else, and nothing on the form would show it going by.
-        if (filled)
-        {
-            SwitchOff("useRecord");
-        }
-
+        // A number just read off the screen is the answer the user wanted; the record field beside
+        // it is emptied by the same change, so the form does not keep a place nobody meant.
         return filled;
-    }
-
-    /// <summary>Turns a switch off, for the fields the screen picker just answered itself.</summary>
-    private void SwitchOff(string name)
-    {
-        if (Parameter(name) is { } toggle)
-        {
-            toggle.Flag = false;
-        }
     }
 
     /// <summary>
@@ -1814,15 +1799,6 @@ public partial class AddActionViewModel : ViewModelBase
             }
         }
 
-        // The four numbers are the user's own answer, so whichever switch would have taken the
-        // rectangle from a record is turned off along with them.
-        if (filled)
-        {
-            SwitchOff("useRecord");
-            SwitchOff("startFromRecord");
-            SwitchOff("endFromRecord");
-        }
-
         if (!filled && Parameter("region") is { } region)
         {
             // A search that looks in several places takes this one as one more place: what the
@@ -1910,8 +1886,69 @@ public partial class AddActionViewModel : ViewModelBase
 
     private void OnNestedEditRequested(MacroStep step) => NestedEditRequested?.Invoke(step);
 
+    /// <summary>
+    /// The ways of answering "where" or "which rectangle": the record in the first field, or the
+    /// numbers in the rest.
+    /// </summary>
+    private static readonly (string Place, string[] Numbers)[] PlaceGroups =
+    [
+        ("place", ["x", "y"]),
+        ("rect", ["x", "y", FieldNames.Width, FieldNames.Height]),
+        ("startPlace", ["startX", "startY"]),
+        ("endPlace", ["endX", "endY"]),
+    ];
+
+    /// <summary>True while this dialog is emptying one way of answering because the other was used.</summary>
+    private bool _answeringPlace;
+
+    /// <summary>
+    /// A place or a rectangle is answered one way: by a record, or by the numbers beside it. What
+    /// is typed into one clears the other, so the form never holds two answers at once and nobody
+    /// has to know which one the engine would have read.
+    /// </summary>
+    private void KeepPlaceAndNumbersApart(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_answeringPlace
+            || sender is not StepParameterViewModel changed
+            || e.PropertyName is not (nameof(StepParameterViewModel.Text)
+                or nameof(StepParameterViewModel.NumberValue)))
+        {
+            return;
+        }
+
+        var group = PlaceGroups.FirstOrDefault(candidate =>
+            candidate.Place == changed.Definition.Name
+            || candidate.Numbers.Contains(changed.Definition.Name, StringComparer.Ordinal));
+        if (group.Place is null || changed.CurrentText.Trim().Length == 0)
+        {
+            return;
+        }
+
+        _answeringPlace = true;
+        try
+        {
+            if (changed.Definition.Name == group.Place)
+            {
+                foreach (var name in group.Numbers)
+                {
+                    Parameter(name)?.Clear();
+                }
+            }
+            else
+            {
+                Parameter(group.Place)?.Clear();
+            }
+        }
+        finally
+        {
+            _answeringPlace = false;
+        }
+    }
+
     private void OnParameterChanged(object? sender, PropertyChangedEventArgs e)
     {
+        KeepPlaceAndNumbersApart(sender, e);
+
         // A call's fields are the called macro's declarations, so the form is rebuilt the moment
         // the macro it names changes. The rebuild says everything a change says and the fields this
         // event came from are gone with it, so nothing else is done here.

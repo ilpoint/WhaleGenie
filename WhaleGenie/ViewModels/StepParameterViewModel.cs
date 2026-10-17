@@ -63,10 +63,19 @@ public partial class StepParameterViewModel : ViewModelBase
         var knowsFunctions = definition.Kind
             is ActionParameterKind.Expression or ActionParameterKind.Number
             || definition.AcceptsFormula;
+
+        // A field that takes a record suggests only the names known to hold one: a number is not a
+        // place, and offering it would be offering a mistake. Everything else may hold any value,
+        // so every name is offered.
+        var recordField = definition.Shape
+            is ActionValueShape.Record or ActionValueShape.Point or ActionValueShape.Rect;
+        var named = recordField
+            ? Variables.Where(choice => choice.Type == "record").Select(choice => choice.Name)
+            : KnownNames;
         var suggestions = new List<string>();
         if (knowsFunctions || definition.AcceptsVariables)
         {
-            suggestions.AddRange(KnownNames.Select(name => "$" + name));
+            suggestions.AddRange(named.Select(name => "$" + name));
             if (knowsFunctions)
             {
                 suggestions.AddRange(Expression.Functions.Select(function => function.Name + "("));
@@ -472,7 +481,8 @@ public partial class StepParameterViewModel : ViewModelBase
     public bool ShowExpressionSuccess => !HasExpressionError && ExpressionMessage.Length > 0;
 
     public bool IsText => Definition.Kind
-        is ActionParameterKind.Text or ActionParameterKind.Key or ActionParameterKind.Keys;
+        is ActionParameterKind.Text or ActionParameterKind.Key or ActionParameterKind.Keys
+            or ActionParameterKind.Record or ActionParameterKind.Point or ActionParameterKind.Rect;
 
     /// <summary>
     /// True when the parameter is written in a plain one-line field with nothing beside it. A
@@ -1370,6 +1380,18 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         UseFormula = false;
         NumberValue = value;
+    }
+
+    /// <summary>
+    /// Empties the field whichever way it was written, so that the other way of answering the same
+    /// question — a record here, the numbers beside it, or the other way round — can take over
+    /// without the form holding two answers at once.
+    /// </summary>
+    public void Clear()
+    {
+        Text = string.Empty;
+        UseFormula = false;
+        NumberValue = null;
     }
 
     partial void OnUseFormulaChanged(bool value)

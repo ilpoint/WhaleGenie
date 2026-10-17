@@ -6764,11 +6764,8 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -6787,11 +6784,8 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -6810,11 +6804,8 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -6833,29 +6824,6 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "useRecord",
-        "Label": "Take the place and size from a record",
-        "Hint": "With this on, the rectangle comes from the record in the field below, and the four numbers above are not written and not read. Use it when the rectangle is the one an earlier step found or read.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
@@ -6867,19 +6835,17 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "record",
-        "Label": "The record",
-        "Hint": "The record the rectangle is taken from: a hit, a window or a picture taken earlier carries left, top, width and height, in screen pixels. An expression that works one out goes here as well. A record says where it is on the screen, so the coordinate origin above moves the numbers written out and not a record.",
+        "Name": "rect",
+        "Label": "Rectangle",
+        "Hint": "A record whose left, top, width and height say where the window should go, such as a window read earlier. Fill this in to put the window where that record says, instead of writing the four numbers.",
         "Placeholder": "",
-        "Kind": "Text",
+        "Kind": "Rect",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "true"
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -8622,11 +8588,8 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -8645,29 +8608,6 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "useRecord",
-        "Label": "Take the place from a record",
-        "Hint": "With this on, the place comes from the record in the field below, and the numbers above are not written and not read. Use it when the place is wherever an earlier step found something.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
@@ -8679,19 +8619,17 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "record",
-        "Label": "The record",
-        "Hint": "The record the place is taken from: a hit, a window or an element carries x and y, the middle of what it names, in screen pixels. An expression that works one out goes here as well. A record says where it is on the screen, so the coordinate origin above moves the numbers written out and not a record.",
+        "Name": "place",
+        "Label": "Place",
+        "Hint": "A record whose x and y say where, such as a hit, a window or a picture taken earlier; its x and y are the middle of what it names. Fill this in to work where an earlier step found something, instead of writing the two numbers.",
         "Placeholder": "",
-        "Kind": "Text",
+        "Kind": "Point",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "true"
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -9287,11 +9225,8 @@
         "AppliesWhenValues": [
           "false"
         ],
-        "AppliesWhenAlso": "useRecord",
-        "AppliesWhenAlsoValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -9312,11 +9247,8 @@
         "AppliesWhenValues": [
           "false"
         ],
-        "AppliesWhenAlso": "useRecord",
-        "AppliesWhenAlsoValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -9324,11 +9256,11 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "useRecord",
-        "Label": "Take the place from a record",
-        "Hint": "With this on, the place comes from the record in the field below, and the numbers above are not written and not read. Use it when the place is wherever an earlier step found something.",
+        "Name": "place",
+        "Label": "Place",
+        "Hint": "A record whose x and y say where, such as a hit, a window or a picture taken earlier; its x and y are the middle of what it names. Fill this in to work where an earlier step found something, instead of writing the two numbers.",
         "Placeholder": "",
-        "Kind": "Bool",
+        "Kind": "Point",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -9340,31 +9272,6 @@
         ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "record",
-        "Label": "The record",
-        "Hint": "The record the place is taken from: a hit, a window or an element carries x and y, the middle of what it names, in screen pixels. An expression that works one out goes here as well. A record says where it is on the screen, so the coordinate origin above moves the numbers written out and not a record.",
-        "Placeholder": "",
-        "Kind": "Text",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "true"
-        ],
-        "AppliesWhenAlso": "useCursor",
-        "AppliesWhenAlsoValues": [
-          "false",
-          ""
-        ],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -9778,11 +9685,8 @@
         "AppliesWhenValues": [
           "false"
         ],
-        "AppliesWhenAlso": "useRecord",
-        "AppliesWhenAlsoValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -9803,11 +9707,8 @@
         "AppliesWhenValues": [
           "false"
         ],
-        "AppliesWhenAlso": "useRecord",
-        "AppliesWhenAlsoValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -9815,11 +9716,11 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "useRecord",
-        "Label": "Take the place from a record",
-        "Hint": "With this on, the place comes from the record in the field below, and the numbers above are not written and not read. Use it when the place is wherever an earlier step found something.",
+        "Name": "place",
+        "Label": "Place",
+        "Hint": "A record whose x and y say where, such as a hit, a window or a picture taken earlier; its x and y are the middle of what it names. Fill this in to work where an earlier step found something, instead of writing the two numbers.",
         "Placeholder": "",
-        "Kind": "Bool",
+        "Kind": "Point",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -9831,31 +9732,6 @@
         ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "record",
-        "Label": "The record",
-        "Hint": "The record the place is taken from: a hit, a window or an element carries x and y, the middle of what it names, in screen pixels. An expression that works one out goes here as well. A record says where it is on the screen, so the coordinate origin above moves the numbers written out and not a record.",
-        "Placeholder": "",
-        "Kind": "Text",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "true"
-        ],
-        "AppliesWhenAlso": "useCursor",
-        "AppliesWhenAlsoValues": [
-          "false",
-          ""
-        ],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -10249,11 +10125,8 @@
         "AppliesWhenValues": [
           "false"
         ],
-        "AppliesWhenAlso": "useRecord",
-        "AppliesWhenAlsoValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -10274,11 +10147,8 @@
         "AppliesWhenValues": [
           "false"
         ],
-        "AppliesWhenAlso": "useRecord",
-        "AppliesWhenAlsoValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -10286,11 +10156,11 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "useRecord",
-        "Label": "Take the place from a record",
-        "Hint": "With this on, the place comes from the record in the field below, and the numbers above are not written and not read. Use it when the place is wherever an earlier step found something.",
+        "Name": "place",
+        "Label": "Place",
+        "Hint": "A record whose x and y say where, such as a hit, a window or a picture taken earlier; its x and y are the middle of what it names. Fill this in to work where an earlier step found something, instead of writing the two numbers.",
         "Placeholder": "",
-        "Kind": "Bool",
+        "Kind": "Point",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -10302,31 +10172,6 @@
         ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "record",
-        "Label": "The record",
-        "Hint": "The record the place is taken from: a hit, a window or an element carries x and y, the middle of what it names, in screen pixels. An expression that works one out goes here as well. A record says where it is on the screen, so the coordinate origin above moves the numbers written out and not a record.",
-        "Placeholder": "",
-        "Kind": "Text",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "true"
-        ],
-        "AppliesWhenAlso": "useCursor",
-        "AppliesWhenAlsoValues": [
-          "false",
-          ""
-        ],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -10640,11 +10485,8 @@
         "AppliesWhenValues": [
           "false"
         ],
-        "AppliesWhenAlso": "useRecord",
-        "AppliesWhenAlsoValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -10665,11 +10507,8 @@
         "AppliesWhenValues": [
           "false"
         ],
-        "AppliesWhenAlso": "useRecord",
-        "AppliesWhenAlsoValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -10677,11 +10516,11 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "useRecord",
-        "Label": "Take the place from a record",
-        "Hint": "With this on, the place comes from the record in the field below, and the numbers above are not written and not read. Use it when the place is wherever an earlier step found something.",
+        "Name": "place",
+        "Label": "Place",
+        "Hint": "A record whose x and y say where, such as a hit, a window or a picture taken earlier; its x and y are the middle of what it names. Fill this in to work where an earlier step found something, instead of writing the two numbers.",
         "Placeholder": "",
-        "Kind": "Bool",
+        "Kind": "Point",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -10693,31 +10532,6 @@
         ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "record",
-        "Label": "The record",
-        "Hint": "The record the place is taken from: a hit, a window or an element carries x and y, the middle of what it names, in screen pixels. An expression that works one out goes here as well. A record says where it is on the screen, so the coordinate origin above moves the numbers written out and not a record.",
-        "Placeholder": "",
-        "Kind": "Text",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "true"
-        ],
-        "AppliesWhenAlso": "useCursor",
-        "AppliesWhenAlsoValues": [
-          "false",
-          ""
-        ],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -11071,11 +10885,8 @@
         "AppliesWhenValues": [
           "false"
         ],
-        "AppliesWhenAlso": "useRecord",
-        "AppliesWhenAlsoValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -11096,11 +10907,8 @@
         "AppliesWhenValues": [
           "false"
         ],
-        "AppliesWhenAlso": "useRecord",
-        "AppliesWhenAlsoValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -11128,11 +10936,11 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "useRecord",
-        "Label": "Take the place from a record",
-        "Hint": "With this on, the place comes from the record in the field below, and the numbers above are not written and not read. Use it when the place is wherever an earlier step found something.",
+        "Name": "place",
+        "Label": "Place",
+        "Hint": "A record whose x and y say where, such as a hit, a window or a picture taken earlier; its x and y are the middle of what it names. Fill this in to scroll where an earlier step found something, instead of writing the two numbers.",
         "Placeholder": "",
-        "Kind": "Bool",
+        "Kind": "Point",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
@@ -11144,31 +10952,6 @@
         ],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "record",
-        "Label": "The record",
-        "Hint": "The record the place is taken from: a hit, a window or an element carries x and y, the middle of what it names, in screen pixels. An expression that works one out goes here as well. A record says where it is on the screen, so the coordinate origin above moves the numbers written out and not a record.",
-        "Placeholder": "",
-        "Kind": "Text",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "true"
-        ],
-        "AppliesWhenAlso": "useCursor",
-        "AppliesWhenAlsoValues": [
-          "false",
-          ""
-        ],
         "PathIntent": 0,
         "PathFilter": "",
         "Increment": 1,
@@ -11478,11 +11261,8 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "startFromRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -11501,29 +11281,6 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "startFromRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "startFromRecord",
-        "Label": "Start from a record",
-        "Hint": "With this on, the place comes from the record in the field below, and the numbers above are not written and not read. Use it when the place is wherever an earlier step found something.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
@@ -11535,19 +11292,17 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "startRecord",
-        "Label": "The start record",
-        "Hint": "The record the place is taken from: a hit, a window or an element carries x and y, the middle of what it names, in screen pixels. An expression that works one out goes here as well. A record says where it is on the screen, so the coordinate origin above moves the numbers written out and not a record.",
+        "Name": "startPlace",
+        "Label": "Start place",
+        "Hint": "A record whose x and y say where the drag starts, such as a hit or a window. Fill this in to start where an earlier step found something, instead of writing the two numbers.",
         "Placeholder": "",
-        "Kind": "Text",
+        "Kind": "Point",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "startFromRecord",
-        "AppliesWhenValues": [
-          "true"
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -11566,11 +11321,8 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "endFromRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -11589,29 +11341,6 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "endFromRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "endFromRecord",
-        "Label": "End from a record",
-        "Hint": "With this on, the place comes from the record in the field below, and the numbers above are not written and not read. Use it when the place is wherever an earlier step found something.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
@@ -11623,19 +11352,17 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "endRecord",
-        "Label": "The end record",
-        "Hint": "The record the place is taken from: a hit, a window or an element carries x and y, the middle of what it names, in screen pixels. An expression that works one out goes here as well. A record says where it is on the screen, so the coordinate origin above moves the numbers written out and not a record.",
+        "Name": "endPlace",
+        "Label": "End place",
+        "Hint": "A record whose x and y say where the drag ends, such as a hit or a window. Fill this in to end where an earlier step found something, instead of writing the two numbers.",
         "Placeholder": "",
-        "Kind": "Text",
+        "Kind": "Point",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "endFromRecord",
-        "AppliesWhenValues": [
-          "true"
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -12277,11 +12004,8 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -12300,11 +12024,8 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -12323,11 +12044,8 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -12346,29 +12064,6 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "useRecord",
-        "Label": "Take the rectangle from a record",
-        "Hint": "With this on, the rectangle comes from the record in the field below, and the four numbers above are not written and not read. Use it when the rectangle is the one an earlier step found or read.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
@@ -12380,19 +12075,17 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "record",
-        "Label": "The record",
-        "Hint": "The record the rectangle is taken from: a hit, a window or a picture taken earlier carries left, top, width and height, in screen pixels. An expression that works one out goes here as well. A record says where it is on the screen, so the coordinate origin above moves the numbers written out and not a record.",
+        "Name": "rect",
+        "Label": "Rectangle",
+        "Hint": "A record whose left, top, width and height say which part of the screen, such as a hit, a window or a picture taken earlier. Fill this in to take what an earlier step found, instead of writing the four numbers.",
         "Placeholder": "",
-        "Kind": "Text",
+        "Kind": "Rect",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "true"
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -14329,11 +14022,8 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -14352,29 +14042,6 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "useRecord",
-        "Label": "Take the place from a record",
-        "Hint": "With this on, the place comes from the record in the field below, and the numbers above are not written and not read. Use it when the place is wherever an earlier step found something.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
@@ -14386,19 +14053,17 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "record",
-        "Label": "The record",
-        "Hint": "The record the place is taken from: a hit, a window or an element carries x and y, the middle of what it names, in screen pixels. An expression that works one out goes here as well. A record says where it is on the screen, so the coordinate origin above moves the numbers written out and not a record.",
+        "Name": "place",
+        "Label": "Place",
+        "Hint": "A record whose x and y say where, such as a hit, a window or a picture taken earlier; its x and y are the middle of what it names. Fill this in to read the pixel where an earlier step found something, instead of writing the two numbers.",
         "Placeholder": "",
-        "Kind": "Text",
+        "Kind": "Point",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "true"
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -14677,11 +14342,8 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -14700,29 +14362,6 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "useRecord",
-        "Label": "Take the place from a record",
-        "Hint": "With this on, the place comes from the record in the field below, and the numbers above are not written and not read. Use it when the place is wherever an earlier step found something.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
@@ -14734,19 +14373,17 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "record",
-        "Label": "The record",
-        "Hint": "The record the place is taken from: a hit, a window or an element carries x and y, the middle of what it names, in screen pixels. An expression that works one out goes here as well. A record says where it is on the screen, so the coordinate origin above moves the numbers written out and not a record.",
+        "Name": "place",
+        "Label": "Place",
+        "Hint": "A record whose x and y say where, such as a hit, a window or a picture taken earlier; its x and y are the middle of what it names. Fill this in to watch the pixel where an earlier step found something, instead of writing the two numbers.",
         "Placeholder": "",
-        "Kind": "Text",
+        "Kind": "Point",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "true"
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -17336,11 +16973,8 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -17359,11 +16993,8 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -17382,11 +17013,8 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,
@@ -17405,29 +17033,6 @@
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "false",
-          ""
-        ],
-        "AppliesWhenAlso": "",
-        "AppliesWhenAlsoValues": [],
-        "PathIntent": 0,
-        "PathFilter": "",
-        "Increment": 1,
-        "Tall": false,
-        "AddLabelKey": ""
-      },
-      {
-        "Name": "useRecord",
-        "Label": "Take the rectangle from a record",
-        "Hint": "With this on, the rectangle comes from the record in the field below, and the four numbers above are not written and not read. Use it when the rectangle is the one an earlier step found or read.",
-        "Placeholder": "",
-        "Kind": "Bool",
-        "OptionLabels": [],
-        "ForeignText": false,
-        "Advanced": false,
-        "EnabledBySibling": "",
         "AppliesWhen": "",
         "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
@@ -17439,19 +17044,17 @@
         "AddLabelKey": ""
       },
       {
-        "Name": "record",
-        "Label": "The record",
-        "Hint": "The record the rectangle is taken from: a hit, a window or a picture taken earlier carries left, top, width and height, in screen pixels. An expression that works one out goes here as well. A record says where it is on the screen, so the coordinate origin above moves the numbers written out and not a record.",
+        "Name": "rect",
+        "Label": "Rectangle",
+        "Hint": "A record whose left, top, width and height say which part of the screen, such as a hit, a window or a picture taken earlier. Fill this in to read what an earlier step found, instead of writing the four numbers.",
         "Placeholder": "",
-        "Kind": "Text",
+        "Kind": "Rect",
         "OptionLabels": [],
         "ForeignText": false,
         "Advanced": false,
         "EnabledBySibling": "",
-        "AppliesWhen": "useRecord",
-        "AppliesWhenValues": [
-          "true"
-        ],
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
         "AppliesWhenAlso": "",
         "AppliesWhenAlsoValues": [],
         "PathIntent": 0,

@@ -55,15 +55,15 @@ public static class MacroCheck
     };
 
     /// <summary>
-    /// The switches that say a place comes from a record, and the field that holds the record.
-    /// The two are read together because a checked switch with nothing under it is a step that
-    /// will fail before it does anything.
+    /// The fields one place or rectangle is answered by: the record in the first, or the numbers
+    /// in the rest. One of the two has to be written down.
     /// </summary>
-    private static readonly (string Flag, string Record)[] RecordPairs =
+    private static readonly (string Place, string[] Numbers)[] PlaceGroups =
     [
-        ("useRecord", "record"),
-        ("startFromRecord", "startRecord"),
-        ("endFromRecord", "endRecord"),
+        ("place", ["x", "y"]),
+        ("rect", ["x", "y", FieldNames.Width, FieldNames.Height]),
+        ("startPlace", ["startX", "startY"]),
+        ("endPlace", ["endX", "endY"]),
     ];
 
     /// <summary>
@@ -173,7 +173,7 @@ public static class MacroCheck
                 CheckNames(step, namesAreOpen);
                 CheckPostedMove(step);
                 CheckWait(step, bounded);
-                CheckRecord(step);
+                CheckPlace(step);
                 CheckSwitch(step);
                 CheckReservedNames(step);
                 CheckScriptInput(step);
@@ -411,21 +411,34 @@ public static class MacroCheck
         }
 
         /// <summary>
-        /// A place taken from a record needs the record. The switch and the field are one answer
-        /// written in two places, and the editor can see when only half of it is there.
+        /// A step that says where it works says it once: a record, or the numbers beside it. Both
+        /// empty is a step that would work at nothing in particular, which the editor can see
+        /// before the macro runs. A click and a drag fall back to the pointer, and a step that reads
+        /// the screen falls back to the whole of it, so those say nothing is a real answer.
         /// </summary>
-        void CheckRecord(MacroStep step)
+        void CheckPlace(MacroStep step)
         {
-            foreach (var (flag, record) in RecordPairs)
+            if (step.Definition is not { } definition
+                || definition.Parameters.Any(parameter => parameter.Name == "useCursor")
+                || step.Type is "vision.capture" or "ocr.recognize")
             {
-                if (!On(step, flag) || step.Text(record).Trim().Length > 0)
+                return;
+            }
+
+            foreach (var (place, numbers) in PlaceGroups)
+            {
+                if (definition.Parameters.FirstOrDefault(parameter =>
+                        parameter.Name == place) is not { } field)
                 {
                     continue;
                 }
 
-                var label = step.Definition?.Parameters
-                    .FirstOrDefault(parameter => parameter.Name == record)?.LocalLabel ?? record;
-                Add(step, Strings.Format("Editor.Problem.EmptyRecord", label));
+                var written = step.Text(place).Trim();
+                var number = numbers.Any(name => step.Text(name).Trim().Length > 0);
+                if (written.Length == 0 && !number)
+                {
+                    Add(step, Strings.Format("Editor.Problem.NoPlace", field.LocalLabel));
+                }
             }
         }
 

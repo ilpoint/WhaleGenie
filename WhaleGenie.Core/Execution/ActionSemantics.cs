@@ -51,6 +51,24 @@ public enum ActionValueShape
     Condition,
     Rows,
     Image,
+
+    /// <summary>A whole record: the value is a set of named fields rather than one thing.</summary>
+    Record,
+
+    /// <summary>
+    /// One place on the screen, written as a record carrying <c>x</c> and <c>y</c> (the middle of
+    /// what it came from) or, when nobody wrote one, as the two numbers beside it.
+    /// </summary>
+    Point,
+
+    /// <summary>
+    /// One rectangle, written as a record carrying <c>left</c>, <c>top</c>, <c>width</c> and
+    /// <c>height</c> or, when nobody wrote one, as the four numbers beside it.
+    /// </summary>
+    Rect,
+
+    /// <summary>A list of values, read whole.</summary>
+    List,
 }
 
 /// <summary>

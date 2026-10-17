@@ -521,9 +521,9 @@ public sealed partial class MacroRunner
     private (ScreenPoint Corner, WindowInfo? Window) Spot(ExecutableStep step)
     {
         var anchor = AnchorOf(step);
-        return (FromRecord(step)
-            ? RecordPlace(step, "record")
-            : Placed(anchor.Corner, Number(step, "x"), Number(step, "y")), anchor.Window);
+        return (RecordedPlace(step, "place")
+                ?? Placed(anchor.Corner, Number(step, "x"), Number(step, "y")),
+            anchor.Window);
     }
 
     /// <summary>
@@ -543,9 +543,9 @@ public sealed partial class MacroRunner
             return Input(step).Cursor;
         }
 
-        if (FromRecord(step))
+        if (RecordedPlace(step, "place") is { } place)
         {
-            return RecordPlace(step, "record");
+            return place;
         }
 
         var x = ReadText(step, xName).Trim();
@@ -562,38 +562,26 @@ public sealed partial class MacroRunner
     /// to the corner the step counts from rather than to nowhere.
     /// </summary>
     private ScreenPoint MovePlace(ExecutableStep step)
-    {
-        return FromRecord(step)
-            ? RecordPlace(step, "record")
-            : Placed(Anchor(step), Number(step, "x"), Number(step, "y"));
-    }
+        => RecordedPlace(step, "place")
+            ?? Placed(Anchor(step), Number(step, "x"), Number(step, "y"));
 
     /// <summary>
-    /// Whether a step takes its place or its rectangle from a record. The switch is off where it was
-    /// never written, which is how a macro that spells the numbers out goes on being read as numbers
-    /// rather than as a record field nobody filled in.
+    /// The place a record field names, or null when nobody filled it in. A value written there that
+    /// is not a record is refused with what was written, so a macro that aimed at the wrong thing
+    /// can be read back from its own log.
     /// </summary>
-    private static bool FromRecord(ExecutableStep step, string name = "useRecord")
-        => Flag(step, name, false);
-
-    /// <summary>
-    /// Where a step that takes its place from a record says it is. Which field the record came in is
-    /// named so that a drag can say which of its two ends is the one with nothing in it. A record
-    /// field nobody filled in means the step before this one handed nothing over, which is said as
-    /// that rather than as a place that could not be read; anything else that is not a record saying
-    /// where it is is reported as a place with no <c>x</c> and <c>y</c> in it.
-    /// </summary>
-    private ScreenPoint RecordPlace(ExecutableStep step, string name)
+    private ScreenPoint? RecordedPlace(ExecutableStep step, string name)
     {
-        var raw = ReadText(step, name).Trim();
-        if (raw.Length == 0)
+        var value = ReadValue(step, name);
+        if (value.IsNull)
         {
-            throw new StepFailure(RunKeys.BadPointEmpty, name);
+            return null;
         }
 
-        return Read(raw) is { IsRecord: true } record
-            ? RecordPoint(record, raw)
-            : throw new StepFailure(RunKeys.BadPoint, raw);
+        var written = step.Text(name).Trim();
+        return value.IsRecord
+            ? RecordPoint(value, written)
+            : throw new StepFailure(RunKeys.BadPoint, written);
     }
 
     /// <summary>
@@ -631,9 +619,8 @@ public sealed partial class MacroRunner
     /// </summary>
     private ScreenPoint DragPlace(ExecutableStep step, string end, ScreenPoint? origin)
     {
-        return FromRecord(step, end + "FromRecord")
-            ? RecordPlace(step, end + "Record")
-            : Placed(origin, Number(step, end + "X"), Number(step, end + "Y"));
+        return RecordedPlace(step, end + "Place")
+            ?? Placed(origin, Number(step, end + "X"), Number(step, end + "Y"));
     }
 
     /// <summary>

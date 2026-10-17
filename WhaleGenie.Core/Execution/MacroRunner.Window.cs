@@ -274,17 +274,15 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
-    /// Where <c>window.move</c> sends a window: the sides the step wrote, and the ones it left
-    /// empty staying where they are, which is what its empty cells mean. A rectangle taken from a
-    /// record still moves and sizes the window as the record says. A window is never told to be
-    /// zero pixels wide.
+    /// Where <c>window.move</c> sends a window: the rectangle a record says, or the sides the step
+    /// wrote, with the ones it left empty staying where they are, which is what its empty cells
+    /// mean. A window is never told to be zero pixels wide.
     /// </summary>
     private (int X, int Y, int Width, int Height) MoveTarget(ExecutableStep step, WindowInfo window)
     {
-        if (FromRecord(step))
+        if (RecordedRect(step, "rect") is { } rect)
         {
-            var (corner, width, height) = Box(step, null);
-            return (corner.X, corner.Y, Math.Max(1, width), Math.Max(1, height));
+            return (rect.Left, rect.Top, rect.Width, rect.Height);
         }
 
         int Side(string name, int current, int least)
