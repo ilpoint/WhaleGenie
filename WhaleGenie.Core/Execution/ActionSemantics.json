@@ -237,7 +237,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -299,7 +311,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       },
       {
         "Name": "body",
@@ -371,7 +395,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       },
       {
         "Name": "body",
@@ -479,7 +515,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       },
       {
         "Name": "body",
@@ -593,7 +641,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       },
       {
         "Name": "body",
@@ -888,7 +948,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -1200,7 +1272,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -1569,7 +1653,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -1627,7 +1723,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -1672,7 +1780,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": []
@@ -1724,7 +1844,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -1820,7 +1952,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -1874,7 +2018,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -1919,7 +2075,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -1965,7 +2133,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       },
       {
         "Name": "storeAs",
@@ -2221,7 +2401,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -2483,7 +2675,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -2687,7 +2891,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       },
       {
         "Name": "sortBy",
@@ -2861,7 +3077,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -3008,7 +3236,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       },
       {
         "Name": "encoding",
@@ -3464,7 +3704,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -3509,7 +3761,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -3600,7 +3864,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -3660,7 +3936,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -3693,7 +3981,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -3754,7 +4054,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -3829,7 +4141,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -3874,7 +4198,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -4019,7 +4355,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -4064,7 +4412,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -4110,7 +4470,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -4155,7 +4527,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -4188,7 +4572,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -4233,7 +4629,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -4312,7 +4720,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -4434,7 +4854,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -4512,7 +4944,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -4545,7 +4989,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -4633,7 +5089,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -4768,7 +5236,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -4920,7 +5400,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -5000,7 +5492,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -5104,7 +5608,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -5208,7 +5724,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -5910,7 +6438,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -6072,7 +6612,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -6360,7 +6912,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -6782,7 +7346,24 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "keys",
+            "Role": "Text",
+            "Required": true
+          },
+          {
+            "Name": "holdMs",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "gapMs",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "inputMode",
@@ -9636,7 +10217,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -9827,7 +10420,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -9905,7 +10510,14 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "image",
+            "Role": "Image",
+            "Required": true
+          }
+        ]
       },
       {
         "Name": "region",
@@ -9917,7 +10529,34 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "frameMaxAgeMs",
@@ -10154,7 +10793,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -10294,7 +10945,14 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "image",
+            "Role": "Image",
+            "Required": true
+          }
+        ]
       },
       {
         "Name": "region",
@@ -10306,7 +10964,34 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "frameMaxAgeMs",
@@ -10543,7 +11228,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -10683,7 +11380,14 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "image",
+            "Role": "Image",
+            "Required": true
+          }
+        ]
       },
       {
         "Name": "region",
@@ -10695,7 +11399,34 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "frameMaxAgeMs",
@@ -11006,7 +11737,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -11303,7 +12046,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       },
       {
         "Name": "asHex",
@@ -11586,7 +12341,34 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "frameMaxAgeMs",
@@ -11747,7 +12529,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -11892,7 +12686,34 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "anchorMode",
@@ -12117,7 +12938,34 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "frameMaxAgeMs",
@@ -12278,7 +13126,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -12455,7 +13315,34 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "frameMaxAgeMs",
@@ -12661,7 +13548,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -12838,7 +13737,34 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "frameMaxAgeMs",
@@ -13044,7 +13970,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -13221,7 +14159,34 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "frameMaxAgeMs",
@@ -13501,7 +14466,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -13927,7 +14904,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -13977,7 +14966,34 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "frameMaxAgeMs",
@@ -14255,7 +15271,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -14407,7 +15435,34 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "frameMaxAgeMs",
@@ -14759,7 +15814,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -14999,7 +16066,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -15132,7 +16211,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -15888,7 +16979,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -16610,7 +17713,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -16838,7 +17953,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "clickHow",
@@ -16922,7 +18049,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "fillText",
@@ -17019,7 +18158,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "readWhat",
@@ -17075,7 +18226,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -17121,7 +18284,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "readWhat",
@@ -17193,7 +18368,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -17238,7 +18425,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "matchIndex",
@@ -17282,7 +18481,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -17315,7 +18526,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -17366,7 +18589,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "optionValue",
@@ -17449,7 +18684,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "checked",
@@ -17517,7 +18764,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "matchIndex",
@@ -17572,7 +18831,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "keyChord",
@@ -17640,7 +18911,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "elementState",
@@ -17825,7 +19108,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "scrollHow",
@@ -17897,7 +19192,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "folder",
@@ -17937,7 +19244,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -18014,7 +19333,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -18059,7 +19390,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -18105,7 +19448,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "uploadFiles",
@@ -18391,7 +19746,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -18494,7 +19861,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -18561,7 +19940,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -18652,7 +20043,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -18755,7 +20158,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -18810,7 +20225,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "key",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "name",
+            "Role": "Name",
+            "Required": true
+          }
+        ]
       }
     ],
     "Returns": [
@@ -18853,7 +20280,14 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "image",
+            "Role": "Image",
+            "Required": true
+          }
+        ]
       },
       {
         "Name": "imageSet",
@@ -18895,7 +20329,34 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "frameMaxAgeMs",
@@ -19039,7 +20500,14 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "image",
+            "Role": "Image",
+            "Required": true
+          }
+        ]
       },
       {
         "Name": "imageSet",
@@ -19081,7 +20549,34 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "frameMaxAgeMs",
@@ -19237,7 +20732,34 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "frameMaxAgeMs",
@@ -19412,7 +20934,34 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "frameMaxAgeMs",
@@ -19786,7 +21335,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "elementState",
@@ -19859,7 +21420,19 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "how",
+            "Role": "Key",
+            "Required": true
+          },
+          {
+            "Name": "value",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "elementState",
@@ -20318,7 +21891,34 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "frameMaxAgeMs",
@@ -20502,7 +22102,34 @@
         "Options": [],
         "AcceptsVariables": false,
         "ConditionsOnly": false,
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "text",
+            "Role": "Text",
+            "Required": false
+          },
+          {
+            "Name": "x",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "y",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "width",
+            "Role": "Number",
+            "Required": false
+          },
+          {
+            "Name": "height",
+            "Role": "Number",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "frameMaxAgeMs",

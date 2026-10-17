@@ -1253,6 +1253,35 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
+    /// Checks a row list against the columns its field declares. A column nobody reads would be
+    /// skipped in silence, which looks like the action ignoring what the row said; one the field
+    /// requires but the row leaves out is a row that cannot say what it was meant to say.
+    /// </summary>
+    private static void CheckRowColumns(ActionParameterSemantics facts,
+        IReadOnlyList<IReadOnlyDictionary<string, string>> rows)
+    {
+        foreach (var row in rows)
+        {
+            foreach (var column in row.Keys)
+            {
+                if (!facts.Columns.Any(known =>
+                        string.Equals(known.Name, column, StringComparison.OrdinalIgnoreCase)))
+                {
+                    throw new StepFailure(RunKeys.BadRowColumn, facts.Name + "." + column);
+                }
+            }
+
+            foreach (var column in facts.Columns.Where(column => column.Required))
+            {
+                if (!row.Keys.Any(written =>
+                        string.Equals(written, column.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    throw new StepFailure(RunKeys.BadRowColumn, facts.Name + "." + column.Name);
+                }
+            }
+        }
+    }
+    /// <summary>
     /// A declared kind is a promise the call makes; a value of another kind would reach the called
     /// macro as something its own steps cannot use, so it is refused where the promise is checked.
     /// Text accepts anything because every value has a text reading; an empty value is allowed for
@@ -2601,6 +2630,10 @@ public sealed partial class MacroRunner
                 throw new StepFailure(facts.MissingKey, facts.Name);
             }
 
+            if (facts.Shape is ActionValueShape.Rows && facts.Columns.Count > 0)
+            {
+                CheckRowColumns(facts, step.Rows(facts.Name));
+            }
             if (facts.Shape is ActionValueShape.Choice
                 && written.Length > 0
                 && facts.Options.Count > 0

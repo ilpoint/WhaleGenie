@@ -1254,6 +1254,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BadRegion"] = "The record this step takes its rectangle from has no left, top, width "
             + "and height in it (a hit, a window and a picture taken earlier all do): {0}",
         ["Run.BadResultType"] = "The value the run hands back for \"{0}\" is not the kind its declaration promised.",
+        ["Run.BadRowColumn"] = "A row of \"{0}\" names a column this list does not have, or leaves out one it needs.",
         ["Run.BadPoint"] = "The record this step takes its place from has no x and y in it (a hit, "
             + "a window and an element carry the middle of what they name there): {0}",
         ["Run.BadPoints"] = "Every point of a colour comparison reads as x,y,#RRGGBB: {0}",
@@ -1535,6 +1536,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.DuplicateResultName"] = "Two results go by the same name \"{0}\": the later one overwrites the earlier.",
         ["Editor.Problem.BadExpression"] = "This value cannot be read as an expression: {0}",
         ["Editor.Problem.BadDeclaration"] = "\"{0}\" declares \"{1}\" without a name, twice, or under a name the run keeps: its calls cannot use it.",
+        ["Editor.Problem.UnknownRowColumn"] = "A row of \"{0}\" has no column called \"{1}\".",
+        ["Editor.Problem.MissingRowColumn"] = "A row of \"{0}\" is missing \"{1}\".",
         ["Editor.Problem.MissingField"] = "\"{0}\" is required and this step leaves it empty.",
         ["Editor.Problem.BadOption"] = "\"{0}\" is not one of the answers \"{1}\" allows.",
         ["Run.BrowserRunWhileHeld"] = "This background run works in the browser, and the step that started it is itself inside a browser dialog that holds the one page. Wait for the dialog to finish before starting it.",
@@ -2914,6 +2917,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BadRegion"] = "交给它的那条记录里没有 left、top、width、height（命中、窗口、之前截下"
             + "的画面都会带着这四个数）：{0}",
         ["Run.BadResultType"] = "这次运行交回的「{0}」与它声明的类型不符。",
+        ["Run.BadRowColumn"] = "「{0}」的某一行写了这个列表没有的列，或者缺了它要的列。",
         ["Run.BadPoint"] = "交给它的那条记录里没有 x、y（命中、窗口、元素都会带着这两个数，取的是"
             + "那块矩形的中心）：{0}",
         ["Run.BadPoints"] = "多点比色里的每个点要写成 x,y,#RRGGBB 的形式：{0}",
@@ -3174,6 +3178,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.DuplicateResultName"] = "有两个结果用了同一个名字「{0}」：后一个会盖掉前一个。",
         ["Editor.Problem.BadExpression"] = "这里不是有效的表达式：{0}",
         ["Editor.Problem.BadDeclaration"] = "「{0}」的声明「{1}」是空的、重名的，或者用了运行保留的名字：调用它的步骤用不了。",
+        ["Editor.Problem.UnknownRowColumn"] = "「{0}」的某一行没有「{1}」这一列。",
+        ["Editor.Problem.MissingRowColumn"] = "「{0}」的某一行缺了「{1}」。",
         ["Editor.Problem.MissingField"] = "「{0}」是必填的，这一步没有填。",
         ["Editor.Problem.BadOption"] = "「{0}」不是「{1}」允许的选项。",
         ["Run.BrowserRunWhileHeld"] = "这次后台运行要用浏览器，而启动它的步骤正待在一个按住那一页的浏览器对话框里。等对话框结束再启动它。",

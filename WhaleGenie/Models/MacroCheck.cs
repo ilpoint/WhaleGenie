@@ -259,6 +259,7 @@ public static class MacroCheck
                 CheckKnownStep(step);
                 CheckMissingFields(step);
                 CheckOptions(step);
+                CheckRowColumns(step);
                 CheckDuplicateResults(step);
                 CheckExpressions(step);
 
@@ -455,6 +456,46 @@ public static class MacroCheck
             }
         }
 
+        /// <summary>
+        /// A row list says its columns in the catalogue. A row that writes a column the action
+        /// never reads, or leaves out one the list needs, is marked here instead of being skipped
+        /// quietly at the run.
+        /// </summary>
+        void CheckRowColumns(MacroStep step)
+        {
+            foreach (var parameter in step.Parameters)
+            {
+                if (step.ParameterDefinition(parameter) is not { } definition
+                    || definition.Shape is not ActionValueShape.Rows
+                    || definition.Semantics.Columns.Count == 0)
+                {
+                    continue;
+                }
+
+                foreach (var row in parameter.Rows)
+                {
+                    foreach (var column in row.Columns.Keys)
+                    {
+                        if (!definition.Semantics.Columns.Any(known =>
+                                string.Equals(known.Name, column, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            Add(step, Strings.Format("Editor.Problem.UnknownRowColumn",
+                                definition.LocalLabel, column));
+                        }
+                    }
+
+                    foreach (var column in definition.Semantics.Columns.Where(column => column.Required))
+                    {
+                        if (!row.Columns.Keys.Any(written =>
+                                string.Equals(written, column.Name, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            Add(step, Strings.Format("Editor.Problem.MissingRowColumn",
+                                definition.LocalLabel, column.Name));
+                        }
+                    }
+                }
+            }
+        }
         /// <summary>
         /// Two ticks writing the same name: the second silently replaces the first, so the value the
         /// step reports is not the one the row was talking about.

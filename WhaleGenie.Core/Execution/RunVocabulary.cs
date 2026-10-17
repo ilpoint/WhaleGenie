@@ -51,6 +51,7 @@ public static class RunKeys
     public const string BadProcessId = "Run.BadProcessId";
     public const string BadRegion = "Run.BadRegion";
     public const string BadResultType = "Run.BadResultType";
+    public const string BadRowColumn = "Run.BadRowColumn";
     public const string BadZip = "Run.BadZip";
     public const string BreakOutsideLoop = "Run.BreakOutsideLoop";
     public const string BrightnessRefused = "Run.BrightnessRefused";

@@ -3172,6 +3172,55 @@ public class MacroRunnerTests
         Assert.Equal(0, N(store, "轮"));
     }
 
+
+    [Fact]
+    public async Task A_row_that_names_a_column_the_list_does_not_have_stops_the_step()
+    {
+        var returns = new ExecutableParameter
+        {
+            Name = "returns",
+            Rows =
+            [
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["key"] = "path",
+                    ["name"] = "part",
+                    ["bogus"] = "x",
+                },
+            ],
+        };
+
+        var (result, _) = await RunAsync(
+            [Step("file.path", Param("operation", "name"), Param("path", "a.txt"), returns)]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.BadRowColumn, result.Key);
+        Assert.Equal("returns.bogus", result.Detail);
+    }
+
+    [Fact]
+    public async Task A_row_that_leaves_out_a_required_column_stops_the_step()
+    {
+        var returns = new ExecutableParameter
+        {
+            Name = "returns",
+            Rows =
+            [
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["key"] = "path",
+                },
+            ],
+        };
+
+        var (result, _) = await RunAsync(
+            [Step("file.path", Param("operation", "name"), Param("path", "a.txt"), returns)]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.BadRowColumn, result.Key);
+        Assert.Equal("returns.name", result.Detail);
+    }
+
     /// <summary>A call to another macro of the stand-in project.</summary>
     private static ExecutableStep Call(string macro, params ExecutableParameter[] more)
         => Step("control.runMacro", [Param("macro", macro), .. more]);

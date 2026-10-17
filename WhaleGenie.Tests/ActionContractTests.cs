@@ -688,6 +688,39 @@ public class ActionContractTests
         }
     }
 
+    /// <summary>
+    /// Every row list says which columns a row may hold. The five shapes are the ones the editor
+    /// writes today; a list that grows a column without the catalogue saying so would pass the
+    /// design-time check and be dropped at the run.
+    /// </summary>
+    [Fact]
+    public void Every_rows_field_declares_the_columns_its_rows_may_hold()
+    {
+        var schemas = new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["returns"] = ["key", "name"],
+            ["region"] = ["text", "x", "y", "width", "height"],
+            ["narrow"] = ["how", "value"],
+            ["images"] = ["image"],
+            ["keySequence"] = ["keys", "holdMs", "gapMs"],
+        };
+
+        foreach (var action in ActionSemanticsCatalog.All)
+        {
+            foreach (var parameter in action.Parameters
+                         .Where(parameter => parameter.Shape is ActionValueShape.Rows))
+            {
+                Assert.True(schemas.ContainsKey(parameter.Name),
+                    action.Key + "." + parameter.Name + " has no schema");
+                Assert.Equal(schemas[parameter.Name],
+                    parameter.Columns.Select(column => column.Name));
+                Assert.Equal(parameter.Columns.Count,
+                    parameter.Columns.Select(column => column.Name)
+                        .Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            }
+        }
+    }
+
     [Fact]
     public void The_runner_no_longer_guesses_facts_from_action_prefixes()
     {

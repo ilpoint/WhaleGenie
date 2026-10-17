@@ -226,6 +226,12 @@ public sealed class ActionParameterSemantics
     /// <summary>True when a step list accepts conditions rather than ordinary steps.</summary>
     public bool ConditionsOnly { get; init; }
 
+    /// <summary>
+    /// The columns a row of this field may hold. A list written by hand that names a column the
+    /// action never reads would otherwise be skipped without a word, which looks like the step
+    /// ignoring what its author wrote.
+    /// </summary>
+    public IReadOnlyList<ActionRowColumn> Columns { get; init; } = [];
     /// <summary>The only action keys a step list accepts, or empty for any step.</summary>
     public IReadOnlyList<string> ChildKeys { get; init; } = [];
 
@@ -274,6 +280,38 @@ public sealed class ActionParameterSemantics
                or ActionValueShape.Condition or ActionValueShape.Flag);
 }
 
+/// <summary>What a column of a row list is for.</summary>
+public enum ActionRowColumnRole
+{
+    /// <summary>The name the action knows the value by.</summary>
+    Key,
+
+    /// <summary>The name the caller wants the value under.</summary>
+    Name,
+
+    /// <summary>A value read as it stands.</summary>
+    Value,
+
+    /// <summary>Free text.</summary>
+    Text,
+
+    /// <summary>A number.</summary>
+    Number,
+
+    /// <summary>A picture path or image value.</summary>
+    Image,
+}
+
+/// <summary>One column a row of a list may hold.</summary>
+public sealed class ActionRowColumn
+{
+    public required string Name { get; init; }
+
+    public ActionRowColumnRole Role { get; init; } = ActionRowColumnRole.Text;
+
+    /// <summary>True when a row that does not name this column is not a row of this list.</summary>
+    public bool Required { get; init; }
+}
 /// <summary>One field of a record a result hands over.</summary>
 public sealed class ActionReturnField
 {

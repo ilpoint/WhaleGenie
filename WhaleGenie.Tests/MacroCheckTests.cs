@@ -904,4 +904,32 @@ public class MacroCheckTests
         Assert.Equal(Strings.Format("Editor.Problem.BadDeclaration", "坏", "同名"),
             problem.Message);
     }
+
+    [Fact]
+    public void A_row_with_an_unknown_column_is_marked()
+    {
+        var returns = new StepParameter
+        {
+            Name = "returns",
+            Kind = ActionParameterKind.Returns,
+            Rows =
+            [
+                new StepParameterRow
+                {
+                    Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["key"] = "path",
+                        ["name"] = "part",
+                        ["bogus"] = "x",
+                    },
+                },
+            ],
+        };
+
+        var problems = Inspect(Step("file.path", Text("path", "a.txt"),
+            Text("operation", "name"), returns));
+
+        Assert.Contains(problems, problem =>
+            problem.Message.Contains("bogus", StringComparison.Ordinal));
+    }
 }
