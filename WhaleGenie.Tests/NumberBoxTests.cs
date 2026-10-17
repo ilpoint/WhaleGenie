@@ -85,10 +85,11 @@ public class NumberBoxTests
             box.Value = null;
             Dispatcher.UIThread.RunJobs();
 
-            // How wide nobody has said is a question still open, so the step says so rather than
-            // saving a zero and looking like it was answered.
+            // A window side is answered by being left empty: the window keeps what it has there,
+            // so the step is still whole and the side is not written down as a zero.
             Assert.Equal(string.Empty, wide.CurrentText);
-            Assert.False(((AddActionViewModel)window.DataContext!).CanSave);
+            Assert.True(((AddActionViewModel)window.DataContext!).CanSave);
+            Assert.False(wide.IsIncluded);
 
             // A length of time is a number like any other: a box with nothing in it says nothing,
             // so a step whose clock is required cannot be saved until it is answered. What a step
@@ -102,6 +103,27 @@ public class NumberBoxTests
 
             Assert.Equal(string.Empty, ms.CurrentText);
             Assert.False(((AddActionViewModel)delay.DataContext!).CanSave);
+        });
+    }
+
+    /// <summary>
+    /// A place on a display left of the primary one is a negative number, and the box takes it as
+    /// written: a spinner whose floor is zero turns "left of here" into "the left edge here".
+    /// </summary>
+    [Fact]
+    public void A_place_box_takes_a_negative_number()
+    {
+        Ui.Run(() =>
+        {
+            var window = Open("input.mouseMove");
+            var x = Parameter(window, "x");
+            var box = window.GetVisualDescendants().OfType<NumericUpDown>()
+                .First(one => ReferenceEquals(one.DataContext, x));
+
+            Assert.Equal(-100000m, box.Minimum);
+            box.Value = -40m;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("-40", x.CurrentText);
         });
     }
 

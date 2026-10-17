@@ -219,8 +219,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.RegionEmpty"] = "Looking at the whole screen.",
         ["Add.EmptyReachesTheEdge"] = "Left empty, this side reaches the edge of what it is counted "
             + "from: the screen, or the window it is counted from.",
-        ["Add.EmptyMeansNothing"] = "Left empty, nothing is written into the macro and the engine "
-            + "reads it as nobody having said.",
+        ["Add.EmptyUsesDefault"] = "When the step does not write it, the value the action starts "
+            + "with applies: a hand-written step may leave the field out.",
+        ["Add.EmptyKeeps"] = "Left empty, the window keeps the position or size it has now: write "
+            + "only the sides this step is meant to change.",
+        ["Add.EmptyScreenRefresh"] = "Left empty, the wait follows the screen: it looks again after "
+            + "one refresh, because a picture that was not drawn again reads the same.",
         ["Add.FieldTakesFormula"] = "This whole value is worked out when the macro runs, so an "
             + "expression can be written here.",
         ["Add.FieldIsText"] = "This is text rather than a formula: a $name in it is replaced with "
@@ -1640,7 +1644,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.RegionEmpty"] = "没填就是看整个屏幕。",
         ["Add.EmptyReachesTheEdge"] = "留空即从这一边一直量到屏幕边缘；坐标基准选窗口或客户区时，"
             + "量到那个窗口的那一边为止。",
-        ["Add.EmptyMeansNothing"] = "留空即没填：这一项不写进宏文件，引擎按“什么都没说”处理。",
+        ["Add.EmptyUsesDefault"] = "没写时按动作的默认值：这一项有默认值，手写文件里略过它也算完整的一步。",
+        ["Add.EmptyKeeps"] = "留空即保持窗口当前的位置或大小：只填这一步要改的那几项。",
+        ["Add.EmptyScreenRefresh"] = "留空即按屏幕刷新一次的时间：画面没重画，再看也只能读到同一张。",
         ["Add.FieldTakesFormula"] = "这里可以写算式：整段值由引擎在运行时算出来。",
         ["Add.FieldIsText"] = "这里不计算式：$名字 只是就地替换成那个变量此刻的值，其余部分照原样"
             + "使用。",

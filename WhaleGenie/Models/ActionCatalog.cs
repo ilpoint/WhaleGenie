@@ -105,13 +105,9 @@ public static class ActionCatalog
                     AppliesWhenValues = field.AppliesWhenValues,
                     AppliesWhenAlso = field.AppliesWhenAlso,
                     AppliesWhenAlsoValues = field.AppliesWhenAlsoValues,
-                    EmptiesToEdge = field.EmptiesToEdge,
                     ForeignText = field.ForeignText,
                     Tall = field.Tall,
-                    Minimum = field.Minimum,
-                    Maximum = field.Maximum,
                     Increment = field.Increment,
-                    IsDuration = field.IsDuration,
                     Advanced = field.Advanced,
                     AddLabelKey = field.AddLabelKey,
                 });
@@ -269,19 +265,11 @@ public static class ActionCatalog
 
         public IReadOnlyList<string> AppliesWhenAlsoValues { get; init; } = [];
 
-        public bool EmptiesToEdge { get; init; }
-
         public bool ForeignText { get; init; }
 
         public bool Tall { get; init; }
 
-        public decimal Minimum { get; init; }
-
-        public decimal Maximum { get; init; } = StepMeta.LongestPauseMs;
-
         public decimal Increment { get; init; } = 1m;
-
-        public bool IsDuration { get; init; }
 
         public bool Advanced { get; init; }
 

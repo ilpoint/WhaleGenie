@@ -497,8 +497,8 @@ internal static class ActionStrings
         ["control.waitUntil.condition.hint"] = "会一遍遍判断这个条件，成立之后才继续往下走。颜色、图片、文字、"
             + "界面元素、变量比较都可以用来等；等多久由这一步设置里的「超时」说（默认 10 秒），到点"
             + "取消这一步并判为失败。",
-        ["control.waitUntil.pollMs.label"] = "检查间隔",
-        ["control.waitUntil.pollMs.hint"] = "两次判断之间等多久，单位是毫秒，范围 10 到 60000，默认 200。",
+        ["control.waitUntil.intervalMs.label"] = "检查间隔",
+        ["control.waitUntil.intervalMs.hint"] = "两次判断之间隔多久，单位是毫秒，范围 0 到 60000，默认 200；留空按屏幕刷新一次的时间。",
 
         ["control.sequence.name"] = "顺序执行",
         ["control.sequence.desc"] = "按顺序依次执行子步骤。",
@@ -2738,8 +2738,8 @@ internal static class ActionStrings
         ["uia.waitElement.matchIndex.label"] = "第几个命中",
         ["uia.waitElement.matchIndex.hint"] =
             "选择器可能匹配到多个元素，这里填要等的是第几个。" + MatchIndexHint,
-        ["uia.waitElement.pollMs.label"] = "轮询间隔",
-        ["uia.waitElement.pollMs.hint"] = "两次检查之间等多久，单位是毫秒，默认 200。",
+        ["uia.waitElement.intervalMs.label"] = "轮询间隔",
+        ["uia.waitElement.intervalMs.hint"] = "两次检查之间隔多久，单位是毫秒，范围 0 到 60000，默认 200；留空按屏幕刷新一次的时间。",
 
         ["uia.click.name"] = "点击元素",
         ["uia.click.desc"] = "点击一个 UI Automation 元素。",

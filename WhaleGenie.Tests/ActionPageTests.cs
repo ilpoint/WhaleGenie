@@ -92,7 +92,7 @@ public class ActionPageTests
         "emptyCells", "align", "separator", "depth", "sortBy", "descending", "withinCount",
         "withinUnit", "minKb", "maxKb", "relative", "columns", "matchColumn", "matchValue",
         "maxRows", "headless", "storeAs", "limit", "skipBlankLines", "trim", "caseSensitive",
-        "multiline", "shape", "pollMs",
+        "multiline", "shape",
         "afterMs", "hidden", "runAsAdmin", "details", "inputSize", "iou",
     ];
 

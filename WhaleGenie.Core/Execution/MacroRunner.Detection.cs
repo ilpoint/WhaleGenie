@@ -125,7 +125,7 @@ public sealed partial class MacroRunner
         // A step that asked to look again waits a moment and confirms the thing is still there: a
         // thing that flashed past, or a screen that has already moved on, is not clicked. The second
         // look is a single look rather than another wait, the same as a step that clicks a picture.
-        var again = Pace(OptionalNumber(step, "recheckMs", 0));
+        var again = Pace(Number(step, "recheckMs"));
         if (again > 0)
         {
             await Pause(again, token);
@@ -850,24 +850,6 @@ public sealed partial class MacroRunner
         var corner = Placed(anchor.Corner, x, y);
         var shot = Shot(step, corner.X, corner.Y, width, height, anchor.Window);
         return (shot.Frame, shot.Origin);
-    }
-
-    /// <summary>
-    /// How big the rectangle a step reads or copies is. A step that leaves one of these numbers out
-    /// has not said how much of the screen it wants, and the whole of it is what that means: the
-    /// side runs from where the rectangle starts to the edge of the screen, where the zero a number
-    /// nobody gave would have left it one pixel wide.
-    /// </summary>
-    private (int Width, int Height) Extent(ExecutableStep step, ScreenPoint corner)
-    {
-        var desk = _devices.Screen.Desktop.Bounds;
-        return (Reach(FieldNames.Width, corner.X, desk.Right),
-            Reach(FieldNames.Height, corner.Y, desk.Bottom));
-
-        int Reach(string name, int from, int limit)
-            => ReadText(step, name).Trim().Length == 0
-                ? Math.Clamp(limit - from, 1, limit)
-                : Math.Max(1, Number(step, name));
     }
 
     /// <summary>

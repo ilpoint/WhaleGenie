@@ -966,6 +966,22 @@ public class DeviceActionTests
         ], devices.Calls);
     }
 
+    /// <summary>
+    /// A display left of the primary one starts at a negative coordinate, and a place on it is a
+    /// place the step has to be able to write. The number reaches the device as written rather than
+    /// being read as zero, which is what a box that starts at zero would have done to it.
+    /// </summary>
+    [Fact]
+    public async Task A_place_on_a_display_left_of_the_primary_one_stays_negative()
+    {
+        var (_, devices, _) = await RunAsync(
+        [
+            Step("input.mouseMove", Param("x", "-40"), Param("y", "-12"), Param("durationMs", "0")),
+        ]);
+
+        Assert.Contains("move -40 -12 0", devices.Calls);
+    }
+
     [Fact]
     public async Task Scrolling_can_be_measured_in_pixels()
     {
@@ -2742,6 +2758,26 @@ public class DeviceActionTests
             devices.Captures[0].Width, devices.Captures[0].Height));
         Assert.Equal((20, 10, 80, 40), (devices.Captures[1].X, devices.Captures[1].Y,
             devices.Captures[1].Width, devices.Captures[1].Height));
+    }
+
+    /// <summary>
+    /// A rectangle read from a display left of the primary one starts at a negative coordinate. The
+    /// corner reaches the capture device as written, so "read what is on that display" reads the
+    /// pixels that are there rather than the corner of the screen nearest to it.
+    /// </summary>
+    [Fact]
+    public async Task A_rectangle_on_a_display_left_of_the_primary_one_stays_negative()
+    {
+        var devices = new FakeDeviceLayer();
+
+        await RunAsync(
+        [
+            Step("vision.capture", Param("x", "-30"), Param("y", "-10"),
+                Param("width", "40"), Param("height", "20"), Parts("image", "shot")),
+        ], devices);
+
+        var shot = Assert.Single(devices.Captures);
+        Assert.Equal((-30, -10, 40, 20), (shot.X, shot.Y, shot.Width, shot.Height));
     }
 
     /// <summary>
@@ -7820,6 +7856,28 @@ public class DeviceActionTests
         ], devices);
 
         Assert.Contains("moveWindow 21 100 50 640 480", devices.Calls);
+    }
+
+    /// <summary>
+    /// A side left out keeps what the window has, so a step can move a window without resizing it,
+    /// or resize it without moving it, rather than having to read the rectangle first and write all
+    /// four numbers back.
+    /// </summary>
+    [Fact]
+    public async Task Moving_a_window_can_change_only_what_the_step_says()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Windows.Add(new WindowInfo(21, "Notepad", new ScreenPoint(1000, 500),
+            new ScreenSize(800, 600), false, false));
+
+        await RunAsync(
+        [
+            Step("window.move", Param("window", "Notepad"), Param("x", "200")),
+            Step("window.move", Param("window", "Notepad"), Param("width", "320")),
+        ], devices);
+
+        Assert.Equal(["moveWindow 21 200 500 800 600", "moveWindow 21 1000 500 320 600"],
+            devices.Calls.Where(call => call.StartsWith("moveWindow", StringComparison.Ordinal)));
     }
 
     /// <summary>

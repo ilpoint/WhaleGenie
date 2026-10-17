@@ -321,7 +321,7 @@ public sealed partial class MacroRunner
         // A step that asked to look again waits a moment and confirms the line is still there: a
         // line that has already been replaced is not clicked. The second look is a single look
         // rather than another wait: whether the line is still there is not a thing to wait for.
-        var again = Pace(OptionalNumber(step, "recheckMs", 0));
+        var again = Pace(Number(step, "recheckMs"));
         if (again > 0)
         {
             await Pause(again, token);

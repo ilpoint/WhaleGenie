@@ -53,6 +53,8 @@
       {
         "Name": "ms",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -80,6 +82,8 @@
       {
         "Name": "minMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -92,6 +96,8 @@
       {
         "Name": "maxMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -129,11 +135,14 @@
         "ChildKeys": []
       },
       {
-        "Name": "pollMs",
+        "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "200",
         "Options": [],
         "AcceptsVariables": false,
@@ -176,6 +185,9 @@
       {
         "Name": "times",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -188,6 +200,8 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -239,6 +253,9 @@
       {
         "Name": "maxIterations",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -344,6 +361,8 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -383,6 +402,8 @@
       {
         "Name": "rangeFrom",
         "Shape": "Number",
+        "Unit": "Integer",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -395,6 +416,8 @@
       {
         "Name": "rangeTo",
         "Shape": "Number",
+        "Unit": "Integer",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -407,6 +430,8 @@
       {
         "Name": "stepSize",
         "Shape": "Number",
+        "Unit": "Integer",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -419,6 +444,8 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -1015,6 +1042,8 @@
       {
         "Name": "amount",
         "Shape": "Number",
+        "Unit": "Integer",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -1590,6 +1619,8 @@
       {
         "Name": "limit",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -2308,6 +2339,9 @@
       {
         "Name": "depth",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Maximum": 64,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -2320,6 +2354,9 @@
       {
         "Name": "withinCount",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Maximum": 100000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -2348,6 +2385,8 @@
       {
         "Name": "minKb",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -2360,6 +2399,8 @@
       {
         "Name": "maxKb",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -2645,6 +2686,9 @@
       {
         "Name": "startRow",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -2657,6 +2701,8 @@
       {
         "Name": "maxRows",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -4172,6 +4218,9 @@
       {
         "Name": "graceSeconds",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Maximum": 600,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -4219,6 +4268,8 @@
       {
         "Name": "levelPercent",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -4231,6 +4282,9 @@
       {
         "Name": "stepPercent",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -4442,6 +4496,8 @@
       {
         "Name": "levelPercent",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -4454,6 +4510,9 @@
       {
         "Name": "stepPercent",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -5115,9 +5174,11 @@
       {
         "Name": "x",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Keep",
         "ReadMode": "WholeValue",
         "Picker": "Region",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "0",
         "Options": [],
         "AcceptsVariables": false,
@@ -5127,9 +5188,11 @@
       {
         "Name": "y",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Keep",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "0",
         "Options": [],
         "AcceptsVariables": false,
@@ -5139,9 +5202,12 @@
       {
         "Name": "width",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Keep",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "800",
         "Options": [],
         "AcceptsVariables": false,
@@ -5151,9 +5217,12 @@
       {
         "Name": "height",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Keep",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "600",
         "Options": [],
         "AcceptsVariables": false,
@@ -5517,6 +5586,8 @@
       {
         "Name": "holdMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -5529,6 +5600,9 @@
       {
         "Name": "repeat",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -5541,6 +5615,8 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -5892,6 +5968,8 @@
       {
         "Name": "holdMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -5904,6 +5982,9 @@
       {
         "Name": "repeat",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -5916,6 +5997,8 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6127,6 +6210,8 @@
       {
         "Name": "holdMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6139,6 +6224,8 @@
       {
         "Name": "gapMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6151,6 +6238,8 @@
       {
         "Name": "afterMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6163,6 +6252,9 @@
       {
         "Name": "repeat",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6175,6 +6267,8 @@
       {
         "Name": "sequenceIntervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6214,6 +6308,8 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6327,6 +6423,8 @@
       {
         "Name": "x",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6339,6 +6437,8 @@
       {
         "Name": "y",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6474,6 +6574,8 @@
       {
         "Name": "durationMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6567,6 +6669,8 @@
       {
         "Name": "dx",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6579,6 +6683,8 @@
       {
         "Name": "dy",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6591,6 +6697,8 @@
       {
         "Name": "durationMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6750,6 +6858,8 @@
       {
         "Name": "x",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6762,6 +6872,8 @@
       {
         "Name": "y",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6897,6 +7009,8 @@
       {
         "Name": "variance",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6921,6 +7035,8 @@
       {
         "Name": "holdMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6933,6 +7049,9 @@
       {
         "Name": "repeat",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -6945,6 +7064,8 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -7052,6 +7173,8 @@
       {
         "Name": "x",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -7064,6 +7187,8 @@
       {
         "Name": "y",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -7199,6 +7324,8 @@
       {
         "Name": "variance",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -7223,6 +7350,9 @@
       {
         "Name": "repeat",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -7235,6 +7365,8 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -7342,6 +7474,8 @@
       {
         "Name": "x",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -7354,6 +7488,8 @@
       {
         "Name": "y",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -7584,6 +7720,8 @@
       {
         "Name": "x",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -7596,6 +7734,8 @@
       {
         "Name": "y",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -7828,6 +7968,9 @@
       {
         "Name": "amount",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -7840,6 +7983,8 @@
       {
         "Name": "smoothMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -7852,6 +7997,8 @@
       {
         "Name": "x",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -7864,6 +8011,8 @@
       {
         "Name": "y",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -8011,6 +8160,9 @@
       {
         "Name": "repeat",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -8023,6 +8175,8 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -8100,6 +8254,8 @@
       {
         "Name": "startX",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "Region",
         "Required": true,
@@ -8112,6 +8268,8 @@
       {
         "Name": "startY",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -8148,6 +8306,8 @@
       {
         "Name": "endX",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -8160,6 +8320,8 @@
       {
         "Name": "endY",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -8313,6 +8475,8 @@
       {
         "Name": "durationMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -8325,6 +8489,9 @@
       {
         "Name": "dragSteps",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -8353,6 +8520,8 @@
       {
         "Name": "settleMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -8490,6 +8659,8 @@
       {
         "Name": "holdMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -8502,6 +8673,9 @@
       {
         "Name": "repeat",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -8514,6 +8688,8 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -8556,6 +8732,8 @@
       {
         "Name": "x",
         "Shape": "Number",
+        "Unit": "Axis",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -8568,6 +8746,8 @@
       {
         "Name": "y",
         "Shape": "Number",
+        "Unit": "Axis",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -8610,6 +8790,8 @@
       {
         "Name": "amount",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -8651,6 +8833,8 @@
       {
         "Name": "x",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "Region",
         "Required": false,
@@ -8663,6 +8847,8 @@
       {
         "Name": "y",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": false,
@@ -8675,6 +8861,9 @@
       {
         "Name": "width",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "ToEdge",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": false,
@@ -8687,6 +8876,9 @@
       {
         "Name": "height",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "ToEdge",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": false,
@@ -8822,6 +9014,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -8846,6 +9041,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -8976,6 +9174,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9000,6 +9201,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9084,6 +9288,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9096,6 +9303,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9108,6 +9318,8 @@
       {
         "Name": "confidence",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9165,6 +9377,10 @@
       {
         "Name": "minFeatures",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 500,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9280,6 +9496,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9364,6 +9584,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9376,6 +9599,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": false,
@@ -9388,6 +9614,8 @@
       {
         "Name": "confidence",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9445,6 +9673,10 @@
       {
         "Name": "minFeatures",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 500,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9560,6 +9792,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9644,6 +9880,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9656,6 +9895,8 @@
       {
         "Name": "confidence",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9702,6 +9943,8 @@
       {
         "Name": "offsetX",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9714,6 +9957,8 @@
       {
         "Name": "offsetY",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9755,6 +10000,10 @@
       {
         "Name": "minFeatures",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 500,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9870,6 +10119,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9882,6 +10135,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": false,
@@ -9894,6 +10150,8 @@
       {
         "Name": "variance",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9906,6 +10164,8 @@
       {
         "Name": "recheckMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9966,6 +10226,8 @@
       {
         "Name": "x",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -9978,6 +10240,8 @@
       {
         "Name": "y",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10100,6 +10364,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10112,6 +10379,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10181,6 +10451,8 @@
       {
         "Name": "x",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10193,6 +10465,8 @@
       {
         "Name": "y",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10229,6 +10503,8 @@
       {
         "Name": "tolerance",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10327,6 +10603,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10339,6 +10618,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": false,
@@ -10378,6 +10660,8 @@
       {
         "Name": "tolerance",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10390,6 +10674,8 @@
       {
         "Name": "minCoverage",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10414,6 +10700,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10442,6 +10731,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10540,6 +10833,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10703,6 +10999,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10715,6 +11014,8 @@
       {
         "Name": "quietMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10727,6 +11028,8 @@
       {
         "Name": "tolerance",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10739,6 +11042,8 @@
       {
         "Name": "changedPercent",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10751,6 +11056,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": false,
@@ -10802,6 +11110,8 @@
       {
         "Name": "tolerance",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10826,6 +11136,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10838,6 +11151,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -10866,6 +11182,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11060,6 +11380,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11072,6 +11395,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11084,6 +11410,8 @@
       {
         "Name": "confidence",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11096,6 +11424,10 @@
       {
         "Name": "inputSize",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Unset",
+        "Minimum": 32,
+        "Maximum": 4096,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11108,6 +11440,8 @@
       {
         "Name": "iou",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11223,6 +11557,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11331,6 +11669,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11343,6 +11684,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": false,
@@ -11355,6 +11699,8 @@
       {
         "Name": "confidence",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11367,6 +11713,10 @@
       {
         "Name": "inputSize",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Unset",
+        "Minimum": 32,
+        "Maximum": 4096,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11379,6 +11729,8 @@
       {
         "Name": "iou",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11494,6 +11846,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11602,6 +11958,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11614,6 +11973,8 @@
       {
         "Name": "confidence",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11626,6 +11987,10 @@
       {
         "Name": "inputSize",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Unset",
+        "Minimum": 32,
+        "Maximum": 4096,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11638,6 +12003,8 @@
       {
         "Name": "iou",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11668,6 +12035,8 @@
       {
         "Name": "offsetX",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11680,6 +12049,8 @@
       {
         "Name": "offsetY",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11795,6 +12166,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11807,6 +12182,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": false,
@@ -11819,6 +12197,8 @@
       {
         "Name": "variance",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11831,6 +12211,8 @@
       {
         "Name": "recheckMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -11891,6 +12273,8 @@
       {
         "Name": "x",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "Region",
         "Required": false,
@@ -11903,6 +12287,8 @@
       {
         "Name": "y",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": false,
@@ -11915,6 +12301,9 @@
       {
         "Name": "width",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "ToEdge",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": false,
@@ -11927,6 +12316,9 @@
       {
         "Name": "height",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "ToEdge",
+        "Minimum": 1,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": false,
@@ -12092,6 +12484,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -12104,6 +12499,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -12146,6 +12544,8 @@
       {
         "Name": "colorTolerance",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -12232,6 +12632,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -12244,6 +12647,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -12421,6 +12827,8 @@
       {
         "Name": "colorTolerance",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -12457,6 +12865,8 @@
       {
         "Name": "minScore",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -12558,6 +12968,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -12673,6 +13086,8 @@
       {
         "Name": "offsetX",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -12685,6 +13100,8 @@
       {
         "Name": "offsetY",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -12747,6 +13164,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": false,
@@ -12759,6 +13179,8 @@
       {
         "Name": "variance",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -12771,6 +13193,8 @@
       {
         "Name": "recheckMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -12813,6 +13237,8 @@
       {
         "Name": "colorTolerance",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -12849,6 +13275,8 @@
       {
         "Name": "minScore",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -13008,6 +13436,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -13135,6 +13567,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -13277,6 +13713,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -13287,11 +13727,13 @@
         "ChildKeys": []
       },
       {
-        "Name": "pollMs",
+        "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
         "ReadMode": "WholeValue",
         "Picker": "None",
-        "Required": true,
+        "Required": false,
         "DefaultValue": "200",
         "Options": [],
         "AcceptsVariables": false,
@@ -13398,6 +13840,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -13525,6 +13971,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -13634,6 +14084,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -13767,6 +14221,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -13894,6 +14352,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -13918,6 +14380,9 @@
       {
         "Name": "itemIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Maximum": 10000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -14027,6 +14492,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -14152,6 +14621,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -14277,6 +14750,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -14386,6 +14863,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -14398,6 +14879,10 @@
       {
         "Name": "maxRows",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 10000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -14676,6 +15161,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -14754,6 +15243,9 @@
       {
         "Name": "keyIntervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 10000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -14766,6 +15258,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -14845,6 +15341,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -14942,6 +15442,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -14954,6 +15458,10 @@
       {
         "Name": "maxItems",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 10000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -15023,6 +15531,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -15035,6 +15547,10 @@
       {
         "Name": "maxRows",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 10000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -15169,6 +15685,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -15232,6 +15752,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -15283,6 +15807,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -15346,6 +15874,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -15414,6 +15946,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -15594,6 +16130,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -15657,6 +16197,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -15860,6 +16404,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -15904,6 +16452,10 @@
       {
         "Name": "tabIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Zero",
+        "Minimum": 1,
+        "Maximum": 50,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -16599,6 +17151,8 @@
       {
         "Name": "confidence",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -16623,6 +17177,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -16635,6 +17192,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -16776,6 +17336,8 @@
       {
         "Name": "confidence",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -16800,6 +17362,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -16812,6 +17377,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -16949,6 +17517,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -16961,6 +17532,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -17116,6 +17690,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -17128,6 +17705,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -17494,6 +18074,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -17562,6 +18146,10 @@
       {
         "Name": "matchIndex",
         "Shape": "Number",
+        "Unit": "Count",
+        "EmptyMeans": "Unset",
+        "Minimum": 1,
+        "Maximum": 200,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -17601,6 +18189,8 @@
       {
         "Name": "x",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -17613,6 +18203,8 @@
       {
         "Name": "y",
         "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -17711,6 +18303,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -17723,6 +18318,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -17735,6 +18333,8 @@
       {
         "Name": "tolerance",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -17774,6 +18374,8 @@
       {
         "Name": "tolerance",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -17887,6 +18489,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -17899,6 +18504,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -17950,6 +18558,8 @@
       {
         "Name": "tolerance",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -17974,6 +18584,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -17986,6 +18599,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -18111,6 +18727,8 @@
       {
         "Name": "tolerance",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -18123,6 +18741,8 @@
       {
         "Name": "minCoverage",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -18147,6 +18767,9 @@
       {
         "Name": "frameMaxAgeMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "Zero",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -18159,6 +18782,9 @@
       {
         "Name": "intervalMs",
         "Shape": "Number",
+        "Unit": "Milliseconds",
+        "EmptyMeans": "ScreenRefresh",
+        "Maximum": 60000,
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,
@@ -18768,6 +19394,8 @@
       {
         "Name": "chancePercent",
         "Shape": "Number",
+        "Unit": "Percent",
+        "EmptyMeans": "Unset",
         "ReadMode": "WholeValue",
         "Picker": "None",
         "Required": true,

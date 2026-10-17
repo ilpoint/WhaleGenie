@@ -704,7 +704,7 @@ public sealed partial class MacroRunner
         var from = DragPlace(step, "start", origin);
         var to = DragPlace(step, "end", origin);
         var duration = Pace(Number(step, "durationMs"));
-        var settle = Pace(OptionalNumber(step, "settleMs", 0));
+        var settle = Pace(Number(step, "settleMs"));
         var steps = Math.Clamp(Number(step, "dragSteps"), 1, 200);
         var route = MousePath.Route(ReadText(step, "style"));
         if (route is not MouseRoute.Direct)

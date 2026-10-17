@@ -100,7 +100,7 @@ public sealed partial class MacroRunner
             _ => throw new StepFailure(RunKeys.UnknownPowerAction, wanted),
         };
 
-        var grace = OptionalNumber(step, "graceSeconds", 0);
+        var grace = Number(step, "graceSeconds");
         _devices.System.Power(action, grace);
         Log(LogLevel.Info, depth, step.Type, LogKeys.Power, wanted.Length == 0 ? "lock" : wanted,
             grace);
@@ -123,12 +123,12 @@ public sealed partial class MacroRunner
                 break;
 
             case "set":
-                _devices.System.SetVolume(OptionalNumber(step, "levelPercent", 50));
+                _devices.System.SetVolume(Number(step, "levelPercent"));
                 break;
 
             case "up":
             case "down":
-                var move = OptionalNumber(step, "stepPercent", 5);
+                var move = Number(step, "stepPercent");
                 _devices.System.SetVolume(
                     _devices.System.Volume() + (what == "up" ? move : -move));
                 break;
@@ -267,12 +267,12 @@ public sealed partial class MacroRunner
                 break;
 
             case "set":
-                _devices.System.SetBrightness(OptionalNumber(step, "levelPercent", 50));
+                _devices.System.SetBrightness(Number(step, "levelPercent"));
                 break;
 
             case "up":
             case "down":
-                var move = OptionalNumber(step, "stepPercent", 10);
+                var move = Number(step, "stepPercent");
                 _devices.System.SetBrightness(
                     _devices.System.Brightness() + (what is "up" ? move : -move));
                 break;

@@ -117,7 +117,7 @@ public sealed partial class MacroRunner
     {
         // A step with no limit at all still gets one, the same default the editor shows, so a page
         // whose list keeps growing cannot fill memory.
-        var limit = Math.Clamp(OptionalNumber(step, "maxItems", DefaultRows), 1, MaxRows);
+        var limit = Math.Clamp(Number(step, "maxItems"), 1, MaxRows);
         var items = _devices.Browser.ReadAll(Element(step), PagePartOf(step),
             ReadText(step, "attribute"), limit, step.Meta.TimeoutMs);
 
@@ -133,7 +133,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void BrowserReadTable(ExecutableStep step, int depth)
     {
-        var limit = Math.Clamp(OptionalNumber(step, "maxRows", DefaultRows), 1, MaxRows);
+        var limit = Math.Clamp(Number(step, "maxRows"), 1, MaxRows);
 
         // A step that names no table reads the page's own table element, which is what the field
         // starts out holding: this is the one element a page always names the same way.

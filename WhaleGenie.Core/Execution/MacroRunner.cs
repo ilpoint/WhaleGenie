@@ -1751,13 +1751,12 @@ public sealed partial class MacroRunner
                 return Signal.Normal;
 
             case "window.move":
+                Act(step, depth, LogKeys.MovedWindow, window =>
                 {
-                    var (corner, width, height) = Box(step, null, toTheEdge: false);
-                    Act(step, depth, LogKeys.MovedWindow,
-                        window => _devices.Windows.Move(window.Handle, corner.X, corner.Y,
-                            width, height));
-                    return Signal.Normal;
-                }
+                    var (x, y, width, height) = MoveTarget(step, window);
+                    return _devices.Windows.Move(window.Handle, x, y, width, height);
+                });
+                return Signal.Normal;
 
             case "window.close":
                 Act(step, depth, LogKeys.ClosedWindow, window => _devices.Windows.Close(window.Handle));
@@ -2128,7 +2127,7 @@ public sealed partial class MacroRunner
     {
         var condition = step.Condition("condition")
                         ?? throw new StepFailure(RunKeys.MissingCondition);
-        var poll = Number(step, "pollMs");
+        var poll = Number(step, "intervalMs");
         if (poll <= 0)
         {
             poll = 200;
@@ -2306,9 +2305,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task<Signal> RunFor(ExecutableStep step, int depth, CancellationToken token)
     {
-        var from = OptionalNumber(step, "rangeFrom", 1);
-        var to = OptionalNumber(step, "rangeTo", 5);
-        var stride = OptionalNumber(step, "stepSize", 1);
+        var from = Number(step, "rangeFrom");
+        var to = Number(step, "rangeTo");
+        var stride = Number(step, "stepSize");
         if (stride == 0)
         {
             // A step is what the counter moves by, so a zero would never move it at all. Taking the
@@ -3154,7 +3153,7 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>The same, for something that turns up rather than becomes true.</summary>
-    private static async Task<T> WaitForValueAsync<T>(Func<T?> probe, int pollMs,
+    private static async Task<T> WaitForValueAsync<T>(Func<T?> probe, int interval,
         CancellationToken token)
         where T : class
     {
@@ -3165,7 +3164,7 @@ public sealed partial class MacroRunner
                 return found;
             }
 
-            await Pause(pollMs, token);
+            await Pause(interval, token);
         }
     }
 

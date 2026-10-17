@@ -842,14 +842,56 @@ public sealed partial class MacroRunner
 
     /// <summary>
     /// A number a step names, read the way every other field is: as a value. A field nobody
-    /// answered is a zero, because "nothing was said" is not the same as "this cannot be read".
-    /// A value that cannot be worked out is left as the broken expression it is, so the step
+    /// answered takes whatever the catalogue says an empty cell means, so "zero", "the edge of the
+    /// screen" and "the value the action starts with" are decided in one place rather than at each
+    /// call. A value that cannot be worked out is left as the broken expression it is, so the step
     /// reports <c>Run.BadExpression</c> like a text field would — swallowing it into a zero is how
     /// a click meant for something that was found ends up at the corner of the screen, with
     /// nothing anywhere saying why.
     /// </summary>
     private int Number(ExecutableStep step, string name)
-        => Vary(step, name, (int)ReadValue(step, name).AsNumber());
+    {
+        if (!Given(step, name))
+        {
+            return EmptyNumber(step, name);
+        }
+
+        return Vary(step, name, (int)ReadValue(step, name).AsNumber());
+    }
+
+    /// <summary>
+    /// What a blank cell comes to, from the catalogue. "To the edge" and "keep what the window has"
+    /// are answered where the rectangle or the window is at hand, so those two read as zero here.
+    /// </summary>
+    private int EmptyNumber(ExecutableStep step, string name)
+        => Empties(step, name) switch
+        {
+            ActionEmptyMeans.ScreenRefresh => Math.Max(1, _devices.Screen.RefreshMilliseconds),
+            ActionEmptyMeans.Unset => Starting(step, name),
+            _ => 0,
+        };
+
+    /// <summary>
+    /// The number an action starts a field with, for a field nobody wrote. It is the same value a
+    /// new step is given, so a hand-written step and one the editor made agree.
+    /// </summary>
+    private static int Starting(ExecutableStep step, string name)
+    {
+        var written = ActionSemanticsCatalog.Find(step.Type)?.Parameter(name)?.DefaultValue;
+        return double.TryParse(written, NumberStyles.Float, CultureInfo.InvariantCulture,
+            out var value)
+            ? (int)value
+            : 0;
+    }
+
+    /// <summary>True when the step wrote anything at all into a number field.</summary>
+    private static bool Given(ExecutableStep step, string name)
+        => step.Text(name).Trim().Length > 0;
+
+    /// <summary>What a blank cell of this field means, from the catalogue.</summary>
+    private static ActionEmptyMeans Empties(ExecutableStep step, string name)
+        => ActionSemanticsCatalog.Find(step.Type)?.Parameter(name)?.EmptyMeans
+            ?? ActionEmptyMeans.Zero;
 
     /// <summary>
     /// Bends a number by whatever slack the step asked for. Only lengths of time are written with
@@ -867,10 +909,6 @@ public sealed partial class MacroRunner
         var bend = 1 + (((System.Random.Shared.NextDouble() * 2) - 1) * (double)jitter);
         return (int)Math.Round(value * bend);
     }
-
-    /// <summary>A number a step may leave out, taking <paramref name="fallback"/> when it does.</summary>
-    private int OptionalNumber(ExecutableStep step, string name, int fallback)
-        => ReadText(step, name).Trim().Length == 0 ? fallback : Number(step, name);
 
     /// <summary>
     /// A yes/no setting. A step that says nothing takes the catalogue's own default, so a
@@ -901,7 +939,7 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
-    /// Waits for something to become true, asking again every <paramref name="pollMs"/> and giving
+    /// Waits for something to become true, asking again every <paramref name="interval"/> and giving
     /// up after <paramref name="timeoutMs"/>. Waiting is the same thing whether it is an element, a
     /// window, a program or a condition the macro wrote itself, so the pacing and the way a timeout
     /// is counted are written once. The question is asked before the clock is read, so a wait that
@@ -910,18 +948,15 @@ public sealed partial class MacroRunner
     /// macro is stopped.
     /// </summary>
     /// <summary>
-    /// The beat a step that waits for something looks at the screen on when it was not given one:
-    /// one refresh of the screen it is running on, because a picture that has not been drawn again
-    /// cannot differ from the one just read, and a look that comes sooner than the next refresh
-    /// reads the same frame twice. That is 16 ms on a 60 Hz display and 4 ms on a 240 Hz one, which
-    /// is what makes the default follow the screen rather than the machine the macro was written
-    /// on. A number written into the step is used as it stands, and 0 means "as soon as the look
-    /// before it is done".
+    /// The beat a step that looks at the screen keeps: what the step wrote, or one refresh of the
+    /// screen it is running on when it wrote nothing. A picture that has not been drawn again
+    /// cannot differ from the one just read, so a look that comes sooner reads the same frame
+    /// twice. That is 16 ms on a 60 Hz display and 4 ms on a 240 Hz one, which is why an empty
+    /// cell follows the screen rather than the machine the macro was written on.
     /// </summary>
-    private int LookBeat(ExecutableStep step)
-        => Math.Max(1, OptionalNumber(step, "intervalMs", _devices.Screen.RefreshMilliseconds));
+    private int LookBeat(ExecutableStep step) => Math.Max(1, Number(step, "intervalMs"));
 
-    private async Task<bool> WaitForFlagAsync(Func<bool> ready, int timeoutMs, int pollMs,
+    private async Task<bool> WaitForFlagAsync(Func<bool> ready, int timeoutMs, int interval,
         CancellationToken token)
     {
         var started = Stopwatch.GetTimestamp();
@@ -938,12 +973,12 @@ public sealed partial class MacroRunner
                 return false;
             }
 
-            await Pause(pollMs, token);
+            await Pause(interval, token);
         }
     }
 
     /// <summary>The same wait, for something that turns up rather than becomes true.</summary>
-    private async Task<T?> WaitForValueAsync<T>(Func<T?> probe, int timeoutMs, int pollMs,
+    private async Task<T?> WaitForValueAsync<T>(Func<T?> probe, int timeoutMs, int interval,
         CancellationToken token)
         where T : class
     {
@@ -961,21 +996,21 @@ public sealed partial class MacroRunner
                 return null;
             }
 
-            await Pause(pollMs, token);
+            await Pause(interval, token);
         }
     }
 
     /// <summary>
-    /// Waits for something to become true, asking again every <paramref name="pollMs"/> until it
+    /// Waits for something to become true, asking again every <paramref name="interval"/> until it
     /// does. How long that may take is not the wait's to say: the step's own timeout is what ends
     /// it, which is what makes the length of a wait a setting of the step rather than a field that
     /// says the same thing a second time.
     /// </summary>
-    private static async Task WaitForFlagAsync(Func<bool> ready, int pollMs, CancellationToken token)
+    private static async Task WaitForFlagAsync(Func<bool> ready, int interval, CancellationToken token)
     {
         while (!ready())
         {
-            await Pause(pollMs, token);
+            await Pause(interval, token);
         }
     }
 }

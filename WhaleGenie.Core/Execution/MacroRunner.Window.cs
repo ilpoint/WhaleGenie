@@ -274,6 +274,29 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
+    /// Where <c>window.move</c> sends a window: the sides the step wrote, and the ones it left
+    /// empty staying where they are, which is what its empty cells mean. A rectangle taken from a
+    /// record still moves and sizes the window as the record says. A window is never told to be
+    /// zero pixels wide.
+    /// </summary>
+    private (int X, int Y, int Width, int Height) MoveTarget(ExecutableStep step, WindowInfo window)
+    {
+        if (FromRecord(step))
+        {
+            var (corner, width, height) = Box(step, null);
+            return (corner.X, corner.Y, Math.Max(1, width), Math.Max(1, height));
+        }
+
+        int Side(string name, int current, int least)
+            => Given(step, name) ? Math.Max(least, Number(step, name)) : current;
+
+        return (Side("x", window.Location.X, int.MinValue),
+            Side("y", window.Location.Y, int.MinValue),
+            Side(FieldNames.Width, window.Size.Width, 1),
+            Side(FieldNames.Height, window.Size.Height, 1));
+    }
+
+    /// <summary>
     /// The window a step names, or a failure saying which one could not be found. "Match by" says
     /// what the text is held up against and how; an empty text means whatever window is in front.
     /// </summary>

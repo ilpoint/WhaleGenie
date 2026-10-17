@@ -339,12 +339,16 @@ public class ActionParameter
             or ActionParameterKind.Images;
 
     /// <summary>
-    /// True for a number that means "as far as it goes" when it is left empty rather than "nobody
-    /// said": the four numbers of a region, where a side left out runs to the edge of the screen.
-    /// The dialog says which of the two a field is where it is filled in, because the two look the
-    /// same and mean opposite things.
+    /// What a blank number cell comes to. The engine's catalogue is the only place that decides
+    /// it, so the box's hint and the value a run reads cannot drift apart.
     /// </summary>
-    public bool EmptiesToEdge { get; init; }
+    public ActionEmptyMeans EmptyMeans => Semantics.EmptyMeans ?? ActionEmptyMeans.Zero;
+
+    /// <summary>
+    /// What the number counts. The unit is what gives the box its range, so a pause and a run of
+    /// rows never share one limit.
+    /// </summary>
+    public ActionUnit Unit => Semantics.Unit ?? ActionUnit.Count;
 
     /// <summary>
     /// True when the text is written in another language's syntax rather than as a macro value:
@@ -377,22 +381,20 @@ public class ActionParameter
         }
     }
 
-    public decimal Minimum { get; init; }
+    /// <summary>The bottom of the number box: the field's own limit, or the one its unit gives.</summary>
+    public decimal Minimum => Semantics.MinimumValue;
 
-    /// <summary>
-    /// The top of the number box. A number with a real limit of its own says so; everything else
-    /// stops at the longest pause a step may ask for, which is the largest number a macro has a
-    /// reason to write.
-    /// </summary>
-    public decimal Maximum { get; init; } = WhaleGenie.Core.Execution.StepMeta.LongestPauseMs;
+    /// <summary>The top of the number box: the field's own limit, or the one its unit gives.</summary>
+    public decimal Maximum => Semantics.MaximumValue;
 
     public decimal Increment { get; init; } = 1m;
 
     /// <summary>
-    /// True when the number is a length of time. The editor then offers the units beside the box,
-    /// while the step keeps storing milliseconds, so a unit never reaches the engine or the file.
+    /// True when the number is a length of time in milliseconds. The editor then offers the units
+    /// beside the box, while the step keeps storing milliseconds, so a unit never reaches the
+    /// engine or the file. A field counted in seconds — a shutdown warning — is not one of these.
     /// </summary>
-    public bool IsDuration { get; init; }
+    public bool IsDuration => Unit == ActionUnit.Milliseconds;
 
     /// <summary>
     /// True for a setting that is worth having but not worth showing on every step, such as where

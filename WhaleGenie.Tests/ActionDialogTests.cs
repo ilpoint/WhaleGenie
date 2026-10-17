@@ -367,8 +367,8 @@ public class ActionDialogTests
 
     /// <summary>
     /// What an empty number box means depends on the field, and the box cannot say it: a side of a
-    /// region left out reaches the edge, while a number left out is not written down at all. Both
-    /// say which one they are under the field.
+    /// region left out reaches the edge, a window's side left out keeps what it has, and a field
+    /// with a starting value takes that value. Each says which one it is under the field.
     /// </summary>
     [Fact]
     public void A_number_that_may_be_left_out_says_what_an_empty_box_means()
@@ -376,11 +376,19 @@ public class ActionDialogTests
         Ui.Run(() =>
         {
             var capture = Open("vision.capture");
-            foreach (var name in new[] { "x", "y", "width", "height" })
+            foreach (var name in new[] { "width", "height" })
             {
                 var field = capture.Parameters.First(parameter => parameter.Definition.Name == name);
-                Assert.True(field.Definition.EmptiesToEdge);
+                Assert.Equal(ActionEmptyMeans.ToEdge, field.Definition.EmptyMeans);
                 Assert.Contains(Strings.Get("Add.EmptyReachesTheEdge"), field.Hint);
+            }
+
+            // The corner of the rectangle is a place, not a side: blank there is the place zero.
+            foreach (var name in new[] { "x", "y" })
+            {
+                var field = capture.Parameters.First(parameter => parameter.Definition.Name == name);
+                Assert.Equal(ActionEmptyMeans.Zero, field.Definition.EmptyMeans);
+                Assert.DoesNotContain(Strings.Get("Add.EmptyReachesTheEdge"), field.Hint);
             }
 
             // A search region is the same question asked as a list of places.
@@ -388,10 +396,23 @@ public class ActionDialogTests
                 .First(parameter => parameter.Definition.Name == "region");
             Assert.StartsWith(Strings.Get("Add.EmptyReachesTheEdge"), region.Hint);
 
-            // And a number that says nothing is left out of the step rather than written as a zero.
+            // A window told to take a size keeps the one it has where a side is left out.
+            var move = Open("window.move").Parameters
+                .First(parameter => parameter.Definition.Name == "width");
+            Assert.Equal(ActionEmptyMeans.Keep, move.Definition.EmptyMeans);
+            Assert.Contains(Strings.Get("Add.EmptyKeeps"), move.Hint);
+
+            // A look at the screen waits one refresh when it was not given a beat of its own.
             var look = Open("vision.waitImage").Parameters
                 .First(parameter => parameter.Definition.Name == "intervalMs");
-            Assert.Contains(Strings.Get("Add.EmptyMeansNothing"), look.Hint);
+            Assert.Equal(ActionEmptyMeans.ScreenRefresh, look.Definition.EmptyMeans);
+            Assert.Contains(Strings.Get("Add.EmptyScreenRefresh"), look.Hint);
+
+            // A field with a starting value uses it when the step says nothing.
+            var rows = Open("uia.readTable").Parameters
+                .First(parameter => parameter.Definition.Name == "maxRows");
+            Assert.Equal(ActionEmptyMeans.Unset, rows.Definition.EmptyMeans);
+            Assert.Contains(Strings.Get("Add.EmptyUsesDefault"), rows.Hint);
         });
     }
 
@@ -1478,6 +1499,7 @@ public class ActionDialogTests
         });
     }
 
+
     /// <summary>
     /// A step that reads or copies one part of the screen has the four numbers as ordinary fields,
     /// so what the region picker dragged out lands in them one by one and each of them can still be
@@ -1757,7 +1779,7 @@ public class ActionDialogTests
             Assert.DoesNotContain(viewModel.Parameters,
                 parameter => parameter.Definition.Name is "timeoutMs" or "onTimeout");
             Assert.Equal(10_000, viewModel.MetaTimeout.Milliseconds);
-            Assert.Equal("200", Value(viewModel, "pollMs"));
+            Assert.Equal("200", Value(viewModel, "intervalMs"));
             Assert.True(viewModel.ReturnsRows
                 .First(row => row.Key == "elapsed").Ticked);
         });

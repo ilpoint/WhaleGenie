@@ -54,6 +54,58 @@ public enum ActionValueShape
 }
 
 /// <summary>
+/// What the number in a field counts. The unit is what gives the field its range and what the
+/// editor puts beside the box, so a length of time and a coordinate cannot end up sharing one.
+/// </summary>
+public enum ActionUnit
+{
+    /// <summary>Screen pixels. Negative on a display left of or above the primary one.</summary>
+    Pixels,
+
+    /// <summary>Milliseconds, the one length of time the file stores.</summary>
+    Milliseconds,
+
+    /// <summary>A number of things: rows, repeats, a one-based index.</summary>
+    Count,
+
+    /// <summary>
+    /// A whole number with a sign: the first and last number a counting loop runs over, and the
+    /// two ends a comparison holds a value between.
+    /// </summary>
+    Integer,
+
+    /// <summary>A share of a whole, from 0 to 100.</summary>
+    Percent,
+
+    /// <summary>
+    /// A share that has a direction, from -100 to 100: how far a controller stick is pushed.
+    /// </summary>
+    Axis,
+}
+
+/// <summary>
+/// What an empty number cell means. The same blank box stands for "zero" in one field and for
+/// "the edge of the screen" in another, and the catalogue is what tells them apart.
+/// </summary>
+public enum ActionEmptyMeans
+{
+    /// <summary>The number nobody wrote is zero.</summary>
+    Zero,
+
+    /// <summary>The side runs from where the rectangle starts to the edge of the screen.</summary>
+    ToEdge,
+
+    /// <summary>One refresh of the screen, the soonest a second look can differ from the first.</summary>
+    ScreenRefresh,
+
+    /// <summary>The window keeps the position or size it has now.</summary>
+    Keep,
+
+    /// <summary>Nobody said, so the value the action starts with applies.</summary>
+    Unset,
+}
+
+/// <summary>
 /// How the whole cell is read. The three cases are exhaustive, so a field cannot be read one way
 /// by the engine and another way by the editor.
 /// </summary>
@@ -104,6 +156,45 @@ public sealed class ActionParameterSemantics
 
     /// <summary>The value written into a new step, in file form.</summary>
     public string DefaultValue { get; init; } = string.Empty;
+
+    /// <summary>
+    /// What the number counts. Every field whose shape is a number declares one; the unit is what
+    /// gives the box its range, so the same 200 cannot be a pause in one field and a row in another.
+    /// </summary>
+    public ActionUnit? Unit { get; init; }
+
+    /// <summary>What a blank cell comes to. Every number field declares one; other fields do not.</summary>
+    public ActionEmptyMeans? EmptyMeans { get; init; }
+
+    /// <summary>
+    /// A limit this field has of its own, narrower than its unit's. A picture is never looked at in
+    /// fewer than 32 pixels and a window is never made less than one pixel wide, and neither of
+    /// those is true of every pixel field.
+    /// </summary>
+    public decimal? Minimum { get; init; }
+
+    /// <summary>The top of this field's own range, where its action refuses more than the unit says.</summary>
+    public decimal? Maximum { get; init; }
+
+    /// <summary>The bottom of this field's box: its own limit, or else the one its unit gives.</summary>
+    public decimal MinimumValue => Minimum ?? Unit switch
+    {
+        ActionUnit.Pixels => -100_000m,
+        ActionUnit.Axis => -100m,
+        ActionUnit.Integer => -1_000_000m,
+        _ => 0m,
+    };
+
+    /// <summary>The top of this field's box: its own limit, or else the one its unit gives.</summary>
+    public decimal MaximumValue => Maximum ?? Unit switch
+    {
+        ActionUnit.Pixels => 100_000m,
+        ActionUnit.Milliseconds => StepMeta.LongestPauseMs,
+        ActionUnit.Percent => 100m,
+        ActionUnit.Axis => 100m,
+        ActionUnit.Integer => 1_000_000m,
+        _ => 1_000_000m,
+    };
 
     /// <summary>The machine values a choice offers, in the order the file writes them.</summary>
     public IReadOnlyList<string> Options { get; init; } = [];
@@ -230,6 +321,26 @@ public static class ActionSemanticsCatalog
                 .Distinct(StringComparer.Ordinal).Count() != action.Returns.Count)
             {
                 throw new InvalidOperationException($"{action.Key}: a return key is repeated.");
+            }
+
+            foreach (var parameter in action.Parameters)
+            {
+                if (parameter.Shape != ActionValueShape.Number)
+                {
+                    if (parameter.Unit is not null || parameter.EmptyMeans is not null)
+                    {
+                        throw new InvalidOperationException(
+                            $"{action.Key}.{parameter.Name}: only a number declares a unit.");
+                    }
+
+                    continue;
+                }
+
+                if (parameter.Unit is null || parameter.EmptyMeans is null)
+                {
+                    throw new InvalidOperationException(
+                        $"{action.Key}.{parameter.Name}: a number has no unit or no empty meaning.");
+                }
             }
         }
 

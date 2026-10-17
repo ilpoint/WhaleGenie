@@ -248,20 +248,17 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
-    /// The rectangle a step names, whether it reads or copies one part of the screen or tells a
-    /// window where to go: the record it takes the rectangle from, or the four numbers it writes
-    /// down. Every record that carries a rectangle carries all four sides of it, so a hit, a window
-    /// or a picture taken earlier goes in as it stands — "read the writing on what was just found"
-    /// is one field rather than four readings of <c>field()</c> with a chance of one of them being
-    /// the neighbour's. A record's numbers are screen pixels, the way every record's are; numbers
-    /// written out are counted from <paramref name="origin"/>, which is the corner the step says its
-    /// own numbers are measured from. What a number nobody wrote comes to is the one thing the steps
-    /// that write four numbers do not agree on, so <paramref name="toTheEdge"/> says which of them
-    /// this is: a step reading the screen reads to the edge of it, while a window told to take a size
-    /// stays at least one pixel wide.
+    /// The rectangle a step names, whether it reads or copies one part of the screen: the record it
+    /// takes the rectangle from, or the four numbers it writes down. Every record that carries a
+    /// rectangle carries all four sides of it, so a hit, a window or a picture taken earlier goes in
+    /// as it stands — "read the writing on what was just found" is one field rather than four
+    /// readings of <c>field()</c> with a chance of one of them being the neighbour's. A record's
+    /// numbers are screen pixels, the way every record's are; numbers written out are counted from
+    /// <paramref name="origin"/>, which is the corner the step says its own numbers are measured
+    /// from. A side nobody wrote comes to whatever the catalogue says its empty cell means: a
+    /// reading step runs to the edge of the screen.
     /// </summary>
-    private (ScreenPoint Corner, int Width, int Height) Box(ExecutableStep step, ScreenPoint? origin,
-        bool toTheEdge = true)
+    private (ScreenPoint Corner, int Width, int Height) Box(ExecutableStep step, ScreenPoint? origin)
     {
         if (FromRecord(step))
         {
@@ -280,14 +277,20 @@ public sealed partial class MacroRunner
         }
 
         var corner = Placed(origin, Number(step, "x"), Number(step, "y"));
-        if (toTheEdge)
-        {
-            var (width, height) = Extent(step, corner);
-            return (corner, width, height);
-        }
-
-        return (corner, Math.Max(1, Number(step, "width")), Math.Max(1, Number(step, "height")));
+        var desk = _devices.Screen.Desktop.Bounds;
+        return (corner,
+            Reach(step, FieldNames.Width, corner.X, desk.Right),
+            Reach(step, FieldNames.Height, corner.Y, desk.Bottom));
     }
+
+    /// <summary>
+    /// One side of the rectangle: the number the step wrote, or — for a side whose empty cell the
+    /// catalogue calls "to the edge" — the rest of the screen from where the rectangle starts.
+    /// </summary>
+    private int Reach(ExecutableStep step, string name, int from, int limit)
+        => !Given(step, name) && Empties(step, name) == ActionEmptyMeans.ToEdge
+            ? Math.Max(1, limit - from)
+            : Math.Max(1, Number(step, name));
 
     /// <summary>
     /// Copies a whole window into a variable. The window's own rectangle is what is copied, so the
@@ -741,7 +744,7 @@ public sealed partial class MacroRunner
         // button that flashed past, or a screen that has already moved on, is not clicked. The
         // second look is a single look rather than another wait: what is being asked is whether the
         // picture is still there, not whether it turns up again.
-        var again = Pace(OptionalNumber(step, "recheckMs", 0));
+        var again = Pace(Number(step, "recheckMs"));
         if (again > 0)
         {
             await Pause(again, token);

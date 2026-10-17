@@ -1198,13 +1198,25 @@ public partial class StepParameterViewModel : ViewModelBase
 
         // A search region is a list of places rather than four numbers, but it is the same question
         // asked the same way: a place left out reaches the edge, so it says so the same way.
-        if (Definition.EmptiesToEdge || Definition.Kind is ActionParameterKind.Region)
+        if (Definition.Kind is ActionParameterKind.Region)
         {
             yield return Strings.Get("Add.EmptyReachesTheEdge");
         }
-        else if (Definition.Kind is ActionParameterKind.Number && !Definition.Required)
+        else if (Definition.Kind is ActionParameterKind.Number)
         {
-            yield return Strings.Get("Add.EmptyMeansNothing");
+            var key = Definition.EmptyMeans switch
+            {
+                ActionEmptyMeans.ToEdge => "Add.EmptyReachesTheEdge",
+                ActionEmptyMeans.Keep => "Add.EmptyKeeps",
+                ActionEmptyMeans.ScreenRefresh => "Add.EmptyScreenRefresh",
+                ActionEmptyMeans.Unset => "Add.EmptyUsesDefault",
+                _ => string.Empty,
+            };
+
+            if (key.Length > 0)
+            {
+                yield return Strings.Get(key);
+            }
         }
 
         if (Definition.Hint.Length > 0)

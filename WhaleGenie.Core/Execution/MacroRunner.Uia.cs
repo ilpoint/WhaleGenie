@@ -33,7 +33,7 @@ public sealed partial class MacroRunner
     {
         var query = Query(step);
         var timeout = step.Meta.TimeoutMs;
-        var poll = Number(step, "pollMs");
+        var poll = Number(step, "intervalMs");
         if (poll <= 0)
         {
             poll = 200;
@@ -247,7 +247,7 @@ public sealed partial class MacroRunner
     {
         // A step with no row limit at all still gets one, the same default the editor shows, so a
         // table nobody bounded cannot be read forever.
-        var limit = Math.Clamp(OptionalNumber(step, "maxRows", DefaultRows), 1, MaxRows);
+        var limit = Math.Clamp(Number(step, "maxRows"), 1, MaxRows);
         var table = _devices.Ui.ReadTable(Query(step), limit);
 
         // A grid that keeps no strip of column names still has columns: they are the places its

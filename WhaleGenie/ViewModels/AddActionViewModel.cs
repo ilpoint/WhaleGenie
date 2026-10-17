@@ -872,9 +872,13 @@ public partial class AddActionViewModel : ViewModelBase
                 _ => "Add.Origin.Screen",
             }));
 
+        // The line belongs under the field the other numbers are counted from, which is the list
+        // of places when the step has one, and otherwise the corner those numbers name. A step
+        // that presses a key or waits for a moment has numbers too, but none of them is a place.
         var carrier = Parameters.FirstOrDefault(parameter =>
                 parameter.Definition.Kind is ActionParameterKind.Region)
-            ?? Parameters.FirstOrDefault(parameter => parameter.Definition.EmptiesToEdge);
+            ?? Parameters.FirstOrDefault(parameter =>
+                parameter.Definition.Name is "x" or "startX");
 
         foreach (var parameter in Parameters)
         {
