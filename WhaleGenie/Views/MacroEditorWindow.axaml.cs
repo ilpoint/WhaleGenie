@@ -209,6 +209,7 @@ public partial class MacroEditorWindow : Window
         ActionPalette.DataContext = _inspector!.DataContext;
         ActionPalette.ActionChosen += () =>
         {
+            MacroSettingsDrawer.IsVisible = false;
             InspectorHost.IsVisible = true;
             ShowInspectorSteps();
         };
@@ -1000,6 +1001,7 @@ public partial class MacroEditorWindow : Window
             inspector.EditStep(editing);
         }
 
+        MacroSettingsDrawer.IsVisible = false;
         InspectorHost.IsVisible = true;
         ShowInspectorSteps();
     }
@@ -1076,7 +1078,14 @@ public partial class MacroEditorWindow : Window
     }
     /// <summary>Shows or hides the macro's own trigger and schedule settings over the columns.</summary>
     private void OnToggleMacroSettings(object? sender, RoutedEventArgs e)
-        => MacroSettingsDrawer.IsVisible = !MacroSettingsDrawer.IsVisible;
+    {
+        var open = !MacroSettingsDrawer.IsVisible;
+        MacroSettingsDrawer.IsVisible = open;
+        if (open)
+        {
+            InspectorHost.IsVisible = false;
+        }
+    }
     /// <summary>The editor's own way out of the inspector, beside the action it is showing.</summary>
     private void OnCloseInspector(object? sender, RoutedEventArgs e)
     {

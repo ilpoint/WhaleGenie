@@ -2583,12 +2583,19 @@ public class ActionDialogTests
             var groups = viewModel.ActionGroups
                 .Where(group => group.HasActions && group.Key is not "recent" and not "blocks")
                 .ToList();
+            static string PickerCategory(ActionCategory category) => category switch
+            {
+                ActionCategory.Ocr => nameof(ActionCategory.Vision),
+                ActionCategory.Window => nameof(ActionCategory.Process),
+                _ => category.ToString(),
+            };
+
             Assert.Equal(
-                viewModel.AvailableActions.Select(action => action.Category.ToString())
+                viewModel.AvailableActions.Select(action => PickerCategory(action.Category))
                     .Distinct().Order().ToList(),
                 groups.Select(group => group.Key).Order().ToList());
             Assert.All(groups, group => Assert.All(group.Actions,
-                card => Assert.Equal(card.Definition.Category.ToString(), group.Key)));
+                card => Assert.Equal(PickerCategory(card.Definition.Category), group.Key)));
             Assert.All(groups.SelectMany(group => group.Actions), action => Assert.DoesNotContain(
                 action.Definition.Parameters,
                 parameter => parameter.Kind is ActionParameterKind.Steps && !parameter.ConditionsOnly));
@@ -2610,7 +2617,7 @@ public class ActionDialogTests
                 .TakeWhile(group => !group.IsSection)
                 .Select(group => group.Key)
                 .ToList();
-            Assert.Equal(["Vision", "Ocr", "Input", "Control", "Window", "Process", "System",
+            Assert.Equal(["Vision", "Input", "Control", "Process", "System",
                 "Data", "Script"], forGames);
 
             var search = window.GetVisualDescendants().OfType<TextBox>()

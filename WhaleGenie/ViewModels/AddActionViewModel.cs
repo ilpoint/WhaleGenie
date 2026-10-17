@@ -126,7 +126,9 @@ public partial class AddActionViewModel : ViewModelBase
         Categories =
         [
             new(null, Strings.Get("Add.AllActions"), Strings.Get("Add.AllActionsShort")),
-            .. Enum.GetValues<ActionCategory>().Select(category =>
+            .. Enum.GetValues<ActionCategory>()
+            .Where(category => category is not (ActionCategory.Ocr or ActionCategory.Window))
+            .Select(category =>
             {
                 var label = Strings.Get($"Add.Category.{category}");
                 return new ActionCategoryChoice(category, label,
@@ -232,6 +234,19 @@ public partial class AddActionViewModel : ViewModelBase
     /// <summary>Key of the group that holds those, which is not a category.</summary>
     private const string RecentGroup = "recent";
 
+    /// <summary>
+    /// The category the picker shows an action under. The engine keeps OCR apart from the rest of
+    /// vision and windows apart from the processes that own them, because different code runs
+    /// them; a person choosing an action thinks of one picture group and one program-and-window
+    /// group, so the picker joins those pairs back together.
+    /// </summary>
+    private static ActionCategory PickerCategory(ActionCategory category)
+        => category switch
+        {
+            ActionCategory.Ocr => ActionCategory.Vision,
+            ActionCategory.Window => ActionCategory.Process,
+            _ => category,
+        };
     /// <summary>Key of the group that holds the blocks, which is not a category either.</summary>
     private const string BlockGroup = "blocks";
 
@@ -250,10 +265,8 @@ public partial class AddActionViewModel : ViewModelBase
     private static readonly ActionCategory[] GameOrder =
     [
         ActionCategory.Vision,
-        ActionCategory.Ocr,
         ActionCategory.Input,
         ActionCategory.Control,
-        ActionCategory.Window,
         ActionCategory.Process,
         ActionCategory.System,
         ActionCategory.Data,
@@ -940,7 +953,7 @@ public partial class AddActionViewModel : ViewModelBase
         var search = ActionSearch.Trim();
         var wanted = SelectedCategory?.Value;
         var matching = AvailableActions.Where(action =>
-            Matches(action, search) && (wanted is null || action.Category == wanted)).ToList();
+            Matches(action, search) && (wanted is null || PickerCategory(action.Category) == wanted)).ToList();
 
         // A search has already narrowed the list, so everything left in it is worth showing;
         // with a blank box the groups start folded, which is what keeps the catalogue readable.
@@ -981,7 +994,7 @@ public partial class AddActionViewModel : ViewModelBase
         // categories themselves stay the headings inside them, so nothing has to be hunted for in
         // one long list of a hundred cards.
         var categories = matching.Where(action => !HoldsSteps(action))
-            .GroupBy(action => action.Category)
+            .GroupBy(action => PickerCategory(action.Category))
             .ToDictionary(group => group.Key, group => (IReadOnlyList<ActionDefinition>)[.. group]);
 
         var forGames = GameOrder.Where(categories.ContainsKey).ToList();

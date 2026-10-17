@@ -426,14 +426,26 @@
             </StackPanel>
         </Grid>
 
-        <Grid Grid.Row="1" ColumnDefinitions="360,16,*,16,440" Margin="14">
+        <Grid Grid.Row="1" ColumnDefinitions="360,16,440,16,*" Margin="14">
 
             <!-- Left: Trigger Settings -->
-            <views:ActionPaletteView Grid.Column="0" Name="ActionPalette" />
+            <Grid Grid.Column="0" RowDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="4" Margin="4,4,4,2">
+                    <Button Classes="FlatButton" Height="30" Padding="8,0"
+                            Content="{Binding [Editor.Save], Source={x:Static loc:Strings.Current}}"
+                            Command="{Binding SaveCommand}" IsEnabled="{Binding !HasNameProblem}" />
+                    <Button Classes="FlatButton" Height="30" Padding="8,0"
+                            Content="{Binding [Editor.RunDebug], Source={x:Static loc:Strings.Current}}"
+                            Command="{Binding RunCommand}" IsEnabled="{Binding HasSteps}" />
+                </StackPanel>
+                <views:ActionPaletteView Grid.Row="1" Name="ActionPalette" />
+                <Button Grid.Row="2" Classes="FlatButton" Height="32" Margin="4,2,4,4"
+                        Click="OnToggleMacroSettings"
+                        Content="{Binding [Editor.TriggerSettings], Source={x:Static loc:Strings.Current}}" />
+            </Grid>
 
-            <Border Grid.Column="0" Grid.ColumnSpan="3" Name="MacroSettingsDrawer"
-                    Width="452" HorizontalAlignment="Left" ZIndex="10" IsVisible="False"
-                    Background="#292929" CornerRadius="6">
+            <Border Grid.Column="2" Name="MacroSettingsDrawer"
+                    IsVisible="True" Background="#292929" CornerRadius="6">
                 <Grid RowDefinitions="*,Auto">
                     <ScrollViewer Grid.Row="0" Padding="18,16,18,8" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
@@ -935,8 +947,8 @@
                 </Grid>
             </Border>
 
-<!-- Right: Action Editor -->
-     <Border Grid.Column="2" Background="#292929" CornerRadius="6">
+<!-- Right: steps, the column being edited -->
+     <Border Grid.Column="4" Background="#292929" CornerRadius="6">
             <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="18,16">
             <TextBlock Grid.Row="0" Classes="SectionHeader"
                        Text="{Binding [Editor.ActionEditor], Source={x:Static loc:Strings.Current}}" />
@@ -1089,7 +1101,7 @@
 
             <GridSplitter Grid.Column="3" Width="16" Background="Transparent"
                           ResizeDirection="Columns" />
-            <Border Grid.Column="4" Name="InspectorHost" Background="#292929"
+            <Border Grid.Column="2" Name="InspectorHost" Background="#292929"
                     CornerRadius="6" IsVisible="False">
                 <Grid RowDefinitions="Auto,*">
                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="14,10,10,6">

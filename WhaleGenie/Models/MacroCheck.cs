@@ -466,6 +466,14 @@ public static class MacroCheck
             }
         }
 
+        /// <summary>True when a region row gives both a name and the four numbers.</summary>
+        static bool RegionHasBoth(StepParameterRow row)
+        {
+            var named = !string.IsNullOrWhiteSpace(row.Text("text"));
+            var numbered = new[] { "x", "y", "width", "height" }
+                .Any(column => !string.IsNullOrWhiteSpace(row.Text(column)));
+            return named && numbered;
+        }
         /// <summary>
         /// A row list says its columns in the catalogue. A row that writes a column the action
         /// never reads, or leaves out one the list needs, is marked here instead of being skipped
@@ -494,6 +502,12 @@ public static class MacroCheck
                         }
                     }
 
+                    if (string.Equals(definition.Semantics.Name, "region", StringComparison.Ordinal)
+                        && RegionHasBoth(row))
+                    {
+                        Add(step, Strings.Format("Editor.Problem.ExclusiveRowColumn",
+                            definition.LocalLabel));
+                    }
                     foreach (var column in definition.Semantics.Columns.Where(column => column.Required))
                     {
                         if (!row.Columns.TryGetValue(column.Name, out var value)

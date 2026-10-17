@@ -955,4 +955,31 @@ public class MacroCheckTests
         Assert.Contains(problems, problem =>
             problem.Message.StartsWith(prefix, StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void A_region_row_cannot_name_a_place_and_give_its_numbers()
+    {
+        var region = new StepParameter
+        {
+            Name = "region",
+            Kind = ActionParameterKind.Region,
+            Rows =
+            [
+                new StepParameterRow
+                {
+                    Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["text"] = "game",
+                        ["x"] = "0",
+                        ["y"] = "0",
+                    },
+                },
+            ],
+        };
+
+        var problems = Inspect(Step("vision.findImage", region));
+
+        Assert.Contains(problems, problem => problem.Message.Contains("numbers",
+            StringComparison.OrdinalIgnoreCase));
+    }
 }

@@ -1344,6 +1344,18 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
+    /// A region row says where to look in one of two ways: a name, or four numbers. Both at once
+    /// would be two answers to one question, and the reader would have to guess which one wins.
+    /// </summary>
+    private static bool HasTextAndNumbers(IReadOnlyDictionary<string, string> row)
+    {
+        var named = row.TryGetValue("text", out var text)
+            && !string.IsNullOrWhiteSpace(text);
+        var numbered = new[] { "x", "y", "width", "height" }.Any(column =>
+            row.TryGetValue(column, out var value) && !string.IsNullOrWhiteSpace(value));
+        return named && numbered;
+    }
+    /// <summary>
     /// Checks a row list against the columns its field declares. A column nobody reads would be
     /// skipped in silence, which looks like the action ignoring what the row said; one the field
     /// requires but the row leaves out is a row that cannot say what it was meant to say.
@@ -1362,6 +1374,11 @@ public sealed partial class MacroRunner
                 }
             }
 
+            if (string.Equals(facts.Name, "region", StringComparison.Ordinal)
+                && HasTextAndNumbers(row))
+            {
+                throw new StepFailure(RunKeys.BadRowColumn, facts.Name + ".text");
+            }
             foreach (var column in facts.Columns.Where(column => column.Required))
             {
                 if (!row.Keys.Any(written =>
