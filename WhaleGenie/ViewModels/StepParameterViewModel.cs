@@ -7,6 +7,7 @@ using System.Linq;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -42,17 +43,18 @@ public partial class StepParameterViewModel : ViewModelBase
         DurationUnits = DurationUnit.Localized();
         _unit = DurationUnits[0];
 
-        // A box that holds a variable name is offered the names the macro works with, in the form
-        // that box takes: the names themselves where the name is what is written down, and with
-        // their dollar sign where a value is read, because that is how the reader is written. What
-        // WhaleGenie provides itself stays out — a macro may not write those, and the dialog refuses
-        // the name — and so does the ending a step leaves behind, which the engine writes rather
-        // than anyone naming it. Both are read off the wall instead, which shows every scope.
-        var mine = Variables
-            .Where(choice => choice.Scope != VariableScope.System && !choice.IsStepResult)
-            .Select(choice => choice.Name)
-            .ToList();
-        NameChoices = definition.NamesVariable ? mine : [.. mine.Select(name => "$" + name)];
+        // A box that writes a variable name offers only names a macro may write. Every other box
+        // reads, and a read may also name what WhaleGenie provides or what an earlier step left
+        // behind. A bare-name field takes the name itself, while a value box takes the reader's
+        // form with the dollar sign.
+        var writesName = definition.NamesVariable
+            && MacroStep.DefinesVariable(definition.OwnerKey, definition.Name);
+        var offered = writesName
+            ? Variables.Where(choice => choice.Scope != VariableScope.System && !choice.IsStepResult)
+            : Variables;
+        NameChoices = definition.NamesVariable
+            ? [.. offered.Select(choice => choice.Name)]
+            : [.. offered.Select(choice => "$" + choice.Name)];
 
         // A field that may name variables offers them; one that is read as a whole value offers the
         // functions as well, because a function name is something the expression reader understands
@@ -589,17 +591,14 @@ public partial class StepParameterViewModel : ViewModelBase
     /// off the screen instead of it being written out by hand. The control a step measures from is
     /// one of these as well: it names a control the same way, so it is picked the same way.
     /// </summary>
-    public bool IsSelector => Definition.Kind is ActionParameterKind.Text
-                              && Definition.Name is "selector" or "anchorSelector";
+    public bool IsSelector => Definition.Picker is ActionPickerKind.Element;
 
     /// <summary>
     /// True when this parameter names an element inside a page a browser action drives. It is
     /// picked off the page itself — by pointing at it in the browser — rather than off the Windows
     /// desktop the way a UI Automation selector is, so it carries a button of its own.
     /// </summary>
-    public bool IsBrowserTarget => Definition.Kind is ActionParameterKind.Text
-                                   && Definition.Name is "target"
-                                   && Definition.OwnerKey.StartsWith("browser.", StringComparison.Ordinal);
+    public bool IsBrowserTarget => Definition.Picker is ActionPickerKind.Browser;
 
     /// <summary>True when this parameter is a picture the action looks for on screen.</summary>
     public bool IsImage => Definition.Kind is ActionParameterKind.Image;
@@ -745,7 +744,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// written in the same box every other piece of text a macro works out earlier is written in,
     /// and this is what puts the picker beside that box.
     /// </summary>
-    public bool IsWindow => Definition.Kind is ActionParameterKind.Window;
+    public bool IsWindow => Definition.Picker is ActionPickerKind.Window;
 
     /// <summary>
     /// Where pictures live while this dialog is open: beside the macro package when it has a
@@ -806,7 +805,7 @@ public partial class StepParameterViewModel : ViewModelBase
     }
 
     /// <summary>True when this parameter is a colour, edited with the screen picker.</summary>
-    public bool IsColor => Definition.Kind is ActionParameterKind.Color;
+    public bool IsColor => Definition.Picker is ActionPickerKind.Color;
 
     /// <summary>
     /// True when this parameter is one half of a screen position. Set by the dialog once it
@@ -1247,6 +1246,9 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </remarks>
     public bool IsIncluded => IsEnabled && IsApplicable && Definition.Kind switch
     {
+        ActionParameterKind.Bool => Definition.Required
+            || Flag != string.Equals(Definition.DefaultValue, "true",
+                StringComparison.OrdinalIgnoreCase),
         ActionParameterKind.Steps or ActionParameterKind.Condition => HasNestedSteps,
         ActionParameterKind.Region => Regions.Count > 0,
         ActionParameterKind.KeySequence => HasKeyPress,
@@ -1509,10 +1511,10 @@ public partial class StepParameterViewModel : ViewModelBase
 
             foreach (var written in stored.Rows)
             {
-                var key = written.Text("key").Trim();
+                var key = written.Text(FieldNames.Key).Trim();
                 var match = ReturnsRows.FirstOrDefault(row =>
                     string.Equals(row.Key, key, StringComparison.OrdinalIgnoreCase));
-                match?.Load(written.Text("name"));
+                match?.Load(written.Text(FieldNames.Name));
             }
 
             OnPropertyChanged(nameof(HandsOverAnything));

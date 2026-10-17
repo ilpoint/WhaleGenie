@@ -28,7 +28,7 @@ public class KeyRunTests
     }
 
     private static StepParameterViewModel Run(AddActionViewModel viewModel)
-        => viewModel.Parameters.First(parameter => parameter.Definition.Name == "keys");
+        => viewModel.Parameters.First(parameter => parameter.Definition.Name == "keySequence");
 
     [Fact]
     public void The_run_the_dialog_built_reaches_the_engine()
@@ -47,7 +47,7 @@ public class KeyRunTests
             viewModel.CloseRequested += step => saved = step;
             viewModel.SaveCommand.Execute(null);
 
-            var rows = Assert.Single(new[] { saved! }.ToExecutable()).Rows("keys");
+            var rows = Assert.Single(new[] { saved! }.ToExecutable()).Rows("keySequence");
             Assert.Equal(2, rows.Count);
             Assert.Equal("Ctrl+A", rows[0]["keys"]);
             Assert.Equal("B", rows[1]["keys"]);
@@ -62,12 +62,12 @@ public class KeyRunTests
         Ui.Run(() =>
         {
             var definition = ActionCatalog.Find("input.keySequence")!.Parameters
-                .First(parameter => parameter.Name == "keys");
+                .First(parameter => parameter.Name == "keySequence");
             var parameter = new StepParameterViewModel(definition);
 
             parameter.ApplyValue(new StepParameter
             {
-                Name = "keys",
+                Name = "keySequence",
                 Kind = ActionParameterKind.KeySequence,
                 Rows =
                 [
@@ -111,7 +111,7 @@ public class KeyRunTests
 
             var written = saved!.ToJson().ToJsonString();
             var back = MacroStep.FromJson((JsonObject)JsonNode.Parse(written)!);
-            var rows = back.Parameters.First(parameter => parameter.Name == "keys").Rows;
+            var rows = back.Parameters.First(parameter => parameter.Name == "keySequence").Rows;
 
             Assert.Equal(2, rows.Count);
             Assert.Equal("Ctrl+A", rows[0].Text("keys"));

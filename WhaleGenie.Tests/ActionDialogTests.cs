@@ -213,10 +213,10 @@ public class ActionDialogTests
 
             // Written below by default: the script box and the encoding its copy is written in are
             // both drawn, and there is no file to name.
-            Assert.Equal("text", Value(viewModel, "source"));
+            Assert.Equal("text", Value(viewModel, "scriptSource"));
             Assert.True(Shown("script"), "the script box is not drawn");
             Assert.True(Shown("encoding"), "the encoding is not drawn");
-            Assert.False(Shown("file"), "the file box is drawn and no file is being run");
+            Assert.False(Shown("scriptFile"), "the file box is drawn and no file is being run");
 
             Choose(viewModel, "kind", "custom");
 
@@ -225,16 +225,64 @@ public class ActionDialogTests
             Assert.True(Shown("interpreter"), "the program to run is not drawn");
             Assert.True(Shown("extension"), "the ending the program reads is not drawn");
 
-            Choose(viewModel, "source", "file");
+            Choose(viewModel, "scriptSource", "file");
 
             Assert.False(Shown("script"), "the script box is drawn and no script is written");
             Assert.False(Shown("encoding"), "the encoding is drawn for a file");
-            Assert.True(Shown("file"), "the file box is not drawn");
+            Assert.True(Shown("scriptFile"), "the file box is not drawn");
 
             // Nor an ending for the file: what is run is already on disk with the ending its author
             // gave it, and only a script written here needs to be given one.
             Assert.True(Shown("interpreter"), "the program to run is not drawn");
             Assert.False(Shown("extension"), "an ending is asked for a file that has one");
+        });
+    }
+
+    /// <summary>
+    /// The three text-comparison switches are tuning, and each is drawn only where it can change
+    /// the answer: case sensitivity in every way, spacing only while the two texts have to be the
+    /// same, and the line rule only while the text is read as a pattern.
+    /// </summary>
+    [Fact]
+    public void Text_comparison_switches_are_drawn_where_they_are_read()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("ocr.findText");
+
+            Assert.True(Shown(viewModel, "caseSensitive"));
+            Assert.False(Shown(viewModel, "trim"));
+            Assert.False(Shown(viewModel, "multiline"));
+
+            Choose(viewModel, "matchMode", "equals");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(Shown(viewModel, "caseSensitive"));
+            Assert.True(Shown(viewModel, "trim"));
+            Assert.False(Shown(viewModel, "multiline"));
+
+            Choose(viewModel, "matchMode", "regex");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(Shown(viewModel, "caseSensitive"));
+            Assert.False(Shown(viewModel, "trim"));
+            Assert.True(Shown(viewModel, "multiline"));
+
+            // A condition compares text too, so the same three answers are folded away with its
+            // tuning rather than being written into the line that says what is compared.
+            var condition = Open("condition.compare");
+            var folded = condition.AdvancedRows.SelectMany(Names).ToList();
+            Assert.Contains("caseSensitive", folded);
+            Assert.Contains("trim", folded);
+            Assert.Contains("multiline", folded);
+            Assert.True(Shown(condition, "trim"));
+            Assert.False(Shown(condition, "multiline"));
+
+            Choose(condition, "compareOperator", "regex");
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.False(Shown(condition, "trim"));
+            Assert.True(Shown(condition, "multiline"));
         });
     }
 
@@ -292,7 +340,7 @@ public class ActionDialogTests
         Ui.Run(() =>
         {
             var (window, viewModel) = OpenWindow("ocr.findText");
-            var looked = viewModel.Parameters.First(parameter => parameter.Definition.Name == "text");
+            var looked = viewModel.Parameters.First(parameter => parameter.Definition.Name == "queryText");
 
             Assert.True(looked.TakesFormula);
             Assert.StartsWith(Strings.Get("Add.FieldTakesFormula"), looked.Hint);
@@ -574,7 +622,7 @@ public class ActionDialogTests
             Assert.Equal("5", Value(viewModel, "tolerance"));
             Assert.Equal("1", Value(viewModel, "matchIndex"));
             Assert.Equal("0", Value(viewModel, "minCoverage"));
-            Assert.Equal(["match", "every", "coverage"],
+            Assert.Equal(["match", "every", "coverage", "window", "method"],
                 viewModel.ReturnsRows.Select(row => row.Key).ToList());
         });
     }
@@ -607,7 +655,8 @@ public class ActionDialogTests
             var viewModel = Open("vision.findImage");
 
             Assert.Equal("1", Value(viewModel, "matchIndex"));
-            Assert.Equal(["match", "every"], viewModel.ReturnsRows.Select(row => row.Key));
+            Assert.Equal(["match", "every", "window", "method"],
+                viewModel.ReturnsRows.Select(row => row.Key));
         });
     }
 
@@ -670,7 +719,7 @@ public class ActionDialogTests
                     Strings.Format("Common.OptionalSuffix", ignore.Definition.LocalLabel),
                     ignore.Label);
 
-                viewModel.Parameters.First(parameter => parameter.Definition.Name == "image")
+                viewModel.Parameters.First(parameter => parameter.Definition.Name == "images")
                     .AddPicture(new ImageRowViewModel { Text = @"C:\images\ok.png" });
 
                 Assert.True(viewModel.CanSave, $"{key}: {viewModel.ValidationMessage}");
@@ -684,7 +733,7 @@ public class ActionDialogTests
         Ui.Run(() =>
         {
             var viewModel = Open("vision.waitImage");
-            viewModel.Parameters.First(parameter => parameter.Definition.Name == "image")
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "images")
                 .AddPicture(new ImageRowViewModel { Text = @"C:\images\ok.png" });
 
             var look = viewModel.Parameters
@@ -816,9 +865,9 @@ public class ActionDialogTests
         Ui.Run(() =>
         {
             var viewModel = Open("control.switch");
-            var value = viewModel.Parameters.First(parameter => parameter.Definition.Name == "value");
+            var value = viewModel.Parameters.First(parameter => parameter.Definition.Name == "switchValue");
             var mode = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "matchMode");
+                .First(parameter => parameter.Definition.Name == "switchMode");
 
             // Both sides of a switch's comparison are operands: a variable list to pick from with
             // room to type, so a value never has to be spelled from memory. The operator is only
@@ -988,7 +1037,7 @@ public class ActionDialogTests
                 .First(parameter => parameter.Definition.Name == "points").IsMultiline);
 
             var mode = viewModel.Parameters
-                .First(parameter => parameter.Definition.Name == "mode");
+                .First(parameter => parameter.Definition.Name == "colorMatchMode");
             Assert.True(mode.IsChoice);
             Assert.Equal(["all", "any"], mode.Choices.Select(choice => choice.Value));
             Assert.Equal("all", mode.CurrentText);
@@ -1296,10 +1345,11 @@ public class ActionDialogTests
         public IReadOnlyList<WindowInfo> List() => [Notepad];
 
         public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match, string compare,
-            bool everyWhenEmpty = false)
-            => Find(value, match, compare) is { } window ? [window] : [];
+            bool everyWhenEmpty = false, TextCompareOptions options = default)
+            => Find(value, match, compare, options) is { } window ? [window] : [];
 
-        public WindowInfo? Find(string value, WindowMatch match, string compare)
+        public WindowInfo? Find(string value, WindowMatch match, string compare,
+            TextCompareOptions options = default)
             => Notepad.Title.Contains(value, StringComparison.OrdinalIgnoreCase) ? Notepad : null;
 
         public string ProcessOf(long handle) => "notepad";
@@ -1869,13 +1919,13 @@ public class ActionDialogTests
         Ui.Run(() =>
         {
             var viewModel = Open("process.waitFor");
-            var timeout = viewModel.Parameters.First(parameter => parameter.Definition.Name == "timeoutMs");
+            var timeout = viewModel.MetaTimeout;
 
             // 10000 is 10 whole seconds, and it still opens as 10000: every time field in a step
             // reads in milliseconds, and converting is the user's own job.
             Assert.Equal("ms", timeout.Unit.Key);
-            Assert.Equal(10_000m, timeout.NumberValue);
-            Assert.Equal("10000", Value(viewModel, "timeoutMs"));
+            Assert.Equal(10_000m, timeout.Value);
+            Assert.Equal(10_000, timeout.Milliseconds);
         });
     }
 
@@ -2061,9 +2111,11 @@ public class ActionDialogTests
             // are measured from, how the pointer travels, where the input is sent, and — for a step
             // that posts it at a window — which window that is and how it is recognised. The last two
             // are off the form while the input goes to whatever is in front, but they are still the
-            // tuning of this action rather than something to show without being asked for.
+            // tuning of this action rather than something to show without being asked for. The
+            // three text-comparison switches sit there too: they are questions about how a window
+            // title is recognised, not about where the pointer goes.
             Assert.Equal(4, viewModel.Rows.Count);
-            Assert.Equal(8, viewModel.AdvancedRows.Count);
+            Assert.Equal(11, viewModel.AdvancedRows.Count);
             Assert.True(viewModel.OnBase);
 
             // The pages are opened by their own tabs rather than by a fold, so a step's settings
@@ -2281,7 +2333,7 @@ public class ActionDialogTests
             Assert.Contains("ignoreColor", folded);
 
             // What the step is about stays in front.
-            Assert.Contains("image", visible);
+            Assert.Contains("images", visible);
             Assert.Contains("region", visible);
         });
     }
@@ -2306,7 +2358,7 @@ public class ActionDialogTests
                 index.NumberValue = 3;
 
                 // Pairing up features: only "least feature pairs" has anything to answer to.
-                Choose(viewModel, "algorithm", "feature");
+                Choose(viewModel, "detectAlgorithm", "feature");
                 Dispatcher.UIThread.RunJobs();
 
                 Assert.True(Shown(viewModel, "minFeatures"), key);
@@ -2314,7 +2366,7 @@ public class ActionDialogTests
                 Assert.False(Shown(viewModel, "orderBy"), key);
 
                 // Back to a pixel comparison, and what was typed is still there.
-                Choose(viewModel, "algorithm", "correlated");
+                Choose(viewModel, "detectAlgorithm", "correlated");
                 Dispatcher.UIThread.RunJobs();
 
                 Assert.True(Shown(viewModel, "matchIndex"), key);
@@ -2342,15 +2394,15 @@ public class ActionDialogTests
         {
             var viewModel = Open("data.hash");
 
-            Assert.True(Shown(viewModel, "text"));
+            Assert.True(Shown(viewModel, "dataText"));
             Assert.False(Shown(viewModel, "path"));
 
-            viewModel.Parameters.First(parameter => parameter.Definition.Name == "text").Text =
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "dataText").Text =
                 "hello";
-            Choose(viewModel, "source", "file");
+            Choose(viewModel, "hashSource", "file");
             Dispatcher.UIThread.RunJobs();
 
-            Assert.False(Shown(viewModel, "text"));
+            Assert.False(Shown(viewModel, "dataText"));
             Assert.True(Shown(viewModel, "path"));
 
             MacroStep? saved = null;
@@ -2361,16 +2413,16 @@ public class ActionDialogTests
 
             var names = saved!.Parameters.Select(parameter => parameter.Name).ToList();
             Assert.Contains("path", names);
-            Assert.DoesNotContain("text", names);
+            Assert.DoesNotContain("dataText", names);
 
             // Back to a piece of text, and what was typed is still there rather than thrown away.
-            Choose(viewModel, "source", "text");
+            Choose(viewModel, "hashSource", "text");
             Dispatcher.UIThread.RunJobs();
 
-            Assert.True(Shown(viewModel, "text"));
+            Assert.True(Shown(viewModel, "dataText"));
             Assert.False(Shown(viewModel, "path"));
             Assert.Equal("hello",
-                viewModel.Parameters.First(parameter => parameter.Definition.Name == "text").Text);
+                viewModel.Parameters.First(parameter => parameter.Definition.Name == "dataText").Text);
         });
     }
 
@@ -2384,11 +2436,11 @@ public class ActionDialogTests
         Ui.Run(() =>
         {
             var viewModel = Open("vision.findImage");
-            viewModel.Parameters.First(parameter => parameter.Definition.Name == "image").Text =
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "images").Text =
                 @"C:\images\ok.png";
             viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "matchIndex").NumberValue = 3;
-            Choose(viewModel, "algorithm", "feature");
+            Choose(viewModel, "detectAlgorithm", "feature");
             Dispatcher.UIThread.RunJobs();
 
             MacroStep? saved = null;
@@ -2400,7 +2452,7 @@ public class ActionDialogTests
 
             Assert.DoesNotContain("matchIndex", names);
             Assert.DoesNotContain("orderBy", names);
-            Assert.Contains("algorithm", names);
+            Assert.Contains("detectAlgorithm", names);
         });
     }
 
@@ -2419,11 +2471,11 @@ public class ActionDialogTests
                 var viewModel = Open(key);
                 var folded = viewModel.AdvancedRows.SelectMany(Names).ToList();
 
-                Assert.Contains("algorithm", folded);
+                Assert.Contains("detectAlgorithm", folded);
                 Assert.DoesNotContain("method", folded);
 
                 var algorithm = viewModel.Parameters
-                    .First(parameter => parameter.Definition.Name == "algorithm");
+                    .First(parameter => parameter.Definition.Name == "detectAlgorithm");
 
                 Assert.Equal(["normed", "correlated", "difference", "feature"],
                     algorithm.Definition.Options);
@@ -2459,7 +2511,7 @@ public class ActionDialogTests
                 reading.ReturnsRows.Select(row => row.Key).ToList());
 
             var writing = Open("file.writeCsv");
-            Assert.Equal(["path", "rows", "header", "mode"],
+            Assert.Equal(["path", "rows", "header", "writeMode"],
                 writing.Rows.SelectMany(Names).ToList());
             Assert.Contains("align", writing.AdvancedRows.SelectMany(Names));
             Assert.Empty(writing.ReturnsRows);
@@ -2797,7 +2849,7 @@ public class ActionDialogTests
 
             var button = viewModel.Parameters.First(parameter => parameter.Definition.Name == "button");
             Assert.True(button.IsGamepadPad);
-            Assert.False(viewModel.Parameters.First(parameter => parameter.Definition.Name == "mode")
+            Assert.False(viewModel.Parameters.First(parameter => parameter.Definition.Name == "buttonMode")
                 .IsGamepadPad);
 
             var pad = window.GetVisualDescendants().OfType<Button>()

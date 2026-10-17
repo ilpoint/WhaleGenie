@@ -235,7 +235,7 @@ public class ElementPickerTests
     public void Every_action_that_looks_for_an_element_offers_a_selector()
     {
         var keys = Ui.Run(() => ActionCatalog.Definitions
-            .Where(definition => definition.Parameters.Any(parameter => parameter.Name == "selector"))
+            .Where(definition => definition.Parameters.Any(parameter => parameter.Name == "uiSelector"))
             .Select(definition => definition.Key)
             .Order()
             .ToList());
@@ -256,9 +256,9 @@ public class ElementPickerTests
                 ?? throw new InvalidOperationException("uia.setText is missing from the catalogue.");
 
             var selector = new StepParameterViewModel(
-                definition.Parameters.First(parameter => parameter.Name == "selector"));
+                definition.Parameters.First(parameter => parameter.Name == "uiSelector"));
             var text = new StepParameterViewModel(
-                definition.Parameters.First(parameter => parameter.Name == "text"));
+                definition.Parameters.First(parameter => parameter.Name == "valueText"));
 
             Assert.True(selector.IsText);
             Assert.True(selector.IsSelector);
@@ -289,7 +289,7 @@ public class ElementPickerTests
                 var definition = ActionCatalog.Find(key)
                     ?? throw new InvalidOperationException($"{key} is missing from the catalogue.");
                 var target = new StepParameterViewModel(
-                    definition.Parameters.First(parameter => parameter.Name == "target"));
+                    definition.Parameters.First(parameter => parameter.Name == "pageSelector"));
 
                 Assert.True(target.IsBrowserTarget, $"{key}'s element is not picked off the page");
                 Assert.False(target.IsPlainText, $"{key}'s element is drawn twice");
@@ -366,7 +366,7 @@ public class ElementPickerTests
             var definition = ActionCatalog.Find("browser.click")
                 ?? throw new InvalidOperationException("browser.click is missing from the catalogue.");
             var target = new StepParameterViewModel(
-                definition.Parameters.First(parameter => parameter.Name == "target"));
+                definition.Parameters.First(parameter => parameter.Name == "pageSelector"));
 
             // A name written in the box is filled in when the step runs, so the names are offered
             // beside the picker — the box itself carries no list over it — and a formula is not

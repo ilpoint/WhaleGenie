@@ -1,4 +1,5 @@
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -18,7 +19,7 @@ public class VariableFieldTests
         Ui.Run(() =>
         {
             var notify = Open("system.notify");
-            var message = Parameter(notify, "message");
+            var message = Parameter(notify, "notificationText");
             var heading = Parameter(notify, "heading");
 
             // The whole value is read as one, so the expression editor may build it — this is the
@@ -182,7 +183,7 @@ public class VariableFieldTests
 
             // Reading one: a value compared against a number takes the reader's own form, which is
             // what the wall hands back.
-            var reading = Parameter(Open("condition.valueInRange"), "value");
+            var reading = Parameter(Open("condition.valueInRange"), "testValue");
             reading.InsertVariable("$count", 0);
             Assert.Equal("$count", reading.Text);
             Assert.Equal(["$count", "$name"], reading.NameChoices.Order(StringComparer.Ordinal));
@@ -190,11 +191,9 @@ public class VariableFieldTests
     }
 
     /// <summary>
-    /// A box that holds a name is offered the names the macro works with rather than everything the
-    /// wall can show. What WhaleGenie provides is read-only — the dialog refuses the name the
-    /// moment it is written into a step — and what a step leaves behind is written by the engine
-    /// rather than named by anybody, so neither is a name to pick out of a list. Both are read off
-    /// the wall, which shows every scope.
+    /// A box that writes a name is offered only the names the macro may write. A box that reads a
+    /// value is offered every scope, including what WhaleGenie provides and what an earlier step
+    /// left behind, because both are values a macro can read even though it cannot write them.
     /// </summary>
     [Fact]
     public void A_box_that_holds_a_name_is_offered_the_names_the_macro_works_with()
@@ -221,11 +220,50 @@ public class VariableFieldTests
             viewModel.SelectAction("control.setVariable");
             Assert.Equal(["count", "notes"], Parameter(viewModel, "name").NameChoices);
 
-            // A value being read out of a box that holds a name: the same names, in the form the
-            // reader writes a variable in. A path is one of these, and a name is not something to
+            // A value being read: every scope, in the form the reader writes a variable in. A path
+            // is one of these, and neither a provided value nor a step's ending is something to
             // spell from memory.
             viewModel.SelectAction("file.writeText");
-            Assert.Equal(["$count", "$notes"], Parameter(viewModel, "path").NameChoices);
+            Assert.Equal(
+                ["$count", "$notes", "$step.k3f9.outcome", "$sys.date", "$sys.mouseX"],
+                Parameter(viewModel, "path").NameChoices.Order(StringComparer.Ordinal));
+        });
+    }
+
+    /// <summary>
+    /// A provided value and a step's ending are both readable, so a value box lists them with the
+    /// dollar sign the reader uses; a box that writes a name lists neither, because neither may be
+    /// written by a macro.
+    /// </summary>
+    [Fact]
+    public void A_value_box_lists_every_scope_but_a_written_name_does_not()
+    {
+        Ui.Run(() =>
+        {
+            var variables = VariableChoices.Merge(
+                VariableChoicesForChecks.Named("count"),
+                [
+                    new VariableChoice { Name = "sys.macroFolder", Scope = VariableScope.System },
+                    new VariableChoice
+                    {
+                        Name = "step.k3f9.error",
+                        Scope = VariableScope.Local,
+                        IsStepResult = true,
+                    },
+                ]);
+
+            var viewModel = new AddActionViewModel(ActionCatalog.Definitions, variables, []);
+
+            viewModel.SelectAction("file.writeText");
+            var path = Parameter(viewModel, "path");
+            Assert.Contains("$sys.macroFolder", path.NameChoices);
+            Assert.Contains("$step.k3f9.error", path.NameChoices);
+            Assert.Contains("$sys.macroFolder", path.ExpressionSuggestions);
+            Assert.Contains("$step.k3f9.error", path.ExpressionSuggestions);
+
+            viewModel.SelectAction("control.setVariable");
+            var name = Parameter(viewModel, "name");
+            Assert.Equal(["count"], name.NameChoices);
         });
     }
 
@@ -242,12 +280,12 @@ public class VariableFieldTests
         {
             // Read as a whole, so a value worked out from variables and functions belongs here.
             Assert.True(Parameter(Open("file.writeText"), "path").OffersBuilder);
-            Assert.True(Parameter(Open("system.notify"), "message").OffersBuilder);
+            Assert.True(Parameter(Open("system.notify"), "notificationText").OffersBuilder);
 
             // A name being written, and a window recognised by text: both take the picker, neither
             // takes a formula.
             Assert.False(Parameter(Open("control.setVariable"), "name").OffersBuilder);
-            Assert.False(Parameter(Open("control.for"), "variable").OffersBuilder);
+            Assert.False(Parameter(Open("control.for"), "name").OffersBuilder);
             Assert.False(Parameter(Open("window.exists"), "window").OffersBuilder);
         });
     }
@@ -266,13 +304,13 @@ public class VariableFieldTests
                 VariableChoicesForChecks.Named("count", "shot"), []);
 
             viewModel.SelectAction("clipboard.writeImage");
-            var picture = Parameter(viewModel, "image");
+            var picture = Parameter(viewModel, "imageSource");
             Assert.True(picture.IsImage);
             Assert.Equal(["$count", "$shot"], picture.NameChoices);
 
             // Every row of a list has to say it, not only the one the dialog happens to show first.
             viewModel.SelectAction("vision.findImage");
-            var list = Parameter(viewModel, "image");
+            var list = Parameter(viewModel, "images");
             list.AddPicture();
             list.AddPicture();
             Assert.Equal(2, list.Pictures.Count);
@@ -355,13 +393,13 @@ public class VariableFieldTests
         // to the other language: a value gets into a script the way that language says, or by a
         // placeholder written into the script itself, rather than by a list of names standing over
         // the box it was written in. A page's own script is the same kind of box.
-        string[] otherNames = ["file.saveVariables.names", "system.environment.name",
+        string[] otherNames = ["file.saveVariables.names", "system.environment.environmentName",
             "script.run.script", "script.ahk.script", "browser.evaluate.script"];
 
         // A box of several lines: a list of names standing over one would be in the way, so these
         // are written by hand. The first fills a `$name` in, and the second is shown exactly as it
         // was written.
-        string[] multiline = ["command.run.standardInput", "control.note.text"];
+        string[] multiline = ["command.run.standardInput", "control.note.note"];
 
         // The shape a reading has to fit is a pattern rather than a value: the dollar signs its hint
         // uses are the ends of a regular expression, not the start of a variable name.

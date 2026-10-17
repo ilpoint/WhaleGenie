@@ -77,7 +77,7 @@ public class PathPickerTests
         Ui.Run(() =>
         {
             var viewModel = Open("process.start", out var window);
-            var program = viewModel.Parameters.First(p => p.Definition.Name == "file");
+            var program = viewModel.Parameters.First(p => p.Definition.Name == "programFile");
             var folder = viewModel.Parameters.First(p => p.Definition.Name == "workingDirectory");
 
             Assert.Equal(Strings.Get("Add.BrowseOpen"), program.PathButton);

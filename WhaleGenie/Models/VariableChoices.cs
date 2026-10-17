@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
@@ -173,22 +172,11 @@ public static class VariableChoices
                     continue;
                 }
 
-                foreach (var name in Expression.ReferencedNames(parameter.Value))
+                // The design-time check and the picker answer "which names does this field read"
+                // from the same place, so the two cannot drift apart with the read mode.
+                foreach (var name in MacroCheck.ReadsOf(step, parameter))
                 {
                     reads.Add(name);
-                }
-
-                // A list of rows holds values of its own — the paths of a set of pictures, the
-                // patterns of a switch — and a name written into one of those is read there too.
-                foreach (var row in parameter.Rows)
-                {
-                    foreach (var value in row.Columns.Values)
-                    {
-                        foreach (var name in Expression.ReferencedNames(value))
-                        {
-                            reads.Add(name);
-                        }
-                    }
                 }
             }
 

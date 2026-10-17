@@ -192,7 +192,7 @@ public class NumberBoxTests
         Ui.Run(() =>
         {
             var window = Open("input.keySequence");
-            Parameter(window, "keys").AddKeyRow();
+            Parameter(window, "keySequence").AddKeyRow();
             Dispatcher.UIThread.RunJobs();
 
             foreach (var width in new[] { 1024d, 900d })

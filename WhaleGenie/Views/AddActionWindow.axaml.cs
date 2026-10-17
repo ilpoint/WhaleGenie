@@ -1036,7 +1036,9 @@ public partial class AddActionWindow : Window
             // Off the thread that draws the window: a device call can wait on hardware, and the
             // dialog has to stay able to come back when it is done.
             outcome = await Task.Run(() => MacroRunner.TryAsync(step, Devices,
-                variables: MacroVariables.Seed(new SystemVariableReader(Devices)), macros: Macros));
+                variables: MacroVariables.Seed(new SystemVariableReader(Devices),
+                    SharedVariables.Current),
+                macros: Macros));
         }
         finally
         {
@@ -1110,7 +1112,7 @@ public partial class AddActionWindow : Window
         }
 
         var field = viewModel.Parameters
-            .FirstOrDefault(parameter => parameter.Definition.Name == "image");
+            .FirstOrDefault(parameter => parameter.Definition.Name == "images");
 
         // The picture may be held in a variable the run has not made yet, and there is nothing to
         // point at before one is chosen.
@@ -1647,7 +1649,7 @@ public partial class AddActionWindow : Window
     /// one row is looked at on top of the rows above it.
     /// </summary>
     private static PageTarget Target(AddActionViewModel viewModel, NarrowRowViewModel? upto = null)
-        => PageTarget.Of(ParameterText(viewModel, "target"), MatchIndex(viewModel),
+        => PageTarget.Of(ParameterText(viewModel, "pageSelector"), MatchIndex(viewModel),
             viewModel.Parameters.FirstOrDefault(parameter => parameter.IsNarrow)?.Conditions(upto)
                 ?? []);
 

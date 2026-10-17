@@ -19,6 +19,11 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
     <!--
+      Labels, hints and editor kinds are the interface's own projection. Engine facts stay in
+      WhaleGenie.Core so this file cannot become a second action catalogue.
+    -->
+    <EmbeddedResource Include="Models\ActionDisplay.json" />
+    <!--
       "关于"窗口要能显示第三方说明，发行包里也要求它跟着 exe 走。同一份文件链接进来，不抄
       第二遍：程序里显示的、仓库里放的就永远是同一段文字。
     -->

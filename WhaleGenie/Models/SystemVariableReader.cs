@@ -42,7 +42,10 @@ public sealed class SystemVariableReader : ILiveVariables
     /// </summary>
     public bool TryGet(string name, out Value value)
     {
-        if (!Known.TryGetValue(name, out var definition))
+        // The round number is written by the runner for the loop that is running. The machine has
+        // no answer for it, and a made-up zero outside a loop would look like a real round.
+        if (!Known.TryGetValue(name, out var definition)
+            || string.Equals(name, VariableStore.LoopIndexName, StringComparison.OrdinalIgnoreCase))
         {
             value = Value.Null;
             return false;
@@ -72,9 +75,6 @@ public sealed class SystemVariableReader : ILiveVariables
 
         return name switch
         {
-            // Only meaningful inside a loop, where the engine writes the round number into the
-            // macro's own values: what this answers is a step that asks for it outside one.
-            "sys.loopIndex" => "0",
             "sys.macroFolder" => _devices.Files.BaseFolder,
             "sys.activeWindow" => Foreground()?.Title ?? string.Empty,
             "sys.activeProcess" => Foreground() is { } window

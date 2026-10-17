@@ -91,7 +91,8 @@ public class ActionPageTests
         "expected", "minScore", "contentPattern", "encoding", "outputEncoding", "lineEnding", "quoteAll",
         "emptyCells", "align", "separator", "depth", "sortBy", "descending", "withinCount",
         "withinUnit", "minKb", "maxKb", "relative", "columns", "matchColumn", "matchValue",
-        "maxRows", "headless", "storeAs", "limit", "skipBlankLines", "trim", "shape", "pollMs",
+        "maxRows", "headless", "storeAs", "limit", "skipBlankLines", "trim", "caseSensitive",
+        "multiline", "shape", "pollMs",
         "afterMs", "hidden", "runAsAdmin", "details", "inputSize", "iou",
     ];
 
@@ -169,6 +170,26 @@ public class ActionPageTests
         });
     }
 
+    [Fact]
+    public void For_each_waits_between_rounds_from_the_advanced_page()
+    {
+        Ui.Run(() =>
+        {
+            var viewModel = Open("control.forEach");
+            var advanced = viewModel.AdvancedRows.SelectMany(Names).ToList();
+            var basic = viewModel.Rows.SelectMany(Names).ToList();
+
+            Assert.Contains("intervalMs", advanced);
+            Assert.DoesNotContain("intervalMs", basic);
+
+            var field = ActionCatalog.Find("control.forEach")!.Parameters
+                .First(parameter => parameter.Name == "intervalMs");
+            Assert.Equal("0", field.DefaultValue);
+            Assert.Equal(0m, field.Minimum);
+            Assert.Equal(165600000m, field.Maximum);
+        });
+    }
+
     /// <summary>
     /// How a picture is compared — the way of recognising it, how many feature pairs have to line
     /// up, which colour to ignore, and in what order the hits are counted — is the same kind of
@@ -183,7 +204,7 @@ public class ActionPageTests
         var finder = Ui.Run(() => ActionCatalog.Find(action)!);
         var advanced = On(finder, viewModel => viewModel.AdvancedRows);
 
-        Assert.Contains("algorithm", advanced);
+        Assert.Contains("detectAlgorithm", advanced);
         Assert.Contains("minFeatures", advanced);
         Assert.Contains("ignoreColor", advanced);
         Assert.Contains("orderBy", advanced);
@@ -228,7 +249,7 @@ public class ActionPageTests
         var drag = Ui.Run(() => ActionCatalog.Find("input.mouseDrag")!);
         var advanced = On(drag, viewModel => viewModel.AdvancedRows);
 
-        Assert.Contains("steps", advanced);
+        Assert.Contains("dragSteps", advanced);
         Assert.Contains("style", advanced);
 
         // Where the drag starts and ends is what the step is, so it is on the basic page along with

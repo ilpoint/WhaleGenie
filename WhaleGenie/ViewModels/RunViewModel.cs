@@ -50,6 +50,12 @@ public sealed record RunResultViewModel(string Name, string Value, bool Kept)
 public sealed record RunResultLine(string Name, string Value, Thickness Indent);
 
 /// <summary>
+/// One try at a step, already worded for the debugger: when it ran, how much of the step's budget
+/// was left, and why it failed if it did.
+/// </summary>
+public sealed record RunAttemptViewModel(string Note, string Failure, bool HasFailure);
+
+/// <summary>
 /// Turns the fields of a record into those lines. It is arithmetic of its own rather than a
 /// walk over the panel's controls, because the shape is what is worth checking: a hit is three
 /// answers about one place, and a list of hits is three places with each one's answers under it.
@@ -167,6 +173,14 @@ public partial class RunStepViewModel : ObservableObject
     /// <summary>Says how many values the step worked out.</summary>
     public string ResultsHeader => Strings.Format("Run.StepResults", Results.Count);
 
+    /// <summary>Every try the step made, oldest first.</summary>
+    public ObservableCollection<RunAttemptViewModel> Attempts { get; } = [];
+
+    public bool HasAttempts => Attempts.Count > 0;
+
+    /// <summary>Says how many tries the step needed.</summary>
+    public string AttemptsHeader => Strings.Format("Run.StepAttempts", Attempts.Count);
+
     /// <summary>
     /// Takes what this step came to: how it ended, how long it took, why if it failed, and every
     /// value it worked out. A step that ran more than once — a loop, a retry — is answered by the
@@ -188,12 +202,38 @@ public partial class RunStepViewModel : ObservableObject
             _ => "#9A9A9A",
         };
         TimeNote = DurationUnit.Written(Math.Round((decimal)run.ElapsedMs));
+        // The key is what a condition branches on, so the row shows it beside the words rather
+        // than making the reader find the matching variable and compare by eye.
+        var reason = run.FailureDetail.Length == 0
+            ? Strings.Get(run.FailureKey)
+            : Strings.Format(run.FailureKey, run.FailureDetail);
         FailureNote = run.FailureKey.Length == 0
             ? string.Empty
-            : run.FailureDetail.Length == 0
-                ? Strings.Get(run.FailureKey)
-                : Strings.Format(run.FailureKey, run.FailureDetail);
+            : Strings.Format("Run.FailureNote", run.FailureKey, reason);
 
+        Attempts.Clear();
+        foreach (var attempt in run.Attempts)
+        {
+            var left = attempt.RemainingMs is { } remaining
+                ? Strings.Format("Run.AttemptLeft",
+                    DurationUnit.Written(Math.Round((decimal)remaining)))
+                : string.Empty;
+            var note = Strings.Format("Run.AttemptLine", attempt.Number,
+                DurationUnit.Written(Math.Round((decimal)attempt.ElapsedMs)), left);
+
+            var failure = attempt.FailureKey.Length == 0
+                ? string.Empty
+                : Strings.Format("Run.AttemptFailed", attempt.FailureKey);
+            if (attempt.Overran)
+            {
+                var late = Strings.Get("Run.AttemptOverran");
+                failure = failure.Length == 0 ? late : $"{failure} {late}";
+            }
+
+            Attempts.Add(new RunAttemptViewModel(note, failure, failure.Length > 0));
+        }
+
+        OnPropertyChanged(nameof(HasAttempts));
         Results.Clear();
         foreach (var result in run.Results)
         {
@@ -372,6 +412,12 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     private bool _exclusiveInput;
 
     /// <summary>
+    /// The runner whose background calls the window is showing. It is set for one run and cleared
+    /// when that run ends, so a line about a child cannot outlive the macro that started it.
+    /// </summary>
+    private MacroRunner? _childrenRunner;
+
+    /// <summary>
     /// Whose turn it is at the input door, as a line to read. It is shown only for the macros that
     /// asked to share the door, because for any other macro the answer is always the same and says
     /// nothing.
@@ -385,6 +431,51 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
     /// <summary>The door changed hands, so what the line says has changed with it.</summary>
     public void RefreshInputOwner() => OnPropertyChanged(nameof(InputOwnerLine));
+
+    /// <summary>
+    /// Which run is using the shared browser right now. There is one browser and one current page
+    /// for the whole program, so a browser step can wait for another macro just as an input step
+    /// waits at the input door; this is the line that says who has it.
+    /// </summary>
+    public string BrowserOwnerLine => BrowserGate.Owner.Length == 0
+        ? string.Empty
+        : Strings.Format("Run.BrowserOwner", BrowserGate.Owner);
+
+    /// <summary>True while some run is using the browser, so the line has something to say.</summary>
+    public bool ShowsBrowserOwner => BrowserGate.Owner.Length > 0;
+
+    /// <summary>The background calls this run has started and not yet waited for.</summary>
+    public string ChildrenLine
+    {
+        get
+        {
+            var running = _childrenRunner?.Children
+                .Where(child => child.Running)
+                .Select(child => child.Macro)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList() ?? [];
+            return running.Count == 0
+                ? string.Empty
+                : Strings.Format("Run.Children", string.Join(", ", running));
+        }
+    }
+
+    public bool HasChildren => _childrenRunner?.Children.Any(child => child.Running) == true;
+
+    /// <summary>A background run started, finished, or was waited for.</summary>
+    private void OnChildrenChanged()
+        => Dispatcher.UIThread.Post(() =>
+        {
+            OnPropertyChanged(nameof(ChildrenLine));
+            OnPropertyChanged(nameof(HasChildren));
+        });
+
+    /// <summary>The browser door changed hands.</summary>
+    public void RefreshBrowserOwner()
+    {
+        OnPropertyChanged(nameof(BrowserOwnerLine));
+        OnPropertyChanged(nameof(ShowsBrowserOwner));
+    }
 
     /// <summary>The names a breakpoint's condition may use, read off the macro being debugged.</summary>
     private IReadOnlyList<VariableChoice> _choices = [];
@@ -472,7 +563,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         _triggers = triggers;
         Debugged = macroName;
         _system = new SystemVariableReader(_devices);
-        _variables = MacroVariables.Seed(_system);
+        _variables = MacroVariables.Seed(_system, SharedVariables.Current);
         NewType = Types[0];
 
         // Nothing is loaded yet, so the compiler is told what every path sets before it reads them.
@@ -900,6 +991,8 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                 RunName = Debugged,
                 ExclusiveInput = _exclusiveInput,
             };
+            _childrenRunner = runner;
+            runner.ChildrenChanged += OnChildrenChanged;
 
             // Off the interface thread: a step that talks to a device waits for it right there in
             // the same call, and a page that has not drawn the element yet is waited on for the
@@ -909,6 +1002,14 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         }
         finally
         {
+            if (_childrenRunner is { } watched)
+            {
+                watched.ChildrenChanged -= OnChildrenChanged;
+            }
+
+            _childrenRunner = null;
+            OnPropertyChanged(nameof(ChildrenLine));
+            OnPropertyChanged(nameof(HasChildren));
             _cancellation = null;
             _ended = null;
             ended.TrySetResult();
@@ -1238,7 +1339,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                 Label = FailedStepPrompt.Name(step.Type),
                 Detail = Detail(step),
                 Depth = depth,
-                CanBreak = !step.Type.StartsWith("condition.", StringComparison.Ordinal),
+                CanBreak = ActionSemanticsCatalog.Find(step.Type)?.IsCondition != true,
             });
 
             // The condition reads first, so an "if"/"while" shows its test above the bodies.

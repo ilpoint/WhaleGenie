@@ -256,6 +256,7 @@ public partial class RunWindow : Window
     {
         base.OnOpened(e);
         InputGate.Changed += OnInputGateChanged;
+        BrowserGate.Changed += OnBrowserGateChanged;
 
         // What the triggers are waiting for changes on its own, so the lines are read again while
         // the window is up rather than once when it opens. A second is often enough to watch a
@@ -272,6 +273,7 @@ public partial class RunWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         InputGate.Changed -= OnInputGateChanged;
+        BrowserGate.Changed -= OnBrowserGateChanged;
         _triggers.Stop();
         _triggers.Tick -= OnTriggerTick;
         base.OnClosed(e);
@@ -279,6 +281,9 @@ public partial class RunWindow : Window
 
     private void OnInputGateChanged()
         => Dispatcher.UIThread.Post(() => Form?.RefreshInputOwner());
+
+    private void OnBrowserGateChanged()
+        => Dispatcher.UIThread.Post(() => Form?.RefreshBrowserOwner());
 
     private void OnTriggerTick(object? sender, EventArgs e) => Form?.RefreshTriggers();
 

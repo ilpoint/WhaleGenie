@@ -1299,8 +1299,14 @@ public partial class AddActionViewModel : ViewModelBase
                     Label = parameter.Name.Trim(),
                     Kind = ActionParameterKind.Expression,
                     Hint = parameter.Description,
-                    Required = parameter.Required,
-                    DefaultValue = parameter.Default,
+                    Semantics = new ActionParameterSemantics
+                    {
+                        Name = MacroCallFields.Argument(parameter.Name.Trim()),
+                        Shape = ActionValueShape.Text,
+                        ReadMode = ActionReadMode.WholeValue,
+                        Required = parameter.Required,
+                        DefaultValue = parameter.Default,
+                    },
                 }),
         ];
     }
@@ -1580,7 +1586,7 @@ public partial class AddActionViewModel : ViewModelBase
     {
         var x = Parameters.FirstOrDefault(parameter => parameter.Definition.Name == "offsetX");
         var y = Parameters.FirstOrDefault(parameter => parameter.Definition.Name == "offsetY");
-        if (x is null || y is null || Parameters.All(parameter => parameter.Definition.Name != "image"))
+        if (x is null || y is null || Parameters.All(parameter => parameter.Definition.Name != "images"))
         {
             return;
         }
@@ -1607,14 +1613,13 @@ public partial class AddActionViewModel : ViewModelBase
     /// </summary>
     private void MarkRegion()
     {
-        var anchor =
-            Pair("x", "y") is { } corner &&
-            Parameters.Any(parameter => parameter.Definition.Name == "width") &&
-            Parameters.Any(parameter => parameter.Definition.Name == "height")
-                ? corner
-                : Pair("startX", "startY") is { } from && Parameter("endX") is not null
-                    ? from
-                    : Parameter("region");
+        // Which field owns the region button is a fact of the action catalogue: the picker fills
+        // the corner and the size together, or the one field that holds the whole rectangle.
+        var anchor = Parameters.FirstOrDefault(parameter =>
+                         parameter.Definition.Picker is ActionPickerKind.Region
+                         && parameter.Definition.Kind is not ActionParameterKind.Region)
+                     ?? Parameters.FirstOrDefault(parameter =>
+                         parameter.Definition.Picker is ActionPickerKind.Region);
 
         if (anchor is not null)
         {
@@ -1624,12 +1629,9 @@ public partial class AddActionViewModel : ViewModelBase
         // How far a rectangle reaches is one thing said in two numbers, so the two read better side
         // by side, the way x and y already do. A drag writes two places rather than a corner and a
         // size, and each place is the same pair of numbers standing the same way.
-        PairRow("width", "height");
+        PairRow(FieldNames.Width, FieldNames.Height);
         PairRow("startX", "startY");
         PairRow("endX", "endY");
-
-        StepParameterViewModel? Pair(string first, string second)
-            => Parameter(first) is not null && Parameter(second) is not null ? Parameter(first) : null;
 
         void PairRow(string first, string second)
         {
@@ -1782,7 +1784,8 @@ public partial class AddActionViewModel : ViewModelBase
 
         foreach (var (name, value) in new (string Name, int Value)[]
                  {
-                     ("x", left), ("y", top), ("width", width), ("height", height),
+                     ("x", left), ("y", top),
+                     (FieldNames.Width, width), (FieldNames.Height, height),
                  })
         {
             if (Parameter(name) is { IsNumber: true } parameter)

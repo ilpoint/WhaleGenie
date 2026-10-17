@@ -22,7 +22,7 @@ public class PickerTests
     {
         var kinds = Ui.Run(() => ActionCatalog.Definitions
             .SelectMany(definition => definition.Parameters)
-            .Where(parameter => parameter.Name == "image")
+            .Where(parameter => parameter.Name is "images" or "imageSource")
             .Select(parameter => parameter.Kind)
             .Distinct()
             .ToList());
@@ -333,7 +333,7 @@ public class PickerTests
                 [
                     new StepParameter
                     {
-                        Name = "image",
+                        Name = "images",
                         Kind = ActionParameterKind.Images,
                         Rows =
                         [
@@ -355,7 +355,7 @@ public class PickerTests
             Directory.Delete(assets, true);
             var loaded = MacroPackage.Load(package);
             var step = Assert.Single(Assert.Single(loaded.Macros).Steps);
-            var image = Assert.Single(step.Parameters, parameter => parameter.Name == "image");
+            var image = Assert.Single(step.Parameters, parameter => parameter.Name == "images");
 
             Assert.Equal(picture, ImageAssets.Resolve(image.Rows[0].Text("image"), assets));
             Assert.True(File.Exists(picture));
@@ -373,7 +373,7 @@ public class PickerTests
             ?? throw new InvalidOperationException("vision.findImage is missing from the catalogue.");
 
         return new StepParameterViewModel(
-            definition.Parameters.First(parameter => parameter.Name == "image"));
+            definition.Parameters.First(parameter => parameter.Name == "images"));
     }
 
     /// <summary>A folder of its own under the temporary directory, removed by the caller.</summary>

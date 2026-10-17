@@ -197,7 +197,7 @@ public partial class MacroEditorWindow : Window
         _viewModel.SetProjectMacros(_project
             .Where(macro => !ReferenceEquals(macro, _editing))
             .Select(macro => macro.Callable),
-            OtherMacroSendsInput());
+            OtherMacroSendsInput(), OtherMacroUsesBrowser());
 
         DataContext = _viewModel;
         Title = Strings.Get("Editor.Title");
@@ -900,6 +900,20 @@ public partial class MacroEditorWindow : Window
             || step.StepLists.SelectMany(list => list.Steps).Any(SendsInput);
 
     /// <summary>
+    /// Whether any other macro of this project uses the shared browser. There is one current page
+    /// for the program, so two macros that work in it take turns even when they never send input.
+    /// </summary>
+    private bool OtherMacroUsesBrowser()
+        => _project
+            .Where(macro => !ReferenceEquals(macro, _editing))
+            .SelectMany(macro => macro.Steps)
+            .Any(UsesBrowser);
+
+    private static bool UsesBrowser(MacroStep step)
+        => MacroRunner.UsesBrowser(step.Type)
+            || step.StepLists.SelectMany(list => list.Steps).Any(UsesBrowser);
+
+    /// <summary>
     /// Takes a macro lifted out of this one: it counts as part of the project from here on, so a
     /// later call can be pointed at it and the design-time check knows it is there.
     /// </summary>
@@ -910,7 +924,7 @@ public partial class MacroEditorWindow : Window
         _viewModel.SetProjectMacros(_project
             .Where(candidate => !ReferenceEquals(candidate, _editing))
             .Select(candidate => candidate.Callable),
-            OtherMacroSendsInput());
+            OtherMacroSendsInput(), OtherMacroUsesBrowser());
     }
 
     /// <summary>

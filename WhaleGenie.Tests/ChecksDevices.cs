@@ -50,7 +50,7 @@ internal sealed class WindowsForChecks : IWindowDevice
     public IReadOnlyList<WindowInfo> List() => [.. Open];
 
     public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match, string compare,
-        bool everyWhenEmpty = false)
+        bool everyWhenEmpty = false, TextCompareOptions options = default)
     {
         var wanted = (value ?? string.Empty).Trim();
         if (wanted.Length == 0)
@@ -58,11 +58,12 @@ internal sealed class WindowsForChecks : IWindowDevice
             return everyWhenEmpty || Open.Count == 0 ? [.. Open] : [Open[0]];
         }
 
-        return [.. Open.Where(window => Answers(window, wanted, match, compare))];
+        return [.. Open.Where(window => Answers(window, wanted, match, compare, options))];
     }
 
-    public WindowInfo? Find(string value, WindowMatch match, string compare)
-        => Filter(value, match, compare).FirstOrDefault();
+    public WindowInfo? Find(string value, WindowMatch match, string compare,
+        TextCompareOptions options = default)
+        => Filter(value, match, compare, options: options).FirstOrDefault();
 
     public string ProcessOf(long handle)
         => _facts.TryGetValue(handle, out var facts) ? facts.Process : string.Empty;
@@ -70,7 +71,8 @@ internal sealed class WindowsForChecks : IWindowDevice
     public string ClassOf(long handle)
         => _facts.TryGetValue(handle, out var facts) ? facts.Class : string.Empty;
 
-    private bool Answers(WindowInfo window, string wanted, WindowMatch match, string compare)
+    private bool Answers(WindowInfo window, string wanted, WindowMatch match, string compare,
+        TextCompareOptions options)
     {
         var text = match switch
         {
@@ -79,7 +81,7 @@ internal sealed class WindowsForChecks : IWindowDevice
             _ => window.Title,
         };
 
-        return WindowHow.Matches(text, wanted, compare);
+        return WindowHow.Matches(text, wanted, compare, options);
     }
 
     public bool Activate(long handle) => true;

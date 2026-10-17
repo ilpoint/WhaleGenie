@@ -359,7 +359,7 @@ public class MacroStep : INotifyPropertyChanged
     /// be true and is asked by the step it belongs to, so it never runs on its own and has no
     /// ending of its own for anything to ask about.
     /// </summary>
-    public bool IsCondition => Type.StartsWith("condition.", StringComparison.Ordinal);
+    public bool IsCondition => Definition?.IsCondition ?? false;
 
     /// <summary>Marker drawn on a step the macro will skip.</summary>
     public string SkipLabel => Strings.Get("Editor.StepDisabled");
@@ -558,10 +558,10 @@ public class MacroStep : INotifyPropertyChanged
     {
         foreach (var row in parameter.Rows)
         {
-            var name = row.Text("name").Trim();
+            var name = row.Text(FieldNames.Name).Trim();
             if (name.Length > 0)
             {
-                yield return (row.Text("key").Trim(), name);
+                yield return (row.Text(FieldNames.Key).Trim(), name);
             }
         }
     }
@@ -582,8 +582,9 @@ public class MacroStep : INotifyPropertyChanged
     public static bool DefinesVariable(string? type, string parameterName) => parameterName switch
     {
         "itemVariable" or "indexVariable" => true,
-        "name" => type is "control.setVariable" or "control.calculate" or "control.listCreate",
-        "variable" => type is "control.for",
+        "name" => type is "control.setVariable" or "control.calculate" or "control.listCreate"
+            or "control.for",
+        "runHandleName" => type is "control.runMacro",
         _ => false,
     };
 

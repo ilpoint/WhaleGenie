@@ -54,7 +54,7 @@ public class RunLookTests
                 [
                     new StepParameter
                     {
-                        Name = "image",
+                        Name = "images",
                         Kind = ActionParameterKind.Images,
                         Rows = [StepParameterRow.Of("image", @"C:\images\ok.png")],
                     },
@@ -107,7 +107,7 @@ public class RunLookTests
                 [
                     new StepParameter
                     {
-                        Name = "image",
+                        Name = "images",
                         Kind = ActionParameterKind.Images,
                         Rows = [StepParameterRow.Of("image", @"C:\images\ok.png")],
                     },
@@ -307,11 +307,12 @@ public class RunLookTests
         public IReadOnlyList<WindowInfo> List() => [Here()];
 
         public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match, string compare,
-            bool everyWhenEmpty = false)
+            bool everyWhenEmpty = false, TextCompareOptions options = default)
             => [Here()];
 
-        public WindowInfo? Find(string value, WindowMatch match, string compare)
-            => Filter(value, match, compare).FirstOrDefault();
+        public WindowInfo? Find(string value, WindowMatch match, string compare,
+            TextCompareOptions options = default)
+            => Filter(value, match, compare, options: options).FirstOrDefault();
 
         public string ProcessOf(long handle) => "notepad";
 
@@ -427,12 +428,13 @@ public class RunLookTests
         public IReadOnlyList<WindowInfo> List() => [.. windows];
 
         public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match, string compare,
-            bool everyWhenEmpty = false)
+            bool everyWhenEmpty = false, TextCompareOptions options = default)
             => [.. windows.Where(window => window.Title.Contains(value ?? string.Empty,
                 StringComparison.OrdinalIgnoreCase))];
 
-        public WindowInfo? Find(string value, WindowMatch match, string compare)
-            => Filter(value, match, compare).FirstOrDefault();
+        public WindowInfo? Find(string value, WindowMatch match, string compare,
+            TextCompareOptions options = default)
+            => Filter(value, match, compare, options: options).FirstOrDefault();
 
         public string ProcessOf(long handle) => string.Empty;
 

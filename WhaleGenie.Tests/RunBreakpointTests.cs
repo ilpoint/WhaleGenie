@@ -42,10 +42,10 @@ public class RunBreakpointTests
             form.SelectAction("condition.compare");
             Dispatcher.UIThread.RunJobs();
             form.Parameters.First(parameter => parameter.Definition.Name == "variable").Text = "$n";
-            form.Parameters.First(parameter => parameter.Definition.Name == "operator").Option =
-                form.Parameters.First(parameter => parameter.Definition.Name == "operator")
+            form.Parameters.First(parameter => parameter.Definition.Name == "compareOperator").Option =
+                form.Parameters.First(parameter => parameter.Definition.Name == "compareOperator")
                     .Choices.First(choice => choice.Value == "greaterThan");
-            form.Parameters.First(parameter => parameter.Definition.Name == "value").Text = "3";
+            form.Parameters.First(parameter => parameter.Definition.Name == "compareValue").Text = "3";
             Assert.True(form.CanSave, form.ValidationMessage);
             form.SaveCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
@@ -114,13 +114,13 @@ public class RunBreakpointTests
                                 },
                                 new StepParameter
                                 {
-                                    Name = "operator",
+                                    Name = "compareOperator",
                                     Kind = ActionParameterKind.Choice,
                                     Value = "equals",
                                 },
                                 new StepParameter
                                 {
-                                    Name = "value",
+                                    Name = "compareValue",
                                     Kind = ActionParameterKind.Text,
                                     Value = "1",
                                 },

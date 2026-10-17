@@ -17,6 +17,20 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class StepDefaultsTests
 {
+    private static AddActionViewModel Open(string key)
+    {
+        var window = new AddActionWindow(null, ActionCatalog.Definitions,
+            VariableChoicesForChecks.Named(), []);
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var viewModel = (AddActionViewModel)window.DataContext!;
+        viewModel.SelectAction(key);
+        Dispatcher.UIThread.RunJobs();
+        window.Close();
+        return viewModel;
+    }
+
     [Fact]
     public void A_group_thrown_around_a_selection_asks_when_it_fails()
     {
@@ -99,6 +113,36 @@ public class StepDefaultsTests
             {
                 Assert.Equal(0, ActionCatalog.Find(key)!.StepTimeoutMs);
             }
+        });
+    }
+
+    /// <summary>
+    /// Every action that used to keep a timeout field of its own now starts with that length in the
+    /// step's one timeout, while `uia.exists` starts with none because it only looks once.
+    /// </summary>
+    [Fact]
+    public void Every_waiting_action_starts_with_its_own_length_in_the_step_timeout()
+    {
+        (string Key, int Milliseconds)[] waiting =
+        [
+            ("clipboard.waitChange", 5000), ("clipboard.copy", 1500),
+            ("process.waitFor", 10000), ("process.waitExit", 60000),
+            ("command.run", 30000), ("window.waitFor", 10000),
+            ("uia.waitElement", 10000), ("uia.click", 5000), ("uia.invoke", 5000),
+            ("script.run", 60000), ("script.python", 60000),
+            ("script.csharp", 60000), ("script.ahk", 60000),
+        ];
+
+        Ui.Run(() =>
+        {
+            foreach (var (key, milliseconds) in waiting)
+            {
+                Assert.Equal(milliseconds, ActionCatalog.Find(key)!.StepTimeoutMs);
+                Assert.Equal(milliseconds, Open(key).MetaTimeout.Milliseconds);
+            }
+
+            Assert.Equal(0, ActionCatalog.Find("uia.exists")!.StepTimeoutMs);
+            Assert.Equal(0, Open("uia.exists").MetaTimeout.Milliseconds);
         });
     }
 

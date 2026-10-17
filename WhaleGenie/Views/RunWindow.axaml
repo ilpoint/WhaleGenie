@@ -261,10 +261,10 @@
                     IsVisible="{Binding HasSteps}">
                 <!-- Buttons, then what the run is doing, then the two notes about this run: how
                      fast it is being played, and whose turn it is at the input door. One column
-                     each, eight in all, because Avalonia puts whatever is past the last column in
+                     each, nine in all, because Avalonia puts whatever is past the last column in
                      that last column — two of these landing on top of each other is how the note
                      about the input door came to be drawn over the speed badge. -->
-                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto">
+                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto">
                     <Button Classes="PrimaryButton" Name="RunButton"
                             Content="{Binding [Run.Run], Source={x:Static loc:Strings.Current}}"
                             Command="{Binding RunCommand}"
@@ -287,9 +287,15 @@
                     <Button Grid.Column="4" Classes="FlatButton" Name="SkipStepButton" Margin="8,0,0,0"
                             Content="{Binding [Run.SkipStep], Source={x:Static loc:Strings.Current}}"
                             Command="{Binding SkipStepCommand}" />
-                    <TextBlock Grid.Column="5" Margin="14,0,0,0" VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#C8A165"
-                               Text="{Binding Status}" />
+                    <StackPanel Grid.Column="5" Margin="14,0,0,0" VerticalAlignment="Center">
+                        <TextBlock TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#C8A165"
+                                   Text="{Binding Status}" />
+                        <!-- What is still running behind this macro: a call started with waiting
+                             turned off belongs to this run until it is waited for. -->
+                        <TextBlock TextTrimming="CharacterEllipsis" FontSize="11.5" Foreground="#8FB8D9"
+                                   IsVisible="{Binding HasChildren}"
+                                   Text="{Binding ChildrenLine}" />
+                    </StackPanel>
                     <Border Grid.Column="6" Name="SpeedBadge" Margin="10,0,0,0" Padding="8,3"
                             CornerRadius="4"
                             Background="#3A2A10" BorderBrush="#8A6A2A" BorderThickness="1"
@@ -306,6 +312,13 @@
                                TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#8FD9A8"
                                IsVisible="{Binding ShowsInputOwner}"
                                Text="{Binding InputOwnerLine}" />
+                    <!-- Which run has the one shared browser. It is a different door from input:
+                         a macro can be typing while another is reading the page. -->
+                    <TextBlock Grid.Column="8" Name="BrowserOwnerText" Margin="12,0,0,0"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#8FB8D9"
+                               IsVisible="{Binding ShowsBrowserOwner}"
+                               Text="{Binding BrowserOwnerLine}" />
                 </Grid>
             </Border>
 
@@ -420,6 +433,26 @@
                                                             <TextBlock Text="{Binding FailureNote}" FontSize="11.5"
                                                                        Foreground="#E06C75" TextWrapping="Wrap"
                                                                        IsVisible="{Binding HasFailure}" />
+                                                            <TextBlock Text="{Binding AttemptsHeader}" FontSize="11"
+                                                                       Foreground="#9A9A9A" Margin="0,2,0,0"
+                                                                       IsVisible="{Binding HasAttempts}" />
+                                                            <ItemsControl ItemsSource="{Binding Attempts}"
+                                                                          IsVisible="{Binding HasAttempts}">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate x:DataType="vm:RunAttemptViewModel">
+                                                                        <StackPanel Margin="0,1,0,0">
+                                                                            <TextBlock Text="{Binding Note}"
+                                                                                       FontSize="11"
+                                                                                       Foreground="#CFCFCF" />
+                                                                            <TextBlock Text="{Binding Failure}"
+                                                                                       FontSize="11"
+                                                                                       Foreground="#E06C75"
+                                                                                       TextWrapping="Wrap"
+                                                                                       IsVisible="{Binding HasFailure}" />
+                                                                        </StackPanel>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
                                                             <TextBlock Text="{Binding ResultsHeader}" FontSize="11"
                                                                        Foreground="#9A9A9A" Margin="0,2,0,0"
                                                                        IsVisible="{Binding HasResults}" />

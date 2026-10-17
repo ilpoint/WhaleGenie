@@ -121,4 +121,34 @@ public class RunStepOutcomeTests
         Assert.Equal("failed", why.Ending);
         Assert.Equal("Run.NoDevice", why.Reason);
     }
+
+    [Fact]
+    public void The_step_row_shows_the_failure_key_beside_the_words()
+    {
+        var note = Ui.RunAsync(async () =>
+        {
+            var broken = new MacroStep
+            {
+                Type = "input.keyPress",
+                Parameters =
+                [
+                    new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Value = "F5" },
+                ],
+                Meta = new StepMeta { OnError = StepErrorAction.Continue },
+            };
+            StepIds.Settle([broken]);
+
+            var viewModel = new RunViewModel([broken], NullDeviceLayer.Instance);
+            viewModel.RunCommand.Execute(null);
+            while (viewModel.IsBusy)
+            {
+                await Task.Delay(10);
+            }
+
+            return viewModel.Steps[0].FailureNote;
+        });
+
+        Assert.Contains("Run.NoDevice", note, StringComparison.Ordinal);
+        Assert.Contains("keyboard", note, StringComparison.OrdinalIgnoreCase);
+    }
 }

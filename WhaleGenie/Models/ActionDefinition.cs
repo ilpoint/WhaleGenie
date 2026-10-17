@@ -1,26 +1,8 @@
 using System.Collections.Generic;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
-
-/// <summary>Top-level grouping used by the action catalogue and its icons.</summary>
-public enum ActionCategory
-{
-    Control,
-    File,
-    Data,
-    Clipboard,
-    Process,
-    System,
-    Window,
-    Input,
-    Vision,
-    Ocr,
-    Uia,
-    Browser,
-    Script,
-    Condition,
-}
 
 /// <summary>The kind of editor rendered for a single action parameter.</summary>
 public enum ActionParameterKind
@@ -121,35 +103,6 @@ public enum ActionParameterKind
 public sealed record ActionParameterOption(string Value, string Display);
 
 /// <summary>
-/// What kind of value a <see cref="ActionReturn"/> holds. The editor shows it — a list reads as a
-/// count of items, a picture as its size — and the variable pickers use it to say what a name is
-/// good for, so it is worth saying rather than leaving every result as just "text".
-/// </summary>
-public enum ActionReturnType
-{
-    /// <summary>Writing, such as recognised text or a file path.</summary>
-    Text,
-
-    /// <summary>A plain number, such as how many were found or a process id.</summary>
-    Number,
-
-    /// <summary>True or false.</summary>
-    Flag,
-
-    /// <summary>A list of values.</summary>
-    List,
-
-    /// <summary>
-    /// Named fields about one thing, such as the place, the size and the score of one hit. Read a
-    /// field of it with <c>field(记录, 名字)</c>.
-    /// </summary>
-    Record,
-
-    /// <summary>A picture, which a later step can search for.</summary>
-    Image,
-}
-
-/// <summary>
 /// One result an action can hand over. The key names the result inside the engine and is what the
 /// macro file stores; the label and hint are what the user reads on the returns page. Only the ones
 /// the user ticks are written, each under a name of its own, so a step that reports eight things
@@ -226,6 +179,21 @@ public class ActionParameter
     public required string Label { get; init; }
 
     /// <summary>
+    /// The engine's facts for this field. Display metadata stays here; anything the engine or a
+    /// design-time check decides comes from this object.
+    /// </summary>
+    public required ActionParameterSemantics Semantics { get; init; }
+
+    /// <summary>How the whole cell is read by the engine.</summary>
+    public ActionReadMode ReadMode => Semantics.ReadMode;
+
+    /// <summary>What the value becomes after the read.</summary>
+    public ActionValueShape Shape => Semantics.Shape;
+
+    /// <summary>Which picker, if any, can fill this field from the machine.</summary>
+    public ActionPickerKind Picker => Semantics.Picker;
+
+    /// <summary>
     /// Which file dialog the field beside this one offers, or <see cref="PathIntent.None"/> when
     /// the value is not a path at all.
     /// </summary>
@@ -256,7 +224,7 @@ public class ActionParameter
     public string Placeholder { get; init; } = string.Empty;
 
     /// <summary>Initial value, kept as text and converted when the JSON is written.</summary>
-    public string DefaultValue { get; init; } = string.Empty;
+    public string DefaultValue => Semantics.DefaultValue;
 
     /// <summary>
     /// The initial value in the current interface language. A field whose starting value is code
@@ -266,10 +234,10 @@ public class ActionParameter
     public string LocalDefault => Strings.Get($"{OwnerKey}.{Name}.default", DefaultValue);
 
     /// <summary>When false the parameter may be left empty.</summary>
-    public bool Required { get; init; } = true;
+    public bool Required => Semantics.Required;
 
     /// <summary>Allowed values when <see cref="Kind"/> is <see cref="ActionParameterKind.Choice"/>.</summary>
-    public IReadOnlyList<string> Options { get; init; } = [];
+    public IReadOnlyList<string> Options => Semantics.Options;
 
     /// <summary>
     /// Display text for every entry of <see cref="Options"/>, in the same order.
@@ -281,14 +249,14 @@ public class ActionParameter
     /// When set on a <see cref="ActionParameterKind.Steps"/> parameter, that list only takes
     /// conditions, so a logic group can hold other conditions and nest.
     /// </summary>
-    public bool ConditionsOnly { get; init; }
+    public bool ConditionsOnly => Semantics.ConditionsOnly;
 
     /// <summary>
     /// When set on a <see cref="ActionParameterKind.Steps"/> parameter, that list only takes
     /// these action keys: it is how a switch keeps a case list holding cases and nothing else,
     /// the same way <see cref="ConditionsOnly"/> keeps a group holding conditions.
     /// </summary>
-    public IReadOnlyList<string> ChildKeys { get; init; } = [];
+    public IReadOnlyList<string> ChildKeys => Semantics.ChildKeys;
 
     /// <summary>
     /// Resource key of the label for adding to this list, when the list has a name of its own.
@@ -341,7 +309,7 @@ public class ActionParameter
     /// True when the value always names a variable rather than holding a literal. The
     /// Variable Center uses it to spot a name a macro uses but nothing defines.
     /// </summary>
-    public bool NamesVariable { get; init; }
+    public bool NamesVariable => Semantics.ReadMode == ActionReadMode.VariableName;
 
     /// <summary>
     /// True when the text may name variables, so the editor offers them while the field is typed
@@ -349,7 +317,7 @@ public class ActionParameter
     /// it the field is a plain box and the name has to be spelled from memory. The value itself is
     /// still text — the engine fills <c>$name</c> in rather than working anything out.
     /// </summary>
-    public bool AcceptsVariables { get; init; }
+    public bool AcceptsVariables => Semantics.AcceptsVariables;
 
     /// <summary>
     /// True when the whole value is read as one: a variable, a formula, or plain text. Such a
@@ -357,7 +325,7 @@ public class ActionParameter
     /// engine reads. False for text that is only filled in, where a formula would be taken
     /// literally and quietly mean something else.
     /// </summary>
-    public bool AcceptsFormula { get; init; }
+    public bool AcceptsFormula => Semantics.ReadMode == ActionReadMode.WholeValue;
 
     /// <summary>
     /// True when the box this parameter is edited in offers the names of variables. It is what a
@@ -440,7 +408,26 @@ public class ActionDefinition
     /// <summary>Fully qualified action name, for example <c>input.keyPress</c>.</summary>
     public required string Key { get; init; }
 
-    public required ActionCategory Category { get; init; }
+    /// <summary>The engine facts this display entry projects.</summary>
+    public required ActionSemantics Semantics { get; init; }
+
+    public ActionCategory Category => Semantics.Category;
+
+    /// <summary>True when carrying out this action puts input into the machine.</summary>
+    public bool SendsInput => Semantics.SendsInput;
+
+    /// <summary>True for an action asked inside an if, a loop or a wait.</summary>
+    public bool IsCondition => Semantics.IsCondition;
+
+    /// <summary>True when the action reads pixels from the screen.</summary>
+    public bool LooksAtScreen => Semantics.LooksAtScreen;
+
+    /// <summary>True while the action waits for something outside the macro.</summary>
+    public bool Waits => Semantics.Waits;
+
+    public ActionTimeoutSource TimeoutSource => Semantics.TimeoutSource;
+
+    public string TimeoutField => Semantics.TimeoutField;
 
     /// <summary>Short human readable name shown in the step list.</summary>
     public required string DisplayName { get; init; }
@@ -467,7 +454,7 @@ public class ActionDefinition
     /// True for an action that only makes sense inside a particular container, such as a switch
     /// case. It stays out of the step picker and is reached through its parent instead.
     /// </summary>
-    public bool Hidden { get; init; }
+    public bool Hidden => Semantics.Hidden;
 
     /// <summary>Line-art icon for the category, shared by every action inside it.</summary>
     public Avalonia.Media.Geometry? Icon => ActionCatalog.IconFor(Category);
@@ -479,5 +466,5 @@ public class ActionDefinition
     /// number is written into the step rather than kept hidden in the engine, and the user can
     /// change it or clear it like any other step setting.
     /// </summary>
-    public int StepTimeoutMs { get; init; }
+    public int StepTimeoutMs => Semantics.StepTimeoutMs;
 }

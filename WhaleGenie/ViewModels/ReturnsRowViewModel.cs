@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -147,8 +148,8 @@ public partial class ReturnsRowViewModel : ViewModelBase
         {
             Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
-                ["key"] = Key,
-                ["name"] = Name.Trim(),
+                [FieldNames.Key] = Key,
+                [FieldNames.Name] = Name.Trim(),
             },
         }
         : null;

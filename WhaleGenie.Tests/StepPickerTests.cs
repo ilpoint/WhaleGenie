@@ -46,7 +46,7 @@ public class StepPickerTests
             viewModel.SelectAction("condition.stepResult");
             Dispatcher.UIThread.RunJobs();
 
-            var field = viewModel.Parameters.First(parameter => parameter.Definition.Name == "step");
+            var field = viewModel.Parameters.First(parameter => parameter.Definition.Name == "stepId");
 
             Assert.True(field.IsStepChoice);
             Assert.False(field.IsChoice);
@@ -85,11 +85,11 @@ public class StepPickerTests
                     Id = "aaaa",
                     Parameters =
                     [
-                        new StepParameter { Name = "step", Kind = ActionParameterKind.Step, Value = "" },
+                        new StepParameter { Name = "stepId", Kind = ActionParameterKind.Step, Value = "" },
                     ],
                 },
                 choices);
-            var field = viewModel.Parameters.First(parameter => parameter.Definition.Name == "step");
+            var field = viewModel.Parameters.First(parameter => parameter.Definition.Name == "stepId");
 
             Assert.Single(field.Choices);
             Assert.Equal("bbbb", field.Choices[0].Value);
@@ -109,7 +109,7 @@ public class StepPickerTests
                     Type = "condition.stepResult",
                     Parameters =
                     [
-                        new StepParameter { Name = "step", Kind = ActionParameterKind.Step, Value = "zzzz" },
+                        new StepParameter { Name = "stepId", Kind = ActionParameterKind.Step, Value = "zzzz" },
                     ],
                 },
                 ActionCatalog.Conditions, [], [], null, null,
@@ -118,7 +118,7 @@ public class StepPickerTests
             Dispatcher.UIThread.RunJobs();
 
             var viewModel = (AddActionViewModel)window.DataContext!;
-            var field = viewModel.Parameters.First(parameter => parameter.Definition.Name == "step");
+            var field = viewModel.Parameters.First(parameter => parameter.Definition.Name == "stepId");
 
             Assert.Equal("zzzz", field.CurrentText);
             Assert.Equal(2, field.Choices.Count);

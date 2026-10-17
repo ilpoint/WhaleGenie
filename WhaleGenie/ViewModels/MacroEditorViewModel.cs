@@ -196,6 +196,12 @@ public partial class MacroEditorViewModel : ViewModelBase
     private bool _inputShared;
 
     /// <summary>
+    /// True when another macro of the same project also uses the browser. One browser serves the
+    /// whole program, so a macro that changes tabs changes what the other one reads.
+    /// </summary>
+    private bool _browserShared;
+
+    /// <summary>
     /// What this macro asks a call to fill in. The editor holds it so that opening a macro and
     /// saving it again does not drop what it declares, and so a call this macro makes to itself is
     /// judged by the same list.
@@ -221,10 +227,12 @@ public partial class MacroEditorViewModel : ViewModelBase
     private Dictionary<MacroStep, string> _problemByStep = [];
 
     /// <summary>Hands in the macro names a call may reach, and checks the steps again.</summary>
-    public void SetProjectMacros(IEnumerable<MacroCallable> macros, bool inputShared = false)
+    public void SetProjectMacros(IEnumerable<MacroCallable> macros, bool inputShared = false,
+        bool browserShared = false)
     {
         _projectMacros = [.. macros];
         _inputShared = inputShared;
+        _browserShared = browserShared;
         RebuildRows();
     }
 
@@ -1060,6 +1068,8 @@ public partial class MacroEditorViewModel : ViewModelBase
             VariableCatalog.SystemVariables.Select(variable => variable.Name),
             StringComparer.OrdinalIgnoreCase);
         alwaysVisible.UnionWith(VariableCatalog.Globals.Select(variable => variable.Name));
+        alwaysVisible.Add(MacroRunner.CaughtKeyName);
+        alwaysVisible.Add(MacroRunner.CaughtDetailName);
 
         var read = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var name in MacroCheck.Reads(stretch))
@@ -1119,8 +1129,8 @@ public partial class MacroEditorViewModel : ViewModelBase
                 {
                     Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                     {
-                        ["key"] = result.Name,
-                        ["name"] = result.Name,
+                        [FieldNames.Key] = result.Name,
+                        [FieldNames.Name] = result.Name,
                     },
                 }),
             ],
@@ -1907,7 +1917,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     private void RefreshProblems()
     {
-        Problems = MacroCheck.Inspect(Steps, OwnCallable, _projectMacros, _inputShared);
+        Problems = MacroCheck.Inspect(Steps, OwnCallable, _projectMacros, _inputShared, _browserShared);
         _problemByStep = Problems
             .GroupBy(problem => problem.Step)
             .ToDictionary(group => group.Key,
@@ -2180,24 +2190,9 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     internal MacroItem BuildMacro()
     {
-        // The loop a key trigger uses has nothing to hold on to when the clock does the
-        // starting, so a timed macro just says when it runs.
-        var action = TriggerMode == MacroTrigger.Timer ? string.Empty : LoopName(LoopMode);
-
         var macro = new MacroItem
         {
             Name = Name.Trim(),
-            Trigger = TriggerMode switch
-            {
-                MacroTrigger.ColorPixelChanges => Strings.Get("Trigger.Color"),
-                MacroTrigger.Timer => Strings.Get("Trigger.Timer"),
-                MacroTrigger.FileChanges => Strings.Get("Trigger.File"),
-                MacroTrigger.Process => Strings.Get("Trigger.Process"),
-                MacroTrigger.Window => Strings.Get("Trigger.Window"),
-                MacroTrigger.Idle => Strings.Get("Trigger.Idle"),
-                _ => Strings.Get("Trigger.Keys"),
-            },
-            Action = action,
             TriggerMode = TriggerMode,
             LoopMode = LoopMode,
             BindKey = BindKey,
@@ -2249,12 +2244,4 @@ public partial class MacroEditorViewModel : ViewModelBase
     private static int ParseCoordinate(string? value)
         => int.TryParse(value?.Trim(), out var result) ? result : 0;
 
-    /// <summary>The loop a key trigger uses, said the way the interface says it.</summary>
-    private static string LoopName(MacroLoop loop) => loop switch
-    {
-        MacroLoop.Hold => Strings.Get("Loop.Hold"),
-        MacroLoop.Press => Strings.Get("Loop.Press"),
-        MacroLoop.Release => Strings.Get("Loop.Release"),
-        _ => Strings.Get("Loop.Toggle"),
-    };
 }

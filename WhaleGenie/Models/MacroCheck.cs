@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
@@ -30,6 +31,41 @@ public static class MacroCheck
         "control.for",
     };
 
+    /// <summary>The steps that cannot run without a condition chosen in their form.</summary>
+    private static readonly HashSet<string> ConditionKeys = new(StringComparer.Ordinal)
+    {
+        "control.if",
+        "control.while",
+        "control.waitUntil",
+    };
+
+    /// <summary>
+    /// The steps whose body is a place a recursive call can stop at: a branch that may not be
+    /// taken, a case that may not match, or a loop that may run no round at all. A call outside
+    /// all of them has nothing to end the recursion.
+    /// </summary>
+    private static readonly HashSet<string> GuardKeys = new(StringComparer.Ordinal)
+    {
+        "control.if",
+        "control.switch",
+        "control.repeat",
+        "control.while",
+        "control.forEach",
+        "control.for",
+    };
+
+    /// <summary>
+    /// The switches that say a place comes from a record, and the field that holds the record.
+    /// The two are read together because a checked switch with nothing under it is a step that
+    /// will fail before it does anything.
+    /// </summary>
+    private static readonly (string Flag, string Record)[] RecordPairs =
+    [
+        ("useRecord", "record"),
+        ("startFromRecord", "startRecord"),
+        ("endFromRecord", "endRecord"),
+    ];
+
     /// <summary>
     /// Everything wrong with the macro, in the order the steps are written.
     /// <paramref name="macros"/> is every macro a call can reach — the project list, each with what
@@ -41,8 +77,14 @@ public static class MacroCheck
     /// input at the same time write it through each other, and nothing about either macro looks
     /// wrong on its own — which is exactly why it has to be said here.
     /// </param>
+    /// <param name="browserShared">
+    /// True when another macro in the same project also uses the browser. There is one browser and
+    /// one current page for the whole program, so two runs take turns there; a tab one changes is
+    /// the page the other reads next.
+    /// </param>
     public static IReadOnlyList<MacroProblem> Inspect(IEnumerable<MacroStep> steps,
-        MacroCallable? own, IEnumerable<MacroCallable> macros, bool inputShared = false)
+        MacroCallable? own, IEnumerable<MacroCallable> macros, bool inputShared = false,
+        bool browserShared = false)
     {
         IReadOnlyList<MacroStep> tree = steps as IReadOnlyList<MacroStep> ?? [.. steps];
         var problems = new List<MacroProblem>();
@@ -53,7 +95,8 @@ public static class MacroCheck
             reachable[macro.Name.Trim()] = macro;
         }
 
-        if (own?.Name.Trim() is { Length: > 0 } ownName)
+        var ownName = own?.Name.Trim();
+        if (ownName is { Length: > 0 })
         {
             reachable[ownName] = own;
         }
@@ -75,8 +118,9 @@ public static class MacroCheck
         // said about which names the rest of the macro is allowed to read.
         var namesAreOpen = Every(tree).Any(step => step.Type == "file.loadVariables");
 
-        Visit(tree, 0);
+        Visit(tree, 0, bounded: false, guarded: false);
         CheckSharedInput();
+        CheckSharedBrowser();
         return problems;
 
         void CheckSharedInput()
@@ -99,30 +143,134 @@ public static class MacroCheck
             }
         }
 
-        void Visit(IReadOnlyList<MacroStep> list, int loops)
+        void CheckSharedBrowser()
+        {
+            if (!browserShared)
+            {
+                return;
+            }
+
+            // Said once, on the first browser step: the answer — let the two run apart, or know
+            // that they take turns at one page — is the same for every browser step in the macro.
+            foreach (var step in Every(tree))
+            {
+                if (MacroRunner.UsesBrowser(step.Type))
+                {
+                    Add(step, Strings.Get("Editor.Problem.SharedBrowser"));
+                    return;
+                }
+            }
+        }
+
+        void Visit(IReadOnlyList<MacroStep> list, int loops, bool bounded, bool guarded)
         {
             foreach (var step in list)
             {
                 CheckLoopControl(step, loops);
-                CheckCall(step);
+                CheckCondition(step);
+                CheckLoopIndex(step, loops);
+                CheckCall(step, guarded);
                 CheckNames(step, namesAreOpen);
                 CheckPostedMove(step);
+                CheckWait(step, bounded);
+                CheckRecord(step);
+                CheckSwitch(step);
+                CheckReservedNames(step);
+                CheckScriptInput(step);
+                CheckRunHandle(step);
 
                 // Every list of child steps is walked from inside the loop it sits in, whichever
                 // parameter holds it: a body, an if branch, a switch case and a try block all let
                 // a break reach the loop around them.
-                var inside = LoopKeys.Contains(step.Type) ? loops + 1 : loops;
+                var insideLoops = LoopKeys.Contains(step.Type) ? loops + 1 : loops;
+                var insideBounded = bounded || step.Meta.TimeoutMs > 0;
+                var insideGuard = guarded || GuardKeys.Contains(step.Type);
                 foreach (var parameter in step.Parameters)
                 {
                     switch (parameter.Kind)
                     {
                         case ActionParameterKind.Steps:
-                            Visit(parameter.Steps, inside);
+                            Visit(parameter.Steps, insideLoops, insideBounded, insideGuard);
                             break;
                         case ActionParameterKind.Condition when parameter.Condition is { } condition:
-                            Visit([condition], inside);
+                            Visit([condition], insideLoops, insideBounded, insideGuard);
                             break;
                     }
+                }
+            }
+        }
+
+        void CheckCondition(MacroStep step)
+        {
+            if (!ConditionKeys.Contains(step.Type))
+            {
+                return;
+            }
+
+            var chosen = step.Parameters
+                .FirstOrDefault(parameter => parameter.Name == "condition")
+                ?.Condition;
+            if (chosen is null || chosen.Type.Trim().Length == 0)
+            {
+                Add(step, Strings.Get("Editor.Problem.MissingCondition"));
+            }
+        }
+
+        void CheckScriptInput(MacroStep step)
+        {
+            // The declaration lives on the step rather than in a list of script action names, so a
+            // new scripting language gets the same warning as soon as it carries the switch.
+            var declared = step.Parameters.FirstOrDefault(parameter => parameter.Name == "sendsInput");
+            if (declared is not null
+                && string.Equals(declared.Value, "true", StringComparison.OrdinalIgnoreCase))
+            {
+                Add(step, Strings.Get("Editor.Problem.ScriptInput"));
+            }
+        }
+
+        void CheckRunHandle(MacroStep step)
+        {
+            switch (step.Type)
+            {
+                case "control.runMacro":
+                    var waiting = !string.Equals(step.Text("wait").Trim(), "false",
+                        StringComparison.OrdinalIgnoreCase);
+                    if (!waiting && step.Text("runHandleName").Trim().Length == 0)
+                    {
+                        Add(step, Strings.Get("Editor.Problem.MissingRunHandle"));
+                    }
+
+                    break;
+                case "control.waitMacro":
+                    if (step.Text("runHandle").Trim().Length == 0)
+                    {
+                        Add(step, Strings.Get("Editor.Problem.MissingRunHandle"));
+                    }
+
+                    break;
+            }
+        }
+
+        void CheckLoopIndex(MacroStep step, int loops)
+        {
+            if (loops > 0)
+            {
+                return;
+            }
+
+            foreach (var parameter in step.Parameters)
+            {
+                if (parameter.Kind is ActionParameterKind.Steps or ActionParameterKind.Condition
+                    || step.ParameterDefinition(parameter) is { ForeignText: true })
+                {
+                    continue;
+                }
+
+                if (ReadsOf(step, parameter).Contains(VariableStore.LoopIndexName,
+                        StringComparer.OrdinalIgnoreCase))
+                {
+                    Add(step, Strings.Get("Editor.Problem.LoopIndexOutsideLoop"));
+                    return;
                 }
             }
         }
@@ -145,7 +293,7 @@ public static class MacroCheck
             }
         }
 
-        void CheckCall(MacroStep step)
+        void CheckCall(MacroStep step, bool guarded)
         {
             if (step.Type != "control.runMacro")
             {
@@ -171,6 +319,13 @@ public static class MacroCheck
             if (called is null)
             {
                 return;
+            }
+
+            if (ownName is { Length: > 0 }
+                && string.Equals(called.Name.Trim(), ownName, StringComparison.OrdinalIgnoreCase)
+                && !guarded)
+            {
+                Add(step, Strings.Get("Editor.Problem.UnguardedRecursion"));
             }
 
             foreach (var parameter in step.Parameters)
@@ -213,7 +368,7 @@ public static class MacroCheck
                     continue;
                 }
 
-                foreach (var name in Referenced(parameter))
+                foreach (var name in ReadsOf(step, parameter))
                 {
                     if (!defined.Contains(name))
                     {
@@ -237,6 +392,95 @@ public static class MacroCheck
             }
         }
 
+        /// <summary>
+        /// A wait with no clock of its own is a legitimate "wait until it happens". It stops being
+        /// one when the step retries or an outer block is on a clock: then the retry or the outer
+        /// budget is what the user is relying on, and neither can make this wait end sooner.
+        /// </summary>
+        void CheckWait(MacroStep step, bool bounded)
+        {
+            if (step.Definition?.Waits != true || step.Meta.TimeoutMs > 0)
+            {
+                return;
+            }
+
+            if (step.Meta.RetryCount > 0 || bounded)
+            {
+                Add(step, Strings.Get("Editor.Problem.WaitWithoutTimeout"));
+            }
+        }
+
+        /// <summary>
+        /// A place taken from a record needs the record. The switch and the field are one answer
+        /// written in two places, and the editor can see when only half of it is there.
+        /// </summary>
+        void CheckRecord(MacroStep step)
+        {
+            foreach (var (flag, record) in RecordPairs)
+            {
+                if (!On(step, flag) || step.Text(record).Trim().Length > 0)
+                {
+                    continue;
+                }
+
+                var label = step.Definition?.Parameters
+                    .FirstOrDefault(parameter => parameter.Name == record)?.LocalLabel ?? record;
+                Add(step, Strings.Format("Editor.Problem.EmptyRecord", label));
+            }
+        }
+
+        void CheckSwitch(MacroStep step)
+        {
+            if (step.Type != "control.switch")
+            {
+                return;
+            }
+
+            var cases = step.Parameters
+                .FirstOrDefault(parameter => parameter.Name == "cases")?.Steps
+                .Count(branch => branch.Type == "control.case") ?? 0;
+            var otherwise = step.Parameters
+                .FirstOrDefault(parameter => parameter.Name == "otherwise")?.Steps.Count ?? 0;
+            if (cases == 0 && otherwise == 0)
+            {
+                Add(step, Strings.Get("Editor.Problem.EmptySwitch"));
+            }
+        }
+
+        /// <summary>
+        /// The names the run itself keeps are not the macro's to write. A step that defines one of
+        /// them would replace a value the rest of the macro reads, so it is said here rather than
+        /// found out when the wrong value turns up.
+        /// </summary>
+        void CheckReservedNames(MacroStep step)
+        {
+            foreach (var parameter in step.Parameters)
+            {
+                if (parameter.Kind == ActionParameterKind.Returns)
+                {
+                    foreach (var (_, name) in step.ReturnedResults(parameter))
+                    {
+                        Check(name);
+                    }
+                }
+                else if (step.DefinesVariable(parameter))
+                {
+                    Check(parameter.Value);
+                }
+            }
+
+            void Check(string written)
+            {
+                var name = written.Trim();
+                if (name.Length > 0
+                    && (name.StartsWith("sys.", StringComparison.OrdinalIgnoreCase)
+                        || MacroRunner.IsRunStepName(name)))
+                {
+                    Add(step, Strings.Format("Editor.Problem.ReservedVariable", name));
+                }
+            }
+        }
+
         void Add(MacroStep step, string message)
         {
             if (!problems.Any(problem => problem.Step == step && problem.Message == message))
@@ -247,31 +491,50 @@ public static class MacroCheck
     }
 
     /// <summary>
-    /// The variable names one parameter reads, read the same way the Variable Center reads them:
-    /// a value written as an expression may name several variables anywhere inside it, while a
-    /// plain field only names one when the whole value starts with <c>$</c>. A <c>$name</c> in
-    /// the middle of a sentence is left alone — it is also how a literal dollar is written into
-    /// text, and the steps alone cannot say which was meant.
+    /// The variable names one parameter reads, taken from the catalogue's read mode rather than
+    /// from its editor kind. A whole value may name several variables anywhere inside it; text
+    /// names them where they stand but leaves <c>$$</c> alone; a bare-name field is one name.
+    /// A field that writes a name reads nothing.
     /// </summary>
-    private static IReadOnlyList<string> Referenced(StepParameter parameter)
+    public static IReadOnlyList<string> ReadsOf(MacroStep step, StepParameter parameter)
     {
-        if (parameter.Kind is ActionParameterKind.Expression)
+        if (step.DefinesVariable(parameter))
         {
-            return Expression.ReferencedNames(parameter.Value);
+            return [];
         }
 
-        // A list parameter keeps its values in rows, and every one of them is read like a plain
-        // field: a row naming a picture a Capture took is a name the macro has to have defined.
+        // A list parameter keeps its values in rows, and every one of them may name a picture an
+        // earlier step took or a value an expression works out.
         if (parameter.IsRowList)
         {
             return [.. parameter.RowValues
-                .Select(value => value.Trim())
-                .Where(value => value.StartsWith('$'))
-                .SelectMany(Expression.ReferencedNames)];
+                .SelectMany(VariableText.Referenced)
+                .Distinct(StringComparer.OrdinalIgnoreCase)];
         }
 
-        var text = parameter.Value.Trim();
-        return text.StartsWith('$') ? Expression.ReferencedNames(text) : [];
+        var definition = step.ParameterDefinition(parameter);
+        if (definition is null)
+        {
+            // A macro call's arguments are not in the catalogue; the file reads them as one value.
+            return Expression.ReferencedNames(parameter.Value);
+        }
+
+        return definition.ReadMode switch
+        {
+            ActionReadMode.VariableName => parameter.Value.Trim().TrimStart('$') is { Length: > 0 } name
+                ? [name]
+                : [],
+            ActionReadMode.WholeValue => Expression.ReferencedNames(parameter.Value),
+            _ => VariableText.Referenced(parameter.Value),
+        };
+    }
+
+    /// <summary>A yes/no field the way the engine reads one: anything but "false" is on.</summary>
+    private static bool On(MacroStep step, string name)
+    {
+        var text = step.Text(name).Trim();
+        return text.Length > 0
+            && !string.Equals(text, "false", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -287,6 +550,12 @@ public static class MacroCheck
             StringComparer.OrdinalIgnoreCase);
         defined.UnionWith(VariableCatalog.Globals.Select(variable => variable.Name));
 
+        // A catch block is handed the failure it took on under these two names. Whether a read
+        // sits inside a catch is not something the walk below can settle yet, so the names count
+        // as known rather than every correct catchWhen being marked as reading nothing.
+        defined.Add(MacroRunner.CaughtKeyName);
+        defined.Add(MacroRunner.CaughtDetailName);
+
         foreach (var step in steps)
         {
             step.CollectVariables(defined);
@@ -298,6 +567,14 @@ public static class MacroCheck
             {
                 defined.Add(name);
             }
+        }
+
+        // Every step that can run leaves an ending and a failure key behind under its own id,
+        // whether or not the editor asked for a named result.
+        foreach (var step in Every(steps).Where(step => !step.IsCondition && step.Id.Length > 0))
+        {
+            defined.Add(MacroRunner.OutcomeName(step.Id));
+            defined.Add(MacroRunner.ErrorName(step.Id));
         }
 
         return defined;
@@ -313,8 +590,8 @@ public static class MacroCheck
         {
             foreach (var row in parameter.Rows)
             {
-                var result = row.Text("key").Trim();
-                var name = row.Text("name").Trim();
+                var result = row.Text(FieldNames.Key).Trim();
+                var name = row.Text(FieldNames.Name).Trim();
                 if (result.Length > 0 && name.Length > 0)
                 {
                     yield return (result, name);
@@ -365,7 +642,7 @@ public static class MacroCheck
                     continue;
                 }
 
-                names.AddRange(Referenced(parameter));
+                names.AddRange(ReadsOf(step, parameter));
             }
         }
 

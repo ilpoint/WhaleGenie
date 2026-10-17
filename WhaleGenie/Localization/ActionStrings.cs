@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using WhaleGenie.Core.Execution;
 
 namespace WhaleGenie.Localization;
 
@@ -135,7 +137,7 @@ internal static class ActionStrings
     /// second the macro reads the screen; two hints, because a wait spends that number as its own
     /// clock while a step that looks once is only held to it.
     /// </summary>
-    private const string LookIntervalLabel = "查看间隔";
+    private const string LookIntervalLabel = "间隔";
 
     private const string LookGapHint =
         "同一步骤两次看屏幕之间至少隔多久，单位毫秒，0–60000，默认 0，也就是轮到它就立刻看。"
@@ -500,8 +502,8 @@ internal static class ActionStrings
 
         ["control.sequence.name"] = "顺序执行",
         ["control.sequence.desc"] = "按顺序依次执行子步骤。",
-        ["control.sequence.name.label"] = "名称",
-        ["control.sequence.name.hint"] = "可选，步骤列表里显示的名称；留空就显示这个动作的名字。",
+        ["control.sequence.label.label"] = "名称",
+        ["control.sequence.label.hint"] = "可选，步骤列表里显示的名称；留空就显示这个动作的名字。",
         ["control.sequence.steps.label"] = "子步骤",
         ["control.sequence.steps.hint"] = "按顺序执行的子步骤。",
 
@@ -533,7 +535,9 @@ internal static class ActionStrings
         ["control.while.condition.hint"] = "每轮开始前判断一次，成立才执行这一轮。",
         ["control.while.maxIterations.label"] = "最大轮数",
         ["control.while.maxIterations.hint"] = "轮数上限，从 1 起，默认 1000；到这个数就结束这个循环（不算"
-            + "失败），用于条件一直成立时兜底。",
+            + "失败），用于条件一直成立时兜底，同时在运行日志里写一行警告。",
+        ["control.while.returns.label"] = "要留下的结果",
+        ["control.while.returns.hint"] = ReturnsHintText,
         ["control.while.body.label"] = "循环体步骤",
         ["control.while.body.hint"] = "条件成立时执行的子步骤。",
 
@@ -547,22 +551,24 @@ internal static class ActionStrings
         ["control.forEach.indexVariable.hint"] = "可选，接收当前是第几轮的变量名，从 0 数起；留空就不记轮次。",
         ["control.forEach.reverse.label"] = "倒序遍历",
         ["control.forEach.reverse.hint"] = "从最后一项往前遍历，默认关。",
+        ["control.forEach.intervalMs.label"] = "间隔",
+        ["control.forEach.intervalMs.hint"] = "每轮之间等多久，单位是毫秒，默认 0。",
         ["control.forEach.body.label"] = "循环体步骤",
         ["control.forEach.body.hint"] = "每一项执行一次的子步骤。",
 
         ["control.for.name"] = "计数循环",
         ["control.for.desc"] = "从一个数数到另一个数，每数一个执行一遍子步骤。需要「现在是第几轮」时用它。",
-        ["control.for.from.label"] = "起始值",
-        ["control.for.from.hint"] = "计数器第一次取的值，默认 1，不小于 -1000000。",
-        ["control.for.to.label"] = "结束值",
-        ["control.for.to.hint"] = "计数器最后一次取的值，默认 5，这个值本身也算在内：从 1 数到 3 会执行三次。",
-        ["control.for.step.label"] = "步长",
-        ["control.for.step.hint"] = "每轮计数器增加多少，默认 1。填负数就是往下数；填 0 表示按起始值与结束值"
+        ["control.for.rangeFrom.label"] = "起始值",
+        ["control.for.rangeFrom.hint"] = "计数器第一次取的值，默认 1，不小于 -1000000。",
+        ["control.for.rangeTo.label"] = "结束值",
+        ["control.for.rangeTo.hint"] = "计数器最后一次取的值，默认 5，这个值本身也算在内：从 1 数到 3 会执行三次。",
+        ["control.for.stepSize.label"] = "步长",
+        ["control.for.stepSize.hint"] = "每轮计数器增加多少，默认 1。填负数就是往下数；填 0 表示按起始值与结束值"
             + "自动定方向：起始值大于结束值时往下数。",
         ["control.for.intervalMs.label"] = "间隔",
         ["control.for.intervalMs.hint"] = "每轮之间等多久，单位是毫秒，默认 0。",
-        ["control.for.variable.label"] = "计数器变量",
-        ["control.for.variable.hint"] = "接收本轮数值的变量名，默认 i，子步骤里可以读它。",
+        ["control.for.name.label"] = "计数器变量",
+        ["control.for.name.hint"] = "接收本轮数值的变量名，默认 i，子步骤里可以读它。",
         ["control.for.body.label"] = "循环体步骤",
         ["control.for.body.hint"] = "每轮执行一次的子步骤。",
 
@@ -578,23 +584,23 @@ internal static class ActionStrings
 
         ["control.switch.name"] = "多分支",
         ["control.switch.desc"] = "拿一个值从上到下比对各分支，命中第一个就执行它的步骤，都没命中就走“其他情况”。",
-        ["control.switch.value.label"] = "要比对的值（操作数）",
-        ["control.switch.value.hint"] = "执行到这一步时读取一次，用来和各分支填的值比较。从下拉列表里选一个变量，"
+        ["control.switch.switchValue.label"] = "要比对的值（操作数）",
+        ["control.switch.switchValue.hint"] = "执行到这一步时读取一次，用来和各分支填的值比较。从下拉列表里选一个变量，"
             + "也可以直接手输变量名、数字或文本。",
-        ["control.switch.matchMode.label"] = "比对方式（运算符）",
-        ["control.switch.matchMode.hint"] = "决定分支里填的值怎么和上面的值比较：等于、不等于、包含、"
+        ["control.switch.switchMode.label"] = "比对方式（运算符）",
+        ["control.switch.switchMode.hint"] = "决定分支里填的值怎么和上面的值比较：等于、不等于、包含、"
             + "开头 / 结尾、大于 / 小于、正则，只能从这个下拉框里选。选“正则匹配”时，"
             + "每条分支的分支值就是那条分支的正则表达式。",
-        ["control.switch.matchMode.option.equals"] = "等于",
-        ["control.switch.matchMode.option.notEquals"] = "不等于",
-        ["control.switch.matchMode.option.contains"] = "包含",
-        ["control.switch.matchMode.option.startsWith"] = "以…开头",
-        ["control.switch.matchMode.option.endsWith"] = "以…结尾",
-        ["control.switch.matchMode.option.greaterThan"] = "大于",
-        ["control.switch.matchMode.option.greaterOrEqual"] = "大于等于",
-        ["control.switch.matchMode.option.lessThan"] = "小于",
-        ["control.switch.matchMode.option.lessOrEqual"] = "小于等于",
-        ["control.switch.matchMode.option.regex"] = "正则匹配",
+        ["control.switch.switchMode.option.equals"] = "等于",
+        ["control.switch.switchMode.option.notEquals"] = "不等于",
+        ["control.switch.switchMode.option.contains"] = "包含",
+        ["control.switch.switchMode.option.startsWith"] = "以…开头",
+        ["control.switch.switchMode.option.endsWith"] = "以…结尾",
+        ["control.switch.switchMode.option.greaterThan"] = "大于",
+        ["control.switch.switchMode.option.greaterOrEqual"] = "大于等于",
+        ["control.switch.switchMode.option.lessThan"] = "小于",
+        ["control.switch.switchMode.option.lessOrEqual"] = "小于等于",
+        ["control.switch.switchMode.option.regex"] = "正则匹配",
         ["control.switch.cases.label"] = "分支",
         ["control.switch.cases.hint"] = "一行一个分支，从上到下比对；命中第一个分支后执行该分支，其余分支不再比对。",
         ["control.switch.otherwise.label"] = "其他情况步骤",
@@ -613,6 +619,9 @@ internal static class ActionStrings
         ["control.try.desc"] = "先执行尝试的步骤，失败时改走捕获的步骤，最后无论如何都执行收尾的步骤。",
         ["control.try.body.label"] = "尝试步骤",
         ["control.try.body.hint"] = "先尝试执行的子步骤。",
+        ["control.try.catchWhen.label"] = "只在满足条件时捕获",
+        ["control.try.catchWhen.hint"] = "尝试失败时问这一次；变量格写 caught.key，表达式里写 $caught.key，详情是 $caught.detail。"
+            + "留空即接住所有失败；条件不成立时不接，原来的失败键与详情交给上层，收尾步骤照常执行。",
         ["control.try.catch.label"] = "捕获步骤",
         ["control.try.catch.hint"] = "尝试失败时执行的子步骤。",
         ["control.try.finally.label"] = "收尾步骤",
@@ -620,6 +629,12 @@ internal static class ActionStrings
 
         ["control.break.name"] = "跳出循环",
         ["control.break.desc"] = "立即跳出最内层循环。",
+
+        ["control.return.name"] = "结束当前宏",
+        ["control.return.desc"] = "当前宏到此结束，调用它的宏接着往下走；已经赋过、声明要交回的结果照常交回。",
+
+        ["control.rethrow.name"] = "重新抛出失败",
+        ["control.rethrow.desc"] = "把当前捕获步骤接住的失败交给上层，失败键与详情保持不变。",
 
         ["control.continue.name"] = "继续下一轮",
         ["control.continue.desc"] = "跳过本轮剩余步骤，直接开始下一轮。",
@@ -656,6 +671,15 @@ internal static class ActionStrings
         ["control.calculate.value.hint"] = "要算的公式，比如 $count + 1、$total * 0.85，"
             + "或者 concat($first, \" \", $last)。字段旁的「表达式」按钮能把它一块块拼出来。",
 
+        ["control.incrementGlobal.name"] = "增加全局变量",
+        ["control.incrementGlobal.desc"] = "给一个全局变量加上一个数，读取和写回是同一步；"
+            + "多条宏同时加也不会丢掉其中一次。",
+        ["control.incrementGlobal.name.label"] = "全局变量",
+        ["control.incrementGlobal.name.hint"] = "要增加的全局变量，必须先在变量中心创建。"
+            + "它的值由所有宏共享，程序运行期间一直保留，不写进项目文件。",
+        ["control.incrementGlobal.amount.label"] = "增加多少",
+        ["control.incrementGlobal.amount.hint"] = "每次加上的数，可以是负数或公式，例如 $step；默认 1。",
+
         ["control.listCreate.name"] = "创建列表",
         ["control.listCreate.desc"] = "建立一个列表变量，覆盖它原来的内容。",
         ["control.listCreate.name.label"] = "变量名",
@@ -680,8 +704,8 @@ internal static class ActionStrings
         ["control.listInsert.desc"] = "把值插入到列表的指定位置。",
         ["control.listInsert.name.label"] = "列表变量",
         ["control.listInsert.name.hint"] = "要插入的列表，下拉里列出宏当前看得见的列表。",
-        ["control.listInsert.index.label"] = "位置",
-        ["control.listInsert.index.hint"] = "插入位置，从 0 数起，0 表示最前面。写 0 到列表长度之间的数；"
+        ["control.listInsert.listIndex.label"] = "位置",
+        ["control.listInsert.listIndex.hint"] = "插入位置，从 0 数起，0 表示最前面。写 0 到列表长度之间的数；"
             + "超出范围时按最近的一端算。",
         ["control.listInsert.value.label"] = "值",
         ["control.listInsert.value.hint"] = "插入到这个位置的值，原来在这个位置的项往后挪一位。",
@@ -690,15 +714,15 @@ internal static class ActionStrings
         ["control.listRemoveAt.desc"] = "把列表指定位置的项移除。",
         ["control.listRemoveAt.name.label"] = "列表变量",
         ["control.listRemoveAt.name.hint"] = "要移除项的列表，下拉里列出宏当前看得见的列表。",
-        ["control.listRemoveAt.index.label"] = "位置",
-        ["control.listRemoveAt.index.hint"] = "要移除的位置，从 0 数起；-1 表示最后一项。",
+        ["control.listRemoveAt.listIndex.label"] = "位置",
+        ["control.listRemoveAt.listIndex.hint"] = "要移除的位置，从 0 数起；-1 表示最后一项。",
 
         ["control.listSet.name"] = "列表改一项",
         ["control.listSet.desc"] = "把列表某一项换成别的值，其他项不动。",
         ["control.listSet.name.label"] = "列表变量",
         ["control.listSet.name.hint"] = "要改的列表，下拉里列出宏当前看得见的列表。",
-        ["control.listSet.index.label"] = "位置",
-        ["control.listSet.index.hint"] =
+        ["control.listSet.listIndex.label"] = "位置",
+        ["control.listSet.listIndex.hint"] =
             "要换掉的位置，从 0 数起；-1 表示最后一项。列表没有这个位置时会停下报错，"
             + "而不是当作没事发生。",
         ["control.listSet.value.label"] = "值",
@@ -725,8 +749,8 @@ internal static class ActionStrings
 
         ["control.note.name"] = "说明",
         ["control.note.desc"] = "在宏中间写一行说明，运行时不做事。",
-        ["control.note.text.label"] = "说明",
-        ["control.note.text.hint"] = "这一段是干什么的，写给后面读这个宏的人看。按写下的原文显示："
+        ["control.note.note.label"] = "说明",
+        ["control.note.note.hint"] = "这一段是干什么的，写给后面读这个宏的人看。按写下的原文显示："
             + "不替换变量，也不写进日志。",
 
         ["control.ask.name"] = "询问使用者",
@@ -757,6 +781,20 @@ internal static class ActionStrings
         ["control.runMacro.macro.label"] = "宏",
         ["control.runMacro.macro.hint"] = "本项目里的另一个宏；下面的形参与结果都由它声明。"
             + "改名或删除后这里需要跟着改。",
+        ["control.runMacro.wait.label"] = "等它跑完",
+        ["control.runMacro.wait.hint"] = "默认打开：这一步停在这里，直到被调用的宏结束。关掉后，"
+            + "被调用的宏在后台继续跑，这一步立刻完成，并把一个运行句柄写进下面的变量，"
+            + "稍后用「等待后台运行」按句柄等它。",
+        ["control.runMacro.runHandleName.label"] = "运行句柄",
+        ["control.runMacro.runHandleName.hint"] = "不等的时候，句柄写进这个本宏变量。把它交给后面的"
+            + "「等待后台运行」；一个句柄只能等一次。只在关掉「等它跑完」时出现。",
+        ["control.waitMacro.name"] = "等待后台运行",
+        ["control.waitMacro.desc"] = "等「执行其他宏」关掉「等它跑完」后留下的那次后台运行结束，"
+            + "并按调用处勾选的结果取回值。",
+        ["control.waitMacro.runHandle.label"] = "运行句柄",
+        ["control.waitMacro.runHandle.hint"] = "装着「执行其他宏」写下的句柄的变量，通常写成 $句柄名。"
+            + "句柄只能等一次；等待超时由这一步自己的「超时」决定，清空就一直等。等待超时只结束等待，"
+            + "后台运行还在跑，可以再等一次。",
 
         // --------------------------------------------------------------------- file
         ["file.readText.name"] = "读取文本",
@@ -772,8 +810,8 @@ internal static class ActionStrings
         ["file.readText.limit.hint"] = "只读文件的前多少行，范围为 0 到 1000000，默认 0；0 表示整份都读，大文件只要前面几行时用它。",
         ["file.readText.skipBlankLines.label"] = "去掉空行",
         ["file.readText.skipBlankLines.hint"] = "丢弃没有内容的行，这样名单中间夹着的空行不会进入列表。默认不勾选。",
-        ["file.readText.trim.label"] = "去掉每行两端的空格",
-        ["file.readText.trim.hint"] = "去掉每一行两端的空格。默认不勾选。",
+        ["file.readText.trimLines.label"] = "去掉每行两端的空格",
+        ["file.readText.trimLines.hint"] = "去掉每一行两端的空格。默认不勾选。",
         ["file.readText.encoding.label"] = "编码",
         ["file.readText.encoding.hint"] = EncodingHintText,
         ["file.readText.encoding.option.utf8"] = EncodingUtf8,
@@ -785,12 +823,12 @@ internal static class ActionStrings
         ["file.writeText.desc"] = "把文本写入文件，可以替换原内容或追加到末尾。",
         ["file.writeText.path.label"] = "文件",
         ["file.writeText.path.hint"] = "要写入的文件。只写文件名时会相对宏文件夹解析。",
-        ["file.writeText.text.label"] = "文本",
-        ["file.writeText.text.hint"] = "要写入的文本。按一个值读取，变量或表达式都可以写成它。",
-        ["file.writeText.mode.label"] = "方式",
-        ["file.writeText.mode.hint"] = "替换原文件，或把内容接到已有内容后面。默认「替换原内容」。",
-        ["file.writeText.mode.option.overwrite"] = "替换原内容",
-        ["file.writeText.mode.option.append"] = "追加到末尾",
+        ["file.writeText.fileContent.label"] = "文本",
+        ["file.writeText.fileContent.hint"] = "要写入的文本。按一个值读取，变量或表达式都可以写成它。",
+        ["file.writeText.writeMode.label"] = "方式",
+        ["file.writeText.writeMode.hint"] = "替换原文件，或把内容接到已有内容后面。默认「替换原内容」。",
+        ["file.writeText.writeMode.option.overwrite"] = "替换原内容",
+        ["file.writeText.writeMode.option.append"] = "追加到末尾",
         ["file.writeText.newline.label"] = "换行",
         ["file.writeText.newline.hint"] = "要不要在文本前后补一个换行：不加、写完之后补一个，或追加时文件最后一行还没有结束"
             + "时先补一个。默认不加。",
@@ -808,8 +846,8 @@ internal static class ActionStrings
         ["file.appendLog.desc"] = "往日志文件的末尾加一行，文件不在就新建。",
         ["file.appendLog.path.label"] = "日志文件",
         ["file.appendLog.path.hint"] = "要写入的日志文件。只写文件名时会相对宏文件夹解析。",
-        ["file.appendLog.text.label"] = "这一行",
-        ["file.appendLog.text.hint"] = "这一行写什么。按一个值读取，变量或表达式都可以写成它；每行末尾自动补一个换行，"
+        ["file.appendLog.logLine.label"] = "这一行",
+        ["file.appendLog.logLine.hint"] = "这一行写什么。按一个值读取，变量或表达式都可以写成它；每行末尾自动补一个换行，"
             + "追加时文件最后一行还没有结束会先补一个换行。",
         ["file.appendLog.timestamp.label"] = "前面写上时间",
         ["file.appendLog.timestamp.hint"] = "在每行前面写上日期和时间。默认勾选；事后翻看日志需要它分辨先后。",
@@ -872,8 +910,8 @@ internal static class ActionStrings
         ["file.path.operation.option.macros"] = "宏文件夹",
         ["file.path.path.label"] = "路径",
         ["file.path.path.hint"] = "要处理的路径。选两个文件夹相关的项时用不到它。",
-        ["file.path.name.label"] = "名字",
-        ["file.path.name.hint"] = "拼接时接在后面的部分。只有「拼接文件夹和文件名」用得到它。",
+        ["file.path.fileName.label"] = "名字",
+        ["file.path.fileName.hint"] = "拼接时接在后面的部分。只有「拼接文件夹和文件名」用得到它。",
 
         ["file.unzip.name"] = "解压",
         ["file.unzip.desc"] = "把 zip 压缩包解压到文件夹。",
@@ -948,8 +986,8 @@ internal static class ActionStrings
         ["file.writeJson.path.hint"] = "要更新的 JSON 文件。只写文件名时会相对宏文件夹解析。",
         ["file.writeJson.query.label"] = "位置",
         ["file.writeJson.query.hint"] = "值的路径，例如 server.name。途经的缺失对象会自动创建。",
-        ["file.writeJson.value.label"] = "值",
-        ["file.writeJson.value.hint"] = "要存入的值。按一个值读取，变量或表达式都可以写成它。",
+        ["file.writeJson.writeValue.label"] = "值",
+        ["file.writeJson.writeValue.hint"] = "要存入的值。按一个值读取，变量或表达式都可以写成它。",
 
         ["file.readCsv.name"] = "读取 CSV",
         ["file.readCsv.desc"] = "把 CSV 文件读取成行列表。",
@@ -977,8 +1015,8 @@ internal static class ActionStrings
         ["file.readCsv.startRow.hint"] = "从文件的第几行开始读，从 1 数起，默认 1。首行是表头时，表头就是这一行。",
         ["file.readCsv.maxRows.label"] = "最多读几行",
         ["file.readCsv.maxRows.hint"] = "最多读取这么多行，范围为 0 到 1000000，默认 0；0 表示从这里一直读到文件末尾。",
-        ["file.readCsv.trim.label"] = "去掉空格",
-        ["file.readCsv.trim.hint"] = "去掉每个单元格两端的空格。默认不勾选；手写的文件里常有这些空格。",
+        ["file.readCsv.trimCells.label"] = "去掉单元格空格",
+        ["file.readCsv.trimCells.hint"] = "去掉每个单元格两端的空格。默认不勾选；手写的文件里常有这些空格。",
         ["file.readCsv.columns.label"] = "只读这几列",
         ["file.readCsv.columns.hint"] =
             "要保留的列，按表头里的名字写，或者按它所在的字母写：金额、B、金额,B。每一行只留这几列，"
@@ -993,20 +1031,20 @@ internal static class ActionStrings
             + "默认留空，表示每一行都读。",
         ["file.readCsv.matchValue.label"] = "等于",
         ["file.readCsv.matchValue.hint"] = "这些行里那个单元格要等于的值，也可以写成 $变量。",
-        ["file.readCsv.matchMode.label"] = "匹配方式",
-        ["file.readCsv.matchMode.hint"] = "单元格与这个值怎么比：比文字的几档是等于、包含、以…开头、以…结尾、"
+        ["file.readCsv.filterMode.label"] = "匹配方式",
+        ["file.readCsv.filterMode.hint"] = "单元格与这个值怎么比：比文字的几档是等于、包含、以…开头、以…结尾、"
             + "正则匹配（与别处用的是同一批词，都不区分大小写，「等于」比之前去掉两端的空格），另有不等于、"
             + "大于、小于那几档，只能从这个下拉框里选。默认「等于」。",
-        ["file.readCsv.matchMode.option.equals"] = "等于",
-        ["file.readCsv.matchMode.option.notEquals"] = "不等于",
-        ["file.readCsv.matchMode.option.contains"] = "包含",
-        ["file.readCsv.matchMode.option.startsWith"] = "以…开头",
-        ["file.readCsv.matchMode.option.endsWith"] = "以…结尾",
-        ["file.readCsv.matchMode.option.greaterThan"] = "大于",
-        ["file.readCsv.matchMode.option.greaterOrEqual"] = "大于等于",
-        ["file.readCsv.matchMode.option.lessThan"] = "小于",
-        ["file.readCsv.matchMode.option.lessOrEqual"] = "小于等于",
-        ["file.readCsv.matchMode.option.regex"] = "正则匹配",
+        ["file.readCsv.filterMode.option.equals"] = "等于",
+        ["file.readCsv.filterMode.option.notEquals"] = "不等于",
+        ["file.readCsv.filterMode.option.contains"] = "包含",
+        ["file.readCsv.filterMode.option.startsWith"] = "以…开头",
+        ["file.readCsv.filterMode.option.endsWith"] = "以…结尾",
+        ["file.readCsv.filterMode.option.greaterThan"] = "大于",
+        ["file.readCsv.filterMode.option.greaterOrEqual"] = "大于等于",
+        ["file.readCsv.filterMode.option.lessThan"] = "小于",
+        ["file.readCsv.filterMode.option.lessOrEqual"] = "小于等于",
+        ["file.readCsv.filterMode.option.regex"] = "正则匹配",
         ["file.readCsv.encoding.label"] = "编码",
         ["file.readCsv.encoding.hint"] = EncodingHintText,
         ["file.readCsv.encoding.option.utf8"] = EncodingUtf8,
@@ -1034,10 +1072,10 @@ internal static class ActionStrings
         ["file.writeCsv.separatorText.label"] = "或者这个字符",
         ["file.writeCsv.separatorText.hint"] = "上面列表里没有的分隔符写在这里，例如 : 或 #。填了就按这里写的来，"
             + "不填就用上面选的，默认留空。",
-        ["file.writeCsv.mode.label"] = "写入方式",
-        ["file.writeCsv.mode.hint"] = "从头写这个文件，或把这几行接在文件已有内容的后面。默认「覆盖整个文件」。",
-        ["file.writeCsv.mode.option.replace"] = "覆盖整个文件",
-        ["file.writeCsv.mode.option.append"] = "接在最后一行后面",
+        ["file.writeCsv.writeMode.label"] = "写入方式",
+        ["file.writeCsv.writeMode.hint"] = "从头写这个文件，或把这几行接在文件已有内容的后面。默认「覆盖整个文件」。",
+        ["file.writeCsv.writeMode.option.overwrite"] = "覆盖整个文件",
+        ["file.writeCsv.writeMode.option.append"] = "接在最后一行后面",
         ["file.writeCsv.align.label"] = "按列名放进同名的列",
         ["file.writeCsv.align.hint"] =
             "往一个已经有表格的文件里追加时：每个单元格放进第一行里同名的那一列，"
@@ -1077,37 +1115,37 @@ internal static class ActionStrings
         // ------------------------------------------------------------------- data
         ["data.base64Encode.name"] = "Base64 编码",
         ["data.base64Encode.desc"] = "把文本编码成 Base64，放进 URL 或令牌时常用这种形式。",
-        ["data.base64Encode.text.label"] = "文本",
-        ["data.base64Encode.text.hint"] = "要编码的文本。按一个值读取，变量或表达式都可以写成它；编码时按 UTF-8 处理。",
+        ["data.base64Encode.dataText.label"] = "文本",
+        ["data.base64Encode.dataText.hint"] = "要编码的文本。按一个值读取，变量或表达式都可以写成它；编码时按 UTF-8 处理。",
 
         ["data.base64Decode.name"] = "Base64 解码",
         ["data.base64Decode.desc"] = "把 Base64 变回它原本的文本。",
-        ["data.base64Decode.text.label"] = "Base64",
-        ["data.base64Decode.text.hint"] = "要解码的 Base64 文本。按一个值读取，变量或表达式都可以写成它；解出来的文本按 UTF-8 读。",
+        ["data.base64Decode.dataText.label"] = "Base64",
+        ["data.base64Decode.dataText.hint"] = "要解码的 Base64 文本。按一个值读取，变量或表达式都可以写成它；解出来的文本按 UTF-8 读。",
 
         ["data.hash.name"] = "计算哈希",
         ["data.hash.desc"] = "算出一段文本或一个文件的校验和。",
-        ["data.hash.algorithm.label"] = "算法",
-        ["data.hash.algorithm.hint"] = "用哪种校验和，默认 SHA-256。MD5 和 SHA-1 用来对上别的程序给出的值。",
-        ["data.hash.algorithm.option.md5"] = "MD5",
-        ["data.hash.algorithm.option.sha1"] = "SHA-1",
-        ["data.hash.algorithm.option.sha256"] = "SHA-256",
-        ["data.hash.algorithm.option.sha512"] = "SHA-512",
-        ["data.hash.source.label"] = "算什么",
-        ["data.hash.source.hint"] = "校验和算在什么上面：下面这一段文本，还是磁盘上的一个文件，"
+        ["data.hash.hashAlgorithm.label"] = "算法",
+        ["data.hash.hashAlgorithm.hint"] = "用哪种校验和，默认 SHA-256。MD5 和 SHA-1 用来对上别的程序给出的值。",
+        ["data.hash.hashAlgorithm.option.md5"] = "MD5",
+        ["data.hash.hashAlgorithm.option.sha1"] = "SHA-1",
+        ["data.hash.hashAlgorithm.option.sha256"] = "SHA-256",
+        ["data.hash.hashAlgorithm.option.sha512"] = "SHA-512",
+        ["data.hash.hashSource.label"] = "算什么",
+        ["data.hash.hashSource.hint"] = "校验和算在什么上面：下面这一段文本，还是磁盘上的一个文件，"
             + "默认算文本。",
-        ["data.hash.source.option.text"] = "一段文本",
-        ["data.hash.source.option.file"] = "一个文件",
-        ["data.hash.text.label"] = "文本",
-        ["data.hash.text.hint"] = "要算校验和的文本，按 UTF-8 处理。按一个值读取，变量或表达式都可以写成它。",
+        ["data.hash.hashSource.option.text"] = "一段文本",
+        ["data.hash.hashSource.option.file"] = "一个文件",
+        ["data.hash.dataText.label"] = "文本",
+        ["data.hash.dataText.hint"] = "要算校验和的文本，按 UTF-8 处理。按一个值读取，变量或表达式都可以写成它。",
         ["data.hash.path.label"] = "文件",
         ["data.hash.path.hint"] = "要算校验和的文件。按块读取，所以文件多大都不影响这一步跑不跑得成。",
 
         // ---------------------------------------------------------------- clipboard
         ["clipboard.writeText.name"] = "复制到剪贴板",
         ["clipboard.writeText.desc"] = "把文本放进剪贴板，相当于复制。",
-        ["clipboard.writeText.text.label"] = "文本",
-        ["clipboard.writeText.text.hint"] = "要放进剪贴板的文本。按一个值读取，变量或表达式都可以写成它。",
+        ["clipboard.writeText.clipboardText.label"] = "文本",
+        ["clipboard.writeText.clipboardText.hint"] = "要放进剪贴板的文本。按一个值读取，变量或表达式都可以写成它。",
 
         ["clipboard.readText.name"] = "读取剪贴板",
         ["clipboard.readText.desc"] = "把剪贴板上的文本读入变量。",
@@ -1117,8 +1155,8 @@ internal static class ActionStrings
 
         ["clipboard.writeImage.name"] = "复制图片到剪贴板",
         ["clipboard.writeImage.desc"] = "把一张图片放到剪贴板上，等同于复制它。",
-        ["clipboard.writeImage.image.label"] = "图片",
-        ["clipboard.writeImage.image.hint"] = "可以是图片文件，也可以是前面步骤填好的图像变量。",
+        ["clipboard.writeImage.imageSource.label"] = "图片",
+        ["clipboard.writeImage.imageSource.hint"] = "可以是图片文件，也可以是前面步骤填好的图像变量。",
 
         ["clipboard.readFiles.name"] = "读取剪贴板文件",
         ["clipboard.readFiles.desc"] = "把剪贴板上的文件路径读成列表。",
@@ -1134,30 +1172,26 @@ internal static class ActionStrings
 
         ["clipboard.waitChange.name"] = "等待剪贴板",
         ["clipboard.waitChange.desc"] = "等待剪贴板上有新的内容被复制。",
-        ["clipboard.waitChange.timeoutMs.label"] = "超时",
-        ["clipboard.waitChange.timeoutMs.hint"] = "最多等多久，单位毫秒，默认 5000；到点即失败。",
 
         ["clipboard.copy.name"] = "复制",
         ["clipboard.copy.desc"] = "发送复制快捷键，并保留复制到的内容。",
-        ["clipboard.copy.keys.label"] = "快捷键",
-        ["clipboard.copy.keys.hint"] = "用 + 连接的一组按键，用于复制所选内容，默认 Ctrl+C。",
-        ["clipboard.copy.timeoutMs.label"] = "超时",
-        ["clipboard.copy.timeoutMs.hint"] = "按下快捷键后等待剪贴板变化的时长，单位毫秒，默认 1500。",
+        ["clipboard.copy.shortcut.label"] = "快捷键",
+        ["clipboard.copy.shortcut.hint"] = "用 + 连接的一组按键，用于复制所选内容，默认 Ctrl+C。",
 
         ["clipboard.paste.name"] = "粘贴",
         ["clipboard.paste.desc"] = "把文本放进剪贴板，并发送粘贴快捷键。",
-        ["clipboard.paste.text.label"] = "文本",
-        ["clipboard.paste.text.hint"] = "要粘贴的文本。默认留空，表示直接粘贴剪贴板里已有的内容。",
-        ["clipboard.paste.keys.label"] = "快捷键",
-        ["clipboard.paste.keys.hint"] = "用 + 连接的一组按键，用于粘贴，默认 Ctrl+V。",
+        ["clipboard.paste.pasteText.label"] = "文本",
+        ["clipboard.paste.pasteText.hint"] = "要粘贴的文本。默认留空，表示直接粘贴剪贴板里已有的内容。",
+        ["clipboard.paste.shortcut.label"] = "快捷键",
+        ["clipboard.paste.shortcut.hint"] = "用 + 连接的一组按键，用于粘贴，默认 Ctrl+V。",
 
         // ------------------------------------------------------------------ process
         ["process.start.name"] = "启动程序",
         ["process.start.desc"] = "启动另一个程序，可以选择不显示窗口。",
-        ["process.start.file.label"] = "程序",
-        ["process.start.file.hint"] = "要启动的程序，例如 notepad.exe，也可以写完整路径。",
-        ["process.start.arguments.label"] = "参数",
-        ["process.start.arguments.hint"] = "传给程序的参数。按一个值读取，变量或表达式都可以写成它；默认留空，表示不传参数。",
+        ["process.start.programFile.label"] = "程序",
+        ["process.start.programFile.hint"] = "要启动的程序，例如 notepad.exe，也可以写完整路径。",
+        ["process.start.commandArguments.label"] = "参数",
+        ["process.start.commandArguments.hint"] = "传给程序的参数。按一个值读取，变量或表达式都可以写成它；默认留空，表示不传参数。",
         ["process.start.workingDirectory.label"] = "工作目录",
         ["process.start.workingDirectory.hint"] = "程序在哪个目录下启动。默认留空，表示沿用鲸灵自己的工作目录。",
         ["process.start.hidden.label"] = "隐藏窗口",
@@ -1171,23 +1205,19 @@ internal static class ActionStrings
 
         ["process.waitFor.name"] = "等待程序",
         ["process.waitFor.desc"] = "等待某个程序开始运行。",
-        ["process.waitFor.name.label"] = "程序",
-        ["process.waitFor.name.hint"] = "要等待的程序名。按完整名称匹配，不区分大小写，末尾的 .exe 可写可不写；"
+        ["process.waitFor.processName.label"] = "程序",
+        ["process.waitFor.processName.hint"] = "要等待的程序名。按完整名称匹配，不区分大小写，末尾的 .exe 可写可不写；"
             + "按一个值读取，变量或表达式都可以写成它。",
-        ["process.waitFor.timeoutMs.label"] = "超时",
-        ["process.waitFor.timeoutMs.hint"] = "最多等多久，单位毫秒，默认 10000；到点程序还没出现即失败。",
 
         ["process.waitExit.name"] = "等待程序结束",
         ["process.waitExit.desc"] = "等待本宏启动的某个程序结束。",
         ["process.waitExit.id.label"] = "进程 id",
         ["process.waitExit.id.hint"] = "要等待的进程 id，通常是「启动程序」交回的 processId。按一个值读取，变量或表达式都可以写成它。",
-        ["process.waitExit.timeoutMs.label"] = "超时",
-        ["process.waitExit.timeoutMs.hint"] = "最多等多久，单位毫秒，默认 60000；到点程序还没结束即失败。",
 
         ["process.exists.name"] = "程序是否在运行",
         ["process.exists.desc"] = "检查某个程序是否正在运行。",
-        ["process.exists.name.label"] = "程序",
-        ["process.exists.name.hint"] = "要查找的程序名。按完整名称匹配，不区分大小写，末尾的 .exe 可写可不写；"
+        ["process.exists.processName.label"] = "程序",
+        ["process.exists.processName.hint"] = "要查找的程序名。按完整名称匹配，不区分大小写，末尾的 .exe 可写可不写；"
             + "按一个值读取，变量或表达式都可以写成它。",
 
         ["process.list.name"] = "列出程序",
@@ -1195,22 +1225,22 @@ internal static class ActionStrings
 
         ["process.info.name"] = "程序信息",
         ["process.info.desc"] = "读取一个正在运行的程序的信息。",
-        ["process.info.target.label"] = "程序",
-        ["process.info.target.hint"] = "程序名，或进程 id。程序名按完整名称匹配，不区分大小写，末尾的 .exe 可写可不写。",
+        ["process.info.processTarget.label"] = "程序",
+        ["process.info.processTarget.hint"] = "程序名，或进程 id。程序名按完整名称匹配，不区分大小写，末尾的 .exe 可写可不写。",
 
         ["process.kill.name"] = "结束程序",
         ["process.kill.desc"] = "关闭一个程序，默认先请它正常退出。",
-        ["process.kill.target.label"] = "程序",
-        ["process.kill.target.hint"] = "程序名，或进程 id。程序名按完整名称匹配，不区分大小写，末尾的 .exe 可写可不写。",
+        ["process.kill.processTarget.label"] = "程序",
+        ["process.kill.processTarget.hint"] = "程序名，或进程 id。程序名按完整名称匹配，不区分大小写，末尾的 .exe 可写可不写。",
         ["process.kill.force.label"] = "强制关闭",
         ["process.kill.force.hint"] = "直接结束进程，而不是先请它退出。默认不勾选。",
 
         ["command.run.name"] = "执行命令",
         ["command.run.desc"] = "执行一条命令并收集它的输出。",
-        ["command.run.file.label"] = "命令",
-        ["command.run.file.hint"] = "要运行的命令，例如 cmd.exe，也可以写完整路径。",
-        ["command.run.arguments.label"] = "参数",
-        ["command.run.arguments.hint"] = "传给命令的参数，例如 /c dir。按一个值读取，变量或表达式都可以写成它；默认留空，表示不传参数。",
+        ["command.run.commandFile.label"] = "命令",
+        ["command.run.commandFile.hint"] = "要运行的命令，例如 cmd.exe，也可以写完整路径。",
+        ["command.run.commandArguments.label"] = "参数",
+        ["command.run.commandArguments.hint"] = "传给命令的参数，例如 /c dir。按一个值读取，变量或表达式都可以写成它；默认留空，表示不传参数。",
         ["command.run.workingDirectory.label"] = "工作目录",
         ["command.run.workingDirectory.hint"] = "命令在哪个目录下运行。默认留空，表示沿用鲸灵自己的工作目录。",
         ["command.run.environment.label"] = "环境变量",
@@ -1219,8 +1249,6 @@ internal static class ActionStrings
         ["command.run.standardInput.label"] = "标准输入",
         ["command.run.standardInput.hint"] = "命令从标准输入读取的内容。默认留空，表示不提供任何输入；内容按 UTF-8 发送，"
             + "其中的 $变量 会替换为该变量的值。",
-        ["command.run.timeoutMs.label"] = "超时",
-        ["command.run.timeoutMs.hint"] = "命令最多可以运行多久，单位毫秒，默认 30000；到点结束这条命令并判这一步失败。",
         ["command.run.streamOutput.label"] = "输出实时写入日志",
         ["command.run.streamOutput.hint"] = "命令运行期间，它打印的每一行会立即写入运行日志，便于观察耗时较长的构建或脚本的进度。"
             + "默认不勾选；结果变量里仍然是完整输出。",
@@ -1274,90 +1302,90 @@ internal static class ActionStrings
 
         ["system.environment.name"] = "环境变量",
         ["system.environment.desc"] = "读取一个环境变量。",
-        ["system.environment.name.label"] = "名称",
-        ["system.environment.name.hint"] = "环境变量的名称，不区分大小写。按一个值读取，变量或表达式都可以写成它。",
+        ["system.environment.environmentName.label"] = "名称",
+        ["system.environment.environmentName.hint"] = "环境变量的名称，不区分大小写。按一个值读取，变量或表达式都可以写成它。",
         ["system.power.name"] = "电源",
         ["system.power.desc"] = "锁屏、关闭显示器、睡眠、注销、重启或关闭这台电脑。",
-        ["system.power.what.label"] = "执行",
-        ["system.power.what.hint"] = "等同于开始菜单中的电源按钮，默认「锁屏」。锁屏和关闭显示器不会造成任何损失；"
+        ["system.power.powerAction.label"] = "执行",
+        ["system.power.powerAction.hint"] = "等同于开始菜单中的电源按钮，默认「锁屏」。锁屏和关闭显示器不会造成任何损失；"
             + "注销、重启和关机会结束正在运行的程序，未保存的内容会随之丢失。",
-        ["system.power.what.option.lock"] = "锁屏",
-        ["system.power.what.option.monitorOff"] = "关闭显示器",
-        ["system.power.what.option.signOut"] = "注销",
-        ["system.power.what.option.sleep"] = "睡眠",
-        ["system.power.what.option.hibernate"] = "休眠",
-        ["system.power.what.option.restart"] = "重启",
-        ["system.power.what.option.shutDown"] = "关机",
-        ["system.power.what.option.abortShutdown"] = "取消倒计时中的关机",
+        ["system.power.powerAction.option.lock"] = "锁屏",
+        ["system.power.powerAction.option.monitorOff"] = "关闭显示器",
+        ["system.power.powerAction.option.signOut"] = "注销",
+        ["system.power.powerAction.option.sleep"] = "睡眠",
+        ["system.power.powerAction.option.hibernate"] = "休眠",
+        ["system.power.powerAction.option.restart"] = "重启",
+        ["system.power.powerAction.option.shutDown"] = "关机",
+        ["system.power.powerAction.option.abortShutdown"] = "取消倒计时中的关机",
         ["system.power.graceSeconds.label"] = "提示秒数",
         ["system.power.graceSeconds.hint"] = "重启或关机前给多少秒提醒，范围为 0 到 600，默认 0。屏幕上会出现倒计时，"
             + "倒计时期间可以用「取消倒计时中的关机」或 shutdown /a 撤销；填 0 表示立刻执行。"
             + "其他选项用不到这个值。",
         ["system.volume.name"] = "音量",
         ["system.volume.desc"] = "读取或调整 Windows 正在用的那只音箱的音量。",
-        ["system.volume.what.label"] = "执行",
-        ["system.volume.what.hint"] = "执行哪一项：读取、设为指定值、调大、调小、静音、取消静音，默认「读取」。"
+        ["system.volume.volumeAction.label"] = "执行",
+        ["system.volume.volumeAction.hint"] = "执行哪一项：读取、设为指定值、调大、调小、静音、取消静音，默认「读取」。"
             + "这是整台机器的音量，与键盘上的音量键不同：音量键调的是当前有焦点的那个程序。",
-        ["system.volume.what.option.get"] = "读取",
-        ["system.volume.what.option.set"] = "设为指定值",
-        ["system.volume.what.option.up"] = "调大",
-        ["system.volume.what.option.down"] = "调小",
-        ["system.volume.what.option.mute"] = "静音",
-        ["system.volume.what.option.unmute"] = "取消静音",
-        ["system.volume.what.option.toggleMute"] = "静音/取消静音",
-        ["system.volume.percent.label"] = "音量百分比",
-        ["system.volume.percent.hint"] = "要设成的音量，范围为 0 到 100，默认 50。只在「设为指定值」时使用。",
+        ["system.volume.volumeAction.option.get"] = "读取",
+        ["system.volume.volumeAction.option.set"] = "设为指定值",
+        ["system.volume.volumeAction.option.up"] = "调大",
+        ["system.volume.volumeAction.option.down"] = "调小",
+        ["system.volume.volumeAction.option.mute"] = "静音",
+        ["system.volume.volumeAction.option.unmute"] = "取消静音",
+        ["system.volume.volumeAction.option.toggleMute"] = "静音/取消静音",
+        ["system.volume.levelPercent.label"] = "音量百分比",
+        ["system.volume.levelPercent.hint"] = "要设成的音量，范围为 0 到 100，默认 50。只在「设为指定值」时使用。",
         ["system.volume.stepPercent.label"] = "调整幅度",
         ["system.volume.stepPercent.hint"] = "一次调大或调小多少个百分点，范围为 1 到 100，默认 5。只在「调大」和「调小」时使用，"
             + "两端都不会超过 0 和 100。",
         ["system.sound.name"] = "提示音",
         ["system.sound.desc"] = "播放系统自带的一种提示音。",
-        ["system.sound.what.label"] = "播放",
-        ["system.sound.what.hint"] = "播放哪一种系统提示音，默认「默认提示音」。宏跑完或者中途出错时，可以用它发出声音，"
+        ["system.sound.sound.label"] = "播放",
+        ["system.sound.sound.hint"] = "播放哪一种系统提示音，默认「默认提示音」。宏跑完或者中途出错时，可以用它发出声音，"
             + "不必在屏幕上留东西。具体是什么声音跟着系统的声音设置走：已经静音的机器没有声音，"
             + "这一步照样算完成；机器上没有声音设备时这一步会失败并说明原因。",
-        ["system.sound.what.option.default"] = "默认提示音",
-        ["system.sound.what.option.information"] = "信息",
-        ["system.sound.what.option.warning"] = "警告",
-        ["system.sound.what.option.error"] = "错误",
-        ["system.sound.what.option.question"] = "疑问",
+        ["system.sound.sound.option.default"] = "默认提示音",
+        ["system.sound.sound.option.information"] = "信息",
+        ["system.sound.sound.option.warning"] = "警告",
+        ["system.sound.sound.option.error"] = "错误",
+        ["system.sound.sound.option.question"] = "疑问",
         ["system.notify.name"] = "通知",
         ["system.notify.desc"] = "在通知区域旁边弹出一条通知。",
         ["system.notify.heading.label"] = "标题",
         ["system.notify.heading.hint"] = "通知的标题。默认留空，此时用程序自己的名字做标题。",
-        ["system.notify.message.label"] = "内容",
-        ["system.notify.message.hint"] = "通知要说的话。其中的变量会照别处一样替换成变量的值，所以宏可以直接报告它刚做了什么。",
-        ["system.notify.what.label"] = "类型",
-        ["system.notify.what.hint"] = "这条通知算哪一类，默认「提醒」。机器关闭了通知时它什么都不显示，这一步照样算完成。",
-        ["system.notify.what.option.information"] = "提醒",
-        ["system.notify.what.option.warning"] = "警告",
-        ["system.notify.what.option.error"] = "错误",
+        ["system.notify.notificationText.label"] = "内容",
+        ["system.notify.notificationText.hint"] = "通知要说的话。其中的变量会照别处一样替换成变量的值，所以宏可以直接报告它刚做了什么。",
+        ["system.notify.notificationKind.label"] = "类型",
+        ["system.notify.notificationKind.hint"] = "这条通知算哪一类，默认「提醒」。机器关闭了通知时它什么都不显示，这一步照样算完成。",
+        ["system.notify.notificationKind.option.information"] = "提醒",
+        ["system.notify.notificationKind.option.warning"] = "警告",
+        ["system.notify.notificationKind.option.error"] = "错误",
         ["system.ime.name"] = "输入法",
         ["system.ime.desc"] = "读取最前面那个窗口的键盘布局，或者把它切到另一种布局。",
-        ["system.ime.what.label"] = "执行",
-        ["system.ime.what.hint"] = "这几项都作用于当前最前面的窗口，也就是正在输入的那个，默认「当前是哪种布局」。"
+        ["system.ime.imeAction.label"] = "执行",
+        ["system.ime.imeAction.hint"] = "这几项都作用于当前最前面的窗口，也就是正在输入的那个，默认「当前是哪种布局」。"
             + "宏在中文布局下发送西文按键，得到的是候选词而不是快捷键，因此先切换到英文布局往往是"
             + "宏能否可用的关键。中文输入法自身的中英切换只能通过按键完成，Windows 把这个状态记在"
             + "正在输入的那个程序里，发送 Ctrl+Space 或 Shift 即为此事。",
-        ["system.ime.what.option.get"] = "当前是哪种布局",
-        ["system.ime.what.option.list"] = "列出已安装的布局",
-        ["system.ime.what.option.switch"] = "切换到另一种布局",
+        ["system.ime.imeAction.option.get"] = "当前是哪种布局",
+        ["system.ime.imeAction.option.list"] = "列出已安装的布局",
+        ["system.ime.imeAction.option.switch"] = "切换到另一种布局",
         ["system.ime.layout.label"] = "布局",
         ["system.ime.layout.hint"] = "要切换到的键盘布局，供「切换到另一种布局」使用。写名称的一部分即可匹配；"
             + "可选名称可以用「列出已安装的布局」查询。这一步会等到窗口真正切换完成后才结束，"
             + "因此下一步即可按该布局输入。",
         ["system.brightness.name"] = "屏幕亮度",
         ["system.brightness.desc"] = "读取或调整屏幕的亮度。",
-        ["system.brightness.what.label"] = "执行",
-        ["system.brightness.what.hint"] = "执行哪一项：读取、设为指定值、调亮、调暗，默认「读取」。所有能响应的显示器会一起调整；"
+        ["system.brightness.brightnessAction.label"] = "执行",
+        ["system.brightness.brightnessAction.hint"] = "执行哪一项：读取、设为指定值、调亮、调暗，默认「读取」。所有能响应的显示器会一起调整；"
             + "这是通过视频线与显示器直接通信，与显示器上的亮度按钮是同一件事，"
             + "因此笔记本内置屏或没有此功能的显示器可能完全没有响应。",
-        ["system.brightness.what.option.get"] = "读取",
-        ["system.brightness.what.option.set"] = "设为指定值",
-        ["system.brightness.what.option.up"] = "调亮",
-        ["system.brightness.what.option.down"] = "调暗",
-        ["system.brightness.percent.label"] = "亮度百分比",
-        ["system.brightness.percent.hint"] = "要设成的亮度，范围为 0 到 100，默认 50。只在「设为指定值」时使用。",
+        ["system.brightness.brightnessAction.option.get"] = "读取",
+        ["system.brightness.brightnessAction.option.set"] = "设为指定值",
+        ["system.brightness.brightnessAction.option.up"] = "调亮",
+        ["system.brightness.brightnessAction.option.down"] = "调暗",
+        ["system.brightness.levelPercent.label"] = "亮度百分比",
+        ["system.brightness.levelPercent.hint"] = "要设成的亮度，范围为 0 到 100，默认 50。只在「设为指定值」时使用。",
         ["system.brightness.stepPercent.label"] = "调整幅度",
         ["system.brightness.stepPercent.hint"] = "一次调亮或调暗多少个百分点，范围为 1 到 100，默认 10。只在「调亮」和「调暗」时使用，"
             + "两端都不会超过 0 和 100。",
@@ -1372,9 +1400,6 @@ internal static class ActionStrings
         ["window.waitFor.desc"] = "等到符合匹配内容的窗口出现为止，超过给定时间算失败。",
         ["window.waitFor.window.label"] = WindowMatchTextLabel,
         ["window.waitFor.window.hint"] = WindowTitleHint,
-        ["window.waitFor.timeoutMs.label"] = "超时",
-        ["window.waitFor.timeoutMs.hint"] = "最多等多久，单位是毫秒，默认 10000；到这个时间窗口还没出现就判"
-            + "失败。",
 
         ["window.activate.name"] = "激活窗口",
         ["window.activate.desc"] = "把符合匹配内容的窗口调到最前，已最小化时先恢复。",
@@ -1448,7 +1473,7 @@ internal static class ActionStrings
         ["input.keyPress.repeat.label"] = "重复次数",
         ["input.keyPress.repeat.hint"] = "这个键一共按几下，从 1 起，默认 1。连着按几下时，两次之间停多久由"
             + "「重复间隔」说。",
-        ["input.keyPress.intervalMs.label"] = "重复间隔",
+        ["input.keyPress.intervalMs.label"] = "间隔",
         ["input.keyPress.intervalMs.hint"] = "两下之间停多久，单位是毫秒，默认 0，即一下接一下地按。",
 
         ["input.keyDown.name"] = "按下按键",
@@ -1470,21 +1495,21 @@ internal static class ActionStrings
         ["input.hotkey.holdMs.hint"] = "这组键按下之后保持多久才松开，单位是毫秒，默认 50。",
         ["input.hotkey.repeat.label"] = "重复次数",
         ["input.hotkey.repeat.hint"] = "这一组一共发几次，从 1 起，默认 1。",
-        ["input.hotkey.intervalMs.label"] = "重复间隔",
+        ["input.hotkey.intervalMs.label"] = "间隔",
         ["input.hotkey.intervalMs.hint"] = "两次之间停多久，单位是毫秒，默认 0。",
 
         ["input.typeText.name"] = "输入文本",
         ["input.typeText.desc"] = "输入一段文字。",
-        ["input.typeText.text.label"] = "文本",
-        ["input.typeText.text.hint"] = "要输入的文字，可以写多行，也可以填一个变量或算式。",
+        ["input.typeText.typedText.label"] = "文本",
+        ["input.typeText.typedText.hint"] = "要输入的文字，可以写多行，也可以填一个变量或算式。",
         ["input.typeText.intervalMs.label"] = "间隔",
         ["input.typeText.intervalMs.hint"] = "每个字符之间停多久，单位是毫秒，默认 30。输入太快、程序跟不上时"
             + "调大。",
 
         ["input.keySequence.name"] = "按键序列",
         ["input.keySequence.desc"] = "按顺序发出一串组合键，像游戏里打一套连招那样。",
-        ["input.keySequence.keys.label"] = "序列",
-        ["input.keySequence.keys.hint"] = "一行一个组合，按列表顺序发送。按键用旁边的「键盘」点选，拼写不会错"
+        ["input.keySequence.keySequence.label"] = "序列",
+        ["input.keySequence.keySequence.hint"] = "一行一个组合，按列表顺序发送。按键用旁边的「键盘」点选，拼写不会错"
             + "（左右 Ctrl、左右 Shift 名字不同，机器也分得开）。某一行的按住时长或间隔与整串不一样时，"
             + "就在那一行里单独填；留空表示用整串的值。",
         ["input.keySequence.holdMs.label"] = "每个组合按住",
@@ -1497,8 +1522,8 @@ internal static class ActionStrings
         ["input.keySequence.afterMs.hint"] = "最后一个组合发完之后再等多久才走下一步，单位是毫秒，默认 0。",
         ["input.keySequence.repeat.label"] = "整串再来几遍",
         ["input.keySequence.repeat.hint"] = "整串连着发几遍，从 1 起，默认 1。",
-        ["input.keySequence.intervalMs.label"] = "每遍之间",
-        ["input.keySequence.intervalMs.hint"] = "两遍之间停多久，单位是毫秒，默认 0。",
+        ["input.keySequence.sequenceIntervalMs.label"] = "每遍之间",
+        ["input.keySequence.sequenceIntervalMs.hint"] = "两遍之间停多久，单位是毫秒，默认 0。",
 
         ["input.mouseMove.name"] = "鼠标移动到",
         ["input.mouseMove.desc"] = "把光标移动到屏幕上的指定位置。",
@@ -1690,8 +1715,8 @@ internal static class ActionStrings
         ["input.mouseDrag.settleMs.hint"] =
             "拖到终点后、松开鼠标键之前先按住不动这么多毫秒，默认 0，即一到就松。要拖进格子里的"
             + "东西，只有指针在格子上停过一下才会被放进去；一到就松会变成从上面滑过去。",
-        ["input.mouseDrag.steps.label"] = "移动步数",
-        ["input.mouseDrag.steps.hint"] = "拖拽过程中发出的中间移动事件数量，从 1 起，默认 20。步数越多，指针"
+        ["input.mouseDrag.dragSteps.label"] = "移动步数",
+        ["input.mouseDrag.dragSteps.hint"] = "拖拽过程中发出的中间移动事件数量，从 1 起，默认 20。步数越多，指针"
             + "走出的路径画得越细。",
         ["input.mouseDrag.style.label"] = "移动方式",
         ["input.mouseDrag.style.hint"] = "拖拽过程中指针怎么走，默认直线。弧线：绕开直线走一条曲线。模拟人手：在"
@@ -1726,18 +1751,18 @@ internal static class ActionStrings
         ["gamepad.button.button.option.start"] = "Start",
         ["gamepad.button.button.option.back"] = "Back",
         ["gamepad.button.button.option.guide"] = "Guide",
-        ["gamepad.button.mode.label"] = "动作",
-        ["gamepad.button.mode.hint"] = "这一步对这个键做什么，默认点按。点按＝按下再松开；按住与松开用于要跨步骤"
+        ["gamepad.button.buttonMode.label"] = "动作",
+        ["gamepad.button.buttonMode.hint"] = "这一步对这个键做什么，默认点按。点按＝按下再松开；按住与松开用于要跨步骤"
             + "保持按下的键。",
-        ["gamepad.button.mode.option.tap"] = "点按",
-        ["gamepad.button.mode.option.down"] = "按住",
-        ["gamepad.button.mode.option.up"] = "松开",
+        ["gamepad.button.buttonMode.option.tap"] = "点按",
+        ["gamepad.button.buttonMode.option.down"] = "按住",
+        ["gamepad.button.buttonMode.option.up"] = "松开",
         ["gamepad.button.holdMs.label"] = "按住时长",
         ["gamepad.button.holdMs.hint"] = "点按时按键保持按下多久，单位是毫秒，默认 50；按住与松开两种动作不用"
             + "它。",
         ["gamepad.button.repeat.label"] = "连按次数",
         ["gamepad.button.repeat.hint"] = "点按几下，从 1 起，默认 1；两次之间停多久由「连按间隔」说。",
-        ["gamepad.button.intervalMs.label"] = "连按间隔",
+        ["gamepad.button.intervalMs.label"] = "间隔",
         ["gamepad.button.intervalMs.hint"] = "两次之间停多久，单位是毫秒，默认 0。",
 
         ["gamepad.stick.name"] = "手柄摇杆",
@@ -2038,12 +2063,12 @@ internal static class ActionStrings
 
         // ------------------------------------- 找图 / 找色做厚：多命中、多区域、多点比色
         // 识别算法：找图那三个动作共用一组文案。
-        ["vision.findImage.algorithm.label"] = "识别算法",
-        ["vision.findImage.algorithm.hint"] = MatchAlgorithmHint,
-        ["vision.findImage.algorithm.option.normed"] = "归一化相关",
-        ["vision.findImage.algorithm.option.correlated"] = "相关",
-        ["vision.findImage.algorithm.option.difference"] = "逐像素",
-        ["vision.findImage.algorithm.option.feature"] = "特征比对",
+        ["vision.findImage.detectAlgorithm.label"] = "识别算法",
+        ["vision.findImage.detectAlgorithm.hint"] = MatchAlgorithmHint,
+        ["vision.findImage.detectAlgorithm.option.normed"] = "归一化相关",
+        ["vision.findImage.detectAlgorithm.option.correlated"] = "相关",
+        ["vision.findImage.detectAlgorithm.option.difference"] = "逐像素",
+        ["vision.findImage.detectAlgorithm.option.feature"] = "特征比对",
         ["vision.findImage.ignoreColor.label"] = "忽略的颜色",
         ["vision.findImage.ignoreColor.hint"] = IgnoreColourHint,
         ["vision.findImage.minFeatures.label"] = "最少特征对数",
@@ -2066,12 +2091,12 @@ internal static class ActionStrings
         ["vision.findImage.imageSet.option.best"] = "最像的那一张",
         ["vision.findImage.imageSet.option.every"] = "每一张都要",
 
-        ["vision.waitImage.algorithm.label"] = "识别算法",
-        ["vision.waitImage.algorithm.hint"] = MatchAlgorithmHint,
-        ["vision.waitImage.algorithm.option.normed"] = "归一化相关",
-        ["vision.waitImage.algorithm.option.correlated"] = "相关",
-        ["vision.waitImage.algorithm.option.difference"] = "逐像素",
-        ["vision.waitImage.algorithm.option.feature"] = "特征比对",
+        ["vision.waitImage.detectAlgorithm.label"] = "识别算法",
+        ["vision.waitImage.detectAlgorithm.hint"] = MatchAlgorithmHint,
+        ["vision.waitImage.detectAlgorithm.option.normed"] = "归一化相关",
+        ["vision.waitImage.detectAlgorithm.option.correlated"] = "相关",
+        ["vision.waitImage.detectAlgorithm.option.difference"] = "逐像素",
+        ["vision.waitImage.detectAlgorithm.option.feature"] = "特征比对",
         ["vision.waitImage.ignoreColor.label"] = "忽略的颜色",
         ["vision.waitImage.ignoreColor.hint"] = IgnoreColourHint,
         ["vision.waitImage.minFeatures.label"] = "最少特征对数",
@@ -2101,12 +2126,12 @@ internal static class ActionStrings
 
         ["vision.clickImage.region.label"] = "搜索区域",
         ["vision.clickImage.region.hint"] = RegionHintText,
-        ["vision.clickImage.algorithm.label"] = "识别算法",
-        ["vision.clickImage.algorithm.hint"] = MatchAlgorithmHint,
-        ["vision.clickImage.algorithm.option.normed"] = "归一化相关",
-        ["vision.clickImage.algorithm.option.correlated"] = "相关",
-        ["vision.clickImage.algorithm.option.difference"] = "逐像素",
-        ["vision.clickImage.algorithm.option.feature"] = "特征比对",
+        ["vision.clickImage.detectAlgorithm.label"] = "识别算法",
+        ["vision.clickImage.detectAlgorithm.hint"] = MatchAlgorithmHint,
+        ["vision.clickImage.detectAlgorithm.option.normed"] = "归一化相关",
+        ["vision.clickImage.detectAlgorithm.option.correlated"] = "相关",
+        ["vision.clickImage.detectAlgorithm.option.difference"] = "逐像素",
+        ["vision.clickImage.detectAlgorithm.option.feature"] = "特征比对",
         ["vision.clickImage.ignoreColor.label"] = "忽略的颜色",
         ["vision.clickImage.ignoreColor.hint"] = IgnoreColourHint,
         ["vision.clickImage.minFeatures.label"] = "最少特征对数",
@@ -2217,7 +2242,7 @@ internal static class ActionStrings
         ["vision.detect.labels.hint"] = DetectLabelsHint,
         ["vision.detect.region.label"] = "检测范围",
         ["vision.detect.region.hint"] = DetectRegionHint,
-        ["vision.detect.confidence.label"] = "置信度 %",
+        ["vision.detect.confidence.label"] = "置信度（%）",
         ["vision.detect.confidence.hint"] = DetectConfidenceHint,
         ["vision.detect.inputSize.label"] = "模型输入尺寸",
         ["vision.detect.inputSize.hint"] = DetectInputSizeHint,
@@ -2261,7 +2286,7 @@ internal static class ActionStrings
         ["vision.waitDetect.labels.hint"] = DetectLabelsHint,
         ["vision.waitDetect.region.label"] = "检测范围",
         ["vision.waitDetect.region.hint"] = DetectRegionHint,
-        ["vision.waitDetect.confidence.label"] = "置信度 %",
+        ["vision.waitDetect.confidence.label"] = "置信度（%）",
         ["vision.waitDetect.confidence.hint"] = DetectConfidenceHint,
         ["vision.waitDetect.inputSize.label"] = "模型输入尺寸",
         ["vision.waitDetect.inputSize.hint"] = DetectInputSizeHint,
@@ -2305,7 +2330,7 @@ internal static class ActionStrings
         ["vision.clickDetect.labels.hint"] = DetectLabelsHint,
         ["vision.clickDetect.region.label"] = "检测范围",
         ["vision.clickDetect.region.hint"] = DetectRegionHint,
-        ["vision.clickDetect.confidence.label"] = "置信度 %",
+        ["vision.clickDetect.confidence.label"] = "置信度（%）",
         ["vision.clickDetect.confidence.hint"] = DetectConfidenceHint,
         ["vision.clickDetect.inputSize.label"] = "模型输入尺寸",
         ["vision.clickDetect.inputSize.hint"] = DetectInputSizeHint,
@@ -2388,10 +2413,10 @@ internal static class ActionStrings
             "每个点写成 x,y,#RRGGBB，用分号或换行分开。",
         ["condition.colorsMatch.tolerance.label"] = "容差 %",
         ["condition.colorsMatch.tolerance.hint"] = "允许的颜色偏差，0–100（百分比），默认 5。",
-        ["condition.colorsMatch.mode.label"] = "满足方式",
-        ["condition.colorsMatch.mode.hint"] = "每个点都要匹配，还是有一个匹配就算满足。默认「每个点都要匹配」。",
-        ["condition.colorsMatch.mode.option.all"] = "全部匹配",
-        ["condition.colorsMatch.mode.option.any"] = "任意一个匹配",
+        ["condition.colorsMatch.colorMatchMode.label"] = "满足方式",
+        ["condition.colorsMatch.colorMatchMode.hint"] = "每个点都要匹配，还是有一个匹配就算满足。默认「每个点都要匹配」。",
+        ["condition.colorsMatch.colorMatchMode.option.all"] = "全部匹配",
+        ["condition.colorsMatch.colorMatchMode.option.any"] = "任意一个匹配",
         ["condition.colorsMatch.anchorMode.label"] = "坐标基准",
         ["condition.colorsMatch.anchorMode.hint"] = AnchorModeHint,
         ["condition.colorsMatch.anchorMode.option.screen"] = "屏幕像素",
@@ -2484,9 +2509,9 @@ internal static class ActionStrings
 
         ["vision.findImage.name"] = "查找图片",
         ["vision.findImage.desc"] = "在屏幕上寻找一张参考图片。",
-        ["vision.findImage.image.label"] = "图片文件",
-        ["vision.findImage.image.hint"] = "参考图片：文件路径，或截图动作保存的变量（如 $shot）。",
-        ["vision.findImage.confidence.label"] = "相似度 %",
+        ["vision.findImage.images.label"] = "图片文件",
+        ["vision.findImage.images.hint"] = "参考图片：文件路径，或截图动作保存的变量（如 $shot）。",
+        ["vision.findImage.confidence.label"] = "置信度（%）",
         ["vision.findImage.confidence.hint"] = "要求的相似度下限，写成 0 到 100 的百分数，默认 90；屏幕上的样子画得略有不同时调低。",
         ["vision.findImage.region.label"] = "搜索区域",
         ["vision.findImage.region.hint"] = RegionHintText,
@@ -2494,17 +2519,17 @@ internal static class ActionStrings
         ["vision.waitImage.name"] = "等待图片",
         ["vision.waitImage.desc"] =
             "等待参考图片在屏幕上出现，最多等到步骤设置里的「超时」；到点这一步算失败。",
-        ["vision.waitImage.image.label"] = "图片文件",
-        ["vision.waitImage.image.hint"] = "要等待的参考图片：文件路径，或截图动作保存的变量。",
-        ["vision.waitImage.confidence.label"] = "相似度 %",
+        ["vision.waitImage.images.label"] = "图片文件",
+        ["vision.waitImage.images.hint"] = "要等待的参考图片：文件路径，或截图动作保存的变量。",
+        ["vision.waitImage.confidence.label"] = "置信度（%）",
         ["vision.waitImage.confidence.hint"] = "要求的相似度下限，写成 0 到 100 的百分数，默认 90；屏幕上的样子画得略有不同时调低。",
 
         ["vision.clickImage.name"] = "点击图片",
         ["vision.clickImage.desc"] =
             "在屏幕上找到参考图片并点击它，最多等到步骤设置里的「超时」；到点这一步算失败。",
-        ["vision.clickImage.image.label"] = "图片文件",
-        ["vision.clickImage.image.hint"] = "图片文件，也可以填前面步骤存下的图片变量。",
-        ["vision.clickImage.confidence.label"] = "相似度 %",
+        ["vision.clickImage.images.label"] = "图片文件",
+        ["vision.clickImage.images.hint"] = "图片文件，也可以填前面步骤存下的图片变量。",
+        ["vision.clickImage.confidence.label"] = "置信度（%）",
         ["vision.clickImage.confidence.hint"] = "要求的相似度下限，写成 0 到 100 的百分数，默认 90；屏幕上的样子画得略有不同时调低。",
         ["vision.clickImage.offsetX.label"] = "横向偏移",
         ["vision.clickImage.offsetX.hint"] = "点击位置在匹配中心基础上水平偏移的像素数，默认 0，即点在匹配中心。",
@@ -2594,8 +2619,8 @@ internal static class ActionStrings
 
         ["ocr.findText.name"] = "查找文字",
         ["ocr.findText.desc"] = "在屏幕上搜索指定文字。",
-        ["ocr.findText.text.label"] = "要查找的文字",
-        ["ocr.findText.text.hint"] = "要搜索的文字。按一个值读取，变量或表达式都可以写成它；怎么比由下面的「匹配方式」决定。",
+        ["ocr.findText.queryText.label"] = "要查找的文字",
+        ["ocr.findText.queryText.hint"] = "要搜索的文字。按一个值读取，变量或表达式都可以写成它；怎么比由下面的「匹配方式」决定。",
         ["ocr.findText.region.label"] = "搜索区域",
         ["ocr.findText.region.hint"] = RegionHintText,
         ["ocr.findText.matchMode.label"] = "匹配方式",
@@ -2632,8 +2657,8 @@ internal static class ActionStrings
         ["ocr.clickText.name"] = "点击文字",
         ["ocr.clickText.desc"] =
             "在屏幕上找到文字并点击它，最多等到步骤设置里的「超时」；到点这一步算失败。",
-        ["ocr.clickText.text.label"] = "要查找的文字",
-        ["ocr.clickText.text.hint"] = "要查找的文字，例如 Save，默认空着要自己填。整段按一个值读，所以变量或算式都能放在这里。",
+        ["ocr.clickText.queryText.label"] = "要查找的文字",
+        ["ocr.clickText.queryText.hint"] = "要查找的文字，例如 Save，默认空着要自己填。整段按一个值读，所以变量或算式都能放在这里。",
         ["ocr.clickText.region.label"] = "搜索区域",
         ["ocr.clickText.region.hint"] = RegionHintText,
         ["ocr.clickText.anchorMode.label"] = "坐标基准",
@@ -2688,18 +2713,16 @@ internal static class ActionStrings
         ["uia.exists.name"] = "元素是否存在",
         ["uia.exists.desc"] = "判断某个 UI Automation 元素是否存在。",
         ["uia.exists.window.label"] = WindowMatchTextLabel,
-        ["uia.exists.selector.label"] = "选择器",
-        ["uia.exists.selector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
+        ["uia.exists.uiSelector.label"] = "选择器",
+        ["uia.exists.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
         ["uia.exists.matchIndex.label"] = "第几个命中",
         ["uia.exists.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要的是第几个。" + MatchIndexHint,
-        ["uia.exists.timeoutMs.label"] = "超时",
-        ["uia.exists.timeoutMs.hint"] = "等这个元素出现多久，单位是毫秒，默认 0：0 表示只检查一次并立即返回。",
 
         ["uia.find.name"] = "查找元素",
         ["uia.find.desc"] = "查找一个 UI Automation 元素，并记住它在屏幕上的位置。",
         ["uia.find.window.label"] = WindowMatchTextLabel,
-        ["uia.find.selector.label"] = "选择器",
-        ["uia.find.selector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
+        ["uia.find.uiSelector.label"] = "选择器",
+        ["uia.find.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
         ["uia.find.matchIndex.label"] = "第几个命中",
         ["uia.find.matchIndex.hint"] = MatchIndexHint,
         ["uia.find.return.match.label"] = HitRecordLabel,
@@ -2710,55 +2733,49 @@ internal static class ActionStrings
         ["uia.waitElement.name"] = "等待元素",
         ["uia.waitElement.desc"] = "等待某个 UI Automation 元素出现。",
         ["uia.waitElement.window.label"] = WindowMatchTextLabel,
-        ["uia.waitElement.selector.label"] = "选择器",
-        ["uia.waitElement.selector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
+        ["uia.waitElement.uiSelector.label"] = "选择器",
+        ["uia.waitElement.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
         ["uia.waitElement.matchIndex.label"] = "第几个命中",
         ["uia.waitElement.matchIndex.hint"] =
             "选择器可能匹配到多个元素，这里填要等的是第几个。" + MatchIndexHint,
-        ["uia.waitElement.timeoutMs.label"] = "超时",
-        ["uia.waitElement.timeoutMs.hint"] = "最多等多久，单位是毫秒，默认 10000；到这个时间元素还没出现就放弃。",
         ["uia.waitElement.pollMs.label"] = "轮询间隔",
         ["uia.waitElement.pollMs.hint"] = "两次检查之间等多久，单位是毫秒，默认 200。",
 
         ["uia.click.name"] = "点击元素",
         ["uia.click.desc"] = "点击一个 UI Automation 元素。",
         ["uia.click.window.label"] = WindowMatchTextLabel,
-        ["uia.click.selector.label"] = "选择器",
-        ["uia.click.selector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
+        ["uia.click.uiSelector.label"] = "选择器",
+        ["uia.click.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
         ["uia.click.matchIndex.label"] = "第几个命中",
         ["uia.click.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要点击的是第几个。" + MatchIndexHint,
-        ["uia.click.timeoutMs.label"] = "超时",
-        ["uia.click.timeoutMs.hint"] = "点击前等这个元素出现多久，单位是毫秒，默认 5000。",
         ["uia.click.button.label"] = "按键",
         ["uia.click.button.hint"] = MouseButtonHint,
 
         ["uia.invoke.name"] = "按下元素",
         ["uia.invoke.desc"] = "用元素自己的方式完成它的默认动作，不移动鼠标。",
         ["uia.invoke.window.label"] = WindowMatchTextLabel,
-        ["uia.invoke.selector.label"] = "选择器",
-        ["uia.invoke.selector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
+        ["uia.invoke.uiSelector.label"] = "选择器",
+        ["uia.invoke.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
         ["uia.invoke.matchIndex.label"] = "第几个命中",
         ["uia.invoke.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要按下的是第几个。" + MatchIndexHint,
-        ["uia.invoke.timeoutMs.label"] = "超时",
-        ["uia.invoke.timeoutMs.hint"] = "按下前等这个元素出现多久，单位是毫秒，默认 5000。",
 
         ["uia.setText.name"] = "设置元素文本",
         ["uia.setText.desc"] = "向 UI Automation 元素输入文本。",
         ["uia.setText.window.label"] = WindowMatchTextLabel,
-        ["uia.setText.selector.label"] = "选择器",
-        ["uia.setText.selector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
+        ["uia.setText.uiSelector.label"] = "选择器",
+        ["uia.setText.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
         ["uia.setText.matchIndex.label"] = "第几个命中",
         ["uia.setText.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要写入的是第几个。" + MatchIndexHint,
-        ["uia.setText.text.label"] = "文本",
-        ["uia.setText.text.hint"] = "写进这个元素的文本，可以填变量或算式。",
+        ["uia.setText.valueText.label"] = "文本",
+        ["uia.setText.valueText.hint"] = "写进这个元素的文本，可以填变量或算式。",
         ["uia.setText.clearFirst.label"] = "先清空",
         ["uia.setText.clearFirst.hint"] = "写入前先清空元素里已有的内容，默认开；要接着原有内容往下写时关掉它。",
 
         ["uia.read.name"] = "读取元素",
         ["uia.read.desc"] = "读取一个 UI Automation 元素能说出的全部内容。",
         ["uia.read.window.label"] = WindowMatchTextLabel,
-        ["uia.read.selector.label"] = "选择器",
-        ["uia.read.selector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
+        ["uia.read.uiSelector.label"] = "选择器",
+        ["uia.read.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。" + SelectorPickHint,
         ["uia.read.matchIndex.label"] = "第几个命中",
         ["uia.read.matchIndex.hint"] = "选择器可能匹配到多个元素，这里填要读取的是第几个。" + MatchIndexHint,
         ["uia.read.return.element.label"] = "元素",
@@ -2771,8 +2788,8 @@ internal static class ActionStrings
         ["uia.select.name"] = "选择列表项",
         ["uia.select.desc"] = "在下拉框、列表或选项卡里选中一项。",
         ["uia.select.window.label"] = WindowMatchTextLabel,
-        ["uia.select.selector.label"] = "选择器",
-        ["uia.select.selector.hint"] = "下拉框、列表或选项卡的选择器。" + SelectorPickHint,
+        ["uia.select.uiSelector.label"] = "选择器",
+        ["uia.select.uiSelector.hint"] = "下拉框、列表或选项卡的选择器。" + SelectorPickHint,
         ["uia.select.matchIndex.label"] = "第几个命中",
         ["uia.select.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
         ["uia.select.item.label"] = "选项文字",
@@ -2783,43 +2800,43 @@ internal static class ActionStrings
         ["uia.check.name"] = "勾选框",
         ["uia.check.desc"] = "把勾选框、开关或单选框打开或关掉。",
         ["uia.check.window.label"] = WindowMatchTextLabel,
-        ["uia.check.selector.label"] = "选择器",
-        ["uia.check.selector.hint"] = "勾选框、开关或单选框的选择器。" + SelectorPickHint,
+        ["uia.check.uiSelector.label"] = "选择器",
+        ["uia.check.uiSelector.hint"] = "勾选框、开关或单选框的选择器。" + SelectorPickHint,
         ["uia.check.matchIndex.label"] = "第几个命中",
         ["uia.check.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
-        ["uia.check.state.label"] = "状态",
-        ["uia.check.state.hint"] = "要把它怎么样，默认打开。“反过来”是不管现在是什么状态都切成另一种，宏不知道"
+        ["uia.check.checkState.label"] = "状态",
+        ["uia.check.checkState.hint"] = "要把它怎么样，默认打开。“反过来”是不管现在是什么状态都切成另一种，宏不知道"
             + "开始时是什么状态时用这个。",
-        ["uia.check.state.option.on"] = "打开",
-        ["uia.check.state.option.off"] = "关闭",
-        ["uia.check.state.option.toggle"] = "反过来",
+        ["uia.check.checkState.option.on"] = "打开",
+        ["uia.check.checkState.option.off"] = "关闭",
+        ["uia.check.checkState.option.toggle"] = "反过来",
 
         ["uia.expand.name"] = "展开/收起",
         ["uia.expand.desc"] = "展开或收起树节点、菜单、折叠面板。",
         ["uia.expand.window.label"] = WindowMatchTextLabel,
-        ["uia.expand.selector.label"] = "选择器",
-        ["uia.expand.selector.hint"] = "要展开或收起的节点选择器。" + SelectorPickHint,
+        ["uia.expand.uiSelector.label"] = "选择器",
+        ["uia.expand.uiSelector.hint"] = "要展开或收起的节点选择器。" + SelectorPickHint,
         ["uia.expand.matchIndex.label"] = "第几个命中",
         ["uia.expand.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
-        ["uia.expand.state.label"] = "状态",
-        ["uia.expand.state.hint"] = "要展开、收起，还是不管现在是哪种都切成另一种，默认展开。",
-        ["uia.expand.state.option.expand"] = "展开",
-        ["uia.expand.state.option.collapse"] = "收起",
-        ["uia.expand.state.option.toggle"] = "反过来",
+        ["uia.expand.expandState.label"] = "状态",
+        ["uia.expand.expandState.hint"] = "要展开、收起，还是不管现在是哪种都切成另一种，默认展开。",
+        ["uia.expand.expandState.option.expand"] = "展开",
+        ["uia.expand.expandState.option.collapse"] = "收起",
+        ["uia.expand.expandState.option.toggle"] = "反过来",
 
         ["uia.scrollIntoView.name"] = "滚动到可见",
         ["uia.scrollIntoView.desc"] = "把列表或面板里的某个元素滚动到看得见的位置。",
         ["uia.scrollIntoView.window.label"] = WindowMatchTextLabel,
-        ["uia.scrollIntoView.selector.label"] = "选择器",
-        ["uia.scrollIntoView.selector.hint"] = "要滚动到可见的元素选择器。" + SelectorPickHint,
+        ["uia.scrollIntoView.uiSelector.label"] = "选择器",
+        ["uia.scrollIntoView.uiSelector.hint"] = "要滚动到可见的元素选择器。" + SelectorPickHint,
         ["uia.scrollIntoView.matchIndex.label"] = "第几个命中",
         ["uia.scrollIntoView.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
 
         ["uia.readTable.name"] = "读取表格",
         ["uia.readTable.desc"] = "把表格或网格读成一个按行存放的列表。",
         ["uia.readTable.window.label"] = WindowMatchTextLabel,
-        ["uia.readTable.selector.label"] = "选择器",
-        ["uia.readTable.selector.hint"] = "表格或网格的选择器。" + SelectorPickHint,
+        ["uia.readTable.uiSelector.label"] = "选择器",
+        ["uia.readTable.uiSelector.hint"] = "表格或网格的选择器。" + SelectorPickHint,
         ["uia.readTable.matchIndex.label"] = "第几个命中",
         ["uia.readTable.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要读取的是第几个。" + MatchIndexHint,
         ["uia.readTable.maxRows.label"] = "读取行数",
@@ -2861,16 +2878,16 @@ internal static class ActionStrings
 
         ["browser.click.name"] = "点击元素",
         ["browser.click.desc"] = "点击选择器指定的元素。",
-        ["browser.click.target.label"] = "选择器",
-        ["browser.click.target.hint"] = PageTargetHint + "元素在哪，写法是 Playwright 的选择器。"
+        ["browser.click.pageSelector.label"] = "选择器",
+        ["browser.click.pageSelector.hint"] = PageTargetHint + "元素在哪，写法是 Playwright 的选择器。"
             + "选择器像 CSS，也能按文字找：「text=登录」认的是显示这段文字的元素。",
-        ["browser.click.how.label"] = "怎么点",
-        ["browser.click.how.hint"] = "怎么点这个元素。左键单击是默认，接下来要去别处或按下按钮时用它；"
+        ["browser.click.clickHow.label"] = "怎么点",
+        ["browser.click.clickHow.hint"] = "怎么点这个元素。左键单击是默认，接下来要去别处或按下按钮时用它；"
             + "左键双击用在点一下就变成输入框的地方，例如表格里的一行；右键单击弹出页面自己的菜单，"
             + "菜单里的东西只有它能打开。",
-        ["browser.click.how.option.single"] = "左键单击",
-        ["browser.click.how.option.double"] = "左键双击",
-        ["browser.click.how.option.right"] = "右键单击",
+        ["browser.click.clickHow.option.single"] = "左键单击",
+        ["browser.click.clickHow.option.double"] = "左键双击",
+        ["browser.click.clickHow.option.right"] = "右键单击",
         ["browser.click.force.label"] = "硬点",
         ["browser.click.force.hint"] = "元素被挡住、被禁用或还在移动时也点下去。默认不勾选，也建议不勾："
             + "页面挡住不让点的按钮，多半是这一步点下去也达不到作者想要的结果。页面用一层看不见的东西盖住"
@@ -2882,18 +2899,18 @@ internal static class ActionStrings
 
         ["browser.fill.name"] = "填写",
         ["browser.fill.desc"] = "往选择器指定的元素里输入文本。",
-        ["browser.fill.target.label"] = "选择器",
-        ["browser.fill.target.hint"] = PageTargetHint + "要输入到哪个元素，写法与「点击元素」相同。",
-        ["browser.fill.text.label"] = "文本",
-        ["browser.fill.text.hint"] = "要输入的内容。按一个值读取，变量或表达式都可以写成它，所以可以把别处读到的值输入进来。",
-        ["browser.fill.how.label"] = "怎么填",
-        ["browser.fill.how.hint"] = "文字怎么进到这个元素里。「一次填好」更快，普通输入框用它就够了；"
+        ["browser.fill.pageSelector.label"] = "选择器",
+        ["browser.fill.pageSelector.hint"] = PageTargetHint + "要输入到哪个元素，写法与「点击元素」相同。",
+        ["browser.fill.fillText.label"] = "文本",
+        ["browser.fill.fillText.hint"] = "要输入的内容。按一个值读取，变量或表达式都可以写成它，所以可以把别处读到的值输入进来。",
+        ["browser.fill.fillHow.label"] = "怎么填",
+        ["browser.fill.fillHow.hint"] = "文字怎么进到这个元素里。「一次填好」更快，普通输入框用它就够了；"
             + "「逐键输入」是一个键一个键地发，页面自己要盯着输入过程时才用它，例如边打边给出候选的搜索框、"
             + "离开每个格子就检查的表单。",
-        ["browser.fill.how.option.fill"] = "一次填好",
-        ["browser.fill.how.option.type"] = "逐键输入",
-        ["browser.fill.intervalMs.label"] = "按键间隔",
-        ["browser.fill.intervalMs.hint"] = "两个键之间停多久，0 到 10000 毫秒。默认 0，也就是不停，"
+        ["browser.fill.fillHow.option.fill"] = "一次填好",
+        ["browser.fill.fillHow.option.type"] = "逐键输入",
+        ["browser.fill.keyIntervalMs.label"] = "按键间隔",
+        ["browser.fill.keyIntervalMs.hint"] = "两个键之间停多久，0 到 10000 毫秒。默认 0，也就是不停，"
             + "按页面能跟上的最快速度发；只有在「逐键输入」时才读它，页面嫌来得太快而漏掉按键时可以调大。",
         ["browser.fill.matchIndex.label"] = "第几个命中",
         ["browser.fill.narrow.label"] = "限定",
@@ -2902,17 +2919,17 @@ internal static class ActionStrings
 
         ["browser.readText.name"] = "读取文本",
         ["browser.readText.desc"] = "读取某个元素的一部分、或整个页面的文本。",
-        ["browser.readText.target.label"] = "选择器",
-        ["browser.readText.target.hint"] = PageTargetHint + "要读取哪个元素，写法与「点击元素」相同。"
+        ["browser.readText.pageSelector.label"] = "选择器",
+        ["browser.readText.pageSelector.hint"] = PageTargetHint + "要读取哪个元素，写法与「点击元素」相同。"
             + "一行都不写，也就是默认，读的是整个页面的文本。",
-        ["browser.readText.what.label"] = "读什么",
-        ["browser.readText.what.hint"] = "读元素的哪一部分。「显示的文字」是页面上看得见的那段字，"
+        ["browser.readText.readWhat.label"] = "读什么",
+        ["browser.readText.readWhat.hint"] = "读元素的哪一部分。「显示的文字」是页面上看得见的那段字，"
             + "在没得选之前这一步读的就是它；「填写的值」是输入框、下拉框真正带着的值，密码框显示的是点、"
             + "带着的是密码，下拉框显示的是选项文字、带着的是它后面的值；「属性」是元素标记里的某一项，"
             + "比如链接指向的网址。",
-        ["browser.readText.what.option.text"] = "显示的文字",
-        ["browser.readText.what.option.value"] = "填写的值",
-        ["browser.readText.what.option.attribute"] = "属性",
+        ["browser.readText.readWhat.option.text"] = "显示的文字",
+        ["browser.readText.readWhat.option.value"] = "填写的值",
+        ["browser.readText.readWhat.option.attribute"] = "属性",
         ["browser.readText.attribute.label"] = "属性名",
         ["browser.readText.attribute.hint"] = "读哪个属性，按页面标记里的写法写：链接的地址是 href，"
             + "图片的出处是 src，标记里写的值是 value。元素没有这个属性时读回来是空的，不算找不到。",
@@ -2923,15 +2940,15 @@ internal static class ActionStrings
 
         ["browser.readAll.name"] = "读取全部",
         ["browser.readAll.desc"] = "把选择器认到的每个元素各读一条，组成一个列表。",
-        ["browser.readAll.target.label"] = "选择器",
-        ["browser.readAll.target.hint"] = PageTargetHint + "要读取哪些元素，写法与「点击元素」相同。"
+        ["browser.readAll.pageSelector.label"] = "选择器",
+        ["browser.readAll.pageSelector.hint"] = PageTargetHint + "要读取哪些元素，写法与「点击元素」相同。"
             + "选择器认到几个就读几个，所以只认到一个时读到的也是一条。",
-        ["browser.readAll.what.label"] = "读什么",
-        ["browser.readAll.what.hint"] = "每个元素读它的哪一部分，与「读取文本」那一格相同：显示的文字、"
+        ["browser.readAll.readWhat.label"] = "读什么",
+        ["browser.readAll.readWhat.hint"] = "每个元素读它的哪一部分，与「读取文本」那一格相同：显示的文字、"
             + "填写的值，或者标记里的某一项属性。",
-        ["browser.readAll.what.option.text"] = "显示的文字",
-        ["browser.readAll.what.option.value"] = "填写的值",
-        ["browser.readAll.what.option.attribute"] = "属性",
+        ["browser.readAll.readWhat.option.text"] = "显示的文字",
+        ["browser.readAll.readWhat.option.value"] = "填写的值",
+        ["browser.readAll.readWhat.option.attribute"] = "属性",
         ["browser.readAll.attribute.label"] = "属性名",
         ["browser.readAll.attribute.hint"] = "读哪个属性，按页面标记里的写法写，例如 href、src、value。"
             + "元素没有这个属性时读回来是空的，不算找不到。",
@@ -2947,8 +2964,8 @@ internal static class ActionStrings
 
         ["browser.readTable.name"] = "读取表格",
         ["browser.readTable.desc"] = "把页面上的一个表格读成一行一条的表格。",
-        ["browser.readTable.target.label"] = "选择器",
-        ["browser.readTable.target.hint"] = PageTargetHint + "要读哪个表格，写法与「点击元素」相同。"
+        ["browser.readTable.pageSelector.label"] = "选择器",
+        ["browser.readTable.pageSelector.hint"] = PageTargetHint + "要读哪个表格，写法与「点击元素」相同。"
             + "默认写的是 table，也就是页面自己的表格元素。",
         ["browser.readTable.matchIndex.label"] = "第几个命中",
         ["browser.readTable.narrow.label"] = "限定",
@@ -2963,18 +2980,18 @@ internal static class ActionStrings
 
         ["browser.switchTab.name"] = "切换标签页",
         ["browser.switchTab.desc"] = "让后面的步骤改用浏览器里的另一个标签页。",
-        ["browser.switchTab.how.label"] = "哪个标签页",
-        ["browser.switchTab.how.hint"] = "后面的步骤在哪个标签页上操作，默认「最新打开的那个」。「最新打开的那个」是最后出现的页面，"
+        ["browser.switchTab.tabHow.label"] = "哪个标签页",
+        ["browser.switchTab.tabHow.hint"] = "后面的步骤在哪个标签页上操作，默认「最新打开的那个」。「最新打开的那个」是最后出现的页面，"
             + "点击后新开标签页时留下的就是它；标签页要等点击返回后一小会儿才到浏览器，所以这一步会等它几秒，"
             + "等不到会报错，而不是留在原地：在长得很像的站点上，留在原地是看不出问题的。",
-        ["browser.switchTab.how.option.newest"] = "最新打开的那个",
-        ["browser.switchTab.how.option.index"] = "第几个",
-        ["browser.switchTab.how.option.title"] = "按标题",
-        ["browser.switchTab.how.option.url"] = "按网址",
-        ["browser.switchTab.index.label"] = "第几个标签页",
-        ["browser.switchTab.index.hint"] = "从标签栏最左边数起，第一个是 1，范围为 1 到 50，默认 1，配合「第几个」使用。",
-        ["browser.switchTab.match.label"] = "标题或网址里包含",
-        ["browser.switchTab.match.hint"] = "标签页的标题或网址里要包含的文字，配合「按标题」「按网址」使用。",
+        ["browser.switchTab.tabHow.option.newest"] = "最新打开的那个",
+        ["browser.switchTab.tabHow.option.index"] = "第几个",
+        ["browser.switchTab.tabHow.option.title"] = "按标题",
+        ["browser.switchTab.tabHow.option.url"] = "按网址",
+        ["browser.switchTab.tabIndex.label"] = "第几个标签页",
+        ["browser.switchTab.tabIndex.hint"] = "从标签栏最左边数起，第一个是 1，范围为 1 到 50，默认 1，配合「第几个」使用。",
+        ["browser.switchTab.tabMatch.label"] = "标题或网址里包含",
+        ["browser.switchTab.tabMatch.hint"] = "标签页的标题或网址里要包含的文字，配合「按标题」「按网址」使用。",
 
         ["browser.closeTab.name"] = "关闭标签页",
         ["browser.closeTab.desc"] = "关闭浏览器当前所在的标签页，并转到另一个标签页。",
@@ -2984,10 +3001,10 @@ internal static class ActionStrings
 
         ["browser.select.name"] = "下拉选择",
         ["browser.select.desc"] = "在页面上的下拉框里选中一个选项。",
-        ["browser.select.target.label"] = "选择器",
-        ["browser.select.target.hint"] = PageTargetHint + "要操作哪个下拉框，写法与「点击元素」相同。",
-        ["browser.select.value.label"] = "选项",
-        ["browser.select.value.hint"] = "要选中哪个选项：值和可见文字正好是这段文字的那一个，或者"
+        ["browser.select.pageSelector.label"] = "选择器",
+        ["browser.select.pageSelector.hint"] = PageTargetHint + "要操作哪个下拉框，写法与「点击元素」相同。",
+        ["browser.select.optionValue.label"] = "选项",
+        ["browser.select.optionValue.hint"] = "要选中哪个选项：值和可见文字正好是这段文字的那一个，或者"
             + "配合下面的「按序号」写选项的位置；整段按一个值读取，因此可以写变量或算式。",
         ["browser.select.by.label"] = "按什么选",
         ["browser.select.by.hint"] = "上面那格怎么匹配。「按值或文字」取第一个值和可见文字正好是"
@@ -3002,8 +3019,8 @@ internal static class ActionStrings
 
         ["browser.check.name"] = "勾选",
         ["browser.check.desc"] = "把复选框或单选框留在勾上或没勾的状态。",
-        ["browser.check.target.label"] = "选择器",
-        ["browser.check.target.hint"] = PageTargetHint + "要让哪个框留在该状态，写法与「点击元素」相同。",
+        ["browser.check.pageSelector.label"] = "选择器",
+        ["browser.check.pageSelector.hint"] = PageTargetHint + "要让哪个框留在该状态，写法与「点击元素」相同。",
         ["browser.check.checked.label"] = "勾上",
         ["browser.check.checked.hint"] = "这个框最后是不是要勾上，默认勾上；关掉它表示把已经"
             + "勾上的框取消勾选。要求的状态与当前相同就什么都不做，不像点击那样把勾着的框点掉。",
@@ -3014,8 +3031,8 @@ internal static class ActionStrings
 
         ["browser.hover.name"] = "悬停",
         ["browser.hover.desc"] = "把指针移到某个元素上并停在那里。",
-        ["browser.hover.target.label"] = "选择器",
-        ["browser.hover.target.hint"] = PageTargetHint + "要移到哪个元素上，写法与「点击元素」相同。"
+        ["browser.hover.pageSelector.label"] = "选择器",
+        ["browser.hover.pageSelector.hint"] = PageTargetHint + "要移到哪个元素上，写法与「点击元素」相同。"
             + "菜单、提示框、整排按钮都是这么出现的；这一步不点击任何东西。",
         ["browser.hover.matchIndex.label"] = "第几个命中",
         ["browser.hover.narrow.label"] = "限定",
@@ -3024,11 +3041,11 @@ internal static class ActionStrings
 
         ["browser.press.name"] = "页面按键",
         ["browser.press.desc"] = "向页面里发送一个按键或一个组合键。",
-        ["browser.press.target.label"] = "选择器",
-        ["browser.press.target.hint"] = PageTargetHint + "发送按键前由哪个元素取得焦点，写法与"
+        ["browser.press.pageSelector.label"] = "选择器",
+        ["browser.press.pageSelector.hint"] = PageTargetHint + "发送按键前由哪个元素取得焦点，写法与"
             + "「点击元素」相同。一行都不写，也就是默认，把按键发给页面本身。",
-        ["browser.press.key.label"] = "按键",
-        ["browser.press.key.hint"] = "要发送哪个键：键盘选择器里列出的名字（Enter、Esc、F5、"
+        ["browser.press.keyChord.label"] = "按键",
+        ["browser.press.keyChord.hint"] = "要发送哪个键：键盘选择器里列出的名字（Enter、Esc、F5、"
             + "Down），或者用「+」连起来的组合键（Ctrl+S）。键盘里没有的名字在运行前就会被拒绝。",
         ["browser.press.matchIndex.label"] = "第几个命中",
         ["browser.press.narrow.label"] = "限定",
@@ -3037,18 +3054,18 @@ internal static class ActionStrings
 
         ["browser.waitFor.name"] = "等待元素",
         ["browser.waitFor.desc"] = "等待页面上的某个元素出现或消失。",
-        ["browser.waitFor.target.label"] = "选择器",
-        ["browser.waitFor.target.hint"] = PageTargetHint + "要等哪个元素，写法与「点击元素」相同。"
+        ["browser.waitFor.pageSelector.label"] = "选择器",
+        ["browser.waitFor.pageSelector.hint"] = PageTargetHint + "要等哪个元素，写法与「点击元素」相同。"
             + "页面自己去取内容时要用这一步，而不是固定停一会儿：状态一到，这一步立刻结束。"
             + "等多久由这一步设置里的「超时」说，默认 15000 毫秒。",
-        ["browser.waitFor.state.label"] = "等到它",
-        ["browser.waitFor.state.hint"] = "等哪一种状态。「可见」是接下来要点击某处时用的；"
+        ["browser.waitFor.elementState.label"] = "等到它",
+        ["browser.waitFor.elementState.hint"] = "等哪一种状态。「可见」是接下来要点击某处时用的；"
             + "「不可见」用于等一个转圈的进度提示消失；「在页面上」等的是存在但可以没有大小的"
             + "元素；「不在页面上」等的是已经被拿掉的元素。",
-        ["browser.waitFor.state.option.visible"] = "可见",
-        ["browser.waitFor.state.option.hidden"] = "不可见",
-        ["browser.waitFor.state.option.attached"] = "在页面上",
-        ["browser.waitFor.state.option.detached"] = "不在页面上",
+        ["browser.waitFor.elementState.option.visible"] = "可见",
+        ["browser.waitFor.elementState.option.hidden"] = "不可见",
+        ["browser.waitFor.elementState.option.attached"] = "在页面上",
+        ["browser.waitFor.elementState.option.detached"] = "不在页面上",
         ["browser.waitFor.matchIndex.label"] = "第几个命中",
         ["browser.waitFor.narrow.label"] = "限定",
         ["browser.waitFor.narrow.hint"] = "要等到的那个元素" + NarrowHint,
@@ -3056,45 +3073,45 @@ internal static class ActionStrings
 
         ["browser.waitForUrl.name"] = "等待网址",
         ["browser.waitForUrl.desc"] = "等到浏览器当前页面转到某个网址。",
-        ["browser.waitForUrl.match.label"] = "网址里含有",
-        ["browser.waitForUrl.match.hint"] = "网址里要有这段文字才算等到。按一个值读取，变量或表达式都可以"
+        ["browser.waitForUrl.urlMatch.label"] = "网址里含有",
+        ["browser.waitForUrl.urlMatch.hint"] = "网址里要有这段文字才算等到。按一个值读取，变量或表达式都可以"
             + "写成它。点击之后要去的是另一个页面时，该等的是网址而不是元素：元素在点击到达的那一页上，"
             + "太早去找会找到正要离开的那一页上的同名元素。",
-        ["browser.waitForUrl.how.label"] = "比对方式",
-        ["browser.waitForUrl.how.hint"] = "当前网址与上面那格怎么比：包含（默认）、以…开头、以…结尾、"
+        ["browser.waitForUrl.urlHow.label"] = "比对方式",
+        ["browser.waitForUrl.urlHow.hint"] = "当前网址与上面那格怎么比：包含（默认）、以…开头、以…结尾、"
             + "等于、正则匹配。默认的「包含」通常就够用，因为网址里真正说清是哪一页的那一段后面还跟着"
             + "查询串和锚点。认不出的词会停下这一步并说明，正则读不出来在开始等之前就报错。",
-        ["browser.waitForUrl.how.option.contains"] = "包含",
-        ["browser.waitForUrl.how.option.startsWith"] = "以…开头",
-        ["browser.waitForUrl.how.option.endsWith"] = "以…结尾",
-        ["browser.waitForUrl.how.option.equals"] = "等于",
-        ["browser.waitForUrl.how.option.regex"] = "正则匹配",
+        ["browser.waitForUrl.urlHow.option.contains"] = "包含",
+        ["browser.waitForUrl.urlHow.option.startsWith"] = "以…开头",
+        ["browser.waitForUrl.urlHow.option.endsWith"] = "以…结尾",
+        ["browser.waitForUrl.urlHow.option.equals"] = "等于",
+        ["browser.waitForUrl.urlHow.option.regex"] = "正则匹配",
 
         ["browser.waitForLoad.name"] = "等待加载",
         ["browser.waitForLoad.desc"] = "等到页面加载到指定的那一步。",
-        ["browser.waitForLoad.state.label"] = "等到",
-        ["browser.waitForLoad.state.hint"] = "等到页面加载的哪一步。「加载完成」是默认，一次把内容全部画出来"
+        ["browser.waitForLoad.loadState.label"] = "等到",
+        ["browser.waitForLoad.loadState.hint"] = "等到页面加载的哪一步。「加载完成」是默认，一次把内容全部画出来"
             + "的页面就停在这里；「文档就绪」是页面自己的脚本已经跑过、文字已经在那里的时候，图片和样式表还没"
             + "到，只要文字时它更快；「网络空闲」是页面自己发起的请求都已经回来的时候，一次取一点的页面要用它，"
             + "它也是三档里最慢的，因为它要等到页面不再要东西为止。",
-        ["browser.waitForLoad.state.option.ready"] = "文档就绪",
-        ["browser.waitForLoad.state.option.loaded"] = "加载完成",
-        ["browser.waitForLoad.state.option.idle"] = "网络空闲",
+        ["browser.waitForLoad.loadState.option.ready"] = "文档就绪",
+        ["browser.waitForLoad.loadState.option.loaded"] = "加载完成",
+        ["browser.waitForLoad.loadState.option.idle"] = "网络空闲",
 
         ["browser.scroll.name"] = "滚动页面",
         ["browser.scroll.desc"] = "把页面滚动一下，让屏幕外的东西露出或加载出来。",
-        ["browser.scroll.target.label"] = "选择器",
-        ["browser.scroll.target.hint"] = PageTargetHint + "要把哪个元素滚到看得见，写法与「点击元素」相同；"
+        ["browser.scroll.pageSelector.label"] = "选择器",
+        ["browser.scroll.pageSelector.hint"] = PageTargetHint + "要把哪个元素滚到看得见，写法与「点击元素」相同；"
             + "只有「滚到元素」这一档要用它。一行都不写，也就是默认，滚的是页面本身，往下滚一屏。",
-        ["browser.scroll.how.label"] = "怎么滚",
-        ["browser.scroll.how.hint"] = "页面往哪儿滚。「往下滚一屏」是默认，一次一点加内容的页面就靠它一条条"
+        ["browser.scroll.scrollHow.label"] = "怎么滚",
+        ["browser.scroll.scrollHow.hint"] = "页面往哪儿滚。「往下滚一屏」是默认，一次一点加内容的页面就靠它一条条"
             + "走完；「滚到元素」要用上面那格写选择器，图片或数据等到快滚到才加载的页面靠它把内容要出来；"
             + "「到页面底部」是一下子跳到底，一直在往下加内容的页面要连用好几次；「到页面顶部」用于接下来"
             + "从头读一遍页面的步骤。",
-        ["browser.scroll.how.option.screen"] = "往下滚一屏",
-        ["browser.scroll.how.option.element"] = "滚到元素",
-        ["browser.scroll.how.option.bottom"] = "到页面底部",
-        ["browser.scroll.how.option.top"] = "到页面顶部",
+        ["browser.scroll.scrollHow.option.screen"] = "往下滚一屏",
+        ["browser.scroll.scrollHow.option.element"] = "滚到元素",
+        ["browser.scroll.scrollHow.option.bottom"] = "到页面底部",
+        ["browser.scroll.scrollHow.option.top"] = "到页面顶部",
         ["browser.scroll.matchIndex.label"] = "第几个命中",
         ["browser.scroll.narrow.label"] = "限定",
         ["browser.scroll.narrow.hint"] = "要滚到眼前的那个元素" + NarrowHint,
@@ -3102,8 +3119,8 @@ internal static class ActionStrings
 
         ["browser.download.name"] = "下载文件",
         ["browser.download.desc"] = "把页面接下来交出的文件保存到磁盘上。",
-        ["browser.download.target.label"] = "选择器",
-        ["browser.download.target.hint"] = PageTargetHint + "点哪个元素开始下载，写法与「点击元素」相同，"
+        ["browser.download.pageSelector.label"] = "选择器",
+        ["browser.download.pageSelector.hint"] = PageTargetHint + "点哪个元素开始下载，写法与「点击元素」相同，"
             + "这一步替你把这一下点了。一行都不写，也就是默认，等的是页面接下来自己开始的下载，"
             + "页面自己判断某个东西是文件时要用这一档。",
         ["browser.download.folder.label"] = "保存到",
@@ -3116,14 +3133,14 @@ internal static class ActionStrings
 
         ["browser.dialog.name"] = "回答对话框",
         ["browser.dialog.desc"] = "回答页面接下来弹出的对话框，把触发它的步骤包在里面。",
-        ["browser.dialog.how.label"] = "怎么回答",
-        ["browser.dialog.how.hint"] = "对话框是答应还是取消。想要接着往下走就答应，下面那格填的字也由它带过去；"
+        ["browser.dialog.dialogHow.label"] = "怎么回答",
+        ["browser.dialog.dialogHow.hint"] = "对话框是答应还是取消。想要接着往下走就答应，下面那格填的字也由它带过去；"
             + "想留在原处就取消。一个盒子里只有第一个对话框按这里说的回答，它之后弹出的按浏览器的默认处理，"
             + "也就是没人应答时的自动关掉。",
-        ["browser.dialog.how.option.accept"] = "答应",
-        ["browser.dialog.how.option.dismiss"] = "取消",
-        ["browser.dialog.text.label"] = "要输入的文字",
-        ["browser.dialog.text.hint"] = "要输入到对话框里的文字，例如页面在保存前问的文件名。留空也就是默认，"
+        ["browser.dialog.dialogHow.option.accept"] = "答应",
+        ["browser.dialog.dialogHow.option.dismiss"] = "取消",
+        ["browser.dialog.dialogText.label"] = "要输入的文字",
+        ["browser.dialog.dialogText.hint"] = "要输入到对话框里的文字，例如页面在保存前问的文件名。留空也就是默认，"
             + "表示不作答；不问话的对话框用不到这一格。按一个值读取，变量或表达式都可以写成它。",
         ["browser.dialog.body.label"] = "会弹出对话框的步骤",
         ["browser.dialog.body.hint"] = "让对话框弹出来的那些步骤，例如点击那个会提问的按钮。它们之所以写在盒子"
@@ -3144,10 +3161,10 @@ internal static class ActionStrings
 
         ["browser.upload.name"] = "上传文件",
         ["browser.upload.desc"] = "把文件交给页面上的文件选择框。",
-        ["browser.upload.target.label"] = "选择器",
-        ["browser.upload.target.hint"] = PageTargetHint + "要交给哪个文件选择框，写法与「点击元素」相同。",
-        ["browser.upload.files.label"] = "文件",
-        ["browser.upload.files.hint"] = "一行一个文件的路径，空行会被跳过；相对路径从宏文件所在"
+        ["browser.upload.pageSelector.label"] = "选择器",
+        ["browser.upload.pageSelector.hint"] = PageTargetHint + "要交给哪个文件选择框，写法与「点击元素」相同。",
+        ["browser.upload.uploadFiles.label"] = "文件",
+        ["browser.upload.uploadFiles.hint"] = "一行一个文件的路径，空行会被跳过；相对路径从宏文件所在"
             + "的文件夹算起，与别的步骤里的路径同一条规则。浏览器的规矩是不许脚本告诉页面一个"
             + "路径，这一步是绕开这条规矩的唯一办法。",
         ["browser.upload.matchIndex.label"] = "第几个命中",
@@ -3186,23 +3203,23 @@ internal static class ActionStrings
         ["script.run.script.label"] = "脚本",
         ["script.run.script.hint"] = "脚本正文，交给上面那个程序运行。写 {{变量名}} 的地方会在运行前换成那个变量的值，这就是宏的值传进脚本的方式；"
             + "脚本打印出来的内容在能回收的那几种类型上回到「输出」里。",
-        ["script.run.source.label"] = "脚本来源",
-        ["script.run.source.hint"] = "这一步跑什么：写在下面的一段脚本，还是这台机器上已有的一个脚本文件。"
+        ["script.run.scriptSource.label"] = "脚本来源",
+        ["script.run.scriptSource.hint"] = "这一步跑什么：写在下面的一段脚本，还是这台机器上已有的一个脚本文件。"
             + "选文件时那个文件就地运行，它旁边读什么、里面 include 什么、它自己的目录是哪里都不变，"
             + "里面的 {{变量名}} 也不会替换。默认「写在下面」。",
-        ["script.run.source.option.text"] = "写在下面",
-        ["script.run.source.option.file"] = "一个脚本文件",
-        ["script.run.file.label"] = "脚本文件",
-        ["script.run.file.hint"] = "要运行的那个脚本文件，写它现在所在的位置；谁运行它由上面的「脚本类型」说了算，"
+        ["script.run.scriptSource.option.text"] = "写在下面",
+        ["script.run.scriptSource.option.file"] = "一个脚本文件",
+        ["script.run.scriptFile.label"] = "脚本文件",
+        ["script.run.scriptFile.hint"] = "要运行的那个脚本文件，写它现在所在的位置；谁运行它由上面的「脚本类型」说了算，"
             + "不再看文件自己的后缀。写相对路径时从宏文件所在的目录算起。要跑的是别人一直在维护的脚本、"
             + "或者太长不方便写进步骤里的脚本时用它。",
-        ["script.run.arguments.label"] = "参数",
-        ["script.run.arguments.hint"] = "附加在脚本命令行后面的参数，其中的 {{变量名}} 也会替换成变量的值。默认留空，表示不传参数。",
+        ["script.run.scriptArguments.label"] = "参数",
+        ["script.run.scriptArguments.hint"] = "附加在脚本命令行后面的参数，其中的 {{变量名}} 也会替换成变量的值。默认留空，表示不传参数。",
         ["script.run.folder.label"] = "工作目录",
         ["script.run.folder.hint"] = "脚本在哪个目录中运行。默认留空，表示宏所在的目录；该目录不存在时，改用鲸灵自身的工作目录。",
-        ["script.run.timeoutMs.label"] = "超时",
-        ["script.run.timeoutMs.hint"] = "超过这个时长就结束脚本并判这一步失败，单位毫秒，默认 60000。可能会跑更久的脚本，"
-            + "或者要把窗口留着慢慢看的脚本，填 0 表示不限时。",
+        ["script.run.sendsInput.label"] = "脚本会发键鼠",
+        ["script.run.sendsInput.hint"] = "脚本自己会按键或点击时打开。它只用于设计期提示："
+            + "脚本直接发出的输入鲸灵看不见，互斥发输入的门也拦不住它。默认关闭。",
         ["script.python.name"] = "运行 Python 脚本",
         ["script.python.desc"] = "运行一段 Python 脚本，运行期间脚本能读写宏的变量、调用宏的步骤。",
         ["script.python.script.label"] = "脚本",
@@ -3221,18 +3238,18 @@ internal static class ActionStrings
             + "WhaleGenie.Print(\"Hello World\")\n\n"
             + "# 交回这一步要留下的结果\n"
             + "# WhaleGenie.SetResult(text)\n",
-        ["script.python.arguments.label"] = "参数",
-        ["script.python.arguments.hint"] = "附加在脚本命令行后面的参数，脚本在 sys.argv 里读到它们，"
+        ["script.python.scriptArguments.label"] = "参数",
+        ["script.python.scriptArguments.hint"] = "附加在脚本命令行后面的参数，脚本在 sys.argv 里读到它们，"
             + "与从命令行启动一个程序时一样。默认留空，表示不传参数。",
         ["script.python.python.label"] = "Python 命令",
         ["script.python.python.hint"] = "这一步用哪个 Python 运行，它自己的开关写在前面；路径里有空格时用引号括起来。"
             + "默认留空，表示用本机搜索路径上的 python。",
-        ["script.python.timeoutMs.label"] = "超时",
-        ["script.python.timeoutMs.hint"] = "超过这个时长就结束脚本并判这一步失败，单位毫秒，默认 60000；"
-            + "可能会跑更久的脚本填 0，表示不限时。",
         ["script.python.folder.label"] = "工作目录",
         ["script.python.folder.hint"] = "脚本在哪个目录中运行。默认留空，表示宏所在的目录；该目录不存在时，"
             + "改用鲸灵自身的工作目录。",
+        ["script.python.sendsInput.label"] = "脚本会发键鼠",
+        ["script.python.sendsInput.hint"] = "脚本自己会按键或点击时打开。它只用于设计期提示："
+            + "脚本直接发出的输入鲸灵看不见，互斥发输入的门也拦不住它。默认关闭。",
         ["script.pip.name"] = "安装 PIP 包",
         ["script.pip.desc"] = "看一下要用的 Python 包在不在，缺的下下来，好让 Python 脚本能 import 它们。",
         ["script.pip.packages.label"] = "包",
@@ -3276,15 +3293,15 @@ internal static class ActionStrings
                 }
             }
             """,
-        ["script.csharp.arguments.label"] = "参数",
-        ["script.csharp.arguments.hint"] = "附加在脚本命令行后面的参数，入口点从调用它时拿到的那个数组里读到它们。"
+        ["script.csharp.scriptArguments.label"] = "参数",
+        ["script.csharp.scriptArguments.hint"] = "附加在脚本命令行后面的参数，入口点从调用它时拿到的那个数组里读到它们。"
             + "默认留空，表示不传参数。",
-        ["script.csharp.timeoutMs.label"] = "超时",
-        ["script.csharp.timeoutMs.hint"] = "超过这个时长就结束脚本并判这一步失败，单位毫秒，默认 60000；"
-            + "可能会跑更久的脚本填 0，表示不限时。",
         ["script.csharp.folder.label"] = "工作目录",
         ["script.csharp.folder.hint"] = "脚本在哪个目录中运行。默认留空，表示宏所在的目录；该目录不存在时，"
             + "改用鲸灵自身的工作目录。",
+        ["script.csharp.sendsInput.label"] = "脚本会发键鼠",
+        ["script.csharp.sendsInput.hint"] = "脚本自己会按键或点击时打开。它只用于设计期提示："
+            + "脚本直接发出的输入鲸灵看不见，互斥发输入的门也拦不住它。默认关闭。",
         ["script.ahk.name"] = "运行 AHK 脚本",
         ["script.ahk.desc"] = "运行一段 AutoHotkey v2 脚本，运行期间脚本能读写宏的变量、调用宏的步骤。",
         ["script.ahk.script.label"] = "脚本",
@@ -3303,18 +3320,18 @@ internal static class ActionStrings
             + "Print(\"Hello World\")\n\n"
             + "; 交回这一步要留下的结果\n"
             + "; SetResult(\"结果\")\n",
-        ["script.ahk.arguments.label"] = "参数",
-        ["script.ahk.arguments.hint"] = "附加在脚本命令行后面的参数，脚本在 A_Args 里读到它们，"
+        ["script.ahk.scriptArguments.label"] = "参数",
+        ["script.ahk.scriptArguments.hint"] = "附加在脚本命令行后面的参数，脚本在 A_Args 里读到它们，"
             + "与从命令行启动一个程序时一样。默认留空，表示不传参数。",
         ["script.ahk.ahk.label"] = "AutoHotkey 命令",
         ["script.ahk.ahk.hint"] = "这一步用哪个 AutoHotkey 运行，它自己的开关写在前面；路径里有空格时用引号括起来。"
             + "默认留空，表示用这台机器上找到的那个 AutoHotkey。",
-        ["script.ahk.timeoutMs.label"] = "超时",
-        ["script.ahk.timeoutMs.hint"] = "超过这个时长就结束脚本并判这一步失败，单位毫秒，默认 60000；"
-            + "可能会跑更久的脚本填 0，表示不限时。",
         ["script.ahk.folder.label"] = "工作目录",
         ["script.ahk.folder.hint"] = "脚本在哪个目录中运行。默认留空，表示宏所在的目录；该目录不存在时，"
             + "改用鲸灵自身的工作目录。",
+        ["script.ahk.sendsInput.label"] = "脚本会发键鼠",
+        ["script.ahk.sendsInput.hint"] = "脚本自己会按键或点击时打开。它只用于设计期提示："
+            + "脚本直接发出的输入鲸灵看不见，互斥发输入的门也拦不住它。默认关闭。",
         ["script.nuget.name"] = "下载 NuGet 包",
         ["script.nuget.desc"] = "看一下要用的 NuGet 包在不在，缺的连同它们自己依赖的包一起下下来，"
             + "好让 C# 脚本能编译着用。",
@@ -3326,9 +3343,9 @@ internal static class ActionStrings
         // ---------------------------------------------------------------- condition
         ["condition.imageExists.name"] = "图片存在",
         ["condition.imageExists.desc"] = "当参考图片出现在屏幕上时为真。",
-        ["condition.imageExists.image.label"] = "图片文件",
-        ["condition.imageExists.image.hint"] = "要找的图片，一行一张，按列出的顺序试；只要有一张出现在画面上，这个条件就成立。",
-        ["condition.imageExists.confidence.label"] = "相似度 %",
+        ["condition.imageExists.images.label"] = "图片文件",
+        ["condition.imageExists.images.hint"] = "要找的图片，一行一张，按列出的顺序试；只要有一张出现在画面上，这个条件就成立。",
+        ["condition.imageExists.confidence.label"] = "置信度（%）",
         ["condition.imageExists.confidence.hint"] = "要求的相似度下限，写成 0 到 100 的百分数，默认 90；把参考图"
             + "的写法放宽一点就调低。",
         ["condition.imageExists.region.label"] = "搜索区域",
@@ -3341,8 +3358,8 @@ internal static class ActionStrings
 
         ["condition.textExists.name"] = "文字存在",
         ["condition.textExists.desc"] = "当屏幕上出现指定文字时为真。",
-        ["condition.textExists.text.label"] = "文字",
-        ["condition.textExists.text.hint"] = "要在屏幕上找的文字，例如 Ready，默认空着要自己填。整段按一个值读，所以变量或算式都能放在这里；画面上出现这段文字时条件成立。",
+        ["condition.textExists.queryText.label"] = "文字",
+        ["condition.textExists.queryText.hint"] = "要在屏幕上找的文字，例如 Ready，默认空着要自己填。整段按一个值读，所以变量或算式都能放在这里；画面上出现这段文字时条件成立。",
         ["condition.textExists.region.label"] = "搜索区域",
         ["condition.textExists.region.hint"] = RegionHintText,
         ["condition.textExists.matchMode.label"] = "匹配方式",
@@ -3352,8 +3369,8 @@ internal static class ActionStrings
         ["condition.uiaExists.desc"] = "当 UI Automation 元素存在时为真。",
         ["condition.uiaExists.window.label"] = WindowMatchTextLabel,
         ["condition.uiaExists.window.hint"] = "可选：只在标题里含这段文字的窗口里找；留空表示在所有窗口里找。",
-        ["condition.uiaExists.selector.label"] = "选择器",
-        ["condition.uiaExists.selector.hint"] = "元素选择器，例如 Button[name='Save']。也可用“拾取元素”直接在屏幕"
+        ["condition.uiaExists.uiSelector.label"] = "选择器",
+        ["condition.uiaExists.uiSelector.hint"] = "元素选择器，例如 Button[name='Save']。也可用“拾取元素”直接在屏幕"
             + "上拾取控件；每次判断都会重新找一遍，元素挪了位置也找得到。",
 
         ["condition.colorEquals.name"] = "颜色相同",
@@ -3371,9 +3388,9 @@ internal static class ActionStrings
         // ------------------------------------------ 否定条件与布尔表达式（条件也能自己写公式）
         ["condition.imageNotExists.name"] = "图片不存在",
         ["condition.imageNotExists.desc"] = "当参考图片不在屏幕上时为真。",
-        ["condition.imageNotExists.image.label"] = "图片文件",
-        ["condition.imageNotExists.image.hint"] = "要找的图片，一行一张，按列出的顺序试；一张都没出现，这个条件才成立。",
-        ["condition.imageNotExists.confidence.label"] = "相似度 %",
+        ["condition.imageNotExists.images.label"] = "图片文件",
+        ["condition.imageNotExists.images.hint"] = "要找的图片，一行一张，按列出的顺序试；一张都没出现，这个条件才成立。",
+        ["condition.imageNotExists.confidence.label"] = "置信度（%）",
         ["condition.imageNotExists.confidence.hint"] = "要求的相似度下限，写成 0 到 100 的百分数，默认 90；把"
             + "参考图的写法放宽一点就调低。",
         ["condition.imageNotExists.region.label"] = "搜索区域",
@@ -3393,8 +3410,8 @@ internal static class ActionStrings
 
         ["condition.textNotExists.name"] = "文字不存在",
         ["condition.textNotExists.desc"] = "当屏幕上没有指定文字时为真。",
-        ["condition.textNotExists.text.label"] = "文字",
-        ["condition.textNotExists.text.hint"] = "要在屏幕上确认没有的文字，例如 Ready，默认空着要自己填。整段按一个值读，所以变量或算式都能放在这里；画面上没有它时条件成立。",
+        ["condition.textNotExists.queryText.label"] = "文字",
+        ["condition.textNotExists.queryText.hint"] = "要在屏幕上确认没有的文字，例如 Ready，默认空着要自己填。整段按一个值读，所以变量或算式都能放在这里；画面上没有它时条件成立。",
         ["condition.textNotExists.region.label"] = "搜索区域",
         ["condition.textNotExists.region.hint"] = RegionHintText,
         ["condition.textNotExists.matchMode.label"] = "匹配方式",
@@ -3416,24 +3433,24 @@ internal static class ActionStrings
         ["condition.uiaNotExists.desc"] = "当某个 UI Automation 元素不存在时为真。",
         ["condition.uiaNotExists.window.label"] = WindowMatchTextLabel,
         ["condition.uiaNotExists.window.hint"] = "可选：只在标题里含这段文字的窗口里找；留空表示在所有窗口里找。",
-        ["condition.uiaNotExists.selector.label"] = "选择器",
-        ["condition.uiaNotExists.selector.hint"] =
+        ["condition.uiaNotExists.uiSelector.label"] = "选择器",
+        ["condition.uiaNotExists.uiSelector.hint"] =
             "元素选择器，例如 Button[name='Save']。也可用“拾取元素”直接在屏幕上拾取控件；每次判断都会重新找"
             + "一遍，元素挪了位置也找得到。",
 
         ["condition.browserExists.name"] = "页面元素存在",
         ["condition.browserExists.desc"] = "当页面上的某个元素处在指定的状态时为真。",
-        ["condition.browserExists.target.label"] = "选择器",
-        ["condition.browserExists.target.hint"] = PageTargetHint + "要判断页面上的哪个元素，写法与「点击元素」"
+        ["condition.browserExists.pageSelector.label"] = "选择器",
+        ["condition.browserExists.pageSelector.hint"] = PageTargetHint + "要判断页面上的哪个元素，写法与「点击元素」"
             + "相同；问的是页面现在有没有这样的元素，所以它不会等。",
-        ["condition.browserExists.state.label"] = "看它是不是",
-        ["condition.browserExists.state.hint"] = "问的是元素的哪一种状态。「看得见」是默认，接下来要操作这个"
+        ["condition.browserExists.elementState.label"] = "看它是不是",
+        ["condition.browserExists.elementState.hint"] = "问的是元素的哪一种状态。「看得见」是默认，接下来要操作这个"
             + "元素时问的就是它；「看不见」是元素在那里但不占地方；「在页面上」是无论看得见看不见都在；"
             + "「不在页面上」是已经被拿掉。这是一眼的结果，不等待；要等用「等待元素」或包一层等待块。",
-        ["condition.browserExists.state.option.visible"] = "看得见",
-        ["condition.browserExists.state.option.hidden"] = "看不见",
-        ["condition.browserExists.state.option.attached"] = "在页面上",
-        ["condition.browserExists.state.option.detached"] = "不在页面上",
+        ["condition.browserExists.elementState.option.visible"] = "看得见",
+        ["condition.browserExists.elementState.option.hidden"] = "看不见",
+        ["condition.browserExists.elementState.option.attached"] = "在页面上",
+        ["condition.browserExists.elementState.option.detached"] = "不在页面上",
         ["condition.browserExists.matchIndex.label"] = "第几个命中",
         ["condition.browserExists.narrow.label"] = "限定",
         ["condition.browserExists.narrow.hint"] = "要判断的那个元素" + NarrowHint,
@@ -3441,16 +3458,16 @@ internal static class ActionStrings
 
         ["condition.browserNotExists.name"] = "页面元素不存在",
         ["condition.browserNotExists.desc"] = "当页面上的某个元素不在指定的状态时为真。",
-        ["condition.browserNotExists.target.label"] = "选择器",
-        ["condition.browserNotExists.target.hint"] = PageTargetHint + "要判断页面上的哪个元素，写法与"
+        ["condition.browserNotExists.pageSelector.label"] = "选择器",
+        ["condition.browserNotExists.pageSelector.hint"] = PageTargetHint + "要判断页面上的哪个元素，写法与"
             + "「点击元素」相同；问的是页面现在有没有这样的元素，所以它不会等。",
-        ["condition.browserNotExists.state.label"] = "看它是不是",
-        ["condition.browserNotExists.state.hint"] = "问的是元素的哪一种状态，与「页面元素存在」那一格相同。"
+        ["condition.browserNotExists.elementState.label"] = "看它是不是",
+        ["condition.browserNotExists.elementState.hint"] = "问的是元素的哪一种状态，与「页面元素存在」那一格相同。"
             + "要等一个转圈的提示消失，用它加上「看不见」再包一层等待块。",
-        ["condition.browserNotExists.state.option.visible"] = "看得见",
-        ["condition.browserNotExists.state.option.hidden"] = "看不见",
-        ["condition.browserNotExists.state.option.attached"] = "在页面上",
-        ["condition.browserNotExists.state.option.detached"] = "不在页面上",
+        ["condition.browserNotExists.elementState.option.visible"] = "看得见",
+        ["condition.browserNotExists.elementState.option.hidden"] = "看不见",
+        ["condition.browserNotExists.elementState.option.attached"] = "在页面上",
+        ["condition.browserNotExists.elementState.option.detached"] = "不在页面上",
         ["condition.browserNotExists.matchIndex.label"] = "第几个命中",
         ["condition.browserNotExists.narrow.label"] = "限定",
         ["condition.browserNotExists.narrow.hint"] = "要判断的那个元素" + NarrowHint,
@@ -3467,42 +3484,42 @@ internal static class ActionStrings
         ["condition.compare.desc"] = "把一个变量与另一个值或变量进行比较。",
         ["condition.compare.variable.label"] = "变量",
         ["condition.compare.variable.hint"] = "要判断的变量，下拉里的候选项来自前面步骤创建过的变量。",
-        ["condition.compare.operator.label"] = "判断方式",
-        ["condition.compare.operator.hint"] = "变量与比较值怎么比，默认等于。",
-        ["condition.compare.value.label"] = "变量或值",
-        ["condition.compare.value.hint"] = "拿来做比较的另一个值：从下拉里选已有变量，或直接输入数字或文本；"
+        ["condition.compare.compareOperator.label"] = "判断方式",
+        ["condition.compare.compareOperator.hint"] = "变量与比较值怎么比，默认等于。",
+        ["condition.compare.compareValue.label"] = "变量或值",
+        ["condition.compare.compareValue.hint"] = "拿来做比较的另一个值：从下拉里选已有变量，或直接输入数字或文本；"
             + "判断方式选“变量存在”时可以留空，选“正则匹配”时这里填的就是正则表达式。",
-        ["condition.compare.operator.option.equals"] = "等于",
-        ["condition.compare.operator.option.notEquals"] = "不等于",
-        ["condition.compare.operator.option.greaterThan"] = "大于",
-        ["condition.compare.operator.option.greaterOrEqual"] = "大于等于",
-        ["condition.compare.operator.option.lessThan"] = "小于",
-        ["condition.compare.operator.option.lessOrEqual"] = "小于等于",
-        ["condition.compare.operator.option.contains"] = "包含",
-        ["condition.compare.operator.option.notContains"] = "不包含",
-        ["condition.compare.operator.option.exists"] = "变量存在",
-        ["condition.compare.operator.option.regex"] = "正则匹配",
+        ["condition.compare.compareOperator.option.equals"] = "等于",
+        ["condition.compare.compareOperator.option.notEquals"] = "不等于",
+        ["condition.compare.compareOperator.option.greaterThan"] = "大于",
+        ["condition.compare.compareOperator.option.greaterOrEqual"] = "大于等于",
+        ["condition.compare.compareOperator.option.lessThan"] = "小于",
+        ["condition.compare.compareOperator.option.lessOrEqual"] = "小于等于",
+        ["condition.compare.compareOperator.option.contains"] = "包含",
+        ["condition.compare.compareOperator.option.notContains"] = "不包含",
+        ["condition.compare.compareOperator.option.exists"] = "变量存在",
+        ["condition.compare.compareOperator.option.regex"] = "正则匹配",
 
         ["condition.stepResult.name"] = "步骤结果",
         ["condition.stepResult.desc"] = "判断本宏里某一步跑完的结果。",
-        ["condition.stepResult.step.label"] = "步骤",
-        ["condition.stepResult.step.hint"] =
+        ["condition.stepResult.stepId.label"] = "步骤",
+        ["condition.stepResult.stepId.hint"] =
             "要问的那一步；候选项是本宏里的每一步，按备注、动作和步骤名称列出。还没轮到的那一步"
             + "答的是“没跑到”，不是“否”。",
-        ["condition.stepResult.expected.label"] = "结果应当是",
-        ["condition.stepResult.expected.hint"] = "这一步跑完应当是什么结果，默认「成功」：做成了、失败了，还是"
+        ["condition.stepResult.expectedOutcome.label"] = "结果应当是",
+        ["condition.stepResult.expectedOutcome.hint"] = "这一步跑完应当是什么结果，默认「成功」：做成了、失败了，还是"
             + "根本没轮到。",
-        ["condition.stepResult.expected.option.ok"] = "成功",
-        ["condition.stepResult.expected.option.failed"] = "失败",
-        ["condition.stepResult.expected.option.skipped"] = "没跑到",
+        ["condition.stepResult.expectedOutcome.option.ok"] = "成功",
+        ["condition.stepResult.expectedOutcome.option.failed"] = "失败",
+        ["condition.stepResult.expectedOutcome.option.skipped"] = "没跑到",
 
         ["condition.listContains.name"] = "列表包含",
         ["condition.listContains.desc"] = "列表里有某个值时成立。",
         ["condition.listContains.list.label"] = "列表",
         ["condition.listContains.list.hint"] =
             "要查找的列表：直接写成 a;b;c，或者用 $items 指定一个装着列表的变量。",
-        ["condition.listContains.value.label"] = "要找的值",
-        ["condition.listContains.value.hint"] =
+        ["condition.listContains.wantedValue.label"] = "要找的值",
+        ["condition.listContains.wantedValue.hint"] =
             "必须出现在列表里的值。数字按数字比，1 能找到 1.0；文本比较不分大小写。",
 
         ["condition.pathExists.name"] = "文件或文件夹存在",
@@ -3513,8 +3530,8 @@ internal static class ActionStrings
 
         ["condition.processRunning.name"] = "进程正在运行",
         ["condition.processRunning.desc"] = "某个程序正在运行时成立。",
-        ["condition.processRunning.name.label"] = "程序",
-        ["condition.processRunning.name.hint"] =
+        ["condition.processRunning.processName.label"] = "程序",
+        ["condition.processRunning.processName.hint"] =
             "程序名，按任务管理器里的写法且不带 .exe：notepad、chrome、excel。",
 
         ["condition.windowExists.name"] = "窗口存在",
@@ -3526,8 +3543,8 @@ internal static class ActionStrings
 
         ["condition.valueInRange.name"] = "值在区间内",
         ["condition.valueInRange.desc"] = "一个值落在另外两个值之间时成立。",
-        ["condition.valueInRange.value.label"] = "值",
-        ["condition.valueInRange.value.hint"] = "要放到数轴上的值，可以填变量或算式。",
+        ["condition.valueInRange.testValue.label"] = "值",
+        ["condition.valueInRange.testValue.hint"] = "要放到数轴上的值，可以填变量或算式。",
         ["condition.valueInRange.min.label"] = "下限",
         ["condition.valueInRange.min.hint"] = "区间的一端，例如 1。两端谁先写都可以。",
         ["condition.valueInRange.max.label"] = "上限",
@@ -3539,14 +3556,14 @@ internal static class ActionStrings
         ["condition.dateCompare.left.hint"] =
             "要摆在前面的日期或时间：填变量名如 $sys.dateTime，直接写 2026-01-31 或 09:30，"
             + "也可以用 today() 现算一个。写出来的日期按字面理解，不会当成减法。",
-        ["condition.dateCompare.operator.label"] = "比较方式",
-        ["condition.dateCompare.operator.hint"] =
+        ["condition.dateCompare.dateOperator.label"] = "比较方式",
+        ["condition.dateCompare.dateOperator.hint"] =
             "第一个日期相对第二个日期的位置，默认「晚于」。选“同一天”时不看具体时刻，用来问某件事今天做过"
             + "没有。",
-        ["condition.dateCompare.operator.option.before"] = "早于",
-        ["condition.dateCompare.operator.option.after"] = "晚于",
-        ["condition.dateCompare.operator.option.same"] = "正好等于",
-        ["condition.dateCompare.operator.option.sameDay"] = "是同一天",
+        ["condition.dateCompare.dateOperator.option.before"] = "早于",
+        ["condition.dateCompare.dateOperator.option.after"] = "晚于",
+        ["condition.dateCompare.dateOperator.option.same"] = "正好等于",
+        ["condition.dateCompare.dateOperator.option.sameDay"] = "是同一天",
         ["condition.dateCompare.right.label"] = "比较对象",
         ["condition.dateCompare.right.hint"] = "拿来做比较的日期，写法与上面一样，例如 2026-01-01。",
 
@@ -3562,8 +3579,8 @@ internal static class ActionStrings
 
         ["condition.randomChance.name"] = "随机概率",
         ["condition.randomChance.desc"] = "按固定概率随机为真。",
-        ["condition.randomChance.percent.label"] = "概率 %",
-        ["condition.randomChance.percent.hint"] = "条件为真的概率，0–100（百分比），默认 50。",
+        ["condition.randomChance.chancePercent.label"] = "概率 %",
+        ["condition.randomChance.chancePercent.hint"] = "条件为真的概率，0–100（百分比），默认 50。",
 
         // --------------------------------------------------- 抓屏方式（看屏幕的步骤都有这一个字段）
 
@@ -3760,9 +3777,16 @@ internal static class ActionStrings
         ["control.waitUntil.returns.label"] = "要留下的结果",
         ["control.waitUntil.returns.hint"] = ReturnsHintText,
 
+        // control.while
+        ["control.while.return.ended.label"] = "结束原因",
+        ["control.while.return.ended.hint"] = "条件变假时为 condition，到最大轮数时为 limit；"
+            + "在循环体里用 break 提前离开时不写这一项。",
+
         // control.try
-        ["control.try.return.error.label"] = "错误信息",
-        ["control.try.return.error.hint"] = "尝试失败的原因；没有失败时为空。",
+        ["control.try.return.error.label"] = "失败键",
+        ["control.try.return.error.hint"] = "尝试结束时给出的失败键，可在条件里按它分支；没有失败时为空。",
+        ["control.try.return.detail.label"] = "失败详情",
+        ["control.try.return.detail.hint"] = "失败时引擎正在做什么；没有失败或没有更多说明时为空。",
         ["control.try.returns.label"] = "要留下的结果",
         ["control.try.returns.hint"] = ReturnsHintText,
 
@@ -4216,6 +4240,58 @@ internal static class ActionStrings
         ["control.runMacro.returns.hint"] = "勾上被调用的宏声明过、这一步要取回的结果："
             + "每一项在本宏里各自成为一个变量，名字由这一行决定。一个都不勾也可以，"
             + "这一步就不带回任何值。",
+        ["vision.findImage.return.window.label"] = "来源窗口",
+        ["vision.findImage.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
+        ["vision.findImage.return.method.label"] = "取画面方式",
+        ["vision.findImage.return.method.hint"] = "这一步用哪种方式取的画面，例如 graphicsCapture、gdi、printWindow；没有取画面时为空。",
+        ["vision.waitImage.return.window.label"] = "来源窗口",
+        ["vision.waitImage.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
+        ["vision.waitImage.return.method.label"] = "取画面方式",
+        ["vision.waitImage.return.method.hint"] = "这一步用哪种方式取的画面，例如 graphicsCapture、gdi、printWindow；没有取画面时为空。",
+        ["vision.clickImage.return.window.label"] = "来源窗口",
+        ["vision.clickImage.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
+        ["vision.clickImage.return.method.label"] = "取画面方式",
+        ["vision.clickImage.return.method.hint"] = "这一步用哪种方式取的画面，例如 graphicsCapture、gdi、printWindow；没有取画面时为空。",
+        ["vision.findColor.return.window.label"] = "来源窗口",
+        ["vision.findColor.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
+        ["vision.findColor.return.method.label"] = "取画面方式",
+        ["vision.findColor.return.method.hint"] = "这一步用哪种方式取的画面，例如 graphicsCapture、gdi、printWindow；没有取画面时为空。",
+        ["vision.findColors.return.window.label"] = "来源窗口",
+        ["vision.findColors.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
+        ["vision.findColors.return.method.label"] = "取画面方式",
+        ["vision.findColors.return.method.hint"] = "这一步用哪种方式取的画面，例如 graphicsCapture、gdi、printWindow；没有取画面时为空。",
+        ["vision.detect.return.window.label"] = "来源窗口",
+        ["vision.detect.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
+        ["vision.detect.return.method.label"] = "取画面方式",
+        ["vision.detect.return.method.hint"] = "这一步用哪种方式取的画面，例如 graphicsCapture、gdi、printWindow；没有取画面时为空。",
+        ["vision.waitDetect.return.window.label"] = "来源窗口",
+        ["vision.waitDetect.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
+        ["vision.waitDetect.return.method.label"] = "取画面方式",
+        ["vision.waitDetect.return.method.hint"] = "这一步用哪种方式取的画面，例如 graphicsCapture、gdi、printWindow；没有取画面时为空。",
+        ["vision.clickDetect.return.window.label"] = "来源窗口",
+        ["vision.clickDetect.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
+        ["vision.clickDetect.return.method.label"] = "取画面方式",
+        ["vision.clickDetect.return.method.hint"] = "这一步用哪种方式取的画面，例如 graphicsCapture、gdi、printWindow；没有取画面时为空。",
+        ["ocr.findText.return.window.label"] = "来源窗口",
+        ["ocr.findText.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
+        ["ocr.findText.return.method.label"] = "取画面方式",
+        ["ocr.findText.return.method.hint"] = "这一步用哪种方式取的画面，例如 graphicsCapture、gdi、printWindow；没有取画面时为空。",
+        ["ocr.clickText.return.window.label"] = "来源窗口",
+        ["ocr.clickText.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
+        ["ocr.clickText.return.method.label"] = "取画面方式",
+        ["ocr.clickText.return.method.hint"] = "这一步用哪种方式取的画面，例如 graphicsCapture、gdi、printWindow；没有取画面时为空。",
+        ["uia.find.return.window.label"] = "来源窗口",
+        ["uia.find.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
+        ["uia.find.return.method.label"] = "取画面方式",
+        ["uia.find.return.method.hint"] = "这一步用哪种方式取的画面，例如 graphicsCapture、gdi、printWindow；没有取画面时为空。",
+        ["vision.capture.return.window.label"] = "来源窗口",
+        ["vision.capture.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
+        ["vision.capture.return.method.label"] = "取画面方式",
+        ["vision.capture.return.method.hint"] = "这一步用哪种方式取的画面，例如 graphicsCapture、gdi、printWindow；没有取画面时为空。",
+        ["vision.captureWindow.return.window.label"] = "来源窗口",
+        ["vision.captureWindow.return.window.hint"] = "画面取自哪个窗口；直接从屏幕读取时为空。",
+        ["vision.captureWindow.return.method.label"] = "取画面方式",
+        ["vision.captureWindow.return.method.hint"] = "这一步用哪种方式取的画面，例如 graphicsCapture、gdi、printWindow；没有取画面时为空。",
     };
 
     /// <summary>
@@ -4227,6 +4303,25 @@ internal static class ActionStrings
     /// </summary>
     static ActionStrings()
     {
+        // The three text-comparison switches mean the same thing wherever they appear. Their
+        // labels are filled in from the catalogue so a new action that compares text cannot ship
+        // with an English-only pair of switches.
+        foreach (var action in ActionSemanticsCatalog.All)
+        {
+            foreach (var parameter in action.Parameters.Where(parameter =>
+                         parameter.Name is "caseSensitive" or "trim" or "multiline"))
+            {
+                var (label, hint) = parameter.Name switch
+                {
+                    "caseSensitive" => ("区分大小写", "默认关；打开后按原样比较字母大小写。"),
+                    "trim" => ("去掉两端空格", "只在「等于」这一档生效；默认开。"),
+                    _ => ("正则按行", "只在「正则」这一档生效；默认关，打开后 ^ 和 $ 按每一行算。"),
+                };
+                Chinese.TryAdd($"{action.Key}.{parameter.Name}.label", label);
+                Chinese.TryAdd($"{action.Key}.{parameter.Name}.hint", hint);
+            }
+        }
+
         WindowHowFill(Chinese, "how", WindowActions, string.Empty);
         WindowHowFill(Chinese, "anchorHow", AnchorActions, "坐标基准选屏幕像素或界面元素时用不到它。");
         WindowHowFill(Chinese, "targetHow", TargetActions, "只有输入方式选后台消息时用得到它。");

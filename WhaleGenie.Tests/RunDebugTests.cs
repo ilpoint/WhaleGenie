@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -26,6 +27,62 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class RunDebugTests
 {
+    /// <summary>
+    /// A retried step is more than one attempt, and the debugger says so: each try's time and the
+    /// budget left after it are what make a timeout and a retry readable after the run.
+    /// </summary>
+    [Fact]
+    public void The_debugger_shows_each_try_and_what_was_left_of_the_budget()
+    {
+        var row = new RunStepViewModel
+        {
+            Id = "k3f9",
+            Label = "Wait",
+            Detail = string.Empty,
+            Depth = 0,
+            CanBreak = true,
+        };
+
+        row.Took(new StepRun
+        {
+            StepId = "k3f9",
+            StepType = "control.delay",
+            Outcome = "failed",
+            ElapsedMs = 150,
+            FailureKey = "Run.Timeout",
+            FailureDetail = "300",
+            TimeoutMs = 300,
+            Attempts =
+            [
+                new StepAttempt
+                {
+                    Number = 1,
+                    ElapsedMs = 100,
+                    Outcome = "failed",
+                    FailureKey = "Run.NoDevice",
+                    RemainingMs = 200,
+                },
+                new StepAttempt
+                {
+                    Number = 2,
+                    ElapsedMs = 50,
+                    Outcome = "failed",
+                    FailureKey = "Run.Timeout",
+                    RemainingMs = 0,
+                    Overran = true,
+                },
+            ],
+        });
+
+        Assert.True(row.HasAttempts);
+        Assert.Equal(2, row.Attempts.Count);
+        Assert.Equal(Strings.Format("Run.StepAttempts", 2), row.AttemptsHeader);
+        Assert.True(row.Attempts[0].HasFailure);
+        Assert.Contains("Run.NoDevice", row.Attempts[0].Failure, StringComparison.Ordinal);
+        Assert.Contains(Strings.Get("Run.AttemptOverran"), row.Attempts[1].Failure,
+            StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Opened_on_its_own_it_shows_the_variables_and_no_run_controls()
     {
@@ -389,7 +446,7 @@ public class RunDebugTests
     private static MacroStep Encode(string text) => new()
     {
         Type = "data.base64Encode",
-        Parameters = [new StepParameter { Name = "text", Kind = ActionParameterKind.Text, Value = text }],
+        Parameters = [new StepParameter { Name = "dataText", Kind = ActionParameterKind.Text, Value = text }],
     };
 
     /// <summary>A step that sets a variable, so a run has something to do that cannot fail.</summary>
@@ -413,11 +470,11 @@ public class RunDebugTests
             new StepParameter { Name = "variable", Kind = ActionParameterKind.Text, Value = variable },
             new StepParameter
             {
-                Name = "operator",
+                Name = "compareOperator",
                 Kind = ActionParameterKind.Choice,
                 Value = "greaterThan",
             },
-            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Value = value },
+            new StepParameter { Name = "compareValue", Kind = ActionParameterKind.Text, Value = value },
         ],
     };
 

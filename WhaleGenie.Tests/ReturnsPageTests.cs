@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -46,6 +47,21 @@ public class ReturnsPageTests
             // Each result of the step has a name of its own, so two variables are written rather
             // than one being quietly overwritten by the other.
             Assert.NotEqual(hit, all, StringComparer.OrdinalIgnoreCase);
+        });
+    }
+
+    [Fact]
+    public void A_while_loop_can_hand_over_why_it_ended()
+    {
+        Ui.Run(() =>
+        {
+            var row = Assert.Single(Open("control.while").ReturnsRows);
+
+            Assert.Equal("ended", row.Key);
+            Assert.True(row.Ticked);
+            Assert.Equal(ActionReturnType.Text, row.Result.Type);
+            Assert.Contains("condition", row.Hint, StringComparison.Ordinal);
+            Assert.Contains("limit", row.Hint, StringComparison.Ordinal);
         });
     }
 
@@ -216,8 +232,12 @@ public class ReturnsPageTests
     [Fact]
     public void Every_result_the_catalogue_names_is_one_the_engine_writes()
     {
-        var source = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie.Core", "Execution",
-            "MacroRunner.cs"));
+        // The runner is split by action family, so a result may be written in any of its files.
+        var folder = Path.Combine(Repository(), "WhaleGenie.Core", "Execution");
+        var source = string.Join("\n", Directory
+            .GetFiles(folder, "MacroRunner*.cs")
+            .Order(StringComparer.Ordinal)
+            .Select(File.ReadAllText));
 
         var unknown = new List<string>();
         foreach (var definition in ActionCatalog.Definitions)

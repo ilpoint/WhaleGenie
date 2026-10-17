@@ -28,7 +28,7 @@ public class ReferencePictureTests
     }
 
     private static StepParameterViewModel Pictures(AddActionViewModel viewModel)
-        => viewModel.Parameters.First(parameter => parameter.Definition.Name == "image");
+        => viewModel.Parameters.First(parameter => parameter.Definition.Name == "images");
 
     [Fact]
     public void What_the_dialog_listed_reaches_the_engine()
@@ -45,7 +45,7 @@ public class ReferencePictureTests
             viewModel.CloseRequested += step => saved = step;
             viewModel.SaveCommand.Execute(null);
 
-            var rows = Assert.Single(new[] { saved! }.ToExecutable()).Rows("image");
+            var rows = Assert.Single(new[] { saved! }.ToExecutable()).Rows("images");
             Assert.Equal(2, rows.Count);
             Assert.Equal("ok.png", rows[0]["image"]);
             Assert.Equal("$shot", rows[1]["image"]);
@@ -68,7 +68,7 @@ public class ReferencePictureTests
 
             var written = saved!.ToJson().ToJsonString();
             var back = MacroStep.FromJson((JsonObject)JsonNode.Parse(written)!);
-            var rows = back.Parameters.First(parameter => parameter.Name == "image").Rows;
+            var rows = back.Parameters.First(parameter => parameter.Name == "images").Rows;
 
             Assert.Equal(2, rows.Count);
             Assert.Equal("ok.png", rows[0].Text("image"));
@@ -122,7 +122,7 @@ public class ReferencePictureTests
             viewModel.CloseRequested += step => saved = step;
             viewModel.SaveCommand.Execute(null);
 
-            var rows = Assert.Single(new[] { saved! }.ToExecutable()).Rows("image");
+            var rows = Assert.Single(new[] { saved! }.ToExecutable()).Rows("images");
             Assert.Equal(["third.png", "first.png", "second.png"],
                 rows.Select(row => row["image"]));
         });

@@ -20,35 +20,35 @@ public class ExpressionFieldTests
 {
     private static readonly Dictionary<string, string[]> ValueFields = new(StringComparer.Ordinal)
     {
-        ["control.switch"] = ["value"],
+        ["control.switch"] = ["switchValue"],
         ["control.stop"] = ["reason"],
         ["control.fail"] = ["reason"],
         ["control.log"] = ["message"],
         ["control.ask"] = ["message", "detail"],
         ["control.input"] = ["message", "default"],
-        ["file.writeText"] = ["text"],
-        ["file.appendLog"] = ["text"],
+        ["file.writeText"] = ["fileContent"],
+        ["file.appendLog"] = ["logLine"],
         ["file.readJson"] = ["query"],
-        ["file.writeJson"] = ["query", "value"],
+        ["file.writeJson"] = ["query", "writeValue"],
         ["file.readCsv"] = ["matchValue"],
         ["file.writeCsv"] = ["rows"],
-        ["data.base64Encode"] = ["text"],
-        ["data.base64Decode"] = ["text"],
-        ["data.hash"] = ["text"],
-        ["clipboard.writeText"] = ["text"],
+        ["data.base64Encode"] = ["dataText"],
+        ["data.base64Decode"] = ["dataText"],
+        ["data.hash"] = ["dataText"],
+        ["clipboard.writeText"] = ["clipboardText"],
         ["clipboard.writeFiles"] = ["files"],
-        ["clipboard.paste"] = ["text"],
-        ["process.start"] = ["arguments"],
-        ["process.waitFor"] = ["name"],
+        ["clipboard.paste"] = ["pasteText"],
+        ["process.start"] = ["commandArguments"],
+        ["process.waitFor"] = ["processName"],
         ["process.waitExit"] = ["id"],
-        ["process.exists"] = ["name"],
-        ["process.info"] = ["target"],
-        ["process.kill"] = ["target"],
-        ["command.run"] = ["arguments"],
-        ["system.environment"] = ["name"],
-        ["system.notify"] = ["heading", "message"],
+        ["process.exists"] = ["processName"],
+        ["process.info"] = ["processTarget"],
+        ["process.kill"] = ["processTarget"],
+        ["command.run"] = ["commandArguments"],
+        ["system.environment"] = ["environmentName"],
+        ["system.notify"] = ["heading", "notificationText"],
         ["system.ime"] = ["layout"],
-        ["input.typeText"] = ["text"],
+        ["input.typeText"] = ["typedText"],
         ["input.mouseMove"] = ["record"],
         ["input.mouseClick"] = ["record"],
         ["input.mouseDoubleClick"] = ["record"],
@@ -56,36 +56,28 @@ public class ExpressionFieldTests
         ["input.mouseUp"] = ["record"],
         ["input.mouseScroll"] = ["record"],
         ["input.mouseDrag"] = ["startRecord", "endRecord"],
-        ["vision.findImage"] = ["ignoreColor"],
-        ["vision.waitImage"] = ["ignoreColor"],
-        ["vision.clickImage"] = ["ignoreColor"],
-        ["vision.waitColor"] = ["color", "record"],
+        ["vision.waitColor"] = ["record"],
         ["vision.getPixel"] = ["record"],
         ["vision.capture"] = ["record"],
-        ["vision.findColor"] = ["color"],
-        ["vision.findColors"] = ["color"],
-        ["ocr.recognize"] = ["colorFilter", "record"],
+        ["ocr.recognize"] = ["record"],
         ["window.move"] = ["record"],
-        ["ocr.findText"] = ["text", "colorFilter"],
-        ["ocr.clickText"] = ["text", "colorFilter"],
-        ["uia.setText"] = ["text"],
+        ["ocr.findText"] = ["queryText"],
+        ["ocr.clickText"] = ["queryText"],
+        ["uia.setText"] = ["valueText"],
         ["uia.select"] = ["item"],
         ["browser.open"] = ["url"],
         ["browser.goTo"] = ["url"],
-        ["browser.fill"] = ["text"],
-        ["browser.select"] = ["value"],
-        ["browser.switchTab"] = ["match"],
-        ["browser.waitForUrl"] = ["match"],
-        ["browser.dialog"] = ["text"],
-        ["condition.textExists"] = ["text"],
-        ["condition.textNotExists"] = ["text"],
-        ["condition.colorEquals"] = ["color"],
-        ["condition.colorsExist"] = ["color"],
-        ["condition.colorCoverage"] = ["color"],
-        ["condition.compare"] = ["value"],
-        ["condition.listContains"] = ["list", "value"],
-        ["condition.processRunning"] = ["name"],
-        ["condition.valueInRange"] = ["value", "min", "max"],
+        ["browser.fill"] = ["fillText"],
+        ["browser.select"] = ["optionValue"],
+        ["browser.switchTab"] = ["tabMatch"],
+        ["browser.waitForUrl"] = ["urlMatch"],
+        ["browser.dialog"] = ["dialogText"],
+        ["condition.textExists"] = ["queryText"],
+        ["condition.textNotExists"] = ["queryText"],
+        ["condition.compare"] = ["compareValue"],
+        ["condition.listContains"] = ["list", "wantedValue"],
+        ["condition.processRunning"] = ["processName"],
+        ["condition.valueInRange"] = ["testValue", "min", "max"],
         ["condition.dateCompare"] = ["left", "right"],
     };
 
@@ -99,6 +91,17 @@ public class ExpressionFieldTests
         {
             foreach (var parameter in action.Parameters)
             {
+                // A number, an expression and a colour have editors of their own that already
+                // write the whole value as a formula; asking the catalogue to offer the builder
+                // again would draw the same question twice.
+                if (parameter.Kind is ActionParameterKind.Number
+                    or ActionParameterKind.Expression or ActionParameterKind.Color)
+                {
+                    Assert.Equal(WhaleGenie.Core.Execution.ActionReadMode.WholeValue,
+                        parameter.ReadMode);
+                    continue;
+                }
+
                 var listed = ValueFields.TryGetValue(action.Key, out var names)
                     && names.Contains(parameter.Name, StringComparer.Ordinal);
 
@@ -147,8 +150,8 @@ public class ExpressionFieldTests
                 var isPicture = parameter.Kind
                     is ActionParameterKind.Image or ActionParameterKind.Images;
                 var isArea = parameter.Kind is ActionParameterKind.Region;
-                var isSelector = parameter.Name is "selector" or "anchorSelector"
-                    || (parameter.Name == "target"
+                var isSelector = parameter.Name is "uiSelector" or "anchorSelector"
+                    || (parameter.Name == "pageSelector"
                         && parameter.OwnerKey.StartsWith("browser.", StringComparison.Ordinal));
 
                 Count("path", isPath);

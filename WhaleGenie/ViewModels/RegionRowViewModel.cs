@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -145,8 +146,8 @@ public partial class RegionRowViewModel : ViewModelBase
 
         Keep(row, "x", X);
         Keep(row, "y", Y);
-        Keep(row, "width", Width);
-        Keep(row, "height", Height);
+        Keep(row, FieldNames.Width, Width);
+        Keep(row, FieldNames.Height, Height);
         return row;
     }
 
@@ -166,8 +167,8 @@ public partial class RegionRowViewModel : ViewModelBase
 
         place.X.Load(row.Text("x"));
         place.Y.Load(row.Text("y"));
-        place.Width.Load(row.Text("width"));
-        place.Height.Load(row.Text("height"));
+        place.Width.Load(row.Text(FieldNames.Width));
+        place.Height.Load(row.Text(FieldNames.Height));
         return place;
     }
 

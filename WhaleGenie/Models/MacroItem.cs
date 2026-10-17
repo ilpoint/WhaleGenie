@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json.Nodes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 
 // The choice of how a window is recognised is a property here as well as a type in the engine, so
@@ -28,16 +29,33 @@ public partial class MacroItem : ObservableObject
 
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Short description of what starts the macro, shown in the macro list.</summary>
-    public string Trigger { get; set; } = string.Empty;
-
-    /// <summary>Short description of how the macro loops, shown in the macro list.</summary>
-    public string Action { get; set; } = string.Empty;
-
     [ObservableProperty]
     public partial MacroTrigger TriggerMode { get; set; } = MacroTrigger.KeystrokesButtonInputs;
 
     public MacroLoop LoopMode { get; set; } = MacroLoop.Toggle;
+
+    /// <summary>What starts the macro, said the way the macro list says it.</summary>
+    public string Trigger => TriggerMode switch
+    {
+        MacroTrigger.ColorPixelChanges => Strings.Get("Trigger.Color"),
+        MacroTrigger.Timer => Strings.Get("Trigger.Timer"),
+        MacroTrigger.FileChanges => Strings.Get("Trigger.File"),
+        MacroTrigger.Process => Strings.Get("Trigger.Process"),
+        MacroTrigger.Window => Strings.Get("Trigger.Window"),
+        MacroTrigger.Idle => Strings.Get("Trigger.Idle"),
+        _ => Strings.Get("Trigger.Keys"),
+    };
+
+    /// <summary>How a key trigger loops, or empty when a clock does the starting.</summary>
+    public string Action => TriggerMode == MacroTrigger.Timer
+        ? string.Empty
+        : LoopMode switch
+        {
+            MacroLoop.Hold => Strings.Get("Loop.Hold"),
+            MacroLoop.Press => Strings.Get("Loop.Press"),
+            MacroLoop.Release => Strings.Get("Loop.Release"),
+            _ => Strings.Get("Loop.Toggle"),
+        };
 
     /// <summary>Key bound to the macro, or empty when no key has been selected.</summary>
     [ObservableProperty]
@@ -306,7 +324,7 @@ public partial class MacroItem : ObservableObject
                 ["filter"] = WatchFilter,
                 ["subfolders"] = WatchSubfolders,
             },
-            ["program"] = new JsonObject
+            ["process"] = new JsonObject
             {
                 ["name"] = ProcessName,
                 ["change"] = ProcessChange.ToString(),
@@ -331,7 +349,7 @@ public partial class MacroItem : ObservableObject
             ["hexColor"] = HexColor,
             ["colorTolerance"] = ColorTolerance,
             ["delayScale"] = DelayScale,
-            ["record"] = new JsonObject
+            ["recorder"] = new JsonObject
             {
                 ["mouseMovement"] = RecordMouseMovement,
                 ["mouseButtons"] = RecordMouseButtons,
@@ -366,7 +384,7 @@ public partial class MacroItem : ObservableObject
                 ["name"] = parameter.Name.Trim(),
                 ["default"] = parameter.Default,
                 ["required"] = parameter.Required,
-                ["hint"] = parameter.Description,
+                ["description"] = parameter.Description,
             });
         }
 
@@ -387,7 +405,7 @@ public partial class MacroItem : ObservableObject
             array.Add(new JsonObject
             {
                 ["name"] = result.Name.Trim(),
-                ["hint"] = result.Description,
+                ["description"] = result.Description,
                 ["type"] = result.Type.ToString(),
             });
         }
@@ -399,17 +417,15 @@ public partial class MacroItem : ObservableObject
     public static MacroItem FromJson(JsonObject node)
     {
         var position = node["colorPosition"] as JsonObject;
-        var record = node["record"] as JsonObject;
+        var record = node["recorder"] as JsonObject;
         var schedule = node["schedule"] as JsonObject;
         var watch = node["watch"] as JsonObject;
-        var program = node["program"] as JsonObject;
+        var program = node["process"] as JsonObject;
         var window = node["window"] as JsonObject;
 
         var macro = new MacroItem
         {
             Name = node["name"]?.GetValue<string>() ?? string.Empty,
-            Trigger = node["trigger"]?.GetValue<string>() ?? string.Empty,
-            Action = node["loop"]?.GetValue<string>() ?? string.Empty,
             TriggerMode = ReadEnum(node, "triggerMode", MacroTrigger.KeystrokesButtonInputs),
             LoopMode = ReadEnum(node, "loopMode", MacroLoop.Toggle),
             BindKey = node["bindKey"]?.GetValue<string>() ?? string.Empty,
@@ -461,7 +477,7 @@ public partial class MacroItem : ObservableObject
                     Name = name,
                     Default = declared["default"]?.GetValue<string>() ?? string.Empty,
                     Required = ReadBool(declared["required"], true),
-                    Description = declared["hint"]?.GetValue<string>() ?? string.Empty,
+                    Description = declared["description"]?.GetValue<string>() ?? string.Empty,
                 });
             }
         }
@@ -479,7 +495,7 @@ public partial class MacroItem : ObservableObject
                 macro.Results.Add(new MacroResult
                 {
                     Name = name,
-                    Description = declared["hint"]?.GetValue<string>() ?? string.Empty,
+                    Description = declared["description"]?.GetValue<string>() ?? string.Empty,
                     Type = ReadEnum(declared, "type", ActionReturnType.Text),
                 });
             }

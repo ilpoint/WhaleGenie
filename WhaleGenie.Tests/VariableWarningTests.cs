@@ -48,7 +48,7 @@ public class VariableWarningTests
             foreach (var (key, field) in new[]
                      {
                          ("control.setVariable", "name"),
-                         ("control.for", "variable"),
+                         ("control.for", "name"),
                          ("control.forEach", "itemVariable"),
                          ("control.forEach", "indexVariable"),
                      })
