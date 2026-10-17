@@ -45,7 +45,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 
 `manual.md` 描述已经实现的行为；路线图里的阶段是目标，未完成之前不要把未来行为写进手册。
 
-**当前阶段**：F3 后台运行；正确性与结构收口的阶段见 [roadmap.md](roadmap.md)。
+**当前阶段**：F5 结果时新性；正确性与结构收口的阶段见 [roadmap.md](roadmap.md)。
 
 动作目录分两层：引擎事实在 `WhaleGenie.Core/Execution/ActionSemantics.json`，由
 `ActionSemanticsCatalog` 读取，包含动作键、分类、参数读法、值形状、单位、空值含义、字段自己的范围上限、

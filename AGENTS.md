@@ -59,7 +59,7 @@ Power Automate Desktop 只学动作骨架，不学动作库与 COM 直连 Office
 
 ## 当前路线
 
-下一步按 `doc/roadmap.md` 排：当前阶段是 **F4 循环与分支**，之后按 F4–F7 做正确性与结构收口。
+下一步按 `doc/roadmap.md` 排：当前阶段是 **F5 结果时新性**，之后按 F5–F7 做正确性与结构收口。
 判断标准有三条：
 **用户能不能把这件事表达出来；已经说出来的行为是否与实现一致；多条宏同时跑时是否仍然正确**。本文件的设计
 约定是目标，代码尚未做到的部分由路线图的阶段落地；当前实现事实（如动作展示清单在
@@ -128,8 +128,9 @@ Power Automate Desktop 只学动作骨架，不学动作库与 COM 直连 Office
 写清 `id` / `macro` / `status` / `error` / `results`，等完或取消后改写成结束时的样子）。`repeat` / `for` /
 `forEach` / `while` 都交回 `ended`：正常结束 `count` / `range` / `items` / `condition` / `limit`，`break`
 为 `break`；到上限另写警告。`if` / `while` / `waitUntil` 没有条件时运行报 `Run.MissingCondition`、设计期
-标出。`sys.loopIndex`、`forEach` 的 item/index、`for` 的计数都只属于最内层循环，离开时恢复外层、离开循环
-后为空。`break` 在 `switch` 的 case 里离开这个 switch，不跳出外层循环；`continue` 仍交给最近的循环。
+标出。`sys.loopIndex`、`forEach` 的 item/index、`for` 的计数都只属于最内层循环，离开时恢复外层；
+`sys.loopIndex` 离开循环后为空，循环自己的计数器与每一项留着最后一次的值。
+`break` 在 `switch` 的 case 里离开这个 switch，不跳出外层循环；`continue` 仍交给最近的循环。
 失败只有两级：一步没处理的失败算它所在那一块失败；**块的重试是整块重来**。从外面停止时，正在执行的
 `control.try` 仍然执行一次收尾；整次停止的收尾共用五秒预算，收尾失败或超时只写 `Log.CleanupFailed`，
 不改变「被停止」这个结局。
