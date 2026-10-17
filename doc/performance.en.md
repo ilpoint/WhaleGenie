@@ -156,8 +156,8 @@ few thousand guesses. A larger region only pays for one more copy while scaling.
 
 ## What one look adds up to
 
-One look = one capture + one algorithm run over it. With the defaults (`frameMaxAgeMs` 0 and
-`intervalMs` 0) every look captures again, so:
+One look = one capture + one algorithm run over it. When every look captures again
+(`frameMaxAgeMs` 0; `intervalMs` 0 for a step that does not wait), the numbers are:
 
 | What the step does | One look | Times a second |
 | --- | --- | --- |
