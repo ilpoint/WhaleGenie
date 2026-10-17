@@ -82,6 +82,16 @@ public static class MacroCheck
     /// one current page for the whole program, so two runs take turns there; a tab one changes is
     /// the page the other reads next.
     /// </param>
+    /// <summary>
+    /// What is wrong with the macro's own declarations, whether or not any call reaches it: a name
+    /// left empty, one written twice, or one the run keeps. The step list has no row to put these
+    /// on, so the editor shows them above it.
+    /// </summary>
+    public static IReadOnlyList<string> DeclarationProblems(MacroCallable own)
+        => [.. own.Problems().Select(problem => problem.Fault is MacroSignatureFault.EmptyName
+            ? Strings.Format("Editor.Problem.EmptyDeclaration", own.Name)
+            : Strings.Format("Editor.Problem.BadDeclaration", own.Name, problem.Name))];
+
     public static IReadOnlyList<MacroProblem> Inspect(IEnumerable<MacroStep> steps,
         MacroCallable? own, IEnumerable<MacroCallable> macros, bool inputShared = false,
         bool browserShared = false)
@@ -530,8 +540,26 @@ public static class MacroCheck
             foreach (var parameter in step.Parameters)
             {
                 if (parameter.IsRowList
-                    || step.ParameterDefinition(parameter) is not { } definition
-                    || definition.ReadMode is not ActionReadMode.WholeValue)
+                    || step.ParameterDefinition(parameter) is not { } definition)
+                {
+                    continue;
+                }
+
+                if (definition.ReadMode is ActionReadMode.Text)
+                {
+                    foreach (var expression in VariableText.Expressions(parameter.Value))
+                    {
+                        if (!Expression.TryParse(expression, out _, out var fault))
+                        {
+                            Add(step, Strings.Format("Editor.Problem.BadExpression",
+                                fault?.Detail ?? expression));
+                        }
+                    }
+
+                    continue;
+                }
+
+                if (definition.ReadMode is not ActionReadMode.WholeValue)
                 {
                     continue;
                 }
@@ -876,10 +904,9 @@ public static class MacroCheck
                 return;
             }
 
-            if (called.Signature.Problem() is { } problem)
+            foreach (var message in DeclarationProblems(called))
             {
-                Add(step, Strings.Format("Editor.Problem.BadDeclaration", called.Name,
-                    problem.Name));
+                Add(step, message);
             }
 
             foreach (var parameter in step.Parameters.Where(parameter => parameter.Name.StartsWith(

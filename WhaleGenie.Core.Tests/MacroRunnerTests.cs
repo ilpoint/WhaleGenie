@@ -1807,6 +1807,29 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task A_text_field_works_out_a_braced_expression()
+    {
+        var store = Store(("n", 3));
+
+        var (_, host) = await RunAsync(
+            [Step("control.log", Param("message", "n is ${$n + 1}"), Param("level", "info"))],
+            variables: store);
+
+        var line = host.Entries.Last(entry => entry.Key == "Log.Message");
+        Assert.Equal("n is 4", line.Arguments[0]);
+    }
+
+    [Fact]
+    public async Task A_broken_braced_expression_fails_the_step()
+    {
+        var (result, _) = await RunAsync(
+            [Step("control.log", Param("message", "${1 +}"), Param("level", "info"))]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.BadExpression, result.Key);
+    }
+
+    [Fact]
     public async Task A_condition_that_needs_a_missing_device_fails_the_step()
     {
         var branch = Step("control.if",

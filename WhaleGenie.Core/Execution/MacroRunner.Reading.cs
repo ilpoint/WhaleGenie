@@ -133,7 +133,8 @@ public sealed partial class MacroRunner
     /// <summary>Fills in every known <c>$name</c>; <c>$$</c> stands for one literal dollar.</summary>
     private string Interpolate(string text)
         => VariableText.Replace(text,
-            name => Variables.TryGet(name, out var value) ? value.AsText() : null);
+            name => Variables.TryGet(name, out var value) ? value.AsText() : null,
+            expression => Expression.Evaluate(expression, Variables).AsText());
 
     /// <summary>
     /// A number a step names, read the way every other field is: as a value. A field nobody

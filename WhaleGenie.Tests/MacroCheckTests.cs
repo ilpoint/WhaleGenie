@@ -932,4 +932,27 @@ public class MacroCheckTests
         Assert.Contains(problems, problem =>
             problem.Message.Contains("bogus", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void Declaration_problems_are_said_without_a_call()
+    {
+        var bad = Callable("坏", ["同名", "同名"], [""], []);
+
+        var problems = MacroCheck.DeclarationProblems(bad);
+
+        Assert.Contains(problems, message => message.Contains("同名", StringComparison.Ordinal));
+        Assert.Contains(problems, message =>
+            message == Strings.Format("Editor.Problem.EmptyDeclaration", "坏"));
+    }
+
+    [Fact]
+    public void A_broken_braced_expression_in_text_is_marked()
+    {
+        var problems = Inspect(Step("control.log", Text("message", "${1 +}"),
+            Text("level", "info")));
+
+        var prefix = Strings.Get("Editor.Problem.BadExpression").Split("{0}")[0];
+        Assert.Contains(problems, problem =>
+            problem.Message.StartsWith(prefix, StringComparison.Ordinal));
+    }
 }

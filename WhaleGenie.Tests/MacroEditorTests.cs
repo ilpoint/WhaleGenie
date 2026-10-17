@@ -608,7 +608,7 @@ public class MacroEditorTests
 
             // The line above the list says there is something to look at.
             var summary = Assert.Single(window.GetVisualDescendants().OfType<TextBlock>(),
-                text => text.Classes.Contains("ProblemSummary"));
+                text => text.Classes.Contains("ProblemSummary") && text.IsVisible);
             Assert.True(summary.IsVisible);
             Assert.False(string.IsNullOrWhiteSpace(summary.Text));
         });
@@ -655,6 +655,24 @@ public class MacroEditorTests
             // 读回来也还在，而且默认是关的：一个宏单独跑时不该为谁停下来。
             Assert.True(MacroItem.FromJson(saved.ToJson()).ExclusiveInput);
             Assert.False(new MacroItem { Name = "other" }.ExclusiveInput);
+        });
+    }
+
+    [Fact]
+    public void A_macro_whose_declarations_clash_says_so_above_the_steps()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "甲" };
+            macro.Parameters.Add(new MacroParameter { Name = "同名" });
+            macro.Parameters.Add(new MacroParameter { Name = "同名" });
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (MacroEditorViewModel)window.DataContext!;
+            Assert.True(viewModel.HasDeclarationProblems);
+            Assert.Contains("同名", viewModel.DeclarationProblemSummary, StringComparison.Ordinal);
         });
     }
 }

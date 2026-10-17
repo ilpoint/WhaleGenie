@@ -217,11 +217,21 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>What the design-time check has to say about the steps as they stand now.</summary>
     public IReadOnlyList<MacroProblem> Problems { get; private set; } = [];
 
+    /// <summary>What is wrong with this macro's own parameters and results, with no step to hang it on.</summary>
+    public IReadOnlyList<string> DeclarationProblems { get; private set; } = [];
+
     public bool HasProblems => Problems.Count > 0;
 
-    /// <summary>One line above the list saying how much the editor has to say.</summary>
+    public bool HasStepProblems => Problems.Count > 0;
+
+    public bool HasDeclarationProblems => DeclarationProblems.Count > 0;
+
+    /// <summary>One line above the list saying how much the editor has to say about the steps.</summary>
     public string ProblemSummary => Strings.Format("Editor.ProblemSummary",
         Problems.Select(problem => problem.Step).Distinct().Count());
+
+    /// <summary>The declaration problems, one per line, for the editor to show above the step list.</summary>
+    public string DeclarationProblemSummary => string.Join("\n", DeclarationProblems);
 
     /// <summary>Which steps the check is unhappy about, and what it says about each one.</summary>
     private Dictionary<MacroStep, string> _problemByStep = [];
@@ -1918,6 +1928,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     private void RefreshProblems()
     {
         Problems = MacroCheck.Inspect(Steps, OwnCallable, _projectMacros, _inputShared, _browserShared);
+        DeclarationProblems = MacroCheck.DeclarationProblems(OwnCallable);
         _problemByStep = Problems
             .GroupBy(problem => problem.Step)
             .ToDictionary(group => group.Key,
@@ -1925,7 +1936,11 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         OnPropertyChanged(nameof(Problems));
         OnPropertyChanged(nameof(HasProblems));
+        OnPropertyChanged(nameof(HasStepProblems));
+        OnPropertyChanged(nameof(DeclarationProblems));
+        OnPropertyChanged(nameof(HasDeclarationProblems));
         OnPropertyChanged(nameof(ProblemSummary));
+        OnPropertyChanged(nameof(DeclarationProblemSummary));
     }
 
     private void AddRows(IList<MacroStep> steps, StepParameter? owner, int depth)
@@ -2138,7 +2153,9 @@ public partial class MacroEditorViewModel : ViewModelBase
         // of the macro itself, and neither is what the design-time check made of it.
         if (!_loading && e.PropertyName is not (nameof(IsDirty) or nameof(HasSelection)
                 or nameof(SelectedSteps) or nameof(IsRecording) or nameof(RecordedEvents)
-                or nameof(Problems) or nameof(HasProblems) or nameof(ProblemSummary)))
+                or nameof(Problems) or nameof(HasProblems) or nameof(HasStepProblems)
+                or nameof(DeclarationProblems) or nameof(HasDeclarationProblems)
+                or nameof(ProblemSummary) or nameof(DeclarationProblemSummary)))
         {
             MarkDirty();
         }

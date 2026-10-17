@@ -66,6 +66,26 @@ public sealed record MacroCallable(
             .Where(result => result.Name.Trim().Length > 0)
             .Select(result => new MacroReturn(result.Name.Trim(), result.Type))]);
 
+    /// <summary>
+    /// Every declaration name that cannot be used: one left empty, one repeated, or one the run
+    /// keeps for itself. The signature drops empty names before the engine sees them, so this asks
+    /// the raw declarations as well; the editor shows these even when no call reaches the macro.
+    /// </summary>
+    public IReadOnlyList<(MacroSignatureFault Fault, string Name)> Problems()
+    {
+        var problems = new List<(MacroSignatureFault, string)>();
+        foreach (var name in Parameters.Select(parameter => parameter.Name)
+                     .Concat(Results.Select(result => result.Name)))
+        {
+            if (name.Trim().Length == 0)
+            {
+                problems.Add((MacroSignatureFault.EmptyName, name));
+            }
+        }
+
+        problems.AddRange(Signature.Problems());
+        return problems;
+    }
     /// <summary>The declared parameter of this name, or null when the macro declares none.</summary>
     public MacroParameter? Parameter(string name)
         => Parameters.FirstOrDefault(parameter =>

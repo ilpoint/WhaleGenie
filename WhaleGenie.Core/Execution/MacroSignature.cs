@@ -40,54 +40,50 @@ public sealed record MacroSignature(
             string.Equals(result.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
-    /// The first thing wrong with the names themselves, if any. A name has to be there, has to be
-    /// the only one of its kind, and may not be one the run keeps for itself: a call that passed a
+    /// Every name that is empty, repeated, or one the run keeps for itself. A call that passed a
     /// value under a duplicate name would have one of the two silently overwritten, and a parameter
     /// named like a built-in would read as the built-in inside the called macro.
     /// </summary>
+    public IReadOnlyList<(MacroSignatureFault Fault, string Name)> Problems()
+    {
+        var problems = new List<(MacroSignatureFault, string)>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        Collect(Arguments.Select(argument => argument.Name), seen, problems);
+        seen.Clear();
+        Collect(Results.Select(result => result.Name), seen, problems);
+        return problems;
+    }
+
+    /// <summary>The first of <see cref="Problems"/>, which is what a run reports before it starts.</summary>
     public (MacroSignatureFault Fault, string Name)? Problem()
     {
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var argument in Arguments)
+        var problems = Problems();
+        return problems.Count == 0 ? null : problems[0];
+    }
+
+    private static void Collect(IEnumerable<string> names, HashSet<string> seen,
+        List<(MacroSignatureFault Fault, string Name)> problems)
+    {
+        foreach (var written in names)
         {
-            var name = argument.Name.Trim();
+            var name = written.Trim();
             if (name.Length == 0)
             {
-                return (MacroSignatureFault.EmptyName, argument.Name);
+                problems.Add((MacroSignatureFault.EmptyName, written));
+                continue;
             }
 
             if (!seen.Add(name))
             {
-                return (MacroSignatureFault.DuplicateName, name);
+                problems.Add((MacroSignatureFault.DuplicateName, name));
+                continue;
             }
 
             if (Reserved(name))
             {
-                return (MacroSignatureFault.ReservedName, name);
+                problems.Add((MacroSignatureFault.ReservedName, name));
             }
         }
-
-        seen.Clear();
-        foreach (var result in Results)
-        {
-            var name = result.Name.Trim();
-            if (name.Length == 0)
-            {
-                return (MacroSignatureFault.EmptyName, result.Name);
-            }
-
-            if (!seen.Add(name))
-            {
-                return (MacroSignatureFault.DuplicateName, name);
-            }
-
-            if (Reserved(name))
-            {
-                return (MacroSignatureFault.ReservedName, name);
-            }
-        }
-
-        return null;
     }
 
     private static bool Reserved(string name)

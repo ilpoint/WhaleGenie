@@ -1,4 +1,4 @@
-﻿<Window xmlns="https://github.com/avaloniaui"
+<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WhaleGenie.ViewModels"
         xmlns:models="using:WhaleGenie.Models"
@@ -952,8 +952,12 @@
 
                    <!-- What the design-time check made of the steps, so a problem is known while
                         the macro is being written rather than when a trigger fires it. -->
-                   <TextBlock Grid.Row="2" Classes="ProblemSummary" IsVisible="{Binding HasProblems}"
-                              Text="{Binding ProblemSummary}" />
+                   <StackPanel Grid.Row="2" Spacing="2">
+                       <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasStepProblems}"
+                                  Text="{Binding ProblemSummary}" />
+                       <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasDeclarationProblems}"
+                                  Text="{Binding DeclarationProblemSummary}" TextWrapping="Wrap" />
+                   </StackPanel>
 
                    <!-- Empty state -->
                    <StackPanel Grid.Row="3" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4"

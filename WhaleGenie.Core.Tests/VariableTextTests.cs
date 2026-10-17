@@ -66,4 +66,23 @@ public class VariableTextTests
         Assert.Equal("Hello ${missing", Fill("Hello ${missing", ("name", "Ada")));
         Assert.Empty(VariableText.Referenced("Hello ${missing"));
     }
+
+    [Fact]
+    public void A_braced_expression_is_worked_out_into_text()
+    {
+        var filled = VariableText.Replace("1 + 2 = ${1 + 2}", _ => null,
+            expression => Expression.Evaluate(expression).AsText());
+
+        Assert.Equal("1 + 2 = 3", filled);
+        Assert.Equal(["1 + 2"], VariableText.Expressions("${1 + 2}"));
+        Assert.Equal(["x"], VariableText.Referenced("${$x + 1}"));
+    }
+
+    [Fact]
+    public void A_brace_that_is_only_a_name_is_still_a_name()
+    {
+        Assert.Empty(VariableText.Expressions("${name}"));
+        Assert.Equal("Ada", VariableText.Replace("${name}", _ => "Ada",
+            _ => throw new InvalidOperationException("a name is not an expression")));
+    }
 }
