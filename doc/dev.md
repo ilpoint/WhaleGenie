@@ -243,7 +243,7 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 | 文案 | `LocalizationTests` | 中英文键齐全，参数与选项都有中文 |
 | 字段名 | `FieldNameTests` | 同一字段名只有一种 `Kind`、一套选项与一套标签；记录字段也走 `FieldNames`；例外要写进白名单与理由 |
 | 循环与结果 | `MacroRunnerTests` | 嵌套循环的 item/index/counter 恢复外层；四种循环的 `ended`；失败/重试后结果为空 |
-| 互斥与调用图 | `MacroRunnerTests` + `DeviceActionTests` + `MacroCheckTests` | 子宏自己的互斥声明生效；调用图分析带环检测；持浏览器门时启动浏览器后台运行被拒；`control.holdInput` / `control.holdBrowser` 的块内步骤不再取门，嵌套只记层数 |
+| 互斥与调用图 | `MacroRunnerTests` + `DeviceActionTests` + `MacroCheckTests` | 子宏自己的互斥声明生效；调用图分析带环检测；持浏览器门时启动浏览器后台运行被拒；`control.holdInput` / `control.holdBrowser` 的块内步骤不再取门，嵌套只记层数；`control.runStatus` 不等待取状态并刷新句柄；同一宏的后台运行有上限 |
 | 表达式函数 | `FunctionTableTests` | 函数表与手册「表达式函数一览」一一对应 |
 
 新增行时先加断言，再改实现。

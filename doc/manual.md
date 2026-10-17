@@ -512,6 +512,11 @@ $response | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 "orders.json"
 变量，交回「等到了几个」（`count`）。同一句柄在列表里出现两次只算一次；等待的超时是整步一次的预算
 （默认 60000 毫秒）。
 
+「查看后台运行」（`control.runStatus`）不等它结束：交回「状态」（`status`）、「还在跑」（`running`）与
+「失败原因」（`error`），并把句柄改写成这一刻的样子，之后读句柄也是最新的。它不取结果、不结束运行；
+结果仍要等「等待后台运行」或「等待全部后台运行」才写回。
+
+一个宏同时最多开 32 个后台运行：再多一个就报 `Run.TooManyRuns`，先等几个结束再开。
 「执行其他宏」（`control.runMacro`）是同步的那一个：它等被调用的宏跑完再往下走，结果写完就能读；等多久
 也由这一步的「超时」决定（默认 60000 毫秒），超时报 `Run.Timeout`。父宏结束时还没被等的后台运行会一并
 停下；运行调试里「后台运行」那一行列出还在跑的宏，等到的与结束的会从那一行里消失。
@@ -1219,6 +1224,7 @@ WebKit 则要按提示行里的命令先下载一份。会话开了就一直是�
 | `Run.SoundRefused` | 这台机器没有可用的声音设备，放不出这个提示音。 |
 | `Run.StepFailedByMacro` | 宏把这一步判为失败。{0} |
 | `Run.TextNotFound` | 始终没有找到文字：{0} |
+| `Run.TooManyRuns` | 这个宏已经有 {0} 个后台运行在跑；先等一个结束再开新的。 |
 | `Run.Timeout` | 该步骤的运行时间超过了允许的 {0} 毫秒。 |
 | `Run.UndeclaredResult` | 被调用的宏没有声明要交回“{0}”。 |
 | `Run.UnknownBrightnessAction` | 无法识别这个亮度动作：{0} |
