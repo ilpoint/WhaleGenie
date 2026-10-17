@@ -1752,7 +1752,7 @@ public class MacroRunnerTests
     public async Task A_return_ends_the_macro_and_the_caller_carries_on()
     {
         var store = Store();
-        var library = new Library(("检查", new MacroSignature([], ["结果"]),
+        var library = new Library(("检查", new MacroSignature([], [new MacroReturn("结果")]),
             [Set("结果", "early"), Step("control.return"), Set("结果", "late")]));
 
         var (result, _) = await RunAsync(
@@ -1776,7 +1776,7 @@ public class MacroRunnerTests
         var store = Store();
         store.Global.SetText("go", "false");
         var library = new Library(
-            ("后台", new MacroSignature([], ["结果"]),
+            ("后台", new MacroSignature([], [new MacroReturn("结果")]),
             [
                 Step("control.waitUntil", When("condition", Step("condition.compare",
                     Param("variable", "go"), Param("compareOperator", "equals"),
@@ -1815,7 +1815,7 @@ public class MacroRunnerTests
     public async Task A_wait_that_runs_out_leaves_the_background_run_going()
     {
         var store = Store();
-        var library = new Library(("慢", new MacroSignature([], ["结果"]),
+        var library = new Library(("慢", new MacroSignature([], [new MacroReturn("结果")]),
             [
                 Step("control.delay", Param("ms", "250")),
                 Set("结果", "晚了"),
@@ -2233,7 +2233,7 @@ public class MacroRunnerTests
     {
         var store = Store();
         var library = new Library(("倍数", new MacroSignature(
-            [new MacroArgument("倍数", "5", false)], ["结果"]), [Set("结果", "$倍数 * 2")]));
+            [new MacroArgument("倍数", "5", false)], [new MacroReturn("结果")]), [Set("结果", "$倍数 * 2")]));
 
         var (result, _) = await RunAsync(
             [Call("倍数", Returns("结果=结果"))], variables: store, macros: library);
@@ -2413,7 +2413,7 @@ public class MacroRunnerTests
     public async Task A_macro_reads_its_own_name_while_it_runs()
     {
         var store = Store();
-        var library = new Library(("对账", new MacroSignature([], ["看到的"]),
+        var library = new Library(("对账", new MacroSignature([], [new MacroReturn("看到的")]),
             [Set("看到的", "$sys.macroName")]));
 
         var (result, _) = await RunAsync(
@@ -2463,7 +2463,7 @@ public class MacroRunnerTests
         string name, string[] arguments, string[] results, params ExecutableStep[] steps)
         => (name, new MacroSignature(
             [.. arguments.Select(argument => new MacroArgument(argument, string.Empty, true))],
-            results), steps);
+            [.. results.Select(name => new MacroReturn(name))]), steps);
 
     /// <summary>The same for a macro that asks for nothing, which is a macro called for what it does.</summary>
     private static (string Name, MacroSignature Signature, ExecutableStep[] Steps) Plain(

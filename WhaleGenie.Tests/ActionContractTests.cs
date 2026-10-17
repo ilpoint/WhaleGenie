@@ -470,7 +470,84 @@ public class ActionContractTests
     }
 
     /// <summary>
-    /// A step's timeout is one setting, and every attempt spends the same one. A waiting action
+    /// A record's fields are the catalogue's, not the engine's private shape: every record a step
+    /// hands back says what it contains, every field name is one of the constants the file format
+    /// and the record readers share, and only a record (or a list of them) carries fields at all.
+    /// </summary>
+    [Fact]
+    public void Every_record_says_what_its_fields_are()
+    {
+        var constants = typeof(FieldNames)
+            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(field => field.IsLiteral && field.FieldType == typeof(string))
+            .Select(field => (string)field.GetRawConstantValue()!)
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (var action in ActionSemanticsCatalog.All)
+        {
+            foreach (var result in action.Returns)
+            {
+                var field = $"{action.Key}.{result.Key}";
+                if (result.Type == ActionReturnType.Record)
+                {
+                    Assert.NotEmpty(result.Fields);
+                }
+                else if (result.Type != ActionReturnType.List)
+                {
+                    Assert.Empty(result.Fields);
+                }
+
+                Assert.All(result.Fields, declared =>
+                {
+                    Assert.Contains(declared.Name, constants);
+                    Assert.NotEqual(ActionReturnType.Image, declared.Type);
+                });
+            }
+        }
+    }
+
+    /// <summary>
+    /// The manual's record table is what a user reads a field name off, so it has to name exactly
+    /// the fields the catalogue declares — no field the engine writes is missing, and no field the
+    /// manual promises is gone.
+    /// </summary>
+    [Fact]
+    public void The_manual_lists_exactly_the_record_fields_the_catalogue_declares()
+    {
+        var declared = ActionSemanticsCatalog.All
+            .SelectMany(action => action.Returns)
+            .SelectMany(result => result.Fields)
+            .Select(field => field.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var manual = File.ReadAllLines(Path.Combine(Repository(), "doc", "manual.md"));
+        var documented = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var line in manual.Where(line =>
+                     line.StartsWith("| 命中（", StringComparison.Ordinal)
+                     || line.StartsWith("| 截图（", StringComparison.Ordinal)
+                     || line.StartsWith("| 窗口（", StringComparison.Ordinal)
+                     || line.StartsWith("| 显示器（", StringComparison.Ordinal)
+                     || line.StartsWith("| 程序（", StringComparison.Ordinal)
+                     || line.StartsWith("| 元素（", StringComparison.Ordinal)))
+        {
+            var cells = line.Split('|');
+            if (cells.Length < 3)
+            {
+                continue;
+            }
+
+            foreach (Match match in Regex.Matches(cells[2], "`([^`]+)`"))
+            {
+                documented.Add(match.Groups[1].Value);
+            }
+        }
+
+        Assert.NotEmpty(documented);
+        Assert.Equal(declared.Order(StringComparer.Ordinal),
+            documented.Order(StringComparer.Ordinal));
+    }
+
+    /// <summary>
     /// carrying a second timeout field would start a fresh clock on each retry, which is exactly
     /// what the user cannot see from the step's own settings.
     /// </summary>

@@ -7745,10 +7745,9 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// One window is one record however it was come by: asked for by name it carries the part inside
-    /// its border as well, and a listing leaves that out because reading it costs a look at every
-    /// window found. Everything else is the same field for field, so a macro reads a listed window
-    /// and a named one the same way.
+    /// One window is one record however it was come by: a listing and an asked-for window carry the
+    /// same fields, and only the part inside the border differs — a listing leaves it empty because
+    /// reading it costs a look at every window found.
     /// </summary>
     [Fact]
     public async Task A_window_asked_for_by_name_is_shaped_like_one_from_a_listing()
@@ -7766,13 +7765,74 @@ public class DeviceActionTests
 
         Assert.True(result.Succeeded, result.Key);
         var listed = store.Local.Values["list"].AsList()[0];
-        var fields = listed.Fields.Select(field => field.Name).ToList();
 
-        Assert.Equal([.. fields, "clientBox"],
-            store.Local.Values["win"].Fields.Select(field => field.Name));
+        Assert.Equal(store.Local.Values["win"].Fields.Select(field => field.Name),
+            listed.Fields.Select(field => field.Name));
         Assert.Equal(Field(store, "win", "title").AsText(), listed.Field("title")!.AsText());
         Assert.Equal(Field(store, "win", "handle").Number, listed.Field("handle")!.Number);
+        Assert.Equal(string.Empty, listed.Field("clientBox")!.AsText());
+        Assert.NotEqual(string.Empty, Field(store, "win", "clientBox").AsText());
     }
+
+    /// <summary>
+    /// Every record a step hands over says exactly what the catalogue says it says: the fields of a
+    /// hit, a rectangle, a window, a display, a program and an element are the declared ones, in
+    /// the declared order, so a macro can read them by name before the step has ever run.
+    /// </summary>
+    [Fact]
+    public async Task Every_record_a_step_hands_over_carries_the_fields_the_catalogue_declares()
+    {
+        var devices = new FakeDeviceLayer
+        {
+            Spans = [new TextSpan("Save", new ScreenPoint(10, 20), new ScreenSize(40, 12), 0.9)],
+        };
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+        devices.Windows.Add(new WindowInfo(42, "Notepad - notes.txt", new ScreenPoint(10, 20),
+            new ScreenSize(300, 200), false, true));
+        devices.WindowFacts[42] = ("notepad", "Notepad");
+        devices.Elements.Add(new UiElementInfo("Count", "countText", "Text", "TextClass",
+            new ScreenPoint(10, 20), new ScreenSize(80, 24), "Untitled - Notepad"));
+        devices.Running["notepad"] = [42];
+
+        var (result, _, store) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Returns("match=findHit")),
+            Step("vision.capture", Param("x", "10"), Param("y", "10"),
+                Param("width", "20"), Param("height", "20"), Returns("place=shot")),
+            Step("window.info", Param("window", "Notepad"), Returns("window=win")),
+            Step("window.list", Returns("windows=list")),
+            Step("screen.list", Returns("displays=desk")),
+            Step("process.info", Param("processTarget", "notepad"), Returns("program=prog")),
+            Step("uia.read", Param("window", ""), Param("uiSelector", "Text[name='Count']"),
+                Returns("element=el")),
+            Step("uia.find", Param("window", ""), Param("uiSelector", "Text[name='Count']"),
+                Returns("match=found")),
+            Step("ocr.findText", Param("queryText", "Save"), Hit("match", "words")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+
+        Assert.Equal(Declared("vision.findImage", "match"), Names(store.Local.Values["findHit"]));
+        Assert.Equal(Declared("vision.capture", "place"), Names(store.Local.Values["shot"]));
+        Assert.Equal(Declared("window.info", "window"), Names(store.Local.Values["win"]));
+        Assert.Equal(Declared("window.list", "windows"),
+            Names(store.Local.Values["list"].AsList()[0]));
+        Assert.Equal(Declared("screen.list", "displays"),
+            Names(store.Local.Values["desk"].AsList()[0]));
+        Assert.Equal(Declared("process.info", "program"), Names(store.Local.Values["prog"]));
+        Assert.Equal(Declared("uia.read", "element"), Names(store.Local.Values["el"]));
+        Assert.Equal(Declared("uia.find", "match"), Names(store.Local.Values["found"]));
+        Assert.Equal(Declared("ocr.findText", "match"), Names(store.Local.Values["words"]));
+    }
+
+    /// <summary>The fields a result is declared to carry, in the catalogue's order.</summary>
+    private static IReadOnlyList<string> Declared(string action, string result)
+        => [.. ActionSemanticsCatalog.Find(action)!.Returns
+            .First(entry => entry.Key == result).Fields.Select(field => field.Name)];
+
+    /// <summary>The fields a record actually carries, in the order it wrote them.</summary>
+    private static IReadOnlyList<string> Names(Value record)
+        => [.. record.Fields.Select(field => field.Name)];
 
     /// <summary>
     /// 一条窗口记录里关于位置有三种说法，各说各的：中心（x、y，动作要点的那个点）、左上角
@@ -8061,6 +8121,47 @@ public class DeviceActionTests
 
         Assert.Equal(["Notepad", "Calculator"], Titles(store, "all"));
         Assert.Contains("activateWindow 1", devices.Calls);
+    }
+
+    /// <summary>
+    /// 一条窗口记录可以直接当窗口用：按「匹配方式」从记录里取标题、程序名或类名去认，而不是把整条
+    /// 记录的 JSON 当成标题去比。
+    /// </summary>
+    [Fact]
+    public async Task A_window_record_can_be_the_window_a_step_names()
+    {
+        var devices = WithAWindow();
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("window.info", Param("window", "Notepad"), Returns("window=win")),
+            Step("window.activate", Param("window", "$win")),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Contains("activateWindow 1", devices.Calls);
+    }
+
+    /// <summary>
+    /// 按程序名认窗口时，交来的记录里没有 process 这一项就报 Run.WindowRecordField：一条命中不是
+    /// 窗口，拿它当窗口用要说清楚是哪一项取不到。
+    /// </summary>
+    [Fact]
+    public async Task A_window_record_without_the_field_the_match_reads_is_refused()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Matches.Add(new ImageMatch(0.99, new ScreenPoint(30, 40), new ScreenSize(10, 20)));
+
+        var (result, _, _) = await RunAsync(
+        [
+            Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
+            Step("window.activate", Param("window", "$spot"), Param("how", "processEquals")),
+        ], devices);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.WindowRecordField", result.Key);
+        Assert.DoesNotContain(devices.Calls, call => call.StartsWith("activateWindow",
+            StringComparison.Ordinal));
     }
 
     /// <summary>

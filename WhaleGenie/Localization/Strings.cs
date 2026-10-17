@@ -225,6 +225,13 @@ public sealed class Strings : INotifyPropertyChanged
             + "only the sides this step is meant to change.",
         ["Add.EmptyScreenRefresh"] = "Left empty, the wait follows the screen: it looks again after "
             + "one refresh, because a picture that was not drawn again reads the same.",
+        ["ActionType.Text"] = "text",
+        ["ActionType.Number"] = "a number",
+        ["ActionType.Flag"] = "yes or no",
+        ["ActionType.List"] = "a list",
+        ["ActionType.Record"] = "a record",
+        ["ActionType.Image"] = "a picture",
+        ["Add.CallArgumentType"] = "The called macro asks for {0}.",
         ["Add.FieldTakesFormula"] = "This whole value is worked out when the macro runs, so an "
             + "expression can be written here.",
         ["Add.FieldIsText"] = "This is text rather than a formula: a $name in it is replaced with "
@@ -610,6 +617,10 @@ public sealed class Strings : INotifyPropertyChanged
             + "A retry or an outer limit cannot make the wait end sooner; set a timeout before "
             + "relying on either.",
         ["Editor.Problem.NoPlace"] = "Neither \"{0}\" nor the numbers beside it is filled in, so this step has nowhere to work.",
+        ["Editor.Problem.RecordWhereNumber"] = "\"{0}\" takes a number, but a record is written here: read one of its fields with field(record, \"name\").",
+        ["Editor.Problem.ArgumentType"] = "\"{0}\" does not match what the called macro declared: it asks for {1}.",
+        ["Editor.Problem.NotARecord"] = "\"{0}\" takes a record, and \"{1}\" is not one: a hit, a window or a picture taken earlier carries one.",
+        ["Editor.Problem.RecordInText"] = "\"{1}\" takes text and names the record \"{0}\": the whole record would be written as JSON text. Read one field with field(record, \"name\").",
         ["Editor.Problem.EmptySwitch"] = "This switch has no case and no otherwise branch, so it does nothing.",
         ["Editor.Problem.ReservedVariable"] = "\"{0}\" is a name WhaleGenie keeps for itself, "
             + "so a variable of this macro cannot use it.",
@@ -1330,6 +1341,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.MissingCondition"] = "This step has no condition.",
         ["Run.MissingHandle"] = "This step starts a background run but does not name a variable for its handle.",
         ["Run.WindowNotFound"] = "No window matches that title: {0}",
+        ["Run.WindowRecordField"] = "This window record has no {0} field, which is what the chosen way of matching reads. Choose another way of matching, give the record that field, or write field(window, \"…\") for the one you mean.",
         ["Log.FocusedWindow"] = "Brought the window to the front: {0}",
         ["Run.EmptySelector"] = "No element selector was given.",
         ["Run.MissingWindow"] = "No window title was given: {0}",
@@ -1645,6 +1657,13 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.EmptyUsesDefault"] = "没写时按动作的默认值：这一项有默认值，手写文件里略过它也算完整的一步。",
         ["Add.EmptyKeeps"] = "留空即保持窗口当前的位置或大小：只填这一步要改的那几项。",
         ["Add.EmptyScreenRefresh"] = "留空即按屏幕刷新一次的时间：画面没重画，再看也只能读到同一张。",
+        ["ActionType.Text"] = "文本",
+        ["ActionType.Number"] = "数字",
+        ["ActionType.Flag"] = "真假",
+        ["ActionType.List"] = "列表",
+        ["ActionType.Record"] = "一条记录",
+        ["ActionType.Image"] = "图片",
+        ["Add.CallArgumentType"] = "调用的宏要的是{0}。",
         ["Add.FieldTakesFormula"] = "这里可以写算式：整段值由引擎在运行时算出来。",
         ["Add.FieldIsText"] = "这里不计算式：$名字 只是就地替换成那个变量此刻的值，其余部分照原样"
             + "使用。",
@@ -1970,6 +1989,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.WaitWithoutTimeout"] = "这一步会等待，但没有设置自己的超时；重试或外层限时"
             + "都不能让它更早结束。要依赖它们，先给这一步填一个超时。",
         ["Editor.Problem.NoPlace"] = "「{0}」和旁边的数字都没填，这一步没有地方可做。",
+        ["Editor.Problem.RecordWhereNumber"] = "「{0}」要的是数字，这里却给了一条记录：取记录里的一项用 field(记录, \"字段名\")。",
+        ["Editor.Problem.ArgumentType"] = "「{0}」这一项与调用的宏声明不符：它要的是{1}。",
+        ["Editor.Problem.NotARecord"] = "「{0}」要一条记录，而「{1}」不是：上一步的命中、窗口或截图都带着一条记录。",
+        ["Editor.Problem.RecordInText"] = "「{1}」只收文本，却引用了记录「{0}」：整条记录会被写成 JSON 文字；取其中一项用 field(记录, \"字段名\")。",
         ["Editor.Problem.EmptySwitch"] = "这个多分支没有 case，也没有 otherwise，运行时什么也不做。",
         ["Editor.Problem.ReservedVariable"] = "“{0}”是鲸灵自己保留的名字，本宏的变量不能用它。",
         ["Editor.Problem.UnguardedRecursion"] = "这一步调用了宏自己，但不在 if、多分支或循环里，"
@@ -2949,6 +2972,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.NoEntryPoint"] = "这段脚本没有可以运行的入口：要有一个带 static Main 的类。",
         ["Run.ScriptBridgeLost"] = "脚本起来了，但没能连上鲸灵：{0}",
         ["Run.WindowNotFound"] = "没有找到这个标题的窗口：{0}",
+        ["Run.WindowRecordField"] = "这条窗口记录里没有 {0} 这一项，而现在的匹配方式要从它取值。换一种匹配方式，给记录补上这一项，或者用 field(记录, \"字段名\") 取出你要的那一项。",
         ["Log.FocusedWindow"] = "已把窗口调到最前：{0}",
         ["Run.EmptySelector"] = "没有填写要查找的元素选择器。",
         ["Run.MissingWindow"] = "没有填写窗口标题：{0}",

@@ -52,16 +52,16 @@ public sealed partial class MacroRunner
 
                 return Value.FromRecord(
                 [
-                    ("x", Value.FromNumber(middle.X)),
-                    ("y", Value.FromNumber(middle.Y)),
+                    (FieldNames.X, Value.FromNumber(middle.X)),
+                    (FieldNames.Y, Value.FromNumber(middle.Y)),
                     (FieldNames.Left, Value.FromNumber(area.Left)),
                     (FieldNames.Top, Value.FromNumber(area.Top)),
                     (FieldNames.Width, Value.FromNumber(area.Width)),
                     (FieldNames.Height, Value.FromNumber(area.Height)),
-                    ("right", Value.FromNumber(area.Right)),
-                    ("bottom", Value.FromNumber(area.Bottom)),
-                    ("primary", Value.FromBool(display.Primary)),
-                    ("box", Value.FromText($"{area.Left},{area.Top},{area.Width},{area.Height}")),
+                    (FieldNames.Right, Value.FromNumber(area.Right)),
+                    (FieldNames.Bottom, Value.FromNumber(area.Bottom)),
+                    (FieldNames.Primary, Value.FromBool(display.Primary)),
+                    (FieldNames.Box, Value.FromText($"{area.Left},{area.Top},{area.Width},{area.Height}")),
                 ]);
             }),
         ]));

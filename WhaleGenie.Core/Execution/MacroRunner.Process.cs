@@ -160,11 +160,11 @@ public sealed partial class MacroRunner
         // it is costing are answers to the same question and travel together.
         Give(step, "program", Value.FromRecord(
         [
-            ("info", Value.FromText(details.Path)),
-            ("id", Value.FromNumber(details.Id)),
-            ("name", Value.FromText(details.Name)),
-            ("memoryMb", Value.FromNumber(details.MemoryMb)),
-            ("cpuSeconds", Value.FromNumber(details.CpuSeconds)),
+            (FieldNames.Info, Value.FromText(details.Path)),
+            (FieldNames.Id, Value.FromNumber(details.Id)),
+            (FieldNames.Name, Value.FromText(details.Name)),
+            (FieldNames.MemoryMb, Value.FromNumber(details.MemoryMb)),
+            (FieldNames.CpuSeconds, Value.FromNumber(details.CpuSeconds)),
         ]));
 
         Log(LogLevel.Info, depth, step.Type, LogKeys.ProgramDetails, details.Name, details.Id);

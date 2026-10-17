@@ -1302,7 +1302,7 @@ public partial class AddActionViewModel : ViewModelBase
                     Name = MacroCallFields.Argument(parameter.Name.Trim()),
                     Label = parameter.Name.Trim(),
                     Kind = ActionParameterKind.Expression,
-                    Hint = parameter.Description,
+                    Hint = CalledHint(parameter.Description, parameter.Type),
                     Semantics = new ActionParameterSemantics
                     {
                         Name = MacroCallFields.Argument(parameter.Name.Trim()),
@@ -1313,6 +1313,17 @@ public partial class AddActionViewModel : ViewModelBase
                     },
                 }),
         ];
+    }
+
+    /// <summary>
+    /// What a call's field says under itself: the called macro's own words, then what kind of value
+    /// it is asking for, so a record is not handed to a field that wanted a line of text.
+    /// </summary>
+    private static string CalledHint(string description, ActionReturnType type)
+    {
+        var kind = Strings.Format("Add.CallArgumentType",
+            Strings.Get("ActionType." + type, type.ToString()));
+        return description.Length == 0 ? kind : description + " " + kind;
     }
 
     /// <summary>
@@ -1335,7 +1346,7 @@ public partial class AddActionViewModel : ViewModelBase
                 {
                     Key = result.Name.Trim(),
                     Label = result.Name.Trim(),
-                    Hint = result.Description,
+                    Hint = CalledHint(result.Description, result.Type),
                     Type = result.Type,
                 }),
         ];

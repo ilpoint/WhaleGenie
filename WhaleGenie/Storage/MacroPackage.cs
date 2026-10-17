@@ -32,7 +32,7 @@ public static class MacroPackage
     /// </summary>
     public const string Extension = ".wgmacro";
     public const string FormatId = "whalegenie.macro.package";
-    public const int FormatVersion = 7;
+    public const int FormatVersion = 8;
 
     private const string ManifestEntry = "manifest.json";
     private const string ReadmeEntry = "README.md";

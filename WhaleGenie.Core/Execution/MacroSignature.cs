@@ -9,7 +9,11 @@ namespace WhaleGenie.Core.Execution;
 /// a call that names something the macro never declared is a mistake rather than a value nobody
 /// happens to read.
 /// </summary>
-public sealed record MacroArgument(string Name, string Default, bool Required);
+public sealed record MacroArgument(string Name, string Default, bool Required,
+    ActionReturnType Type = ActionReturnType.Text);
+
+/// <summary>One value a macro offers to hand back: the name and what kind of value it is.</summary>
+public sealed record MacroReturn(string Name, ActionReturnType Type = ActionReturnType.Text);
 
 /// <summary>
 /// What a macro asks of a call to it: the values that have to be filled in, and the names it may
@@ -17,7 +21,7 @@ public sealed record MacroArgument(string Name, string Default, bool Required);
 /// written before this existed still runs.
 /// </summary>
 public sealed record MacroSignature(
-    IReadOnlyList<MacroArgument> Arguments, IReadOnlyList<string> Results)
+    IReadOnlyList<MacroArgument> Arguments, IReadOnlyList<MacroReturn> Results)
 {
     /// <summary>What a macro that declares nothing asks for.</summary>
     public static MacroSignature Empty { get; } = new([], []);
@@ -28,9 +32,12 @@ public sealed record MacroSignature(
             string.Equals(argument.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
 
     /// <summary>True when the macro offers to hand back a value of this name.</summary>
-    public bool Offers(string name)
-        => Results.Any(result =>
-            string.Equals(result.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
+    public bool Offers(string name) => Result(name) is not null;
+
+    /// <summary>The declared result of this name, or null when the macro offers none by it.</summary>
+    public MacroReturn? Result(string name)
+        => Results.FirstOrDefault(result =>
+            string.Equals(result.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
 }
 
 /// <summary>

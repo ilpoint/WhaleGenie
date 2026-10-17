@@ -23,6 +23,7 @@ public class MacroCallTests
             Default = "3",
             Required = false,
             Description = "要做多少遍。",
+            Type = ActionReturnType.Number,
         });
         macro.Parameters.Add(new MacroParameter
         {
@@ -48,10 +49,14 @@ public class MacroCallTests
         Assert.Equal("3", optional.Default);
         Assert.False(optional.Required);
         Assert.Equal("要做多少遍。", optional.Description);
+        Assert.Equal(ActionReturnType.Number, optional.Type);
 
         var wanted = Assert.Single(callable.Parameters, parameter => parameter.Name == "标签");
         Assert.True(wanted.Required);
         Assert.Equal(string.Empty, wanted.Default);
+        Assert.Equal(ActionReturnType.Text, wanted.Type);
+        Assert.Equal(ActionReturnType.Number, callable.Signature.Argument("次数")!.Type);
+        Assert.Equal(ActionReturnType.Number, callable.Signature.Result("答案")!.Type);
     }
 
     [Fact]
@@ -94,7 +99,7 @@ public class MacroCallTests
             Assert.Equal("答案", read.Results[0].Name);
             Assert.Equal(ActionReturnType.Number, read.Results[0].Type);
             Assert.Equal(["次数", "标签"], read.Callable.Signature.Arguments.Select(a => a.Name));
-            Assert.Equal(["答案"], read.Callable.Signature.Results);
+            Assert.Equal(["答案"], read.Callable.Signature.Results.Select(result => result.Name));
         }
         finally
         {

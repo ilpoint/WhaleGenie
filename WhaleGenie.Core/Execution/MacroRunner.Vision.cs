@@ -345,13 +345,13 @@ public sealed partial class MacroRunner
         var middle = Middle(corner, new ScreenSize(frame.Width, frame.Height));
         Give(step, "place", Value.FromRecord(
         [
-            ("x", Value.FromNumber(middle.X)),
-            ("y", Value.FromNumber(middle.Y)),
+            (FieldNames.X, Value.FromNumber(middle.X)),
+            (FieldNames.Y, Value.FromNumber(middle.Y)),
             (FieldNames.Left, Value.FromNumber(corner.X)),
             (FieldNames.Top, Value.FromNumber(corner.Y)),
             (FieldNames.Width, Value.FromNumber(frame.Width)),
             (FieldNames.Height, Value.FromNumber(frame.Height)),
-            ("box", Value.FromText($"{corner.X},{corner.Y},{frame.Width},{frame.Height}")),
+            (FieldNames.Box, Value.FromText($"{corner.X},{corner.Y},{frame.Width},{frame.Height}")),
         ]));
 
         Saw(step, LookKind.Capture, frame, corner,

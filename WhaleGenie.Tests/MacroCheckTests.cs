@@ -556,6 +556,73 @@ public class MacroCheckTests
             Text("startPlace", "$spot"), Text("endX", "10"), Text("endY", "10"))));
     }
 
+    /// <summary>
+    /// What a name holds is known from the step that made it, so a record in a number field, a line
+    /// of text where a record is needed and a record written into text are all said before the run.
+    /// </summary>
+    [Fact]
+    public void A_value_of_the_wrong_shape_is_reported()
+    {
+        var find = Step("vision.findImage", Text("images", ""), Results("match"));
+        var number = Step("input.mouseMove", Text("x", "$match"), Text("y", "10"));
+        var text = Step("file.writeText", Text("path", "$match"), Text("text", "x"));
+        var place = Step("input.mouseMove", Text("place", "$sys.date"), Text("y", "10"));
+
+        var problems = Inspect(find, number, text, place);
+
+        var (xLabel, placeLabel, messageLabel) = Ui.Run(() =>
+        {
+            var move = ActionCatalog.Find("input.mouseMove")!;
+            var log = ActionCatalog.Find("file.writeText")!;
+            return (move.Parameters.First(parameter => parameter.Name == "x").LocalLabel,
+                move.Parameters.First(parameter => parameter.Name == "place").LocalLabel,
+                log.Parameters.First(parameter => parameter.Name == "path").LocalLabel);
+        });
+
+        Assert.Contains(problems, problem => problem.Step == number
+            && problem.Message == Strings.Format("Editor.Problem.RecordWhereNumber", xLabel));
+        Assert.Contains(problems, problem => problem.Step == text
+            && problem.Message == Strings.Format("Editor.Problem.RecordInText", "match",
+                messageLabel));
+        Assert.Contains(problems, problem => problem.Step == place
+            && problem.Message == Strings.Format("Editor.Problem.NotARecord", placeLabel,
+                "sys.date"));
+    }
+
+    /// <summary>
+    /// A window record goes into a window field as it stands: what it is compared against comes out
+    /// of the record by the way the step says to match, so this is a complete answer.
+    /// </summary>
+    [Fact]
+    public void A_window_record_can_be_the_window_a_step_names()
+    {
+        var info = Step("window.info", Text("window", "Notepad"), Results("window"));
+        var press = Step("input.keyPress", Text("key", "F5"), Text("inputMode", "background"),
+            Text("targetWindow", "$window"));
+
+        var problems = Inspect(info, press);
+        Assert.DoesNotContain(problems, problem => problem.Step == press);
+    }
+
+    /// <summary>
+    /// A call hands its values to what the called macro declared. A value whose kind is known and
+    /// does not fit is worth saying at the call site rather than at the point the called macro
+    /// reads it.
+    /// </summary>
+    [Fact]
+    public void A_call_argument_of_the_wrong_kind_is_reported()
+    {
+        var target = new MacroCallable("整理",
+            [new MacroParameter { Name = "窗口", Type = ActionReturnType.Record }], []);
+        var call = Step("control.runMacro", Text("macro", "整理"),
+            Text(MacroCallFields.Argument("窗口"), "$sys.date"));
+
+        var problems = Ui.Run(() => MacroCheck.Inspect([call], null, [target]));
+        var problem = Assert.Single(problems, candidate => candidate.Step == call);
+        Assert.Equal(Strings.Format("Editor.Problem.ArgumentType", "窗口",
+            Strings.Get("ActionType.Record")), problem.Message);
+    }
+
     [Fact]
     public void A_switch_with_neither_a_case_nor_an_otherwise_is_reported()
     {

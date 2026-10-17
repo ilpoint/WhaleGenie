@@ -385,6 +385,7 @@ public partial class MacroItem : ObservableObject
                 ["default"] = parameter.Default,
                 ["required"] = parameter.Required,
                 ["description"] = parameter.Description,
+                ["type"] = parameter.Type.ToString(),
             });
         }
 
@@ -478,6 +479,7 @@ public partial class MacroItem : ObservableObject
                     Default = declared["default"]?.GetValue<string>() ?? string.Empty,
                     Required = ReadBool(declared["required"], true),
                     Description = declared["description"]?.GetValue<string>() ?? string.Empty,
+                    Type = ReadEnum(declared, "type", ActionReturnType.Text),
                 });
             }
         }

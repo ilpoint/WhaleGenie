@@ -230,12 +230,26 @@ public sealed class ActionParameterSemantics
     public IReadOnlyList<string> ChildKeys { get; init; } = [];
 }
 
+/// <summary>One field of a record a result hands over.</summary>
+public sealed class ActionReturnField
+{
+    public required string Name { get; init; }
+
+    public ActionReturnType Type { get; init; } = ActionReturnType.Text;
+}
+
 /// <summary>One result an action can hand over.</summary>
 public sealed class ActionReturnSemantics
 {
     public required string Key { get; init; }
 
     public ActionReturnType Type { get; init; } = ActionReturnType.Text;
+
+    /// <summary>
+    /// The fields of the record this result holds, or — for a list of records — of each item in it.
+    /// A record without them is a shape the macro has to guess at, so the catalogue says.
+    /// </summary>
+    public IReadOnlyList<ActionReturnField> Fields { get; init; } = [];
 
     /// <summary>True for the result a step is usually asked for first.</summary>
     public bool Primary { get; init; }
@@ -339,6 +353,29 @@ public static class ActionSemanticsCatalog
                 .Distinct(StringComparer.Ordinal).Count() != action.Returns.Count)
             {
                 throw new InvalidOperationException($"{action.Key}: a return key is repeated.");
+            }
+
+            foreach (var result in action.Returns)
+            {
+                if (result.Fields.Select(field => field.Name)
+                    .Distinct(StringComparer.Ordinal).Count() != result.Fields.Count)
+                {
+                    throw new InvalidOperationException(
+                        $"{action.Key}.{result.Key}: a record field is repeated.");
+                }
+
+                if (result.Fields.Count > 0
+                    && result.Type is not (ActionReturnType.Record or ActionReturnType.List))
+                {
+                    throw new InvalidOperationException(
+                        $"{action.Key}.{result.Key}: only a record has fields.");
+                }
+
+                if (result.Type == ActionReturnType.Record && result.Fields.Count == 0)
+                {
+                    throw new InvalidOperationException(
+                        $"{action.Key}.{result.Key}: a record does not say what its fields are.");
+                }
             }
 
             foreach (var parameter in action.Parameters)

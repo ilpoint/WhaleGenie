@@ -150,19 +150,19 @@ public sealed partial class MacroRunner
         var middle = Middle(facts.Location, facts.Size);
         Give(step, "element", Value.FromRecord(
         [
-            ("enabled", Value.FromBool(facts.Enabled)),
-            ("visible", Value.FromBool(facts.Visible)),
-            ("value", Value.FromText(facts.Value)),
-            ("name", Value.FromText(facts.Name)),
-            ("automationId", Value.FromText(facts.AutomationId)),
-            ("controlType", Value.FromText(facts.ControlType)),
-            ("x", Value.FromNumber(middle.X)),
-            ("y", Value.FromNumber(middle.Y)),
+            (FieldNames.Enabled, Value.FromBool(facts.Enabled)),
+            (FieldNames.Visible, Value.FromBool(facts.Visible)),
+            (FieldNames.Value, Value.FromText(facts.Value)),
+            (FieldNames.Name, Value.FromText(facts.Name)),
+            (FieldNames.AutomationId, Value.FromText(facts.AutomationId)),
+            (FieldNames.ControlType, Value.FromText(facts.ControlType)),
+            (FieldNames.X, Value.FromNumber(middle.X)),
+            (FieldNames.Y, Value.FromNumber(middle.Y)),
             (FieldNames.Left, Value.FromNumber(facts.Location.X)),
             (FieldNames.Top, Value.FromNumber(facts.Location.Y)),
             (FieldNames.Width, Value.FromNumber(facts.Size.Width)),
             (FieldNames.Height, Value.FromNumber(facts.Size.Height)),
-            ("box", Value.FromText(
+            (FieldNames.Box, Value.FromText(
                 $"{facts.Location.X},{facts.Location.Y},{facts.Size.Width},{facts.Size.Height}")),
         ]));
 

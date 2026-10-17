@@ -180,6 +180,7 @@ public static class RunKeys
     public const string WaitTimeout = "Run.WaitTimeout";
     public const string WindowFailed = "Run.WindowFailed";
     public const string WindowNotFound = "Run.WindowNotFound";
+    public const string WindowRecordField = "Run.WindowRecordField";
     public const string WindowTimeout = "Run.WindowTimeout";
 
     /// <summary>Every failure key, in ordinal order.</summary>

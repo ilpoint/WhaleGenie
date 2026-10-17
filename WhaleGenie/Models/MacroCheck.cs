@@ -102,6 +102,7 @@ public static class MacroCheck
         }
 
         var defined = DefinedVariables(tree);
+        var known = KnownTypes(tree, own, reachable);
 
         // What the macro declares is a name it reads like any other: the caller hands a value to it
         // under that name and the steps inside read $name. A macro lifted out of a stretch of steps
@@ -174,6 +175,7 @@ public static class MacroCheck
                 CheckPostedMove(step);
                 CheckWait(step, bounded);
                 CheckPlace(step);
+                CheckValueTypes(step);
                 CheckSwitch(step);
                 CheckReservedNames(step);
                 CheckScriptInput(step);
@@ -442,13 +444,111 @@ public static class MacroCheck
             }
         }
 
+        /// <summary>
+        /// What a value is has to match what the field takes. Only names whose kind the steps
+        /// themselves declare are judged — a hit is a record, a line of writing is text — because
+        /// guessing at a name nobody declared would teach the user to ignore the marks.
+        /// </summary>
+        void CheckValueTypes(MacroStep step)
+        {
+            CheckCallArguments(step);
+
+            foreach (var parameter in step.Parameters)
+            {
+                if (step.ParameterDefinition(parameter) is not { } definition)
+                {
+                    continue;
+                }
+
+                var value = parameter.Value.Trim();
+                if (value.Length == 0)
+                {
+                    continue;
+                }
+
+                if (WholeName(value) is { } name && known.TryGetValue(name, out var type))
+                {
+                    if (definition.Shape == ActionValueShape.Number
+                        && type == ActionReturnType.Record)
+                    {
+                        Add(step, Strings.Format("Editor.Problem.RecordWhereNumber",
+                            definition.LocalLabel));
+                    }
+                    else if (definition.Shape
+                             is ActionValueShape.Point or ActionValueShape.Rect
+                                 or ActionValueShape.Record
+                             && type != ActionReturnType.Record
+                             && type != ActionReturnType.List)
+                    {
+                        Add(step, Strings.Format("Editor.Problem.NotARecord",
+                            definition.LocalLabel, name));
+                    }
+                }
+
+                // A record named inside text becomes JSON where the user meant a title or a line:
+                // a field read as one value keeps the record whole, and the window fields read it
+                // as a window, so those are left alone.
+                if (definition.ReadMode != ActionReadMode.Text
+                    || definition.Shape is ActionValueShape.Point or ActionValueShape.Rect
+                        or ActionValueShape.Record
+                    || definition.Picker == ActionPickerKind.Window
+                    || definition.Name is "window" or "anchorWindow" or "targetWindow")
+                {
+                    continue;
+                }
+
+                foreach (var referenced in VariableText.Referenced(value))
+                {
+                    if (known.TryGetValue(referenced, out var kind)
+                        && kind == ActionReturnType.Record)
+                    {
+                        Add(step, Strings.Format("Editor.Problem.RecordInText", referenced,
+                            definition.LocalLabel));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// A call passes values the called macro asked for. A value whose kind is known and does not
+        /// fit what was asked for is worth saying before the run: the call would read it as text or
+        /// refuse it, and neither is visible from the call's own form.
+        /// </summary>
+        void CheckCallArguments(MacroStep step)
+        {
+            if (step.Type != "control.runMacro"
+                || reachable.GetValueOrDefault(step.Text("macro").Trim()) is not { } called)
+            {
+                return;
+            }
+
+            foreach (var parameter in step.Parameters.Where(parameter => parameter.Name.StartsWith(
+                         MacroCallFields.ArgumentPrefix, StringComparison.Ordinal)))
+            {
+                if (called.Parameter(parameter.Name[MacroCallFields.ArgumentPrefix.Length..])
+                    is not { } declared)
+                {
+                    continue;
+                }
+
+                if (WholeName(parameter.Value) is not { } name
+                    || !known.TryGetValue(name, out var type)
+                    || !ObviouslyWrong(declared.Type, type))
+                {
+                    continue;
+                }
+
+                Add(step, Strings.Format("Editor.Problem.ArgumentType", declared.Name,
+                    Strings.Get("ActionType." + declared.Type, declared.Type.ToString())));
+            }
+        }
+
         void CheckSwitch(MacroStep step)
         {
             if (step.Type != "control.switch")
             {
                 return;
             }
-
             var cases = step.Parameters
                 .FirstOrDefault(parameter => parameter.Name == "cases")?.Steps
                 .Count(branch => branch.Type == "control.case") ?? 0;
@@ -597,6 +697,122 @@ public static class MacroCheck
     /// The results a call asks to have back, one row per result: what the called macro calls the
     /// value, and the name the caller wants it under. A row without both is not asking for anything.
     /// </summary>
+    /// <summary>
+    /// What kind of value each name the macro can read is known to hold. Only what the steps and
+    /// declarations say: a result the catalogue calls a record is a record, a line of writing is
+    /// text, and a name nothing declares is left unknown rather than guessed at.
+    /// </summary>
+    private static Dictionary<string, ActionReturnType> KnownTypes(IReadOnlyList<MacroStep> steps,
+        MacroCallable? own, Dictionary<string, MacroCallable?> reachable)
+    {
+        var known = new Dictionary<string, ActionReturnType>(StringComparer.OrdinalIgnoreCase);
+        foreach (var variable in VariableCatalog.SystemVariables)
+        {
+            known[variable.Name] = variable.Type switch
+            {
+                "number" => ActionReturnType.Number,
+                "bool" => ActionReturnType.Flag,
+                "list" => ActionReturnType.List,
+                _ => ActionReturnType.Text,
+            };
+        }
+
+        if (own is not null)
+        {
+            foreach (var parameter in own.Parameters)
+            {
+                if (parameter.Name.Trim() is { Length: > 0 } name)
+                {
+                    known[name] = parameter.Type;
+                }
+            }
+        }
+
+        foreach (var step in Every(steps))
+        {
+            if (step.Definition is { } definition
+                && step.Parameters.FirstOrDefault(parameter =>
+                    parameter.Kind is ActionParameterKind.Returns) is { } returns)
+            {
+                foreach (var (key, name) in step.ReturnedResults(returns))
+                {
+                    if (definition.Returns.FirstOrDefault(result =>
+                            string.Equals(result.Key, key, StringComparison.OrdinalIgnoreCase))
+                        is { } result)
+                    {
+                        known[name] = result.Type;
+                    }
+                }
+            }
+
+            if (step.Type == "control.runMacro"
+                && reachable.GetValueOrDefault(step.Text("macro").Trim()) is { } called)
+            {
+                foreach (var (result, name) in Wanted(step))
+                {
+                    if (called.Results.FirstOrDefault(candidate => string.Equals(candidate.Name,
+                            result, StringComparison.OrdinalIgnoreCase)) is { } declared)
+                    {
+                        known[name] = declared.Type;
+                    }
+                }
+            }
+        }
+
+        return known;
+    }
+
+    /// <summary>
+    /// True when a value of one kind cannot stand for a value the called macro declared: a record
+    /// is not a line of text, a line of text is not a record, and a list is not a number.
+    /// </summary>
+    private static bool ObviouslyWrong(ActionReturnType declared, ActionReturnType actual)
+    {
+        if (declared == actual)
+        {
+            return false;
+        }
+
+        var composite = actual
+            is ActionReturnType.Record or ActionReturnType.List or ActionReturnType.Image;
+        return declared switch
+        {
+            ActionReturnType.Record => !composite,
+            ActionReturnType.Text => composite,
+            ActionReturnType.Number or ActionReturnType.Flag => composite,
+            _ => false,
+        };
+    }
+
+    /// <summary>
+    /// The name a cell holds when it is one variable and nothing else, or null when it is text, an
+    /// expression or several things at once.
+    /// </summary>
+    private static string? WholeName(string value)
+    {
+        var text = value.Trim();
+        if (text.Length < 2 || text[0] != '$')
+        {
+            return null;
+        }
+
+        var name = text[1..];
+        if (!char.IsLetter(name[0]) && name[0] != '_')
+        {
+            return null;
+        }
+
+        foreach (var letter in name)
+        {
+            if (!char.IsLetterOrDigit(letter) && letter != '_' && letter != '.')
+            {
+                return null;
+            }
+        }
+
+        return name;
+    }
+
     private static IEnumerable<(string Result, string Name)> Wanted(MacroStep step)
     {
         foreach (var parameter in step.Parameters.Where(parameter => parameter.Name == "returns"))

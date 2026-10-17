@@ -119,42 +119,29 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
-    /// One hit as a record. The fields are the same whatever was found, so a macro that reads the
-    /// size of a picture reads the size of a line of writing the same way; a hit that read no
-    /// writing — a picture, a colour — simply has no text field, and a thing a detection model found
-    /// carries which kind of thing it is beside that.
+    /// One hit as a record. Every hit carries the same fields, whatever was found: the same
+    /// rectangle, the same score and the same place to put a kind and a piece of writing, empty
+    /// where the action read none. A macro that reads the size of a picture and one that reads the
+    /// size of a line of writing therefore spell it the same way.
     /// </summary>
     private static Value Hit(ScreenPoint corner, ScreenSize size, double score, string text = "",
         string label = "", int classId = -1)
     {
         var centre = Middle(corner, size);
-        var fields = new List<(string, Value)>
-        {
-            ("x", Value.FromNumber(centre.X)),
-            ("y", Value.FromNumber(centre.Y)),
+        return Value.FromRecord(
+        [
+            (FieldNames.X, Value.FromNumber(centre.X)),
+            (FieldNames.Y, Value.FromNumber(centre.Y)),
             (FieldNames.Left, Value.FromNumber(corner.X)),
             (FieldNames.Top, Value.FromNumber(corner.Y)),
             (FieldNames.Width, Value.FromNumber(size.Width)),
             (FieldNames.Height, Value.FromNumber(size.Height)),
-            ("score", Value.FromNumber(score)),
-            ("box", Value.FromText($"{corner.X},{corner.Y},{size.Width},{size.Height}")),
-        };
-
-        if (text.Length > 0)
-        {
-            fields.Add(("text", Value.FromText(text)));
-        }
-
-        // Which kind of thing it is is two answers about one hit: the number the model answered
-        // with, which is what a macro picks classes out of a label file by, and the name that file
-        // gives it, which is empty when the file does not name that number.
-        if (classId >= 0)
-        {
-            fields.Add(("class", Value.FromNumber(classId)));
-            fields.Add(("label", Value.FromText(label)));
-        }
-
-        return Value.FromRecord(fields);
+            (FieldNames.Score, Value.FromNumber(score)),
+            (FieldNames.Box, Value.FromText($"{corner.X},{corner.Y},{size.Width},{size.Height}")),
+            (FieldNames.Text, Value.FromText(text)),
+            (FieldNames.Class, Value.FromNumber(classId)),
+            (FieldNames.Label, Value.FromText(label)),
+        ]);
     }
 
     /// <summary>The middle of a rectangle, which is the point an action aims at.</summary>
@@ -319,8 +306,29 @@ public sealed partial class MacroRunner
         WindowRuleOf(ExecutableStep step,
         string textField, string howField)
     {
-        var text = ReadValue(step, textField).AsText().Trim();
         var (match, compare) = WindowHow.Read(step.Text(howField));
+        var value = WindowValue(step, textField);
+
+        string text;
+        if (value.IsRecord)
+        {
+            // A record says what a window is three times over: what it is called, what program
+            // owns it and what class it was registered under. Which of the three is compared is
+            // the same choice the text form is held up against.
+            var name = match switch
+            {
+                WindowMatch.Process => FieldNames.Process,
+                WindowMatch.ClassName => FieldNames.Class,
+                _ => FieldNames.Title,
+            };
+            text = value.Field(name)?.AsText().Trim()
+                ?? throw new StepFailure(RunKeys.WindowRecordField, name);
+        }
+        else
+        {
+            text = value.AsText().Trim();
+        }
+
         var options = OptionsOf(step, compare);
 
         // A pattern the machine cannot read is the macro's problem to see, not a stack trace to
@@ -338,8 +346,45 @@ public sealed partial class MacroRunner
         return (text, match, compare, options);
     }
 
+    /// <summary>
+    /// What a step wrote into a window field: the value of the variable it names when that variable
+    /// holds a window record, and the text it looks like otherwise. A cell that is one known name is
+    /// read as that value so a record can be handed over whole; everything else keeps the old
+    /// reading, where a dollar sign is filled in and text around it stays as written.
+    /// </summary>
+    private Value WindowValue(ExecutableStep step, string field)
+    {
+        var written = step.Text(field).Trim();
+        if (written.Length > 1 && written[0] == '$' && WindowName(written[1..])
+            && Variables.TryGet(written[1..], out var value))
+        {
+            return value;
+        }
+
+        return Value.FromText(ReadText(step, field));
+    }
+
+    /// <summary>True when the text is one variable name and nothing else.</summary>
+    private static bool WindowName(string name)
+    {
+        if (name.Length == 0 || (!char.IsLetter(name[0]) && name[0] != '_'))
+        {
+            return false;
+        }
+
+        foreach (var letter in name)
+        {
+            if (!char.IsLetterOrDigit(letter) && letter != '_' && letter != '.')
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /// <summary>What a step wrote into its window field, with the variables in it resolved.</summary>
-    private string WindowText(ExecutableStep step) => ReadValue(step, "window").AsText().Trim();
+    private string WindowText(ExecutableStep step) => WindowValue(step, "window").AsText().Trim();
 
     /// <summary>
     /// Reads where a window is and how big it is. The rectangle is written the way a search region
@@ -375,8 +420,8 @@ public sealed partial class MacroRunner
     /// One window as a record: what it is — the title, the program and the class behind it, what the
     /// system knows it by, whether it is shrunk or spread — and where it sits, both as the four
     /// numbers of its rectangle, as the middle of that rectangle under x and y, and as the text a
-    /// search region is spelled with. The part inside the border goes in when the caller has read
-    /// it; a listing leaves it out, because reading it costs a look at every window found.
+    /// search region is spelled with. The part inside the border is always there as a field; a
+    /// listing leaves it empty, because reading it costs a look at every window found.
     /// </summary>
     private static Value WindowRecord(WindowInfo window, string program, string kind, string clientBox)
     {
@@ -386,29 +431,23 @@ public sealed partial class MacroRunner
         var height = window.Size.Height;
         var middle = Middle(window.Location, window.Size);
 
-        List<(string Name, Value Value)> fields =
+        return Value.FromRecord(
         [
-            ("title", Value.FromText(window.Title)),
-            ("process", Value.FromText(program)),
-            ("class", Value.FromText(kind)),
-            ("handle", Value.FromNumber(window.Handle)),
-            ("minimized", Value.FromBool(window.Minimized)),
-            ("maximized", Value.FromBool(window.Maximized)),
-            ("x", Value.FromNumber(middle.X)),
-            ("y", Value.FromNumber(middle.Y)),
+            (FieldNames.Title, Value.FromText(window.Title)),
+            (FieldNames.Process, Value.FromText(program)),
+            (FieldNames.Class, Value.FromText(kind)),
+            (FieldNames.Handle, Value.FromNumber(window.Handle)),
+            (FieldNames.Minimized, Value.FromBool(window.Minimized)),
+            (FieldNames.Maximized, Value.FromBool(window.Maximized)),
+            (FieldNames.X, Value.FromNumber(middle.X)),
+            (FieldNames.Y, Value.FromNumber(middle.Y)),
             (FieldNames.Left, Value.FromNumber(left)),
             (FieldNames.Top, Value.FromNumber(top)),
             (FieldNames.Width, Value.FromNumber(width)),
             (FieldNames.Height, Value.FromNumber(height)),
-            ("box", Value.FromText($"{left},{top},{width},{height}")),
-        ];
-
-        if (clientBox.Length > 0)
-        {
-            fields.Add(("clientBox", Value.FromText(clientBox)));
-        }
-
-        return Value.FromRecord(fields);
+            (FieldNames.Box, Value.FromText($"{left},{top},{width},{height}")),
+            (FieldNames.ClientBox, Value.FromText(clientBox)),
+        ]);
     }
 
 }

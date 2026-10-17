@@ -23,6 +23,9 @@ public sealed class MacroParameter
 
     /// <summary>What the value is for, shown under the field at the call site.</summary>
     public string Description { get; set; } = string.Empty;
+
+    /// <summary>What kind of value the call is asked for, so a mismatch can be seen before the run.</summary>
+    public ActionReturnType Type { get; set; } = ActionReturnType.Text;
 }
 
 /// <summary>
@@ -54,10 +57,10 @@ public sealed record MacroCallable(
         [.. Parameters
             .Where(parameter => parameter.Name.Trim().Length > 0)
             .Select(parameter => new MacroArgument(parameter.Name.Trim(), parameter.Default,
-                parameter.Required))],
+                parameter.Required, parameter.Type))],
         [.. Results
             .Where(result => result.Name.Trim().Length > 0)
-            .Select(result => result.Name.Trim())]);
+            .Select(result => new MacroReturn(result.Name.Trim(), result.Type))]);
 
     /// <summary>The declared parameter of this name, or null when the macro declares none.</summary>
     public MacroParameter? Parameter(string name)

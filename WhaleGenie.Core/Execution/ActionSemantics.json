@@ -3844,7 +3844,29 @@
       {
         "Key": "program",
         "Type": "Record",
-        "Primary": true
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "info",
+            "Type": "Text"
+          },
+          {
+            "Name": "id",
+            "Type": "Number"
+          },
+          {
+            "Name": "name",
+            "Type": "Text"
+          },
+          {
+            "Name": "memoryMb",
+            "Type": "Number"
+          },
+          {
+            "Name": "cpuSeconds",
+            "Type": "Number"
+          }
+        ]
       }
     ]
   },
@@ -4133,7 +4155,49 @@
       {
         "Key": "displays",
         "Type": "List",
-        "Primary": true
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "right",
+            "Type": "Number"
+          },
+          {
+            "Name": "bottom",
+            "Type": "Number"
+          },
+          {
+            "Name": "primary",
+            "Type": "Flag"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          }
+        ]
       }
     ]
   },
@@ -5440,7 +5504,65 @@
       {
         "Key": "windows",
         "Type": "List",
-        "Primary": true
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "title",
+            "Type": "Text"
+          },
+          {
+            "Name": "process",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Text"
+          },
+          {
+            "Name": "handle",
+            "Type": "Number"
+          },
+          {
+            "Name": "minimized",
+            "Type": "Flag"
+          },
+          {
+            "Name": "maximized",
+            "Type": "Flag"
+          },
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "clientBox",
+            "Type": "Text"
+          }
+        ]
       }
     ]
   },
@@ -5543,7 +5665,65 @@
       {
         "Key": "window",
         "Type": "Record",
-        "Primary": true
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "title",
+            "Type": "Text"
+          },
+          {
+            "Name": "process",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Text"
+          },
+          {
+            "Name": "handle",
+            "Type": "Number"
+          },
+          {
+            "Name": "minimized",
+            "Type": "Flag"
+          },
+          {
+            "Name": "maximized",
+            "Type": "Flag"
+          },
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "clientBox",
+            "Type": "Text"
+          }
+        ]
       }
     ]
   },
@@ -8955,7 +9135,37 @@
       {
         "Key": "place",
         "Type": "Record",
-        "Primary": false
+        "Primary": false,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "window",
@@ -9115,7 +9325,37 @@
       {
         "Key": "place",
         "Type": "Record",
-        "Primary": false
+        "Primary": false,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "window",
@@ -9406,12 +9646,104 @@
       {
         "Key": "match",
         "Type": "Record",
-        "Primary": true
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "every",
         "Type": "List",
-        "Primary": false
+        "Primary": false,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "window",
@@ -9702,12 +10034,104 @@
       {
         "Key": "match",
         "Type": "Record",
-        "Primary": true
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "every",
         "Type": "List",
-        "Primary": false
+        "Primary": false,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "window",
@@ -10072,12 +10496,104 @@
       {
         "Key": "match",
         "Type": "Record",
-        "Primary": true
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "every",
         "Type": "List",
-        "Primary": false
+        "Primary": false,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "window",
@@ -10718,12 +11234,104 @@
       {
         "Key": "match",
         "Type": "Record",
-        "Primary": true
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "every",
         "Type": "List",
-        "Primary": false
+        "Primary": false,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "coverage",
@@ -11154,12 +11762,104 @@
       {
         "Key": "match",
         "Type": "Record",
-        "Primary": true
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "every",
         "Type": "List",
-        "Primary": false
+        "Primary": false,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "window",
@@ -11443,12 +12143,104 @@
       {
         "Key": "match",
         "Type": "Record",
-        "Primary": true
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "every",
         "Type": "List",
-        "Primary": false
+        "Primary": false,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "window",
@@ -11732,12 +12524,104 @@
       {
         "Key": "match",
         "Type": "Record",
-        "Primary": true
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "every",
         "Type": "List",
-        "Primary": false
+        "Primary": false,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "window",
@@ -12095,12 +12979,104 @@
       {
         "Key": "match",
         "Type": "Record",
-        "Primary": true
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "every",
         "Type": "List",
-        "Primary": false
+        "Primary": false,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "window",
@@ -12754,12 +13730,104 @@
       {
         "Key": "match",
         "Type": "Record",
-        "Primary": true
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "every",
         "Type": "List",
-        "Primary": false
+        "Primary": false,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "window",
@@ -13164,12 +14232,104 @@
       {
         "Key": "match",
         "Type": "Record",
-        "Primary": true
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "every",
         "Type": "List",
-        "Primary": false
+        "Primary": false,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "window",
@@ -13441,12 +14601,104 @@
       {
         "Key": "match",
         "Type": "Record",
-        "Primary": true
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "every",
         "Type": "List",
-        "Primary": false
+        "Primary": false,
+        "Fields": [
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "score",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          },
+          {
+            "Name": "text",
+            "Type": "Text"
+          },
+          {
+            "Name": "class",
+            "Type": "Number"
+          },
+          {
+            "Name": "label",
+            "Type": "Text"
+          }
+        ]
       },
       {
         "Key": "window",
@@ -14095,7 +15347,61 @@
       {
         "Key": "element",
         "Type": "Record",
-        "Primary": true
+        "Primary": true,
+        "Fields": [
+          {
+            "Name": "enabled",
+            "Type": "Flag"
+          },
+          {
+            "Name": "visible",
+            "Type": "Flag"
+          },
+          {
+            "Name": "value",
+            "Type": "Text"
+          },
+          {
+            "Name": "name",
+            "Type": "Text"
+          },
+          {
+            "Name": "automationId",
+            "Type": "Text"
+          },
+          {
+            "Name": "controlType",
+            "Type": "Text"
+          },
+          {
+            "Name": "x",
+            "Type": "Number"
+          },
+          {
+            "Name": "y",
+            "Type": "Number"
+          },
+          {
+            "Name": "left",
+            "Type": "Number"
+          },
+          {
+            "Name": "top",
+            "Type": "Number"
+          },
+          {
+            "Name": "width",
+            "Type": "Number"
+          },
+          {
+            "Name": "height",
+            "Type": "Number"
+          },
+          {
+            "Name": "box",
+            "Type": "Text"
+          }
+        ]
       }
     ]
   },
