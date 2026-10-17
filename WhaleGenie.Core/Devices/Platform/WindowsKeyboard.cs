@@ -60,7 +60,7 @@ internal static class WindowsKeyboard
             var window = GetForegroundWindow();
             if (window == IntPtr.Zero)
             {
-                throw new DeviceActionException("Run.NoForegroundWindow");
+                throw new DeviceActionException(RunKeys.NoForegroundWindow);
             }
 
             _ = ActivateKeyboardLayout(layout, ForProcess);
@@ -82,7 +82,7 @@ internal static class WindowsKeyboard
                 Thread.Sleep(10);
             }
 
-            throw new DeviceActionException("Run.LayoutNotSwitched", name);
+            throw new DeviceActionException(RunKeys.LayoutNotSwitched, name);
         }
 
         return null;

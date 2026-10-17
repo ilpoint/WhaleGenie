@@ -30,6 +30,45 @@ public sealed record StepResult(string Key, string Name, string Text)
 }
 
 /// <summary>
+/// One try at a step: how long it took, how it ended, and what was left of the step's timeout when
+/// it ended.
+/// </summary>
+/// <remarks>
+/// A step's timeout is one budget shared by every try, not a fresh clock per try. Keeping each try
+/// apart is what lets the debugger show that: the numbers add up to the step's own time instead of
+/// hiding the tries behind a single total.
+/// </remarks>
+public sealed record StepAttempt
+{
+    /// <summary>The try's number, counted from one.</summary>
+    public required int Number { get; init; }
+
+    /// <summary>How long this try took, in milliseconds.</summary>
+    public required double ElapsedMs { get; init; }
+
+    /// <summary><c>ok</c> or <c>failed</c>.</summary>
+    public required string Outcome { get; init; }
+
+    /// <summary>Why this try failed, or empty when it did not.</summary>
+    public string FailureKey { get; init; } = string.Empty;
+
+    /// <summary>What this try was doing when it failed, or empty when it did not.</summary>
+    public string FailureDetail { get; init; } = string.Empty;
+
+    /// <summary>
+    /// How much of the step's timeout was left when this try ended, or null when the step has no
+    /// timeout.
+    /// </summary>
+    public double? RemainingMs { get; init; }
+
+    /// <summary>
+    /// True when a call that could not be interrupted returned after the budget was already used
+    /// up. Such a call is judged when it returns rather than being torn down where it stands.
+    /// </summary>
+    public bool Overran { get; init; }
+}
+
+/// <summary>
 /// What one step of a run came to: how long it took, how it ended, why if it failed, and everything
 /// it worked out on the way.
 /// </summary>
@@ -61,4 +100,10 @@ public sealed record StepRun
 
     /// <summary>Everything the step worked out, in the order it did.</summary>
     public IReadOnlyList<StepResult> Results { get; init; } = [];
+
+    /// <summary>Every try the step made, oldest first; empty when the step did not run.</summary>
+    public IReadOnlyList<StepAttempt> Attempts { get; init; } = [];
+
+    /// <summary>The step's timeout in milliseconds, or 0 when it had none.</summary>
+    public int TimeoutMs { get; init; }
 }

@@ -68,7 +68,7 @@ public sealed class SharpHookInputDevice : IInputDevice
 
         if (codes.Count == 0)
         {
-            throw new DeviceActionException("Run.EmptyChord");
+            throw new DeviceActionException(RunKeys.EmptyChord);
         }
 
         // Press in order, hold so the target sees the whole chord, release in reverse.
@@ -263,7 +263,7 @@ public sealed class SharpHookInputDevice : IInputDevice
     }
 
     private static KeyCode Code(string key)
-        => SharpKeys.ResolveCode(key) ?? throw new DeviceActionException("Run.UnknownKey", key);
+        => SharpKeys.ResolveCode(key) ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
 
     private static MouseButton Button(string button) => button.Trim().ToLowerInvariant() switch
     {

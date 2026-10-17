@@ -35,11 +35,12 @@ public sealed class WindowsWindowDevice : IWindowDevice
     }
 
     public WindowInfo? Find(string value, WindowMatch match,
-        string compare = TextCompare.Contains)
-        => Filter(value, match, compare).FirstOrDefault();
+        string compare = TextCompare.Contains, TextCompareOptions options = default)
+        => Filter(value, match, compare, options: options).FirstOrDefault();
 
     public IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match,
-        string compare = TextCompare.Contains, bool everyWhenEmpty = false)
+        string compare = TextCompare.Contains, bool everyWhenEmpty = false,
+        TextCompareOptions options = default)
     {
         Require();
 
@@ -54,7 +55,7 @@ public sealed class WindowsWindowDevice : IWindowDevice
             return everyWhenEmpty || windows.Count == 0 ? windows : [windows[0]];
         }
 
-        return [.. windows.Where(window => Matches(window, wanted, match, compare))];
+        return [.. windows.Where(window => Matches(window, wanted, match, compare, options))];
     }
 
     /// <summary>
@@ -65,7 +66,8 @@ public sealed class WindowsWindowDevice : IWindowDevice
     /// pattern the machine cannot read comes back as <see cref="ArgumentException"/>, which is the
     /// run's to report.
     /// </summary>
-    private bool Matches(WindowInfo window, string wanted, WindowMatch match, string compare)
+    private bool Matches(WindowInfo window, string wanted, WindowMatch match, string compare,
+        TextCompareOptions options)
     {
         var text = match switch
         {
@@ -74,7 +76,7 @@ public sealed class WindowsWindowDevice : IWindowDevice
             _ => window.Title,
         };
 
-        return WindowHow.Matches(text, wanted, compare);
+        return WindowHow.Matches(text, wanted, compare, options);
     }
 
     public string ProcessOf(long handle) => ProcessName(handle);
@@ -173,7 +175,7 @@ public sealed class WindowsWindowDevice : IWindowDevice
         var corner = new NativePoint();
         if (!IsWindow(window) || !ClientToScreen(window, ref corner))
         {
-            throw new DeviceActionException("Run.WindowNotFound",
+            throw new DeviceActionException(RunKeys.WindowNotFound,
                 handle.ToString(CultureInfo.InvariantCulture));
         }
 
@@ -193,7 +195,7 @@ public sealed class WindowsWindowDevice : IWindowDevice
         var window = new IntPtr(handle);
         if (!IsWindow(window) || !GetClientRect(window, out var client))
         {
-            throw new DeviceActionException("Run.WindowNotFound",
+            throw new DeviceActionException(RunKeys.WindowNotFound,
                 handle.ToString(CultureInfo.InvariantCulture));
         }
 

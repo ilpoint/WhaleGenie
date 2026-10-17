@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 
@@ -134,6 +135,65 @@ public class VariableStoreTests
         Assert.True(bag.Remove("temp"));
         Assert.False(bag.Contains("temp"));
         Assert.False(bag.Remove("temp"));
+    }
+
+    /// <summary>
+    /// Two runs made on one shared table see the same value: what one writes is what the other
+    /// reads, which is what makes a global a global across triggers rather than only inside a call.
+    /// </summary>
+    [Fact]
+    public void Stores_made_on_one_shared_table_see_the_same_global()
+    {
+        var shared = new VariableBag();
+        var first = new VariableStore(shared);
+        var second = new VariableStore(shared);
+
+        first.Set("count", Value.FromNumber(4), VariableTarget.Global);
+
+        Assert.True(second.TryGet("count", out var value));
+        Assert.Equal(4, value.AsNumber());
+
+        // A local value is still the run's own; the second store does not see it.
+        first.Set("count", Value.FromNumber(99));
+        Assert.Equal(4, second.Flatten()["count"].AsNumber());
+    }
+
+    /// <summary>
+    /// Seeding a later run must not put a global back to its declared starting value: two triggers
+    /// that start close together would otherwise erase each other's first write.
+    /// </summary>
+    [Fact]
+    public void SetIfAbsent_leaves_a_value_a_run_has_already_written()
+    {
+        var bag = new VariableBag();
+        Assert.True(bag.SetIfAbsent("count", Value.FromNumber(0)));
+
+        bag.SetNumber("count", 7);
+
+        Assert.False(bag.SetIfAbsent("count", Value.FromNumber(0)));
+        Assert.Equal(7, bag.Values["count"].AsNumber());
+    }
+
+    /// <summary>
+    /// Adding is one step under the table's lock. Many runs adding at once must end at the sum of
+    /// every addition rather than at whichever write happened last.
+    /// </summary>
+    [Fact]
+    public void Adding_to_a_shared_number_from_many_runs_loses_nothing()
+    {
+        var shared = new VariableBag();
+        shared.SetNumber("count", 0);
+
+        Parallel.For(0, 8, run =>
+        {
+            var store = new VariableStore(shared);
+            for (var round = 0; round < 500; round++)
+            {
+                Assert.True(store.Global.TryAddNumber("count", 1, out _));
+            }
+        });
+
+        Assert.Equal(4000, shared.Values["count"].AsNumber());
     }
 
     /// <summary>

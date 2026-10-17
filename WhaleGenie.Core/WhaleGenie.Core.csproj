@@ -58,4 +58,12 @@
     <InternalsVisibleTo Include="WhaleGenie.Core.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      The action facts travel with the engine: a headless run, a design-time check and the editor
+      all read the same file, so none of them can answer from a different parameter declaration.
+    -->
+    <EmbeddedResource Include="Execution\ActionSemantics.json" />
+  </ItemGroup>
+
 </Project>

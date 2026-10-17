@@ -46,7 +46,7 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         Require();
         if (query.IsEmpty)
         {
-            throw new DeviceActionException("Run.EmptySelector");
+            throw new DeviceActionException(RunKeys.EmptySelector);
         }
 
         var started = Stopwatch.GetTimestamp();
@@ -69,7 +69,7 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
     public bool Click(UiQuery query, string button)
     {
         Require();
-        var element = Find(query) ?? throw new DeviceActionException("Run.ElementNotFound", Describe(query));
+        var element = Find(query) ?? throw new DeviceActionException(RunKeys.ElementNotFound, Describe(query));
 
         try
         {
@@ -109,7 +109,7 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         Require();
         if (string.IsNullOrWhiteSpace(query.WindowTitle))
         {
-            throw new DeviceActionException("Run.MissingWindow", query.WindowTitle ?? string.Empty);
+            throw new DeviceActionException(RunKeys.MissingWindow, query.WindowTitle ?? string.Empty);
         }
 
         var window = Root(query);
@@ -138,7 +138,7 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
     public bool Invoke(UiQuery query)
     {
         Require();
-        var element = Find(query) ?? throw new DeviceActionException("Run.ElementNotFound", Describe(query));
+        var element = Find(query) ?? throw new DeviceActionException(RunKeys.ElementNotFound, Describe(query));
 
         try
         {
@@ -221,7 +221,7 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
     public UiTable ReadTable(UiQuery query, int limit)
     {
         Require();
-        var element = Find(query) ?? throw new DeviceActionException("Run.ElementNotFound", Describe(query));
+        var element = Find(query) ?? throw new DeviceActionException(RunKeys.ElementNotFound, Describe(query));
         var rows = Math.Max(1, limit);
 
         try
@@ -254,7 +254,7 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         }
         catch (Exception error) when (Recoverable(error))
         {
-            throw new DeviceActionException("Run.ElementNotATable", Describe(query));
+            throw new DeviceActionException(RunKeys.ElementNotATable, Describe(query));
         }
     }
 
@@ -306,7 +306,7 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
     public bool SetText(UiQuery query, string text, bool clearFirst)
     {
         Require();
-        var element = Find(query) ?? throw new DeviceActionException("Run.ElementNotFound", Describe(query));
+        var element = Find(query) ?? throw new DeviceActionException(RunKeys.ElementNotFound, Describe(query));
 
         try
         {
@@ -340,7 +340,7 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         Require();
         if (query.IsEmpty)
         {
-            throw new DeviceActionException("Run.EmptySelector");
+            throw new DeviceActionException(RunKeys.EmptySelector);
         }
 
         var hits = new List<UiElementInfo>();
@@ -358,7 +358,7 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
     public bool Select(UiQuery query, string text, int itemIndex)
     {
         Require();
-        var element = Find(query) ?? throw new DeviceActionException("Run.ElementNotFound", Describe(query));
+        var element = Find(query) ?? throw new DeviceActionException(RunKeys.ElementNotFound, Describe(query));
         var wanted = (text ?? string.Empty).Trim();
 
         try
@@ -378,14 +378,14 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
                     return true;
                 }
 
-                throw new DeviceActionException("Run.ItemNotFound", Which(wanted, itemIndex));
+                throw new DeviceActionException(RunKeys.ItemNotFound, Which(wanted, itemIndex));
             }
 
             return Choose(item);
         }
         catch (Exception error) when (Recoverable(error))
         {
-            throw new DeviceActionException("Run.ElementNotSelectable", Describe(query));
+            throw new DeviceActionException(RunKeys.ElementNotSelectable, Describe(query));
         }
     }
 
@@ -420,7 +420,7 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
     public bool SetChecked(UiQuery query, bool? state)
     {
         Require();
-        var element = Find(query) ?? throw new DeviceActionException("Run.ElementNotFound", Describe(query));
+        var element = Find(query) ?? throw new DeviceActionException(RunKeys.ElementNotFound, Describe(query));
 
         try
         {
@@ -435,7 +435,7 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
                     return true;
                 }
 
-                throw new DeviceActionException("Run.ElementNotCheckable", Describe(query));
+                throw new DeviceActionException(RunKeys.ElementNotCheckable, Describe(query));
             }
 
             var on = toggle.Pattern.ToggleState.Value == ToggleState.On;
@@ -448,21 +448,21 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         }
         catch (Exception error) when (Recoverable(error))
         {
-            throw new DeviceActionException("Run.ElementNotCheckable", Describe(query));
+            throw new DeviceActionException(RunKeys.ElementNotCheckable, Describe(query));
         }
     }
 
     public bool SetExpanded(UiQuery query, string action)
     {
         Require();
-        var element = Find(query) ?? throw new DeviceActionException("Run.ElementNotFound", Describe(query));
+        var element = Find(query) ?? throw new DeviceActionException(RunKeys.ElementNotFound, Describe(query));
 
         try
         {
             var pattern = element.Patterns.ExpandCollapse;
             if (!pattern.IsSupported)
             {
-                throw new DeviceActionException("Run.ElementNotExpandable", Describe(query));
+                throw new DeviceActionException(RunKeys.ElementNotExpandable, Describe(query));
             }
 
             switch (action.Trim().ToLowerInvariant())
@@ -490,21 +490,21 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         }
         catch (Exception error) when (Recoverable(error))
         {
-            throw new DeviceActionException("Run.ElementNotExpandable", Describe(query));
+            throw new DeviceActionException(RunKeys.ElementNotExpandable, Describe(query));
         }
     }
 
     public bool ScrollIntoView(UiQuery query)
     {
         Require();
-        var element = Find(query) ?? throw new DeviceActionException("Run.ElementNotFound", Describe(query));
+        var element = Find(query) ?? throw new DeviceActionException(RunKeys.ElementNotFound, Describe(query));
 
         try
         {
             var pattern = element.Patterns.ScrollItem;
             if (!pattern.IsSupported)
             {
-                throw new DeviceActionException("Run.ElementNotScrollable", Describe(query));
+                throw new DeviceActionException(RunKeys.ElementNotScrollable, Describe(query));
             }
 
             pattern.Pattern.ScrollIntoView();
@@ -512,7 +512,7 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         }
         catch (Exception error) when (Recoverable(error))
         {
-            throw new DeviceActionException("Run.ElementNotScrollable", Describe(query));
+            throw new DeviceActionException(RunKeys.ElementNotScrollable, Describe(query));
         }
     }
 
@@ -772,7 +772,7 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
         foreach (var window in desktop.FindAllChildren(candidate => candidate.ByControlType(ControlType.Window)))
         {
             if (WindowHow.Matches(Part(window, query.WindowMatch), query.WindowTitle,
-                    query.WindowCompare))
+                    query.WindowCompare, query.WindowOptions))
             {
                 return window;
             }
@@ -910,7 +910,7 @@ public sealed class FlaUiDevice : IUiDevice, IDisposable
     {
         if (!element.TryGetClickablePoint(out var point))
         {
-            throw new DeviceActionException("Run.ElementNotClickable", Describe(query));
+            throw new DeviceActionException(RunKeys.ElementNotClickable, Describe(query));
         }
 
         _input.Value.Click(button, (int)point.X, (int)point.Y, 1, 0);

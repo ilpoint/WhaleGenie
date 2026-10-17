@@ -112,7 +112,7 @@ internal sealed class NuGetStore(string folder)
 
             if (!NuGetVersion.TryParse(words[1], out var version))
             {
-                throw new DeviceActionException("Run.NuGetFailed",
+                throw new DeviceActionException(RunKeys.NuGetFailed,
                     $"{words[1]} is not a version number, in \"{entry}\"");
             }
 
@@ -167,7 +167,7 @@ internal sealed class NuGetStore(string folder)
                     continue;
                 }
 
-                throw new DeviceActionException("Run.NuGetFailed",
+                throw new DeviceActionException(RunKeys.NuGetFailed,
                     $"{name} is needed at two versions that cannot both be there: "
                     + $"{settled.ToNormalizedString()} and {range.ToNormalizedString()}");
             }
@@ -212,7 +212,7 @@ internal sealed class NuGetStore(string folder)
         string name, VersionRange range, bool newest, ILogger log, CancellationToken token)
     {
         var metadata = await source.GetResourceAsync<PackageMetadataResource>(token)
-            ?? throw new DeviceActionException("Run.NuGetFailed",
+            ?? throw new DeviceActionException(RunKeys.NuGetFailed,
                 $"{Feed} did not answer with anything that lists packages");
         var known = await metadata.GetMetadataAsync(name, includePrerelease: false,
             includeUnlisted: false, cache, log, token);
@@ -224,7 +224,7 @@ internal sealed class NuGetStore(string folder)
 
         if (fits.Count == 0)
         {
-            throw new DeviceActionException("Run.NuGetFailed",
+            throw new DeviceActionException(RunKeys.NuGetFailed,
                 $"there is no {name} {Written(range)} on {Feed}");
         }
 
@@ -304,7 +304,7 @@ internal sealed class NuGetStore(string folder)
         SourceCacheContext cache, PackageIdentity identity, ILogger log, CancellationToken token)
     {
         var finder = await source.GetResourceAsync<FindPackageByIdResource>(token)
-            ?? throw new DeviceActionException("Run.NuGetFailed",
+            ?? throw new DeviceActionException(RunKeys.NuGetFailed,
                 $"{Feed} did not answer with anything that hands packages over");
         var held = new MemoryStream();
         await finder.CopyNupkgToStreamAsync(identity.Id, identity.Version, held, cache, log, token);

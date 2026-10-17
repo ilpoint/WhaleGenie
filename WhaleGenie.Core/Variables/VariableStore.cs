@@ -37,6 +37,22 @@ public interface ILiveVariables
 /// </summary>
 public sealed class VariableStore : IVariableResolver
 {
+    /// <summary>
+    /// A store with a table of its own. The program hands every run the same global table so that
+    /// what one macro writes is what the next one reads; a store built without one is a store no
+    /// other run can see, which is what a check that drives the engine on its own wants.
+    /// </summary>
+    public VariableStore(VariableBag? global = null)
+    {
+        Global = global ?? new VariableBag();
+    }
+
+    /// <summary>
+    /// The round number belongs to the loop that is running, not to the machine: the engine puts
+    /// it into the macro's own values for each round and takes it out again on the way out.
+    /// </summary>
+    public const string LoopIndexName = "sys.loopIndex";
+
     /// <summary>Values WhaleGenie keeps itself, such as the date or the mouse position.</summary>
     public VariableBag System { get; } = new();
 
@@ -48,7 +64,7 @@ public sealed class VariableStore : IVariableResolver
     public ILiveVariables? Live { get; set; }
 
     /// <summary>Values every macro shares.</summary>
-    public VariableBag Global { get; } = new();
+    public VariableBag Global { get; }
 
     /// <summary>Values only the running macro sees.</summary>
     public VariableBag Local { get; private set; } = new();
@@ -73,10 +89,23 @@ public sealed class VariableStore : IVariableResolver
     /// answer, while the live source is the answer.
     /// </summary>
     public bool TryGet(string name, out Value value)
-        => Local.TryGet(name, out value)
-           || Global.TryGet(name, out value)
-           || (Live is { } live && live.TryGet(name, out value))
-           || System.TryGet(name, out value);
+    {
+        if (Local.TryGet(name, out value) || Global.TryGet(name, out value))
+        {
+            return true;
+        }
+
+        // Outside a loop the name exists but has no value. Falling through to the seeded system
+        // value would make it read as round zero, which is a number no loop has reached.
+        if (string.Equals(name, LoopIndexName, StringComparison.OrdinalIgnoreCase))
+        {
+            value = Value.Null;
+            return true;
+        }
+
+        return (Live is { } live && live.TryGet(name, out value))
+            || System.TryGet(name, out value);
+    }
 
     /// <summary>Writes a value into one scope.</summary>
     public void Set(string name, Value value, VariableTarget target = VariableTarget.Local)
@@ -97,6 +126,11 @@ public sealed class VariableStore : IVariableResolver
         var all = new Dictionary<string, Value>(StringComparer.OrdinalIgnoreCase);
         foreach (var (name, value) in System.Values)
         {
+            if (string.Equals(name, LoopIndexName, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             // The watch list says what a macro reads while it runs, so the ones that move are read
             // again here rather than reported at the value they had when the run began.
             all[name] = Live is { } live && live.TryGet(name, out var current) ? current : value;

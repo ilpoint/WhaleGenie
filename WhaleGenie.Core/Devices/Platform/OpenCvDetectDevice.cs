@@ -50,7 +50,7 @@ public sealed class OpenCvDetectDevice : IDetectorDevice, IDisposable
         var path = (modelPath ?? string.Empty).Trim();
         if (path.Length == 0 || !File.Exists(path))
         {
-            throw new DeviceActionException("Run.MissingModel", path);
+            throw new DeviceActionException(RunKeys.MissingModel, path);
         }
 
         if (frame.IsEmpty || query.Limit <= 0)
@@ -62,7 +62,7 @@ public sealed class OpenCvDetectDevice : IDetectorDevice, IDisposable
         var wanted = YoloDetect.Wanted(query.Labels, names, out var unknown);
         if (unknown.Length > 0)
         {
-            throw new DeviceActionException("Run.UnknownLabel",
+            throw new DeviceActionException(RunKeys.UnknownLabel,
                 names.Count == 0 ? unknown : $"{unknown} ({YoloDetect.Preview(names)})");
         }
 
@@ -84,7 +84,7 @@ public sealed class OpenCvDetectDevice : IDetectorDevice, IDisposable
 
                 if (!YoloDetect.Recognised(output, out var channels, out var candidates))
                 {
-                    throw new DeviceActionException("Run.BadModelShape", YoloDetect.Written(output));
+                    throw new DeviceActionException(RunKeys.BadModelShape, YoloDetect.Written(output));
                 }
 
                 foreach (var box in YoloDetect.Boxes(output, channels, candidates,
@@ -101,7 +101,7 @@ public sealed class OpenCvDetectDevice : IDetectorDevice, IDisposable
             // A file that is not a model at all, or one whose arithmetic OpenCV will not run: the
             // step is told which file, because the way out — another export, another input size —
             // starts from knowing what was read.
-            throw new DeviceActionException("Run.BadModel", $"{Path.GetFileName(path)}: {error.Message}");
+            throw new DeviceActionException(RunKeys.BadModel, $"{Path.GetFileName(path)}: {error.Message}");
         }
         catch (Exception error) when (error is DllNotFoundException or BadImageFormatException)
         {
@@ -121,7 +121,7 @@ public sealed class OpenCvDetectDevice : IDetectorDevice, IDisposable
         if (net is null || net.Empty())
         {
             net?.Dispose();
-            throw new DeviceActionException("Run.BadModel", Path.GetFileName(path));
+            throw new DeviceActionException(RunKeys.BadModel, Path.GetFileName(path));
         }
 
         return net;

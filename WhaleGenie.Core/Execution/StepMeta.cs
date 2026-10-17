@@ -153,7 +153,7 @@ public class StepMeta
 
         if (RetryCount > 0)
         {
-            node["retry"] = RetryCount;
+            node["retryCount"] = RetryCount;
             node["retryDelayMs"] = RetryDelayMs;
             if (RetryBackoff is not RetryBackoff.Fixed)
             {
@@ -193,7 +193,7 @@ public class StepMeta
             Comment = Text(node, "comment"),
             IsEnabled = node["enabled"]?.GetValue<bool>() ?? true,
             TimeoutMs = Number(node, "timeoutMs"),
-            RetryCount = Number(node, "retry"),
+            RetryCount = Number(node, "retryCount"),
             RetryDelayMs = retryDelay > 0 ? retryDelay : 500,
             RetryBackoff = Backoff(Text(node, "retryBackoff")),
             DelayBeforeMs = Number(node, "delayBeforeMs"),

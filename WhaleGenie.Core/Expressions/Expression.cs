@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace WhaleGenie.Core.Expressions;
 
@@ -14,8 +15,51 @@ namespace WhaleGenie.Core.Expressions;
 /// </remarks>
 public static class Expression
 {
+    /// <summary>One row an expression left out, said as a log key and its arguments.</summary>
+    internal sealed record Diagnostic(string Key, IReadOnlyList<object> Arguments);
+
+    private static readonly AsyncLocal<Stack<List<Diagnostic>>?> Notes = new();
+
     /// <summary>Every built-in function, in the order the editor should list them.</summary>
     public static IReadOnlyList<ExpressionFunction> Functions => FunctionLibrary.Metadata;
+
+    /// <summary>
+    /// Starts a fresh place for a step to leave notes about rows it skipped. A step begins one
+    /// before it runs and takes what it collected when it is over, so a note lands in the log of
+    /// the step whose expression made it.
+    /// </summary>
+    internal static void BeginDiagnostics()
+        => (Notes.Value ??= new Stack<List<Diagnostic>>()).Push([]);
+
+    /// <summary>Takes the notes collected since the last beginning, and leaves the place empty.</summary>
+    internal static IReadOnlyList<Diagnostic> TakeDiagnostics()
+    {
+        if (Notes.Value is not { Count: > 0 } stack)
+        {
+            return [];
+        }
+
+        var notes = stack.Pop();
+        if (stack.Count == 0)
+        {
+            Notes.Value = null;
+        }
+
+        return notes;
+    }
+
+    /// <summary>Records one thing an expression skipped rather than silently dropping it.</summary>
+    internal static void Report(string key, params object[] arguments)
+    {
+        if (Notes.Value is not { Count: > 0 } stack)
+        {
+            // Nothing is listening: an expression the editor evaluates on its own has no step
+            // whose log could carry the note.
+            return;
+        }
+
+        stack.Peek().Add(new Diagnostic(key, arguments));
+    }
 
     /// <summary>
     /// The variable names an expression reads, in the order they appear and without

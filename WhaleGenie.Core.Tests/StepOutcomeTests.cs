@@ -138,7 +138,7 @@ public class StepOutcomeTests
         [
             Step("control.if", "aaaa",
                 When("condition", Step("condition.compare", string.Empty,
-                    Param("variable", "n"), Param("operator", "greaterThan"), Param("value", "3"))),
+                    Param("variable", "n"), Param("compareOperator", "greaterThan"), Param("compareValue", "3"))),
                 Body("then", Set("bbbb", "hit", "yes")),
                 Body("else", Set("cccc", "miss", "yes"))),
         ],
@@ -156,7 +156,7 @@ public class StepOutcomeTests
         [
             Step("control.if", "aaaa",
                 When("condition", Step("condition.compare", "dddd",
-                    Param("variable", "n"), Param("operator", "equals"), Param("value", "0"))),
+                    Param("variable", "n"), Param("compareOperator", "equals"), Param("compareValue", "0"))),
                 Body("then", Set("bbbb", "hit", "yes"))),
         ],
             variables: Store(("n", 0)));

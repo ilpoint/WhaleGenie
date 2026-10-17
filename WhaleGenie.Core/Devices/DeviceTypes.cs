@@ -321,7 +321,8 @@ public sealed record UiQuery(
     string? WindowTitle = null,
     int Index = 1,
     WindowMatch WindowMatch = WindowMatch.Title,
-    string WindowCompare = TextCompare.Contains)
+    string WindowCompare = TextCompare.Contains,
+    TextCompareOptions WindowOptions = default)
 {
     /// <summary>True when the query would match anything, which is never what was meant.</summary>
     public bool IsEmpty
@@ -340,7 +341,8 @@ public sealed record UiQuery(
     /// </summary>
     public static UiQuery Parse(string? selector, string? windowTitle = null, int index = 1,
         WindowMatch windowMatch = WindowMatch.Title,
-        string windowCompare = TextCompare.Contains)
+        string windowCompare = TextCompare.Contains,
+        TextCompareOptions windowOptions = default)
     {
         var text = (selector ?? string.Empty).Trim();
         string? name = null;
@@ -391,7 +393,7 @@ public sealed record UiQuery(
 
         var title = (windowTitle ?? string.Empty).Trim();
         return new UiQuery(name, id, type, cls, title.Length == 0 ? null : title, index,
-            windowMatch, windowCompare);
+            windowMatch, windowCompare, windowOptions);
     }
 
     /// <summary>

@@ -105,9 +105,9 @@ public class PictureAndHashTests
 
         var (result, _, store) = await RunAsync(
         [
-            Step("data.hash", Param("algorithm", "sha256"), Param("source", "text"),
-                Param("text", "hello"), Returns("digest=fromText")),
-            Step("data.hash", Param("algorithm", "sha256"), Param("source", "file"),
+            Step("data.hash", Param("hashAlgorithm", "sha256"), Param("hashSource", "text"),
+                Param("dataText", "hello"), Returns("digest=fromText")),
+            Step("data.hash", Param("hashAlgorithm", "sha256"), Param("hashSource", "file"),
                 Param("path", "report.txt"), Returns("digest=fromFile")),
         ], devices);
 
@@ -136,7 +136,7 @@ public class PictureAndHashTests
 
             var (result, _, store) = await RunAsync(
             [
-                Step("data.hash", Param("algorithm", "sha256"), Param("source", "file"),
+                Step("data.hash", Param("hashAlgorithm", "sha256"), Param("hashSource", "file"),
                     Param("path", "report.txt"), Returns("digest=sum")),
             ], devices);
 
@@ -147,7 +147,7 @@ public class PictureAndHashTests
 
             var missing = await RunAsync(
             [
-                Step("data.hash", Param("source", "file"), Param("path", "absent.bin"),
+                Step("data.hash", Param("hashSource", "file"), Param("path", "absent.bin"),
                     Returns("digest=gone")),
             ], new FakeDeviceLayer(new LocalFileDevice(folder.FullName)));
 

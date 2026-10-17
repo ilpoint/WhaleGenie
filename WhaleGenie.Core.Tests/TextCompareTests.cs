@@ -1,4 +1,5 @@
 using System;
+using WhaleGenie.Core;
 using WhaleGenie.Core.Devices;
 using Xunit;
 
@@ -34,6 +35,55 @@ public class TextCompareTests
     {
         Assert.True(TextCompare.Matches("  Save ", "Save", TextCompare.Exactly));
         Assert.True(TextCompare.Matches("Save", "  Save  ", TextCompare.Exactly));
+    }
+
+    /// <summary>
+    /// The two switches are independent of each other: turning case sensitivity on must not also stop
+    /// "exactly" from ignoring the spacing a screen read adds, and trimming may be asked for in any
+    /// of the five ways rather than being tied to the word "exactly".
+    /// </summary>
+    [Theory]
+    [InlineData(TextCompare.Contains, "Save the file", "save", false, false, true)]
+    [InlineData(TextCompare.Contains, "Save the file", "save", true, false, false)]
+    [InlineData(TextCompare.StartsWith, "Save the file", "save", true, false, false)]
+    [InlineData(TextCompare.EndsWith, "Save the file", "FILE", true, false, false)]
+    [InlineData(TextCompare.Contains, "Save the file", "  the  ", false, true, true)]
+    [InlineData(TextCompare.Contains, "Save the file", "  the  ", false, false, false)]
+    [InlineData(TextCompare.Exactly, "  Save  ", "Save", true, false, false)]
+    [InlineData(TextCompare.Exactly, "  Save  ", "Save", true, true, true)]
+    [InlineData(TextCompare.Regex, "  Save  ", "^save$", false, false, false)]
+    [InlineData(TextCompare.Regex, "  Save  ", "^save$", false, true, true)]
+    public void Case_and_spacing_are_separate_answers(
+        string way, string text, string wanted, bool caseSensitive, bool trim, bool expected)
+        => Assert.Equal(expected,
+            TextCompare.Matches(text, wanted, way, new TextCompareOptions(caseSensitive, trim)));
+
+    /// <summary>
+    /// "By line" changes what ^ and $ mean and nothing else, so a pattern written for a paragraph
+    /// stays the same search until the switch says otherwise, and the other four ways never see it.
+    /// </summary>
+    [Fact]
+    public void By_line_applies_to_patterns_alone()
+    {
+        const string paragraph = "first line\nSave\nlast line";
+        var byLine = new TextCompareOptions(Multiline: true);
+
+        Assert.False(TextCompare.Matches(paragraph, "^Save$", TextCompare.Regex));
+        Assert.True(TextCompare.Matches(paragraph, "^Save$", TextCompare.Regex, byLine));
+        Assert.True(TextCompare.Matches(paragraph, "Save", TextCompare.Contains, byLine));
+        Assert.False(TextCompare.Matches(paragraph, "^Save$", TextCompare.Contains));
+    }
+
+    /// <summary>
+    /// A pattern that never finishes is stopped by the one clock every regular expression shares,
+    /// rather than holding the run for as long as the machine is willing to backtrack.
+    /// </summary>
+    [Fact]
+    public void A_pattern_that_never_finishes_is_stopped()
+    {
+        var failure = Assert.Throws<RegexTimeoutException>(() =>
+            TextCompare.Matches(new string('a', 4000) + "!", "(a+)+$", TextCompare.Regex));
+        Assert.Equal("(a+)+$", failure.Pattern);
     }
 
     /// <summary>

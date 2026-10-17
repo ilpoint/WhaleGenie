@@ -61,7 +61,7 @@ internal static class WindowsAudio
 
         if (!played)
         {
-            throw new DeviceActionException("Run.SoundRefused");
+            throw new DeviceActionException(RunKeys.SoundRefused);
         }
     }
 
@@ -106,7 +106,7 @@ internal static class WindowsAudio
     {
         if (answer < 0)
         {
-            throw new DeviceActionException("Run.AudioRefused", $"0x{answer:X8}");
+            throw new DeviceActionException(RunKeys.AudioRefused, $"0x{answer:X8}");
         }
     }
 

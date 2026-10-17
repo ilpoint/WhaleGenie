@@ -64,14 +64,14 @@ public class MacroRunnerTests
 
     private static async Task<(RunResult Result, SilentRunHost Host)> RunAsync(
         ExecutableStep[] steps, IRunHost? host = null, VariableStore? variables = null,
-        IMacroLibrary? macros = null, string runName = "")
+        IMacroLibrary? macros = null, string runName = "", CancellationToken token = default)
     {
         var store = variables ?? Store();
         var silent = host as SilentRunHost ?? new SilentRunHost();
         var result = await new MacroRunner(store, host ?? silent, null, 1, macros)
         {
             RunName = runName,
-        }.RunAsync(steps);
+        }.RunAsync(steps, token);
         return (result, silent);
     }
 
@@ -134,9 +134,9 @@ public class MacroRunnerTests
     {
         var (_, host) = await RunAsync([Set("a", "1")]);
 
-        Assert.Equal("Run.Start", host.Entries[0].Key);
-        Assert.Equal("Run.Finished", host.Entries[^1].Key);
-        Assert.Contains(host.Entries, entry => entry.Key == "Run.Set");
+        Assert.Equal("Log.Start", host.Entries[0].Key);
+        Assert.Equal("Log.Finished", host.Entries[^1].Key);
+        Assert.Contains(host.Entries, entry => entry.Key == "Log.Set");
     }
 
     [Fact]
@@ -178,7 +178,7 @@ public class MacroRunnerTests
             AddOne("n"),
             Step("control.if",
                 When("condition", Step("condition.compare",
-                    Param("variable", "n"), Param("operator", "greaterOrEqual"), Param("value", "2"))),
+                    Param("variable", "n"), Param("compareOperator", "greaterOrEqual"), Param("compareValue", "2"))),
                 Body("then", Step("control.break"))));
 
         var (_, _) = await RunAsync(
@@ -263,7 +263,7 @@ public class MacroRunnerTests
         var store = Store(("n", 0));
         var loop = Step("control.while",
             When("condition", Step("condition.compare",
-                Param("variable", "n"), Param("operator", "lessThan"), Param("value", "3"))),
+                Param("variable", "n"), Param("compareOperator", "lessThan"), Param("compareValue", "3"))),
             Param("maxIterations", "50"),
             Body("body", AddOne("n")));
 
@@ -278,13 +278,47 @@ public class MacroRunnerTests
         var store = Store(("n", 0));
         var loop = Step("control.while",
             When("condition", Step("condition.compare",
-                Param("variable", "n"), Param("operator", "greaterOrEqual"), Param("value", "0"))),
+                Param("variable", "n"), Param("compareOperator", "greaterOrEqual"), Param("compareValue", "0"))),
             Param("maxIterations", "5"),
-            Body("body", AddOne("n")));
+            Body("body", AddOne("n")),
+            Returns("ended=ended"));
 
-        var (_, _) = await RunAsync([loop], variables: store);
+        var (_, host) = await RunAsync([loop], variables: store);
 
         Assert.Equal(5, N(store, "n"));
+        Assert.Equal("limit", store.Local.Values["ended"].AsText());
+        Assert.Contains(host.Entries,
+            entry => entry.Key == LogKeys.LoopLimit && entry.Level == LogLevel.Warn);
+    }
+
+    [Fact]
+    public async Task While_says_when_the_condition_ended_it()
+    {
+        var store = Store(("n", 0));
+        var loop = Step("control.while",
+            When("condition", Step("condition.compare",
+                Param("variable", "n"), Param("compareOperator", "greaterThan"), Param("compareValue", "0"))),
+            Param("maxIterations", "5"),
+            Body("body", AddOne("n")),
+            Returns("ended=ended"));
+
+        var (_, host) = await RunAsync([loop], variables: store);
+
+        Assert.Equal(0, N(store, "n"));
+        Assert.Equal("condition", store.Local.Values["ended"].AsText());
+        Assert.DoesNotContain(host.Entries, entry => entry.Key == LogKeys.LoopLimit);
+    }
+
+    [Theory]
+    [InlineData("control.if")]
+    [InlineData("control.while")]
+    [InlineData("control.waitUntil")]
+    public async Task A_condition_block_without_a_condition_fails(string action)
+    {
+        var (result, _) = await RunAsync([Step(action)]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.MissingCondition, result.Key);
     }
 
     [Fact]
@@ -303,7 +337,54 @@ public class MacroRunnerTests
 
         Assert.Equal(3, N(store, "rounds"));
         Assert.Equal(30, N(store, "last"));
-        Assert.Equal(2, N(store, "sys.loopIndex"));
+        Assert.False(store.Local.Contains(VariableStore.LoopIndexName));
+    }
+
+    [Fact]
+    public async Task An_inner_loop_leaves_the_outer_round_in_place()
+    {
+        var store = Store(("outerSeen", -1), ("restored", -1));
+        var inner = Step("control.forEach",
+            Param("items", "[10, 20]"),
+            Param("itemVariable", "item"),
+            Body("body", Set("innerSeen", "$sys.loopIndex")));
+        var outer = Step("control.for",
+            Param("rangeFrom", "1"),
+            Param("rangeTo", "3"),
+            Param("stepSize", "1"),
+            Param("intervalMs", "0"),
+            Param("name", "i"),
+            Body("body",
+                Set("outerSeen", "$sys.loopIndex"),
+                inner,
+                Set("restored", "$sys.loopIndex")));
+
+        var (result, _) = await RunAsync(
+            [outer, Set("after", "$sys.loopIndex")], variables: store);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(2, N(store, "outerSeen"));
+        Assert.Equal(1, N(store, "innerSeen"));
+        Assert.Equal(2, N(store, "restored"));
+        Assert.Equal(string.Empty, store.Local.Values["after"].AsText());
+        Assert.False(store.Local.Contains(VariableStore.LoopIndexName));
+    }
+
+    [Fact]
+    public async Task For_each_waits_between_rounds()
+    {
+        var store = Store(("rounds", 0));
+        var loop = Step("control.forEach",
+            Param("items", "[10, 20]"),
+            Param("itemVariable", "item"),
+            Param("intervalMs", "10000"),
+            Body("body", AddOne("rounds")));
+
+        using var stop = new CancellationTokenSource(500);
+        var (result, _) = await RunAsync([loop], variables: store, token: stop.Token);
+
+        Assert.Equal(RunStatus.Stopped, result.Status);
+        Assert.Equal(1, N(store, "rounds"));
     }
 
     [Fact]
@@ -328,10 +409,10 @@ public class MacroRunnerTests
     {
         var store = Store(("sum", 0), ("i", 0));
         var loop = Step("control.for",
-            Param("from", "1"),
-            Param("to", "3"),
+            Param("rangeFrom", "1"),
+            Param("rangeTo", "3"),
             Param("intervalMs", "0"),
-            Param("variable", "i"),
+            Param("name", "i"),
             Body("body", Set("sum", "$sum + $i")));
 
         var (_, _) = await RunAsync([loop], variables: store);
@@ -345,9 +426,9 @@ public class MacroRunnerTests
     {
         var store = Store(("rounds", 0));
         var loop = Step("control.for",
-            Param("from", "5"),
-            Param("to", "1"),
-            Param("step", "-1"),
+            Param("rangeFrom", "5"),
+            Param("rangeTo", "1"),
+            Param("stepSize", "-1"),
             Body("body", Set("rounds", "$rounds + 1")));
 
         var (_, _) = await RunAsync([loop], variables: store);
@@ -360,9 +441,9 @@ public class MacroRunnerTests
     {
         var store = Store(("rounds", 0));
         var loop = Step("control.for",
-            Param("from", "5"),
-            Param("to", "1"),
-            Param("step", "0"),
+            Param("rangeFrom", "5"),
+            Param("rangeTo", "1"),
+            Param("stepSize", "0"),
             Body("body", Set("rounds", "$rounds + 1")));
 
         var (_, _) = await RunAsync([loop], variables: store);
@@ -378,10 +459,10 @@ public class MacroRunnerTests
             Set("n", "$n + 1"),
             Step("control.if",
                 When("condition", Step("condition.compare",
-                    Param("variable", "i"), Param("operator", "greaterOrEqual"), Param("value", "2"))),
+                    Param("variable", "i"), Param("compareOperator", "greaterOrEqual"), Param("compareValue", "2"))),
                 Body("then", Step("control.break"))));
 
-        var loop = Step("control.for", Param("from", "1"), Param("to", "10"), body);
+        var loop = Step("control.for", Param("rangeFrom", "1"), Param("rangeTo", "10"), body);
         var (_, _) = await RunAsync([loop], variables: store);
 
         Assert.Equal(2, N(store, "n"));
@@ -427,8 +508,8 @@ public class MacroRunnerTests
         var store = Store();
         store.Local.Set("kind", Value.FromText("b"));
         var branch = Step("control.switch",
-            Param("value", "$kind"),
-            Param("matchMode", "equals"),
+            Param("switchValue", "$kind"),
+            Param("switchMode", "equals"),
             Body("cases",
                 Case("a; b", Set("hit", "one")),
                 // This case answers to "b" as well, but the first match has already run.
@@ -446,8 +527,8 @@ public class MacroRunnerTests
         var store = Store();
         store.Local.Set("kind", Value.FromText("z"));
         var branch = Step("control.switch",
-            Param("value", "$kind"),
-            Param("matchMode", "equals"),
+            Param("switchValue", "$kind"),
+            Param("switchMode", "equals"),
             Body("cases",
                 Case("a; b", Set("hit", "one")),
                 Case("c; d", Set("hit", "two"))),
@@ -464,8 +545,8 @@ public class MacroRunnerTests
         var store = Store();
         store.Local.Set("kind", Value.FromText("Running fast"));
         var branch = Step("control.switch",
-            Param("value", "$kind"),
-            Param("matchMode", "contains"),
+            Param("switchValue", "$kind"),
+            Param("switchMode", "contains"),
             Body("cases", Case("run", Set("hit", "yes"))));
 
         var (_, _) = await RunAsync([branch], variables: store);
@@ -478,8 +559,8 @@ public class MacroRunnerTests
     {
         var store = Store(("n", 2));
         var branch = Step("control.switch",
-            Param("value", "$n"),
-            Param("matchMode", "equals"),
+            Param("switchValue", "$n"),
+            Param("switchMode", "equals"),
             Body("cases",
                 Case("1", Set("hit", "one")),
                 Case("2; 3", Set("hit", "two or three"))));
@@ -497,15 +578,15 @@ public class MacroRunnerTests
 
         var (result, _) = await RunAsync(
         [
-            Step("control.switch", Param("value", "$kind"), Param("matchMode", "endsWith"),
+            Step("control.switch", Param("switchValue", "$kind"), Param("switchMode", "endsWith"),
                 Body("cases",
                     Case("slow", Set("hit", "slow")),
                     Case("fast", Set("hit", "fast")))),
-            Step("control.switch", Param("value", "$kind"), Param("matchMode", "notEquals"),
+            Step("control.switch", Param("switchValue", "$kind"), Param("switchMode", "notEquals"),
                 Body("cases", Case("Stopped", Set("other", "yes")))),
-            Step("control.switch", Param("value", "$n"), Param("matchMode", "greaterThan"),
+            Step("control.switch", Param("switchValue", "$n"), Param("switchMode", "greaterThan"),
                 Body("cases", Case("1", Set("big", "yes")))),
-            Step("control.switch", Param("value", "$n"), Param("matchMode", "lessOrEqual"),
+            Step("control.switch", Param("switchValue", "$n"), Param("switchMode", "lessOrEqual"),
                 Body("cases", Case("2", Set("small", "yes")))),
         ], variables: store);
 
@@ -526,10 +607,10 @@ public class MacroRunnerTests
         var (result, _) = await RunAsync(
         [
             // "b" comes after "a", so a text branch that only knows letters still lines up.
-            Step("control.switch", Param("value", "$word"), Param("matchMode", "greaterThan"),
+            Step("control.switch", Param("switchValue", "$word"), Param("switchMode", "greaterThan"),
                 Body("cases", Case("apple", Set("after", "yes")))),
             // 10 is bigger than 9 as a number, and would have come first read as text.
-            Step("control.switch", Param("value", "$ten"), Param("matchMode", "greaterThan"),
+            Step("control.switch", Param("switchValue", "$ten"), Param("switchMode", "greaterThan"),
                 Body("cases", Case("9", Set("bigger", "yes")))),
         ], variables: store);
 
@@ -544,7 +625,7 @@ public class MacroRunnerTests
         var store = Store();
         store.Local.Set("kind", Value.FromText("z"));
         var branch = Step("control.switch",
-            Param("value", "$kind"),
+            Param("switchValue", "$kind"),
             Body("cases", Case("a", Set("hit", "one"))));
 
         var (result, _) = await RunAsync([branch], variables: store);
@@ -559,7 +640,7 @@ public class MacroRunnerTests
         var store = Store(("n", 5));
         var branch = Step("control.if",
             When("condition", Step("condition.compare",
-                Param("variable", "n"), Param("operator", "greaterThan"), Param("value", "3"))),
+                Param("variable", "n"), Param("compareOperator", "greaterThan"), Param("compareValue", "3"))),
             Body("then", Set("result", "big")),
             Body("else", Set("result", "small")));
 
@@ -575,8 +656,8 @@ public class MacroRunnerTests
         var group = Step("condition.group",
             Param("op", "or"),
             Body("conditions",
-                Step("condition.compare", Param("variable", "a"), Param("operator", "greaterThan"), Param("value", "5")),
-                Step("condition.compare", Param("variable", "b"), Param("operator", "equals"), Param("value", "2"))));
+                Step("condition.compare", Param("variable", "a"), Param("compareOperator", "greaterThan"), Param("compareValue", "5")),
+                Step("condition.compare", Param("variable", "b"), Param("compareOperator", "equals"), Param("compareValue", "2"))));
 
         var branch = Step("control.if", When("condition", group), Body("then", Set("hit", "yes")));
         var (_, _) = await RunAsync([branch], variables: store);
@@ -591,9 +672,9 @@ public class MacroRunnerTests
         store.Local.SetText("name", "Ada");
 
         var contains = Step("condition.compare",
-            Param("variable", "name"), Param("operator", "contains"), Param("value", "ad"));
+            Param("variable", "name"), Param("compareOperator", "contains"), Param("compareValue", "ad"));
         var regex = Step("condition.compare",
-            Param("variable", "name"), Param("operator", "regex"), Param("value", "^A.*a$"));
+            Param("variable", "name"), Param("compareOperator", "regex"), Param("compareValue", "^A.*a$"));
 
         var (_, _) = await RunAsync(
             [
@@ -604,6 +685,79 @@ public class MacroRunnerTests
 
         Assert.Equal("1", store.Local.Values["c"].AsText());
         Assert.Equal("1", store.Local.Values["r"].AsText());
+    }
+
+    /// <summary>
+    /// Case and spacing are two answers, not one: a value with a trailing space can be compared
+    /// strictly while the same comparison can still be told to ignore that space.
+    /// </summary>
+    [Fact]
+    public async Task Case_and_spacing_can_be_asked_for_separately()
+    {
+        var store = Store();
+        store.Local.SetText("padded", "a ");
+        store.Local.SetText("mixed", "Save");
+
+        ExecutableStep Compare(string name, string variable, string value, params ExecutableParameter[] more)
+            => Step("control.if", When("condition", Step("condition.compare",
+                [Param("variable", variable), Param("compareOperator", "equals"),
+                 Param("compareValue", value), .. more])),
+                Body("then", Set(name, "1")));
+
+        var (result, _) = await RunAsync(
+            [
+                Compare("strict", "padded", "a",
+                    Param("caseSensitive", "true"), Param("trim", "false")),
+                Compare("trimmed", "padded", "a",
+                    Param("caseSensitive", "true"), Param("trim", "true")),
+                Step("control.if", When("condition", Step("condition.compare",
+                    Param("variable", "mixed"), Param("compareOperator", "contains"),
+                    Param("compareValue", "save"))), Body("then", Set("folded", "1"))),
+                Step("control.if", When("condition", Step("condition.compare",
+                    Param("variable", "mixed"), Param("compareOperator", "contains"),
+                    Param("compareValue", "save"), Param("caseSensitive", "true"))),
+                    Body("then", Set("exactCase", "1"))),
+            ],
+            variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.False(store.TryGet("strict", out _));
+        Assert.Equal("1", store.Local.Values["trimmed"].AsText());
+        Assert.Equal("1", store.Local.Values["folded"].AsText());
+        Assert.False(store.TryGet("exactCase", out _));
+    }
+
+    /// <summary>
+    /// A pattern that backtracks without end is stopped by the shared clock, and the step's own
+    /// failure rule still has the last word: the run says which pattern was too expensive and then
+    /// goes on to the next step.
+    /// </summary>
+    [Fact]
+    public async Task A_pattern_that_never_finishes_becomes_a_failure_the_step_can_carry_on_from()
+    {
+        var store = Store();
+        store.Local.SetText("long", new string('a', 4000) + "!");
+
+        var slow = new ExecutableStep
+        {
+            Id = "rx01",
+            Type = "control.if",
+            Parameters =
+            [
+                When("condition", Step("condition.compare",
+                    Param("variable", "long"), Param("compareOperator", "regex"),
+                    Param("compareValue", "(a+)+$"))),
+                Body("then", Set("never", "1")),
+            ],
+            Meta = new StepMeta { OnError = StepErrorAction.Continue },
+        };
+
+        var (result, _) = await RunAsync([slow, Set("after", "1")], variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("1", store.Local.Values["after"].AsText());
+        Assert.False(store.TryGet("never", out _));
+        Assert.Equal(RunKeys.RegexTimeout, store.Local.Values["step.rx01.error"].AsText());
     }
 
     [Fact]
@@ -621,7 +775,7 @@ public class MacroRunnerTests
 
         Assert.True(result.Succeeded);
         Assert.False(store.TryGet("n", out _));
-        Assert.Contains(host.Entries, entry => entry.Key == "Run.Skipped");
+        Assert.Contains(host.Entries, entry => entry.Key == "Log.Skipped");
     }
 
     [Fact]
@@ -698,7 +852,7 @@ public class MacroRunnerTests
         var (result, host) = await RunAsync([broken], variables: store);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(2, host.Entries.Count(entry => entry.Key == "Run.Retry"));
+        Assert.Equal(2, host.Entries.Count(entry => entry.Key == "Log.Retry"));
     }
 
     [Fact]
@@ -740,7 +894,7 @@ public class MacroRunnerTests
 
         Assert.True(result.Succeeded);
         Assert.Equal(3, N(store, "rounds"));
-        Assert.Equal(2, host.Entries.Count(entry => entry.Key == "Run.Retry"));
+        Assert.Equal(2, host.Entries.Count(entry => entry.Key == "Log.Retry"));
     }
 
     [Fact]
@@ -766,7 +920,7 @@ public class MacroRunnerTests
         // block runs once and is never retried.
         Assert.True(result.Succeeded);
         Assert.Equal(1, N(store, "rounds"));
-        Assert.DoesNotContain(host.Entries, entry => entry.Key == "Run.Retry");
+        Assert.DoesNotContain(host.Entries, entry => entry.Key == "Log.Retry");
     }
 
     [Fact]
@@ -829,7 +983,7 @@ public class MacroRunnerTests
         watch.Stop();
 
         Assert.True(result.Succeeded);
-        Assert.Equal(2, host.Entries.Count(entry => entry.Key == "Run.Retry"));
+        Assert.Equal(2, host.Entries.Count(entry => entry.Key == "Log.Retry"));
 
         // 30 ms before the first retry and 60 before the second. A run can only ever take longer
         // than it asked for, so this is a floor rather than an exact figure.
@@ -969,6 +1123,22 @@ public class MacroRunnerTests
     }
 
     [Fact]
+    public async Task A_run_keeps_its_status_key_apart_from_its_failure_key()
+    {
+        var (done, _) = await RunAsync([Set("a", "1")]);
+        Assert.Equal(string.Empty, done.Key);
+        Assert.Equal(StatusKeys.Finished, done.StatusKey);
+
+        var (stopped, _) = await RunAsync([Step("control.stop")]);
+        Assert.Equal(string.Empty, stopped.Key);
+        Assert.Equal(StatusKeys.Stopped, stopped.StatusKey);
+
+        var (failed, _) = await RunAsync([Step("control.fail", Param("reason", "no"))]);
+        Assert.Equal(RunKeys.StepFailedByMacro, failed.Key);
+        Assert.Equal(StatusKeys.Aborted, failed.StatusKey);
+    }
+
+    [Fact]
     public async Task A_step_that_fits_inside_its_timeout_is_left_alone()
     {
         // The clock must not be so eager that an honest step fails: this one is allowed plenty.
@@ -1014,6 +1184,72 @@ public class MacroRunnerTests
 
         Assert.True(ok.Succeeded);
         Assert.Equal(7, store.Global.Values["shared"].AsNumber());
+    }
+
+    /// <summary>
+    /// Adding to a shared number is one action, so a macro does not have to read the value and
+    /// write it back in two steps with a window in between for another run to fit into.
+    /// </summary>
+    [Fact]
+    public async Task Adding_to_a_shared_number_keeps_the_new_value()
+    {
+        var store = Store();
+        store.Global.SetNumber("shared", 10);
+
+        var (result, _) = await RunAsync(
+            [Step("control.incrementGlobal", Param("name", "shared"), Param("amount", "2.5"))],
+            variables: store);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(12.5, store.Global.Values["shared"].AsNumber());
+    }
+
+    [Fact]
+    public async Task Adding_to_a_name_the_project_does_not_declare_is_refused()
+    {
+        var store = Store();
+        var (result, _) = await RunAsync(
+            [Step("control.incrementGlobal", Param("name", "shared"), Param("amount", "1"))],
+            variables: store);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.GlobalMustExist, result.Key);
+    }
+
+    [Fact]
+    public async Task Adding_to_a_shared_text_value_says_it_is_not_a_number()
+    {
+        var store = Store();
+        store.Global.SetText("shared", "ten");
+
+        var (result, _) = await RunAsync(
+            [Step("control.incrementGlobal", Param("name", "shared"), Param("amount", "1"))],
+            variables: store);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.NotANumber, result.Key);
+    }
+
+    /// <summary>
+    /// Two runs adding at the same time both have their additions counted. Reading the number in
+    /// one step and writing the sum in the next would let one of them overwrite the other.
+    /// </summary>
+    [Fact]
+    public async Task Two_runs_adding_to_one_shared_number_lose_nothing()
+    {
+        var shared = new VariableBag();
+        shared.SetNumber("shared", 0);
+        var steps = Enumerable.Range(0, 200)
+            .Select(_ => Step("control.incrementGlobal", Param("name", "shared"),
+                Param("amount", "1")))
+            .ToArray();
+
+        var results = await Task.WhenAll(
+            new MacroRunner(new VariableStore(shared)).RunAsync(steps),
+            new MacroRunner(new VariableStore(shared)).RunAsync(steps));
+
+        Assert.All(results, result => Assert.True(result.Succeeded, result.Key));
+        Assert.Equal(400, shared.Values["shared"].AsNumber());
     }
 
     [Fact]
@@ -1098,9 +1334,9 @@ public class MacroRunnerTests
         var store = Store();
         var (result, _) = await RunAsync(
             [
-                Step("data.base64Encode", Param("text", "你好, Ada"),
+                Step("data.base64Encode", Param("dataText", "你好, Ada"),
                     Returns("encoded")),
-                Step("data.base64Decode", Param("text", "$encoded"),
+                Step("data.base64Decode", Param("dataText", "$encoded"),
                     Returns("decoded=back")),
             ],
             variables: store);
@@ -1118,7 +1354,7 @@ public class MacroRunnerTests
     {
         var store = Store();
         var (result, _) = await RunAsync(
-            [Step("data.base64Decode", Param("text", "not base64!!"), Returns("decoded=x"))],
+            [Step("data.base64Decode", Param("dataText", "not base64!!"), Returns("decoded=x"))],
             variables: store);
 
         Assert.Equal(RunStatus.Failed, result.Status);
@@ -1132,9 +1368,9 @@ public class MacroRunnerTests
         var store = Store();
         var (result, _) = await RunAsync(
             [
-                Step("data.hash", Param("algorithm", "sha256"), Param("text", "abc"),
+                Step("data.hash", Param("hashAlgorithm", "sha256"), Param("dataText", "abc"),
                     Returns("digest")),
-                Step("data.hash", Param("algorithm", "md5"), Param("text", "abc"),
+                Step("data.hash", Param("hashAlgorithm", "md5"), Param("dataText", "abc"),
                     Returns("digest=md5")),
             ],
             variables: store);
@@ -1153,8 +1389,8 @@ public class MacroRunnerTests
             [
                 Step("control.listCreate", Param("name", "names"), Param("scope", "local"), Param("items", "[\"a\"]")),
                 Step("control.listAdd", Param("name", "names"), Param("value", "b")),
-                Step("control.listInsert", Param("name", "names"), Param("index", "0"), Param("value", "z")),
-                Step("control.listRemoveAt", Param("name", "names"), Param("index", "-1")),
+                Step("control.listInsert", Param("name", "names"), Param("listIndex", "0"), Param("value", "z")),
+                Step("control.listRemoveAt", Param("name", "names"), Param("listIndex", "-1")),
             ],
             variables: store);
 
@@ -1171,9 +1407,9 @@ public class MacroRunnerTests
 
         var (result, _) = await RunAsync(
             [
-                Step("control.listSet", Param("name", "names"), Param("index", "1"),
+                Step("control.listSet", Param("name", "names"), Param("listIndex", "1"),
                     Param("value", "B")),
-                Step("control.listSet", Param("name", "names"), Param("index", "-1"),
+                Step("control.listSet", Param("name", "names"), Param("listIndex", "-1"),
                     Param("value", "C")),
             ],
             variables: store);
@@ -1191,7 +1427,7 @@ public class MacroRunnerTests
         store.Local.Set("names", Value.FromList(new[] { Value.FromText("a") }));
 
         var (result, _) = await RunAsync(
-            [Step("control.listSet", Param("name", "names"), Param("index", "4"),
+            [Step("control.listSet", Param("name", "names"), Param("listIndex", "4"),
                 Param("value", "z"))],
             variables: store);
 
@@ -1271,7 +1507,7 @@ public class MacroRunnerTests
             [Step("control.log", Param("message", "hello $who"), Param("level", "warn"))],
             variables: store);
 
-        var line = host.Entries.Last(entry => entry.Key == "Run.Message");
+        var line = host.Entries.Last(entry => entry.Key == "Log.Message");
         Assert.Equal(LogLevel.Warn, line.Level);
         Assert.Equal("hello Ada", line.Arguments[0]);
     }
@@ -1280,7 +1516,7 @@ public class MacroRunnerTests
     public async Task A_condition_that_needs_a_missing_device_fails_the_step()
     {
         var branch = Step("control.if",
-            When("condition", Step("condition.uiaExists", Param("selector", "Button[name='Save']"))),
+            When("condition", Step("condition.uiaExists", Param("uiSelector", "Button[name='Save']"))),
             Body("then", Set("hit", "1")));
 
         var store = Store();
@@ -1304,7 +1540,7 @@ public class MacroRunnerTests
 
         Assert.True(result.Succeeded);
         Assert.False(store.TryGet("hit", out _));
-        Assert.Contains(host.Entries, entry => entry.Key == "Run.UnknownCondition");
+        Assert.Contains(host.Entries, entry => entry.Key == "Log.UnknownCondition");
     }
 
     [Fact]
@@ -1371,8 +1607,8 @@ public class MacroRunnerTests
         Assert.Equal(2, N(store, "b"));
         Assert.Equal(3, N(store, "c"));
         Assert.Equal(4, N(store, "after"));
-        Assert.Contains(host.Entries, entry => entry.Key == "Run.Caught");
-        Assert.Contains(host.Entries, entry => entry.Key == "Run.Finally");
+        Assert.Contains(host.Entries, entry => entry.Key == "Log.Caught");
+        Assert.Contains(host.Entries, entry => entry.Key == "Log.Finally");
     }
 
     [Fact]
@@ -1384,12 +1620,30 @@ public class MacroRunnerTests
             Try(
                 Body("body", Step("input.keyPress", Param("key", "F5"))),
                 Body("catch", Set("handled", "yes")),
-                Returns("error=why")),
+                Returns("error=why", "detail=whyDetail")),
         ], variables: store);
 
         Assert.True(result.Succeeded);
         Assert.Equal("yes", store.Local.Values["handled"].AsText());
-        Assert.Equal("the keyboard", store.Local.Values["why"].AsText());
+        Assert.Equal("Run.NoDevice", store.Local.Values["why"].AsText());
+        Assert.Equal("the keyboard", store.Local.Values["whyDetail"].AsText());
+    }
+
+    [Fact]
+    public async Task The_failure_detail_is_empty_when_the_failure_gave_none()
+    {
+        var store = Store();
+        var (result, _) = await RunAsync(
+        [
+            Try(
+                Body("body", Step("control.fail")),
+                Body("catch", Set("handled", "yes")),
+                Returns("error=why", "detail=whyDetail")),
+        ], variables: store);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("Run.StepFailedByMacro", store.Local.Values["why"].AsText());
+        Assert.Equal(string.Empty, store.Local.Values["whyDetail"].AsText());
     }
 
     [Fact]
@@ -1402,10 +1656,11 @@ public class MacroRunnerTests
         [
             Try(
                 Body("body", Set("a", "1")),
-                Returns("error=why")),
+                Returns("error=why", "detail=whyDetail")),
         ], variables: store);
 
         Assert.Equal(string.Empty, store.Local.Values["why"].AsText());
+        Assert.Equal(string.Empty, store.Local.Values["whyDetail"].AsText());
     }
 
     [Fact]
@@ -1491,6 +1746,352 @@ public class MacroRunnerTests
 
         Assert.False(result.Succeeded);
         Assert.Equal(1, N(store, "b"));
+    }
+
+    [Fact]
+    public async Task A_return_ends_the_macro_and_the_caller_carries_on()
+    {
+        var store = Store();
+        var library = new Library(("检查", new MacroSignature([], ["结果"]),
+            [Set("结果", "early"), Step("control.return"), Set("结果", "late")]));
+
+        var (result, _) = await RunAsync(
+        [
+            Call("检查", Returns("结果=结果")),
+            Set("after", "1"),
+        ], variables: store, macros: library);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("early", store.Local.Values["结果"].AsText());
+        Assert.Equal(1, N(store, "after"));
+    }
+
+    /// <summary>
+    /// 不等的那次调用立刻交回句柄，后台宏在另一条运行里等着；父宏先把共享变量改成它等的值，
+    /// 再按句柄等它结束并取回结果。若调用把父宏也拖住，这一步永远等不到那个值。
+    /// </summary>
+    [Fact]
+    public async Task A_background_run_returns_a_handle_and_the_parent_carries_on()
+    {
+        var store = Store();
+        store.Global.SetText("go", "false");
+        var library = new Library(
+            ("后台", new MacroSignature([], ["结果"]),
+            [
+                Step("control.waitUntil", When("condition", Step("condition.compare",
+                    Param("variable", "go"), Param("compareOperator", "equals"),
+                    Param("compareValue", "true")))),
+                Set("结果", "完成"),
+                Step("control.setVariable",
+                    Param("name", "inner"), Param("scope", "local"), Param("value", "只在里面")),
+                Step("control.setVariable",
+                    Param("name", "sharedSeen"), Param("scope", "global"),
+                    Param("value", "看得见")),
+            ]));
+        store.Global.SetText("sharedSeen", "还没写");
+
+        var running = RunAsync(
+        [
+            Step("control.runMacro", Param("macro", "后台"), Param("wait", "false"),
+                Param("runHandleName", "job"), Returns("结果=结果")),
+            Step("control.setVariable",
+                Param("name", "go"), Param("scope", "global"), Param("value", "true")),
+            Step("control.waitMacro", Param("runHandle", "$job")),
+        ], variables: store, macros: library);
+
+        var finished = await Task.WhenAny(running, Task.Delay(5000));
+        Assert.Same(running, finished);
+
+        var (result, _) = await running;
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("完成", store.Local.Values["结果"].AsText());
+        Assert.Equal("看得见", store.Global.Values["sharedSeen"].AsText());
+
+        // 子宏的局部变量不回到调用者这里。
+        Assert.False(store.Local.Contains("inner"));
+    }
+
+    [Fact]
+    public async Task A_wait_that_runs_out_leaves_the_background_run_going()
+    {
+        var store = Store();
+        var library = new Library(("慢", new MacroSignature([], ["结果"]),
+            [
+                Step("control.delay", Param("ms", "250")),
+                Set("结果", "晚了"),
+            ]));
+
+        var (result, _) = await RunAsync(
+        [
+            Step("control.runMacro", Param("macro", "慢"), Param("wait", "false"),
+                Param("runHandleName", "job"), Returns("结果=结果")),
+            new ExecutableStep
+            {
+                Type = "control.waitMacro",
+                Parameters = [Param("runHandle", "$job")],
+                Meta = new StepMeta { TimeoutMs = 40, OnError = StepErrorAction.Continue },
+            },
+            Step("control.waitMacro", Param("runHandle", "$job")),
+        ], variables: store, macros: library);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("晚了", store.Local.Values["结果"].AsText());
+    }
+
+    [Fact]
+    public async Task A_background_run_that_fails_hands_its_key_to_the_wait()
+    {
+        var library = new Library(("坏", MacroSignature.Empty,
+            [Step("control.fail", Param("reason", "boom"))]));
+
+        var (result, _) = await RunAsync(
+        [
+            Step("control.runMacro", Param("macro", "坏"), Param("wait", "false"),
+                Param("runHandleName", "job")),
+            Step("control.waitMacro", Param("runHandle", "$job")),
+        ], macros: library);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.StepFailedByMacro, result.Key);
+        Assert.Equal("boom", result.Detail);
+    }
+
+    /// <summary>
+    /// 父宏停下时，没等的后台运行也停；取消之后再过一会儿，它写的值不该出现。
+    /// </summary>
+    [Fact]
+    public async Task Stopping_the_parent_stops_the_background_run()
+    {
+        var store = Store();
+        var library = new Library(("长", MacroSignature.Empty,
+            [
+                Step("control.delay", Param("ms", "5000")),
+                Step("control.setVariable",
+                    Param("name", "finished"), Param("scope", "global"),
+                    Param("value", "1")),
+            ]));
+
+        using var cancel = new CancellationTokenSource();
+        var running = RunAsync(
+        [
+            Step("control.runMacro", Param("macro", "长"), Param("wait", "false"),
+                Param("runHandleName", "job")),
+            Step("control.delay", Param("ms", "5000")),
+        ], variables: store, macros: library, token: cancel.Token);
+        cancel.CancelAfter(100);
+        var (result, _) = await running;
+
+        Assert.Equal(RunStatus.Stopped, result.Status);
+
+        await Task.Delay(400);
+        Assert.False(store.Global.Contains("finished"));
+    }
+
+    [Fact]
+    public async Task A_background_call_without_a_handle_is_refused()
+    {
+        var library = new Library(("后台", MacroSignature.Empty, []));
+        var (result, _) = await RunAsync(
+            [Step("control.runMacro", Param("macro", "后台"), Param("wait", "false"))],
+            macros: library);
+
+        Assert.Equal(RunKeys.MissingHandle, result.Key);
+    }
+
+    [Fact]
+    public async Task A_handle_that_was_never_started_is_refused()
+    {
+        var (result, _) = await RunAsync(
+            [Step("control.waitMacro", Param("runHandle", "run-nothere"))]);
+
+        Assert.Equal(RunKeys.NoSuchRun, result.Key);
+    }
+
+    [Fact]
+    public async Task A_handle_can_only_be_waited_for_once()
+    {
+        var library = new Library(("快", MacroSignature.Empty, []));
+        var (result, _) = await RunAsync(
+        [
+            Step("control.runMacro", Param("macro", "快"), Param("wait", "false"),
+                Param("runHandleName", "job")),
+            Step("control.waitMacro", Param("runHandle", "$job")),
+            Step("control.waitMacro", Param("runHandle", "$job")),
+        ], macros: library);
+
+        Assert.Equal(RunKeys.NoSuchRun, result.Key);
+    }
+
+    [Fact]
+    public async Task A_return_at_the_top_finishes_the_run()
+    {
+        var store = Store();
+        var (result, _) = await RunAsync(
+        [
+            Set("before", "1"),
+            Step("control.return"),
+            Set("after", "1"),
+        ], variables: store);
+
+        Assert.Equal(RunStatus.Completed, result.Status);
+        Assert.Equal(1, N(store, "before"));
+        Assert.False(store.TryGet("after", out _));
+    }
+
+    [Fact]
+    public async Task A_return_leaves_every_enclosing_loop()
+    {
+        var store = Store(("n", 0));
+        var (result, _) = await RunAsync(
+        [
+            Step("control.repeat", Param("times", "3"),
+                Body("body", AddOne("n"), Step("control.return"))),
+            Set("after", "1"),
+        ], variables: store);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(1, N(store, "n"));
+        Assert.False(store.TryGet("after", out _));
+    }
+
+    [Fact]
+    public async Task A_return_inside_a_called_macro_only_ends_that_call()
+    {
+        var store = Store(("n", 0));
+        var library = new Library(Plain("子", Step("control.return"), Set("late", "1")));
+
+        var (result, _) = await RunAsync(
+        [
+            Step("control.repeat", Param("times", "2"),
+                Body("body", Call("子"), AddOne("n"))),
+        ], variables: store, macros: library);
+
+        // The caller's loop is not cut short by a return that belongs to the macro it called.
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(2, N(store, "n"));
+    }
+
+    [Fact]
+    public async Task A_try_catches_only_the_failure_its_condition_names()
+    {
+        var store = Store();
+        store.Local.SetText("caught.key", "left alone");
+
+        var (result, _) = await RunAsync(
+        [
+            Try(
+                Body("body", Step("control.fail", Param("reason", "boom"))),
+                When("catchWhen", Step("condition.compare",
+                    Param("variable", "caught.key"),
+                    Param("compareOperator", "equals"),
+                    Param("compareValue", "Run.StepFailedByMacro"))),
+                Body("catch", Set("seen", "$caught.key"), Set("detail", "$caught.detail")),
+                Body("finally", Set("tidied", "1"))),
+            Set("after", "1"),
+        ], variables: store);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("Run.StepFailedByMacro", store.Local.Values["seen"].AsText());
+        Assert.Equal("boom", store.Local.Values["detail"].AsText());
+        Assert.Equal(1, N(store, "after"));
+        Assert.Equal(1, N(store, "tidied"));
+
+        // The names belong to the catch block. What the macro held before it is what it holds
+        // again after it, rather than a failure that keeps looking current.
+        Assert.Equal("left alone", store.Local.Values["caught.key"].AsText());
+        Assert.False(store.TryGet("caught.detail", out _));
+    }
+
+    [Fact]
+    public async Task A_failure_a_catch_condition_does_not_name_keeps_its_key_and_detail()
+    {
+        var store = Store();
+        var (result, _) = await RunAsync(
+        [
+            Try(
+                Body("body", Step("control.fail", Param("reason", "boom"))),
+                When("catchWhen", Step("condition.compare",
+                    Param("variable", "caught.key"),
+                    Param("compareOperator", "equals"),
+                    Param("compareValue", "Run.NoDevice"))),
+                Body("catch", Set("handled", "1")),
+                Body("finally", Set("tidied", "1"))),
+            Set("after", "1"),
+        ], variables: store);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.StepFailedByMacro", result.Key);
+        Assert.Equal("boom", result.Detail);
+        Assert.False(store.TryGet("handled", out _));
+        Assert.False(store.TryGet("after", out _));
+        Assert.Equal(1, N(store, "tidied"));
+    }
+
+    [Fact]
+    public async Task A_rethrow_hands_on_the_same_key_and_detail()
+    {
+        var store = Store();
+        var (result, _) = await RunAsync(
+        [
+            Try(
+                Body("body", Step("control.fail", Param("reason", "boom"))),
+                Body("catch", new ExecutableStep { Type = "control.rethrow", Id = "rrrr" },
+                    Set("afterRethrow", "1"))),
+        ], variables: store);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.StepFailedByMacro", result.Key);
+        Assert.Equal("boom", result.Detail);
+        Assert.False(store.TryGet("afterRethrow", out _));
+        Assert.Equal("Run.StepFailedByMacro", store.Local.Values["step.rrrr.error"].AsText());
+    }
+
+    [Fact]
+    public async Task Nested_catches_see_their_own_failure_and_give_the_outer_one_back()
+    {
+        var store = Store();
+        var (result, _) = await RunAsync(
+        [
+            Try(
+                Body("body", Fails),
+                Body("catch",
+                    Set("outer", "$caught.key"),
+                    Try(
+                        Body("body", Step("control.fail", Param("reason", "inner"))),
+                        Body("catch", Set("inner", "$caught.key"))),
+                    Set("outerAgain", "$caught.key"))),
+        ], variables: store);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal("Run.Unsupported", store.Local.Values["outer"].AsText());
+        Assert.Equal("Run.StepFailedByMacro", store.Local.Values["inner"].AsText());
+        Assert.Equal("Run.Unsupported", store.Local.Values["outerAgain"].AsText());
+    }
+
+    [Fact]
+    public async Task A_rethrow_with_no_catch_behind_it_says_so()
+    {
+        var (result, _) = await RunAsync([Step("control.rethrow")]);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.NothingToRethrow", result.Key);
+    }
+
+    [Fact]
+    public async Task A_rethrow_inside_a_called_macro_cannot_reach_the_callers_catch()
+    {
+        var library = new Library(Plain("子", Step("control.rethrow")));
+        var (result, _) = await RunAsync(
+        [
+            Try(
+                Body("body", Fails),
+                Body("catch", Call("子"))),
+        ], macros: library);
+
+        // The caller has caught Run.Unsupported, but that belongs to the caller. The called
+        // macro has no failure of its own to hand on, so the call fails on its own terms.
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal("Run.NothingToRethrow", result.Key);
     }
 
     [Fact]

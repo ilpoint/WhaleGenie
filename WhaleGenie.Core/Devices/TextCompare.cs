@@ -1,7 +1,28 @@
 using System;
 using System.Text.RegularExpressions;
+using WhaleGenie.Core;
 
 namespace WhaleGenie.Core.Devices;
+
+/// <summary>
+/// The two switches and the spacing rule that travel with one text comparison. An unanswered
+/// <see cref="Trim"/> keeps the rule the five ways have always had: "exactly" trims, the rest
+/// compare what they were given.
+/// </summary>
+public readonly record struct TextCompareOptions(
+    bool CaseSensitive = false,
+    bool? Trim = null,
+    bool Multiline = false)
+{
+    public StringComparison Comparison => CaseSensitive
+        ? StringComparison.Ordinal
+        : StringComparison.OrdinalIgnoreCase;
+
+    public RegexOptions Regex => (CaseSensitive ? RegexOptions.None : RegexOptions.IgnoreCase)
+        | (Multiline ? RegexOptions.Multiline : RegexOptions.None);
+
+    public bool Trims(string way) => Trim ?? way == TextCompare.Exactly;
+}
 
 /// <summary>
 /// How one piece of text is held up against another: contained in it, at one of its ends, exactly
@@ -10,10 +31,10 @@ namespace WhaleGenie.Core.Devices;
 /// branch — it asks this one list, so "starts with" cannot come to mean two different things.
 /// </summary>
 /// <remarks>
-/// Two rules hold wherever the five are used: the comparison ignores case, and "exactly it" trims
-/// both sides first, because writing read off a screen carries the spacing around it that a person
-/// typing it out would not. The words themselves are what a macro file carries, so they are the
-/// spellings the interface offers and nothing else.
+/// The default still ignores case and trims both sides for "exactly it", because writing read off
+/// a screen carries spacing a person typing it out would not. Each use may ask for case-sensitive
+/// comparison, for an explicit trim rule, or for a regex that reads ^ and $ by line; the words
+/// themselves stay the five a macro file carries.
 /// </remarks>
 public static class TextCompare
 {
@@ -77,17 +98,24 @@ public static class TextCompare
     public static bool IsPattern(string? written) => Read(written) == Regex;
 
     /// <summary>Whether <paramref name="text"/> answers to <paramref name="wanted"/> the written way.</summary>
-    public static bool Matches(string? text, string wanted, string? way)
+    public static bool Matches(string? text, string wanted, string? way,
+        TextCompareOptions options = default)
     {
         var found = text ?? string.Empty;
-        return Read(way) switch
+        var read = Read(way);
+        if (options.Trims(read))
         {
-            StartsWith => found.StartsWith(wanted, StringComparison.OrdinalIgnoreCase),
-            EndsWith => found.EndsWith(wanted, StringComparison.OrdinalIgnoreCase),
-            Exactly => string.Equals(found.Trim(), wanted.Trim(), StringComparison.OrdinalIgnoreCase),
-            Regex => System.Text.RegularExpressions.Regex.IsMatch(
-                found, wanted, RegexOptions.IgnoreCase),
-            _ => found.Contains(wanted, StringComparison.OrdinalIgnoreCase),
+            found = found.Trim();
+            wanted = wanted.Trim();
+        }
+
+        return read switch
+        {
+            StartsWith => found.StartsWith(wanted, options.Comparison),
+            EndsWith => found.EndsWith(wanted, options.Comparison),
+            Exactly => string.Equals(found, wanted, options.Comparison),
+            Regex => RegexGuard.IsMatch(found, wanted, options.Regex),
+            _ => found.Contains(wanted, options.Comparison),
         };
     }
 
@@ -97,11 +125,11 @@ public static class TextCompare
     /// it means "anything", the way an empty search text means "the first one".
     /// </summary>
     /// <exception cref="ArgumentException">The pattern cannot be read, thrown by <see cref="Regex"/> itself.</exception>
-    public static void Check(string wanted, string? way)
+    public static void Check(string wanted, string? way, TextCompareOptions options = default)
     {
         if (IsPattern(way) && wanted.Length > 0)
         {
-            _ = new System.Text.RegularExpressions.Regex(wanted, RegexOptions.IgnoreCase);
+            _ = RegexGuard.Create(wanted, options.Regex);
         }
     }
 }

@@ -107,13 +107,15 @@ public static class WindowHow
     /// a window by the same rule, and they should not be able to disagree about what "starts with"
     /// means.
     /// </summary>
-    public static bool Matches(string? text, string wanted, string compare)
-        => TextCompare.Matches(text, wanted, compare);
+    public static bool Matches(string? text, string wanted, string compare,
+        TextCompareOptions options = default)
+        => TextCompare.Matches(text, wanted, compare, options);
 
     /// <summary>
     /// Refuses a pattern the machine cannot read by throwing what
     /// <see cref="Regex"/> itself throws, so whoever asked can turn it into a failed step. An empty
     /// text is not a pattern at all: it means "the window in front" rather than "match nothing".
     /// </summary>
-    public static void Check(string wanted, string compare) => TextCompare.Check(wanted, compare);
+    public static void Check(string wanted, string compare, TextCompareOptions options = default)
+        => TextCompare.Check(wanted, compare, options);
 }

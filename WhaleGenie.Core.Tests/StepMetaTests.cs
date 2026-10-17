@@ -84,7 +84,7 @@ public class StepMetaTests
     [Fact]
     public void A_macro_written_before_backoff_existed_reads_as_a_fixed_pause()
     {
-        var old = StepMeta.FromJson(new JsonObject { ["retry"] = 2, ["retryDelayMs"] = 300 });
+        var old = StepMeta.FromJson(new JsonObject { ["retryCount"] = 2, ["retryDelayMs"] = 300 });
 
         Assert.Equal(RetryBackoff.Fixed, old.RetryBackoff);
         Assert.Equal(300, old.RetryDelayFor(2));

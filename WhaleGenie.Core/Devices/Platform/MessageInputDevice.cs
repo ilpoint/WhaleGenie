@@ -101,7 +101,7 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
     /// so a macro that wants to move by an offset is told to use a mode that has a pointer.
     /// </summary>
     public void MoveMouseRelative(int dx, int dy, int durationMs)
-        => throw new DeviceActionException("Run.BackgroundNeedsPointer");
+        => throw new DeviceActionException(RunKeys.BackgroundNeedsPointer);
 
     public void MouseDown(string button, int x, int y) => Press(button, down: true, x, y);
 
@@ -243,10 +243,10 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
         // A posted key message carries the code Windows numbers the key with, which is not the code
         // the hook library numbers it with: sending the library's own code would press another key.
         var code = SharpKeys.ResolveCode(key)
-            ?? throw new DeviceActionException("Run.UnknownKey", key);
+            ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
 
         return WindowsKeys.VirtualKey(code)
-            ?? throw new DeviceActionException("Run.UnknownKey", key);
+            ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
     }
 
     private static bool IsAlt(int virtualKey) => virtualKey is VkAlt or VkMenu;

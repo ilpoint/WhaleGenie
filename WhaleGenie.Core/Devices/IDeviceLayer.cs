@@ -589,7 +589,8 @@ public interface IBrowserDevice
     /// element, because the element it is after often lives on the page the click leads to and
     /// naming it too early finds the one on the page being left behind.
     /// </remarks>
-    void WaitForUrl(string match, string how, int timeoutMs);
+    void WaitForUrl(string match, string how, int timeoutMs,
+        TextCompareOptions options = default);
 
     /// <summary>Waits for the page to have got as far as the state names in its loading.</summary>
     void WaitForLoad(PageLoad state, int timeoutMs);
@@ -1016,7 +1017,8 @@ public interface IWindowDevice
     /// and the rule itself stays in one place.
     /// </summary>
     IReadOnlyList<WindowInfo> Filter(string value, WindowMatch match,
-        string compare = TextCompare.Contains, bool everyWhenEmpty = false);
+        string compare = TextCompare.Contains, bool everyWhenEmpty = false,
+        TextCompareOptions options = default);
 
     /// <summary>
     /// The first window that matches <paramref name="value"/> the way <paramref name="match"/>
@@ -1026,7 +1028,7 @@ public interface IWindowDevice
     /// cannot read throws <see cref="ArgumentException"/>, which the run turns into a failed step.
     /// </summary>
     WindowInfo? Find(string value, WindowMatch match,
-        string compare = TextCompare.Contains);
+        string compare = TextCompare.Contains, TextCompareOptions options = default);
 
     /// <summary>
     /// The name of the program that owns a window, without the ".exe", or an empty string when the
@@ -1389,7 +1391,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public bool Exists(PageTarget target, ElementWait state) => throw Missing("a browser");
 
-        public void WaitForUrl(string match, string how, int timeoutMs) => throw Missing("a browser");
+        public void WaitForUrl(string match, string how, int timeoutMs,
+            TextCompareOptions options) => throw Missing("a browser");
 
         public void WaitForLoad(PageLoad state, int timeoutMs) => throw Missing("a browser");
 
@@ -1557,9 +1560,11 @@ public sealed class NullDeviceLayer : IDeviceLayer
         IReadOnlyList<WindowInfo> IWindowDevice.List() => throw Missing("windows");
 
         IReadOnlyList<WindowInfo> IWindowDevice.Filter(string value, WindowMatch match,
-            string compare, bool everyWhenEmpty) => throw Missing("windows");
+            string compare, bool everyWhenEmpty, TextCompareOptions options)
+            => throw Missing("windows");
 
-        WindowInfo? IWindowDevice.Find(string value, WindowMatch match, string compare)
+        WindowInfo? IWindowDevice.Find(string value, WindowMatch match, string compare,
+            TextCompareOptions options)
             => throw Missing("windows");
 
         string IWindowDevice.ProcessOf(long handle) => throw Missing("windows");

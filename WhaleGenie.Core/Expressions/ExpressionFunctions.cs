@@ -6,6 +6,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Execution;
 
 namespace WhaleGenie.Core.Expressions;
 
@@ -89,6 +91,13 @@ internal static class ArgumentLibrary
             ["json"] = ("JSON", "The JSON text to work on."),
             ["path"] = ("Path", "Where to look, written as a.b[0].c."),
             ["name"] = ("Name", "The name to look for."),
+            ["field"] = ("Field", "The name of the field to read from each record, such as x or name."),
+            ["compare"] = ("Compare",
+                "Contains, startsWith, endsWith, equals or regex, or a number comparison: >, >=, <, <=, = or !=."),
+            ["caseSensitive"] = ("Case sensitive",
+                "True to compare capitals and small letters as different; false, the default, ignores case."),
+            ["trim"] = ("Trim ends",
+                "True to drop the spaces at both ends before comparing; leave it out to trim only for equals."),
             ["record"] = ("Record", "The record to read a field from."),
         };
 
@@ -149,7 +158,7 @@ internal static class FunctionLibrary
             "Swap everything the regular expression matches for the replacement, which can name the "
             + "pieces it captured as $1, $2 and so on. Write (?i) at the front of the pattern to "
             + "ignore case.", 3, 3,
-            args => Value.FromText(Regex.Replace(S(args, 0), S(args, 1), S(args, 2)))),
+            args => Value.FromText(RegexGuard.Replace(S(args, 0), S(args, 1), S(args, 2)))),
         Fn(TextGroup, "split", "split(text, separator)", "Break text into a list.", 2, 2,
             args => Value.FromList(Split(args))),
         Fn(TextGroup, "join", "join(list, separator)", "Glue the items of a list into one text.", 2, 2,
@@ -169,7 +178,7 @@ internal static class FunctionLibrary
         Fn(TextGroup, "format", "format(template, ...)", "Replace {0}, {1} and so on in a template.", 1, Any,
             args => Value.FromText(Format(args))),
         Fn(TextGroup, "match", "match(text, pattern)", "True when the regular expression matches the text.", 2, 2,
-            args => Value.FromBool(Regex.IsMatch(S(args, 0), S(args, 1)))),
+            args => Value.FromBool(RegexGuard.IsMatch(S(args, 0), S(args, 1)))),
         Fn(TextGroup, "extract", "extract(text, pattern)", "The first piece of text the regular expression matches.", 2, 2,
             args => Value.FromText(Extract(args))),
 
@@ -222,6 +231,14 @@ internal static class FunctionLibrary
             args => Value.FromList(Unique(L(args, 0)))),
         Fn(ListsGroup, "slice", "slice(list, start [, length])", "Part of a list; start counts from 0.", 2, 3,
             args => Slice(args)),
+        Fn(ListsGroup, "where", "where(list, field, compare, value [, caseSensitive, trim])",
+            "Keep the records whose field answers the comparison. Text uses the same five ways as "
+            + "every text comparison; numbers also take >, >=, <, <=, = and !=. A row with no such "
+            + "field, or one that is not a number when a number is asked for, is left out and "
+            + "reported in the run log.", 4, 6, args => Where(args)),
+        Fn(ListsGroup, "column", "column(list, field)",
+            "One value per record, taken from the same field, as a list. A row without the field is "
+            + "left out and reported in the run log.", 2, 2, args => Column(args)),
 
         // ------------------------------------------------------------- conversion
         Fn(OtherGroup, "number", "number(value)", "Read a value as a number.", 1, 1,
@@ -500,7 +517,7 @@ internal static class FunctionLibrary
 
     private static string Extract(IReadOnlyList<Func<Value>> args)
     {
-        var match = Regex.Match(S(args, 0), S(args, 1));
+        var match = RegexGuard.Match(S(args, 0), S(args, 1));
         return match.Success ? match.Value : string.Empty;
     }
 
@@ -616,6 +633,205 @@ internal static class FunctionLibrary
             : Math.Clamp((int)N(args, 2), 0, items.Count - start);
 
         return Value.FromList(items.Skip(start).Take(length));
+    }
+
+    /// <summary>
+    /// Keeps the records whose named field answers one comparison. Text is held against the same
+    /// five words every other comparison uses; numbers are held against the six order words. A row
+    /// that cannot answer — it is not a record, has no such field, or holds text where a number
+    /// was asked for — is left out and reported rather than read as zero.
+    /// </summary>
+    private static Value Where(IReadOnlyList<Func<Value>> args)
+    {
+        var rows = L(args, 0);
+        var field = S(args, 1).Trim();
+        if (field.Length == 0)
+        {
+            throw ExpressionException.TypeMismatch("where needs the name of a field to compare");
+        }
+
+        var compare = S(args, 2).Trim();
+        var wanted = V(args, 3);
+        var numeric = IsNumberWay(compare);
+        var options = new TextCompareOptions(
+            args.Count > 4 && V(args, 4).AsBool(),
+            args.Count > 5 ? V(args, 5).AsBool() : null);
+
+        double wantedNumber = 0;
+        string way = compare;
+        if (numeric)
+        {
+            wantedNumber = AskedForNumber(wanted, compare);
+        }
+        else
+        {
+            way = TextWay(compare);
+            try
+            {
+                TextCompare.Check(wanted.AsText(), way, options);
+            }
+            catch (ArgumentException failure)
+            {
+                throw ExpressionException.TypeMismatch(failure.Message);
+            }
+        }
+
+        var kept = new List<Value>();
+        for (var index = 0; index < rows.Count; index++)
+        {
+            var row = rows[index];
+            if (!row.IsRecord)
+            {
+                Expression.Report(LogKeys.ListRowNotRecord, index + 1);
+                continue;
+            }
+
+            if (row.Field(field) is not { } value)
+            {
+                Expression.Report(LogKeys.ListFieldMissing, index + 1, field);
+                continue;
+            }
+
+            if (numeric)
+            {
+                if (!TryNumber(value, out var number))
+                {
+                    Expression.Report(LogKeys.ListFieldNotNumber, index + 1, field, value.AsText());
+                    continue;
+                }
+
+                if (NumberMatches(number, wantedNumber, compare))
+                {
+                    kept.Add(row);
+                }
+
+                continue;
+            }
+
+            if (TextCompare.Matches(value.AsText(), wanted.AsText(), way, options))
+            {
+                kept.Add(row);
+            }
+        }
+
+        return Value.FromList(kept);
+    }
+
+    /// <summary>
+    /// One value per record from the same field. Rows without the field are left out and reported;
+    /// a list in which no record has it says which fields the records do have, because those names
+    /// come from the action that made the records.
+    /// </summary>
+    private static Value Column(IReadOnlyList<Func<Value>> args)
+    {
+        var rows = L(args, 0);
+        var field = S(args, 1).Trim();
+        if (field.Length == 0)
+        {
+            throw ExpressionException.TypeMismatch("column needs the name of a field to read");
+        }
+
+        var values = new List<Value>();
+        var found = false;
+        for (var index = 0; index < rows.Count; index++)
+        {
+            var row = rows[index];
+            if (!row.IsRecord)
+            {
+                Expression.Report(LogKeys.ListRowNotRecord, index + 1);
+                continue;
+            }
+
+            if (row.Field(field) is not { } value)
+            {
+                Expression.Report(LogKeys.ListFieldMissing, index + 1, field);
+                continue;
+            }
+
+            found = true;
+            values.Add(value);
+        }
+
+        if (found || rows.Count == 0)
+        {
+            return Value.FromList(values);
+        }
+
+        var names = rows.FirstOrDefault(row => row.IsRecord)?.Fields
+            .Select(one => one.Name)
+            .ToList() ?? [];
+        throw ExpressionException.TypeMismatch(names.Count == 0
+            ? $"no record in the list has a field \"{field}\"; the records have no fields"
+            : $"no record in the list has a field \"{field}\"; they have {string.Join(", ", names)}");
+    }
+
+    private static bool IsNumberWay(string compare)
+        => compare is ">" or ">=" or "<" or "<=" or "=" or "!=";
+
+    private static bool NumberMatches(double value, double wanted, string compare) => compare switch
+    {
+        ">" => value > wanted,
+        ">=" => value >= wanted,
+        "<" => value < wanted,
+        "<=" => value <= wanted,
+        "=" => value == wanted,
+        _ => value != wanted,
+    };
+
+    private static double AskedForNumber(Value value, string compare)
+    {
+        if (TryNumber(value, out var number))
+        {
+            return number;
+        }
+
+        throw ExpressionException.TypeMismatch(
+            $"\"{compare}\" compares numbers, and \"{value.AsText()}\" is not one");
+    }
+
+    /// <summary>
+    /// A number, or text a person would read as one. A CSV cell is text even when it says 42:
+    /// refusing it here would make a numeric where over a table read from a file skip every row.
+    /// Text that does not read as a number is still left out and reported.
+    /// </summary>
+    private static bool TryNumber(Value value, out double number)
+    {
+        if (value.IsNumber)
+        {
+            number = value.Number;
+            return true;
+        }
+
+        if (value.Kind is ValueKind.Bool)
+        {
+            number = value.Flag ? 1 : 0;
+            return true;
+        }
+
+        if (value.Kind is ValueKind.Text
+            && double.TryParse(value.Text, NumberStyles.Any, CultureInfo.InvariantCulture,
+                out var parsed))
+        {
+            number = parsed;
+            return true;
+        }
+
+        number = 0;
+        return false;
+    }
+
+    private static string TextWay(string compare)
+    {
+        try
+        {
+            return TextCompare.Read(compare);
+        }
+        catch (ArgumentException)
+        {
+            throw ExpressionException.TypeMismatch(
+                $"\"{compare}\" is not a comparison; use {string.Join(", ", TextCompare.Values)} "
+                + "or >, >=, <, <=, =, !=");
+        }
     }
 
     // ------------------------------------------------------------------- dates

@@ -141,7 +141,7 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
     {
         if (keys.Count == 0)
         {
-            throw new DeviceActionException("Run.EmptyChord");
+            throw new DeviceActionException(RunKeys.EmptyChord);
         }
 
         lock (_gate)
@@ -185,7 +185,7 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
             {
                 if (ViiperKeys.Typing(character) is not { } wanted)
                 {
-                    throw new DeviceActionException("Run.NoDriverTyping", character.ToString());
+                    throw new DeviceActionException(RunKeys.NoDriverTyping, character.ToString());
                 }
 
                 // The gate speaks characters here, because a character is what the recorder and
@@ -383,7 +383,7 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
         lock (_gate)
         {
             var flag = GamepadNames.Button(button)
-                ?? throw new DeviceActionException("Run.UnknownGamepadButton", button);
+                ?? throw new DeviceActionException(RunKeys.UnknownGamepadButton, button);
 
             BeginGamepad();
             _gamepad = _gamepad with
@@ -420,7 +420,7 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
             {
                 "left" => _gamepad with { LeftX = sideways, LeftY = upwards },
                 "right" => _gamepad with { RightX = sideways, RightY = upwards },
-                _ => throw new DeviceActionException("Run.UnknownGamepadStick", which),
+                _ => throw new DeviceActionException(RunKeys.UnknownGamepadStick, which),
             };
 
             PushGamepad();
@@ -440,7 +440,7 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
             {
                 "left" => _gamepad with { LeftTrigger = pulled },
                 "right" => _gamepad with { RightTrigger = pulled },
-                _ => throw new DeviceActionException("Run.UnknownGamepadTrigger", which),
+                _ => throw new DeviceActionException(RunKeys.UnknownGamepadTrigger, which),
             };
 
             PushGamepad();
@@ -587,12 +587,12 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
             return;
         }
 
-        throw new DeviceActionException("Run.NoDriverKey", SharpKeys.Name(code, sided: true));
+        throw new DeviceActionException(RunKeys.NoDriverKey, SharpKeys.Name(code, sided: true));
     }
 
     /// <summary>The code a macro's key name stands for.</summary>
     private static KeyCode Code(string key)
-        => SharpKeys.ResolveCode(key) ?? throw new DeviceActionException("Run.UnknownKey", key);
+        => SharpKeys.ResolveCode(key) ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
 
     /// <summary>Tells the parts of the app that watch the keyboard that this press is WhaleGenie's own.</summary>
     private static void Note(KeyCode code) => WhaleGenieInputGate.Note(SharpKeys.Name(code, sided: true));
@@ -670,7 +670,7 @@ public sealed class ViiperInputDevice : IInputDevice, IGamepadDevice, IDisposabl
             }
         }
 
-        throw new DeviceActionException("Run.NoDriverAttached");
+        throw new DeviceActionException(RunKeys.NoDriverAttached);
     }
 
     /// <summary>

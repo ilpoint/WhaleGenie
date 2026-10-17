@@ -41,12 +41,12 @@ public sealed class WindowsSystemDevice : ISystemDevice
         "dpipercent" => ((Dpi() * 100) / 96).ToString(CultureInfo.InvariantCulture),
         "uptimeseconds" => (System.Environment.TickCount64 / 1000)
             .ToString(CultureInfo.InvariantCulture),
-        _ => throw new DeviceActionException("Run.UnknownSystemField", field),
+        _ => throw new DeviceActionException(RunKeys.UnknownSystemField, field),
     };
 
     public string Environment(string name)
         => string.IsNullOrWhiteSpace(name)
-            ? throw new DeviceActionException("Run.MissingName")
+            ? throw new DeviceActionException(RunKeys.MissingName)
             : System.Environment.GetEnvironmentVariable(name.Trim()) ?? string.Empty;
 
     public void Power(PowerAction action, int graceSeconds)
@@ -64,7 +64,7 @@ public sealed class WindowsSystemDevice : ISystemDevice
         {
             case PowerAction.Lock:
                 // Locking needs no privilege and costs nothing: whatever is running keeps running.
-                Require(LockWorkStation(), "Run.LockRefused");
+                Require(LockWorkStation(), RunKeys.LockRefused);
                 return;
 
             case PowerAction.MonitorOff:
@@ -72,11 +72,11 @@ public sealed class WindowsSystemDevice : ISystemDevice
                 // one is only ever a screen going dark.
                 var told = SendMessageTimeout(
                     Broadcast, SystemCommand, MonitorPower, MonitorOff, AbortIfHung, 2000, out _);
-                Require(told != IntPtr.Zero, "Run.PowerRefused");
+                Require(told != IntPtr.Zero, RunKeys.PowerRefused);
                 return;
 
             case PowerAction.SignOut:
-                Require(ExitWindowsEx(LogOff, Planned), "Run.PowerRefused");
+                Require(ExitWindowsEx(LogOff, Planned), RunKeys.PowerRefused);
                 return;
 
             case PowerAction.Sleep:
@@ -87,29 +87,29 @@ public sealed class WindowsSystemDevice : ISystemDevice
                 // so, rather than quietly sleeping instead.
                 _ = AllowShutdown();
                 Require(SetSuspendState(action is PowerAction.Hibernate, false, false),
-                    "Run.PowerRefused");
+                    RunKeys.PowerRefused);
                 return;
 
             case PowerAction.Restart:
                 _ = AllowShutdown();
                 Require(InitiateShutdown(null, null, grace, RestartFlags, Planned),
-                    "Run.PowerRefused");
+                    RunKeys.PowerRefused);
                 return;
 
             case PowerAction.ShutDown:
                 _ = AllowShutdown();
                 Require(InitiateShutdown(null, null, grace, PowerOffFlags, Planned),
-                    "Run.PowerRefused");
+                    RunKeys.PowerRefused);
                 return;
 
             case PowerAction.AbortShutdown:
                 // Calling off a shutdown that is still counting down is always allowed, which is what
                 // makes this the way out of a macro that asked for one by mistake.
-                Require(AbortSystemShutdown(null), "Run.AbortRefused");
+                Require(AbortSystemShutdown(null), RunKeys.AbortRefused);
                 return;
 
             default:
-                throw new DeviceActionException("Run.UnknownPowerAction", action.ToString());
+                throw new DeviceActionException(RunKeys.UnknownPowerAction, action.ToString());
         }
     }
 

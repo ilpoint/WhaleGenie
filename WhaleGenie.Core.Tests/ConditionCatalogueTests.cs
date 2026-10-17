@@ -65,7 +65,7 @@ public class ConditionCatalogueTests
         var result = await new MacroRunner(store, new SilentRunHost()).RunAsync(
         [
             Set("aaaa", "n", "1"),
-            Asked(Condition("condition.stepResult", Param("step", "aaaa"), Param("expected", "ok"))),
+            Asked(Condition("condition.stepResult", Param("stepId", "aaaa"), Param("expectedOutcome", "ok"))),
         ]);
 
         Assert.True(result.Succeeded, result.Detail);
@@ -79,7 +79,7 @@ public class ConditionCatalogueTests
         await new MacroRunner(store, new SilentRunHost()).RunAsync(
         [
             Broken("bbbb", StepErrorAction.Continue),
-            Asked(Condition("condition.stepResult", Param("step", "bbbb"), Param("expected", "failed"))),
+            Asked(Condition("condition.stepResult", Param("stepId", "bbbb"), Param("expectedOutcome", "failed"))),
         ]);
 
         Assert.Equal("yes", store.Local.Values["answer"].AsText());
@@ -94,7 +94,7 @@ public class ConditionCatalogueTests
         var store = new VariableStore();
         await new MacroRunner(store, new SilentRunHost()).RunAsync(
         [
-            Asked(Condition("condition.stepResult", Param("step", "dddd"), Param("expected", "skipped"))),
+            Asked(Condition("condition.stepResult", Param("stepId", "dddd"), Param("expectedOutcome", "skipped"))),
             new ExecutableStep { Type = "control.stop", Id = "cccc" },
             Set("dddd", "later", "1"),
         ]);
@@ -108,7 +108,7 @@ public class ConditionCatalogueTests
     public async Task A_condition_about_a_step_that_is_not_in_the_macro_fails_the_step()
     {
         var (holds, result) = await AskAsync(
-            Condition("condition.stepResult", Param("step", "zzzz"), Param("expected", "ok")));
+            Condition("condition.stepResult", Param("stepId", "zzzz"), Param("expectedOutcome", "ok")));
 
         Assert.False(holds);
         Assert.Equal("Run.NoSuchStep", result.Key);
@@ -121,12 +121,12 @@ public class ConditionCatalogueTests
         store.Local.SetList("items", [Value.FromText("a"), Value.FromNumber(2)]);
 
         var held = await AskAsync(
-            Condition("condition.listContains", Param("list", "$items"), Param("value", "2")),
+            Condition("condition.listContains", Param("list", "$items"), Param("wantedValue", "2")),
             variables: store);
         var written = await AskAsync(
-            Condition("condition.listContains", Param("list", "a;b;c"), Param("value", "b")));
+            Condition("condition.listContains", Param("list", "a;b;c"), Param("wantedValue", "b")));
         var missing = await AskAsync(
-            Condition("condition.listContains", Param("list", "$items"), Param("value", "z")),
+            Condition("condition.listContains", Param("list", "$items"), Param("wantedValue", "z")),
             variables: store);
 
         Assert.True(held.Holds);
@@ -156,9 +156,9 @@ public class ConditionCatalogueTests
         devices.Running["notepad"] = [7];
 
         var running = await AskAsync(
-            Condition("condition.processRunning", Param("name", "notepad")), devices: devices);
+            Condition("condition.processRunning", Param("processName", "notepad")), devices: devices);
         var stopped = await AskAsync(
-            Condition("condition.processRunning", Param("name", "chrome")), devices: devices);
+            Condition("condition.processRunning", Param("processName", "chrome")), devices: devices);
 
         Assert.True(running.Holds);
         Assert.False(stopped.Holds);
@@ -221,15 +221,15 @@ public class ConditionCatalogueTests
         }
 
         var inside = await AskAsync(Condition("condition.valueInRange",
-            Param("value", "$n"), Param("min", "1"), Param("max", "10")), variables: With(5));
+            Param("testValue", "$n"), Param("min", "1"), Param("max", "10")), variables: With(5));
         var lowEnd = await AskAsync(Condition("condition.valueInRange",
-            Param("value", "$n"), Param("min", "1"), Param("max", "10")), variables: With(1));
+            Param("testValue", "$n"), Param("min", "1"), Param("max", "10")), variables: With(1));
         var highEnd = await AskAsync(Condition("condition.valueInRange",
-            Param("value", "$n"), Param("min", "1"), Param("max", "10")), variables: With(10));
+            Param("testValue", "$n"), Param("min", "1"), Param("max", "10")), variables: With(10));
         var outside = await AskAsync(Condition("condition.valueInRange",
-            Param("value", "$n"), Param("min", "1"), Param("max", "10")), variables: With(11));
+            Param("testValue", "$n"), Param("min", "1"), Param("max", "10")), variables: With(11));
         var backwards = await AskAsync(Condition("condition.valueInRange",
-            Param("value", "$n"), Param("min", "10"), Param("max", "1")), variables: With(5));
+            Param("testValue", "$n"), Param("min", "10"), Param("max", "1")), variables: With(5));
 
         Assert.True(inside.Holds);
         Assert.True(lowEnd.Holds);
@@ -242,17 +242,22 @@ public class ConditionCatalogueTests
     public async Task Two_dates_are_compared_and_the_time_of_day_can_be_left_out_of_it()
     {
         var before = await AskAsync(Condition("condition.dateCompare",
-            Param("left", "2020-01-01"), Param("operator", "before"), Param("right", "2021-01-01")));
+            Param("left", "2020-01-01"), Param("dateOperator", "before"),
+            Param("right", "2021-01-01")));
         var after = await AskAsync(Condition("condition.dateCompare",
-            Param("left", "today()"), Param("operator", "after"), Param("right", "2000-01-01")));
+            Param("left", "today()"), Param("dateOperator", "after"),
+            Param("right", "2000-01-01")));
         var wrong = await AskAsync(Condition("condition.dateCompare",
-            Param("left", "2020-01-01"), Param("operator", "after"), Param("right", "2021-01-01")));
+            Param("left", "2020-01-01"), Param("dateOperator", "after"),
+            Param("right", "2021-01-01")));
 
         // Two moments on the same day are not the same moment, which is what "the same day" is for.
         var sameDay = await AskAsync(Condition("condition.dateCompare",
-            Param("left", "09:00"), Param("operator", "sameDay"), Param("right", "today()")));
+            Param("left", "09:00"), Param("dateOperator", "sameDay"),
+            Param("right", "today()")));
         var sameMoment = await AskAsync(Condition("condition.dateCompare",
-            Param("left", "09:00"), Param("operator", "same"), Param("right", "today()")));
+            Param("left", "09:00"), Param("dateOperator", "same"),
+            Param("right", "today()")));
 
         Assert.True(before.Holds);
         Assert.True(after.Holds);
@@ -265,7 +270,8 @@ public class ConditionCatalogueTests
     public async Task A_date_that_cannot_be_read_fails_the_step_rather_than_answering_no()
     {
         var (holds, result) = await AskAsync(Condition("condition.dateCompare",
-            Param("left", "not a date"), Param("operator", "before"), Param("right", "2021-01-01")));
+            Param("left", "not a date"), Param("dateOperator", "before"),
+            Param("right", "2021-01-01")));
 
         Assert.False(holds);
         Assert.Equal("Run.BadExpression", result.Key);
@@ -281,11 +287,13 @@ public class ConditionCatalogueTests
         // values and none of the run's machinery.
         var holds = MacroRunner.AskCondition(
             Condition("condition.compare",
-                Param("variable", "n"), Param("operator", "greaterThan"), Param("value", "3")),
+                Param("variable", "n"), Param("compareOperator", "greaterThan"),
+                Param("compareValue", "3")),
             store, NullDeviceLayer.Instance);
         var doesNot = MacroRunner.AskCondition(
             Condition("condition.compare",
-                Param("variable", "n"), Param("operator", "greaterThan"), Param("value", "30")),
+                Param("variable", "n"), Param("compareOperator", "greaterThan"),
+                Param("compareValue", "30")),
             store, NullDeviceLayer.Instance);
 
         Assert.True(holds.Holds);
@@ -299,7 +307,7 @@ public class ConditionCatalogueTests
         // The same failure a run would report, so the debugger can tell "no" apart from "this
         // question cannot be asked".
         var answer = MacroRunner.AskCondition(
-            Condition("condition.stepResult", Param("step", "zzzz"), Param("expected", "ok")),
+            Condition("condition.stepResult", Param("stepId", "zzzz"), Param("expectedOutcome", "ok")),
             new VariableStore(), NullDeviceLayer.Instance);
 
         Assert.False(answer.Holds);

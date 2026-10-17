@@ -350,7 +350,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             || profile.EndsWith('.')
             || profile.EndsWith(' '))
         {
-            throw new DeviceActionException("Run.BrowserBadProfile", profile);
+            throw new DeviceActionException(RunKeys.BrowserBadProfile, profile);
         }
 
         return Path.Combine(ScriptFolders.Browsers, browser.Trim().ToLowerInvariant(), profile);
@@ -418,7 +418,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         => int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var at)
            && at >= 1
             ? at
-            : throw new DeviceActionException("Run.BadPosition", value);
+            : throw new DeviceActionException(RunKeys.BadPosition, value);
 
     public string Check(PageTarget target, bool wanted, int timeoutMs)
         => OnElement(target, timeoutMs, async element =>
@@ -443,7 +443,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// </summary>
     public string Press(PageTarget? target, string key, int timeoutMs)
     {
-        var written = PageKeys(key) ?? throw new DeviceActionException("Run.UnknownPageKey", key);
+        var written = PageKeys(key) ?? throw new DeviceActionException(RunKeys.UnknownPageKey, key);
         if (target is null || target.Selectors.Count == 0)
         {
             OnPage(async () =>
@@ -468,7 +468,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     {
         if (target.Selectors.Count == 0)
         {
-            throw new DeviceActionException("Run.BrowserNoSelector");
+            throw new DeviceActionException(RunKeys.BrowserNoSelector);
         }
 
         var patience = Patience(timeoutMs);
@@ -510,7 +510,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
                     if (DateTime.UtcNow >= deadline)
                     {
-                        throw new DeviceActionException("Run.Timeout",
+                        throw new DeviceActionException(RunKeys.Timeout,
                             patience.ToString(CultureInfo.InvariantCulture));
                     }
 
@@ -520,7 +520,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         }
         catch (TimeoutException)
         {
-            throw new DeviceActionException("Run.Timeout",
+            throw new DeviceActionException(RunKeys.Timeout,
                 patience.ToString(CultureInfo.InvariantCulture));
         }
         catch (PlaywrightException failure)
@@ -628,7 +628,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     {
         if (target.Selectors.Count == 0)
         {
-            throw new DeviceActionException("Run.BrowserNoSelector");
+            throw new DeviceActionException(RunKeys.BrowserNoSelector);
         }
 
         try
@@ -661,7 +661,8 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// goes to another page: the address changes before the page it leads to has anything on it, so
     /// an element named too early is found on the page being left behind.
     /// </summary>
-    public void WaitForUrl(string match, string how, int timeoutMs)
+    public void WaitForUrl(string match, string how, int timeoutMs,
+        TextCompareOptions options = default)
     {
         var patience = Patience(timeoutMs);
         var deadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(patience);
@@ -673,14 +674,14 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                 page.SetDefaultTimeout(patience);
                 while (true)
                 {
-                    if (TextCompare.Matches(page.Url, match, how))
+                    if (TextCompare.Matches(page.Url, match, how, options))
                     {
                         return;
                     }
 
                     if (DateTime.UtcNow >= deadline)
                     {
-                        throw new DeviceActionException("Run.Timeout",
+                        throw new DeviceActionException(RunKeys.Timeout,
                             patience.ToString(CultureInfo.InvariantCulture));
                     }
 
@@ -714,7 +715,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         }
         catch (TimeoutException)
         {
-            throw new DeviceActionException("Run.Timeout",
+            throw new DeviceActionException(RunKeys.Timeout,
                 patience.ToString(CultureInfo.InvariantCulture));
         }
         catch (PlaywrightException failure)
@@ -742,7 +743,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         {
             if (target is null || target.Selectors.Count == 0)
             {
-                throw new DeviceActionException("Run.BrowserNoSelector");
+                throw new DeviceActionException(RunKeys.BrowserNoSelector);
             }
 
             OnElement(target, timeoutMs, element => element.ScrollIntoViewIfNeededAsync());
@@ -911,7 +912,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         }
         catch (TimeoutException)
         {
-            throw new DeviceActionException("Run.Timeout",
+            throw new DeviceActionException(RunKeys.Timeout,
                 patience.ToString(CultureInfo.InvariantCulture));
         }
         catch (PlaywrightException failure)
@@ -981,7 +982,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             // what to look for would otherwise answer itself with the first tab there is.
             if (choice is TabChoice.Title or TabChoice.Address && match.Trim().Length == 0)
             {
-                throw new DeviceActionException("Run.BrowserTabNeedsText");
+                throw new DeviceActionException(RunKeys.BrowserTabNeedsText);
             }
 
             var tabs = Tabs();
@@ -995,7 +996,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
             if (wanted is null)
             {
-                throw new DeviceActionException("Run.BrowserNoTab",
+                throw new DeviceActionException(RunKeys.BrowserNoTab,
                     choice is TabChoice.Index
                         ? index.ToString(CultureInfo.InvariantCulture)
                         : match);
@@ -1031,7 +1032,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
 
             if (DateTime.UtcNow >= deadline)
             {
-                throw new DeviceActionException("Run.BrowserNoNewTab");
+                throw new DeviceActionException(RunKeys.BrowserNoNewTab);
             }
 
             await Task.Delay(NewTabIntervalMs);
@@ -1105,7 +1106,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             // read; the element on its own is not the answer to a question about its markup.
             PagePart.Attribute => attribute.Trim().Length > 0
                 ? await element.GetAttributeAsync(attribute.Trim()) ?? string.Empty
-                : throw new DeviceActionException("Run.BrowserNoAttribute"),
+                : throw new DeviceActionException(RunKeys.BrowserNoAttribute),
 
             _ => await element.InnerTextAsync(),
         };
@@ -1250,7 +1251,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
             if (inside.Length == 0 || cut < 0)
             {
                 // A line that only says which frame to look in names no element inside it.
-                throw new DeviceActionException("Run.BrowserNoSelector");
+                throw new DeviceActionException(RunKeys.BrowserNoSelector);
             }
 
             place = place.Frame(inside);
@@ -1275,7 +1276,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
                 var text = line[way.Length..].Trim();
                 if (text.Length == 0)
                 {
-                    throw new DeviceActionException("Run.BrowserNoSelector");
+                    throw new DeviceActionException(RunKeys.BrowserNoSelector);
                 }
 
                 return way switch
@@ -1334,7 +1335,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         var said = condition.Value.Trim();
         if (said.Length == 0 && condition.How is not PageFilter.Visible)
         {
-            throw new DeviceActionException("Run.BrowserBadFilter", condition.How.ToString());
+            throw new DeviceActionException(RunKeys.BrowserBadFilter, condition.How.ToString());
         }
 
         return said;
@@ -1398,7 +1399,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     {
         if (target.Selectors.Count == 0)
         {
-            throw new DeviceActionException("Run.BrowserNoSelector");
+            throw new DeviceActionException(RunKeys.BrowserNoSelector);
         }
 
         var page = Page();
@@ -1513,7 +1514,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     /// held none would send the person reading the failure after a selector that was right.
     /// </summary>
     private static DeviceActionException NotFound(PageTarget target, int most)
-        => new(most > 0 ? "Run.BrowserTooFew" : "Run.BrowserNotFound", Tried(target));
+        => new(most > 0 ? RunKeys.BrowserTooFew : RunKeys.BrowserNotFound, Tried(target));
 
     /// <summary>
     /// The selectors that were tried and what else the step said the element has to be like,
@@ -1549,7 +1550,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
         }
 
         return new DeviceActionException(
-            "Run.BrowserFailed",
+            RunKeys.BrowserFailed,
             where.Length == 0 ? failure.Message : where + ": " + failure.Message);
     }
 
@@ -1842,7 +1843,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     internal string EvaluateIn(string frame, string script, object? argument = null) => Wait(async () =>
     {
         var inside = Page().Frame(frame)
-            ?? throw new DeviceActionException("Run.BrowserNotFound", frame);
+            ?? throw new DeviceActionException(RunKeys.BrowserNotFound, frame);
         return await inside.EvaluateAsync<string>(script, argument);
     }) ?? string.Empty;
 
@@ -1928,7 +1929,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     private IBrowserType Launcher(string browser)
     {
         var playwright = _playwright
-            ?? throw new DeviceActionException("Run.BrowserNotOpen");
+            ?? throw new DeviceActionException(RunKeys.BrowserNotOpen);
         return browser.Trim().ToLowerInvariant() switch
         {
             "firefox" => playwright.Firefox,
@@ -1959,7 +1960,7 @@ public sealed class PlaywrightBrowserDevice : IBrowserDevice, IDisposable
     }
 
     /// <summary>The open page, or a failure that says a browser has to be opened first.</summary>
-    private IPage Page() => Current() ?? throw new DeviceActionException("Run.BrowserNotOpen");
+    private IPage Page() => Current() ?? throw new DeviceActionException(RunKeys.BrowserNotOpen);
 
     /// <summary>
     /// One key, or one chord, in the spelling the page's own keyboard knows it by, or null when it

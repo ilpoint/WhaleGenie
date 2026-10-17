@@ -74,10 +74,12 @@ public sealed class ExecutableStep
         {
             foreach (var row in parameter.Rows)
             {
-                if (row.TryGetValue("key", out var written)
+                if (row.TryGetValue(FieldNames.Key, out var written)
                     && string.Equals(written.Trim(), key, StringComparison.OrdinalIgnoreCase))
                 {
-                    return row.TryGetValue("name", out var name) ? name.Trim() : string.Empty;
+                    return row.TryGetValue(FieldNames.Name, out var name)
+                        ? name.Trim()
+                        : string.Empty;
                 }
             }
         }
@@ -233,8 +235,21 @@ public sealed class SilentRunHost : IRunHost
         => Task.FromResult(AskAnswer.Cancel);
 }
 
-/// <summary>The outcome of a whole run.</summary>
+/// <summary>
+/// The outcome of a whole run. <paramref name="Key"/> is the failure key and is empty unless the
+/// run failed; how the run ended is <see cref="StatusKey"/>.
+/// </summary>
 public sealed record RunResult(RunStatus Status, string Key, string Detail, int Steps)
 {
     public bool Succeeded => Status is RunStatus.Completed;
+
+    public string StatusKey => Status switch
+    {
+        RunStatus.Completed => StatusKeys.Finished,
+        RunStatus.Stopped => StatusKeys.Stopped,
+        _ => StatusKeys.Aborted,
+    };
 }
+
+/// <summary>One background run a macro started and has not yet waited for.</summary>
+public sealed record ChildRunInfo(string Handle, string Macro, bool Running);

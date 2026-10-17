@@ -143,7 +143,7 @@ public sealed class ScriptDevice : IScriptDevice
             var program = named.Length > 0 ? named : AutoHotkey.Program();
             if (program is null)
             {
-                throw new DeviceActionException("Run.NoAutoHotkey", "AutoHotkey");
+                throw new DeviceActionException(RunKeys.NoAutoHotkey, "AutoHotkey");
             }
 
             // Only the second version reads what this step writes. The first one reads a script of
@@ -151,7 +151,7 @@ public sealed class ScriptDevice : IScriptDevice
             // a window full of its complaints about a script this program wrote.
             if (AutoHotkey.MajorVersion(program) == 1)
             {
-                throw new DeviceActionException("Run.AhkNeedsV2", program);
+                throw new DeviceActionException(RunKeys.AhkNeedsV2, program);
             }
 
             var arguments = new List<string> { Quoted(running) };
@@ -162,7 +162,7 @@ public sealed class ScriptDevice : IScriptDevice
 
             return Serve(
                 new Serving(program, string.Join(' ', arguments), script.Folder,
-                    new Dictionary<string, string>(), script.TimeoutMs, Missing: "Run.NoAutoHotkey"),
+                    new Dictionary<string, string>(), script.TimeoutMs, Missing: RunKeys.NoAutoHotkey),
                 host, onOutput, onError, token);
         }
         finally
@@ -221,7 +221,7 @@ public sealed class ScriptDevice : IScriptDevice
             return Serve(
                 new Serving(Quoted(_host), string.Join(' ', arguments), script.Folder, new
                     Dictionary<string, string>(), script.TimeoutMs,
-                    Missing: "Run.ProgramFailed", Lost: "Run.ScriptBridgeLost"),
+                    Missing: RunKeys.ProgramFailed, Lost: RunKeys.ScriptBridgeLost),
                 host, onOutput, onError, token);
         }
         finally
@@ -265,12 +265,12 @@ public sealed class ScriptDevice : IScriptDevice
 
         if (complaining.Count > 0)
         {
-            return (null, Failed("Run.ScriptCompileFailed", Said(complaining, folder)));
+            return (null, Failed(RunKeys.ScriptCompileFailed, Said(complaining, folder)));
         }
 
         if (compilation.GetEntryPoint(token) is null)
         {
-            return (null, Failed("Run.NoEntryPoint", string.Empty));
+            return (null, Failed(RunKeys.NoEntryPoint, string.Empty));
         }
 
         var built = Path.Combine(folder, "script.dll");
@@ -285,7 +285,7 @@ public sealed class ScriptDevice : IScriptDevice
 
             if (!wrote.Success)
             {
-                return (null, Failed("Run.ScriptCompileFailed", Said(
+                return (null, Failed(RunKeys.ScriptCompileFailed, Said(
                     [.. wrote.Diagnostics.Where(complaint =>
                         complaint.Severity == DiagnosticSeverity.Error)], folder)));
             }
@@ -351,7 +351,7 @@ public sealed class ScriptDevice : IScriptDevice
     /// <param name="Missing">What it means when that program cannot be started at all.</param>
     /// <param name="Lost">What it means when it runs but never reaches the macro, if anything.</param>
     private sealed record Serving(string Command, string Arguments, string Folder,
-        IDictionary<string, string> Environment, int TimeoutMs, string Missing = "Run.NoPython",
+        IDictionary<string, string> Environment, int TimeoutMs, string Missing = RunKeys.NoPython,
         string Lost = "");
 
     /// <summary>
@@ -451,7 +451,7 @@ public sealed class ScriptDevice : IScriptDevice
                 if (how.TimeoutMs > 0
                     && Stopwatch.GetElapsedTime(started).TotalMilliseconds > how.TimeoutMs)
                 {
-                    throw new DeviceActionException("Run.CommandTimeout", program);
+                    throw new DeviceActionException(RunKeys.CommandTimeout, program);
                 }
             }
 
@@ -671,11 +671,11 @@ public sealed class ScriptDevice : IScriptDevice
                 OnOutput: onOutput, OnError: onError,
                 OutputEncoding: TextEncoding.System));
         }
-        catch (DeviceActionException failure) when (failure.Key == "Run.ProgramFailed")
+        catch (DeviceActionException failure) when (failure.Key == RunKeys.ProgramFailed)
         {
             // pip is run through the interpreter named above, so a program that cannot be started
             // at all means this machine has no Python rather than a pip that refused.
-            throw new DeviceActionException("Run.NoPython", request.Command);
+            throw new DeviceActionException(RunKeys.NoPython, request.Command);
         }
 
         var added = missing.Where(PipInstalled).ToList();
@@ -718,13 +718,13 @@ public sealed class ScriptDevice : IScriptDevice
         }
         catch (OperationCanceledException) when (!token.IsCancellationRequested)
         {
-            throw new DeviceActionException("Run.CommandTimeout", Feed);
+            throw new DeviceActionException(RunKeys.CommandTimeout, Feed);
         }
         catch (Exception failure) when (failure is not OperationCanceledException)
         {
             return new ScriptResult(1, string.Empty,
                 failure is DeviceActionException known ? known.Detail : failure.Message,
-                Value.FromList([]), "Run.NuGetFailed");
+                Value.FromList([]), RunKeys.NuGetFailed);
         }
     }
 

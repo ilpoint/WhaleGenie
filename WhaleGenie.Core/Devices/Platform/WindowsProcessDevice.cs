@@ -30,7 +30,7 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
 
         if (string.IsNullOrWhiteSpace(request.FileName))
         {
-            throw new DeviceActionException("Run.MissingProgram");
+            throw new DeviceActionException(RunKeys.MissingProgram);
         }
 
         var environment = request.Environment is { Count: > 0 } ? request.Environment : null;
@@ -39,7 +39,7 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
             // The approval prompt only exists on the route through the shell, and that route builds
             // the environment itself. Saying so beats starting the program with settings the macro
             // did not ask for.
-            throw new DeviceActionException("Run.ElevationNoEnvironment", request.FileName);
+            throw new DeviceActionException(RunKeys.ElevationNoEnvironment, request.FileName);
         }
 
         // A program given its own environment variables has to be started directly, because only
@@ -84,18 +84,18 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
         try
         {
             var process = Process.Start(info)
-                ?? throw new DeviceActionException("Run.ProgramFailed", request.FileName);
+                ?? throw new DeviceActionException(RunKeys.ProgramFailed, request.FileName);
 
             _started[process.Id] = process;
             return process.Id;
         }
         catch (System.ComponentModel.Win32Exception error) when (error.NativeErrorCode == Refused)
         {
-            throw new DeviceActionException("Run.ElevationRefused", request.FileName);
+            throw new DeviceActionException(RunKeys.ElevationRefused, request.FileName);
         }
         catch (Exception error) when (Recoverable(error))
         {
-            throw new DeviceActionException("Run.ProgramFailed",
+            throw new DeviceActionException(RunKeys.ProgramFailed,
                 $"{request.FileName}: {error.Message}");
         }
     }
@@ -297,7 +297,7 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
 
         if (string.IsNullOrWhiteSpace(request.FileName))
         {
-            throw new DeviceActionException("Run.MissingProgram");
+            throw new DeviceActionException(RunKeys.MissingProgram);
         }
 
         var info = new ProcessStartInfo
@@ -339,7 +339,7 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
         try
         {
             using var process = Process.Start(info)
-                ?? throw new DeviceActionException("Run.ProgramFailed", request.FileName);
+                ?? throw new DeviceActionException(RunKeys.ProgramFailed, request.FileName);
 
             var feeding = Feed(process, request.StandardInput);
 
@@ -354,7 +354,7 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
         }
         catch (Exception error) when (Recoverable(error))
         {
-            throw new DeviceActionException("Run.ProgramFailed",
+            throw new DeviceActionException(RunKeys.ProgramFailed,
                 $"{request.FileName}: {error.Message}");
         }
     }
@@ -370,7 +370,7 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
         if (!process.WaitForExit(Math.Max(0, request.TimeoutMs)))
         {
             Kill(process);
-            throw new DeviceActionException("Run.CommandTimeout", request.FileName);
+            throw new DeviceActionException(RunKeys.CommandTimeout, request.FileName);
         }
 
         feeding?.GetAwaiter().GetResult();
@@ -410,7 +410,7 @@ public sealed class WindowsProcessDevice : IProcessDevice, IDisposable
             if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeout)
             {
                 Kill(process);
-                throw new DeviceActionException("Run.CommandTimeout", request.FileName);
+                throw new DeviceActionException(RunKeys.CommandTimeout, request.FileName);
             }
         }
 

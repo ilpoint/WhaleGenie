@@ -43,7 +43,7 @@ public sealed class LocalFileDevice : IFileDevice
         var full = Full(path);
         if (!File.Exists(full))
         {
-            throw new DeviceActionException("Run.FileNotFound", path);
+            throw new DeviceActionException(RunKeys.FileNotFound, path);
         }
 
         // The bytes are read whole rather than handed to a reader with an encoding on it, because
@@ -134,7 +134,7 @@ public sealed class LocalFileDevice : IFileDevice
         var full = Full(path);
         if (!File.Exists(full))
         {
-            throw new DeviceActionException("Run.FileNotFound", path);
+            throw new DeviceActionException(RunKeys.FileNotFound, path);
         }
 
         return Attempt(path, () => File.ReadAllBytes(full));
@@ -145,7 +145,7 @@ public sealed class LocalFileDevice : IFileDevice
         var full = Full(path);
         if (!File.Exists(full))
         {
-            throw new DeviceActionException("Run.FileNotFound", path);
+            throw new DeviceActionException(RunKeys.FileNotFound, path);
         }
 
         return Attempt(path, () => File.OpenRead(full));
@@ -156,7 +156,7 @@ public sealed class LocalFileDevice : IFileDevice
         var full = Full(path);
         if (!File.Exists(full))
         {
-            throw new DeviceActionException("Run.FileNotFound", path);
+            throw new DeviceActionException(RunKeys.FileNotFound, path);
         }
 
         Attempt(path, () =>
@@ -184,7 +184,7 @@ public sealed class LocalFileDevice : IFileDevice
         var source = Full(from);
         if (!File.Exists(source))
         {
-            throw new DeviceActionException("Run.FileNotFound", from);
+            throw new DeviceActionException(RunKeys.FileNotFound, from);
         }
 
         var target = Full(to);
@@ -206,7 +206,7 @@ public sealed class LocalFileDevice : IFileDevice
         var source = Full(from);
         if (!File.Exists(source))
         {
-            throw new DeviceActionException("Run.FileNotFound", from);
+            throw new DeviceActionException(RunKeys.FileNotFound, from);
         }
 
         var target = Full(folder);
@@ -223,7 +223,7 @@ public sealed class LocalFileDevice : IFileDevice
         {
             // A file that is not an archive at all, or one that was cut off halfway through:
             // what the archive reader says about it is nothing a macro author can act on.
-            throw new DeviceActionException("Run.BadZip", from);
+            throw new DeviceActionException(RunKeys.BadZip, from);
         }
     }
 
@@ -232,7 +232,7 @@ public sealed class LocalFileDevice : IFileDevice
         var source = Full(folder);
         if (!Directory.Exists(source))
         {
-            throw new DeviceActionException("Run.FolderNotFound", folder);
+            throw new DeviceActionException(RunKeys.FolderNotFound, folder);
         }
 
         var target = Full(to);
@@ -266,7 +266,7 @@ public sealed class LocalFileDevice : IFileDevice
         var full = Full(path);
         if (!Directory.Exists(full))
         {
-            throw new DeviceActionException("Run.FolderNotFound", path);
+            throw new DeviceActionException(RunKeys.FolderNotFound, path);
         }
 
         Attempt(path, () =>
@@ -281,7 +281,7 @@ public sealed class LocalFileDevice : IFileDevice
         var source = Full(from);
         if (!File.Exists(source))
         {
-            throw new DeviceActionException("Run.FileNotFound", from);
+            throw new DeviceActionException(RunKeys.FileNotFound, from);
         }
 
         var target = Full(to);
@@ -304,7 +304,7 @@ public sealed class LocalFileDevice : IFileDevice
         var full = Full(folder);
         if (!Directory.Exists(full))
         {
-            throw new DeviceActionException("Run.FolderNotFound", folder);
+            throw new DeviceActionException(RunKeys.FolderNotFound, folder);
         }
 
         var wanted = patterns.Count == 0 ? ["*"] : patterns;
@@ -352,7 +352,7 @@ public sealed class LocalFileDevice : IFileDevice
     {
         if (string.IsNullOrWhiteSpace(path))
         {
-            throw new DeviceActionException("Run.MissingPath");
+            throw new DeviceActionException(RunKeys.MissingPath);
         }
 
         return Path.IsPathRooted(path) ? path : Path.Combine(BaseFolder, path);
@@ -371,7 +371,7 @@ public sealed class LocalFileDevice : IFileDevice
                                           or ArgumentException
                                           or System.Security.SecurityException)
         {
-            throw new DeviceActionException("Run.FileFailed", $"{path}: {error.Message}");
+            throw new DeviceActionException(RunKeys.FileFailed, $"{path}: {error.Message}");
         }
     }
 }

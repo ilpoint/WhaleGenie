@@ -28,8 +28,14 @@ namespace WhaleGenie.Core.Execution;
 /// Actions from <c>input</c>, <c>vision</c>, <c>ocr</c> and <c>uia</c> need the device layer
 /// and are reported as unsupported until that is wired up.
 /// </remarks>
-public sealed class MacroRunner
+public sealed partial class MacroRunner
 {
+    // What this class holds, by lifetime. Program-wide: the shared global table, the two gates
+    // and the device layer. One run: _host, _devices, _macros, _looks, Variables, _log, _steps,
+    // _children, _frames, _references, _looked and _runToken. One step: _failure, _worked, _saw,
+    // _read, _takenWindow, _takenMethod, _heldKeys, _heldButtons, _gamepadUsed and _browserHolds.
+    // The family methods live beside this file in MacroRunner.<Family>.cs.
+
     private readonly IRunHost _host;
     private readonly IDeviceLayer _devices;
     private readonly IMacroLibrary _macros;
@@ -95,10 +101,65 @@ public sealed class MacroRunner
     private int _callDepth;
 
     /// <summary>
+    /// The cancellation token of the run as a whole, kept so a background run started by a step
+    /// stops with the macro rather than with that one step's timeout.
+    /// </summary>
+    private CancellationToken _runToken;
+
+    /// <summary>
+    /// The background runs this run has started and not yet waited for. They keep the shared global
+    /// table, but a local table of their own.
+    /// </summary>
+    private readonly List<ChildRun> _children = [];
+
+    /// <summary>
+    /// How many browser steps of this run are inside the browser door right now. A block such as
+    /// <c>browser.dialog</c> holds the door while its body runs; the body's own browser steps are
+    /// the same turn at the page and must not wait for the door they already hold.
+    /// </summary>
+    private int _browserHolds;
+
+    /// <summary>
     /// How many loops the run is inside right now. A break or a continue only means something
     /// while this is above zero; one that reaches the top of a macro has nothing to act on.
     /// </summary>
     private int _loops;
+
+    /// <summary>
+    /// Puts the round number back the way the enclosing loop left it. A nested loop borrows the
+    /// name while it runs; leaving it behind would make the outer loop read the inner round.
+    /// </summary>
+    private LoopIndexScope EnterLoopIndex()
+    {
+        var had = Variables.Local.TryGet(VariableStore.LoopIndexName, out var previous);
+        return new LoopIndexScope(Variables.Local, had, previous);
+    }
+
+    private readonly struct LoopIndexScope : IDisposable
+    {
+        private readonly VariableBag _values;
+        private readonly bool _had;
+        private readonly Value? _previous;
+
+        public LoopIndexScope(VariableBag values, bool had, Value? previous)
+        {
+            _values = values;
+            _had = had;
+            _previous = previous;
+        }
+
+        public void Dispose()
+        {
+            if (_had)
+            {
+                _values.Set(VariableStore.LoopIndexName, _previous!);
+            }
+            else
+            {
+                _values.Remove(VariableStore.LoopIndexName);
+            }
+        }
+    }
 
     private StepFailure? _failure;
 
@@ -138,6 +199,20 @@ public sealed class MacroRunner
     /// is carried out of the step that ran it and ends the macro once that step is over.
     /// </summary>
     private bool _stoppedInsideScript;
+
+    /// <summary>
+    /// Whether a step a script ran asked to end its macro. Like a stop, the answer comes back
+    /// through the script step and ends the macro once that step is over.
+    /// </summary>
+    private bool _returnedInsideScript;
+
+    /// <summary>
+    /// The failures the catch blocks now running have taken hold of, innermost last. A rethrow
+    /// takes the last one, so a nested catch never reaches past the block it is written in. The
+    /// list is swapped for a new one around a call to another macro: a macro may not rethrow
+    /// something its caller caught.
+    /// </summary>
+    private List<StepFailure> _caught = [];
 
     /// <summary>
     /// How long what one tried step left behind is left alone before it is let go of, so a game
@@ -193,6 +268,24 @@ public sealed class MacroRunner
     public bool ExclusiveInput { get; init; }
 
     /// <summary>
+    /// How many calls deep this run already is. A background run carries the depth of the call that
+    /// started it, so a chain that keeps starting itself in the background meets the same limit as
+    /// one that calls itself in place.
+    /// </summary>
+    public int InitialCallDepth { get; init; }
+
+    /// <summary>Raised when a background run is started, finishes, or is waited for.</summary>
+    public event Action? ChildrenChanged;
+
+    /// <summary>
+    /// The background runs this run has started and not yet waited for, oldest first. A watcher
+    /// shows these so "what is still going on behind this macro" has an answer.
+    /// </summary>
+    public IReadOnlyList<ChildRunInfo> Children
+        => [.. _children.Select(child =>
+            new ChildRunInfo(child.Handle, child.Macro, !child.Task.IsCompleted))];
+
+    /// <summary>
     /// How long a move borrows when it was written as an instant jump but asked to travel along a
     /// bent or hand-like path: there is no path to travel without a duration, and quietly going
     /// straight instead would make the style look broken.
@@ -234,7 +327,7 @@ public sealed class MacroRunner
 
             // Long enough for what the step did to be seen before it is taken back.
             await Task.Delay(TrialWatchMs, token);
-            return new RunResult(RunStatus.Completed, "Run.Finished", string.Empty, 1);
+            return new RunResult(RunStatus.Completed, string.Empty, string.Empty, 1);
         }
         catch (StepFailure failure)
         {
@@ -252,7 +345,11 @@ public sealed class MacroRunner
     {
         _executed = 0;
         _loops = 0;
+        _callDepth = InitialCallDepth;
+        _runToken = token;
         _failure = null;
+        _returnedInsideScript = false;
+        _caught = [];
         _log.Clear();
         _images.Clear();
         _frames.Clear();
@@ -268,10 +365,10 @@ public sealed class MacroRunner
         }
 
         PrepareOutcomes(steps);
-        Log(LogLevel.Info, 0, string.Empty, "Run.Start", steps.Count);
+        Log(LogLevel.Info, 0, string.Empty, LogKeys.Start, steps.Count);
         if (Math.Abs(DelayScale - 1) > 0.001)
         {
-            Log(LogLevel.Info, 0, string.Empty, "Run.Speed", DelayScale);
+            Log(LogLevel.Info, 0, string.Empty, LogKeys.Speed, DelayScale);
         }
 
         try
@@ -290,10 +387,10 @@ public sealed class MacroRunner
 
             var outcome = signal switch
             {
-                Signal.Stop => new RunResult(RunStatus.Stopped, "Run.Stopped", string.Empty, _executed),
-                Signal.Failed => new RunResult(RunStatus.Failed, _failure?.Key ?? "Run.Failed",
+                Signal.Stop => new RunResult(RunStatus.Stopped, string.Empty, string.Empty, _executed),
+                Signal.Failed => new RunResult(RunStatus.Failed, _failure?.Key ?? RunKeys.Failed,
                     _failure?.Detail ?? string.Empty, _executed),
-                _ => new RunResult(RunStatus.Completed, "Run.Finished", string.Empty, _executed),
+                _ => new RunResult(RunStatus.Completed, string.Empty, string.Empty, _executed),
             };
 
             Log(LogLevel.Info, 0, string.Empty, SummaryKey(outcome.Status), _executed);
@@ -307,27 +404,56 @@ public sealed class MacroRunner
         }
         catch (OperationCanceledException)
         {
-            Log(LogLevel.Warn, 0, string.Empty, "Run.Stopped", _executed);
-            return new RunResult(RunStatus.Stopped, "Run.Stopped", string.Empty, _executed);
+            Log(LogLevel.Warn, 0, string.Empty, LogKeys.Stopped, _executed);
+            return new RunResult(RunStatus.Stopped, string.Empty, string.Empty, _executed);
         }
         finally
         {
             // Whatever the run decided, the machine is handed back the way it was found.
             LetGoOfHeldInput();
+
+            // A background run belongs to the macro that started it. Once that macro is over there
+            // is nobody left to wait for it, so it is stopped rather than left running unseen.
+            await StopChildrenAsync();
         }
     }
 
     /// <summary>The line written once a run is over.</summary>
     private static string SummaryKey(RunStatus status) => status switch
     {
-        RunStatus.Stopped => "Run.Stopped",
-        RunStatus.Failed => "Run.Aborted",
-        _ => "Run.Finished",
+        RunStatus.Stopped => LogKeys.Stopped,
+        RunStatus.Failed => LogKeys.Aborted,
+        _ => LogKeys.Finished,
     };
+
+    /// <summary>
+    /// Stops every background run this macro started and never waited for. A device call already
+    /// under way may not look at a cancellation until it returns, so the wait for them is bounded:
+    /// the macro is over, and refusing to end until a driver lets go would leave the whole run
+    /// hanging.
+    /// </summary>
+    private async Task StopChildrenAsync()
+    {
+        var running = _children.Where(child => !child.Task.IsCompleted).ToList();
+        if (running.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var child in running)
+        {
+            child.Stop.Cancel();
+        }
+
+        ChildrenChanged?.Invoke();
+        await Task.WhenAny(
+            Task.WhenAll(running.Select(child => child.Task)),
+            Task.Delay(5000));
+    }
 
     /// <summary>The message a break or a continue gets when it turns out to have no loop.</summary>
     private static string LoopControlKey(Signal signal)
-        => signal is Signal.Break ? "Run.BreakOutsideLoop" : "Run.ContinueOutsideLoop";
+        => signal is Signal.Break ? RunKeys.BreakOutsideLoop : RunKeys.ContinueOutsideLoop;
 
     /// <summary>How much of the macro's name a file name keeps before it is cut short.</summary>
     private const int LongestNameInFile = 40;
@@ -356,11 +482,11 @@ public sealed class MacroRunner
             }
 
             _devices.Files.WriteText(relative, FailureLogText(now), append: false, TextEncoding.Utf8Bom);
-            Log(LogLevel.Info, 0, string.Empty, "Run.FailureLog", _devices.Files.Resolve(relative));
+            Log(LogLevel.Info, 0, string.Empty, LogKeys.FailureLog, _devices.Files.Resolve(relative));
         }
         catch (Exception failure)
         {
-            Log(LogLevel.Warn, 0, string.Empty, "Run.FailureLogFailed", failure.Message);
+            Log(LogLevel.Warn, 0, string.Empty, LogKeys.FailureLogFailed, failure.Message);
         }
     }
 
@@ -372,7 +498,7 @@ public sealed class MacroRunner
     private string FailureLogText(DateTimeOffset when)
     {
         var text = new StringBuilder();
-        text.Append(_host.Text(new LogEntry(when, LogLevel.Info, 0, string.Empty, "Run.LogFileHeader",
+        text.Append(_host.Text(new LogEntry(when, LogLevel.Info, 0, string.Empty, LogKeys.LogFileHeader,
                 [RunName, when.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)])))
             .Append(Environment.NewLine)
             .Append(Environment.NewLine);
@@ -419,6 +545,7 @@ public sealed class MacroRunner
         Normal,
         Break,
         Continue,
+        Return,
         Stop,
         Failed,
     }
@@ -450,6 +577,16 @@ public sealed class MacroRunner
     /// reads the same thing whatever language the interface is in.
     /// </summary>
     public static string ErrorName(string stepId) => OutcomePrefix + stepId + ErrorSuffix;
+
+    /// <summary>
+    /// The failure key a catch block reads, set when the block is entered and put back when it is
+    /// left. A condition and a step see the same name, so "catch only this reason" and "rethrow
+    /// it" are written against one answer rather than a remembered one.
+    /// </summary>
+    public const string CaughtKeyName = "caught.key";
+
+    /// <summary>The detail that goes with <see cref="CaughtKeyName"/>.</summary>
+    public const string CaughtDetailName = "caught.detail";
 
     /// <summary>
     /// True when a value is one of the names the run keeps about a step — how it ended, and why
@@ -504,7 +641,7 @@ public sealed class MacroRunner
 
     /// <summary>A condition rather than a step: it is worked out by the step it is written on.</summary>
     private static bool IsCondition(ExecutableStep step)
-        => step.Type.StartsWith("condition.", StringComparison.Ordinal);
+        => ActionSemanticsCatalog.Find(step.Type)?.IsCondition ?? false;
 
     /// <summary>
     /// Writes down how one step ended and, when it did not work, why — for the conditions written
@@ -560,16 +697,16 @@ public sealed class MacroRunner
     /// </summary>
     private async Task<Signal> RunOtherMacro(ExecutableStep step, int depth, CancellationToken token)
     {
-        var name = Read(step.Text("macro")).AsText().Trim();
+        var name = ReadValue(step, "macro").AsText().Trim();
         var steps = name.Length == 0 ? null : _macros.Steps(name);
         if (steps is null)
         {
-            throw new StepFailure("Run.MacroNotFound", name);
+            throw new StepFailure(RunKeys.MacroNotFound, name);
         }
 
         if (_callDepth >= CallDepthLimit)
         {
-            throw new StepFailure("Run.MacroTooDeep", name);
+            throw new StepFailure(RunKeys.MacroTooDeep, name);
         }
 
         // What the call may ask to have back is settled before anything runs: a name the called
@@ -593,6 +730,15 @@ public sealed class MacroRunner
         // its own name again the moment the call is over — the table swap below is what restores it.
         called.Set("sys.macroName", Value.FromText(name));
 
+        // A call that does not wait starts the same macro on a table of its own and returns at
+        // once. The handle it leaves behind is what the wait step later names; the results asked
+        // for here are kept with that handle until the wait takes them back.
+        if (!Flag(step, "wait", true))
+        {
+            StartOtherMacro(step, name, steps, signature, wanted, called, depth);
+            return Signal.Normal;
+        }
+
         var caller = Variables.SwapLocal(called);
         _callDepth++;
         PrepareOutcomes(steps);
@@ -602,9 +748,14 @@ public sealed class MacroRunner
         // loop in the caller short.
         var outerLoops = _loops;
         _loops = 0;
+
+        // A catch block belongs to the macro it is written in. The called macro starts with none
+        // of the caller's failures in reach, so a rethrow inside it can only mean one of its own.
+        var outerCaught = _caught;
+        _caught = [];
         try
         {
-            Log(LogLevel.Info, depth, step.Type, "Run.CalledMacro", name, steps.Count);
+            Log(LogLevel.Info, depth, step.Type, LogKeys.CalledMacro, name, steps.Count);
             var signal = await RunSteps(steps, depth + 1, token);
 
             // A break or a continue that got this far had no loop of its own to act on. That is
@@ -616,14 +767,111 @@ public sealed class MacroRunner
                 throw new StepFailure(LoopControlKey(signal), name);
             }
 
-            return signal;
+            // A return ends the macro it was written in; the caller carries on with the step
+            // after the call. What the called macro had already put into its declared results is
+            // taken back below, whether it ran to the end or returned early.
+            return signal is Signal.Return ? Signal.Normal : signal;
         }
         finally
         {
+            _caught = outerCaught;
             _loops = outerLoops;
             _callDepth--;
             Take(wanted, Variables.SwapLocal(caller));
         }
+    }
+
+    /// <summary>
+    /// Starts a call in the background and leaves its handle in the caller's local table. The
+    /// child reads and writes the same global table as its caller, but its local table is the one
+    /// built from the call's arguments, so neither macro can see the other's local names.
+    /// </summary>
+    private void StartOtherMacro(ExecutableStep step, string name,
+        IReadOnlyList<ExecutableStep> steps, MacroSignature signature,
+        List<(string Result, string Name)> wanted, VariableBag called, int depth)
+    {
+        var handleName = ReadText(step, "runHandleName").Trim();
+        if (handleName.Length == 0)
+        {
+            throw new StepFailure(RunKeys.MissingHandle);
+        }
+
+        var handle = "run-" + Guid.NewGuid().ToString("N")[..12];
+        var childStore = new VariableStore(Variables.Global);
+        childStore.SwapLocal(called);
+
+        var child = new MacroRunner(childStore, new ChildRunHost(_host), _devices, DelayScale,
+            _macros)
+        {
+            RunName = name,
+            ExclusiveInput = ExclusiveInput,
+            FailureLogFolder = FailureLogFolder,
+            InitialCallDepth = _callDepth + 1,
+        };
+
+        var stop = CancellationTokenSource.CreateLinkedTokenSource(_runToken);
+        var task = Task.Run(() => child.RunAsync(steps, stop.Token));
+
+        // The watcher shows that the run is over as well as that it started, which is what makes
+        // "still running" something the window can answer rather than guess.
+        _ = task.ContinueWith(_ => ChildrenChanged?.Invoke(), CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+
+        _children.Add(new ChildRun
+        {
+            Handle = handle,
+            Macro = name,
+            Signature = signature,
+            Store = childStore,
+            Stop = stop,
+            Wanted = wanted,
+            Task = task,
+        });
+
+        Variables.Local.Set(handleName, Value.FromText(handle));
+        Log(LogLevel.Info, depth, step.Type, LogKeys.StartedRun, name, handle);
+        ChildrenChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Waits for one background run and takes back what the call that started it asked for. The
+    /// step's own timeout is the wait's clock; a timeout leaves the run going, so the macro may
+    /// catch it and wait again.
+    /// </summary>
+    private async Task<Signal> WaitOtherMacro(ExecutableStep step, int depth, CancellationToken token)
+    {
+        var handle = ReadValue(step, "runHandle").AsText().Trim();
+        if (handle.Length == 0)
+        {
+            throw new StepFailure(RunKeys.MissingHandle);
+        }
+
+        var child = _children.FirstOrDefault(candidate =>
+            string.Equals(candidate.Handle, handle, StringComparison.Ordinal));
+        if (child is null)
+        {
+            throw new StepFailure(RunKeys.NoSuchRun, handle);
+        }
+
+        var result = await child.Task.WaitAsync(token);
+
+        _children.Remove(child);
+        child.Stop.Dispose();
+        ChildrenChanged?.Invoke();
+
+        if (result.Status is RunStatus.Failed)
+        {
+            throw new StepFailure(result.Key, result.Detail);
+        }
+
+        if (result.Status is RunStatus.Stopped)
+        {
+            throw new StepFailure(RunKeys.ChildStopped, child.Macro);
+        }
+
+        Take(child.Wanted, child.Store.Local);
+        Log(LogLevel.Info, depth, step.Type, LogKeys.WaitedRun, child.Macro);
+        return Signal.Normal;
     }
 
     /// <summary>
@@ -643,7 +891,7 @@ public sealed class MacroRunner
 
         if (argument.Required)
         {
-            throw new StepFailure("Run.MissingArgument", argument.Name);
+            throw new StepFailure(RunKeys.MissingArgument, argument.Name);
         }
 
         return argument.Default.Trim().Length > 0 ? Read(argument.Default) : Value.Null;
@@ -660,8 +908,10 @@ public sealed class MacroRunner
         var wanted = new List<(string Result, string Name)>();
         foreach (var row in step.Rows("returns"))
         {
-            var result = row.TryGetValue("key", out var key) ? key.Trim() : string.Empty;
-            var name = row.TryGetValue("name", out var written) ? written.Trim() : string.Empty;
+            var result = row.TryGetValue(FieldNames.Key, out var key) ? key.Trim() : string.Empty;
+            var name = row.TryGetValue(FieldNames.Name, out var written)
+                ? written.Trim()
+                : string.Empty;
             if (result.Length == 0 || name.Length == 0)
             {
                 continue;
@@ -669,7 +919,7 @@ public sealed class MacroRunner
 
             if (!signature.Offers(result))
             {
-                throw new StepFailure("Run.UndeclaredResult", result);
+                throw new StepFailure(RunKeys.UndeclaredResult, result);
             }
 
             wanted.Add((result, name));
@@ -700,8 +950,8 @@ public sealed class MacroRunner
     {
         if (!step.Meta.IsEnabled)
         {
-            Log(LogLevel.Debug, depth, step.Type, "Run.Skipped");
-            Report(step, OutcomeSkipped, 0, null, []);
+            Log(LogLevel.Debug, depth, step.Type, LogKeys.Skipped);
+            Report(step, OutcomeSkipped, 0, null, [], []);
             return Signal.Normal;
         }
 
@@ -709,8 +959,8 @@ public sealed class MacroRunner
         // did nothing, so it is answered the way a switched-off step is and the run goes on.
         if (!await _host.BeforeStep(step, depth, token))
         {
-            Log(LogLevel.Debug, depth, step.Type, "Run.Skipped");
-            Report(step, OutcomeSkipped, 0, null, []);
+            Log(LogLevel.Debug, depth, step.Type, LogKeys.Skipped);
+            Report(step, OutcomeSkipped, 0, null, [], []);
             return Signal.Normal;
         }
 
@@ -722,6 +972,7 @@ public sealed class MacroRunner
         var outerWorked = _worked;
         _worked = _looks is null ? null : [];
         var startedStep = Stopwatch.GetTimestamp();
+        Expression.BeginDiagnostics();
         try
         {
             return await RunAttempts(step, depth, token, startedStep);
@@ -729,6 +980,10 @@ public sealed class MacroRunner
         finally
         {
             _worked = outerWorked;
+            foreach (var note in Expression.TakeDiagnostics())
+            {
+                Log(LogLevel.Warn, depth, step.Type, note.Key, [.. note.Arguments]);
+            }
         }
     }
 
@@ -740,41 +995,61 @@ public sealed class MacroRunner
     private async Task<Signal> RunAttempts(ExecutableStep step, int depth, CancellationToken token,
         long startedStep)
     {
+        // The budget belongs to the step rather than to one try of it: a retry spends what is left
+        // of the same clock instead of asking for another full one. The token is what ends a wait
+        // that is still going; a device call that has already started cannot be interrupted and is
+        // judged when it returns.
+        var budget = step.Meta.TimeoutMs;
+        var startedBudget = Stopwatch.GetTimestamp();
+        using var limit = budget > 0
+            ? CancellationTokenSource.CreateLinkedTokenSource(token)
+            : null;
+        limit?.CancelAfter(budget);
+        var attemptToken = limit?.Token ?? token;
+        var attempts = new List<StepAttempt>();
+
+        double Used() => Stopwatch.GetElapsedTime(startedBudget).TotalMilliseconds;
+
+        double? Remaining() => budget > 0 ? Math.Max(0, budget - Used()) : null;
+
+        bool OutOfTime() => budget > 0 && Used() >= budget;
+
+        StepAttempt Took(int number, long started, string outcome, StepFailure? failure, bool overran)
+            => new()
+            {
+                Number = number,
+                ElapsedMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds,
+                Outcome = outcome,
+                FailureKey = failure?.Key ?? string.Empty,
+                FailureDetail = failure?.Detail ?? string.Empty,
+                RemainingMs = Remaining(),
+                Overran = overran,
+            };
+
+        async Task<Signal> Spent(ExecutableStep stepToFail, CancellationToken stopToken)
+        {
+            _failure = WaitedTooLong(stepToFail);
+            Log(LogLevel.Error, depth, step.Type, _failure.Key, _failure.Detail);
+
+            // The time is gone, so another try cannot be paid for. Everything else the step's
+            // failure rule says — carry on, next round, stop, ask — still applies.
+            var decided = await Decide(stepToFail, stopToken);
+            return StepFailed(stepToFail, decided is Decision.Retry ? Decision.Stop : decided,
+                Elapsed(startedStep), attempts);
+        }
+
         for (var attempt = 0; ; attempt++)
         {
-            // A step that is allowed so long gets a clock of its own. The limit is what stops it:
-            // a wait that would run past it gives up where it stands rather than carrying on and
-            // being told off afterwards, which is what "this step may take at most so long" means
-            // to whoever wrote it. An outer stop is a different thing and stays one.
-            using var limit = step.Meta.TimeoutMs > 0
-                ? CancellationTokenSource.CreateLinkedTokenSource(token)
-                : null;
-            limit?.CancelAfter(step.Meta.TimeoutMs);
-
+            var started = Stopwatch.GetTimestamp();
             try
             {
-                var started = Stopwatch.GetTimestamp();
-                Signal signal;
-                try
-                {
-                    signal = await ExecuteChecked(step, depth, limit?.Token ?? token);
-                }
-                catch (OperationCanceledException)
-                    when (limit is { IsCancellationRequested: true } && !token.IsCancellationRequested)
-                {
-                    throw WaitedTooLong(step);
-                }
+                var signal = await ExecuteChecked(step, depth, attemptToken);
 
                 // The clock catches what the token cannot: a device call that blocks until it is
                 // finished never looks at a cancellation, so it is still told off for going over.
-                var elapsed = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
-                if (step.Meta.TimeoutMs > 0 && elapsed > step.Meta.TimeoutMs)
+                if (OutOfTime() && !token.IsCancellationRequested)
                 {
-                    // This is the step having run past its clock rather than a wait that was cut
-                    // short, and the step may well have got what it was after on the way: the
-                    // honest thing to report is the length, not a picture that was in fact found.
-                    throw new StepFailure("Run.Timeout",
-                        step.Meta.TimeoutMs.ToString(CultureInfo.InvariantCulture));
+                    throw new StepFailure(RunKeys.Timeout, budget.ToString(CultureInfo.InvariantCulture));
                 }
 
                 _executed++;
@@ -788,48 +1063,120 @@ public sealed class MacroRunner
                 // levels work together: the inside decides first, the block decides what is left.
                 if (signal is Signal.Failed)
                 {
-                    if (attempt < step.Meta.RetryCount)
-                    {
-                        Log(LogLevel.Warn, depth, step.Type, "Run.Retry", attempt + 1);
-                        await Pause(RetryPause(step, attempt + 1), token);
-                        continue;
-                    }
+                    var failure = _failure ?? new StepFailure(RunKeys.Failed);
+                    _failure = failure;
+                    attempts.Add(Took(attempt + 1, started, OutcomeFailed, failure, overran: false));
 
-                    var decided = await Decide(step, token);
+                    var decided = attempt < step.Meta.RetryCount
+                        ? Decision.Retry
+                        : await Decide(step, token);
                     if (decided is Decision.Retry)
                     {
-                        await Pause(RetryPause(step, attempt + 1), token);
+                        if (!await WaitBeforeRetry(step, attempt, Remaining(), attemptToken, token))
+                        {
+                            return await Spent(step, token);
+                        }
+
+                        Log(LogLevel.Warn, depth, step.Type, LogKeys.Retry, attempt + 1);
                         continue;
                     }
 
-                    return StepFailed(step, decided, Elapsed(startedStep));
+                    return StepFailed(step, decided, Elapsed(startedStep), attempts);
                 }
 
+                attempts.Add(Took(attempt + 1, started, OutcomeOk, null, overran: false));
                 await Pause(Pace(step.Meta.DelayAfterMs), token);
                 WriteOutcome(step, OutcomeOk);
-                Report(step, OutcomeOk, Elapsed(startedStep), null, Worked());
+                Report(step, OutcomeOk, Elapsed(startedStep), null, Worked(), attempts);
                 return signal;
             }
-            catch (StepFailure) when (attempt < step.Meta.RetryCount)
+            catch (OperationCanceledException)
+                when (limit is { IsCancellationRequested: true } && !token.IsCancellationRequested)
             {
-                Log(LogLevel.Warn, depth, step.Type, "Run.Retry", attempt + 1);
-                await Pause(RetryPause(step, attempt + 1), token);
-            }
-            catch (StepFailure failure)
-            {
-                Log(LogLevel.Error, depth, step.Type, failure.Key, failure.Detail);
+                var failure = WaitedTooLong(step);
+                attempts.Add(Took(attempt + 1, started, OutcomeFailed, failure, overran: true));
                 _failure = failure;
+                Log(LogLevel.Error, depth, step.Type, failure.Key, failure.Detail);
+                var decided = await Decide(step, token);
+                return StepFailed(step, decided is Decision.Retry ? Decision.Stop : decided,
+                    Elapsed(startedStep), attempts);
+            }
+            catch (StepFailure caught)
+            {
+                var overran = OutOfTime() && !token.IsCancellationRequested;
+                var failure = overran && !SaysTimedOut(caught.Key)
+                    ? new StepFailure(RunKeys.Timeout, budget.ToString(CultureInfo.InvariantCulture))
+                    : caught;
+                attempts.Add(Took(attempt + 1, started, OutcomeFailed, failure, overran));
+                _failure = failure;
+                Log(LogLevel.Error, depth, step.Type, failure.Key, failure.Detail);
 
-                var decision = await Decide(step, token);
-                if (decision is not Decision.Retry)
+                var decided = attempt < step.Meta.RetryCount
+                    ? Decision.Retry
+                    : await Decide(step, token);
+                if (decided is Decision.Retry)
                 {
-                    return StepFailed(step, decision, Elapsed(startedStep));
+                    if (!await WaitBeforeRetry(step, attempt, Remaining(), attemptToken, token))
+                    {
+                        return await Spent(step, token);
+                    }
+
+                    Log(LogLevel.Warn, depth, step.Type, LogKeys.Retry, attempt + 1);
+                    continue;
                 }
 
-                await Pause(RetryPause(step, attempt + 1), token);
+                return StepFailed(step, decided, Elapsed(startedStep), attempts);
             }
         }
     }
+
+    /// <summary>
+    /// Waits out the pause before another try without starting one the remaining budget cannot pay
+    /// for. False means the budget has no room left for a try, so the step has run out of time.
+    /// </summary>
+    private async Task<bool> WaitBeforeRetry(ExecutableStep step, int attempt,
+        double? remaining, CancellationToken token, CancellationToken outer)
+    {
+        if (remaining is null)
+        {
+            await Pause(RetryPause(step, attempt + 1), token);
+            return true;
+        }
+
+        if (remaining <= 0)
+        {
+            return false;
+        }
+
+        var pause = RetryPause(step, attempt + 1);
+        if (pause >= remaining)
+        {
+            return false;
+        }
+
+        try
+        {
+            await Pause(pause, token);
+            return true;
+        }
+        catch (OperationCanceledException) when (!outer.IsCancellationRequested)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// True for the failure keys a wait or a device raises when its own clock runs out. Those say
+    /// what was being waited for, so running a little past the step's clock must not replace them
+    /// with the bare "too slow": the caller needs the picture, element or program that never came.
+    /// </summary>
+    private static bool SaysTimedOut(string key)
+        => key is RunKeys.Timeout
+            or RunKeys.WaitColorTimeout or RunKeys.WaitTimeout
+            or RunKeys.ImageNotFound or RunKeys.DetectNotFound or RunKeys.ScreenNotStable
+            or RunKeys.TextNotFound or RunKeys.ElementNotFound or RunKeys.ClipboardTimeout
+            or RunKeys.ProcessTimeout or RunKeys.ProgramNotFound or RunKeys.WindowTimeout
+            or RunKeys.CommandTimeout or RunKeys.BrowserNotFound or RunKeys.BrowserNoNewTab;
 
     /// <summary>
     /// The failure a step reports when its own clock runs out. A step that was waiting for
@@ -844,24 +1191,35 @@ public sealed class MacroRunner
         {
             return step.Type switch
             {
-                "vision.waitColor" => new StepFailure("Run.WaitColorTimeout",
-                    PixelColor.Parse(Read(step.Text("color")).AsText()).ToHex()),
-                "vision.waitImage" or "vision.clickImage" => new StepFailure("Run.ImageNotFound",
-                    Written(step.Rows("image"))),
-                "vision.waitDetect" or "vision.clickDetect" => new StepFailure("Run.DetectNotFound",
+                "vision.waitColor" => new StepFailure(RunKeys.WaitColorTimeout,
+                    PixelColor.Parse(ReadValue(step, "color").AsText()).ToHex()),
+                "vision.waitImage" or "vision.clickImage" => new StepFailure(RunKeys.ImageNotFound,
+                    Written(step.Rows("images"))),
+                "vision.waitDetect" or "vision.clickDetect" => new StepFailure(RunKeys.DetectNotFound,
                     Looking(step)),
-                "vision.waitStable" => new StepFailure("Run.ScreenNotStable", patience),
-                "ocr.clickText" => new StepFailure("Run.TextNotFound",
-                    Read(step.Text("text")).AsText()),
-                "control.waitUntil" => new StepFailure("Run.WaitTimeout", WaitingFor(step, patience)),
-                _ => new StepFailure("Run.Timeout", patience),
+                "vision.waitStable" => new StepFailure(RunKeys.ScreenNotStable, patience),
+                "ocr.clickText" => new StepFailure(RunKeys.TextNotFound,
+                    ReadValue(step, "queryText").AsText()),
+                "control.waitUntil" => new StepFailure(RunKeys.WaitTimeout, WaitingFor(step, patience)),
+                "clipboard.waitChange" or "clipboard.copy" =>
+                    new StepFailure(RunKeys.ClipboardTimeout),
+                "process.waitFor" => new StepFailure(RunKeys.ProgramNotFound,
+                    ReadValue(step, "processName").AsText()),
+                "process.waitExit" => new StepFailure(RunKeys.ProcessTimeout,
+                    ProcessId(step).ToString(CultureInfo.InvariantCulture)),
+                "window.waitFor" => new StepFailure(RunKeys.WindowTimeout, WindowText(step)),
+                "uia.waitElement" or "uia.click" or "uia.invoke" =>
+                    new StepFailure(RunKeys.ElementNotFound, ReadText(step, "uiSelector")),
+                "command.run" => new StepFailure(RunKeys.CommandTimeout,
+                    ReadValue(step, "commandFile").AsText()),
+                _ => new StepFailure(RunKeys.Timeout, patience),
             };
         }
         catch (ExpressionException)
         {
             // A field that cannot be read at all is the business of another failure; the only
             // thing this one has to say is that the step ran out of time.
-            return new StepFailure("Run.Timeout", patience);
+            return new StepFailure(RunKeys.Timeout, patience);
         }
     }
 
@@ -879,10 +1237,11 @@ public sealed class MacroRunner
     /// inside this one and the one that arrived as an exception come through here, so a condition
     /// written after a step always has an answer by the time it is asked.
     /// </summary>
-    private Signal StepFailed(ExecutableStep step, Decision decided, double elapsedMs)
+    private Signal StepFailed(ExecutableStep step, Decision decided, double elapsedMs,
+        IReadOnlyList<StepAttempt> attempts)
     {
         WriteOutcome(step, OutcomeFailed, _failure);
-        Report(step, OutcomeFailed, elapsedMs, _failure, Worked());
+        Report(step, OutcomeFailed, elapsedMs, _failure, Worked(), attempts);
         return decided switch
         {
             Decision.Skip => Signal.Normal,
@@ -897,7 +1256,7 @@ public sealed class MacroRunner
     /// be read afterwards — which is the whole point of the panel a debugger puts this in.
     /// </summary>
     private void Report(ExecutableStep step, string outcome, double elapsedMs, StepFailure? failure,
-        IReadOnlyList<StepResult> results)
+        IReadOnlyList<StepResult> results, IReadOnlyList<StepAttempt> attempts)
     {
         if (_looks is not { } looks)
         {
@@ -913,6 +1272,8 @@ public sealed class MacroRunner
             FailureKey = failure?.Key ?? string.Empty,
             FailureDetail = failure?.Detail ?? string.Empty,
             Results = results,
+            Attempts = attempts,
+            TimeoutMs = step.Meta.TimeoutMs,
         });
     }
 
@@ -930,7 +1291,7 @@ public sealed class MacroRunner
         {
             StepErrorAction.Continue => Decision.Skip,
             StepErrorAction.NextIteration => Decision.NextIteration,
-            StepErrorAction.AskUser => await Ask(step, _failure ?? new StepFailure("Run.Failed"), token),
+            StepErrorAction.AskUser => await Ask(step, _failure ?? new StepFailure(RunKeys.Failed), token),
             _ => Decision.Stop,
         };
 
@@ -964,11 +1325,15 @@ public sealed class MacroRunner
         }
         catch (ExpressionException failure)
         {
-            throw new StepFailure("Run.BadExpression", failure.Detail);
+            throw new StepFailure(RunKeys.BadExpression, failure.Detail);
+        }
+        catch (RegexTimeoutException failure)
+        {
+            throw new StepFailure(RunKeys.RegexTimeout, failure.Pattern);
         }
         catch (DeviceUnavailableException failure)
         {
-            throw new StepFailure("Run.NoDevice", failure.Capability);
+            throw new StepFailure(RunKeys.NoDevice, failure.Capability);
         }
         catch (DeviceActionException failure)
         {
@@ -978,7 +1343,7 @@ public sealed class MacroRunner
         {
             // Whatever a device driver throws, the run reports it as a failed step rather
             // than letting it escape and take the whole run down.
-            throw new StepFailure("Run.DeviceFailed", failure.Message);
+            throw new StepFailure(RunKeys.DeviceFailed, failure.Message);
         }
     }
 
@@ -990,10 +1355,43 @@ public sealed class MacroRunner
         _takenWindow = string.Empty;
         _takenMethod = null;
 
+        // The shared browser is its own piece of state. Every browser step takes this door, whether
+        // or not the macro asked to take turns sending input: another run must not switch the page
+        // between this step's click and its next read.
+        if (UsesBrowser(step.Type))
+        {
+            if (_browserHolds > 0)
+            {
+                _browserHolds++;
+                try
+                {
+                    return await Dispatch(step, depth, token);
+                }
+                finally
+                {
+                    _browserHolds--;
+                }
+            }
+
+            using var page = await BrowserGate.Take(RunName, token);
+            _browserHolds++;
+            try
+            {
+                return await Dispatch(step, depth, token);
+            }
+            finally
+            {
+                _browserHolds--;
+            }
+        }
+
         // A step that sends keys or clicks goes through the input door when this run asked to share
         // it. What is kept apart is the input, so the door is taken and given up around one step
         // rather than held for the whole macro.
-        if (!ExclusiveInput || !SendsInput(step.Type))
+        // A step that reads the screen may spend most of its time waiting for something to turn
+        // up. It takes the input door only around the click itself, so a macro waiting for an
+        // image does not keep another macro's keys out while it waits.
+        if (!ExclusiveInput || !SendsInput(step.Type) || LooksAtScreen(step.Type))
         {
             return await Dispatch(step, depth, token);
         }
@@ -1008,8 +1406,15 @@ public sealed class MacroRunner
     /// it is — reads rather than writes and has nothing to keep apart.
     /// </summary>
     public static bool SendsInput(string type)
-        => type.StartsWith("input.", StringComparison.Ordinal)
-            || type.StartsWith("gamepad.", StringComparison.Ordinal);
+        => ActionSemanticsCatalog.Find(type)?.SendsInput ?? false;
+
+    /// <summary>
+    /// True for the actions that work through the one shared browser. They are kept apart from
+    /// each other rather than from the keyboard: the browser's current page is shared state that
+    /// every run reads, while sending input is a different door.
+    /// </summary>
+    public static bool UsesBrowser(string type)
+        => ActionSemanticsCatalog.Find(type)?.Category is ActionCategory.Browser;
 
     private async Task<Signal> Dispatch(ExecutableStep step, int depth, CancellationToken token)
     {
@@ -1020,6 +1425,9 @@ public sealed class MacroRunner
 
             case "control.runMacro":
                 return await RunOtherMacro(step, depth, token);
+
+            case "control.waitMacro":
+                return await WaitOtherMacro(step, depth, token);
 
             case "control.delay":
                 await Pause(Pace(Number(step, "ms")), token);
@@ -1060,16 +1468,22 @@ public sealed class MacroRunner
             case "control.continue":
                 return LeaveLoop(Signal.Continue, step);
 
+            case "control.return":
+                return Signal.Return;
+
+            case "control.rethrow":
+                throw CaughtFailure();
+
             case "control.stop":
-                Log(LogLevel.Warn, depth, step.Type, "Run.StopRequested",
-                    Read(step.Text("reason")).AsText());
+                Log(LogLevel.Warn, depth, step.Type, LogKeys.StopRequested,
+                    ReadValue(step, "reason").AsText());
                 return Signal.Stop;
 
             case "control.fail":
                 // The macro says this step did not work. It travels the same way a device failure
                 // does, so whatever the step's failure rule says — retry, carry on, ask — holds for
                 // a step the macro itself called failed.
-                throw new StepFailure("Run.StepFailedByMacro", Read(step.Text("reason")).AsText());
+                throw new StepFailure(RunKeys.StepFailedByMacro, ReadValue(step, "reason").AsText());
 
             case "control.note":
                 // A note is for whoever reads the macro. There is nothing to do and nothing to say.
@@ -1081,6 +1495,10 @@ public sealed class MacroRunner
 
             case "control.calculate":
                 Calculate(step, depth);
+                return Signal.Normal;
+
+            case "control.incrementGlobal":
+                IncrementGlobal(step, depth);
                 return Signal.Normal;
 
             case "control.listCreate":
@@ -1096,7 +1514,7 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "control.log":
-                Log(Level(step.Text("level")), depth, step.Type, "Run.Message", Read(step.Text("message")).AsText());
+                Log(Level(ReadText(step, "level")), depth, step.Type, LogKeys.Message, ReadValue(step, "message").AsText());
                 return Signal.Normal;
 
             case "control.ask":
@@ -1222,7 +1640,7 @@ public sealed class MacroRunner
 
             case "clipboard.clear":
                 _devices.Clipboard.Clear();
-                Log(LogLevel.Info, depth, step.Type, "Run.ClearedClipboard");
+                Log(LogLevel.Info, depth, step.Type, LogKeys.ClearedClipboard);
                 return Signal.Normal;
 
             case "clipboard.waitChange":
@@ -1317,32 +1735,32 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "window.activate":
-                Act(step, depth, "Run.ActivatedWindow", window => _devices.Windows.Activate(window.Handle));
+                Act(step, depth, LogKeys.ActivatedWindow, window => _devices.Windows.Activate(window.Handle));
                 return Signal.Normal;
 
             case "window.minimize":
-                Act(step, depth, "Run.MinimizedWindow", window => _devices.Windows.Minimize(window.Handle));
+                Act(step, depth, LogKeys.MinimizedWindow, window => _devices.Windows.Minimize(window.Handle));
                 return Signal.Normal;
 
             case "window.maximize":
-                Act(step, depth, "Run.MaximizedWindow", window => _devices.Windows.Maximize(window.Handle));
+                Act(step, depth, LogKeys.MaximizedWindow, window => _devices.Windows.Maximize(window.Handle));
                 return Signal.Normal;
 
             case "window.restore":
-                Act(step, depth, "Run.RestoredWindow", window => _devices.Windows.Restore(window.Handle));
+                Act(step, depth, LogKeys.RestoredWindow, window => _devices.Windows.Restore(window.Handle));
                 return Signal.Normal;
 
             case "window.move":
                 {
                     var (corner, width, height) = Box(step, null, toTheEdge: false);
-                    Act(step, depth, "Run.MovedWindow",
+                    Act(step, depth, LogKeys.MovedWindow,
                         window => _devices.Windows.Move(window.Handle, corner.X, corner.Y,
                             width, height));
                     return Signal.Normal;
                 }
 
             case "window.close":
-                Act(step, depth, "Run.ClosedWindow", window => _devices.Windows.Close(window.Handle));
+                Act(step, depth, LogKeys.ClosedWindow, window => _devices.Windows.Close(window.Handle));
                 return Signal.Normal;
 
             case "window.list":
@@ -1371,7 +1789,7 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "input.typeText":
-                Input(step).TypeText(Read(step.Text("text")).AsText(), Pace(Number(step, "intervalMs")));
+                Input(step).TypeText(ReadValue(step, "typedText").AsText(), Pace(Number(step, "intervalMs")));
                 return Signal.Normal;
 
             case "input.mouseMove":
@@ -1425,12 +1843,12 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "gamepad.stick":
-                _devices.Gamepad.Stick(step.Text("stick"), Number(step, "x"), Number(step, "y"));
+                _devices.Gamepad.Stick(ReadText(step, "stick"), Number(step, "x"), Number(step, "y"));
                 _gamepadUsed = true;
                 return Signal.Normal;
 
             case "gamepad.trigger":
-                _devices.Gamepad.Trigger(step.Text("trigger"), Number(step, "amount"));
+                _devices.Gamepad.Trigger(ReadText(step, "trigger"), Number(step, "amount"));
                 _gamepadUsed = true;
                 return Signal.Normal;
 
@@ -1580,8 +1998,8 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "browser.goTo":
-                _devices.Browser.GoTo(Read(step.Text("url")).AsText(), step.Meta.TimeoutMs);
-                Log(LogLevel.Info, depth, step.Type, "Run.BrowserAddress", _devices.Browser.Url);
+                _devices.Browser.GoTo(ReadValue(step, "url").AsText(), step.Meta.TimeoutMs);
+                Log(LogLevel.Info, depth, step.Type, LogKeys.BrowserAddress, _devices.Browser.Url);
                 return Signal.Normal;
 
             case "browser.click":
@@ -1613,13 +2031,13 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             case "browser.check":
-                Log(LogLevel.Info, depth, step.Type, "Run.BrowserChecked",
+                Log(LogLevel.Info, depth, step.Type, LogKeys.BrowserChecked,
                     _devices.Browser.Check(Element(step), Flag(step, "checked", true),
                         step.Meta.TimeoutMs));
                 return Signal.Normal;
 
             case "browser.hover":
-                Log(LogLevel.Info, depth, step.Type, "Run.BrowserHovered",
+                Log(LogLevel.Info, depth, step.Type, LogKeys.BrowserHovered,
                     _devices.Browser.Hover(Element(step), step.Meta.TimeoutMs));
                 return Signal.Normal;
 
@@ -1664,12 +2082,12 @@ public sealed class MacroRunner
 
             case "browser.closeTab":
                 _devices.Browser.CloseTab();
-                Log(LogLevel.Info, depth, step.Type, "Run.ClosedTab");
+                Log(LogLevel.Info, depth, step.Type, LogKeys.ClosedTab);
                 return Signal.Normal;
 
             case "browser.close":
                 _devices.Browser.Close();
-                Log(LogLevel.Info, depth, step.Type, "Run.ClosedBrowser");
+                Log(LogLevel.Info, depth, step.Type, LogKeys.ClosedBrowser);
                 return Signal.Normal;
 
             // ------------------------------------------------------------------ script
@@ -1695,7 +2113,7 @@ public sealed class MacroRunner
                 return Signal.Normal;
 
             default:
-                throw new StepFailure("Run.Unsupported", step.Type);
+                throw new StepFailure(RunKeys.Unsupported, step.Type);
         }
     }
 
@@ -1709,7 +2127,7 @@ public sealed class MacroRunner
     private async Task<Signal> RunWaitUntil(ExecutableStep step, int depth, CancellationToken token)
     {
         var condition = step.Condition("condition")
-                        ?? throw new StepFailure("Run.MissingCondition");
+                        ?? throw new StepFailure(RunKeys.MissingCondition);
         var poll = Number(step, "pollMs");
         if (poll <= 0)
         {
@@ -1733,7 +2151,7 @@ public sealed class MacroRunner
 
         var waited = Elapsed(started);
         Give(step, "elapsed", Value.FromNumber(waited));
-        Log(LogLevel.Info, depth, step.Type, "Run.WaitedFor", waited, condition.Type);
+        Log(LogLevel.Info, depth, step.Type, LogKeys.WaitedFor, waited, condition.Type);
         return Signal.Normal;
     }
 
@@ -1745,13 +2163,14 @@ public sealed class MacroRunner
     {
         var times = Math.Max(0, Number(step, "times"));
         var interval = Pace(Number(step, "intervalMs"));
+        using var index = EnterLoopIndex();
 
         for (var round = 0; round < times; round++)
         {
             token.ThrowIfCancellationRequested();
-            Variables.Local.Set("sys.loopIndex", Value.FromNumber(round));
+            Variables.Local.Set(VariableStore.LoopIndexName, Value.FromNumber(round));
             var signal = await RunBody(step, depth, token);
-            if (signal is Signal.Stop or Signal.Failed)
+            if (signal is Signal.Return or Signal.Stop or Signal.Failed)
             {
                 return signal;
             }
@@ -1769,20 +2188,23 @@ public sealed class MacroRunner
 
     private async Task<Signal> RunWhile(ExecutableStep step, int depth, CancellationToken token)
     {
+        var condition = step.Condition("condition")
+                        ?? throw new StepFailure(RunKeys.MissingCondition);
         var limit = Math.Max(1, Number(step, "maxIterations"));
-        var condition = step.Condition("condition");
+        using var index = EnterLoopIndex();
 
         for (var round = 0; round < limit; round++)
         {
             token.ThrowIfCancellationRequested();
-            Variables.Local.Set("sys.loopIndex", Value.FromNumber(round));
-            if (condition is not null && !Check(condition, depth, token))
+            Variables.Local.Set(VariableStore.LoopIndexName, Value.FromNumber(round));
+            if (!Check(condition, depth, token))
             {
+                Give(step, "ended", Value.FromText("condition"));
                 return Signal.Normal;
             }
 
             var signal = await RunBody(step, depth, token);
-            if (signal is Signal.Stop or Signal.Failed)
+            if (signal is Signal.Return or Signal.Stop or Signal.Failed)
             {
                 return signal;
             }
@@ -1793,6 +2215,8 @@ public sealed class MacroRunner
             }
         }
 
+        Give(step, "ended", Value.FromText("limit"));
+        Log(LogLevel.Warn, depth, step.Type, LogKeys.LoopLimit, limit);
         return Signal.Normal;
     }
 
@@ -1826,29 +2250,31 @@ public sealed class MacroRunner
 
     private async Task<Signal> RunForEach(ExecutableStep step, int depth, CancellationToken token)
     {
-        if (!ListText.TryParse(step.Text("items"), Variables, out var items, out var error))
+        if (!ListText.TryParse(ReadText(step, "items"), Variables, out var items, out var error))
         {
-            throw new StepFailure("Run.BadList", error?.Detail ?? step.Text("items"));
+            throw new StepFailure(RunKeys.BadList, error?.Detail ?? ReadText(step, "items"));
         }
 
-        var itemName = step.Text("itemVariable").Trim();
+        var itemName = ReadText(step, "itemVariable").Trim();
         if (itemName.Length == 0)
         {
             itemName = "item";
         }
 
-        var order = string.Equals(step.Text("reverse"), "true", StringComparison.OrdinalIgnoreCase)
+        var order = string.Equals(ReadText(step, "reverse"), "true", StringComparison.OrdinalIgnoreCase)
             ? items.Reverse()
             : items;
 
         // The round number is only worth having when the step asked for it by name: a variable
         // nobody asked for is one more thing to puzzle over in the variable list.
-        var indexName = step.Text("indexVariable").Trim();
+        var indexName = ReadText(step, "indexVariable").Trim();
+        var interval = Pace(Number(step, "intervalMs"));
         var index = 0;
+        using var scope = EnterLoopIndex();
         foreach (var item in order)
         {
             token.ThrowIfCancellationRequested();
-            Variables.Local.Set("sys.loopIndex", Value.FromNumber(index));
+            Variables.Local.Set(VariableStore.LoopIndexName, Value.FromNumber(index));
             Variables.Set(itemName, item);
             if (indexName.Length > 0)
             {
@@ -1856,7 +2282,7 @@ public sealed class MacroRunner
             }
 
             var signal = await RunBody(step, depth, token);
-            if (signal is Signal.Stop or Signal.Failed)
+            if (signal is Signal.Return or Signal.Stop or Signal.Failed)
             {
                 return signal;
             }
@@ -1867,6 +2293,7 @@ public sealed class MacroRunner
             }
 
             index++;
+            await Pause(interval, token);
         }
 
         return Signal.Normal;
@@ -1879,9 +2306,9 @@ public sealed class MacroRunner
     /// </summary>
     private async Task<Signal> RunFor(ExecutableStep step, int depth, CancellationToken token)
     {
-        var from = OptionalNumber(step, "from", 1);
-        var to = OptionalNumber(step, "to", 5);
-        var stride = OptionalNumber(step, "step", 1);
+        var from = OptionalNumber(step, "rangeFrom", 1);
+        var to = OptionalNumber(step, "rangeTo", 5);
+        var stride = OptionalNumber(step, "stepSize", 1);
         if (stride == 0)
         {
             // A step is what the counter moves by, so a zero would never move it at all. Taking the
@@ -1891,22 +2318,23 @@ public sealed class MacroRunner
 
         // The counter is a variable the step itself names, and a loop with no counter has nothing
         // to run its body against, so an empty field falls back to the name every for-loop uses.
-        var counter = step.Text("variable").Trim();
+        var counter = ReadText(step, "name").Trim();
         if (counter.Length == 0)
         {
             counter = "i";
         }
         var interval = Pace(Number(step, "intervalMs"));
         var round = 0;
+        using var scope = EnterLoopIndex();
 
         for (var value = from; stride > 0 ? value <= to : value >= to; value += stride)
         {
             token.ThrowIfCancellationRequested();
-            Variables.Local.Set("sys.loopIndex", Value.FromNumber(round));
+            Variables.Local.Set(VariableStore.LoopIndexName, Value.FromNumber(round));
             Variables.Set(counter, Value.FromNumber(value));
 
             var signal = await RunBody(step, depth, token);
-            if (signal is Signal.Stop or Signal.Failed)
+            if (signal is Signal.Return or Signal.Stop or Signal.Failed)
             {
                 return signal;
             }
@@ -1930,8 +2358,8 @@ public sealed class MacroRunner
     /// </summary>
     private async Task<Signal> RunSwitch(ExecutableStep step, int depth, CancellationToken token)
     {
-        var value = Read(step.Text("value"));
-        var mode = step.Text("matchMode");
+        var value = ReadValue(step, "switchValue");
+        var mode = ReadText(step, "switchMode");
 
         foreach (var branch in step.Children("cases"))
         {
@@ -1942,7 +2370,7 @@ public sealed class MacroRunner
 
             foreach (var wanted in Labels(branch))
             {
-                if (CaseMatches(value, wanted, mode))
+                if (CaseMatches(step, value, wanted, mode))
                 {
                     var signal = await RunSteps(branch.Children("body"), depth + 1, token);
 
@@ -1970,58 +2398,67 @@ public sealed class MacroRunner
             .Where(label => label.Length > 0)];
 
     /// <summary>Compares the switch's value against one case value the way the step chose.</summary>
-    private static bool CaseMatches(Value value, string wanted, string mode)
+    private bool CaseMatches(ExecutableStep step, Value value, string wanted, string mode)
     {
         switch (mode.Trim().ToLowerInvariant())
         {
             case "notequals":
-                return !value.NumericEquals(Value.FromText(wanted));
+                return !CaseEquals(step, value, wanted);
             case "contains":
             case "startswith":
             case "endswith":
                 // The ways of comparing text are the ones the whole program shares.
-                return TextCompare.Matches(value.AsText(), wanted, mode);
+                return TextCompare.Matches(value.AsText(), wanted, mode, OptionsOf(step, mode));
             case "greaterthan":
-                return Order(value.AsText(), wanted) > 0;
+                return Order(step, value.AsText(), wanted) > 0;
             case "greaterorequal":
-                return Order(value.AsText(), wanted) >= 0;
+                return Order(step, value.AsText(), wanted) >= 0;
             case "lessthan":
-                return Order(value.AsText(), wanted) < 0;
+                return Order(step, value.AsText(), wanted) < 0;
             case "lessorequal":
-                return Order(value.AsText(), wanted) <= 0;
+                return Order(step, value.AsText(), wanted) <= 0;
             case "regex":
                 try
                 {
-                    return TextCompare.Matches(value.AsText(), wanted, TextCompare.Regex);
+                    return TextCompare.Matches(value.AsText(), wanted, TextCompare.Regex,
+                        OptionsOf(step, TextCompare.Regex));
                 }
                 catch (ArgumentException)
                 {
                     // A pattern the machine cannot read is the macro's problem to see, not a
                     // stack trace to puzzle over, so it comes back as a failed step.
-                    throw new StepFailure("Run.BadPattern", wanted);
+                    throw new StepFailure(RunKeys.BadPattern, wanted);
                 }
             default:
-                // NumericEquals reads "1" against 1 as well as plain text, the same way an
-                // equality condition does.
-                return value.NumericEquals(Value.FromText(wanted));
+                return CaseEquals(step, value, wanted);
         }
     }
+
+    /// <summary>
+    /// Equality keeps the number reading it has always had, and hands the text reading to the one
+    /// shared comparison so the spacing and case switches mean the same thing here as elsewhere.
+    /// </summary>
+    private bool CaseEquals(ExecutableStep step, Value value, string wanted)
+        => value.NumericEquals(Value.FromText(wanted))
+           || TextCompare.Matches(value.AsText(), wanted, TextCompare.Exactly,
+               OptionsOf(step, TextCompare.Exactly));
 
     /// <summary>
     /// Puts two texts in order for a greater-than or less-than branch: as numbers when both read
     /// as numbers, and the way the expression language compares text otherwise, so "b" after "a"
     /// works and "10" still beats "9" rather than falling behind it.
     /// </summary>
-    private static int Order(string value, string wanted)
+    private int Order(ExecutableStep step, string value, string wanted)
         => double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var left)
            && double.TryParse(wanted, NumberStyles.Any, CultureInfo.InvariantCulture, out var right)
             ? left.CompareTo(right)
-            : string.Compare(value, wanted, StringComparison.OrdinalIgnoreCase);
+            : string.Compare(value, wanted, OptionsOf(step, TextCompare.Contains).Comparison);
 
     private async Task<Signal> RunIf(ExecutableStep step, int depth, CancellationToken token)
     {
-        var condition = step.Condition("condition");
-        var matched = condition is null || Check(condition, depth, token);
+        var condition = step.Condition("condition")
+                        ?? throw new StepFailure(RunKeys.MissingCondition);
+        var matched = Check(condition, depth, token);
         return await RunSteps(step.Children(matched ? "then" : "else"), depth + 1, token);
     }
 
@@ -2031,8 +2468,8 @@ public sealed class MacroRunner
     /// failure rules and does not stop the macro.
     /// </summary>
     /// <remarks>
-    /// A stopped run does not run its clean-up block. Every step in it would be racing the
-    /// cancellation, so it would either do nothing or hold the stop up.
+    /// A run cancelled from outside does not run its clean-up block. Every step in it would be
+    /// racing the cancellation, so it would either do nothing or hold the stop up.
     /// </remarks>
     private async Task<Signal> RunTry(ExecutableStep step, int depth, CancellationToken token)
     {
@@ -2040,9 +2477,30 @@ public sealed class MacroRunner
 
         if (signal is Signal.Failed)
         {
-            Remember(step, _failure);
-            Log(LogLevel.Warn, depth, step.Type, "Run.Caught");
-            signal = await RunSteps(step.Children("catch"), depth + 1, token);
+            var failure = _failure ?? new StepFailure(RunKeys.Failed);
+            var before = RememberCaught(failure);
+            try
+            {
+                // The reason is asked under the names the catch block itself reads, so a macro
+                // that takes only one kind of failure says exactly which one and can compare the
+                // same key the step below will see.
+                if (step.Condition("catchWhen") is not { } wanted || Check(wanted, depth, token))
+                {
+                    Remember(step, failure);
+                    Log(LogLevel.Warn, depth, step.Type, LogKeys.Caught);
+                    signal = await RunSteps(step.Children("catch"), depth + 1, token);
+                }
+                else
+                {
+                    // Not this block's failure. The key and detail travel on untouched; the
+                    // clean-up steps below still run before the caller hears about it.
+                    _failure = failure;
+                }
+            }
+            finally
+            {
+                RestoreCaught(before);
+            }
         }
         else
         {
@@ -2052,12 +2510,12 @@ public sealed class MacroRunner
         var closing = step.Children("finally");
         if (closing.Count > 0)
         {
-            Log(LogLevel.Debug, depth, step.Type, "Run.Finally");
+            Log(LogLevel.Debug, depth, step.Type, LogKeys.Finally);
             var closingSignal = await RunSteps(closing, depth + 1, token);
 
-            // Stopping or failing while tidying up beats whatever the attempt did: a clean-up
-            // that ends the run is the last word.
-            if (closingSignal is Signal.Stop or Signal.Failed)
+            // Whatever the clean-up decides — stop, fail, return, break or start the next round —
+            // is the last word: it ran after the attempt, so its ending is the one that stands.
+            if (closingSignal is not Signal.Normal)
             {
                 return closingSignal;
             }
@@ -2066,17 +2524,71 @@ public sealed class MacroRunner
         return signal;
     }
 
-    /// <summary>Records why the attempt failed, or empties the result when it did not.</summary>
+    /// <summary>
+    /// The failure a rethrow hands on: the innermost catch block now running. A rethrow outside
+    /// every catch has nothing to hand on, and says so rather than borrowing a failure from
+    /// somewhere else.
+    /// </summary>
+    private StepFailure CaughtFailure()
+        => _caught.Count > 0
+            ? _caught[^1]
+            : throw new StepFailure(RunKeys.NothingToRethrow);
+
+    /// <summary>
+    /// Writes the caught failure where the catch block can read it, and gives back what those two
+    /// names held before so leaving the block puts the macro back the way it was found.
+    /// </summary>
+    private (Value? Key, Value? Detail) RememberCaught(StepFailure failure)
+    {
+        var before = (
+            Key: Variables.Local.TryGet(CaughtKeyName, out var key) ? key : null,
+            Detail: Variables.Local.TryGet(CaughtDetailName, out var detail) ? detail : null);
+
+        Variables.Local.Set(CaughtKeyName, Value.FromText(failure.Key));
+        Variables.Local.Set(CaughtDetailName, Value.FromText(failure.Detail));
+        _caught.Add(failure);
+        return before;
+    }
+
+    /// <summary>
+    /// Takes the catch block's own names away again, restoring the values of an outer catch when
+    /// there is one. A name the macro did not have before is removed rather than left empty, so it
+    /// cannot be mistaken for a failure after the block is over.
+    /// </summary>
+    private void RestoreCaught((Value? Key, Value? Detail) before)
+    {
+        if (_caught.Count > 0)
+        {
+            _caught.RemoveAt(_caught.Count - 1);
+        }
+
+        if (before.Key is { } key)
+        {
+            Variables.Local.Set(CaughtKeyName, key);
+        }
+        else
+        {
+            Variables.Local.Remove(CaughtKeyName);
+        }
+
+        if (before.Detail is { } detail)
+        {
+            Variables.Local.Set(CaughtDetailName, detail);
+        }
+        else
+        {
+            Variables.Local.Remove(CaughtDetailName);
+        }
+    }
+
+    /// <summary>
+    /// Records the failure key and its detail separately, or empties both when the attempt did
+    /// not fail. A macro branches on the key; the detail is what a person reads next to it.
+    /// </summary>
     private void Remember(ExecutableStep step, StepFailure? failure)
     {
-        var reason = failure switch
-        {
-            null => string.Empty,
-            { Detail.Length: > 0 } => failure.Detail,
-            _ => failure.Key,
-        };
-
-        Give(step, "error", Value.FromText(reason));
+        Give(step, "error", Value.FromText(failure?.Key ?? string.Empty));
+        Give(step, "detail", Value.FromText(failure?.Detail ?? string.Empty));
     }
 
     /// <summary>
@@ -2089,11 +2601,8 @@ public sealed class MacroRunner
     /// do are the ones whose own "how often the screen is looked at" counts, the same field the
     /// vision steps carry.
     /// </summary>
-    private static bool LooksAtScreen(string conditionType) => conditionType is
-        "condition.imageExists" or "condition.imageNotExists"
-        or "condition.textExists" or "condition.textNotExists"
-        or "condition.colorEquals" or "condition.colorsMatch" or "condition.colorsExist"
-        or "condition.colorCoverage";
+    private static bool LooksAtScreen(string conditionType)
+        => ActionSemanticsCatalog.Find(conditionType)?.LooksAtScreen ?? false;
 
     private bool Check(ExecutableStep condition, int depth, CancellationToken token)
     {
@@ -2112,7 +2621,7 @@ public sealed class MacroRunner
             case "condition.group":
                 return Group(condition, depth, token);
             case "condition.randomChance":
-                return System.Random.Shared.NextDouble() * 100 < Number(condition, "percent");
+                return System.Random.Shared.NextDouble() * 100 < Number(condition, "chancePercent");
             case "condition.imageExists":
                 return ImageThere(condition);
             case "condition.imageNotExists":
@@ -2135,7 +2644,7 @@ public sealed class MacroRunner
                 return !_devices.Browser.Exists(Element(condition), ElementStateOf(condition));
 
             case "condition.expression":
-                return Read(condition.Text("expression")).AsBool();
+                return ReadValue(condition, "expression").AsBool();
 
             case "condition.stepResult":
                 return StepResult(condition);
@@ -2144,10 +2653,10 @@ public sealed class MacroRunner
                 return ListHolds(condition);
 
             case "condition.pathExists":
-                return _devices.Files.Exists(Read(condition.Text("path")).AsText());
+                return _devices.Files.Exists(ReadValue(condition, "path").AsText());
 
             case "condition.processRunning":
-                return _devices.Processes.Find(Read(condition.Text("name")).AsText()).Count > 0;
+                return _devices.Processes.Find(ReadValue(condition, "processName").AsText()).Count > 0;
 
             case "condition.windowExists":
                 return WindowThere(condition);
@@ -2160,8 +2669,8 @@ public sealed class MacroRunner
 
             case "condition.colorEquals":
                 {
-                    var target = PixelColor.Parse(Read(condition.Text("color")).AsText());
-                    return PixelAt(condition).Matches(target, Read(condition.Text("tolerance")).AsNumber());
+                    var target = PixelColor.Parse(ReadValue(condition, "color").AsText());
+                    return PixelAt(condition).Matches(target, ReadValue(condition, "tolerance").AsNumber());
                 }
 
             case "condition.colorsMatch":
@@ -2174,7 +2683,7 @@ public sealed class MacroRunner
                 return ColourShare(condition);
 
             default:
-                Log(LogLevel.Warn, depth, condition.Type, "Run.UnknownCondition", condition.Type);
+                Log(LogLevel.Warn, depth, condition.Type, LogKeys.UnknownCondition, condition.Type);
                 return false;
         }
     }
@@ -2187,16 +2696,16 @@ public sealed class MacroRunner
     /// </summary>
     private bool StepResult(ExecutableStep condition)
     {
-        var id = condition.Text("step").Trim();
+        var id = ReadText(condition, "stepId").Trim();
         if (id.Length == 0)
         {
-            throw new StepFailure("Run.MissingStep");
+            throw new StepFailure(RunKeys.MissingStep);
         }
 
-        var expected = condition.Text("expected").Trim();
+        var expected = ReadText(condition, "expectedOutcome").Trim();
         if (!Variables.TryGet(OutcomeName(id), out var outcome))
         {
-            throw new StepFailure("Run.NoSuchStep", id);
+            throw new StepFailure(RunKeys.NoSuchStep, id);
         }
 
         return string.Equals(outcome.AsText().Trim(), expected, StringComparison.OrdinalIgnoreCase);
@@ -2209,12 +2718,12 @@ public sealed class MacroRunner
     /// </summary>
     private bool ListHolds(ExecutableStep condition)
     {
-        if (!ListText.TryParse(condition.Text("list"), Variables, out var items, out var error))
+        if (!ListText.TryParse(ReadText(condition, "list"), Variables, out var items, out var error))
         {
-            throw new StepFailure("Run.BadList", error?.Detail ?? condition.Text("list"));
+            throw new StepFailure(RunKeys.BadList, error?.Detail ?? ReadText(condition, "list"));
         }
 
-        var wanted = Read(condition.Text("value"));
+        var wanted = ReadValue(condition, "wantedValue");
         return items.Any(item => item.NumericEquals(wanted)
             || string.Equals(item.AsText(), wanted.AsText(), StringComparison.OrdinalIgnoreCase));
     }
@@ -2227,7 +2736,7 @@ public sealed class MacroRunner
     private bool WindowThere(ExecutableStep condition)
     {
         var rule = WindowRuleOf(condition, "window", "how");
-        return _devices.Windows.Find(rule.Text, rule.Match, rule.Compare) is not null;
+        return _devices.Windows.Find(rule.Text, rule.Match, rule.Compare, rule.Options) is not null;
     }
 
     /// <summary>
@@ -2237,9 +2746,9 @@ public sealed class MacroRunner
     /// </summary>
     private bool InRange(ExecutableStep condition)
     {
-        var value = Read(condition.Text("value")).AsNumber();
-        var low = Read(condition.Text("min")).AsNumber();
-        var high = Read(condition.Text("max")).AsNumber();
+        var value = ReadValue(condition, "testValue").AsNumber();
+        var low = ReadValue(condition, "min").AsNumber();
+        var high = ReadValue(condition, "max").AsNumber();
         return value >= Math.Min(low, high) && value <= Math.Max(low, high);
     }
 
@@ -2251,9 +2760,9 @@ public sealed class MacroRunner
     /// </summary>
     private bool DatesCompared(ExecutableStep condition)
     {
-        var left = FunctionLibrary.Moment(DateText(condition.Text("left")));
-        var right = FunctionLibrary.Moment(DateText(condition.Text("right")));
-        return condition.Text("operator").Trim().ToLowerInvariant() switch
+        var left = FunctionLibrary.Moment(DateText(ReadText(condition, "left")));
+        var right = FunctionLibrary.Moment(DateText(ReadText(condition, "right")));
+        return ReadText(condition, "dateOperator").Trim().ToLowerInvariant() switch
         {
             "before" => left < right,
             "after" => left > right,
@@ -2295,9 +2804,9 @@ public sealed class MacroRunner
     /// </summary>
     private bool TextThere(ExecutableStep condition)
     {
-        var wanted = Read(condition.Text("text")).AsText();
+        var wanted = ReadValue(condition, "queryText").AsText();
         var way = TextWay(condition, wanted);
-        return ReadSpans(condition).Any(span => Matches(span.Text, wanted, way));
+        return ReadSpans(condition).Any(span => Matches(condition, span.Text, wanted, way));
     }
 
     /// <summary>
@@ -2314,7 +2823,7 @@ public sealed class MacroRunner
         }
         catch (ArgumentException)
         {
-            throw new StepFailure("Run.BadPattern", wanted);
+            throw new StepFailure(RunKeys.BadPattern, wanted);
         }
 
         return way;
@@ -2327,8 +2836,9 @@ public sealed class MacroRunner
     /// </summary>
     private bool ColoursMatch(ExecutableStep condition)
     {
-        var tolerance = Read(condition.Text("tolerance")).AsNumber();
-        var every = !string.Equals(condition.Text("mode").Trim(), "any", StringComparison.OrdinalIgnoreCase);
+        var tolerance = ReadValue(condition, "tolerance").AsNumber();
+        var every = !string.Equals(ReadText(condition, "colorMatchMode").Trim(), "any",
+            StringComparison.OrdinalIgnoreCase);
         var window = AnchorOf(condition).Window;
 
         var matched = Points(condition)
@@ -2347,7 +2857,7 @@ public sealed class MacroRunner
     /// </summary>
     private IReadOnlyList<ColourPoint> Points(ExecutableStep step)
     {
-        var text = Interpolate(step.Text("points")).Trim();
+        var text = ReadText(step, "points").Trim();
         var points = new List<ColourPoint>();
         foreach (var entry in text.Split([';', '\n', '\r'],
                      StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
@@ -2358,7 +2868,7 @@ public sealed class MacroRunner
                 || !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var y)
                 || !IsColour(parts[2]))
             {
-                throw new StepFailure("Run.BadPoints", entry);
+                throw new StepFailure(RunKeys.BadPoints, entry);
             }
 
             points.Add(new ColourPoint(Place(step, x, y), PixelColor.Parse(parts[2])));
@@ -2366,7 +2876,7 @@ public sealed class MacroRunner
 
         if (points.Count == 0)
         {
-            throw new StepFailure("Run.BadPoints", text);
+            throw new StepFailure(RunKeys.BadPoints, text);
         }
 
         return points;
@@ -2381,12 +2891,12 @@ public sealed class MacroRunner
 
     private bool Compare(ExecutableStep step)
     {
-        var left = Read(step.Text("variable"));
-        var right = Read(step.Text("value"));
+        var left = ReadValue(step, "variable");
+        var right = ReadValue(step, "compareValue");
         var same = left.NumericEquals(right)
-            || string.Equals(left.AsText(), right.AsText(), StringComparison.OrdinalIgnoreCase);
+            || Compare(step, left, right, TextCompare.Exactly);
 
-        return step.Text("operator") switch
+        return ReadText(step, "compareOperator") switch
         {
             "equals" => same,
             "notEquals" => !same,
@@ -2396,10 +2906,10 @@ public sealed class MacroRunner
             "lessOrEqual" => left.AsNumber() <= right.AsNumber(),
             // The text comparisons are the ones the whole program shares, so a pattern in a condition
             // and the same pattern in a text search cannot come to mean two different things.
-            TextCompare.Contains => Compare(left, right, TextCompare.Contains),
-            "notContains" => !Compare(left, right, TextCompare.Contains),
+            TextCompare.Contains => Compare(step, left, right, TextCompare.Contains),
+            "notContains" => !Compare(step, left, right, TextCompare.Contains),
             "exists" => !left.IsNull && left.AsText().Length > 0,
-            TextCompare.Regex => Compare(left, right, TextCompare.Regex),
+            TextCompare.Regex => Compare(step, left, right, TextCompare.Regex),
             _ => false,
         };
     }
@@ -2409,15 +2919,16 @@ public sealed class MacroRunner
     /// cannot read into a failed step rather than a stack trace — the same answer the steps that look
     /// for text give.
     /// </summary>
-    private static bool Compare(Value left, Value right, string way)
+    private bool Compare(ExecutableStep step, Value left, Value right, string way)
     {
         try
         {
-            return TextCompare.Matches(left.AsText(), right.AsText(), way);
+            return TextCompare.Matches(left.AsText(), right.AsText(), way,
+                OptionsOf(step, way));
         }
         catch (ArgumentException)
         {
-            throw new StepFailure("Run.BadPattern", right.AsText());
+            throw new StepFailure(RunKeys.BadPattern, right.AsText());
         }
     }
 
@@ -2435,7 +2946,7 @@ public sealed class MacroRunner
             results.Add(Check(child, depth, token));
         }
 
-        return step.Text("op") switch
+        return ReadText(step, "op") switch
         {
             "or" => results.Any(result => result),
             "none" => results.All(result => !result),
@@ -2445,16 +2956,16 @@ public sealed class MacroRunner
 
     private void SetVariable(ExecutableStep step, int depth)
     {
-        var name = step.Text("name").Trim();
+        var name = ReadText(step, "name").Trim();
         if (name.Length == 0)
         {
-            throw new StepFailure("Run.MissingVariable");
+            throw new StepFailure(RunKeys.MissingVariable);
         }
 
         var target = Target(step);
-        var value = Read(step.Text("value"));
+        var value = ReadValue(step, "value");
         Variables.Set(name, value, target);
-        Log(LogLevel.Info, depth, step.Type, "Run.Set", name, value.AsText());
+        Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, value.AsText());
     }
 
     /// <summary>
@@ -2464,11 +2975,11 @@ public sealed class MacroRunner
     /// </summary>
     private async Task<Signal> AskPerson(ExecutableStep step, int depth, CancellationToken token)
     {
-        var message = Read(step.Text("message")).AsText();
-        var detail = Read(step.Text("detail")).AsText();
+        var message = ReadValue(step, "message").AsText();
+        var detail = ReadValue(step, "detail").AsText();
         if (message.Length == 0)
         {
-            throw new StepFailure("Run.MissingQuestion");
+            throw new StepFailure(RunKeys.MissingQuestion);
         }
 
         var question = detail.Length == 0 ? message : message + "\n\n" + detail;
@@ -2476,7 +2987,7 @@ public sealed class MacroRunner
 
         Store(step, "confirmed", Value.FromBool(answer.Confirmed), depth);
         Log(LogLevel.Info, depth, step.Type,
-            answer.Confirmed ? "Run.AskedYes" : "Run.AskedNo", question);
+            answer.Confirmed ? LogKeys.AskedYes : LogKeys.AskedNo, question);
         return Signal.Normal;
     }
 
@@ -2487,17 +2998,17 @@ public sealed class MacroRunner
     /// </summary>
     private async Task<Signal> AskForText(ExecutableStep step, int depth, CancellationToken token)
     {
-        var message = Read(step.Text("message")).AsText();
+        var message = ReadValue(step, "message").AsText();
         if (message.Length == 0)
         {
-            throw new StepFailure("Run.MissingQuestion");
+            throw new StepFailure(RunKeys.MissingQuestion);
         }
 
-        var suggestion = Read(step.Text("default")).AsText();
+        var suggestion = ReadValue(step, "default").AsText();
         var answer = await _host.AskUser(new AskQuestion(AskKind.Text, message, suggestion), token);
 
         Store(step, "text", Value.FromText(answer.Text), depth);
-        Log(LogLevel.Info, depth, step.Type, "Run.AskedText", answer.Text);
+        Log(LogLevel.Info, depth, step.Type, LogKeys.AskedText, answer.Text);
         return Signal.Normal;
     }
 
@@ -2507,61 +3018,92 @@ public sealed class MacroRunner
     /// </summary>
     private void Calculate(ExecutableStep step, int depth)
     {
-        var name = step.Text("name").Trim();
+        var name = ReadText(step, "name").Trim();
         if (name.Length == 0)
         {
-            throw new StepFailure("Run.MissingVariable");
+            throw new StepFailure(RunKeys.MissingVariable);
         }
 
-        var value = Read(step.Text("value"));
+        var value = ReadValue(step, "value");
         var target = Target(step);
         Variables.Set(name, value, target);
-        Log(LogLevel.Info, depth, step.Type, "Run.Set", name, value.AsText());
+        Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, value.AsText());
+    }
+
+    /// <summary>
+    /// Adds to a shared number as one step. Reading the old value and writing the sum from two
+    /// ordinary steps can lose one of two runs' additions; here both happen under the table's lock,
+    /// so every addition that was asked for is in the answer.
+    /// </summary>
+    private void IncrementGlobal(ExecutableStep step, int depth)
+    {
+        var name = ReadText(step, "name").Trim();
+        if (name.Length == 0)
+        {
+            throw new StepFailure(RunKeys.MissingVariable);
+        }
+
+        var amount = ReadValue(step, "amount").AsNumber();
+        double sum;
+        try
+        {
+            if (!Variables.Global.TryAddNumber(name, amount, out sum))
+            {
+                throw new StepFailure(RunKeys.GlobalMustExist, name);
+            }
+        }
+        catch (ExpressionException failure)
+        {
+            throw new StepFailure(RunKeys.NotANumber, $"{name}: {failure.Detail}");
+        }
+
+        Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, Value.FormatNumber(sum));
     }
 
     private void CreateList(ExecutableStep step, int depth)
     {
-        var name = step.Text("name").Trim();
+        var name = ReadText(step, "name").Trim();
         if (name.Length == 0)
         {
-            throw new StepFailure("Run.MissingVariable");
+            throw new StepFailure(RunKeys.MissingVariable);
         }
 
-        if (!ListText.TryParse(step.Text("items"), Variables, out var items, out var error))
+        if (!ListText.TryParse(ReadText(step, "items"), Variables, out var items, out var error))
         {
-            throw new StepFailure("Run.BadList", error?.Detail ?? step.Text("items"));
+            throw new StepFailure(RunKeys.BadList, error?.Detail ?? ReadText(step, "items"));
         }
 
         var target = Target(step);
         var list = Value.FromList(items);
         Variables.Set(name, list, target);
-        Log(LogLevel.Info, depth, step.Type, "Run.Set", name, list.AsText());
+        Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, list.AsText());
     }
 
     private void ChangeList(ExecutableStep step, int depth)
     {
-        var name = step.Text("name").Trim();
+        var name = ReadText(step, "name").Trim();
         if (name.Length == 0)
         {
-            throw new StepFailure("Run.MissingVariable");
+            throw new StepFailure(RunKeys.MissingVariable);
         }
 
         if (!Variables.TryGet(name, out var current) || !current.IsList)
         {
-            throw new StepFailure("Run.NotAList", name);
+            throw new StepFailure(RunKeys.NotAList, name);
         }
 
         var items = new List<Value>(current.Items);
         switch (step.Type)
         {
             case "control.listAdd":
-                items.Add(Read(step.Text("value")));
+                items.Add(ReadValue(step, "value"));
                 break;
             case "control.listInsert":
-                items.Insert(Math.Clamp(Number(step, "index"), 0, items.Count), Read(step.Text("value")));
+                items.Insert(Math.Clamp(Number(step, "listIndex"), 0, items.Count),
+                    ReadValue(step, "value"));
                 break;
             case "control.listSet":
-                items[Index(step, items.Count)] = Read(step.Text("value"));
+                items[Index(step, items.Count)] = ReadValue(step, "value");
                 break;
             case "control.listRemoveAt":
                 items.RemoveAt(Index(step, items.Count));
@@ -2574,12 +3116,12 @@ public sealed class MacroRunner
         var target = Variables.Local.Contains(name) ? VariableTarget.Local : VariableTarget.Global;
         var list = Value.FromList(items);
         Variables.Set(name, list, target);
-        Log(LogLevel.Info, depth, step.Type, "Run.Set", name, list.AsText());
+        Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, list.AsText());
     }
 
     private int Index(ExecutableStep step, int count)
     {
-        var index = Number(step, "index");
+        var index = Number(step, "listIndex");
         if (index < 0)
         {
             index += count;
@@ -2587,7 +3129,7 @@ public sealed class MacroRunner
 
         if (index < 0 || index >= count)
         {
-            throw new StepFailure("Run.IndexOutOfRange", step.Text("index"));
+            throw new StepFailure(RunKeys.IndexOutOfRange, ReadText(step, "listIndex"));
         }
 
         return index;
@@ -2595,6780 +3137,20 @@ public sealed class MacroRunner
 
     private VariableTarget Target(ExecutableStep step)
     {
-        if (!string.Equals(step.Text("scope"), "global", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(ReadText(step, "scope"), "global", StringComparison.OrdinalIgnoreCase))
         {
             return VariableTarget.Local;
         }
 
         // Only the Variable Center creates shared variables, so a macro may write to one
         // that already exists but never invent a new one.
-        var name = step.Text("name").Trim();
+        var name = ReadText(step, "name").Trim();
         if (!Variables.Global.Contains(name))
         {
-            throw new StepFailure("Run.GlobalMustExist", name);
+            throw new StepFailure(RunKeys.GlobalMustExist, name);
         }
 
         return VariableTarget.Global;
-    }
-
-    // ------------------------------------------------------------------- devices
-
-    /// <summary>
-    /// The input device that delivers this step's input, chosen by the step's own settings: in
-    /// front by default, posted at one window when the step names one, or through a driver.
-    /// </summary>
-    private IInputDevice Input(ExecutableStep step) => _devices.Inputs.For(Route(step));
-
-    /// <summary>Presses a key and remembers it, so the run can let it go if the macro never does.</summary>
-    private void HoldKey(ExecutableStep step)
-    {
-        var device = Input(step);
-        var key = step.Text("key");
-        device.KeyDown(key);
-        if (!_heldKeys.Any(held => Same(held.Device, device) && Same(held.Name, key)))
-        {
-            _heldKeys.Add((device, key));
-        }
-    }
-
-    /// <summary>Releases a key the macro asked to release, and stops counting it as held.</summary>
-    private void LetGoKey(ExecutableStep step)
-    {
-        var device = Input(step);
-        var key = step.Text("key");
-        device.KeyUp(key);
-        _heldKeys.RemoveAll(held => Same(held.Device, device) && Same(held.Name, key));
-    }
-
-    /// <summary>The same, for a mouse button, remembering where it was pressed.</summary>
-    private void HoldButton(ExecutableStep step)
-    {
-        var device = Input(step);
-        var button = Button(step);
-        var point = Point(step, "x", "y");
-        device.MouseDown(button, point.X, point.Y);
-        if (!_heldButtons.Any(held =>
-                Same(held.Device, device) && Same(held.Button, button)))
-        {
-            _heldButtons.Add((device, button, point));
-        }
-    }
-
-    /// <summary>Releases a mouse button the macro asked to release, wherever it is now held.</summary>
-    private void LetGoButton(ExecutableStep step)
-    {
-        var device = Input(step);
-        var button = Button(step);
-        var point = Point(step, "x", "y");
-        device.MouseUp(button, point.X, point.Y);
-        _heldButtons.RemoveAll(held => Same(held.Device, device) && Same(held.Button, button));
-    }
-
-    /// <summary>True when two device handles or two names stand for the same thing.</summary>
-    private static bool Same(IInputDevice device, IInputDevice other) => ReferenceEquals(device, other);
-
-    private static bool Same(string name, string other)
-        => string.Equals(name, other, StringComparison.OrdinalIgnoreCase);
-
-    /// <summary>
-    /// Lets go of anything the macro left pressed. A key or a button held down when a run ends
-    /// stays down on the machine until something else takes it up — the user's own typing goes
-    /// to the wrong place and the mouse drags whatever it is over — so this happens however the
-    /// run ended: finished, stopped, failed or cancelled. A release that fails is logged rather
-    /// than raised, because the run already has its answer and a stuck key is not made better by
-    /// throwing.
-    /// </summary>
-    private void LetGoOfHeldInput()
-    {
-        if (_heldKeys.Count == 0 && _heldButtons.Count == 0 && !_gamepadUsed)
-        {
-            return;
-        }
-
-        var keys = _heldKeys.ToList();
-        var buttons = _heldButtons.ToList();
-        _heldKeys.Clear();
-        _heldButtons.Clear();
-
-        var released = 0;
-        foreach (var (device, key) in keys)
-        {
-            try
-            {
-                device.KeyUp(key);
-                released++;
-            }
-            catch (Exception failure)
-            {
-                Log(LogLevel.Warn, 0, string.Empty, "Run.LetGoFailed", key, failure.Message);
-            }
-        }
-
-        foreach (var (device, button, point) in buttons)
-        {
-            try
-            {
-                device.MouseUp(button, point.X, point.Y);
-                released++;
-            }
-            catch (Exception failure)
-            {
-                Log(LogLevel.Warn, 0, string.Empty, "Run.LetGoFailed", button, failure.Message);
-            }
-        }
-
-        // A controller left holding a button, or a stick pushed over, would keep a game walking
-        // into a wall long after the macro that pushed it has finished.
-        if (_gamepadUsed)
-        {
-            _gamepadUsed = false;
-            try
-            {
-                _devices.Gamepad.ReleaseAll();
-                Log(LogLevel.Info, 0, string.Empty, "Run.GamepadReleased");
-            }
-            catch (Exception failure)
-            {
-                Log(LogLevel.Warn, 0, string.Empty, "Run.GamepadLetGoFailed", failure.Message);
-            }
-        }
-
-        if (released > 0)
-        {
-            Log(LogLevel.Info, 0, string.Empty, "Run.LetGo", released);
-        }
-    }
-
-    /// <summary>Where a step wants its input to go. Anything unset means the front window.</summary>
-    private InputRoute Route(ExecutableStep step)
-    {
-        var mode = DeliveryMode(step);
-        if (mode == DriverMode)
-        {
-            return new InputRoute(InputDelivery.Driver, 0);
-        }
-
-        if (mode != BackgroundMode)
-        {
-            return InputRoute.Front;
-        }
-
-        // Posting messages needs a window to post them at. The step names it the way the window
-        // actions name one — the text held up against the window the way it says to hold it up —
-        // so a step that types into a window whose title moves with the document is not left
-        // without a handle on it.
-        var rule = WindowRuleOf(step, "targetWindow", "targetHow");
-        if (rule.Text.Length == 0)
-        {
-            throw new StepFailure("Run.MissingTargetWindow");
-        }
-
-        var window = _devices.Windows.Find(rule.Text, rule.Match, rule.Compare)
-                     ?? throw new StepFailure("Run.WindowNotFound", rule.Text);
-
-        return new InputRoute(InputDelivery.Background, window.Handle);
-    }
-
-    /// <summary>What a step's input mode says it wants, as the file writes it.</summary>
-    private static string DeliveryMode(ExecutableStep step)
-        => step.Text("inputMode").Trim().ToLowerInvariant();
-
-    /// <summary>
-    /// Whether this step's input is posted at a window as messages rather than driving the desktop.
-    /// The two things this mode cannot do — report where the pointer is, and move it — are asked
-    /// about before the window is looked up, so a step that cannot work is turned down on the
-    /// strength of its own settings rather than of what happens to be open.
-    /// </summary>
-    private static bool PostsMessages(ExecutableStep step) => DeliveryMode(step) == BackgroundMode;
-
-    /// <summary>What the input mode is written as when the messages are posted at a window.</summary>
-    private const string BackgroundMode = "background";
-
-    /// <summary>What the input mode is written as when a virtual device sends the input.</summary>
-    private const string DriverMode = "driver";
-
-    /// <summary>
-    /// The corner a step's numbers are measured from, or <c>null</c> when they are screen pixels
-    /// already. It is looked up afresh every time the step runs, which is what keeps a macro that
-    /// names a window or a control pointing at the same place after the window has been dragged
-    /// elsewhere or the list under the control has been scrolled.
-    /// </summary>
-    private ScreenPoint? Anchor(ExecutableStep step) => AnchorOf(step).Corner;
-
-    /// <summary>
-    /// The same, together with the window those numbers were counted from when there was one. The
-    /// window is also where the step's pixels are to be read from: a step that says "a hundred
-    /// pixels into the game window" and a step that says "read the game window" are saying the same
-    /// thing about which window, and one of them should not have to say it twice.
-    /// </summary>
-    private (ScreenPoint? Corner, WindowInfo? Window) AnchorOf(ExecutableStep step)
-    {
-        var mode = step.Text("anchorMode").Trim().ToLowerInvariant();
-
-        if (mode == "element")
-        {
-            var selector = step.Text("anchorSelector");
-            var anchor = _devices.Ui.FindAll(AnchorQuery(step), 1).FirstOrDefault()
-                         ?? throw new StepFailure("Run.ElementNotFound", selector);
-
-            return (anchor.Location, null);
-        }
-
-        if (mode is not ("window" or "client"))
-        {
-            return (null, null);
-        }
-
-        // The window is recognised the way the window actions recognise one, and no text at all
-        // means the window in front, the same way every other window field reads.
-        var rule = WindowRuleOf(step, "anchorWindow", "anchorHow");
-        var window = _devices.Windows.Find(rule.Text, rule.Match, rule.Compare)
-                     ?? throw new StepFailure("Run.WindowNotFound", rule.Text);
-
-        var corner = mode == "client" ? _devices.Windows.ClientOrigin(window.Handle)
-            : window.Location;
-        return (corner, window);
-    }
-
-    /// <summary>One written position, in the screen pixels the devices ask for.</summary>
-    private ScreenPoint Place(ExecutableStep step, int x, int y) => Placed(Anchor(step), x, y);
-
-    private static ScreenPoint Placed(ScreenPoint? origin, int x, int y)
-        => origin is { } corner ? new ScreenPoint(corner.X + x, corner.Y + y) : new ScreenPoint(x, y);
-
-    /// <summary>The colour of the pixel a step points at, counted from wherever it anchors.</summary>
-    private PixelColor PixelAt(ExecutableStep step)
-    {
-        var (corner, window) = Spot(step);
-        return PixelAt(step, corner, window);
-    }
-
-    /// <summary>
-    /// The colour of one pixel. A pixel the step counts from the screen is read straight off the
-    /// screen, which is a fraction of the cost of a picture; one it counts from a window is read
-    /// out of a picture of that window, so a window another window covers still gives its own
-    /// colour rather than the covering window's.
-    /// </summary>
-    private PixelColor PixelAt(ExecutableStep step, ScreenPoint point, WindowInfo? window)
-    {
-        if (window is null)
-        {
-            // A pixel of the desktop is read straight off it rather than out of a picture, so this
-            // is the one reading that has to say for itself that it is not reading a window.
-            Reading(null);
-            return _devices.Screen.PixelAt(point.X, point.Y);
-        }
-
-        var shot = Shot(step, point.X, point.Y, 1, 1, window);
-        if (shot.Origin != point)
-        {
-            // The picture came back from somewhere else, which means the window does not reach
-            // that far: there is no such pixel, and reading a neighbour's colour would be a lie.
-            throw new StepFailure("Run.PixelOutsideScreen", $"{point.X},{point.Y}");
-        }
-
-        return shot.Frame[0, 0];
-    }
-
-    /// <summary>
-    /// Whether this kind of step is one that looks at the screen, and so is one whose looking can
-    /// be tried out on its own. It is what the dialog offers "try looking" for, and the only thing
-    /// <see cref="LookOnce"/> will look at the screen for.
-    /// </summary>
-    public static bool CanLook(string stepType) => stepType is
-        "vision.findImage" or "vision.waitImage" or "vision.clickImage"
-        or "vision.detect" or "vision.waitDetect" or "vision.clickDetect"
-        or "vision.findColor" or "vision.waitColor" or "vision.getPixel"
-        or "vision.capture" or "vision.captureWindow"
-        or "ocr.recognize" or "ocr.findText" or "ocr.clickText";
-
-    /// <summary>
-    /// Looks at the screen the way a step would and hands back what it saw, without doing anything
-    /// about it: no key is pressed, no mouse button goes down, no variable is written. It answers
-    /// "what does this step actually see", where running the step would answer it by clicking on
-    /// the user's screen. Null when this kind of step does not look at the screen at all.
-    /// <paramref name="watch"/> is told which window is being read as it happens, if anybody wants
-    /// to be: it is the same callback a run hands over, so a trial can show what a run shows.
-    /// </summary>
-    public static LookOutcome LookOnce(ExecutableStep step, IDeviceLayer devices,
-        IRunLooks? watch = null)
-    {
-        if (!CanLook(step.Type))
-        {
-            return new LookOutcome(null, "Run.NotALookingStep");
-        }
-
-        var asked = new Asked(watch);
-        try
-        {
-            new MacroRunner(new VariableStore(), devices: devices, looks: asked).SeeOnce(step);
-        }
-        catch (ExpressionException failure)
-        {
-            return new LookOutcome(null, "Run.BadExpression", failure.Detail);
-        }
-        catch (DeviceUnavailableException failure)
-        {
-            return new LookOutcome(null, "Run.NoDevice", failure.Capability);
-        }
-        catch (DeviceActionException failure)
-        {
-            return new LookOutcome(null, failure.Key, failure.Detail);
-        }
-        catch (StepFailure failure)
-        {
-            return new LookOutcome(null, failure.Key, failure.Detail);
-        }
-        catch (Exception failure) when (failure is not OperationCanceledException)
-        {
-            // Whatever a device driver throws while looking, the answer is a message rather than
-            // an exception in the dialog's face.
-            return new LookOutcome(null, "Run.DeviceFailed", failure.Message);
-        }
-
-        return asked.Seen is { } look
-            ? new LookOutcome(look)
-            : new LookOutcome(null, "Run.NotALookingStep");
-    }
-
-    /// <summary>
-    /// Answers one condition the way a run would, on the values in play at that moment and without
-    /// carrying anything out. This is what a breakpoint's own condition is asked with: the debugger
-    /// has the values the run has just written, and none of the run's own machinery. A condition
-    /// that cannot be answered at all comes back saying why rather than throwing, so the caller can
-    /// tell "no" apart from "could not be asked".
-    /// </summary>
-    public static ConditionOutcome AskCondition(ExecutableStep condition, VariableStore variables,
-        IDeviceLayer devices, IMacroLibrary? macros = null)
-    {
-        try
-        {
-            return new ConditionOutcome(new MacroRunner(variables, devices: devices, macros: macros)
-                .Check(condition, 0, CancellationToken.None));
-        }
-        catch (ExpressionException failure)
-        {
-            return new ConditionOutcome(false, "Run.BadExpression", failure.Detail);
-        }
-        catch (DeviceUnavailableException failure)
-        {
-            return new ConditionOutcome(false, "Run.NoDevice", failure.Capability);
-        }
-        catch (DeviceActionException failure)
-        {
-            return new ConditionOutcome(false, failure.Key, failure.Detail);
-        }
-        catch (StepFailure failure)
-        {
-            return new ConditionOutcome(false, failure.Key, failure.Detail);
-        }
-        catch (Exception failure) when (failure is not OperationCanceledException)
-        {
-            // Whatever a device driver throws while a condition is asked, the answer is a message
-            // rather than an exception in the debugger's face.
-            return new ConditionOutcome(false, "Run.DeviceFailed", failure.Message);
-        }
-    }
-
-    /// <summary>Where a look goes when the caller only wanted the one.</summary>
-    private sealed class Asked(IRunLooks? watch) : IRunLooks
-    {
-        public StepLook? Seen { get; private set; }
-
-        public void Look(StepLook look) => Seen = look;
-
-        /// <summary>Nothing is read from what a step came to; only the one look was wanted.</summary>
-        public void Ran(StepRun run)
-        {
-        }
-
-        public void Reading(WindowInfo? window) => watch?.Reading(window);
-    }
-
-    /// <summary>
-    /// One look at the screen for a step, without the step: a search looks once rather than
-    /// waiting, a wait does not wait, and the mouse is left alone.
-    /// </summary>
-    private void SeeOnce(ExecutableStep step)
-    {
-        switch (step.Type)
-        {
-            case "vision.findImage":
-            case "vision.waitImage":
-            case "vision.clickImage":
-                Watching(() => Hits(step));
-                break;
-
-            case "vision.detect":
-            case "vision.waitDetect":
-            case "vision.clickDetect":
-                Watching(() => Sightings(step));
-                break;
-
-            case "vision.findColor":
-            case "vision.waitColor":
-                Watching(() => Scan(step, PixelColor.Parse(Read(step.Text("color")).AsText()),
-                    Read(step.Text("tolerance")).AsNumber(), measured: false));
-                break;
-
-            case "vision.findColors":
-                Watching(() => PatternHits(step));
-                break;
-
-            case "vision.getPixel":
-                Watching(() =>
-                {
-                    var (point, window) = Spot(step);
-                    SawPixel(step, point, PixelAt(step, point, window).ToHex(), window);
-                });
-                break;
-
-            case "vision.capture":
-                Watching(() => Took(step, CaptureBox(step)));
-                break;
-
-            case "vision.captureWindow":
-                Watching(() => Took(step, WindowBox(step)));
-                break;
-
-            case "ocr.recognize":
-                Watching(() => WasRead(step, ReadBox(step)));
-                break;
-
-            case "ocr.findText":
-            case "ocr.clickText":
-                Watching(() => SawSought(step));
-                break;
-
-            default:
-                break;
-        }
-    }
-
-    /// <summary>Hands over a picture that was taken, without keeping it anywhere.</summary>
-    private void Took(ExecutableStep step, (ImageFrame Frame, ScreenPoint Corner) taken)
-        => Saw(step, LookKind.Capture, taken.Frame, taken.Corner,
-            [
-                new(new ImageMatch(0, taken.Corner,
-                    new ScreenSize(taken.Frame.Width, taken.Frame.Height)), LookRole.Area),
-            ],
-            // The name the picture would be handed over under, which is what the run itself puts
-            // here when it really takes one; a step asked to try its looking writes nothing.
-            1, step.Return("image"));
-
-    /// <summary>Hands over what was read off a picture, without writing the reading anywhere.</summary>
-    private void WasRead(ExecutableStep step,
-        (ScreenPoint Corner, ImageFrame Area, IReadOnlyList<TextSpan> Spans) read)
-        => Saw(step, LookKind.Text, read.Area, read.Corner,
-            Marks([(read.Area, read.Corner)], TextMarks(read.Spans, read.Corner), 0), 0,
-            note: string.Join(' ', read.Spans.Select(span => span.Text)),
-            minimum: Number(step, "minScore"));
-
-    /// <summary>Hands over what a step looking for writing would find right now.</summary>
-    private void SawSought(ExecutableStep step)
-    {
-        var wanted = Read(step.Text("text")).AsText();
-        var way = TextWay(step, wanted);
-        var readings = ReadSpans(step);
-        var (_, chosen) = Counting(step, readings, wanted, way);
-
-        SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen,
-            wanted, minimum: Number(step, "minScore"));
-    }
-
-    /// <summary>
-    /// Where the pixel a step watches sits on the screen, window anchoring and all, with the window
-    /// the point was counted from when there was one, which is also the window its colour has to be
-    /// read out of.
-    /// </summary>
-    private (ScreenPoint Corner, WindowInfo? Window) Spot(ExecutableStep step)
-    {
-        var anchor = AnchorOf(step);
-        return (FromRecord(step)
-            ? RecordPlace(step, "record")
-            : Placed(anchor.Corner, Number(step, "x"), Number(step, "y")), anchor.Window);
-    }
-
-    /// <summary>
-    /// Where a mouse action lands. An empty position means "wherever the pointer already is",
-    /// which is what a click or a press with no coordinates written down means; a step that says so
-    /// outright reads the pointer the same way, whatever its numbers hold. Asking for the pointer is
-    /// answered before anything is measured from, so a step that says it works at the pointer does
-    /// not need the window its numbers would have been counted from to be there at all. After the
-    /// pointer comes the record, and the numbers last: a step that takes its place from the pointer
-    /// works there whatever else it carries, and a step that takes it from a record does not read the
-    /// numbers at all.
-    /// </summary>
-    private ScreenPoint Point(ExecutableStep step, string xName, string yName)
-    {
-        if (Flag(step, "useCursor", false))
-        {
-            return Input(step).Cursor;
-        }
-
-        if (FromRecord(step))
-        {
-            return RecordPlace(step, "record");
-        }
-
-        var x = step.Text(xName).Trim();
-        var y = step.Text(yName).Trim();
-        return x.Length == 0 && y.Length == 0
-            ? Input(step).Cursor
-            : Placed(Anchor(step), Number(step, xName), Number(step, yName));
-    }
-
-    /// <summary>
-    /// Where a move lands: the place a record says, or the two numbers the step writes down, which
-    /// are counted from the corner it names and are read as zero where they were not written. A
-    /// move has no "wherever the pointer already is" of its own, so both numbers missing is a move
-    /// to the corner the step counts from rather than to nowhere.
-    /// </summary>
-    private ScreenPoint MovePlace(ExecutableStep step)
-    {
-        return FromRecord(step)
-            ? RecordPlace(step, "record")
-            : Placed(Anchor(step), Number(step, "x"), Number(step, "y"));
-    }
-
-    /// <summary>
-    /// Whether a step takes its place or its rectangle from a record. The switch is off where it was
-    /// never written, which is how a macro that spells the numbers out goes on being read as numbers
-    /// rather than as a record field nobody filled in.
-    /// </summary>
-    private static bool FromRecord(ExecutableStep step, string name = "useRecord")
-        => Flag(step, name, false);
-
-    /// <summary>
-    /// Where a step that takes its place from a record says it is. Which field the record came in is
-    /// named so that a drag can say which of its two ends is the one with nothing in it. A record
-    /// field nobody filled in means the step before this one handed nothing over, which is said as
-    /// that rather than as a place that could not be read; anything else that is not a record saying
-    /// where it is is reported as a place with no <c>x</c> and <c>y</c> in it.
-    /// </summary>
-    private ScreenPoint RecordPlace(ExecutableStep step, string name)
-    {
-        var raw = step.Text(name).Trim();
-        if (raw.Length == 0)
-        {
-            throw new StepFailure("Run.BadPointEmpty", name);
-        }
-
-        return Read(raw) is { IsRecord: true } record
-            ? RecordPoint(record, raw)
-            : throw new StepFailure("Run.BadPoint", raw);
-    }
-
-    /// <summary>
-    /// The point a record says it is at, in screen pixels: its <c>x</c> and <c>y</c>, which every
-    /// record that names a rectangle carries as the middle of it rather than as a corner. A record
-    /// without them is refused here, and what was handed over is said so that a macro that aimed at
-    /// the wrong thing can be read back from its own log.
-    /// </summary>
-    private static ScreenPoint RecordPoint(Value record, string written)
-    {
-        if (record.Field("x") is not { } x || record.Field("y") is not { } y)
-        {
-            throw new StepFailure("Run.BadPoint", written);
-        }
-
-        return new ScreenPoint(Whole(x), Whole(y));
-    }
-
-    private static string Button(ExecutableStep step)
-    {
-        var button = step.Text("button").Trim();
-        return button.Length == 0 ? "left" : button;
-    }
-
-    /// <summary>
-    /// One end of a drag, in the screen pixels the devices ask for: the record that end takes its
-    /// place from, or the two numbers written for it, each of which may be an expression. Every
-    /// record that carries a rectangle carries the middle of it under <c>x</c> and <c>y</c>, so a
-    /// hit, a window or an element goes in as it stands — "drag what was just found onto that
-    /// window" is one field each end instead of four numbers worked out from other numbers. A
-    /// record's numbers are screen pixels, the way every record's are; numbers written out are
-    /// counted from <paramref name="origin"/>, which is the corner the step says its own numbers are
-    /// measured from and is read once so both ends share it. <paramref name="end"/> names which end
-    /// this is, because a drag has two of everything and the fields are read by name.
-    /// </summary>
-    private ScreenPoint DragPlace(ExecutableStep step, string end, ScreenPoint? origin)
-    {
-        return FromRecord(step, end + "FromRecord")
-            ? RecordPlace(step, end + "Record")
-            : Placed(origin, Number(step, end + "X"), Number(step, end + "Y"));
-    }
-
-    /// <summary>
-    /// Moves the pointer to a point. A straight move is handed to the device exactly as it always
-    /// was; a bent or hand-like one is worked out into a path first, because the shape of that
-    /// path is the whole point of those styles.
-    /// </summary>
-    private void MovePointer(ExecutableStep step, ScreenPoint to)
-    {
-        var route = MousePath.Route(step.Text("style"));
-        var duration = Pace(Number(step, "durationMs"));
-        if (route is MouseRoute.Direct)
-        {
-            Input(step).MoveMouse(to.X, to.Y, duration);
-            return;
-        }
-
-        WalkPointer(Input(step), route, Input(step).Cursor, to, duration);
-    }
-
-    /// <summary>The same, for a move written as an offset from wherever the pointer is.</summary>
-    private void MovePointerBy(ExecutableStep step)
-    {
-        // "By how much" is a question about the pointer, and the posted-input mode never moves the
-        // pointer: it tells the window what happened, so the pointer a relative move counts from is
-        // not its own. Sending the offsets on anyway is how "move 200 to the right" becomes "go to
-        // the point (200, 0)" — the wrong place, arrived at silently — so this mode says what it
-        // cannot do instead, whichever way the move was asked to travel.
-        if (PostsMessages(step))
-        {
-            throw new StepFailure("Run.BackgroundNeedsPointer");
-        }
-
-        var dx = Number(step, "dx");
-        var dy = Number(step, "dy");
-        var route = MousePath.Route(step.Text("style"));
-        var duration = Pace(Number(step, "durationMs"));
-        if (route is MouseRoute.Direct)
-        {
-            Input(step).MoveMouseRelative(dx, dy, duration);
-            return;
-        }
-
-        var from = Input(step).Cursor;
-        WalkPointer(Input(step), route, from, new ScreenPoint(from.X + dx, from.Y + dy), duration);
-    }
-
-    private void WalkPointer(IInputDevice input, MouseRoute route, ScreenPoint from,
-        ScreenPoint to, int duration)
-    {
-        if (duration <= 0)
-        {
-            duration = Pace(BorrowedMoveMs);
-        }
-
-        input.MoveMouseAlong(
-            MousePath.Plan(route, from, to, MousePath.StepsFor(route, duration)), duration);
-    }
-
-    /// <summary>Presses, travels, and lets go: the same shape of path as a plain move.</summary>
-    private async Task DragPointer(ExecutableStep step, CancellationToken token)
-    {
-        // Both ends are measured from the same corner, so a drag across a window stays inside it —
-        // and a record handed to one of them says where on the screen it is, so it comes back
-        // already in screen pixels rather than moved by that corner a second time. The corner is
-        // read once, here, rather than once per end.
-        var origin = Anchor(step);
-        var from = DragPlace(step, "start", origin);
-        var to = DragPlace(step, "end", origin);
-        var duration = Pace(Number(step, "durationMs"));
-        var settle = Pace(OptionalNumber(step, "settleMs", 0));
-        var steps = Math.Clamp(Number(step, "steps"), 1, 200);
-        var route = MousePath.Route(step.Text("style"));
-        if (route is not MouseRoute.Direct)
-        {
-            if (duration <= 0)
-            {
-                duration = Pace(BorrowedMoveMs);
-            }
-        }
-
-        if (settle <= 0)
-        {
-            if (route is MouseRoute.Direct)
-            {
-                Input(step).Drag(Button(step), from.X, from.Y, to.X, to.Y, duration, steps);
-            }
-            else
-            {
-                Input(step).DragAlong(Button(step), MousePath.Plan(route, from, to, steps), duration);
-            }
-
-            return;
-        }
-
-        // Held at the end for a moment before letting go: a slot a thing is dragged into only takes
-        // it once the pointer has rested over it, and letting go the instant the pointer arrives is
-        // how a drag onto something turns into a drag past it. That is three calls rather than the
-        // one the devices offer, because the one they offer lets go before it comes back.
-        Input(step).MouseDown(Button(step), from.X, from.Y);
-        Input(step).MoveMouseAlong(MousePath.Plan(route, from, to, steps), duration);
-        await Pause(settle, token);
-        Input(step).MouseUp(Button(step), to.X, to.Y);
-    }
-
-    private static IReadOnlyList<string> Keys(ExecutableStep step)
-        => Chord(step.Text("keys"));
-
-    /// <summary>The keys of one written combination, such as the Ctrl+Shift+S a row of a sequence holds.</summary>
-    private static IReadOnlyList<string> Chord(string written)
-        => [.. written.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
-
-    /// <summary>
-    /// Sends a run of combinations in order, one row after another, the way a macro plays out a
-    /// combo. Each row is held together for its own moment and then the run waits out the beat
-    /// before the next one — the gaps are what make a run read as separate presses rather than as
-    /// one long hold, and they are the part of a combo a game notices. A row may carry its own hold
-    /// and its own gap, because a combination with one beat of its own is the rule rather than the
-    /// exception; the whole run may be played again with a pause between.
-    /// </summary>
-    private async Task SendKeySequence(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var rows = step.Rows("keys");
-        var hold = Number(step, "holdMs");
-        var gap = Number(step, "gapMs");
-        var after = Pace(Number(step, "afterMs"));
-        var runs = Math.Max(1, Number(step, "repeat"));
-        var interval = Pace(Number(step, "intervalMs"));
-        var presses = 0;
-
-        for (var run = 0; run < runs; run++)
-        {
-            token.ThrowIfCancellationRequested();
-            if (run > 0)
-            {
-                await Pause(interval, token);
-            }
-
-            for (var index = 0; index < rows.Count; index++)
-            {
-                token.ThrowIfCancellationRequested();
-                var keys = Chord(Column(rows[index], "keys"));
-                if (keys.Count == 0)
-                {
-                    // A row that was added and never filled in is left out rather than sent as a
-                    // press of nothing.
-                    continue;
-                }
-
-                Input(step).Hotkey(keys, Pace(Cell(rows[index], "holdMs", hold)));
-                presses++;
-
-                // The beat is between the presses; there is nothing to wait for after the last one.
-                if (index < rows.Count - 1)
-                {
-                    await Pause(Pace(Cell(rows[index], "gapMs", gap)), token);
-                }
-            }
-
-            if (after > 0)
-            {
-                await Pause(after, token);
-            }
-        }
-
-        if (presses == 0)
-        {
-            throw new StepFailure("Run.NoKeys", string.Empty);
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.KeysSent", presses);
-    }
-
-    /// <summary>
-    /// Presses a key, over again when the step asks for more than one. The pause goes between the
-    /// presses and never after the last, so a step that presses once waits for nothing.
-    /// </summary>
-    private async Task PressKey(ExecutableStep step, CancellationToken token)
-    {
-        var key = step.Text("key");
-        var hold = Pace(Number(step, "holdMs"));
-        var repeats = Math.Max(1, Number(step, "repeat"));
-        var interval = Pace(Number(step, "intervalMs"));
-
-        for (var count = 0; count < repeats; count++)
-        {
-            token.ThrowIfCancellationRequested();
-            if (count > 0)
-            {
-                await Pause(interval, token);
-            }
-
-            Input(step).KeyPress(key, hold);
-        }
-    }
-
-    /// <summary>
-    /// Holds a controller button or lets it up, or presses and lets go of it. A tap is what a
-    /// button is normally for, so it is the one that happens when the step does not say; the hold
-    /// is the pause between the press and the release, and a step that asked for none still gets a
-    /// short one, because a report that comes and goes in the same instant is one a game may never
-    /// see. Tapping several times is the same question the key actions answer with repeat and
-    /// interval, so it is answered the same way here: one pause between taps, none before the first.
-    /// </summary>
-    private async Task PressGamepadButton(ExecutableStep step, CancellationToken token)
-    {
-        var device = _devices.Gamepad;
-        var button = step.Text("button");
-        _gamepadUsed = true;
-
-        switch (step.Text("mode").Trim().ToLowerInvariant())
-        {
-            case "down":
-                device.Button(button, true);
-                return;
-            case "up":
-                device.Button(button, false);
-                return;
-        }
-
-        var hold = Math.Max(Pace(Number(step, "holdMs")), ShortestPressMs);
-        var repeats = Math.Max(1, Number(step, "repeat"));
-        var interval = Pace(Number(step, "intervalMs"));
-
-        for (var count = 0; count < repeats; count++)
-        {
-            token.ThrowIfCancellationRequested();
-            if (count > 0)
-            {
-                await Pause(interval, token);
-            }
-
-            device.Button(button, true);
-            await Pause(hold, token);
-            device.Button(button, false);
-        }
-    }
-
-    /// <summary>The same for a combination: it can be sent more than once with a pause between.</summary>
-    private async Task SendHotkey(ExecutableStep step, CancellationToken token)
-    {
-        var keys = Keys(step);
-        var hold = Pace(Number(step, "holdMs"));
-        var repeats = Math.Max(1, Number(step, "repeat"));
-        var interval = Pace(Number(step, "intervalMs"));
-
-        for (var count = 0; count < repeats; count++)
-        {
-            token.ThrowIfCancellationRequested();
-            if (count > 0)
-            {
-                await Pause(interval, token);
-            }
-
-            Input(step).Hotkey(keys, hold);
-        }
-    }
-
-    /// <summary>
-    /// Clicks the mouse. The device's own click is a quick tap, so a step that asks for a hold
-    /// presses, waits and releases by itself; without one the device does the whole thing, which
-    /// also covers a click aimed at a background window.
-    /// </summary>
-    /// <summary>Wheel units in one notch, the amount a wheel turns in.</summary>
-    private const int WheelNotch = 120;
-
-    /// <summary>
-    /// Turns the wheel. "Notches" is the step a wheel normally moves in; "pixels" measures the
-    /// same turn finer, with 120 units to a notch, which is what an exact amount needs. A smooth
-    /// duration splits the whole turn over several smaller wheel events with a pause between, so
-    /// an application that animates its scrolling has the time to follow.
-    /// </summary>
-    private async Task ScrollMouse(ExecutableStep step, CancellationToken token)
-    {
-        var point = Point(step, "x", "y");
-        var direction = step.Text("direction");
-        var pixels = string.Equals(step.Text("unit").Trim(), "pixels", StringComparison.OrdinalIgnoreCase);
-        var amount = Math.Max(1, Number(step, "amount"));
-        var total = pixels ? amount : amount * WheelNotch;
-        var smooth = Pace(Number(step, "smoothMs"));
-        var repeats = Math.Max(1, Number(step, "repeat"));
-        var interval = Pace(Number(step, "intervalMs"));
-
-        for (var count = 0; count < repeats; count++)
-        {
-            token.ThrowIfCancellationRequested();
-            if (count > 0)
-            {
-                await Pause(interval, token);
-            }
-
-            if (smooth <= 0)
-            {
-                Input(step).Scroll(direction, total, point.X, point.Y);
-                continue;
-            }
-
-            // One event per 15 ms is about 66 a second: roughly the fastest an application would
-            // draw its scrolling at, and never more events than there are units to send.
-            var events = Math.Clamp(smooth / 15, 1, total);
-            var share = total / events;
-            var extra = total % events;
-
-            for (var index = 0; index < events; index++)
-            {
-                token.ThrowIfCancellationRequested();
-                if (index > 0)
-                {
-                    await Pause(smooth / events, token);
-                }
-
-                Input(step).Scroll(direction, share + (index < extra ? 1 : 0), point.X, point.Y);
-            }
-        }
-    }
-
-    private async Task ClickMouse(ExecutableStep step, CancellationToken token)
-    {
-        var point = Point(step, "x", "y");
-        var button = Button(step);
-        var clicks = Math.Max(1, Number(step, "repeat"));
-        var interval = Pace(Number(step, "intervalMs"));
-        var hold = Pace(Number(step, "holdMs"));
-        var spread = Spread(step);
-        var from = ArrivedFrom(step);
-
-        // A step that lets the clicks drift, or that wants the pointer put back, has to place every
-        // click itself: sending them all at once would put them all on the same pixel, and there
-        // would be nowhere to put the pointer back from.
-        if (hold <= 0 && spread == 0 && from is null)
-        {
-            Input(step).Click(button, point.X, point.Y, clicks, interval);
-            return;
-        }
-
-        for (var count = 0; count < clicks; count++)
-        {
-            token.ThrowIfCancellationRequested();
-            if (count > 0)
-            {
-                await Pause(interval, token);
-            }
-
-            var at = Scattered(point, spread);
-            if (hold <= 0)
-            {
-                Input(step).Click(button, at.X, at.Y, 1, 0);
-                continue;
-            }
-
-            Input(step).MouseDown(button, at.X, at.Y);
-            await Pause(hold, token);
-            Input(step).MouseUp(button, at.X, at.Y);
-        }
-
-        if (from is { } back)
-        {
-            Input(step).MoveMouse(back.X, back.Y, 0);
-        }
-    }
-
-    /// <summary>
-    /// Double clicks the mouse: two presses in quick succession, which is what tells the machine a
-    /// double click from two single ones. The step may ask for several of them in a row with a
-    /// pause between, which is the same question the other input steps answer with repeat and
-    /// interval; there is no hold, because holding the button is what makes it stop being a double
-    /// click.
-    /// </summary>
-    private async Task DoubleClickMouse(ExecutableStep step, CancellationToken token)
-    {
-        var point = Point(step, "x", "y");
-        var repeats = Math.Max(1, Number(step, "repeat"));
-        var interval = Pace(Number(step, "intervalMs"));
-        var spread = Spread(step);
-        var from = ArrivedFrom(step);
-
-        for (var count = 0; count < repeats; count++)
-        {
-            token.ThrowIfCancellationRequested();
-            if (count > 0)
-            {
-                await Pause(interval, token);
-            }
-
-            var at = Scattered(point, spread);
-            Input(step).Click(Button(step), at.X, at.Y, 2, 0);
-        }
-
-        if (from is { } back)
-        {
-            Input(step).MoveMouse(back.X, back.Y, 0);
-        }
-    }
-
-    /// <summary>
-    /// How far a click is allowed to drift from the point the step names, in pixels: 0, the default,
-    /// is the point itself.
-    /// </summary>
-    private int Spread(ExecutableStep step)
-    {
-        var written = step.Text("variance").Trim();
-        return written.Length == 0 ? 0 : Math.Clamp(Number(step, "variance"), 0, 100000);
-    }
-
-    /// <summary>
-    /// A point with the drift the step asked for on it, so a run of clicks is spread over a button
-    /// rather than landing on one pixel. A drift of nothing is the point itself, to the pixel.
-    /// </summary>
-    private static ScreenPoint Scattered(ScreenPoint point, int spread)
-        => spread <= 0
-            ? point
-            : new ScreenPoint(
-                point.X + Random.Shared.Next(-spread, spread + 1),
-                point.Y + Random.Shared.Next(-spread, spread + 1));
-
-    /// <summary>
-    /// Where the pointer was before a step that has to put it back, or null when the step does not
-    /// put it back. Posting messages at a window never moves the pointer on screen, so there is
-    /// nothing to put back there and nothing is read.
-    /// </summary>
-    private ScreenPoint? ArrivedFrom(ExecutableStep step)
-        => Flag(step, "moveBack", false) && Route(step).Delivery is not InputDelivery.Background
-            ? Input(step).Cursor
-            : null;
-
-    // -------------------------------------------------------------------- looks
-
-    /// <summary>
-    /// Runs one step that looks at the screen and hands over what it saw, whatever came of it: the
-    /// look of a step that found nothing is the one worth having.
-    /// </summary>
-    private void Watching(Action body)
-    {
-        _saw = null;
-        try
-        {
-            body();
-        }
-        finally
-        {
-            Show();
-        }
-    }
-
-    /// <summary>The same, for a step that has to wait for what it is looking at.</summary>
-    private async Task Watching(Func<Task> body)
-    {
-        _saw = null;
-        try
-        {
-            await body();
-        }
-        finally
-        {
-            Show();
-        }
-    }
-
-    /// <summary>Hands the look over to whoever is watching, and forgets it.</summary>
-    private void Show()
-    {
-        var look = _saw;
-        _saw = null;
-        if (_looks is null || look is null)
-        {
-            return;
-        }
-
-        _looks.Look(look);
-    }
-
-    /// <summary>
-    /// How the marks are built, and what sort of looking this was. Nothing is built when nobody is
-    /// watching: a picture of every step of a run nobody is looking at is work for nothing, and a
-    /// step that waits would build one every two hundred milliseconds.
-    /// </summary>
-    private void Saw(ExecutableStep step, LookKind kind, ImageFrame frame, ScreenPoint origin,
-        IReadOnlyList<LookBox> boxes, int chosen, string looking = "", ImageFrame? needle = null,
-        string? note = null, double? minimum = null, int picture = 0, int pictures = 0)
-    {
-        if (_looks is null)
-        {
-            return;
-        }
-
-        _saw = new StepLook
-        {
-            StepId = step.Id,
-            StepType = step.Type,
-            Kind = kind,
-            Frame = frame,
-            Origin = origin,
-            Boxes = boxes,
-            ChosenIndex = chosen,
-            Looking = looking,
-            Needle = needle,
-            Note = note,
-            Minimum = minimum,
-            PictureNumber = picture,
-            PictureCount = pictures,
-            Source = _takenWindow,
-            Method = _takenMethod ?? CaptureWay.Auto,
-        };
-    }
-
-    /// <summary>
-    /// What a step that looked for something saw: the areas it searched, every place the thing was
-    /// found, and the one it went with. Several areas are put together into one picture so that
-    /// every mark has somewhere to sit.
-    /// </summary>
-    private void SawSearch(ExecutableStep step, LookKind kind,
-        IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas,
-        IReadOnlyList<(ImageMatch Match, string? Label)> found, int chosen, string looking = "",
-        ImageFrame? needle = null, double? minimum = null, int picture = 0, int pictures = 0)
-    {
-        if (_looks is null)
-        {
-            return;
-        }
-
-        var (frame, origin) = Picture(areas);
-        Saw(step, kind, frame, origin, Marks(areas, found, chosen),
-            chosen == 0 ? 0 : areas.Count + chosen, looking, needle, null, minimum, picture, pictures);
-    }
-
-    /// <summary>
-    /// Adds where a step has just acted to the look it took to get there, so a step that clicked
-    /// the wrong place can be seen rather than guessed at.
-    /// </summary>
-    private void Aim(ScreenPoint point)
-    {
-        if (_looks is null || _saw is null)
-        {
-            return;
-        }
-
-        var boxes = new List<LookBox>(_saw.Boxes)
-        {
-            new(new ImageMatch(1, point, new ScreenSize(1, 1)), LookRole.Target),
-        };
-
-        _saw = _saw with { Boxes = boxes, ChosenIndex = boxes.Count };
-    }
-
-    /// <summary>
-    /// A look at a single pixel: a square of screen around it with the pixel itself marked, which
-    /// is what a step watching for a colour has to show for itself.
-    /// </summary>
-    private void SawPixel(ExecutableStep step, ScreenPoint point, string looking,
-        WindowInfo? window)
-    {
-        if (_looks is null)
-        {
-            return;
-        }
-
-        var desk = _devices.Screen.Desktop.Bounds;
-        var left = Math.Clamp(point.X - Neighbourhood, desk.Left, Math.Max(desk.Left, desk.Right - 1));
-        var top = Math.Clamp(point.Y - Neighbourhood, desk.Top, Math.Max(desk.Top, desk.Bottom - 1));
-        var right = Math.Clamp(point.X + Neighbourhood + 1, left + 1, desk.Right);
-        var bottom = Math.Clamp(point.Y + Neighbourhood + 1, top + 1, desk.Bottom);
-
-        var shot = Shot(step, left, top, right - left, bottom - top, window);
-        Saw(step, LookKind.Pixel, shot.Frame, shot.Origin,
-            [
-                new(new ImageMatch(1, shot.Origin,
-                    new ScreenSize(shot.Frame.Width, shot.Frame.Height)), LookRole.Area),
-                new(new ImageMatch(1, point, new ScreenSize(1, 1)), LookRole.Target),
-            ],
-            2, looking);
-    }
-
-    /// <summary>How far around a watched pixel the look reaches, so the pixel has some context.</summary>
-    private const int Neighbourhood = 60;
-
-    /// <summary>The marks for a look: where it looked, and everything that was found there.</summary>
-    private static List<LookBox> Marks(
-        IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas,
-        IReadOnlyList<(ImageMatch Match, string? Label)> found, int chosen)
-    {
-        var marks = new List<LookBox>();
-        foreach (var (area, origin) in areas)
-        {
-            marks.Add(new LookBox(
-                new ImageMatch(0, origin, new ScreenSize(area.Width, area.Height)), LookRole.Area));
-        }
-
-        for (var index = 0; index < found.Count; index++)
-        {
-            marks.Add(new LookBox(
-                found[index].Match,
-                index + 1 == chosen ? LookRole.Hit : LookRole.Candidate,
-                found[index].Label));
-        }
-
-        return marks;
-    }
-
-    /// <summary>
-    /// The picture to draw a step's marks on: the single area it looked at, or the whole of what
-    /// it looked at when there are several. Several are laid out of the areas themselves rather
-    /// than read off the screen again — where the areas came from is not always the screen, and a
-    /// step that reads a window it does not cover would otherwise be drawn over a picture of
-    /// whatever is on top of it.
-    /// </summary>
-    private static (ImageFrame Frame, ScreenPoint Origin) Picture(
-        IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas)
-    {
-        if (areas.Count == 1)
-        {
-            return areas[0];
-        }
-
-        var left = areas.Min(area => area.Origin.X);
-        var top = areas.Min(area => area.Origin.Y);
-        var width = Math.Max(1, areas.Max(area => area.Origin.X + area.Frame.Width) - left);
-        var height = Math.Max(1, areas.Max(area => area.Origin.Y + area.Frame.Height) - top);
-        var pixels = new byte[(long)width * height * 4];
-        foreach (var (frame, origin) in areas)
-        {
-            for (var row = 0; row < frame.Height; row++)
-            {
-                Array.Copy(frame.Bgra, (long)row * frame.Width * 4, pixels,
-                    ((long)(origin.Y - top + row) * width + (origin.X - left)) * 4,
-                    (long)frame.Width * 4);
-            }
-        }
-
-        return (new ImageFrame(width, height, pixels), new ScreenPoint(left, top));
-    }
-
-    /// <summary>Copies a region of the screen into a variable the macro can look at again.</summary>
-    private void Capture(ExecutableStep step, int depth)
-    {
-        var (frame, corner) = CaptureBox(step);
-        Keep(step, depth, frame, corner);
-    }
-
-    /// <summary>
-    /// The rectangle a capture step covers, taken off the screen. The corner is worked out first so
-    /// that the rectangle reported is the one on screen, which is what a later "region" naming this
-    /// picture has to read.
-    /// </summary>
-    private (ImageFrame Frame, ScreenPoint Corner) CaptureBox(ExecutableStep step)
-    {
-        var anchor = AnchorOf(step);
-        var (corner, width, height) = Box(step, anchor.Corner);
-        var shot = Shot(step, corner.X, corner.Y, width, height, anchor.Window);
-        return (shot.Frame, shot.Origin);
-    }
-
-    /// <summary>
-    /// The rectangle a step names, whether it reads or copies one part of the screen or tells a
-    /// window where to go: the record it takes the rectangle from, or the four numbers it writes
-    /// down. Every record that carries a rectangle carries all four sides of it, so a hit, a window
-    /// or a picture taken earlier goes in as it stands — "read the writing on what was just found"
-    /// is one field rather than four readings of <c>field()</c> with a chance of one of them being
-    /// the neighbour's. A record's numbers are screen pixels, the way every record's are; numbers
-    /// written out are counted from <paramref name="origin"/>, which is the corner the step says its
-    /// own numbers are measured from. What a number nobody wrote comes to is the one thing the steps
-    /// that write four numbers do not agree on, so <paramref name="toTheEdge"/> says which of them
-    /// this is: a step reading the screen reads to the edge of it, while a window told to take a size
-    /// stays at least one pixel wide.
-    /// </summary>
-    private (ScreenPoint Corner, int Width, int Height) Box(ExecutableStep step, ScreenPoint? origin,
-        bool toTheEdge = true)
-    {
-        if (FromRecord(step))
-        {
-            var raw = step.Text("record").Trim();
-            if (raw.Length == 0)
-            {
-                throw new StepFailure("Run.BadPointEmpty", "record");
-            }
-
-            if (Read(raw) is not { IsRecord: true } record || Sides(record) is not { } sides)
-            {
-                throw new StepFailure("Run.BadRegion", raw);
-            }
-
-            return (new ScreenPoint(sides.Left, sides.Top), sides.Width, sides.Height);
-        }
-
-        var corner = Placed(origin, Number(step, "x"), Number(step, "y"));
-        if (toTheEdge)
-        {
-            var (width, height) = Extent(step, corner);
-            return (corner, width, height);
-        }
-
-        return (corner, Math.Max(1, Number(step, "width")), Math.Max(1, Number(step, "height")));
-    }
-
-    /// <summary>
-    /// Copies a whole window into a variable. The window's own rectangle is what is copied, so the
-    /// title bar and the border come with it, and a window that is not in front can be read too.
-    /// </summary>
-    private void CaptureWindow(ExecutableStep step, int depth)
-    {
-        var (frame, corner) = WindowBox(step);
-        Keep(step, depth, frame, corner);
-    }
-
-    /// <summary>The whole of the window a step names, taken off the screen.</summary>
-    private (ImageFrame Frame, ScreenPoint Corner) WindowBox(ExecutableStep step)
-    {
-        var window = Locate(step);
-        var shot = Shot(step, window.Location.X, window.Location.Y, window.Size.Width,
-            window.Size.Height, window);
-        return (shot.Frame, shot.Origin);
-    }
-
-    /// <summary>
-    /// Keeps a picture under the name a step gave it, with the rectangle it covers beside it, so a
-    /// later step can search inside it or hand the region to something else. The size written down
-    /// is the picture's own rather than the size that was asked for: a capture that ran off the
-    /// edge of the screen comes back smaller, and a search region that is bigger than the picture
-    /// would look at pixels that are not there.
-    /// </summary>
-    private void Keep(ExecutableStep step, int depth, ImageFrame frame, ScreenPoint corner)
-    {
-        // The picture is kept under the name of the image result, and only there: a step that was
-        // told not to hand the picture over leaves nothing for a later step to search in, which is
-        // what leaving that result unticked means.
-        var name = Give(step, "image", Value.FromText($"<image {frame.Width}x{frame.Height}>"));
-        if (name.Length > 0)
-        {
-            _images[name] = frame;
-        }
-
-        // Where the picture sits is one record beside the picture, so it can be handed to a search
-        // region as it stands or read one part at a time. The middle is in it beside the corner:
-        // that is the point a step aims at, and a macro that means the middle of what it just took
-        // should not have to work it out of two halves of the rectangle.
-        var middle = Middle(corner, new ScreenSize(frame.Width, frame.Height));
-        Give(step, "place", Value.FromRecord(
-        [
-            ("x", Value.FromNumber(middle.X)),
-            ("y", Value.FromNumber(middle.Y)),
-            ("left", Value.FromNumber(corner.X)),
-            ("top", Value.FromNumber(corner.Y)),
-            ("width", Value.FromNumber(frame.Width)),
-            ("height", Value.FromNumber(frame.Height)),
-            ("box", Value.FromText($"{corner.X},{corner.Y},{frame.Width},{frame.Height}")),
-        ]));
-
-        GiveTaken(step);
-        Saw(step, LookKind.Capture, frame, corner,
-            [new LookBox(new ImageMatch(0, corner, new ScreenSize(frame.Width, frame.Height)), LookRole.Area)],
-            1, name);
-        if (name.Length > 0)
-        {
-            Log(LogLevel.Info, depth, step.Type, "Run.Capture", name, $"{frame.Width}x{frame.Height}");
-        }
-
-        KeepFile(step, depth, frame);
-    }
-
-    /// <summary>
-    /// Writes the picture out where the step asked for a file, when it asked for one: one step takes
-    /// the picture and keeps it, rather than a capture followed by a step that writes what it left
-    /// behind. It is always a PNG, which is the small end of what a picture can be written as, and a
-    /// file of that name is replaced — the same answer every other step that writes a file gives.
-    /// </summary>
-    private void KeepFile(ExecutableStep step, int depth, ImageFrame frame)
-    {
-        var path = PathOf(step);
-        if (path.Trim().Length == 0)
-        {
-            return;
-        }
-
-        _devices.Files.WriteBytes(path, PngWriter.Encode(frame));
-        Log(LogLevel.Info, depth, step.Type, "Run.SavedPicture", path,
-            $"{frame.Width}x{frame.Height}");
-    }
-
-    private void GetPixel(ExecutableStep step, int depth)
-    {
-        var (point, window) = Spot(step);
-        var colour = PixelAt(step, point, window);
-        var asHex = !string.Equals(step.Text("asHex").Trim(), "false", StringComparison.OrdinalIgnoreCase);
-        var name = Give(step, "color", asHex
-            ? Value.FromText(colour.ToHex())
-            : Value.FromNumber((colour.R) | (colour.G << 8) | (colour.B << 16)));
-
-        SawPixel(step, point, colour.ToHex(), window);
-        if (name.Length > 0)
-        {
-            Log(LogLevel.Info, depth, step.Type, "Run.Set", name, colour.ToHex());
-        }
-    }
-
-    private async Task WaitColor(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var target = PixelColor.Parse(Read(step.Text("color")).AsText());
-        var tolerance = Read(step.Text("tolerance")).AsNumber();
-
-        // The corner is looked up again on every check, so a wait that watches a window keeps
-        // watching the same spot inside it even if the window is moved while the macro waits.
-        var (point, window) = Spot(step);
-        var interval = LookBeat(step);
-        await WaitForFlagAsync(
-            () => PixelAt(step).Matches(target, tolerance), interval, token);
-        SawPixel(step, point, target.ToHex(), window);
-
-        Log(LogLevel.Info, depth, step.Type, "Run.SawColor", target.ToHex());
-    }
-
-    /// <summary>
-    /// Looks for a colour in the search areas and writes where it was found, once: what it does not
-    /// find it leaves empty rather than waiting for, the way finding a picture does. A step that
-    /// names a least share of the region — how full a bar has to be before it acts — counts as
-    /// finding nothing until that much of the region shows the colour, and waiting on it is the
-    /// job of <c>vision.waitColor</c> or of a wait-until block.
-    /// </summary>
-    private void FindColor(ExecutableStep step, int depth)
-    {
-        var target = PixelColor.Parse(Read(step.Text("color")).AsText());
-        var tolerance = Read(step.Text("tolerance")).AsNumber();
-        var least = Read(step.Text("minCoverage")).AsNumber() / 100;
-
-        // The share is only measured when the step asks about it, either by handing it over or by
-        // saying below which share it will not act: the walk it costs is otherwise wasted.
-        var measured = least > 0 || step.Return("coverage").Length > 0;
-        var pass = Scan(step, target, tolerance, measured);
-
-        // The share is handed over whether or not the colour was found: a region the step will not
-        // act on is exactly when the number is worth reading.
-        if (pass.Coverage is { } share)
-        {
-            Give(step, "coverage", Value.FromNumber(Math.Round(share * 100, 1)));
-        }
-
-        var hits = pass.Enough(least) ? pass.Hits : [];
-        var match = Chosen(hits, step);
-        if (match is null)
-        {
-            GiveNothing(step);
-        }
-        else
-        {
-            GiveMatch(step, match.Location, match.Size, match.Score);
-        }
-
-        GiveEvery(step, HitRecords(hits));
-        Log(LogLevel.Info, depth, step.Type, match is null ? "Run.ImageMissing" : "Run.ImageFound",
-            match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
-    }
-
-    /// <summary>
-    /// One pass over the search areas, in reading order. A step that asks how much of the areas
-    /// shows the colour — rather than only where it is — pays for a walk of the whole of them,
-    /// which is why it is done for the steps that ask and for no others.
-    /// </summary>
-    private ColourPass Scan(ExecutableStep step, PixelColor target, double tolerance, bool measured)
-    {
-        var wanted = Wanted(step);
-        var areas = SearchAreas(step);
-        // Asked for by score, the pixels closest to the colour are the hits; the rest of the time
-        // the first ones read left to right and top to bottom are, which is the cheaper walk.
-        var surest = OrderOf(step) is MatchOrder.Score;
-        var hits = new List<ImageMatch>();
-        long matched = 0;
-        long total = 0;
-        foreach (var (area, origin) in areas)
-        {
-            foreach (var point in PixelSearch.Find(area, target, tolerance, wanted, surest))
-            {
-                hits.Add(new ImageMatch(
-                    1 - area[point.X, point.Y].DistanceTo(target),
-                    new ScreenPoint(origin.X + point.X, origin.Y + point.Y),
-                    new ScreenSize(1, 1)));
-            }
-
-            if (measured)
-            {
-                matched += PixelSearch.Count(area, target, tolerance);
-                total += (long)area.Width * area.Height;
-            }
-        }
-
-        Sorted(hits, step);
-        SawSearch(step, LookKind.Colour, areas, [.. hits.Select(hit => (hit, (string?)null))],
-            WentWith(hits, step), target.ToHex());
-        return new ColourPass(hits, measured && total > 0 ? (double)matched / total : null);
-    }
-
-    /// <summary>
-    /// Whether enough of the search areas shows the colour, which is the question a bar, a gauge or
-    /// a lamp is asked: not where the colour is but how much of the region it fills. The whole of
-    /// every area is walked either way, so this is a thing to wait on rather than to ask in a tight
-    /// loop. A least share of nothing asks only whether the colour is anywhere in the region, which
-    /// is what a pixel-by-pixel condition cannot say.
-    /// </summary>
-    private bool ColourShare(ExecutableStep condition)
-    {
-        var target = PixelColor.Parse(Read(condition.Text("color")).AsText());
-        var tolerance = Read(condition.Text("tolerance")).AsNumber();
-        var least = Read(condition.Text("minCoverage")).AsNumber() / 100;
-        return Scan(condition, target, tolerance, measured: true).Enough(least);
-    }
-
-    /// <summary>
-    /// What one pass over the search areas came back with: where the colour was, and, for a step
-    /// that asked about the share rather than the place, how much of the areas shows it.
-    /// </summary>
-    private sealed record ColourPass(List<ImageMatch> Hits, double? Coverage)
-    {
-        /// <summary>
-        /// True when this pass is what the step was after: the colour is somewhere in the areas and,
-        /// where a least share was named, enough of the areas shows it. A least share of zero is
-        /// the step that only asked where the colour is.
-        /// </summary>
-        public bool Enough(double least)
-            => Hits.Count > 0 && (Coverage is not { } share || share >= least);
-    }
-
-    /// <summary>
-    /// Looks for a colour that has to have the colours the step names around it, and writes where
-    /// it was found. One colour on its own says "something red is here", which a busy screen is
-    /// full of; the colours around it say which red thing this is, which is how two buttons drawn
-    /// alike are told apart without a branch for each.
-    /// </summary>
-    private void FindColours(ExecutableStep step, int depth)
-    {
-        var hits = PatternHits(step);
-        var match = Chosen(hits, step);
-        if (match is null)
-        {
-            GiveNothing(step);
-        }
-        else
-        {
-            GiveMatch(step, match.Location, match.Size, match.Score);
-        }
-
-        GiveEvery(step, HitRecords(hits));
-        Log(LogLevel.Info, depth, step.Type, match is null ? "Run.ImageMissing" : "Run.ImageFound",
-            match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
-    }
-
-    /// <summary>
-    /// One pass over the search areas: the pixels that show the pattern's own colour with every one
-    /// of the colours around it where it was asked for, in reading order. Each hit is a single pixel
-    /// — its centre is the pixel itself — and its score says how close the whole pattern came, one
-    /// being exact. The colours that had to be around the pixel the step went with are marked beside
-    /// it, which is what tells a step whose pattern is wrong from one that looked in the wrong place.
-    /// </summary>
-    private List<ImageMatch> PatternHits(ExecutableStep step)
-    {
-        var target = PixelColor.Parse(Read(step.Text("color")).AsText());
-        var tolerance = Read(step.Text("tolerance")).AsNumber();
-        var around = Pattern(step);
-
-        var wanted = Wanted(step);
-        var areas = SearchAreas(step);
-        var hits = new List<ImageMatch>();
-        foreach (var (area, origin) in areas)
-        {
-            foreach (var point in PixelSearch.FindPattern(area, target, tolerance, around, wanted))
-            {
-                hits.Add(new ImageMatch(
-                    Closeness(area, point, target, around),
-                    new ScreenPoint(origin.X + point.X, origin.Y + point.Y),
-                    new ScreenSize(1, 1)));
-            }
-        }
-
-        Sorted(hits, step);
-        var taken = WentWith(hits, step);
-        var marks = new List<(ImageMatch Match, string? Label)>(
-            hits.Select(hit => (hit, (string?)null)));
-        if (taken > 0)
-        {
-            var at = hits[taken - 1].Location;
-            foreach (var colour in around)
-            {
-                marks.Add((
-                    new ImageMatch(1, new ScreenPoint(at.X + colour.Dx, at.Y + colour.Dy),
-                        new ScreenSize(1, 1)),
-                    colour.Colour.ToHex()));
-            }
-        }
-
-        SawSearch(step, LookKind.Colour, areas, marks, taken, target.ToHex());
-        return hits;
-    }
-
-    /// <summary>
-    /// The colours a pattern has to have around it. They are written the way the points of a
-    /// multi-point colour comparison are — a line of two numbers and a colour — but the numbers are
-    /// counted from the middle of the pattern rather than from the corner of the screen, because
-    /// the whole point of a pattern is that it is found wherever it happens to be.
-    /// </summary>
-    private IReadOnlyList<ColourStep> Pattern(ExecutableStep step)
-    {
-        var text = Interpolate(step.Text("points")).Trim();
-        var around = new List<ColourStep>();
-        foreach (var entry in text.Split([';', '\n', '\r'],
-                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            var parts = entry.Split(',', StringSplitOptions.TrimEntries);
-            if (parts.Length != 3
-                || !int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var dx)
-                || !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var dy)
-                || !IsColour(parts[2]))
-            {
-                throw new StepFailure("Run.BadPoints", entry);
-            }
-
-            around.Add(new ColourStep(dx, dy, PixelColor.Parse(parts[2])));
-        }
-
-        if (around.Count == 0)
-        {
-            throw new StepFailure("Run.BadPoints", text);
-        }
-
-        return around;
-    }
-
-    /// <summary>
-    /// How close the whole pattern came, from 0 to 1: the average of how close each of its colours
-    /// is, the one in the middle included, so a pattern found on a faded screen scores lower than
-    /// the same pattern on a fresh one.
-    /// </summary>
-    private static double Closeness(ImageFrame area, ScreenPoint at, PixelColor target,
-        IReadOnlyList<ColourStep> around)
-    {
-        var total = area[at.X, at.Y].DistanceTo(target);
-        foreach (var step in around)
-        {
-            total += area[at.X + step.Dx, at.Y + step.Dy].DistanceTo(step.Colour);
-        }
-
-        return 1 - (total / (around.Count + 1));
-    }
-
-    /// <summary>
-    /// Waits for the picture to hold still: the screen counts as settled once every watched area
-    /// has stayed within the tolerance of the frame that started the wait for a whole quiet
-    /// stretch. A fixed pause is what this replaces, and it is wrong in both directions — too
-    /// short and the step after it works on half a picture, too long and every run pays for the
-    /// slowest case.
-    /// </summary>
-    private async Task WaitStable(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var tolerance = Read(step.Text("tolerance")).AsNumber();
-        var allowed = Read(step.Text("changedPercent")).AsNumber() / 100;
-        var quiet = Math.Max(0, Number(step, "quietMs"));
-        var interval = LookBeat(step);
-
-        var started = Stopwatch.GetTimestamp();
-        long Elapsed() => (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
-
-        var anchor = SearchAreas(step);
-        var since = Elapsed();
-
-        while (true)
-        {
-            await Pause(interval, token);
-            var now = SearchAreas(step);
-            if (Still(anchor, now, tolerance, allowed))
-            {
-                if (Elapsed() - since >= quiet)
-                {
-                    Log(LogLevel.Info, depth, step.Type, "Run.FrameStill", Elapsed());
-                    return;
-                }
-            }
-            else
-            {
-                // Counted from this frame on: what has to hold still for the quiet stretch is not
-                // the picture the wait opened on, which may have been another screen altogether,
-                // but the picture the screen has just arrived at.
-                anchor = now;
-                since = Elapsed();
-            }
-        }
-    }
-
-    /// <summary>
-    /// True when every watched area is the picture it is compared against, as far as the step is
-    /// willing to say so: no more of it than the step allows may have moved by more than its
-    /// colour tolerance.
-    /// </summary>
-    private static bool Still(IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> before,
-        IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> after, double tolerance, double allowed)
-    {
-        if (before.Count != after.Count)
-        {
-            return false;
-        }
-
-        for (var index = 0; index < before.Count; index++)
-        {
-            if (ImageFrame.ChangedShare(before[index].Frame, after[index].Frame, tolerance) > allowed)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>Looks once and writes where the picture was, or an empty value when it was not.</summary>
-    private void LookFor(ExecutableStep step, int depth)
-    {
-        var hits = Hits(step);
-        var match = Chosen(hits, step);
-
-        if (match is null)
-        {
-            GiveNothing(step);
-        }
-        else
-        {
-            GiveMatch(step, match.Location, match.Size, match.Score);
-        }
-
-        GiveEvery(step, HitRecords(hits));
-        Log(LogLevel.Info, depth, step.Type, match is null ? "Run.ImageMissing" : "Run.ImageFound",
-            match is null ? string.Empty : $"{match.Center.X},{match.Center.Y}");
-    }
-
-    private async Task WaitForImage(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var found = await HitsUntil(step, token);
-
-        GiveMatch(step, found.Match.Location, found.Match.Size, found.Match.Score);
-        GiveEvery(step, HitRecords(found.Hits));
-        Log(LogLevel.Info, depth, step.Type, "Run.ImageFound",
-            $"{found.Match.Center.X},{found.Match.Center.Y}");
-    }
-
-    private async Task ClickImage(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var found = await HitsUntil(step, token);
-
-        // A step that asked to look again waits a moment and confirms the picture is still there: a
-        // button that flashed past, or a screen that has already moved on, is not clicked. The
-        // second look is a single look rather than another wait: what is being asked is whether the
-        // picture is still there, not whether it turns up again.
-        var again = Pace(OptionalNumber(step, "recheckMs", 0));
-        if (again > 0)
-        {
-            await Pause(again, token);
-            var hits = Hits(step);
-            found = Chosen(hits, step) is { } match
-                ? new Found(hits, match)
-                : throw new StepFailure("Run.ImageNotFound", Written(step.Rows("image")));
-        }
-
-        var at = Scattered(new ScreenPoint(
-            found.Match.Center.X + Number(step, "offsetX"),
-            found.Match.Center.Y + Number(step, "offsetY")), Spread(step));
-
-        // Where it was found and every place it was found, the same as the step that only looks:
-        // a step that clicks something is also a step whose position a later one may want.
-        GiveMatch(step, found.Match.Location, found.Match.Size, found.Match.Score);
-        GiveEvery(step, HitRecords(found.Hits));
-
-        Aim(at);
-        Input(step).Click(Button(step), at.X, at.Y, 1, 0);
-        Log(LogLevel.Info, depth, step.Type, "Run.ClickedImage", at.X, at.Y);
-    }
-
-    /// <summary>One attempt at finding a reference picture: the hit the step asked for.</summary>
-    private ImageMatch? Search(ExecutableStep step) => Chosen(Hits(step), step);
-
-    // ------------------------------------------------------------------ detection
-
-    /// <summary>
-    /// One thing a detection model found: where it is on the screen, how sure the model was, and
-    /// which kind of thing it is — the number the model answers with and the name the label file
-    /// gives that number, which is empty when the file does not name it.
-    /// </summary>
-    private sealed record Sighting(ImageMatch Match, int ClassId, string Label);
-
-    /// <summary>What one look found: everything there was, and the one the step asked for.</summary>
-    private sealed record FoundObjects(List<Sighting> Found, Sighting Match);
-
-    /// <summary>
-    /// Everything a detection model found in the areas a step named, in the order the step counts
-    /// them in and in screen pixels. Which model it is and what it should look for are read from the
-    /// step; loading the model and running it are the device's business.
-    /// </summary>
-    private List<Sighting> Sightings(ExecutableStep step)
-    {
-        var model = ModelOf(step);
-        var query = Detection(step);
-        var areas = SearchAreas(step);
-        var found = new List<Sighting>();
-        foreach (var (area, origin) in areas)
-        {
-            foreach (var hit in _devices.Detector.Detect(model, area, query))
-            {
-                // The device counts from the corner of the picture it was handed; a step counts
-                // from the screen, the way every other step that looks at the screen does.
-                found.Add(new Sighting(
-                    new ImageMatch(hit.Score,
-                        new ScreenPoint(origin.X + hit.Location.X, origin.Y + hit.Location.Y),
-                        hit.Size),
-                    hit.ClassId,
-                    hit.Label));
-            }
-        }
-
-        Sorted(found, step);
-        SawDetections(step, areas, found);
-        return found;
-    }
-
-    /// <summary>The hits a wait ended on: the whole set and the one the step asked for.</summary>
-    private async Task<FoundObjects> SightingsUntil(ExecutableStep step, CancellationToken token)
-    {
-        var interval = LookBeat(step);
-
-        FoundObjects? Enough()
-        {
-            var found = Sightings(step);
-            return Chosen(found, step) is { } match ? new FoundObjects(found, match) : null;
-        }
-
-        return await WaitForValueAsync(Enough, interval, token);
-    }
-
-    /// <summary>Looks once and writes where the thing was, or an empty value when it was not there.</summary>
-    private void LookForObjects(ExecutableStep step, int depth)
-    {
-        var found = Sightings(step);
-        var match = Chosen(found, step);
-
-        if (match is null)
-        {
-            GiveNothing(step);
-        }
-        else
-        {
-            GiveMatch(step, match.Match.Location, match.Match.Size, match.Match.Score,
-                label: match.Label, classId: match.ClassId);
-        }
-
-        GiveEvery(step, HitRecords(found));
-        Log(LogLevel.Info, depth, step.Type,
-            match is null ? "Run.DetectedNothing" : "Run.Detected",
-            match is null ? Looking(step) : Saying(match));
-    }
-
-    /// <summary>
-    /// Waits until the model finds a thing the step wants, for as long as the step's own timeout
-    /// allows, and writes where it was.
-    /// </summary>
-    private async Task WaitForObjects(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var found = await SightingsUntil(step, token);
-
-        GiveMatch(step, found.Match.Match.Location, found.Match.Match.Size, found.Match.Match.Score,
-            label: found.Match.Label, classId: found.Match.ClassId);
-        GiveEvery(step, HitRecords(found.Found));
-        Log(LogLevel.Info, depth, step.Type, "Run.Detected", Saying(found.Match));
-    }
-
-    /// <summary>
-    /// Waits until the model finds a thing, then clicks it: the middle of the box the model drew
-    /// round it, moved by the step's own offsets.
-    /// </summary>
-    private async Task ClickObject(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var seen = await SightingsUntil(step, token);
-
-        // A step that asked to look again waits a moment and confirms the thing is still there: a
-        // thing that flashed past, or a screen that has already moved on, is not clicked. The second
-        // look is a single look rather than another wait, the same as a step that clicks a picture.
-        var again = Pace(OptionalNumber(step, "recheckMs", 0));
-        if (again > 0)
-        {
-            await Pause(again, token);
-            var found = Sightings(step);
-            seen = Chosen(found, step) is { } match
-                ? new FoundObjects(found, match)
-                : throw new StepFailure("Run.DetectNotFound", Looking(step));
-        }
-
-        var at = Scattered(new ScreenPoint(
-            seen.Match.Match.Center.X + Number(step, "offsetX"),
-            seen.Match.Match.Center.Y + Number(step, "offsetY")), Spread(step));
-
-        GiveMatch(step, seen.Match.Match.Location, seen.Match.Match.Size, seen.Match.Match.Score,
-            label: seen.Match.Label, classId: seen.Match.ClassId);
-        GiveEvery(step, HitRecords(seen.Found));
-
-        Aim(at);
-        Input(step).Click(Button(step), at.X, at.Y, 1, 0);
-        Log(LogLevel.Info, depth, step.Type, "Run.ClickedObject", Saying(seen.Match),
-            $"{at.X},{at.Y}");
-    }
-
-    /// <summary>What a step that looked for things saw: the areas, every guess, and the one it took.</summary>
-    private void SawDetections(ExecutableStep step,
-        IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas, IReadOnlyList<Sighting> found)
-        => SawSearch(step, LookKind.Detection, areas,
-            [.. found.Select(hit => (hit.Match, (string?)hit.Label))],
-            WentWith(found, step), Looking(step), minimum: Number(step, "confidence") / 100.0);
-
-    /// <summary>The model file a step named, as the path it is read from.</summary>
-    private string ModelOf(ExecutableStep step) => _devices.Files.Resolve(PathOf(step, "model"));
-
-    /// <summary>The file whose lines name the model's classes, or empty when the step named none.</summary>
-    private string LabelFileOf(ExecutableStep step)
-    {
-        var named = PathOf(step, "labelFile").Trim();
-        return named.Length == 0 ? string.Empty : _devices.Files.Resolve(named);
-    }
-
-    /// <summary>What a step asked the model to look for, as the device reads it.</summary>
-    private DetectionQuery Detection(ExecutableStep step)
-    {
-        var confidence = Number(step, "confidence");
-        var overlap = Number(step, "iou");
-        var input = Number(step, "inputSize");
-
-        // Every box the model found is collected, whatever the step will take out of them. Looking
-        // for more costs nothing here — one pass of the model answers with all of them — while asking
-        // for as few as the step needs would leave the device to cut the list down by score before
-        // the step's own 「命中排序」 and 「第几个命中」 had their say, so a step counting in reading
-        // order would have been handed whichever box scored highest. The whole list is also what the
-        // look hands over, which is the point of the window.
-        return new DetectionQuery(
-            confidence > 0 ? confidence : 25,
-            input >= 32 ? input : 640,
-            overlap > 0 ? overlap : 45,
-            Rows(step.Text("labels")),
-            MatchLimit,
-            LabelFileOf(step));
-    }
-
-    /// <summary>
-    /// What a step was after, as the user wrote it: which model, and which classes of thing. It is
-    /// what a step that found nothing says it did not find, and what the look hands over as what was
-    /// being looked for.
-    /// </summary>
-    private string Looking(ExecutableStep step)
-    {
-        var model = System.IO.Path.GetFileName(ModelOf(step));
-        var labels = Rows(step.Text("labels"));
-        return labels.Count == 0 ? model : $"{model} {string.Join(',', labels)}";
-    }
-
-    /// <summary>One thing that was found, in the words a log line reads it in: person 640,360.</summary>
-    private static string Saying(Sighting sighting)
-        => sighting.Label.Length > 0
-            ? $"{sighting.Label} {sighting.Match.Center.X},{sighting.Match.Center.Y}"
-            : $"{sighting.Match.Center.X},{sighting.Match.Center.Y}";
-
-    /// <summary>The rows of a list a step wrote: one per line, or separated by semicolons.</summary>
-    private IReadOnlyList<string> Rows(string text)
-        =>
-        [
-            .. Interpolate(text).Split([';', '\n', '\r'],
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-        ];
-
-    /// <summary>
-    /// Every place the reference picture appears in the search areas, in screen coordinates and in
-    /// reading order: down the screen first, then across. That is the order a person counts them in
-    /// when looking at a screenshot, which is what "the third one" has to mean to be useful.
-    /// Which of the pictures the step listed it goes with is the step's own choice: the first one
-    /// that turns up, whichever scored closest, or all of them at once. The hits that come back are
-    /// the hits of the one picture the step went with, and "the third one" counts inside it.
-    /// </summary>
-    private List<ImageMatch> Hits(ExecutableStep step)
-    {
-        var query = SearchQuery(step);
-        var areas = SearchAreas(step);
-        var wanted = References(step);
-
-        // One picture, looked for in every area the step named: the places it turned up, in the
-        // order this step counts them in.
-        List<ImageMatch> Look(int number)
-        {
-            var hits = new List<ImageMatch>();
-            foreach (var (area, origin) in areas)
-            {
-                foreach (var found in _devices.Vision.FindAll(area, wanted[number].Frame, query))
-                {
-                    hits.Add(found with
-                    {
-                        Location = new ScreenPoint(
-                            found.Location.X + origin.X, found.Location.Y + origin.Y),
-                    });
-                }
-            }
-
-            Sorted(hits, step);
-            return hits;
-        }
-
-        // What the window is shown: the picture the step went with, or the first one it listed when
-        // it went with none of them. Handing over nothing at all would leave out what was being
-        // looked for and where.
-        void SawPicture(int number, IReadOnlyList<ImageMatch> hits, bool found)
-            => SawSearch(step, LookKind.Template, areas,
-                [.. hits.Select(hit => (hit, (string?)null))],
-                found ? WentWith(hits, step) : 0, wanted[number].Name, wanted[number].Frame,
-                query.ConfidencePercent / 100, number + 1, wanted.Count);
-
-        switch (WhichOfThePictures(step))
-        {
-            case "every":
-                {
-                    // The whole set has to be there. The step goes with the picture it listed
-                    // first, which is the one whose hits are handed over.
-                    var looked = new List<ImageMatch>[wanted.Count];
-                    for (var number = 0; number < wanted.Count; number++)
-                    {
-                        looked[number] = Look(number);
-                        if (looked[number].Count == 0)
-                        {
-                            SawPicture(0, [], found: false);
-                            return [];
-                        }
-                    }
-
-                    SawPicture(0, looked[0], found: true);
-                    return looked[0];
-                }
-
-            case "best":
-                {
-                    // Every picture is looked at, and the one whose closest match scored highest
-                    // is the one the step goes with.
-                    var looked = new List<ImageMatch>[wanted.Count];
-                    var winner = -1;
-                    var surest = double.NegativeInfinity;
-                    for (var number = 0; number < wanted.Count; number++)
-                    {
-                        looked[number] = Look(number);
-                        var score = looked[number].Count == 0
-                            ? double.NegativeInfinity
-                            : looked[number].Max(hit => hit.Score);
-                        if (score > surest)
-                        {
-                            surest = score;
-                            winner = number;
-                        }
-                    }
-
-                    if (winner < 0)
-                    {
-                        SawPicture(0, [], found: false);
-                        return [];
-                    }
-
-                    SawPicture(winner, looked[winner], found: true);
-                    return looked[winner];
-                }
-
-            default:
-                {
-                    // The first picture that turns up is the one the step goes with, and the rest
-                    // of the list is not looked at at all.
-                    for (var number = 0; number < wanted.Count; number++)
-                    {
-                        var hits = Look(number);
-                        if (hits.Count == 0)
-                        {
-                            continue;
-                        }
-
-                        SawPicture(number, hits, found: true);
-                        return hits;
-                    }
-
-                    SawPicture(0, [], found: false);
-                    return [];
-                }
-        }
-    }
-
-    /// <summary>
-    /// Which of the pictures a step listed it goes with, as written in its field. Anything that
-    /// does not read as one of the other two is the first that turns up, which is what a step
-    /// written before this field existed asks for and what almost every step wants.
-    /// </summary>
-    private static string WhichOfThePictures(ExecutableStep step)
-    {
-        var written = step.Text("imageSet").Trim().ToLowerInvariant();
-        return written.Length == 0 ? "first" : written;
-    }
-
-    /// <summary>
-    /// How a step asked for a picture to be looked for: which way, how sure, what to leave out of
-    /// the comparing, and how many hits it wants.
-    /// </summary>
-    private VisionQuery SearchQuery(ExecutableStep step)
-    {
-        var confidence = Number(step, "confidence");
-        if (confidence <= 0)
-        {
-            confidence = 90;
-        }
-
-        var features = Number(step, "minFeatures");
-        var skip = Read(step.Text("ignoreColor")).AsText().Trim();
-
-        return new VisionQuery(
-            AlgorithmOf(step.Text("algorithm")),
-            confidence,
-            features > 0 ? features : 6,
-            skip.Length == 0 ? null : PixelColor.Parse(skip),
-            Wanted(step));
-    }
-
-    /// <summary>
-    /// How a step asked for a picture to be looked for, as written in its field. One field answers
-    /// both "which way" and "comparing what", because those were never two questions.
-    /// </summary>
-    private static MatchAlgorithm AlgorithmOf(string written) => written.Trim().ToLowerInvariant()
-        switch
-    {
-        "correlated" => MatchAlgorithm.Correlated,
-        "difference" => MatchAlgorithm.Difference,
-        "feature" => MatchAlgorithm.Feature,
-        _ => MatchAlgorithm.Normed,
-    };
-
-    /// <summary>What order a step asked its hits to be counted in, as written in its field.</summary>
-    private static MatchOrder OrderOf(ExecutableStep step) => step.Text("orderBy").Trim()
-        .ToLowerInvariant() switch
-    {
-        "score" => MatchOrder.Score,
-        "area" => MatchOrder.Area,
-        "random" => MatchOrder.Random,
-        _ => MatchOrder.Reading,
-    };
-
-    /// <summary>
-    /// The hits in the order the step wants to count them in, which is what "the third one" means.
-    /// Reading order is how a person counts them; by score is for a macro that wants the surest one
-    /// wherever it is on the screen; by area is for one that wants the whole of something rather
-    /// than a piece of it; shuffled is for one that must not always take the same one.
-    /// </summary>
-    private static void Sorted(List<ImageMatch> hits, ExecutableStep step)
-    {
-        switch (OrderOf(step))
-        {
-            case MatchOrder.Score:
-                hits.Sort((left, right) => right.Score.CompareTo(left.Score));
-                break;
-
-            case MatchOrder.Area:
-                hits.Sort((left, right) => Box(right).CompareTo(Box(left)));
-                break;
-
-            case MatchOrder.Random:
-                Shuffle(hits);
-                break;
-
-            default:
-                hits.Sort(Reading);
-                break;
-        }
-    }
-
-    /// <summary>The same for what was read off the screen: a reading of writing is a hit as well.</summary>
-    private static void Sorted(List<TextSpan> spans, ExecutableStep step)
-    {
-        switch (OrderOf(step))
-        {
-            case MatchOrder.Score:
-                spans.Sort((left, right) => right.Confidence.CompareTo(left.Confidence));
-                break;
-
-            case MatchOrder.Area:
-                spans.Sort((left, right) => Box(right.Size).CompareTo(Box(left.Size)));
-                break;
-
-            case MatchOrder.Random:
-                Shuffle(spans);
-                break;
-
-            default:
-                // Reading order is the order the readings came back in: the reading model hands
-                // them over in the order they appear on the screen, and re-sorting them by position
-                // would break up a line whose words sit at slightly different heights.
-                break;
-        }
-    }
-
-    /// <summary>The same for what a detection model found: a thing it found is a hit as well.</summary>
-    private static void Sorted(List<Sighting> found, ExecutableStep step)
-    {
-        switch (OrderOf(step))
-        {
-            case MatchOrder.Score:
-                found.Sort((left, right) => right.Match.Score.CompareTo(left.Match.Score));
-                break;
-
-            case MatchOrder.Area:
-                found.Sort((left, right) => Box(right.Match).CompareTo(Box(left.Match)));
-                break;
-
-            case MatchOrder.Random:
-                Shuffle(found);
-                break;
-
-            default:
-                found.Sort((left, right) => Reading(left.Match, right.Match));
-                break;
-        }
-    }
-
-    /// <summary>
-    /// How much room a hit takes up, which is what "the biggest one" counts. An area of nothing is
-    /// possible: a colour hit is one pixel and a reading of no characters has no width.
-    /// </summary>
-    private static long Box(ImageMatch hit) => Box(hit.Size);
-
-    private static long Box(ScreenSize size) => (long)size.Width * size.Height;
-
-    /// <summary>Shuffles in place, so a macro that takes the first of several does not always take the same one.</summary>
-    private static void Shuffle<T>(IList<T> items)
-    {
-        for (var index = items.Count - 1; index > 0; index--)
-        {
-            var other = Random.Shared.Next(index + 1);
-            (items[index], items[other]) = (items[other], items[index]);
-        }
-    }
-
-    /// <summary>The hits a wait ended on: the whole set and the one the step asked for.</summary>
-    private sealed record Found(List<ImageMatch> Hits, ImageMatch Match);
-
-    /// <summary>
-    /// The hits, once there are enough of them. How long that may take is the step's own timeout
-    /// and nothing else: the wait ends where the clock does, and the step it belongs to is what
-    /// fails, retries or gives up from there.
-    /// </summary>
-    private async Task<Found> HitsUntil(ExecutableStep step, CancellationToken token)
-    {
-        var interval = LookBeat(step);
-
-        Found? Enough()
-        {
-            var hits = Hits(step);
-            return Chosen(hits, step) is { } match ? new Found(hits, match) : null;
-        }
-
-        return await WaitForValueAsync(Enough, interval, token);
-    }
-
-    /// <summary>How many hits to look for: the one the step asked for, or the whole list.</summary>
-    /// <summary>
-    /// How many hits a search has to collect: all it can hold when the step keeps the whole list,
-    /// and only as far as the hit it named otherwise. Asking for the list is what makes collecting
-    /// it worth anything, and one step hands that over by ticking the box rather than by a switch of
-    /// its own.
-    /// </summary>
-    private int Wanted(ExecutableStep step) => Wants(step, "every")
-        ? MatchLimit
-        : Index(step, "matchIndex", 1);
-
-    /// <summary>The hit a step wants, counted from the top left, or null when there are not that many.</summary>
-    private ImageMatch? Chosen(IReadOnlyList<ImageMatch> hits, ExecutableStep step)
-    {
-        var index = Index(step, "matchIndex", 1);
-        return index <= hits.Count ? hits[index - 1] : null;
-    }
-
-    /// <summary>The same, for the things a detection model found.</summary>
-    private Sighting? Chosen(IReadOnlyList<Sighting> found, ExecutableStep step)
-    {
-        var index = Index(step, "matchIndex", 1);
-        return index <= found.Count ? found[index - 1] : null;
-    }
-
-    /// <summary>
-    /// Which of the hits a step went with, counted from one, or zero when there are not that many
-    /// to choose from.
-    /// </summary>
-    private int WentWith<T>(IReadOnlyList<T> hits, ExecutableStep step)
-    {
-        var index = Index(step, "matchIndex", 1);
-        return index <= hits.Count ? index : 0;
-    }
-
-    /// <summary>
-    /// Which hit a step means, counted from one. Anything that does not read as a number from one
-    /// onwards falls back to the first, so a half-written step aims at something rather than at
-    /// nothing.
-    /// </summary>
-    private int Index(ExecutableStep step, string name, int fallback)
-    {
-        var text = step.Text(name).Trim();
-        return text.Length == 0 ? fallback : Math.Clamp(Number(step, name), 1, MatchLimit);
-    }
-
-    /// <summary>Reading order, the order the hits are counted in.</summary>
-    private static int Reading(ImageMatch left, ImageMatch right)
-        => left.Location.Y != right.Location.Y
-            ? left.Location.Y.CompareTo(right.Location.Y)
-            : left.Location.X.CompareTo(right.Location.X);
-
-    /// <summary>The most hits one step collects, so a flat colour cannot fill memory.</summary>
-    private const int MatchLimit = 200;
-
-    /// <summary>
-    /// The pictures a step looks for, in the order it listed them. A picture the step did not fill
-    /// in is left out rather than looked for; a step that lists none is a step that cannot look for
-    /// anything, and says so.
-    /// </summary>
-    private IReadOnlyList<WantedPicture> References(ExecutableStep step)
-    {
-        var wanted = new List<WantedPicture>();
-        foreach (var row in step.Rows("image"))
-        {
-            var written = row.TryGetValue("image", out var text) ? text.Trim() : string.Empty;
-            if (written.Length > 0)
-            {
-                wanted.Add(new WantedPicture(written, Picture(written)));
-            }
-        }
-
-        return wanted.Count > 0 ? wanted : throw new StepFailure("Run.MissingImage", string.Empty);
-    }
-
-    /// <summary>One reference picture of a step: how the step wrote it down, and the picture itself.</summary>
-    private sealed record WantedPicture(string Name, ImageFrame Frame);
-
-    /// <summary>
-    /// The one reference picture a step names, for the steps that hold a single one rather than a
-    /// list: something an earlier Capture saved, or a file on disk.
-    /// </summary>
-    private ImageFrame Reference(ExecutableStep step)
-    {
-        var text = step.Text("image").Trim();
-        if (text.Length == 0)
-        {
-            throw new StepFailure("Run.MissingImage", string.Empty);
-        }
-
-        return Picture(text);
-    }
-
-    /// <summary>
-    /// A picture the step wrote down: what an earlier Capture saved, or a file on disk. The picture
-    /// is kept beside the time the file was last written, so a macro that looks for the same picture
-    /// again — in a loop, or every time it polls while it waits — uses the one it already has
-    /// instead of reading and decoding the file again.
-    /// </summary>
-    private ImageFrame Picture(string text)
-    {
-        // A picture an earlier Capture saved, named with or without the dollar sign so it reads
-        // the same as every other field a variable can go in.
-        var named = text.StartsWith('$') ? text[1..].Trim() : text;
-        if (_images.TryGetValue(named, out var captured))
-        {
-            return captured;
-        }
-
-        // Otherwise it is a file, either written out or held in a variable.
-        var path = Read(text).AsText();
-        var written = Written(path);
-        if (written is { } stamp
-            && _references.TryGetValue(path, out var kept)
-            && kept.Written == stamp)
-        {
-            return kept.Frame;
-        }
-
-        var picture = _devices.Vision.Load(path) ?? throw new StepFailure("Run.MissingImage", text);
-        if (written is not null)
-        {
-            _references[path] = (written.Value, picture);
-        }
-
-        return picture;
-    }
-
-    /// <summary>
-    /// When a file was last written, or null when it cannot be asked — a picture held in a
-    /// variable, or a path this run has no business reading. Nothing is kept for those.
-    /// </summary>
-    private static DateTime? Written(string path)
-    {
-        try
-        {
-            return File.Exists(path) ? File.GetLastWriteTimeUtc(path) : null;
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException
-            or ArgumentException or NotSupportedException or System.Security.SecurityException)
-        {
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// The places to search: the whole screen unless the step names regions, each of which may be
-    /// counted from a window's corner when the step says so. One row of the step's region is either
-    /// a rectangle written out — which is what the region picker fills in — or the name of a
-    /// variable, which is how a rectangle or a picture taken earlier gets to be searched.
-    /// </summary>
-    private IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> SearchAreas(ExecutableStep step)
-    {
-        var rows = step.Rows("region");
-        if (rows.Count == 0)
-        {
-            // With nowhere written down, the whole of whatever the step is about: the window its
-            // numbers are counted from when it names one, and the desktop otherwise.
-            var anchor = AnchorOf(step);
-            if (anchor.Window is { } window)
-            {
-                var whole = Shot(step, window.Location.X, window.Location.Y, window.Size.Width,
-                    window.Size.Height, window);
-                return [(whole.Frame, whole.Origin)];
-            }
-
-            var desk = _devices.Screen.Desktop.Bounds;
-            var desktop = Shot(step, desk.Left, desk.Top, desk.Width, desk.Height);
-            return [(desktop.Frame, desktop.Origin)];
-        }
-
-        var areas = new List<(ImageFrame, ScreenPoint)>();
-        foreach (var row in rows)
-        {
-            areas.AddRange(Areas(step, row));
-        }
-
-        if (areas.Count == 0)
-        {
-            throw new StepFailure("Run.BadRegion", Written(rows));
-        }
-
-        return areas;
-    }
-
-    /// <summary>What the regions of a step say, for a failure that has to show what it could not read.</summary>
-    private static string Written(IReadOnlyList<IReadOnlyDictionary<string, string>> rows)
-        => string.Join("; ", rows.Select(row => string.Join(',', row.Values)));
-
-    /// <summary>
-    /// What one region of a step comes to. A rectangle written out says where it is; a region that
-    /// names something looks the name up, which is how a picture an earlier Capture took is
-    /// searched — the screen is grabbed once and looked at as often as the macro likes — and how a
-    /// rectangle held in a variable gets to be used.
-    /// </summary>
-    private IEnumerable<(ImageFrame Frame, ScreenPoint Origin)> Areas(ExecutableStep step,
-        IReadOnlyDictionary<string, string> row)
-    {
-        if (!row.TryGetValue("text", out var written))
-        {
-            yield return Rectangle(step, row);
-            yield break;
-        }
-
-        // A picture taken earlier is looked up by the name the step wrote rather than through the
-        // variables: what a variable holds is a note about the picture, and it is the picture
-        // itself that is searched.
-        var raw = written.Trim();
-        var name = raw.StartsWith('$') ? raw[1..].Trim() : raw;
-        if (_images.TryGetValue(name, out var picture))
-        {
-            yield return (picture, new ScreenPoint(0, 0));
-            yield break;
-        }
-
-        // A record is one rectangle with a name for each of its sides, which is what a hit hands
-        // over: naming that record here is how "look again at what you just found" is written
-        // without the macro spelling the four numbers out again.
-        if (Read(raw) is { IsRecord: true } record && Held(step, record) is { } held)
-        {
-            yield return held;
-            yield break;
-        }
-
-        // Anything else is a rectangle, written out or held in a variable. It is only interpolated
-        // rather than read as a whole expression: the commas of a written rectangle would stop an
-        // expression at its first number.
-        var named = Interpolate(raw).Trim();
-
-        // Several rectangles are separated by a semicolon or a line break, so a variable holding a
-        // list of them goes on working the way it always did.
-        foreach (var rectangle in named.Split([';', '\n', '\r'],
-                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            yield return Written(step, rectangle);
-        }
-    }
-
-    /// <summary>
-    /// The rectangle a record stands for: its four sides by name, or the one written rectangle an
-    /// action that hands its box over as text puts in it. Nothing when the record is neither, so a
-    /// record that is not a rectangle is reported as a region nobody could read rather than as a
-    /// failure of its own.
-    /// </summary>
-    private (ImageFrame Frame, ScreenPoint Origin)? Held(ExecutableStep step, Value record)
-    {
-        if (Sides(record) is { } sides)
-        {
-            // The record's own numbers are where the rectangle is on screen, the way a hit's are:
-            // the step's coordinate origin moves the four numbers it is given as text, not this.
-            // Which window the picture is read out of is a different question, and stays the
-            // step's own answer.
-            var shot = Shot(step, sides.Left, sides.Top, sides.Width, sides.Height,
-                AnchorOf(step).Window);
-            return (shot.Frame, shot.Origin);
-        }
-
-        var box = record.Field("box")?.AsText().Trim() ?? string.Empty;
-        return box.Length > 0 ? Written(step, box) : null;
-    }
-
-    /// <summary>One side of a rectangle held in a record, in whole screen pixels.</summary>
-    private static int Whole(Value side) => (int)Math.Round(side.AsNumber());
-
-    /// <summary>
-    /// The four sides a record says a rectangle has, in whole screen pixels: the corner it starts at
-    /// and how far it reaches from there. Every record that carries a rectangle carries all four of
-    /// them, which is what lets a hit, a window or a picture taken earlier say where a step has to
-    /// look without the macro spelling the numbers out again. Nothing when the record is not a
-    /// rectangle, so a record of some other shape is refused by whoever asked for one. A rectangle
-    /// with no width or no height is one pixel wide, the way a width nobody wrote is read.
-    /// </summary>
-    private static (int Left, int Top, int Width, int Height)? Sides(Value record)
-    {
-        if (record.Field("left") is not { } left || record.Field("top") is not { } top
-            || record.Field("width") is not { } width || record.Field("height") is not { } height)
-        {
-            return null;
-        }
-
-        return (Whole(left), Whole(top), Math.Max(1, Whole(width)), Math.Max(1, Whole(height)));
-    }
-
-    /// <summary>One region written as four numbers, captured where on the screen it says.</summary>
-    private (ImageFrame Frame, ScreenPoint Origin) Rectangle(ExecutableStep step,
-        IReadOnlyDictionary<string, string> row)
-    {
-        var x = Cell(row, "x");
-        var y = Cell(row, "y");
-        var width = Cell(row, "width");
-        var height = Cell(row, "height");
-        if (width <= 0 || height <= 0)
-        {
-            throw new StepFailure("Run.BadRegion", Written([row]));
-        }
-
-        return Capture(step, x, y, width, height);
-    }
-
-    /// <summary>What a row of a list parameter says in one column, or nothing when it has none.</summary>
-    private static string Column(IReadOnlyDictionary<string, string> row, string column)
-        => row.TryGetValue(column, out var written) ? written : string.Empty;
-
-    /// <summary>One number of a row of a list parameter, as its field was filled in.</summary>
-    private int Cell(IReadOnlyDictionary<string, string> row, string column)
-        => (int)Math.Round(Read(Column(row, column)).AsNumber());
-
-    /// <summary>
-    /// One number of a row that may be left empty, where empty means the run's own value: a row
-    /// only has to spell out the hold or the gap that is not the one everywhere else.
-    /// </summary>
-    private int Cell(IReadOnlyDictionary<string, string> row, string column, int fallback)
-        => Column(row, column).Trim().Length > 0
-            ? (int)Math.Round(Read(Column(row, column)).AsNumber())
-            : fallback;
-
-    /// <summary>One written rectangle, such as one a variable holds.</summary>
-    private (ImageFrame Frame, ScreenPoint Origin) Written(ExecutableStep step, string rectangle)
-    {
-        var parts = rectangle.Split(',', StringSplitOptions.TrimEntries);
-        if (parts.Length != 4
-            || !int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var x)
-            || !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var y)
-            || !int.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var width)
-            || !int.TryParse(parts[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var height)
-            || width <= 0
-            || height <= 0)
-        {
-            throw new StepFailure("Run.BadRegion", rectangle);
-        }
-
-        return Capture(step, x, y, width, height);
-    }
-
-    /// <summary>
-    /// The picture taken of one rectangle. A window-anchored rectangle is counted from that
-    /// window's corner, and the origin handed back is the one on screen, so the positions read out
-    /// of the picture are pixels the rest of the macro can click on.
-    /// </summary>
-    private (ImageFrame Frame, ScreenPoint Origin) Capture(ExecutableStep step, int x, int y,
-        int width, int height)
-    {
-        var anchor = AnchorOf(step);
-        var corner = Placed(anchor.Corner, x, y);
-        var shot = Shot(step, corner.X, corner.Y, width, height, anchor.Window);
-        return (shot.Frame, shot.Origin);
-    }
-
-    /// <summary>
-    /// How big the rectangle a step reads or copies is. A step that leaves one of these numbers out
-    /// has not said how much of the screen it wants, and the whole of it is what that means: the
-    /// side runs from where the rectangle starts to the edge of the screen, where the zero a number
-    /// nobody gave would have left it one pixel wide.
-    /// </summary>
-    private (int Width, int Height) Extent(ExecutableStep step, ScreenPoint corner)
-    {
-        var desk = _devices.Screen.Desktop.Bounds;
-        return (Reach("width", corner.X, desk.Right), Reach("height", corner.Y, desk.Bottom));
-
-        int Reach(string name, int from, int limit)
-            => step.Text(name).Trim().Length == 0
-                ? Math.Clamp(limit - from, 1, limit)
-                : Math.Max(1, Number(step, name));
-    }
-
-    /// <summary>
-    /// One picture of the screen, taken the way this machine is set up to take one: a step says what
-    /// it is looking at — a window, or a rectangle of the desktop — and whether the pixels come off
-    /// the screen or out of the window itself is an answer about the machine rather than about the
-    /// step. The window is the one the step's own coordinates are counted from, or the one it names
-    /// outright.
-    /// </summary>
-    private ScreenShot Shot(ExecutableStep step, int x, int y, int width, int height,
-        WindowInfo? window = null)
-    {
-        // Which window this is about to be read out of is asked for before anything is read, so a
-        // debugger can put a frame there while the reading is going on rather than after it.
-        Reading(window);
-
-        var method = window is null
-            ? _devices.Capture.ForScreen()
-            : _devices.Capture.ForWindow();
-
-        var source = window?.Handle ?? 0;
-        var age = Math.Max(0, Number(step, "frameMaxAgeMs"));
-        if (age == 0)
-        {
-            // Nothing already taken is old enough to do, so the rectangle asked for is the rectangle
-            // read: this is the reading a macro has always done, at the cost it has always had.
-            var exact = _devices.Screen.Capture(new ScreenCaptureRequest(x, y, width, height,
-                method, source));
-            Taken(window, exact.Method);
-            return exact;
-        }
-
-        var key = Reused(source, method);
-        var now = Stopwatch.GetTimestamp();
-        if (_frames.TryGetValue(key, out var kept)
-            && Stopwatch.GetElapsedTime(kept.TakenAt, now).TotalMilliseconds <= age
-            && Covers(kept.Frame, kept.Origin, x, y, width, height))
-        {
-            Taken(window, kept.Method);
-            return Cut(kept.Frame, kept.Origin, x, y, width, height, kept.Method);
-        }
-
-        // The whole of what the step is reading, so that the next step wanting another part of it
-        // is served without reading the screen again: asking for one rectangle costs more than that
-        // rectangle, and asking for the whole source is what makes the next look free.
-        var whole = Whole(method, window);
-        _frames[key] = (whole.Frame, whole.Origin, whole.Method, now);
-        Taken(window, whole.Method);
-        return Cut(whole.Frame, whole.Origin, x, y, width, height, whole.Method);
-    }
-
-    /// <summary>
-    /// Which pictures are worth keeping for a second look: one to each source, one to each way of
-    /// reading it. Two steps reading the same window the same way see the same picture, and a step
-    /// reading it another way gets its own — a window copied off the screen and a window read as the
-    /// window itself shows it are not the same pixels. What is keyed on is the way that was asked
-    /// for rather than the one that came back, because the next step has to look its picture up
-    /// before anything is read: the automatic choice is a question, and this machine answers it the
-    /// same way twice in a run.
-    /// </summary>
-    private static (long Source, CaptureWay Method) Reused(long source, CaptureWay method)
-        => (source, method);
-
-    /// <summary>The whole of what a step reads from: the window, or the screen.</summary>
-    private ScreenShot Whole(CaptureWay method, WindowInfo? window)
-    {
-        if (window is null)
-        {
-            var desk = _devices.Screen.Desktop.Bounds;
-            return _devices.Screen.Capture(
-                new ScreenCaptureRequest(desk.Left, desk.Top, desk.Width, desk.Height, method));
-        }
-
-        return _devices.Screen.Capture(new ScreenCaptureRequest(window.Location.X, window.Location.Y,
-            window.Size.Width, window.Size.Height, method, window.Handle));
-    }
-
-    /// <summary>True when a picture taken whole covers the rectangle a step is asking for.</summary>
-    private static bool Covers(ImageFrame frame, ScreenPoint origin, int x, int y, int width,
-        int height)
-        => x >= origin.X && y >= origin.Y
-           && x + width <= origin.X + frame.Width && y + height <= origin.Y + frame.Height;
-
-    /// <summary>
-    /// The part of a picture taken whole that a step asked for. A rectangle reaching past the
-    /// picture is cut down to what is there, the way a window read as itself is, and one altogether
-    /// outside the picture is nothing to look at.
-    /// </summary>
-    private static ScreenShot Cut(ImageFrame whole, ScreenPoint origin, int x, int y, int width,
-        int height, CaptureWay method)
-    {
-        if (origin.X == x && origin.Y == y && whole.Width == width && whole.Height == height)
-        {
-            return new ScreenShot(whole, origin, method);
-        }
-
-        var left = Math.Max(0, x - origin.X);
-        var top = Math.Max(0, y - origin.Y);
-        var right = Math.Min(whole.Width, x - origin.X + width);
-        var bottom = Math.Min(whole.Height, y - origin.Y + height);
-        if (right <= left || bottom <= top)
-        {
-            throw new StepFailure("Run.EmptyRegion", $"{x},{y} {width}x{height}");
-        }
-
-        var kept = new byte[(long)(right - left) * (bottom - top) * 4];
-        for (var row = 0; row < bottom - top; row++)
-        {
-            Array.Copy(whole.Bgra, ((long)(top + row) * whole.Width + left) * 4, kept,
-                (long)row * (right - left) * 4, (right - left) * 4);
-        }
-
-        return new ScreenShot(new ImageFrame(right - left, bottom - top, kept),
-            new ScreenPoint(origin.X + left, origin.Y + top), method);
-    }
-
-    /// <summary>Notes what the picture a step is about to be given was taken of.</summary>
-    private void Taken(WindowInfo? window, CaptureWay method)
-    {
-        _takenWindow = window?.Title ?? string.Empty;
-        _takenMethod = method;
-    }
-
-    /// <summary>Tells whoever is watching which window the next picture comes out of.</summary>
-    private void Reading(WindowInfo? window) => _looks?.Reading(window);
-
-    /// <summary>
-    /// Waits out however much of this step's gap is left and notes the look. Every step that reads
-    /// the screen comes through here, so a step held to a gap is held to it whichever way it reads.
-    /// </summary>
-    private async Task Gate(ExecutableStep step, CancellationToken token)
-    {
-        var left = Until(step);
-        if (left > 0)
-        {
-            await Pause(left, token);
-        }
-
-        Looked(step);
-    }
-
-    /// <summary>
-    /// The same wait for a condition, which is asked for its answer rather than awaited, so there
-    /// is nothing to hand back to while the gap runs out.
-    /// </summary>
-    private void GateNow(ExecutableStep step, CancellationToken token)
-    {
-        var left = Until(step);
-        while (left > 0)
-        {
-            token.ThrowIfCancellationRequested();
-            var nap = Math.Min(left, 20);
-            Thread.Sleep(nap);
-            left -= nap;
-        }
-
-        Looked(step);
-    }
-
-    /// <summary>
-    /// How long this step still has to wait before it may look: nothing when it has never looked or
-    /// leaves no gap at all.
-    /// </summary>
-    private int Until(ExecutableStep step)
-    {
-        var interval = Math.Max(0, Number(step, "intervalMs"));
-        if (interval <= 0 || !_looked.TryGetValue(Key(step), out var last))
-        {
-            return 0;
-        }
-
-        return Math.Max(0, interval - (int)Stopwatch.GetElapsedTime(last).TotalMilliseconds);
-    }
-
-    /// <summary>Notes that a step is looking now, which is what the step after it is measured from.</summary>
-    private void Looked(ExecutableStep step) => _looked[Key(step)] = Stopwatch.GetTimestamp();
-
-    private static object Key(ExecutableStep step) => step.Id.Length > 0 ? step.Id : step;
-
-    // --------------------------------------------------------------------- files
-
-    /// <summary>A path a step named, with any <c>$variable</c> already filled in.</summary>
-    private string PathOf(ExecutableStep step, string parameter = "path")
-        => Read(step.Text(parameter)).AsText();
-
-    /// <summary>
-    /// The encoding a step named, or UTF-8 when it says nothing. Older macros have no such field,
-    /// and UTF-8 without a mark is what they were written with.
-    /// </summary>
-    private static string EncodingOf(ExecutableStep step)
-    {
-        var name = step.Text("encoding").Trim();
-        return name.Length == 0 ? TextEncoding.Default : name;
-    }
-
-    private static readonly JsonSerializerOptions Writable = new() { WriteIndented = true };
-
-    private void ReadTextFile(ExecutableStep step, int depth)
-    {
-        var path = PathOf(step);
-        var text = _devices.Files.ReadText(path, EncodingOf(step));
-        var limit = Number(step, "limit");
-        var lines = string.Equals(step.Text("storeAs").Trim(), "lines",
-            StringComparison.OrdinalIgnoreCase);
-
-        if (!lines && limit <= 0)
-        {
-            // What a step that says nothing does, unchanged: the file's text, whole and as it is.
-            Store(step, "text", Value.FromText(text), depth);
-            Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, text.Length);
-            return;
-        }
-
-        var wanted = Lines(text, Flag(step, "skipBlankLines", false), Flag(step, "trim", false));
-        if (limit > 0 && wanted.Count > limit)
-        {
-            wanted = [.. wanted.Take(limit)];
-        }
-
-        Store(step, "text", lines
-            ? Value.FromList(wanted.Select(Value.FromText))
-            : Value.FromText(string.Join(Environment.NewLine, wanted)), depth);
-        Log(LogLevel.Info, depth, step.Type, "Run.ReadFileLines", path, wanted.Count);
-    }
-
-    /// <summary>
-    /// A text cut into lines the way every editor cuts one: all three ways of ending a line count,
-    /// and the break at the very end of the file does not leave an empty line behind it.
-    /// </summary>
-    private static List<string> Lines(string text, bool skipBlank, bool trim)
-    {
-        var lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n').ToList();
-        if (lines.Count > 0 && lines[^1].Length == 0)
-        {
-            lines.RemoveAt(lines.Count - 1);
-        }
-
-        var kept = new List<string>(lines.Count);
-        foreach (var line in lines)
-        {
-            var one = trim ? line.Trim() : line;
-            if (skipBlank && one.Length == 0)
-            {
-                continue;
-            }
-
-            kept.Add(one);
-        }
-
-        return kept;
-    }
-
-    private void WriteTextFile(ExecutableStep step, int depth)
-    {
-        var path = PathOf(step);
-        var text = Read(step.Text("text")).AsText();
-        var append = string.Equals(step.Text("mode").Trim(), "append", StringComparison.OrdinalIgnoreCase);
-        var encoding = EncodingOf(step);
-        var newline = step.Text("newline").Trim().ToLowerInvariant();
-
-        if (newline == "end")
-        {
-            text += Environment.NewLine;
-        }
-        else if (newline == "start" && append && _devices.Files.HasOpenLine(path, encoding))
-        {
-            // Adding to a file is how a macro keeps a log or grows a list, and "a line of its own"
-            // is the whole point: without this the new text lands on the end of the last line, which
-            // is a mistake nobody sees until the file is read back.
-            text = Environment.NewLine + text;
-        }
-
-        _devices.Files.WriteText(path, text, append, encoding);
-        Log(LogLevel.Info, depth, step.Type, append ? "Run.AppendedFile" : "Run.WroteFile", path, text.Length);
-    }
-
-    /// <summary>
-    /// Adds one line to a log file. It is a step of its own rather than write-text-in-append-mode
-    /// because keeping a log is a common enough thing to want: the line break and the time in front
-    /// of it are the two things every caller would otherwise have to remember to add.
-    /// </summary>
-    private void AppendLog(ExecutableStep step, int depth)
-    {
-        var path = PathOf(step);
-        var encoding = EncodingOf(step);
-        var line = Read(step.Text("text")).AsText();
-        if (Flag(step, "timestamp", true))
-        {
-            line = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
-                + " " + line;
-        }
-
-        // The action promises one line, so a file whose last line was never closed — written by
-        // something else, or by a run that was interrupted halfway — gets a break of its own first.
-        // A file that is not there yet has no open line, so its first line is not pushed down.
-        var lead = _devices.Files.HasOpenLine(path, encoding) ? Environment.NewLine : string.Empty;
-        _devices.Files.WriteText(path, lead + line + Environment.NewLine, append: true, encoding);
-        Log(LogLevel.Info, depth, step.Type, "Run.AppendedFile", path, line.Length);
-    }
-
-    private void FileExists(ExecutableStep step, int depth)
-    {
-        var found = _devices.Files.Exists(PathOf(step));
-        Store(step, "exists", Value.FromBool(found), depth);
-    }
-
-    private void DeleteFile(ExecutableStep step, int depth)
-    {
-        var path = PathOf(step);
-        var recycle = Flag(step, "toRecycleBin", false);
-        _devices.Files.Delete(path, recycle);
-        Log(LogLevel.Info, depth, step.Type,
-            recycle ? "Run.RecycledFile" : "Run.DeletedFile", path);
-    }
-
-    private void CopyFile(ExecutableStep step, int depth)
-    {
-        var from = PathOf(step, "from");
-        var (to, go) = Landing(step, PathOf(step, "to"));
-        if (!go)
-        {
-            Log(LogLevel.Info, depth, step.Type, "Run.FileLeftAlone", to);
-            return;
-        }
-
-        _devices.Files.Copy(from, to);
-        Log(LogLevel.Info, depth, step.Type, "Run.CopiedFile", from, to);
-    }
-
-    private void MoveFile(ExecutableStep step, int depth)
-    {
-        var from = PathOf(step, "from");
-        var (to, go) = Landing(step, PathOf(step, "to"));
-        if (!go)
-        {
-            Log(LogLevel.Info, depth, step.Type, "Run.FileLeftAlone", to);
-            return;
-        }
-
-        _devices.Files.Move(from, to);
-        Log(LogLevel.Info, depth, step.Type, "Run.MovedFile", from, to);
-    }
-
-    /// <summary>
-    /// Where a copy or a move is to land, and what to do about a file already sitting there: put
-    /// this one over it, leave the one that is there alone, or give the new one a number of its own
-    /// beside it. Whether the name is taken is a question only the machine can answer.
-    /// </summary>
-    private (string To, bool Go) Landing(ExecutableStep step, string to)
-    {
-        var choice = step.Text("ifExists").Trim().ToLowerInvariant();
-        if (!_devices.Files.Exists(to))
-        {
-            return (to, true);
-        }
-
-        return choice switch
-        {
-            "skip" => (to, false),
-            "unique" => (Beside(to), true),
-            _ => (to, true),
-        };
-    }
-
-    /// <summary>
-    /// A free name next to a taken one — report (2).csv, then report (3).csv — which is the way
-    /// Windows itself gives a second file a name of its own.
-    /// </summary>
-    private string Beside(string path)
-    {
-        var folder = Path.GetDirectoryName(path) ?? string.Empty;
-        var stem = Path.GetFileNameWithoutExtension(path);
-        var extension = Path.GetExtension(path);
-        for (var number = 2; number < 10_000; number++)
-        {
-            var candidate = Path.Combine(folder, $"{stem} ({number}){extension}");
-            if (!_devices.Files.Exists(candidate))
-            {
-                return candidate;
-            }
-        }
-
-        throw new StepFailure("Run.NoFreeName", path);
-    }
-
-    private void CreateFolder(ExecutableStep step, int depth)
-    {
-        var path = PathOf(step);
-        _devices.Files.CreateFolder(path);
-        Log(LogLevel.Info, depth, step.Type, "Run.MadeFolder", path);
-    }
-
-    private void DeleteFolder(ExecutableStep step, int depth)
-    {
-        var path = PathOf(step);
-        var recurse = Flag(step, "recurse", false);
-
-        _devices.Files.DeleteFolder(path, recurse);
-        Log(LogLevel.Info, depth, step.Type, "Run.RemovedFolder", path);
-    }
-
-    /// <summary>
-    /// Works out one piece of a path. A macro that has to say "the file next to this one" or "the
-    /// same name with .bak on the end" should not have to spell the whole path out again, and the
-    /// two folder answers are the ones that are always in the same place on any machine.
-    /// </summary>
-    private void PathPart(ExecutableStep step, int depth)
-    {
-        var path = PathOf(step);
-        var other = Read(step.Text("name")).AsText().Trim();
-
-        var answer = step.Text("operation").Trim().ToLowerInvariant() switch
-        {
-            "folder" => Path.GetDirectoryName(path) ?? string.Empty,
-            "name" => Path.GetFileName(path),
-            "basename" => Path.GetFileNameWithoutExtension(path),
-            "extension" => Path.GetExtension(path),
-            "full" => _devices.Files.Resolve(path),
-            "temp" => Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar),
-            "macros" => _devices.Files.BaseFolder,
-            _ => other.Length == 0 ? path : Path.Combine(path, other),
-        };
-
-        Store(step, "path", Value.FromText(answer), depth);
-    }
-
-    private void UnzipFile(ExecutableStep step, int depth)
-    {
-        var from = PathOf(step, "from");
-        var folder = PathOf(step, "folder");
-        var overwrite = Flag(step, "overwrite", true);
-
-        _devices.Files.Unzip(from, folder, overwrite);
-        Log(LogLevel.Info, depth, step.Type, "Run.Unzipped", from, folder);
-    }
-
-    private void ZipFolder(ExecutableStep step, int depth)
-    {
-        var folder = PathOf(step, "folder");
-        var to = PathOf(step, "to");
-
-        _devices.Files.Zip(folder, to);
-        Log(LogLevel.Info, depth, step.Type, "Run.Zipped", folder, to);
-    }
-
-    private void ListFiles(ExecutableStep step, int depth)
-    {
-        var folder = PathOf(step, "folder");
-        var recurse = Flag(step, "recurse", false);
-        // A filter said with a semi-colon is several filters, the way the action this is modelled
-        // on reads it: *.txt; *.csv is one question, not two steps.
-        var patterns = step.Text("pattern")
-            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var levels = Number(step, "depth");
-        var files = _devices.Files.List(folder, patterns, recurse,
-            recurse ? (levels <= 0 ? -1 : levels) : 0);
-
-        var since = ChangedSince(step);
-        var smallest = Number(step, "minKb") * 1024L;
-        var largest = Number(step, "maxKb") * 1024L;
-        var kept = files.Where(entry =>
-            (since is null || entry.Modified >= since)
-            && (smallest <= 0 || entry.Size >= smallest)
-            && (largest <= 0 || entry.Size <= largest));
-
-        // A listing a macro loops over is the same listing on every run, so the folder's own order
-        // is never the answer: an order is always asked for, and the name settles the ties.
-        var ordered = InOrder(kept, step.Text("sortBy").Trim(), Flag(step, "descending", false));
-        var root = Flag(step, "relative", false) ? _devices.Files.Resolve(folder) : "";
-        var paths = ordered
-            .Select(entry => root.Length == 0 ? entry.Path : Path.GetRelativePath(root, entry.Path))
-            .ToList();
-
-        Store(step, "files", Value.FromList(paths.Select(Value.FromText)), depth);
-        Log(LogLevel.Info, depth, step.Type, "Run.ListedFiles", folder, paths.Count);
-    }
-
-    /// <summary>
-    /// The earliest a listing reaches back to. Nothing said is every file, which is what a step
-    /// that only wants what is in a folder expects.
-    /// </summary>
-    private DateTimeOffset? ChangedSince(ExecutableStep step)
-    {
-        var count = Number(step, "withinCount");
-        if (count <= 0)
-        {
-            return null;
-        }
-
-        var back = step.Text("withinUnit").Trim().ToLowerInvariant() switch
-        {
-            "minutes" => TimeSpan.FromMinutes(count),
-            "hours" => TimeSpan.FromHours(count),
-            _ => TimeSpan.FromDays(count),
-        };
-
-        return DateTimeOffset.Now - back;
-    }
-
-    /// <summary>
-    /// Puts a folder listing in the order asked for, falling back to the name so that two files
-    /// agreeing on the key still come out the same way every run.
-    /// </summary>
-    private static IEnumerable<FileEntry> InOrder(IEnumerable<FileEntry> files, string key,
-        bool descending)
-    {
-        var ordered = key.ToLowerInvariant() switch
-        {
-            "size" => files.OrderBy(entry => entry.Size),
-            "modified" => files.OrderBy(entry => entry.Modified),
-            "created" => files.OrderBy(entry => entry.Created),
-            "extension" => files.OrderBy(entry => Path.GetExtension(entry.Name),
-                StringComparer.OrdinalIgnoreCase),
-            _ => files.OrderBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase),
-        };
-
-        var byName = ordered.ThenBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase);
-        return descending ? byName.Reverse() : byName;
-    }
-
-    private void ReadJson(ExecutableStep step, int depth)
-    {
-        var path = PathOf(step);
-        var document = Json(path, _devices.Files.ReadText(path, EncodingOf(step)));
-        var query = Read(step.Text("query")).AsText().Trim();
-        var node = query.Length == 0
-            ? document
-            : Select(document, query) ?? throw new StepFailure("Run.BadJsonPath", query);
-
-        var value = FromJson(node);
-        Store(step, "value", value, depth);
-    }
-
-    private void WriteJson(ExecutableStep step, int depth)
-    {
-        var path = PathOf(step);
-        var query = Read(step.Text("query")).AsText().Trim();
-        if (query.Length == 0)
-        {
-            throw new StepFailure("Run.MissingJsonPath");
-        }
-
-        var document = _devices.Files.Exists(path)
-            ? Json(path, _devices.Files.ReadText(path, EncodingOf(step)))
-            : new JsonObject();
-
-        Assign(document, query, ToJson(Read(step.Text("value"))));
-
-        var text = document.ToJsonString(Writable);
-        _devices.Files.WriteText(path, text, false, EncodingOf(step));
-        Log(LogLevel.Info, depth, step.Type, "Run.WroteFile", path, text.Length);
-    }
-
-    private void ReadCsv(ExecutableStep step, int depth)
-    {
-        var path = PathOf(step);
-        var rows = DelimitedFile.Read(
-            _devices.Files.ReadText(path, EncodingOf(step)),
-            Separator(step),
-            Flag(step, "skipBlankLines", true),
-            Flag(step, "trim", false));
-
-        // The line the step starts at is the line the header is on, when there is one: "start at
-        // row 3" is where reading begins, and everything else follows from there.
-        var wanted = rows.Skip(Math.Max(1, Number(step, "startRow")) - 1);
-        var header = Flag(step, "hasHeader", true) ? wanted.FirstOrDefault() : null;
-        var body = header is null ? wanted : wanted.Skip(1);
-
-        var limit = Number(step, "maxRows");
-        if (limit > 0)
-        {
-            body = body.Take(limit);
-        }
-
-        // A CSV cell is text: a file that holds 1,234 or 2026-01-31 says nothing about whether that
-        // is a number or a date, and guessing would be a macro quietly working on the wrong thing.
-        var table = Narrow(step,
-            header?.Select(Value.FromText).ToList(),
-            body.Select(row => (IReadOnlyList<Value>)[.. row.Select(Value.FromText)]));
-        Store(step, "rows", Shaped(step, table, path), depth);
-
-        Log(LogLevel.Info, depth, step.Type, "Run.ReadFile", path, table.Rows.Count);
-    }
-
-    private void WriteCsv(ExecutableStep step, int depth)
-    {
-        var path = PathOf(step);
-        var separator = DelimitedFile.Named(Separator(step))[0];
-        var rows = Read(step.Text("rows"));
-        if (!rows.IsList)
-        {
-            throw new StepFailure("Run.NotAList", step.Text("rows"));
-        }
-
-        var append = string.Equals(step.Text("mode").Trim(), "append", StringComparison.OrdinalIgnoreCase);
-        var table = new List<IReadOnlyList<string>>();
-
-        // Appending to a file that is not there yet is the first line of a log, so the header goes
-        // in with it; appending to one that is already there would leave a second header in the
-        // middle of the data, which is the one thing nobody wants.
-        var header = Header(step, separator);
-        if (header.Count > 0 && (!append || !_devices.Files.Exists(path)))
-        {
-            table.Add(header);
-        }
-
-        // Adding by name is for the file somebody else's program keeps: the names in its first line
-        // say which column is which, and the names of this step's cells say where each one goes, so
-        // a column the file has and this step knows nothing about does not shift the rest along.
-        var standing = Flag(step, "align", false) && append && _devices.Files.Exists(path)
-            ? Standing(path, separator, step)
-            : [];
-
-        table.AddRange(rows.Items.Select(row => standing.Count > 0
-            ? Placed(Cells(row), standing, RowNames(row, header))
-            : (IReadOnlyList<string>)[.. Cells(row).Select(cell => cell.AsText())]));
-
-        var text = DelimitedFile.Write(table, separator.ToString(), LineEnding(step),
-            Flag(step, "quoteAll", false),
-            string.Equals(step.Text("emptyCells").Trim(), "quoted", StringComparison.OrdinalIgnoreCase));
-        _devices.Files.WriteText(path, text, append, EncodingOf(step));
-        Log(LogLevel.Info, depth, step.Type, "Run.WroteFile", path, table.Count);
-    }
-
-    /// <summary>
-    /// The names the file already has, which is the line a log names its columns on. A file with
-    /// nothing in it has no names, and adding to it is then an ordinary add.
-    /// </summary>
-    private IReadOnlyList<string> Standing(string path, char separator, ExecutableStep step)
-    {
-        var rows = DelimitedFile.Read(_devices.Files.ReadText(path, EncodingOf(step)),
-            separator.ToString(), skipBlankLines: false, trim: false);
-
-        return rows.Count == 0 ? [] : rows[0];
-    }
-
-    /// <summary>
-    /// One row of a CSV put where the file's own names say it goes. A cell the file has no column
-    /// for, and a row with more cells than there are names for them, are both said out loud: the
-    /// alternative is a value landing in whatever column happens to be tenth.
-    /// </summary>
-    private static IReadOnlyList<string> Placed(IReadOnlyList<Value> cells,
-        IReadOnlyList<string> standing, IReadOnlyList<string> names)
-    {
-        if (names.Count < cells.Count)
-        {
-            throw new StepFailure("Run.AlignNeedsNames",
-                cells.Count.ToString(CultureInfo.InvariantCulture));
-        }
-
-        var line = new string[standing.Count];
-        Array.Fill(line, string.Empty);
-        for (var at = 0; at < cells.Count; at++)
-        {
-            line[ColumnOf(standing, names[at])] = cells[at].AsText();
-        }
-
-        return line;
-    }
-
-    /// <summary>The reading of a name for a table whose names came back as plain text, as a CSV's do.</summary>
-    private static int ColumnOf(IReadOnlyList<string> names, string wanted)
-        => ColumnOf([.. names.Select(Value.FromText)], wanted);
-
-    /// <summary>
-    /// The names to put above the data: a list variable, or the names written out on one line the
-    /// way a row of the file would be. Nothing asked for is no names at all.
-    /// </summary>
-    private IReadOnlyList<string> Header(ExecutableStep step, char separator)
-    {
-        var text = step.Text("header").Trim();
-        if (text.Length == 0)
-        {
-            return [];
-        }
-
-        var value = Read(text);
-        if (value.IsList)
-        {
-            return [.. value.Items.Select(item => item.AsText())];
-        }
-
-        var written = value.AsText();
-        return written.Length == 0
-            ? []
-            : [.. written.Split(separator, StringSplitOptions.TrimEntries)];
-    }
-
-    /// <summary>Which characters end a line, as the step asked for them.</summary>
-    private static string LineEnding(ExecutableStep step)
-        => step.Text("lineEnding").Trim().ToLowerInvariant() switch
-        {
-            "unix" or "lf" or "\\n" => "\n",
-            _ => "\r\n",
-        };
-
-    /// <summary>
-    /// One table a step read: the names above the columns, when the table has them, and the rows
-    /// under them.
-    /// </summary>
-    private sealed record Table(IReadOnlyList<Value>? Header, IReadOnlyList<IReadOnlyList<Value>> Rows);
-
-    /// <summary>
-    /// The part of a table the step asked for: the rows that match, and then the columns it named.
-    /// Reading a CSV takes the same words and means the same thing however many rows the file has,
-    /// so what a step says about one table it says about them all.
-    /// </summary>
-    private Table Narrow(ExecutableStep step, IReadOnlyList<Value>? header,
-        IEnumerable<IReadOnlyList<Value>> body)
-    {
-        var match = ColumnOf(step, header, "matchColumn");
-        var wanted = Read(step.Text("matchValue"));
-        var mode = step.Text("matchMode");
-
-        // Which rows to keep is worked out before the columns are taken off, because the column a
-        // row is matched on need not be one of the columns that come back.
-        var rows = body
-            .Where(row => match < 0 || CaseMatches(Cell(row, match), wanted.AsText(), mode))
-            .ToList();
-
-        var keep = Kept(step, header);
-        if (keep.Count == 0)
-        {
-            return new Table(header, rows);
-        }
-
-        return new Table(
-            header is null ? null : Project(header, keep),
-            [.. rows.Select(row => Project(row, keep))]);
-    }
-
-    /// <summary>
-    /// What the result variable holds. A list of rows is what a table is; a plain list of one
-    /// column's values is what a macro walks through or adds up, and making that jump through a
-    /// one-cell row first is the difference between reading a column and reading a table. A row is a
-    /// record whose keys are the names written above the columns, so a macro reads a cell by the
-    /// name it can see in the file rather than by counting along the line — which is how a table
-    /// comes to be read out of the wrong column without anything saying so.
-    /// </summary>
-    private Value Shaped(ExecutableStep step, Table table, string path)
-    {
-        var width = table.Header?.Count ?? table.Rows.FirstOrDefault()?.Count ?? 0;
-
-        if (string.Equals(step.Text("shape").Trim(), "values", StringComparison.OrdinalIgnoreCase))
-        {
-            if (width > 1)
-            {
-                throw new StepFailure("Run.OneColumnOnly", path);
-            }
-
-            return Value.FromList([.. table.Rows.Select(row => Cell(row, 0))]);
-        }
-
-        var names = ColumnNames(table.Header, width);
-        return Value.FromList(
-        [
-            .. table.Rows.Select(row => Value.FromRecord(
-                Enumerable.Range(0, width).Select(index => (
-                    names[index],
-                    index < row.Count ? row[index] : Value.FromText(string.Empty))))),
-        ]);
-    }
-
-    /// <summary>
-    /// What each cell of a row is called: the name written above it, or — for a file whose first row
-    /// is not a header — the letter of its column, which is the same name the "only these columns"
-    /// field takes. A column nobody named keeps its letter rather than taking the name of the one
-    /// before it, and so does a column that repeats a name already taken: two columns under one name
-    /// would put one of them out of reach of a record.
-    /// </summary>
-    private static IReadOnlyList<string> ColumnNames(IReadOnlyList<Value>? header, int width)
-    {
-        var names = new List<string>(width);
-        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        for (var index = 0; index < width; index++)
-        {
-            var written = index < (header?.Count ?? 0) ? header![index].AsText().Trim() : string.Empty;
-            var name = written.Length > 0 && taken.Add(written) ? written : Letter(index);
-            names.Add(name);
-            taken.Add(name);
-        }
-
-        return names;
-    }
-
-    /// <summary>The way a person writes a column place on its own: A, B, ... Z, AA.</summary>
-    private static string Letter(int place)
-    {
-        var text = string.Empty;
-        for (var at = place; at >= 0; at = (at / 26) - 1)
-        {
-            text = (char)('A' + (at % 26)) + text;
-        }
-
-        return text;
-    }
-
-    /// <summary>The columns a step named, in the order it named them; empty means all of them.</summary>
-    private IReadOnlyList<int> Kept(ExecutableStep step, IReadOnlyList<Value>? header)
-    {
-        var wanted = step.Text("columns").Trim();
-        if (wanted.Length == 0)
-        {
-            return [];
-        }
-
-        return
-        [
-            .. wanted
-                .Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(name => ColumnOf(header, name)),
-        ];
-    }
-
-    /// <summary>Which column a step named with one of its own fields, or -1 when it named none.</summary>
-    private int ColumnOf(ExecutableStep step, IReadOnlyList<Value>? header, string parameter)
-    {
-        var name = step.Text(parameter).Trim();
-        return name.Length == 0 ? -1 : ColumnOf(header, name);
-    }
-
-    /// <summary>
-    /// Which column a step means: the name written above it when the table has names, or the way a
-    /// person writes a column — <c>B</c>, or <c>3</c> for the third one. A name the table does not
-    /// have is a step asking for the wrong thing, and says so rather than reading the wrong column.
-    /// </summary>
-    private static int ColumnOf(IReadOnlyList<Value>? header, string wanted)
-    {
-        var written = wanted.Trim();
-        if (header is not null)
-        {
-            for (var at = 0; at < header.Count; at++)
-            {
-                if (string.Equals(header[at].AsText().Trim(), written, StringComparison.OrdinalIgnoreCase))
-                {
-                    return at;
-                }
-            }
-        }
-
-        if (Letters(written) is { } letter)
-        {
-            return letter;
-        }
-
-        if (int.TryParse(written, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number)
-            && number >= 1)
-        {
-            return number - 1;
-        }
-
-        throw new StepFailure("Run.NoSuchColumn", written);
-    }
-
-    /// <summary>The place a column letter names, counted from zero, or null when it is not letters.</summary>
-    private static int? Letters(string text)
-    {
-        if (text.Length == 0 || text.Length > 3)
-        {
-            return null;
-        }
-
-        var place = 0;
-        foreach (var character in text.ToUpperInvariant())
-        {
-            if (character is < 'A' or > 'Z')
-            {
-                return null;
-            }
-
-            place = place * 26 + (character - 'A' + 1);
-        }
-
-        return place - 1;
-    }
-
-    /// <summary>The cell in one column of a row, or an empty one when the row stops before it.</summary>
-    private static Value Cell(IReadOnlyList<Value> row, int at)
-        => at >= 0 && at < row.Count ? row[at] : Value.FromText(string.Empty);
-
-    /// <summary>One row of a table, with only the named columns left in it and in that order.</summary>
-    private static IReadOnlyList<Value> Project(IReadOnlyList<Value> row, IReadOnlyList<int> keep)
-        => [.. keep.Select(at => Cell(row, at))];
-
-    /// <summary>
-    /// One row of a list as the cells of a line hold them. A row that is not a list is a single
-    /// cell, which is what a macro that writes one value means.
-    /// </summary>
-    private static IReadOnlyList<Value> Cells(Value row) => row.Kind switch
-    {
-        // A record writes its fields in the order they are written in, which is the order the row
-        // was read in: writing back a table read from a file gives the file it came from.
-        ValueKind.Record => [.. row.Fields.Select(field => field.Value)],
-        ValueKind.List => row.Items,
-        _ => [row],
-    };
-
-    /// <summary>
-    /// What each cell of a row is called on its way into a file. A record names its own cells, which
-    /// is what lets a row be put under the file's own columns by name; anything else takes the names
-    /// the step wrote out above them.
-    /// </summary>
-    private static IReadOnlyList<string> RowNames(Value row, IReadOnlyList<string> written)
-        => row.IsRecord ? [.. row.Fields.Select(field => field.Name)] : written;
-
-    private void SaveVariables(ExecutableStep step, int depth)
-    {
-        var path = PathOf(step);
-        var chosen = step.Text("names").Trim();
-        var names = chosen.Length > 0
-            ? chosen.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            : [.. Variables.Local.Values.Keys
-                .Concat(Variables.Global.Values.Keys)
-                .Distinct(StringComparer.OrdinalIgnoreCase)];
-
-        var document = new JsonObject();
-        foreach (var name in names)
-        {
-            if (Variables.TryGet(name, out var value))
-            {
-                document[name] = ToJson(value);
-            }
-        }
-
-        var text = document.ToJsonString(Writable);
-        _devices.Files.WriteText(path, text, false, EncodingOf(step));
-        Log(LogLevel.Info, depth, step.Type, "Run.SavedVariables", path, document.Count);
-    }
-
-    private void LoadVariables(ExecutableStep step, int depth)
-    {
-        var path = PathOf(step);
-        var document = Json(path, _devices.Files.ReadText(path, EncodingOf(step)));
-        if (document is not JsonObject saved)
-        {
-            throw new StepFailure("Run.BadJson", path);
-        }
-
-        foreach (var (name, node) in saved)
-        {
-            // Shared variables are only written to when the Variable Center already made one,
-            // the same rule the "set variable" step follows.
-            var target = Variables.Global.Contains(name) ? VariableTarget.Global : VariableTarget.Local;
-            Variables.Set(name, FromJson(node), target);
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.LoadedVariables", path, saved.Count);
-    }
-
-    /// <summary>
-    /// Encodes text as Base64. The text is read the way any other value is and then taken as
-    /// UTF-8, which is the encoding every service a Base64 value is handed to expects.
-    /// </summary>
-    private void EncodeBase64(ExecutableStep step, int depth)
-    {
-        var text = Read(step.Text("text")).AsText();
-        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
-        Store(step, "encoded", Value.FromText(encoded), depth);
-    }
-
-    /// <summary>
-    /// Decodes Base64 back into text. Text that is not Base64 fails the step rather than turning
-    /// into a value the macro cannot explain: a macro that decoded nothing should say so.
-    /// </summary>
-    private void DecodeBase64(ExecutableStep step, int depth)
-    {
-        var text = Read(step.Text("text")).AsText();
-        byte[] bytes;
-        try
-        {
-            bytes = Convert.FromBase64String(text.Trim());
-        }
-        catch (FormatException)
-        {
-            throw new StepFailure("Run.BadBase64", text);
-        }
-
-        Store(step, "decoded", Value.FromText(Encoding.UTF8.GetString(bytes)), depth);
-    }
-
-    /// <summary>
-    /// Works out the checksum of a piece of text or of a file. A file is walked over a piece at a
-    /// time rather than read whole, because the files a checksum is asked about — an installer, a
-    /// download, a backup — are exactly the ones that do not fit in memory.
-    /// </summary>
-    private void HashText(ExecutableStep step, int depth)
-    {
-        var algorithm = step.Text("algorithm");
-        byte[] digest;
-        if (string.Equals(step.Text("source").Trim(), "file", StringComparison.OrdinalIgnoreCase))
-        {
-            var path = PathOf(step);
-            using var file = _devices.Files.OpenRead(path);
-            digest = ComputeHash(algorithm, file);
-        }
-        else
-        {
-            var text = Read(step.Text("text")).AsText();
-            digest = ComputeHash(algorithm, new MemoryStream(Encoding.UTF8.GetBytes(text)));
-        }
-
-        Store(step, "digest", Value.FromText(Convert.ToHexString(digest).ToLowerInvariant()), depth);
-    }
-
-    /// <summary>
-    /// The checksum a named algorithm works out. An unrecognized name falls back to SHA-256 rather
-    /// than failing: a step that asked for a checksum should get one the macro can compare.
-    /// </summary>
-    private static byte[] ComputeHash(string algorithm, Stream bytes) =>
-        algorithm.Trim().ToLowerInvariant() switch
-        {
-            "md5" => MD5.HashData(bytes),
-            "sha1" => SHA1.HashData(bytes),
-            "sha512" => SHA512.HashData(bytes),
-            _ => SHA256.HashData(bytes),
-        };
-
-    /// <summary>Reads a JSON file, reporting a broken one as a failed step.</summary>
-    private static JsonNode Json(string path, string text)
-    {
-        try
-        {
-            return JsonNode.Parse(text) ?? new JsonObject();
-        }
-        catch (JsonException error)
-        {
-            throw new StepFailure("Run.BadJson", $"{path}: {error.Message}");
-        }
-    }
-
-    /// <summary>Walks a path such as <c>server.name</c> or <c>items[0].id</c>.</summary>
-    private static JsonNode? Select(JsonNode? root, string query)
-    {
-        var node = root;
-        foreach (var token in Tokens(query))
-        {
-            node = Within(node, token);
-            if (node is null)
-            {
-                break;
-            }
-        }
-
-        return node;
-    }
-
-    /// <summary>The node one step along a path, or nothing when there is no such place.</summary>
-    private static JsonNode? Within(JsonNode? node, Part token) => node switch
-    {
-        JsonArray array when token.IsIndex && token.Index >= 0 && token.Index < array.Count
-            => array[token.Index],
-        JsonObject parent when !token.IsIndex
-            => parent.TryGetPropertyValue(token.Name, out var child) ? child : null,
-        _ => null,
-    };
-
-    /// <summary>One step of a path: a name, or a place in a list.</summary>
-    private readonly record struct Part(string Name, int Index, bool IsIndex);
-
-    /// <summary>
-    /// A path split into its steps: names separated by dots, and a place in a list written between
-    /// brackets — by number, counting from zero, or by name in quotes for a name that has a dot in
-    /// it. Reading and writing share this, so a path that can be read can also be written.
-    /// </summary>
-    private static List<Part> Tokens(string query)
-    {
-        var tokens = new List<Part>();
-        var text = query.Trim();
-        var index = 0;
-
-        while (index < text.Length)
-        {
-            if (text[index] == '.')
-            {
-                index++;
-                continue;
-            }
-
-            if (text[index] == '[')
-            {
-                var close = text.IndexOf(']', index);
-                if (close < 0)
-                {
-                    throw new StepFailure("Run.BadJsonPath", query);
-                }
-
-                tokens.Add(Token(text[(index + 1)..close].Trim().Trim('\'', '"'), query));
-                index = close + 1;
-                continue;
-            }
-
-            var end = index;
-            while (end < text.Length && text[end] != '.' && text[end] != '[')
-            {
-                end++;
-            }
-
-            tokens.Add(Token(text[index..end], query));
-            index = end;
-        }
-
-        return tokens;
-    }
-
-    /// <summary>One step, read from the words a path writes it with.</summary>
-    private static Part Token(string written, string query)
-    {
-        var trimmed = written.Trim();
-        if (trimmed.Length == 0)
-        {
-            throw new StepFailure("Run.BadJsonPath", query);
-        }
-
-        return int.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out var position)
-            ? new Part(string.Empty, position, true)
-            : new Part(trimmed, 0, false);
-    }
-
-    /// <summary>
-    /// Sets a value at a path, making the objects along the way. The path is read exactly the way
-    /// <see cref="Select"/> reads one, so anything a macro can read it can also write: a path that
-    /// names a place inside a list — the third item's price — is the everyday case, and refusing it
-    /// would leave a file that can be read and not changed.
-    /// </summary>
-    private static void Assign(JsonNode root, string query, JsonNode? value)
-    {
-        var path = Tokens(query);
-        if (path.Count == 0)
-        {
-            throw new StepFailure("Run.BadJsonPath", query);
-        }
-
-        var node = root;
-        for (var index = 0; index < path.Count - 1; index++)
-        {
-            node = Descend(node, path[index], query);
-        }
-
-        var last = path[^1];
-        switch (node)
-        {
-            case JsonObject parent when !last.IsIndex:
-                parent[last.Name] = value;
-                return;
-            case JsonArray list when last.IsIndex && last.Index >= 0 && last.Index < list.Count:
-                list[last.Index] = value;
-                return;
-            default:
-                throw new StepFailure("Run.BadJsonPath", query);
-        }
-    }
-
-    /// <summary>
-    /// One step along a path, on the way to the place being written. An object that is not there
-    /// yet is made, because "set this value" is how a macro writes a setting a file does not have;
-    /// a place in a list is never made, because the place only means something inside a list that
-    /// is already there and as long as it is.
-    /// </summary>
-    private static JsonNode Descend(JsonNode node, Part token, string query) => node switch
-    {
-        JsonObject parent when !token.IsIndex => parent[token.Name] is { } child
-            ? child
-            : parent[token.Name] = new JsonObject(),
-        JsonArray list when token.IsIndex && token.Index >= 0 && token.Index < list.Count
-            => list[token.Index] ?? throw new StepFailure("Run.BadJsonPath", query),
-        _ => throw new StepFailure("Run.BadJsonPath", query),
-    };
-
-    // A document and the values a macro works with are the same shape, and the one place that
-    // knows how the two are written as each other is JsonValues, so a record read out of a file is
-    // the record that went into it.
-    private static JsonNode? ToJson(Value value) => JsonValues.Node(value);
-
-    private static Value FromJson(JsonNode? node) => JsonValues.FromJson(node);
-
-    /// <summary>The character between two CSV cells.</summary>
-    /// <summary>
-    /// What the step said separates its cells: the character written beside the picker when there
-    /// is one, and otherwise the one that was picked — which may be <c>auto</c>, and then the file
-    /// itself decides.
-    /// </summary>
-    private static string Separator(ExecutableStep step)
-        => step.Text("separatorText").Trim().Length > 0
-            ? step.Text("separatorText")
-            : step.Text("separator");
-
-    // ------------------------------------------------------------------ clipboard
-
-    /// <summary>Puts text on the clipboard, the same as copying it.</summary>
-    private void ClipboardWrite(ExecutableStep step, int depth)
-    {
-        var text = Read(step.Text("text")).AsText();
-        _devices.Clipboard.WriteText(text);
-        Log(LogLevel.Info, depth, step.Type, "Run.CopiedToClipboard", text.Length);
-    }
-
-    /// <summary>Reads the clipboard into a variable.</summary>
-    private void ClipboardRead(ExecutableStep step, int depth)
-    {
-        var text = _devices.Clipboard.ReadText();
-        Store(step, "text", Value.FromText(text), depth);
-        Log(LogLevel.Info, depth, step.Type, "Run.ReadClipboard", text.Length);
-    }
-
-    /// <summary>
-    /// Takes the picture on the clipboard into an image variable, so a later step can look for it
-    /// on screen. There is no rectangle to write down with it: a picture on the clipboard came from
-    /// somewhere else, and nothing says where on this screen it might be.
-    /// </summary>
-    private void ClipboardImageRead(ExecutableStep step, int depth)
-    {
-        var picture = _devices.Clipboard.ReadImage();
-        var name = step.Return("image");
-
-        if (picture is null || picture.IsEmpty)
-        {
-            // A miss clears the variable outright, the same habit the find-image steps have: a
-            // step inside a loop must never read the picture the previous pass left behind.
-            if (name.Length > 0)
-            {
-                _images.Remove(name);
-            }
-
-            Give(step, "image", Value.FromText(string.Empty));
-            Log(LogLevel.Warn, depth, step.Type, "Run.NoClipboardImage");
-            return;
-        }
-
-        if (name.Length > 0)
-        {
-            _images[name] = picture;
-        }
-
-        Give(step, "image", Value.FromText($"<image {picture.Width}x{picture.Height}>"));
-        Give(step, "width", Value.FromNumber(picture.Width));
-        Give(step, "height", Value.FromNumber(picture.Height));
-        Log(LogLevel.Info, depth, step.Type, "Run.ReadClipboardImage",
-            $"{picture.Width}x{picture.Height}");
-    }
-
-    /// <summary>Puts a picture on the clipboard, from a file or from an image variable.</summary>
-    private void ClipboardImageWrite(ExecutableStep step, int depth)
-    {
-        var picture = Reference(step);
-        if (picture.IsEmpty)
-        {
-            throw new StepFailure("Run.MissingImage", step.Text("image"));
-        }
-
-        _devices.Clipboard.WriteImage(picture);
-        Log(LogLevel.Info, depth, step.Type, "Run.CopiedImageToClipboard",
-            $"{picture.Width}x{picture.Height}");
-    }
-
-    /// <summary>Takes the paths of the files on the clipboard into a list.</summary>
-    private void ClipboardFilesRead(ExecutableStep step, int depth)
-    {
-        var files = _devices.Clipboard.ReadFiles();
-
-        Store(step, "files", Value.FromList(files.Select(Value.FromText)), depth);
-        Log(LogLevel.Info, depth, step.Type, "Run.ReadClipboardFiles", files.Count);
-    }
-
-    /// <summary>
-    /// Puts files on the clipboard. A relative path is taken from the macros folder, and every
-    /// file is checked to be there: the paste happens in another program, where a path that points
-    /// nowhere is refused in a way the macro never gets to see.
-    /// </summary>
-    private void ClipboardFilesWrite(ExecutableStep step, int depth)
-    {
-        var value = Read(step.Text("files"));
-        var paths = new List<string>();
-        foreach (var item in value.IsList ? value.Items : [value])
-        {
-            var written = item.AsText().Trim();
-            if (written.Length == 0)
-            {
-                continue;
-            }
-
-            var full = _devices.Files.Resolve(written);
-            if (!_devices.Files.Exists(full))
-            {
-                throw new StepFailure("Run.FileNotFound", written);
-            }
-
-            paths.Add(full);
-        }
-
-        if (paths.Count == 0)
-        {
-            throw new StepFailure("Run.MissingPath");
-        }
-
-        _devices.Clipboard.WriteFiles(paths);
-        Log(LogLevel.Info, depth, step.Type, "Run.CopiedFilesToClipboard", paths.Count);
-    }
-
-    /// <summary>Waits for the clipboard to change, then keeps whatever landed on it.</summary>
-    private async Task ClipboardWait(ExecutableStep step, int depth, CancellationToken token)
-    {
-        await AwaitClipboard(step, _devices.Clipboard.ChangeCount, token);
-
-        var text = _devices.Clipboard.ReadText();
-        Give(step, "text", Value.FromText(text));
-        Log(LogLevel.Info, depth, step.Type, "Run.ClipboardChanged", text.Length);
-    }
-
-    /// <summary>Presses the copy shortcut, then waits for what it put on the clipboard.</summary>
-    private async Task ClipboardCopy(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var before = _devices.Clipboard.ChangeCount;
-        Input(step).Hotkey(Keys(step), 50);
-        await AwaitClipboard(step, before, token);
-
-        var text = _devices.Clipboard.ReadText();
-        Give(step, "text", Value.FromText(text));
-        Log(LogLevel.Info, depth, step.Type, "Run.CopiedFromWindow", text.Length);
-    }
-
-    /// <summary>Puts text on the clipboard when one is given, then presses the paste shortcut.</summary>
-    private async Task ClipboardPaste(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var given = step.Text("text").Trim().Length > 0;
-        if (given)
-        {
-            _devices.Clipboard.WriteText(Read(step.Text("text")).AsText());
-            await Pause(40, token);
-        }
-
-        Input(step).Hotkey(Keys(step), 50);
-        Log(LogLevel.Info, depth, step.Type, given ? "Run.PastedText" : "Run.Pasted");
-    }
-
-    /// <summary>
-    /// Waits for the clipboard's change counter to move past <paramref name="before"/>, which is
-    /// how a macro notices a copy without reading the same text over and over.
-    /// </summary>
-    private async Task AwaitClipboard(ExecutableStep step, int before, CancellationToken token)
-    {
-        var timeout = OptionalNumber(step, "timeoutMs", 1500);
-
-        if (!await WaitForFlagAsync(() => _devices.Clipboard.ChangeCount != before, timeout, 30, token))
-        {
-            throw new StepFailure("Run.ClipboardTimeout");
-        }
-    }
-
-    // -------------------------------------------------------------------- process
-
-    /// <summary>Starts another program and keeps its process id.</summary>
-    private void StartProcess(ExecutableStep step, int depth)
-    {
-        var program = Read(step.Text("file")).AsText();
-        var arguments = Read(step.Text("arguments")).AsText();
-        var folder = Read(step.Text("workingDirectory")).AsText();
-        var hidden = Flag(step, "hidden", true);
-        var runAsAdmin = Flag(step, "runAsAdmin", false);
-
-        var id = _devices.Processes.Start(
-            new StartRequest(program, arguments, folder, hidden, runAsAdmin, EnvironmentOf(step)));
-        Give(step, "processId", Value.FromNumber(id));
-        Log(LogLevel.Info, depth, step.Type, "Run.StartedProgram", program, id);
-    }
-
-    /// <summary>
-    /// The environment variables a step hands a program, written one <c>NAME=value</c> per line.
-    /// Blank lines and lines starting with <c>#</c> are skipped, so a macro can keep a setting it
-    /// has switched off next to the one it uses. A line that is not a pair at all is reported
-    /// rather than ignored: a program started with half the environment the macro meant to give it
-    /// would be harder to explain than a step that says it could not read the list.
-    /// </summary>
-    private Dictionary<string, string>? EnvironmentOf(ExecutableStep step)
-    {
-        var text = step.Text("environment");
-        if (text.Trim().Length == 0)
-        {
-            return null;
-        }
-
-        var wanted = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var line in Lines(text))
-        {
-            var pair = line.Trim();
-            if (pair.Length == 0 || pair.StartsWith('#'))
-            {
-                continue;
-            }
-
-            var cut = pair.IndexOf('=');
-            if (cut <= 0)
-            {
-                throw new StepFailure("Run.BadEnvironment", pair);
-            }
-
-            wanted[pair[..cut].Trim()] = Interpolate(pair[(cut + 1)..].Trim());
-        }
-
-        return wanted.Count == 0 ? null : wanted;
-    }
-
-    /// <summary>
-    /// What a step feeds the program on its standard input, or nothing at all when the field was
-    /// left empty. The text is not trimmed: a program that reads lines wants the line ending the
-    /// macro wrote. It goes out as UTF-8, the same encoding this side reads the answer back in.
-    /// </summary>
-    private string? StandardInputOf(ExecutableStep step)
-    {
-        var text = step.Text("standardInput");
-        return text.Trim().Length == 0 ? null : Interpolate(text);
-    }
-
-    /// <summary>
-    /// The code page a step says the command prints in, or nothing at all to take this machine's
-    /// own, which is what a command line on this machine writes in unless it was told otherwise.
-    /// </summary>
-    private static string? OutputEncodingOf(ExecutableStep step)
-    {
-        var chosen = step.Text("outputEncoding").Trim();
-        return chosen.Length == 0 ? null : chosen;
-    }
-
-    /// <summary>Waits until a program with the given name shows up in the process list.</summary>
-    private async Task WaitForProgram(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var name = Read(step.Text("name")).AsText();
-        var timeout = OptionalNumber(step, "timeoutMs", 10000);
-
-        var ids = await WaitForValueAsync(
-            () => _devices.Processes.Find(name) is { Count: > 0 } found ? found : null,
-            timeout, 100, token);
-        if (ids is null)
-        {
-            throw new StepFailure("Run.ProgramNotFound", name);
-        }
-
-        Give(step, "process", Value.FromNumber(ids[0]));
-        Log(LogLevel.Info, depth, step.Type, "Run.ProgramFound", name, ids[0]);
-    }
-
-    /// <summary>Waits for a program to finish and keeps the exit code it returned.</summary>
-    private async Task WaitForExit(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var id = ProcessId(step);
-        var timeout = OptionalNumber(step, "timeoutMs", 60000);
-
-        if (!await WaitForFlagAsync(() => _devices.Processes.HasExited(id), timeout, 100, token))
-        {
-            throw new StepFailure("Run.ProcessTimeout", id.ToString(CultureInfo.InvariantCulture));
-        }
-
-        var code = _devices.Processes.ExitCode(id) ?? 0;
-        Give(step, "exitCode", Value.FromNumber(code));
-        Log(LogLevel.Info, depth, step.Type, "Run.ProcessExited", id, code);
-    }
-
-    /// <summary>Leaves true or false behind, depending on whether the program is running.</summary>
-    private void ProgramRunning(ExecutableStep step, int depth)
-    {
-        var name = Read(step.Text("name")).AsText();
-        var running = _devices.Processes.Find(name).Count > 0;
-        Store(step, "running", Value.FromBool(running), depth);
-    }
-
-    /// <summary>Collects the names of the running programs into a list.</summary>
-    private void ListPrograms(ExecutableStep step, int depth)
-    {
-        var programs = _devices.Processes.List();
-        Give(step, "processes", Value.FromList(programs.Select(Value.FromText)));
-        Log(LogLevel.Info, depth, step.Type, "Run.ListedPrograms", programs.Count);
-    }
-
-    /// <summary>
-    /// Reads what is known about one running program into a variable and its parts, the way a
-    /// match stores the place it found. The path is what a macro usually wants: it is how a
-    /// window's program is started again, or told apart from another program of the same name.
-    /// </summary>
-    private void ProgramDetails(ExecutableStep step, int depth)
-    {
-        var target = Read(step.Text("target")).AsText().Trim();
-        var details = _devices.Processes.Details(target)
-            ?? throw new StepFailure("Run.NoSuchProcess", target);
-
-        // One program is one record, the way one window is: what it is called, what it is, and what
-        // it is costing are answers to the same question and travel together.
-        Give(step, "program", Value.FromRecord(
-        [
-            ("info", Value.FromText(details.Path)),
-            ("id", Value.FromNumber(details.Id)),
-            ("name", Value.FromText(details.Name)),
-            ("memoryMb", Value.FromNumber(details.MemoryMb)),
-            ("cpuSeconds", Value.FromNumber(details.CpuSeconds)),
-        ]));
-
-        Log(LogLevel.Info, depth, step.Type, "Run.ProgramDetails", details.Name, details.Id);
-    }
-
-    /// <summary>Closes a program, by name or by process id.</summary>
-    private void StopProgram(ExecutableStep step, int depth)
-    {
-        var target = Read(step.Text("target")).AsText().Trim();
-        var force = Flag(step, "force", false);
-
-        var stopped = int.TryParse(target, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id)
-            ? (_devices.Processes.StopById(id, force) ? 1 : 0)
-            : _devices.Processes.StopByName(target, force);
-
-        Give(step, "stopped", Value.FromNumber(stopped));
-        Log(LogLevel.Info, depth, step.Type, "Run.StoppedProgram", target, stopped);
-    }
-
-    /// <summary>Runs a command line to the end and keeps what it printed.</summary>
-    private void RunCommand(ExecutableStep step, int depth)
-    {
-        var program = Read(step.Text("file")).AsText();
-        var arguments = Read(step.Text("arguments")).AsText();
-        var folder = Read(step.Text("workingDirectory")).AsText();
-        var timeout = OptionalNumber(step, "timeoutMs", 30000);
-
-        // A command that takes its time is easier to trust when what it prints turns up while it is
-        // still running, but one that prints thousands of lines would bury the log, so this is
-        // asked for rather than assumed.
-        var watching = Flag(step, "streamOutput", false);
-        if (watching)
-        {
-            Log(LogLevel.Info, depth, step.Type, "Run.CommandStarted", program);
-        }
-
-        var result = _devices.Processes.Run(new CommandRequest(program, arguments, folder, timeout,
-            EnvironmentOf(step), StandardInputOf(step),
-            watching ? line => Log(LogLevel.Info, depth, step.Type, "Run.CommandOutput", line) : null,
-            watching ? line => Log(LogLevel.Info, depth, step.Type, "Run.CommandError", line) : null,
-            OutputEncodingOf(step)));
-
-        Store(step, "output", Value.FromText(result.StandardOutput), depth);
-        Store(step, "error", Value.FromText(result.StandardError), depth);
-        Store(step, "exitCode", Value.FromNumber(result.ExitCode), depth);
-
-        Log(LogLevel.Info, depth, step.Type, "Run.CommandFinished", program, result.ExitCode);
-    }
-
-    // --------------------------------------------------------------------- system
-
-    /// <summary>Reads a fact about the machine into a variable.</summary>
-    private void SystemInfo(ExecutableStep step, int depth)
-    {
-        var value = _devices.System.Info(step.Text("field").Trim());
-        Store(step, "value", Value.FromText(value), depth);
-    }
-
-    /// <summary>
-    /// How the desk is laid out, one record to a display, so a macro that has to work on the second
-    /// screen can find out where it is instead of having the numbers written into it. The rectangle
-    /// is in desktop coordinates, which is what every other coordinate in a macro is written in —
-    /// a display to the left of the primary one starts at a negative number, and that is exactly the
-    /// number a step aiming at it needs. The middle of it is in the record as well, so aiming at
-    /// "the middle of that screen" is one field rather than four numbers and an arithmetic problem.
-    /// </summary>
-    private void ListDisplays(ExecutableStep step, int depth)
-    {
-        var desk = _devices.Screen.Desktop;
-
-        Give(step, "displays", Value.FromList(
-        [
-            .. desk.Displays.Select(display =>
-            {
-                var area = display.Bounds;
-                var middle = Middle(new ScreenPoint(area.Left, area.Top),
-                    new ScreenSize(area.Width, area.Height));
-
-                return Value.FromRecord(
-                [
-                    ("x", Value.FromNumber(middle.X)),
-                    ("y", Value.FromNumber(middle.Y)),
-                    ("left", Value.FromNumber(area.Left)),
-                    ("top", Value.FromNumber(area.Top)),
-                    ("width", Value.FromNumber(area.Width)),
-                    ("height", Value.FromNumber(area.Height)),
-                    ("right", Value.FromNumber(area.Right)),
-                    ("bottom", Value.FromNumber(area.Bottom)),
-                    ("primary", Value.FromBool(display.Primary)),
-                    ("box", Value.FromText($"{area.Left},{area.Top},{area.Width},{area.Height}")),
-                ]);
-            }),
-        ]));
-
-        Log(LogLevel.Info, depth, step.Type, "Run.ListedDisplays",
-            desk.Displays.Count, $"{desk.Bounds.Width}x{desk.Bounds.Height}");
-    }
-
-    /// <summary>Reads an environment variable into a variable.</summary>
-    private void EnvironmentVariable(ExecutableStep step, int depth)
-    {
-        var name = Read(step.Text("name")).AsText();
-        var value = _devices.System.Environment(name);
-        Store(step, "value", Value.FromText(value), depth);
-    }
-
-    /// <summary>
-    /// Asks the machine to do one of the things the Start menu's power button does. The name is
-    /// read strictly rather than falling back to something: a macro that mistyped "shutdown" should
-    /// not have its screen locked instead, and one that mistyped "lock" should certainly not be
-    /// turning the machine off.
-    /// </summary>
-    private void Power(ExecutableStep step, int depth)
-    {
-        var wanted = step.Text("what").Trim().ToLowerInvariant();
-        var action = wanted switch
-        {
-            "" or "lock" => PowerAction.Lock,
-            "monitoroff" or "monitor" => PowerAction.MonitorOff,
-            "signout" or "logoff" => PowerAction.SignOut,
-            "sleep" => PowerAction.Sleep,
-            "hibernate" => PowerAction.Hibernate,
-            "restart" or "reboot" => PowerAction.Restart,
-            "shutdown" => PowerAction.ShutDown,
-            "abortshutdown" or "abort" => PowerAction.AbortShutdown,
-            _ => throw new StepFailure("Run.UnknownPowerAction", wanted),
-        };
-
-        var grace = OptionalNumber(step, "graceSeconds", 0);
-        _devices.System.Power(action, grace);
-        Log(LogLevel.Info, depth, step.Type, "Run.Power", wanted.Length == 0 ? "lock" : wanted,
-            grace);
-    }
-
-    /// <summary>
-    /// Reads or changes the volume of the speakers Windows is using. Whatever the step asked for,
-    /// what it leaves behind is the level the machine ended up at, so a macro that turned the sound
-    /// down can put it back the way it found it.
-    /// </summary>
-    private void Volume(ExecutableStep step, int depth)
-    {
-        var what = step.Text("what").Trim().ToLowerInvariant();
-        switch (what)
-        {
-            // A step written before this field existed means the same as the editor's own default:
-            // read the level and leave the machine alone.
-            case "":
-            case "get":
-                break;
-
-            case "set":
-                _devices.System.SetVolume(OptionalNumber(step, "percent", 50));
-                break;
-
-            case "up":
-            case "down":
-                var move = OptionalNumber(step, "stepPercent", 5);
-                _devices.System.SetVolume(
-                    _devices.System.Volume() + (what == "up" ? move : -move));
-                break;
-
-            case "mute":
-                _devices.System.SetMuted(true);
-                break;
-
-            case "unmute":
-                _devices.System.SetMuted(false);
-                break;
-
-            case "togglemute":
-                _devices.System.SetMuted(!_devices.System.IsMuted());
-                break;
-
-            default:
-                throw new StepFailure("Run.UnknownVolumeAction", what);
-        }
-
-        var level = _devices.System.Volume();
-        Give(step, "volume", Value.FromNumber(level));
-        Log(LogLevel.Info, depth, step.Type, "Run.Volume", level);
-
-        // Switching the sound off does not change the level, so the level alone would leave a reader
-        // wondering whether the macro had done anything at all.
-        if (what is "mute" or "unmute" or "togglemute")
-        {
-            Log(LogLevel.Info, depth, step.Type,
-                _devices.System.IsMuted() ? "Run.SoundOff" : "Run.SoundOn");
-        }
-    }
-
-    /// <summary>
-    /// Plays one of the machine's own event sounds, so a macro that has finished, or gone wrong,
-    /// can say so where nobody is looking at the screen.
-    /// </summary>
-    private void PlaySound(ExecutableStep step, int depth)
-    {
-        var what = step.Text("what").Trim().ToLowerInvariant();
-        var kind = what switch
-        {
-            "" or "default" => SoundKind.Default,
-            "information" or "info" => SoundKind.Information,
-            "warning" => SoundKind.Warning,
-            "error" => SoundKind.Error,
-            "question" => SoundKind.Question,
-            _ => throw new StepFailure("Run.UnknownSound", what),
-        };
-
-        _devices.System.PlaySound(kind);
-        Log(LogLevel.Info, depth, step.Type, "Run.PlayedSound",
-            what.Length == 0 ? "default" : what);
-    }
-
-    /// <summary>
-    /// Shows a notification beside the notification area, so a macro that has finished, or gone
-    /// wrong, can say so to somebody who is not looking at the window. The words go through the
-    /// usual reading, so a macro can put a variable in the title or the message.
-    /// </summary>
-    private void Notify(ExecutableStep step, int depth)
-    {
-        var title = Read(step.Text("heading")).AsText();
-        var message = Read(step.Text("message")).AsText();
-        var what = step.Text("what").Trim().ToLowerInvariant();
-
-        var kind = what switch
-        {
-            "" or "information" or "info" => NotificationKind.Information,
-            "warning" => NotificationKind.Warning,
-            "error" => NotificationKind.Error,
-            _ => throw new StepFailure("Run.UnknownNotification", what),
-        };
-
-        _devices.System.Notify(title, message, kind);
-        Log(LogLevel.Info, depth, step.Type, "Run.Notified", what.Length == 0 ? "information" : what);
-    }
-
-    /// <summary>
-    /// Reads or changes what the window with the focus is typing in. A macro that types Latin keys
-    /// while a Chinese layout is in use gets Chinese candidates instead, so switching the window to
-    /// its English layout first is often the difference between a macro that works and one that
-    /// types 你好.
-    /// </summary>
-    private void InputMethod(ExecutableStep step, int depth)
-    {
-        var what = step.Text("what").Trim().ToLowerInvariant();
-        Value answer;
-
-        switch (what)
-        {
-            case "get":
-                answer = Value.FromText(_devices.System.InputMethod());
-                break;
-
-            case "list":
-                answer = Value.FromText(string.Join(';', _devices.System.InputMethods()));
-                break;
-
-            case "switch":
-                var wanted = Read(step.Text("layout")).AsText().Trim();
-                if (wanted.Length == 0)
-                {
-                    throw new StepFailure("Run.MissingName");
-                }
-
-                var switched = _devices.System.SwitchInputMethod(wanted);
-                if (switched is null)
-                {
-                    throw new StepFailure("Run.LayoutNotFound", wanted);
-                }
-
-                answer = Value.FromText(switched);
-                break;
-
-            default:
-                throw new StepFailure("Run.UnknownInputMethodAction", what);
-        }
-
-        Store(step, "ime", answer, depth);
-    }
-
-    /// <summary>
-    /// Reads or changes how bright the screens are. Like the volume, the result is the brightness the
-    /// machine was left at rather than the one that was asked for, so a macro can put it back.
-    /// </summary>
-    private void Brightness(ExecutableStep step, int depth)
-    {
-        var what = step.Text("what").Trim().ToLowerInvariant();
-        switch (what)
-        {
-            // A step written before this field existed means the same as the editor's own default:
-            // read the brightness and leave the screens alone.
-            case "":
-            case "get":
-                break;
-
-            case "set":
-                _devices.System.SetBrightness(OptionalNumber(step, "percent", 50));
-                break;
-
-            case "up":
-            case "down":
-                var move = OptionalNumber(step, "stepPercent", 10);
-                _devices.System.SetBrightness(
-                    _devices.System.Brightness() + (what is "up" ? move : -move));
-                break;
-
-            default:
-                throw new StepFailure("Run.UnknownBrightnessAction", what);
-        }
-
-        var level = _devices.System.Brightness();
-        Give(step, "brightness", Value.FromNumber(level));
-        Log(LogLevel.Info, depth, step.Type, "Run.Brightness", level);
-    }
-
-    /// <summary>The process id a step names, which is usually a variable.</summary>
-    private int ProcessId(ExecutableStep step)
-    {
-        var text = Read(step.Text("id")).AsText().Trim();
-        if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id))
-        {
-            throw new StepFailure("Run.BadProcessId", text);
-        }
-
-        return id;
-    }
-
-    // --------------------------------------------------------------------- window
-
-    /// <summary>
-    /// Hands one of a step's results over under the name the step gave it, and does nothing at all
-    /// when the step did not ask for that result. An unticked result is not an empty variable, it is
-    /// one this step never makes: a macro that reads it is reading a name no run wrote. What the step
-    /// worked out is kept for the debugger either way, under the name the macro keeps it by when
-    /// there is one, so a result nobody ticked can still be read after the run.
-    /// </summary>
-    private string Give(ExecutableStep step, string key, Value value)
-    {
-        var name = step.Return(key);
-        if (name.Length > 0)
-        {
-            Variables.Set(name, value);
-        }
-
-        if (_worked is { } worked)
-        {
-            var workedOut = new StepResult(key, name, value.AsText())
-            {
-                Data = Structured(value) ? JsonValues.Node(value) : null,
-            };
-            var at = worked.FindIndex(result =>
-                string.Equals(result.Key, key, StringComparison.OrdinalIgnoreCase));
-
-            // A step that was retried works the same result out again, and the last one is what it
-            // came to; a result that has never been worked out before goes on the end.
-            if (at < 0)
-            {
-                worked.Add(workedOut);
-            }
-            else
-            {
-                worked[at] = workedOut;
-            }
-        }
-
-        return name;
-    }
-
-    /// <summary>
-    /// True when a value is made of named fields rather than being one piece of data: a record, or a
-    /// list or record that holds one somewhere inside it. What a step hands over is shown when it is
-    /// this shape — the debugger puts one field on each line — where a list of plain numbers reads
-    /// better as the line of text it already is.
-    /// </summary>
-    private static bool Structured(Value value) => value.Kind switch
-    {
-        ValueKind.Record => true,
-        ValueKind.List => value.Items.Any(Structured),
-        _ => false,
-    };
-
-    /// <summary>Hands one result over and says so in the log, the way storing a value does.</summary>
-    private void Store(ExecutableStep step, string key, Value value, int depth)
-    {
-        var name = Give(step, key, value);
-        if (name.Length > 0)
-        {
-            Log(LogLevel.Info, depth, step.Type, "Run.Set", name, value.AsText());
-        }
-    }
-
-    /// <summary>True when the step keeps this result, so working it out is worth anything.</summary>
-    private static bool Wants(ExecutableStep step, string key) => step.Return(key).Length > 0;
-
-    /// <summary>
-    /// Hands over what a search found as one record: where it was, the four sides of the rectangle
-    /// it was found in, how sure the reading was, and the writing that was read where there was any.
-    /// All of it about one hit, so it travels together under the names a macro reads with
-    /// <c>field($hit, "x")</c> rather than as a variable of its own for each part.
-    ///
-    /// The rectangle is named by its top-left corner, because that is the corner a search region
-    /// counts from: what a hit hands over has to be usable as where to look next without the macro
-    /// working out an offset first. The middle is in the record beside it under names of its own,
-    /// because that is the point a click or a move aims at.
-    /// </summary>
-    private void GiveMatch(ExecutableStep step, ScreenPoint corner, ScreenSize size, double score,
-        string text = "", string label = "", int classId = -1)
-    {
-        Give(step, "match", Hit(corner, size, score, text, label, classId));
-        GiveTaken(step);
-    }
-
-    /// <summary>
-    /// One hit as a record. The fields are the same whatever was found, so a macro that reads the
-    /// size of a picture reads the size of a line of writing the same way; a hit that read no
-    /// writing — a picture, a colour — simply has no text field, and a thing a detection model found
-    /// carries which kind of thing it is beside that.
-    /// </summary>
-    private static Value Hit(ScreenPoint corner, ScreenSize size, double score, string text = "",
-        string label = "", int classId = -1)
-    {
-        var centre = Middle(corner, size);
-        var fields = new List<(string, Value)>
-        {
-            ("x", Value.FromNumber(centre.X)),
-            ("y", Value.FromNumber(centre.Y)),
-            ("left", Value.FromNumber(corner.X)),
-            ("top", Value.FromNumber(corner.Y)),
-            ("width", Value.FromNumber(size.Width)),
-            ("height", Value.FromNumber(size.Height)),
-            ("score", Value.FromNumber(score)),
-            ("box", Value.FromText($"{corner.X},{corner.Y},{size.Width},{size.Height}")),
-        };
-
-        if (text.Length > 0)
-        {
-            fields.Add(("text", Value.FromText(text)));
-        }
-
-        // Which kind of thing it is is two answers about one hit: the number the model answered
-        // with, which is what a macro picks classes out of a label file by, and the name that file
-        // gives it, which is empty when the file does not name that number.
-        if (classId >= 0)
-        {
-            fields.Add(("class", Value.FromNumber(classId)));
-            fields.Add(("label", Value.FromText(label)));
-        }
-
-        return Value.FromRecord(fields);
-    }
-
-    /// <summary>The middle of a rectangle, which is the point an action aims at.</summary>
-    private static ScreenPoint Middle(ScreenPoint corner, ScreenSize size)
-        => new(corner.X + (size.Width / 2), corner.Y + (size.Height / 2));
-
-    /// <summary>
-    /// Empties what a search would have handed over, so a step inside a loop never reads the place
-    /// the pass before it found. Nothing found is an empty hit and no hits at all, rather than the
-    /// hit of the pass before: an empty list counts as nought, which is what "found nothing" means.
-    /// </summary>
-    private void GiveNothing(ExecutableStep step)
-    {
-        Give(step, "match", Value.FromText(string.Empty));
-        Give(step, "every", Value.FromList([]));
-        Give(step, "window", Value.FromText(string.Empty));
-        Give(step, "method", Value.FromText(string.Empty));
-    }
-
-    /// <summary>
-    /// Hands over which window the picture came from and which way it was taken. That answers a
-    /// different question from where the hit was: not "where is it", but "was it looking at the
-    /// right thing at all".
-    /// </summary>
-    private void GiveTaken(ExecutableStep step)
-    {
-        Give(step, "window", Value.FromText(_takenWindow));
-        Give(step, "method", Value.FromText(
-            _takenMethod is { } method ? CaptureWayNames.Written(method) : string.Empty));
-    }
-
-    /// <summary>
-    /// Hands over every hit there was, each a record shaped like the one that was taken, so a macro
-    /// can count them, take one apart and loop over them all with the list functions. Only the steps
-    /// that asked for them pay for the list.
-    /// </summary>
-    private void GiveEvery(ExecutableStep step, IEnumerable<Value> hits)
-    {
-        if (Wants(step, "every"))
-        {
-            Give(step, "every", Value.FromList(hits));
-        }
-    }
-
-    /// <summary>Every picture hit as a record, in the order the step counts them in.</summary>
-    private static IEnumerable<Value> HitRecords(IReadOnlyList<ImageMatch> hits)
-        => hits.Select(hit => Hit(hit.Location, hit.Size, hit.Score));
-
-    /// <summary>Every thing a detection model found as a record, kind of thing and all.</summary>
-    private static IEnumerable<Value> HitRecords(IReadOnlyList<Sighting> hits)
-        => hits.Select(hit => Hit(hit.Match.Location, hit.Match.Size, hit.Match.Score,
-            label: hit.Label, classId: hit.ClassId));
-
-    /// <summary>Every reading of the screen as a record, keeping what each of them said.</summary>
-    private static IEnumerable<Value> HitRecords(IReadOnlyList<TextSpan> hits)
-        => hits.Select(hit => Hit(hit.Location, hit.Size, hit.Confidence, hit.Text));
-
-    /// <summary>Leaves true or false behind, depending on whether the window is open.</summary>
-    private void WindowExists(ExecutableStep step, int depth)
-    {
-        var found = Lookup(step) is not null;
-        Store(step, "found", Value.FromBool(found), depth);
-    }
-
-    /// <summary>Waits until a window the step names appears.</summary>
-    private async Task WaitForWindow(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var timeout = OptionalNumber(step, "timeoutMs", 10000);
-
-        var window = await WaitForValueAsync(() => Lookup(step), timeout, 100, token);
-        if (window is null)
-        {
-            throw new StepFailure("Run.WindowTimeout", WindowText(step));
-        }
-
-        Give(step, "title", Value.FromText(window.Title));
-        Log(LogLevel.Info, depth, step.Type, "Run.WindowAppeared", window.Title);
-    }
-
-    /// <summary>
-    /// Collects the open windows into a list, narrowed down to the ones a step names, each window as
-    /// a record of its own: its title, where it sits, what the system knows it by, and — when the
-    /// step asks for them — the program and the class behind it. Two windows with the same title are
-    /// two windows, so each gets a record of its own. A text nobody wrote means every window here,
-    /// where it means the window in front to a step that acts on one of them.
-    /// </summary>
-    private void ListWindows(ExecutableStep step, int depth)
-    {
-        var windows = Matching(step);
-
-        // The program and the class of a window are read only when the step keeps the list and asks
-        // for them, because looking either of them up costs a look at the window. Every entry is
-        // then the whole of one window, the same record window.info hands over for a single one; a
-        // step that leaves them out gets two empty fields rather than missing ones.
-        if (Wants(step, "windows"))
-        {
-            var details = Flag(step, "details", false);
-            Store(step, "windows", Value.FromList(windows.Select(window => WindowRecord(window,
-                details ? _devices.Windows.ProcessOf(window.Handle) : string.Empty,
-                details ? _devices.Windows.ClassOf(window.Handle) : string.Empty,
-                string.Empty))), depth);
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.ListedWindows", windows.Count);
-    }
-
-    /// <summary>
-    /// The windows a listing hands over, in the order the system gives them: the ones the step's
-    /// text picks out, or every window there is when it names none.
-    /// </summary>
-    private IReadOnlyList<WindowInfo> Matching(ExecutableStep step)
-    {
-        var rule = WindowRuleOf(step, "window", "how");
-        return _devices.Windows.Filter(rule.Text, rule.Match, rule.Compare, everyWhenEmpty: true);
-    }
-
-    /// <summary>Does something to the window a step names, or fails the step when it is not open.</summary>
-    private void Act(ExecutableStep step, int depth, string message, Func<WindowInfo, bool> action)
-    {
-        var window = Locate(step);
-
-        if (!action(window))
-        {
-            throw new StepFailure("Run.WindowFailed", window.Title);
-        }
-
-        Log(LogLevel.Info, depth, step.Type, message, window.Title);
-    }
-
-    /// <summary>
-    /// The window a step names, or a failure saying which one could not be found. "Match by" says
-    /// what the text is held up against and how; an empty text means whatever window is in front.
-    /// </summary>
-    private WindowInfo Locate(ExecutableStep step)
-        => Lookup(step) ?? throw new StepFailure("Run.WindowNotFound", WindowText(step));
-
-    /// <summary>The same, for the steps that report rather than fail when no window matches.</summary>
-    private WindowInfo? Lookup(ExecutableStep step)
-    {
-        var rule = WindowRuleOf(step, "window", "how");
-        return _devices.Windows.Find(rule.Text, rule.Match, rule.Compare);
-    }
-
-    /// <summary>
-    /// The window a step names, read off the two fields the rule is made of: the text, with the
-    /// variables in it filled in, and the one choice that says what the text is held up against and
-    /// how. The step families that name a window — a window action, a step that reads the screen
-    /// and one that posts its input at a window — say it in these same two fields, so they are read
-    /// in this one place.
-    /// </summary>
-    private (string Text, WindowMatch Match, string Compare) WindowRuleOf(ExecutableStep step,
-        string textField, string howField)
-    {
-        var text = Read(step.Text(textField)).AsText().Trim();
-        var (match, compare) = WindowHow.Read(step.Text(howField));
-
-        // A pattern the machine cannot read is the macro's problem to see, not a stack trace to
-        // puzzle over, so it comes back as a failed step before anything is looked at — the same
-        // words whichever step asked.
-        try
-        {
-            WindowHow.Check(text, compare);
-        }
-        catch (ArgumentException)
-        {
-            throw new StepFailure("Run.BadPattern", text);
-        }
-
-        return (text, match, compare);
-    }
-
-    /// <summary>What a step wrote into its window field, with the variables in it resolved.</summary>
-    private string WindowText(ExecutableStep step) => Read(step.Text("window")).AsText().Trim();
-
-    /// <summary>
-    /// Reads where a window is and how big it is. The rectangle is written the way a search region
-    /// is spelled, so it can be handed straight to the vision actions, and each part gets a name of
-    /// its own for the arithmetic a macro wants to do with it.
-    /// </summary>
-    /// <summary>
-    /// Where a window sits and what it is, handed over as one record — the same shape a listing
-    /// gives each window it finds, so the rectangle goes into a search region as it stands and one
-    /// part of it is read by name.
-    /// </summary>
-    private void WindowBox(ExecutableStep step, int depth)
-    {
-        var window = Locate(step);
-        var box = $"{window.Location.X},{window.Location.Y},{window.Size.Width},{window.Size.Height}";
-
-        if (Wants(step, "window"))
-        {
-            // The program, the class and the part inside the border cost a look at the window each,
-            // so they are worked out only when the record is kept at all.
-            var client = _devices.Windows.ClientOrigin(window.Handle);
-            var inner = _devices.Windows.ClientSize(window.Handle);
-            Give(step, "window", WindowRecord(window,
-                _devices.Windows.ProcessOf(window.Handle),
-                _devices.Windows.ClassOf(window.Handle),
-                $"{client.X},{client.Y},{inner.Width},{inner.Height}"));
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.WindowBox", window.Title, box);
-    }
-
-    /// <summary>
-    /// One window as a record: what it is — the title, the program and the class behind it, what the
-    /// system knows it by, whether it is shrunk or spread — and where it sits, both as the four
-    /// numbers of its rectangle, as the middle of that rectangle under x and y, and as the text a
-    /// search region is spelled with. The part inside the border goes in when the caller has read
-    /// it; a listing leaves it out, because reading it costs a look at every window found.
-    /// </summary>
-    private static Value WindowRecord(WindowInfo window, string program, string kind, string clientBox)
-    {
-        var left = window.Location.X;
-        var top = window.Location.Y;
-        var width = window.Size.Width;
-        var height = window.Size.Height;
-        var middle = Middle(window.Location, window.Size);
-
-        List<(string Name, Value Value)> fields =
-        [
-            ("title", Value.FromText(window.Title)),
-            ("process", Value.FromText(program)),
-            ("class", Value.FromText(kind)),
-            ("handle", Value.FromNumber(window.Handle)),
-            ("minimized", Value.FromBool(window.Minimized)),
-            ("maximized", Value.FromBool(window.Maximized)),
-            ("x", Value.FromNumber(middle.X)),
-            ("y", Value.FromNumber(middle.Y)),
-            ("left", Value.FromNumber(left)),
-            ("top", Value.FromNumber(top)),
-            ("width", Value.FromNumber(width)),
-            ("height", Value.FromNumber(height)),
-            ("box", Value.FromText($"{left},{top},{width},{height}")),
-        ];
-
-        if (clientBox.Length > 0)
-        {
-            fields.Add(("clientBox", Value.FromText(clientBox)));
-        }
-
-        return Value.FromRecord(fields);
-    }
-
-    // ---------------------------------------------------------------------- ocr
-
-    /// <summary>
-    /// Reads the text in a step's search areas, with the positions in screen coordinates. Several
-    /// areas are read one after another and what they hold is handed back together, and the areas
-    /// themselves are kept so that a look at this reading can draw where it was taken from.
-    /// </summary>
-    private IReadOnlyList<TextSpan> ReadSpans(ExecutableStep step)
-    {
-        var areas = SearchAreas(step);
-        _read = areas;
-
-        var spans = new List<TextSpan>();
-        foreach (var (area, origin) in areas)
-        {
-            spans.AddRange(ReadFrame(step, area).Select(span => span with
-            {
-                Location = new ScreenPoint(span.Location.X + origin.X, span.Location.Y + origin.Y),
-            }));
-        }
-
-        Sorted(spans, step);
-        return spans;
-    }
-
-    /// <summary>
-    /// Reads one picture, with whatever tidying up the step asked for, and hands the writing back
-    /// in the coordinates of the picture that was given: one that was made bigger to be read has
-    /// its positions made smaller again, so they still mean screen pixels.
-    /// </summary>
-    private IReadOnlyList<TextSpan> ReadFrame(ExecutableStep step, ImageFrame frame)
-    {
-        var (prepared, scale) = OcrPreprocess.Apply(Isolated(step, frame), step.Text("preprocess"));
-        var readings = _devices.Ocr.Recognize(prepared)
-            .Select(span => span with { Text = Corrected(step, span.Text) });
-        var spans = Wanted(step, [.. readings]);
-
-        if (scale == 1)
-        {
-            return spans;
-        }
-
-        return [.. spans.Select(span => span with
-        {
-            Location = new ScreenPoint(Smaller(span.Location.X, scale), Smaller(span.Location.Y, scale)),
-            Size = new ScreenSize(Smaller(span.Size.Width, scale), Smaller(span.Size.Height, scale)),
-        })];
-    }
-
-    /// <summary>A measurement taken from a picture that was made bigger, put back to screen pixels.</summary>
-    private static int Smaller(int value, double scale) => (int)Math.Round(value / scale);
-
-    /// <summary>
-    /// The picture with everything that is not the writing thrown away, when the step said what
-    /// colour the writing is in. Writing drawn with an outline or over a picture is where the model
-    /// is handed too much to read; leaving only the writing is what makes it readable.
-    /// </summary>
-    private ImageFrame Isolated(ExecutableStep step, ImageFrame frame)
-    {
-        var colour = Read(step.Text("colorFilter")).AsText().Trim();
-        return colour.Length == 0
-            ? frame
-            : OcrPreprocess.ByColour(frame, PixelColor.Parse(colour), Number(step, "colorTolerance"));
-    }
-
-    /// <summary>
-    /// The reading with the step's own corrections applied, written one to a line as what the model
-    /// read = what it says. A model that keeps misreading a stylised font is a mistake the user can
-    /// see and write down, and writing it down here is what keeps the macro working.
-    /// </summary>
-    private static string Corrected(ExecutableStep step, string text)
-    {
-        var corrections = step.Text("fixText");
-        if (text.Length == 0 || corrections.Trim().Length == 0)
-        {
-            return text;
-        }
-
-        var fixedUp = text;
-        foreach (var line in corrections.Split('\n'))
-        {
-            var pair = line.Split('=', 2);
-            if (pair.Length != 2 || pair[0].Trim().Length == 0)
-            {
-                continue;
-            }
-
-            fixedUp = fixedUp.Replace(pair[0].Trim(), pair[1].Trim(), StringComparison.Ordinal);
-        }
-
-        return fixedUp;
-    }
-
-    /// <summary>
-    /// The rectangle a reading step reads: where it starts on screen, the picture taken of it, and
-    /// what was read off that picture.
-    /// </summary>
-    private (ScreenPoint Corner, ImageFrame Area, IReadOnlyList<TextSpan> Spans) ReadBox(
-        ExecutableStep step)
-    {
-        var anchor = AnchorOf(step);
-        var (corner, width, height) = Box(step, anchor.Corner);
-        var shot = Shot(step, corner.X, corner.Y, width, height, anchor.Window);
-        return (shot.Origin, shot.Frame, ReadFrame(step, shot.Frame));
-    }
-
-    /// <summary>
-    /// The readings of a step's areas that it would act on, and which of them it would pick,
-    /// counted from one inside the readings it was given.
-    /// </summary>
-    private (List<TextSpan> Hits, int Chosen) Counting(ExecutableStep step,
-        IReadOnlyList<TextSpan> readings, string wanted, string mode)
-    {
-        var hits = new List<TextSpan>();
-        var chosen = 0;
-        for (var index = 0; index < readings.Count; index++)
-        {
-            if (!Sure(step, readings[index]) || !ActsOn(step, readings[index].Text, wanted, mode))
-            {
-                continue;
-            }
-
-            hits.Add(readings[index]);
-            if (chosen == 0)
-            {
-                chosen = index + 1;
-            }
-        }
-
-        return (hits, chosen);
-    }
-
-    /// <summary>
-    /// Whether a reading is one the step would act on: it says what was asked for, and it has the
-    /// shape the step asked for. The shape is what narrows a screen full of the same word down to
-    /// the one line a macro wants — a level, an amount, a count — where looking for the word alone
-    /// would take the first line that happens to say it.
-    /// </summary>
-    private bool ActsOn(ExecutableStep step, string text, string wanted, string mode)
-    {
-        if (!Matches(text, wanted, mode))
-        {
-            return false;
-        }
-
-        var shape = step.Text("expected").Trim();
-        if (shape.Length == 0)
-        {
-            return true;
-        }
-
-        try
-        {
-            return Regex.IsMatch(text, shape, RegexOptions.IgnoreCase);
-        }
-        catch (ArgumentException)
-        {
-            // A pattern the machine cannot read is the macro's problem to see, not a stack trace to
-            // puzzle over, so it comes back as a failed step.
-            throw new StepFailure("Run.BadPattern", shape);
-        }
-    }
-
-    /// <summary>
-    /// What a step keeps of what was read: the writing as it stands, one kind of character out of
-    /// it, or what a pattern picks out. Cutting a screen down to the numbers, or to the letters, is
-    /// how a screen full of labels and a screen full of codes are handled by the same kind of step.
-    /// </summary>
-    private IReadOnlyList<TextSpan> Wanted(ExecutableStep step, IReadOnlyList<TextSpan> spans)
-        => step.Text("content").Trim().ToLowerInvariant() switch
-        {
-            "digits" => OcrReading.Numbers(spans),
-            "letters" => OcrReading.Letters(spans),
-            "chinese" => OcrReading.Chinese(spans),
-            "lettersandchinese" => OcrReading.LettersAndChinese(spans),
-            "regex" => Extracted(step, spans),
-            _ => spans,
-        };
-
-    /// <summary>
-    /// The pieces the step's own pattern picks out of what was read. A pattern with nothing in it
-    /// asks for no cutting, which is what a step that chose the pattern and then left it empty is
-    /// saying; a pattern the machine cannot read comes back as a failed step rather than as a look
-    /// that found nothing.
-    /// </summary>
-    private IReadOnlyList<TextSpan> Extracted(ExecutableStep step, IReadOnlyList<TextSpan> spans)
-    {
-        var pattern = Read(step.Text("contentPattern")).AsText().Trim();
-        if (pattern.Length == 0)
-        {
-            return spans;
-        }
-
-        try
-        {
-            return OcrReading.ByPattern(spans, new Regex(pattern));
-        }
-        catch (ArgumentException)
-        {
-            throw new StepFailure("Run.BadPattern", pattern);
-        }
-    }
-
-    private void Recognize(ExecutableStep step, int depth)
-    {
-        var (corner, area, spans) = ReadBox(step);
-        var text = string.Join(' ', spans.Select(span => span.Text));
-        Saw(step, LookKind.Text, area, corner, Marks([(area, corner)], TextMarks(spans, corner), 0), 0,
-            note: text, minimum: Number(step, "minScore"));
-
-        // Read as a table, the result holds rows, each one a record keyed by where its cells sit —
-        // the shape reading a table through UI Automation gives. Read as text it holds the writing,
-        // and either way the writing itself is handed over as well, so a macro can take it both
-        // ways round.
-        if (Flag(step, "table", false))
-        {
-            // A page read off the screen has no strip of column names, so the places its cells sit
-            // in name them: A, B, C, the same names a file with no header gets.
-            var rows = OcrReading.Rows(spans);
-            Give(step, "table", Value.FromList(rows.Select(row => Value.FromRecord(
-                row.Select((cell, index) => (Letter(index), Value.FromText(cell)))))));
-            text = string.Join('\n', rows.Select(row => string.Join('\t', row)));
-            Log(LogLevel.Info, depth, step.Type, "Run.ReadTable", rows.Count);
-        }
-
-        Store(step, "text", Value.FromText(text), depth);
-    }
-
-    private void FindText(ExecutableStep step, int depth)
-    {
-        var wanted = Read(step.Text("text")).AsText();
-        var way = TextWay(step, wanted);
-
-        // Every reading is kept, not only the ones the step is willing to act on: a look that
-        // shows what the model made of the screen is what tells a step that found nothing whether
-        // the writing was missing or the reading was.
-        var readings = ReadSpans(step);
-        var (hits, chosen) = Counting(step, readings, wanted, way);
-
-        SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen, wanted,
-            minimum: Number(step, "minScore"));
-
-        var span = hits.Count > 0 ? hits[0] : null;
-
-        if (span is null)
-        {
-            GiveNothing(step);
-        }
-        else
-        {
-            GiveMatch(step, span.Location, span.Size, span.Confidence, span.Text);
-        }
-
-        // Every reading, not only the one the step picked, so a macro can walk a list of them or
-        // click through a column of them; what each of them said is in its own record.
-        GiveEvery(step, HitRecords(hits));
-
-        Log(LogLevel.Info, depth, step.Type, span is null ? "Run.TextMissing" : "Run.TextFound",
-            span is null ? string.Empty : $"{span.Center.X},{span.Center.Y}",
-            span is null ? string.Empty : span.Text);
-    }
-
-    /// <summary>What one reading of the screen reads as a mark: the writing, with its own score.</summary>
-    private static List<(ImageMatch Match, string? Label)> TextMarks(
-        IReadOnlyList<TextSpan> spans, ScreenPoint origin)
-        => [.. spans.Select(span => (
-            new ImageMatch(span.Confidence,
-                new ScreenPoint(span.Location.X + origin.X, span.Location.Y + origin.Y),
-                span.Size),
-            (string?)span.Text))];
-
-    private bool Sure(ExecutableStep step, TextSpan candidate)
-        => candidate.Confidence >= Number(step, "minScore");
-
-    private async Task ClickText(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var wanted = Read(step.Text("text")).AsText();
-        var way = TextWay(step, wanted);
-        var interval = LookBeat(step);
-
-        // The readings of the last look are kept, so the look handed over at the end is of the
-        // screen as it was when the step gave up or found what it wanted.
-        IReadOnlyList<TextSpan> readings = [];
-        List<TextSpan> hits = [];
-        var chosen = 0;
-
-        TextSpan? Look()
-        {
-            readings = ReadSpans(step);
-            (hits, chosen) = Counting(step, readings, wanted, way);
-            return hits.Count > 0 ? hits[0] : null;
-        }
-
-        var span = await WaitForValueAsync(Look, interval, token);
-        SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen, wanted,
-            minimum: Number(step, "minScore"));
-
-        // A step that asked to look again waits a moment and confirms the line is still there: a
-        // line that has already been replaced is not clicked. The second look is a single look
-        // rather than another wait: whether the line is still there is not a thing to wait for.
-        var again = Pace(OptionalNumber(step, "recheckMs", 0));
-        if (again > 0)
-        {
-            await Pause(again, token);
-            span = Look() ?? throw new StepFailure("Run.TextNotFound", wanted);
-            SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen, wanted,
-                minimum: Number(step, "minScore"));
-        }
-
-        var at = Scattered(new ScreenPoint(
-            span.Center.X + Number(step, "offsetX"),
-            span.Center.Y + Number(step, "offsetY")), Spread(step));
-
-        // Where the line was read, every other place it was read, and what each of them said — the
-        // same answers the step that only looks for text hands over.
-        GiveMatch(step, span.Location, span.Size, span.Confidence, span.Text);
-        GiveEvery(step, HitRecords(hits));
-
-        Aim(at);
-        Input(step).Click(Button(step), at.X, at.Y, 1, 0);
-        Log(LogLevel.Info, depth, step.Type, "Run.ClickedText", wanted, $"{at.X},{at.Y}");
-    }
-
-    /// <summary>
-    /// Compares found text against what was asked for, the way the step chose. The five ways
-    /// themselves live in one place (<see cref="TextCompare"/>); what is added here is what each
-    /// kind of mistake means: a word that is none of the five, or a pattern the machine cannot read,
-    /// comes back as a failed step rather than as a stack trace or, worse, as some other way of
-    /// comparing than the one that was written.
-    /// </summary>
-    private static bool Matches(string found, string wanted, string mode)
-    {
-        var way = Way(mode);
-        try
-        {
-            return TextCompare.Matches(found, wanted, way);
-        }
-        catch (ArgumentException)
-        {
-            throw new StepFailure("Run.BadPattern", wanted);
-        }
-    }
-
-    /// <summary>
-    /// One of the five ways of comparing text, as the step wrote it. An unanswered field reads as
-    /// "contained in it"; anything else the five do not name is worth saying out loud, because
-    /// quietly comparing in some other way would turn "exactly this" into "this is part of it".
-    /// </summary>
-    private static string Way(string written)
-    {
-        try
-        {
-            return TextCompare.Read(written);
-        }
-        catch (ArgumentException)
-        {
-            throw new StepFailure("Run.BadMatchMode", written.Trim());
-        }
-    }
-
-    // ---------------------------------------------------------------------- uia
-
-    private void Exists(ExecutableStep step, int depth)
-    {
-        var found = _devices.Ui.Exists(Query(step), Number(step, "timeoutMs"));
-        Store(step, "exists", Value.FromBool(found), depth);
-    }
-
-    private async Task WaitElement(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var query = Query(step);
-        var timeout = Math.Max(0, Number(step, "timeoutMs"));
-        var poll = Number(step, "pollMs");
-        if (poll <= 0)
-        {
-            poll = 200;
-        }
-
-        if (!await WaitForFlagAsync(() => _devices.Ui.Exists(query, 0), timeout, poll, token))
-        {
-            throw new StepFailure("Run.ElementNotFound", step.Text("selector"));
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.ElementFound", step.Text("selector"));
-    }
-
-    /// <summary>
-    /// Where an element sits, written into a variable the way a found picture is: the centre as
-    /// "x,y", and the parts as $name.x, $name.y, $name.width and $name.height. That is what lets a
-    /// later step point at the element — or a little way from it — without hunting for it again.
-    /// </summary>
-    private void FindElement(ExecutableStep step, int depth)
-    {
-        var every = Wants(step, "every");
-        var index = Index(step, "matchIndex", 1);
-
-        // Asking for the whole list is what makes the list worth collecting; otherwise the search
-        // only has to reach as far as the hit the step named.
-        var hits = _devices.Ui.FindAll(Query(step), every ? MatchLimit : index);
-        var match = index <= hits.Count ? hits[index - 1] : null;
-
-        if (match is null)
-        {
-            GiveNothing(step);
-        }
-        else
-        {
-            GiveMatch(step, match.Location, match.Size, 1, match.Name);
-        }
-
-        GiveEvery(step, hits.Select(element => Hit(element.Location, element.Size, 1, element.Name)));
-        Log(LogLevel.Info, depth, step.Type, match is null ? "Run.ElementMissing" : "Run.ElementWhere",
-            match is null ? string.Empty : $"{Centre(match).X},{Centre(match).Y}");
-    }
-
-    /// <summary>The middle of an element, which is the point a click aimed at it would land on.</summary>
-    private static ScreenPoint Centre(UiElementInfo element)
-        => new(element.Location.X + (element.Size.Width / 2),
-            element.Location.Y + (element.Size.Height / 2));
-
-    private async Task ClickElement(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var query = Query(step);
-        var timeout = Math.Max(0, Number(step, "timeoutMs"));
-
-        if (!await WaitForFlagAsync(() => _devices.Ui.Exists(query, 0), timeout, 200, token))
-        {
-            throw new StepFailure("Run.ElementNotFound", step.Text("selector"));
-        }
-
-        if (!_devices.Ui.Click(query, Button(step)))
-        {
-            throw new StepFailure("Run.ElementNotClickable", step.Text("selector"));
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.ClickedElement", step.Text("selector"));
-    }
-
-    private void SetElementText(ExecutableStep step, int depth)
-    {
-        var query = Query(step);
-        var text = Read(step.Text("text")).AsText();
-        var clear = !string.Equals(step.Text("clearFirst").Trim(), "false", StringComparison.OrdinalIgnoreCase);
-
-        if (!_devices.Ui.SetText(query, text, clear))
-        {
-            throw new StepFailure("Run.ElementNotWritable", step.Text("selector"));
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.ElementFilled", step.Text("selector"), text);
-    }
-
-    /// <summary>
-    /// Works the element the way the element itself knows how, which is what a step wants when the
-    /// pointer has to stay where it is: a background window's button can be pressed without the
-    /// window coming forward and without the mouse moving.
-    /// </summary>
-    private async Task InvokeElement(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var query = Query(step);
-        var timeout = Math.Max(0, Number(step, "timeoutMs"));
-
-        if (!await WaitForFlagAsync(() => _devices.Ui.Exists(query, 0), timeout, 200, token))
-        {
-            throw new StepFailure("Run.ElementNotFound", step.Text("selector"));
-        }
-
-        if (!_devices.Ui.Invoke(query))
-        {
-            throw new StepFailure("Run.ElementNotInvocable", step.Text("selector"));
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.InvokedElement", step.Text("selector"));
-    }
-
-    /// <summary>
-    /// Everything an element says about itself, as one record: whether it can be used, whether it
-    /// is showing, what it holds, what it is called and where it sits. One record rather than a
-    /// variable each is the same shape a hit and a window already come in, so a macro reads one
-    /// part of it by name.
-    /// </summary>
-    private void ReadElement(ExecutableStep step, int depth)
-    {
-        var facts = _devices.Ui.Facts(Query(step))
-            ?? throw new StepFailure("Run.ElementNotFound", step.Text("selector"));
-
-        var middle = Middle(facts.Location, facts.Size);
-        Give(step, "element", Value.FromRecord(
-        [
-            ("enabled", Value.FromBool(facts.Enabled)),
-            ("visible", Value.FromBool(facts.Visible)),
-            ("value", Value.FromText(facts.Value)),
-            ("name", Value.FromText(facts.Name)),
-            ("automationId", Value.FromText(facts.AutomationId)),
-            ("controlType", Value.FromText(facts.ControlType)),
-            ("x", Value.FromNumber(middle.X)),
-            ("y", Value.FromNumber(middle.Y)),
-            ("left", Value.FromNumber(facts.Location.X)),
-            ("top", Value.FromNumber(facts.Location.Y)),
-            ("width", Value.FromNumber(facts.Size.Width)),
-            ("height", Value.FromNumber(facts.Size.Height)),
-            ("box", Value.FromText(
-                $"{facts.Location.X},{facts.Location.Y},{facts.Size.Width},{facts.Size.Height}")),
-        ]));
-
-        Log(LogLevel.Info, depth, step.Type, "Run.ReadElement", step.Text("selector"), facts.Value);
-    }
-
-    private void FocusWindow(ExecutableStep step, int depth)
-    {
-        var rule = WindowRuleOf(step, "window", "how");
-        if (!_devices.Ui.FocusWindow(UiQuery.Parse(string.Empty, rule.Text, 1, rule.Match, rule.Compare)))
-        {
-            throw new StepFailure("Run.WindowNotFound", rule.Text);
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.FocusedWindow", rule.Text);
-    }
-
-    /// <summary>
-    /// Picks one entry of a list, a drop-down or a set of tabs. The entry is named either by the
-    /// text it shows — which a variable may hold, so a value read somewhere else can be chosen
-    /// straight away — or by its number, counted from one.
-    /// </summary>
-    private void SelectItem(ExecutableStep step, int depth)
-    {
-        var item = Read(step.Text("item")).AsText().Trim();
-        var index = Number(step, "itemIndex");
-        var which = item.Length > 0 ? item : index.ToString(CultureInfo.InvariantCulture);
-        if (item.Length == 0 && index <= 0)
-        {
-            throw new StepFailure("Run.MissingItem");
-        }
-
-        if (!_devices.Ui.Select(Query(step), item, index))
-        {
-            throw new StepFailure("Run.ItemNotFound", which);
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.SelectedItem", step.Text("selector"), which);
-    }
-
-    /// <summary>Turns a check box on, off, or the other way round.</summary>
-    private void SetElementChecked(ExecutableStep step, int depth)
-    {
-        if (!_devices.Ui.SetChecked(Query(step), Switch(step.Text("state"))))
-        {
-            throw new StepFailure("Run.ElementNotCheckable", step.Text("selector"));
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.ElementChecked", step.Text("selector"));
-    }
-
-    /// <summary>Opens or closes a node: a tree branch, an accordion, a collapsed panel.</summary>
-    private void SetElementExpanded(ExecutableStep step, int depth)
-    {
-        var action = step.Text("state").Trim();
-        if (!_devices.Ui.SetExpanded(Query(step), action.Length == 0 ? "expand" : action))
-        {
-            throw new StepFailure("Run.ElementNotExpandable", step.Text("selector"));
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.ElementExpanded", step.Text("selector"));
-    }
-
-    /// <summary>Scrolls an element into view inside whatever list or panel holds it.</summary>
-    private void ScrollElementIntoView(ExecutableStep step, int depth)
-    {
-        if (!_devices.Ui.ScrollIntoView(Query(step)))
-        {
-            throw new StepFailure("Run.ElementNotScrollable", step.Text("selector"));
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.ScrolledElement", step.Text("selector"));
-    }
-
-    /// <summary>
-    /// Reads a table into a variable as a list of rows, each row a record whose keys are the names
-    /// the table writes above its columns — the same shape the CSV reader hands back, so the same
-    /// steps walk either one and a cell is read by name rather than by counting along the line.
-    /// </summary>
-    private void ReadElementTable(ExecutableStep step, int depth)
-    {
-        // A step with no row limit at all still gets one, the same default the editor shows, so a
-        // table nobody bounded cannot be read forever.
-        var limit = Math.Clamp(OptionalNumber(step, "maxRows", DefaultRows), 1, MaxRows);
-        var table = _devices.Ui.ReadTable(Query(step), limit);
-
-        // A grid that keeps no strip of column names still has columns: they are the places its
-        // cells sit in, so the widest row says how many there are.
-        var width = table.Columns.Count > 0
-            ? table.Columns.Count
-            : table.Rows.Count == 0 ? 0 : table.Rows.Max(row => row.Count);
-        var names = ColumnNames([.. table.Columns.Select(Value.FromText)], width);
-
-        var name = Give(step, "table", Value.FromList(
-            table.Rows.Select(row => Value.FromRecord(
-                Enumerable.Range(0, width).Select(index => (
-                    names[index],
-                    Value.FromText(index < row.Count ? row[index] : string.Empty)))))));
-
-        Log(LogLevel.Info, depth, step.Type, "Run.ReadTable", name, table.Rows.Count);
-    }
-
-    /// <summary>The most rows one step reads, so a grid that keeps growing cannot fill memory.</summary>
-    private const int MaxRows = 10000;
-
-    /// <summary>How many rows a step reads when it does not say.</summary>
-    private const int DefaultRows = 100;
-
-    /// <summary>
-    /// What a three-way setting means for something that can be on, off, or left to decide itself:
-    /// true, false, or nothing at all for "the other way round".
-    /// </summary>
-    private static bool? Switch(string text) => text.Trim().ToLowerInvariant() switch
-    {
-        "on" or "true" or "yes" => true,
-        "off" or "false" or "no" => false,
-        _ => null,
-    };
-
-    // --------------------------------------------------------------------- script
-
-    /// <summary>
-    /// The element a browser step means: the selectors its target field holds, one to a line and
-    /// tried in that order, which of the elements a selector matches is the one the step wants, and
-    /// whatever else the step said the right element has to be like.
-    /// </summary>
-    private PageTarget Element(ExecutableStep step)
-        => PageTarget.Of(Read(step.Text("target")).AsText(), Index(step, "matchIndex", 1),
-            Conditions(step));
-
-    /// <summary>
-    /// What a browser step says the element has to be like besides the way it is named: one row per
-    /// condition, all of them holding at once, which is how a step tells the element it means from
-    /// the others a selector names.
-    /// </summary>
-    /// <remarks>
-    /// A row that says no way of narrowing is left out rather than refused: an empty row is what a
-    /// half-filled form holds, and it is silent because a condition nobody asked for is not a
-    /// condition. A row that says a way the engine does not know is refused, because a step that
-    /// asked for less than it meant would otherwise act on the wrong element without saying so.
-    /// </remarks>
-    private IReadOnlyList<PageCondition> Conditions(ExecutableStep step)
-    {
-        var conditions = new List<PageCondition>();
-        foreach (var row in step.Rows("narrow"))
-        {
-            var how = row.TryGetValue("how", out var way) ? way.Trim() : string.Empty;
-            if (how.Length == 0)
-            {
-                continue;
-            }
-
-            if (!Enum.TryParse<PageFilter>(how, ignoreCase: true, out var kind))
-            {
-                throw new StepFailure("Run.BrowserBadFilter", how);
-            }
-
-            var value = row.TryGetValue("value", out var said) ? said : string.Empty;
-            conditions.Add(new PageCondition(kind, Read(value).AsText()));
-        }
-
-        return conditions;
-    }
-
-    /// <summary>
-    /// The key or the reading a step may do without: a step whose target is empty sends its key to
-    /// the page itself, or reads the whole page, and has nothing for the browser to look for.
-    /// </summary>
-    private PageTarget? OptionalElement(ExecutableStep step)
-    {
-        var target = Element(step);
-        return target.Selectors.Count == 0 ? null : target;
-    }
-
-    /// <summary>
-    /// Opens a browser, after checking the one Playwright drives is on the machine. The check
-    /// happens here rather than inside the driver so the user is told what to install instead of
-    /// being handed whatever the driver says when it finds nothing to start.
-    /// </summary>
-    private void BrowserOpen(ExecutableStep step, int depth)
-    {
-        var browser = _devices.Browser;
-        var engine = step.Text("browser").Trim();
-        if (!browser.Ready(engine))
-        {
-            throw new StepFailure("Run.BrowserMissing", browser.InstallHint);
-        }
-
-        var url = Read(step.Text("url")).AsText();
-        browser.Open(engine, url, Flag(step, "headless", false),
-            Read(step.Text("profile")).AsText());
-        Log(LogLevel.Info, depth, step.Type, "Run.OpenedBrowser", engine, browser.Url);
-    }
-
-    /// <summary>
-    /// Reads the page, or one element of it, into a variable. Which part of the element is read is
-    /// the step's own choice: what it shows, what it holds, or one attribute of its markup.
-    /// </summary>
-    private void BrowserReadText(ExecutableStep step, int depth)
-    {
-        var text = _devices.Browser.Text(OptionalElement(step), PagePartOf(step),
-            step.Text("attribute"), step.Meta.TimeoutMs);
-        Give(step, "text", Value.FromText(text));
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserRead", text.Length);
-    }
-
-    /// <summary>
-    /// Reads every element a selector names into a list, so a macro can walk what a page lists
-    /// rather than naming each of them: the second row of a result has nothing of its own to write
-    /// down, and a macro that reads one row at a time cannot be written at all.
-    /// </summary>
-    private void BrowserReadAll(ExecutableStep step, int depth)
-    {
-        // A step with no limit at all still gets one, the same default the editor shows, so a page
-        // whose list keeps growing cannot fill memory.
-        var limit = Math.Clamp(OptionalNumber(step, "maxItems", DefaultRows), 1, MaxRows);
-        var items = _devices.Browser.ReadAll(Element(step), PagePartOf(step),
-            step.Text("attribute"), limit, step.Meta.TimeoutMs);
-
-        Give(step, "items", Value.FromList(items.Select(Value.FromText)));
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserReadAll", items.Count);
-    }
-
-    /// <summary>
-    /// Reads a page's table into a variable, shaped the way every other table in the program is:
-    /// one entry per row, each entry a record whose keys are the names above the columns. A table
-    /// that writes no such names is read by column letter, which is what the window reader does
-    /// with a grid whose column names nobody kept.
-    /// </summary>
-    private void BrowserReadTable(ExecutableStep step, int depth)
-    {
-        var limit = Math.Clamp(OptionalNumber(step, "maxRows", DefaultRows), 1, MaxRows);
-
-        // A step that names no table reads the page's own table element, which is what the field
-        // starts out holding: this is the one element a page always names the same way.
-        var target = Element(step);
-        if (target.Selectors.Count == 0)
-        {
-            // The conditions still stand: which table is meant is the default answer, and the step
-            // may have said which of the page's tables it wants without writing a selector at all.
-            target = PageTarget.Of("table", 1, target.Conditions);
-        }
-
-        var table = _devices.Browser.ReadTable(target, limit, step.Meta.TimeoutMs);
-
-        // A table that keeps no strip of column names still has columns: they are the places its
-        // cells sit in, so the widest row says how many there are.
-        var width = table.Columns.Count > 0
-            ? table.Columns.Count
-            : table.Rows.Count == 0 ? 0 : table.Rows.Max(row => row.Count);
-        var names = ColumnNames([.. table.Columns.Select(Value.FromText)], width);
-
-        var name = Give(step, "table", Value.FromList(
-            table.Rows.Select(row => Value.FromRecord(
-                Enumerable.Range(0, width).Select(index => (
-                    names[index],
-                    Value.FromText(index < row.Count ? row[index] : string.Empty)))))));
-
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserReadTable", name, table.Rows.Count);
-    }
-
-    /// <summary>
-    /// Where the page is and what it calls itself, which is what a macro reads when the step after
-    /// it depends on which page the browser ended up on rather than on anything the page shows.
-    /// </summary>
-    private void BrowserReadPage(ExecutableStep step, int depth)
-    {
-        var page = _devices.Browser.ReadPage(step.Meta.TimeoutMs);
-        Give(step, "url", Value.FromText(page.Url));
-        Give(step, "title", Value.FromText(page.Title));
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserReadPage", page.Url, page.Title);
-    }
-
-    /// <summary>
-    /// Which part of an element a page step reads. A word the engine does not know reads as the
-    /// writing the element shows, which is what every such step meant before there was a choice.
-    /// </summary>
-    private static PagePart PagePartOf(ExecutableStep step) => step.Text("what").Trim().ToLowerInvariant() switch
-    {
-        "value" => PagePart.Value,
-        "attribute" => PagePart.Attribute,
-        _ => PagePart.Text,
-    };
-
-    /// <summary>
-    /// Picks an option of a dropdown. The position is turned into a number here, where the step's
-    /// own name can be put on the failure: a box holding something that is not a whole number is a
-    /// mistake in the step, and the person reading it wants to see which step.
-    /// </summary>
-    private void BrowserSelect(ExecutableStep step, int depth)
-    {
-        var value = Read(step.Text("value")).AsText();
-        var byIndex = step.Text("by").Trim().Equals("index", StringComparison.OrdinalIgnoreCase);
-        if (byIndex && !Position(value))
-        {
-            throw new StepFailure("Run.BadPosition", value);
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserSelected",
-            _devices.Browser.Select(Element(step), value, byIndex, step.Meta.TimeoutMs), value);
-    }
-
-    /// <summary>
-    /// Whether a written place in a list is one a person could read off the page: a whole number,
-    /// counted from the top starting at 1.
-    /// </summary>
-    private static bool Position(string value)
-        => int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var at)
-            && at >= 1;
-
-    /// <summary>
-    /// Sends one key, or one chord, into the page. The name is checked against the same list the
-    /// keyboard picker offers before it goes anywhere, so a key name that means nothing is refused
-    /// here rather than arriving as a letter that happens to share its first character.
-    /// </summary>
-    private void BrowserPress(ExecutableStep step, int depth)
-    {
-        var key = step.Text("key").Trim();
-        var keys = KeyNames.ResolveChord(key, out var unknown);
-        if (keys.Count == 0 || unknown is not null)
-        {
-            throw new StepFailure("Run.UnknownKey", unknown ?? key);
-        }
-
-        _devices.Browser.Press(OptionalElement(step), key, step.Meta.TimeoutMs);
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserPressed", key);
-    }
-
-    /// <summary>
-    /// Waits for an element of the page to be in the state the step names. The step's own clock is
-    /// what the wait is given, so the browser gives up at the same moment the step would rather
-    /// than half a minute later, and running out is reported as the step having waited too long.
-    /// </summary>
-    private void BrowserWaitFor(ExecutableStep step, int depth)
-    {
-        var target = Element(step);
-        var state = ElementStateOf(step);
-        var waited = _devices.Browser.WaitFor(target, state, step.Meta.TimeoutMs);
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserWaited",
-            waited ?? string.Join(" / ", target.Selectors));
-    }
-
-    /// <summary>
-    /// Clicks an element of the page. Which button is used, how many times it is pressed and whether
-    /// it is made even through what stands in the way are the step's own answers: a page's own menu
-    /// opens on the right button, and a list that opens in place needs two clicks.
-    /// </summary>
-    private void BrowserClick(ExecutableStep step, int depth)
-    {
-        var how = step.Text("how").Trim().ToLowerInvariant() switch
-        {
-            "double" => ClickWay.Double,
-            "right" => ClickWay.Right,
-            _ => ClickWay.Single,
-        };
-
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserClicked",
-            _devices.Browser.Click(Element(step), how, Flag(step, "force", false),
-                step.Meta.TimeoutMs));
-    }
-
-    /// <summary>
-    /// Fills an element in. Written in at once is what a plain field needs; typed one key at a time
-    /// is what a page that watches the typing itself needs, and the gap between two keys is the
-    /// step's own answer.
-    /// </summary>
-    private void BrowserFill(ExecutableStep step, int depth)
-    {
-        var how = string.Equals(step.Text("how").Trim(), "type", StringComparison.OrdinalIgnoreCase)
-            ? FillWay.Type
-            : FillWay.Fill;
-
-        var gap = how is FillWay.Type ? Number(step, "intervalMs") : 0;
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserFilled",
-            _devices.Browser.Fill(Element(step), Read(step.Text("text")).AsText(), how, gap,
-                step.Meta.TimeoutMs));
-    }
-
-    /// <summary>
-    /// Moves the page: to an element the step names, by one screen, to the end or back to the top.
-    /// This is what a page that fetches more as it is read needs, because the writing below the fold
-    /// arrives because something scrolled to where it would have been.
-    /// </summary>
-    private void BrowserScroll(ExecutableStep step, int depth)
-    {
-        var how = step.Text("how").Trim().ToLowerInvariant() switch
-        {
-            "bottom" => ScrollWay.Bottom,
-            "top" => ScrollWay.Top,
-            "element" => ScrollWay.Element,
-            _ => ScrollWay.Screen,
-        };
-
-        _devices.Browser.Scroll(OptionalElement(step), how, step.Meta.TimeoutMs);
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserScrolled");
-    }
-
-    /// <summary>
-    /// Takes the next file the page hands over and saves it where the step says. The folder is read
-    /// the way every other path a step is given is read, so one left out is the folder the macro file
-    /// is in.
-    /// </summary>
-    private void BrowserDownload(ExecutableStep step, int depth)
-    {
-        var folder = Read(step.Text("folder")).AsText();
-        var where = folder.Trim().Length > 0 ? _devices.Files.Resolve(folder) : _devices.Files.BaseFolder;
-        var saved = _devices.Browser.Download(OptionalElement(step), where, step.Meta.TimeoutMs);
-
-        Give(step, "path", Value.FromText(saved.Path));
-        Give(step, "name", Value.FromText(saved.Name));
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserDownloaded", saved.Path);
-    }
-
-    /// <summary>
-    /// Answers the next dialog the page puts up, and runs the steps that make it appear.
-    /// </summary>
-    /// <remarks>
-    /// It is a block because a dialog that nobody has answered stops the page: the click that raised
-    /// it does not come back until somebody says yes or no, so a step that clicks and a step that
-    /// answers afterwards cannot both run — the first one is still waiting when the second would
-    /// start. The answer is therefore armed before the body runs, and the body holds the steps that
-    /// trigger the dialog.
-    /// </remarks>
-    private async Task<Signal> RunDialog(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var accept = !string.Equals(step.Text("how").Trim(), "dismiss",
-            StringComparison.OrdinalIgnoreCase);
-        _devices.Browser.ArmDialog(accept, Read(step.Text("text")).AsText());
-
-        Signal signal;
-        try
-        {
-            signal = await RunSteps(step.Children("body"), depth + 1, token);
-        }
-        catch
-        {
-            // A body that was stopped rather than failed still has to leave the browser unarmed: the
-            // answer that was armed belongs to this step and to no other.
-            _devices.Browser.TakeDialog();
-            throw;
-        }
-
-        // A box whose steps never raised a dialog is a step that did not do what it says, rather
-        // than one that worked and handed nothing over: the answer that was armed is taken back
-        // either way, so a dialog put up by a later step is not answered with this one's answer.
-        var message = _devices.Browser.TakeDialog();
-        if (message is null)
-        {
-            throw new StepFailure("Run.BrowserNoDialog");
-        }
-
-        Give(step, "message", Value.FromText(message));
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserAnswered", message);
-        return signal;
-    }
-
-    /// <summary>
-    /// Runs a script of the step's own inside the page, which is the way round whatever no action of
-    /// the catalogue covers. What it returns comes back written as JSON, so a record or a list the
-    /// script hands over keeps its shape and is read the way any other one is.
-    /// </summary>
-    private void BrowserEvaluate(ExecutableStep step, int depth)
-    {
-        var script = Template(step.Text("script")).Trim();
-        if (script.Length == 0)
-        {
-            throw new StepFailure("Run.BrowserNoScript");
-        }
-
-        var result = _devices.Browser.Evaluate(script, step.Meta.TimeoutMs);
-        Give(step, "result", Value.FromText(result));
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserEvaluated", result.Length);
-    }
-
-    /// <summary>
-    /// Which state of an element a step or a condition names. The four words are one list for both
-    /// kinds of step, so a condition about an element and a wait for one say the same thing the same
-    /// way. A word the engine does not know reads as "it is showing", which is what a step that is
-    /// about to act on an element wants.
-    /// </summary>
-    private static ElementWait ElementStateOf(ExecutableStep step)
-        => step.Text("state").Trim().ToLowerInvariant() switch
-        {
-            "hidden" => ElementWait.Hidden,
-            "attached" => ElementWait.Attached,
-            "detached" => ElementWait.Detached,
-            _ => ElementWait.Visible,
-        };
-
-    /// <summary>
-    /// Waits for the page to be at an address the step names. The way the address is compared is the
-    /// one list of ways every piece of writing in the program is compared with, and it is read here
-    /// first: a word that is none of the five, or a pattern the machine cannot read, is a mistake in
-    /// the step and is reported before anything is waited for.
-    /// </summary>
-    private void BrowserWaitForUrl(ExecutableStep step, int depth)
-    {
-        var wanted = Read(step.Text("match")).AsText();
-        var how = Way(step.Text("how"));
-        try
-        {
-            TextCompare.Check(wanted, how);
-        }
-        catch (ArgumentException)
-        {
-            throw new StepFailure("Run.BadPattern", wanted);
-        }
-
-        _devices.Browser.WaitForUrl(wanted, how, step.Meta.TimeoutMs);
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserAtAddress", _devices.Browser.Url);
-    }
-
-    /// <summary>
-    /// Waits for the page to have got as far as the step names in its loading. Which of the three
-    /// moments a macro wants is its own answer: reading the writing on a page needs the document and
-    /// not the pictures, while a page that fills itself in by fetching needs the network to be quiet.
-    /// </summary>
-    private void BrowserWaitForLoad(ExecutableStep step, int depth)
-    {
-        var state = step.Text("state").Trim().ToLowerInvariant() switch
-        {
-            "idle" => PageLoad.Idle,
-            "ready" => PageLoad.Ready,
-            _ => PageLoad.Loaded,
-        };
-
-        _devices.Browser.WaitForLoad(state, step.Meta.TimeoutMs);
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserLoaded");
-    }
-
-    /// <summary>
-    /// Hands files to a file input, one path to a line. A relative path is read from the folder the
-    /// macro file is in, the same as every other path a step is given, so a macro that hands over a
-    /// file beside it can be moved to another machine as it stands.
-    /// </summary>
-    private void BrowserUpload(ExecutableStep step, int depth)
-    {
-        var paths = Lines(Read(step.Text("files")).AsText())
-            .Select(line => line.Trim())
-            .Where(line => line.Length > 0)
-            .Select(_devices.Files.Resolve)
-            .ToList();
-        if (paths.Count == 0)
-        {
-            throw new StepFailure("Run.MissingPath");
-        }
-
-        var element = _devices.Browser.Upload(Element(step), paths, step.Meta.TimeoutMs);
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserUploaded", paths.Count, element);
-    }
-
-    /// <summary>
-    /// Moves the macro to another tab of the browser that is open. Many sites hand the page the
-    /// macro came for to a new tab, and the macro would otherwise go on aiming its steps at the tab
-    /// it was on — where, on a site whose pages look alike, a step finds something that matches and
-    /// works on the wrong page without anything looking wrong.
-    /// </summary>
-    private void BrowserSwitchTab(ExecutableStep step, int depth)
-    {
-        var choice = step.Text("how").Trim().ToLowerInvariant() switch
-        {
-            "index" => TabChoice.Index,
-            "title" => TabChoice.Title,
-            "url" or "address" => TabChoice.Address,
-            _ => TabChoice.Newest,
-        };
-
-        _devices.Browser.SwitchTab(choice, Number(step, "index"), Read(step.Text("match")).AsText());
-        Log(LogLevel.Info, depth, step.Type, "Run.BrowserTab", _devices.Browser.Url);
-    }
-
-    /// <summary>
-    /// Runs a short script: a command, a batch file, a PowerShell or an AutoHotkey script, or a
-    /// program of the macro's own choosing. This is the step that covers whatever the catalogue
-    /// does not — anything with a command line of its own can be scripted — and a macro value gets
-    /// in by being written into the text as <c>{{name}}</c> before the script runs. The script is
-    /// either written in the step or named as a file of the macro's own, and a file is run where it
-    /// lies rather than being written out again.
-    /// </summary>
-    private void RunScript(ExecutableStep step, int depth)
-    {
-        var kind = ScriptKindOf(step);
-
-        // A script may be written in the step or named as a file on disk. A file is run where it
-        // lies: nothing of it is copied, so what it reads beside itself, what it includes and what
-        // a variable written into it would have been are exactly what its author wrote.
-        var fromFile = string.Equals(step.Text("source").Trim(), "file", StringComparison.OrdinalIgnoreCase);
-        var chosen = fromFile ? Read(step.Text("file")).AsText().Trim() : string.Empty;
-        var script = fromFile ? string.Empty : Template(step.Text("script"));
-        if (chosen.Length == 0 && script.Trim().Length == 0)
-        {
-            throw new StepFailure("Run.MissingScript");
-        }
-
-        if (fromFile && !_devices.Files.Exists(chosen))
-        {
-            throw new StepFailure("Run.FileNotFound", chosen);
-        }
-
-        var stamp = Guid.NewGuid().ToString("N");
-        var path = fromFile
-            ? _devices.Files.Resolve(chosen)
-            : Path.Combine(ScriptFolder(), $"script-{stamp}{ScriptExtensionOf(step, kind)}");
-
-        // The one kind whose window is left standing has to be told that the command is done: a
-        // batch file sitting at its prompt says nothing to anyone but the person in front of it. A
-        // line of its own at the end of the script writes the exit code where this side can read
-        // it, and that is what lets the macro carry on when the command finishes rather than when
-        // the window is closed.
-        var sentinel = kind is ScriptKind.CommandKeepWindow
-            ? Path.Combine(ScriptFolder(), $"done-{stamp}.txt")
-            : string.Empty;
-
-        // A script named as a file cannot have a line added to it, so the kind that needs the mark
-        // gets a little batch file of its own to run it with: the mark still says when the command
-        // is done, and the file that was named stays exactly as it was.
-        var passed = Template(step.Text("arguments")).Trim();
-        var wrapper = sentinel.Length > 0 && fromFile
-            ? Path.Combine(ScriptFolder(), $"script-{stamp}.cmd")
-            : string.Empty;
-
-        // The command line is put together before anything is written: a step whose program or file
-        // ending is missing fails without leaving a copy of a script behind.
-        var (program, arguments) = ScriptCommandOf(step, kind, wrapper.Length > 0 ? wrapper : path,
-            wrapper.Length > 0 ? string.Empty : passed);
-        var folder = ScriptWorkingFolder(step);
-        var timeout = Math.Max(0, OptionalNumber(step, "timeoutMs", DefaultScriptMs));
-
-        if (wrapper.Length > 0)
-        {
-            _devices.Files.WriteText(wrapper, WithCaller(path, passed, sentinel), false,
-                ScriptEncodingOf(step, kind));
-        }
-        else if (!fromFile)
-        {
-            _devices.Files.WriteText(path,
-                sentinel.Length == 0 ? script : WithSentinel(script, sentinel),
-                false, ScriptEncodingOf(step, kind));
-        }
-
-        var output = string.Empty;
-        var error = string.Empty;
-        var exitCode = 0;
-        try
-        {
-            if (kind is ScriptKind.CommandKeepWindow or ScriptKind.CommandCloseWindow)
-            {
-                exitCode = RunInWindow(program, arguments, folder, sentinel, timeout);
-            }
-            else
-            {
-                var ran = _devices.Processes.Run(new CommandRequest(program, arguments, folder,
-                    ScriptLimitOf(timeout), OutputEncoding: TextEncoding.System));
-                output = ran.StandardOutput.Trim('\r', '\n');
-                error = ran.StandardError.Trim();
-                exitCode = ran.ExitCode;
-            }
-        }
-        finally
-        {
-            // What is removed is what this step wrote: a script the macro named as a file is one of
-            // the macro's own and is left where it is.
-            TidyScript(fromFile ? wrapper : path, sentinel, depth, step.Type);
-        }
-
-        // What the script came to is handed over before the step is failed for it: a macro whose
-        // failure rule lets it carry on — "continue", or the user answering the question — reads
-        // the message and the flag on the steps after this one.
-        Give(step, "output", Value.FromText(output));
-        Give(step, "error", Value.FromText(error));
-        Give(step, "success", Value.FromBool(exitCode == 0));
-
-        if (exitCode != 0)
-        {
-            throw new StepFailure("Run.ScriptFailed", Reason(exitCode, error));
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.RanScript", ScriptKindName(kind), output.Length);
-    }
-
-    /// <summary>
-    /// Starts a command in a window of its own and waits for the command rather than for the
-    /// window. The window is left for the person to read, which is the whole point of running one
-    /// this way, so what ends the wait is either the process — a command run with /c, or a window
-    /// the person closed — or the mark the script leaves behind when it is finished.
-    /// </summary>
-    private int RunInWindow(string program, string arguments, string folder, string sentinel,
-        int timeoutMs)
-    {
-        var id = _devices.Processes.Start(new StartRequest(program, arguments, folder, Hidden: false));
-        var started = Stopwatch.GetTimestamp();
-
-        while (true)
-        {
-            if (_devices.Processes.HasExited(id))
-            {
-                return _devices.Processes.ExitCode(id) ?? 0;
-            }
-
-            if (sentinel.Length > 0 && _devices.Files.Exists(sentinel))
-            {
-                var written = _devices.Files.ReadText(sentinel, TextEncoding.Default).Trim();
-                return int.TryParse(written, NumberStyles.Integer, CultureInfo.InvariantCulture,
-                    out var code)
-                    ? code
-                    : 0;
-            }
-
-            if (timeoutMs > 0 && Stopwatch.GetElapsedTime(started).TotalMilliseconds > timeoutMs)
-            {
-                _devices.Processes.StopById(id, force: true);
-                throw new StepFailure("Run.CommandTimeout", program);
-            }
-
-            // A window a person may be reading is the one thing the engine waits on in steps of its
-            // own: there is no picture to watch and no event to listen to, only a command that has
-            // not finished yet.
-            Thread.Sleep(20);
-        }
-    }
-
-    /// <summary>
-    /// The script with a last line that writes the exit code where this side can read it. The line
-    /// is ended the way the script already ends its own lines, so a file cmd.exe reads correctly
-    /// goes on being read correctly with one more line on the end; a script written as a single
-    /// line gets the ending a batch file is used to.
-    /// </summary>
-    private static string WithSentinel(string script, string sentinel)
-    {
-        var ending = script.EndsWith("\r\n", StringComparison.Ordinal) ? "\r\n"
-            : script.EndsWith('\n') ? "\n"
-            : "\r\n";
-        var line = $"@echo %errorlevel% > \"{sentinel}\"{ending}";
-        return script.EndsWith('\n') ? script + line : script + ending + line;
-    }
-
-    /// <summary>
-    /// A small batch file that runs the file a macro named and then writes the exit code where this
-    /// side reads it. It is what the kind whose window is left standing runs when its script is a
-    /// file: the mark has to be written by something, and the file itself may not be touched, so
-    /// something of this program's own is written to call it instead.
-    /// </summary>
-    private static string WithCaller(string script, string arguments, string sentinel)
-    {
-        var tail = arguments.Length == 0 ? string.Empty : $" {arguments}";
-        return "@echo off" + Environment.NewLine
-            + $"call \"{script}\"{tail}" + Environment.NewLine
-            + $"@echo %errorlevel% > \"{sentinel}\"" + Environment.NewLine;
-    }
-
-    /// <summary>
-    /// Runs a Python script in a process of its own with the macro in reach of it while it runs:
-    /// what the script prints goes into the run log line by line, what it reads and writes is what
-    /// the macro holds, and what it hands back with SetResult is this step's result.
-    /// </summary>
-    private Signal RunPython(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var script = Template(step.Text("script"));
-        if (script.Trim().Length == 0)
-        {
-            throw new StepFailure("Run.MissingScript");
-        }
-
-        var request = new PythonScript(script, Template(step.Text("arguments")).Trim(),
-            ScriptWorkingFolder(step), ScriptTimeoutOf(step), ScriptInterpreter(step));
-
-        _stoppedInsideScript = false;
-        var outcome = _devices.Scripts.RunPython(request, new MacroHost(this, step.Type, depth, token),
-            line => Log(LogLevel.Info, depth, step.Type, "Run.ScriptOutput", line),
-            line => Log(LogLevel.Error, depth, step.Type, "Run.ScriptError", line),
-            token);
-
-        HandOverScript(step, outcome, "value");
-        Log(LogLevel.Info, depth, step.Type, "Run.RanScript", "Python", outcome.Output.Length);
-
-        // A step the script ran may have asked for the whole macro to stop, and a macro that was
-        // told to stop stops: the script still gets its answer, and the run ends there.
-        return _stoppedInsideScript ? Signal.Stop : Signal.Normal;
-    }
-
-    /// <summary>
-    /// Compiles a C# script and runs it in a process of this very program, with the macro in reach
-    /// of it while it runs. What it prints goes into the run log line by line, what it reads and
-    /// writes is what the macro holds, and what it hands back with SetResult is this step's result.
-    /// A script that does not compile is reported with what the compiler said about it.
-    /// </summary>
-    private Signal RunCSharp(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var script = Template(step.Text("script"));
-        if (script.Trim().Length == 0)
-        {
-            throw new StepFailure("Run.MissingScript");
-        }
-
-        var request = new CSharpScript(script, Template(step.Text("arguments")).Trim(),
-            ScriptWorkingFolder(step), ScriptTimeoutOf(step));
-
-        _stoppedInsideScript = false;
-        var outcome = _devices.Scripts.RunCSharp(request, new MacroHost(this, step.Type, depth, token),
-            line => Log(LogLevel.Info, depth, step.Type, "Run.ScriptOutput", line),
-            line => Log(LogLevel.Error, depth, step.Type, "Run.ScriptError", line),
-            token);
-
-        HandOverScript(step, outcome, "value");
-        Log(LogLevel.Info, depth, step.Type, "Run.RanScript", "C#", outcome.Output.Length);
-
-        return _stoppedInsideScript ? Signal.Stop : Signal.Normal;
-    }
-
-    /// <summary>
-    /// Runs an AutoHotkey script with the macro in reach of it: what the script prints goes into the
-    /// run log line by line, what it reads and writes is what the macro holds, the steps it names are
-    /// run by the macro, and what it hands back with SetResult is this step's result. Only the second
-    /// version of AutoHotkey is what a script of this shape is written for.
-    /// </summary>
-    private Signal RunAutoHotkey(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var script = Template(step.Text("script"));
-        if (script.Trim().Length == 0)
-        {
-            throw new StepFailure("Run.MissingScript");
-        }
-
-        var request = new AutoHotkeyScript(script, Template(step.Text("arguments")).Trim(),
-            ScriptWorkingFolder(step), ScriptTimeoutOf(step), step.Text("ahk").Trim());
-
-        _stoppedInsideScript = false;
-        var outcome = _devices.Scripts.RunAutoHotkey(request,
-            new MacroHost(this, step.Type, depth, token),
-            line => Log(LogLevel.Info, depth, step.Type, "Run.ScriptOutput", line),
-            line => Log(LogLevel.Error, depth, step.Type, "Run.ScriptError", line),
-            token);
-
-        HandOverScript(step, outcome, "value");
-        Log(LogLevel.Info, depth, step.Type, "Run.RanScript", "AutoHotkey", outcome.Output.Length);
-
-        return _stoppedInsideScript ? Signal.Stop : Signal.Normal;
-    }
-
-    /// <summary>
-    /// Reads which PIP packages a step asks for and puts the ones that are not there yet in the
-    /// folder scripts of this program import from. What went in is handed over as a list, so a
-    /// macro can tell what this run of the step changed.
-    /// </summary>
-    private void RunPip(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var wanted = ScriptPackages(step);
-        if (wanted.Count == 0)
-        {
-            throw new StepFailure("Run.NoPackages");
-        }
-
-        // How long a download may take is not a number this step has of its own: it is the step's
-        // own timeout, and a step that says nothing about time is given as long as it takes.
-        var outcome = _devices.Scripts.InstallPip(
-            new PipRequest(wanted, ScriptInterpreter(step), Math.Max(0, step.Meta.TimeoutMs)),
-            line => Log(LogLevel.Info, depth, step.Type, "Run.PackageOutput", line),
-            line => Log(LogLevel.Error, depth, step.Type, "Run.PackageError", line), token);
-
-        HandOverPackages(step, depth, outcome, "Run.PipFailed");
-    }
-
-    /// <summary>
-    /// Brings down the NuGet packages a step names, with everything those packages need, so that a
-    /// C# script can be compiled against them. A step whose packages are all there needs no network
-    /// at all, and what this run really put there is handed over as a list.
-    /// </summary>
-    private void RunNuGet(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var wanted = ScriptPackages(step);
-        if (wanted.Count == 0)
-        {
-            throw new StepFailure("Run.NoPackages");
-        }
-
-        var outcome = _devices.Scripts.InstallNuGet(
-            new NuGetRequest(wanted, Math.Max(0, step.Meta.TimeoutMs)),
-            line => Log(LogLevel.Info, depth, step.Type, "Run.PackageOutput", line),
-            line => Log(LogLevel.Error, depth, step.Type, "Run.PackageError", line), token);
-
-        HandOverPackages(step, depth, outcome, "Run.NuGetFailed");
-    }
-
-    /// <summary>
-    /// Hands over what a package step came to and fails the step when it did not go well: which
-    /// packages this run put there, what went wrong, and whether it worked. A run that ended badly
-    /// hands the three over first, so a macro whose failure rule lets it carry on reads them.
-    /// </summary>
-    private void HandOverPackages(ExecutableStep step, int depth, ScriptResult outcome,
-        string failed)
-    {
-        Give(step, "packages", outcome.Result);
-        Give(step, "error", Value.FromText(outcome.Error.Trim()));
-        Give(step, "success", Value.FromBool(
-            outcome.FailureKey.Length == 0 && outcome.ExitCode == 0));
-
-        if (outcome.FailureKey.Length > 0)
-        {
-            throw new StepFailure(outcome.FailureKey, Careful(outcome.Error));
-        }
-
-        if (outcome.ExitCode != 0)
-        {
-            throw new StepFailure(failed, Careful(outcome.Error));
-        }
-
-        foreach (var package in outcome.Result.AsList())
-        {
-            Log(LogLevel.Info, depth, step.Type, "Run.PackageInstalled", package.AsText());
-        }
-
-        Log(LogLevel.Info, depth, step.Type, "Run.PackageReady", outcome.Result.AsList().Count);
-    }
-
-    /// <summary>
-    /// Hands over what a script of one of the programming languages came to, and fails the step
-    /// when it did not go well: the value it handed back, the message it failed with, and whether
-    /// it ran at all. A script that never got as far as running has a reason of its own — a
-    /// compiler that would not have it, an entry point that is not there — and that reason is what
-    /// the step fails with rather than a number.
-    /// </summary>
-    private void HandOverScript(ExecutableStep step, ScriptResult outcome, string resultKey)
-    {
-        Give(step, resultKey, outcome.Result);
-        Give(step, "error", Value.FromText(outcome.Error.Trim()));
-        Give(step, "success", Value.FromBool(
-            outcome.FailureKey.Length == 0 && outcome.ExitCode == 0));
-
-        if (outcome.FailureKey.Length > 0)
-        {
-            throw new StepFailure(outcome.FailureKey, Careful(outcome.Error));
-        }
-
-        if (outcome.ExitCode != 0)
-        {
-            throw new StepFailure("Run.ScriptFailed", Reason(outcome.ExitCode, outcome.Error));
-        }
-    }
-
-    /// <summary>
-    /// Why a script that stopped with a code that is not zero is being failed, as the exit code and
-    /// — when the script said anything on its error output — what it said. A script that stopped
-    /// without a word is left as the number alone rather than as a colon with nothing after it.
-    /// </summary>
-    private static string Reason(int exitCode, string said)
-    {
-        var word = Careful(said);
-        return word.Length == 0 ? $"{exitCode}" : $"{exitCode}: {word}";
-    }
-
-    /// <summary>
-    /// The packages a step names, one to a line. A line that is blank, or that begins with a hash,
-    /// is left out: a list kept by hand is easier to read with a word about what is in it.
-    /// </summary>
-    private IReadOnlyList<string> ScriptPackages(ExecutableStep step)
-        => [.. Template(step.Text("packages")).Split('\n')
-            .Select(line => line.Trim())
-            .Where(line => line.Length > 0 && !line.StartsWith('#'))];
-
-    /// <summary>The interpreter a Python step runs with, which is this machine's own by default.</summary>
-    private static string ScriptInterpreter(ExecutableStep step)
-    {
-        var named = step.Text("python").Trim();
-        return named.Length == 0 ? "python" : named;
-    }
-
-    /// <summary>How long a script may run, in milliseconds, or zero for as long as it takes.</summary>
-    private int ScriptTimeoutOf(ExecutableStep step)
-        => Math.Max(0, OptionalNumber(step, "timeoutMs", DefaultScriptMs));
-
-    /// <summary>
-    /// Runs a step of the macro being run, found by the identity written in the step list, and says
-    /// whether it ended well. A step that fails is the step's own failure — its rule decides what
-    /// happens to the rest of the macro — while a step that asks for the whole macro to stop stops
-    /// it, and one that leaves a loop it was never inside is the mistake it always was.
-    /// </summary>
-    private bool RunStepById(string id, string type, int depth, CancellationToken token)
-    {
-        var wanted = id.Trim();
-        var step = FindStep(_steps, wanted) ?? throw new StepFailure("Run.NoSuchStep", wanted);
-        Log(LogLevel.Info, depth, type, "Run.ScriptStep", wanted);
-
-        var signal = RunSteps([step], depth + 1, token).GetAwaiter().GetResult();
-        if (signal is Signal.Break or Signal.Continue)
-        {
-            throw new StepFailure(LoopControlKey(signal), wanted);
-        }
-
-        if (signal is Signal.Stop)
-        {
-            _stoppedInsideScript = true;
-        }
-
-        return signal is not Signal.Failed;
-    }
-
-    /// <summary>The step with this identity, looking inside the blocks that hold steps as well.</summary>
-    private static ExecutableStep? FindStep(IReadOnlyList<ExecutableStep> steps, string id)
-    {
-        foreach (var step in steps)
-        {
-            if (string.Equals(step.Id, id, StringComparison.OrdinalIgnoreCase))
-            {
-                return step;
-            }
-
-            foreach (var parameter in step.Parameters)
-            {
-                if (FindStep(parameter.Steps, id) is { } inside)
-                {
-                    return inside;
-                }
-
-                if (parameter.Condition is { } condition
-                    && string.Equals(condition.Id, id, StringComparison.OrdinalIgnoreCase))
-                {
-                    return condition;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// The macro as a script sees it: the values it may read and write, the steps it may run, and
-    /// somewhere to say something. It is the run the script is happening inside, so what a script
-    /// reads is what the macro holds at that moment and what it writes is what the next step sees.
-    /// </summary>
-    private sealed class MacroHost(MacroRunner runner, string type, int depth, CancellationToken token)
-        : IScriptHost
-    {
-        public Value? Read(string name) => runner.Variables.TryGet(name, out var value) ? value : null;
-
-        public void Write(string name, Value value) => runner.Variables.Set(name, value);
-
-        public bool RunStep(string id) => runner.RunStepById(id, type, depth, token);
-
-        public void Print(string text) => runner.Log(LogLevel.Info, depth, type, "Run.ScriptSaid", text);
-    }
-
-    /// <summary>The kind of script a step asks for, said in the step's <c>kind</c> field.</summary>
-    private static ScriptKind ScriptKindOf(ExecutableStep step)
-        => step.Text("kind").Trim().ToLowerInvariant() switch
-        {
-            "" or "ps1" => ScriptKind.PowerShell,
-            "cmdkeep" => ScriptKind.CommandKeepWindow,
-            "cmdclose" => ScriptKind.CommandCloseWindow,
-            "cmdhidden" => ScriptKind.CommandHidden,
-            "bat" => ScriptKind.BatchFile,
-            "cmdfile" => ScriptKind.CommandFile,
-            "ahk" => ScriptKind.AutoHotkey,
-            "custom" => ScriptKind.Custom,
-            // A word the catalogue does not offer is refused rather than quietly read as one of the
-            // kinds: a step that says something unknown is a step whose author meant something
-            // else, and running it as PowerShell would hide that.
-            _ => throw new StepFailure("Run.UnknownScriptKind", step.Text("kind")),
-        };
-
-    /// <summary>
-    /// A name for the kind of script, for the line the run log keeps. It is the name of the thing
-    /// that ran rather than the value the field holds, because the log is read by a person.
-    /// </summary>
-    private static string ScriptKindName(ScriptKind kind) => kind switch
-    {
-        ScriptKind.CommandKeepWindow or ScriptKind.CommandCloseWindow or ScriptKind.CommandHidden
-            or ScriptKind.CommandFile => "CMD",
-        ScriptKind.BatchFile => "BAT",
-        ScriptKind.AutoHotkey => "AutoHotkey",
-        ScriptKind.Custom => "custom",
-        _ => "PowerShell",
-    };
-
-    /// <summary>
-    /// The command line that runs a script of this kind. PowerShell is given the flags that stop it
-    /// from loading a profile or asking anything, so a script that runs inside a macro behaves the
-    /// same way every time it runs. A program of the macro's own choosing gets the script's path
-    /// after whatever the macro wrote, which is where an interpreter expects to find it and where
-    /// a person typing the same command line would put it.
-    /// </summary>
-    private static (string Program, string Arguments) ScriptCommandOf(ExecutableStep step,
-        ScriptKind kind, string path, string extra)
-    {
-        var quoted = $"\"{path}\"";
-        var tail = extra.Length == 0 ? string.Empty : $" {extra}";
-
-        if (kind is ScriptKind.Custom)
-        {
-            var named = step.Text("interpreter").Trim();
-            if (named.Length == 0)
-            {
-                throw new StepFailure("Run.MissingInterpreter");
-            }
-
-            var (program, flags) = CommandLine.Split(named);
-            var start = flags.Length == 0 ? string.Empty : $"{flags} ";
-            return (program, $"{start}{quoted}{tail}");
-        }
-
-        if (kind is ScriptKind.AutoHotkey)
-        {
-            return (AutoHotkey.Program() ?? throw new StepFailure("Run.NoAutoHotkey"),
-                $"{quoted}{tail}");
-        }
-
-        return kind switch
-        {
-            ScriptKind.CommandKeepWindow => ("cmd.exe", $"/k {quoted}{tail}"),
-            ScriptKind.CommandCloseWindow or ScriptKind.CommandHidden
-                or ScriptKind.BatchFile or ScriptKind.CommandFile => ("cmd.exe", $"/c {quoted}{tail}"),
-            _ => ("powershell.exe",
-                $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -File {quoted}{tail}"),
-        };
-    }
-
-    /// <summary>
-    /// The file name ending the program recognises, which is how it knows what it is reading. The
-    /// kinds that name a program by itself are each one ending; a program of the macro's own
-    /// choosing has to be told.
-    /// </summary>
-    private static string ScriptExtensionOf(ExecutableStep step, ScriptKind kind)
-    {
-        switch (kind)
-        {
-            case ScriptKind.CommandKeepWindow:
-            case ScriptKind.CommandCloseWindow:
-            case ScriptKind.CommandHidden:
-            case ScriptKind.CommandFile:
-                return ".cmd";
-            case ScriptKind.BatchFile:
-                return ".bat";
-            case ScriptKind.PowerShell:
-                return ".ps1";
-            case ScriptKind.AutoHotkey:
-                return ".ahk";
-        }
-
-        var wanted = step.Text("extension").Trim();
-        if (wanted.Length == 0)
-        {
-            throw new StepFailure("Run.MissingScriptExtension");
-        }
-
-        return wanted.StartsWith('.') ? wanted : $".{wanted}";
-    }
-
-    /// <summary>
-    /// How the copy of the script handed over is written. Windows PowerShell and AutoHotkey read a
-    /// script as the system code page unless the file starts with a byte-order mark, so a script
-    /// with Chinese text in it needs one; cmd.exe reads in this machine's own code page and a batch
-    /// file with a mark on it does not start at all, so the command kinds get that one. A program
-    /// of the macro's own choosing gets plain UTF-8, which is what a program from this decade
-    /// reads. A macro that knows better can say so, and the reason it can is cscript: that one
-    /// reads the system code page by design, so Chinese text in a .vbs has to be GBK.
-    /// </summary>
-    private static string ScriptEncodingOf(ExecutableStep step, ScriptKind kind)
-    {
-        var chosen = step.Text("encoding").Trim();
-        if (chosen.Length > 0 && !string.Equals(chosen, "auto", StringComparison.OrdinalIgnoreCase))
-        {
-            return chosen;
-        }
-
-        return kind switch
-        {
-            ScriptKind.PowerShell or ScriptKind.AutoHotkey => "utf8bom",
-            ScriptKind.Custom => TextEncoding.Default,
-            _ => TextEncoding.System,
-        };
-    }
-
-    /// <summary>
-    /// The folder a script runs in. A script that reads or writes files next to the macro should
-    /// not have to be told where that is, so the macros folder is what an empty working folder
-    /// means — but only when that folder is really there: a program cannot be started in a folder
-    /// that does not exist, and an empty folder field is better than a script that never runs.
-    /// </summary>
-    private string ScriptWorkingFolder(ExecutableStep step)
-    {
-        var folder = Read(step.Text("folder")).AsText().Trim();
-        return folder.Length == 0 && _devices.Files.Exists(_devices.Files.BaseFolder)
-            ? _devices.Files.BaseFolder
-            : folder;
-    }
-
-    /// <summary>
-    /// Removes the copies of the script the run left on disk: the script itself, and the mark the
-    /// one kind that needs one writes. The script lives in the macro, so what is out there was only
-    /// ever there for as long as the program needed to read it, and a tidy-up that fails is not
-    /// worth failing the step over.
-    /// </summary>
-    private void TidyScript(string path, string sentinel, int depth, string type)
-    {
-        foreach (var file in new[] { path, sentinel })
-        {
-            if (file.Length == 0)
-            {
-                continue;
-            }
-
-            try
-            {
-                _devices.Files.Delete(file, false);
-            }
-            catch (Exception)
-            {
-                Log(LogLevel.Debug, depth, type, "Run.ScriptNotTidied", file);
-            }
-        }
-    }
-
-    /// <summary>Where the copies of a script are written while it runs.</summary>
-    private static string ScriptFolder() => Path.Combine(Path.GetTempPath(), "WhaleGenie");
-
-    /// <summary>
-    /// The time a command is given, turned into one the process API understands: a step that asked
-    /// for no limit is given one long enough that nobody reading the number is waiting for it.
-    /// </summary>
-    private static int ScriptLimitOf(int timeoutMs) => timeoutMs <= 0 ? int.MaxValue : timeoutMs;
-
-    /// <summary>How long a script may run when the step does not say.</summary>
-    private const int DefaultScriptMs = 60000;
-
-    /// <summary>
-    /// Fills the <c>{{name}}</c> placeholders with what those variables hold. A script is written in
-    /// a language of its own — PowerShell, JavaScript, a batch file — and every one of them gives
-    /// its own meaning to <c>$</c> and <c>%</c>, so a macro value is spelled differently in here on
-    /// purpose. A name the macro does not know is left as it was written, where it is easy to see
-    /// rather than quietly replaced by nothing.
-    /// </summary>
-    private string Template(string text)
-        => Regex.Replace(text, @"\{\{(.+?)\}\}", match =>
-        {
-            var name = match.Groups[1].Value.Trim();
-            return Variables.TryGet(name, out var value) ? value.AsText() : match.Value;
-        });
-
-    /// <summary>What a script said on its error output, kept short enough to read in a message.</summary>
-    private static string Careful(string text)
-    {
-        var trimmed = text.Trim();
-        return trimmed.Length <= 400 ? trimmed : trimmed[..400] + "…";
-    }
-
-    /// <summary>
-    /// Reads a selector such as <c>Button[name='Save']</c> or <c>Edit[automationId='input']</c>,
-    /// together with the window it is looked for in. That window is recognised by the same rule
-    /// every other step recognises one with, and the search is narrowed by it rather than by a title
-    /// alone: a step that aims at a window by its program or by a pattern finds the same window a
-    /// window action would.
-    /// </summary>
-    private UiQuery Query(ExecutableStep step)
-    {
-        var rule = WindowRuleOf(step, "window", "how");
-        return UiQuery.Parse(step.Text("selector"), rule.Text, Index(step, "matchIndex", 1),
-            rule.Match, rule.Compare);
-    }
-
-    /// <summary>
-    /// The same, for the control a step measures its coordinates from. A step that is anchored to a
-    /// control keeps its own pair of fields, so the two readings never take each other's values.
-    /// </summary>
-    private UiQuery AnchorQuery(ExecutableStep step)
-    {
-        var rule = WindowRuleOf(step, "anchorWindow", "anchorHow");
-        return UiQuery.Parse(step.Text("anchorSelector"), rule.Text, 1, rule.Match, rule.Compare);
-    }
-
-    /// <summary>
-    /// Reads a value: a bare variable name, then an expression, then plain text. That is
-    /// what lets the fields accept <c>count</c>, <c>$count + 1</c> and <c>hello</c> alike.
-    /// </summary>
-    private Value Read(string text)
-    {
-        var trimmed = text.Trim();
-        if (trimmed.Length == 0)
-        {
-            return Value.Null;
-        }
-
-        if (Variables.TryGet(trimmed, out var direct))
-        {
-            return direct;
-        }
-
-        if (Expression.TryEvaluate(trimmed, Variables, out var value, out var error))
-        {
-            return value;
-        }
-
-        // Text that was written as an expression has to work, so a typo shows up as a
-        // failure rather than quietly becoming a literal.
-        if (LooksLikeExpression(trimmed))
-        {
-            throw error!;
-        }
-
-        // Numbers are read without a thousands separator: text like "10,20,30,40" or "1,000"
-        // is text, not a number, and a comma means a separator rather than a digit group.
-        if (double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
-        {
-            return Value.FromNumber(number);
-        }
-
-        return Value.FromText(Interpolate(trimmed));
-    }
-
-    /// <summary>
-    /// True when the text can only be meant as an expression: it opens with the variable sign, so
-    /// the author was writing a value rather than words.
-    /// </summary>
-    /// <remarks>
-    /// Brackets and parentheses used to count as the same sign, and they are exactly what a
-    /// selector or a path is made of — <c>[data-testid="row-2"]</c>, <c>div &gt; p:nth-of-type(2)</c>,
-    /// <c>C:\Program Files (x86)\a.log</c> — so a value that was plainly one of those came back as
-    /// "not a valid expression" instead of being used. A "$" at the front is the one opening that
-    /// cannot be anything else; a "$" in the middle is left alone, because a written-out dollar
-    /// sign looks like that too.
-    /// </remarks>
-    private static bool LooksLikeExpression(string text) => text[0] == '$';
-
-    /// <summary>Replaces every <c>$name</c> that names a known variable with its text.</summary>
-    private string Interpolate(string text)
-    {
-        var result = text;
-        foreach (var name in Expression.ReferencedNames(text))
-        {
-            if (Variables.TryGet(name, out var value))
-            {
-                result = result.Replace("$" + name, value.AsText(), StringComparison.OrdinalIgnoreCase);
-            }
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// A number a step names, read the way every other field is: as a value. A field nobody
-    /// answered is a zero, because "nothing was said" is not the same as "this cannot be read".
-    /// A value that cannot be worked out is left as the broken expression it is, so the step
-    /// reports <c>Run.BadExpression</c> like a text field would — swallowing it into a zero is how
-    /// a click meant for something that was found ends up at the corner of the screen, with
-    /// nothing anywhere saying why.
-    /// </summary>
-    private int Number(ExecutableStep step, string name)
-        => Vary(step, name, (int)Read(step.Text(name)).AsNumber());
-
-    /// <summary>
-    /// Bends a number by whatever slack the step asked for. Only lengths of time are written with
-    /// one, so this is what stops a macro's waits from looking like a machine's: 500 written with
-    /// 20% of give comes out anywhere from 400 to 600, a fresh number every time the step runs.
-    /// </summary>
-    private static int Vary(ExecutableStep step, string name, int value)
-    {
-        var jitter = Math.Min(1m, Math.Max(0m, step.Jitter(name)));
-        if (jitter == 0m || value == 0)
-        {
-            return value;
-        }
-
-        var bend = 1 + (((System.Random.Shared.NextDouble() * 2) - 1) * (double)jitter);
-        return (int)Math.Round(value * bend);
-    }
-
-    /// <summary>A number a step may leave out, taking <paramref name="fallback"/> when it does.</summary>
-    private int OptionalNumber(ExecutableStep step, string name, int fallback)
-        => step.Text(name).Trim().Length == 0 ? fallback : Number(step, name);
-
-    /// <summary>
-    /// A yes/no setting. A step that says nothing takes the catalogue's own default, so a
-    /// missing switch behaves the way the action editor showed it rather than always being on.
-    /// </summary>
-    private static bool Flag(ExecutableStep step, string name, bool fallback)
-    {
-        var text = step.Text(name).Trim();
-        return text.Length == 0
-            ? fallback
-            : !string.Equals(text, "false", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static LogLevel Level(string level) => level.ToLowerInvariant() switch
-    {
-        "warn" => LogLevel.Warn,
-        "error" => LogLevel.Error,
-        "debug" => LogLevel.Debug,
-        _ => LogLevel.Info,
-    };
-
-    private static async Task Pause(int milliseconds, CancellationToken token)
-    {
-        if (milliseconds > 0)
-        {
-            await Task.Delay(milliseconds, token);
-        }
-    }
-
-    /// <summary>
-    /// Waits for something to become true, asking again every <paramref name="pollMs"/> and giving
-    /// up after <paramref name="timeoutMs"/>. Every wait that carries its own length comes through
-    /// here: waiting is the same thing whether it is an element, a window, a program or a condition
-    /// the macro wrote itself, so the pacing and the way a timeout is counted are written once. The
-    /// question is asked before the clock is read, so a wait that already holds costs nothing, and
-    /// a timeout of zero means "look once and give up".
-    /// </summary>
-    /// <summary>
-    /// The beat a step that waits for something looks at the screen on when it was not given one:
-    /// one refresh of the screen it is running on, because a picture that has not been drawn again
-    /// cannot differ from the one just read, and a look that comes sooner than the next refresh
-    /// reads the same frame twice. That is 16 ms on a 60 Hz display and 4 ms on a 240 Hz one, which
-    /// is what makes the default follow the screen rather than the machine the macro was written
-    /// on. A number written into the step is used as it stands, and 0 means "as soon as the look
-    /// before it is done".
-    /// </summary>
-    private int LookBeat(ExecutableStep step)
-        => Math.Max(1, OptionalNumber(step, "intervalMs", _devices.Screen.RefreshMilliseconds));
-
-    private async Task<bool> WaitForFlagAsync(Func<bool> ready, int timeoutMs, int pollMs,
-        CancellationToken token)
-    {
-        var started = Stopwatch.GetTimestamp();
-        while (true)
-        {
-            if (ready())
-            {
-                return true;
-            }
-
-            if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeoutMs)
-            {
-                return false;
-            }
-
-            await Pause(pollMs, token);
-        }
-    }
-
-    /// <summary>The same wait, for something that turns up rather than becomes true.</summary>
-    private async Task<T?> WaitForValueAsync<T>(Func<T?> probe, int timeoutMs, int pollMs,
-        CancellationToken token)
-        where T : class
-    {
-        var started = Stopwatch.GetTimestamp();
-        while (true)
-        {
-            if (probe() is { } found)
-            {
-                return found;
-            }
-
-            if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeoutMs)
-            {
-                return null;
-            }
-
-            await Pause(pollMs, token);
-        }
-    }
-
-    /// <summary>
-    /// Waits for something to become true, asking again every <paramref name="pollMs"/> until it
-    /// does. How long that may take is not the wait's to say: the step's own timeout is what ends
-    /// it, which is what makes the length of a wait a setting of the step rather than a field that
-    /// says the same thing a second time.
-    /// </summary>
-    private static async Task WaitForFlagAsync(Func<bool> ready, int pollMs, CancellationToken token)
-    {
-        while (!ready())
-        {
-            await Pause(pollMs, token);
-        }
     }
 
     /// <summary>The same, for something that turns up rather than becomes true.</summary>
@@ -9385,6 +3167,46 @@ public sealed class MacroRunner
 
             await Pause(pollMs, token);
         }
+    }
+
+    /// <summary>One background call, kept until the macro waits for it.</summary>
+    private sealed class ChildRun
+    {
+        public required string Handle { get; init; }
+
+        public required string Macro { get; init; }
+
+        public required MacroSignature Signature { get; init; }
+
+        public required VariableStore Store { get; init; }
+
+        public required CancellationTokenSource Stop { get; init; }
+
+        public required List<(string Result, string Name)> Wanted { get; init; }
+
+        public required Task<RunResult> Task { get; init; }
+    }
+
+    /// <summary>
+    /// What a background run reports through. Its lines land in the caller's log so a run window
+    /// still shows what happened; its steps do not stop at the caller's breakpoints, which belong
+    /// to the steps the window is showing.
+    /// </summary>
+    private sealed class ChildRunHost(IRunHost parent) : IRunHost
+    {
+        public void Log(LogEntry entry) => parent.Log(entry);
+
+        public string Text(LogEntry entry) => parent.Text(entry);
+
+        public Task<bool> BeforeStep(ExecutableStep step, int depth, CancellationToken token)
+            => Task.FromResult(true);
+
+        public Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
+            CancellationToken token)
+            => parent.Ask(step, reason, detail, comment, token);
+
+        public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
+            => parent.AskUser(question, token);
     }
 
     private void Log(LogLevel level, int depth, string step, string key, params object[] arguments)

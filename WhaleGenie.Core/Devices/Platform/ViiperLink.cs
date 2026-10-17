@@ -113,7 +113,7 @@ public sealed class ViiperLink : IViiperLink
         _gamepad = _server.AddXbox360();
         if (_gamepad == IntPtr.Zero)
         {
-            throw new DeviceActionException("Run.NoDriverServer");
+            throw new DeviceActionException(RunKeys.NoDriverServer);
         }
     }
 
@@ -121,7 +121,7 @@ public sealed class ViiperLink : IViiperLink
     {
         if (_gamepad == IntPtr.Zero)
         {
-            throw new DeviceActionException("Run.NoGamepad");
+            throw new DeviceActionException(RunKeys.NoGamepad);
         }
 
         Sent(_server.SetXbox360(_gamepad, ForXbox360(state)));
@@ -139,9 +139,9 @@ public sealed class ViiperLink : IViiperLink
         switch (state)
         {
             case DriverInputState.DriverMissing:
-                throw new DeviceActionException("Run.NoDriver");
+                throw new DeviceActionException(RunKeys.NoDriver);
             case DriverInputState.LibraryMissing:
-                throw new DeviceActionException("Run.NoDriverLibrary");
+                throw new DeviceActionException(RunKeys.NoDriverLibrary);
         }
 
         ViiperUsbServer? server;
@@ -154,12 +154,12 @@ public sealed class ViiperLink : IViiperLink
         {
             // The file is where it should be and Windows will not have it: an install that was cut
             // short, or a library of another shape. The run cannot do anything about that either.
-            throw new DeviceActionException("Run.NoDriverLibrary");
+            throw new DeviceActionException(RunKeys.NoDriverLibrary);
         }
 
         if (server is null)
         {
-            throw new DeviceActionException("Run.NoDriverServer");
+            throw new DeviceActionException(RunKeys.NoDriverServer);
         }
 
         var keyboard = server.AddKeyboard();
@@ -178,7 +178,7 @@ public sealed class ViiperLink : IViiperLink
                 server.RemoveMouse(mouse);
             }
 
-            throw new DeviceActionException("Run.NoDriverServer");
+            throw new DeviceActionException(RunKeys.NoDriverServer);
         }
 
         return new ViiperLink(server, keyboard, mouse, screen);
@@ -209,7 +209,7 @@ public sealed class ViiperLink : IViiperLink
     {
         if (!sent)
         {
-            throw new DeviceActionException("Run.NoDriverAttached");
+            throw new DeviceActionException(RunKeys.NoDriverAttached);
         }
     }
 

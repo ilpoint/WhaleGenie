@@ -48,7 +48,7 @@ internal sealed class WindowsInputRouter(IInputDevice front, IScreenDevice scree
     {
         if (window == 0)
         {
-            throw new DeviceActionException("Run.MissingTargetWindow");
+            throw new DeviceActionException(RunKeys.MissingTargetWindow);
         }
 
         if (!_posting.TryGetValue(window, out var device))

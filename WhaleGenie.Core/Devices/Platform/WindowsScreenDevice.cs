@@ -96,7 +96,7 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
             var pixel = GetPixel(screen, x, y);
             if (pixel == uint.MaxValue)
             {
-                throw new DeviceActionException("Run.PixelOutsideScreen", $"{x},{y}");
+                throw new DeviceActionException(RunKeys.PixelOutsideScreen, $"{x},{y}");
             }
 
             // COLORREF stores the channels as 0x00BBGGRR.
@@ -130,15 +130,15 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         }
         catch (CaptureUnavailableException error)
         {
-            throw new DeviceActionException("Run.NoGraphicsCapture", error.Message);
+            throw new DeviceActionException(RunKeys.NoGraphicsCapture, error.Message);
         }
         catch (CaptureFailedException error)
         {
-            throw new DeviceActionException("Run.CaptureFailed", error.Message);
+            throw new DeviceActionException(RunKeys.CaptureFailed, error.Message);
         }
         catch (EmptyRegionException error)
         {
-            throw new DeviceActionException("Run.EmptyRegion", error.Message);
+            throw new DeviceActionException(RunKeys.EmptyRegion, error.Message);
         }
     }
 

@@ -50,7 +50,7 @@ internal static class WindowsBrightness
 
         if (!worked)
         {
-            throw new DeviceActionException("Run.BrightnessRefused");
+            throw new DeviceActionException(RunKeys.BrightnessRefused);
         }
     }
 

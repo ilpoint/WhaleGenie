@@ -272,14 +272,14 @@ public sealed class WindowsClipboardDevice : IClipboardDevice
         var handle = GlobalAlloc(MoveableMemory, (UIntPtr)bytes.Length);
         if (handle == IntPtr.Zero)
         {
-            throw new DeviceActionException("Run.ClipboardWriteFailed");
+            throw new DeviceActionException(RunKeys.ClipboardWriteFailed);
         }
 
         var target = GlobalLock(handle);
         if (target == IntPtr.Zero)
         {
             GlobalFree(handle);
-            throw new DeviceActionException("Run.ClipboardWriteFailed");
+            throw new DeviceActionException(RunKeys.ClipboardWriteFailed);
         }
 
         try
@@ -294,7 +294,7 @@ public sealed class WindowsClipboardDevice : IClipboardDevice
         if (SetClipboardData(format, handle) == IntPtr.Zero)
         {
             GlobalFree(handle);
-            throw new DeviceActionException("Run.ClipboardWriteFailed");
+            throw new DeviceActionException(RunKeys.ClipboardWriteFailed);
         }
     }
 
@@ -316,7 +316,7 @@ public sealed class WindowsClipboardDevice : IClipboardDevice
     {
         if (!Open())
         {
-            throw new DeviceActionException("Run.ClipboardBusy");
+            throw new DeviceActionException(RunKeys.ClipboardBusy);
         }
 
         try

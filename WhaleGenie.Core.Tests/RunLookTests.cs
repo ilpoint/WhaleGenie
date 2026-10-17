@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -48,6 +49,9 @@ public class RunLookTests
     private static ExecutableParameter Body(string name, params ExecutableStep[] steps)
         => new() { Name = name, Steps = steps };
 
+    private static ExecutableParameter When(string name, ExecutableStep step)
+        => new() { Name = name, Condition = step };
+
     /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
     private static ExecutableParameter Returns(params string[] results)
         => SampleFiles.Returns(results);
@@ -63,7 +67,7 @@ public class RunLookTests
     private static ExecutableParameter Pictures(params string[] written)
         => new()
         {
-            Name = "image",
+            Name = "images",
             Rows = [.. written.Select(text => (IReadOnlyDictionary<string, string>)
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 {
@@ -78,6 +82,169 @@ public class RunLookTests
     /// <summary>See <see cref="SampleFiles.Recognize"/>: a step that reads one part of the screen.</summary>
     private static ExecutableStep Recognize(int x, int y, int width, int height,
         params ExecutableParameter[] rest) => SampleFiles.Recognize(x, y, width, height, rest);
+
+    /// <summary>
+    /// A retry spends the same clock as the first try: two tries that each take most of the budget
+    /// cannot add up to twice the time the step was allowed.
+    /// </summary>
+    [Fact]
+    public async Task Retries_share_one_timeout_budget_and_each_try_is_kept_for_the_debugger()
+    {
+        var block = new ExecutableStep
+        {
+            Type = "control.sequence",
+            Parameters =
+            [
+                Body("steps",
+                    Step("control.delay", Param("ms", "80")),
+                    Step("not.an.action")),
+            ],
+            Meta = new StepMeta
+            {
+                TimeoutMs = 130,
+                RetryCount = 5,
+                RetryDelayMs = 0,
+                OnError = StepErrorAction.Continue,
+            },
+        };
+
+        var watched = new Watched();
+        var watch = Stopwatch.StartNew();
+        var result = await new MacroRunner(new VariableStore(), devices: NullDeviceLayer.Instance,
+            looks: watched).RunAsync([block]);
+        watch.Stop();
+
+        // Six tries at 80 ms each would be 480 ms. One 130 ms budget ends the second try.
+        Assert.True(result.Succeeded, result.Key);
+        Assert.True(watch.Elapsed.TotalMilliseconds < 350,
+            $"the retries each got a fresh clock, took {watch.Elapsed.TotalMilliseconds:0} ms");
+
+        var run = Assert.Single(watched.Runs, run => run.StepType == "control.sequence");
+        Assert.Equal(130, run.TimeoutMs);
+        Assert.True(run.Attempts.Count >= 2, $"only {run.Attempts.Count} try made");
+        Assert.Equal("failed", run.Attempts[0].Outcome);
+        Assert.NotNull(run.Attempts[0].RemainingMs);
+        Assert.True(run.Attempts[^1].Overran);
+    }
+
+    [Fact]
+    public async Task A_return_is_reported_as_done_and_the_steps_after_it_are_left_skipped()
+    {
+        var store = new VariableStore();
+        var watched = new Watched();
+        var steps = new[]
+        {
+            new ExecutableStep { Type = "control.return", Id = "aaaa" },
+            new ExecutableStep
+            {
+                Type = "control.setVariable",
+                Id = "bbbb",
+                Parameters =
+                [
+                    Param("name", "after"), Param("scope", "local"), Param("value", "1"),
+                ],
+            },
+        };
+
+        var result = await new MacroRunner(store, devices: NullDeviceLayer.Instance, looks: watched)
+            .RunAsync(steps);
+
+        Assert.True(result.Succeeded, result.Key);
+        var returned = Assert.Single(watched.Runs, run => run.StepId == "aaaa");
+        Assert.Equal("ok", returned.Outcome);
+
+        // The run debugger reads this name to draw a step it never reached, so a return has to
+        // leave the same mark behind as any other early end.
+        Assert.Equal("skipped", store.Local.Values["step.bbbb.outcome"].AsText());
+        Assert.False(store.TryGet("after", out _));
+    }
+
+    [Fact]
+    public async Task A_catch_that_declines_a_failure_leaves_the_try_failed_with_the_original_key()
+    {
+        var store = new VariableStore();
+        var watched = new Watched();
+        var steps = new[]
+        {
+            new ExecutableStep
+            {
+                Type = "control.try",
+                Id = "cccc",
+                Parameters =
+                [
+                    Body("body", new ExecutableStep
+                    {
+                        Type = "control.fail",
+                        Id = "dddd",
+                        Parameters = [Param("reason", "boom")],
+                    }),
+                    When("catchWhen", Step("condition.compare",
+                        Param("variable", "caught.key"),
+                        Param("compareOperator", "equals"),
+                        Param("compareValue", "Run.NoDevice"))),
+                    Body("catch", new ExecutableStep
+                    {
+                        Type = "control.setVariable",
+                        Id = "eeee",
+                        Parameters =
+                        [
+                            Param("name", "handled"), Param("scope", "local"), Param("value", "1"),
+                        ],
+                    }),
+                    Body("finally", new ExecutableStep
+                    {
+                        Type = "control.setVariable",
+                        Id = "ffff",
+                        Parameters =
+                        [
+                            Param("name", "tidied"), Param("scope", "local"), Param("value", "1"),
+                        ],
+                    }),
+                ],
+            },
+        };
+
+        var result = await new MacroRunner(store, devices: NullDeviceLayer.Instance, looks: watched)
+            .RunAsync(steps);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.StepFailedByMacro, result.Key);
+        Assert.Equal("boom", result.Detail);
+
+        var tried = Assert.Single(watched.Runs, run => run.StepId == "cccc");
+        Assert.Equal("failed", tried.Outcome);
+        Assert.Equal(RunKeys.StepFailedByMacro, tried.FailureKey);
+        Assert.Equal("skipped", store.Local.Values["step.eeee.outcome"].AsText());
+        Assert.Equal("ok", store.Local.Values["step.ffff.outcome"].AsText());
+    }
+
+    /// <summary>
+    /// A device call that has already started cannot be torn down, so it is judged when it comes
+    /// back: the step fails with the generic timeout rather than pretending the call was stopped.
+    /// </summary>
+    [Fact]
+    public async Task A_call_that_returns_after_the_budget_is_judged_when_it_returns()
+    {
+        var devices = new FakeDeviceLayer { ReadPageDelayMs = 120 };
+        var page = Within(40, Step("browser.readPage"));
+        var watched = new Watched();
+
+        var watch = Stopwatch.StartNew();
+        var result = await new MacroRunner(new VariableStore(), devices: devices, looks: watched)
+            .RunAsync([page]);
+        watch.Stop();
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.Timeout, result.Key);
+        Assert.True(watch.ElapsedMilliseconds >= 100,
+            $"the call was supposed to finish before being judged, took {watch.ElapsedMilliseconds} ms");
+
+        var run = Assert.Single(watched.Runs);
+        var attempt = Assert.Single(run.Attempts);
+        Assert.True(attempt.Overran);
+        Assert.True(attempt.ElapsedMs >= 100, $"the call took {attempt.ElapsedMs:0} ms");
+    }
+
     /// <summary>
     /// A step that looks for a picture, with the places to look given the way the dialog gives
     /// them: one row per rectangle.
@@ -364,7 +531,7 @@ public class RunLookTests
             new TextSpan("Cancel", new ScreenPoint(40, 6), new ScreenSize(20, 8), 12),
         ];
         var looks = new Watched();
-        var step = Step("ocr.findText", Param("text", "Save"), Param("matchMode", "contains"),
+        var step = Step("ocr.findText", Param("queryText", "Save"), Param("matchMode", "contains"),
             Param("minScore", "0"), Hit("match", "match"));
 
         await Run(step, devices, looks);
