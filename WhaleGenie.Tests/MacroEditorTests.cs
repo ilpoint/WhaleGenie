@@ -6,6 +6,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -673,6 +674,36 @@ public class MacroEditorTests
             var viewModel = (MacroEditorViewModel)window.DataContext!;
             Assert.True(viewModel.HasDeclarationProblems);
             Assert.Contains("同名", viewModel.DeclarationProblemSummary, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public void A_macro_name_has_to_be_there_and_belong_to_one_macro()
+    {
+        Ui.Run(() =>
+        {
+            var first = new MacroItem { Name = "甲" };
+            var second = new MacroItem { Name = "乙" };
+            var window = new MacroEditorWindow(first, [first, second]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (MacroEditorViewModel)window.DataContext!;
+            Assert.False(viewModel.HasNameProblem);
+
+            viewModel.Name = "乙";
+            Assert.True(viewModel.HasNameProblem);
+            Assert.Equal(Strings.Format("Editor.Problem.DuplicateMacroName", "乙"),
+                viewModel.NameProblem);
+
+            viewModel.Name = " ";
+            Assert.True(viewModel.HasNameProblem);
+            Assert.Equal(Strings.Get("Editor.Problem.EmptyMacroName"), viewModel.NameProblem);
+
+            var closed = false;
+            viewModel.CloseRequested += _ => closed = true;
+            viewModel.SaveCommand.Execute(null);
+            Assert.False(closed);
         });
     }
 }

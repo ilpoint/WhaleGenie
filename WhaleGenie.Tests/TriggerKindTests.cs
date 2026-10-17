@@ -145,7 +145,7 @@ public class TriggerKindTests
     {
         Ui.Run(() =>
         {
-            var editor = new MacroEditorViewModel();
+            var editor = new MacroEditorViewModel { Name = "probe" };
             editor.WatchFilter = "   ";
             editor.ScheduleInterval = null;
 

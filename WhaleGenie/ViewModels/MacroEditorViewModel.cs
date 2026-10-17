@@ -233,6 +233,20 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>The declaration problems, one per line, for the editor to show above the step list.</summary>
     public string DeclarationProblemSummary => string.Join("\n", DeclarationProblems);
 
+    /// <summary>
+    /// What is wrong with the name the macro is about to be saved under. A macro is called by its
+    /// name, so an empty one cannot be called at all and a duplicate would make the project hold
+    /// two macros that answer to the same call — one of them silently winning.
+    /// </summary>
+    public string? NameProblem => Name.Trim().Length == 0
+        ? Strings.Get("Editor.Problem.EmptyMacroName")
+        : _projectMacros.Any(macro =>
+            string.Equals(macro.Name.Trim(), Name.Trim(), StringComparison.OrdinalIgnoreCase))
+            ? Strings.Format("Editor.Problem.DuplicateMacroName", Name.Trim())
+            : null;
+
+    public bool HasNameProblem => NameProblem is not null;
+
     /// <summary>Which steps the check is unhappy about, and what it says about each one.</summary>
     private Dictionary<MacroStep, string> _problemByStep = [];
 
@@ -241,6 +255,8 @@ public partial class MacroEditorViewModel : ViewModelBase
         bool browserShared = false)
     {
         _projectMacros = [.. macros];
+        OnPropertyChanged(nameof(NameProblem));
+        OnPropertyChanged(nameof(HasNameProblem));
         _inputShared = inputShared;
         _browserShared = browserShared;
         RebuildRows();
@@ -263,6 +279,8 @@ public partial class MacroEditorViewModel : ViewModelBase
     public bool IsRebuildingRows { get; private set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NameProblem))]
+    [NotifyPropertyChangedFor(nameof(HasNameProblem))]
     public partial string Name { get; set; } = string.Empty;
 
     [ObservableProperty]
@@ -2140,6 +2158,11 @@ public partial class MacroEditorViewModel : ViewModelBase
     [RelayCommand]
     private void Save()
     {
+        if (HasNameProblem)
+        {
+            return;
+        }
+
         StopRecording();
         IsDirty = false;
         CloseRequested?.Invoke(BuildMacro());
@@ -2155,7 +2178,8 @@ public partial class MacroEditorViewModel : ViewModelBase
                 or nameof(SelectedSteps) or nameof(IsRecording) or nameof(RecordedEvents)
                 or nameof(Problems) or nameof(HasProblems) or nameof(HasStepProblems)
                 or nameof(DeclarationProblems) or nameof(HasDeclarationProblems)
-                or nameof(ProblemSummary) or nameof(DeclarationProblemSummary)))
+                or nameof(ProblemSummary) or nameof(DeclarationProblemSummary)
+                or nameof(NameProblem) or nameof(HasNameProblem)))
         {
             MarkDirty();
         }

@@ -430,6 +430,8 @@
                         <StackPanel>
                             <TextBox Classes="NameInput" Text="{Binding Name}"
                                      PlaceholderText="{Binding [Editor.NamePlaceholder], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="ProblemSummary" Margin="2,4,0,0"
+                                       IsVisible="{Binding HasNameProblem}" Text="{Binding NameProblem}" />
 
                             <TextBlock Classes="GroupHeader"
                                        Text="{Binding [Editor.TriggerSettings], Source={x:Static loc:Strings.Current}}" />
@@ -914,7 +916,7 @@
                         <Button Classes="SaveButton"
                                 Content="{Binding [Editor.Save], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Editor.Tip.Save], Source={x:Static loc:Strings.Current}}"
-                                Command="{Binding SaveCommand}" />
+                                Command="{Binding SaveCommand}" IsEnabled="{Binding !HasNameProblem}" />
                         <Button Classes="RunButton" Name="RunDebugButton"
                                 IsEnabled="{Binding HasSteps}"
                                 Content="{Binding [Editor.RunDebug], Source={x:Static loc:Strings.Current}}"
