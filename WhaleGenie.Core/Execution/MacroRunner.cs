@@ -3114,6 +3114,10 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.NotANumber, $"{name}: {failure.Detail}");
         }
 
+        // The count after this step, so a macro can compare it or write it down without reading
+        // the same global again — a second read would also be a second look at a value another run
+        // may have changed in between.
+        Give(step, "value", Value.FromNumber(sum));
         Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, Value.FormatNumber(sum));
     }
 
@@ -3136,6 +3140,12 @@ public sealed partial class MacroRunner
         Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, list.AsText());
     }
 
+    /// <summary>
+    /// Changes one item of a list — or empties it — as a single step under the bag's lock: two runs
+    /// appending to the same global list both see the list as it is when their turn comes, so
+    /// neither writes a list that is missing the other's item. A local list is changed the same way
+    /// under its own bag, which no other run touches.
+    /// </summary>
     private void ChangeList(ExecutableStep step, int depth)
     {
         var name = ReadText(step, "name").Trim();
@@ -3144,9 +3154,25 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.MissingVariable);
         }
 
-        if (!Variables.TryGet(name, out var current) || !current.IsList)
+        var bag = Variables.Local.Contains(name) ? Variables.Local : Variables.Global;
+        if (!bag.TryUpdate(name, current => Changed(step, current), out var list))
         {
             throw new StepFailure(RunKeys.NotAList, name);
+        }
+
+        Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, list.AsText());
+    }
+
+    /// <summary>
+    /// The list one change step makes out of the list that is there now. The step's own value is
+    /// read here, inside the lock, so a step that names the list it changes reads it as it stands
+    /// and a value that cannot be read leaves the list as it was.
+    /// </summary>
+    private Value Changed(ExecutableStep step, Value current)
+    {
+        if (!current.IsList)
+        {
+            throw new StepFailure(RunKeys.NotAList, ReadText(step, "name").Trim());
         }
 
         var items = new List<Value>(current.Items);
@@ -3170,10 +3196,7 @@ public sealed partial class MacroRunner
                 break;
         }
 
-        var target = Variables.Local.Contains(name) ? VariableTarget.Local : VariableTarget.Global;
-        var list = Value.FromList(items);
-        Variables.Set(name, list, target);
-        Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, list.AsText());
+        return Value.FromList(items);
     }
 
     private int Index(ExecutableStep step, int count)

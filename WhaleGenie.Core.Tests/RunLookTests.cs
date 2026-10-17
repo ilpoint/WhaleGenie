@@ -96,12 +96,12 @@ public class RunLookTests
             Parameters =
             [
                 Body("steps",
-                    Step("control.delay", Param("ms", "80")),
+                    Step("control.delay", Param("ms", "250")),
                     Step("not.an.action")),
             ],
             Meta = new StepMeta
             {
-                TimeoutMs = 130,
+                TimeoutMs = 400,
                 RetryCount = 5,
                 RetryDelayMs = 0,
                 OnError = StepErrorAction.Continue,
@@ -114,13 +114,14 @@ public class RunLookTests
             looks: watched).RunAsync([block]);
         watch.Stop();
 
-        // Six tries at 80 ms each would be 480 ms. One 130 ms budget ends the second try.
+        // Six tries at 250 ms each would be 1.5 s with a clock of their own. One 400 ms budget
+        // ends the second try; a loaded machine still gets that second one made.
         Assert.True(result.Succeeded, result.Key);
-        Assert.True(watch.Elapsed.TotalMilliseconds < 350,
+        Assert.True(watch.Elapsed.TotalMilliseconds < 900,
             $"the retries each got a fresh clock, took {watch.Elapsed.TotalMilliseconds:0} ms");
 
         var run = Assert.Single(watched.Runs, run => run.StepType == "control.sequence");
-        Assert.Equal(130, run.TimeoutMs);
+        Assert.Equal(400, run.TimeoutMs);
         Assert.True(run.Attempts.Count >= 2, $"only {run.Attempts.Count} try made");
         Assert.Equal("failed", run.Attempts[0].Outcome);
         Assert.NotNull(run.Attempts[0].RemainingMs);

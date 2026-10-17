@@ -1052,9 +1052,27 @@
         "AcceptsVariables": false,
         "ConditionsOnly": false,
         "ChildKeys": []
+      },
+      {
+        "Name": "returns",
+        "Shape": "Rows",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
       }
     ],
-    "Returns": []
+    "Returns": [
+      {
+        "Key": "value",
+        "Type": "Number",
+        "Primary": true
+      }
+    ]
   },
   {
     "Key": "control.listCreate",

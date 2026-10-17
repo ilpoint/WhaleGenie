@@ -108,4 +108,27 @@ public sealed class VariableBag : IVariableResolver
             return true;
         }
     }
+
+    /// <summary>
+    /// Changes a value under the bag's own lock: what the change is handed is the value that is
+    /// there now, and what it returns is what is written. A read and a write that two runs must not
+    /// split — appending to one global list — are therefore a single step. A change that throws
+    /// writes nothing, which is how a bad index or a value that is not a list leaves the list as it
+    /// was. False means the name is not there at all.
+    /// </summary>
+    public bool TryUpdate(string name, Func<Value, Value> change, out Value updated)
+    {
+        lock (_gate)
+        {
+            if (!_values.TryGetValue(name, out var current))
+            {
+                updated = Value.Null;
+                return false;
+            }
+
+            updated = change(current);
+            _values[name] = updated;
+            return true;
+        }
+    }
 }

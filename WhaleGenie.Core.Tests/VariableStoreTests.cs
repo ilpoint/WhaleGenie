@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
@@ -194,6 +195,53 @@ public class VariableStoreTests
         });
 
         Assert.Equal(4000, shared.Values["count"].AsNumber());
+    }
+
+    /// <summary>
+    /// A change reads and writes under the same lock, so eight runs appending at once leave one
+    /// item per append rather than one per run.
+    /// </summary>
+    [Fact]
+    public void Changing_a_shared_list_from_many_runs_loses_nothing()
+    {
+        var shared = new VariableBag();
+        shared.SetList("log", []);
+
+        Parallel.For(0, 8, run =>
+        {
+            for (var round = 0; round < 200; round++)
+            {
+                Assert.True(shared.TryUpdate("log",
+                    current => Value.FromList([.. current.Items, Value.FromNumber(run)]), out _));
+            }
+        });
+
+        Assert.Equal(1600, shared.Values["log"].Items.Count);
+    }
+
+    /// <summary>
+    /// A change that cannot be made writes nothing: the old value is still there, and the failure
+    /// is the one the change itself raised.
+    /// </summary>
+    [Fact]
+    public void A_change_that_throws_leaves_the_value_alone()
+    {
+        var shared = new VariableBag();
+        shared.SetList("log", [Value.FromText("a")]);
+
+        Assert.Throws<InvalidOperationException>(() => shared.TryUpdate("log",
+            _ => throw new InvalidOperationException("not this time"), out _));
+
+        Assert.Equal(["a"], shared.Values["log"].Items.Select(item => item.AsText()));
+    }
+
+    /// <summary>A name the bag does not hold is answered by false rather than by a change.</summary>
+    [Fact]
+    public void Changing_a_name_the_bag_does_not_hold_answers_false()
+    {
+        var shared = new VariableBag();
+
+        Assert.False(shared.TryUpdate("log", _ => Value.Null, out _));
     }
 
     /// <summary>

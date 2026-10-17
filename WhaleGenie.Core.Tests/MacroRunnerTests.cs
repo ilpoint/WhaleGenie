@@ -1252,6 +1252,99 @@ public class MacroRunnerTests
         Assert.Equal(400, shared.Values["shared"].AsNumber());
     }
 
+    /// <summary>
+    /// 计数加完直接把新值交出来，后续条件或步骤不必再读一次全局——再读一次看到的可能已经是别的运行
+    /// 改过的数。
+    /// </summary>
+    [Fact]
+    public async Task Adding_to_a_shared_number_hands_over_the_new_count()
+    {
+        var store = Store();
+        store.Global.SetNumber("shared", 10);
+
+        var (result, _) = await RunAsync(
+            [Step("control.incrementGlobal", Param("name", "shared"), Param("amount", "5"),
+                Returns("value=now"))],
+            variables: store);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(15, N(store, "now"));
+        Assert.Equal(15, store.Global.Values["shared"].AsNumber());
+    }
+
+    /// <summary>
+    /// 两条运行同时往同一个全局列表里追加，谁都不丢：一次追加是"读现在的列表、加一项、写回去"，
+    /// 这三下在同一把锁里做完，另一条运行不会在中间插进来，也不会把对方的列表盖掉。
+    /// </summary>
+    [Fact]
+    public async Task Two_runs_appending_to_one_shared_list_lose_nothing()
+    {
+        var shared = new VariableBag();
+        shared.SetList("log", []);
+        var steps = Enumerable.Range(0, 200)
+            .Select(index => Step("control.listAdd", Param("name", "log"),
+                Param("value", index.ToString())))
+            .ToArray();
+
+        var results = await Task.WhenAll(
+            new MacroRunner(new VariableStore(shared)).RunAsync(steps),
+            new MacroRunner(new VariableStore(shared)).RunAsync(steps));
+
+        Assert.All(results, result => Assert.True(result.Succeeded, result.Key));
+        Assert.Equal(400, shared.Values["log"].Items.Count);
+    }
+
+    /// <summary>The same for taking items out: two runs removing from one list still remove 400.</summary>
+    [Fact]
+    public async Task Two_runs_removing_from_one_shared_list_lose_nothing()
+    {
+        var shared = new VariableBag();
+        shared.SetList("log", Enumerable.Range(0, 400).Select(index => Value.FromNumber(index)));
+        var steps = Enumerable.Range(0, 200)
+            .Select(_ => Step("control.listRemoveAt", Param("name", "log"),
+                Param("listIndex", "0")))
+            .ToArray();
+
+        var results = await Task.WhenAll(
+            new MacroRunner(new VariableStore(shared)).RunAsync(steps),
+            new MacroRunner(new VariableStore(shared)).RunAsync(steps));
+
+        Assert.All(results, result => Assert.True(result.Succeeded, result.Key));
+        Assert.Empty(shared.Values["log"].Items);
+    }
+
+    /// <summary>改一个没人定义的列表仍报原来的 Run.NotAList，不新建一个。</summary>
+    [Fact]
+    public async Task Changing_a_list_nobody_defined_still_says_it_is_not_a_list()
+    {
+        var store = Store();
+        var (result, _) = await RunAsync(
+            [Step("control.listAdd", Param("name", "nosuch"), Param("value", "a"))],
+            variables: store);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.NotAList, result.Key);
+    }
+
+    /// <summary>
+    /// 改不动的那一次什么都不写：越界是指这一项不存在，不是把列表改坏一半再报错。
+    /// </summary>
+    [Fact]
+    public async Task A_list_change_that_fails_leaves_the_list_as_it_was()
+    {
+        var store = Store();
+        store.Local.SetList("names", [Value.FromText("a")]);
+
+        var (result, _) = await RunAsync(
+            [Step("control.listSet", Param("name", "names"), Param("listIndex", "9"),
+                Param("value", "b"))],
+            variables: store);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.IndexOutOfRange, result.Key);
+        Assert.Equal(["a"], store.Local.Values["names"].Items.Select(item => item.AsText()));
+    }
+
     [Fact]
     public async Task A_calculation_works_out_its_expression_and_stores_the_answer()
     {

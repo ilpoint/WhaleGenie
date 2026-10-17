@@ -634,12 +634,16 @@ internal static class ActionStrings
 
         ["control.incrementGlobal.name"] = "增加全局变量",
         ["control.incrementGlobal.desc"] = "给一个全局变量加上一个数，读取和写回是同一步；"
-            + "多条宏同时加也不会丢掉其中一次。",
+            + "多条宏同时加也不会丢掉其中一次，加完的数可以从返回值里接住。",
         ["control.incrementGlobal.name.label"] = "全局变量",
         ["control.incrementGlobal.name.hint"] = "要增加的全局变量，必须先在变量中心创建。"
             + "它的值由所有宏共享，程序运行期间一直保留，不写进项目文件。",
         ["control.incrementGlobal.amount.label"] = "增加多少",
         ["control.incrementGlobal.amount.hint"] = "每次加上的数，可以是负数或公式，例如 $step；默认 1。",
+        ["control.incrementGlobal.returns.label"] = "要留下的结果",
+        ["control.incrementGlobal.returns.hint"] = ReturnsHintText,
+        ["control.incrementGlobal.return.value.label"] = "新计数",
+        ["control.incrementGlobal.return.value.hint"] = "这一步加完之后的数：后续条件与步骤可以直接用它，不必再读一次全局。",
 
         ["control.listCreate.name"] = "创建列表",
         ["control.listCreate.desc"] = "建立一个列表变量，覆盖它原来的内容。",
