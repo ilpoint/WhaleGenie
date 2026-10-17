@@ -140,6 +140,12 @@ public sealed partial class MacroRunner
     private int _browserHolds;
 
     /// <summary>
+    /// How many input-holding blocks are around the step being run. The block asked for the door so
+    /// its steps would send their keys as one turn, so the steps inside must not ask for it again.
+    /// </summary>
+    private int _inputHolds;
+
+    /// <summary>
     /// How many loops the run is inside right now. A break or a continue only means something
     /// while this is above zero; one that reaches the top of a macro has nothing to act on.
     /// </summary>
@@ -783,6 +789,63 @@ public sealed partial class MacroRunner
 
     /// <summary>How many macros deep a run may go before it is called a mistake.</summary>
     private const int CallDepthLimit = 16;
+
+    /// <summary>
+    /// Runs a body while holding one of the two doors. The steps inside are the reason the block
+    /// exists: another macro must not put its own keys or page work between them. A hold inside the
+    /// same door only counts, so a block nested in another — or a browser step's own door — does not
+    /// wait for a door it already holds.
+    /// </summary>
+    private async Task<Signal> RunHold(ExecutableStep step, int depth, CancellationToken token,
+        bool input)
+    {
+        if (input)
+        {
+            if (_inputHolds > 0)
+            {
+                return await HeldBody(step, depth, token, input: true);
+            }
+
+            using var held = await InputGate.Take(RunName, token);
+            return await HeldBody(step, depth, token, input: true);
+        }
+
+        if (_browserHolds > 0)
+        {
+            return await HeldBody(step, depth, token, input: false);
+        }
+
+        using var page = await BrowserGate.Take(RunName, token);
+        return await HeldBody(step, depth, token, input: false);
+    }
+
+    /// <summary>The body of a hold, with its door counted for the steps inside it.</summary>
+    private async Task<Signal> HeldBody(ExecutableStep step, int depth, CancellationToken token,
+        bool input)
+    {
+        if (input)
+        {
+            _inputHolds++;
+            try
+            {
+                return await RunSteps(step.Children("steps"), depth + 1, token);
+            }
+            finally
+            {
+                _inputHolds--;
+            }
+        }
+
+        _browserHolds++;
+        try
+        {
+            return await RunSteps(step.Children("steps"), depth + 1, token);
+        }
+        finally
+        {
+            _browserHolds--;
+        }
+    }
 
     /// <summary>
     /// Runs another macro's steps as though they had been written here, on values of its own:
@@ -1645,7 +1708,7 @@ public sealed partial class MacroRunner
         // A step that reads the screen may spend most of its time waiting for something to turn
         // up. It takes the input door only around the click itself, so a macro waiting for an
         // image does not keep another macro's keys out while it waits.
-        if (!ExclusiveInput || !SendsInput(step.Type) || LooksAtScreen(step.Type))
+        if (!ExclusiveInput || _inputHolds > 0 || !SendsInput(step.Type) || LooksAtScreen(step.Type))
         {
             return await Dispatch(step, depth, token);
         }
@@ -1758,6 +1821,10 @@ public sealed partial class MacroRunner
         {
             case "control.sequence":
                 return await RunSteps(step.Children("steps"), depth + 1, token);
+            case "control.holdInput":
+                return await RunHold(step, depth, token, input: true);
+            case "control.holdBrowser":
+                return await RunHold(step, depth, token, input: false);
             case "control.runMacro":
                 return await RunOtherMacro(step, depth, token);
             case "control.startMacro":

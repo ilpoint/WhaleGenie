@@ -719,6 +719,22 @@ public class MacroCheckTests
         Assert.Equal(Strings.Get("Editor.Problem.BrowserRunWhileHeld"), problem.Message);
     }
 
+    /// <summary>A block that holds the browser door is the same answer as a dialog for a start inside it.</summary>
+    [Fact]
+    public void Starting_a_browser_run_inside_a_held_browser_is_marked()
+    {
+        var child = Callable("用页面", null, null,
+            Step("browser.click", Text("pageSelector", "#submit")));
+        var start = Step("control.startMacro", Text("macro", "用页面"),
+            Name("runHandleName", "job"));
+        var hold = Step("control.holdBrowser", Steps("steps", start));
+
+        var problems = Ui.Run(() => MacroCheck.Inspect([hold], null, [child]));
+
+        var problem = Assert.Single(problems, candidate => candidate.Step == start);
+        Assert.Equal(Strings.Get("Editor.Problem.BrowserRunWhileHeld"), problem.Message);
+    }
+
     /// <summary>两个宏互相调用时，沿调用图的分析要停下来，而不是一直跟下去。</summary>
     [Fact]
     public void A_circle_of_calls_does_not_make_the_analysis_run_forever()

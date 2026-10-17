@@ -239,13 +239,15 @@ public partial class AddActionViewModel : ViewModelBase
     ];
 
     /// <summary>
-    /// The order the blocks are listed in: the run in order, the four repeats, then the branch,
+    /// The order the blocks are listed in: the run in order and the two doors, the four repeats, then the branch,
     /// the many-way branch and the tidy-up. This is the order a task is built in, and it puts the
     /// four things that all "repeat" next to each other where they can be told apart.
     /// </summary>
     private static readonly string[] BlockOrder =
     [
         "control.sequence",
+        "control.holdInput",
+        "control.holdBrowser",
         "control.repeat",
         "control.while",
         "control.for",

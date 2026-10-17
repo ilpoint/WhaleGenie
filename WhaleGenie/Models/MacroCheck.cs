@@ -282,7 +282,8 @@ public static class MacroCheck
                 insideNames.UnionWith(ownNames);
                 var insideBounded = bounded || step.Meta.TimeoutMs > 0;
                 var insideGuard = guarded || GuardKeys.Contains(step.Type);
-                var insideHeld = browserHeld || step.Type == "browser.dialog";
+                var insideHeld = browserHeld
+                    || step.Type is "browser.dialog" or "control.holdBrowser";
                 foreach (var parameter in step.Parameters)
                 {
                     switch (parameter.Kind)

@@ -2557,7 +2557,8 @@ public class ActionDialogTests
             // each other when they stand side by side.
             var blocks = viewModel.ActionGroups.First(group => group.Key == "blocks");
             Assert.Equal(
-                ["control.sequence", "control.repeat", "control.while", "control.for",
+                ["control.sequence", "control.holdInput", "control.holdBrowser",
+                    "control.repeat", "control.while", "control.for",
                     "control.forEach", "control.if", "control.switch", "control.try",
                     // The switch case is a block too, and only ever offered inside a switch, so
                     // it lands after the ones a task is built from.

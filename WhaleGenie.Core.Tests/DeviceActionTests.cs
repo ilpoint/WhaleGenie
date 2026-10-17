@@ -10057,6 +10057,58 @@ public class DeviceActionTests
         Assert.True((await run).Succeeded);
         Assert.Contains(devices.Calls, call => call.StartsWith("keyPress A"));
     }
+
+    [Fact]
+    public async Task A_held_input_runs_its_whole_body_without_taking_the_door_again()
+    {
+        var devices = new FakeDeviceLayer();
+        var store = new VariableStore();
+        var result = await new MacroRunner(store, new SilentRunHost(), devices)
+        {
+            ExclusiveInput = true,
+        }.RunAsync(
+        [
+            Step("control.holdInput", Body("steps",
+                Step("input.keyPress", Param("key", "F5")),
+                Step("input.keyPress", Param("key", "F6")))),
+        ]);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Contains("keyPress F5 0", devices.Calls);
+        Assert.Contains("keyPress F6 0", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_hold_inside_the_same_hold_does_not_wait_for_itself()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("control.holdInput", Body("steps",
+                Step("control.holdInput", Body("steps",
+                    Step("input.keyPress", Param("key", "F7")))))),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Contains("keyPress F7 0", devices.Calls);
+    }
+
+    [Fact]
+    public async Task A_held_browser_runs_its_page_steps_as_one_turn()
+    {
+        var devices = new FakeDeviceLayer();
+        var (result, _, _) = await RunAsync(
+        [
+            Step("control.holdBrowser", Body("steps",
+                Step("browser.click", Param("pageSelector", "#one")),
+                Step("browser.click", Param("pageSelector", "#two")))),
+        ], devices);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(2, devices.Calls.Count(call =>
+            call.StartsWith("browserClick", StringComparison.Ordinal)));
+    }
+
 }
 
 /// <summary>

@@ -39,6 +39,84 @@
     "Returns": []
   },
   {
+    "Key": "control.holdInput",
+    "Category": "Control",
+    "Hidden": false,
+    "SendsInput": false,
+    "IsCondition": false,
+    "LooksAtScreen": false,
+    "Waits": false,
+    "TimeoutSource": "None",
+    "TimeoutField": "",
+    "StepTimeoutMs": 0,
+    "Parameters": [
+      {
+        "Name": "label",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "steps",
+        "Shape": "Steps",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      }
+    ],
+    "Returns": []
+  },
+  {
+    "Key": "control.holdBrowser",
+    "Category": "Control",
+    "Hidden": false,
+    "SendsInput": false,
+    "IsCondition": false,
+    "LooksAtScreen": false,
+    "Waits": false,
+    "TimeoutSource": "None",
+    "TimeoutField": "",
+    "StepTimeoutMs": 0,
+    "Parameters": [
+      {
+        "Name": "label",
+        "Shape": "Text",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      },
+      {
+        "Name": "steps",
+        "Shape": "Steps",
+        "ReadMode": "Text",
+        "Picker": "None",
+        "Required": false,
+        "DefaultValue": "",
+        "Options": [],
+        "AcceptsVariables": false,
+        "ConditionsOnly": false,
+        "ChildKeys": []
+      }
+    ],
+    "Returns": []
+  },
+  {
     "Key": "control.delay",
     "Category": "Control",
     "Hidden": false,
