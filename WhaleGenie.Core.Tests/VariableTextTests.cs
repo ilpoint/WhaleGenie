@@ -85,4 +85,13 @@ public class VariableTextTests
         Assert.Equal("Ada", VariableText.Replace("${name}", _ => "Ada",
             _ => throw new InvalidOperationException("a name is not an expression")));
     }
+
+    [Fact]
+    public void A_right_brace_inside_a_quoted_expression_does_not_end_it()
+    {
+        const string written = "${pick(\"}\")}";
+
+        Assert.Equal("pick(\"}\")", VariableText.Replace(written, _ => null, expression => expression));
+        Assert.Equal(["pick(\"}\")"], VariableText.Expressions(written));
+    }
 }

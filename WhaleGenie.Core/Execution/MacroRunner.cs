@@ -551,6 +551,41 @@ public sealed partial class MacroRunner
             Task.Delay(5000));
     }
 
+    /// <summary>
+    /// Lets go of finished runs nobody can wait for any more. A handle is the only way back to a
+    /// run, so a finished one whose name has been overwritten is kept for nothing; one still named
+    /// by a variable stays, because a later wait may still ask for it.
+    /// </summary>
+    private void PruneFinishedChildren()
+    {
+        var finished = _children.Where(child => child.Task.IsCompleted).ToList();
+        if (finished.Count <= MaxFinishedRuns)
+        {
+            return;
+        }
+
+        foreach (var child in finished.ToList())
+        {
+            if (finished.Count <= MaxFinishedRuns)
+            {
+                break;
+            }
+
+            if (HandleIsNamed(child.Handle))
+            {
+                continue;
+            }
+
+            Finish(child, writeHandle: false);
+            finished.Remove(child);
+        }
+    }
+
+    /// <summary>True while a variable in this macro still names the handle.</summary>
+    private bool HandleIsNamed(string handle)
+        => Variables.Local.Values.Any(pair => pair.Value.IsRecord
+            && string.Equals(pair.Value.Field(FieldNames.Id)?.AsText(), handle,
+                StringComparison.Ordinal));
     /// <summary>The message a break or a continue gets when it turns out to have no loop.</summary>
     private static string LoopControlKey(Signal signal)
         => signal is Signal.Break ? RunKeys.BreakOutsideLoop : RunKeys.ContinueOutsideLoop;
@@ -797,6 +832,13 @@ public sealed partial class MacroRunner
     public const int MaxBackgroundRuns = 32;
 
     /// <summary>
+    /// How many finished runs are kept while their handle still names them. A macro that starts
+    /// run after run under one handle would otherwise keep every old result alive for the rest of
+    /// the run; one whose handle is still readable is kept because it can still be waited for.
+    /// </summary>
+    public const int MaxFinishedRuns = 64;
+
+    /// <summary>
     /// Runs a body while holding one of the two doors. The steps inside are the reason the block
     /// exists: another macro must not put its own keys or page work between them. A hold inside the
     /// same door only counts, so a block nested in another — or a browser step's own door — does not
@@ -1026,6 +1068,7 @@ public sealed partial class MacroRunner
 
         _children.Add(child);
         Variables.Local.Set(handleName, HandleValue(child));
+        PruneFinishedChildren();
         Log(LogLevel.Info, depth, step.Type, LogKeys.StartedRun, name, child.Handle);
         ChildrenChanged?.Invoke();
         return Signal.Normal;
@@ -1189,7 +1232,7 @@ public sealed partial class MacroRunner
     /// with how it ended — so reading the variable later says more than "running" — and lets go of
     /// the token that stopped it.
     /// </summary>
-    private void Finish(ChildRun child)
+    private void Finish(ChildRun child, bool writeHandle = true)
     {
         if (!_children.Remove(child))
         {
@@ -1197,7 +1240,7 @@ public sealed partial class MacroRunner
         }
 
         child.Stop.Dispose();
-        if (Variables.Local.Contains(child.HandleName))
+        if (writeHandle && Variables.Local.Contains(child.HandleName))
         {
             Variables.Local.Set(child.HandleName, HandleValue(child));
         }

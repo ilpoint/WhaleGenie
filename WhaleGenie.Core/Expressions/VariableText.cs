@@ -153,6 +153,58 @@ public static class VariableText
         return written.ToString();
     }
 
+    /// <summary>
+    /// The brace that closes the one at <paramref name="start"/>, skipping braces inside a quoted
+    /// string and counting nested braces. An expression may hold a literal "}" — a regex, a JSON
+    /// fragment — and stopping at the first one would cut the expression in half.
+    /// </summary>
+    private static int ClosingBrace(string text, int start)
+    {
+        var depth = 0;
+        var quoted = false;
+        var escaped = false;
+        for (var index = start; index < text.Length; index++)
+        {
+            var character = text[index];
+            if (quoted)
+            {
+                if (escaped)
+                {
+                    escaped = false;
+                }
+                else if (character == '\\')
+                {
+                    escaped = true;
+                }
+                else if (character == '"')
+                {
+                    quoted = false;
+                }
+
+                continue;
+            }
+
+            if (character == '"')
+            {
+                quoted = true;
+            }
+            else if (character == '{')
+            {
+                depth++;
+            }
+            else if (character == '}')
+            {
+                if (depth == 0)
+                {
+                    return index;
+                }
+
+                depth--;
+            }
+        }
+
+        return -1;
+    }
     /// <summary>True when the text is a variable name rather than an expression.</summary>
     private static bool IsName(string text)
         => text.Length > 0
@@ -172,7 +224,7 @@ public static class VariableText
 
         if (start < text.Length && text[start] == '{')
         {
-            var close = text.IndexOf('}', start + 1);
+            var close = ClosingBrace(text, start + 1);
             if (close < 0)
             {
                 return false;
