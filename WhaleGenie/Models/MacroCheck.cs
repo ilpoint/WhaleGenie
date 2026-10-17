@@ -496,8 +496,8 @@ public static class MacroCheck
 
                     foreach (var column in definition.Semantics.Columns.Where(column => column.Required))
                     {
-                        if (!row.Columns.Keys.Any(written =>
-                                string.Equals(written, column.Name, StringComparison.OrdinalIgnoreCase)))
+                        if (!row.Columns.TryGetValue(column.Name, out var value)
+                            || string.IsNullOrWhiteSpace(value))
                         {
                             Add(step, Strings.Format("Editor.Problem.MissingRowColumn",
                                 definition.LocalLabel, column.Name));

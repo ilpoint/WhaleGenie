@@ -225,7 +225,7 @@ Esc 退回），双击画面在像素原本大小与适应窗口之间切换；�
 
 **一行一条的列表有固定的列**：返回值行是 `key` / `name`，图片行是 `image`，按键序列行是 `keys` /
 `holdMs` / `gapMs`，页面限定行是 `how` / `value`，区域行是 `text`，或者 `x` / `y` / `width` / `height`。
-写错列名、或者漏掉这一步要的 `key` / `name` / `image` / `keys` / `how`，运行前报 `Run.BadRowColumn`，
+写错列名、漏掉或留空这一步要的 `key` / `name` / `image` / `keys` / `how`，运行前报 `Run.BadRowColumn`，
 设计期也在这条步骤上标出；手写文件里多出来的列不会再被悄悄跳过。
 
 每一步跑完还留下两条系统变量：**结局** `step.<步骤标识>.outcome` 是 `ok` / `failed` /
