@@ -45,7 +45,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 
 `manual.md` 描述已经实现的行为；路线图里的阶段是目标，未完成之前不要把未来行为写进手册。
 
-**当前阶段**：P3 记录字段、类型与选择器；参数契约先于流程便利，P3 的验收见 [roadmap.md](roadmap.md)。
+**当前阶段**：F1 停止清理；正确性与结构收口的阶段见 [roadmap.md](roadmap.md)。
 
 动作目录分两层：引擎事实在 `WhaleGenie.Core/Execution/ActionSemantics.json`，由
 `ActionSemanticsCatalog` 读取，包含动作键、分类、参数读法、值形状、单位、空值含义、字段自己的范围上限、
@@ -134,7 +134,7 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 ```json
 {
   "arguments": [
-    { "name": "次数", "default": "3", "required": false, "description": "要做多少遍。" },
+    { "name": "次数", "default": "3", "required": false, "description": "要做多少遍。", "type": "Number" },
     { "name": "标签", "default": "", "required": true, "description": "写在每一项前面的文字。" }
   ],
   "returns": [
@@ -143,15 +143,17 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 }
 ```
 
-两边都为空就写空数组，没在调用的宏因此不会多出什么。同一个声明在代码里有两份读法：引擎读的是
-`WhaleGenie.Core/Execution/MacroSignature.cs` 里的 `MacroSignature`（只要名字、默认值、是否必填），
-编辑器与设计期检查读的是 `WhaleGenie/Models/MacroCallable.cs` 里的 `MacroCallable`（多一列说明，
-调用处的表单拿它当字段的提示），两者都由 `MacroItem` 读写。P3 会把结果类型带进 `MacroSignature`，并给
-形参加类型；当前引擎侧只认名字与默认值。
+类型写的是 `Text` / `Number` / `Flag` / `List` / `Record` / `Image`；没写就是 `Text`。
 
-包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 7。
+两边都为空就写空数组，没在调用的宏因此不会多出什么。同一个声明在代码里有两份读法：引擎读的是
+`WhaleGenie.Core/Execution/MacroSignature.cs` 里的 `MacroSignature`（名字、默认值、是否必填、类型），
+编辑器与设计期检查读的是 `WhaleGenie/Models/MacroCallable.cs` 里的 `MacroCallable`（多一列说明，
+调用处的表单拿它当字段的提示），两者都由 `MacroItem` 读写，形参与结果各带一个 `ActionReturnType`：
+调用处按它说明要的是什么，设计期按它标出明显不符的值。
+
+包里的清单固定叫 `manifest.json`（小写），`manifest.json` 的 `version` 是包格式版本，当前是 8。
 加载器只接受这一版，旧包会被明确拒绝，而不是让旧参数静默落到默认值。P1 把 `pollMs` 并进
-`intervalMs` 时升到 6；P2 把 `useRecord` / `record` 换成 `place` / `rect` 时升到 7。
+`intervalMs` 时升到 6；P2 把 `useRecord` / `record` 换成 `place` / `rect` 时升到 7；P3 给形参带上类型时升到 8。
 
 调用另一个宏的步骤（`control.runMacro`）写三个部分：
 
@@ -231,8 +233,8 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 | 值形状/单位/空值 | `ActionContractTests` + `ValueReadTests` | 每个参数声明一种形状、一个单位与一种空值含义；引擎与设计期按同一处读；`Pixels` 允许负数，`Milliseconds` 从 0 起；没有 `pollMs` 这类同义字段 |
 | 坐标范围 | `ActionContractTests` + `ActionPageTests` | `x` / `y` / `left` / `top` / `startX` / `endX` 允许负数；`width` / `height` 至少 1；像素字段不继承时长的 46 小时上限 |
 | 位置与矩形 | `ActionContractTests` + `ActionPageTests` + `ActionDialogTests` | 每个位置字段声明 `Point`、每个矩形字段声明 `Rect`；目录里没有 `useRecord` / `record` 这类开关与第二格；记录格与数字格互斥，框选写数字时清空记录格；记录进数字格报 `Run.RecordWhereNumber` |
-| 记录字段 | `ReturnsPageTests` + 新增 `RecordFieldTests` | 引擎写出的记录字段与目录 `Fields` 一致；手册的 `field()` 字段表与目录一致 |
-| 类型检查 | `MacroCheckTests` + 新增 `ValueTypeTests` | 记录进数字格、文本进位置格、记录进只收文本的窗口格，设计期标出 |
+| 记录字段 | `DeviceActionTests` + `ActionContractTests` | 引擎写出的记录字段与目录 `Fields` 一致；每个字段名都在 `FieldNames` 里；手册的记录字段表与目录一致 |
+| 类型检查 | `MacroCheckTests` | 记录进数字格、文本进位置格、记录进只收文本的字段、调用实参与形参声明不符，设计期标出；窗口字段收记录不算错 |
 | 是否发输入 | `ActionContractTests` | 每个会调用 `Input(step)`、回退成真实鼠标点击或按快捷键的动作在目录里标真；`MacroCheck` 与 `InputGate` 查同一处，并沿宏调用图看可达步骤 |
 | 返回形状 | `ReturnsPageTests` + `ActionContractTests` | 返回值页的每一行、引擎写出的键与记录字段一致 |
 | 失败键 | `FailureKeyTests` | `RunKeys` 与手册表一致；日志键、状态键不与失败键混用 |
@@ -242,7 +244,6 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 | 循环与结果 | `MacroRunnerTests` | 嵌套循环的 item/index/counter 恢复外层；四种循环的 `ended`；失败/重试后结果为空 |
 | 表达式函数 | `FunctionTableTests` | 函数表与手册「表达式函数一览」一一对应 |
 
-P3 还会补“记录字段、类型检查”这两行；在阶段落地前，这些是目标，不是现状。
 新增行时先加断言，再改实现。
 
 这些测试尽量遍历目录或扫描源码，不手写第二份动作清单；白名单只用于已经说明理由的例外（如一个字段名只在

@@ -59,8 +59,8 @@ Power Automate Desktop 只学动作骨架，不学动作库与 COM 直连 Office
 
 ## 当前路线
 
-下一步按 `doc/roadmap.md` 排：当前阶段是 **P3 记录字段、类型与选择器**，
-之后是 F1–F7 的正确性与结构收口。判断标准有三条：
+下一步按 `doc/roadmap.md` 排：当前阶段是 **F1 停止清理**，之后按 F1–F7 做正确性与结构收口。
+判断标准有三条：
 **用户能不能把这件事表达出来；已经说出来的行为是否与实现一致；多条宏同时跑时是否仍然正确**。本文件的设计
 约定是目标，代码尚未做到的部分由路线图的阶段落地；当前实现事实（如动作展示清单在
 `WhaleGenie/Models/ActionDisplay.json`，引擎语义目录在 `WhaleGenie.Core/Execution/ActionSemantics.json`）
