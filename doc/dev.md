@@ -229,13 +229,14 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 
 | 契约 | 用例 | 断言什么 |
 | --- | --- | --- |
-| 字段读法 | `ExpressionFieldTests` + `ActionContractTests` + `ValueReadTests` | 每个参数声明为整值读、只替换或写变量名，拾取器种类也对得上；引擎用 `ReadValue` / `ReadText` 按声明读，设计期检查与 `VariableText` 同一口径；每个可执行键都有分派与至少一条引擎用例 |
+| 字段读法 | `ExpressionFieldTests` + `ActionContractTests` + `ValueReadTests` | 每个参数声明为整值读、只替换或写变量名，拾取器种类也对得上；引擎用 `ReadValue` / `ReadText` 按声明读，设计期检查与 `VariableText` 同一口径；`${名字}` 只读到右花括号；每个可执行键都有分派与至少一条引擎用例 |
 | 值形状/单位/空值 | `ActionContractTests` + `ValueReadTests` | 每个参数声明一种形状、一个单位与一种空值含义；引擎与设计期按同一处读；`Pixels` 允许负数，`Milliseconds` 从 0 起；没有 `pollMs` 这类同义字段 |
 | 坐标范围 | `ActionContractTests` + `ActionPageTests` | `x` / `y` / `left` / `top` / `startX` / `endX` 允许负数；`width` / `height` 至少 1；像素字段不继承时长的 46 小时上限 |
 | 参数约束 | `MacroRunnerTests` + `ActionContractTests` + `MacroCheckTests` | 数字超出目录的 `MinimumValue` / `MaximumValue` 报 `Run.OutOfRange`（只算 `Shape = Number`）；必填且没有默认、没有空值含义的字段空着报它自己的 `MissingKey`（默认 `Run.MissingField`，路径 / 程序 / 句柄保留原键；`Conditional` 的字段不在此列）；选项不是目录里的词报 `OptionKey`（默认 `Run.BadOption`，`AllowsUnknownOption` 的窗口匹配方式与 `tabHow` 保留回退）；设计期用同一规则标出 `MissingField` / `BadOption` |
 | 位置与矩形 | `ActionContractTests` + `ActionPageTests` + `ActionDialogTests` | 每个位置字段声明 `Point`、每个矩形字段声明 `Rect`；目录里没有 `useRecord` / `record` 这类开关与第二格；记录格与数字格互斥，框选写数字时清空记录格；记录进数字格报 `Run.RecordWhereNumber` |
 | 记录字段 | `DeviceActionTests` + `ActionContractTests` | 引擎写出的记录字段与目录 `Fields` 一致；每个字段名都在 `FieldNames` 里；手册的记录字段表与目录一致 |
-| 类型检查 | `MacroCheckTests` | 记录进数字格、文本进位置格、记录进只收文本的字段、调用实参与形参声明不符，设计期标出；窗口字段收记录不算错 |
+| 类型检查 | `MacroCheckTests` + `MacroRunnerTests` | 记录进数字格、文本进位置格、记录进只收文本的字段、调用实参与形参声明不符，设计期标出；运行时实参报 `Run.BadArgumentType`、结果报 `Run.BadResultType`；窗口字段收记录不算错 |
+| 声明契约 | `MacroRunnerTests` + `MacroCheckTests` | 被调用宏的形参/结果为空名、重名或运行保留的名字时，调用前报 `Run.BadDeclaration`，设计期在调用步上标出 |
 | 是否发输入 | `ActionContractTests` | 每个会调用 `Input(step)`、回退成真实鼠标点击或按快捷键的动作在目录里标真；`MacroCheck` 与 `InputGate` 查同一处，并沿宏调用图看可达步骤 |
 | 返回形状 | `ReturnsPageTests` + `ActionContractTests` | 返回值页的每一行、引擎写出的键与记录字段一致 |
 | 失败键 | `FailureKeyTests` | `RunKeys` 与手册表一致；日志键、状态键不与失败键混用 |
