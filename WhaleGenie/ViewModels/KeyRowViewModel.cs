@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.ViewModels;
@@ -16,6 +17,14 @@ public partial class KeyRowViewModel : ViewModelBase
     /// <summary>The combination this press sends, written the way a combination always is.</summary>
     [ObservableProperty]
     public partial string Keys { get; set; } = string.Empty;
+
+    /// <summary>True while this row's button is recording keys into the row.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CaptureLabel))]
+    public partial bool IsCapturing { get; set; }
+
+    /// <summary>The row's capture button: start recording, then stop it with the mouse.</summary>
+    public string CaptureLabel => Strings.Get(IsCapturing ? "Add.StopKeyCapture" : "Add.CaptureKeyRun");
 
     /// <summary>How long this combination stays down, or nothing for the run's own hold.</summary>
     [ObservableProperty]
@@ -43,6 +52,12 @@ public partial class KeyRowViewModel : ViewModelBase
         var held = Keys.Trim();
         Keys = held.Length == 0 ? key : held + "+" + key;
     }
+
+    /// <summary>Takes a captured combination as this row's whole chord.</summary>
+    public void WriteKey(string key) => Keys = key;
+
+    /// <summary>Starts recording more keys into this row; what is already there stays.</summary>
+    public void StartCapture() => IsCapturing = true;
 
     /// <summary>Takes this press out of the run.</summary>
     [RelayCommand]

@@ -18,6 +18,7 @@ public static class ThemePalette
         ("AppField", "#2E2E2E", "#F2EEE7"),
         ("AppBorder", "#3A3A3A", "#D5CEC1"),
         ("AppText", "#E8E8E8", "#2B2723"),
+        ("AppTextStrong", "#F5F5F5", "#1B1713"),
         ("AppMuted", "#9A9A9A", "#6B6258"),
         ("AppAccent", "#C8401C", "#C8401C"),
         ("AppControl", "#404040", "#E2DCD1"),

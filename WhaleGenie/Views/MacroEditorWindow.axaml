@@ -858,6 +858,32 @@
                             ItemsSource="{Binding Rows}" SelectionMode="Multiple"
                             IsVisible="{Binding HasSteps}"
                             DoubleTapped="OnStepDoubleTapped">
+                       <ListBox.ContextMenu>
+                           <ContextMenu>
+                               <MenuItem Header="{Binding [Editor.Context.Edit], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextEdit" />
+                               <MenuItem Header="{Binding [Editor.Context.Copy], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextCopy" />
+                               <MenuItem Header="{Binding [Editor.Context.Cut], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextCut" />
+                               <MenuItem Header="{Binding [Editor.Context.Paste], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextPaste" />
+                               <MenuItem Header="{Binding [Editor.Context.Delete], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextDelete" />
+                               <Separator />
+                               <MenuItem Header="{Binding [Editor.Context.MoveUp], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextMoveUp" />
+                               <MenuItem Header="{Binding [Editor.Context.MoveDown], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextMoveDown" />
+                               <MenuItem Header="{Binding [Editor.Context.Group], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextGroup" />
+                               <MenuItem Header="{Binding [Editor.Context.Lift], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextLift" />
+                               <Separator />
+                               <MenuItem Header="{Binding [Editor.Context.ToggleEnabled], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextToggleEnabled" />
+                           </ContextMenu>
+                       </ListBox.ContextMenu>
                        <ListBox.ItemTemplate>
                            <DataTemplate x:DataType="models:StepRow">
                               <Panel>
@@ -880,8 +906,9 @@
                                                           VerticalAlignment="Center" Margin="0,0,4,0" />
                                           <StackPanel VerticalAlignment="Center">
                                               <StackPanel Orientation="Horizontal" Spacing="6">
-                                                  <TextBlock Text="{Binding DisplayName}" FontSize="12.5"
-                                                             Foreground="{DynamicResource AppText}" />
+                                                  <TextBlock Text="{Binding DisplayName}" FontSize="13"
+                                                             FontWeight="SemiBold"
+                                                             Foreground="{DynamicResource AppTextStrong}" />
                                                   <Border Background="#4A3A1E" CornerRadius="3" Padding="5,0"
                                                           VerticalAlignment="Center"
                                                           IsVisible="{Binding IsSkipped}">

@@ -102,6 +102,7 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     private bool _captureKeyboardOnly;
     private bool _captureSingleKey;
+    private bool _captureContinues;
 
     /// <summary>How many step-list changes can be undone.</summary>
     private const int HistoryLimit = 60;
@@ -761,12 +762,15 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>True while a single key is taken rather than a combination.</summary>
     internal bool CaptureSingleKey => _captureSingleKey;
 
+    /// <summary>True when the capture keeps going after each combination, for a whole sequence.</summary>
+    internal bool CaptureContinues => _captureContinues;
+
     /// <summary>
     /// Starts a capture for the inspector's key field. The key is handed to <paramref name="deliver"/>
     /// instead of the trigger, and only the keyboard is listened to: a key field cannot hold a
     /// mouse button. A combination takes the modifiers with the key, the way a trigger does.
     /// </summary>
-    internal bool BeginKeyCapture(Action<string> deliver, bool combination)
+    internal bool BeginKeyCapture(Action<string> deliver, bool combination, bool continuous = false)
     {
         if (IsRecording)
         {
@@ -776,6 +780,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         _keyCaptureTarget = deliver;
         _captureKeyboardOnly = true;
         _captureSingleKey = !combination;
+        _captureContinues = continuous;
         IsCapturingKey = true;
         return true;
     }
@@ -785,6 +790,14 @@ public partial class MacroEditorViewModel : ViewModelBase
     {
         if (!IsCapturingKey)
         {
+            return;
+        }
+
+        if (_captureContinues)
+        {
+            // The run stays armed between presses: each chord becomes its own row and the next
+            // key is taken by the same loop.
+            _keyCaptureTarget?.Invoke(keyName);
             return;
         }
 
@@ -799,6 +812,9 @@ public partial class MacroEditorViewModel : ViewModelBase
         BindKey = keyName;
     }
 
+    /// <summary>Ends a capture, including a run that was still waiting for the next press.</summary>
+    internal void StopKeyCapture() => StopCapturingKey();
+
     /// <summary>Ends a capture and forgets whatever it was going to write into.</summary>
     private void StopCapturingKey()
     {
@@ -806,6 +822,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         _keyCaptureTarget = null;
         _captureKeyboardOnly = false;
         _captureSingleKey = false;
+        _captureContinues = false;
     }
 
     [RelayCommand]
