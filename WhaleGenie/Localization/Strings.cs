@@ -1053,7 +1053,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Theme.ResetColor"] = "Reset this color",
         ["Theme.ResetAll"] = "Reset all colors",
         ["Theme.Done"] = "Done",
-        ["Settings.LanguageHint"] = "Applies immediately to every window.",
+        ["Settings.LanguageHint"] = "Applies immediately to every window. Until changed, follows the "
+            + "Windows display language.",
         ["Settings.CaptureWindow"] = "Reading a window",
         ["Settings.CaptureWindowHint"] =
             "How a picture of a window is taken on this machine, for every step of every macro. "
@@ -2902,7 +2903,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Theme.ResetColor"] = "恢复这个颜色",
         ["Theme.ResetAll"] = "恢复全部颜色",
         ["Theme.Done"] = "完成",
-        ["Settings.LanguageHint"] = "立即应用到所有窗口。",
+        ["Settings.LanguageHint"] = "立即应用到所有窗口。未选择时跟随 Windows 显示语言。",
         ["Settings.CaptureWindow"] = "读窗口",
         ["Settings.CaptureWindowHint"] =
             "这台机器上窗口的画面怎么取，对所有宏的每一步都生效。自动（默认）：先走 Graphics "

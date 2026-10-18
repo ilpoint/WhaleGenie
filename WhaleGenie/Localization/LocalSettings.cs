@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using WhaleGenie.Core.Devices;
@@ -55,10 +56,19 @@ public static class LocalSettings
             model.LightTheme = selection.Mode is ThemeMode.Light;
         });
 
-    /// <summary>Reads the stored language, falling back to English.</summary>
+    /// <summary>
+    /// Reads the stored language. A machine that has never chosen one follows its Windows display
+    /// language: Chinese when that is Chinese, English otherwise.
+    /// </summary>
     public static Language Load()
         => Enum.TryParse<Language>(Read().Language, out var language)
             ? language
+            : ForCulture(CultureInfo.CurrentUICulture);
+
+    /// <summary>The interface language a system language maps to when nothing has been chosen.</summary>
+    internal static Language ForCulture(CultureInfo culture)
+        => culture.TwoLetterISOLanguageName.Equals("zh", StringComparison.OrdinalIgnoreCase)
+            ? Language.Chinese
             : Language.English;
 
     /// <summary>Stores the chosen language. Failures are ignored on purpose.</summary>
@@ -148,7 +158,7 @@ public static class LocalSettings
 
     private sealed class Model
     {
-        public string Language { get; set; } = nameof(Localization.Language.English);
+        public string Language { get; set; } = string.Empty;
 
         public bool PreloadOcr { get; set; }
 

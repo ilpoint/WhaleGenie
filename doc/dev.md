@@ -365,6 +365,9 @@ CSV 那套编码规则管着脚本文件怎么写。`script.run` 的「脚本来
 把文案缓存成字段的视图模型，要覆盖 `RefreshLanguage()` 把这些字段重新算出来，或改成按需读的
 计算属性；不要把会跟着语言变的文字存成只读字段。
 
+第一次启动、或 `settings.json` 里没有可读的语言时，界面跟随 Windows 显示语言
+（`CultureInfo.CurrentUICulture`）：`zh` 开头的系统用中文，其余用英文；设置里选过以后以存储值为准。
+
 ## 代码约定
 
 - 格式与风格写在 `.editorconfig`，CI 会跑 `dotnet format --verify-no-changes` 卡住不合规的提交。

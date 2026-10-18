@@ -1003,8 +1003,10 @@ public class MacroCheckTests
         var step = Step("window.move", Text("rect", "1,2,3,4"), Text("width", "800"));
 
         var problem = Assert.Single(Inspect(step));
+        var label = ActionCatalog.Find("window.move")!.Parameters.First(parameter => parameter.Name == "rect")
+            .LocalLabel;
 
-        Assert.Equal(Strings.Format("Editor.Problem.PlaceAndNumbers", "Rectangle"), problem.Message);
+        Assert.Equal(Strings.Format("Editor.Problem.PlaceAndNumbers", label), problem.Message);
     }
 
     [Fact]
@@ -1050,8 +1052,10 @@ public class MacroCheckTests
     public void A_required_field_left_empty_is_marked()
     {
         var problem = Assert.Single(Inspect(Step("browser.goTo")));
+        var label = ActionCatalog.Find("browser.goTo")!.Parameters.First(parameter => parameter.Name == "url")
+            .LocalLabel;
 
-        Assert.Equal(Strings.Format("Editor.Problem.MissingField", "Address"), problem.Message);
+        Assert.Equal(Strings.Format("Editor.Problem.MissingField", label), problem.Message);
     }
 
     [Fact]
@@ -1155,8 +1159,10 @@ public class MacroCheckTests
         };
 
         var problems = Inspect(Step("vision.findImage", region));
+        var label = ActionCatalog.Find("vision.findImage")!.Parameters
+            .First(parameter => parameter.Name == "region").LocalLabel;
 
-        Assert.Contains(problems, problem => problem.Message.Contains("numbers",
-            StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(problems, problem =>
+            problem.Message == Strings.Format("Editor.Problem.ExclusiveRowColumn", label));
     }
 }
