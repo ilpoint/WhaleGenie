@@ -21,12 +21,14 @@ namespace WhaleGenie.Execution;
 /// </remarks>
 public sealed class AskRunHost(
     Func<string, string, string, string, Task<StepErrorChoice>>? ask,
-    Func<AskQuestion, Task<AskAnswer>>? askUser = null) : IRunHost
+    Func<AskQuestion, Task<AskAnswer>>? askUser = null,
+    Action<LogEntry, string>? log = null) : IRunHost
 {
-    /// <summary>A triggered run has no log window to write to, so the lines are dropped.</summary>
-    public void Log(LogEntry entry)
-    {
-    }
+    /// <summary>
+    /// A triggered run has no log window to write to, but its lines still belong to the run's
+    /// history: the debug tools read them after the fact.
+    /// </summary>
+    public void Log(LogEntry entry) => log?.Invoke(entry, Text(entry));
 
     /// <summary>
     /// Wanted all the same: a triggered run that fails leaves its whole log behind as a file, and

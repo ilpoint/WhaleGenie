@@ -202,12 +202,11 @@ public class ExpressionBuilderTests
     }
 
     /// <summary>
-    /// The colour is on the card rather than only in the converter: a card whose brush never reached
-    /// it would be the same grey as everything else, and the dock would be the only thing left
-    /// saying which group a function is in.
+    /// A function keeps its group colour on the border, the way an action card keeps its category
+    /// colour: the fill and the words stay neutral so the name is read before the colour.
     /// </summary>
     [Fact]
-    public void The_function_cards_are_painted_in_the_colour_of_their_group()
+    public void The_function_cards_keep_the_group_colour_on_their_border()
     {
         Ui.Run(() =>
         {
@@ -227,9 +226,14 @@ public class ExpressionBuilderTests
                 WhaleGenie.Core.Expressions.Expression.Functions.Count(
                     function => function.Group == "text"),
                 cards.Count);
-            Assert.All(cards, card => Assert.Equal(
-                FunctionGroupBrushConverter.Shade(FunctionGroupBrushConverter.Hue("text"), "fill"),
-                Assert.IsType<SolidColorBrush>(card.Background).Color));
+            Assert.All(cards, card =>
+            {
+                Assert.Contains("FnCard", card.Classes);
+                Assert.NotNull(card.Foreground);
+                Assert.Equal(
+                    FunctionGroupBrushConverter.Shade(FunctionGroupBrushConverter.Hue("text"), "line"),
+                    Assert.IsType<SolidColorBrush>(card.BorderBrush).Color);
+            });
 
             // Pressing a button of the dock is what changes the wall: the selection has to travel
             // from the control back to the view model, which is the half a check on the view model

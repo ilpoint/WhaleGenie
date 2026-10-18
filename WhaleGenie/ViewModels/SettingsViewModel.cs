@@ -15,6 +15,12 @@ public sealed record LanguageOption(Language Language, string Display)
     public override string ToString() => Display;
 }
 
+/// <summary>One entry of the theme picker; the name is read when the entry is shown.</summary>
+public sealed record ThemeOption(ThemeMode Mode, string Key)
+{
+    public override string ToString() => Strings.Get(Key);
+}
+
 /// <summary>
 /// One entry of a capture picker. What it reads as comes from the text table rather than being
 /// copied here, so the two pickers and the ways named in a failure are named the same way.
@@ -49,6 +55,8 @@ public partial class SettingsViewModel : ViewModelBase
     internal SettingsViewModel(Func<DriverInputState> driverInput, bool? elevated = null)
     {
         SelectedLanguage = Languages.First(option => option.Language == Strings.Current.Language);
+        SelectedTheme = ThemeOptions.First(option => option.Mode == LocalSettings.LoadTheme().Mode);
+        _themeReady = true;
         PreloadOcr = LocalSettings.LoadPreloadOcr();
         AttachDriverAtStart = LocalSettings.LoadDriverAttachAtStart();
         SelectedWindowWay = WindowWays.First(option => option.Way == CaptureChoice.Current.Window);
@@ -65,6 +73,8 @@ public partial class SettingsViewModel : ViewModelBase
         base.RefreshLanguage();
         OnPropertyChanged(nameof(WindowWays));
         OnPropertyChanged(nameof(ScreenWays));
+        OnPropertyChanged(nameof(ThemeOptions));
+        OnPropertyChanged(nameof(SelectedTheme));
     }
 
     public IReadOnlyList<LanguageOption> Languages { get; } =
@@ -72,6 +82,22 @@ public partial class SettingsViewModel : ViewModelBase
         new(Language.English, "English"),
         new(Language.Chinese, "中文"),
     ];
+
+    /// <summary>The three theme choices: two built-in palettes and the custom one.</summary>
+    public IReadOnlyList<ThemeOption> ThemeOptions { get; } =
+    [
+        new(ThemeMode.Dark, "Theme.Mode.Dark"),
+        new(ThemeMode.Light, "Theme.Mode.Light"),
+        new(ThemeMode.Custom, "Theme.Mode.Custom"),
+    ];
+
+    private bool _themeReady;
+
+    [ObservableProperty]
+    public partial ThemeOption SelectedTheme { get; set; } = null!;
+
+    /// <summary>Whether the custom palette button belongs in the settings window.</summary>
+    public bool IsCustomTheme => SelectedTheme?.Mode is ThemeMode.Custom;
 
     /// <summary>
     /// The ways a window's picture can be taken, in the order they are offered: automatic first, then
@@ -150,6 +176,27 @@ public partial class SettingsViewModel : ViewModelBase
 
     partial void OnSelectedLanguageChanged(LanguageOption value)
         => Strings.Current.Language = value.Language;
+
+    /// <summary>
+    /// Applies a theme as soon as the picker changes. Choosing Custom starts from the palette in
+    /// use, unless one was already saved; the dark and light choices leave a saved custom palette
+    /// untouched for next time.
+    /// </summary>
+    partial void OnSelectedThemeChanged(ThemeOption value)
+    {
+        OnPropertyChanged(nameof(IsCustomTheme));
+        if (!_themeReady)
+        {
+            return;
+        }
+
+        var current = ThemeController.Load();
+        var next = value.Mode is ThemeMode.Custom
+            ? ThemeController.StartCustom(current)
+            : current with { Mode = value.Mode };
+        ThemeController.Apply(next);
+        ThemeController.Save(next);
+    }
 
     /// <summary>The same, for the choice that holds the text recognition models in memory.</summary>
     partial void OnPreloadOcrChanged(bool value)

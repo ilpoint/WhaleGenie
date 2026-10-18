@@ -1,5 +1,6 @@
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -384,8 +385,12 @@ public class ElementPickerTests
 
             Assert.True(target.HasCandidates);
             Assert.Equal(2, target.Candidates.Count);
-            Assert.Contains("names 1", target.Candidates[0].Text, StringComparison.Ordinal);
-            Assert.Contains("names 3", target.Candidates[1].Text, StringComparison.Ordinal);
+            Assert.Equal(
+                Strings.Format("Add.BrowserWay", Strings.Get("Add.BrowserWay.DataAttribute"), 1),
+                target.Candidates[0].Text);
+            Assert.Equal(
+                Strings.Format("Add.BrowserWay", Strings.Get("Add.BrowserWay.Path"), 3),
+                target.Candidates[1].Text);
 
             // Taking one writes it under what the pick wrote first, which is the order the step will
             // try them in.

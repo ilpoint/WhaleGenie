@@ -44,6 +44,35 @@ public class LayeringTests
             + string.Join(", ", offenders));
     }
 
+    [Fact]
+    public void The_engine_names_no_MCP_server_or_AI_library()
+    {
+        var offenders = new List<string>();
+        foreach (var file in CoreSources())
+        {
+            var text = File.ReadAllText(file);
+            if (text.Contains("ModelContextProtocol", StringComparison.Ordinal)
+                || text.Contains("Microsoft.AspNetCore", StringComparison.Ordinal)
+                || text.Contains("Microsoft.Extensions.AI", StringComparison.Ordinal))
+            {
+                offenders.Add(Path.GetRelativePath(Repository(), file));
+            }
+        }
+
+        Assert.True(offenders.Count == 0,
+            "the engine must stay free of MCP and AI libraries: " + string.Join(", ", offenders));
+    }
+
+    private static IEnumerable<string> CoreSources()
+        => Directory.EnumerateFiles(Path.Combine(Repository(), "WhaleGenie.Core"), "*.*",
+                SearchOption.AllDirectories)
+            .Where(file => file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
+                           || file.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+            .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
+                               StringComparison.Ordinal)
+                           && !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}",
+                               StringComparison.Ordinal));
+
     /// <summary>Every source file of the program the user runs — the engine's are free to name them.</summary>
     private static IEnumerable<string> Sources()
         => Directory.EnumerateFiles(Path.Combine(Repository(), "WhaleGenie"), "*.*",

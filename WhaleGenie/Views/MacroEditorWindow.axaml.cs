@@ -127,8 +127,10 @@ public partial class MacroEditorWindow : Window
     /// <summary>The form field waiting for a key, so its button can go back to "set key".</summary>
     private StepParameterViewModel? _keyCaptureParameter;
 
+    /// <summary>The key-run row whose keys are being recorded, so its button can say "stop".</summary>
+    private KeyRowViewModel? _keyRowCapture;
+
     private MacroInterfaceView? _interfaceView;
-    private MacroInterfaceViewModel? _interfaceModel;
 
     /// <summary>Layer the drag marker is drawn on, over the step list.</summary>
     private Canvas? _dropLayer;
@@ -514,10 +516,17 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        // A key field only waits for the keyboard; a click elsewhere must not bind a mouse
-        // button or move the focus off the field.
+        // The capture button itself has to stay clickable: it is how a mouse ends a capture.
+        // Every other click is swallowed, so it cannot bind a mouse button or move the focus.
         if (viewModel.CaptureKeyboardOnly)
         {
+            if (e.Source is Visual source
+                && source.FindAncestorOfType<Button>(true) is { } toggle
+                && toggle.Classes.Contains("CaptureToggle"))
+            {
+                return;
+            }
+
             e.Handled = true;
             return;
         }
@@ -580,6 +589,13 @@ public partial class MacroEditorWindow : Window
 
         if (viewModel.IsCapturingKey)
         {
+            if (viewModel.CaptureContinues && e.Key == Key.Escape)
+            {
+                viewModel.StopKeyCapture();
+                e.Handled = true;
+                return;
+            }
+
             if (IsModifier(e.Key))
             {
                 // Held back rather than taken: Ctrl, Shift, Alt and Win may be the front of a
@@ -1079,6 +1095,7 @@ public partial class MacroEditorWindow : Window
         };
 
         _inspector.KeyCaptureRequested += BeginInspectorKeyCapture;
+        _inspector.KeyRowCaptureRequested += BeginInspectorKeyRowCapture;
 
         InspectorContent.Content = _inspector;
     }
@@ -1105,7 +1122,31 @@ public partial class MacroEditorWindow : Window
         parameter.IsCapturingKey = true;
     }
 
-    /// <summary>Puts the form's capture button back to its resting label.</summary>
+    /// <summary>
+    /// Starts recording keys into one row. Every key pressed is appended to that row's
+    /// combination; clicking the same button with the mouse ends the capture.
+    /// </summary>
+    private void BeginInspectorKeyRowCapture(KeyRowViewModel row)
+    {
+        if (_keyRowCapture == row && _viewModel.IsCapturingKey)
+        {
+            _viewModel.StopKeyCapture();
+            return;
+        }
+
+        ResetKeyCaptureLabel();
+        row.StartCapture();
+
+        if (!_viewModel.BeginKeyCapture(row.AddKey, combination: true, continuous: true))
+        {
+            row.IsCapturing = false;
+            return;
+        }
+
+        _keyRowCapture = row;
+    }
+
+    /// <summary>Puts the form's capture buttons back to their resting labels.</summary>
     private void ResetKeyCaptureLabel()
     {
         if (_keyCaptureParameter is { } parameter)
@@ -1113,29 +1154,22 @@ public partial class MacroEditorWindow : Window
             parameter.IsCapturingKey = false;
             _keyCaptureParameter = null;
         }
-    }
 
-    /// <summary>Turns the inspector between the step form and the macro's own interface.</summary>
-    private void OnToggleInterface(object? sender, RoutedEventArgs e)
-    {
-        if (MacroInterfaceHost.IsVisible)
+        if (_keyRowCapture is { } row)
         {
-            ShowInspectorSteps();
-            return;
+            row.IsCapturing = false;
+            _keyRowCapture = null;
         }
-
-        EnsureInterface();
-        _interfaceModel?.Reload();
-        MacroInterfaceHost.IsVisible = true;
-        InspectorContent.IsVisible = false;
     }
 
     /// <summary>Puts the inspector back on the step being written.</summary>
+    /// <remarks>
+    /// The macro interface lives on the macro-settings page now, not in the inspector, so this
+    /// must not hide it: a step written after visiting the interface would otherwise leave the
+    /// settings page with an empty place where the interface belongs.
+    /// </remarks>
     private void ShowInspectorSteps()
-    {
-        MacroInterfaceHost.IsVisible = false;
-        InspectorContent.IsVisible = true;
-    }
+        => InspectorContent.IsVisible = true;
 
     /// <summary>Builds the interface editor the first time it is asked for.</summary>
     private void EnsureInterface()
@@ -1145,8 +1179,8 @@ public partial class MacroEditorWindow : Window
             return;
         }
 
-        _interfaceModel = new MacroInterfaceViewModel(_viewModel);
-        _interfaceView = new MacroInterfaceView { DataContext = _interfaceModel };
+        var model = new MacroInterfaceViewModel(_viewModel);
+        _interfaceView = new MacroInterfaceView { DataContext = model };
         MacroInterfaceHost.Content = _interfaceView;
     }
     /// <summary>Shows the recording page in the middle, instead of the settings or the step form.</summary>
@@ -1295,7 +1329,8 @@ public partial class MacroEditorWindow : Window
 
         _running?.Close();
         var window = new RunWindow(_viewModel.Steps, Layer, _viewModel.DelayScale, BuildLibrary(),
-            macroName: _editing?.Name ?? string.Empty);
+            macroName: _editing?.Name ?? string.Empty,
+            callable: _viewModel.BuildMacro().Callable);
         _running = window;
         window.Closed += (_, _) =>
         {
@@ -1694,12 +1729,56 @@ public partial class MacroEditorWindow : Window
         OnEditStepRequested(row.Step);
     }
 
+    /// <summary>Context-menu commands for the step list, so they are not keyboard-only.</summary>
+    private void OnStepContextEdit(object? sender, RoutedEventArgs e)
+        => _viewModel.EditSelectedCommand.Execute(null);
+
+    private void OnStepContextCopy(object? sender, RoutedEventArgs e) => _ = CopySelectionAsync();
+
+    private void OnStepContextCut(object? sender, RoutedEventArgs e) => _ = CutSelectionAsync();
+
+    private void OnStepContextPaste(object? sender, RoutedEventArgs e) => _ = PasteAsync();
+
+    private void OnStepContextDelete(object? sender, RoutedEventArgs e)
+        => _viewModel.DeleteSelectedCommand.Execute(null);
+
+    private void OnStepContextMoveUp(object? sender, RoutedEventArgs e)
+        => _viewModel.MoveSelectedUpCommand.Execute(null);
+
+    private void OnStepContextMoveDown(object? sender, RoutedEventArgs e)
+        => _viewModel.MoveSelectedDownCommand.Execute(null);
+
+    private void OnStepContextGroup(object? sender, RoutedEventArgs e)
+        => _viewModel.GroupSelectedCommand.Execute(null);
+
+    private void OnStepContextLift(object? sender, RoutedEventArgs e)
+        => _viewModel.LiftSelectedCommand.Execute(null);
+
+    private void OnStepContextToggleEnabled(object? sender, RoutedEventArgs e)
+        => _viewModel.ToggleStepEnabledCommand.Execute(null);
+
     /// <summary>Remembers where a press landed, so a plain click never turns into a drag.</summary>
     private void OnStepPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        var pressed = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed;
+        var point = e.GetCurrentPoint(this);
         var onButton = IsOnButton(e.Source);
         var row = onButton ? null : RowUnder(e.Source);
+
+        // A right-click on a row that is not part of the selection picks that row first, so the
+        // context menu acts on what was clicked rather than on something picked earlier.
+        if (point.Properties.IsRightButtonPressed)
+        {
+            if (row is { IsStep: true } && !_viewModel.SelectedSteps.Contains(row.Step))
+            {
+                _viewModel.SetSelection([row.Step]);
+                _viewModel.RefreshSelection();
+            }
+
+            _pressedRow = null;
+            return;
+        }
+
+        var pressed = point.Properties.IsLeftButtonPressed;
 
         // A press on a button inside a row belongs to that button: folding a block open, or
         // asking for a step inside one, must not turn into picking the row up as a drag.

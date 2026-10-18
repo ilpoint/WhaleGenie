@@ -2,8 +2,9 @@
 .SYNOPSIS
     把 WhaleGenie 打成两个便携包：一个要机器上有 .NET 桌面运行时，一个什么都不要。
 .DESCRIPTION
-    两种包的内容只差运行时，目录形状是一样的：外层一个 WhaleGenie 文件夹，里面是 exe、
-    清单和装 dll 的 lib 文件夹。用户解开压缩包先看到 exe，不用在一堆 dll 里翻。
+    两种包的内容只差运行时，目录形状是一样的：外层一个 WhaleGenie 文件夹，里面只有一个
+    WhaleGenie.exe、随程序走的 .playwright 驱动、手册与许可，原生库收在 lib 里。托管的程序集
+    都在 exe 里，没有语言资源文件夹，也没有 pdb；用户解开压缩包先看到 exe，不用在一堆文件里翻。
 
     只做 64 位：这个程序靠的 OpenCV（找图找色）和 Playwright 驱动（浏览器动作）都只有 64 位
     一份，32 位的包装上也是坏的，所以不再出。
@@ -47,49 +48,9 @@ if ($Version -notmatch '^\d+(\.\d+){0,3}(-[0-9A-Za-z.]+)?$') {
 $project = Join-Path $PSScriptRoot '..\WhaleGenie\WhaleGenie.csproj'
 $OutDir = Join-Path $PWD $OutDir
 
-# 运行时自己的这几个文件必须在 exe 旁边：宿主是先找 hostpolicy、再找 coreclr、再由
-# coreclr 找 JIT 和核心库的，都按 "exe 所在目录" 找，放进 lib 就找不到，程序连错误
-# 都报不出来。其余 dll 一律进 lib —— 除了下面这两个：
-#
-#   WhaleGenie.dll        程序自己的主程序集，宿主按名字找它。
-#   Microsoft.Playwright.dll  Playwright 找驱动的方式是先看 "exe 目录下有没有这个 dll"，
-#                         有就拿 exe 目录去找 .playwright；它一旦被挪进 lib，就会去
-#                         lib\.playwright 找，而驱动在 exe 旁边的 .playwright 里，于是
-#                         解包运行时浏览器动作报 "Driver not found"。开发目录里两者同在
-#                         一层，所以这个问题只在正式包里出现。
-$hostFiles = @(
-    'hostfxr.dll'
-    'hostpolicy.dll'
-    'coreclr.dll'
-    'clrjit.dll'
-    'System.Private.CoreLib.dll'
-    'mscorrc.dll'
-    'clretwrc.dll'
-    'vcruntime140_cor3.dll'
-    'mscordaccore.dll'
-    'mscordaccore_amd64_amd64_*.dll'
-    'mscordbi.dll'
-)
-
-# 这几个 dll 也留在 exe 旁边，理由见上面那段注释。项目引用的两个程序集跟着主程序走：
-# 0.0.6 把它们和别的 dll 一起放进 lib 后，宿主在启动时找不到 WhaleGenie.Core，窗口还没
-# 建起来就退了；它们不是 NuGet 包，留在应用目录让宿主按简单名找到。
-$stayWithExe = @(
-    'WhaleGenie.dll'
-    'WhaleGenie.Core.dll'
-    'WhaleGenie.GraphicsCapture.dll'
-    'Microsoft.Playwright.dll'
-)
-
-function Test-HostFile([string]$Name) {
-    foreach ($pattern in $hostFiles) {
-        if ($Name -like $pattern) {
-            return $true
-        }
-    }
-
-    return $false
-}
+# 单文件发布把托管程序集收进 exe，发布目录里剩下的 dll 全是原生库。Windows 和这些库自己
+# 都按文件名找它们，程序启动时把 lib 交给 Windows 的查找路径（Program.HookLibraryFolder），
+# 所以它们统一进 lib；exe 旁边不再留 dll，用户打开文件夹只看得到程序本身。
 
 function Remove-Folder([string]$Path) {
     if (Test-Path $Path) {
@@ -123,18 +84,21 @@ function Assert-OnePlatformDriver([string]$App) {
 }
 
 <#
-    把一次 dotnet publish 的结果摆成便携包的形状。清单（WhaleGenie.deps.json）里每一项的
-    写法决定运行时装到哪儿找程序集和原生库，所以 dll 搬家时清单得跟着改：留在 exe
-    旁边的保持原名，进 lib 的写成 lib/<文件名>。
+    把一次 dotnet publish 的结果摆成便携包的形状。单文件发布已经把托管程序集收进 exe，
+    这里只把剩下的原生库收进 lib；单文件发布没有 deps.json，运行时也不再靠它找托管程序集。
 #>
 function New-PortableFolder([string]$Published, [string]$Package) {
     $app = Join-Path $Package 'WhaleGenie'
     $lib = Join-Path $app 'lib'
-    [System.IO.Directory]::CreateDirectory($lib) | Out-Null
 
+    [System.IO.Directory]::CreateDirectory($app) | Out-Null
     Copy-Item -Path (Join-Path $Published '*') -Destination $app -Recurse
 
-    # 原生库自带的调试符号，比程序本身还大（Skia 一份 80 MB），用户用不上。
+    # 单文件发布本身已经会把原生库放进 lib；这里兜住更早的发布结果或发布目标失效的场合。
+    [System.IO.Directory]::CreateDirectory($lib) | Out-Null
+
+    # 原生库自带的调试符号，比程序本身还大（Skia 一份 80 MB），用户用不上。单文件发布时
+    # 项目里的 DropPublishSymbols 已经把它们从清单里摘掉，这里再兜一次底。
     Get-ChildItem $app -Recurse -Filter *.pdb | ForEach-Object { $_.Delete() }
 
     Assert-OnePlatformDriver $app
@@ -156,31 +120,21 @@ function New-PortableFolder([string]$Published, [string]$Package) {
     [System.IO.Directory]::CreateDirectory($packagedManual) | Out-Null
     Copy-Item -Path (Join-Path $PSScriptRoot '..\doc\manual.md') -Destination $packagedManual
 
-    $moved = @(Get-ChildItem $Published -File |
-        Where-Object { $_.Extension -eq '.dll' -and $_.Name -notin $stayWithExe -and -not (Test-HostFile $_.Name) } |
-        ForEach-Object { $_.Name })
+    # 单文件之外只剩原生库（OpenCV、ffmpeg、Skia、HarfBuzz、uiohook、libVIIPER），全部进 lib。
+    Get-ChildItem $app -File -Filter *.dll | Move-Item -Destination $lib
 
-    $deps = Join-Path $app 'WhaleGenie.deps.json'
-    $json = [System.IO.File]::ReadAllText($deps)
-    $json = [regex]::Replace($json, '"((?:[^"]*/)?)([^"/]+\.dll)":', {
-            param($match)
-            if ($moved -contains $match.Groups[2].Value) {
-                '"lib/' + $match.Groups[2].Value + '":'
-            }
-            else {
-                $match.Value
-            }
-        })
-    [System.IO.File]::WriteAllText($deps, $json)
+    # 包根再出现 dll 就说明单文件发布没生效：用户又会回到"几十个文件"的样子，所以在这里拦住。
+    if (Get-ChildItem $app -File -Filter *.dll) {
+        throw "包根还有 dll：单文件发布没有生效，先看 WhaleGenie.csproj 的 PublishSingleFile。"
+    }
 
-    Get-ChildItem $app -File | Where-Object { $moved -contains $_.Name } | Move-Item -Destination $lib
+    if (-not (Test-Path (Join-Path $app 'WhaleGenie.exe'))) {
+        throw "包里没有 WhaleGenie.exe：单文件发布没有产出程序。"
+    }
 
-    # A package that has these only in lib starts with FileNotFoundException before a window is
-    # made. Check the layout here, where the mistake is cheap to see, rather than after a release.
-    foreach ($assembly in 'WhaleGenie.Core.dll', 'WhaleGenie.GraphicsCapture.dll') {
-        if (-not (Test-Path (Join-Path $app $assembly))) {
-            throw "包里没有 $assembly：项目引用的程序集要留在 exe 旁边，不能只放进 lib。"
-        }
+    # 驱动级输入按文件名找这个库，它必须在 lib 里，不能哪天被当成托管程序集收进 exe。
+    if (-not (Test-Path (Join-Path $lib 'libVIIPER.dll'))) {
+        throw "lib 里没有 libVIIPER.dll：驱动级输入会在用户那里报 Run.NoDriverLibrary。"
     }
 
     return $app
@@ -194,14 +148,18 @@ foreach ($architecture in $Rid) {
     Remove-Folder $published
     Remove-Folder $package
 
-    # 框架依赖和自带运行时各发布一次；关掉调试符号，pdb 比程序还大。
+    # 框架依赖和自带运行时各发布一次。单文件发布把托管程序集收进 exe，原生库留在外面，
+    # 由 New-PortableFolder 收进 lib；DebugType 关掉托管 pdb，原生 pdb 由项目目标摘掉。
     foreach ($selfContained in @($false, $true)) {
         $target = Join-Path $published $(if ($selfContained) { 'standalone' } else { 'framework' })
         $arguments = @(
             'publish', $project
             '-c', 'Release', '-r', $architecture
             "--self-contained", $selfContained.ToString().ToLowerInvariant()
+            '-p:PublishSingleFile=true'
+            '-p:IncludeNativeLibrariesForSelfExtract=false'
             '-p:DebugType=none'
+            '-p:DebugSymbols=false'
             "-p:Version=$Version"
             '--nologo'
             '-o', $target

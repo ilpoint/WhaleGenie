@@ -590,47 +590,47 @@
                     <ItemsControl ItemsSource="{Binding KeyRows}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:KeyRowViewModel">
-                                <!-- The keys of one press, then its beat and the button that takes it
-                                     out. It wraps for the same reason a region does: a row that ran
-                                     off the side would put the numbers under the buttons. -->
-                                <WrapPanel Margin="0,0,0,6">
-                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6"
-                                          Width="280" Margin="0,0,12,0">
+                                <!-- The combination takes the whole first line; its beat and the
+                                     button that takes it out sit under it, so a long chord never
+                                     pushes the numbers off the side. -->
+                                <StackPanel Margin="0,0,0,8" Spacing="6">
+                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                                         <TextBox Classes="ParamInput" Text="{Binding Keys}"
                                                  PlaceholderText="Ctrl+A"
                                                  ToolTip.Tip="{Binding [Add.KeyRunKeyHint], Source={x:Static loc:Strings.Current}}" />
-                                        <Button Grid.Column="1" Classes="FlatButton" Height="33" Padding="11,0"
+                                        <Button Grid.Column="1" Classes="FlatButton CaptureToggle"
+                                                Height="33" Padding="9,0"
+                                                Content="{Binding CaptureLabel}"
+                                                ToolTip.Tip="{Binding [Add.CaptureKeyRunHint], Source={x:Static loc:Strings.Current}}"
+                                                Click="OnCaptureKeyRow" />
+                                        <Button Grid.Column="2" Classes="FlatButton" Height="33" Padding="11,0"
                                                 Content="{Binding [Add.OpenKeyPad], Source={x:Static loc:Strings.Current}}"
                                                 ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
                                                 Click="OnPickKeyRow" />
                                     </Grid>
 
-                                    <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,12,0">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
                                         <TextBlock Classes="Muted" VerticalAlignment="Center"
                                                    Text="{Binding [Add.KeyRunHold], Source={x:Static loc:Strings.Current}}" />
-                                        <views:NumberBox Width="84" FormatString="0"
+                                        <views:NumberBox Width="84" FormatString="0" PlaceholderText="50"
                                                        Value="{Binding HoldMs}"
                                                        ToolTip.Tip="{Binding [Add.KeyRunHoldHint], Source={x:Static loc:Strings.Current}}" />
-                                    </StackPanel>
-
-                                    <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,12,0">
+                                        <TextBlock Classes="Muted" Margin="0,0,8,0" VerticalAlignment="Center"
+                                                   Text="{Binding [Add.KeyRunMilliseconds], Source={x:Static loc:Strings.Current}}" />
                                         <TextBlock Classes="Muted" VerticalAlignment="Center"
                                                    Text="{Binding [Add.KeyRunGap], Source={x:Static loc:Strings.Current}}" />
-                                        <views:NumberBox Width="84" FormatString="0"
+                                        <views:NumberBox Width="84" FormatString="0" PlaceholderText="120"
                                                        Value="{Binding GapMs}"
                                                        ToolTip.Tip="{Binding [Add.KeyRunGapHint], Source={x:Static loc:Strings.Current}}" />
+                                        <TextBlock Classes="Muted" Margin="0,0,8,0" VerticalAlignment="Center"
+                                                   Text="{Binding [Add.KeyRunMilliseconds], Source={x:Static loc:Strings.Current}}" />
+                                        <Button Classes="FlatButton"
+                                                Height="26" Padding="9,0" VerticalAlignment="Center"
+                                                Content="{Binding [Add.KeyRunRemove], Source={x:Static loc:Strings.Current}}"
+                                                ToolTip.Tip="{Binding [Add.KeyRunRemoveHint], Source={x:Static loc:Strings.Current}}"
+                                                Command="{Binding RemoveCommand}" />
                                     </StackPanel>
-
-                                    <TextBlock Classes="Muted" Margin="0,0,12,0"
-                                               VerticalAlignment="Center"
-                                               Text="{Binding [Add.KeyRunMilliseconds], Source={x:Static loc:Strings.Current}}" />
-
-                                    <Button Classes="FlatButton"
-                                            Height="26" Padding="9,0" VerticalAlignment="Center"
-                                            Content="{Binding [Add.KeyRunRemove], Source={x:Static loc:Strings.Current}}"
-                                            ToolTip.Tip="{Binding [Add.KeyRunRemoveHint], Source={x:Static loc:Strings.Current}}"
-                                            Command="{Binding RemoveCommand}" />
-                                </WrapPanel>
+                                </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -832,7 +832,8 @@
                                 <DataTemplate x:DataType="models:MacroStep">
                                     <StackPanel>
                                         <TextBlock Text="{Binding DisplayName}"
-                                                   FontSize="12" Foreground="{DynamicResource AppText}" />
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource AppTextStrong}" />
                                         <TextBlock Text="{Binding Detail}"
                                                    FontSize="11" Foreground="{DynamicResource AppMuted}"
                                                    TextWrapping="Wrap" />
@@ -991,7 +992,8 @@
                             <Button Classes="ActionCard" Classes.selected="{Binding IsSelected}"
                                     Click="OnPickAction"
                                     ToolTip.Tip="{Binding Definition.LocalDescription}">
-                                <TextBlock Text="{Binding Definition.LocalName}" FontSize="12" />
+                                <TextBlock Text="{Binding Definition.LocalName}" FontSize="13"
+                                           Foreground="{DynamicResource AppTextStrong}" />
                             </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -1090,10 +1092,10 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextStrong}" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="Padding" Value="11,0" />
-            <Setter Property="Height" Value="30" />
+            <Setter Property="Height" Value="32" />
             <Setter Property="Margin" Value="0,0,6,6" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -1298,8 +1300,8 @@
                      fields is not one wall of them. -->
                 <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="16,0,0,0">
                     <StackPanel Grid.Row="0" Spacing="3" Margin="2,0,0,12">
-                        <TextBlock Text="{Binding SelectedActionName}" FontSize="15"
-                                   Foreground="#F0F0F0" />
+                        <TextBlock Text="{Binding SelectedActionName}" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AppTextStrong}" />
                         <TextBlock Text="{Binding SelectedKey}" FontSize="12" Foreground="{DynamicResource AppMuted}" />
                         <TextBlock Classes="Muted" Text="{Binding Description}" TextWrapping="Wrap" />
                     </StackPanel>

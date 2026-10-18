@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using WhaleGenie.Core.Devices;
@@ -22,10 +24,51 @@ public static class LocalSettings
 
     /// <summary>Stores the chosen theme variant. Failures are ignored on purpose.</summary>
     public static void StoreLightTheme(bool light) => Write(model => model.LightTheme = light);
-    /// <summary>Reads the stored language, falling back to English.</summary>
+
+    /// <summary>
+    /// The whole theme choice. A file from before custom themes carried only <see cref="Model.LightTheme"/>,
+    /// so that flag is the fallback when no mode was written.
+    /// </summary>
+    public static ThemeSelection LoadTheme()
+    {
+        var model = Read();
+        var mode = Enum.TryParse<ThemeMode>(model.Theme, true, out var stored)
+            ? stored
+            : model.LightTheme ? ThemeMode.Light : ThemeMode.Dark;
+        var colors = model.CustomThemeColors ?? new Dictionary<string, string>();
+        var light = model.CustomThemeLight;
+
+        if (mode is ThemeMode.Custom && colors.Count == 0)
+        {
+            colors = new Dictionary<string, string>(ThemePalette.Defaults(light));
+        }
+
+        return new ThemeSelection(mode, light, colors);
+    }
+
+    /// <summary>Stores the whole theme choice; the old flag is kept for older copies of the program.</summary>
+    public static void StoreTheme(ThemeSelection selection)
+        => Write(model =>
+        {
+            model.Theme = selection.Mode.ToString().ToLowerInvariant();
+            model.CustomThemeLight = selection.CustomBaseLight;
+            model.CustomThemeColors = new Dictionary<string, string>(selection.CustomColors);
+            model.LightTheme = selection.Mode is ThemeMode.Light;
+        });
+
+    /// <summary>
+    /// Reads the stored language. A machine that has never chosen one follows its Windows display
+    /// language: Chinese when that is Chinese, English otherwise.
+    /// </summary>
     public static Language Load()
         => Enum.TryParse<Language>(Read().Language, out var language)
             ? language
+            : ForCulture(CultureInfo.CurrentUICulture);
+
+    /// <summary>The interface language a system language maps to when nothing has been chosen.</summary>
+    internal static Language ForCulture(CultureInfo culture)
+        => culture.TwoLetterISOLanguageName.Equals("zh", StringComparison.OrdinalIgnoreCase)
+            ? Language.Chinese
             : Language.English;
 
     /// <summary>Stores the chosen language. Failures are ignored on purpose.</summary>
@@ -51,6 +94,12 @@ public static class LocalSettings
     /// <summary>Stores that choice. Failures are ignored on purpose.</summary>
     public static void StoreDriverAttachAtStart(bool value)
         => Write(model => model.DriverAttachAtStart = value);
+
+    /// <summary>The port the local MCP server asks for; 3917 unless the person changed it.</summary>
+    public static int LoadMcpPort() => Read().McpPort;
+
+    /// <summary>Stores the MCP port. The server falls back to a free port if it is taken.</summary>
+    public static void StoreMcpPort(int port) => Write(model => model.McpPort = port);
 
     /// <summary>
     /// How this machine reads a picture of a window. Automatic by default, which is the order the
@@ -109,16 +158,24 @@ public static class LocalSettings
 
     private sealed class Model
     {
-        public string Language { get; set; } = nameof(Localization.Language.English);
+        public string Language { get; set; } = string.Empty;
 
         public bool PreloadOcr { get; set; }
 
         public bool DriverAttachAtStart { get; set; }
+
+        public int McpPort { get; set; } = 3917;
 
         public string CaptureWindow { get; set; } = string.Empty;
 
         public string CaptureScreen { get; set; } = string.Empty;
 
         public bool LightTheme { get; set; }
+
+        public string Theme { get; set; } = string.Empty;
+
+        public bool CustomThemeLight { get; set; }
+
+        public Dictionary<string, string>? CustomThemeColors { get; set; } = new();
     }
 }

@@ -101,6 +101,12 @@ public partial class ActionEditorView : UserControl
     /// </summary>
     internal event Action<StepParameterViewModel>? KeyCaptureRequested;
 
+    /// <summary>
+    /// Raised when a key-run row asks to record several keys into itself. The editor hosting the
+    /// form owns the capture loop, the same one the trigger and the single-key fields use.
+    /// </summary>
+    internal event Action<KeyRowViewModel>? KeyRowCaptureRequested;
+
     /// <summary>Whether the dialog has been dismissed, which can happen while a page is open.</summary>
     private bool _closed;
 
@@ -631,6 +637,27 @@ public partial class ActionEditorView : UserControl
     private void OnPickKeyRow(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { DataContext: KeyRowViewModel row })
+        {
+            OpenKeyPad(Strings.Format("Add.KeyRunPress", row.Number), row.AddKey);
+        }
+    }
+
+    /// <summary>
+    /// Asks the hosting editor to record keys into this row. A form on its own has no capture
+    /// loop, so it falls back to the keyboard drawn on screen.
+    /// </summary>
+    private void OnCaptureKeyRow(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: KeyRowViewModel row })
+        {
+            return;
+        }
+
+        if (KeyRowCaptureRequested is { } request)
+        {
+            request(row);
+        }
+        else
         {
             OpenKeyPad(Strings.Format("Add.KeyRunPress", row.Number), row.AddKey);
         }

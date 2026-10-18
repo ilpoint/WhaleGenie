@@ -28,11 +28,13 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Padding" Value="9,0" />
-            <Setter Property="Height" Value="28" />
-            <Setter Property="Margin" Value="0,0,5,5" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextStrong}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Padding" Value="11,0" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Margin" Value="0,0,6,6" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.ActionCard:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
@@ -106,8 +108,9 @@
                                     BorderBrush="{Binding Accent}" BorderThickness="1"
                                     Click="OnPickAction"
                                     ToolTip.Tip="{Binding Definition.LocalDescription}">
-                                <TextBlock Text="{Binding Definition.LocalName}" FontSize="12"
-                                           HorizontalAlignment="Center" />
+                                <TextBlock Text="{Binding Definition.LocalName}" FontSize="13"
+                                           Foreground="{DynamicResource AppTextStrong}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>

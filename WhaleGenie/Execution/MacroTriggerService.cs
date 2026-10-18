@@ -1431,14 +1431,17 @@ public sealed class MacroTriggerService : IDisposable
     private async Task RunAsync(MacroItem macro, bool repeating, CancellationTokenSource cancellation)
     {
         var token = cancellation.Token;
+        var capture = RunLogStore.Begin(macro.Name, "trigger");
+        RunResult? last = null;
         try
         {
             var steps = macro.Steps.ToExecutable();
             var library = Library();
 
             // No debugger is behind a run a trigger started, but a step whose failure rule is
-            // "ask me" still has to reach whoever can put the question on screen.
-            var host = new AskRunHost(Ask, AskUser);
+            // "ask me" still has to reach whoever can put the question on screen. The same host
+            // also keeps the run's lines for the MCP debug tools.
+            var host = new AskRunHost(Ask, AskUser, capture.Add);
 
             while (!token.IsCancellationRequested)
             {
@@ -1450,8 +1453,10 @@ public sealed class MacroTriggerService : IDisposable
                     FailureLogFolder = AppPaths.Logs,
                     RunName = macro.Name,
                     ExclusiveInput = macro.ExclusiveInput,
+                    StartSignature = macro.Callable.Signature,
                 };
                 var result = await runner.RunAsync(steps, token);
+                last = result;
                 if (result.Status != RunStatus.Completed || !repeating || StoppingAfterPass(macro))
                 {
                     break;
@@ -1470,6 +1475,10 @@ public sealed class MacroTriggerService : IDisposable
         }
         finally
         {
+            capture.Finish(last, token.IsCancellationRequested
+                ? RunStatus.Stopped.ToString()
+                : last?.Status.ToString() ?? RunStatus.Failed.ToString());
+
             lock (_gate)
             {
                 _running.Remove(macro);

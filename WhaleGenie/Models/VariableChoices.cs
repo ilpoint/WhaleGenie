@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
@@ -66,7 +67,12 @@ public sealed class VariableChoice
         get
         {
             var line = string.Join(" · ",
-                new[] { Display, Type, Strings.Get($"VarWall.Group.{Group}") }
+                new[]
+                    {
+                        Display,
+                        Strings.Get($"Variable.Type.{Type}", Type),
+                        Strings.Get($"VarWall.Group.{Group}"),
+                    }
                     .Where(part => part.Length > 0));
             var said = string.Join("\n",
                 new[] { Description, Source }.Where(part => part.Length > 0));
@@ -103,11 +109,13 @@ public enum VariableGroup
 /// </summary>
 public static class VariableChoices
 {
-    public static IReadOnlyList<VariableChoice> For(IEnumerable<MacroStep> steps)
+    public static IReadOnlyList<VariableChoice> For(IEnumerable<MacroStep> steps,
+        IEnumerable<MacroParameter>? parameters = null, IEnumerable<MacroResult>? results = null)
     {
         var rows = new List<VariableChoice>();
         var uses = new Dictionary<string, List<VariableUse>>(StringComparer.OrdinalIgnoreCase);
         Read(steps, uses);
+        AddDeclarations(rows, uses, parameters, results);
         Walk(steps, rows, uses);
 
         IReadOnlyList<VariableChoice> shared =
@@ -131,6 +139,55 @@ public static class VariableChoices
         ];
 
         return Merge(rows, shared);
+    }
+
+    /// <summary>
+    /// The values a macro's interface declares, added before the rows the steps make so a declared
+    /// result wins over a step that happens to write the same name. A value is only offered when
+    /// its name is one the macro language can read back; an invalid declaration is the declaration
+    /// editor's problem, not something the variable wall should put in front of the user.
+    /// </summary>
+    private static void AddDeclarations(List<VariableChoice> rows,
+        Dictionary<string, List<VariableUse>> uses,
+        IEnumerable<MacroParameter>? parameters, IEnumerable<MacroResult>? results)
+    {
+        foreach (var parameter in parameters ?? [])
+        {
+            var name = parameter.Name.Trim();
+            if (!VariableText.IsName(name))
+            {
+                continue;
+            }
+
+            rows.Add(new VariableChoice
+            {
+                Name = name,
+                Scope = VariableScope.Local,
+                Type = ActionReturn.TypeNameOf(parameter.Type),
+                Description = parameter.Description,
+                Source = Strings.Get("VarWall.Parameter"),
+                Uses = UsesOf(uses, name),
+            });
+        }
+
+        foreach (var result in results ?? [])
+        {
+            var name = result.Name.Trim();
+            if (!VariableText.IsName(name))
+            {
+                continue;
+            }
+
+            rows.Add(new VariableChoice
+            {
+                Name = name,
+                Scope = VariableScope.Local,
+                Type = ActionReturn.TypeNameOf(result.Type),
+                Description = result.Description,
+                Source = Strings.Get("VarWall.Result"),
+                Uses = UsesOf(uses, name),
+            });
+        }
     }
 
     private static IReadOnlyList<VariableUse> UsesOf(

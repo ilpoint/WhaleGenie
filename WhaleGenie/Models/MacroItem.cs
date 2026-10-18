@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 
 // The choice of how a window is recognised is a property here as well as a type in the engine, so
@@ -295,6 +296,27 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             step.CollectVariables(names);
         }
 
+        // The interface names are values of this macro too: the runtime seeds the parameters and
+        // clears the declared results, so the variable page and the pickers should not act as if
+        // they only appear once a step happens to write them.
+        foreach (var parameter in Parameters)
+        {
+            var name = parameter.Name.Trim();
+            if (VariableText.IsName(name))
+            {
+                names.Add(name);
+            }
+        }
+
+        foreach (var result in Results)
+        {
+            var name = result.Name.Trim();
+            if (VariableText.IsName(name))
+            {
+                names.Add(name);
+            }
+        }
+
         return [.. names];
     }
 
@@ -377,11 +399,9 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         var array = new JsonArray();
         foreach (var parameter in Parameters)
         {
-            if (parameter.Name.Trim().Length == 0)
-            {
-                continue;
-            }
-
+            // A name left empty is written too: recovery has to bring the unfinished row back so
+            // the declaration problem is still visible after a stop, and the package writer refuses
+            // to save a macro whose declaration has a fatal problem.
             array.Add(new JsonObject
             {
                 ["name"] = parameter.Name.Trim(),
@@ -401,11 +421,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         var array = new JsonArray();
         foreach (var result in Results)
         {
-            if (result.Name.Trim().Length == 0)
-            {
-                continue;
-            }
-
+            // See ArgumentsJson: an empty row is an unfinished declaration, not something to drop.
             array.Add(new JsonObject
             {
                 ["name"] = result.Name.Trim(),
@@ -470,15 +486,9 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         {
             foreach (var declared in arguments.OfType<JsonObject>())
             {
-                var name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty;
-                if (name.Length == 0)
-                {
-                    continue;
-                }
-
                 macro.Parameters.Add(new MacroParameter
                 {
-                    Name = name,
+                    Name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Default = declared["default"]?.GetValue<string>() ?? string.Empty,
                     Required = ReadBool(declared["required"], true),
                     Description = declared["description"]?.GetValue<string>() ?? string.Empty,
@@ -491,15 +501,9 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         {
             foreach (var declared in results.OfType<JsonObject>())
             {
-                var name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty;
-                if (name.Length == 0)
-                {
-                    continue;
-                }
-
                 macro.Results.Add(new MacroResult
                 {
-                    Name = name,
+                    Name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Description = declared["description"]?.GetValue<string>() ?? string.Empty,
                     Type = ReadEnum(declared, "type", ActionReturnType.Text),
                 });

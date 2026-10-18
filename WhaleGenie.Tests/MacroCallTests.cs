@@ -82,6 +82,75 @@ public class MacroCallTests
     }
 
     [Fact]
+    public void An_empty_declaration_survives_the_file_and_is_reported()
+    {
+        var macro = new MacroItem { Name = "没写完" };
+        macro.Parameters.Add(new MacroParameter { Name = string.Empty });
+        macro.Results.Add(new MacroResult { Name = string.Empty });
+
+        var read = MacroItem.FromJson(macro.ToJson());
+
+        Assert.Single(read.Parameters);
+        Assert.Single(read.Results);
+        Assert.Equal(string.Empty, read.Parameters[0].Name);
+        Assert.Contains(read.Callable.Problems(),
+            problem => problem.Fault == MacroSignatureFault.EmptyName);
+    }
+
+    [Fact]
+    public void A_package_refuses_a_macro_whose_declaration_cannot_be_called()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
+            Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(folder, "macros" + MacroPackage.Extension);
+        var macro = new MacroItem { Name = "坏声明" };
+        macro.Parameters.Add(new MacroParameter { Name = "同名" });
+        macro.Parameters.Add(new MacroParameter { Name = "同名" });
+
+        try
+        {
+            var failure = Assert.Throws<InvalidDataException>(
+                () => MacroPackage.Save(path, [macro], [], "0.0.0"));
+
+            Assert.Contains("坏声明", failure.Message, StringComparison.Ordinal);
+            Assert.False(File.Exists(path));
+        }
+        finally
+        {
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, true);
+            }
+        }
+    }
+
+    [Fact]
+    public void An_in_out_value_may_use_the_same_name_on_both_sides()
+    {
+        var macro = new MacroItem { Name = "加一" };
+        macro.Parameters.Add(new MacroParameter
+        {
+            Name = "次数",
+            Required = false,
+        });
+        macro.Results.Add(new MacroResult { Name = "次数" });
+
+        Assert.Empty(macro.Callable.Problems());
+        Assert.NotNull(macro.Callable.Signature.Argument("次数"));
+        Assert.NotNull(macro.Callable.Signature.Result("次数"));
+    }
+
+    [Fact]
+    public void The_declarations_are_local_variables_of_the_macro()
+    {
+        var macro = Declaring();
+
+        Assert.Contains("次数", macro.LocalVariableNames());
+        Assert.Contains("标签", macro.LocalVariableNames());
+        Assert.Contains("答案", macro.LocalVariableNames());
+    }
+
+    [Fact]
     public void The_declaration_survives_a_package()
     {
         var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",

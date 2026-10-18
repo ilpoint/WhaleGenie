@@ -204,6 +204,22 @@ public class MacroCheckTests
     }
 
     [Fact]
+    public void Cancelling_a_background_run_does_not_settle_its_results()
+    {
+        var started = Step("control.startMacro", Text("macro", "后台"),
+            Name("runHandleName", "job"), Results("结果"));
+        var cancel = Step("control.cancelMacro", Text("runHandle", "$job"));
+        var read = Step("control.setVariable",
+            Text("name", "copy"), Text("scope", "local"), Value("value", "$结果"));
+
+        var problems = Against("当前", [Callable("后台", [], ["结果"])], started, cancel, read);
+
+        Assert.Contains(problems, problem =>
+            problem.Step == read
+            && problem.Message == Strings.Format("Editor.Problem.ResultBeforeWait", "结果"));
+    }
+
+    [Fact]
     public void A_catch_condition_may_read_the_failure_it_was_given()
     {
         var asked = Step("condition.compare",
@@ -366,9 +382,110 @@ public class MacroCheckTests
         var passed = Step("control.runMacro",
             Text("macro", "另一个"), Value("arg.别的", "1"));
 
-        var problem = Assert.Single(Against("自己", [Callable("另一个", parameters: ["次数"])], passed));
+        var problems = Against("自己", [Callable("另一个", parameters: ["次数"])], passed);
+        var problem = Assert.Single(problems, candidate =>
+            candidate.Message.Contains("别的", StringComparison.Ordinal));
 
         Assert.Same(passed, problem.Step);
+
+        // The call also leaves the required parameter out, and that is said on its own.
+        Assert.Contains(problems, candidate =>
+            candidate.Step == passed
+            && candidate.Message == Strings.Format("Editor.Problem.MissingArgument", "次数", "另一个"));
+    }
+
+    [Fact]
+    public void A_call_that_leaves_a_required_argument_out_is_marked()
+    {
+        var call = Step("control.runMacro", Text("macro", "另一个"));
+
+        var problems = Against("自己", [Callable("另一个", parameters: ["次数"])], call);
+
+        Assert.Contains(problems, problem =>
+            problem.Step == call
+            && problem.Message == Strings.Format("Editor.Problem.MissingArgument", "次数", "另一个"));
+    }
+
+    [Fact]
+    public void A_given_marker_for_an_undeclared_argument_is_marked()
+    {
+        var call = Step("control.runMacro",
+            Text("macro", "另一个"), Flag("arg.别的.given", true));
+
+        var problems = Against("自己", [Callable("另一个", parameters: ["次数"])], call);
+
+        Assert.Contains(problems, problem =>
+            problem.Message == Strings.Format("Editor.Problem.UndeclaredArgument", "别的", "另一个"));
+    }
+
+    [Fact]
+    public void A_given_marker_beside_a_value_is_marked()
+    {
+        var call = Step("control.runMacro",
+            Text("macro", "另一个"), Value("arg.次数", "1"), Flag("arg.次数.given", true));
+
+        var problems = Against("自己", [Callable("另一个", parameters: ["次数"])], call);
+
+        Assert.Contains(problems, problem =>
+            problem.Message == Strings.Format("Editor.Problem.GivenWithValue", "次数"));
+    }
+
+    [Fact]
+    public void A_constant_argument_of_the_wrong_kind_is_marked()
+    {
+        var called = new MacroCallable("另一个",
+            [new MacroParameter
+            {
+                Name = "数量",
+                Required = true,
+                Type = ActionReturnType.Number,
+            }], []);
+        var call = Step("control.runMacro",
+            Text("macro", "另一个"), Text("arg.数量", "不是数"));
+
+        var problems = Against("自己", [called], call);
+
+        Assert.Contains(problems, problem =>
+            problem.Step == call
+            && problem.Message == Strings.Format("Editor.Problem.ArgumentType", "数量",
+                Strings.Get("ActionType.Number")));
+    }
+
+    [Fact]
+    public void A_default_of_the_wrong_kind_is_reminded()
+    {
+        var called = new MacroCallable("另一个",
+            [new MacroParameter
+            {
+                Name = "数量",
+                Required = false,
+                Default = "不是数",
+                Type = ActionReturnType.Number,
+            }], []);
+
+        var messages = MacroCheck.DeclarationProblems(called);
+
+        Assert.Contains(messages, message =>
+            message == Strings.Format("Editor.Problem.BadDefaultType", "另一个", "数量",
+                Strings.Get("ActionType.Number")));
+    }
+
+    [Fact]
+    public void A_default_with_a_broken_expression_is_reminded()
+    {
+        var called = new MacroCallable("另一个",
+            [new MacroParameter
+            {
+                Name = "数量",
+                Required = false,
+                Default = "$ + 1",
+                Type = ActionReturnType.Number,
+            }], []);
+
+        var messages = MacroCheck.DeclarationProblems(called);
+        var prefix = Strings.Get("Editor.Problem.BadExpression").Split("{0}")[0];
+
+        Assert.Contains(messages, message => message.StartsWith(prefix, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -380,6 +497,66 @@ public class MacroCheckTests
             [Callable("另一个", results: ["答案"])], asked));
 
         Assert.Same(asked, problem.Step);
+    }
+
+    [Fact]
+    public void A_macro_may_read_the_results_it_declares()
+    {
+        var reading = Set("副本", "$答案");
+        var own = new MacroCallable("自己", [], [new MacroResult { Name = "答案" }], [reading]);
+
+        Assert.Empty(Ui.Run(() => MacroCheck.Inspect([reading], own, [own])));
+    }
+
+    [Fact]
+    public void A_script_that_can_write_variables_makes_names_open()
+    {
+        var script = Step("script.python", Text("script", "print('hi')"));
+        var reading = Set("副本", "$madeByScript");
+
+        Assert.Empty(Inspect(script, reading));
+    }
+
+    [Fact]
+    public void A_result_no_step_writes_is_reminded()
+    {
+        var own = Callable("自己", results: ["答案"], steps: [Set("别的", "1")]);
+
+        var warning = Assert.Single(MacroCheck.DeclarationProblems(own));
+
+        Assert.Equal(Strings.Format("Editor.Problem.ResultNeverWritten", "自己", "答案"),
+            warning);
+    }
+
+    [Fact]
+    public void A_result_written_by_a_script_or_an_in_out_parameter_is_not_reminded()
+    {
+        var byScript = Callable("自己", results: ["答案"],
+            steps: [Step("script.python", Text("script", "print('hi')"))]);
+        var inOut = Callable("自己", parameters: ["答案"], results: ["答案"], steps: []);
+
+        Assert.Empty(MacroCheck.DeclarationProblems(byScript));
+        Assert.Empty(MacroCheck.DeclarationProblems(inOut));
+    }
+
+    /// <summary>
+    /// A background run started while the macro is inside a browser hold waits for the one page for
+    /// good when the called macro also reaches the browser. The called macro here is the macro
+    /// itself, so the check has to follow its own steps rather than an empty declaration.
+    /// </summary>
+    [Fact]
+    public void A_self_call_is_followed_when_the_macro_uses_the_browser()
+    {
+        var start = Step("control.startMacro",
+            Text("macro", "自己"), Text("runHandleName", "job"));
+        var hold = Step("control.holdBrowser", Steps("steps", start));
+        var browse = Step("browser.goTo", Text("url", "https://example.com"));
+        var own = new MacroCallable("自己", [], [], [hold, browse]);
+
+        var problems = Ui.Run(() => MacroCheck.Inspect([hold, browse], own, []));
+
+        Assert.Contains(problems, problem =>
+            problem.Step == start && problem.Message == Strings.Get("Editor.Problem.BrowserRunWhileHeld"));
     }
 
     [Fact]
@@ -826,8 +1003,10 @@ public class MacroCheckTests
         var step = Step("window.move", Text("rect", "1,2,3,4"), Text("width", "800"));
 
         var problem = Assert.Single(Inspect(step));
+        var label = ActionCatalog.Find("window.move")!.Parameters.First(parameter => parameter.Name == "rect")
+            .LocalLabel;
 
-        Assert.Equal(Strings.Format("Editor.Problem.PlaceAndNumbers", "Rectangle"), problem.Message);
+        Assert.Equal(Strings.Format("Editor.Problem.PlaceAndNumbers", label), problem.Message);
     }
 
     [Fact]
@@ -873,8 +1052,10 @@ public class MacroCheckTests
     public void A_required_field_left_empty_is_marked()
     {
         var problem = Assert.Single(Inspect(Step("browser.goTo")));
+        var label = ActionCatalog.Find("browser.goTo")!.Parameters.First(parameter => parameter.Name == "url")
+            .LocalLabel;
 
-        Assert.Equal(Strings.Format("Editor.Problem.MissingField", "Address"), problem.Message);
+        Assert.Equal(Strings.Format("Editor.Problem.MissingField", label), problem.Message);
     }
 
     [Fact]
@@ -978,8 +1159,10 @@ public class MacroCheckTests
         };
 
         var problems = Inspect(Step("vision.findImage", region));
+        var label = ActionCatalog.Find("vision.findImage")!.Parameters
+            .First(parameter => parameter.Name == "region").LocalLabel;
 
-        Assert.Contains(problems, problem => problem.Message.Contains("numbers",
-            StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(problems, problem =>
+            problem.Message == Strings.Format("Editor.Problem.ExclusiveRowColumn", label));
     }
 }

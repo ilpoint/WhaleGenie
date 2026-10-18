@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Core.Execution;
 
@@ -14,6 +15,12 @@ public sealed record MacroArgument(string Name, string Default, bool Required,
 
 /// <summary>One value a macro offers to hand back: the name and what kind of value it is.</summary>
 public sealed record MacroReturn(string Name, ActionReturnType Type = ActionReturnType.Text);
+
+/// <summary>
+/// One value supplied to a direct run, the way a call supplies an argument. <paramref name="Given"/>
+/// is the explicit-empty marker: a field left empty with it false means "use the declaration".
+/// </summary>
+public sealed record MacroStartArgument(string Name, string Text, bool Given);
 
 /// <summary>
 /// What a macro asks of a call to it: the values that have to be filled in, and the names it may
@@ -40,17 +47,32 @@ public sealed record MacroSignature(
             string.Equals(result.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
-    /// Every name that is empty, repeated, or one the run keeps for itself. A call that passed a
-    /// value under a duplicate name would have one of the two silently overwritten, and a parameter
-    /// named like a built-in would read as the built-in inside the called macro.
+    /// Every name that is empty, unreadable as a variable, repeated, or one the run keeps for
+    /// itself. A call that passed a value under a duplicate name would have one of the two
+    /// silently overwritten, and a parameter named like a built-in would read as the built-in
+    /// inside the called macro. A name the macro language cannot read is just as unusable: a
+    /// caller has no way to write it, so <c>$name</c> never works inside the called macro.
     /// </summary>
     public IReadOnlyList<(MacroSignatureFault Fault, string Name)> Problems()
     {
         var problems = new List<(MacroSignatureFault, string)>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        Collect(Arguments.Select(argument => argument.Name), seen, problems);
+        Collect(Arguments.Select(argument => argument.Name), seen, problems, arguments: true);
         seen.Clear();
-        Collect(Results.Select(result => result.Name), seen, problems);
+        Collect(Results.Select(result => result.Name), seen, problems, arguments: false);
+
+        // A required argument with a default has two answers to "what if the call leaves it
+        // out": the declaration says the call must fill it in, and the default says it need
+        // not. One of the two would silently win, so the declaration is refused instead.
+        foreach (var argument in Arguments)
+        {
+            var name = argument.Name.Trim();
+            if (name.Length > 0 && argument.Required && argument.Default.Trim().Length > 0)
+            {
+                problems.Add((MacroSignatureFault.RequiredWithDefault, name));
+            }
+        }
+
         return problems;
     }
 
@@ -62,7 +84,7 @@ public sealed record MacroSignature(
     }
 
     private static void Collect(IEnumerable<string> names, HashSet<string> seen,
-        List<(MacroSignatureFault Fault, string Name)> problems)
+        List<(MacroSignatureFault Fault, string Name)> problems, bool arguments)
     {
         foreach (var written in names)
         {
@@ -70,6 +92,21 @@ public sealed record MacroSignature(
             if (name.Length == 0)
             {
                 problems.Add((MacroSignatureFault.EmptyName, written));
+                continue;
+            }
+
+            if (!VariableText.IsName(name))
+            {
+                problems.Add((MacroSignatureFault.InvalidName, name));
+                continue;
+            }
+
+            // An argument named `x.given` would put its own value in the field the call uses to
+            // say "x was supplied empty", so the call could not tell the two apart.
+            if (arguments && name.EndsWith(MacroCallFields.GivenSuffix,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                problems.Add((MacroSignatureFault.ConflictingName, name));
                 continue;
             }
 
@@ -95,8 +132,18 @@ public sealed record MacroSignature(
 public enum MacroSignatureFault
 {
     EmptyName,
+
+    /// <summary>The name cannot be read as a variable: a space, a leading digit, or similar.</summary>
+    InvalidName,
+
+    /// <summary>The name is readable but collides with the call's supplied-empty marker.</summary>
+    ConflictingName,
+
     DuplicateName,
     ReservedName,
+
+    /// <summary>A required argument also has a default, so omitting it has two answers.</summary>
+    RequiredWithDefault,
 }
 
 /// <summary>
@@ -110,18 +157,21 @@ public static class MacroCallFields
     /// <summary>What the parameter holding the value passed for one argument starts with.</summary>
     public const string ArgumentPrefix = "arg.";
 
+    /// <summary>The end of the marker that says an argument was supplied as an empty value.</summary>
+    public const string GivenSuffix = ".given";
+
     /// <summary>The call's parameter for one argument of the called macro.</summary>
     public static string Argument(string name) => ArgumentPrefix + name;
 
     /// <summary>
     /// The call parameter that says "this value was supplied even though it is empty". A field
-    /// left out means the macro's default or its missing-argument failure; a field that is there
-    /// and empty is an empty value. The marker lets a call say which of the two it means.
+    /// that is left out or empty means the macro's default or its missing-argument failure; the
+    /// marker is what turns an empty field into an explicit empty value.
     /// </summary>
-    public static string Given(string name) => Argument(name) + ".given";
+    public static string Given(string name) => Argument(name) + GivenSuffix;
 
     /// <summary>True when the call parameter is the supplied-empty marker for an argument.</summary>
     public static bool IsGiven(string name)
-        => name.EndsWith(".given", StringComparison.Ordinal)
+        => name.EndsWith(GivenSuffix, StringComparison.Ordinal)
            && name.StartsWith(ArgumentPrefix, StringComparison.Ordinal);
 }

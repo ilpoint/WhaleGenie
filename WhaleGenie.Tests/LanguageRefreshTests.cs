@@ -69,4 +69,23 @@ public class LanguageRefreshTests
             Assert.NotEqual(english, macro.Trigger);
         }));
     }
+
+    [Fact]
+    public void The_macro_interface_relabels_its_kinds()
+    {
+        MacroInterfaceViewModel? model = null;
+        string? english = null;
+
+        Ui.Run(() => InterfaceLanguage.InEnglish(() =>
+        {
+            model = new MacroInterfaceViewModel(new MacroEditorViewModel());
+            english = model.Types[0].Label;
+        }));
+
+        Ui.Run(() => InterfaceLanguage.InChinese(() =>
+        {
+            model!.RefreshLanguage();
+            Assert.NotEqual(english, model.Types[0].Label);
+        }));
+    }
 }

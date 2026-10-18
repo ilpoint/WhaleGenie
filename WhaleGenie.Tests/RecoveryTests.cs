@@ -110,6 +110,25 @@ public class RecoveryTests
     }
 
     [Fact]
+    public void An_unfinished_declaration_comes_back_from_the_snapshot()
+    {
+        InOwnFile(_ =>
+        {
+            var macro = Named("draft");
+            macro.Parameters.Add(new MacroParameter { Name = string.Empty });
+            macro.Results.Add(new MacroResult { Name = string.Empty });
+            RecoveryStore.SaveEditor(macro, string.Empty);
+
+            var found = RecoveryStore.Load();
+
+            Assert.NotNull(found?.Editor);
+            Assert.Single(found!.Editor!.Macro.Parameters);
+            Assert.Single(found.Editor.Macro.Results);
+            Assert.Equal(string.Empty, found.Editor.Macro.Parameters[0].Name);
+        });
+    }
+
+    [Fact]
     public void A_snapshot_with_nothing_left_in_it_is_removed()
     {
         InOwnFile(path =>

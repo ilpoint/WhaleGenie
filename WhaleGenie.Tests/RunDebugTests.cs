@@ -84,6 +84,72 @@ public class RunDebugTests
     }
 
     [Fact]
+    public void A_direct_run_asks_for_the_declared_parameters()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "有参数" };
+            macro.Parameters.Add(new MacroParameter
+            {
+                Name = "数量",
+                Required = true,
+                Type = ActionReturnType.Number,
+                Description = "要做多少次。",
+            });
+            macro.Parameters.Add(new MacroParameter
+            {
+                Name = "倍数",
+                Required = false,
+                Default = "3",
+                Type = ActionReturnType.Number,
+            });
+            macro.Steps.Add(new MacroStep
+            {
+                Type = "control.delay",
+                Meta = StepMeta.New,
+                Parameters =
+                [
+                    new StepParameter
+                    {
+                        Name = "ms",
+                        Kind = ActionParameterKind.Number,
+                        Value = "0",
+                    },
+                ],
+            });
+
+            var window = new RunWindow(macro.Steps, callable: macro.Callable);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var viewModel = (RunViewModel)window.DataContext!;
+            Assert.True(viewModel.HasArguments);
+            Assert.Equal(["数量", "倍数"], viewModel.Arguments.Select(row => row.Name));
+            Assert.True(window.FindControl<Border>("RunArgumentsPanel") is { IsVisible: true });
+
+            var required = viewModel.Arguments[0];
+            var optional = viewModel.Arguments[1];
+            Assert.True(required.IsMissing);
+            Assert.False(viewModel.CanStart);
+
+            // The default belongs to the declaration: the row starts empty and says what it is.
+            Assert.Equal(string.Empty, optional.Value);
+            Assert.Contains("3", optional.Hint, StringComparison.Ordinal);
+            Assert.False(optional.IsMissing);
+
+            required.Value = "5";
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(viewModel.CanStart);
+
+            // A required field can still say "I mean an empty value".
+            required.Value = string.Empty;
+            required.Given = true;
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(viewModel.CanStart);
+        });
+    }
+
+    [Fact]
     public void Opened_on_its_own_it_shows_the_variables_and_no_run_controls()
     {
         Ui.Run(() =>

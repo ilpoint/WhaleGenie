@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using Avalonia.Controls;
@@ -42,8 +44,31 @@ public class LocalSettingsTests
         {
             File.WriteAllText(path, "{}");
 
-            Assert.Equal(Language.English, LocalSettings.Load());
+            Assert.Equal(LocalSettings.ForCulture(CultureInfo.CurrentUICulture), LocalSettings.Load());
             Assert.Equal(CaptureWay.Auto, LocalSettings.LoadCaptureWindow());
+        });
+    }
+
+    [Theory]
+    [InlineData("zh-CN", Language.Chinese)]
+    [InlineData("zh-TW", Language.Chinese)]
+    [InlineData("en-US", Language.English)]
+    [InlineData("ja-JP", Language.English)]
+    public void A_machine_that_has_not_chosen_a_language_follows_its_system_language(
+        string culture, Language expected)
+        => Assert.Equal(expected, LocalSettings.ForCulture(CultureInfo.GetCultureInfo(culture)));
+
+    [Fact]
+    public void A_stored_language_wins_over_the_system_language()
+    {
+        InOwnFile(_ =>
+        {
+            var system = LocalSettings.ForCulture(CultureInfo.CurrentUICulture);
+            var chosen = system == Language.Chinese ? Language.English : Language.Chinese;
+
+            LocalSettings.Store(chosen);
+
+            Assert.Equal(chosen, LocalSettings.Load());
         });
     }
 
@@ -133,6 +158,27 @@ public class LocalSettingsTests
 
             window.Close();
         }));
+    }
+
+    [Fact]
+    public void An_old_theme_choice_migrates_and_a_custom_palette_round_trips()
+    {
+        InOwnFile(_ =>
+        {
+            LocalSettings.StoreLightTheme(true);
+            Assert.Equal(ThemeMode.Light, LocalSettings.LoadTheme().Mode);
+
+            var colors = new Dictionary<string, string>(ThemePalette.Defaults(light: false))
+            {
+                ["AppAccent"] = "#112233",
+            };
+            LocalSettings.StoreTheme(new ThemeSelection(ThemeMode.Custom, false, colors));
+
+            var loaded = LocalSettings.LoadTheme();
+            Assert.Equal(ThemeMode.Custom, loaded.Mode);
+            Assert.False(loaded.CustomBaseLight);
+            Assert.Equal("#112233", loaded.CustomColors["AppAccent"]);
+        });
     }
 
     /// <summary>

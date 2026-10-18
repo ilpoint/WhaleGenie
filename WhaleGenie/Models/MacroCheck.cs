@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
@@ -67,10 +68,263 @@ public static class MacroCheck
     ];
 
     /// <summary>
+    /// What is wrong with the macro's own declarations in a way that makes a call impossible: a
+    /// name left empty, one the macro language cannot read, one that collides with the supplied-
+    /// empty marker, one written twice, one the run keeps, or a required argument that also has a
+    /// default. The step list has no row to put these on, so the editor shows them above it, and
+    /// the save button refuses to write the macro.
+    /// </summary>
+    public static IReadOnlyList<string> DeclarationFaults(MacroCallable own)
+        => [.. own.Problems().Select(problem => FaultMessage(own, problem))];
+
+    /// <summary>
+    /// Everything the declaration editor has to say: the fatal faults above, plus warnings about
+    /// results that no step writes and defaults that look wrong for their declared kind. A warning
+    /// is worth showing while the macro is still being written, but it does not block saving.
+    /// </summary>
+    public static IReadOnlyList<string> DeclarationProblems(MacroCallable own)
+        => [.. DeclarationFaults(own), .. DeclarationWarnings(own)];
+
+    private static IReadOnlyList<string> DeclarationWarnings(MacroCallable own)
+    {
+        var warnings = new List<string>();
+        var open = WritesAnyName(own.OwnSteps);
+        var written = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var step in Every(own.OwnSteps))
+        {
+            step.CollectVariables(written);
+        }
+
+        // A script, a file of variables or a computed variable name can write a result the steps
+        // do not mention by name. In that case saying "nothing writes this" would be a guess.
+        foreach (var result in own.Results)
+        {
+            var name = result.Name.Trim();
+            if (!VariableText.IsName(name)
+                || own.Parameter(name) is not null
+                || open
+                || written.Contains(name))
+            {
+                continue;
+            }
+
+            warnings.Add(Strings.Format("Editor.Problem.ResultNeverWritten", own.Name, name));
+        }
+
+        // A default is read as one value at the call site. A constant that plainly cannot be the
+        // declared kind would fail every call that leaves the field empty, so it is worth saying
+        // while the interface is being written instead of at the first call.
+        foreach (var parameter in own.Parameters)
+        {
+            var name = parameter.Name.Trim();
+            if (parameter.Required || name.Length == 0 || !VariableText.IsName(name))
+            {
+                continue;
+            }
+
+            // A default that starts with $ is read as an expression, the same as any whole-value
+            // field. A broken one would only fail the calls that leave the parameter out, so it is
+            // better to point at it while the interface is being written.
+            var defaultText = parameter.Default.Trim();
+            if (defaultText.StartsWith('$') && !defaultText.StartsWith("$$", StringComparison.Ordinal)
+                && !Expression.TryParse(defaultText, out _, out var error))
+            {
+                warnings.Add(Strings.Format("Editor.Problem.BadExpression", error?.Detail ?? defaultText));
+            }
+
+            if (ConstantValue(parameter.Default) is { } value
+                && !MacroValues.Fits(parameter.Type, value))
+            {
+                warnings.Add(Strings.Format("Editor.Problem.BadDefaultType", own.Name, name,
+                    Strings.Get("ActionType." + parameter.Type, parameter.Type.ToString())));
+            }
+        }
+
+        return warnings;
+    }
+
+    /// <summary>
+    /// What a constant value field reads as, or null when it depends on a variable or a function
+    /// whose answer is only known while the macro runs. It follows the same rules as the engine's
+    /// value reader for the cases a check can settle on its own.
+    /// </summary>
+    private static Value? ConstantValue(string text)
+    {
+        var trimmed = text.Trim();
+        if (trimmed.Length == 0
+            || trimmed.StartsWith('$')
+            || Expression.ReferencedNames(trimmed).Count > 0)
+        {
+            return null;
+        }
+
+        if (Expression.TryEvaluate(trimmed, null, out var value, out _))
+        {
+            return value;
+        }
+
+        // Text that is not an expression is still a value the engine can read; a number is read as
+        // a number, and everything else stays text.
+        return double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture,
+            out var number)
+            ? Value.FromNumber(number)
+            : Value.FromText(trimmed);
+    }
+
+    /// <summary>
+    /// True when the steps can write a name nobody can see in advance: a file of variables, one of
+    /// the scripts that runs with the macro in reach, or a variable-name field whose value is
+    /// itself computed. A static check has to stop guessing at that point.
+    /// </summary>
+    private static bool WritesAnyName(IEnumerable<MacroStep> steps)
+    {
+        foreach (var step in Every(steps))
+        {
+            if (step.Type is "file.loadVariables" or "script.python" or "script.csharp"
+                or "script.ahk")
+            {
+                return true;
+            }
+
+            foreach (var parameter in step.Parameters)
+            {
+                if (step.DefinesVariable(parameter)
+                    && parameter.Value.Trim().StartsWith('$'))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static string FaultMessage(MacroCallable own,
+        (MacroSignatureFault Fault, string Name) problem) => problem.Fault switch
+        {
+            MacroSignatureFault.EmptyName =>
+                Strings.Format("Editor.Problem.EmptyDeclaration", own.Name),
+            MacroSignatureFault.InvalidName =>
+                Strings.Format("Editor.Problem.InvalidDeclarationName", own.Name, problem.Name),
+            MacroSignatureFault.ConflictingName =>
+                Strings.Format("Editor.Problem.ConflictingDeclarationName", own.Name, problem.Name),
+            MacroSignatureFault.RequiredWithDefault =>
+                Strings.Format("Editor.Problem.RequiredWithDefault", own.Name, problem.Name),
+            _ => Strings.Format("Editor.Problem.BadDeclaration", own.Name, problem.Name),
+        };
+
+    /// <summary>
+    /// How many calls in the project no longer fit the declaration being edited, and which macros
+    /// they live in. The declarations are edited here, but the calls that would break are in other
+    /// macros; saying so while the name is changed is what keeps a rename from becoming a hunt.
+    /// Nothing is rewritten: each caller still has to be opened and fixed by its author.
+    /// </summary>
+    public static string CallImpact(MacroCallable own, IEnumerable<MacroCallable> macros)
+    {
+        var ownName = own.Name.Trim();
+        if (ownName.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        var callers = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        var calls = 0;
+        var scanned = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // The macro being edited is not in the project list handed in, and a macro may call
+        // itself, so it is included explicitly. A duplicate name is not scanned twice.
+        foreach (var macro in macros.Append(own))
+        {
+            if (!scanned.Add(macro.Name.Trim()))
+            {
+                continue;
+            }
+
+            foreach (var step in Every(macro.OwnSteps))
+            {
+                if (step.Type is not ("control.runMacro" or "control.startMacro")
+                    || !string.Equals(step.Text("macro").Trim(), ownName,
+                        StringComparison.OrdinalIgnoreCase)
+                    || !CallMismatch(step, own))
+                {
+                    continue;
+                }
+
+                calls++;
+                callers.Add(macro.Name.Trim().Length == 0
+                    ? Strings.Get("Common.None")
+                    : macro.Name.Trim());
+            }
+        }
+
+        return calls == 0
+            ? string.Empty
+            : Strings.Format("Editor.Problem.CallImpact", calls, string.Join("、", callers));
+    }
+
+    /// <summary>
+    /// True when a call no longer says what the declaration asks for: a required argument is not
+    /// filled in, an argument or `.given` marker is not declared, or a result the call asks for is
+    /// not offered. Types are left to the call-step check; this summary is about names and presence.
+    /// </summary>
+    private static bool CallMismatch(MacroStep step, MacroCallable own)
+    {
+        foreach (var parameter in own.Parameters)
+        {
+            var name = parameter.Name.Trim();
+            if (name.Length == 0)
+            {
+                continue;
+            }
+
+            var supplied = step.Text(MacroCallFields.Argument(name)).Trim().Length > 0
+                || string.Equals(step.Text(MacroCallFields.Given(name)).Trim(), "true",
+                    StringComparison.OrdinalIgnoreCase);
+            if (!supplied && parameter.Required)
+            {
+                return true;
+            }
+        }
+
+        foreach (var parameter in step.Parameters)
+        {
+            if (MacroCallFields.IsGiven(parameter.Name))
+            {
+                var given = parameter.Name[MacroCallFields.ArgumentPrefix.Length..^MacroCallFields.GivenSuffix.Length];
+                if (own.Parameter(given) is null)
+                {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if (!parameter.Name.StartsWith(MacroCallFields.ArgumentPrefix, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (own.Parameter(parameter.Name[MacroCallFields.ArgumentPrefix.Length..]) is null)
+            {
+                return true;
+            }
+        }
+
+        foreach (var (result, _) in Wanted(step))
+        {
+            if (!own.Offers(result))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Everything wrong with the macro, in the order the steps are written.
     /// <paramref name="macros"/> is every macro a call can reach — the project list, each with what
-    /// it declares — and <paramref name="ownName"/> is the macro being edited, which may call itself
-    /// and so is judged by <paramref name="own"/>.
+    /// it declares — and <paramref name="own"/> is the macro being edited, which may call itself.
     /// </summary>
     /// <param name="inputShared">
     /// True when another macro in the same project also sends keys or clicks. Two macros that send
@@ -82,16 +336,6 @@ public static class MacroCheck
     /// one current page for the whole program, so two runs take turns there; a tab one changes is
     /// the page the other reads next.
     /// </param>
-    /// <summary>
-    /// What is wrong with the macro's own declarations, whether or not any call reaches it: a name
-    /// left empty, one written twice, or one the run keeps. The step list has no row to put these
-    /// on, so the editor shows them above it.
-    /// </summary>
-    public static IReadOnlyList<string> DeclarationProblems(MacroCallable own)
-        => [.. own.Problems().Select(problem => problem.Fault is MacroSignatureFault.EmptyName
-            ? Strings.Format("Editor.Problem.EmptyDeclaration", own.Name)
-            : Strings.Format("Editor.Problem.BadDeclaration", own.Name, problem.Name))];
-
     public static IReadOnlyList<MacroProblem> Inspect(IEnumerable<MacroStep> steps,
         MacroCallable? own, IEnumerable<MacroCallable> macros, bool inputShared = false,
         bool browserShared = false)
@@ -123,17 +367,25 @@ public static class MacroCheck
         // What the macro declares is a name it reads like any other: the caller hands a value to it
         // under that name and the steps inside read $name. A macro lifted out of a stretch of steps
         // is exactly this shape, so without this it would be told that the names it was made for
-        // are ones nothing defines.
+        // are ones nothing defines. Declared results count too: the runtime clears them at the
+        // start of a call, so reading one before a step writes it is reading the empty value this
+        // attempt started with.
         if (own is not null)
         {
             defined.UnionWith(own.Parameters
                 .Select(parameter => parameter.Name.Trim())
-                .Where(name => name.Length > 0));
+                .Where(name => name.Length > 0)
+                .Where(VariableText.IsName));
+            defined.UnionWith(own.Results
+                .Select(result => result.Name.Trim())
+                .Where(name => name.Length > 0)
+                .Where(VariableText.IsName));
         }
 
-        // A step that loads variables from a file can bring in any name at all, so nothing can be
-        // said about which names the rest of the macro is allowed to read.
-        var namesAreOpen = Every(tree).Any(step => step.Type == "file.loadVariables");
+        // A step that loads variables from a file, or runs a script with the macro in reach, can
+        // bring in any name at all, so nothing can be said about which names the rest of the macro
+        // is allowed to read.
+        var namesAreOpen = WritesAnyName(tree);
 
         Visit(tree, 0, 0, new HashSet<string>(StringComparer.OrdinalIgnoreCase), bounded: false,
             guarded: false, browserHeld: false);
@@ -596,13 +848,13 @@ public static class MacroCheck
         /// A name a start step chose for a background run's result is not defined until a wait step
         /// takes the run's results back. The steps are walked in the order they are written, so a
         /// read that comes before that wait is said to be reading something that is not there yet.
+        /// Cancelling is not a wait: it stops the run without taking any result back.
         /// </summary>
         void TrackPendingResults(MacroStep step)
         {
             switch (step.Type)
             {
                 case "control.waitMacro":
-                case "control.cancelMacro":
                     ForgetPending(step.Text("runHandle"));
                     break;
                 case "control.waitAll":
@@ -919,30 +1171,83 @@ public static class MacroCheck
                 return;
             }
 
-            foreach (var message in DeclarationProblems(called))
+            var faults = DeclarationFaults(called);
+            foreach (var message in faults)
             {
                 Add(step, message);
             }
 
-            foreach (var parameter in step.Parameters.Where(parameter => parameter.Name.StartsWith(
-                         MacroCallFields.ArgumentPrefix, StringComparison.Ordinal)
-                         && !MacroCallFields.IsGiven(parameter.Name)))
+            // A call whose declaration cannot be used will fail before the arguments matter; the
+            // declaration messages are the ones worth showing.
+            if (faults.Count > 0)
             {
-                if (called.Parameter(parameter.Name[MacroCallFields.ArgumentPrefix.Length..])
-                    is not { } declared)
+                return;
+            }
+
+            foreach (var declared in called.Parameters)
+            {
+                var name = declared.Name.Trim();
+                if (name.Length == 0)
                 {
                     continue;
                 }
 
-                if (WholeName(parameter.Value) is not { } name
-                    || !known.TryGetValue(name, out var type)
+                var field = step.Text(MacroCallFields.Argument(name)).Trim();
+                var given = string.Equals(step.Text(MacroCallFields.Given(name)).Trim(), "true",
+                    StringComparison.OrdinalIgnoreCase);
+                var supplied = field.Length > 0 || given;
+
+                if (given && field.Length > 0)
+                {
+                    Add(step, Strings.Format("Editor.Problem.GivenWithValue", name));
+                }
+
+                if (!supplied)
+                {
+                    if (declared.Required)
+                    {
+                        Add(step, Strings.Format("Editor.Problem.MissingArgument", name,
+                            step.Text("macro").Trim()));
+                    }
+
+                    continue;
+                }
+
+                if (field.Length == 0)
+                {
+                    continue;
+                }
+
+                if (ConstantValue(field) is { } value
+                    && !MacroValues.Fits(declared.Type, value))
+                {
+                    Add(step, Strings.Format("Editor.Problem.ArgumentType", name,
+                        Strings.Get("ActionType." + declared.Type, declared.Type.ToString())));
+                    continue;
+                }
+
+                if (WholeName(field) is not { } whole
+                    || !known.TryGetValue(whole, out var type)
                     || !ObviouslyWrong(declared.Type, type))
                 {
                     continue;
                 }
 
-                Add(step, Strings.Format("Editor.Problem.ArgumentType", declared.Name,
+                Add(step, Strings.Format("Editor.Problem.ArgumentType", name,
                     Strings.Get("ActionType." + declared.Type, declared.Type.ToString())));
+            }
+
+            foreach (var parameter in step.Parameters.Where(parameter => parameter.Name.StartsWith(
+                         MacroCallFields.ArgumentPrefix, StringComparison.Ordinal)))
+            {
+                var passed = MacroCallFields.IsGiven(parameter.Name)
+                    ? parameter.Name[MacroCallFields.ArgumentPrefix.Length..^MacroCallFields.GivenSuffix.Length]
+                    : parameter.Name[MacroCallFields.ArgumentPrefix.Length..];
+                if (called.Parameter(passed) is null)
+                {
+                    Add(step, Strings.Format("Editor.Problem.UndeclaredArgument", passed,
+                        step.Text("macro").Trim()));
+                }
             }
         }
 
@@ -1166,9 +1471,21 @@ public static class MacroCheck
         {
             foreach (var parameter in own.Parameters)
             {
-                if (parameter.Name.Trim() is { Length: > 0 } name)
+                if (parameter.Name.Trim() is { Length: > 0 } name && VariableText.IsName(name))
                 {
                     known[name] = parameter.Type;
+                }
+            }
+
+            // An in-out name keeps the parameter's kind: before it is written it holds the value
+            // the caller passed, and that is what a read at the top of the macro sees.
+            foreach (var result in own.Results)
+            {
+                if (result.Name.Trim() is { Length: > 0 } name
+                    && VariableText.IsName(name)
+                    && !known.ContainsKey(name))
+                {
+                    known[name] = result.Type;
                 }
             }
         }

@@ -3,18 +3,52 @@
     <OutputType>WinExe</OutputType>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <!--
-      只做 64 位。这个程序靠的几样原生库——OpenCV（找图找色）和 Playwright 的驱动（浏览器
-      动作）——都只有 64 位一份，32 位 Windows 上装了也跑不起来。写成 x64 是让这件事在编译
-      时就定下来：真拿到 32 位机器上，Windows 会直接说这个程序跑不了，而不是进去以后在某个
-      动作上莫名其妙地失败。
-    -->
-    <PlatformTarget>x64</PlatformTarget>
-    <!--
       程序叫什么由项目文件的名字决定（WhaleGenie），所以这里只管图标：资源管理器、任务栏和
       窗口左上角那枚鲸鱼。
     -->
     <ApplicationIcon>Assets\WhaleGenie.ico</ApplicationIcon>
+    <!--
+      便携包只让用户看到一个 exe：托管的程序集收进单文件，原生库留在 exe 旁边、由发布目标
+      收进 lib（Windows 与许多原生库都按文件名找它们，放进单文件再解压到临时目录既慢又难找）。
+      RuntimeIdentifier 由 dotnet publish -r 给出，所以这条只在发布时生效：开发和测试仍然
+      用展开的目录，断点、热重载与测试资源都不受影响。
+    -->
+    <PublishSingleFile Condition="'$(RuntimeIdentifier)' != ''">true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
+    <!--
+      发布包不带调试符号。托管程序集自己的 pdb 由 DebugType 关掉；Skia 与 HarfBuzz 的原生
+      库还各带一份比程序还大的 pdb，目标在 ComputeFilesToPublish 之后统一从发布清单里摘掉。
+    -->
+    <DebugType Condition="'$(Configuration)' == 'Release'">None</DebugType>
+    <DebugSymbols Condition="'$(Configuration)' == 'Release'">false</DebugSymbols>
+    <!--
+      程序的界面只有英文与简体中文两种，代码分析器（脚本编译）却给二十多种语言各带一份卫星
+      资源。只留程序真正会显示的那一份：英文在主程序集里，中文是 zh-Hans。
+    -->
+    <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
   </PropertyGroup>
+
+  <Target Name="DropPublishSymbols" AfterTargets="ComputeFilesToPublish"
+          Condition="'$(Configuration)' == 'Release'">
+    <!-- SkiaSharp 与 HarfBuzzSharp 把原生库的 pdb 当作内容文件抄进发布目录，属性关不掉。 -->
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish->WithMetadataValue('Extension', '.pdb'))" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="MoveNativeLibrariesIntoLib" AfterTargets="Publish"
+          Condition="'$(PublishSingleFile)' == 'true'">
+    <!--
+      单文件发布之后发布目录里剩下的 dll 全是原生库。Windows 与这些库自己都按文件名找它们，
+      exe 启动时会把 lib 交给 Windows 的查找路径，所以直接发布也得到和便携包一样的形状。
+    -->
+    <ItemGroup>
+      <_PublishedNativeLibrary Include="$(PublishDir)*.dll" />
+    </ItemGroup>
+    <MakeDir Directories="$(PublishDir)lib" />
+    <Move SourceFiles="@(_PublishedNativeLibrary)" DestinationFolder="$(PublishDir)lib"
+          Condition="'@(_PublishedNativeLibrary)' != ''" />
+  </Target>
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
@@ -31,9 +65,20 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      The MCP server is a local HTTP endpoint hosted by this same program. ASP.NET Core supplies
+      Kestrel and the endpoint the SDK maps; the SDK supplies the protocol and tool discovery.
+      Nothing of this reaches WhaleGenie.Core: the engine stays free of network and AI.
+    -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.1.2" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Controls.ColorPicker" Version="12.1.2" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.2" />
     <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3">
       <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>

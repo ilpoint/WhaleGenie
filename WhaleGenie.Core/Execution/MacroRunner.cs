@@ -341,6 +341,16 @@ public sealed partial class MacroRunner
     public string RunName { get; init; } = string.Empty;
 
     /// <summary>
+    /// What the top-level macro of this run declares, when it was handed in. A call resolves its
+    /// arguments in the caller's table; a run started from a trigger or the debug window has no
+    /// caller, so the same declaration is applied to the run's own table instead.
+    /// </summary>
+    public MacroSignature? StartSignature { get; init; }
+
+    /// <summary>The values supplied to a direct run, one per declared parameter that has one.</summary>
+    public IReadOnlyList<MacroStartArgument>? StartArguments { get; init; }
+
+    /// <summary>
     /// True when this run waits for the one input door that the runs asking for it share, so two
     /// macros set up that way do not send their keys and clicks through each other. Off by default:
     /// a single macro never has anything to wait for, and one whose author has not thought about
@@ -470,6 +480,15 @@ public sealed partial class MacroRunner
 
         try
         {
+            if (StartSignature is { } signature
+                && SeedStart(signature) is { } startFailure)
+            {
+                _failure = startFailure;
+                Log(LogLevel.Error, 0, string.Empty, startFailure.Key, startFailure.Detail);
+                LeaveFailureLog();
+                return new RunResult(RunStatus.Failed, startFailure.Key, startFailure.Detail, 0);
+            }
+
             var signal = await RunSteps(steps, 0, token);
 
             // A break or a continue that reaches the end of the macro had no loop to act on.
@@ -999,6 +1018,19 @@ public sealed partial class MacroRunner
             called.Set(argument.Name, ArgumentValue(step, argument));
         }
 
+        // A declared result is empty until this attempt writes it. Putting it into the local table
+        // now means a read at the top of the called macro sees the same empty value a caller gets
+        // for a result that was never written, instead of failing as an undefined expression. An
+        // in-out name keeps the argument that was just passed in.
+        foreach (var result in signature.Results)
+        {
+            var resultName = result.Name.Trim();
+            if (resultName.Length > 0)
+            {
+                called.SetIfAbsent(resultName, Value.Null);
+            }
+        }
+
         // The name of the macro that is running right now, which is what a macro writing a log line
         // or naming a file means by it.
         called.Set("sys.macroName", Value.FromText(name));
@@ -1182,29 +1214,33 @@ public sealed partial class MacroRunner
 
         // Every ending is looked at before any result is written: a list that failed partway
         // through hands back none of its answers rather than the ones it happened to reach first.
+        // Nothing is finished until that check is over, because a failed list must leave the runs
+        // that did finish in the handle table: the caller can still wait for them one by one.
         for (var index = 0; index < children.Count; index++)
         {
             var child = children[index];
             var result = results[index];
             if (result.Status is RunStatus.Failed)
             {
-                Finish(child);
                 throw new StepFailure(result.Key, result.Detail);
             }
 
             if (result.Status is RunStatus.Stopped)
             {
-                Finish(child);
                 throw new StepFailure(RunKeys.ChildStopped, child.Macro);
             }
 
             CheckResults(child.Signature, child.Wanted, child.Store.Local);
-            Finish(child);
         }
 
         foreach (var child in children)
         {
             Take(child.Wanted, child.Store.Local);
+        }
+
+        foreach (var child in children)
+        {
+            Finish(child);
         }
 
         Give(step, "count", Value.FromNumber(children.Count));
@@ -1229,7 +1265,6 @@ public sealed partial class MacroRunner
         var child = children[index];
         var result = await first;
 
-        Finish(child);
         if (result.Status is RunStatus.Failed)
         {
             throw new StepFailure(result.Key, result.Detail);
@@ -1244,6 +1279,7 @@ public sealed partial class MacroRunner
         Take(child.Wanted, child.Store.Local);
         Give(step, "handle", HandleValue(child));
         Give(step, "index", Value.FromNumber(index + 1));
+        Finish(child);
         Log(LogLevel.Info, depth, step.Type, LogKeys.WaitedRun, child.Macro);
         return Signal.Normal;
     }
@@ -1312,6 +1348,93 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
+    /// Fills the run's own table from the declaration before the first step. A top-level run has no
+    /// caller to read arguments from, so the same rule is used against the values the debug window
+    /// supplied; a trigger supplies none and the defaults apply. A required value with no default
+    /// stops the run here, before any step has done anything.
+    /// </summary>
+    private StepFailure? SeedStart(MacroSignature signature)
+    {
+        if (signature.Problem() is { } problem)
+        {
+            return new StepFailure(RunKeys.BadDeclaration, problem.Name);
+        }
+
+        var supplied = new Dictionary<string, MacroStartArgument>(StringComparer.OrdinalIgnoreCase);
+        foreach (var argument in StartArguments ?? [])
+        {
+            var name = argument.Name.Trim();
+            if (name.Length > 0)
+            {
+                supplied[name] = argument;
+            }
+        }
+
+        // The values a previous run of this debug window left under the declared names are not
+        // values this run has; defaults and supplied values replace them.
+        foreach (var argument in signature.Arguments)
+        {
+            var name = argument.Name.Trim();
+            if (name.Length > 0)
+            {
+                Variables.Local.Remove(name);
+            }
+        }
+
+        foreach (var result in signature.Results)
+        {
+            var name = result.Name.Trim();
+            if (name.Length > 0)
+            {
+                Variables.Local.Remove(name);
+            }
+        }
+
+        try
+        {
+            var values = new List<(string Name, Value Value)>();
+            foreach (var argument in signature.Arguments)
+            {
+                var name = argument.Name.Trim();
+                if (name.Length == 0)
+                {
+                    continue;
+                }
+
+                var input = supplied.TryGetValue(name, out var found) ? found : null;
+                var written = input?.Text.Trim() ?? string.Empty;
+                var explicitlyEmpty = input?.Given ?? false;
+                var value = ReadArgument(argument, written, explicitlyEmpty);
+                values.Add((name, value));
+            }
+
+            foreach (var (name, value) in values)
+            {
+                Variables.Local.Set(name, value);
+            }
+
+            foreach (var result in signature.Results)
+            {
+                var name = result.Name.Trim();
+                if (name.Length > 0)
+                {
+                    Variables.Local.SetIfAbsent(name, Value.Null);
+                }
+            }
+
+            return null;
+        }
+        catch (StepFailure failure)
+        {
+            return failure;
+        }
+        catch (ExpressionException failure)
+        {
+            return new StepFailure(RunKeys.BadExpression, failure.Detail);
+        }
+    }
+
+    /// <summary>
     /// What one argument of a call says, read the way every other value field is: <c>$n + 1</c>
     /// passes a number and <c>$list</c> passes the list itself rather than its text. A call that
     /// leaves the field empty gets the argument's default; a required argument with no default is
@@ -1320,12 +1443,21 @@ public sealed partial class MacroRunner
     /// </summary>
     private Value ArgumentValue(ExecutableStep step, MacroArgument argument)
     {
-        var field = MacroCallFields.Argument(argument.Name);
-        var supplied = step.Parameters.Any(parameter =>
-            string.Equals(parameter.Name, field, StringComparison.Ordinal))
-            || string.Equals(step.Text(MacroCallFields.Given(argument.Name)).Trim(), "true",
-                StringComparison.OrdinalIgnoreCase);
-        if (!supplied)
+        var written = step.Text(MacroCallFields.Argument(argument.Name)).Trim();
+        var given = string.Equals(step.Text(MacroCallFields.Given(argument.Name)).Trim(), "true",
+            StringComparison.OrdinalIgnoreCase);
+        return ReadArgument(argument, written, given);
+    }
+
+    /// <summary>
+    /// One argument value, read the same way whether it came from a call step or from the debug
+    /// window. A field that is present but empty has not supplied anything: only the supplied-empty
+    /// marker turns it into a value. A value that was not supplied takes the default, or fails when
+    /// the declaration says it is required.
+    /// </summary>
+    private Value ReadArgument(MacroArgument argument, string written, bool given)
+    {
+        if (written.Length == 0 && !given)
         {
             if (argument.Required)
             {
@@ -1337,7 +1469,6 @@ public sealed partial class MacroRunner
             return fallback;
         }
 
-        var written = step.Text(field).Trim();
         var value = written.Length > 0 ? Read(written) : Value.FromText(string.Empty);
         CheckValueFits(argument.Type, value, argument.Name, RunKeys.BadArgumentType);
         return value;
@@ -1397,23 +1528,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private static void CheckValueFits(ActionReturnType declared, Value value, string name, string key)
     {
-        if (value.IsNull || declared is ActionReturnType.Text or ActionReturnType.Image)
-        {
-            return;
-        }
-
-        var fits = declared switch
-        {
-            ActionReturnType.Number => value.IsNumber
-                || double.TryParse(value.AsText(), NumberStyles.Any, CultureInfo.InvariantCulture,
-                    out _),
-            ActionReturnType.Flag => value.Kind is ValueKind.Bool || bool.TryParse(value.AsText(), out _),
-            ActionReturnType.List => value.IsList,
-            ActionReturnType.Record => value.IsRecord,
-            _ => true,
-        };
-
-        if (!fits)
+        if (!MacroValues.Fits(declared, value))
         {
             throw new StepFailure(key, name + ": " + value.Kind);
         }

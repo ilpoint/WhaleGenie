@@ -24,8 +24,6 @@
     </Design.DataContext>
 
     <Window.Resources>
-        <!-- The colour a group of functions is written in: one hue per group, at the three weights
-             a card needs — the tint under the writing, the line around it, and the writing. -->
         <conv:FunctionGroupBrushConverter x:Key="FnGroup" />
     </Window.Resources>
 
@@ -100,11 +98,24 @@
             <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
-        <!-- A function card is painted in the colour of its group. Resting the pointer on it thickens
-             the line rather than recolouring anything: the colour is what says which group the
-             function is in, and a card that went grey under the pointer would say it once less. -->
+        <!-- A function is a thing to click, not a colour swatch: it reads like the action buttons
+             in the macro editor, so the words stay dark and the group colour does not compete
+             with them. -->
+        <Style Selector="Button.FnCard">
+            <Setter Property="Background" Value="{DynamicResource AppField}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextStrong}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="11,0" />
+            <Setter Property="Margin" Value="0,0,6,6" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
         <Style Selector="Button.FnCard:pointerover /template/ ContentPresenter">
-            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
 
         <!-- Which page of the builder is in front. The two read as a switch rather than as a pair
@@ -472,11 +483,10 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:ExpressionFunctionChoice">
                                     <Button Classes="Card FnCard"
-                                            Background="{Binding Group, Converter={StaticResource FnGroup}, ConverterParameter=fill}"
                                             BorderBrush="{Binding Group, Converter={StaticResource FnGroup}, ConverterParameter=line}"
-                                            Foreground="{Binding Group, Converter={StaticResource FnGroup}, ConverterParameter=ink}"
                                             Click="OnInsertFunction">
-                                        <TextBlock Text="{Binding Heading}" />
+                                        <TextBlock Text="{Binding Heading}"
+                                                   Foreground="{DynamicResource AppTextStrong}" />
                                         <!-- What a card cannot say: how the call is written in the
                                              reader's own language, one line saying what it does, and one
                                              line for each argument it takes. -->

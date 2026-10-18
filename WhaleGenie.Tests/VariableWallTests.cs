@@ -4,6 +4,7 @@ using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -55,6 +56,24 @@ public class VariableWallTests
     }
 
     /// <summary>
+    /// A macro interface default has no local variables of its own: it is read in the caller's
+    /// scope, where only the shared names are known. Opening on the empty local page would hide
+    /// the values the field can actually use, so the wall falls back to All.
+    /// </summary>
+    [Fact]
+    public void A_wall_without_local_variables_starts_on_all_so_shared_values_are_visible()
+    {
+        var wall = new VariableWallViewModel([Global("total"), System("sys.date")]);
+
+        Assert.Equal(VariableGroup.All, wall.SelectedFilter!.Group);
+        Assert.Equal(["total", "sys.date"], wall.Shown.Select(choice => choice.Name));
+        Assert.False(wall.IsEmpty);
+
+        wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.Global);
+        Assert.Equal(["total"], wall.Shown.Select(choice => choice.Name));
+    }
+
+    /// <summary>
     /// WhaleGenie's own variables are the ones whose names nobody chose, so those are the ones a
     /// button says in Chinese with the code name beside it: 剪贴板 ($sys.clipboard). A macro's own
     /// variables keep the name their author gave them, and what a button puts in a field is still
@@ -81,6 +100,39 @@ public class VariableWallTests
             var own = Local("rows");
             Assert.Equal("$rows", own.Display);
         }));
+    }
+
+    [Fact]
+    public void The_macro_interface_is_part_of_the_wall()
+    {
+        Ui.Run(() =>
+        {
+            var variables = VariableChoices.For([],
+                [new MacroParameter
+                {
+                    Name = "次数",
+                    Type = ActionReturnType.Number,
+                    Description = "要做多少遍。",
+                }],
+                [new MacroResult
+                {
+                    Name = "答案",
+                    Type = ActionReturnType.Record,
+                    Description = "整理完留下的答案。",
+                }]);
+            var wall = new VariableWallViewModel(variables);
+            wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.Local);
+
+            Assert.Equal(["次数", "答案"], wall.Shown.Select(choice => choice.Name));
+
+            wall.Looking = wall.Shown.First(choice => choice.Name == "答案");
+            Assert.Contains(Strings.Get("VarWall.Result"), wall.Details, StringComparison.Ordinal);
+            Assert.Contains(Strings.Get("Variable.Type.record"), wall.Details, StringComparison.Ordinal);
+
+            wall.Looking = wall.Shown.First(choice => choice.Name == "次数");
+            Assert.Contains(Strings.Get("VarWall.Parameter"), wall.Details, StringComparison.Ordinal);
+            Assert.Contains(Strings.Get("Variable.Type.number"), wall.Details, StringComparison.Ordinal);
+        });
     }
 
     [Fact]

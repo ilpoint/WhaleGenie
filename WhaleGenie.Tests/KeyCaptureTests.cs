@@ -35,6 +35,48 @@ public class KeyCaptureTests
     }
 
     [Fact]
+    public void A_key_run_capture_keeps_taking_presses_until_it_is_stopped()
+    {
+        var editor = new MacroEditorViewModel();
+        var captured = new List<string>();
+
+        editor.BeginKeyCapture(captured.Add, combination: true, continuous: true);
+        editor.CaptureKey("Ctrl+C");
+        editor.CaptureKey("Ctrl+V");
+
+        Assert.Equal(["Ctrl+C", "Ctrl+V"], captured);
+        Assert.True(editor.IsCapturingKey);
+
+        editor.StopKeyCapture();
+
+        Assert.False(editor.IsCapturingKey);
+    }
+
+    [Fact]
+    public void A_key_run_row_takes_the_whole_captured_chord()
+    {
+        var row = new KeyRowViewModel { Keys = "Ctrl" };
+
+        row.WriteKey("Ctrl+Shift+S");
+
+        Assert.Equal("Ctrl+Shift+S", row.Keys);
+    }
+
+    [Fact]
+    public void A_key_run_row_collects_several_keys_into_one_combination()
+    {
+        var row = new KeyRowViewModel();
+
+        row.StartCapture();
+        row.AddKey("3");
+        row.AddKey("4");
+        row.AddKey("5");
+        row.IsCapturing = false;
+
+        Assert.Equal("3+4+5", row.Keys);
+    }
+
+    [Fact]
     public void Starting_a_recording_drops_a_pending_capture()
     {
         var editor = new MacroEditorViewModel();

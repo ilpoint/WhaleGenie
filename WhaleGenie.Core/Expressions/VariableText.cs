@@ -205,8 +205,12 @@ public static class VariableText
 
         return -1;
     }
-    /// <summary>True when the text is a variable name rather than an expression.</summary>
-    private static bool IsName(string text)
+    /// <summary>
+    /// True when the text is a variable name rather than an expression. This is the one rule the
+    /// call declaration, the reader and the expression language share, so a declared parameter
+    /// can always be read back with <c>$name</c>.
+    /// </summary>
+    public static bool IsName(string text)
         => text.Length > 0
            && (char.IsLetter(text[0]) || text[0] == '_')
            && text.All(character => char.IsLetterOrDigit(character) || character is '_' or '.');

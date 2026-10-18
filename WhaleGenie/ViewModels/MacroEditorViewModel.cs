@@ -102,6 +102,7 @@ public partial class MacroEditorViewModel : ViewModelBase
 
     private bool _captureKeyboardOnly;
     private bool _captureSingleKey;
+    private bool _captureContinues;
 
     /// <summary>How many step-list changes can be undone.</summary>
     private const int HistoryLimit = 60;
@@ -228,7 +229,12 @@ public partial class MacroEditorViewModel : ViewModelBase
     public List<MacroResult> DeclaredResults { get; } = [];
 
     /// <summary>This macro's own declarations, in the shape a call to it is read against.</summary>
-    private MacroCallable OwnCallable => new(Name, DeclaredParameters, DeclaredResults);
+    /// <remarks>
+    /// The steps travel with the declarations because the call graph has to be able to follow a
+    /// macro that calls itself. Without them a self-call looks like a call into a macro with no
+    /// steps, so the input and browser analysis would miss everything behind the recursion.
+    /// </remarks>
+    private MacroCallable OwnCallable => new(Name, DeclaredParameters, DeclaredResults, Steps);
 
     /// <summary>What the design-time check has to say about the steps as they stand now.</summary>
     public IReadOnlyList<MacroProblem> Problems { get; private set; } = [];
@@ -241,6 +247,26 @@ public partial class MacroEditorViewModel : ViewModelBase
     public bool HasStepProblems => Problems.Count > 0;
 
     public bool HasDeclarationProblems => DeclarationProblems.Count > 0;
+
+    /// <summary>
+    /// True while a declaration problem makes the macro impossible to call: an empty or unreadable
+    /// name, a name that collides with the supplied-empty marker, a duplicate, a run-reserved name,
+    /// or a required argument with a default. Warnings such as "this result is never written" do
+    /// not block saving work that is still being written.
+    /// </summary>
+    public bool HasBlockingDeclarationProblems => OwnCallable.Problems().Count > 0;
+
+    /// <summary>The save button's answer: the macro name and the declarations both have to be usable.</summary>
+    public bool CanSave => !HasNameProblem && !HasBlockingDeclarationProblems;
+
+    /// <summary>
+    /// One line saying how many calls in the project no longer match these declarations. The
+    /// declarations are edited in this macro, but the calls they broke live in other macros, so
+    /// the consequence is said here rather than left until each caller is opened.
+    /// </summary>
+    public string CallImpactSummary { get; private set; } = string.Empty;
+
+    public bool HasCallImpact => CallImpactSummary.Length > 0;
 
     /// <summary>One line above the list saying how much the editor has to say about the steps.</summary>
     public string ProblemSummary => Strings.Format("Editor.ProblemSummary",
@@ -297,6 +323,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(NameProblem))]
     [NotifyPropertyChangedFor(nameof(HasNameProblem))]
+    [NotifyPropertyChangedFor(nameof(CanSave))]
     public partial string Name { get; set; } = string.Empty;
 
     [ObservableProperty]
@@ -761,12 +788,15 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>True while a single key is taken rather than a combination.</summary>
     internal bool CaptureSingleKey => _captureSingleKey;
 
+    /// <summary>True when the capture keeps going after each combination, for a whole sequence.</summary>
+    internal bool CaptureContinues => _captureContinues;
+
     /// <summary>
     /// Starts a capture for the inspector's key field. The key is handed to <paramref name="deliver"/>
     /// instead of the trigger, and only the keyboard is listened to: a key field cannot hold a
     /// mouse button. A combination takes the modifiers with the key, the way a trigger does.
     /// </summary>
-    internal bool BeginKeyCapture(Action<string> deliver, bool combination)
+    internal bool BeginKeyCapture(Action<string> deliver, bool combination, bool continuous = false)
     {
         if (IsRecording)
         {
@@ -776,6 +806,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         _keyCaptureTarget = deliver;
         _captureKeyboardOnly = true;
         _captureSingleKey = !combination;
+        _captureContinues = continuous;
         IsCapturingKey = true;
         return true;
     }
@@ -785,6 +816,14 @@ public partial class MacroEditorViewModel : ViewModelBase
     {
         if (!IsCapturingKey)
         {
+            return;
+        }
+
+        if (_captureContinues)
+        {
+            // The run stays armed between presses: each chord becomes its own row and the next
+            // key is taken by the same loop.
+            _keyCaptureTarget?.Invoke(keyName);
             return;
         }
 
@@ -799,6 +838,9 @@ public partial class MacroEditorViewModel : ViewModelBase
         BindKey = keyName;
     }
 
+    /// <summary>Ends a capture, including a run that was still waiting for the next press.</summary>
+    internal void StopKeyCapture() => StopCapturingKey();
+
     /// <summary>Ends a capture and forgets whatever it was going to write into.</summary>
     private void StopCapturingKey()
     {
@@ -806,6 +848,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         _keyCaptureTarget = null;
         _captureKeyboardOnly = false;
         _captureSingleKey = false;
+        _captureContinues = false;
     }
 
     [RelayCommand]
@@ -1570,7 +1613,8 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// Variable Center defines, the ones WhaleGenie provides, and the ending every step leaves
     /// behind — each with what a person choosing one needs to know about it.
     /// </summary>
-    public IReadOnlyList<VariableChoice> CollectVariables() => VariableChoices.For(Steps);
+    public IReadOnlyList<VariableChoice> CollectVariables()
+        => VariableChoices.For(Steps, DeclaredParameters, DeclaredResults);
 
     /// <summary>
     /// A name for a step that is not in the list yet. The name is handed to the dialog while the
@@ -2004,6 +2048,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     {
         Problems = MacroCheck.Inspect(Steps, OwnCallable, _projectMacros, _inputShared, _browserShared);
         DeclarationProblems = MacroCheck.DeclarationProblems(OwnCallable);
+        CallImpactSummary = MacroCheck.CallImpact(OwnCallable, _projectMacros);
         _problemByStep = Problems
             .GroupBy(problem => problem.Step)
             .ToDictionary(group => group.Key,
@@ -2014,6 +2059,10 @@ public partial class MacroEditorViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasStepProblems));
         OnPropertyChanged(nameof(DeclarationProblems));
         OnPropertyChanged(nameof(HasDeclarationProblems));
+        OnPropertyChanged(nameof(HasBlockingDeclarationProblems));
+        OnPropertyChanged(nameof(CanSave));
+        OnPropertyChanged(nameof(CallImpactSummary));
+        OnPropertyChanged(nameof(HasCallImpact));
         OnPropertyChanged(nameof(ProblemSummary));
         OnPropertyChanged(nameof(DeclarationProblemSummary));
     }
@@ -2021,7 +2070,10 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>Checks the declarations again after the macro interface changed a name or a kind.</summary>
     internal void RefreshDeclarations()
     {
-        IsDirty = true;
+        // MarkDirty raises Changed even when the macro was already unsaved. Without that, a second
+        // declaration edit would never reach the recovery writer: it listens for changes that arrive
+        // while the macro is already dirty, and the dirty flag itself does not move again.
+        MarkDirty();
         RefreshProblems();
     }
     private void AddRows(IList<MacroStep> steps, StepParameter? owner, int depth)
@@ -2223,7 +2275,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     [RelayCommand]
     private void Save()
     {
-        if (HasNameProblem)
+        if (!CanSave)
         {
             return;
         }
@@ -2243,6 +2295,8 @@ public partial class MacroEditorViewModel : ViewModelBase
                 or nameof(SelectedSteps) or nameof(IsRecording) or nameof(RecordedEvents)
                 or nameof(Problems) or nameof(HasProblems) or nameof(HasStepProblems)
                 or nameof(DeclarationProblems) or nameof(HasDeclarationProblems)
+                or nameof(HasBlockingDeclarationProblems) or nameof(CanSave)
+                or nameof(CallImpactSummary) or nameof(HasCallImpact)
                 or nameof(ProblemSummary) or nameof(DeclarationProblemSummary)
                 or nameof(NameProblem) or nameof(HasNameProblem)))
         {

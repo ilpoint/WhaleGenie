@@ -36,7 +36,16 @@ public partial class VariableWallViewModel : ViewModelBase
 
         // The macro's own variables are what most fields are filled in with, so that is where the
         // wall starts; tapping another button is one click away, and the hint on this one says so.
-        SelectedFilter = Filters[1];
+        // A value that only has global and system names — a macro interface default, for instance —
+        // would otherwise open on an empty page, with the values it does have hidden behind a
+        // filter the user has no reason to suspect.
+        var start = Filters[1];
+        if (_all.Count > 0 && !_all.Any(choice => choice.Group == VariableGroup.Local))
+        {
+            start = Filters[0];
+        }
+
+        SelectedFilter = start;
         Rebuild();
     }
 

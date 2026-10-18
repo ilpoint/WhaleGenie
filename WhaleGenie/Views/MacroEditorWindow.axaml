@@ -423,7 +423,14 @@
             </StackPanel>
         </Grid>
 
-        <Grid Grid.Row="1" ColumnDefinitions="360,16,700,16,*" Margin="14">
+        <Grid Grid.Row="1" Name="EditorColumns" Margin="14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="360" MinWidth="280" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="700" MinWidth="560" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" MinWidth="200" />
+            </Grid.ColumnDefinitions>
 
             <!-- Left: Trigger Settings -->
             <Grid Grid.Column="0" RowDefinitions="Auto,*,Auto,Auto">
@@ -431,7 +438,7 @@
                     <Button Classes="FlatButton" Height="30" Padding="7,0"
                             Background="{DynamicResource AppControl}"
                             Foreground="{DynamicResource AppText}"
-                            Command="{Binding SaveCommand}" IsEnabled="{Binding !HasNameProblem}">
+                            Command="{Binding SaveCommand}" IsEnabled="{Binding CanSave}">
                         <StackPanel Orientation="Horizontal" Spacing="5">
                             <views:IconView Width="12" Height="12" Stroke="{DynamicResource AppText}" StrokeThickness="1.3" FitToBounds="True" Data="{x:Static models:AppIcons.Save}" />
                             <TextBlock Text="{Binding [Editor.Save], Source={x:Static loc:Strings.Current}}"
@@ -842,6 +849,8 @@
                                   Text="{Binding ProblemSummary}" />
                        <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasDeclarationProblems}"
                                   Text="{Binding DeclarationProblemSummary}" TextWrapping="Wrap" />
+                       <TextBlock Classes="ProblemSummary" IsVisible="{Binding HasCallImpact}"
+                                  Text="{Binding CallImpactSummary}" TextWrapping="Wrap" />
                    </StackPanel>
 
                    <!-- Empty state -->
@@ -858,6 +867,32 @@
                             ItemsSource="{Binding Rows}" SelectionMode="Multiple"
                             IsVisible="{Binding HasSteps}"
                             DoubleTapped="OnStepDoubleTapped">
+                       <ListBox.ContextMenu>
+                           <ContextMenu>
+                               <MenuItem Header="{Binding [Editor.Context.Edit], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextEdit" />
+                               <MenuItem Header="{Binding [Editor.Context.Copy], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextCopy" />
+                               <MenuItem Header="{Binding [Editor.Context.Cut], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextCut" />
+                               <MenuItem Header="{Binding [Editor.Context.Paste], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextPaste" />
+                               <MenuItem Header="{Binding [Editor.Context.Delete], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextDelete" />
+                               <Separator />
+                               <MenuItem Header="{Binding [Editor.Context.MoveUp], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextMoveUp" />
+                               <MenuItem Header="{Binding [Editor.Context.MoveDown], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextMoveDown" />
+                               <MenuItem Header="{Binding [Editor.Context.Group], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextGroup" />
+                               <MenuItem Header="{Binding [Editor.Context.Lift], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextLift" />
+                               <Separator />
+                               <MenuItem Header="{Binding [Editor.Context.ToggleEnabled], Source={x:Static loc:Strings.Current}}"
+                                         Click="OnStepContextToggleEnabled" />
+                           </ContextMenu>
+                       </ListBox.ContextMenu>
                        <ListBox.ItemTemplate>
                            <DataTemplate x:DataType="models:StepRow">
                               <Panel>
@@ -880,8 +915,9 @@
                                                           VerticalAlignment="Center" Margin="0,0,4,0" />
                                           <StackPanel VerticalAlignment="Center">
                                               <StackPanel Orientation="Horizontal" Spacing="6">
-                                                  <TextBlock Text="{Binding DisplayName}" FontSize="12.5"
-                                                             Foreground="{DynamicResource AppText}" />
+                                                  <TextBlock Text="{Binding DisplayName}" FontSize="13"
+                                                             FontWeight="SemiBold"
+                                                             Foreground="{DynamicResource AppTextStrong}" />
                                                   <Border Background="#4A3A1E" CornerRadius="3" Padding="5,0"
                                                           VerticalAlignment="Center"
                                                           IsVisible="{Binding IsSkipped}">
@@ -958,8 +994,13 @@
                </Grid>
             </Border>
 
+            <GridSplitter Grid.Column="1" Width="16" Background="Transparent"
+                          ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
+                          Cursor="SizeWestEast" />
+
             <GridSplitter Grid.Column="3" Width="16" Background="Transparent"
-                          ResizeDirection="Columns" />
+                          ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
+                          Cursor="SizeWestEast" />
 
             <Border Grid.Column="2" Name="RecordingPanel" Background="{DynamicResource AppSurface}"
                     CornerRadius="6" IsVisible="False">

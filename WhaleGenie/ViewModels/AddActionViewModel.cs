@@ -1442,14 +1442,13 @@ public partial class AddActionViewModel : ViewModelBase
                         Name = MacroCallFields.Argument(parameter.Name.Trim()),
                         Label = parameter.Name.Trim(),
                         Kind = ActionParameterKind.Expression,
-                        Hint = CalledHint(parameter.Description, parameter.Type),
+                        Hint = ArgumentHint(parameter),
                         Semantics = new ActionParameterSemantics
                         {
                             Name = MacroCallFields.Argument(parameter.Name.Trim()),
                             Shape = ActionValueShape.Text,
                             ReadMode = ActionReadMode.WholeValue,
                             Required = parameter.Required,
-                            DefaultValue = parameter.Default,
                         },
                     },
                     new()
@@ -1470,8 +1469,36 @@ public partial class AddActionViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// What a call's field says under itself: the called macro's own words, then what kind of value
-    /// it is asking for, so a record is not handed to a field that wanted a line of text.
+    /// What an argument field says under itself: the called macro's own words, the kind of value
+    /// asked for, and whether the call has to fill it in or may leave it to the macro's default.
+    /// The default is not written into the field: it belongs to the declaration, and copying it
+    /// into every call is what made a changed default invisible to calls already written.
+    /// </summary>
+    private static string ArgumentHint(MacroParameter parameter)
+    {
+        var parts = new List<string>();
+        if (parameter.Description.Length > 0)
+        {
+            parts.Add(parameter.Description);
+        }
+
+        parts.Add(Strings.Format("Add.CallArgumentType",
+            Strings.Get("ActionType." + parameter.Type, parameter.Type.ToString())));
+        if (parameter.Required)
+        {
+            parts.Add(Strings.Get("Add.CallArgumentRequired"));
+        }
+        else if (parameter.Default.Trim().Length > 0)
+        {
+            parts.Add(Strings.Format("Add.CallArgumentDefault", parameter.Default));
+        }
+
+        return string.Join(" ", parts);
+    }
+
+    /// <summary>
+    /// What a result field says under itself: the called macro's own words and what kind of value
+    /// it hands back, so a record is not mistaken for a line of text at the call site.
     /// </summary>
     private static string CalledHint(string description, ActionReturnType type)
     {

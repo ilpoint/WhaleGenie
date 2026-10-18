@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Storage;
@@ -52,6 +53,19 @@ public static class MacroPackage
     public static void Save(string path, IReadOnlyList<MacroItem> macros,
         IReadOnlyList<VariableDefinition> globals, string appVersion)
     {
+        // A macro with a fatal declaration problem cannot be called, so writing it into a package
+        // would only carry a broken interface forward. The editor blocks the same faults; this is
+        // the guard for every other way a package can be written.
+        foreach (var macro in macros)
+        {
+            var problems = macro.Callable.Problems();
+            if (problems.Count > 0)
+            {
+                throw new InvalidDataException(Strings.Format("Package.BadDeclaration",
+                    macro.Name, problems[0].Name));
+            }
+        }
+
         var fullPath = Path.GetFullPath(path);
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath) ?? ".");
 
