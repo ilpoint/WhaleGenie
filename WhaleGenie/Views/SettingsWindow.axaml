@@ -100,7 +100,17 @@
 
                 <TextBlock Classes="FieldLabel" Margin="2,18,0,6"
                            Text="{Binding [Main.Theme], Source={x:Static loc:Strings.Current}}" />
-                <ToggleSwitch Name="LightThemeSwitch" OnContent="" OffContent="" />
+                <ComboBox Name="ThemeSelect" Classes="LanguageSelect"
+                          ItemsSource="{Binding ThemeOptions}"
+                          SelectedItem="{Binding SelectedTheme}" />
+                <Button Name="CustomizeThemeButton" Classes="FlatButton" Height="32"
+                        HorizontalAlignment="Left" Margin="2,10,0,0"
+                        IsVisible="{Binding IsCustomTheme}"
+                        Click="OnCustomizeThemeClicked"
+                        Content="{Binding [Settings.CustomizeTheme], Source={x:Static loc:Strings.Current}}" />
+                <TextBlock Classes="Muted" Margin="2,6,0,0" TextWrapping="Wrap"
+                           IsVisible="{Binding IsCustomTheme}"
+                           Text="{Binding [Settings.CustomizeThemeHint], Source={x:Static loc:Strings.Current}}" />
                 <TextBlock Classes="Muted" Margin="2,4,0,0" TextWrapping="Wrap"
                            Text="{Binding [Settings.ThemeHint], Source={x:Static loc:Strings.Current}}" />
                 <TextBlock Classes="FieldLabel" Margin="2,18,0,6"

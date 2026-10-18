@@ -209,7 +209,7 @@ public class NumberBoxTests
     }
 
     [Fact]
-    public void A_row_of_a_key_run_wraps_instead_of_overlapping()
+    public void A_row_of_a_key_run_keeps_its_parts_apart()
     {
         Ui.Run(() =>
         {
@@ -232,7 +232,7 @@ public class NumberBoxTests
     /// </summary>
     private static void AssertNoOverlap(Window window, System.Type rowType, double width)
     {
-        var row = window.GetVisualDescendants().OfType<WrapPanel>()
+        var row = window.GetVisualDescendants().OfType<StackPanel>()
             .FirstOrDefault(panel => panel.DataContext?.GetType() == rowType);
         Assert.NotNull(row);
 

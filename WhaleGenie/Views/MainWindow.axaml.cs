@@ -871,13 +871,14 @@ public partial class MainWindow : Window
     /// <summary>Switches the whole application between the light and dark variants and remembers the choice.</summary>
     private void OnToggleTheme(object? sender, RoutedEventArgs e)
     {
-        var light = Application.Current?.ActualThemeVariant != ThemeVariant.Light;
-        if (Application.Current is { } app)
+        var current = ThemeController.Load();
+        var next = current with
         {
-            ThemePalette.Apply(light);
-        }
+            Mode = current.BaseLight ? ThemeMode.Dark : ThemeMode.Light,
+        };
 
-        LocalSettings.StoreLightTheme(light);
+        ThemeController.Apply(next);
+        ThemeController.Save(next);
     }
     private async void OnAboutClicked(object? sender, RoutedEventArgs e)
     {

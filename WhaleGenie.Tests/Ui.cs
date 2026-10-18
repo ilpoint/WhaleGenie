@@ -60,5 +60,9 @@ internal static class Ui
 internal static class SessionStartsFirst
 {
     [ModuleInitializer]
-    internal static void Start() => Ui.Run(() => ActionCatalog.Definitions.Count);
+    internal static void Start() => Ui.Run(() =>
+    {
+        _ = ActionCatalog.Definitions.Count;
+        _ = AppIcons.Workflow;
+    });
 }

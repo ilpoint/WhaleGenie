@@ -59,6 +59,8 @@ SOFTWARE.
 
 - Avalonia（Avalonia、Avalonia.Desktop、Avalonia.Themes.Fluent、Avalonia.Fonts.Inter）— MIT
   <https://github.com/AvaloniaUI/Avalonia>
+- Avalonia.Controls.ColorPicker — MIT
+  <https://github.com/AvaloniaUI/Avalonia>
   Avalonia.Fonts.Inter 里带的是 Inter 字体，字体本身按 SIL OFL 1.1 授权：
   <https://github.com/rsms/inter>
 - Avalonia.Angle.Windows.Natives（OpenGL 后端，ANGLE 的 libGLESv2）— BSD-3-Clause

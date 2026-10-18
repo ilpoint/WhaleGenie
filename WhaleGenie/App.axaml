@@ -15,6 +15,7 @@
             <SolidColorBrush x:Key="AppField" Color="#2E2E2E" />
             <SolidColorBrush x:Key="AppBorder" Color="#3A3A3A" />
             <SolidColorBrush x:Key="AppText" Color="#E8E8E8" />
+            <SolidColorBrush x:Key="AppTextStrong" Color="#F5F5F5" />
             <SolidColorBrush x:Key="AppMuted" Color="#9A9A9A" />
             <SolidColorBrush x:Key="AppAccent" Color="#C8401C" />
             <SolidColorBrush x:Key="AppControl" Color="#404040" />
@@ -39,6 +40,7 @@
 
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
 
         <!-- The dock that narrows a wall of buttons to one group of them. The variable wall and the
              expression builder's list of functions each stand one on screen, and one control with

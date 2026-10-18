@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using WhaleGenie.Core.Devices;
@@ -22,6 +23,38 @@ public static class LocalSettings
 
     /// <summary>Stores the chosen theme variant. Failures are ignored on purpose.</summary>
     public static void StoreLightTheme(bool light) => Write(model => model.LightTheme = light);
+
+    /// <summary>
+    /// The whole theme choice. A file from before custom themes carried only <see cref="Model.LightTheme"/>,
+    /// so that flag is the fallback when no mode was written.
+    /// </summary>
+    public static ThemeSelection LoadTheme()
+    {
+        var model = Read();
+        var mode = Enum.TryParse<ThemeMode>(model.Theme, true, out var stored)
+            ? stored
+            : model.LightTheme ? ThemeMode.Light : ThemeMode.Dark;
+        var colors = model.CustomThemeColors ?? new Dictionary<string, string>();
+        var light = model.CustomThemeLight;
+
+        if (mode is ThemeMode.Custom && colors.Count == 0)
+        {
+            colors = new Dictionary<string, string>(ThemePalette.Defaults(light));
+        }
+
+        return new ThemeSelection(mode, light, colors);
+    }
+
+    /// <summary>Stores the whole theme choice; the old flag is kept for older copies of the program.</summary>
+    public static void StoreTheme(ThemeSelection selection)
+        => Write(model =>
+        {
+            model.Theme = selection.Mode.ToString().ToLowerInvariant();
+            model.CustomThemeLight = selection.CustomBaseLight;
+            model.CustomThemeColors = new Dictionary<string, string>(selection.CustomColors);
+            model.LightTheme = selection.Mode is ThemeMode.Light;
+        });
+
     /// <summary>Reads the stored language, falling back to English.</summary>
     public static Language Load()
         => Enum.TryParse<Language>(Read().Language, out var language)
@@ -120,5 +153,11 @@ public static class LocalSettings
         public string CaptureScreen { get; set; } = string.Empty;
 
         public bool LightTheme { get; set; }
+
+        public string Theme { get; set; } = string.Empty;
+
+        public bool CustomThemeLight { get; set; }
+
+        public Dictionary<string, string>? CustomThemeColors { get; set; } = new();
     }
 }

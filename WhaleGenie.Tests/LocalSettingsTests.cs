@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Avalonia.Controls;
@@ -133,6 +134,27 @@ public class LocalSettingsTests
 
             window.Close();
         }));
+    }
+
+    [Fact]
+    public void An_old_theme_choice_migrates_and_a_custom_palette_round_trips()
+    {
+        InOwnFile(_ =>
+        {
+            LocalSettings.StoreLightTheme(true);
+            Assert.Equal(ThemeMode.Light, LocalSettings.LoadTheme().Mode);
+
+            var colors = new Dictionary<string, string>(ThemePalette.Defaults(light: false))
+            {
+                ["AppAccent"] = "#112233",
+            };
+            LocalSettings.StoreTheme(new ThemeSelection(ThemeMode.Custom, false, colors));
+
+            var loaded = LocalSettings.LoadTheme();
+            Assert.Equal(ThemeMode.Custom, loaded.Mode);
+            Assert.False(loaded.CustomBaseLight);
+            Assert.Equal("#112233", loaded.CustomColors["AppAccent"]);
+        });
     }
 
     /// <summary>

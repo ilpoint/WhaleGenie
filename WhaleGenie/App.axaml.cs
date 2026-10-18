@@ -25,7 +25,7 @@ public partial class App : Application
         // refresh themselves when the table raises its change.
         Strings.Current.LanguageChanged += LanguageRefresh.Refresh;
 
-        ThemePalette.Apply(LocalSettings.LoadLightTheme());
+        ThemeController.Apply(ThemeController.Load());
         // Whether the virtual keyboard and mouse are to be put on the machine at startup was chosen
         // in the settings window and written beside the program; the engine does not read that file,
         // so it is told here, before anything can ask for driver-level input.

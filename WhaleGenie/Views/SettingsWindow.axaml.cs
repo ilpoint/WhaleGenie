@@ -3,7 +3,6 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Styling;
 using WhaleGenie.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.ViewModels;
@@ -25,18 +24,6 @@ public partial class SettingsWindow : Window
             closeButton.Click += (_, _) => Close();
         }
 
-        var themeSwitch = this.FindControl<ToggleSwitch>("LightThemeSwitch");
-        if (themeSwitch is not null)
-        {
-            themeSwitch.IsChecked = Application.Current?.ActualThemeVariant == ThemeVariant.Light;
-            themeSwitch.IsCheckedChanged += (_, _) =>
-            {
-                var light = themeSwitch.IsChecked == true;
-                ThemePalette.Apply(light);
-                LocalSettings.StoreLightTheme(light);
-            };
-        }
-
         var doneButton = this.FindControl<Button>("DoneButton");
         if (doneButton is not null)
         {
@@ -49,6 +36,10 @@ public partial class SettingsWindow : Window
         MacroTriggerGate.Enter();
         Closed += (_, _) => MacroTriggerGate.Exit();
     }
+
+    /// <summary>Opens the palette editor over the settings window, keeping this window as its owner.</summary>
+    private async void OnCustomizeThemeClicked(object? sender, RoutedEventArgs e)
+        => await new ThemePaletteWindow().ShowDialogOver(this);
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {
