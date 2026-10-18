@@ -25,6 +25,14 @@ public static class ThemePalette
         ("AppHover", "#3C3C3C", "#D8D1C5"),
         ("AppDock", "#2A2A2A", "#EBE5DB"),
         ("AppSelected", "#4A2A20", "#FBEDE4"),
+        ("AppLabel", "#C8A165", "#8A6428"),
+        ("AppInfo", "#8FB3D9", "#2F6F9F"),
+        ("AppInfoSoft", "#2B3A4A", "#E3EEF8"),
+        ("AppWarning", "#E0A060", "#9A6418"),
+        ("AppDanger", "#E06C75", "#B23A3A"),
+        ("AppSuccess", "#7FC97F", "#2E7D4F"),
+        ("AppAccentSoft", "#4A342E", "#F6D9CB"),
+        ("AppAccentHover", "#D9502A", "#D9502A"),
     ];
 
     public static void Apply(bool light)

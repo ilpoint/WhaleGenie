@@ -86,7 +86,7 @@
 
         <!-- The writing the step read, in a box it can be copied out of. -->
         <Style Selector="TextBox.ReadText">
-            <Setter Property="Background" Value="#1F1F1F" />
+            <Setter Property="Background" Value="{DynamicResource AppGroup}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="4" />

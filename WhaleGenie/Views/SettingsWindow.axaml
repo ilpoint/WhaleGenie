@@ -34,7 +34,7 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Foreground" Value="#E4E4E4" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Padding" Value="10,6" />
             <Setter Property="Width" Value="200" />
@@ -54,7 +54,7 @@
         </Style>
         <Style Selector="Button.TitleBarButton">
             <Setter Property="Background" Value="{DynamicResource AppControl}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Width" Value="30" />
             <Setter Property="Height" Value="24" />
@@ -127,7 +127,7 @@
 
                 <TextBlock Classes="FieldLabel" Margin="2,18,0,6"
                            Text="{Binding [Settings.Driver], Source={x:Static loc:Strings.Current}}" />
-                <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap" Foreground="#E0A84A"
+                <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppWarning}"
                            Text="{Binding DriverStatus}" IsVisible="{Binding !DriverReady}" />
                 <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap" Foreground="#7BC17B"
                            Text="{Binding DriverStatus}" IsVisible="{Binding DriverReady}" />
@@ -147,7 +147,7 @@
 
                 <TextBlock Classes="FieldLabel" Margin="2,18,0,6"
                            Text="{Binding [Settings.Admin], Source={x:Static loc:Strings.Current}}" />
-                <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap" Foreground="#E0A84A"
+                <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap" Foreground="{DynamicResource AppWarning}"
                            Text="{Binding AdminStatus}" IsVisible="{Binding !IsElevated}" />
                 <TextBlock Classes="Muted" Margin="2,0,0,0" TextWrapping="Wrap" Foreground="#7BC17B"
                            Text="{Binding AdminStatus}" IsVisible="{Binding IsElevated}" />

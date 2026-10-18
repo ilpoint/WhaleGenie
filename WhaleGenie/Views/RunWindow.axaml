@@ -47,7 +47,7 @@
             <Setter Property="Background" Value="{DynamicResource AppField}" />
         </Style>
         <Style Selector="Button.Tab.active /template/ ContentPresenter">
-            <Setter Property="Background" Value="#C8401C" />
+            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
         </Style>
         <Style Selector="Button.Tab.active">
             <Setter Property="Foreground" Value="#FFFFFF" />
@@ -60,7 +60,7 @@
             <Setter Property="Margin" Value="0,0,0,5" />
         </Style>
         <Style Selector="TextBox.VarInput">
-            <Setter Property="Background" Value="#1F1F1F" />
+            <Setter Property="Background" Value="{DynamicResource AppGroup}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="4" />
@@ -70,7 +70,7 @@
             <Setter Property="MinHeight" Value="30" />
         </Style>
         <Style Selector="ComboBox.VarSelect">
-            <Setter Property="Background" Value="#1F1F1F" />
+            <Setter Property="Background" Value="{DynamicResource AppGroup}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="4" />
@@ -80,7 +80,7 @@
             <Setter Property="MinHeight" Value="30" />
         </Style>
         <Style Selector="Button.AddButton">
-            <Setter Property="Background" Value="#C8401C" />
+            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="12.5" />
@@ -136,7 +136,7 @@
         </Style>
 
         <Style Selector="Button.PrimaryButton">
-            <Setter Property="Background" Value="#C8401C" />
+            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="12.5" />
@@ -146,10 +146,10 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#D94C25" />
+            <Setter Property="Background" Value="{DynamicResource AppAccentHover}" />
         </Style>
         <Style Selector="Button.PrimaryButton:disabled /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4A322A" />
+            <Setter Property="Background" Value="{DynamicResource AppAccentSoft}" />
         </Style>
 
         <Style Selector="Border.RunRow">
@@ -897,11 +897,11 @@
             </ScrollViewer>
 
             <!-- ===================== Question ===================== -->
-            <Border Grid.Row="4" Background="#3A2A16" BorderBrush="#C8A165" BorderThickness="1"
+            <Border Grid.Row="4" Background="{DynamicResource AppAccentSoft}" BorderBrush="{DynamicResource AppLabel}" BorderThickness="1"
                     CornerRadius="6" Margin="14,10,14,0" Padding="14,10"
                     IsVisible="{Binding IsAsking}">
                 <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="{Binding Question}" FontSize="12.5" Foreground="#F0D9A8"
+                    <TextBlock Text="{Binding Question}" FontSize="12.5" Foreground="{DynamicResource AppWarning}"
                                TextWrapping="Wrap" VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                         <Button Classes="PrimaryButton" Content="{Binding [Run.AskRetry], Source={x:Static loc:Strings.Current}}"

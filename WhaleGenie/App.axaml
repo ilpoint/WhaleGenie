@@ -21,6 +21,15 @@
             <SolidColorBrush x:Key="AppGroup" Color="#1F1F1F" />
             <SolidColorBrush x:Key="AppHover" Color="#3C3C3C" />
             <SolidColorBrush x:Key="AppDock" Color="#2A2A2A" />
+            <SolidColorBrush x:Key="AppSelected" Color="#4A2A20" />
+            <SolidColorBrush x:Key="AppLabel" Color="#C8A165" />
+            <SolidColorBrush x:Key="AppInfo" Color="#8FB3D9" />
+            <SolidColorBrush x:Key="AppInfoSoft" Color="#2B3A4A" />
+            <SolidColorBrush x:Key="AppWarning" Color="#E0A060" />
+            <SolidColorBrush x:Key="AppDanger" Color="#E06C75" />
+            <SolidColorBrush x:Key="AppSuccess" Color="#7FC97F" />
+            <SolidColorBrush x:Key="AppAccentSoft" Color="#4A342E" />
+            <SolidColorBrush x:Key="AppAccentHover" Color="#D9502A" />
         </ResourceDictionary>
     </Application.Resources>
 
@@ -35,16 +44,16 @@
              expression builder's list of functions each stand one on screen, and one control with
              one look is worth a style above both windows rather than two that drift apart. -->
         <Style Selector="ListBox.Dock ListBoxItem">
-            <Setter Property="Background" Value="#333333" />
+            <Setter Property="Background" Value="{DynamicResource AppDock}" />
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="11,3" />
             <Setter Property="Margin" Value="0,0,6,0" />
         </Style>
         <Style Selector="ListBox.Dock ListBoxItem:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#454545" />
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
         </Style>
         <Style Selector="ListBox.Dock ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="#C8401C" />
+            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
         </Style>
 
         <!-- What comes up when the pointer rests on something. It is painted here rather than in a

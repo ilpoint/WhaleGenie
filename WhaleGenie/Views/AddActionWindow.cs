@@ -39,7 +39,7 @@ public class AddActionWindow : Window
         ExtendClientAreaToDecorationsHint = true;
         ExtendClientAreaTitleBarHeightHint = -1;
         WindowDecorations = WindowDecorations.BorderOnly;
-        Background = new SolidColorBrush(Color.Parse("#232323"));
+        Background = (IBrush?)Application.Current?.Resources["AppBackdrop"] ?? Brushes.Transparent;
 
         _view = new ActionEditorView(existing, actions, variables, macros, presetKey, assetFolder,
             steps, newStepId);

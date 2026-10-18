@@ -30,7 +30,7 @@
 
     <Window.Styles>
         <Style Selector="TextBlock.FieldLabel">
-            <Setter Property="Foreground" Value="#C8A165" />
+            <Setter Property="Foreground" Value="{DynamicResource AppLabel}" />
             <Setter Property="FontSize" Value="11.5" />
             <Setter Property="Margin" Value="2,0,0,6" />
         </Style>
@@ -42,7 +42,7 @@
         <!-- One part of the palette, and the box the whole palette stands in: reading what can go
              into a formula means seeing where one kind of thing stops and the next begins. -->
         <Style Selector="Border.Panel">
-            <Setter Property="Background" Value="#1F1F1F" />
+            <Setter Property="Background" Value="{DynamicResource AppGroup}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppField}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="6" />
@@ -125,7 +125,7 @@
             <Setter Property="Foreground" Value="#FFFFFF" />
         </Style>
         <Style Selector="Button.Tab.on /template/ ContentPresenter">
-            <Setter Property="Background" Value="#C8401C" />
+            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
         </Style>
 
         <!-- One line of the formula. Picking is what a click does, so the line says when it is the
@@ -139,12 +139,12 @@
             <Setter Property="Margin" Value="0,0,0,3" />
         </Style>
         <Style Selector="Border.Row.picked">
-            <Setter Property="Background" Value="#2B3A4A" />
-            <Setter Property="BorderBrush" Value="#4C7FA8" />
+            <Setter Property="Background" Value="{DynamicResource AppInfoSoft}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppInfo}" />
         </Style>
         <Style Selector="Border.Row.drop">
-            <Setter Property="Background" Value="#3A2E24" />
-            <Setter Property="BorderBrush" Value="#C8401C" />
+            <Setter Property="Background" Value="{DynamicResource AppSelected}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccent}" />
         </Style>
 
         <Style Selector="Border.Chip">
@@ -160,7 +160,7 @@
         </Style>
 
         <Style Selector="TextBlock.ArgLabel">
-            <Setter Property="Foreground" Value="#C8A165" />
+            <Setter Property="Foreground" Value="{DynamicResource AppLabel}" />
             <Setter Property="FontSize" Value="11.5" />
         </Style>
 
@@ -207,7 +207,7 @@
         </Style>
 
         <Style Selector="Button.PrimaryButton">
-            <Setter Property="Background" Value="#C8401C" />
+            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="FontSize" Value="13" />
@@ -216,10 +216,10 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.PrimaryButton:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#D9502A" />
+            <Setter Property="Background" Value="{DynamicResource AppAccentHover}" />
         </Style>
         <Style Selector="Button.PrimaryButton:disabled /template/ ContentPresenter">
-            <Setter Property="Background" Value="#4A342E" />
+            <Setter Property="Background" Value="{DynamicResource AppAccentSoft}" />
         </Style>
 
         <Style Selector="Button.TitleBarButton">
@@ -272,7 +272,7 @@
                 <ScrollViewer Grid.Row="2" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto"
                               IsVisible="{Binding IsTreePage}">
                     <StackPanel>
-                        <TextBlock Classes="Muted" Foreground="#E0A060" TextWrapping="Wrap"
+                        <TextBlock Classes="Muted" Foreground="{DynamicResource AppWarning}" TextWrapping="Wrap"
                                    Margin="2,0,0,6" Text="{Binding TreeCannotRead}"
                                    IsVisible="{Binding TextUnreadable}" />
                         <ItemsControl Name="TreeRows" ItemsSource="{Binding Rows}"
@@ -345,20 +345,20 @@
                              from: a reader who does not follow the formula can still check the logic
                              against it. -->
                         <TextBlock Name="SayingLine" Classes="Muted" TextWrapping="Wrap"
-                                   Foreground="#8FA8D8" Text="{Binding Saying}"
+                                   Foreground="{DynamicResource AppInfo}" Text="{Binding Saying}"
                                    IsVisible="{Binding ShowsSaying}" />
                         <TextBlock Classes="Muted" TextWrapping="Wrap" Text="{Binding TreeMessage}"
                                    IsVisible="{Binding ShowTreeNote}" />
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="#E06C75"
+                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppDanger}"
                                    Text="{Binding TreeMessage}" IsVisible="{Binding ShowTreeProblem}" />
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="#7FC97F"
+                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppSuccess}"
                                    Text="{Binding TreeMessage}" IsVisible="{Binding ShowTreeOk}" />
                         <!-- What the page written out by hand has to say about the text: the structure
                              page has said its own piece above, and two lines about the same formula
                              would be one line too many. -->
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="#E06C75"
+                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppDanger}"
                                    Text="{Binding Message}" IsVisible="{Binding ShowError}" />
-                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="#7FC97F"
+                        <TextBlock Classes="Muted" TextWrapping="Wrap" Foreground="{DynamicResource AppSuccess}"
                                    Text="{Binding Message}" IsVisible="{Binding ShowOk}" />
                     </StackPanel>
                 </Border>
@@ -483,9 +483,9 @@
                                         <ToolTip.Tip>
                                             <StackPanel MaxWidth="360" Spacing="4">
                                                 <TextBlock Text="{Binding Heading}" FontSize="12.5"
-                                                           Foreground="#F0F0F0" />
+                                                           Foreground="{DynamicResource AppText}" />
                                                 <TextBlock Text="{Binding WrittenAs}" FontSize="12"
-                                                           Foreground="#8FB3D9" TextWrapping="Wrap" />
+                                                           Foreground="{DynamicResource AppInfo}" TextWrapping="Wrap" />
                                                 <TextBlock Text="{Binding Hint}" FontSize="12"
                                                            Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
                                                 <ItemsControl ItemsSource="{Binding Arguments}"
@@ -496,7 +496,7 @@
                                                                   ColumnSpacing="6" Margin="0,3,0,0">
                                                                 <TextBlock Text="{Binding Label}"
                                                                            FontSize="11.5"
-                                                                           Foreground="#C8A165" />
+                                                                           Foreground="{DynamicResource AppLabel}" />
                                                                 <TextBlock Grid.Column="1"
                                                                            Text="{Binding Hint}"
                                                                            FontSize="11.5"
