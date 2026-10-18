@@ -64,8 +64,9 @@ public static class DriverInput
 
     /// <summary>
     /// Where the library sits beside the program. A source checkout and the output of a development
-    /// build have it next to the exe; a released copy keeps every dll one folder down in lib, and
-    /// this one goes there with the rest (see build/package.ps1), so both places are looked at.
+    /// build have it next to the exe; a released copy keeps its native libraries one folder down in
+    /// lib, this one included (see build/package.ps1), so both places are looked at. The managed
+    /// assemblies are inside the single-file exe and do not enter into it.
     /// </summary>
     private static bool BesideTheProgram()
     {

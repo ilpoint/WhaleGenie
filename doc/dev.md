@@ -15,6 +15,11 @@ dotnet format WhaleGenie.slnx --verify-no-changes --no-restore   # 格式检查
 dotnet run --project WhaleGenie                  # 启动程序
 ```
 
+解决方案只声明 `x64` 一个平台（`WhaleGenie.slnx`），没有 `Any CPU`：程序依赖的 OpenCV 与
+Playwright 驱动都只有 64 位。Debug 与 Release 都落在 x64 上，`dotnet build` / `dotnet test`
+不写 `-p:Platform` 也一样；根 `Directory.Build.props` 里的 `PlatformTarget` 让直接构建某个
+工程时也不会退回 32 位。
+
 构建把警告当成错误（`Directory.Build.props` 里的 `TreatWarningsAsErrors`），
 所以"能编译过"就等于"零警告"。
 
@@ -84,7 +89,7 @@ Get-ChildItem README.md,AGENTS.md,doc\*.md | Select-String -Pattern '\]\(([^)#]+
 | 包 | 在引擎里干什么 |
 | --- | --- |
 | `SharpHook` | 全局键盘鼠标钩子与注入：热键 / 鼠标按键 / 滚轮这些触发器，`input.*` 的前台路径，录制，以及各种拾取。名字只出现在引擎的钩子与注入实现里：钩子交出的是引擎自己的 `IInputHook` 与 `HookKey`、`HookMouseButton`、`HookWheelAxis` |
-| `libVIIPER` | 驱动级输入：把按键和指针交给虚拟键鼠对（`input.*` 的"驱动级"），以及虚拟手柄（`gamepad.*`，一只 Xbox 360）。它不是 NuGet 包，是上游 v0.9.0 的 Windows 原生库，放在 `third_party/libVIIPER/`（dll、头文件、它自己的许可说明和一份来源说明），由 `WhaleGenie.Core.csproj` 拷到 exe 旁边；服务端在程序自己的进程里跑，没有第二个程序 |
+| `libVIIPER` | 驱动级输入：把按键和指针交给虚拟键鼠对（`input.*` 的"驱动级"），以及虚拟手柄（`gamepad.*`，一只 Xbox 360）。它不是 NuGet 包，是上游 v0.9.0 的 Windows 原生库，放在 `third_party/libVIIPER/`（dll、头文件、它自己的许可说明和一份来源说明），由 `WhaleGenie.Core.csproj` 拷到 exe 旁边，发布时再随其余原生库进 `lib`；服务端在程序自己的进程里跑，没有第二个程序 |
 | `OpenCvSharp5.Windows` | 找图、找色、等图这类画面动作，以及 YOLO 检测（`vision.detect` 等三步）：OpenCV 的托管 API（`Cv2`、`Mat`、`Cv2.Dnn`）和它的 Windows 原生库。检测用的模型由用户自己带，包由引擎交给 `OpenCvDetectDevice` |
 | `Sdcb.SimdPaddleOCR`、`Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny` | 屏幕取字（OCR）：识别库和随包带的中文模型，不联网下载 |
 | `FlaUI.UIA3` | UI Automation：元素的取值、选择、勾选、展开、滚动到可见、读表格 |
@@ -414,9 +419,9 @@ git tag v0.01
 git push origin v0.01
 ```
 
-标签推上去之后，工作流会打两个包——一个要机器上有 .NET 桌面运行时，一个自己带着运行环境——
-自动建好 Release 并把两个包挂上去。标签名同时决定了压缩包的名字和 exe 里的版本号，所以只有
-一处要改；想在网页上发也行：Actions → Release → Run workflow，填一个版本号。
+标签推上去之后，工作流会打两个包——一个要机器上有 .NET 桌面运行时与 ASP.NET Core 运行时，一个
+自己带着运行环境——自动建好 Release 并把两个包挂上去。标签名同时决定了压缩包的名字和 exe 里的
+版本号，所以只有一处要改；想在网页上发也行：Actions → Release → Run workflow，填一个版本号。
 
 建 Release 需要写权限。仓库若把 Actions 的默认权限设成了只读，要在
 Settings → Actions → General → Workflow permissions 里放开一次。
@@ -425,60 +430,59 @@ Settings → Actions → General → Workflow permissions 里放开一次。
 
 | 包 | 自带运行环境 | 体积（x64 打包后 / 解压后） | 什么时候用 |
 | --- | --- | --- | --- |
-| `WhaleGenie-<版本>-win-x64.zip` | 否，要装 .NET 10 桌面运行时 | 117 MB / 300 MB | 体积最小；已经装过运行环境 |
-| `WhaleGenie-<版本>-win-x64-standalone.zip` | 是 | 189 MB / 471 MB | 换机器、给别人，什么都不用装 |
+| `WhaleGenie-<版本>-win-x64.zip` | 否，要装 .NET 10 桌面运行时与 ASP.NET Core 运行时 | 116 MB / 299 MB | 体积最小；已经装过运行环境 |
+| `WhaleGenie-<版本>-win-x64-standalone.zip` | 是 | 191 MB / 474 MB | 换机器、给别人，什么都不用装 |
 
 体积是本地这么量出来的：跑一次 `build/package.ps1`，`Expand-Archive` 解开两个 zip，再用
 `Get-ChildItem -Recurse -File | Measure-Object Length -Sum` 把文件长度加起来（前者是压缩后的，
 后者是解压后的）。换机器或换版本都要重新量。
 
-解压后那多出来的一大块主要是浏览器动作用的 Playwright 驱动（`WhaleGenie` 文件夹里的
-`.playwright`，约 100 MB，其中 node 一份就占 89 MB），它必须跟 exe 一起走，所以两个包都带着。
-这个驱动里只放 Windows 那一份 node（根 `Directory.Build.props` 里的 `PlaywrightPlatform`）：
-驱动原本给五个平台各带一份，别的平台的 node 在 Windows 上永远不会被执行，抄进去只是让每个包
-多出四百多兆。
+解压后占地方的主要是浏览器驱动（`.playwright`，约 100 MB，其中 node 一份就占 89 MB）和
+`lib` 里的原生库（OpenCV 的 `OpenCvSharpExtern.dll` 约 77 MB、ffmpeg 约 31 MB、Skia 约
+12 MB）。驱动必须跟 exe 一起走，所以两个包都带着。这个驱动里只放 Windows 那一份 node
+（根 `Directory.Build.props` 里的 `PlaywrightPlatform`）：驱动原本给五个平台各带一份，别的
+平台的 node 在 Windows 上永远不会被执行，抄进去只是让每个包多出四百多兆。
 
-不再出单文件包：exe 旁边的那些 dll 单文件版一样要在第一次启动时解压到系统临时目录，
-省下来的只是"拷一个文件"这点方便，却多一种要验的形态。
+便携包是单文件发布（`PublishSingleFile`）：托管的程序集都收进 `WhaleGenie.exe`，所以包根
+没有 `WhaleGenie.dll`、`WhaleGenie.Core.dll`、`deps.json`、`runtimeconfig.json`，也没有
+按语言分的资源文件夹。原生库没有一起塞进 exe：Windows 与这些库自己都按文件名找它们，程序
+启动时把 `lib` 交给 Windows 的查找路径（`Program.HookLibraryFolder`）；单文件把原生库解压到
+系统临时目录既慢，`DriverInput` 这类按路径判断"库在不在"的地方也会失准。项目里的
+`MoveNativeLibrariesIntoLib` 在 `dotnet publish` 之后把原生库收进 `lib`，所以直接
+`dotnet publish -r win-x64` 也得到同样的形状；打包脚本再补上手册、许可与驱动检查。
 
 两种包解开后形状一样，只有一个 `WhaleGenie` 文件夹，exe 就在最外层：
 
 ```
 WhaleGenie\
-    WhaleGenie.exe              ← 双击它
-    WhaleGenie.dll
-    WhaleGenie.deps.json
-    WhaleGenie.runtimeconfig.json
+    WhaleGenie.exe              ← 双击它；托管的程序集都在这个文件里
+    playwright.ps1              ← 装 Chromium / Firefox / WebKit 内核时用
+    .playwright\                ← 浏览器驱动，约 100 MB，必须和 exe 一起走
     LICENSE.txt                 ← 程序自己的许可，AGPL-3.0 原文
     NOTICE                      ← 项目名与版权署名
     THIRD-PARTY-NOTICES.md      ← 用到的别人的东西
     libVIIPER-LICENSES.txt      ← 虚拟 USB 库自己的许可说明（它的 dll 在 lib 里）
     doc\manual.md               ← 使用说明，帮助菜单的「快速上手」打开的就是这一份
-    lib\                    ← 程序用到的 dll 都在这一层文件夹里
+    lib\                        ← 原生库：OpenCV、ffmpeg、Skia、HarfBuzz、uiohook、libVIIPER
 ```
 
-驱动级输入那个 `libVIIPER.dll` 也在 `lib` 里：它是原生库，跟着其余 dll 一起搬过去，程序启动时
-把 `lib` 交给 Windows 的查找路径（`Program.HookLibraryFolder`），按名字就能找到它。开发目录里
-它就在 exe 旁边，两种形状都认（`DriverInput.LibraryPresent`）。包根那份 `libVIIPER-LICENSES.txt`
-是打包脚本从 `third_party/libVIIPER/licenses.txt` 抄过来的。
+驱动级输入那个 `libVIIPER.dll` 也在 `lib` 里：它是原生库，跟着其余原生库一起搬过去，程序
+启动时把 `lib` 交给 Windows 的查找路径（`Program.HookLibraryFolder`），按名字就能找到它。
+开发目录里它就在 exe 旁边，两种形状都认（`DriverInput.LibraryPresent`）。包根那份
+`libVIIPER-LICENSES.txt` 是打包脚本从 `third_party/libVIIPER/licenses.txt` 抄过来的。
 
 程序按 AGPL-3.0 授权：条款原文随包里的 `LICENSE.txt` 发，署名在 `NOTICE` 里，两份都放在包根；对应源码就是
 本仓库里这个标签。`LICENSE.txt` 是许可原文，一字未改——GitHub 是靠文件内容认协议的，在它前后加项目名或
 版权行会让主页显示成"Other"，所以这两份的行尾转换在 `.gitattributes` 里关掉了，仓库里存什么字节，取出来
 就是什么字节。
 
-自带运行时的那一个，根目录还会多出 .NET 运行时自己的十来个文件（`hostfxr.dll`、`coreclr.dll`
-这些）。它们必须和 exe 放在一起：宿主是先找 `hostpolicy`、再找 `coreclr`、再由 `coreclr` 找
-JIT 和核心库的，都按"exe 所在目录"找，放进 `lib` 程序连报错的机会都没有。其余两百多个 dll
-都在 `lib` 里，运行时按清单（`WhaleGenie.deps.json`）里的路径去那儿取，清单里的路径在打包时
-跟着一起改写。
-
-体积里不含调试符号：打包时会把 `.pdb` 删掉，它比程序本身还大（Skia 一份就 80 MB）。不做裁剪
-（`PublishTrimmed`）：Avalonia 的 XAML、UIA 和 OCR 都靠反射找类型，裁了就得一个动作一个动作地
-验，不值当；体积几乎全在原生库上（OpenCV 的 `OpenCvSharpExtern.dll` 约 73 MB、ffmpeg 约 29 MB，
-加上 OCR 模型、Skia、HarfBuzz）。运行 C# 脚本用的 Roslyn 与 NuGet 客户端也在里面，解压后一共
-约 19 MB，其中约 6.5 MB 是编译器自带的二十几种语言的提示文字：留着它，脚本编译不过时的提示
-跟着界面语言走（中文系统上就是中文）。
+体积里不含调试符号：发布时 `DebugType` 关掉托管 pdb，项目里的 `DropPublishSymbols` 再把
+SkiaSharp 与 HarfBuzzSharp 当作内容文件抄进来的原生 pdb 从发布清单里摘掉（Skia 一份就 80 MB）。
+不做裁剪（`PublishTrimmed`）：Avalonia 的 XAML、UIA 和 OCR 都靠反射找类型，裁了就得一个动作
+一个动作地验，不值当；体积几乎全在原生库上（OpenCV 的 `OpenCvSharpExtern.dll` 约 77 MB、
+ffmpeg 约 31 MB，加上 OCR 模型、Skia、HarfBuzz）。运行 C# 脚本用的 Roslyn 与 NuGet 客户端
+也在 exe 里，解压后一共约 19 MB；编译器的语言提示只留程序会显示的英文与简体中文两份
+（`SatelliteResourceLanguages`），其余语言的卫星资源不进包。
 
 本地想打同样的包，跑打包脚本就行——工作流里跑的也是它：
 

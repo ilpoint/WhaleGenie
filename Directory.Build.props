@@ -16,6 +16,15 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
 
+    <!--
+      整个仓库只做 64 位。程序靠的几样原生库——OpenCV（找图找色）和 Playwright 的驱动（浏览器
+      动作）——都只有 64 位一份，32 位 Windows 上装了也跑不起来。写在根目录是让引擎、界面与三个
+      测试工程一起按 x64 编译和运行：没有 Any CPU 那条要另测的路，拿到 32 位机器上也会直接说
+      这个程序跑不了，而不是进去以后在某个动作上莫名其妙地失败。
+    -->
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+
     <!-- A warning is a defect that has not been fixed yet, so the build stops on one. -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Deterministic>true</Deterministic>
